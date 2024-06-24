@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,43 +24,16 @@ SOFTWARE.
 
 */
 
-    .set push
-    .set noreorder
-    .section .ramtext, "ax", @progbits
-    .align 2
-    .global cpu_delayed_load
-    .type cpu_delayed_load, @function
+#include "binpath.h"
 
-/* This can happen. */
-/* uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load:
-    lw    $a1, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
+#ifdef __linux__
 
-    .align 2
-    .global cpu_delayed_load_cancelled
-    .type cpu_delayed_load_cancelled, @function
+#include <unistd.h>
 
-/* This happens even more frequently. */
-/* uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_cancelled:
-    lw    $v0, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
+std::u8string PCSX::BinPath::getExecutablePath() {
+    char8_t buffer[BUFSIZ];
+    readlink("/proc/self/exe", (char*)buffer, BUFSIZ);
+    return std::u8string(buffer);
+}
 
-    .align 2
-    .global cpu_delayed_load_load
-    .type cpu_delayed_load_load, @function
-
-/* This is extremely infrequent */
-/* uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_load:
-    lw    $a1, 0($a0)
-    lw    $a1, 4($a0)
-    move  $v0, $a1
-    move  $v1, $a1
-    jr    $ra
-    nop
+#endif

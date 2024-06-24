@@ -545,7 +545,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     if (vg) {
         g_system->findResource(
             [vg](auto path) -> bool {
-                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                int res = nvgCreateFont(vg, "noto-sans-regular", (const char*)(path.u8string().c_str()));
                 return res >= 0;
             },
             MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
@@ -598,7 +598,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         finishLoadSettings();
 
         if (!g_system->getArgs().isUpdateDisabled() && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
-            !g_system->getVersion().failed()) {
+            !g_system->getVersion().failed() && g_system->getVersion().hasUpdateInfo()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -688,8 +688,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
 
     m_mainVRAMviewer.setMain();
-    m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
-    m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
+    m_mainVRAMviewer.setTitle(l_("Main VRAM Viewer"));
+    m_clutVRAMviewer.setTitle(l_("CLUT VRAM selector"));
     m_memcardManager.initTextures();
 
     unsigned counter = 1;
@@ -708,11 +708,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         counter++;
     }
-    m_parallelPortEditor.title = []() { return _("Parallel Port"); };
-    m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
-    m_hwrEditor.title = []() { return _("Hardware Registers"); };
-    m_biosEditor.title = []() { return _("BIOS"); };
-    m_vramEditor.title = []() { return _("VRAM"); };
+    m_parallelPortEditor.title = l_("Parallel Port");
+    m_scratchPadEditor.title = l_("Scratch Pad");
+    m_hwrEditor.title = l_("Hardware Registers");
+    m_biosEditor.title = l_("BIOS");
+    m_vramEditor.title = l_("VRAM");
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
         constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
@@ -733,6 +733,28 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
 
+    auto exportFn = [](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
+        std::filesystem::path writeFilepath =
+            g_system->getPersistentDir() / (s_gui->getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+        IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
+        if (!f->failed()) {
+            f->write(data, len);
+            f->close();
+            g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
+        } else {
+            g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
+        }
+    };
+#define EXPORT_FUNC(name) [=](ImU8* data, size_t len, size_t base_addr) { exportFn(data, len, base_addr, name); }
+    for (auto& editor : m_mainMemEditors) {
+        editor.editor.ExportFn = EXPORT_FUNC("wram");
+    }
+    m_parallelPortEditor.editor.ExportFn = EXPORT_FUNC("parallel");
+    m_scratchPadEditor.editor.ExportFn = EXPORT_FUNC("scratch");
+    m_hwrEditor.editor.ExportFn = EXPORT_FUNC("hwr");
+    m_biosEditor.editor.ExportFn = EXPORT_FUNC("bios");
+    m_vramEditor.editor.ExportFn = EXPORT_FUNC("vram");
+
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
 
@@ -740,6 +762,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
+        const uint32_t editorNum = event.editorNum;
+        const bool forceShowEditor = event.forceShowEditor;
         auto changeDataType = [](MemoryEditor* editor, int size) {
             bool isSigned = false;
             switch (editor->PreviewDataType) {
@@ -764,11 +788,13 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
             if (real < 0x00800000) {
-                m_mainMemEditors[0].editor.GotoAddrAndHighlight(real, real + size);
-                changeDataType(&m_mainMemEditors[0].editor, size);
+                if (forceShowEditor) m_mainMemEditors[editorNum].m_show = true;
+                m_mainMemEditors[editorNum].editor.GotoAddrAndHighlight(real, real + size);
+                changeDataType(&m_mainMemEditors[editorNum].editor, size);
             }
         } else if (base == 0x1f8) {
             if (real >= 0x1000 && real < 0x3000) {
+                if (forceShowEditor) m_hwrEditor.m_show = true;
                 m_hwrEditor.editor.GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
                 changeDataType(&m_hwrEditor.editor, size);
             }
@@ -1646,7 +1672,7 @@ their TV set to match the aspect ratio of the game.)"));
     }
 
     if (!g_system->getArgs().isUpdateDisabled() && !g_system->getVersion().failed() &&
-        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+        g_system->getVersion().hasUpdateInfo() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
@@ -1990,11 +2016,7 @@ when changing this setting.)"));
         }
 
         {
-            static const std::function<const char*()> types[] = {
-                []() { return _("Auto"); },
-                []() { return _("NTSC"); },
-                []() { return _("PAL"); },
-            };
+            static const std::function<const char*()> types[] = {l_("Auto"), l_("NTSC"), l_("PAL")};
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
             if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)]())) {
@@ -2230,9 +2252,8 @@ void PCSX::GUI::interruptsScaler() {
 
 bool PCSX::GUI::showThemes() {
     static const std::function<const char*()> imgui_themes[] = {
-        []() { return _("Default theme"); }, []() { return _("Classic"); }, []() { return _("Light"); },
-        []() { return _("Cherry"); },        []() { return _("Mono"); },    []() { return _("Dracula"); },
-        []() { return _("Olive"); },
+        l_("Default theme##Theme name"), l_("Classic##Theme name"), l_("Light##Theme name"), l_("Cherry##Theme name"),
+        l_("Mono##Theme name"),          l_("Dracula##Theme name"), l_("Olive##Theme name"),
     };
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;

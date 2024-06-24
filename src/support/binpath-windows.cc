@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,43 +24,20 @@ SOFTWARE.
 
 */
 
-    .set push
-    .set noreorder
-    .section .ramtext, "ax", @progbits
-    .align 2
-    .global cpu_delayed_load
-    .type cpu_delayed_load, @function
+// Needs to stay on top
+#include "windowswrapper.h"
+// Because MSVC is a special snowflake
+#include "binpath.h"
 
-/* This can happen. */
-/* uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load:
-    lw    $a1, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
+#ifdef _WIN32
 
-    .align 2
-    .global cpu_delayed_load_cancelled
-    .type cpu_delayed_load_cancelled, @function
+std::u8string PCSX::BinPath::getExecutablePath() {
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(nullptr, path, MAX_PATH);
+    auto needed = WideCharToMultiByte(CP_UTF8, 0, path, -1, NULL, 0, NULL, NULL);
+    std::u8string result(needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, path, -1, (LPSTR)result.data(), needed, NULL, NULL);
+    return result;
+}
 
-/* This happens even more frequently. */
-/* uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_cancelled:
-    lw    $v0, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
-
-    .align 2
-    .global cpu_delayed_load_load
-    .type cpu_delayed_load_load, @function
-
-/* This is extremely infrequent */
-/* uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_load:
-    lw    $a1, 0($a0)
-    lw    $a1, 4($a0)
-    move  $v0, $a1
-    move  $v1, $a1
-    jr    $ra
-    nop
+#endif

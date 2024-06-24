@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2024 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,43 +24,23 @@ SOFTWARE.
 
 */
 
-    .set push
-    .set noreorder
-    .section .ramtext, "ax", @progbits
-    .align 2
-    .global cpu_delayed_load
-    .type cpu_delayed_load, @function
+#include "binpath.h"
 
-/* This can happen. */
-/* uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load:
-    lw    $a1, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
+#if defined(__APPLE__) && defined(__MACH__)
 
-    .align 2
-    .global cpu_delayed_load_cancelled
-    .type cpu_delayed_load_cancelled, @function
+#include <CoreFoundation/CoreFoundation.h>
 
-/* This happens even more frequently. */
-/* uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_cancelled:
-    lw    $v0, 0($a0)
-    move  $v0, $a1
-    jr    $ra
-    nop
+#include <stdexcept>
 
-    .align 2
-    .global cpu_delayed_load_load
-    .type cpu_delayed_load_load, @function
+std::u8string PCSX::BinPath::getExecutablePath() {
+    CFBundleRef mainBundle = CFBundleGetMainBundle();
+    CFURLRef execURL = CFBundleCopyExecutableURL(mainBundle);
+    char8_t path[PATH_MAX];
+    if (!CFURLGetFileSystemRepresentation(execURL, TRUE, (UInt8 *)path, PATH_MAX)) {
+        throw std::runtime_error("Could not get executable path");
+    }
+    CFRelease(execURL);
+    return std::u8string(path);
+}
 
-/* This is extremely infrequent */
-/* uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override); */
-cpu_delayed_load_load:
-    lw    $a1, 0($a0)
-    lw    $a1, 4($a0)
-    move  $v0, $a1
-    move  $v1, $a1
-    jr    $ra
-    nop
+#endif
