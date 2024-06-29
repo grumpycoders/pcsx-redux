@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include <EASTL/array.h>
 
-#include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/fixed-point.hh"
 #include "psyqo/font.hh"

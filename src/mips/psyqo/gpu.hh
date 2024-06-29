@@ -372,6 +372,14 @@ class GPU {
     bool isChainTransferred() const;
 
     /**
+     * @brief Waits until the background DMA transfer operation initiated by a frame flip is complete.
+     *
+     */
+    void waitChainIdle() {
+        while (isChainTransferring()) pumpCallbacks();
+    }
+
+    /**
      * @brief Gets the current timestamp in microseconds.
      *
      * @details The current timestamp is in microseconds. It will wrap around after a bit more than
@@ -501,7 +509,7 @@ class GPU {
     uint32_t *m_chainHead = nullptr;
     uint32_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
-    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus = CHAIN_IDLE;
     struct Timer {
         eastl::function<void(uint32_t)> callback;
         uint32_t deadline;
