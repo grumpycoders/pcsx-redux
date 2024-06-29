@@ -200,9 +200,9 @@
             "remote": true,
             "stopAtConnect": true,
             "executable": "./src/mips/psyqo/examples/torus/torus.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
+            "gdbpath": "gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "gdbpath": "gdb-multiarch.exe"
             },
             "cwd": "${workspaceRoot}",
             "autorun": [
