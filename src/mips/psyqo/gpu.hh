@@ -63,10 +63,14 @@ namespace timer_literals {
  * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
  * fires every second.
  */
-constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
-constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
-constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
-constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+consteval uint32_t operator""_us(unsigned long long int value) { return value; }
+consteval uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+consteval uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(long double value) { return value / 1'000; }
+consteval uint32_t operator""_us(long double value) { return value; }
+consteval uint32_t operator""_ms(long double value) { return value * 1'000; }
+consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
 
 }  // namespace timer_literals
 
