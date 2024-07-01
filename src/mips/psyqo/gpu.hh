@@ -63,10 +63,14 @@ namespace timer_literals {
  * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
  * fires every second.
  */
-constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
-constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
-constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
-constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+consteval uint32_t operator""_us(unsigned long long int value) { return value; }
+consteval uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+consteval uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(long double value) { return value / 1'000; }
+consteval uint32_t operator""_us(long double value) { return value; }
+consteval uint32_t operator""_ms(long double value) { return value * 1'000; }
+consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
 
 }  // namespace timer_literals
 
@@ -85,6 +89,7 @@ class GPU {
     enum class VideoMode { AUTO, NTSC, PAL };
     enum class ColorMode { C15BITS, C24BITS };
     enum class Interlace { PROGRESSIVE, INTERLACED };
+    enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
     void initialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
