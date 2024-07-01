@@ -117,9 +117,11 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     syscall_enableEvent(event);
     syscall_enableTimerIRQ(3);
     syscall_setTimerAutoAck(3, 1);
-    Prim::FastFill ff;
-    ff.rect = Rect{0, 0, 1024, 512};
-    sendPrimitive(ff);
+    if (config.clearVRAM) {
+        Prim::FastFill ff;
+        ff.rect = Rect{0, 0, 1024, 512};
+        sendPrimitive(ff);
+    }
     // Enable Display
     Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);

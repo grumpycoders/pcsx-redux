@@ -80,6 +80,17 @@ struct psyqo::GPU::Configuration {
         config.vResolution = interlace == Interlace::INTERLACED ? VR_480 : VR_240;
         return *this;
     }
+    Configuration &set(MiscSetting setting) {
+        switch (setting) {
+            case MiscSetting::CLEAR_VRAM:
+                clearVRAM = true;
+                break;
+            case MiscSetting::KEEP_VRAM:
+                clearVRAM = false;
+                break;
+        }
+        return *this;
+    }
 
   private:
     enum HResolution {
@@ -125,5 +136,7 @@ struct psyqo::GPU::Configuration {
     };
 
     DisplayModeConfig config = {};
+    bool clearVRAM = true;
+
     friend class GPU;
 };
