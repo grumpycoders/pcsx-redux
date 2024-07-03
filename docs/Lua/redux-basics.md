@@ -184,3 +184,48 @@ This allows distributing complex "mods" as zip files, which can be loaded and ex
     - 4-bit stereo: 112 samples aka 448 bytes
     - 8-bit mono: 112 samples aka 224 bytes
     - 8-bit stereo: 56 samples aka 224 bytes
+
+Using the encoder to process an input audio file is as simple as:
+
+```lua
+function encodeAudioLoop(inputFile, outputFile)
+  local closeInput = false
+  if type(inputFile) == 'string' then
+    inputFile = Support.File.open(inputFile)
+    closeInput = true
+  end
+  local audio = Support.File.ffmpegAudioFile(inputFile, {
+    channels = 'Mono',
+    frequency = 22050
+  })
+
+  local closeOutput = false
+  if type(outputFile) == 'string' then
+    outputFile = Support.File.open(outputFile, 'TRUNCATE')
+    closeOutput = true
+  end
+  local blockCount = math.floor(a:size() / (2 * 28))
+  local bufferIn = ffi.new('int16_t[28]')
+  local bufferOut = Support.NewLuaBuffer(16)
+
+  local encoder = PCSX.Adpcm.NewEncoder()
+  encoder:reset 'Normal'
+
+  for i = 1, blockCount do
+    audio:read(bufferIn, 28 * 2)
+    local blockType = 'LoopBody'
+    if i == 1 then blockType = 'LoopStart'
+    if i == blockCount then blockType = 'LoopEnd'
+    encoder:processSPUBlock(bufferIn, bufferOut, blockType)
+    outputFile:write(bufferOut)
+  end
+
+  if closeInput then
+    inputFile:close()
+  end
+  if closeOutput then
+    outputFile:close()
+  end
+  audio:close()
+end
+```
