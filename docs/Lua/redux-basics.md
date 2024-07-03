@@ -214,8 +214,8 @@ function encodeAudioLoop(inputFile, outputFile)
   for i = 1, blockCount do
     audio:read(bufferIn, 28 * 2)
     local blockType = 'LoopBody'
-    if i == 1 then blockType = 'LoopStart'
-    if i == blockCount then blockType = 'LoopEnd'
+    if i == 1 then blockType = 'LoopStart' end
+    if i == blockCount then blockType = 'LoopEnd' end
     encoder:processSPUBlock(bufferIn, bufferOut, blockType)
     outputFile:write(bufferOut)
   end
