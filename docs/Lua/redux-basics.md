@@ -204,7 +204,7 @@ function encodeAudioLoop(inputFile, outputFile)
     outputFile = Support.File.open(outputFile, 'TRUNCATE')
     closeOutput = true
   end
-  local blockCount = math.floor(a:size() / (2 * 28))
+  local blockCount = math.floor(audio:size() / (2 * 28))
   local bufferIn = ffi.new('int16_t[28]')
   local bufferOut = Support.NewLuaBuffer(16)
 
