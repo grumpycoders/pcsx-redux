@@ -733,9 +733,9 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
 
-    auto exportFn = [](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
+    auto exportFn = [this](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
         std::filesystem::path writeFilepath =
-            g_system->getPersistentDir() / (s_gui->getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+            g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
         IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
         if (!f->failed()) {
             f->write(data, len);

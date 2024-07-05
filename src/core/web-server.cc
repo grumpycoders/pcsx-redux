@@ -537,7 +537,7 @@ class StateExecutor : public PCSX::WebExecutor {
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
         if (PCSX::g_gui == nullptr) {
-            client->write("HTTP/1.1 400 Bad Request\r\n\r\nSave states unavailable in CLI/no-UI mode.");
+            client->write("HTTP/1.1 500 Internal Server Error\r\n\r\nSave states unavailable in CLI/no-UI mode.");
             return false;
         }
         auto path = request.urlData.path.substr(c_prefix.length());
@@ -595,7 +595,7 @@ class StateExecutor : public PCSX::WebExecutor {
                             message =
                                 fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot index {} {} successful.", slot, path);
                         } else {
-                            message = fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nState slot index {} {} failed.",
+                            message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nState slot index {} {} failed.",
                                                   slot, path);
                         }
                     }
@@ -634,7 +634,7 @@ class StateExecutor : public PCSX::WebExecutor {
                             message =
                                 fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot name \"{}\" {} successful.", name, path);
                         } else {
-                            message = fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nState slot name \"{}\" {} failed.",
+                            message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nState slot name \"{}\" {} failed.",
                                                   name, path);
                         }
                     }
@@ -651,57 +651,6 @@ class StateExecutor : public PCSX::WebExecutor {
     StateExecutor() = default;
     virtual ~StateExecutor() = default;
 };
-
-clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot) {
-    clip::image_spec spec;
-    spec.width = screenshot.width;
-    spec.height = screenshot.height;
-    if (screenshot.bpp == PCSX::GPU::ScreenShot::BPP_16) {
-        spec.bits_per_pixel = 16;
-        spec.bytes_per_row = screenshot.width * 2;
-        spec.red_mask = 0x1f;  // 0x7c00;
-        spec.green_mask = 0x3e0;
-        spec.blue_mask = 0x7c00;  // 0x1f;
-        spec.alpha_mask = 0;
-        spec.red_shift = 0;  // 10;
-        spec.green_shift = 5;
-        spec.blue_shift = 10;  // 0;
-        spec.alpha_shift = 0;
-    } else {
-        spec.bits_per_pixel = 24;
-        spec.bytes_per_row = screenshot.width * 3;
-        spec.red_mask = 0xff0000;
-        spec.green_mask = 0xff00;
-        spec.blue_mask = 0xff;
-        spec.alpha_mask = 0;
-        spec.red_shift = 16;
-        spec.green_shift = 8;
-        spec.blue_shift = 0;
-        spec.alpha_shift = 0;
-    }
-    clip::image img(screenshot.data.data(), spec);
-    return img.to_rgba8888();
-}
-
-bool writeImagePNG(std::string filename, clip::image&& img) { return img.export_to_png(filename); }
-
-bool writeImagePNG(PCSX::WebClient* client, clip::image&& img) {
-    std::vector<uint8_t> pngData;
-    bool success = img.export_to_png(pngData);
-    if (!success) {
-        client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
-        return false;
-    }
-    client->write(std::string("HTTP/1.1 200 OK\r\n"));
-    client->write(std::string("Cache-Control: no-cache, must-revalidate\r\n"));
-    client->write(std::string("Expires: Fri, 31 Dec 1999 23:59:59 GMT\r\n"));
-    client->write(std::string("Content-Type: image/png\r\n"));
-    client->write(std::string("Content-Length: " + std::to_string(pngData.size()) + "\r\n\r\n"));
-    PCSX::Slice slice;
-    slice.copy(pngData.data(), pngData.size());
-    client->write(std::move(slice));
-    return true;
-}
 
 class ScreenExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
@@ -734,7 +683,7 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     message =
                         fmt::format("HTTP/1.1 200 OK\r\n\r\nScreenshot saved successfully to \"{}\".", path.string());
                 } else {
-                    message = fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nFailed to save screenshot to \"{}\".",
+                    message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to save screenshot to \"{}\".",
                                           path.string());
                 }
                 client->write(std::move(message));
@@ -747,6 +696,54 @@ class ScreenExecutor : public PCSX::WebExecutor {
             }
         }
         return false;
+    }
+    clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot) {
+        clip::image_spec spec;
+        spec.width = screenshot.width;
+        spec.height = screenshot.height;
+        if (screenshot.bpp == PCSX::GPU::ScreenShot::BPP_16) {
+            spec.bits_per_pixel = 16;
+            spec.bytes_per_row = screenshot.width * 2;
+            spec.red_mask = 0x1f;  // 0x7c00;
+            spec.green_mask = 0x3e0;
+            spec.blue_mask = 0x7c00;  // 0x1f;
+            spec.alpha_mask = 0;
+            spec.red_shift = 0;  // 10;
+            spec.green_shift = 5;
+            spec.blue_shift = 10;  // 0;
+            spec.alpha_shift = 0;
+        } else {
+            spec.bits_per_pixel = 24;
+            spec.bytes_per_row = screenshot.width * 3;
+            spec.red_mask = 0xff0000;
+            spec.green_mask = 0xff00;
+            spec.blue_mask = 0xff;
+            spec.alpha_mask = 0;
+            spec.red_shift = 16;
+            spec.green_shift = 8;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        }
+        clip::image img(screenshot.data.data(), spec);
+        return img.to_rgba8888();
+    }
+    bool writeImagePNG(std::string filename, clip::image&& img) { return img.export_to_png(filename); }
+    bool writeImagePNG(PCSX::WebClient* client, clip::image&& img) {
+        std::vector<uint8_t> pngData;
+        bool success = img.export_to_png(pngData);
+        if (!success) {
+            client->write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+            return false;
+        }
+        client->write(std::string("HTTP/1.1 200 OK\r\n"));
+        client->write(std::string("Cache-Control: no-cache, must-revalidate\r\n"));
+        client->write(std::string("Expires: Fri, 31 Dec 1999 23:59:59 GMT\r\n"));
+        client->write(std::string("Content-Type: image/png\r\n"));
+        client->write(std::string("Content-Length: " + std::to_string(pngData.size()) + "\r\n\r\n"));
+        PCSX::Slice slice;
+        slice.copy(pngData.data(), pngData.size());
+        client->write(std::move(slice));
+        return true;
     }
 
   public:
