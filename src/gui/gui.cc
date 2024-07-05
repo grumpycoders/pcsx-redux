@@ -733,6 +733,28 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
 
+    auto exportFn = [](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
+        std::filesystem::path writeFilepath =
+            g_system->getPersistentDir() / (s_gui->getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+        IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
+        if (!f->failed()) {
+            f->write(data, len);
+            f->close();
+            g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
+        } else {
+            g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
+        }
+    };
+#define EXPORT_FUNC(name) [=](ImU8* data, size_t len, size_t base_addr) { exportFn(data, len, base_addr, name); }
+    for (auto& editor : m_mainMemEditors) {
+        editor.editor.ExportFn = EXPORT_FUNC("wram");
+    }
+    m_parallelPortEditor.editor.ExportFn = EXPORT_FUNC("parallel");
+    m_scratchPadEditor.editor.ExportFn = EXPORT_FUNC("scratch");
+    m_hwrEditor.editor.ExportFn = EXPORT_FUNC("hwr");
+    m_biosEditor.editor.ExportFn = EXPORT_FUNC("bios");
+    m_vramEditor.editor.ExportFn = EXPORT_FUNC("vram");
+
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
 
@@ -740,6 +762,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
+        const uint32_t editorNum = event.editorNum;
+        const bool forceShowEditor = event.forceShowEditor;
         auto changeDataType = [](MemoryEditor* editor, int size) {
             bool isSigned = false;
             switch (editor->PreviewDataType) {
@@ -764,11 +788,13 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
             if (real < 0x00800000) {
-                m_mainMemEditors[0].editor.GotoAddrAndHighlight(real, real + size);
-                changeDataType(&m_mainMemEditors[0].editor, size);
+                if (forceShowEditor) m_mainMemEditors[editorNum].m_show = true;
+                m_mainMemEditors[editorNum].editor.GotoAddrAndHighlight(real, real + size);
+                changeDataType(&m_mainMemEditors[editorNum].editor, size);
             }
         } else if (base == 0x1f8) {
             if (real >= 0x1000 && real < 0x3000) {
+                if (forceShowEditor) m_hwrEditor.m_show = true;
                 m_hwrEditor.editor.GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
                 changeDataType(&m_hwrEditor.editor, size);
             }

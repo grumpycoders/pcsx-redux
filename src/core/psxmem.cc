@@ -273,7 +273,6 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
         auto L = *g_emulator->m_lua;
         const uint8_t ret = L.tonumber();
         L.pop();
-        g_system->log(LogClass::HARDWARE, _("8-bit read redirected to Lua for address: %8.8lx\n"), address);
         return ret;
     } else if (address == 0x1f000004 || address == 0x1f000084) {
         // EXP1 not mapped, likely the bios looking for pre/post boot entry point
@@ -310,7 +309,6 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
         auto L = *g_emulator->m_lua;
         const uint16_t ret = L.tonumber();
         L.pop();
-        g_system->log(LogClass::HARDWARE, _("16-bit read redirected to Lua for address: %8.8lx\n"), address);
         return ret;
     } else if (isiCacheEnabled()) {
         g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
@@ -345,7 +343,6 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
         auto L = *g_emulator->m_lua;
         const uint32_t ret = L.tonumber();
         L.pop();
-        g_system->log(LogClass::HARDWARE, _("32-bit read redirected to Lua for address: %8.8lx\n"), address);
         return ret;
     } else if (isiCacheEnabled()) {
         g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
@@ -449,7 +446,6 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
         g_emulator->m_pioCart->write8(address, value);
     } else if (sendWriteToLua(address, 1, value)) {
-        g_system->log(LogClass::HARDWARE, _("8-bit write redirected to Lua for address: %8.8lx\n"), address);
     } else if (isiCacheEnabled()) {
         g_emulator->m_cpu->Clear(address, 1);
         g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
@@ -479,7 +475,6 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
         g_emulator->m_pioCart->write16(address, value);
     } else if (sendWriteToLua(address, 2, value)) {
-        g_system->log(LogClass::HARDWARE, _("16-bit write redirected to Lua for address: %8.8lx\n"), address);
     } else if (isiCacheEnabled()) {
         g_emulator->m_cpu->Clear(address, 1);
         g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
@@ -527,7 +522,6 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
                 break;
         }
     } else if (sendWriteToLua(address, 4, value)) {
-        g_system->log(LogClass::HARDWARE, _("32-bit write redirected to Lua for address: %8.8lx\n"), address);
     } else if (isiCacheEnabled()) {
         g_emulator->m_cpu->Clear(address, 1);
         g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);

@@ -482,7 +482,7 @@ void PadsImpl::reset() {
 }
 
 void PadsImpl::Pad::reset() {
-    m_analogMode = false;
+    // m_analogMode = false;
     m_configMode = false;
     m_cmd = magic_enum::enum_integer(PadCommands::Idle);
     m_bufferLen = 0;
@@ -882,7 +882,7 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
         if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
             const int key = pad.m_settings.get<Keyboard_AnalogMode>();
 
-            if ((key != ImGuiKey_None) && ImGui::IsKeyDown(GlfwKeyToImGuiKey(key))) {
+            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(GlfwKeyToImGuiKey(key))) {
                 pad.m_analogMode = !pad.m_analogMode;
             }
         }

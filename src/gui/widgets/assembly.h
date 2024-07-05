@@ -67,7 +67,7 @@ class Assembly : private Disasm {
     void sameLine();
     void comma();
     const uint8_t* ptr(uint32_t addr);
-    void jumpToMemory(uint32_t addr, unsigned size);
+    void jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex = 0, bool forceShowEditor = false);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
@@ -111,6 +111,8 @@ class Assembly : private Disasm {
     bool m_symbolsCachesValid = false;
 
     void rebuildSymbolsCaches();
+    void addMemoryEditorContext(uint32_t addr, int size);
+    void addMemoryEditorSubMenu(uint32_t addr, int size);
 
     bool m_showSymbols = false;
     std::string m_symbolFilter;
