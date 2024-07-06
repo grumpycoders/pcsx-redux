@@ -620,7 +620,12 @@ void PCSX::GPU::writeStatus(uint32_t value) {
     }
 }
 
-uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
+uint32_t PCSX::GPU::readData() {
+    if (m_readFifo->size() == 0) {
+        return m_dataRet;
+    }
+    return m_readFifo.asA<File>()->read<uint32_t>();
+}
 
 void PCSX::GPU::writeData(uint32_t value) {
     Buffer buf(value);
@@ -635,7 +640,13 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
 }
 
 void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
+    auto size = m_readFifo->size();
     m_readFifo->read(dest, transferSize * 4);
+    transferSize -= size / 4;
+    dest += size / 4;
+    while (transferSize != 0) {
+        *dest++ = m_dataRet;
+    }
 }
 
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {

@@ -104,6 +104,7 @@ class GPU {
     virtual void setDither(int setting) = 0;
     void reset() {
         resetBackend();
+        m_dataRet = 0;
         m_readFifo->reset();
         m_processor->reset();
         m_defaultProcessor.setActive();
@@ -782,6 +783,9 @@ class GPU {
         void updateDispArea();
     };
     Display m_display;
+
+  protected:
+    uint32_t m_dataRet = 0;
 
   private:
     Command m_defaultProcessor = {this};
