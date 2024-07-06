@@ -196,7 +196,6 @@ class impl final : public GPU, public SoftRenderer {
     void write1(CtrlHorizontalDisplayRange *) override;
     void write1(CtrlVerticalDisplayRange *) override;
     void write1(CtrlDisplayMode *) override;
-    void write1(CtrlQuery *) override;
 };
 
 }  // namespace SoftGPU

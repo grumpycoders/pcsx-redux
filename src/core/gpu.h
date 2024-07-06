@@ -784,9 +784,6 @@ class GPU {
     };
     Display m_display;
 
-  protected:
-    uint32_t m_dataRet = 0;
-
   private:
     Command m_defaultProcessor = {this};
 
@@ -806,6 +803,12 @@ class GPU {
     TPage m_lastTPage;
     TWindow m_lastTWindow;
     DrawingOffset m_lastOffset;
+
+    uint32_t m_dataRet = 0;
+    uint32_t m_textureWindowRaw = 0;
+    uint32_t m_drawingStartRaw = 0;
+    uint32_t m_drawingEndRaw = 0;
+    uint32_t m_drawingOffsetRaw = 0;
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;
@@ -903,7 +906,7 @@ class GPU {
     virtual void write1(CtrlHorizontalDisplayRange *) = 0;
     virtual void write1(CtrlVerticalDisplayRange *) = 0;
     virtual void write1(CtrlDisplayMode *) = 0;
-    virtual void write1(CtrlQuery *) = 0;
+    virtual void write1(CtrlQuery *);
 };
 
 }  // namespace PCSX
