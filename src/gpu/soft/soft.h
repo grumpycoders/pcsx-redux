@@ -109,10 +109,6 @@ struct SoftRenderer {
     uint16_t m_setMask16 = 0;
     uint32_t m_setMask32 = 0;
     int32_t m_statusRet;
-    uint32_t m_textureWindowRaw;
-    uint32_t m_drawingStartRaw;
-    uint32_t m_drawingEndRaw;
-    uint32_t m_drawingOffsetRaw;
     SoftDisplay m_softDisplay;
     uint8_t *m_vram;
     uint16_t *m_vram16;

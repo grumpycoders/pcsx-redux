@@ -407,6 +407,11 @@ int PCSX::GPU::init(UI *ui) {
     for (auto poly : m_polygons) poly->setGPU(this);
     for (auto line : m_lines) line->setGPU(this);
     for (auto rect : m_rects) rect->setGPU(this);
+    m_textureWindowRaw = 0;
+    m_drawingStartRaw = 0;
+    m_drawingEndRaw = 0;
+    m_drawingOffsetRaw = 0;
+    m_dataRet = 0x400;
     return initBackend(ui);
 }
 
@@ -564,6 +569,11 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             CtrlReset ctrl;
             g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
+            m_textureWindowRaw = 0;
+            m_drawingStartRaw = 0;
+            m_drawingEndRaw = 0;
+            m_drawingOffsetRaw = 0;
+            m_dataRet = 0x400;
         } break;
         case 1: {
             CtrlClearFifo ctrl;
@@ -620,7 +630,29 @@ void PCSX::GPU::writeStatus(uint32_t value) {
     }
 }
 
-uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
+uint32_t PCSX::GPU::readData() {
+    if (m_readFifo->size() == 0) {
+        return m_dataRet;
+    }
+    return m_readFifo.asA<File>()->read<uint32_t>();
+}
+
+void PCSX::GPU::write1(CtrlQuery *ctrl) {
+    switch (ctrl->type()) {
+        case CtrlQuery::TextureWindow:
+            m_dataRet = m_textureWindowRaw;
+            return;
+        case CtrlQuery::DrawAreaStart:
+            m_dataRet = m_drawingStartRaw;
+            return;
+        case CtrlQuery::DrawAreaEnd:
+            m_dataRet = m_drawingEndRaw;
+            return;
+        case CtrlQuery::DrawOffset:
+            m_dataRet = m_drawingOffsetRaw;
+            return;
+    }
+}
 
 void PCSX::GPU::writeData(uint32_t value) {
     Buffer buf(value);
@@ -635,7 +667,13 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
 }
 
 void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
+    auto size = m_readFifo->size();
     m_readFifo->read(dest, transferSize * 4);
+    transferSize -= size / 4;
+    dest += size / 4;
+    while (transferSize != 0) {
+        *dest++ = m_dataRet;
+    }
 }
 
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
@@ -735,22 +773,26 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         m_gpu->m_lastTWindow = TWindow(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_textureWindowRaw = packetInfo & 0xfffff;
                     } break;
                     case 3: {  // drawing area top left
                         DrawingAreaStart prim(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingStartRaw = packetInfo & 0xfffff;
                     } break;
                     case 4: {  // drawing area bottom right
                         DrawingAreaEnd prim(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingEndRaw = packetInfo & 0xfffff;
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
                         m_gpu->m_lastOffset = DrawingOffset(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingOffsetRaw = packetInfo & 0x3fffff;
                     } break;
                     case 6: {  // mask bit
                         MaskBit prim(packetInfo);

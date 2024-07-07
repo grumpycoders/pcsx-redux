@@ -104,6 +104,7 @@ class GPU {
     virtual void setDither(int setting) = 0;
     void reset() {
         resetBackend();
+        m_dataRet = 0;
         m_readFifo->reset();
         m_processor->reset();
         m_defaultProcessor.setActive();
@@ -803,6 +804,12 @@ class GPU {
     TWindow m_lastTWindow;
     DrawingOffset m_lastOffset;
 
+    uint32_t m_dataRet = 0;
+    uint32_t m_textureWindowRaw = 0;
+    uint32_t m_drawingStartRaw = 0;
+    uint32_t m_drawingEndRaw = 0;
+    uint32_t m_drawingOffsetRaw = 0;
+
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;
 
@@ -899,7 +906,7 @@ class GPU {
     virtual void write1(CtrlHorizontalDisplayRange *) = 0;
     virtual void write1(CtrlVerticalDisplayRange *) = 0;
     virtual void write1(CtrlDisplayMode *) = 0;
-    virtual void write1(CtrlQuery *) = 0;
+    virtual void write1(CtrlQuery *);
 };
 
 }  // namespace PCSX
