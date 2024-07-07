@@ -214,6 +214,17 @@ int readFileUserDataAt(PCSX::Lua L) {
     return 1;
 }
 
+int readFileGets(PCSX::Lua L) {
+    if (L.gettop() != 1) return L.error("Invalid number of arguments to readFileGets");
+
+    if (!L.iscdata(1)) return L.error("readFileGets: arg 1 not a cdata");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    L.push(wrapper->file->gets());
+    return 1;
+}
+
 int writeFileUserData(PCSX::Lua L) {
     if (L.gettop() != 2) return L.error("Invalid number of arguments to writeFileUserData");
 
@@ -363,6 +374,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.getfieldtable("_internal");
     L.declareFunc("readFileUserData", readFileUserData, -1);
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
+    L.declareFunc("readFileGets", readFileGets, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
     L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
     L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
