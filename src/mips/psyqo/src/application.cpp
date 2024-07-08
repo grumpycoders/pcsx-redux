@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "psyqo/application.hh"
 
-#include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
 #include "psyqo/alloc.h"
 #include "psyqo/kernel.hh"

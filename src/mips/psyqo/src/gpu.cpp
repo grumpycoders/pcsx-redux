@@ -117,9 +117,11 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     syscall_enableEvent(event);
     syscall_enableTimerIRQ(3);
     syscall_setTimerAutoAck(3, 1);
-    Prim::FastFill ff;
-    ff.rect = Rect{0, 0, 1024, 512};
-    sendPrimitive(ff);
+    if (config.clearVRAM) {
+        Prim::FastFill ff;
+        ff.rect = Rect{0, 0, 1024, 512};
+        sendPrimitive(ff);
+    }
     // Enable Display
     Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);
@@ -165,7 +167,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 }
             } break;
         }
-        // GPU back in Fifo polling mode, effectively disabling DMA
+        // GPU back in Fifo polling mode, in case we were uploading to VRAM
         Hardware::GPU::Ctrl = 0x04000001;
         if (m_flushCacheAfterDMA) {
             Prim::FlushCache fc;
@@ -351,7 +353,7 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect region, eastl::function
     upload.region = region;
     sendPrimitive(upload);
 
-    // Activating CPU->GPU DMA
+    // Activating VRAM DMA upload mode
     Hardware::GPU::Ctrl = 0x04000002;
     while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
@@ -395,6 +397,7 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
 void psyqo::GPU::scheduleNormalDMA(uintptr_t data, size_t count) {
     uint32_t bcr = count;
 
+    Kernel::assert((DMA_CTRL[DMA_GPU].CHCR & 0x01000000) == 0, "GPU DMA busy");
     unsigned bs = 1;
     while (((bcr & 1) == 0) && (bs < 16)) {
         bs <<= 1;
@@ -404,8 +407,6 @@ void psyqo::GPU::scheduleNormalDMA(uintptr_t data, size_t count) {
     bcr <<= 16;
     bcr |= bs;
 
-    // Activating CPU->GPU DMA
-    Hardware::GPU::Ctrl = 0x04000002;
     while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
     DMA_CTRL[DMA_GPU].MADR = data;
@@ -464,8 +465,7 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
 }
 
 void psyqo::GPU::scheduleChainedDMA(uintptr_t head) {
-    // Activating CPU->GPU DMA
-    Hardware::GPU::Ctrl = 0x04000002;
+    Kernel::assert((DMA_CTRL[DMA_GPU].CHCR & 0x01000000) == 0, "GPU DMA busy");
     while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
         ;
     DMA_CTRL[DMA_GPU].MADR = head;

@@ -173,6 +173,7 @@ local function createFileWrapper(wrapper)
         close = function(self) Support.extra.safeFFI('File::close', C.closeFile, self._wrapper) end,
         read = read,
         readAt = readAt,
+        gets = function(self) return Support._internal.readFileGets(self._wrapper) end,
         write = write,
         writeAt = writeAt,
         writeMoveSlice = writeMoveSlice,
