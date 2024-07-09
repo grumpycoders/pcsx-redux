@@ -47,25 +47,24 @@ end
 -- We are declaring this function global so the emulator can
 -- properly call it periodically.
 function DrawImguiFrame()
-  -- This is typical ImGui paradigm to display a window
-  local show = imgui.Begin('Spyro internals', true)
-  if not show then imgui.End() return end
+  -- This is typical ImGui paradigm to display a window using
+  -- the safe mode. This will ensure that the window is properly
+  -- closed even if an exception is thrown during the rendering
+  -- of the window.
+  imgui.safe.Begin('Spyro internals', function()
+    -- Grabbing the pointer to the main RAM, to avoid calling
+    -- the function for every pointer we want to change.
+    -- Note: it's not a good idea to hold onto this value between
+    -- calls to the Lua VM, as the memory can potentially move
+    -- within the emulator's memory space.
+    local mem = PCSX.getMemPtr()
 
-  -- Grabbing the pointer to the main RAM, to avoid calling
-  -- the function for every pointer we want to change.
-  -- Note: it's not a good idea to hold onto this value between
-  -- calls to the Lua VM, as the memory can potentially move
-  -- within the emulator's memory space.
-  local mem = PCSX.getMemPtr()
-
-  -- Now calling our helper function for each of our pointer.
-  doSliderInt(mem, 0x8007582c, 'Lives', 0, 9)
-  doSliderInt(mem, 0x80078bbc, 'Health', -1, 3)
-  doSliderInt(mem, 0x80075860, 'Jewels', 0, 65000)
-  doSliderInt(mem, 0x80075750, 'Dragons', 0, 70)
-
-  -- Don't forget to close the ImGui window.
-  imgui.End()
+    -- Now calling our helper function for each of our pointer.
+    doSliderInt(mem, 0x8007582c, 'Lives', 0, 9)
+    doSliderInt(mem, 0x80078bbc, 'Health', -1, 3)
+    doSliderInt(mem, 0x80075860, 'Jewels', 0, 65000)
+    doSliderInt(mem, 0x80075750, 'Dragons', 0, 70)
+  end)
 end
 ```
 
@@ -90,16 +89,15 @@ local function crash_Checkbox(mem, address, name, value, original)
 end
 
 function DrawImguiFrame()
-  local show = imgui.Begin('Crash Bandicoot Mods', true)
-  if not show then imgui.End() return end
-  local mem = PCSX.getMemPtr()
-  crash_Checkbox(mem, 0x80027f9a, 'Neon Crash', 0x2400, 0x100c00)
-  crash_Checkbox(mem, 0x8001ed5a, 'Unlimited Time Aku', 0x0003, 0x3403)
-  crash_Checkbox(mem, 0x8001dd0c, 'Walk Mid-Air', 0x0000, 0x8e0200c8)
-  crash_Checkbox(mem, 0x800618ec, '99 Lives at Map', 0x6300, 0x0200)
-  crash_Checkbox(mem, 0x80061949, 'Unlock all Levels', 0x0020, 0x00)
-  crash_Checkbox(mem, 0x80019276, 'Disable Draw Level', 0x20212400, 0x20210c00)
-  imgui.End()
+  imgui.safe.Begin('Crash Bandicoot Mods', function()
+    local mem = PCSX.getMemPtr()
+    crash_Checkbox(mem, 0x80027f9a, 'Neon Crash', 0x2400, 0x100c00)
+    crash_Checkbox(mem, 0x8001ed5a, 'Unlimited Time Aku', 0x0003, 0x3403)
+    crash_Checkbox(mem, 0x8001dd0c, 'Walk Mid-Air', 0x0000, 0x8e0200c8)
+    crash_Checkbox(mem, 0x800618ec, '99 Lives at Map', 0x6300, 0x0200)
+    crash_Checkbox(mem, 0x80061949, 'Unlock all Levels', 0x0020, 0x00)
+    crash_Checkbox(mem, 0x80019276, 'Disable Draw Level', 0x20212400, 0x20210c00)
+  end)
 end
 ```
 
