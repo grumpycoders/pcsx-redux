@@ -28,6 +28,7 @@ Reads from the File object and advances the read pointer accordingly. The return
 :read(ptr, size)       -- returns the number of bytes read, ptr has to be a cdata of pointer type
 :read(buffer)          -- returns the number of bytes read, and adjusts the buffer's size
 :read(pb_buffer, size) -- returns the number of bytes read, while appending to the pb_buffer's existing data
+:gets()                -- returns a string, up to the next newline character
 ```
 
 Reads from the File object at the specified position. No pointers are modified. The return value depends on the variant used, just like the non-At variants above.
