@@ -154,3 +154,12 @@ If the Emulator status shows Idle, click Emulation → Start
 Once the game starts, instead of loading into the main menu, you should load directly into the Stormy Ascent level.
 
 You can see this in action [in this demo video](https://youtu.be/BczviiXUYOY).
+
+## More references
+
+Here's some projects using PCSX-Redux' Lua scripting capabilities, which can be used as references:
+
+- https://github.com/NDR008/TensorFlowPSX
+- https://github.com/Kuumba123/TeheManX4_Editor
+- https://github.com/notdodgeball/vagrant-story-lua-script
+- https://github.com/johnbaumann/lua-pio-cart
