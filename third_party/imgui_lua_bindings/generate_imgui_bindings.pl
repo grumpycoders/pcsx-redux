@@ -200,6 +200,10 @@ sub generateImguiGeneric {
         $callMacro = "${callPrefix}CALL_FUNCTION";
         push(@funcArgs, "float");
         push(@after, "PUSH_NUMBER(ret)");
+      } elsif ($retType =~ /^int$/) {
+        $callMacro = "${callPrefix}CALL_FUNCTION";
+        push(@funcArgs, "int");
+        push(@after, "PUSH_NUMBER(ret)");
       } elsif ($retType =~ /^ImVec2$/) {
         $callMacro = "${callPrefix}CALL_FUNCTION";
         push(@funcArgs, "ImVec2");
