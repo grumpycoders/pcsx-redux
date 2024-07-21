@@ -40,7 +40,7 @@
 #include "support/binpath.h"
 #include "support/uvfile.h"
 #include "support/version.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 static PCSX::UI *s_ui;
 

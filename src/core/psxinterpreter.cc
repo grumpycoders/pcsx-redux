@@ -26,7 +26,7 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #undef _PC_
 #undef _Op_
