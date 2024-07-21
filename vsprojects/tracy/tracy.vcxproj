@@ -163,7 +163,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Disabled|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Enabled|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\tracy\TracyClient.cpp" />
+    <ClCompile Include="..\..\third_party\tracy\public\TracyClient.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

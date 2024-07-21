@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {
@@ -1953,7 +1953,7 @@ the update and manually apply it.)")));
         L.setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
 
-    FrameMark
+    FrameMark;
 }
 
 bool PCSX::GUI::configure() {
