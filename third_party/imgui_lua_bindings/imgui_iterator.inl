@@ -1432,11 +1432,20 @@ END_IMGUI_FUNC
 //    IMGUI_API ImGuiTableSortSpecs*  TableGetSortSpecs();                        // get latest sort specs for the table (NULL if not sorting).  Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable().
 // Unsupported return type ImGuiTableSortSpecs*
 //    IMGUI_API int                   TableGetColumnCount();                      // return number of columns (value passed to BeginTable)
-// Unsupported return type int
+IMGUI_FUNCTION(TableGetColumnCount)
+CALL_FUNCTION(TableGetColumnCount, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API int                   TableGetColumnIndex();                      // return current column index.
-// Unsupported return type int
+IMGUI_FUNCTION(TableGetColumnIndex)
+CALL_FUNCTION(TableGetColumnIndex, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API int                   TableGetRowIndex();                         // return current row index.
-// Unsupported return type int
+IMGUI_FUNCTION(TableGetRowIndex)
+CALL_FUNCTION(TableGetRowIndex, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API const char*           TableGetColumnName(int column_n = -1);      // return "" if column didn't have a name declared by TableSetupColumn(). Pass -1 to use current column.
 IMGUI_FUNCTION(TableGetColumnName)
 OPTIONAL_INT_ARG(column_n, -1)
@@ -1470,7 +1479,10 @@ IMGUI_FUNCTION(NextColumn)
 CALL_FUNCTION_NO_RET(NextColumn)
 END_IMGUI_FUNC
 //    IMGUI_API int           GetColumnIndex();                                                   // get current column index
-// Unsupported return type int
+IMGUI_FUNCTION(GetColumnIndex)
+CALL_FUNCTION(GetColumnIndex, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API float         GetColumnWidth(int column_index = -1);                              // get column width (in pixels). pass -1 to use current column
 IMGUI_FUNCTION(GetColumnWidth)
 OPTIONAL_INT_ARG(column_index, -1)
@@ -1496,7 +1508,10 @@ NUMBER_ARG(offset_x)
 CALL_FUNCTION_NO_RET(SetColumnOffset, column_index, offset_x)
 END_IMGUI_FUNC
 //    IMGUI_API int           GetColumnsCount();
-// Unsupported return type int
+IMGUI_FUNCTION(GetColumnsCount)
+CALL_FUNCTION(GetColumnsCount, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          BeginTabBar(const char* str_id, ImGuiTabBarFlags flags = 0);        // create and append into a TabBar
 IMGUI_FUNCTION(BeginTabBar)
 LABEL_ARG(str_id)
@@ -1771,7 +1786,10 @@ END_IMGUI_FUNC
 //    IMGUI_API double        GetTime();                                                          // get global imgui time. incremented by io.DeltaTime every frame.
 // Unsupported return type double
 //    IMGUI_API int           GetFrameCount();                                                    // get global imgui frame count. incremented by 1 every frame.
-// Unsupported return type int
+IMGUI_FUNCTION(GetFrameCount)
+CALL_FUNCTION(GetFrameCount, int)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API ImDrawListSharedData* GetDrawListSharedData();                                    // you may use this when creating your own ImDrawList instances.
 // Unsupported return type ImDrawListSharedData*
 //    IMGUI_API const char*   GetStyleColorName(ImGuiCol idx);                                    // get a string corresponding to the enum value (for display, saving, etc.).
@@ -1819,7 +1837,6 @@ END_IMGUI_FUNC
 //    IMGUI_API bool          IsKeyChordPressed(ImGuiKeyChord key_chord);                         // was key chord (mods + key) pressed, e.g. you can pass 'ImGuiMod_Ctrl | ImGuiKey_S' as a key-chord. This doesn't do any routing or focus check, please consider using Shortcut() function instead.
 // Unsupported arg type ImGuiKeyChord key_chord
 //    IMGUI_API int           GetKeyPressedAmount(ImGuiKey key, float repeat_delay, float rate);  // uses provided repeat rate/delay. return a count, most often 0 or 1 but might be >1 if RepeatRate is small enough that DeltaTime > RepeatRate
-// Unsupported return type int
 // Unsupported arg type ImGuiKey key
 //    IMGUI_API const char*   GetKeyName(ImGuiKey key);                                           // [DEBUG] returns English name of the key. Those names a provided for debugging purpose and are not meant to be saved persistently not compared.
 // Unsupported arg type ImGuiKey key
@@ -1854,7 +1871,11 @@ CALL_FUNCTION(IsMouseDoubleClicked, bool, button)
 PUSH_BOOL(ret)
 END_IMGUI_FUNC
 //    IMGUI_API int           GetMouseClickedCount(ImGuiMouseButton button);                      // return the number of successive mouse-clicks at the time where a click happen (otherwise 0).
-// Unsupported return type int
+IMGUI_FUNCTION(GetMouseClickedCount)
+INT_ARG(button)
+CALL_FUNCTION(GetMouseClickedCount, int, button)
+PUSH_NUMBER(ret)
+END_IMGUI_FUNC
 //    IMGUI_API bool          IsMouseHoveringRect(const ImVec2& r_min, const ImVec2& r_max, bool clip = true);// is mouse hovering given bounding rect (in screen space). clipped by current clipping settings, but disregarding of other consideration of focus/window ordering/popup-block.
 IMGUI_FUNCTION(IsMouseHoveringRect)
 IM_VEC_2_ARG(r_min)

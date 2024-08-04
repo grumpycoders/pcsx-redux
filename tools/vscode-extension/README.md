@@ -19,8 +19,11 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.6
+  - Bumping gcc to 14.1.0.
 - 0.3.5
   - Bumping binutils to 2.42
+  - Changing the way the PCSX-Redux dependency is installed, from AppCenter to AppDistrib.
 - 0.3.4
   - Added CMake bare-metal templates.
   - Added support for detecting and installing CMake and Python.

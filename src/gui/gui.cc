@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {
@@ -171,7 +171,7 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine,
-                            bool isBaseFont) {
+                            bool isSymbolsFont) {
     if (!ranges) ranges = io.Fonts->GetGlyphRangesDefault();
 
     const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
@@ -183,26 +183,24 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
 
-    static std::vector<ImWchar> rangesVector;
-
-    if (isBaseFont) {
+    if (isSymbolsFont) {
         for (unsigned i = 0; ranges[i] != 0; i++) {
-            rangesVector.push_back(ranges[i]);
+            m_baseFontRanges.push_back(ranges[i]);
         }
 
-        rangesVector.push_back(0x2190);  // ←: U+2190   ↑: U+2191
-        rangesVector.push_back(0x2193);  // →: U+2192   ↓: U+2193
-        rangesVector.push_back(0x25b3);  // △: U+25B3
-        rangesVector.push_back(0x25b3);
-        rangesVector.push_back(0x25ef);  // ◯: U+25EF
-        rangesVector.push_back(0x25ef);
-        rangesVector.push_back(0x2610);  // ☐: U+2610
-        rangesVector.push_back(0x2610);
-        rangesVector.push_back(0x2715);  // ✕: U+2715
-        rangesVector.push_back(0x2715);
+        m_baseFontRanges.push_back(0x2190);  // ←: U+2190   ↑: U+2191
+        m_baseFontRanges.push_back(0x2193);  // →: U+2192   ↓: U+2193
+        m_baseFontRanges.push_back(0x2573);  // ╳: U+2573
+        m_baseFontRanges.push_back(0x2573);
+        m_baseFontRanges.push_back(0x25a1);  // □: U+25A1
+        m_baseFontRanges.push_back(0x25a1);
+        m_baseFontRanges.push_back(0x25b3);  // △: U+25B3
+        m_baseFontRanges.push_back(0x25b3);
+        m_baseFontRanges.push_back(0x25ef);  // ◯: U+25EF
+        m_baseFontRanges.push_back(0x25ef);
 
-        rangesVector.push_back(0);
-        ranges = rangesVector.data();
+        m_baseFontRanges.push_back(0);
+        ranges = m_baseFontRanges.data();
     }
 
     decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
@@ -892,6 +890,7 @@ void PCSX::GUI::startFrame() {
 
     if (m_reloadFonts) {
         m_reloadFonts = false;
+        m_baseFontRanges.clear();
         auto scales = m_allScales;
         if (scales.empty()) scales.emplace(1.0f);
 
@@ -903,13 +902,13 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         for (auto& scale : scales) {
             m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
-                                          io, g_system->getLocaleRanges(), false, true);
+                                          io, g_system->getLocaleRanges(), false, false);
             for (auto e : g_system->getLocaleExtra()) {
                 loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true, false);
             }
             // try loading the japanese font for memory card manager
             m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
-                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, false);
+                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, true);
             m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
                                           io, nullptr, false, false);
         }
@@ -1953,7 +1952,7 @@ the update and manually apply it.)")));
         L.setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
 
-    FrameMark
+    FrameMark;
 }
 
 bool PCSX::GUI::configure() {
