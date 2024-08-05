@@ -26,16 +26,13 @@
 
 void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
     auto &settings = g_emulator->settings;
-    const char *card_ids[] = {"1", "2", "1b", "1c", "1d", "2b", "2c", "2d"};
+    const char *card_ids[] = {"1", "2"};
 
     std::filesystem::path *card_paths[] = {
-        &settings.get<PCSX::Emulator::SettingMcd1>().value,  &settings.get<PCSX::Emulator::SettingMcd2>().value,
-        &settings.get<PCSX::Emulator::SettingMcd1B>().value, &settings.get<PCSX::Emulator::SettingMcd1C>().value,
-        &settings.get<PCSX::Emulator::SettingMcd1D>().value, &settings.get<PCSX::Emulator::SettingMcd2B>().value,
-        &settings.get<PCSX::Emulator::SettingMcd2C>().value, &settings.get<PCSX::Emulator::SettingMcd2D>().value,
+        &settings.get<PCSX::Emulator::SettingMcd1>().value,  &settings.get<PCSX::Emulator::SettingMcd2>().value
     };
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 2; i++) {
         auto argPath = args.get<std::string>(fmt::format("memcard{}", card_ids[i]));
         if (argPath.has_value()) {
             *card_paths[i] = argPath.value();
@@ -44,10 +41,6 @@ void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
         if (card_paths[i]->u8string().empty()) {
             std::string path = std::format("memcard{}.mcd", card_ids[i]);
             *card_paths[i] = path;
-        }
-
-        if (i >= m_memoryCard.size()) {
-            continue;
         }
 
         loadMcd(card_paths[i]->u8string(), m_memoryCard[i].getMcdData());
@@ -185,12 +178,7 @@ void PCSX::MemoryCards::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
 }
 
 char *PCSX::MemoryCards::getMcdData(int mcd) {
-    const int index = mcd - 1;
-    if (index < 0 || index >= m_memoryCard.size()) {
-        throw std::runtime_error("Attempt to access invalid memory card");
-        return nullptr;
-    } else {
-        return m_memoryCard[index].getMcdData();
+        return m_memoryCard[mcd].getMcdData();
 }
 
 // Erase a memory card block by clearing it with 0s
@@ -659,8 +647,6 @@ bool PCSX::MemoryCards::loadMcd(PCSX::u8string mcd, char *data) {
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     size_t bytesRead;
 
-    bool result = false;
-
     FILE *f = fopen(fname, "rb");
     if (f == nullptr) {
         PCSX::g_system->printf(_("The memory card %s doesn't exist - creating it\n"), fname);
@@ -702,11 +688,11 @@ bool PCSX::MemoryCards::loadMcd(PCSX::u8string mcd, char *data) {
         if (bytesRead != c_cardSize) {
             throw std::runtime_error(_("Error reading memory card."));
         } else {
-            result = true;
+            return true;
         }
     }
 
-    return result;
+    return false;
 }
 
 bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size) {
@@ -715,7 +701,6 @@ bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t a
     }
     const char *fname = reinterpret_cast<const char *>(mcd.c_str());
     FILE *f = fopen(fname, "r+b");
-    bool result = false;
 
     if (f != nullptr) {
         struct stat buf;
@@ -734,8 +719,9 @@ bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t a
 
         fwrite(data + adr, 1, size, f);
         fclose(f);
-        result = true;
         PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
+        
+        return true;
     } else {
         // try to create it again if we can't open it
         f = fopen(fname, "wb");
@@ -745,7 +731,7 @@ bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t a
         }
     }
 
-    return result;
+    return false;
 }
 
 void PCSX::MemoryCards::createMcd(PCSX::u8string mcd) {

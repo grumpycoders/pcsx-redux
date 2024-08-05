@@ -166,7 +166,6 @@ class PadsImpl : public PCSX::Pads {
     };
 
     struct Pad {
-        Pad(uint8_t device_index) : m_deviceIndex(device_index) {}
         uint8_t startPoll();
         uint8_t read();
         uint8_t poll(uint8_t value, uint32_t& padState);
@@ -219,11 +218,9 @@ class PadsImpl : public PCSX::Pads {
         uint32_t m_bufferIndex = 0;
         uint32_t m_maxBufferIndex = 0;
         uint32_t m_padState = Pads::PAD_STATE_IDLE;
-
-        uint8_t m_deviceIndex = 0;
     };
 
-    std::array<Pad, 2> m_pads = {Pad(0), Pad(1)};
+    std::array<Pad, 2> m_pads;
     unsigned m_selectedPadForConfig = 0;
 };
 
@@ -618,12 +615,12 @@ void PadsImpl::Pad::getButtons() {
 
     if ((m_padID >= GLFW_JOYSTICK_1) && (m_padID <= GLFW_JOYSTICK_LAST)) {
         hasPad = glfwGetGamepadState(m_padID, &state);
-            if (!hasPad) {
+        if (!hasPad) {
             const char* guid = glfwGetJoystickGUID(m_padID);
-                PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
-                m_padID = -1;
-            }
+            PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+            m_padID = -1;
         }
+    }
 
     if (!hasPad) {
         if (inputType == InputType::Auto) {
@@ -973,12 +970,6 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     changed |= ImGui::Checkbox(_("Allow mouse capture toggle"), &gui->allowMouseCaptureToggle());
     PCSX::ImGuiHelpers::ShowHelpMarker(
         _("When enabled, pressing CTRL and ALT will toggle the setting above, raw input"));
-
-    changed |= ImGui::Checkbox(_("Port 1 multi-tap connected"),
-                               &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPort1Multitap>().value);
-
-    changed |= ImGui::Checkbox(_("Port 2 multi-tap connected"),
-                               &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingPort2Multitap>().value);
 
     if (ImGui::BeginCombo(_("Pad"), c_padNames[m_selectedPadForConfig]())) {
         for (unsigned i = 0; i < 2; i++) {
