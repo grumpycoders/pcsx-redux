@@ -33,16 +33,7 @@ class Memorycards;
 /// </summary>
 class MemoryCard {
   public:
-    MemoryCard(uint8_t device_index) : m_deviceIndex(device_index) {
-        if (m_mcdData) {
-            memset(m_mcdData, 0, c_cardSize);
-        }
-
-        if (m_tempBuffer) {
-            memset(m_tempBuffer, 0, c_blockSize);
-        }
-    }
-    ~MemoryCard(){};
+    MemoryCard(uint8_t device_index) : m_deviceIndex(device_index){}
 
     // Hardware events
 
@@ -118,8 +109,8 @@ class MemoryCard {
     uint8_t tickPS_PrepFileExec(uint8_t value, bool *ack);  // 59h
     uint8_t tickPS_ExecCustom(uint8_t value, bool *ack);    // 5Dh
 
-    char m_mcdData[c_cardSize];
-    uint8_t m_tempBuffer[c_blockSize];
+    char m_mcdData[c_cardSize] = {0};
+    uint8_t m_tempBuffer[c_blockSize] = {0};
     bool m_savedToDisk = false;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;
