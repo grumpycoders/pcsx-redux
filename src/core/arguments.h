@@ -21,6 +21,9 @@
 
 #include <stdint.h>
 
+#include <string>
+#include <string_view>
+
 #include "flags.h"
 
 namespace PCSX {
@@ -74,7 +77,12 @@ class Arguments {
     // Toggled with the flags -viewports / -no-viewports.
     bool isViewportsEnabled() const { return m_viewportsEnabled; }
 
+    // Returns the path to the portable directory.
+    // Set with the flag -portable.
+    std::string_view getPortablePath() const { return m_portablePath; }
+
   private:
+    std::string m_portablePath = "";
     bool m_luaStdoutEnabled = false;
     bool m_stdoutEnabled = false;
     bool m_guiLogsEnabled = true;
