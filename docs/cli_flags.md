@@ -41,3 +41,4 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-dofile` | Specifies a Lua file to load through the `Support.extra.dofile` function. |
 | `-exec` | Specifies a Lua string to execute. |
 | `-luacov` | Enables Lua code coverage report. Requires the `luacov` Lua module to be installed. |
+| `-portable` | Enables portable mode. Settings and saves will be stored in the same directory as the executable, or in the directory specified by the optional argument to this flag. |
