@@ -27,25 +27,20 @@
 
 void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
     auto &settings = g_emulator->settings;
-    const char *card_ids[] = {"1", "2"};
 
-    std::filesystem::path *card_paths[] = {
-        &settings.get<PCSX::Emulator::SettingMcd1>().value,  &settings.get<PCSX::Emulator::SettingMcd2>().value
-    };
-
-    for (int i = 0; i < 2; i++) {
-        auto argPath = args.get<std::string>(fmt::format("memcard{}", card_ids[i]));
-        if (argPath.has_value()) {
-            *card_paths[i] = argPath.value();
-        }
-
-        if (card_paths[i]->u8string().empty()) {
-            std::string path = std::format("memcard{}.mcd", card_ids[i]);
-            *card_paths[i] = path;
-        }
-
-        loadMcd(card_paths[i]->u8string(), m_memoryCard[i].getMcdData());
+    auto argPath1 = args.get<std::string>("memcard1");
+    auto argPath2 = args.get<std::string>("memcard2");
+    if (argPath1.has_value()) {
+        settings.get<PCSX::Emulator::SettingMcd1>() = argPath1.value();
     }
+    if (argPath2.has_value()) {
+        settings.get<PCSX::Emulator::SettingMcd2>() = argPath1.value();
+    }
+    PCSX::u8string path1 = settings.get<PCSX::Emulator::SettingMcd1>().string();
+    PCSX::u8string path2 = settings.get<PCSX::Emulator::SettingMcd2>().string();
+
+    loadMcd(path1, m_memoryCard[0].getMcdData());
+    loadMcd(path2, m_memoryCard[1].getMcdData());
 }
 
 void PCSX::MemoryCards::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
