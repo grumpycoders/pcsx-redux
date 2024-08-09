@@ -20,7 +20,6 @@
 #include "core/memorycard.h"
 
 #include <bitset>
-#include <format>
 
 #include "core/sio.h"
 #include "support/sjis_conv.h"
