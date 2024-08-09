@@ -87,30 +87,9 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
 
     // Ensure that we don't add invalid characters to the filename
     // This also filters on pasted text
-    struct TextFilters {
-        static int FilterNonPathCharacters(ImGuiInputTextCallbackData* data) {
-            // Filter the core problematic characters for Windows and Linux
-            // Anything remaining outside of [a-zA-Z0-9._-] is also allowed
-            switch (data->EventChar) {
-                case '\\':
-                case '/':
-                case '<':
-                case '>':
-                case '|':
-                case '\"':
-                case ':':
-                case '?':
-                case '*':
-                case 0:
-                    return 1;
-            }
-            return 0;
-        }
-    };
-
     ImGui::InputTextWithHint("##SaveNameInput", _("Enter the name of your save state here"), m_namedSaveNameString,
                              NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter,
-                             TextFilters::FilterNonPathCharacters);
+                             TextFilters::filterNonPathCharacters);
     ImGui::SameLine(0.0f, 0.0f);
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
@@ -133,9 +112,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     if (!exists) {
         if (strlen(m_namedSaveNameString) > 0) {
             // The save state doesn't exist, and the name is valid
-            std::string pathStr =
-                fmt::format("{}{}{}", gui->getSaveStatePrefix(true), m_namedSaveNameString, gui->getSaveStatePostfix());
-            std::filesystem::path newPath = pathStr;
+            std::filesystem::path newPath = createSaveStatePath(gui, m_namedSaveNameString);
             if (ImGui::Button(_("Create save"), buttonDims)) {
                 saveSaveState(gui, newPath);
             }
@@ -153,7 +130,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
         // There is no delete confirmation, and this makes a mis-click less likely to hit it
         ImGui::Dummy(buttonDims);
         if (ImGui::Button(_("Delete save"), buttonDims)) {
-            deleteSaveState(found->first);
+            deleteSaveState(gui, found->first);
         }
     }
 
@@ -190,17 +167,42 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
     return names;
 }
 
-void PCSX::Widgets::NamedSaveStates::saveSaveState(GUI* gui, std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::saveSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Saving named save state: %s\n", saveStatePath.filename().string().c_str());
-    gui->saveSaveState(saveStatePath);
+    return gui->saveSaveState(saveStatePath);
 }
 
-void PCSX::Widgets::NamedSaveStates::loadSaveState(GUI* gui, std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::loadSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Loading named save state: %s\n", saveStatePath.filename().string().c_str());
-    gui->loadSaveState(saveStatePath);
+    return gui->loadSaveState(saveStatePath);
 }
 
-void PCSX::Widgets::NamedSaveStates::deleteSaveState(std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::deleteSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Deleting named save state: %s\n", saveStatePath.filename().string().c_str());
-    std::remove(saveStatePath.string().c_str());
+    return gui->deleteSaveState(saveStatePath);
+}
+
+std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* gui, std::string saveStateName) {
+    std::string pathStr =
+        fmt::format("{}{}{}", gui->getSaveStatePrefix(true), saveStateName, gui->getSaveStatePostfix());
+    return std::filesystem::path(pathStr);
+}
+
+int PCSX::Widgets::NamedSaveStates::TextFilters::testChar(ImWchar c) {
+    // Filter the core problematic characters for Windows and Linux
+    // Anything remaining outside of [a-zA-Z0-9._-] is also allowed
+    switch (c) {
+        case '\\':
+        case '/':
+        case '<':
+        case '>':
+        case '|':
+        case '\"':
+        case ':':
+        case '?':
+        case '*':
+        case 0:
+            return 1;
+    }
+    return 0;
 }

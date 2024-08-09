@@ -806,7 +806,8 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
             } break;
         }
         if (gotUnknown && (value != 0)) {
-            g_system->log(LogClass::GPU, "Got an unknown GPU data word: %08x\n", value);
+            g_system->log(LogClass::GPU, "Got an unknown GPU data word: %08x (cmdType: %hhu, command: %hhu)\n", value,
+                          cmdType, command);
         }
     }
 }
