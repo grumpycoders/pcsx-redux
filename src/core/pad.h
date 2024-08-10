@@ -35,6 +35,8 @@ class Pads {
   public:
     enum class Port { Port1 = 0, Port2 };
 
+    virtual ~Pads() = default;
+
     class InputDevice {
         virtual void* getPadState() = 0;
         virtual bool isButtonPressed(int button) = 0;
