@@ -26,7 +26,19 @@ SOFTWARE.
 
 #pragma once
 
+#include "common/hardware/hwregs.h"
 #include "common/psxlibc/setjmp.h"
+
+// The original 700B01 kernel clears the watchdog using inline code in some
+// places and a subroutine call in others. As there is no point in replicating
+// this inconsistency, we are going to always use an inline function for this
+// purpose. This additionally lets us easily stub out all watchdog calls for
+// non-573 builds in a single place.
+static inline void clearWatchdog() {
+#ifdef OPENBIOS_BOARD_SYS573
+    SYS573_WATCHDOG = 0;
+#endif
+}
 
 void setConfiguration(int eventsCount, int taskCount, void* stackBase);
 void getConfiguration(int* eventsCount, int* taskCount, void** stackBase);

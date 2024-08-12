@@ -694,7 +694,8 @@ void PCSX::SPU::impl::MainThread() {
                         //////////////////////////////////////////////
                         // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 
-                        if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value && !pChannel->data.get<PCSX::SPU::Chan::Solo>().value)
+                        if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value &&
+                            !pChannel->data.get<PCSX::SPU::Chan::Solo>().value)
                             pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
                         else {
                             SSumL[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *

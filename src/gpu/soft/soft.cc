@@ -172,8 +172,6 @@ void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
 void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
     uint32_t YAlign, XAlign;
 
-    m_textureWindowRaw = prim->raw & 0xfffff;
-
     // Texture window size is determined by the least bit set of the relevant 5 bits
     if (prim->y & 0x01) {
         m_textureWindow.y1 = 8;  // xxxx1
@@ -215,22 +213,16 @@ void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
 void PCSX::SoftGPU::SoftRenderer::drawingAreaStart(GPU::DrawingAreaStart *prim) {
     m_drawX = prim->x;
     m_drawY = prim->y;
-
-    m_drawingStartRaw = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingAreaEnd(GPU::DrawingAreaEnd *prim) {
     m_drawW = prim->x;
     m_drawH = prim->y;
-
-    m_drawingEndRaw = prim->raw & 0xfffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
     m_softDisplay.DrawOffset.x = prim->x;
     m_softDisplay.DrawOffset.y = prim->y;
-
-    m_drawingOffsetRaw = prim->raw & 0x3fffff;
 }
 
 void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {

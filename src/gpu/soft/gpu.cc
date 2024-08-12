@@ -26,7 +26,7 @@
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "support/imgui-helpers.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #define GPUSTATUS_DMABITS 0x60000000
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000
@@ -51,11 +51,6 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
     m_vram16 = (uint16_t *)m_vram;
 
-    m_textureWindowRaw = 0;
-    m_drawingStartRaw = 0;
-    m_drawingEndRaw = 0;
-    m_drawingOffsetRaw = 0;
-
     m_softDisplay.RGB24 = false;  // init some stuff
     m_softDisplay.Interlaced = false;
     m_softDisplay.DrawOffset.x = 0;
@@ -71,7 +66,6 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_softDisplay.Range.x1 = 0;
     m_previousDisplay.DisplayModeNew.y = 0;
     m_softDisplay.Double = 1;
-    m_dataRet = 0x400;
 
     // device initialised already !
     m_statusRet = 0x14802000;
@@ -658,10 +652,6 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
-    m_textureWindowRaw = 0;
-    m_drawingStartRaw = 0;
-    m_drawingEndRaw = 0;
-    m_drawingOffsetRaw = 0;
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -808,23 +798,6 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
     }
 
     updateDisplayIfChanged();
-}
-
-void PCSX::SoftGPU::impl::write1(CtrlQuery *ctrl) {
-    switch (ctrl->type()) {
-        case CtrlQuery::TextureWindow:
-            m_dataRet = m_textureWindowRaw;
-            return;
-        case CtrlQuery::DrawAreaStart:
-            m_dataRet = m_drawingStartRaw;
-            return;
-        case CtrlQuery::DrawAreaEnd:
-            m_dataRet = m_drawingEndRaw;
-            return;
-        case CtrlQuery::DrawOffset:
-            m_dataRet = m_drawingOffsetRaw;
-            return;
-    }
 }
 
 // clang-format off
