@@ -105,7 +105,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
     } else if (versionInfo.updateMethod == "appcenter") {
         m_download = new UvFile(
             versionInfo.updateCatalog,
-            [this, callback, buildId = versionInfo.buildId]() {
+            [this, callback, version = versionInfo.version]() {
                 if (m_download->failed()) {
                     callback(false);
                 }
@@ -120,7 +120,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
                     std::sort(catalog.begin(), catalog.end(),
                               [](const nlohmann::json& a, const nlohmann::json& b) { return a["id"] > b["id"]; });
                     auto latest = catalog[0];
-                    if (latest["id"] == buildId) {
+                    if (latest["version"] == version) {
                         callback(false);
                         return;
                     }
