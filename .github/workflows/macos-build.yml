@@ -38,7 +38,7 @@ jobs:
         name: tests
         path: '**/*.ps-exe'
 
-  macos-build-and-test:
+  macos-intel-build-and-test:
     runs-on: macos-12
     needs: build-openbios
     steps:
@@ -66,19 +66,33 @@ jobs:
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Injecting OpenBIOS
       run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
-    - name: Packaging
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'latest'
+    - name: Install jq
       run: |
+        brew install jq
+    - name: Packaging
+      env:
+        APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
+        APPDISTRIB_ORGANIZATION: pcsx-redux
+        APPDISTRIB_PROJECT: dev-macos-x64
+      run: |
+        npx @appdistrib/cli buildid > buildid.json
         echo '{' > version.json
         echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
+        echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
         echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
         echo '  "timestamp": '`date '+%s'`',' >> version.json
         echo '  "channel": "dev",' >> version.json
         echo '  "updateInfo": [' >> version.json
         echo '    {' >> version.json
         echo '      "channel": "dev",' >> version.json
-        echo '      "method": "appcenter",' >> version.json
-        echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/public_releases",' >> version.json
-        echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/releases/"' >> version.json
+        echo '      "method": "appdistrib",' >> version.json
+        echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-x64/manifest.json",' >> version.json
+        echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-x64/",' >> version.json
+        echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
         echo '    }' >> version.json
         echo '  ]' >> version.json
         echo '}' >> version.json
@@ -118,9 +132,9 @@ jobs:
         name: Version
         path: version.json
 
-  publish-app:
+  publish-intel-app:
     runs-on: ubuntu-latest
-    needs: macos-build-and-test
+    needs: macos-intel-build-and-test
     if: github.event_name == 'push'
     steps:
     - uses: actions/checkout@v1
@@ -131,6 +145,9 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 'latest'
+    - name: Install jq
+      run: |
+        apt install -y jq
     - name: Create BUILD environment
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Download DMG
@@ -149,4 +166,4 @@ jobs:
         APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
         npx appcenter-cli distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
-        npx @appdistrib/cli -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
+        npx @appdistrib/cli -b `jq -r .buildid version.json` -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
