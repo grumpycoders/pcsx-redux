@@ -43,7 +43,7 @@ jobs:
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > version.json
           echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
-          echo '  "buildid": "'`jq -r .buildid buildid.json`'",' >> version.json
+          echo '  "buildid": '`jq -r .buildid buildid.json`',' >> version.json
           echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
           echo '  "timestamp": '`date '+%s'`',' >> version.json
           echo '  "channel": "dev",' >> version.json
