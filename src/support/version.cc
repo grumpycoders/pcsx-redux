@@ -72,7 +72,7 @@ bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::funct
     if (versionInfo.updateMethod == "appdistrib") {
         m_download = new UvFile(
             versionInfo.updateCatalog,
-            [this, callback, version = versionInfo.version]() {
+            [this, callback, version = versionInfo.buildId]() {
                 if (m_download->failed()) {
                     callback(false);
                 }
