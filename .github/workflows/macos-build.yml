@@ -147,7 +147,7 @@ jobs:
         node-version: 'latest'
     - name: Install jq
       run: |
-        apt install -y jq
+        sudo apt install -y jq
     - name: Create BUILD environment
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Download DMG
