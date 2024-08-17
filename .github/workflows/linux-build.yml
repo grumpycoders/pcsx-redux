@@ -52,7 +52,7 @@ jobs:
           echo '      "channel": "dev",' >> version.json
           echo '      "method": "appdistrib",' >> version.json
           echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/manifest.json",' >> version.json
-          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-win-x64/",' >> version.json
+          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/",' >> version.json
           echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
           echo '    }' >> version.json
           echo '  ]' >> version.json
