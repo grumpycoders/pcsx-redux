@@ -78,11 +78,14 @@ jobs:
         APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
         APPDISTRIB_ORGANIZATION: pcsx-redux
         APPDISTRIB_PROJECT: dev-macos-x64
+        GET_BUILDID: "${{ github.event_name == 'push' && 'true' || 'false' }}"
       run: |
         npx @appdistrib/cli buildid > buildid.json
         echo '{' > version.json
         echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
-        echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
+        if [ $GET_BUILDID == "true" ]; then
+          echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
+        fi
         echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
         echo '  "timestamp": '`date '+%s'`',' >> version.json
         echo '  "channel": "dev",' >> version.json
