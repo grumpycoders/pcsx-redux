@@ -39,12 +39,12 @@ jobs:
           APPDISTRIB_PROJECT: dev-linux-x64
           GET_BUILDID: "${{ github.event_name == 'push' && 'true' || 'false' }}"
         run: |
-          npx @appdistrib/cli buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > version.json
           echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
           if [ $GET_BUILDID == "true" ]; then
+            npx @appdistrib/cli buildid > buildid.json
             echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
           fi
           echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
