@@ -198,7 +198,7 @@ class GUI final : public UI {
       private:
         std::map<std::string_view, std::function<void()>> m_customURLs;
     };
-    static void openUrl(const std::string_view &url);
+    static void openUrl(std::string_view url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
     class ScopedOnlyLog {
       public:

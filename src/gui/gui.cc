@@ -96,19 +96,19 @@ __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     std::string storage = std::string(url);
     ShellExecuteA(0, 0, storage.c_str(), 0, 0, SW_SHOW);
 }
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("open {}", url);
     system(cmd.c_str());
 }
 #else
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("xdg-open {}", url);
     system(cmd.c_str());
 }
@@ -2293,16 +2293,31 @@ bool PCSX::GUI::about() {
                 if (version.failed()) {
                     ImGui::BeginDisabled();
                 }
-                if (ImGui::Button(_("Copy to clipboard"))) {
-                    clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
-                                               version.version, version.changeset, fmt::localtime(version.timestamp)));
-                }
                 if (version.failed()) {
                     ImGui::EndDisabled();
                     ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
                 } else {
+                    if (ImGui::Button(_("Copy to clipboard"))) {
+                        if (version.buildId.has_value()) {
+                            clip::set_text(
+                                fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                            version.version, version.buildId.value(), version.changeset,
+                                            fmt::localtime(version.timestamp)));
+                        } else {
+                            clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                                       version.version, version.changeset,
+                                                       fmt::localtime(version.timestamp)));
+                        }
+                    }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
-                    ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
+                    if (version.buildId.has_value()) {
+                        ImGui::Text(_("Build: %i"), version.buildId.value());
+                    }
+                    ImGui::TextUnformatted(_("Changeset: "));
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(version.changeset.c_str())) {
+                        openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
+                    }
                     std::tm tm = fmt::localtime(version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());
