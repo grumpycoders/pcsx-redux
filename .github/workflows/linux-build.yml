@@ -25,34 +25,45 @@ jobs:
           make -j 2 all pcsx-redux-tests tools
           make -C src/mips/tests -j 2 PCSX_TESTS=true
           make -C src/mips/openbios -j 2 clean all
-      - name: Packaging
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+      - name: Install jq
         run: |
+          apt install -y jq
+      - name: Packaging
+        env:
+          APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_LINUX_X64 }}
+          APPDISTRIB_ORGANIZATION: pcsx-redux
+          APPDISTRIB_PROJECT: dev-linux-x64
+        run: |
+          npx @appdistrib/cli buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
-          echo '{' > AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  "changeset": "'`git rev-parse HEAD`'",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  "timestamp": '`date '+%s'`',' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  "channel": "dev",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  "updateInfo": [' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '    {' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '      "channel": "dev",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '      "method": "appcenter",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '      "updateCatalog": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/public_releases",' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '      "updateInfoBase": "https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/releases/"' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '    }' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '  ]' >> AppDir/usr/share/pcsx-redux/resources/version.json
-          echo '}' >> AppDir/usr/share/pcsx-redux/resources/version.json
+          echo '{' > version.json
+          echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
+          echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
+          echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
+          echo '  "timestamp": '`date '+%s'`',' >> version.json
+          echo '  "channel": "dev",' >> version.json
+          echo '  "updateInfo": [' >> version.json
+          echo '    {' >> version.json
+          echo '      "channel": "dev",' >> version.json
+          echo '      "method": "appdistrib",' >> version.json
+          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/manifest.json",' >> version.json
+          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/",' >> version.json
+          echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
+          echo '    }' >> version.json
+          echo '  ]' >> version.json
+          echo '}' >> version.json
+          cp version.json AppDir/usr/share/pcsx-redux/resources
           appimage-builder --skip-tests
       - name: Test
         run: |
           export GTEST_OUTPUT=xml:${TEST_RESULTS}/
           mkdir -p $TEST_RESULTS
           xvfb-run catchsegv ./pcsx-redux-tests
-      - name: Install node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'latest'
       - name: Deploy
         if: github.event_name == 'push'
         env:
@@ -65,4 +76,4 @@ jobs:
           export BUILD=`git rev-parse HEAD | cut -c 1-8`
           zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
           npx appcenter-cli distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry
-          npx @appdistrib/cli -m AppDir/usr/share/pcsx-redux/resources/version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
+          npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
