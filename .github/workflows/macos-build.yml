@@ -69,7 +69,7 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v4
       with:
-        node-version: 'latest'
+        node-version: '22.6.0'
     - name: Install jq
       run: |
         brew install jq
