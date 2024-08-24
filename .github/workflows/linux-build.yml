@@ -38,7 +38,7 @@ jobs:
           APPDISTRIB_ORGANIZATION: pcsx-redux
           APPDISTRIB_PROJECT: dev-linux-x64
         run: |
-          npx @appdistrib/cli -v buildid > buildid.json
+          npx @appdistrib/cli buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > version.json
