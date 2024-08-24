@@ -38,7 +38,7 @@ jobs:
           APPDISTRIB_ORGANIZATION: pcsx-redux
           APPDISTRIB_PROJECT: dev-linux-x64
         run: |
-          npx @appdistrib/cli buildid > buildid.json
+          npx @appdistrib/cli -v buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
           echo '{' > version.json
@@ -76,4 +76,4 @@ jobs:
           export BUILD=`git rev-parse HEAD | cut -c 1-8`
           zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
           npx appcenter-cli distribute release -b $BUILD -f PCSX-Redux-$BUILD-linux-x86_64.zip -g public -a grumpycoders/pcsx-redux-linux64 --disable-telemetry
-          npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
+          npx @appdistrib/cli -v -l buildId -m version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
