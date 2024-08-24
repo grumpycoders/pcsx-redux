@@ -144,7 +144,7 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v4
       with:
-        node-version: 'latest'
+        node-version: '22.6.0'
     - name: Create BUILD environment
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Download DMG
