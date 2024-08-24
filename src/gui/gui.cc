@@ -818,6 +818,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
+    if (g_system->getArgs().isTestModeEnabled()) return;
     std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
