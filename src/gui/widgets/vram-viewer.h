@@ -66,11 +66,15 @@ class VRAMViewer {
     int m_attribLocationClut;
     int m_attribLocationCornerBR;
     int m_attribLocationCornerTL;
+    int m_attribLocationPixelScale;
     int m_attribLocationGreyscale;
     int m_attribLocationHovered;
     int m_attribLocationMagnify;
     int m_attribLocationMagnifyAmount;
     int m_attribLocationMagnifyRadius;
+    int m_attribLocationDrawGrid;
+    int m_attribLocationPixelGridColor;
+    int m_attribLocationTPageGridColor;
     int m_attribLocationMode;
     int m_attribLocationMonitorDPI;
     int m_attribLocationMonitorPosition;
@@ -100,6 +104,9 @@ class VRAMViewer {
     ImVec2 m_clut;
     ImVec2 m_cornerBR = {1024.0f, 512.0f};
     ImVec2 m_cornerTL = {0.0f, 0.0f};
+    bool m_drawGrid = true;
+    ImVec4 m_pixelGridColor = ImVec4{0.5f, 0.5f, 0.5f, 0.8f};
+    ImVec4 m_tpageGridColor = ImVec4{0.9f, 0.9f, 0.9f, 0.8f};
     bool m_greyscale = false;
     bool m_hovered = false;
     bool m_magnify = false;

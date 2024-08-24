@@ -58,11 +58,15 @@ uniform bool u_alpha;
 uniform vec2 u_clut;
 uniform vec2 u_cornerBR;
 uniform vec2 u_cornerTL;
+uniform vec2 u_pixelScale;
 uniform bool u_hovered;
 uniform bool u_greyscale;
 uniform bool u_magnify;
 uniform float u_magnifyRadius;
 uniform float u_magnifyAmount;
+uniform bool u_drawGrid;
+uniform vec4 u_pixelGridColor;
+uniform vec4 u_tpageGridColor;
 uniform int u_mode;
 uniform float u_monitorDPI;
 uniform vec2 u_mousePos;
@@ -92,14 +96,14 @@ int texelToRaw(in vec4 t) {
 }
 
 vec4 readTexture(in vec2 pos) {
-    vec2 apos = vec2(1024.0f, 512.0f) * pos;
-    vec2 fpos = fract(apos);
-    ivec2 ipos = ivec2(apos);
     vec4 ret = vec4(0.0f);
     if (pos.x > 1.0f) return ret;
     if (pos.y > 1.0f) return ret;
     if (pos.x < 0.0f) return ret;
     if (pos.y < 0.0f) return ret;
+    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 fpos = fract(apos);
+    ivec2 ipos = ivec2(apos);
 
     float scale = 0.0f;
     int p = 0;
@@ -208,14 +212,83 @@ void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
+    vec2 pixelPosLinear = vec2(1024.0f, 512.0f) * fragUV.st;
+    vec2 pixelPosFractional = fract(pixelPosLinear);
+    ivec2 pixelPos = ivec2(pixelPosLinear);
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
-    vec4 magnifyColor = readTexture(magnifyVector + u_mouseUV);
+    vec2 magnifyPos = magnifyVector + u_mouseUV;
+    vec4 magnifyColor = readTexture(magnifyPos);
 
     vec4 readOutline = outlineColor(u_readHighlight, u_readColor, fragUV.st);
     fragColor = mix(fragColor, readOutline, readOutline.a);
+    vec4 readOutlineMagnify = outlineColor(u_readHighlight, u_readColor, magnifyPos);
+    magnifyColor = mix(magnifyColor, readOutlineMagnify, readOutlineMagnify.a);
     vec4 writtenOutline = outlineColor(u_writtenHighlight, u_writtenColor, fragUV.st);
     fragColor = mix(fragColor, writtenOutline, writtenOutline.a);
+    vec4 writtenOutlineMagnify = outlineColor(u_writtenHighlight, u_writtenColor, magnifyPos);
+    magnifyColor = mix(magnifyColor, writtenOutlineMagnify, writtenOutlineMagnify.a);
     vec2 mousePos = vec2(u_mousePos.x - u_origin.x * 2.0, u_resolution.y - u_mousePos.y);
+    ivec2 mousePixelPos = ivec2(vec2(1024.0f, 512.0f) * u_mouseUV);
+#if 0
+    if (mousePixelPos == pixelPos) {
+        fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+#endif
+    bool drawGrid = true;
+    if (pixelPosLinear.x > 1024.0f) drawGrid = false;
+    if (pixelPosLinear.y > 512.0f) drawGrid = false;
+    if (pixelPosLinear.x < 0.0f) drawGrid = false;
+    if (pixelPosLinear.y < 0.0f) drawGrid = false;
+    bool drawTPageGrid = true;
+    if (pixelPosLinear.x > 1030.0f) drawTPageGrid = false;
+    if (pixelPosLinear.y > 520.0f) drawTPageGrid = false;
+    if (pixelPosLinear.x < 0.0f) drawTPageGrid = false;
+    if (pixelPosLinear.y < 0.0f) drawTPageGrid = false;
+
+    if ((drawGrid || drawTPageGrid) && u_drawGrid) {
+        vec2 pixelScaleWithMode;
+        switch (u_mode) {
+        case 0:
+            pixelScaleWithMode.x = 4.0f;
+            break;
+        case 1:
+            pixelScaleWithMode.x = 2.0f;
+            break;
+        case 2:
+            pixelScaleWithMode.x = 1.0f;
+            break;
+        case 3:
+            pixelScaleWithMode.x = 2.0f / 3.0f;
+            break;
+        }
+        pixelScaleWithMode.y = 1.0f;
+
+        vec2 tpageGrid = vec2(64.0f, 256.0f);
+        vec2 tpagePos = pixelPosLinear / tpageGrid;
+        vec2 tpagePosFractional = fract(tpagePos) * tpageGrid;
+        vec2 pixelPosWithModeFractional = fract(pixelPosLinear * pixelScaleWithMode) / pixelScaleWithMode;
+        vec2 pixelStep = (1.0f / u_pixelScale) / pixelScaleWithMode;
+        float tpageGridBlend = smoothstep(0.3f, 0.5f, u_pixelScale.x) * u_tpageGridColor.a;
+        float pixelGridBlend = smoothstep(3.0f, 5.0f, u_pixelScale.x) * u_pixelGridColor.a;
+        float tpageGridVertLine = 1.0f - step(0.5f, smoothstep(0.0f, pixelStep.x * 4.0f, tpagePosFractional.x));
+        float tpageGridHorzLine = 1.0f - step(0.5f, smoothstep(0.0f, pixelStep.y * 4.0f, tpagePosFractional.y));
+        float pixelGridVertLine = 1.0f - step(0.5f, smoothstep(0.0f, pixelStep.x * 2.0f, pixelPosWithModeFractional.x));
+        float pixelGridHorzLine = 1.0f - step(0.5f, smoothstep(0.0f, pixelStep.y * 2.0f, pixelPosWithModeFractional.y));
+        vec4 pixelGridColor = u_pixelGridColor;
+        vec4 tpageGridColor = u_tpageGridColor;
+        pixelGridColor.a = 1.0f;
+        tpageGridColor.a = 1.0f;
+        if (drawGrid) {
+            fragColor = mix(fragColor, pixelGridColor, pixelGridVertLine * pixelGridBlend);
+            fragColor = mix(fragColor, pixelGridColor, pixelGridHorzLine * pixelGridBlend);
+        }
+        if (pixelPosLinear.y <= 512.0f) {
+            fragColor = mix(fragColor, tpageGridColor, tpageGridVertLine * tpageGridBlend);
+        }
+        if (pixelPosLinear.x <= 1024.0f) {
+            fragColor = mix(fragColor, tpageGridColor, tpageGridHorzLine * tpageGridBlend);
+        }
+    }
 
     float blend = u_magnify ?
         smoothstep(u_magnifyRadius + ridge, u_magnifyRadius, distance(fragCoord, mousePos)) :
@@ -245,11 +318,15 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationClut = glGetUniformLocation(m_shaderProgram, "u_clut");
     m_attribLocationCornerBR = glGetUniformLocation(m_shaderProgram, "u_cornerBR");
     m_attribLocationCornerTL = glGetUniformLocation(m_shaderProgram, "u_cornerTL");
+    m_attribLocationPixelScale = glGetUniformLocation(m_shaderProgram, "u_pixelScale");
     m_attribLocationGreyscale = glGetUniformLocation(m_shaderProgram, "u_greyscale");
     m_attribLocationHovered = glGetUniformLocation(m_shaderProgram, "u_hovered");
     m_attribLocationMagnify = glGetUniformLocation(m_shaderProgram, "u_magnify");
     m_attribLocationMagnifyAmount = glGetUniformLocation(m_shaderProgram, "u_magnifyAmount");
     m_attribLocationMagnifyRadius = glGetUniformLocation(m_shaderProgram, "u_magnifyRadius");
+    m_attribLocationDrawGrid = glGetUniformLocation(m_shaderProgram, "u_drawGrid");
+    m_attribLocationPixelGridColor = glGetUniformLocation(m_shaderProgram, "u_pixelGridColor");
+    m_attribLocationTPageGridColor = glGetUniformLocation(m_shaderProgram, "u_tpageGridColor");
     m_attribLocationMode = glGetUniformLocation(m_shaderProgram, "u_mode");
     m_attribLocationMonitorDPI = glGetUniformLocation(m_shaderProgram, "u_monitorDPI");
     m_attribLocationMonitorPosition = glGetUniformLocation(m_shaderProgram, "u_monitorPosition");
@@ -412,6 +489,9 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform2f(m_attribLocationClut, m_clut.x, m_clut.y);
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
+    ImVec2 dimensions = (m_cornerBR - m_cornerTL) / m_DPI;
+    ImVec2 pixelScale = dimensions / ImVec2(512.0f / RATIOS[m_vramMode], 512.0f);
+    glUniform2f(m_attribLocationPixelScale, pixelScale.x, pixelScale.y);
     if (!m_hasClut && m_vramMode < 2) {
         glUniform1i(m_attribLocationGreyscale, 1);
     } else {
@@ -425,6 +505,11 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
         glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
     }
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
+    glUniform1i(m_attribLocationDrawGrid, 1);
+    glUniform4f(m_attribLocationPixelGridColor, m_pixelGridColor.x, m_pixelGridColor.y, m_pixelGridColor.z,
+                m_pixelGridColor.w);
+    glUniform4f(m_attribLocationTPageGridColor, m_tpageGridColor.x, m_tpageGridColor.y, m_tpageGridColor.z,
+                m_tpageGridColor.w);
     glUniform1i(m_attribLocationMode, m_vramMode);
     glUniform1f(m_attribLocationMonitorDPI, m_monitorDPI);
     glUniform2f(m_attribLocationMonitorPosition, m_monitorPosition.x, m_monitorPosition.y);
@@ -471,6 +556,8 @@ void PCSX::Widgets::VRAMViewer::resetView() {
 void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     bool openReadColorPicker = false;
     bool openWrittenColorPicker = false;
+    bool openPixelGridColorPicker = false;
+    bool openTPageGridColorPicker = false;
     auto flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar;
     if (ImGui::Begin(m_title().c_str(), &m_show, flags)) {
         m_DPI = ImGui::GetWindowDpiScale();
@@ -509,6 +596,10 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 }
                 ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                 ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
+                ImGui::Separator();
+                ImGui::MenuItem(_("Show grid"), nullptr, &m_drawGrid);
+                ImGui::MenuItem(_("Select pixel grid color"), nullptr, &openPixelGridColorPicker);
+                ImGui::MenuItem(_("Select TPage grid color"), nullptr, &openTPageGridColorPicker);
                 if (m_isMain) {
                     ImGui::Separator();
                     ImGui::MenuItem(_("Show Shader Editor"), nullptr, &m_editor.m_show);
@@ -554,6 +645,30 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
     if (ImGui::BeginPopupModal(_("Written Highlight Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::ColorPicker4(
             "##WrittenColorPicker", (float *)&m_writtenColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
+        if (ImGui::Button(_("OK"))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    if (openPixelGridColorPicker) {
+        ImGui::OpenPopup(_("Pixel Grid Color Picker"));
+    }
+    if (ImGui::BeginPopupModal(_("Pixel Grid Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::ColorPicker4(
+            "##PixelGridColorPicker", (float *)&m_pixelGridColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
+        if (ImGui::Button(_("OK"))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    if (openTPageGridColorPicker) {
+        ImGui::OpenPopup(_("TPage Grid Color Picker"));
+    }
+    if (ImGui::BeginPopupModal(_("TPage Grid Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::ColorPicker4(
+            "##TPageGridColorPicker", (float *)&m_tpageGridColor,
             ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) {
             ImGui::CloseCurrentPopup();
