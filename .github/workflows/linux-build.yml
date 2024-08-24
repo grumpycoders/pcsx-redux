@@ -28,7 +28,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v4
         with:
-          node-version: '22.6.0 
+          node-version: '22.6.0'
       - name: Install jq
         run: |
           apt install -y jq
