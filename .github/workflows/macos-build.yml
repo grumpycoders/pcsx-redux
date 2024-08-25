@@ -124,12 +124,12 @@ jobs:
     - name: Upload DMG
       uses: actions/upload-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-intel
         path: '**/*.dmg'
     - name: Upload version
       uses: actions/upload-artifact@v4
       with:
-        name: Version
+        name: Version-intel
         path: version.json
 
   publish-intel-app:
@@ -150,11 +150,11 @@ jobs:
     - name: Download DMG
       uses: actions/download-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-intel
     - name: Download version
       uses: actions/download-artifact@v4
       with:
-        name: Version
+        name: Version-intel
     - name: Distribute app
       env:
         APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
@@ -251,12 +251,12 @@ jobs:
     - name: Upload DMG
       uses: actions/upload-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-arm
         path: '**/*.dmg'
     - name: Upload version
       uses: actions/upload-artifact@v4
       with:
-        name: Version
+        name: Version-arm
         path: version.json
 
   publish-arm-app:
@@ -277,11 +277,11 @@ jobs:
     - name: Download DMG
       uses: actions/download-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-arm
     - name: Download version
       uses: actions/download-artifact@v4
       with:
-        name: Version
+        name: Version-arm
     - name: Distribute app
       env:
         APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_ARM }}
