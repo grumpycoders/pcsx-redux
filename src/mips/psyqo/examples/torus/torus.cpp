@@ -476,7 +476,7 @@ void TorusGeneratorScene::frame() {
             torusScene.generateTorus(m_generationFrame);
         }
         if (m_generationFrame < 256) {
-            psyqo::Rect region = {.pos = {{.x = 830, .y = int16_t(m_generationFrame + 256)}},
+            psyqo::Rect region = {.pos = {{.x = 832, .y = int16_t(m_generationFrame + 256)}},
                                   .size = {{.w = 128, .h = 1}}};
             psyqo::Prim::VRAMUpload upload;
             upload.region = region;
