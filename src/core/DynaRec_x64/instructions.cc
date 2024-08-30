@@ -1526,6 +1526,11 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
 
     m_nextIsDelaySlot = true;
 
+    if (link) {
+        maybeCancelDelayedLoad(31);
+        markConst(31, m_pc + 4);
+    }
+
     if (target == m_pc + 4) {
         return;
     }
@@ -1551,11 +1556,6 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
             }
         }
 
-        if (link) {
-            maybeCancelDelayedLoad(31);
-            markConst(31, m_pc + 4);
-        }
-
         return;
     }
 
@@ -1575,10 +1575,6 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
     }
 
     gen.mov(dword[contextPointer + PC_OFFSET], eax);
-    if (link) {
-        maybeCancelDelayedLoad(31);
-        markConst(31, m_pc + 4);
-    }
 }
 
 void DynaRecCPU::recBEQ(uint32_t code) {
