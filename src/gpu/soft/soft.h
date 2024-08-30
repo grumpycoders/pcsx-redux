@@ -42,7 +42,8 @@ struct SoftRenderer {
     }
 
     int m_useDither = 0;
-    bool m_disableTextures = false;
+    bool m_disableTexturesInPolygons = false;
+    bool m_disableTexturesInRectangles = false;
 
     bool checkCoord4();
     bool checkCoord3();

@@ -258,7 +258,8 @@ bool PCSX::SoftGPU::impl::configure() {
             setLinearFiltering();
         }
 
-        ImGui::Checkbox(_("Disable textures"), &m_disableTextures);
+        ImGui::Checkbox(_("Disable textures for polygons"), &m_disableTexturesInPolygons);
+        ImGui::Checkbox(_("Disable textures for sprites"), &m_disableTexturesInRectangles);
 
         ImGui::End();
     }
@@ -335,7 +336,7 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
     }
 
     if constexpr (shading == Shading::Flat) {
-        if ((textured == Textured::Yes) && !m_disableTextures) {
+        if ((textured == Textured::Yes) && !m_disableTexturesInPolygons) {
             if constexpr (textured == Textured::Yes) {
                 if (m_ditherMode) {
                     prim->tpage.dither = true;
@@ -384,7 +385,7 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
             }
         }
     } else {
-        if ((textured == Textured::Yes) && !m_disableTextures) {
+        if ((textured == Textured::Yes) && !m_disableTexturesInPolygons) {
             if constexpr (textured == Textured::Yes) {
                 if (m_ditherMode) {
                     prim->tpage.dither = true;
@@ -525,7 +526,7 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
     m_y2 = m_y3 = m_y0 + h + m_softDisplay.DrawOffset.y;
     m_y0 = m_y1 = m_y0 + m_softDisplay.DrawOffset.y;
 
-    if ((textured == Textured::Yes) && !m_disableTextures) {
+    if ((textured == Textured::Yes) && !m_disableTexturesInRectangles) {
         if constexpr (textured == Textured::Yes) {
             int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
             tx0 = tx3 = prim->u;
