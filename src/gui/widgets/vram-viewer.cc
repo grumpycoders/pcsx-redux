@@ -359,25 +359,25 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_s
         if (!m_isMain) return;
         bool changed = false;
         switch (event.vramMode) {
-            case PCSX::Events::GUI::VRAMFocus::VRAM_4BITS:
+            case PCSX::Events::GUI::VRAM_4BITS:
                 if (m_vramMode != VRAM_4BITS) {
                     m_vramMode = VRAM_4BITS;
                     changed = true;
                 }
                 break;
-            case PCSX::Events::GUI::VRAMFocus::VRAM_8BITS:
+            case PCSX::Events::GUI::VRAM_8BITS:
                 if (m_vramMode != VRAM_8BITS) {
                     m_vramMode = VRAM_8BITS;
                     changed = true;
                 }
                 break;
-            case PCSX::Events::GUI::VRAMFocus::VRAM_16BITS:
+            case PCSX::Events::GUI::VRAM_16BITS:
                 if (m_vramMode != VRAM_16BITS) {
                     m_vramMode = VRAM_16BITS;
                     changed = true;
                 }
                 break;
-            case PCSX::Events::GUI::VRAMFocus::VRAM_24BITS:
+            case PCSX::Events::GUI::VRAM_24BITS:
                 if (m_vramMode != VRAM_24BITS) {
                     m_vramMode = VRAM_24BITS;
                     changed = true;
@@ -427,7 +427,11 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     }
 
     bool hovered = m_hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
-    if (ImGui::IsItemClicked()) m_selectingClut = false;
+    bool clicked = false;
+    if (ImGui::IsItemClicked()) {
+        clicked = true;
+        m_selectingClut = false;
+    }
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 
@@ -436,6 +440,27 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     ImVec2 texSpan = texBR - texTL;
     if (hovered) {
         m_mouseUV = texTL + texSpan * (m_mousePos - m_origin) / m_resolution;
+        auto UV = m_mouseUV * ImVec2(1024.0f, 512.0f);
+        PCSX::Events::GUI::VRAMMode vramMode;
+        switch (m_vramMode) {
+            case VRAM_4BITS:
+                vramMode = PCSX::Events::GUI::VRAM_4BITS;
+                break;
+            case VRAM_8BITS:
+                vramMode = PCSX::Events::GUI::VRAM_8BITS;
+                break;
+            case VRAM_16BITS:
+                vramMode = PCSX::Events::GUI::VRAM_16BITS;
+                break;
+            case VRAM_24BITS:
+                vramMode = PCSX::Events::GUI::VRAM_24BITS;
+                break;
+        }
+        if (clicked) {
+            g_system->m_eventBus->signal(PCSX::Events::GUI::VRAMClick{UV.x, UV.y, vramMode});
+        } else {
+            g_system->m_eventBus->signal(PCSX::Events::GUI::VRAMHover{UV.x, UV.y, vramMode});
+        }
     }
 
     if (!hovered) {
@@ -618,7 +643,7 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             ImGui::Separator();
             float divisor = m_vramMode == VRAM_4BITS ? 4.0f : m_vramMode == VRAM_8BITS ? 2.0f : 1.0f;
             ImGui::Text("Cursor: %.2f : %.2f", std::floor(m_mouseUV.x * 1024.0f * divisor) / divisor,
-                        std::floor(m_mouseUV.y * 512.0f * divisor) / divisor);
+                        std::floor(m_mouseUV.y * 512.0f));
             if (m_hasClut) {
                 ImGui::Separator();
                 ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 512.0f));

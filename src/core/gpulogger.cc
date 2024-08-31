@@ -74,9 +74,13 @@ void PCSX::GPULogger::enable() {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &textureUnits);
     if (textureUnits < 5) return;
 
-    m_vbo.createFixedSize(sizeof(OpenGL::ivec2) * m_vertices.size(), GL_STREAM_DRAW);
+    if (!m_vbo.exists()) {
+        m_vbo.createFixedSize(sizeof(OpenGL::ivec2) * m_vertices.size(), GL_STREAM_DRAW);
+    }
     m_vbo.bind();
-    m_vao.create();
+    if (!m_vao.exists()) {
+        m_vao.create();
+    }
     m_vao.bind();
     m_vao.setAttributeInt<GLint>(0, 2, sizeof(OpenGL::ivec2), size_t(0));
     m_vao.enableAttribute(0);
