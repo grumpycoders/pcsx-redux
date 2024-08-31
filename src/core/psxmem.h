@@ -23,13 +23,14 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/polyfills.h"
 #include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
-#define SWAP_LE16(v) ((((v)&0xff00) >> 8) | (((v)&0xff) << 8))
+#define SWAP_LE16(v) ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
 #define SWAP_LE32(v) \
-    ((((v)&0xff000000ul) >> 24) | (((v)&0xff0000ul) >> 8) | (((v)&0xff00ul) << 8) | (((v)&0xfful) << 24))
+    ((((v) & 0xff000000ul) >> 24) | (((v) & 0xff0000ul) >> 8) | (((v) & 0xff00ul) << 8) | (((v) & 0xfful) << 24))
 #define SWAP_LEu16(v) SWAP_LE16((uint16_t)(v))
 #define SWAP_LEu32(v) SWAP_LE32((uint32_t)(v))
 
@@ -154,7 +155,7 @@ class Memory {
     T readHardwareRegister() {
         T *ptr = (T *)&m_hard[reg];
         if constexpr (std::endian::native == std::endian::big) {
-            return File::byte_swap(*ptr);
+            return PolyFill::byteSwap(*ptr);
         } else if constexpr (std::endian::native == std::endian::little) {
             return *ptr;
         }
@@ -164,7 +165,7 @@ class Memory {
     void writeHardwareRegister(T value) {
         T *ptr = (T *)&m_hard[reg];
         if constexpr (std::endian::native == std::endian::big) {
-            *ptr = File::byte_swap(value);
+            *ptr = PolyFill::byteSwap(value);
         } else if constexpr (std::endian::native == std::endian::little) {
             *ptr = value;
         }
