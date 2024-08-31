@@ -286,6 +286,8 @@ class GPU {
     };
     enum class TexDepth { Tex4Bits, Tex8Bits, Tex16Bits };
 
+    struct Empty {};
+
     struct ClearCache final : public Logged {
         std::string_view getName() override { return "Clear Cache"; }
         void drawLogNode(unsigned n) override;
@@ -519,7 +521,6 @@ class GPU {
         }
         uint32_t colors[count];
         int x[count], y[count];
-        struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
         [[no_unique_address]] TextureUnitType u[count];
         [[no_unique_address]] TextureUnitType v[count];
@@ -580,7 +581,6 @@ class GPU {
 
       private:
         GPUStats stats;
-        struct Empty {};
         [[no_unique_address]] typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
         enum { READ_COLOR, READ_XY } m_state = READ_COLOR;
     };
@@ -597,7 +597,6 @@ class GPU {
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
 
-        struct Empty {};
         int x, y, w, h;
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
         [[no_unique_address]]
