@@ -1138,9 +1138,9 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
             const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+                                  ? Events::GUI::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                         : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(
                 Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
@@ -1235,9 +1235,9 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
             const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+                                  ? Events::GUI::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                         : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
                                                                 int(((u + w) >> shift) + tx), int(v + h + ty), mode});
@@ -1418,4 +1418,16 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&ad
             add({int(maxU + tx), int(maxV + ty)}, {int(minU + tx), int(maxV + ty)}, {int(minU + tx), int(minV + ty)});
         }
     }
+}
+
+bool PCSX::GPU::Logged::isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    int o2 = (x - x2) * (y3 - y2) - (y - y2) * (x3 - x2);
+    int o3 = (x - x3) * (y1 - y3) - (y - y3) * (x1 - x3);
+    return (o1 >= 0 && o2 >= 0 && o3 >= 0) || (o1 <= 0 && o2 <= 0 && o3 <= 0);
+}
+
+bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y2) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    return o1 == 0;
 }
