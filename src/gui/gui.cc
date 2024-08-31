@@ -1552,14 +1552,14 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &PCSX::g_emulator->m_cpu->m_regs, _("Registers"));
+        m_registers.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Registers"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), _("Assembly"));
+        m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
-    if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
+    if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
