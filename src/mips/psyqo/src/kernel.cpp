@@ -31,11 +31,13 @@ SOFTWARE.
 #include <EASTL/fixed_vector.h>
 #include <stdint.h>
 
+#include "common/hardware/dma.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "common/util/encoder.hh"
 #include "psyqo/hardware/cpu.hh"
+#include "psyqo/spu.hh"
 
 namespace {
 
@@ -159,13 +161,29 @@ void psyqo::Kernel::Internal::addInitializer(eastl::function<void()>&& lambda) {
 }
 
 void psyqo::Kernel::Internal::prepare() {
+    SPU::reset();
+    Hardware::CPU::IMask.clear();
+    Hardware::CPU::IReg.clear();
+    for (unsigned i = 0; i < 7; i++) {
+        DMA_CTRL[i].CHCR = 0;
+        DMA_CTRL[i].BCR = 0;
+        DMA_CTRL[i].MADR = 0;
+    }
+    Hardware::CPU::DPCR = 0;
+    uint32_t dicr = Hardware::CPU::DICR;
+    Hardware::CPU::DICR = dicr;
+    Hardware::CPU::DICR = 0;
     for (unsigned slot = 0; slot < SLOTS; slot++) {
         s_functions[slot].code[0] = Mips::Encoder::j(reinterpret_cast<uint32_t>(trampoline));
         s_functions[slot].code[1] = Mips::Encoder::addiu(Mips::Encoder::Reg::A0, Mips::Encoder::Reg::R0, slot);
     }
     syscall_flushCache();
-    syscall_dequeueCDRomHandlers();
+    __builtin_memset(*(void**)0x100, 0, *(uint32_t*)0x104);
+    __builtin_memset(*(void**)0x120, 0, *(uint32_t*)0x124);
     syscall_setDefaultExceptionJmpBuf();
+    syscall_enqueueSyscallHandler(0);
+    syscall_enqueueIrqHandler(3);
+    syscall_enqueueRCntIrqs(1);
     uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, []() {
         Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::DMA);
         uint32_t dicr = Hardware::CPU::DICR;
@@ -195,7 +213,7 @@ void psyqo::Kernel::Internal::prepare() {
     });
     syscall_enableEvent(event);
     Hardware::CPU::IMask.set(Hardware::CPU::IRQ::DMA);
-    uint32_t dicr = Hardware::CPU::DICR;
+    dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;
     dicr |= 0x800000;
     Hardware::CPU::DICR = dicr;
