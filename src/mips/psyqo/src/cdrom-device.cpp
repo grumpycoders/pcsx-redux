@@ -40,11 +40,16 @@ SOFTWARE.
 void psyqo::CDRomDevice::prepare() {
     Hardware::CPU::IMask.set(Hardware::CPU::IRQ::CDRom);
     Kernel::enableDma(Kernel::DMA::CDRom);
-    m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, [this]() {
+    eastl::function<void()> callback = [this]() {
         Hardware::CPU::IReg.clear(Hardware::CPU::IRQ::CDRom);
         irq();
-    });
-    syscall_enableEvent(m_event);
+    };
+    if (Kernel::isKernelTakenOver()) {
+        Kernel::queueIRQHandler(Kernel::IRQ::CDRom, eastl::move(callback));
+    } else {
+        m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, eastl::move(callback));
+        syscall_enableEvent(m_event);
+    }
 }
 
 psyqo::CDRomDevice::~CDRomDevice() { Kernel::abort("CDRomDevice can't be destroyed (yet)"); }

@@ -118,6 +118,7 @@ class Application {
     eastl::fixed_vector<Scene*, 16> m_scenesStack;
 
     friend class Scene;
+    friend void Kernel::takeOverKernel();
 };
 
 }  // namespace psyqo

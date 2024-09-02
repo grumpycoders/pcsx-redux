@@ -38,9 +38,12 @@ SOFTWARE.
     .section .text.flushCache, "ax", @progbits
     .align 2
     .set noreorder
+    .global _ZN5psyqo6Kernel10flushCacheEv
+    .type _ZN5psyqo6Kernel10flushCacheEv, @function
     .global flushCache
     .type flushCache, @function
 
+_ZN5psyqo6Kernel10flushCacheEv:
 flushCache:
     /* Saves $ra to $t6, and the current cop0 Status register to $t0, and ensure we
        are running from uncached ram. */
