@@ -78,7 +78,8 @@ class FontBase {
      * method, you should not call initialize() afterwards. The Kernel rom font is a 16x15 font created
      * by Sony, and built into the PSX rom chip. Its appearance is variable, depending on the version
      * of the PSX bios. It may not be available on all PSX models. The footprint for this font is 192
-     * bytes of read-only data, and a 256x90x4bpp texture.
+     * bytes of read-only data, and a 256x90x4bpp texture. This font isn't going to work if psyqo
+     * took over the kernel. See the `Kernel` namespace for more information.
      */
     void uploadKromFont(GPU& gpu, Vertex location = {{.x = 960, .y = 422}});
 

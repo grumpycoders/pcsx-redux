@@ -33,11 +33,11 @@ SOFTWARE.
 
 int psyqo::Application::run() {
     Kernel::fastEnterCriticalSection();
+    Kernel::Internal::prepare(*this);
     syscall_puts("*** PSYQo Application - starting ***\n");
     psyqo_free(psyqo_malloc(1));
     ramsyscall_printf("Current heap start: %p\n", psyqo_heap_start());
     ramsyscall_printf("Current heap end: %p\n", psyqo_heap_end());
-    Kernel::Internal::prepare();
     prepare();
     Kernel::fastLeaveCriticalSection();
     while (true) {
