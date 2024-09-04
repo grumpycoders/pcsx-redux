@@ -241,8 +241,8 @@ void dmaIRQ() {
     dicr &= 0xff7fff;
     uint32_t ack = 0x80;
 
-    for (unsigned irq = 0; irq < static_cast<unsigned>(psyqo::Kernel::DMA::Max); irq++) {
-        uint32_t mask = 1 << irq;
+    for (unsigned dma = 0; dma < static_cast<unsigned>(psyqo::Kernel::DMA::Max); dma++) {
+        uint32_t mask = 1 << dma;
         if (dirqs & mask) {
             ack |= mask;
         }
@@ -252,10 +252,10 @@ void dmaIRQ() {
     dicr |= ack;
     psyqo::Hardware::CPU::DICR = dicr;
 
-    for (unsigned irq = 0; irq < static_cast<unsigned>(psyqo::Kernel::DMA::Max); irq++) {
-        uint32_t mask = 1 << irq;
+    for (unsigned dma = 0; dma < static_cast<unsigned>(psyqo::Kernel::DMA::Max); dma++) {
+        uint32_t mask = 1 << dma;
         if (dirqs & mask) {
-            for (auto& lambda : s_dmaCallbacks[irq]) {
+            for (auto& lambda : s_dmaCallbacks[dma]) {
                 if (lambda) lambda();
             }
         }
