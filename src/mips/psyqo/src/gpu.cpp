@@ -565,9 +565,8 @@ void psyqo::GPU::pumpCallbacks() {
                     timer.deadline += timer.period;
                 }
                 timer.callback(currentTime);
-                if (!timer.periodic) {
-                    m_timers.erase(it);
-                }
+                if (timer.periodic) continue;
+                m_timers.erase(it);
                 done = false;
                 break;
             }
