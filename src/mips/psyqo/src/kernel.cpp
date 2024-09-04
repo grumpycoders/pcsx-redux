@@ -98,7 +98,6 @@ void psyqoExceptionHandler(uint32_t ireg) {
         auto& handlers = s_irqHandlersStorage[irq];
         for (auto& handler : handlers) handler();
     }
-    psyqo::Hardware::CPU::IReg.clear();
 }
 void psyqoAssemblyExceptionHandler();
 }
