@@ -36,6 +36,7 @@ struct BinaryLoaderInfo {
 struct PS1PackerOptions {
     uint32_t tload;
     bool shell;
+    bool nokernel;
     bool nopad;
     bool booty;
     bool raw;
@@ -80,6 +81,7 @@ PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
     local opts = ffi.new('struct PS1PackerOptions')
     opts.tload = options.tload and options.tload or 0
     opts.booty = options.booty and true or false
+    opts.nokernel = options.nokernel and true or false
     opts.shell = options.shell and true or false
     opts.nopad = options.nopad and true or false
     opts.raw = options.raw and true or false
