@@ -69,6 +69,8 @@ class PadsImpl : public PCSX::Pads {
 
   private:
     PCSX::EventBus::Listener m_listener;
+    // This is a list of all of the valid GLFW gamepad IDs that we have found querying GLFW.
+    // A value of -1 means that there is no gamepad at that index.
     int m_gamepadsMap[16] = {0};
 
     static constexpr int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
@@ -181,7 +183,7 @@ class PadsImpl : public PCSX::Pads {
         PadType m_type;
         PadData m_data;
 
-        int m_padID = 0;
+        int m_padID = -1;
         int m_buttonToWait = -1;
         bool m_changed = false;
 
@@ -480,7 +482,7 @@ void PadsImpl::reset() {
 }
 
 void PadsImpl::Pad::reset() {
-    m_analogMode = false;
+    // m_analogMode = false;
     m_configMode = false;
     m_cmd = magic_enum::enum_integer(PadCommands::Idle);
     m_bufferLen = 0;
@@ -592,15 +594,12 @@ void PadsImpl::Pad::getButtons() {
         return;
     }
 
-    if (m_padID >= 0) {
-        int glfwID = s_pads->m_gamepadsMap[m_padID];
-        if ((glfwID >= GLFW_JOYSTICK_1) && (glfwID <= GLFW_JOYSTICK_LAST)) {
-            hasPad = glfwGetGamepadState(glfwID, &state);
-            if (!hasPad) {
-                const char* guid = glfwGetJoystickGUID(glfwID);
-                PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
-                m_padID = -1;
-            }
+    if ((m_padID >= GLFW_JOYSTICK_1) && (m_padID <= GLFW_JOYSTICK_LAST)) {
+        hasPad = glfwGetGamepadState(m_padID, &state);
+        if (!hasPad) {
+            const char* guid = glfwGetJoystickGUID(m_padID);
+            PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
+            m_padID = -1;
         }
     }
 
@@ -883,7 +882,7 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
         if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
             const int key = pad.m_settings.get<Keyboard_AnalogMode>();
 
-            if ((key != ImGuiKey_None) && ImGui::IsKeyDown(GlfwKeyToImGuiKey(key))) {
+            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(GlfwKeyToImGuiKey(key))) {
                 pad.m_analogMode = !pad.m_analogMode;
             }
         }
@@ -901,8 +900,8 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     }
 
     static std::function<const char*()> const c_padNames[] = {
-        []() { return _("Pad 1"); },
-        []() { return _("Pad 2"); },
+        l_("Pad 1"),
+        l_("Pad 2"),
     };
 
     if (ImGui::Button(_("Rescan gamepads and re-read game controllers database"))) {
@@ -984,30 +983,27 @@ void PadsImpl::Pad::keyboardEvent(const PCSX::Events::Keyboard& event) {
 
 bool PadsImpl::Pad::configure() {
     static std::function<const char*()> const c_inputDevices[] = {
-        []() { return _("Auto"); },
-        []() { return _("Controller"); },
-        []() { return _("Keyboard"); },
+        l_("Auto"),
+        l_("Controller"),
+        l_("Keyboard"),
     };
     static std::function<const char*()> const c_buttonNames[] = {
-        []() { return _("Cross"); },       []() { return _("Square"); }, []() { return _("Triangle"); },
-        []() { return _("Circle"); },      []() { return _("Select"); }, []() { return _("Start"); },
-        []() { return _("L1"); },          []() { return _("R1"); },     []() { return _("L2"); },
-        []() { return _("R2"); },          []() { return _("L3"); },     []() { return _("R3"); },
-        []() { return _("Analog Mode"); },
+        l_("╳"),  l_("□"),  l_("△"),  l_("◯"),  l_("Select"), l_("Start"),       l_("L1"),
+        l_("R1"), l_("L2"), l_("R2"), l_("L3"), l_("R3"),     l_("Analog Mode"),
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-        []() { return _("Up"); },
-        []() { return _("Right"); },
-        []() { return _("Down"); },
-        []() { return _("Left"); },
+        l_("↑"),
+        l_("→"),
+        l_("↓"),
+        l_("←"),
     };
     static std::function<const char*()> const c_controllerTypes[] = {
-        []() { return _("Digital"); },
-        []() { return _("Analog"); },
-        []() { return _("Mouse"); },
-        []() { return _("Negcon (Unimplemented)"); },
-        []() { return _("Gun (Unimplemented)"); },
-        []() { return _("Guncon (Unimplemented"); },
+        l_("Digital"),
+        l_("Analog"),
+        l_("Mouse"),
+        l_("Negcon (Unimplemented)"),
+        l_("Gun (Unimplemented)"),
+        l_("Guncon (Unimplemented)"),
     };
 
     bool changed = false;

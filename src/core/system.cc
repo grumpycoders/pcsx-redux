@@ -69,7 +69,7 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Nihongo",
-        {"jp.po", {}, nullptr},
+        {"ja.po", {}, nullptr},
     },
     {
         "Polski",
@@ -298,7 +298,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
 }
 
 std::filesystem::path PCSX::System::getPersistentDir() const {
-    if (getArgs().isPortable()) return "";
+    if (getArgs().isPortable()) return getArgs().getPortablePath();
 #ifdef _WIN32
     char* homeDir;
     auto ret = _dupenv_s(&homeDir, nullptr, "APPDATA");

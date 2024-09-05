@@ -29,7 +29,7 @@
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
@@ -461,12 +461,13 @@ bool PCSX::OpenGL_GPU::configure() {
     }
 
     if (ImGui::Begin(_("OpenGL GPU configuration"), &m_showCfg)) {
-        static const char *polygonModeNames[] = {"Fill polygons", "Wireframe", "Vertices only"};
+        static std::function<const char *()> const c_polygonModeNames[] = {l_("Fill polygons"), l_("Wireframe"),
+                                                                           l_("Vertices only")};
         constexpr OpenGL::FillMode polygonModes[] = {OpenGL::FillPoly, OpenGL::DrawWire, OpenGL::DrawPoints};
 
-        if (ImGui::BeginCombo(_("Polygon rendering mode"), polygonModeNames[m_polygonModeIndex])) {
+        if (ImGui::BeginCombo(_("Polygon rendering mode"), c_polygonModeNames[m_polygonModeIndex]())) {
             for (auto i = 0; i < 3; i++) {
-                if (ImGui::Selectable(polygonModeNames[i])) {
+                if (ImGui::Selectable(c_polygonModeNames[i]())) {
                     m_polygonMode = polygonModes[i];
                     m_polygonModeIndex = i;
                 }
@@ -500,7 +501,7 @@ bool PCSX::OpenGL_GPU::configure() {
             changed = true;
             setLinearFiltering();
         }
-        ImGui::Checkbox("Edit OpenGL GPU shaders", &m_shaderEditor.m_show);
+        ImGui::Checkbox(_("Edit OpenGL GPU shaders"), &m_shaderEditor.m_show);
         ImGui::End();
     }
 
@@ -1020,8 +1021,6 @@ void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
-
-void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}
 
 // clang-format off
 void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }

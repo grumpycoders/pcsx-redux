@@ -31,6 +31,7 @@ SOFTWARE.
 #include <ctime>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "json.hpp"
@@ -41,18 +42,34 @@ namespace PCSX {
 
 struct VersionInfo {
     std::string version;
+    std::optional<unsigned> buildId;
     std::string changeset;
     std::time_t timestamp;
+    std::string updateMethod;
+    std::string updateChannel;
     std::string updateCatalog;
     std::string updateInfoBase;
+    std::string updateStorageUrl;
     void loadFromFile(IO<File> file);
     bool failed() const { return version.empty(); }
+    bool hasUpdateInfo() const {
+        if (version.empty()) return false;
+        if (updateCatalog.empty() || updateInfoBase.empty()) return false;
+        if (updateMethod == "appdistrib") {
+            return buildId.has_value() && !updateStorageUrl.empty();
+        }
+        return (updateMethod == "appcenter");
+    }
     void clear() {
         version.clear();
+        buildId = std::nullopt;
         changeset.clear();
         timestamp = 0;
+        updateMethod.clear();
+        updateChannel.clear();
         updateCatalog.clear();
         updateInfoBase.clear();
+        updateStorageUrl.clear();
     }
 };
 

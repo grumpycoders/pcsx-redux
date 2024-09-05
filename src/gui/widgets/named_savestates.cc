@@ -1,3 +1,21 @@
+/***************************************************************************
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
 #include "gui/widgets/named_savestates.h"
 
@@ -59,9 +77,9 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     float posY = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(posY + verticalAlignAdjust);
 
-    ImGui::Text(_("Filename: "));
+    ImGui::TextUnformatted(_("Filename: "));
     ImGui::SameLine();
-    ImGui::Text(gui->getSaveStatePrefix(true).c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePrefix(true).c_str());
     ImGui::SameLine(0.0f, 0.0f);
 
     // Restore the vertical value
@@ -90,14 +108,14 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
         }
     };
 
-    ImGui::InputTextWithHint("##SaveNameInput", "Enter the name of your save state here", m_namedSaveNameString,
+    ImGui::InputTextWithHint("##SaveNameInput", _("Enter the name of your save state here"), m_namedSaveNameString,
                              NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter,
                              TextFilters::FilterNonPathCharacters);
     ImGui::SameLine(0.0f, 0.0f);
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalAlignAdjust);
-    ImGui::Text(gui->getSaveStatePostfix().c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePostfix().c_str());
 
     ImGui::Separator();
 

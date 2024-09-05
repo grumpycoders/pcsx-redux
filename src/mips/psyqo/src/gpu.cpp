@@ -110,16 +110,26 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     }
 
     // Install VBlank interrupt handler
-    uint32_t event = Kernel::openEvent(0xf2000003, 2, EVENT_MODE_CALLBACK, [this]() {
-        m_frameCount++;
-        eastl::atomic_signal_fence(eastl::memory_order_release);
-    });
-    syscall_enableEvent(event);
-    syscall_enableTimerIRQ(3);
-    syscall_setTimerAutoAck(3, 1);
-    Prim::FastFill ff;
-    ff.rect = Rect{0, 0, 1024, 512};
-    sendPrimitive(ff);
+    if (Kernel::isKernelTakenOver()) {
+        // In this case, psyqo's assembly code will handle the VBlank interrupt and
+        // increment the frame counter. But we need to adjust the assembly code to
+        // own the frame counter pointer, and that'll be done before. All we need to
+        // do here is to enable the VBlank interrupt.
+        Hardware::CPU::IMask.set(Hardware::CPU::IRQ::VBlank);
+    } else {
+        uint32_t event = Kernel::openEvent(0xf2000003, 2, EVENT_MODE_CALLBACK, [this]() {
+            m_frameCount++;
+            eastl::atomic_signal_fence(eastl::memory_order_release);
+        });
+        syscall_enableEvent(event);
+        syscall_enableTimerIRQ(3);
+        syscall_setTimerAutoAck(3, 1);
+    }
+    if (config.clearVRAM) {
+        Prim::FastFill ff;
+        ff.rect = Rect{0, 0, 1024, 512};
+        sendPrimitive(ff);
+    }
     // Enable Display
     Hardware::GPU::Ctrl = 0x03000000;
     Kernel::enableDma(Kernel::DMA::GPU);
@@ -165,7 +175,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 }
             } break;
         }
-        // GPU back in Fifo polling mode, effectively disabling DMA
+        // GPU back in Fifo polling mode, in case we were uploading to VRAM
         Hardware::GPU::Ctrl = 0x04000001;
         if (m_flushCacheAfterDMA) {
             Prim::FlushCache fc;
@@ -351,10 +361,9 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect region, eastl::function
     upload.region = region;
     sendPrimitive(upload);
 
-    // Activating CPU->GPU DMA
+    // Activating VRAM DMA upload mode
     Hardware::GPU::Ctrl = 0x04000002;
-    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0);
     DMA_CTRL[DMA_GPU].MADR = ptr;
     DMA_CTRL[DMA_GPU].BCR = bcr;
     eastl::atomic_signal_fence(eastl::memory_order_release);
@@ -395,6 +404,7 @@ void psyqo::GPU::sendFragment(const uint32_t *data, size_t count, eastl::functio
 void psyqo::GPU::scheduleNormalDMA(uintptr_t data, size_t count) {
     uint32_t bcr = count;
 
+    Kernel::assert((DMA_CTRL[DMA_GPU].CHCR & 0x01000000) == 0, "GPU DMA busy");
     unsigned bs = 1;
     while (((bcr & 1) == 0) && (bs < 16)) {
         bs <<= 1;
@@ -404,10 +414,7 @@ void psyqo::GPU::scheduleNormalDMA(uintptr_t data, size_t count) {
     bcr <<= 16;
     bcr |= bs;
 
-    // Activating CPU->GPU DMA
-    Hardware::GPU::Ctrl = 0x04000002;
-    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
-        ;
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0);
     DMA_CTRL[DMA_GPU].MADR = data;
     DMA_CTRL[DMA_GPU].BCR = bcr;
     eastl::atomic_signal_fence(eastl::memory_order_release);
@@ -464,10 +471,8 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
 }
 
 void psyqo::GPU::scheduleChainedDMA(uintptr_t head) {
-    // Activating CPU->GPU DMA
-    Hardware::GPU::Ctrl = 0x04000002;
-    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0)
-        ;
+    Kernel::assert((DMA_CTRL[DMA_GPU].CHCR & 0x01000000) == 0, "GPU DMA busy");
+    while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0);
     DMA_CTRL[DMA_GPU].MADR = head;
     eastl::atomic_signal_fence(eastl::memory_order_release);
     DMA_CTRL[DMA_GPU].CHCR = 0x01000401;
@@ -560,9 +565,8 @@ void psyqo::GPU::pumpCallbacks() {
                     timer.deadline += timer.period;
                 }
                 timer.callback(currentTime);
-                if (!timer.periodic) {
-                    m_timers.erase(it);
-                }
+                if (timer.periodic) continue;
+                m_timers.erase(it);
                 done = false;
                 break;
             }
@@ -573,3 +577,16 @@ void psyqo::GPU::pumpCallbacks() {
 }
 
 void psyqo::GPU::scheduleOTC(uint32_t *start, uint32_t count) { m_OTCs[m_parity].emplace_back(start, count); }
+
+extern uint16_t psyqoExceptionHandlerAdjustFrameCount[];
+
+void psyqo::GPU::prepareForTakeover() {
+    uintptr_t frameCountPtr = reinterpret_cast<uintptr_t>(&m_frameCount);
+    uint16_t hi = frameCountPtr >> 16;
+    uint16_t lo = frameCountPtr & 0xffff;
+    if (lo >= 0x8000) hi++;
+    // Highly dependent on the assembly code in vector.s, as we're modifying it on the fly.
+    psyqoExceptionHandlerAdjustFrameCount[0] = hi;
+    psyqoExceptionHandlerAdjustFrameCount[2] = lo;
+    psyqoExceptionHandlerAdjustFrameCount[8] = lo;
+}

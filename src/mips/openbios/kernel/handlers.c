@@ -294,6 +294,7 @@ void copyDataAndInitializeBSS() {
        We can't rely on the code to already exist in RAM,
        so we have to do this in ROM, which will be slower. */
     memcpy(&__data_start, &__rom_data_start, __data_len);
+    clearWatchdog();
     /* The original code does this step by jumping into 0x500.
        Likely the intend being that there's a faster memset at
        this location, for the specific purpose of handling

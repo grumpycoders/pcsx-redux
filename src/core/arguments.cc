@@ -30,6 +30,8 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
     if (args.get<bool>("testmode") || args.get<bool>("no-gui-log")) m_guiLogsEnabled = false;
     if (args.get<bool>("testmode")) m_testModeEnabled = true;
     if (args.get<bool>("portable")) m_portable = true;
+    auto portablePath = args.get<std::string_view>("portable");
+    if (portablePath.has_value()) m_portablePath = portablePath.value();
     if (std::filesystem::exists("pcsx.json")) m_portable = true;
     if (std::filesystem::exists("Makefile")) m_portable = true;
     if (std::filesystem::exists(std::filesystem::path("..") / "pcsx-redux.sln")) m_portable = true;

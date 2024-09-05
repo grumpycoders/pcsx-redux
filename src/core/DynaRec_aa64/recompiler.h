@@ -31,7 +31,7 @@
 #include "fmt/format.h"
 #include "regAllocation.h"
 #include "spu/interface.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
 #define GPR_OFFSET(x) ((uintptr_t)&m_regs.GPR.r[(x)] - (uintptr_t)this)

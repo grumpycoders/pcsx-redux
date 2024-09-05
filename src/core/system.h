@@ -88,19 +88,30 @@ struct JumpToPC {
 struct JumpToMemory {
     uint32_t address;
     unsigned size;
+    unsigned editorNum;
+    bool forceShowEditor;
 };
 struct SelectClut {
     unsigned x, y;
 };
+enum VRAMMode : int {
+    VRAM_4BITS,
+    VRAM_8BITS,
+    VRAM_16BITS,
+    VRAM_24BITS,
+};
 struct VRAMFocus {
     int x1, y1;
     int x2, y2;
-    enum : int {
-        VRAM_4BITS,
-        VRAM_8BITS,
-        VRAM_16BITS,
-        VRAM_24BITS,
-    } vramMode = VRAM_16BITS;
+    VRAMMode vramMode;
+};
+struct VRAMHover {
+    float x, y;
+    VRAMMode vramMode;
+};
+struct VRAMClick {
+    float x, y;
+    VRAMMode vramMode;
 };
 }  // namespace GUI
 struct Keyboard {
@@ -126,21 +137,21 @@ class System {
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -266,5 +277,10 @@ extern System *g_system;
 
 }  // namespace PCSX
 
+// i18n macros
+// Normal string lookup to const char *
 #define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)
+// Formatting string lookup to use with fmt::format or fmt::printf
 #define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str))
+// Lambda string lookup to use with static arrays of strings
+#define l_(str) []() { return PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str); }

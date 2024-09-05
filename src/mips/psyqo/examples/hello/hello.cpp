@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-#include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"

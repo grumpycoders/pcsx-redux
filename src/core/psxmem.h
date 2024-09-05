@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/polyfills.h"
 #include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
@@ -153,31 +154,33 @@ class Memory {
     template <uint16_t reg, typename T = uint32_t>
     T readHardwareRegister() {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        return File::byte_swap(*ptr);
-#else
-        return *ptr;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            return PolyFill::byteSwap(*ptr);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            return *ptr;
+        }
     }
 
     template <uint16_t reg, typename T = uint32_t>
     void writeHardwareRegister(T value) {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        *ptr = File::byte_swap(value);
-#else
-        *ptr = value;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            *ptr = PolyFill::byteSwap(value);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            *ptr = value;
+        }
     }
 
     void setIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr |= irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat |= irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     void clearIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr &= ~irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat &= ~irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     uint32_t getBiosCRC32() { return m_biosCRC; }

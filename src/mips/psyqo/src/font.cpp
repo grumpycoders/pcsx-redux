@@ -35,13 +35,13 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "system-font.inc"
 
-
 void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu, psyqo::Vertex location) {
     initialize(gpu, location, {{.w = 8, .h = 16}});
     unpackFont(gpu, s_systemFont, location, {{.w = 256, .h = 48}});
 }
 
 void psyqo::FontBase::uploadKromFont(psyqo::GPU& gpu, psyqo::Vertex location) {
+    Kernel::assert(!Kernel::isKernelTakenOver(), "uploadKromFont can't be used after kernel takeover");
     static constexpr uint16_t sjisLookup[] = {
         0x0000,  // space
         0x8149,  // !

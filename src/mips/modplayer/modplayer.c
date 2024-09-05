@@ -241,9 +241,9 @@ static uint32_t loadInternal(const struct MODFileFormat* module, const uint8_t* 
 
     MOD_ModuleData = (const uint8_t*)&module->patternTable[0];
 
-    if (sampleData) {
+    if (sampleData && (sampleData != (const uint8_t*)-1)) {
         SPUUploadInstruments(0x1010, sampleData, currentSpuAddress - 0x1010);
-    } else {
+    } else if (sampleData == NULL) {
         SPUUploadInstruments(0x1010, MOD_ModuleData + 4 + 128 + MOD_Channels * 0x100 * (maxPatternID + 1),
                              currentSpuAddress - 0x1010);
     }
@@ -281,7 +281,7 @@ static uint32_t loadInternal(const struct MODFileFormat* module, const uint8_t* 
 uint32_t MOD_Load(const struct MODFileFormat* module) { return loadInternal(module, NULL); }
 
 unsigned MOD_LoadEx(const struct MODFileFormat* module, const uint8_t* sampleData) {
-    loadInternal(module, sampleData);
+    loadInternal(module, sampleData ? sampleData : (const uint8_t*)-1);
     return MOD_Channels;
 }
 

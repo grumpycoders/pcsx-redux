@@ -26,7 +26,7 @@
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "support/imgui-helpers.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #define GPUSTATUS_DMABITS 0x60000000
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000
@@ -51,11 +51,6 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
     m_vram16 = (uint16_t *)m_vram;
 
-    m_textureWindowRaw = 0;
-    m_drawingStartRaw = 0;
-    m_drawingEndRaw = 0;
-    m_drawingOffsetRaw = 0;
-
     m_softDisplay.RGB24 = false;  // init some stuff
     m_softDisplay.Interlaced = false;
     m_softDisplay.DrawOffset.x = 0;
@@ -71,7 +66,6 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_softDisplay.Range.x1 = 0;
     m_previousDisplay.DisplayModeNew.y = 0;
     m_softDisplay.Double = 1;
-    m_dataRet = 0x400;
 
     // device initialised already !
     m_statusRet = 0x14802000;
@@ -263,6 +257,10 @@ bool PCSX::SoftGPU::impl::configure() {
             changed = true;
             setLinearFiltering();
         }
+
+        ImGui::Checkbox(_("Disable textures for polygons"), &m_disableTexturesInPolygons);
+        ImGui::Checkbox(_("Disable textures for sprites"), &m_disableTexturesInRectangles);
+
         ImGui::End();
     }
 
@@ -282,6 +280,8 @@ void PCSX::SoftGPU::impl::debug() {
 static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
     return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
 }
+
+static constexpr inline uint16_t BGR24to16(PCSX::GPU::Empty) { return 0; }
 
 void PCSX::SoftGPU::impl::write0(ClearCache *) {}
 
@@ -336,43 +336,45 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
     }
 
     if constexpr (shading == Shading::Flat) {
-        if constexpr (textured == Textured::Yes) {
-            if (m_ditherMode) {
-                prim->tpage.dither = true;
-                prim->tpage.raw |= 0x200;
-            }
-            texturePage(&prim->tpage);
-            if constexpr (shape == Shape::Quad) {
-                switch (m_globalTextTP) {
-                    case GPU::TexDepth::Tex4Bits:
-                        drawPoly4TEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                      prim->clutX(), prim->clutY());
-                        break;
-                    case GPU::TexDepth::Tex8Bits:
-                        drawPoly4TEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                      prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                      prim->clutX(), prim->clutY());
-                        break;
-                    case GPU::TexDepth::Tex16Bits:
-                        drawPoly4TD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                    prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
-                        break;
+        if ((textured == Textured::Yes) && !m_disableTexturesInPolygons) {
+            if constexpr (textured == Textured::Yes) {
+                if (m_ditherMode) {
+                    prim->tpage.dither = true;
+                    prim->tpage.raw |= 0x200;
                 }
-            } else {
-                switch (m_globalTextTP) {
-                    case GPU::TexDepth::Tex4Bits:
-                        drawPoly3TEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                      prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
-                        break;
-                    case GPU::TexDepth::Tex8Bits:
-                        drawPoly3TEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                      prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
-                        break;
-                    case GPU::TexDepth::Tex16Bits:
-                        drawPoly3TD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1], prim->v[1],
-                                    prim->u[2], prim->v[2]);
-                        break;
+                texturePage(&prim->tpage);
+                if constexpr (shape == Shape::Quad) {
+                    switch (m_globalTextTP) {
+                        case GPU::TexDepth::Tex4Bits:
+                            drawPoly4TEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                          prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                          prim->clutX(), prim->clutY());
+                            break;
+                        case GPU::TexDepth::Tex8Bits:
+                            drawPoly4TEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                          prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                          prim->clutX(), prim->clutY());
+                            break;
+                        case GPU::TexDepth::Tex16Bits:
+                            drawPoly4TD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                        prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
+                            break;
+                    }
+                } else {
+                    switch (m_globalTextTP) {
+                        case GPU::TexDepth::Tex4Bits:
+                            drawPoly3TEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                          prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
+                            break;
+                        case GPU::TexDepth::Tex8Bits:
+                            drawPoly3TEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                          prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
+                            break;
+                        case GPU::TexDepth::Tex16Bits:
+                            drawPoly3TD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                        prim->v[1], prim->u[2], prim->v[2]);
+                            break;
+                    }
                 }
             }
         } else {
@@ -383,48 +385,51 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
             }
         }
     } else {
-        if constexpr (textured == Textured::Yes) {
-            if (m_ditherMode) {
-                prim->tpage.dither = true;
-                prim->tpage.raw |= 0x200;
-            }
-            texturePage(&prim->tpage);
-            if constexpr (shape == Shape::Quad) {
-                switch (m_globalTextTP) {
-                    case GPU::TexDepth::Tex4Bits:
-                        drawPoly4TGEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                       prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                       prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1], prim->colors[2],
-                                       prim->colors[3]);
-                        break;
-                    case GPU::TexDepth::Tex8Bits:
-                        drawPoly4TGEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                       prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                       prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1], prim->colors[2],
-                                       prim->colors[3]);
-                        break;
-                    case GPU::TexDepth::Tex16Bits:
-                        drawPoly4TGD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                     prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->colors[0],
-                                     prim->colors[1], prim->colors[2], prim->colors[3]);
-                        break;
+        if ((textured == Textured::Yes) && !m_disableTexturesInPolygons) {
+            if constexpr (textured == Textured::Yes) {
+                if (m_ditherMode) {
+                    prim->tpage.dither = true;
+                    prim->tpage.raw |= 0x200;
                 }
-            } else {
-                switch (m_globalTextTP) {
-                    case GPU::TexDepth::Tex4Bits:
-                        drawPoly3TGEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
-                                       prim->colors[0], prim->colors[1], prim->colors[2]);
-                        break;
-                    case GPU::TexDepth::Tex8Bits:
-                        drawPoly3TGEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
-                                       prim->colors[0], prim->colors[1], prim->colors[2]);
-                        break;
-                    case GPU::TexDepth::Tex16Bits:
-                        drawPoly3TGD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1], prim->v[1],
-                                     prim->u[2], prim->v[2], prim->colors[0], prim->colors[1], prim->colors[2]);
-                        break;
+                texturePage(&prim->tpage);
+                if constexpr (shape == Shape::Quad) {
+                    switch (m_globalTextTP) {
+                        case GPU::TexDepth::Tex4Bits:
+                            drawPoly4TGEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                           prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                           prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1],
+                                           prim->colors[2], prim->colors[3]);
+                            break;
+                        case GPU::TexDepth::Tex8Bits:
+                            drawPoly4TGEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                           prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                           prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1],
+                                           prim->colors[2], prim->colors[3]);
+                            break;
+                        case GPU::TexDepth::Tex16Bits:
+                            drawPoly4TGD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
+                                         prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
+                                         prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                            break;
+                    }
+                } else {
+                    switch (m_globalTextTP) {
+                        case GPU::TexDepth::Tex4Bits:
+                            drawPoly3TGEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                           prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
+                                           prim->colors[0], prim->colors[1], prim->colors[2]);
+                            break;
+                        case GPU::TexDepth::Tex8Bits:
+                            drawPoly3TGEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                           prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
+                                           prim->colors[0], prim->colors[1], prim->colors[2]);
+                            break;
+                        case GPU::TexDepth::Tex16Bits:
+                            drawPoly3TGD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
+                                         prim->v[1], prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
+                                         prim->colors[2]);
+                            break;
+                    }
                 }
             }
         } else {
@@ -521,25 +526,28 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
     m_y2 = m_y3 = m_y0 + h + m_softDisplay.DrawOffset.y;
     m_y0 = m_y1 = m_y0 + m_softDisplay.DrawOffset.y;
 
-    if constexpr (textured == Textured::Yes) {
-        int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
-        tx0 = tx3 = prim->u;
-        tx1 = tx2 = tx0 + w;
-        ty0 = ty1 = prim->v;
-        ty2 = ty3 = ty0 + h;
+    if ((textured == Textured::Yes) && !m_disableTexturesInRectangles) {
+        if constexpr (textured == Textured::Yes) {
+            int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
+            tx0 = tx3 = prim->u;
+            tx1 = tx2 = tx0 + w;
+            ty0 = ty1 = prim->v;
+            ty2 = ty3 = ty0 + h;
 
-        switch (m_globalTextTP) {
-            case GPU::TexDepth::Tex4Bits:
-                drawPoly4TEx4_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
-                                prim->clutX(), prim->clutY());
-                break;
-            case GPU::TexDepth::Tex8Bits:
-                drawPoly4TEx8_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3,
-                                prim->clutX(), prim->clutY());
-                break;
-            case GPU::TexDepth::Tex16Bits:
-                drawPoly4TD_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3);
-                break;
+            switch (m_globalTextTP) {
+                case GPU::TexDepth::Tex4Bits:
+                    drawPoly4TEx4_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
+                                    ty3, prim->clutX(), prim->clutY());
+                    break;
+                case GPU::TexDepth::Tex8Bits:
+                    drawPoly4TEx8_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
+                                    ty3, prim->clutX(), prim->clutY());
+                    break;
+                case GPU::TexDepth::Tex16Bits:
+                    drawPoly4TD_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
+                                  ty3);
+                    break;
+            }
         }
     } else {
         fillSoftwareAreaTrans(m_x0, m_y0, m_x2, m_y2, BGR24to16(prim->color));
@@ -658,10 +666,6 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
-    m_textureWindowRaw = 0;
-    m_drawingStartRaw = 0;
-    m_drawingEndRaw = 0;
-    m_drawingOffsetRaw = 0;
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -808,23 +812,6 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
     }
 
     updateDisplayIfChanged();
-}
-
-void PCSX::SoftGPU::impl::write1(CtrlQuery *ctrl) {
-    switch (ctrl->type()) {
-        case CtrlQuery::TextureWindow:
-            m_dataRet = m_textureWindowRaw;
-            return;
-        case CtrlQuery::DrawAreaStart:
-            m_dataRet = m_drawingStartRaw;
-            return;
-        case CtrlQuery::DrawAreaEnd:
-            m_dataRet = m_drawingEndRaw;
-            return;
-        case CtrlQuery::DrawOffset:
-            m_dataRet = m_drawingOffsetRaw;
-            return;
-    }
 }
 
 // clang-format off

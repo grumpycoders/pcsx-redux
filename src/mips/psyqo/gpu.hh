@@ -63,10 +63,14 @@ namespace timer_literals {
  * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
  * fires every second.
  */
-constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
-constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
-constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
-constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+consteval uint32_t operator""_us(unsigned long long int value) { return value; }
+consteval uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+consteval uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(long double value) { return value / 1'000; }
+consteval uint32_t operator""_us(long double value) { return value; }
+consteval uint32_t operator""_ms(long double value) { return value * 1'000; }
+consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
 
 }  // namespace timer_literals
 
@@ -85,6 +89,7 @@ class GPU {
     enum class VideoMode { AUTO, NTSC, PAL };
     enum class ColorMode { C15BITS, C24BITS };
     enum class Interlace { PROGRESSIVE, INTERLACED };
+    enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
     void initialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
@@ -372,6 +377,14 @@ class GPU {
     bool isChainTransferred() const;
 
     /**
+     * @brief Waits until the background DMA transfer operation initiated by a frame flip is complete.
+     *
+     */
+    void waitChainIdle() {
+        while (isChainTransferring()) pumpCallbacks();
+    }
+
+    /**
      * @brief Gets the current timestamp in microseconds.
      *
      * @details The current timestamp is in microseconds. It will wrap around after a bit more than
@@ -489,6 +502,7 @@ class GPU {
     void chain(uint32_t *first, uint32_t *last, size_t count);
     void scheduleOTC(uint32_t *start, uint32_t count);
     void checkOTCAndTriggerCallback();
+    void prepareForTakeover();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
@@ -501,7 +515,7 @@ class GPU {
     uint32_t *m_chainHead = nullptr;
     uint32_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
-    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus = CHAIN_IDLE;
     struct Timer {
         eastl::function<void(uint32_t)> callback;
         uint32_t deadline;
@@ -525,6 +539,7 @@ class GPU {
 
     void flip();
     friend class Application;
+    friend void psyqo::Kernel::takeOverKernel();
 };
 
 }  // namespace psyqo

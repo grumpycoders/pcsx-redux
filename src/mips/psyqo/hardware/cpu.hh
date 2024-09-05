@@ -48,6 +48,7 @@ template <uint32_t offset>
 struct IRQReg : public Register<offset> {
     void set(IRQ irq) { *this |= (static_cast<uint32_t>(irq)); }
     void clear(IRQ irq) { *this &= ~(static_cast<uint32_t>(irq)); }
+    void clear() { Register<offset>::access() = 0; }
 };
 
 extern IRQReg<0x0070> IReg;
