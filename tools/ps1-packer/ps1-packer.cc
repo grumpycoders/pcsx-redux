@@ -40,6 +40,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const uint32_t tload = std::stoul(args.get<std::string>("tload").value_or("0"), nullptr, 0);
     const bool oneInput = inputs.size() == 1;
     const bool shell = args.get<bool>("shell").value_or(false);
+    const bool nokernel = args.get<bool>("nokernel").value_or(false);
     const bool raw = args.get<bool>("raw").value_or(false);
     const bool booty = args.get<bool>("booty").value_or(false);
     const bool rom = args.get<bool>("rom").value_or(false);
@@ -54,6 +55,7 @@ Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom | -cpe]
   -h                displays this help information and exit.
   -tload            force loading at this address instead of doing in-place.
   -shell            adds a kernel reset stub.
+  -nokernel         avoids calling into the kernel.
   -nopad            disables padding of the output file to 2048 bytes. Only for PS-EXE output.
 
 These options control the output format, and are mutually exclusive:
@@ -100,6 +102,7 @@ Valid input binary files can be in the following formats:
     options.rom = rom;
     options.cpe = cpe;
     options.shell = shell;
+    options.nokernel = nokernel;
     options.tload = tload;
     options.nopad = nopad;
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));

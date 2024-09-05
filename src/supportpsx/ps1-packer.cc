@@ -259,6 +259,36 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // of all the cop0 registers.
         pushBytes(dataOut, jr(Reg::S0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+    } else if (options.nokernel) {
+        // We can't call into the kernel, so we need to
+        // flush the cache ourselves first.
+        pushBytes(dataOut, bgezal(Reg::R0, 4));
+        pushBytes(dataOut, lui(Reg::T1, 0xa000));
+        pushBytes(dataOut, orr(Reg::T1, Reg::RA, Reg::T1));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::T1, 16));
+        pushBytes(dataOut, jr(Reg::T1));
+        pushBytes(dataOut, mtc0(Reg::R0, 12));
+        pushBytes(dataOut, lui(Reg::T5, 0xfffe));
+        pushBytes(dataOut, lui(Reg::T2, 0x0001));
+        pushBytes(dataOut, ori(Reg::T2, Reg::T2, 0xe90c));
+        pushBytes(dataOut, sw(Reg::T2, 0x0130, Reg::T5));
+        pushBytes(dataOut, lui(Reg::T1, 1));
+        pushBytes(dataOut, mtc0(Reg::T1, 12));
+        pushBytes(dataOut, addu(Reg::T3, Reg::R0, Reg::R0));
+        pushBytes(dataOut, addiu(Reg::T4, Reg::R0, 0x0ff0));
+        pushBytes(dataOut, sw(Reg::R0, 0, Reg::T3));
+        pushBytes(dataOut, bne(Reg::T3, Reg::T4, -8));
+        pushBytes(dataOut, addiu(Reg::T3, Reg::T3, 0x10));
+        pushBytes(dataOut, mtc0(Reg::R0, 12));
+        pushBytes(dataOut, addiu(Reg::T2, Reg::T2, 0x7c));
+        pushBytes(dataOut, sw(Reg::T2, 0x0130, Reg::T5));
+        // Then jumps into the decompressed binary, restoring
+        // $ra if needed, so the decompressed binary can return
+        // to the caller gracefully.
+        pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
+        pushBytes(dataOut, jr(Reg::T0));
+        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
     } else {
         // Calls A0:44 - FlushCache
         pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
