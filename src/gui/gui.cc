@@ -1299,7 +1299,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                     if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
-                        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                        ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
                         constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
                         unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
                         for (auto& e : exceptions) {
