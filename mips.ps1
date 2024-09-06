@@ -302,6 +302,8 @@ switch ($cmd) {
     "self-install" {
         if ($args[1] -ne $NULL) {
             $dest = $args[1]
+            $symlink = $dest + "/mips"
+            $VersionsPath = $dest + "/versions"
         }
         if ($cwd -like $dest) {
             Write-Host "This is already installed."
@@ -319,6 +321,8 @@ switch ($cmd) {
 
                 if ($folderdialog.ShowDialog() -eq "OK") {
                     $dest = $folderdialog.SelectedPath
+                    $symlink = $dest + "/mips"
+                    $VersionsPath = $dest + "/versions"
                 } else {
                     Write-Host "Installation aborted."
                     return
