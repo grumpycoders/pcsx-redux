@@ -31,6 +31,8 @@ SOFTWARE.
 #include "psyqo/fixed-point.hh"
 #include "psyqo/primitives/common.hh"
 
+using namespace psyqo::fixed_point_literals;
+
 namespace psyqo {
 
 struct Vec2 {
@@ -81,7 +83,19 @@ struct Vec2 {
     Vec2 operator/(U rhs) const {
         return {x / rhs, y / rhs};
     }
+    static const Vec2 ZERO;
+    static const Vec2 ONE;
+    static const Vec2 UP;
+    static const Vec2 DOWN;
+    static const Vec2 LEFT;
+    static const Vec2 RIGHT;
 };
+const Vec2 Vec2::ZERO = { .x = 0.0_fp, .y = 0.0_fp };
+const Vec2 Vec2::ONE = { .x = 1.0_fp, .y = 1.0_fp };
+const Vec2 Vec2::UP = { .x = 0.0_fp, .y = 1.0_fp };
+const Vec2 Vec2::DOWN = { .x = 0.0_fp, .y = -1.0_fp };
+const Vec2 Vec2::LEFT = { .x = -1.0_fp, .y = 0.0_fp };
+const Vec2 Vec2::RIGHT = { .x = 1.0_fp, .y = 0.0_fp };
 
 struct Vec3 {
     FixedPoint<> x, y, z;
@@ -136,7 +150,23 @@ struct Vec3 {
     Vec3 operator/(U rhs) const {
         return {x / rhs, y / rhs, z / rhs};
     }
+    static const Vec3 ZERO;
+    static const Vec3 ONE;
+    static const Vec3 UP;
+    static const Vec3 DOWN;
+    static const Vec3 LEFT;
+    static const Vec3 RIGHT;
+    static const Vec3 FORWARD;
+    static const Vec3 BACKWARD;
 };
+const Vec3 Vec3::ZERO = { .x = 0.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+const Vec3 Vec3::ONE = { .x = 1.0_fp, .y = 1.0_fp, .z = 1.0_fp };
+const Vec3 Vec3::UP = { .x = 0.0_fp, .y = 1.0_fp, .z = 0.0_fp };
+const Vec3 Vec3::DOWN = { .x = 0.0_fp, .y = -1.0_fp, .z = 0.0_fp };
+const Vec3 Vec3::LEFT = { .x = -1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+const Vec3 Vec3::RIGHT = { .x = 1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+const Vec3 Vec3::FORWARD = { .x = 0.0_fp, .y = 0.0_fp, .z = 1.0_fp };
+const Vec3 Vec3::BACKWARD = { .x = 0.0_fp, .y = 0.0_fp, .z = -1.0_fp };
 
 struct Vec4 {
     FixedPoint<> x, y, z, w;
