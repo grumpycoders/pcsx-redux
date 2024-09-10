@@ -44,9 +44,21 @@ struct Vec2 {
         y -= rhs.y;
         return *this;
     }
+    Vec2& operator*=(const FixedPoint<>& rhs) {
+        x *= rhs;
+        y *= rhs;
+        return *this;
+    }
+    Vec2& operator/=(const FixedPoint<>& rhs) {
+        x /= rhs;
+        y /= rhs;
+        return *this;
+    }
     Vec2 operator-() const { return {-x, -y}; }
     Vec2 operator+(const Vec2& rhs) const { return {x + rhs.x, y + rhs.y}; }
     Vec2 operator-(const Vec2& rhs) const { return {x - rhs.x, y - rhs.y}; }
+    Vec2 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs}; }
+    Vec2 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs}; }
 };
 
 struct Vec3 {
@@ -63,9 +75,23 @@ struct Vec3 {
         z -= rhs.z;
         return *this;
     }
+    Vec3& operator*=(const FixedPoint<>& rhs) {
+        x *= rhs;
+        y *= rhs;
+        z *= rhs;
+        return *this;
+    }
+    Vec3& operator/=(const FixedPoint<>& rhs) {
+        x /= rhs;
+        y /= rhs;
+        z /= rhs;
+        return *this;
+    }
     Vec3 operator-() const { return {-x, -y, -z}; }
     Vec3 operator+(const Vec3& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
     Vec3 operator-(const Vec3& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
+    Vec3 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs, z * rhs}; }
+    Vec3 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs, z / rhs}; }
 };
 
 struct Vec4 {
@@ -84,9 +110,25 @@ struct Vec4 {
         w -= rhs.w;
         return *this;
     }
+    Vec4& operator*=(const FixedPoint<>& rhs) {
+        x *= rhs;
+        y *= rhs;
+        z *= rhs;
+        w *= rhs;
+        return *this;
+    }
+    Vec4& operator/=(const FixedPoint<>& rhs) {
+        x /= rhs;
+        y /= rhs;
+        z /= rhs;
+        w /= rhs;
+        return *this;
+    }
     Vec4 operator-() const { return {-x, -y, -z, -w}; }
     Vec4 operator+(const Vec4& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w}; }
     Vec4 operator-(const Vec4& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w}; }
+    Vec4 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs, z * rhs, w * rhs}; }
+    Vec4 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs, z / rhs, w / rhs}; }
 };
 
 }  // namespace psyqo
