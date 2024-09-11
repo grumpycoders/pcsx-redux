@@ -81,6 +81,30 @@ struct Vec2 {
     Vec2 operator/(U rhs) const {
         return {x / rhs, y / rhs};
     }
+    static constexpr Vec2 ZERO() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2 { .x = 0.0_fp, .y = 0.0_fp };
+    }
+    static constexpr Vec2 ONE() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2{ .x = 1.0_fp, .y = 1.0_fp };
+    }
+    static constexpr Vec2 UP() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2{ .x = 0.0_fp, .y = 1.0_fp };
+    }
+    static constexpr Vec2 DOWN() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2{ .x = 0.0_fp, .y = -1.0_fp };
+    }
+    static constexpr Vec2 LEFT() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2{ .x = -1.0_fp, .y = 0.0_fp };
+    }
+    static constexpr Vec2 RIGHT() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec2{ .x = 1.0_fp, .y = 0.0_fp };
+    }
 };
 
 struct Vec3 {
@@ -135,6 +159,38 @@ struct Vec3 {
     template <std::integral U>
     Vec3 operator/(U rhs) const {
         return {x / rhs, y / rhs, z / rhs};
+    }
+    static constexpr Vec3 ZERO() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+    }
+    static constexpr Vec3 ONE() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 1.0_fp, .y = 1.0_fp, .z = 1.0_fp };
+    }
+    static constexpr Vec3 UP() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 0.0_fp, .y = 1.0_fp, .z = 0.0_fp };
+    }
+    static constexpr Vec3 DOWN() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 0.0_fp, .y = -1.0_fp, .z = 0.0_fp };
+    }
+    static constexpr Vec3 LEFT() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = -1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+    }
+    static constexpr Vec3 RIGHT() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
+    }
+    static constexpr Vec3 FORWARD() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = 1.0_fp };
+    }
+    static constexpr Vec3 BACKWARD() {
+        using namespace psyqo::fixed_point_literals;
+        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = -1.0_fp };
     }
 };
 
