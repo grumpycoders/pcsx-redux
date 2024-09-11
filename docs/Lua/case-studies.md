@@ -159,8 +159,8 @@ You can see this in action [in this demo video](https://youtu.be/BczviiXUYOY).
 
 Here's some projects using PCSX-Redux' Lua scripting capabilities, which can be used as references:
 
-- https://github.com/NDR008/TensorFlowPSX
-- https://github.com/Kuumba123/TeheManX4_Editor
-- https://github.com/notdodgeball/vagrant-story-lua-script
-- https://github.com/johnbaumann/lua-pio-cart
-- https://github.com/FoxdieTeam/mgs_reversing
+- [https://github.com/NDR008/TensorFlowPSX](https://github.com/NDR008/TensorFlowPSX)
+- [https://github.com/Kuumba123/TeheManX4_Editor](https://github.com/Kuumba123/TeheManX4_Editor)
+- [https://github.com/notdodgeball/vagrant-story-lua-script](https://github.com/notdodgeball/vagrant-story-lua-script)
+- [https://github.com/johnbaumann/lua-pio-cart](https://github.com/johnbaumann/lua-pio-cart)
+- [https://github.com/FoxdieTeam/mgs_reversing](https://github.com/FoxdieTeam/mgs_reversing)
