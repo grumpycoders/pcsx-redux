@@ -164,3 +164,4 @@ Here's some projects using PCSX-Redux' Lua scripting capabilities, which can be 
 - [https://github.com/notdodgeball/vagrant-story-lua-script](https://github.com/notdodgeball/vagrant-story-lua-script)
 - [https://github.com/johnbaumann/lua-pio-cart](https://github.com/johnbaumann/lua-pio-cart)
 - [https://github.com/FoxdieTeam/mgs_reversing](https://github.com/FoxdieTeam/mgs_reversing)
+- [https://github.com/kiletic/tekken3-ai](https://github.com/kiletic/tekken3-ai)
