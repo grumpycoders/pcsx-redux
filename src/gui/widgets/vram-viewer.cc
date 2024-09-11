@@ -532,7 +532,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
         glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
     }
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
-    glUniform1i(m_attribLocationDrawGrid, 1);
+    glUniform1i(m_attribLocationDrawGrid, m_drawGrid);
     glUniform4f(m_attribLocationPixelGridColor, m_pixelGridColor.x, m_pixelGridColor.y, m_pixelGridColor.z,
                 m_pixelGridColor.w);
     glUniform4f(m_attribLocationTPageGridColor, m_tpageGridColor.x, m_tpageGridColor.y, m_tpageGridColor.z,
