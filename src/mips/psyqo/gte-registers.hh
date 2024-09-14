@@ -253,7 +253,7 @@ enum class PseudoRegister {
     V2, /* pseudo register for full Vector 2, mapped to registers VXY2 and VZ2 */
     SV, /* pseudo register for full 16bit Accumulator Vector, mapped to registers IR1-IR3 */ 
     LV, /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
-    TranslationVector, /* pseudo register for full Translation vector, mapped to registers TRX-TRZ */
+    Translation, /* pseudo register for full Translation vector, mapped to registers TRX-TRZ */
     ScreenOffset, /* pseudo register for full Screen offset, mapped to registers OFX and OFY */
 };
 
@@ -833,7 +833,7 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
-inline void writeSafe<PseudoRegister::TranslationVector>(const Vec3& in) {
+inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
     writeUnsafe<Register::TRX>(in.x.raw());
     writeUnsafe<Register::TRY>(in.y.raw());
     writeSafe<Register::TRZ>(in.z.raw());
@@ -892,7 +892,7 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
-inline void writeUnsafe<PseudoRegister::TranslationVector>(const Vec3& in) {
+inline void writeUnsafe<PseudoRegister::Translation>(const Vec3& in) {
     writeUnsafe<Register::TRX>(in.x.raw());
     writeUnsafe<Register::TRY>(in.y.raw());
     writeUnsafe<Register::TRZ>(in.z.raw());
