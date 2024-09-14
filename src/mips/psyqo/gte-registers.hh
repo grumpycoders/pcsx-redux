@@ -252,7 +252,9 @@ enum class PseudoRegister {
     V1, /* pseudo register for full Vector 1, mapped to registers VXY1 and VZ1 */
     V2, /* pseudo register for full Vector 2, mapped to registers VXY2 and VZ2 */
     SV, /* pseudo register for full 16bit Accumulator Vector, mapped to registers IR1-IR3 */ 
-    LV /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
+    LV, /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
+    TranslationVector, /* pseudo register for full Translation vector, mapped to registers TRX-TRZ */
+    ScreenOffset, /* pseudo register for full Screen offset, mapped to registers OFX and OFY */
 };
 
 /**
@@ -292,6 +294,18 @@ static inline void writeSafe(const Vec3& in) {
 }
 
 /**
+ * @brief Write a 2D vector to a GTE pseudo register, adding nops after the
+ * operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeSafe(const Vec2& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
  * @brief Write a 3D vector to a GTE pseudo register, without adding nops after
  * the operation.
  *
@@ -300,6 +314,18 @@ static inline void writeSafe(const Vec3& in) {
  */
 template <PseudoRegister reg, bool valid = false>
 static inline void writeUnsafe(const Vec3& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
+ * @brief Write a 2D vector to a GTE pseudo register, without adding nops after
+ * the operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeUnsafe(const Vec2& in) {
     static_assert(valid, "Unable to write vector to pseudo register");
 }
 
@@ -807,6 +833,20 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
+inline void writeSafe<PseudoRegister::TranslationVector>(const Vec3& in) {
+    writeUnsafe<Register::TRX>(in.x.raw());
+    writeUnsafe<Register::TRY>(in.y.raw());
+    writeSafe<Register::TRZ>(in.z.raw());
+}
+
+
+template <>
+inline void writeSafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    writeUnsafe<Register::OFX>(in.x.raw());
+    writeSafe<Register::OFY>(in.y.raw());
+}
+
+template <>
 inline void writeUnsafe<PseudoRegister::Rotation>(const Matrix33& in) {
     writeUnsafe<Register::R11R12>(Short(in.vs[0].x), Short(in.vs[0].y));
     writeUnsafe<Register::R13R21>(Short(in.vs[0].z), Short(in.vs[1].x));
@@ -849,6 +889,19 @@ template <>
 inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
     writeUnsafe<Register::VXY2>(Short(in.x), Short(in.y));
     writeUnsafe<Register::VZ2>(Short(in.z));
+}
+
+template <>
+inline void writeUnsafe<PseudoRegister::TranslationVector>(const Vec3& in) {
+    writeUnsafe<Register::TRX>(in.x.raw());
+    writeUnsafe<Register::TRY>(in.y.raw());
+    writeUnsafe<Register::TRZ>(in.z.raw());
+}
+
+template <>
+inline void writeUnsafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    writeUnsafe<Register::OFX>(in.x.raw());
+    writeUnsafe<Register::OFY>(in.y.raw());
 }
 
 template <>
