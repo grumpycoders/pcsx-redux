@@ -842,7 +842,7 @@ inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
 template <>
 inline void writeSafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
     write<Register::OFX, Unsafe>(in.x.raw());
-    write<Register::OFY, Safe>(in.x.raw());
+    write<Register::OFY, Safe>(in.y.raw());
 }
 
 template <>
@@ -900,7 +900,7 @@ inline void writeUnsafe<PseudoRegister::Translation>(const Vec3& in) {
 template <>
 inline void writeUnsafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
     write<Register::OFX, Unsafe>(in.x.raw());
-    write<Register::OFY, Unsafe>(in.x.raw());
+    write<Register::OFY, Unsafe>(in.y.raw());
 }
 
 template <>
