@@ -834,16 +834,15 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 
 template <>
 inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
-    writeUnsafe<Register::TRX>(Short(in.x));
-    writeUnsafe<Register::TRY>(Short(in.y));
-    writeSafe<Register::TRZ>(Short(in.z));
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRX, Unsafe>(in.y.raw());
+    write<Register::TRZ, Safe>(in.z.raw());
 }
-
 
 template <>
 inline void writeSafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
-    writeUnsafe<Register::OFX>(Short(in.x));
-    writeSafe<Register::OFY>(Short(in.y));
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Safe>(in.x.raw());
 }
 
 template <>
@@ -893,15 +892,15 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 
 template <>
 inline void writeUnsafe<PseudoRegister::Translation>(const Vec3& in) {
-    writeUnsafe<Register::TRX>(Short(in.x));
-    writeUnsafe<Register::TRY>(Short(in.y));
-    writeUnsafe<Register::TRZ>(Short(in.z));
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRY, Unsafe>(in.y.raw());
+    write<Register::TRZ, Unsafe>(in.z.raw());
 }
 
 template <>
 inline void writeUnsafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
-    writeUnsafe<Register::OFX>(Short(in.x));
-    writeUnsafe<Register::OFY>(Short(in.y));
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Unsafe>(in.x.raw());
 }
 
 template <>
