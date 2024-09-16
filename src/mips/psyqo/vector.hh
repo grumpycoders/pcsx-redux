@@ -27,232 +27,215 @@ SOFTWARE.
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 
 #include "psyqo/fixed-point.hh"
 #include "psyqo/primitives/common.hh"
 
 namespace psyqo {
 
-struct Vec2 {
-    FixedPoint<> x, y;
-    operator Vertex() const { return {{.x = x.integer<int16_t>(), .y = y.integer<int16_t>()}}; }
-    Vec2& operator+=(const Vec2& rhs) {
-        x += rhs.x;
-        y += rhs.y;
+template <unsigned N, unsigned precisionBits = 12, std::integral T = int32_t>
+    requires((N >= 2) && (N <= 4))
+struct Vector {
+    typedef FixedPoint<precisionBits, T> FixedPointType;
+    FixedPoint<precisionBits, T> x, y;
+    struct EmptyZ {};
+    [[no_unique_address]] std::conditional_t<(N > 2), FixedPoint<precisionBits, T>, EmptyZ> z;
+    struct EmptyW {};
+    [[no_unique_address]] std::conditional_t<(N > 3), FixedPoint<precisionBits, T>, EmptyW> w;
+    constexpr FixedPointType& get(unsigned i) {
+        if constexpr (N == 2) {
+            return (i == 0) ? x : y;
+        } else if constexpr (N == 3) {
+            return (i == 0) ? x : (i == 1) ? y : z;
+        } else if constexpr (N == 4) {
+            return (i == 0) ? x : (i == 1) ? y : (i == 2) ? z : w;
+        }
+    }
+    constexpr const FixedPointType& get(unsigned i) const {
+        if constexpr (N == 2) {
+            return (i == 0) ? x : y;
+        } else if constexpr (N == 3) {
+            return (i == 0) ? x : (i == 1) ? y : z;
+        } else if constexpr (N == 4) {
+            return (i == 0) ? x : (i == 1) ? y : (i == 2) ? z : w;
+        }
+    }
+    constexpr FixedPointType& operator[](unsigned i) { return get(i); }
+    constexpr operator Vertex() const
+        requires((N == 2) && std::is_signed<T>::value)
+    {
+        return {{.x = x.template integer<int16_t>(), .y = y.template integer<int16_t>()}};
+    }
+    constexpr Vector& operator+=(const Vector& rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) += rhs.get(i);
+        }
         return *this;
     }
-    Vec2& operator-=(const Vec2& rhs) {
-        x -= rhs.x;
-        y -= rhs.y;
+    constexpr Vector& operator-=(const Vector& rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) -= rhs.get(i);
+        }
         return *this;
     }
-    Vec2& operator*=(const FixedPoint<>& rhs) {
-        x *= rhs;
-        y *= rhs;
+    constexpr Vector& operator*=(const FixedPointType& rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) *= rhs;
+        }
         return *this;
     }
-    Vec2& operator/=(const FixedPoint<>& rhs) {
-        x /= rhs;
-        y /= rhs;
+    constexpr Vector& operator/=(const FixedPointType& rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) /= rhs;
+        }
         return *this;
     }
     template <std::integral U>
-    Vec2& operator*=(U rhs) {
-        x *= rhs;
-        y *= rhs;
+    constexpr Vector& operator*=(U rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) *= rhs;
+        }
         return *this;
     }
     template <std::integral U>
-    Vec2& operator/=(U rhs) {
-        x /= rhs;
-        y /= rhs;
+    constexpr Vector& operator/=(U rhs) {
+        for (unsigned i = 0; i < N; i++) {
+            get(i) /= rhs;
+        }
         return *this;
     }
-    Vec2 operator-() const { return {-x, -y}; }
-    Vec2 operator+(const Vec2& rhs) const { return {x + rhs.x, y + rhs.y}; }
-    Vec2 operator-(const Vec2& rhs) const { return {x - rhs.x, y - rhs.y}; }
-    Vec2 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs}; }
-    Vec2 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs}; }
-    template <std::integral U>
-    Vec2 operator*(U rhs) const {
-        return {x * rhs, y * rhs};
+    constexpr Vector operator-() const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = -get(i);
+        }
+        return result;
+    }
+    constexpr Vector operator+(const Vector& rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) + rhs.get(i);
+        }
+        return result;
+    }
+    constexpr Vector operator-(const Vector& rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) - rhs.get(i);
+        }
+        return result;
+    }
+    constexpr Vector operator*(const FixedPointType& rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) * rhs;
+        }
+        return result;
+    }
+    constexpr Vector operator/(const FixedPointType& rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) / rhs;
+        }
+        return result;
     }
     template <std::integral U>
-    Vec2 operator/(U rhs) const {
-        return {x / rhs, y / rhs};
+    constexpr Vector operator*(U rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) * rhs;
+        }
+        return result;
     }
-    static constexpr Vec2 ZERO() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2 { .x = 0.0_fp, .y = 0.0_fp };
+    template <std::integral U>
+    constexpr Vector operator/(U rhs) const {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = get(i) / rhs;
+        }
+        return result;
     }
-    static constexpr Vec2 ONE() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2{ .x = 1.0_fp, .y = 1.0_fp };
+    static constexpr Vector ZERO()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = FixedPointType(0.0);
+        }
+        return result;
     }
-    static constexpr Vec2 UP() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2{ .x = 0.0_fp, .y = 1.0_fp };
+    static constexpr Vector ONE()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = FixedPointType(1.0);
+        }
+        return result;
     }
-    static constexpr Vec2 DOWN() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2{ .x = 0.0_fp, .y = -1.0_fp };
+    static constexpr Vector UP()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 1) ? FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
     }
-    static constexpr Vec2 LEFT() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2{ .x = -1.0_fp, .y = 0.0_fp };
+    static constexpr Vector DOWN()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 1) ? -FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
     }
-    static constexpr Vec2 RIGHT() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec2{ .x = 1.0_fp, .y = 0.0_fp };
+    static constexpr Vector LEFT()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 0) ? -FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
+    }
+    static constexpr Vector RIGHT()
+        requires(N <= 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 0) ? FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
+    }
+    static constexpr Vector FORWARD()
+        requires(N == 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 2) ? FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
+    }
+    static constexpr Vector BACKWARD()
+        requires(N == 3)
+    {
+        Vector result;
+        for (unsigned i = 0; i < N; i++) {
+            result.get(i) = (i == 2) ? -FixedPointType(1.0) : FixedPointType(0.0);
+        }
+        return result;
     }
 };
 
-struct Vec3 {
-    FixedPoint<> x, y, z;
-    Vec3& operator+=(const Vec3& rhs) {
-        x += rhs.x;
-        y += rhs.y;
-        z += rhs.z;
-        return *this;
-    }
-    Vec3& operator-=(const Vec3& rhs) {
-        x -= rhs.x;
-        y -= rhs.y;
-        z -= rhs.z;
-        return *this;
-    }
-    Vec3& operator*=(const FixedPoint<>& rhs) {
-        x *= rhs;
-        y *= rhs;
-        z *= rhs;
-        return *this;
-    }
-    Vec3& operator/=(const FixedPoint<>& rhs) {
-        x /= rhs;
-        y /= rhs;
-        z /= rhs;
-        return *this;
-    }
-    template <std::integral U>
-    Vec3& operator*=(U rhs) {
-        x *= rhs;
-        y *= rhs;
-        z *= rhs;
-        return *this;
-    }
-    template <std::integral U>
-    Vec3& operator/=(U rhs) {
-        x /= rhs;
-        y /= rhs;
-        z /= rhs;
-        return *this;
-    }
-    Vec3 operator-() const { return {-x, -y, -z}; }
-    Vec3 operator+(const Vec3& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
-    Vec3 operator-(const Vec3& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
-    Vec3 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs, z * rhs}; }
-    Vec3 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs, z / rhs}; }
-    template <std::integral U>
-    Vec3 operator*(U rhs) const {
-        return {x * rhs, y * rhs, z * rhs};
-    }
-    template <std::integral U>
-    Vec3 operator/(U rhs) const {
-        return {x / rhs, y / rhs, z / rhs};
-    }
-    static constexpr Vec3 ZERO() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = 0.0_fp };
-    }
-    static constexpr Vec3 ONE() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 1.0_fp, .y = 1.0_fp, .z = 1.0_fp };
-    }
-    static constexpr Vec3 UP() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 0.0_fp, .y = 1.0_fp, .z = 0.0_fp };
-    }
-    static constexpr Vec3 DOWN() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 0.0_fp, .y = -1.0_fp, .z = 0.0_fp };
-    }
-    static constexpr Vec3 LEFT() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = -1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
-    }
-    static constexpr Vec3 RIGHT() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 1.0_fp, .y = 0.0_fp, .z = 0.0_fp };
-    }
-    static constexpr Vec3 FORWARD() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = 1.0_fp };
-    }
-    static constexpr Vec3 BACKWARD() {
-        using namespace psyqo::fixed_point_literals;
-        return Vec3 { .x = 0.0_fp, .y = 0.0_fp, .z = -1.0_fp };
-    }
-};
+typedef Vector<2> Vec2;
+typedef Vector<3> Vec3;
+typedef Vector<4> Vec4;
 
-struct Vec4 {
-    FixedPoint<> x, y, z, w;
-    Vec4& operator+=(const Vec4& rhs) {
-        x += rhs.x;
-        y += rhs.y;
-        z += rhs.z;
-        w += rhs.w;
-        return *this;
-    }
-    Vec4& operator-=(const Vec4& rhs) {
-        x -= rhs.x;
-        y -= rhs.y;
-        z -= rhs.z;
-        w -= rhs.w;
-        return *this;
-    }
-    Vec4& operator*=(const FixedPoint<>& rhs) {
-        x *= rhs;
-        y *= rhs;
-        z *= rhs;
-        w *= rhs;
-        return *this;
-    }
-    Vec4& operator/=(const FixedPoint<>& rhs) {
-        x /= rhs;
-        y /= rhs;
-        z /= rhs;
-        w /= rhs;
-        return *this;
-    }
-    template <std::integral U>
-    Vec4& operator*=(U rhs) {
-        x *= rhs;
-        y *= rhs;
-        z *= rhs;
-        w *= rhs;
-        return *this;
-    }
-    template <std::integral U>
-    Vec4& operator/=(U rhs) {
-        x /= rhs;
-        y /= rhs;
-        z /= rhs;
-        w /= rhs;
-        return *this;
-    }
-    Vec4 operator-() const { return {-x, -y, -z, -w}; }
-    Vec4 operator+(const Vec4& rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w}; }
-    Vec4 operator-(const Vec4& rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w}; }
-    Vec4 operator*(const FixedPoint<>& rhs) const { return {x * rhs, y * rhs, z * rhs, w * rhs}; }
-    Vec4 operator/(const FixedPoint<>& rhs) const { return {x / rhs, y / rhs, z / rhs, w / rhs}; }
-    template <std::integral U>
-    Vec4 operator*(U rhs) const {
-        return {x * rhs, y * rhs, z * rhs, w * rhs};
-    }
-    template <std::integral U>
-    Vec4 operator/(U rhs) const {
-        return {x / rhs, y / rhs, z / rhs, w / rhs};
-    }
-};
+static_assert(sizeof(Vec2) == 8);
+static_assert(sizeof(Vec3) == 12);
+static_assert(sizeof(Vec4) == 16);
 
 }  // namespace psyqo
