@@ -103,7 +103,7 @@ enum VRAMMode : int {
 struct VRAMFocus {
     int x1, y1;
     int x2, y2;
-    VRAMMode vramMode;
+    VRAMMode vramMode = VRAM_16BITS;
 };
 struct VRAMHover {
     float x, y;
