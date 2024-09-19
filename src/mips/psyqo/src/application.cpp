@@ -26,10 +26,20 @@ SOFTWARE.
 
 #include "psyqo/application.hh"
 
+#include <utility>
+
 #include "common/syscalls/syscalls.h"
 #include "psyqo/alloc.h"
+#include "psyqo/gte-registers.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/scene.hh"
+
+template <unsigned... regs>
+static inline void clearAllGTERegistersInternal(std::integer_sequence<unsigned, regs...> regSeq) {
+    ((psyqo::GTE::clear<static_cast<psyqo::GTE::Register>(regs), psyqo::GTE::Unsafe>)(), ...);
+}
+
+static inline void clearAllGTERegisters() { clearAllGTERegistersInternal(std::make_integer_sequence<unsigned, 64>{}); }
 
 int psyqo::Application::run() {
     Kernel::fastEnterCriticalSection();
@@ -38,6 +48,7 @@ int psyqo::Application::run() {
     psyqo_free(psyqo_malloc(1));
     ramsyscall_printf("Current heap start: %p\n", psyqo_heap_start());
     ramsyscall_printf("Current heap end: %p\n", psyqo_heap_end());
+    clearAllGTERegisters();
     prepare();
     Kernel::fastLeaveCriticalSection();
     while (true) {
