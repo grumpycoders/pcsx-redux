@@ -62,6 +62,7 @@ void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned preci
  * @tparam T The underlying integer type to use.
  */
 template <unsigned precisionBits = 12, std::integral T = int32_t>
+requires((precisionBits > 0) && (precisionBits < 32) && ((sizeof(T) == 4) || (sizeof(T) == 2)))
 class FixedPoint {
     using signedUpType = std::conditional<sizeof(T) == 4, int64_t, int32_t>::type;
     using unsignedUpType = std::conditional<sizeof(T) == 4, uint64_t, uint32_t>::type;
@@ -89,8 +90,7 @@ class FixedPoint {
      * fraction.
      */
     explicit constexpr FixedPoint(T integer, T fraction) : value(integer * scale + fraction) {
-        static_assert(sizeof(T) == 4 || sizeof(T) == 2);
-        static_assert(precisionBits > 0);
+        static_assert(sizeof(FixedPoint) == sizeof(T));
     }
 
     /**
