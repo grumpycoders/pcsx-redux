@@ -155,12 +155,17 @@ class GPU {
     struct Logged : public LoggedList::Node {
         enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
         enum class PixelOp { READ, WRITE };
+        struct DrawLogSettings {
+            enum class ColorFormat { HTML, None, Expanded };
+            ColorFormat colorFormat = ColorFormat::HTML;
+        };
 
         typedef std::function<void(OpenGL::ivec2, OpenGL::ivec2, OpenGL::ivec2)> AddTri;
 
         virtual ~Logged() {}
         virtual std::string_view getName() = 0;
-        virtual void drawLogNode(unsigned n) = 0;
+        virtual void drawLogNode(unsigned itemIndex, const DrawLogSettings &) = 0;
+        void drawColorBox(uint32_t color, unsigned itemIndex, unsigned colorIndex, const DrawLogSettings &settings);
         virtual void execute(GPU *) = 0;
         virtual void generateStatsInfo() = 0;
         virtual void cumulateStats(GPUStats *) = 0;
@@ -295,7 +300,7 @@ class GPU {
 
     struct ClearCache final : public Logged {
         std::string_view getName() override { return "Clear Cache"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -304,7 +309,7 @@ class GPU {
 
     struct FastFill final : public Command, public Logged {
         std::string_view getName() override { return "Fast Fill"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -331,7 +336,7 @@ class GPU {
 
     struct BlitVramVram final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to VRAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -357,7 +362,7 @@ class GPU {
 
     struct BlitRamVram final : public Command, public Logged {
         std::string_view getName() override { return "RAM to VRAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override;
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -397,7 +402,7 @@ class GPU {
 
     struct BlitVramRam final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to RAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -419,7 +424,7 @@ class GPU {
 
     struct TPage : public Logged {
         std::string_view getName() override { return "Texture Page"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void drawLogNodeCommon();
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
@@ -443,7 +448,7 @@ class GPU {
 
     struct TWindow : public Logged {
         std::string_view getName() override { return "Texture Window"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -459,7 +464,7 @@ class GPU {
 
     struct DrawingAreaStart : public Logged {
         std::string_view getName() override { return "Drawing Area Start"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -474,7 +479,7 @@ class GPU {
 
     struct DrawingAreaEnd : public Logged {
         std::string_view getName() override { return "Drawing Area End"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -489,7 +494,7 @@ class GPU {
 
     struct DrawingOffset : public Logged {
         std::string_view getName() override { return "Drawing Offset"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -505,7 +510,7 @@ class GPU {
 
     struct MaskBit : public Logged {
         std::string_view getName() override { return "Mask Bit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -522,7 +527,7 @@ class GPU {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         std::string_view getName() override { return "Polygon"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
@@ -577,7 +582,7 @@ class GPU {
     template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
         std::string_view getName() override { return "Line"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
@@ -627,7 +632,7 @@ class GPU {
     template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
         std::string_view getName() override { return "Rectangle"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -672,7 +677,7 @@ class GPU {
 
     struct CtrlReset : public Logged {
         std::string_view getName() override { return "Reset"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -680,7 +685,7 @@ class GPU {
     };
     struct CtrlClearFifo : public Logged {
         std::string_view getName() override { return "Clear Fifo"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -688,7 +693,7 @@ class GPU {
     };
     struct CtrlIrqAck : public Logged {
         std::string_view getName() override { return "IRQ Ack"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -696,7 +701,7 @@ class GPU {
     };
     struct CtrlDisplayEnable : public Logged {
         std::string_view getName() override { return "Display Enable"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -709,7 +714,7 @@ class GPU {
     };
     struct CtrlDmaSetting : public Logged {
         std::string_view getName() override { return "DMA Setting"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -722,7 +727,7 @@ class GPU {
     };
     struct CtrlDisplayStart : public Logged {
         std::string_view getName() override { return "Display Start"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -735,7 +740,7 @@ class GPU {
     };
     struct CtrlHorizontalDisplayRange : public Logged {
         std::string_view getName() override { return "Horizontal Display Range"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -748,7 +753,7 @@ class GPU {
     };
     struct CtrlVerticalDisplayRange : public Logged {
         std::string_view getName() override { return "Vertical Display Range"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -761,7 +766,7 @@ class GPU {
     };
     struct CtrlDisplayMode : public Logged {
         std::string_view getName() override { return "Display Mode"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -784,7 +789,7 @@ class GPU {
     };
     struct CtrlQuery : public Logged {
         std::string_view getName() override { return "Query"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
