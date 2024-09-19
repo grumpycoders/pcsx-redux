@@ -415,7 +415,13 @@ static inline PackedVec3 readUnsafe() {
 }
 
 template <PseudoRegister reg, bool valid = false>
-static inline void read(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] static inline void read(Vec3* ptr) {
+    static_assert(valid, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
+}
+
+template <PseudoRegister reg, bool valid = false>
+static inline void read(Vec3& vec) {
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
@@ -932,10 +938,17 @@ inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
 }
 
 template <>
-inline void read<PseudoRegister::LV>(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] inline void read<PseudoRegister::LV>(Vec3* ptr) {
     read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr->x));
     read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr->y));
     read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr->z));
+}
+
+template <>
+inline void read<PseudoRegister::LV>(Vec3& ptr) {
+    read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr.x));
+    read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr.y));
+    read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr.z));
 }
 
 }  // namespace GTE
