@@ -494,6 +494,10 @@ class GPU {
 
   private:
     GPU();
+    GPU(const GPU &) = delete;
+    GPU(GPU &&) = delete;
+    GPU &operator=(const GPU &) = delete;
+    GPU &operator=(GPU &&) = delete;
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
