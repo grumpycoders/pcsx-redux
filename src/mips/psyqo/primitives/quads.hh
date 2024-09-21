@@ -104,6 +104,12 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  */
 struct TexturedQuad {
     TexturedQuad() : command(0x2d000000) {}
+    TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
+    TexturedQuad& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x2c000000 | c.packed | wasSemiTrans;
+        return *this;
+    }
     TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;

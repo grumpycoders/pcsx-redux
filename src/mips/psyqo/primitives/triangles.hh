@@ -93,6 +93,12 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  */
 struct TexturedTriangle {
     TexturedTriangle() : command(0x25000000) {}
+    TexturedTriangle(Color c) : command(0x24000000 | c.packed) {}
+    TexturedTriangle& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x24000000 | c.packed | wasSemiTrans;
+        return *this;
+    }
     TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
