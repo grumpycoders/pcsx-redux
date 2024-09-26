@@ -91,6 +91,19 @@ class ResetAction : public psyqo::CDRomDevice::Action<ResetActionState> {
 
 ResetAction resetAction;
 
+}  // namespace
+
+void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::reset called with pending action");
+    resetAction.start(this, eastl::move(callback));
+}
+
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
+    return TaskQueue::Task([this](auto task) { reset([task](bool success) { task->complete(success); }); });
+}
+
+namespace {
+
 enum class ReadSectorsActionState : uint8_t {
     IDLE,
     SETLOC,
@@ -175,6 +188,22 @@ class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionSta
 
 ReadSectorsAction readSectorsAction;
 
+}  // namespace
+
+void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buffer,
+                                     eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::readSectors called with pending action");
+    readSectorsAction.start(this, sector, count, buffer, eastl::move(callback));
+}
+
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
+    return TaskQueue::Task([this, sector, count, buffer](auto task) {
+        readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
+    });
+}
+
+namespace {
+
 enum class ReadTOCActionState : uint8_t {
     IDLE,
     GETTN,
@@ -228,27 +257,6 @@ class ReadTOCAction : public psyqo::CDRomDevice::Action<ReadTOCActionState> {
 ReadTOCAction readTOCAction;
 
 }  // namespace
-
-void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
-    Kernel::assert(m_callback == nullptr, "CDRomDevice::reset called with pending action");
-    resetAction.start(this, eastl::move(callback));
-}
-
-psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
-    return TaskQueue::Task([this](auto task) { reset([task](bool success) { task->complete(success); }); });
-}
-
-void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buffer,
-                                     eastl::function<void(bool)> &&callback) {
-    Kernel::assert(m_callback == nullptr, "CDRomDevice::readSectors called with pending action");
-    readSectorsAction.start(this, sector, count, buffer, eastl::move(callback));
-}
-
-psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
-    return TaskQueue::Task([this, sector, count, buffer](auto task) {
-        readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
-    });
-}
 
 void psyqo::CDRomDevice::readTOC(MSF *toc, eastl::function<void(bool)> &&callback) {
     Kernel::assert(m_callback == nullptr, "CDRomDevice::readTOC called with pending action");
