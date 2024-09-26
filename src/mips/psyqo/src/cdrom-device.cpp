@@ -54,15 +54,133 @@ void psyqo::CDRomDevice::prepare() {
 
 psyqo::CDRomDevice::~CDRomDevice() { Kernel::abort("CDRomDevice can't be destroyed (yet)"); }
 
+namespace {
+
+enum class ResetActionState : uint8_t {
+    IDLE,
+    RESET,
+    RESET_ACK,
+};
+
+class ResetAction : public psyqo::CDRomDevice::Action<ResetActionState> {
+  public:
+    void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
+        psyqo::Kernel::assert(getState() == ResetActionState::IDLE,
+                              "CDRomDevice::reset() called while another action is in progress");
+        registerMe(device);
+        setCallback(eastl::move(callback));
+        setState(ResetActionState::RESET);
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        psyqo::Hardware::CDRom::Cause = 0x1f;
+        psyqo::Hardware::CDRom::CauseMask = 0x1f;
+        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::INIT);
+    }
+    bool complete() override {
+        psyqo::Kernel::assert(getState() == ResetActionState::RESET_ACK,
+                              "ResetAction got CDROM complete in wrong state");
+        setSuccess(true);
+        return true;
+    }
+    bool acknowledge() override {
+        psyqo::Kernel::assert(getState() == ResetActionState::RESET,
+                              "ResetAction got CDROM acknowledge in wrong state");
+        setState(ResetActionState::RESET_ACK);
+        return false;
+    }
+};
+
+ResetAction resetAction;
+
+enum class ReadSectorsActionState : uint8_t {
+    IDLE,
+    SETLOC,
+    SETMODE,
+    READ,
+    READ_ACK,
+    PAUSE,
+    PAUSE_ACK,
+};
+
+class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionState> {
+  public:
+    void start(psyqo::CDRomDevice *device, uint32_t sector, uint32_t count, void *buffer,
+               eastl::function<void(bool)> &&callback) {
+        psyqo::Kernel::assert(getState() == ReadSectorsActionState::IDLE,
+                              "CDRomDevice::readSectors() called while another action is in progress");
+        registerMe(device);
+        setCallback(eastl::move(callback));
+        setState(ReadSectorsActionState::SETLOC);
+        m_count = count;
+        m_ptr = reinterpret_cast<uint8_t *>(buffer);
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        psyqo::MSF msf(sector + 150);
+        uint8_t bcd[3];
+        msf.toBCD(bcd);
+        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETLOC, bcd[0], bcd[1], bcd[2]);
+    }
+    bool dataReady() override {
+        psyqo::Kernel::assert(getState() == ReadSectorsActionState::READ_ACK,
+                              "ReadSectorsAction got CDROM dataReady in wrong state");
+        uint8_t status = psyqo::Hardware::CDRom::Response;
+        psyqo::Hardware::CDRom::Ctrl.throwAway();
+        psyqo::Hardware::CDRom::DataRequest = 0;
+        psyqo::Hardware::CDRom::InterruptControl.throwAway();
+        psyqo::Hardware::CDRom::DataRequest = 0x80;
+        psyqo::Hardware::SBus::Dev5Ctrl = 0x20943;
+        psyqo::Hardware::SBus::ComCtrl = 0x132c;
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        DMA_CTRL[DMA_CDROM].MADR = reinterpret_cast<uintptr_t>(m_ptr);
+        DMA_CTRL[DMA_CDROM].BCR = 512 | 0x10000;
+        DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
+        m_ptr += 2048;
+        if (--m_count == 0) {
+            setState(ReadSectorsActionState::PAUSE);
+            psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::PAUSE);
+        }
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        return false;
+    }
+    bool complete() override {
+        psyqo::Kernel::assert(getState() == ReadSectorsActionState::PAUSE_ACK,
+                              "ReadSectorsAction got CDROM complete in wrong state");
+        setSuccess(true);
+        return true;
+    }
+    bool acknowledge() override {
+        switch (getState()) {
+            case ReadSectorsActionState::SETLOC:
+                setState(ReadSectorsActionState::SETMODE);
+                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, 0x80);
+                break;
+            case ReadSectorsActionState::SETMODE:
+                setState(ReadSectorsActionState::READ);
+                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::READN);
+                break;
+            case ReadSectorsActionState::READ:
+                setState(ReadSectorsActionState::READ_ACK);
+                break;
+            case ReadSectorsActionState::PAUSE:
+                setState(ReadSectorsActionState::PAUSE_ACK);
+                break;
+            default:
+                psyqo::Kernel::abort("ReadSectorsAction got CDROM acknowledge in wrong state");
+                break;
+        }
+        return false;
+    }
+
+  private:
+    uint32_t m_count = 0;
+    uint8_t *m_ptr = nullptr;
+};
+
+ReadSectorsAction readSectorsAction;
+
+}  // namespace
+
 void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
-    Kernel::assert(m_callback == nullptr, "Only one read allowed at a time");
-    Kernel::assert(m_action == NONE, "CDRom state machine is busy");
-    m_callback = eastl::move(callback);
-    m_action = RESET;
-    eastl::atomic_signal_fence(eastl::memory_order_release);
-    Hardware::CDRom::Cause = 0x1f;
-    Hardware::CDRom::CauseMask = 0x1f;
-    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::INIT);
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::reset called with pending action");
+    resetAction.start(this, eastl::move(callback));
 }
 
 psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
@@ -71,20 +189,17 @@ psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
 
 void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buffer,
                                      eastl::function<void(bool)> &&callback) {
-    Kernel::assert(m_callback == nullptr, "Only one action allowed at a time");
-    Kernel::assert(m_action == NONE, "CDRom state machine is busy");
-    m_callback = eastl::move(callback);
-    m_action = SETLOC;
-    m_count = count;
-    m_ptr = reinterpret_cast<uint8_t *>(buffer);
-    eastl::atomic_signal_fence(eastl::memory_order_release);
-    MSF msf(sector + 150);
-    uint8_t bcd[3];
-    msf.toBCD(bcd);
-    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::SETLOC, bcd[0], bcd[1], bcd[2]);
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::readSectors called with pending action");
+    readSectorsAction.start(this, sector, count, buffer, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::switchAction(ActionBase *action) {
+    Kernel::assert(m_action == nullptr, "CDRomDevice can only have one action active at a given time");
+    m_action = action;
 }
 
 void psyqo::CDRomDevice::irq() {
+    Kernel::assert(m_action != nullptr, "CDRomDevice::irq() called with no action - spurious interrupt?");
     uint8_t cause = Hardware::CDRom::Cause;
 
     if (cause & 7) {
@@ -95,94 +210,51 @@ void psyqo::CDRomDevice::irq() {
         Hardware::CDRom::Cause = 0x18;
     }
 
+    bool callCallback = false;
+
     switch (cause & 7) {
         case 1:
-            dataReady();
+            callCallback = m_action->dataReady();
             break;
         case 2:
-            complete();
+            callCallback = m_action->complete();
             break;
         case 3:
-            acknowledge();
+            callCallback = m_action->acknowledge();
             break;
         case 4:
-            end();
+            callCallback = m_action->end();
             break;
         case 5:
-            discError();
-            break;
-    }
-}
-
-void psyqo::CDRomDevice::dataReady() {
-    uint8_t status = Hardware::CDRom::Response;
-    Hardware::CDRom::Ctrl.throwAway();
-    Hardware::CDRom::DataRequest = 0;
-    Hardware::CDRom::InterruptControl.throwAway();
-    Hardware::CDRom::DataRequest = 0x80;
-    Hardware::SBus::Dev5Ctrl = 0x20943;
-    Hardware::SBus::ComCtrl = 0x132c;
-    eastl::atomic_signal_fence(eastl::memory_order_acquire);
-    DMA_CTRL[DMA_CDROM].MADR = reinterpret_cast<uintptr_t>(m_ptr);
-    DMA_CTRL[DMA_CDROM].BCR = 512 | 0x10000;
-    DMA_CTRL[DMA_CDROM].CHCR = 0x11000000;
-    m_ptr += 2048;
-    if (--m_count == 0) {
-        m_action = PAUSE;
-        Hardware::CDRom::Command.send(Hardware::CDRom::CDL::PAUSE);
-    }
-    eastl::atomic_signal_fence(eastl::memory_order_release);
-}
-
-void psyqo::CDRomDevice::complete() {
-    switch (m_action) {
-        case RESET:
-        case PAUSE:
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-            Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
-            Kernel::queueCallbackFromISR([this]() {
-                auto callback = eastl::move(m_callback);
-                m_action = NONE;
-                callback(true);
-            });
+            m_success = false;
+            callCallback = true;
             break;
         default:
-            Kernel::abort("CDRomDevice::complete() called in wrong state");
+            Kernel::abort("CDRomDevice::irq() invoked with unknown cause");
             break;
+    }
+
+    if (callCallback) {
+        Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
+        m_action = nullptr;
+        eastl::atomic_signal_fence(eastl::memory_order_acquire);
+        Kernel::queueCallbackFromISR([this]() {
+            auto callback = eastl::move(m_callback);
+            auto success = m_success;
+            m_success = false;
+            m_state = 0;
+            callback(success);
+        });
     }
 }
 
-void psyqo::CDRomDevice::acknowledge() {
-    uint8_t status = Hardware::CDRom::Response;
-    switch (m_action) {
-        case RESET:
-            break;
-        case SETLOC:
-            m_action = SETMODE;
-            Hardware::CDRom::Command.send(Hardware::CDRom::CDL::SETMODE, 0x80);
-            break;
-        case SETMODE:
-            m_action = READ;
-            Hardware::CDRom::Command.send(Hardware::CDRom::CDL::READN);
-            break;
-        case READ:
-            break;
-        case PAUSE:
-            break;
-        default:
-            Kernel::abort("Not implemented");
-            break;
-    }
+void psyqo::CDRomDevice::ActionBase::setCallback(eastl::function<void(bool)> &&callback) {
+    auto &deviceCallback = m_device->m_callback;
+    Kernel::assert(!deviceCallback && m_device->m_state == 0, "Action setup called with pending action");
+    m_device->m_callback = eastl::move(callback);
 }
-
-void psyqo::CDRomDevice::end() { Kernel::abort("Not implemented"); }
-
-void psyqo::CDRomDevice::discError() {
-    eastl::atomic_signal_fence(eastl::memory_order_acquire);
-    Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
-    Kernel::queueCallbackFromISR([this]() {
-        auto callback = eastl::move(m_callback);
-        m_action = NONE;
-        callback(false);
-    });
-}
+void psyqo::CDRomDevice::ActionBase::setSuccess(bool success) { m_device->m_success = success; }
+bool psyqo::CDRomDevice::ActionBase::dataReady() { Kernel::abort("Action::dataReady() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::complete() { Kernel::abort("Action::complete() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::acknowledge() { Kernel::abort("Action::acknowledge() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::end() { Kernel::abort("Action::end() not implemented"); }

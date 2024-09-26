@@ -26,11 +26,28 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/functional.h>
 #include <stdint.h>
+
+#include <type_traits>
 
 #include "psyqo/cdrom.hh"
 
 namespace psyqo {
+
+namespace Concepts {
+
+template <typename T, typename = void>
+struct CDRomDeviceStateEnumHasIdle : std::false_type {};
+
+template <typename T>
+struct CDRomDeviceStateEnumHasIdle<T, std::enable_if_t<T::IDLE == T(0)>> : std::true_type {};
+
+template <typename T>
+concept IsCDRomDeviceStateEnum =
+    std::is_enum_v<T> && std::is_same_v<uint8_t, std::underlying_type_t<T>> && CDRomDeviceStateEnumHasIdle<T>::value;
+
+}  // namespace Concepts
 
 /**
  * @brief A specialization of the CDRom interface.
@@ -40,6 +57,22 @@ namespace psyqo {
  *
  */
 class CDRomDevice final : public CDRom {
+  private:
+    struct ActionBase {
+        virtual ~ActionBase() = default;
+
+        virtual bool dataReady();
+        virtual bool complete();
+        virtual bool acknowledge();
+        virtual bool end();
+
+        void setCallback(eastl::function<void(bool)> &&callback);
+        void setSuccess(bool success);
+
+        friend class CDRomDevice;
+        CDRomDevice *m_device = nullptr;
+    };
+
   public:
     virtual ~CDRomDevice();
 
@@ -65,29 +98,57 @@ class CDRomDevice final : public CDRom {
     void reset(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleReset();
 
+    /**
+     * @brief Reads sectors from the CDRom.
+     *
+     * @details This method will read a number of sectors from the CDRom
+     * drive. The sectors will be read into the provided buffer. Note that
+     * only one read operation can be active at a time, and that the
+     * `ISO9660Parser` class will call this method to read the filesystem
+     * structure, so care must be taken to ensure no other read operation
+     * is active when the parser is used.
+     *
+     * @param sector The sector to start reading from.
+     * @param count The number of sectors to read.
+     * @param buffer The buffer to read the sectors into.
+     * @param callback The callback to call when the read is complete.
+     *
+     */
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
 
+    /**
+     * @brief The action base class for the internal state machine.
+     *
+     * @details This class is meant to be extended by the various actions
+     * that the CDRom device can perform. It provides a framework for
+     * the state machine that is used to perform various operations.
+     * While it is public, it is not meant to be used directly by the
+     * application, and should only be used by the CDRomDevice class.
+     *
+     */
+    template <Concepts::IsCDRomDeviceStateEnum S>
+    class Action : protected ActionBase {
+      protected:
+        void registerMe(CDRomDevice *device) {
+            device->switchAction(this);
+            m_device = device;
+        }
+
+        void setState(S state) { m_device->m_state = static_cast<uint8_t>(state); }
+        S getState() const { return static_cast<S>(m_device->m_state); }
+    };
+
   private:
+    void switchAction(ActionBase *action);
     void irq();
 
-    void dataReady();
-    void complete();
-    void acknowledge();
-    void end();
-    void discError();
+    friend class ActionBase;
 
     eastl::function<void(bool)> m_callback;
     uint32_t m_event = 0;
-    uint32_t m_count = 0;
-    uint8_t *m_ptr = nullptr;
-    enum {
-        NONE,
-        RESET,
-        SETLOC,
-        SETMODE,
-        READ,
-        PAUSE,
-    } m_action = NONE;
+    ActionBase *m_action = nullptr;
+    uint8_t m_state = 0;
+    bool m_success = false;
 };
 
 }  // namespace psyqo
