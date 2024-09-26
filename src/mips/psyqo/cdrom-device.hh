@@ -28,13 +28,13 @@ SOFTWARE.
 
 #include <EASTL/fixed_vector.h>
 #include <EASTL/functional.h>
-#include <EASTL/vector.h>
 #include <stdint.h>
 
 #include <cstdint>
 #include <type_traits>
 
 #include "psyqo/cdrom.hh"
+#include "psyqo/msf.hh"
 #include "psyqo/task.hh"
 
 namespace psyqo {
@@ -62,7 +62,7 @@ concept IsCDRomDeviceStateEnum =
  */
 class CDRomDevice final : public CDRom {
   public:
-    typedef eastl::fixed_vector<uint8_t, 16> Response;
+    typedef eastl::fixed_vector<uint8_t, 16, false> Response;
 
   private:
     struct ActionBase {
@@ -123,6 +123,24 @@ class CDRomDevice final : public CDRom {
      */
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
     TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
+
+    /**
+     * @brief Reads the Table of Contents from the CDRom.
+     *
+     * @details This method will read the Table of Contents from the CDRom
+     * drive. The TOC will be read into the provided buffer. Note that
+     * a CD-Rom can have up to 99 tracks, and the TOC will be read into the
+     * provided buffer starting at index 1 for the first track. Any tracks
+     * that are not present on the CD will not have their MSF structure
+     * filled in, so the application should ensure that the buffer is
+     * initialized to zero before calling this method.
+     *
+     * @param toc The buffer to read the TOC into. Ideally, this buffer
+     * should be able to hold 100 `MSF` structures for safety.
+     * @param callback The callback to call when the read is complete.
+     */
+    void readTOC(MSF *toc, eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleReadTOC(MSF *toc);
 
     /**
      * @brief The action base class for the internal state machine.

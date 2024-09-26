@@ -32,9 +32,9 @@ SOFTWARE.
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/iso9660-parser.hh"
+#include "psyqo/msf.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/task.hh"
-#include "psyqo/xprintf.h"
 
 namespace {
 
@@ -51,6 +51,7 @@ class TaskDemo final : public psyqo::Application {
     eastl::fixed_string<char, 256> m_text;
     uint8_t m_buffer[2048];
     uint32_t m_systemCnfSize;
+    psyqo::MSF m_toc[100] = {};
     bool m_done = false;
 };
 
@@ -114,6 +115,16 @@ void TaskDemo::createScene() {
             syscall_puts("Success!\n");
             m_systemCnfSize = m_request.entry.size;
             m_done = true;
+            task->resolve();
+        })
+        .then(m_cdrom.scheduleReadTOC(m_toc))
+        .then([this](auto task) {
+            for (unsigned i = 1; i < 100; i++) {
+                if (m_toc[i].m == 0 && m_toc[i].s == 0 && m_toc[i].f == 0) {
+                    break;
+                }
+                ramsyscall_printf("Track %d: %02d:%02d:%02d\n", i, m_toc[i].m, m_toc[i].s, m_toc[i].f);
+            }
             task->resolve();
         })
         .butCatch([this](auto queue) {

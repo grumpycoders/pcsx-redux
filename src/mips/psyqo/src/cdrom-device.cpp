@@ -175,6 +175,58 @@ class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionSta
 
 ReadSectorsAction readSectorsAction;
 
+enum class ReadTOCActionState : uint8_t {
+    IDLE,
+    GETTN,
+    GETTD,
+};
+
+class ReadTOCAction : public psyqo::CDRomDevice::Action<ReadTOCActionState> {
+  public:
+    void start(psyqo::CDRomDevice *device, psyqo::MSF *toc, eastl::function<void(bool)> &&callback) {
+        psyqo::Kernel::assert(getState() == ReadTOCActionState::IDLE,
+                              "CDRomDevice::readTOC() called while another action is in progress");
+        registerMe(device);
+        setCallback(eastl::move(callback));
+        m_toc = toc;
+        setState(ReadTOCActionState::GETTN);
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::GETTN);
+    }
+    bool acknowledge(const psyqo::CDRomDevice::Response &response) override {
+        switch (getState()) {
+            case ReadTOCActionState::GETTN:
+                setState(ReadTOCActionState::GETTD);
+                m_currentTrack = response[1];
+                m_lastTrack = response[2];
+                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::GETTD, psyqo::itob(1));
+                break;
+            case ReadTOCActionState::GETTD: {
+                psyqo::MSF &msf = m_toc[m_currentTrack];
+                msf.m = psyqo::btoi(response[1]);
+                msf.s = psyqo::btoi(response[2]);
+                msf.f = 0;
+                if (++m_currentTrack <= m_lastTrack) {
+                    psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::GETTD,
+                                                         psyqo::itob(m_currentTrack));
+                } else {
+                    setSuccess(true);
+                    return true;
+                }
+            } break;
+            default:
+                psyqo::Kernel::abort("ReadTOCAction got CDROM acknowledge in wrong state");
+                break;
+        }
+        return false;
+    }
+    psyqo::MSF *m_toc = nullptr;
+    uint8_t m_currentTrack = 0;
+    uint8_t m_lastTrack = 0;
+};
+
+ReadTOCAction readTOCAction;
+
 }  // namespace
 
 void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
@@ -196,6 +248,15 @@ psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, 
     return TaskQueue::Task([this, sector, count, buffer](auto task) {
         readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
     });
+}
+
+void psyqo::CDRomDevice::readTOC(MSF *toc, eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::readTOC called with pending action");
+    readTOCAction.start(this, toc, eastl::move(callback));
+}
+
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadTOC(MSF *toc) {
+    return TaskQueue::Task([this, toc](auto task) { readTOC(toc, [task](bool success) { task->complete(success); }); });
 }
 
 void psyqo::CDRomDevice::switchAction(ActionBase *action) {
