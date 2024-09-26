@@ -193,6 +193,12 @@ void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buff
     readSectorsAction.start(this, sector, count, buffer, eastl::move(callback));
 }
 
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
+    return TaskQueue::Task([this, sector, count, buffer](auto task) {
+        readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
+    });
+}
+
 void psyqo::CDRomDevice::switchAction(ActionBase *action) {
     Kernel::assert(m_action == nullptr, "CDRomDevice can only have one action active at a given time");
     m_action = action;

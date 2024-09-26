@@ -32,6 +32,7 @@ SOFTWARE.
 #include <type_traits>
 
 #include "psyqo/cdrom.hh"
+#include "psyqo/task.hh"
 
 namespace psyqo {
 
@@ -115,6 +116,7 @@ class CDRomDevice final : public CDRom {
      *
      */
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
+    TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
 
     /**
      * @brief The action base class for the internal state machine.
