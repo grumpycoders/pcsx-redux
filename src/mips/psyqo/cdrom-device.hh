@@ -26,9 +26,12 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/fixed_vector.h>
 #include <EASTL/functional.h>
+#include <EASTL/vector.h>
 #include <stdint.h>
 
+#include <cstdint>
 #include <type_traits>
 
 #include "psyqo/cdrom.hh"
@@ -58,14 +61,17 @@ concept IsCDRomDeviceStateEnum =
  *
  */
 class CDRomDevice final : public CDRom {
+  public:
+    typedef eastl::fixed_vector<uint8_t, 16> Response;
+
   private:
     struct ActionBase {
         virtual ~ActionBase() = default;
 
-        virtual bool dataReady();
-        virtual bool complete();
-        virtual bool acknowledge();
-        virtual bool end();
+        virtual bool dataReady(const Response &response);
+        virtual bool complete(const Response &response);
+        virtual bool acknowledge(const Response &response);
+        virtual bool end(const Response &response);
 
         void setCallback(eastl::function<void(bool)> &&callback);
         void setSuccess(bool success);

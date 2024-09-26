@@ -75,13 +75,13 @@ class ResetAction : public psyqo::CDRomDevice::Action<ResetActionState> {
         psyqo::Hardware::CDRom::CauseMask = 0x1f;
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::INIT);
     }
-    bool complete() override {
+    bool complete(const psyqo::CDRomDevice::Response &) override {
         psyqo::Kernel::assert(getState() == ResetActionState::RESET_ACK,
                               "ResetAction got CDROM complete in wrong state");
         setSuccess(true);
         return true;
     }
-    bool acknowledge() override {
+    bool acknowledge(const psyqo::CDRomDevice::Response &) override {
         psyqo::Kernel::assert(getState() == ResetActionState::RESET,
                               "ResetAction got CDROM acknowledge in wrong state");
         setState(ResetActionState::RESET_ACK);
@@ -118,10 +118,9 @@ class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionSta
         msf.toBCD(bcd);
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETLOC, bcd[0], bcd[1], bcd[2]);
     }
-    bool dataReady() override {
+    bool dataReady(const psyqo::CDRomDevice::Response &) override {
         psyqo::Kernel::assert(getState() == ReadSectorsActionState::READ_ACK,
                               "ReadSectorsAction got CDROM dataReady in wrong state");
-        uint8_t status = psyqo::Hardware::CDRom::Response;
         psyqo::Hardware::CDRom::Ctrl.throwAway();
         psyqo::Hardware::CDRom::DataRequest = 0;
         psyqo::Hardware::CDRom::InterruptControl.throwAway();
@@ -140,13 +139,13 @@ class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionSta
         eastl::atomic_signal_fence(eastl::memory_order_release);
         return false;
     }
-    bool complete() override {
+    bool complete(const psyqo::CDRomDevice::Response &) override {
         psyqo::Kernel::assert(getState() == ReadSectorsActionState::PAUSE_ACK,
                               "ReadSectorsAction got CDROM complete in wrong state");
         setSuccess(true);
         return true;
     }
-    bool acknowledge() override {
+    bool acknowledge(const psyqo::CDRomDevice::Response &) override {
         switch (getState()) {
             case ReadSectorsActionState::SETLOC:
                 setState(ReadSectorsActionState::SETMODE);
@@ -217,19 +216,23 @@ void psyqo::CDRomDevice::irq() {
     }
 
     bool callCallback = false;
+    Response response;
+    while ((Hardware::CDRom::Ctrl.access() & 0x20) && (response.size() < 16)) {
+        response.push_back(Hardware::CDRom::Response);
+    }
 
     switch (cause & 7) {
         case 1:
-            callCallback = m_action->dataReady();
+            callCallback = m_action->dataReady(response);
             break;
         case 2:
-            callCallback = m_action->complete();
+            callCallback = m_action->complete(response);
             break;
         case 3:
-            callCallback = m_action->acknowledge();
+            callCallback = m_action->acknowledge(response);
             break;
         case 4:
-            callCallback = m_action->end();
+            callCallback = m_action->end(response);
             break;
         case 5:
             m_success = false;
@@ -260,7 +263,11 @@ void psyqo::CDRomDevice::ActionBase::setCallback(eastl::function<void(bool)> &&c
     m_device->m_callback = eastl::move(callback);
 }
 void psyqo::CDRomDevice::ActionBase::setSuccess(bool success) { m_device->m_success = success; }
-bool psyqo::CDRomDevice::ActionBase::dataReady() { Kernel::abort("Action::dataReady() not implemented"); }
-bool psyqo::CDRomDevice::ActionBase::complete() { Kernel::abort("Action::complete() not implemented"); }
-bool psyqo::CDRomDevice::ActionBase::acknowledge() { Kernel::abort("Action::acknowledge() not implemented"); }
-bool psyqo::CDRomDevice::ActionBase::end() { Kernel::abort("Action::end() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::dataReady(const Response &) {
+    Kernel::abort("Action::dataReady() not implemented");
+}
+bool psyqo::CDRomDevice::ActionBase::complete(const Response &) { Kernel::abort("Action::complete() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::acknowledge(const Response &) {
+    Kernel::abort("Action::acknowledge() not implemented");
+}
+bool psyqo::CDRomDevice::ActionBase::end(const Response &) { Kernel::abort("Action::end() not implemented"); }
