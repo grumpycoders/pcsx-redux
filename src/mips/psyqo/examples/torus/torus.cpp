@@ -141,10 +141,10 @@ struct TorusTemplate {
             psyqo::GTE::write<psyqo::GTE::Register::IR3, psyqo::GTE::Safe>(reinterpret_cast<uint32_t*>(&t.z.value));
             psyqo::GTE::Kernels::cp();
             // The result is stored in the LV register, so first we simply read it.
-            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(&cp);
+            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(cp);
             // Then we square LV to get the square of the length of the normal.
             psyqo::GTE::Kernels::sqr();
-            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(&sq);
+            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(sq);
             // We still need to add the three components of the square.
             auto square = sq.x + sq.y + sq.z;
             // Finally, we compute the square root of the square of the length of the normal.
