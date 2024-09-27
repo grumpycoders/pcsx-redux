@@ -43,7 +43,7 @@ enum class CDL : uint8_t {
     PAUSE = 9,
     INIT = 10,
     MUTE = 11,
-    DEMUTE = 12,
+    UNMUTE = 12,
     SETFILTER = 13,
     SETMODE = 14,
     GETMODE = 15,

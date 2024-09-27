@@ -113,11 +113,12 @@ void TaskDemo::createScene() {
         .then([this](auto task) {
             m_text = "Success!";
             syscall_puts("Success!\n");
+            ramsyscall_printf("Track count: %d\n", m_cdrom.getTOCSizeBlocking(gpu()));
             m_systemCnfSize = m_request.entry.size;
             m_done = true;
             task->resolve();
         })
-        .then(m_cdrom.scheduleReadTOC(m_toc))
+        .then(m_cdrom.scheduleReadTOC(m_toc, 100))
         .then([this](auto task) {
             for (unsigned i = 1; i < 100; i++) {
                 if (m_toc[i].m == 0 && m_toc[i].s == 0 && m_toc[i].f == 0) {

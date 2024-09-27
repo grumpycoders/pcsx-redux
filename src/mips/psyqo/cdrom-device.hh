@@ -39,6 +39,8 @@ SOFTWARE.
 
 namespace psyqo {
 
+class GPU;
+
 namespace Concepts {
 
 template <typename T, typename = void>
@@ -58,6 +60,15 @@ concept IsCDRomDeviceStateEnum =
  *
  * @details This class is a specialization of the CDRom interface, which
  * provides a way to read from the physical CDRom drive of the console.
+ * All of the methods in this class are asynchronous, and will call the
+ * provided callback when the operation is complete. The class also
+ * provides a blocking variant for some of the methods, which can be
+ * used to perform the operation synchronously. Note that the blocking
+ * variants are only provided for methods that are expected to complete
+ * quickly, and should not be used in performance-critical code, as they
+ * can still block the system for several milliseconds. The callbacks
+ * will be called from the main thread, and have a boolean parameter
+ * that indicates whether the operation was successful.
  *
  */
 class CDRomDevice final : public CDRom {
@@ -125,6 +136,19 @@ class CDRomDevice final : public CDRom {
     TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
 
     /**
+     * @brief Gets the size of the Table of Contents from the CDRom. Note that
+     * while the blocking variant is available because it is a fairly short
+     * operation with the CDRom controller, it can still block the system
+     * for roughly 2ms, which is a long time in the context of a 33MHz CPU.
+     * 
+     * @param size The pointer to store the size of the TOC.
+     * @param callback The callback to call when the size is retrieved.
+     */
+    void getTOCSize(unsigned *size, eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleGetTOCSize(unsigned *size);
+    unsigned getTOCSizeBlocking(GPU &);
+
+    /**
      * @brief Reads the Table of Contents from the CDRom.
      *
      * @details This method will read the Table of Contents from the CDRom
@@ -133,14 +157,52 @@ class CDRomDevice final : public CDRom {
      * provided buffer starting at index 1 for the first track. Any tracks
      * that are not present on the CD will not have their MSF structure
      * filled in, so the application should ensure that the buffer is
-     * initialized to zero before calling this method.
+     * initialized to zero before calling this method. The blocking variant
+     * may take a total of 200ms to complete, depending on the number of
+     * tracks on the CD.
      *
-     * @param toc The buffer to read the TOC into. Ideally, this buffer
-     * should be able to hold 100 `MSF` structures for safety.
+     * @param toc The buffer to read the TOC into.
+     * @param size The size of the buffer. Should be 100 to hold all possible tracks.
      * @param callback The callback to call when the read is complete.
      */
-    void readTOC(MSF *toc, eastl::function<void(bool)> &&callback);
-    TaskQueue::Task scheduleReadTOC(MSF *toc);
+    void readTOC(MSF *toc, unsigned size, eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleReadTOC(MSF *toc, unsigned size);
+    bool readTOCBlocking(MSF *toc, unsigned size, GPU &);
+
+    /**
+     * @brief Mutes the CD audio for both CDDA and CDXA.
+     *
+     * @param callback The callback to call when the mute operation is complete.
+     */
+    void mute(eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleMute();
+    void muteBlocking(GPU &);
+
+    /**
+     * @brief Unmutes the CD audio for both CDDA and CDXA.
+     *
+     * @param callback The callback to call when the unmute operation is complete.
+     */
+    void unmute(eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleUnmute();
+    void unmuteBlocking(GPU &);
+
+    /**
+     * @brief Begins playing CDDA audio from a given starting point.
+     *
+     * @details This method will begin playing CDDA audio from a given
+     * starting point. The starting point is either a track number or
+     * an MSF value. The callback will be called when playback is complete,
+     * paused, or if an error occurs, which can be after the end of the
+     * track if `stopAtEndOfTrack` is set to true, or at the end of the
+     * disc if the last track is reached.
+     *
+     * @param start The starting point for playback.
+     * @param stopAtEndOfTrack If true, playback will stop at the end of the track.
+     * @param callback The callback to call when playback is complete.
+     */
+    void playCDDA(MSF start, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
+    void playCDDA(unsigned track, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
 
     /**
      * @brief The action base class for the internal state machine.
@@ -167,6 +229,7 @@ class CDRomDevice final : public CDRom {
   private:
     void switchAction(ActionBase *action);
     void irq();
+    void actionComplete();
 
     friend class ActionBase;
 
@@ -175,6 +238,16 @@ class CDRomDevice final : public CDRom {
     ActionBase *m_action = nullptr;
     uint8_t m_state = 0;
     bool m_success = false;
+    bool m_blocking = false;
+
+    struct BlockingAction {
+        BlockingAction(CDRomDevice *, GPU &);
+        ~BlockingAction();
+
+      private:
+        CDRomDevice *m_device;
+        GPU &m_gpu;
+    };
 };
 
 }  // namespace psyqo
