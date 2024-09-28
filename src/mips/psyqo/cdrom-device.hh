@@ -77,6 +77,10 @@ class CDRomDevice final : public CDRom {
 
   private:
     struct ActionBase {
+        const char *name() const { return m_name; }
+
+      protected:
+        ActionBase(const char *const name) : m_name(name) {}
         virtual ~ActionBase() = default;
 
         virtual bool dataReady(const Response &response);
@@ -89,6 +93,7 @@ class CDRomDevice final : public CDRom {
 
         friend class CDRomDevice;
         CDRomDevice *m_device = nullptr;
+        const char *const m_name = nullptr;
     };
 
   public:
@@ -140,7 +145,7 @@ class CDRomDevice final : public CDRom {
      * while the blocking variant is available because it is a fairly short
      * operation with the CDRom controller, it can still block the system
      * for roughly 2ms, which is a long time in the context of a 33MHz CPU.
-     * 
+     *
      * @param size The pointer to store the size of the TOC.
      * @param callback The callback to call when the size is retrieved.
      */
@@ -215,8 +220,9 @@ class CDRomDevice final : public CDRom {
      *
      */
     template <Concepts::IsCDRomDeviceStateEnum S>
-    class Action : protected ActionBase {
+    class Action : public ActionBase {
       protected:
+        Action(const char *const name) : ActionBase(name) {}
         void registerMe(CDRomDevice *device) {
             device->switchAction(this);
             m_device = device;

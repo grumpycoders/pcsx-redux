@@ -65,6 +65,7 @@ enum class ResetActionState : uint8_t {
 
 class ResetAction : public psyqo::CDRomDevice::Action<ResetActionState> {
   public:
+    ResetAction() : Action("ResetAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == ResetActionState::IDLE,
                               "CDRomDevice::reset() called while another action is in progress");
@@ -117,6 +118,7 @@ enum class ReadSectorsActionState : uint8_t {
 
 class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionState> {
   public:
+    ReadSectorsAction() : Action("ReadSectorsAction") {}
     void start(psyqo::CDRomDevice *device, uint32_t sector, uint32_t count, void *buffer,
                eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == ReadSectorsActionState::IDLE,
@@ -221,6 +223,7 @@ enum class GetTNActionEnum : uint8_t {
 
 class GetTNAction : public psyqo::CDRomDevice::Action<GetTNActionEnum> {
   public:
+    GetTNAction() : Action("GetTNAction") {}
     void start(psyqo::CDRomDevice *device, unsigned *size, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == GetTNActionEnum::IDLE,
                               "CDRomDevice::getTOCSize() called while another action is in progress");
@@ -277,6 +280,7 @@ enum class ReadTOCActionState : uint8_t {
 
 class ReadTOCAction : public psyqo::CDRomDevice::Action<ReadTOCActionState> {
   public:
+    ReadTOCAction() : Action("ReadTOCAction") {}
     void start(psyqo::CDRomDevice *device, psyqo::MSF *toc, unsigned size, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == ReadTOCActionState::IDLE,
                               "CDRomDevice::readTOC() called while another action is in progress");
@@ -363,6 +367,7 @@ enum class MuteActionState : uint8_t {
 
 class MuteAction : public psyqo::CDRomDevice::Action<MuteActionState> {
   public:
+    MuteAction() : Action("MuteAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == MuteActionState::IDLE,
                               "CDRomDevice::mute() called while another action is in progress");
@@ -400,6 +405,7 @@ enum class UnmuteActionState : uint8_t {
 
 class UnmuteAction : public psyqo::CDRomDevice::Action<UnmuteActionState> {
   public:
+    UnmuteAction() : Action("UnmuteAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == UnmuteActionState::IDLE,
                               "CDRomDevice::unmute() called while another action is in progress");
@@ -443,6 +449,7 @@ enum class PlayCDDAActionState : uint8_t {
 
 class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
   public:
+    PlayCDDAAction() : Action("PlayCDDAAction") {}
     void start(psyqo::CDRomDevice *device, unsigned track, bool stopAtEndOfTrack,
                eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == PlayCDDAActionState::IDLE,
@@ -538,6 +545,24 @@ void psyqo::CDRomDevice::irq() {
         response.push_back(Hardware::CDRom::Response);
     }
 
+#ifdef DEBUG_CDROM_RESPONSES
+    if (m_blocking) {
+        ramsyscall_printf("Got CD-Rom response:");
+        for (auto byte : response) {
+            ramsyscall_printf(" %02x", byte);
+        }
+        syscall_puts("\n");
+    } else {
+        Kernel::queueCallbackFromISR([response]() {
+            ramsyscall_printf("Got CD-Rom response:");
+            for (auto byte : response) {
+                ramsyscall_printf(" %02x", byte);
+            }
+            syscall_puts("\n");
+        });
+    }
+#endif
+
     switch (cause & 7) {
         case 1:
             callCallback = m_action->dataReady(response);
@@ -551,10 +576,21 @@ void psyqo::CDRomDevice::irq() {
         case 4:
             callCallback = m_action->end(response);
             break;
-        case 5:
+        case 5: {
             m_success = false;
             callCallback = true;
-            break;
+#ifdef DEBUG_CDROM_ERRORS
+            m_callback = [callback = eastl::move(m_callback), name = m_action->name(),
+                          response = eastl::move(response)](bool) {
+                ramsyscall_printf("Got CD-Rom error during action %s:", name);
+                for (auto byte : response) {
+                    ramsyscall_printf(" %02x", byte);
+                }
+                syscall_puts("\n");
+                callback(false);
+            };
+#endif
+        } break;
         default:
             Kernel::abort("CDRomDevice::irq() invoked with unknown cause");
             break;
