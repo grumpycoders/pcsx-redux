@@ -57,4 +57,8 @@ extern IRQReg<0x0074> IMask;
 extern Register<0x00f0> DPCR;
 extern Register<0x00f4> DICR;
 
+extern Register<0x0000, uint32_t, WriteQueue::Bypass> WriteQueueFlusher;
+
+static inline void flushWriteQueue() { WriteQueueFlusher.throwAway(); }
+
 }  // namespace psyqo::Hardware::CPU
