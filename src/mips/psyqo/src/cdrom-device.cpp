@@ -78,9 +78,21 @@ void psyqo::CDRomDevice::prepare() {
                 eastl::atomic_signal_fence(eastl::memory_order_release);
                 Hardware::CDRom::Command.send(Hardware::CDRom::CDL::GETLOCP);
                 return true;
+            // Set CDDA volume
+            case 4:
+                // This needs to be done in the interrupt handler, so we
+                // don't mess up the internal cdrom state machine if we
+                // happen to get an IRQ while changing these registers.
+                Hardware::CDRom::LeftToLeftVolume = m_leftToLeft;
+                Hardware::CDRom::RightToLeftVolume = m_rightToLeft;
+                Hardware::CDRom::LeftToRightVolume = m_leftToRight;
+                Hardware::CDRom::RightToRightVolume = m_rightToRight;
+                Hardware::CDRom::VolumeSettings = 0x20;
+                return true;
         }
         return false;
     });
+    setVolume(0x80, 0x00, 0x00, 0x80);
 }
 
 psyqo::CDRomDevice::~CDRomDevice() { Kernel::abort("CDRomDevice can't be destroyed (yet)"); }

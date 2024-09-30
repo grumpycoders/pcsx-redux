@@ -221,3 +221,11 @@ void psyqo::CDRomDevice::ActionBase::queueGetLocationCallback(bool success) {
         callback(device->m_locationPtr);
     });
 }
+
+void psyqo::CDRomDevice::setVolume(uint8_t leftToLeft, uint8_t rightToLeft, uint8_t leftToRight, uint8_t rightToRight) {
+    m_leftToLeft = leftToLeft;
+    m_rightToLeft = rightToLeft;
+    m_leftToRight = leftToRight;
+    m_rightToRight = rightToRight;
+    __asm__ volatile("break 14, 4");
+}

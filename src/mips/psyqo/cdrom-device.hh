@@ -274,6 +274,28 @@ class CDRomDevice final : public CDRom {
     void getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback);
 
     /**
+     * @brief Set the Volume of the CDDA audio.
+     *
+     * @details This method will set the volume of the CDDA audio. The
+        * volume is set using four values, which represent the volume of
+        * the left channel to the left speaker, the right channel to the
+        * left speaker, the left channel to the right speaker, and the
+        * right channel to the right speaker. The given output value
+        * should be in the range of 0 to 128, where 0 is silence and 128
+        * is full volume. The values for a given output speaker will be
+        * added together, so clipping can occur if the sum of the values
+        * is greater than 128. The method can be used at any time, unlike
+        * the mute/unmute methods, which can only be used when the drive
+        * is idle. The normal volume setting is 0x80, 0x00, 0x00, 0x80.
+        *
+        * @param leftToLeft The volume of the left channel to the left speaker.
+        * @param rightToLeft The volume of the right channel to the left speaker.
+        * @param leftToRight The volume of the left channel to the right speaker.
+        * @param rightToRight The volume of the right channel to the right speaker.
+        */
+    void setVolume(uint8_t leftToLeft, uint8_t rightToLeft, uint8_t leftToRight, uint8_t rightToRight);
+
+    /**
      * @brief The action base class for the internal state machine.
      *
      * @details This class is meant to be extended by the various actions
@@ -313,6 +335,7 @@ class CDRomDevice final : public CDRom {
     bool m_success = false;
     bool m_blocking = false;
     bool m_pendingGetLocation = false;
+    uint8_t m_leftToLeft, m_rightToLeft, m_leftToRight, m_rightToRight;
 
     struct BlockingAction {
         BlockingAction(CDRomDevice *, GPU &);
