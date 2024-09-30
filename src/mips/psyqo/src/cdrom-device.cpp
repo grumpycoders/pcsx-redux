@@ -496,6 +496,15 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         eastl::atomic_signal_fence(eastl::memory_order_release);
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, stopAtEndOfTrack ? 0x02 : 0);
     }
+    void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
+        psyqo::Kernel::assert(getState() == PlayCDDAActionState::IDLE,
+                              "CDRomDevice::playCDDA() called while another action is in progress");
+        registerMe(device);
+        setCallback(eastl::move(callback));
+        setState(PlayCDDAActionState::PLAY);
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::PLAY);
+    }
     bool complete(const psyqo::CDRomDevice::Response &) override {
         switch (getState()) {
             case PlayCDDAActionState::SEEK_ACK:
@@ -559,7 +568,34 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
     bool m_stopAtEndOfTrack = false;
 };
 
+PlayCDDAAction s_playCDDAAction;
+
 }  // namespace
+
+void psyqo::CDRomDevice::playCDDATrack(unsigned track, eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::playCDDATrack called with pending action");
+    s_playCDDAAction.start(this, track, true, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::playCDDATrack(MSF start, eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::playCDDATrack called with pending action");
+    s_playCDDAAction.start(this, start, true, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::playCDDADisc(unsigned track, eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::playCDDADisc called with pending action");
+    s_playCDDAAction.start(this, track, false, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::playCDDADisc(MSF start, eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::playCDDADisc called with pending action");
+    s_playCDDAAction.start(this, start, false, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::resumeCDDA(eastl::function<void(bool)> &&callback) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::resumeCDDA called with pending action");
+    s_playCDDAAction.start(this, eastl::move(callback));
+}
 
 void psyqo::CDRomDevice::switchAction(ActionBase *action) {
     Kernel::assert(m_action == nullptr, "CDRomDevice can only have one action active at a given time");

@@ -206,14 +206,21 @@ class CDRomDevice final : public CDRom {
      * the `pauseCDDA` or `stopCDDA` methods. The first callback will
      * be called with `true` if the playback started successfully,
      * and `false` if it failed. In the case of failure, the second
-     * callback will not be called.
+     * callback will not be called. The Track variant will stop playback
+     * at the end of the track, while the Disc variant will stop playback
+     * at the end of the disc. The resume method can be used to resume
+     * playback after a pause. Its callback argument will function
+     * similarly to the callback argument of the `playCDDA` methods.
      *
      * @param start The starting point for playback.
      * @param stopAtEndOfTrack If true, playback will stop at the end of the track.
      * @param callback The callback to call when playback is complete.
      */
-    void playCDDA(MSF start, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
-    void playCDDA(unsigned track, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
+    void playCDDATrack(MSF start, eastl::function<void(bool)> &&callback);
+    void playCDDATrack(unsigned track, eastl::function<void(bool)> &&callback);
+    void playCDDADisc(MSF start, eastl::function<void(bool)> &&callback);
+    void playCDDADisc(unsigned track, eastl::function<void(bool)> &&callback);
+    void resumeCDDA(eastl::function<void(bool)> &&callback);
 
     /**
      * @brief Pauses CDDA playback.
