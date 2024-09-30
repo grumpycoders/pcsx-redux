@@ -24,16 +24,14 @@ SOFTWARE.
 
 */
 
-#include "psyqo/cdrom-device.hh"
-
 #include <EASTL/atomic.h>
 
 #include "common/hardware/dma.h"
+#include "psyqo/cdrom-device.hh"
 #include "psyqo/hardware/cdrom.hh"
 #include "psyqo/hardware/sbus.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/msf.hh"
-
 
 namespace {
 

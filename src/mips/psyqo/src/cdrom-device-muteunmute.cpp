@@ -24,10 +24,9 @@ SOFTWARE.
 
 */
 
-#include "psyqo/cdrom-device.hh"
-
 #include <EASTL/atomic.h>
 
+#include "psyqo/cdrom-device.hh"
 #include "psyqo/hardware/cdrom.hh"
 #include "psyqo/kernel.hh"
 
