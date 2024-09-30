@@ -30,6 +30,7 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <stdint.h>
 
+#include <concepts>
 #include <cstdint>
 #include <type_traits>
 
@@ -74,6 +75,12 @@ concept IsCDRomDeviceStateEnum =
 class CDRomDevice final : public CDRom {
   public:
     typedef eastl::fixed_vector<uint8_t, 16, false> Response;
+    struct PlaybackLocation {
+        MSF relative;
+        MSF absolute;
+        unsigned track;
+        unsigned index;
+    };
 
   private:
     struct ActionBase {
@@ -91,6 +98,10 @@ class CDRomDevice final : public CDRom {
         void setCallback(eastl::function<void(bool)> &&callback);
         void queueCallbackFromISR(bool success);
         void setSuccess(bool success);
+        // This isn't really a great way to do this, but it's the best I can come up with
+        // that doesn't involve friending a bunch of classes.
+        PlaybackLocation *getPendingLocationPtr() const;
+        void queueGetLocationCallback();
 
         friend class CDRomDevice;
         CDRomDevice *m_device = nullptr;
@@ -246,6 +257,9 @@ class CDRomDevice final : public CDRom {
      */
     static void stopCDDA() { __asm__ volatile("break 14, 2\n"); }
 
+    void getPlaybackLocation(PlaybackLocation *location, eastl::function<void(PlaybackLocation *)> &&callback);
+    void getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback);
+
     /**
      * @brief The action base class for the internal state machine.
      *
@@ -277,11 +291,15 @@ class CDRomDevice final : public CDRom {
     friend class ActionBase;
 
     eastl::function<void(bool)> m_callback;
+    eastl::function<void(PlaybackLocation *)> m_locationCallback;
+    PlaybackLocation m_locationStorage;
+    PlaybackLocation *m_locationPtr = nullptr;
     uint32_t m_event = 0;
     ActionBase *m_action = nullptr;
     uint8_t m_state = 0;
     bool m_success = false;
     bool m_blocking = false;
+    bool m_pendingGetLocation = false;
 
     struct BlockingAction {
         BlockingAction(CDRomDevice *, GPU &);

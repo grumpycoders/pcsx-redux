@@ -24,10 +24,9 @@ SOFTWARE.
 
 */
 
-#include "psyqo/cdrom-device.hh"
-
 #include <EASTL/atomic.h>
 
+#include "psyqo/cdrom-device.hh"
 #include "psyqo/hardware/cdrom.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/msf.hh"
@@ -124,6 +123,20 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
                 setState(PlayCDDAActionState::PLAYING);
                 queueCallbackFromISR(true);
                 break;
+            case PlayCDDAActionState::PLAYING: {
+                auto locationPtr = getPendingLocationPtr();
+                psyqo::Kernel::assert((response.size() == 8) && locationPtr,
+                                      "PlayCDDAAction got unexpected CDROM acknowledge");
+                locationPtr->track = psyqo::btoi(response[0]);
+                locationPtr->index = psyqo::btoi(response[1]);
+                locationPtr->relative.m = psyqo::btoi(response[2]);
+                locationPtr->relative.s = psyqo::btoi(response[3]);
+                locationPtr->relative.f = psyqo::btoi(response[4]);
+                locationPtr->absolute.m = psyqo::btoi(response[5]);
+                locationPtr->absolute.s = psyqo::btoi(response[6]);
+                locationPtr->absolute.f = psyqo::btoi(response[7]);
+                queueGetLocationCallback();
+            } break;
             case PlayCDDAActionState::STOPPING:
                 setState(PlayCDDAActionState::STOPPING_ACK);
                 break;
@@ -173,4 +186,30 @@ void psyqo::CDRomDevice::playCDDADisc(MSF start, eastl::function<void(bool)> &&c
 void psyqo::CDRomDevice::resumeCDDA(eastl::function<void(bool)> &&callback) {
     Kernel::assert(m_callback == nullptr, "CDRomDevice::resumeCDDA called with pending action");
     s_playCDDAAction.start(this, eastl::move(callback));
+}
+
+void psyqo::CDRomDevice::getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback) {
+    m_locationCallback = eastl::move(callback);
+    m_locationPtr = &m_locationStorage;
+    __asm__ volatile("break 14, 3");
+}
+
+void psyqo::CDRomDevice::getPlaybackLocation(PlaybackLocation *location,
+                                             eastl::function<void(PlaybackLocation *)> &&callback) {
+    m_locationCallback = eastl::move(callback);
+    m_locationPtr = location;
+    __asm__ volatile("break 14, 3");
+}
+
+psyqo::CDRomDevice::PlaybackLocation *psyqo::CDRomDevice::ActionBase::getPendingLocationPtr() const {
+    return m_device->m_pendingGetLocation ? m_device->m_locationPtr : nullptr;
+}
+
+void psyqo::CDRomDevice::ActionBase::queueGetLocationCallback() {
+    auto device = m_device;
+    device->m_pendingGetLocation = false;
+    Kernel::queueCallbackFromISR([device]() {
+        auto callback = eastl::move(device->m_locationCallback);
+        callback(device->m_locationPtr);
+    });
 }

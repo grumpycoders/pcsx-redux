@@ -65,6 +65,19 @@ void psyqo::CDRomDevice::prepare() {
                 eastl::atomic_signal_fence(eastl::memory_order_release);
                 Hardware::CDRom::Command.send(code == 1 ? Hardware::CDRom::CDL::PAUSE : Hardware::CDRom::CDL::STOP);
                 return true;
+                // Get playback location
+            case 3:
+                // We got raced to the end of the track and/or disc, and we can't
+                // properly handle this request. Just ignore it and let the caller
+                // retry if they want to.
+                if (m_action != nullptr) {
+                    Kernel::queueCallbackFromISR([callback = eastl::move(m_locationCallback)]() { callback(nullptr); });
+                    return true;
+                }
+                m_pendingGetLocation = true;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+                Hardware::CDRom::Command.send(Hardware::CDRom::CDL::GETLOCP);
+                return true;
         }
         return false;
     });
