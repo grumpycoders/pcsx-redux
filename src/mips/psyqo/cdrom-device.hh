@@ -101,7 +101,7 @@ class CDRomDevice final : public CDRom {
         // This isn't really a great way to do this, but it's the best I can come up with
         // that doesn't involve friending a bunch of classes.
         PlaybackLocation *getPendingLocationPtr() const;
-        void queueGetLocationCallback();
+        void queueGetLocationCallback(bool success = true);
 
         friend class CDRomDevice;
         CDRomDevice *m_device = nullptr;
@@ -257,6 +257,19 @@ class CDRomDevice final : public CDRom {
      */
     static void stopCDDA() { __asm__ volatile("break 14, 2\n"); }
 
+    /**
+     * @brief Get the Playback location of the CDDA audio.
+     *
+     * @details This method will request the current playback location
+     * of the CDDA audio. The callback will be called with a pointer to
+     * a `PlaybackLocation` structure, which will contain the relative
+     * and absolute MSF values, the current track number, and the current
+     * index. The callback will be called with a null pointer if the
+     * location could not be retrieved.
+     *
+     * @param location If provided, the location will be stored here.
+     * @param callback The callback to call when the location is retrieved.
+     */
     void getPlaybackLocation(PlaybackLocation *location, eastl::function<void(PlaybackLocation *)> &&callback);
     void getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback);
 

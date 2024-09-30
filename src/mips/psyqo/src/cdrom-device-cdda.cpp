@@ -150,6 +150,11 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         // We got raced to the end of the track and/or disc by the
         // pause command, so we should just ignore this.
         if (getState() == PlayCDDAActionState::STOPPING) return false;
+        // We got raced to the end of the track and/or disc by the
+        // get location command, and we need to signal the callback.
+        if (getPendingLocationPtr()) {
+            queueGetLocationCallback(false);
+        }
         psyqo::Kernel::assert(getState() == PlayCDDAActionState::PLAYING,
                               "PlayCDDAAction got CDROM end in wrong state");
         setSuccess(true);
@@ -189,6 +194,7 @@ void psyqo::CDRomDevice::resumeCDDA(eastl::function<void(bool)> &&callback) {
 }
 
 void psyqo::CDRomDevice::getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback) {
+    Kernel::assert(m_locationCallback == nullptr, "CDRomDevice::getPlaybackLocation while another one is pending");
     m_locationCallback = eastl::move(callback);
     m_locationPtr = &m_locationStorage;
     __asm__ volatile("break 14, 3");
@@ -196,8 +202,9 @@ void psyqo::CDRomDevice::getPlaybackLocation(eastl::function<void(PlaybackLocati
 
 void psyqo::CDRomDevice::getPlaybackLocation(PlaybackLocation *location,
                                              eastl::function<void(PlaybackLocation *)> &&callback) {
+    Kernel::assert(m_locationCallback == nullptr, "CDRomDevice::getPlaybackLocation while another one is pending");
     m_locationCallback = eastl::move(callback);
-    m_locationPtr = location;
+    m_locationPtr = location ? location : &m_locationStorage;
     __asm__ volatile("break 14, 3");
 }
 
@@ -205,9 +212,10 @@ psyqo::CDRomDevice::PlaybackLocation *psyqo::CDRomDevice::ActionBase::getPending
     return m_device->m_pendingGetLocation ? m_device->m_locationPtr : nullptr;
 }
 
-void psyqo::CDRomDevice::ActionBase::queueGetLocationCallback() {
+void psyqo::CDRomDevice::ActionBase::queueGetLocationCallback(bool success) {
     auto device = m_device;
     device->m_pendingGetLocation = false;
+    if (!success) device->m_locationPtr = nullptr;
     Kernel::queueCallbackFromISR([device]() {
         auto callback = eastl::move(device->m_locationCallback);
         callback(device->m_locationPtr);
