@@ -51,6 +51,26 @@ void psyqo::CDRomDevice::prepare() {
         m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, eastl::move(callback));
         syscall_enableEvent(m_event);
     }
+    Kernel::queuePsyqoBreakHandler([this](uint32_t code) {
+        switch (code) {
+            // Pause CDDA playback
+            case 1:
+            // Stop CDDA playback
+            case 2:
+                // If no action is in progress, it means we got
+                // raced to the end of the track and/or disc, and
+                // we should just ignore this.
+                if (m_action == nullptr) return true;
+                // If we aren't actually playing audio, that's
+                // a fatal error.
+                if (m_state != 100) return false;
+                m_state = 101;
+                eastl::atomic_signal_fence(eastl::memory_order_release);
+                Hardware::CDRom::Command.send(code == 1 ? Hardware::CDRom::CDL::PAUSE : Hardware::CDRom::CDL::STOP);
+                return true;
+        }
+        return false;
+    });
 }
 
 psyqo::CDRomDevice::~CDRomDevice() { Kernel::abort("CDRomDevice can't be destroyed (yet)"); }
@@ -444,7 +464,11 @@ enum class PlayCDDAActionState : uint8_t {
     SEEK,
     SEEK_ACK,
     PLAY,
-    PLAYING,
+    // needs to stay unique across all actions, and
+    // will be hardcoded in the pause command
+    PLAYING = 100,
+    STOPPING = 101,
+    STOPPING_ACK,
 };
 
 class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
@@ -473,10 +497,18 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, stopAtEndOfTrack ? 0x02 : 0);
     }
     bool complete(const psyqo::CDRomDevice::Response &) override {
-        psyqo::Kernel::assert(getState() == PlayCDDAActionState::SEEK_ACK,
-                              "PlayCDDAAction got CDROM complete in wrong state");
-        setState(PlayCDDAActionState::PLAY);
-        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::PLAY);
+        switch (getState()) {
+            case PlayCDDAActionState::SEEK_ACK:
+                setState(PlayCDDAActionState::PLAY);
+                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::PLAY);
+                break;
+            case PlayCDDAActionState::STOPPING_ACK:
+                setSuccess(true);
+                return true;
+            default:
+                psyqo::Kernel::abort("PlayCDDAAction got CDROM complete in wrong state");
+                break;
+        }
         return false;
     }
     bool acknowledge(const psyqo::CDRomDevice::Response &response) override {
@@ -503,6 +535,10 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
                 break;
             case PlayCDDAActionState::PLAY:
                 setState(PlayCDDAActionState::PLAYING);
+                queueCallbackFromISR(true);
+                break;
+            case PlayCDDAActionState::STOPPING:
+                setState(PlayCDDAActionState::STOPPING_ACK);
                 break;
             default:
                 psyqo::Kernel::abort("PlayCDDAAction got CDROM acknowledge in wrong state");
@@ -511,6 +547,9 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         return false;
     }
     bool end(const psyqo::CDRomDevice::Response &) override {
+        // We got raced to the end of the track and/or disc by the
+        // pause command, so we should just ignore this.
+        if (getState() == PlayCDDAActionState::STOPPING) return false;
         psyqo::Kernel::assert(getState() == PlayCDDAActionState::PLAYING,
                               "PlayCDDAAction got CDROM end in wrong state");
         setSuccess(true);
@@ -525,6 +564,11 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
 void psyqo::CDRomDevice::switchAction(ActionBase *action) {
     Kernel::assert(m_action == nullptr, "CDRomDevice can only have one action active at a given time");
     m_action = action;
+}
+
+void psyqo::CDRomDevice::ActionBase::queueCallbackFromISR(bool success) {
+    Kernel::assert(!!m_device->m_callback, "CDRomDevice::queueCallbackFromISR() called with no callback");
+    Kernel::queueCallbackFromISR([device = m_device, success]() { device->m_callback(success); });
 }
 
 void psyqo::CDRomDevice::irq() {
@@ -611,6 +655,7 @@ void psyqo::CDRomDevice::irq() {
 psyqo::CDRomDevice::BlockingAction::BlockingAction(CDRomDevice *device, GPU &gpu) : m_device(device), m_gpu(gpu) {
     device->m_blocking = true;
     Hardware::CPU::IMask.clear(Hardware::CPU::IRQ::CDRom);
+    Hardware::CPU::flushWriteQueue();
 }
 
 psyqo::CDRomDevice::BlockingAction::~BlockingAction() {
@@ -643,10 +688,14 @@ void psyqo::CDRomDevice::ActionBase::setCallback(eastl::function<void(bool)> &&c
 }
 void psyqo::CDRomDevice::ActionBase::setSuccess(bool success) { m_device->m_success = success; }
 bool psyqo::CDRomDevice::ActionBase::dataReady(const Response &) {
-    Kernel::abort("Action::dataReady() not implemented");
+    Kernel::abort("Action::dataReady() not implemented - spurious interrupt?");
 }
-bool psyqo::CDRomDevice::ActionBase::complete(const Response &) { Kernel::abort("Action::complete() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::complete(const Response &) {
+    Kernel::abort("Action::complete() not implemented - spurious interrupt?");
+}
 bool psyqo::CDRomDevice::ActionBase::acknowledge(const Response &) {
-    Kernel::abort("Action::acknowledge() not implemented");
+    Kernel::abort("Action::acknowledge() not implemented - spurious interrupt?");
 }
-bool psyqo::CDRomDevice::ActionBase::end(const Response &) { Kernel::abort("Action::end() not implemented"); }
+bool psyqo::CDRomDevice::ActionBase::end(const Response &) {
+    Kernel::abort("Action::end() not implemented - spurious interrupt?");
+}

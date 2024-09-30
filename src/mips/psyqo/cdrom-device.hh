@@ -89,6 +89,7 @@ class CDRomDevice final : public CDRom {
         virtual bool end(const Response &response);
 
         void setCallback(eastl::function<void(bool)> &&callback);
+        void queueCallbackFromISR(bool success);
         void setSuccess(bool success);
 
         friend class CDRomDevice;
@@ -197,10 +198,15 @@ class CDRomDevice final : public CDRom {
      *
      * @details This method will begin playing CDDA audio from a given
      * starting point. The starting point is either a track number or
-     * an MSF value. The callback will be called when playback is complete,
-     * paused, or if an error occurs, which can be after the end of the
-     * track if `stopAtEndOfTrack` is set to true, or at the end of the
-     * disc if the last track is reached.
+     * an MSF value. Unlike other APIs here, upon success, the callback
+     * will be called *twice*: once when the playback actually started,
+     * and once when the playback is complete or paused, which can be
+     * after the end of the track, at the end of the disc if the last
+     * track is reached, or if the playback is paused or stopped using
+     * the `pauseCDDA` or `stopCDDA` methods. The first callback will
+     * be called with `true` if the playback started successfully,
+     * and `false` if it failed. In the case of failure, the second
+     * callback will not be called.
      *
      * @param start The starting point for playback.
      * @param stopAtEndOfTrack If true, playback will stop at the end of the track.
@@ -208,6 +214,30 @@ class CDRomDevice final : public CDRom {
      */
     void playCDDA(MSF start, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
     void playCDDA(unsigned track, bool stopAtEndOfTrack, eastl::function<void(bool)> &&callback);
+
+    /**
+     * @brief Pauses CDDA playback.
+     *
+     * @details This method will request a pause of the CDDA playback.
+     * The callback which was provided to the `playCDDA` method will be
+     * called with `true` when the playback is paused successfully.
+     * This method can only be called when the CDDA playback is in
+     * progress, as indicated by a first successful call of the `playCDDA`
+     * callback, and will fail if not. Pausing the playback will not
+     * stop the CDRom drive motor, which means that another `playCDDA`
+     * call start playing faster than if the motor was stopped.
+     */
+    static void pauseCDDA() { __asm__ volatile("break 14, 1\n"); }
+
+    /**
+     * @brief Stops CDDA playback.
+     *
+     * @details This method will request a stop of the CDDA playback.
+     * It functions similarly to the `pauseCDDA` method, but will stop
+     * the CDRom drive motor, which means that another `playCDDA` call
+     * will take longer to start playing than if the motor was not stopped.
+     */
+    static void stopCDDA() { __asm__ volatile("break 14, 2\n"); }
 
     /**
      * @brief The action base class for the internal state machine.
