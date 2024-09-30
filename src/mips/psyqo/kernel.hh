@@ -236,6 +236,35 @@ void queueCallback(eastl::function<void()>&& lambda);
  */
 void queueCallbackFromISR(eastl::function<void()>&& lambda);
 
+/**
+ * @brief Sets a break handler for a given category.
+ *
+ * @details This function is used to set a break handler for a given
+ * category. The category is technically the upper 10 bits of the break
+ * code, and the handler is a function that takes the lower 10 bits of
+ * the break code. The handler should return true if it handled the
+ * break, and false otherwise. The handler will be called from the
+ * exception handler, with the same restrictions as for any other
+ * interrupt handler. Note that the category is actually limited to
+ * 16 categories by psyqo, from 0 to 15. It is also worth noting that
+ * category 0 is usually reserved for pcdrv, category 7 is reserved
+ * by the compiler to emit division by zero checks, and psyqo uses
+ * category 14 for its own purposes. Only one handler can be set per
+ * category, and trying to set a handler for a category that already
+ * has a handler will cause an assertion failure.
+ *
+ * @param category The category to handle.
+ */
+
+void setBreakHandler(unsigned category, eastl::function<bool(uint32_t)>&& handler);
+
+/**
+ * @brief Queues a break handler for psyqo's reserved category.
+ * 
+ * @param handler The handler to call when a break occurs.
+ */
+void queuePsyqoBreakHandler(eastl::function<bool(uint32_t)> && handler);
+
 namespace Internal {
 void pumpCallbacks();
 void prepare(Application&);
