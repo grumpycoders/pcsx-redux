@@ -71,7 +71,7 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         setState(PlayCDDAActionState::SEEK);
         m_start = msf;
         eastl::atomic_signal_fence(eastl::memory_order_release);
-        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, stopAtEndOfTrack ? 0x02 : 0);
+        psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, stopAtEndOfTrack ? 3 : 1);
     }
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(getState() == PlayCDDAActionState::IDLE,
@@ -109,8 +109,8 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
                 break;
             case PlayCDDAActionState::SETMODE:
                 setState(PlayCDDAActionState::SETLOC);
-                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETLOC, m_start.m, m_start.s,
-                                                     m_start.f);
+                psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETLOC, psyqo::itob(m_start.m),
+                                                     psyqo::itob(m_start.s), psyqo::itob(m_start.f));
                 break;
             case PlayCDDAActionState::SETLOC:
                 setState(PlayCDDAActionState::SEEK);
