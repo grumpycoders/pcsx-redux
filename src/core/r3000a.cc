@@ -433,14 +433,14 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
 }
 
 void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
-    auto r = m_regs.GPR.n;
+    auto& r = m_regs.GPR.n;
 
     switch (call) {
         case 0x03: {  // write
             if (r.a0 != 1) break;
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             uint32_t size = r.a2;
-            m_regs.GPR.n.v0 = size;
+            r.v0 = size;
             memFile->rSeek(r.a1);
             while (size--) {
                 g_system->biosPutc(memFile->getc());
@@ -468,14 +468,14 @@ void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
 }
 
 void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
-    auto r = m_regs.GPR.n;
+    auto& r = m_regs.GPR.n;
 
     switch (call) {
         case 0x35: {  // write
             if (r.a0 != 1) break;
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             uint32_t size = r.a2;
-            m_regs.GPR.n.v0 = size;
+            r.v0 = size;
             memFile->rSeek(r.a1);
             while (size--) {
                 g_system->biosPutc(memFile->getc());
