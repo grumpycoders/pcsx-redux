@@ -208,6 +208,12 @@ void psyqo::CDRomDevice::getPlaybackLocation(PlaybackLocation *location,
     __asm__ volatile("break 14, 3");
 }
 
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleGetPlaybackLocation(PlaybackLocation *location) {
+    return TaskQueue::Task([this, location](auto task) {
+        getPlaybackLocation(location, [task](PlaybackLocation *loc) { task->complete(loc != nullptr); });
+    });
+}
+
 psyqo::CDRomDevice::PlaybackLocation *psyqo::CDRomDevice::ActionBase::getPendingLocationPtr() const {
     return m_device->m_pendingGetLocation ? m_device->m_locationPtr : nullptr;
 }

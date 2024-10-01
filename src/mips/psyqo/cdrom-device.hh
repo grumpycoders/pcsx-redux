@@ -272,6 +272,7 @@ class CDRomDevice final : public CDRom {
      */
     void getPlaybackLocation(PlaybackLocation *location, eastl::function<void(PlaybackLocation *)> &&callback);
     void getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback);
+    TaskQueue::Task scheduleGetPlaybackLocation(PlaybackLocation *location);
 
     /**
      * @brief Set the Volume of the CDDA audio.
