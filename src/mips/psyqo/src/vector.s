@@ -42,16 +42,16 @@ psyqoAssemblyExceptionHandler:
 
     /* $k0 = hardware registers base, set globally */
 
-    mfc0  $a0, $13         /* $a0 = Cause */
     mfc0  $k1, $14         /* $k1 = EPC, will stay there until the end */
+    mfc0  $a0, $13         /* $a0 = Cause */
+    li    $at, 0x24        /* Prepare for break test in (a) */
     lw    $v1, 0($k1)      /* $v1 = instruction that caused the exception */
     andi  $a0, 0x3c        /* Test for what kind of exception */
-    li    $at, 0x24        /* Break ? */
-    bne   $a0, $at, .Lbreak
-    li    $at, 0x4a        /* Prepare for cop2 test in (a) */
+    beq   $a0, $at, .Lbreak /* (a) */
+    li    $at, 0x4a        /* Prepare for cop2 test in (b) */
 .Lstop:                    /* Beyond break, psyqo will only support IRQs, aka 0 */
     bnez  $a0, .Lstop      /* Anything else and we just stop - $a0 available again */
-    srl   $v1, 24          /* |    (a)                               */
+    srl   $v1, 24          /* |    (b)                               */
     andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
     lw    $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
     bne   $v1, $at, .LnoCOP2adjustmentNeeded
@@ -77,7 +77,7 @@ psyqoExceptionHandlerAdjustFrameCount:
     rfe
 
 .Lbreak:
-    sll   $a0, $v1, 6
+    srl   $a0, $v1, 6
     la    $v1, psyqoBreakHandler
     b     .LcallCPlusPlus
     addiu $k1, 4

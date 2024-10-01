@@ -326,13 +326,17 @@ void psyqo::Kernel::Internal::prepare(Application& application) {
         uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, dmaIRQ);
         syscall_enableEvent(event);
         event = syscall_openEvent(0xf0000010, 0x1000, EVENT_MODE_CALLBACK, []() {
-            Process* processes = reinterpret_cast<Process*>(0x108);
+            Process* processes = *reinterpret_cast<Process**>(0x108);
             Thread* currentThread = processes[0].thread;
             unsigned exCode = currentThread->registers.Cause & 0x3c;
-            if (exCode != 0x28) return;
+            if (exCode != 0x24) return;
             unsigned code = *reinterpret_cast<uint32_t*>(currentThread->registers.returnPC) >> 6;
-            if (handleBreak(code)) syscall_returnFromException();
+            if (handleBreak(code)) {
+                currentThread->registers.returnPC += 4;
+                syscall_returnFromException();
+            }
         });
+        syscall_enableEvent(event);
     } else {
         // Our exception handler will expect $k0 to be set to 0x1f80,
         // in order to have a fast access to the hardware registers.
