@@ -43,7 +43,7 @@ enum class CDL : uint8_t {
     PAUSE = 9,
     INIT = 10,
     MUTE = 11,
-    DEMUTE = 12,
+    UNMUTE = 12,
     SETFILTER = 13,
     SETMODE = 14,
     GETMODE = 15,
@@ -102,5 +102,10 @@ extern CommandFifo Command;
 extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf801000, uint8_t>, 0>> DataRequest;
 extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0802, 0xbf801000, uint8_t>, 1>> CauseMask;
 extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf801000, uint8_t>, 1>> Cause;
+extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0802, 0xbf801000, uint8_t>, 2>> LeftToLeftVolume;
+extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf801000, uint8_t>, 2>> LeftToRightVolume;
+extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0801, 0xbf801000, uint8_t>, 3>> RightToRightVolume;
+extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0802, 0xbf801000, uint8_t>, 3>> RightToLeftVolume;
+extern Register<0, uint8_t, WriteQueue::Bypass, Access<BasicAccess<0x0803, 0xbf801000, uint8_t>, 3>> VolumeSettings;
 
 }  // namespace psyqo::Hardware::CDRom

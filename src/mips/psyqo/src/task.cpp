@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "psyqo/task.hh"
 
+#include "psyqo/gpu.hh"
+
 void psyqo::TaskQueue::reset() {
     m_queue.clear();
     m_catch = nullptr;
@@ -94,4 +96,8 @@ void psyqo::TaskQueue::runCatch() {
         if (m_finally) m_finally(this);
     }
     if (m_parent) m_parent->reject();
+}
+
+psyqo::TaskQueue::Task psyqo::TaskQueue::DelayedTask(uint32_t delay, GPU& gpu) {
+    return Task([delay, &gpu](auto task) { gpu.armTimer(gpu.now() + delay, [task](auto) { task->resolve(); }); });
 }
