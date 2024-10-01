@@ -142,3 +142,13 @@ psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, 
         readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
     });
 }
+
+bool psyqo::CDRomDevice::readSectorsBlocking(uint32_t sector, uint32_t count, void *buffer, GPU &gpu) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::readSectorsBlocking called with pending action");
+    bool success = false;
+    {
+        BlockingAction blocking(this, gpu);
+        s_readSectorsAction.start(this, sector, count, buffer, [&success](bool success_) { success = success_; });
+    }
+    return success;
+}

@@ -78,3 +78,14 @@ void psyqo::CDRomDevice::reset(eastl::function<void(bool)> &&callback) {
 psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReset() {
     return TaskQueue::Task([this](auto task) { reset([task](bool success) { task->complete(success); }); });
 }
+
+bool psyqo::CDRomDevice::resetBlocking(GPU &gpu) {
+    Kernel::assert(m_callback == nullptr, "CDRomDevice::resetBlocking called with pending action");
+    unsigned size = 0;
+    bool success = false;
+    {
+        BlockingAction blocking(this, gpu);
+        s_resetAction.start(this, [&success](bool success_) { success = success_; });
+    }
+    return success;
+}

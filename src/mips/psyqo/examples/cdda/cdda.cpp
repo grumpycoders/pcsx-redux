@@ -116,6 +116,9 @@ void CDDA::loopPlaybackTrack(unsigned track) {
 void CDDA::createScene() {
     m_font.uploadSystemFont(gpu());
     pushScene(&cddaScene);
+    syscall_puts("CD-Rom device reset...\n");
+    m_cdrom.resetBlocking(gpu());
+    syscall_puts("CD-Rom device ready, getting TOC size...\n");
     auto tocSize = m_cdrom.getTOCSizeBlocking(gpu());
     ramsyscall_printf("CD-Rom track count: %d\n", tocSize);
     // Start playback of track 2, which is a good

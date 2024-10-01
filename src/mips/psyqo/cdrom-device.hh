@@ -132,6 +132,7 @@ class CDRomDevice final : public CDRom {
      */
     void reset(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleReset();
+    bool resetBlocking(GPU &);
 
     /**
      * @brief Reads sectors from the CDRom.
@@ -151,6 +152,7 @@ class CDRomDevice final : public CDRom {
      */
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
     TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
+    bool readSectorsBlocking(uint32_t sector, uint32_t count, void *buffer, GPU &);
 
     /**
      * @brief Gets the size of the Table of Contents from the CDRom. Note that
