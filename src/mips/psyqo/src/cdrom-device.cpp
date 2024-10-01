@@ -48,50 +48,6 @@ void psyqo::CDRomDevice::prepare() {
         m_event = Kernel::openEvent(EVENT_CDROM, 0x1000, EVENT_MODE_CALLBACK, eastl::move(callback));
         syscall_enableEvent(m_event);
     }
-    Kernel::queuePsyqoBreakHandler([this](uint32_t code) {
-        switch (code) {
-            // Pause CDDA playback
-            case 1:
-            // Stop CDDA playback
-            case 2:
-                // If no action is in progress, it means we got
-                // raced to the end of the track and/or disc, and
-                // we should just ignore this.
-                if (m_action == nullptr) return true;
-                // If we aren't actually playing audio, that's
-                // a fatal error.
-                if (m_state != 100) return false;
-                m_state = 101;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-                Hardware::CDRom::Command.send(code == 1 ? Hardware::CDRom::CDL::PAUSE : Hardware::CDRom::CDL::STOP);
-                return true;
-                // Get playback location
-            case 3:
-                // We got raced to the end of the track and/or disc, and we can't
-                // properly handle this request. Just ignore it and let the caller
-                // retry if they want to.
-                if (m_action == nullptr) {
-                    Kernel::queueCallbackFromISR([callback = eastl::move(m_locationCallback)]() { callback(nullptr); });
-                    return true;
-                }
-                m_pendingGetLocation = true;
-                eastl::atomic_signal_fence(eastl::memory_order_release);
-                Hardware::CDRom::Command.send(Hardware::CDRom::CDL::GETLOCP);
-                return true;
-            // Set CDDA volume
-            case 4:
-                // This needs to be done in the interrupt handler, so we
-                // don't mess up the internal cdrom state machine if we
-                // happen to get an IRQ while changing these registers.
-                Hardware::CDRom::LeftToLeftVolume = m_leftToLeft;
-                Hardware::CDRom::RightToLeftVolume = m_rightToLeft;
-                Hardware::CDRom::LeftToRightVolume = m_leftToRight;
-                Hardware::CDRom::RightToRightVolume = m_rightToRight;
-                Hardware::CDRom::VolumeSettings = 0x20;
-                return true;
-        }
-        return false;
-    });
     setVolume(0x80, 0x00, 0x00, 0x80);
 }
 
@@ -207,6 +163,13 @@ psyqo::CDRomDevice::BlockingAction::~BlockingAction() {
     device->m_blocking = false;
     Hardware::CPU::IMask.set(Hardware::CPU::IRQ::CDRom);
 }
+
+psyqo::CDRomDevice::MaskedIRQ::MaskedIRQ() {
+    Hardware::CPU::IMask.clear(Hardware::CPU::IRQ::CDRom);
+    Hardware::CPU::flushWriteQueue();
+}
+
+psyqo::CDRomDevice::MaskedIRQ::~MaskedIRQ() { Hardware::CPU::IMask.set(Hardware::CPU::IRQ::CDRom); }
 
 void psyqo::CDRomDevice::actionComplete() {
     auto callback = eastl::move(m_callback);

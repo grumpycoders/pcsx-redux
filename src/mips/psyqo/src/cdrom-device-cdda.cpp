@@ -193,19 +193,61 @@ void psyqo::CDRomDevice::resumeCDDA(eastl::function<void(bool)> &&callback) {
     s_playCDDAAction.start(this, eastl::move(callback));
 }
 
+void psyqo::CDRomDevice::pauseCDDA() {
+    MaskedIRQ masked;
+    // If no action is in progress, it means we got
+    // raced to the end of the track and/or disc, and
+    // we should just ignore this.
+    if (m_action == nullptr) return;
+    // If we aren't actually playing audio, that's
+    // a fatal error.
+    Kernel::assert(m_state == 100, "CDRomDevice::pauseCDDA called while not playing");
+    m_state = 101;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::PAUSE);
+}
+
+void psyqo::CDRomDevice::stopCDDA() {
+    MaskedIRQ masked;
+    // If no action is in progress, it means we got
+    // raced to the end of the track and/or disc, and
+    // we should just ignore this.
+    if (m_action == nullptr) return;
+    // If we aren't actually playing audio, that's
+    // a fatal error.
+    Kernel::assert(m_state == 100, "CDRomDevice::stopCDDA called while not playing");
+    m_state = 101;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::STOP);
+}
+
 void psyqo::CDRomDevice::getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback) {
+    MaskedIRQ masked;
     Kernel::assert(m_locationCallback == nullptr, "CDRomDevice::getPlaybackLocation while another one is pending");
+    if (m_action == nullptr) {
+        Kernel::queueCallbackFromISR([callback = eastl::move(callback)]() { callback(nullptr); });
+        return;
+    }
     m_locationCallback = eastl::move(callback);
     m_locationPtr = &m_locationStorage;
-    __asm__ volatile("break 14, 3");
+    m_pendingGetLocation = true;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::GETLOCP);
 }
 
 void psyqo::CDRomDevice::getPlaybackLocation(PlaybackLocation *location,
                                              eastl::function<void(PlaybackLocation *)> &&callback) {
+    MaskedIRQ masked;
     Kernel::assert(m_locationCallback == nullptr, "CDRomDevice::getPlaybackLocation while another one is pending");
+    if (m_action == nullptr) {
+        Kernel::queueCallbackFromISR([callback = eastl::move(callback)]() { callback(nullptr); });
+        return;
+    }
     m_locationCallback = eastl::move(callback);
     m_locationPtr = location ? location : &m_locationStorage;
-    __asm__ volatile("break 14, 3");
+    m_pendingGetLocation = true;
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    Hardware::CDRom::Command.send(Hardware::CDRom::CDL::GETLOCP);
 }
 
 psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleGetPlaybackLocation(PlaybackLocation *location) {
@@ -229,9 +271,10 @@ void psyqo::CDRomDevice::ActionBase::queueGetLocationCallback(bool success) {
 }
 
 void psyqo::CDRomDevice::setVolume(uint8_t leftToLeft, uint8_t rightToLeft, uint8_t leftToRight, uint8_t rightToRight) {
-    m_leftToLeft = leftToLeft;
-    m_rightToLeft = rightToLeft;
-    m_leftToRight = leftToRight;
-    m_rightToRight = rightToRight;
-    __asm__ volatile("break 14, 4");
+    MaskedIRQ masked;
+    Hardware::CDRom::LeftToLeftVolume = leftToLeft;
+    Hardware::CDRom::RightToLeftVolume = rightToLeft;
+    Hardware::CDRom::LeftToRightVolume = leftToRight;
+    Hardware::CDRom::RightToRightVolume = rightToRight;
+    Hardware::CDRom::VolumeSettings = 0x20;
 }
