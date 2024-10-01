@@ -70,7 +70,7 @@ void psyqo::CDRomDevice::prepare() {
                 // We got raced to the end of the track and/or disc, and we can't
                 // properly handle this request. Just ignore it and let the caller
                 // retry if they want to.
-                if (m_action != nullptr) {
+                if (m_action == nullptr) {
                     Kernel::queueCallbackFromISR([callback = eastl::move(m_locationCallback)]() { callback(nullptr); });
                     return true;
                 }
