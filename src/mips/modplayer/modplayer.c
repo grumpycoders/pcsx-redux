@@ -31,7 +31,6 @@ SOFTWARE.
 
 #include "common/hardware/dma.h"
 #include "common/hardware/spu.h"
-#include "common/syscalls/syscalls.h"
 
 /* This code is a reverse engineering of the file MODPLAY.BIN, located in the zip file
    "Asm-Mod" from http://hitmen.c02.at/html/psx_tools.html, that has the CRC32 bb91769f. */
@@ -119,16 +118,14 @@ static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t
 
     SPU_RAM_DTA = SpuAddr >> 3;
     SPU_CTRL = (SPU_CTRL & ~0x0030) | 0x0020;
-    while ((SPU_CTRL & 0x0030) != 0x0020)
-        ;
+    while ((SPU_CTRL & 0x0030) != 0x0020);
     // original code erroneously was doing SBUS_DEV4_CTRL = SBUS_DEV4_CTRL;
     SBUS_DEV4_CTRL &= ~0x0f000000;
     DMA_CTRL[DMA_SPU].MADR = (uint32_t)data;
     DMA_CTRL[DMA_SPU].BCR = bcr;
     DMA_CTRL[DMA_SPU].CHCR = 0x01000201;
 
-    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0)
-        ;
+    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0);
 }
 
 static void SPUUnMute() { SPU_CTRL = 0xc000; }
@@ -156,9 +153,10 @@ static void SPUKeyOn(uint32_t voiceBits) {
 static void SPUSetVoiceSampleRate(int voiceID, uint16_t sampleRate) { SPU_VOICES[voiceID].sampleRate = sampleRate; }
 
 unsigned MOD_Check(const struct MODFileFormat* module) {
-    if (syscall_strncmp(module->signature, "HIT", 3) == 0) {
+    const char* s = module->signature;
+    if ((s[0] == 'H') && (s[1] == 'I') && (s[2] == 'T')) {
         return module->signature[3] - '0';
-    } else if (syscall_strncmp(module->signature, "HM", 2) == 0) {
+    } else if ((s[0] == 'H') && (s[1] == 'M')) {
         return ((module->signature[2] - '0') * 10) + module->signature[3] - '0';
     }
     return 0;
@@ -264,7 +262,7 @@ static uint32_t loadInternal(const struct MODFileFormat* module, const uint8_t* 
     // these two are erroneously missing from the original code, at
     // least for being able to play more than one music
     MOD_PatternDelay = 0;
-    syscall_memset(s_channelData, 0, sizeof(s_channelData));
+    __builtin_memset(s_channelData, 0, sizeof(s_channelData));
 
     SPUUnMute();
 
