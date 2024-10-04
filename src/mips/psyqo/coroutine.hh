@@ -78,7 +78,7 @@ struct Coroutine {
       private:
         Awaiter(Coroutine *coroutine) : m_coroutine(coroutine) {}
         Coroutine *m_coroutine;
-        friend class Coroutine;
+        friend struct Coroutine;
     };
 
     /**
