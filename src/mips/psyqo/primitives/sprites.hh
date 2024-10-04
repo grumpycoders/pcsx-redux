@@ -67,7 +67,7 @@ struct Sprite {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
     Vertex size;
 };
 static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
@@ -104,7 +104,7 @@ struct Sprite1x1 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite1x1) == (sizeof(uint32_t) * 3), "Sprite1x1 is not 3 words");
 
@@ -140,7 +140,7 @@ struct Sprite8x8 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite8x8) == (sizeof(uint32_t) * 3), "Sprite8x8 is not 3 words");
 
@@ -176,7 +176,7 @@ struct Sprite16x16 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite16x16) == (sizeof(uint32_t) * 3), "Sprite16x16 is not 3 words");
 

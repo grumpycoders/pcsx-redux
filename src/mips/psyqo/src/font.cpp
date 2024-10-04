@@ -229,11 +229,11 @@ void psyqo::FontBase::unpackFont(GPU& gpu, const uint8_t* data, Vertex location,
 
 void psyqo::FontBase::initialize(GPU& gpu, Vertex location, Vertex glyphSize) {
     m_glyphSize = glyphSize;
-    Prim::ClutIndex clut(location);
+    PrimPieces::ClutIndex clut(location);
     unsigned glyphPerRow = 256 / glyphSize.w;
     uint8_t baseV = location.y & 0xff;
     for (unsigned i = 0; i < 224; i++) {
-        Prim::TexInfo texInfo = {.u = 0, .v = baseV, .clut = clut};
+        PrimPieces::TexInfo texInfo = {.u = 0, .v = baseV, .clut = clut};
         uint8_t l = i / glyphPerRow;
         texInfo.u = i * glyphSize.w;
         texInfo.v += glyphSize.h * l;
@@ -243,7 +243,7 @@ void psyqo::FontBase::initialize(GPU& gpu, Vertex location, Vertex glyphSize) {
         fragment.prologue.upload.region.pos = location;
         fragment.prologue.upload.region.size = {{.w = 2, .h = 1}};
         fragment.prologue.pixel = 0x7fff0000;
-        psyqo::Prim::TPageAttr attr;
+        psyqo::PrimPieces::TPageAttr attr;
         uint8_t pageX = location.x >> 6;
         uint8_t pageY = location.y >> 8;
         attr.setPageX(pageX)
