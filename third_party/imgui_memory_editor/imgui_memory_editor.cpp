@@ -470,14 +470,14 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t m
 // Utilities for Data Preview
 const char* MemoryEditor::DataTypeGetDesc(ImGuiDataType data_type) const
 {
-	const char* descs[] = { "Int8", "Uint8", "Int16", "Uint16", "Int32", "Uint32", "Int64", "Uint64", "Float", "Double" };
+	const char* descs[] = { "Int8", "Uint8", "Int16", "Uint16", "Int32", "Uint32", "Int64", "Uint64", "Float", "Double", "Bool" };
 	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
 	return descs[data_type];
 }
 
 size_t MemoryEditor::DataTypeGetSize(ImGuiDataType data_type) const
 {
-	const size_t sizes[] = { 1, 1, 2, 2, 4, 4, 8, 8, sizeof(float), sizeof(double) };
+	const size_t sizes[] = { 1, 1, 2, 2, 4, 4, 8, 8, sizeof(float), sizeof(double), 1 };
 	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
 	return sizes[data_type];
 }
@@ -656,6 +656,16 @@ void MemoryEditor::DrawPreviewData(size_t addr, const ImU8* mem_data, size_t mem
 		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", float64); return; }
 		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", float64); return; }
 		break;
+	}
+	case ImGuiDataType_Bool:
+	{
+		int8_t int8 = 0;
+		EndianessCopy(&int8, buf, size);
+		if (int8 == 0)
+			memcpy(out_buf, "false", 6);
+		else
+			memcpy(out_buf, "true", 5);
+		return;
 	}
 	case ImGuiDataType_COUNT:
 		break;
