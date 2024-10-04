@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 #include "psyqo/fixed-point.hh"
