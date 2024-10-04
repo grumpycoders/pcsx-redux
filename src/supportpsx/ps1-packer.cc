@@ -137,7 +137,11 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // loaded anywhere in memory.
         auto offset = newPC - 4 * 4;
         std::vector<uint8_t> stub;
-        pushBytes(stub, addiu(Reg::T8, Reg::RA, 0));
+        if (options.resetstack) {
+            pushBytes(stub, lui(Reg::SP, 0x8001));
+        } else {
+            pushBytes(stub, addiu(Reg::T8, Reg::RA, 0));
+        }
         pushBytes(stub, lui(Reg::T1, getHI(offset)));
         pushBytes(stub, bgezal(Reg::R0, 4));
         pushBytes(stub, addiu(Reg::T1, Reg::T1, getLO(offset)));
@@ -171,11 +175,13 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     // binary file, and so the next instructions will
     // be the very first our binary will run.
 
-    if (!options.shell && !options.raw) {
+    if (!options.shell && !options.raw && !options.resetstack) {
         // We save $ra to $t8, so we can restore it later. This breaks ABI,
         // but the ucl-nrv2e decompressor won't use it. This isn't useful
         // for the shell trick, since we're just going to reboot the machine.
         pushBytes(dataOut, addiu(Reg::T8, Reg::RA, 0));
+    } else if (options.resetstack && !options.raw) {
+        pushBytes(dataOut, lui(Reg::SP, 0x8001));
     }
     // Kill interrupts by setting IMASK to 0.
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
@@ -288,7 +294,11 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
         pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
         pushBytes(dataOut, jr(Reg::T0));
-        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        if (options.resetstack) {
+            pushBytes(dataOut, ori(Reg::SP, Reg::SP, 0xfff0));
+        } else {
+            pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        }
     } else {
         // Calls A0:44 - FlushCache
         pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
@@ -300,7 +310,11 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
         pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
         pushBytes(dataOut, jr(Reg::T0));
-        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        if (options.resetstack) {
+            pushBytes(dataOut, ori(Reg::SP, Reg::SP, 0xfff0));
+        } else {
+            pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        }
     }
 
     // Pad our PS-X EXE to a multiple of 2048 bytes, because

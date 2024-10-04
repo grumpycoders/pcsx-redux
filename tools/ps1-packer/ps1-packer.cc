@@ -41,6 +41,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const bool oneInput = inputs.size() == 1;
     const bool shell = args.get<bool>("shell").value_or(false);
     const bool nokernel = args.get<bool>("nokernel").value_or(false);
+    const bool resetstack = args.get<bool>("resetstack").value_or(false);
     const bool raw = args.get<bool>("raw").value_or(false);
     const bool booty = args.get<bool>("booty").value_or(false);
     const bool rom = args.get<bool>("rom").value_or(false);
@@ -49,13 +50,14 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
-Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-raw | -booty | -rom | -cpe] -o output.ps-exe
+Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-nokernel] [-resetstack] [-raw | -booty | -rom | -cpe] -o output.ps-exe
   input.ps-exe      mandatory: specify the input binary file.
   -o output.ps-exe  mandatory: name of the output file.
   -h                displays this help information and exit.
   -tload            force loading at this address instead of doing in-place.
   -shell            adds a kernel reset stub.
   -nokernel         avoids calling into the kernel.
+  -resetstack       resets the stack pointer to the top of the memory.
   -nopad            disables padding of the output file to 2048 bytes. Only for PS-EXE output.
 
 These options control the output format, and are mutually exclusive:

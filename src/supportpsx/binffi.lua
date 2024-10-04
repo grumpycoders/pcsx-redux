@@ -37,6 +37,7 @@ struct PS1PackerOptions {
     uint32_t tload;
     bool shell;
     bool nokernel;
+    bool resetstack;
     bool nopad;
     bool booty;
     bool raw;
@@ -82,6 +83,7 @@ PCSX.Binary.pack = function(src, dest, addr, pc, gp, sp, options)
     opts.tload = options.tload and options.tload or 0
     opts.booty = options.booty and true or false
     opts.nokernel = options.nokernel and true or false
+    opts.resetstack = options.resetstack and true or false
     opts.shell = options.shell and true or false
     opts.nopad = options.nopad and true or false
     opts.raw = options.raw and true or false
