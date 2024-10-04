@@ -168,7 +168,7 @@ class FontBase {
   private:
     struct XPrintfInfo;
     GlyphsFragment& printToFragment(GPU& gpu, const char* text, Vertex pos, Color color);
-    eastl::array<Prim::TexInfo, 224> m_lut;
+    eastl::array<PrimPieces::TexInfo, 224> m_lut;
     Vertex m_glyphSize;
 
     friend struct XPrintfInfo;

@@ -113,13 +113,13 @@ struct TexturedTriangle {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTriangle is not 7 words");
 
@@ -224,15 +224,15 @@ struct GouraudTexturedTriangle {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(GouraudTexturedTriangle) == (sizeof(uint32_t) * 9), "GouraudTexturedTriangle is not 9 words");
 

@@ -124,15 +124,15 @@ struct TexturedQuad {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is not 9 words");
 
@@ -252,18 +252,18 @@ struct GouraudTexturedQuad {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Color colorD;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(GouraudTexturedQuad) == (sizeof(uint32_t) * 12), "GouraudTexturedQuad is not 12 words");
 

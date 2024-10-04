@@ -96,17 +96,22 @@ union Color {
 };
 static_assert(sizeof(Color) == sizeof(uint32_t), "Color is not 32 bits");
 
-namespace Prim {
+namespace Prim::TPageAttr {
+enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
+enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
+}  // namespace Prim::TPageAttr
+
+namespace PrimPieces {
 
 /**
- * @brief A primitive's CLUT command
+ * @brief A primitive's CLUT command.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the CLUT argument for
  * GPU commands. The constructor can take either a `Vertex` or the raw x and y
  * coordinates for the CLUT to use.
  *
- * Remember that CLUTs are aligned to 16 pixels, so the coordinates are rounded
+ * Remember that CLUTs are aligned to 16 pixels, so the vertex coordinates are rounded
  * to the lowest multiple of 16 on the X axis.
  */
 struct ClutIndex {
@@ -122,7 +127,7 @@ static_assert(sizeof(ClutIndex) == sizeof(uint16_t), "ClutIndex is not 16 bits")
 /**
  * @brief A primitive's texture information.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the texture argument for
  * GPU commands.
  */
@@ -136,7 +141,7 @@ static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
 /**
  * @brief A primitive's tpage attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the 16-bits tpage argument for
  * GPU commands. See the `TPage` struct for actual usage, or the various triangle and
  * quad primitives.
@@ -159,15 +164,13 @@ struct TPageAttr {
         info |= y << 4;
         return *this;
     }
-    enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
-    TPageAttr& set(SemiTrans trans) {
+    TPageAttr& set(Prim::TPageAttr::SemiTrans trans) {
         info &= ~0x0060;
         uint32_t t = static_cast<uint32_t>(trans);
         info |= t << 5;
         return *this;
     }
-    enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
-    TPageAttr& set(ColorMode mode) {
+    TPageAttr& set(Prim::TPageAttr::ColorMode mode) {
         info &= ~0x0180;
         uint32_t m = static_cast<uint32_t>(mode);
         info |= m << 7;
@@ -198,7 +201,7 @@ static_assert(sizeof(TPageAttr) == sizeof(uint16_t), "TPageAttr is not 16 bits")
 /**
  * @brief A primitive's page info attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
 struct PageInfo {
     uint8_t u;
@@ -210,7 +213,7 @@ static_assert(sizeof(PageInfo) == sizeof(uint32_t), "PageInfo is not 32 bits");
 /**
  * @brief A primitive's UV coordinates attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
 struct UVCoords {
     uint8_t u;
@@ -221,7 +224,7 @@ static_assert(sizeof(UVCoords) == sizeof(uint16_t), "UVCoords is not 16 bits");
 /**
  * @brief A primitive's UV coordinates attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
 struct UVCoordsPadded {
     uint8_t u;
@@ -232,6 +235,6 @@ struct UVCoordsPadded {
 };
 static_assert(sizeof(UVCoordsPadded) == sizeof(uint32_t), "UVCoordsPadded is not 32 bits");
 
-}  // namespace Prim
+}  // namespace PrimPieces
 
 }  // namespace psyqo

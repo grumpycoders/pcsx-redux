@@ -189,8 +189,7 @@ void TextureScene::frame() {
     // having 256 CLUTs.
     sprite.texInfo = {.u = 0,
                       .v = 0,
-                      .clut = psyqo::Prim::ClutIndex(
-                          psyqo::Vertex{{.x = int16_t(512 + (anim & 0xf0)), .y = int16_t(271 - (anim & 0x0f))}})};
+                      .clut = {psyqo::Vertex{{.x = int16_t(512 + (anim & 0xf0)), .y = int16_t(271 - (anim & 0x0f))}}}};
 
     // Finally, we can send the sprite to the GPU.
     gpu().sendPrimitive(sprite);
