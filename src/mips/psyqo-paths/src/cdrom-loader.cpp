@@ -40,7 +40,7 @@ void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, GPU& gpu, ps
     }
     m_queue.then(parser.scheduleGetDirentry(path, &m_request.entry))
         .then([this](auto task) {
-            uint32_t size = (m_request.entry.size + 2047) & ~2048;
+            uint32_t size = (m_request.entry.size + 2047) & ~2047;
             m_data.resize(size);
             m_request.buffer = m_data.data();
             task->resolve();
