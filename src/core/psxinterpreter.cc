@@ -1586,10 +1586,10 @@ void InterpretedCPU::Execute() {
 
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) 
 { 
-    for (auto i = 0; i < Size ; i ++)
+    for (auto i = 0; i < Size ; i+=4)
     {
         flushICacheLine(Addr);
-        Addr += 4;
+        Addr += 16;
     }
 }
 
