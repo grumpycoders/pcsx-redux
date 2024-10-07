@@ -407,6 +407,11 @@ int PCSX::GPU::init(UI *ui) {
     for (auto poly : m_polygons) poly->setGPU(this);
     for (auto line : m_lines) line->setGPU(this);
     for (auto rect : m_rects) rect->setGPU(this);
+    m_textureWindowRaw = 0;
+    m_drawingStartRaw = 0;
+    m_drawingEndRaw = 0;
+    m_drawingOffsetRaw = 0;
+    m_dataRet = 0x400;
     return initBackend(ui);
 }
 
@@ -564,6 +569,11 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             CtrlReset ctrl;
             g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
+            m_textureWindowRaw = 0;
+            m_drawingStartRaw = 0;
+            m_drawingEndRaw = 0;
+            m_drawingOffsetRaw = 0;
+            m_dataRet = 0x400;
         } break;
         case 1: {
             CtrlClearFifo ctrl;
@@ -620,7 +630,29 @@ void PCSX::GPU::writeStatus(uint32_t value) {
     }
 }
 
-uint32_t PCSX::GPU::readData() { return m_readFifo.asA<File>()->read<uint32_t>(); }
+uint32_t PCSX::GPU::readData() {
+    if (m_readFifo->size() == 0) {
+        return m_dataRet;
+    }
+    return m_readFifo.asA<File>()->read<uint32_t>();
+}
+
+void PCSX::GPU::write1(CtrlQuery *ctrl) {
+    switch (ctrl->type()) {
+        case CtrlQuery::TextureWindow:
+            m_dataRet = m_textureWindowRaw;
+            return;
+        case CtrlQuery::DrawAreaStart:
+            m_dataRet = m_drawingStartRaw;
+            return;
+        case CtrlQuery::DrawAreaEnd:
+            m_dataRet = m_drawingEndRaw;
+            return;
+        case CtrlQuery::DrawOffset:
+            m_dataRet = m_drawingOffsetRaw;
+            return;
+    }
+}
 
 void PCSX::GPU::writeData(uint32_t value) {
     Buffer buf(value);
@@ -635,7 +667,13 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
 }
 
 void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
+    auto size = m_readFifo->size();
     m_readFifo->read(dest, transferSize * 4);
+    transferSize -= size / 4;
+    dest += size / 4;
+    while (transferSize != 0) {
+        *dest++ = m_dataRet;
+    }
 }
 
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
@@ -735,22 +773,26 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         m_gpu->m_lastTWindow = TWindow(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_textureWindowRaw = packetInfo & 0xfffff;
                     } break;
                     case 3: {  // drawing area top left
                         DrawingAreaStart prim(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingStartRaw = packetInfo & 0xfffff;
                     } break;
                     case 4: {  // drawing area bottom right
                         DrawingAreaEnd prim(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingEndRaw = packetInfo & 0xfffff;
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
                         m_gpu->m_lastOffset = DrawingOffset(packetInfo);
                         g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
+                        m_gpu->m_drawingOffsetRaw = packetInfo & 0x3fffff;
                     } break;
                     case 6: {  // mask bit
                         MaskBit prim(packetInfo);
@@ -1097,9 +1139,9 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
             const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+                                  ? Events::GUI::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                         : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(
                 Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
@@ -1194,9 +1236,9 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         std::string label = fmt::format(f_("Go to texture##{}"), n);
         if (ImGui::Button(label.c_str())) {
             const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+                                  ? Events::GUI::VRAM_16BITS
+                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                         : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
                                                                 int(((u + w) >> shift) + tx), int(v + h + ty), mode});
@@ -1377,4 +1419,16 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&ad
             add({int(maxU + tx), int(maxV + ty)}, {int(minU + tx), int(maxV + ty)}, {int(minU + tx), int(minV + ty)});
         }
     }
+}
+
+bool PCSX::GPU::Logged::isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    int o2 = (x - x2) * (y3 - y2) - (y - y2) * (x3 - x2);
+    int o3 = (x - x3) * (y1 - y3) - (y - y3) * (x1 - x3);
+    return (o1 >= 0 && o2 >= 0 && o3 >= 0) || (o1 <= 0 && o2 <= 0 && o3 <= 0);
+}
+
+bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y2) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    return o1 == 0;
 }

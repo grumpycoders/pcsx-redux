@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  aur-build:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest

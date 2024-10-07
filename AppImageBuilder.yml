@@ -16,153 +16,65 @@ AppDir:
   apt:
     arch:
     - amd64
+    allow_unauthenticated: true
     sources:
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble main restricted
       key_url: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates main restricted
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates universe
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-updates multiverse
-    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ mantic-backports main
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble-updates main restricted
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble-updates universe
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble-updates multiverse
+    - sourceline: deb http://us.archive.ubuntu.com/ubuntu/ noble-backports main
         restricted universe multiverse
-    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security main restricted
-    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security universe
-    - sourceline: deb http://security.ubuntu.com/ubuntu mantic-security multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu noble-security main restricted
+    - sourceline: deb http://security.ubuntu.com/ubuntu noble-security universe
+    - sourceline: deb http://security.ubuntu.com/ubuntu noble-security multiverse
     include:
+    - libavformat60:amd64
     - libbz2-1.0:amd64
-    - libcom-err2:amd64
-    - libexpat1:amd64
-    - libgcc-s1:amd64
-    - libgpg-error0:amd64
-    - libkeyutils1:amd64
-    - liblzma5:amd64
-    - libselinux1:amd64
+    - libcapstone4:amd64
+    - libcurl4t64:amd64
+    - libgl-dev:amd64
+    - libglfw3:amd64
+    - libjpeg-turbo8:amd64
+    - libllvm17t64:amd64
+    - libopengl0:amd64
+    - libpciaccess0:amd64
+    - libpgm-5.3-0t64:amd64
+    - libpulse0:amd64
+    - libsystemd0:amd64
+    - libuv1t64:amd64
+    - libxcb-sync1:amd64
+    - libxcursor1:amd64
+    - libxdmcp6:amd64
+    - libxext6:amd64
+    - libxfixes3:amd64
+    - libxi6:amd64
+    - libxinerama1:amd64
+    - libxrandr2:amd64
+    - libxrender1:amd64
+    - libxshmfence1:amd64
+    - libxxf86vm1:amd64
     - openssl
-    - zlib1g:amd64
+    - yaru-theme-icon
   files:
     include:
-    - /lib/x86_64-linux-gnu/libOpenCL.so.1
-    - /lib/x86_64-linux-gnu/libSvtAv1Enc.so.1
-    - /lib/x86_64-linux-gnu/libX11.so.6
-    - /lib/x86_64-linux-gnu/libXau.so.6
-    - /lib/x86_64-linux-gnu/libXdmcp.so.6
-    - /lib/x86_64-linux-gnu/libXext.so.6
-    - /lib/x86_64-linux-gnu/libXfixes.so.3
-    - /lib/x86_64-linux-gnu/libXrender.so.1
-    - /lib/x86_64-linux-gnu/libaom.so.3
-    - /lib/x86_64-linux-gnu/libavcodec.so.60
+    - /lib/x86_64-linux-gnu/libLLVM-17.so.1
+    - /lib/x86_64-linux-gnu/libOpenGL.so.0
+    - /lib/x86_64-linux-gnu/libXcursor.so.1
+    - /lib/x86_64-linux-gnu/libXi.so.6
+    - /lib/x86_64-linux-gnu/libXinerama.so.1
+    - /lib/x86_64-linux-gnu/libXrandr.so.2
     - /lib/x86_64-linux-gnu/libavformat.so.60
-    - /lib/x86_64-linux-gnu/libavutil.so.58
-    - /lib/x86_64-linux-gnu/libblkid.so.1
-    - /lib/x86_64-linux-gnu/libbluray.so.2
-    - /lib/x86_64-linux-gnu/libbrotlicommon.so.1
-    - /lib/x86_64-linux-gnu/libbrotlidec.so.1
-    - /lib/x86_64-linux-gnu/libbsd.so.0
-    - /lib/x86_64-linux-gnu/libcairo-gobject.so.2
-    - /lib/x86_64-linux-gnu/libcairo.so.2
     - /lib/x86_64-linux-gnu/libcapstone.so.4
-    - /lib/x86_64-linux-gnu/libchromaprint.so.1
-    - /lib/x86_64-linux-gnu/libcjson.so.1
-    - /lib/x86_64-linux-gnu/libcodec2.so.1.0
-    - /lib/x86_64-linux-gnu/libcrypto.so.3
     - /lib/x86_64-linux-gnu/libcurl.so.4
-    - /lib/x86_64-linux-gnu/libdatrie.so.1
-    - /lib/x86_64-linux-gnu/libdav1d.so.6
-    - /lib/x86_64-linux-gnu/libffi.so.8
-    - /lib/x86_64-linux-gnu/libfontconfig.so.1
-    - /lib/x86_64-linux-gnu/libfreetype.so.6
-    - /lib/x86_64-linux-gnu/libfribidi.so.0
-    - /lib/x86_64-linux-gnu/libgcrypt.so.20
-    - /lib/x86_64-linux-gnu/libgdk_pixbuf-2.0.so.0
-    - /lib/x86_64-linux-gnu/libgio-2.0.so.0
+    - /lib/x86_64-linux-gnu/libelf.so.1
     - /lib/x86_64-linux-gnu/libglfw.so.3
-    - /lib/x86_64-linux-gnu/libglib-2.0.so.0
-    - /lib/x86_64-linux-gnu/libgme.so.0
-    - /lib/x86_64-linux-gnu/libgmodule-2.0.so.0
-    - /lib/x86_64-linux-gnu/libgmp.so.10
-    - /lib/x86_64-linux-gnu/libgnutls.so.30
-    - /lib/x86_64-linux-gnu/libgobject-2.0.so.0
-    - /lib/x86_64-linux-gnu/libgomp.so.1
-    - /lib/x86_64-linux-gnu/libgraphite2.so.3
-    - /lib/x86_64-linux-gnu/libgsm.so.1
-    - /lib/x86_64-linux-gnu/libgssapi_krb5.so.2
-    - /lib/x86_64-linux-gnu/libharfbuzz.so.0
-    - /lib/x86_64-linux-gnu/libhogweed.so.6
-    - /lib/x86_64-linux-gnu/libicudata.so.71
-    - /lib/x86_64-linux-gnu/libicuuc.so.71
-    - /lib/x86_64-linux-gnu/libidn2.so.0
-    - /lib/x86_64-linux-gnu/libjpeg.so.8
-    - /lib/x86_64-linux-gnu/libk5crypto.so.3
-    - /lib/x86_64-linux-gnu/libkrb5.so.3
-    - /lib/x86_64-linux-gnu/libkrb5support.so.0
-    - /lib/x86_64-linux-gnu/liblber-2.5.so.0
-    - /lib/x86_64-linux-gnu/libldap-2.5.so.0
-    - /lib/x86_64-linux-gnu/libmbedcrypto.so.7
-    - /lib/x86_64-linux-gnu/libmd.so.0
-    - /lib/x86_64-linux-gnu/libmfx.so.1
-    - /lib/x86_64-linux-gnu/libmount.so.1
-    - /lib/x86_64-linux-gnu/libmp3lame.so.0
-    - /lib/x86_64-linux-gnu/libmpg123.so.0
-    - /lib/x86_64-linux-gnu/libnettle.so.8
-    - /lib/x86_64-linux-gnu/libnghttp2.so.14
-    - /lib/x86_64-linux-gnu/libnorm.so.1
-    - /lib/x86_64-linux-gnu/libnuma.so.1
-    - /lib/x86_64-linux-gnu/libogg.so.0
-    - /lib/x86_64-linux-gnu/libopenjp2.so.7
-    - /lib/x86_64-linux-gnu/libopenmpt.so.0
-    - /lib/x86_64-linux-gnu/libopus.so.0
-    - /lib/x86_64-linux-gnu/libp11-kit.so.0
-    - /lib/x86_64-linux-gnu/libpango-1.0.so.0
-    - /lib/x86_64-linux-gnu/libpangocairo-1.0.so.0
-    - /lib/x86_64-linux-gnu/libpangoft2-1.0.so.0
-    - /lib/x86_64-linux-gnu/libpcre2-8.so.0
-    - /lib/x86_64-linux-gnu/libpgm-5.3.so.0
-    - /lib/x86_64-linux-gnu/libpixman-1.so.0
-    - /lib/x86_64-linux-gnu/libpng16.so.16
-    - /lib/x86_64-linux-gnu/libpsl.so.5
-    - /lib/x86_64-linux-gnu/librabbitmq.so.4
-    - /lib/x86_64-linux-gnu/librist.so.4
-    - /lib/x86_64-linux-gnu/librsvg-2.so.2
-    - /lib/x86_64-linux-gnu/librtmp.so.1
-    - /lib/x86_64-linux-gnu/libsasl2.so.2
-    - /lib/x86_64-linux-gnu/libshine.so.3
-    - /lib/x86_64-linux-gnu/libsnappy.so.1
-    - /lib/x86_64-linux-gnu/libsodium.so.23
-    - /lib/x86_64-linux-gnu/libsoxr.so.0
-    - /lib/x86_64-linux-gnu/libspeex.so.1
-    - /lib/x86_64-linux-gnu/libsrt-gnutls.so.1.5
-    - /lib/x86_64-linux-gnu/libssh-gcrypt.so.4
-    - /lib/x86_64-linux-gnu/libssh.so.4
-    - /lib/x86_64-linux-gnu/libssl.so.3
-    - /lib/x86_64-linux-gnu/libstdc++.so.6
-    - /lib/x86_64-linux-gnu/libswresample.so.4
-    - /lib/x86_64-linux-gnu/libtasn1.so.6
-    - /lib/x86_64-linux-gnu/libthai.so.0
-    - /lib/x86_64-linux-gnu/libtheoradec.so.1
-    - /lib/x86_64-linux-gnu/libtheoraenc.so.1
-    - /lib/x86_64-linux-gnu/libtwolame.so.0
-    - /lib/x86_64-linux-gnu/libudfread.so.0
-    - /lib/x86_64-linux-gnu/libunistring.so.2
-    - /lib/x86_64-linux-gnu/libuuid.so.1
+    - /lib/x86_64-linux-gnu/libpulse.so.0
+    - /lib/x86_64-linux-gnu/libsensors.so.5
     - /lib/x86_64-linux-gnu/libuv.so.1
-    - /lib/x86_64-linux-gnu/libva-drm.so.2
-    - /lib/x86_64-linux-gnu/libva-x11.so.2
-    - /lib/x86_64-linux-gnu/libva.so.2
-    - /lib/x86_64-linux-gnu/libvdpau.so.1
-    - /lib/x86_64-linux-gnu/libvorbis.so.0
-    - /lib/x86_64-linux-gnu/libvorbisenc.so.2
-    - /lib/x86_64-linux-gnu/libvorbisfile.so.3
-    - /lib/x86_64-linux-gnu/libvpx.so.7
-    - /lib/x86_64-linux-gnu/libwebp.so.7
-    - /lib/x86_64-linux-gnu/libwebpmux.so.3
-    - /lib/x86_64-linux-gnu/libx264.so.164
-    - /lib/x86_64-linux-gnu/libx265.so.199
-    - /lib/x86_64-linux-gnu/libxml2.so.2
-    - /lib/x86_64-linux-gnu/libxvidcore.so.4
-    - /lib/x86_64-linux-gnu/libzmq.so.5
-    - /lib/x86_64-linux-gnu/libzstd.so.1
-    - /lib/x86_64-linux-gnu/libzvbi.so.0
+    - /usr/lib/locale/locale-archive
     exclude:
     - usr/share/man
     - usr/share/doc/*/README.*
@@ -173,23 +85,18 @@ AppDir:
     fedora-30:
       image: appimagecrafters/tests-env:fedora-30
       command: ./AppRun
-      use_host_x: true
     debian-stable:
       image: appimagecrafters/tests-env:debian-stable
       command: ./AppRun
-      use_host_x: true
     archlinux-latest:
       image: appimagecrafters/tests-env:archlinux-latest
       command: ./AppRun
-      use_host_x: true
     centos-7:
       image: appimagecrafters/tests-env:centos-7
       command: ./AppRun
-      use_host_x: true
     ubuntu-xenial:
       image: appimagecrafters/tests-env:ubuntu-xenial
       command: ./AppRun
-      use_host_x: true
 AppImage:
   arch: x86_64
   update-information: guess

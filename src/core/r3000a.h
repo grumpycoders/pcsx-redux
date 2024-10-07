@@ -461,16 +461,39 @@ Formula One 2001
         memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
+    inline void flushICacheLine(uint32_t pc)
+    { 
+        uint32_t pcBank = pc >> 24;
+        if (pcBank == 0x00 || pcBank == 0x80)
+        {
+            uint32_t pcCache = pc & 0xfff;
+            pcCache &= ~0xf;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
+
+            *(uint32_t *)(iAddr + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0xc) = 0xff;
+
+            *(uint32_t *)(iCode + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0xc) = 0xff;
+        }
+    }
+
     inline uint32_t readICache(uint32_t pc) {
         uint32_t pcBank = pc >> 24;
-        uint32_t pcOffset = pc & 0xffffff;
-        uint32_t pcCache = pc & 0xfff;
-
-        uint8_t *iAddr = m_regs.iCacheAddr;
-        uint8_t *iCode = m_regs.iCacheCode;
 
         // cached - RAM
         if (pcBank == 0x00 || pcBank == 0x80) {
+            uint32_t pcOffset = pc & 0xffffff;
+            uint32_t pcCache = pc & 0xfff;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
             if (SWAP_LE32(*(uint32_t *)(iAddr + pcCache)) == pcOffset) {
                 // Cache hit - return last opcode used
                 return SWAP_LE32(*((uint32_t *)(iCode + pcCache)));

@@ -31,6 +31,8 @@ SOFTWARE.
 
 namespace psyqo {
 
+class GPU;
+
 /**
  * @brief A task queue for processing tasks sequentially.
  *
@@ -191,6 +193,16 @@ class TaskQueue {
         TaskQueue *m_taskQueue;
         friend class TaskQueue;
     };
+
+    /**
+     * @brief Creates a delayed task.
+     *
+     * @details This method is a convenience method to create a task that will
+     * be executed after a delay. The delay is specified in microseconds.
+     *
+     * @param delay The delay in microseconds.
+     */
+    static Task DelayedTask(uint32_t delay, GPU &);
 
   private:
     void runNext();

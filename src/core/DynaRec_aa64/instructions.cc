@@ -944,6 +944,11 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
 
     m_nextIsDelaySlot = true;
 
+    if (link) {
+        maybeCancelDelayedLoad(31);
+        markConst(31, m_pc + 4);
+    }
+
     if (target == m_pc + 4) {
         return;
     }
@@ -969,11 +974,6 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
             }
         }
 
-        if (link) {
-            maybeCancelDelayedLoad(31);
-            markConst(31, m_pc + 4);
-        }
-
         return;
     }
 
@@ -992,10 +992,6 @@ void DynaRecCPU::recREGIMM(uint32_t code) {
     }
 
     gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
-    if (link) {
-        maybeCancelDelayedLoad(31);
-        markConst(31, m_pc + 4);
-    }
 }
 
 void DynaRecCPU::recRFE(uint32_t code) {

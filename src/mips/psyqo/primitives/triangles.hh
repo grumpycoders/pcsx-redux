@@ -93,6 +93,12 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  */
 struct TexturedTriangle {
     TexturedTriangle() : command(0x25000000) {}
+    TexturedTriangle(Color c) : command(0x24000000 | c.packed) {}
+    TexturedTriangle& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x24000000 | c.packed | wasSemiTrans;
+        return *this;
+    }
     TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -107,13 +113,13 @@ struct TexturedTriangle {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTriangle is not 7 words");
 
@@ -218,15 +224,15 @@ struct GouraudTexturedTriangle {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(GouraudTexturedTriangle) == (sizeof(uint32_t) * 9), "GouraudTexturedTriangle is not 9 words");
 

@@ -136,7 +136,7 @@ SRCS += third_party/luv/src/luv.c
 SRCS += third_party/md4c/src/md4c.c
 SRCS += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
-SRCS += third_party/tracy/TracyClient.cpp
+SRCS += third_party/tracy/public/TracyClient.cpp
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -287,9 +287,9 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --from-code=utf-8 --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	find src -name *.lua | sort -u > pcsx-src-list.txt
-	xgettext --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --from-code=utf-8 --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))

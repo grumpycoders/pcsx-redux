@@ -104,6 +104,12 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  */
 struct TexturedQuad {
     TexturedQuad() : command(0x2d000000) {}
+    TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
+    TexturedQuad& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x2c000000 | c.packed | wasSemiTrans;
+        return *this;
+    }
     TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -118,15 +124,15 @@ struct TexturedQuad {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is not 9 words");
 
@@ -246,18 +252,18 @@ struct GouraudTexturedQuad {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Color colorD;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(GouraudTexturedQuad) == (sizeof(uint32_t) * 12), "GouraudTexturedQuad is not 12 words");
 

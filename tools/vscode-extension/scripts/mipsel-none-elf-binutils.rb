@@ -1,8 +1,9 @@
 class MipselNoneElfBinutils < Formula
   desc "FSF Binutils for mipsel cross development"
   homepage "https://www.gnu.org/software/binutils/"
-  url "https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.gz"
-  sha256 "5d2a6c1d49686a557869caae08b6c2e83699775efd27505e01b2f4db1a024ffc"
+  url "https://ftp.gnu.org/gnu/binutils/binutils-2.43.tar.gz"
+  mirror "https://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.gz"
+  sha256 "025c436d15049076ebe511d29651cc4785ee502965a8839936a65518582bdd64"
 
   depends_on "texinfo" => :build
 

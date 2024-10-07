@@ -38,6 +38,7 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 |[Windows Intel 64-bits CLI](https://distrib.app/pub/org/pcsx-redux/project/dev-win-cli-x64)|
 |[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
 |[MacOS Intel](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-x64)|
+|[MacOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
 
 ### Note:
 The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
@@ -76,7 +77,7 @@ powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 13.2.0
+mips install 14.2.0
 ```
 
 To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:

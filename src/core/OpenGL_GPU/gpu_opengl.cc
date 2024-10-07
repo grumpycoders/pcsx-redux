@@ -29,7 +29,7 @@
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getOpenGL() { return std::unique_ptr<PCSX::GPU>(new PCSX::OpenGL_GPU()); }
 
@@ -1021,8 +1021,6 @@ void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
-
-void PCSX::OpenGL_GPU::write1(CtrlQuery *) {}
 
 // clang-format off
 void PCSX::OpenGL_GPU::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { polyExec(prim); }

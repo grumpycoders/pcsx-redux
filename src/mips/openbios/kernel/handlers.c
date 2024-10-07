@@ -187,7 +187,7 @@ static const void *romA0table[0xc0] = {
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
     GPU_abort, GPU_getStatus, GPU_sync, unimplementedThunk, // 4c
     unimplementedThunk, loadAndExec, unimplementedThunk, unimplementedThunk, // 50
-    initCDRom, unimplementedThunk, deinitCDRom, psxdummy, // 54
+    initCDRom, initBackupUnit, deinitCDRom, psxdummy, // 54
     psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
     dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
     dev_cd_read, psxdummy, dev_cd_firstFile, dev_cd_nextFile, // 60

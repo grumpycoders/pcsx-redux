@@ -200,7 +200,7 @@ class GUI final : public UI {
       private:
         std::map<std::string_view, std::function<void()>> m_customURLs;
     };
-    static void openUrl(const std::string_view &url);
+    static void openUrl(std::string_view url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
     class ScopedOnlyLog {
       public:
@@ -310,6 +310,7 @@ class GUI final : public UI {
     GLuint m_VRAMTexture = 0;
     NVGcontext *m_nvgContext = nullptr;
     std::map<unsigned, void *> m_nvgSubContextes;
+    std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -449,7 +450,7 @@ class GUI final : public UI {
     float m_currentScale = 1.0f;
 
     ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine,
-                     bool isBaseFont);
+                     bool isSymbolsFont);
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};

@@ -33,6 +33,8 @@ SOFTWARE.
 
 namespace psyqo {
 
+class Application;
+
 /**
  * @brief The Kernel namespace for internal use.
  *
@@ -80,10 +82,80 @@ enum class DMA : unsigned {
     Max,
 };
 
+enum class IRQ : unsigned {
+    VBlank,
+    GPU,
+    CDRom,
+    DMA,
+    Timer0,
+    Timer1,
+    Timer2,
+    Controller,
+    SIO,
+    SPU,
+    PIO,
+    Max,
+};
+
 /**
  * @brief Stops the execution of the application.
  */
 [[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
+
+/**
+ * @brief Takes over the kernel. Can only be called once inside the main function.
+ *
+ * @details This function will make psyqo take over the retail kernel.
+ * This means the application will no longer be able to call any of the
+ * kernel functions, and will have to rely on the psyqo kernel instead.
+ * Debugging features from third party addons which hook into the kernel
+ * will no longer work. Most calls to the kernel will either be no-ops or
+ * will crash the application. Most notably, only the `printf` call will
+ * be redirected to psyqo's printf, but will not be printing anywhere, so
+ * only emulators hooking into A0 calls will be able to see the output.
+ *
+ * Disabling the kernel is a one-way operation, and cannot be undone.
+ * The kernel will be taken over before the first call to `prepare`.
+ * The exception handler that psyqo installs will not be able to catch
+ * problems, but is much more lightweight and faster than the retail one.
+ * Also, 60kB of memory can be reclaimed, and linking the binary with
+ * -Xlinker --defsym=TLOAD_ADDR=0x80001000 will allow the application to
+ * do just that. This requires a loader able to write into the kernel
+ * while disabling interrupts. The ps1-packer tool can achieve that.
+ * The first 4kB of memory is reserved for the psyqo kernel.
+ *
+ * It is noteworthy that while the pros of taking over the kernel are
+ * significant, the cons are also significant. The loss of debugging,
+ * flexibility, and retail kernel features may not be worth it for most
+ * application cases, and should be considered carefully.
+ *
+ * Last but not least, like with most psyqo features, the added payload
+ * to the binary to support the feature will only occur if this function
+ * is called.
+ */
+void takeOverKernel();
+
+/**
+ * @brief Returns whether the kernel has been taken over.
+ */
+bool isKernelTakenOver();
+
+/**
+ * @brief Queues an IRQ handler to be called from the exception handler.
+ *
+ * @details This function is used to queue an IRQ handler to be called
+ * from the exception handler when the kernel has been taken over. The
+ * VBlank IRQ is excluded from this function, as it is handled by the
+ * GPU object instead. Also, note that the kernel has its own DMA IRQ
+ * handler, and that the `registerDmaEvent` function should be used
+ * instead of trying to queue a handler for the DMA IRQ. The specified
+ * handler will be called from the exception handler, with the same
+ * restrictions as for any other interrupt handler.
+ *
+ * @param irq The IRQ to handle.
+ * @param lambda The function to call when the IRQ is triggered.
+ */
+void queueIRQHandler(IRQ irq, eastl::function<void()>&& lambda);
 
 /**
  * @brief A C++ wrapper around the `openEvent` syscall.
@@ -92,6 +164,7 @@ enum class DMA : unsigned {
  * for the kernel's OpenEvent call. This will allocate an internal
  * slot, with currently no mechanism to free it. This means that
  * calling `closeEvent` on the resulting event will leak resources.
+ * If psyqo took over the kernel, this function will no longer work.
  */
 uint32_t openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::function<void()>&& lambda);
 
@@ -109,6 +182,14 @@ uint32_t openEvent(uint32_t classId, uint32_t spec, uint32_t mode, eastl::functi
  * @return unsigned A slot id for the given callback.
  */
 unsigned registerDmaEvent(DMA channel, eastl::function<void()>&& lambda);
+
+/**
+ * @brief Flushes the i-cache.
+ *
+ * @details This function is used to flush the i-cache. This is
+ * required when the application has written some code to memory.
+ */
+void flushCache();
 
 /**
  * @brief Enables the given DMA channel.
@@ -155,10 +236,39 @@ void queueCallback(eastl::function<void()>&& lambda);
  */
 void queueCallbackFromISR(eastl::function<void()>&& lambda);
 
+/**
+ * @brief Sets a break handler for a given category.
+ *
+ * @details This function is used to set a break handler for a given
+ * category. The category is technically the upper 10 bits of the break
+ * code, and the handler is a function that takes the lower 10 bits of
+ * the break code. The handler should return true if it handled the
+ * break, and false otherwise. The handler will be called from the
+ * exception handler, with the same restrictions as for any other
+ * interrupt handler. Note that the category is actually limited to
+ * 16 categories by psyqo, from 0 to 15. It is also worth noting that
+ * category 0 is usually reserved for pcdrv, category 7 is reserved
+ * by the compiler to emit division by zero checks, and psyqo uses
+ * category 14 for its own purposes. Only one handler can be set per
+ * category, and trying to set a handler for a category that already
+ * has a handler will cause an assertion failure.
+ *
+ * @param category The category to handle.
+ */
+
+void setBreakHandler(unsigned category, eastl::function<bool(uint32_t)>&& handler);
+
+/**
+ * @brief Queues a break handler for psyqo's reserved category.
+ * 
+ * @param handler The handler to call when a break occurs.
+ */
+void queuePsyqoBreakHandler(eastl::function<bool(uint32_t)> && handler);
+
 namespace Internal {
 void pumpCallbacks();
-void prepare();
-void addInitializer(eastl::function<void()>&& lambda);
+void prepare(Application&);
+void addInitializer(eastl::function<void(Application&)>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
 }  // namespace Internal

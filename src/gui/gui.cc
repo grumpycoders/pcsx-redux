@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {
@@ -96,19 +96,19 @@ __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     std::string storage = std::string(url);
     ShellExecuteA(0, 0, storage.c_str(), 0, 0, SW_SHOW);
 }
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("open {}", url);
     system(cmd.c_str());
 }
 #else
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("xdg-open {}", url);
     system(cmd.c_str());
 }
@@ -171,7 +171,7 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 void LoadImguiBindings(lua_State* lState);
 
 ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine,
-                            bool isBaseFont) {
+                            bool isSymbolsFont) {
     if (!ranges) ranges = io.Fonts->GetGlyphRangesDefault();
 
     const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
@@ -183,26 +183,24 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
 
-    static std::vector<ImWchar> rangesVector;
-
-    if (isBaseFont) {
+    if (isSymbolsFont) {
         for (unsigned i = 0; ranges[i] != 0; i++) {
-            rangesVector.push_back(ranges[i]);
+            m_baseFontRanges.push_back(ranges[i]);
         }
 
-        rangesVector.push_back(0x2190);  // ←: U+2190   ↑: U+2191
-        rangesVector.push_back(0x2193);  // →: U+2192   ↓: U+2193
-        rangesVector.push_back(0x25b3);  // △: U+25B3
-        rangesVector.push_back(0x25b3);
-        rangesVector.push_back(0x25ef);  // ◯: U+25EF
-        rangesVector.push_back(0x25ef);
-        rangesVector.push_back(0x2610);  // ☐: U+2610
-        rangesVector.push_back(0x2610);
-        rangesVector.push_back(0x2715);  // ✕: U+2715
-        rangesVector.push_back(0x2715);
+        m_baseFontRanges.push_back(0x2190);  // ←: U+2190   ↑: U+2191
+        m_baseFontRanges.push_back(0x2193);  // →: U+2192   ↓: U+2193
+        m_baseFontRanges.push_back(0x2573);  // ╳: U+2573
+        m_baseFontRanges.push_back(0x2573);
+        m_baseFontRanges.push_back(0x25a1);  // □: U+25A1
+        m_baseFontRanges.push_back(0x25a1);
+        m_baseFontRanges.push_back(0x25b3);  // △: U+25B3
+        m_baseFontRanges.push_back(0x25b3);
+        m_baseFontRanges.push_back(0x25ef);  // ◯: U+25EF
+        m_baseFontRanges.push_back(0x25ef);
 
-        rangesVector.push_back(0);
-        ranges = rangesVector.data();
+        m_baseFontRanges.push_back(0);
+        ranges = m_baseFontRanges.data();
     }
 
     decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
@@ -820,6 +818,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
+    if (g_system->getArgs().isTestModeEnabled()) return;
     std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
@@ -892,6 +891,7 @@ void PCSX::GUI::startFrame() {
 
     if (m_reloadFonts) {
         m_reloadFonts = false;
+        m_baseFontRanges.clear();
         auto scales = m_allScales;
         if (scales.empty()) scales.emplace(1.0f);
 
@@ -903,13 +903,13 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         for (auto& scale : scales) {
             m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
-                                          io, g_system->getLocaleRanges(), false, true);
+                                          io, g_system->getLocaleRanges(), false, false);
             for (auto e : g_system->getLocaleExtra()) {
                 loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true, false);
             }
             // try loading the japanese font for memory card manager
             m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
-                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, false);
+                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, true);
             m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
                                           io, nullptr, false, false);
         }
@@ -1299,7 +1299,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                     if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
-                        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                        ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
                         constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
                         unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
                         for (auto& e : exceptions) {
@@ -1552,14 +1552,14 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &PCSX::g_emulator->m_cpu->m_regs, _("Registers"));
+        m_registers.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Registers"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), _("Assembly"));
+        m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
-    if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
+    if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
@@ -1953,7 +1953,7 @@ the update and manually apply it.)")));
         L.setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
 
-    FrameMark
+    FrameMark;
 }
 
 bool PCSX::GUI::configure() {
@@ -2294,16 +2294,31 @@ bool PCSX::GUI::about() {
                 if (version.failed()) {
                     ImGui::BeginDisabled();
                 }
-                if (ImGui::Button(_("Copy to clipboard"))) {
-                    clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
-                                               version.version, version.changeset, fmt::localtime(version.timestamp)));
-                }
                 if (version.failed()) {
                     ImGui::EndDisabled();
                     ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
                 } else {
+                    if (ImGui::Button(_("Copy to clipboard"))) {
+                        if (version.buildId.has_value()) {
+                            clip::set_text(
+                                fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                            version.version, version.buildId.value(), version.changeset,
+                                            fmt::localtime(version.timestamp)));
+                        } else {
+                            clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                                       version.version, version.changeset,
+                                                       fmt::localtime(version.timestamp)));
+                        }
+                    }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
-                    ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
+                    if (version.buildId.has_value()) {
+                        ImGui::Text(_("Build: %i"), version.buildId.value());
+                    }
+                    ImGui::TextUnformatted(_("Changeset: "));
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(version.changeset.c_str())) {
+                        openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
+                    }
                     std::tm tm = fmt::localtime(version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());

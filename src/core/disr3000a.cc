@@ -716,7 +716,12 @@ declare(disMTLO) {
  *********************************************************/
 declare(disBREAK) {
     dOpCode("break");
-    Imm32((code >> 6) & 0xfffff);
+    unsigned category = (code >> 16) & 0x3ff;
+    unsigned exCode = (code >> 6) & 0x3ff;
+    Imm16(category);
+    if (exCode != 0) {
+        Imm16(exCode);
+    }
 }
 declare(disRFE) { dOpCode("rfe"); }
 declare(disSYSCALL) {

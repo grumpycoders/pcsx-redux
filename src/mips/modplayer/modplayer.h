@@ -84,7 +84,9 @@ uint32_t MOD_Load(const struct MODFileFormat* module);
 // Returns the number of channels from the module,
 // or 0 if the module is invalid. No relocation is
 // needed, and the sampleData pointer can simply be
-// freed after this call.
+// freed after this call. If sampleData is NULL, the
+// function considers the samples are already loaded
+// in the SPU.
 unsigned MOD_LoadEx(const struct MODFileFormat* module, const uint8_t* sampleData);
 
 // Call this function periodically to play sound. The
