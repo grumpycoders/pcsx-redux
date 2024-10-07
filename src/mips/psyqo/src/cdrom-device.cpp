@@ -199,6 +199,3 @@ bool psyqo::CDRomDevice::ActionBase::end(const Response &) {
     Kernel::abort("Action::end() not implemented - spurious interrupt?");
 }
 
-bool psyqo::CDRomDevice::isIdle() const {
-    return m_state == 0;
-}

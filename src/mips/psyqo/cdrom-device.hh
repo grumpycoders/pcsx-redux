@@ -324,11 +324,10 @@ class CDRomDevice final : public CDRom {
     /**
      * @brief Checks if the CDROM device is in idle state.
      *
-     * @details This assumes that all CDRomDeviceStateEnum have a first enum member
-     * with value 0 which corresponds to the "idle" state
-     *
      */
-    bool isIdle() const;
+    [[nodiscard]] bool isIdle() const {
+        return m_state == 0;
+    }
 
   private:
     void switchAction(ActionBase *action);
