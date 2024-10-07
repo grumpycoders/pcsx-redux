@@ -198,4 +198,3 @@ bool psyqo::CDRomDevice::ActionBase::acknowledge(const Response &) {
 bool psyqo::CDRomDevice::ActionBase::end(const Response &) {
     Kernel::abort("Action::end() not implemented - spurious interrupt?");
 }
-
