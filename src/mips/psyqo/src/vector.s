@@ -31,6 +31,7 @@ SOFTWARE.
     .align 2
     .global psyqoAssemblyExceptionHandler
     .global psyqoExceptionHandler
+    .global psyqoBreakHandler
     .global psyqoExceptionHandlerAdjustFrameCount
     .type psyqoAssemblyExceptionHandler, @function
 
@@ -39,16 +40,19 @@ psyqoAssemblyExceptionHandler:
     sw    $v1, 0x108($0)
     sw    $a0, 0x10c($0)
 
-    mfc0  $a0, $13         /* $a0 = Cause */
+    /* $k0 = hardware registers base, set globally */
+
     mfc0  $k1, $14         /* $k1 = EPC, will stay there until the end */
-    lui   $k0, 0x1f80      /* $k0 = hardware registers base, will stay there until the end */
+    mfc0  $a0, $13         /* $a0 = Cause */
+    li    $at, 0x24        /* Prepare for break test in (a) */
     lw    $v1, 0($k1)      /* $v1 = instruction that caused the exception */
-    andi  $a0, 0x7c        /* Test for what kind of exception */
-.Lstop:                    /* psyqo will only support IRQs, aka 0 */
+    andi  $a0, 0x3c        /* Test for what kind of exception */
+    beq   $a0, $at, .Lbreak /* (a) */
+    li    $at, 0x4a        /* Prepare for cop2 test in (b) */
+.Lstop:                    /* Beyond break, psyqo will only support IRQs, aka 0 */
     bnez  $a0, .Lstop      /* Anything else and we just stop - $a0 available again */
-    srl   $v1, 24          /* \                                      */
-    andi  $v1, 0xfe        /*  | Test if we were in a cop2 operation */
-    li    $at, 0x4a        /* /                                      */
+    srl   $v1, 24          /* |    (b)                               */
+    andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
     lw    $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
     bne   $v1, $at, .LnoCOP2adjustmentNeeded
     nop                    /* $v1 available again */
@@ -57,7 +61,7 @@ psyqoAssemblyExceptionHandler:
     andi  $v1, $a0, 1      /* Is it VBlank ? */
     beqz  $v1, .LnotVBlank
     andi  $v1, $a0, 0xfffe
-    sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $k0, $v1 no longer useful */
+    sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $v1 no longer useful */
 psyqoExceptionHandlerAdjustFrameCount:
     /* Basically self modifying code here... */
     lui   $v1, 0
@@ -72,7 +76,15 @@ psyqoExceptionHandlerAdjustFrameCount:
     jr    $k1              /* Exit the exception handler */
     rfe
 
+.Lbreak:
+    srl   $a0, $v1, 6
+    la    $v1, psyqoBreakHandler
+    b     .LcallCPlusPlus
+    addiu $k1, 4
+
 .LnotVBlank:
+    la    $v1, psyqoExceptionHandler
+.LcallCPlusPlus:
     /* We want to call into C++ now, so we need to save the rest of the registers */
     sw    $v0, 0x104($0)
     sw    $a1, 0x110($0)
@@ -91,8 +103,8 @@ psyqoExceptionHandlerAdjustFrameCount:
     sw    $sp, 0x148($0)
     sw    $ra, 0x14c($0)
 
-    /* Call the C++ exception handler while adjusting the stack */
-    jal   psyqoExceptionHandler
+    /* Call the C++ exception or break handler while adjusting the stack */
+    jalr  $v1
     li    $sp, 0x1000 - 16
     /* Acknowledge all IRQs */
     sw    $0, 0x1070($k0)

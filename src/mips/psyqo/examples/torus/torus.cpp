@@ -141,10 +141,10 @@ struct TorusTemplate {
             psyqo::GTE::write<psyqo::GTE::Register::IR3, psyqo::GTE::Safe>(reinterpret_cast<uint32_t*>(&t.z.value));
             psyqo::GTE::Kernels::cp();
             // The result is stored in the LV register, so first we simply read it.
-            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(&cp);
+            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(cp);
             // Then we square LV to get the square of the length of the normal.
             psyqo::GTE::Kernels::sqr();
-            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(&sq);
+            psyqo::GTE::read<psyqo::GTE::PseudoRegister::LV>(sq);
             // We still need to add the three components of the square.
             auto square = sq.x + sq.y + sq.z;
             // Finally, we compute the square root of the square of the length of the normal.
@@ -385,7 +385,7 @@ class TorusScene final : public psyqo::Scene {
         auto amplitude = torusDemo.m_trig.sin(ripple) * 0.6_fp;
         unsigned index = 0;
         for (psyqo::Angle outside = 0; outside < 2.0_pi; outside += incrementOutside) {
-            auto rot = psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, &torusDemo.m_trig);
+            auto rot = psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, torusDemo.m_trig);
             psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(rot);
             psyqo::FixedPoint<> rippleAmplitude = amplitude * torusDemo.m_trig.sin(outside * 5 + ripple * 8) + 1.5_fp;
             for (psyqo::Angle inside = 0; inside < 2.0_pi; inside += incrementInside) {
@@ -560,11 +560,11 @@ void TorusScene::frame() {
     // These matrix multiplications are done in software, and they're not particularly fast, but it's done only once per
     // frame, so it's not really a problem. The computation could be accelerated using the GTE however, but we're not
     // starving for CPU at this point, so it's all good.
-    auto transform = psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, &torusDemo.m_trig);
-    auto rot = psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, &torusDemo.m_trig);
-    psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
-    psyqo::SoftMath::generateRotationMatrix33(&rot, m_angleZ, psyqo::SoftMath::Axis::Z, &torusDemo.m_trig);
-    psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
+    auto transform = psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, torusDemo.m_trig);
+    auto rot = psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, torusDemo.m_trig);
+    psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
+    psyqo::SoftMath::generateRotationMatrix33(&rot, m_angleZ, psyqo::SoftMath::Axis::Z, torusDemo.m_trig);
+    psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
     psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(transform);
 
     // All these will be reused multiple times over the course of the frame.
@@ -665,8 +665,8 @@ void TorusScene::frame() {
     // shadow texture, and we multiply it by a 90 degree rotation around the X axis, as the platform is going to be
     // rendered visually underneath the torus. This will make the appearance that everything has been projected
     // properly, but it's all just a visual trick.
-    psyqo::SoftMath::generateRotationMatrix33(&rot, 0.5_pi, psyqo::SoftMath::Axis::X, &torusDemo.m_trig);
-    psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
+    psyqo::SoftMath::generateRotationMatrix33(&rot, 0.5_pi, psyqo::SoftMath::Axis::X, torusDemo.m_trig);
+    psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
     psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(transform);
 
     // At this point, our background DMA chain has most likely finished. At some point, we want to send
@@ -705,13 +705,13 @@ void TorusScene::frame() {
         psyqo::Vec3 v1 = m_tori[animationIndex].normals[i + 1];
         psyqo::Vec3 v2 = m_tori[animationIndex].normals[i + 2];
         psyqo::GTE::Kernels::rtpt();
-        auto sz = -psyqo::SoftMath::matrixVecMul3z(&transform, &v0);
+        auto sz = -psyqo::SoftMath::matrixVecMul3z(transform, v0);
         int32_t z = sz.integer<256>() - 1;
         zNormal[i + 0] = eastl::clamp(z, int32_t(0), int32_t(255));
-        sz = -psyqo::SoftMath::matrixVecMul3z(&transform, &v1);
+        sz = -psyqo::SoftMath::matrixVecMul3z(transform, v1);
         z = sz.integer<256>() - 1;
         zNormal[i + 1] = eastl::clamp(z, int32_t(0), int32_t(255));
-        sz = -psyqo::SoftMath::matrixVecMul3z(&transform, &v2);
+        sz = -psyqo::SoftMath::matrixVecMul3z(transform, v2);
         z = sz.integer<256>() - 1;
         zNormal[i + 2] = eastl::clamp(z, int32_t(0), int32_t(255));
         psyqo::GTE::read<psyqo::GTE::Register::SXY0>(&projected[i + 0].packed);
@@ -725,7 +725,7 @@ void TorusScene::frame() {
         psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_tori[animationIndex].vertices[i]);
         psyqo::Vec3 v = m_tori[animationIndex].normals[i];
         psyqo::GTE::Kernels::rtps();
-        auto sz = -psyqo::SoftMath::matrixVecMul3z(&transform, &v);
+        auto sz = -psyqo::SoftMath::matrixVecMul3z(transform, v);
         int32_t z = sz.integer<256>() - 1;
         zNormal[i] = eastl::clamp(z, int32_t(0), int32_t(255));
         psyqo::GTE::read<psyqo::GTE::Register::SXY2>(&projected[i].packed);

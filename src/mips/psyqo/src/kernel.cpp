@@ -30,11 +30,13 @@ SOFTWARE.
 #include <EASTL/atomic.h>
 #include <EASTL/bonus/fixed_ring_buffer.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/functional.h>
 #include <stdint.h>
 
 #include "common/hardware/dma.h"
 #include "common/hardware/pcsxhw.h"
 #include "common/kernel/events.h"
+#include "common/kernel/threads.h"
 #include "common/syscalls/syscalls.h"
 #include "common/util/encoder.hh"
 #include "psyqo/application.hh"
@@ -84,7 +86,29 @@ int printfStub(const char* fmt, ...) {
     return r;
 }
 
+eastl::array<eastl::function<bool(uint32_t)>, 16> s_breakHandlers;
+eastl::fixed_vector<eastl::function<bool(uint32_t)>, 4> s_psyqoBreakHandlers;
+
+bool handleBreak(uint32_t code) {
+    unsigned category = code >> 10;
+    if (category >= 16) return false;
+    code &= 0x3ff;
+    auto& handler = s_breakHandlers[category];
+    if (handler) return handler(code);
+    return false;
+}
+
 }  // namespace
+
+void psyqo::Kernel::setBreakHandler(unsigned category, eastl::function<bool(uint32_t)>&& handler) {
+    Kernel::assert(category < 16, "setBreakHandler: invalid category");
+    Kernel::assert(s_breakHandlers[category] == nullptr, "setBreakHandler: category already has a handler");
+    s_breakHandlers[category] = eastl::move(handler);
+}
+
+void psyqo::Kernel::queuePsyqoBreakHandler(eastl::function<bool(uint32_t)>&& handler) {
+    s_psyqoBreakHandlers.push_back(eastl::move(handler));
+}
 
 bool psyqo::Kernel::isKernelTakenOver() { return s_tookOverKernel; }
 
@@ -98,6 +122,11 @@ void psyqoExceptionHandler(uint32_t ireg) {
         auto& handlers = s_irqHandlersStorage[irq];
         for (auto& handler : handlers) handler();
     }
+}
+void psyqoBreakHandler(uint32_t code) {
+    if (handleBreak(code)) return;
+    ramsyscall_printf("Unhandled break: %08x\n", code);
+    psyqo::Kernel::abort("Unhandled break");
 }
 void psyqoAssemblyExceptionHandler();
 }
@@ -296,9 +325,31 @@ void psyqo::Kernel::Internal::prepare(Application& application) {
         syscall_enqueueRCntIrqs(1);
         uint32_t event = syscall_openEvent(EVENT_DMA, 0x1000, EVENT_MODE_CALLBACK, dmaIRQ);
         syscall_enableEvent(event);
+        event = syscall_openEvent(0xf0000010, 0x1000, EVENT_MODE_CALLBACK, []() {
+            Process* processes = *reinterpret_cast<Process**>(0x108);
+            Thread* currentThread = processes[0].thread;
+            unsigned exCode = currentThread->registers.Cause & 0x3c;
+            if (exCode != 0x24) return;
+            unsigned code = *reinterpret_cast<uint32_t*>(currentThread->registers.returnPC) >> 6;
+            if (handleBreak(code)) {
+                currentThread->registers.returnPC += 4;
+                syscall_returnFromException();
+            }
+        });
+        syscall_enableEvent(event);
     } else {
+        // Our exception handler will expect $k0 to be set to 0x1f80,
+        // in order to have a fast access to the hardware registers.
+        __asm__ __volatile__("lui $k0, 0x1f80");
         queueIRQHandler(IRQ::DMA, dmaIRQ);
     }
+    setBreakHandler(14, [](uint32_t code) {
+        for (auto& handler : s_psyqoBreakHandlers) {
+            if (handler(code)) return true;
+        }
+        ramsyscall_printf("Unhandled psyqo break: %08x\n", code);
+        return false;
+    });
     Hardware::CPU::IMask.set(Hardware::CPU::IRQ::DMA);
     dicr = Hardware::CPU::DICR;
     dicr &= 0xffffff;

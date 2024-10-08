@@ -63,7 +63,7 @@ static __attribute__((always_inline)) size_t syscall_write(int fd, const void *b
     return ((size_t (*)(int, const void *, size_t))0xa0)(fd, buf, size);
 }
 
-static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf *buf) {
+static __attribute__((always_inline, returns_twice)) int syscall_setjmp(struct JmpBuf *buf) {
     register int n asm("t1") = 0x13;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)(struct JmpBuf * buf))0xa0)(buf);

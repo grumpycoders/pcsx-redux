@@ -30,6 +30,12 @@ SOFTWARE.
 #include <concepts>
 #include <version>
 
+#ifdef _MSC_VER
+#define POLYFILL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define POLYFILL_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 namespace PCSX {
 
 namespace PolyFill {

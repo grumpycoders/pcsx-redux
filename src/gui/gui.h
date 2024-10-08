@@ -76,6 +76,9 @@ struct NVGcontext;
 
 namespace PCSX {
 
+class GUI;
+extern GUI *g_gui;
+
 enum class LogClass : unsigned;
 
 class GUI final : public UI {
@@ -160,12 +163,11 @@ class GUI final : public UI {
         settings;
 
     // imgui can't handle more than one "instance", so...
-    static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        s_gui->glfwKeyCallback(window, key, scancode, action, mods);
+        g_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
@@ -210,12 +212,12 @@ class GUI final : public UI {
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
     GUI() : m_listener(g_system->m_eventBus) {
-        assert(s_gui == nullptr);
-        s_gui = this;
+        assert(g_gui == nullptr);
+        g_gui = this;
     }
     ~GUI() {
-        assert(s_gui == this);
-        s_gui = nullptr;
+        assert(g_gui == this);
+        g_gui = nullptr;
     }
     void init(std::function<void()> applyArguments) override;
     void setLua(Lua L);
@@ -410,14 +412,20 @@ class GUI final : public UI {
 
     EventBus::Listener m_listener;
 
-    std::string buildSaveStateFilename(int i);
-    bool saveStateExists(std::filesystem::path filename);
-
   public:
-    void saveSaveState(std::filesystem::path filename);
-    void loadSaveState(std::filesystem::path filename);
+    bool saveSaveState(std::filesystem::path filename);
+    bool loadSaveState(std::filesystem::path filename);
+    bool deleteSaveState(std::filesystem::path filename);
+    bool saveSaveStateSlot(uint32_t slot);
+    bool loadSaveStateSlot(uint32_t slot);
+    bool deleteSaveStateSlot(uint32_t slot);
     std::string getSaveStatePrefix(bool includeSeparator);
     static std::string getSaveStatePostfix();
+    bool getSaveStateExists(uint32_t slot);
+    std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates();
+    std::string buildSaveStateFilename(int i);
+    std::string buildSaveStateFilename(std::string name);
+    bool saveStateExists(std::filesystem::path filename);
 
   private:
     void applyTheme(int theme);

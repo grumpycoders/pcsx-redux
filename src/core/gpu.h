@@ -36,6 +36,7 @@
 #include "support/file.h"
 #include "support/list.h"
 #include "support/opengl.h"
+#include "support/polyfills.h"
 #include "support/slice.h"
 
 namespace PCSX {
@@ -291,7 +292,7 @@ class GPU {
     };
     enum class TexDepth { Tex4Bits, Tex8Bits, Tex16Bits };
 
-    struct Empty {};
+    struct EmptyColor {};
 
     struct ClearCache final : public Logged {
         std::string_view getName() override { return "Clear Cache"; }
@@ -546,12 +547,22 @@ class GPU {
         }
         uint32_t colors[count];
         int x[count], y[count];
+        struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]] TextureUnitType u[count];
-        [[no_unique_address]] TextureUnitType v[count];
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        struct EmptyU {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyU>::type TextureUnitTypeU;
+        struct EmptyV {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyV>::type TextureUnitTypeV;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeU u[count];
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeV v[count];
+        struct EmptyTPage {};
+        POLYFILL_NO_UNIQUE_ADDRESS typename std::conditional<textured == Textured::Yes, TPage, EmptyTPage>::type tpage;
+        struct EmptyTWindow {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, TWindow, EmptyTWindow>::type twindow;
+        struct EmptyClutRAW {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, uint16_t, EmptyClutRAW>::type clutraw;
         DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {
@@ -620,7 +631,9 @@ class GPU {
 
       private:
         GPUStats stats;
-        [[no_unique_address]] typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
+        struct Empty {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
         enum { READ_COLOR, READ_XY } m_state = READ_COLOR;
     };
 
@@ -641,15 +654,25 @@ class GPU {
         }
 
         int x, y, w, h;
+        struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]]
-        typename std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t, Empty>::type
-            color;
-        [[no_unique_address]] TextureUnitType u;
-        [[no_unique_address]] TextureUnitType v;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        struct EmptyU {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyU>::type TextureUnitTypeU;
+        struct EmptyV {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyV>::type TextureUnitTypeV;
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t,
+                                  EmptyColor>::type color;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeU u;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeV v;
+        struct EmptyTPage {};
+        POLYFILL_NO_UNIQUE_ADDRESS typename std::conditional<textured == Textured::Yes, TPage, EmptyTPage>::type tpage;
+        struct EmptyTWindow {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, TWindow, EmptyTWindow>::type twindow;
+        struct EmptyClutRAW {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, uint16_t, EmptyClutRAW>::type clutraw;
         DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {

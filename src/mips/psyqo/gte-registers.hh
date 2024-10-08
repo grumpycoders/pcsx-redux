@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 #include "psyqo/fixed-point.hh"
@@ -252,7 +254,9 @@ enum class PseudoRegister {
     V1, /* pseudo register for full Vector 1, mapped to registers VXY1 and VZ1 */
     V2, /* pseudo register for full Vector 2, mapped to registers VXY2 and VZ2 */
     SV, /* pseudo register for full 16bit Accumulator Vector, mapped to registers IR1-IR3 */ 
-    LV /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
+    LV, /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
+    Translation, /* pseudo register for full Translation vector, mapped to registers TRX-TRZ */
+    ScreenOffset, /* pseudo register for full Screen offset, mapped to registers OFX and OFY */
 };
 
 /**
@@ -292,6 +296,18 @@ static inline void writeSafe(const Vec3& in) {
 }
 
 /**
+ * @brief Write a 2D vector to a GTE pseudo register, adding nops after the
+ * operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeSafe(const Vec2& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
  * @brief Write a 3D vector to a GTE pseudo register, without adding nops after
  * the operation.
  *
@@ -300,6 +316,18 @@ static inline void writeSafe(const Vec3& in) {
  */
 template <PseudoRegister reg, bool valid = false>
 static inline void writeUnsafe(const Vec3& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
+ * @brief Write a 2D vector to a GTE pseudo register, without adding nops after
+ * the operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeUnsafe(const Vec2& in) {
     static_assert(valid, "Unable to write vector to pseudo register");
 }
 
@@ -389,7 +417,13 @@ static inline PackedVec3 readUnsafe() {
 }
 
 template <PseudoRegister reg, bool valid = false>
-static inline void read(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] static inline void read(Vec3* ptr) {
+    static_assert(valid, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
+}
+
+template <PseudoRegister reg, bool valid = false>
+static inline void read(Vec3& vec) {
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
@@ -807,6 +841,19 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
+inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRX, Unsafe>(in.y.raw());
+    write<Register::TRZ, Safe>(in.z.raw());
+}
+
+template <>
+inline void writeSafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Safe>(in.y.raw());
+}
+
+template <>
 inline void writeUnsafe<PseudoRegister::Rotation>(const Matrix33& in) {
     writeUnsafe<Register::R11R12>(Short(in.vs[0].x), Short(in.vs[0].y));
     writeUnsafe<Register::R13R21>(Short(in.vs[0].z), Short(in.vs[1].x));
@@ -852,6 +899,19 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
+inline void writeUnsafe<PseudoRegister::Translation>(const Vec3& in) {
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRY, Unsafe>(in.y.raw());
+    write<Register::TRZ, Unsafe>(in.z.raw());
+}
+
+template <>
+inline void writeUnsafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Unsafe>(in.y.raw());
+}
+
+template <>
 inline PackedVec3 readSafe<PseudoRegister::SV>() {
     return PackedVec3(Short(readRaw<Register::IR1, Safe>(), Short::RAW),
                       Short(readRaw<Register::IR2, Safe>(), Short::RAW),
@@ -880,10 +940,17 @@ inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
 }
 
 template <>
-inline void read<PseudoRegister::LV>(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] inline void read<PseudoRegister::LV>(Vec3* ptr) {
     read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr->x));
     read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr->y));
     read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr->z));
+}
+
+template <>
+inline void read<PseudoRegister::LV>(Vec3& ptr) {
+    read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr.x));
+    read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr.y));
+    read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr.z));
 }
 
 }  // namespace GTE

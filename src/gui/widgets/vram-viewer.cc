@@ -421,7 +421,9 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
-    ImGui::ImageButton(reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR, 0);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::ImageButton("vram", reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR);
+    ImGui::PopStyleVar();
     if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;
     }
@@ -530,7 +532,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
         glUniform1f(m_attribLocationMagnifyAmount, m_magnifyAmount);
     }
     glUniform1f(m_attribLocationMagnifyRadius, m_magnifyRadius);
-    glUniform1i(m_attribLocationDrawGrid, 1);
+    glUniform1i(m_attribLocationDrawGrid, m_drawGrid);
     glUniform4f(m_attribLocationPixelGridColor, m_pixelGridColor.x, m_pixelGridColor.y, m_pixelGridColor.z,
                 m_pixelGridColor.w);
     glUniform4f(m_attribLocationTPageGridColor, m_tpageGridColor.x, m_tpageGridColor.y, m_tpageGridColor.z,

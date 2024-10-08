@@ -158,17 +158,17 @@ class FontBase {
         Prim::TPage tpage;
     };
     typedef Fragments::FixedFragmentWithPrologue<GlyphsFragmentPrologue, Prim::Sprite, 48> GlyphsFragment;
-    virtual GlyphsFragment& getGlyphFragment(bool increment) = 0;
+    virtual GlyphsFragment* getGlyphFragment(bool increment) = 0;
     virtual void forEach(eastl::function<void(GlyphsFragment&)>&& cb) = 0;
 
-    void innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color);
-    void innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color);
-    void innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
+    void innerprint(GlyphsFragment* fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color);
+    void innerprint(GlyphsFragment* fragment, GPU& gpu, const char* text, Vertex pos, Color color);
+    void innervprintf(GlyphsFragment* fragment, GPU& gpu, Vertex pos, Color color, const char* format, va_list ap);
 
   private:
     struct XPrintfInfo;
     GlyphsFragment& printToFragment(GPU& gpu, const char* text, Vertex pos, Color color);
-    eastl::array<Prim::TexInfo, 224> m_lut;
+    eastl::array<PrimPieces::TexInfo, 224> m_lut;
     Vertex m_glyphSize;
 
     friend struct XPrintfInfo;
@@ -180,8 +180,8 @@ class Font : public FontBase {
     virtual ~Font() { static_assert(N > 0, "Needs to have at least one fragment"); }
 
   private:
-    virtual GlyphsFragment& getGlyphFragment(bool increment) override {
-        auto& fragment = m_fragments[m_index];
+    virtual GlyphsFragment* getGlyphFragment(bool increment) override {
+        auto fragment = &m_fragments[m_index];
         if (increment) {
             if (++m_index == N) {
                 m_index = 0;

@@ -36,7 +36,7 @@ namespace Prim {
 
 struct TPage {
     TPage() : command(0xe100) {}
-    TPageAttr attr;
+    PrimPieces::TPageAttr attr;
 
   private:
     uint16_t command;
