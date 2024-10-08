@@ -50,7 +50,7 @@ class ReadSectorsAction : public psyqo::CDRomDevice::Action<ReadSectorsActionSta
     ReadSectorsAction() : Action("ReadSectorsAction") {}
     void start(psyqo::CDRomDevice *device, uint32_t sector, uint32_t count, void *buffer,
                eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(getState() == ReadSectorsActionState::IDLE,
+        psyqo::Kernel::assert(device->isIdle(),
                               "CDRomDevice::readSectors() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));

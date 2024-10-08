@@ -321,6 +321,14 @@ class CDRomDevice final : public CDRom {
         S getState() const { return static_cast<S>(m_device->m_state); }
     };
 
+    /**
+     * @brief Checks if the CDROM device is in idle state.
+     *
+     */
+    [[nodiscard]] bool isIdle() const {
+        return m_state == 0;
+    }
+
   private:
     void switchAction(ActionBase *action);
     void irq();

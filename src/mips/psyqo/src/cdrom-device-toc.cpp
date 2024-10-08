@@ -43,7 +43,7 @@ class GetTNAction : public psyqo::CDRomDevice::Action<GetTNActionEnum> {
   public:
     GetTNAction() : Action("GetTNAction") {}
     void start(psyqo::CDRomDevice *device, unsigned *size, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(getState() == GetTNActionEnum::IDLE,
+        psyqo::Kernel::assert(device->isIdle(),
                               "CDRomDevice::getTOCSize() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
@@ -100,7 +100,7 @@ class ReadTOCAction : public psyqo::CDRomDevice::Action<ReadTOCActionState> {
   public:
     ReadTOCAction() : Action("ReadTOCAction") {}
     void start(psyqo::CDRomDevice *device, psyqo::MSF *toc, unsigned size, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(getState() == ReadTOCActionState::IDLE,
+        psyqo::Kernel::assert(device->isIdle(),
                               "CDRomDevice::readTOC() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
