@@ -1079,19 +1079,9 @@ void PCSX::GPU::Logged::drawColorBox(uint32_t color, unsigned itemIndex, unsigne
     auto R = (color >> 0) & 0xff;
     auto G = (color >> 8) & 0xff;
     auto B = (color >> 16) & 0xff;
-    ImGui::TextUnformatted("  ");
-    ImGuiWindow *window = ImGui::GetCurrentWindow();
-    if (!window->SkipItems) {
-        const auto borderSize = 1.0f;
-        const auto boxSize = ImGui::GetTextLineHeight();
-        const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2{boxSize, boxSize});
-        ImGui::ItemSize(bb);
-        if (ImGui::ItemAdd(bb, 0)) {
-            ImVec4 color{R / 255.0f, G / 255.0f, B / 255.0f, 1.0f};
-            window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(color));
-            window->DrawList->AddRect(bb.Min, bb.Max, ImGui::GetColorU32({1.0f, 1.0f, 1.0f, 1.0f}));
-        }
-    }
+    ImGui::ColorButton(fmt::format("##ColorBox%i%i", itemIndex, colorIndex).c_str(),
+                       ImVec4{R / 255.0f, G / 255.0f, B / 255.0f, 1.0f}, ImGuiColorEditFlags_NoAlpha);
+
     switch (settings.colorFormat) {
         case DrawLogSettings::ColorFormat::None:
             break;

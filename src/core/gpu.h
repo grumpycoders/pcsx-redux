@@ -156,8 +156,8 @@ class GPU {
         enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
         enum class PixelOp { READ, WRITE };
         struct DrawLogSettings {
-            enum class ColorFormat { HTML, None, Expanded };
-            ColorFormat colorFormat = ColorFormat::HTML;
+            enum class ColorFormat { Expanded, HTML, None };
+            ColorFormat colorFormat = ColorFormat::Expanded;
         };
 
         typedef std::function<void(OpenGL::ivec2, OpenGL::ivec2, OpenGL::ivec2)> AddTri;
