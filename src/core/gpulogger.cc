@@ -259,28 +259,28 @@ PCSX::GPU::CtrlDisplayMode::CtrlDisplayMode(uint32_t value) {
     widthRaw = ((value >> 6) & 1) | ((value & 3) << 1);
 }
 
-void PCSX::GPU::ClearCache::drawLogNode(unsigned n) {}
+void PCSX::GPU::ClearCache::drawLogNode(unsigned, const DrawLogSettings&) {}
 
-void PCSX::GPU::FastFill::drawLogNode(unsigned n) {
-    ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+void PCSX::GPU::FastFill::drawLogNode(unsigned itemIndex, const DrawLogSettings& settings) {
+    drawColorBox(color, itemIndex, 0, settings);
     ImGui::Separator();
     ImGui::Text("  X0: %i, Y0: %i", x, y);
     ImGui::Text("  X1: %i, Y1: %i", x + w, y + h);
     ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::BlitVramVram::drawLogNode(unsigned n) {
+void PCSX::GPU::BlitVramVram::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::Text("  From X: %i, Y: %i", sX, sY);
     ImGui::Text("  To X: %i, Y: %i", dX, dY);
     ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::BlitRamVram::drawLogNode(unsigned n) {
+void PCSX::GPU::BlitRamVram::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::Text("  X: %i, Y: %i", x, y);
     ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::BlitVramRam::drawLogNode(unsigned n) {
+void PCSX::GPU::BlitVramRam::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::Text("  X: %i, Y: %i", x, y);
     ImGui::Text("  W: %i, H: %i", w, h);
 }
@@ -318,31 +318,31 @@ void PCSX::GPU::TPage::drawLogNodeCommon() {
     }
 }
 
-void PCSX::GPU::TPage::drawLogNode(unsigned n) {
+void PCSX::GPU::TPage::drawLogNode(unsigned, const DrawLogSettings&) {
     drawLogNodeCommon();
     ImGui::Text(_("Dithering: %s"), dither ? _("Yes") : _("No"));
 }
 
-void PCSX::GPU::TWindow::drawLogNode(unsigned n) {
+void PCSX::GPU::TWindow::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::Text("  X: %i, Y: %i", x, y);
     ImGui::Text("  W: %i, H: %i", w, h);
 }
 
-void PCSX::GPU::DrawingAreaStart::drawLogNode(unsigned n) { ImGui::Text("  X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingAreaStart::drawLogNode(unsigned, const DrawLogSettings&) { ImGui::Text("  X: %i, Y: %i", x, y); }
 
-void PCSX::GPU::DrawingAreaEnd::drawLogNode(unsigned n) { ImGui::Text("  X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingAreaEnd::drawLogNode(unsigned, const DrawLogSettings&) { ImGui::Text("  X: %i, Y: %i", x, y); }
 
-void PCSX::GPU::DrawingOffset::drawLogNode(unsigned n) { ImGui::Text("  X: %i, Y: %i", x, y); }
+void PCSX::GPU::DrawingOffset::drawLogNode(unsigned, const DrawLogSettings&) { ImGui::Text("  X: %i, Y: %i", x, y); }
 
-void PCSX::GPU::MaskBit::drawLogNode(unsigned n) {
+void PCSX::GPU::MaskBit::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::Text(_("  Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
 }
 
-void PCSX::GPU::CtrlReset::drawLogNode(unsigned n) {}
-void PCSX::GPU::CtrlClearFifo::drawLogNode(unsigned n) {}
-void PCSX::GPU::CtrlIrqAck::drawLogNode(unsigned n) {}
+void PCSX::GPU::CtrlReset::drawLogNode(unsigned, const DrawLogSettings&) {}
+void PCSX::GPU::CtrlClearFifo::drawLogNode(unsigned, const DrawLogSettings&) {}
+void PCSX::GPU::CtrlIrqAck::drawLogNode(unsigned, const DrawLogSettings&) {}
 
-void PCSX::GPU::CtrlDisplayEnable::drawLogNode(unsigned n) {
+void PCSX::GPU::CtrlDisplayEnable::drawLogNode(unsigned, const DrawLogSettings&) {
     if (enable) {
         ImGui::TextUnformatted(_("Display Enabled"));
     } else {
@@ -350,7 +350,7 @@ void PCSX::GPU::CtrlDisplayEnable::drawLogNode(unsigned n) {
     }
 }
 
-void PCSX::GPU::CtrlDmaSetting::drawLogNode(unsigned n) {
+void PCSX::GPU::CtrlDmaSetting::drawLogNode(unsigned, const DrawLogSettings&) {
     switch (dma) {
         case Dma::Off:
             ImGui::TextUnformatted(_("DMA Off"));
@@ -367,11 +367,15 @@ void PCSX::GPU::CtrlDmaSetting::drawLogNode(unsigned n) {
     }
 }
 
-void PCSX::GPU::CtrlDisplayStart::drawLogNode(unsigned n) { ImGui::Text("  X: %i, Y: %i", x, y); }
-void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode(unsigned n) { ImGui::Text("  X0: %i, X1: %i", x0, x1); }
-void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode(unsigned n) { ImGui::Text("  Y0: %i, Y1: %i", y0, y1); }
+void PCSX::GPU::CtrlDisplayStart::drawLogNode(unsigned, const DrawLogSettings&) { ImGui::Text("  X: %i, Y: %i", x, y); }
+void PCSX::GPU::CtrlHorizontalDisplayRange::drawLogNode(unsigned, const DrawLogSettings&) {
+    ImGui::Text("  X0: %i, X1: %i", x0, x1);
+}
+void PCSX::GPU::CtrlVerticalDisplayRange::drawLogNode(unsigned, const DrawLogSettings&) {
+    ImGui::Text("  Y0: %i, Y1: %i", y0, y1);
+}
 
-void PCSX::GPU::CtrlDisplayMode::drawLogNode(unsigned n) {
+void PCSX::GPU::CtrlDisplayMode::drawLogNode(unsigned, const DrawLogSettings&) {
     ImGui::TextUnformatted(_("Horizontal resolution:"));
     ImGui::SameLine();
     switch (hres) {
@@ -410,7 +414,7 @@ void PCSX::GPU::CtrlDisplayMode::drawLogNode(unsigned n) {
     ImGui::Text(_("Interlaced: %s"), interlace ? _("Yes") : _("No"));
 }
 
-void PCSX::GPU::CtrlQuery::drawLogNode(unsigned n) {
+void PCSX::GPU::CtrlQuery::drawLogNode(unsigned, const DrawLogSettings&) {
     switch (type()) {
         case QueryType::TextureWindow:
             ImGui::TextUnformatted(_("Texture Window"));

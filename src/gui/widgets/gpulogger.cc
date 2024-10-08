@@ -40,9 +40,32 @@ PCSX::Widgets::GPULogger::GPULogger(bool& show) : m_show(show), m_listener(g_sys
 }
 
 void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) {
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return;
+    }
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("Settings"))) {
+            auto& colorFormat = m_settings.colorFormat;
+            if (ImGui::BeginMenu(_("Color Format"))) {
+                if (ImGui::MenuItem(_("None"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::None)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::None;
+                }
+                if (ImGui::MenuItem(_("Expanded"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::Expanded)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::Expanded;
+                }
+                if (ImGui::MenuItem(_("HTML"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::HTML)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::HTML;
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
     }
 
     if (ImGui::Checkbox(_("GPU logging"), &logger->m_enabled)) {
@@ -230,7 +253,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         if (expandAll || m_expandAll) ImGui::SetNextItemOpen(true);
         label = fmt::format("{}##node{}", logged.getName(), n);
         if (ImGui::TreeNode(label.c_str())) {
-            logged.drawLogNode(n);
+            logged.drawLogNode(n, m_settings);
             ImGui::TreePop();
         }
         ImGui::EndGroup();

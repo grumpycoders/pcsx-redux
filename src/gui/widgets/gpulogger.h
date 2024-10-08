@@ -23,6 +23,7 @@
 
 #include <limits>
 
+#include "core/gpu.h"
 #include "support/eventbus.h"
 
 namespace PCSX {
@@ -55,6 +56,7 @@ class GPULogger {
     bool m_filterEnabled = false;
     bool m_filterProbing = false;
     EventBus::Listener m_listener;
+    GPU::Logged::DrawLogSettings m_settings;
 };
 
 }  // namespace Widgets
