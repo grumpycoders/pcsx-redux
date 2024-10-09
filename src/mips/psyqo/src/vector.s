@@ -53,20 +53,19 @@ psyqoAssemblyExceptionHandler:
     bnez  $a0, .Lstop      /* Anything else and we just stop - $a0 available again */
     srl   $v1, 24          /* |    (b)                               */
     andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
-    lw    $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
+    lhu   $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
     bne   $v1, $at, .LnoCOP2adjustmentNeeded
-    andi  $v1, $a0, 1      /* Preparing for IRQ test in (c), for VBlank */
+    andi  $v1, $a0, 0xfffe      /* Preparing for IRQ test in (c), for VBlank */
     addiu $k1, 4           /* If we were in cop2, we need to adjust our EPC */
 .LnoCOP2adjustmentNeeded:
-    beqz  $v1, .LnotVBlank /* (c) */
-    andi  $v1, $a0, 0xfffe
+	beq   $v1, $a0, .LnotVBlank    /* (c) */
+    lw    $at, 0x100($0)   /* Load the old at */
     sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $v1 no longer useful */
 psyqoExceptionHandlerAdjustFrameCount:
     /* Basically self modifying code here... */
     lui   $v1, 0
     /* ... here... */
     lw    $a0, 0($v1)      /* $a0 = m_frameCount */
-    lw    $at, 0x100($0)   /* Load the old at */
     addiu $a0, 1           /* Increment m_frameCount */
     /* ... and here. */
     sw    $a0, 0($v1)      /* Store m_frameCount */
