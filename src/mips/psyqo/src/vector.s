@@ -55,11 +55,10 @@ psyqoAssemblyExceptionHandler:
     andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
     lw    $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
     bne   $v1, $at, .LnoCOP2adjustmentNeeded
-    nop                    /* $v1 available again */
+    andi  $v1, $a0, 1      /* Preparing for IRQ test in (c), for VBlank */
     addiu $k1, 4           /* If we were in cop2, we need to adjust our EPC */
 .LnoCOP2adjustmentNeeded:
-    andi  $v1, $a0, 1      /* Is it VBlank ? */
-    beqz  $v1, .LnotVBlank
+    beqz  $v1, .LnotVBlank /* (c) */
     andi  $v1, $a0, 0xfffe
     sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $v1 no longer useful */
 psyqoExceptionHandlerAdjustFrameCount:
