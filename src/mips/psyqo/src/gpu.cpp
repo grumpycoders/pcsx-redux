@@ -147,6 +147,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 uint32_t count = head >> 24;
                 if (count > (c_chainThreshold / 4)) {
                     // next one still too big
+                    head &= 0xffffff;
                     m_chainNext = head == 0xff0000 ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
                     scheduleNormalDMA(reinterpret_cast<uintptr_t>(chainNext) + 4, count);
                 } else {
