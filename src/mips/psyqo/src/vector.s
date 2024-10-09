@@ -59,13 +59,13 @@ psyqoAssemblyExceptionHandler:
     addiu $k1, 4           /* If we were in cop2, we need to adjust our EPC */
 .LnoCOP2adjustmentNeeded:
 	beq   $v1, $a0, .LnotVBlank    /* (c) */
+    lw    $at, 0x100($0)   /* Load the old at */
     sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $v1 no longer useful */
 psyqoExceptionHandlerAdjustFrameCount:
     /* Basically self modifying code here... */
     lui   $v1, 0
     /* ... here... */
     lw    $a0, 0($v1)      /* $a0 = m_frameCount */
-    lw    $at, 0x100($0)   /* Load the old at */
     addiu $a0, 1           /* Increment m_frameCount */
     /* ... and here. */
     sw    $a0, 0($v1)      /* Store m_frameCount */
