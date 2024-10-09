@@ -52,6 +52,7 @@ void psyqo::SimplePad::processChanges(Pad pad) {
         m_callback(Event{Event::PadConnected, pad});
     }
     m_connected[pad] = padConnected;
+    if (!padConnected) return;
 
     uint32_t mask = 1;
     uint32_t padData = m_padData[pad][1];
