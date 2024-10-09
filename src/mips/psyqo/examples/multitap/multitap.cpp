@@ -26,36 +26,29 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "common/syscalls/syscalls.h"
 #include "psyqo/advancedpad.hh"
 #include "psyqo/application.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
-#include "psyqo/hardware/cpu.hh"
-#include "psyqo/hardware/hwregs.hh"
-#include "psyqo/hardware/sio.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/scene.hh"
 
 namespace {
 
-// Our application. The PadTest class will be created statically, and run from `main`.
-class PadTest final : public psyqo::Application {
-    // We will need both methods to properly set up the application.
+// This example is similar to the padtest example, but it uses the `AdvancedPad` class
+// instead of the `SimplePad` class. The `AdvancedPad` class is a bit more complex, but
+// it can handle multitaps, which the `SimplePad` class cannot. The `AdvancedPad` class
+// is also a bit more efficient, as it doesn't rely on the BIOS to poll the pads.
+class MultitapTest final : public psyqo::Application {
     void prepare() override;
     void createScene() override;
 
   public:
-    // We will store the font here. We're not going to use chained DMA to display
-    // anything, so we don't need multiple fragments. Only a single one will suffice.
     psyqo::Font<1> m_font;
-
-    // Our pad reader.
     psyqo::AdvancedPad m_input;
 };
 
-// We only have a single since to display the status of the pads.
-class PadTestScene final : public psyqo::Scene {
+class MultitapTestScene final : public psyqo::Scene {
     psyqo::AdvancedPad::Pad m_padIndex = psyqo::AdvancedPad::Pad::Pad1a;
     uintptr_t m_timerId;
 
@@ -69,42 +62,32 @@ class PadTestScene final : public psyqo::Scene {
     void printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name);
 };
 
-PadTest padTest;
-PadTestScene padTestScene;
+MultitapTest multitapTest;
+MultitapTestScene multitapTestScene;
 
 }  // namespace
 
-// The application's `prepare` method is the location to initialize and activate the GPU.
-// We shouldn't do anything else that touches the hardware here however, because interrupts
-// aren't initialized yet. We could also create more objects here, but we don't have any.
-void PadTest::prepare() {
+void MultitapTest::prepare() {
     psyqo::GPU::Configuration config;
     config.set(psyqo::GPU::Resolution::W320)
         .set(psyqo::GPU::VideoMode::AUTO)
         .set(psyqo::GPU::ColorMode::C15BITS)
         .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
+    // Unlike the `SimplePad` class, the `AdvancedPad` class doesn't need to be initialized
+    // in the `start` method of the root `Scene` object. It can be initialized here.
+    m_input.initialize();
 }
 
-// The `createScene` method will be called automatically to create the first scene. It will
-// never exit, so there's no need to cater for the reentrancy case here, but technically,
-// this method _can_ be called multiple times, if the last scene got popped out. This would
-// be bad in this case because it'd mean we're initializing the pads, and uploading the system
-// font multiple times.
-void PadTest::createScene() {
-    // We don't have a specific font, so let's just use the built-in system one.
+void MultitapTest::createScene() {
     m_font.uploadSystemFont(gpu());
-    // During `createScene`, interrupts are enabled, so it's okay to call `AdvancedPad::initialize`.
-    m_input.initialize();
-    // And finally we call `pushScene` with the address of our one and only scene. This last
-    // call is mandatory for everything to function properly.
-    pushScene(&padTestScene);
+    pushScene(&multitapTestScene);
 }
 
 // Cycle through the pads to find the next one connected
-void PadTestScene::nextPad() {
+void MultitapTestScene::nextPad() {
     for (unsigned i = 0; i < 8; i++) {
-        if (padTest.m_input.isPadConnected(++m_padIndex)) {
+        if (multitapTest.m_input.isPadConnected(++m_padIndex)) {
             return;  // Found a connected pad
         }
     }
@@ -113,28 +96,22 @@ void PadTestScene::nextPad() {
     m_padIndex = psyqo::AdvancedPad::Pad::Pad1a;
 }
 
-// Using the system font, our display is roughly 40 columns by 15 lines of text. Although the
-// font system can draw text at arbitrary positions on the screen, it's a bit easier to consider
-// a matrix of characters instead.
-void PadTestScene::print(int x, int y, bool enabled, const char *text) {
+void MultitapTestScene::print(int x, int y, bool enabled, const char *text) {
     y += 2;
     psyqo::Vertex pos = {{.x = int16_t(x * 8), .y = int16_t(y * 16)}};
-    // Doing these lazy initializations is great for readability and encapsulation,
-    // but due to the way C++ works, it'll call into the C++ guard functions every
-    // time the function gets called, which may be slower than it could if those
-    // were in fact globals.
     static const auto WHITE = psyqo::Color{{.r = 255, .g = 255, .b = 255}};
     static const auto GRAY = psyqo::Color{{.r = 48, .g = 48, .b = 48}};
     psyqo::Color c = enabled ? WHITE : GRAY;
-    padTest.m_font.print(padTest.gpu(), text, pos, c);
+    multitapTest.m_font.print(multitapTest.gpu(), text, pos, c);
 }
-void PadTestScene::printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name) {
-    auto &input = padTest.m_input;
+
+void MultitapTestScene::printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name) {
+    auto &input = multitapTest.m_input;
     print(8, row, input.isPadConnected(pad), name);
 }
 
-void PadTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const char *name) {
-    auto &input = padTest.m_input;
+void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const char *name) {
+    auto &input = multitapTest.m_input;
     print(column + 0, 0, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Start), "Start");
     print(column + 0, 1, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Select), "Select");
 
@@ -156,19 +133,18 @@ void PadTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const
     print(column + 10, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Triangle), "Triangle");
 }
 
-void PadTestScene::start(Scene::StartReason reason) {
+void MultitapTestScene::start(Scene::StartReason reason) {
     if (reason == Scene::StartReason::Create) {
         // If we are getting created, create a 5 second periodic timer.
         using namespace psyqo::timer_literals;
-        m_timerId = padTest.gpu().armPeriodicTimer(5_s, [this](auto) { nextPad(); });
+        m_timerId = multitapTest.gpu().armPeriodicTimer(5_s, [this](auto) { nextPad(); });
     }
 }
 
-// Our rendering function that'll be called periodically.
-void PadTestScene::frame() {
-    padTest.gpu().clear();
+void MultitapTestScene::frame() {
+    multitapTest.gpu().clear();
 
-    if (padTest.m_input.isPadConnected(m_padIndex)) {
+    if (multitapTest.m_input.isPadConnected(m_padIndex)) {
         print(7, m_padIndex, true, ">");
     }
 
@@ -184,4 +160,4 @@ void PadTestScene::frame() {
     printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 20, "Pad Status");
 }
 
-int main() { return padTest.run(); }
+int main() { return multitapTest.run(); }

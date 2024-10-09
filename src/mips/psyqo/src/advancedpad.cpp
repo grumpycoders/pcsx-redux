@@ -33,12 +33,10 @@ SOFTWARE.
 
 using namespace psyqo::Hardware;
 
-void psyqo::AdvancedPad::initialize() {
-    // Stop the kernel from processing pad(and card) events
-    syscall_stopPad();
-
+void psyqo::AdvancedPad::initialize(PollingMode mode) {
     // Init Pads
     __builtin_memset(m_padData, 0xff, sizeof(m_padData));
+    m_portsToProbeByVSync = mode == PollingMode::Normal ? 1 : 2;
 
     SIO::Ctrl = SIO::Control::CTRL_IR;
     SIO::Baud = 0x88;  // 250kHz
@@ -67,7 +65,7 @@ inline void psyqo::AdvancedPad::flushRxBuffer() {
     }
 }
 
-constexpr uint8_t psyqo::AdvancedPad::outputDefault(unsigned ticks) {
+uint8_t psyqo::AdvancedPad::outputDefault(unsigned ticks) {
     uint8_t data_out = 0x00;
     switch (ticks) {
         case 0:
@@ -82,7 +80,7 @@ constexpr uint8_t psyqo::AdvancedPad::outputDefault(unsigned ticks) {
     return data_out;
 }
 
-constexpr uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
+uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
     uint8_t data_out = 0x00;
 
     switch (ticks) {
@@ -123,6 +121,7 @@ void psyqo::AdvancedPad::processChanges(Pad pad) {
         m_callback(Event{Event::PadConnected, pad});
     }
     m_connected[pad] = padConnected;
+    if (!padConnected) return;
 
     uint32_t mask = 1;
     uint32_t padData = m_padData[pad][1];
@@ -143,23 +142,21 @@ inline uint8_t psyqo::AdvancedPad::transceive(uint8_t data_out) {
     SIO::Data = data_out;
 
     // Wait for transceive to complete and data to populate FIFO
-    while (!(SIO::Stat & SIO::Status::STAT_RXRDY))
-        ;
+    while (!(SIO::Stat & SIO::Status::STAT_RXRDY));
 
     // Pull data from FIFO
     return SIO::Data;
 }
 
 void psyqo::AdvancedPad::readPad() {
-    uint8_t data_in, data_out;
-    uint8_t port_dev_type[2] = {PadType::None, PadType::None};
+    uint8_t dataIn, dataOut;
+    uint8_t portDevType[2] = {PadType::None, PadType::None};
 
-    __builtin_memset(m_padData, 0xff, sizeof(m_padData));
+    static constexpr unsigned padDataWidth = 8;
+    const unsigned portsToProbeByVSync = m_portsToProbeByVSync;
+    uint8_t port = m_portToProbe;
 
-    uint8_t *pad_data;
-    static constexpr unsigned pad_data_width = 8;
-
-    for (unsigned port = 0; port < 2; port++) {
+    for (unsigned i = 0; i < portsToProbeByVSync; i++) {
         // Select enable on current port
         SIO::Ctrl = (static_cast<uint16_t>(port) << 13) | SIO::Control::CTRL_DTR;
 
@@ -174,36 +171,38 @@ void psyqo::AdvancedPad::readPad() {
         // Pads get finicky if we don't wait a bit here
         busyLoop(100);
 
-        pad_data = reinterpret_cast<uint8_t *>(&m_padData[port * 4][0]);
+        uint8_t *padData = reinterpret_cast<uint8_t *>(&m_padData[port * 4][0]);
+        __builtin_memset(padData, 0xff, sizeof(m_padData[0]));
+
         for (unsigned ticks = 0, max_ticks = 5; ticks < max_ticks; ticks++) {
             SIO::Ctrl |= SIO::Control::CTRL_ERRRES;  // Clear error
             CPU::IReg.clear(CPU::IRQ::Controller);   // Clear IRQ
 
-            if (port_dev_type[port] == PadType::Multitap) {
-                data_out = outputMultitap(ticks);
+            if (portDevType[port] == PadType::Multitap) {
+                dataOut = outputMultitap(ticks);
             } else {
-                data_out = outputDefault(ticks);
+                dataOut = outputDefault(ticks);
             }
-            data_in = transceive(data_out);
+            dataIn = transceive(dataOut);
 
             if (ticks == 2) {
-                if (data_in == 0x5a) {
+                if (dataIn == 0x5a) {
                     // Set number of half-words to read
-                    max_ticks = port_dev_type[port] & 0x0f;
+                    max_ticks = portDevType[port] & 0x0f;
                     if (!max_ticks) {
                         max_ticks = 0x10;
                     }
                     max_ticks = (max_ticks * 2) + ticks + 1;
 
-                    pad_data[0] = 0;
+                    padData[0] = 0;
                 } else {
                     // Derp? Unknown device type or bad data, stop reading
                     max_ticks = ticks;
-                    pad_data[0] = 0xff;
+                    padData[0] = 0xff;
                 }
             }
 
-            if (port_dev_type[port] == PadType::Multitap) {
+            if (portDevType[port] == PadType::Multitap) {
                 unsigned pad_index = ticks >= 11 ? (ticks - 3) / 8 : 0;
 
                 switch (ticks) {
@@ -221,18 +220,18 @@ void psyqo::AdvancedPad::readPad() {
                     case 20:  // Pad C
                     case 28:  // Pad D
                         // 0 = connected
-                        pad_data[(pad_data_width * pad_index) + 0] = !(data_in == 0x5a);
+                        padData[(padDataWidth * pad_index) + 0] = dataIn != 0x5a;
                         break;
 
                     case 3:   // Pad A idlo
                     case 11:  // Pad B idlo
                     case 19:  // Pad C idlo
                     case 27:  // Pad D idlo
-                        pad_data[(pad_data_width * pad_index) + 1] = data_in;
+                        padData[(padDataWidth * pad_index) + 1] = dataIn;
                         break;
 
                     default:
-                        pad_data[(pad_data_width * pad_index) + ((ticks - 3) % 8)] = data_in;
+                        padData[(padDataWidth * pad_index) + ((ticks - 3) % 8)] = dataIn;
                 }
             } else {
                 switch (ticks) {
@@ -240,47 +239,47 @@ void psyqo::AdvancedPad::readPad() {
                         break;
 
                     case 1:
-                        port_dev_type[port] = data_in;
-                        if (data_in != PadType::Multitap) {
-                            pad_data[1] = data_in;
+                        portDevType[port] = dataIn;
+                        if (dataIn != PadType::Multitap) {
+                            padData[1] = dataIn;
                         }
                         break;
 
                     case 2:
-                        pad_data[0] = !(data_in == 0x5a);
+                        padData[0] = dataIn != 0x5a;
                         break;
 
                     default:
-                        pad_data[ticks - 1] = data_in;
+                        padData[ticks - 1] = dataIn;
                 }
             }
 
             if (ticks < (max_ticks - 1)) {
                 if (!waitForAck()) {
                     // Timeout waiting for ACK
-                    port_dev_type[port] = PadType::None;
+                    portDevType[port] = PadType::None;
                     for (int pad_index = 0; pad_index < 4; pad_index++) {
-                        pad_data[(pad_data_width * pad_index)] = 0x01;
+                        padData[(padDataWidth * pad_index)] = 0x01;
                     }
                     break;
                 }
 
-                while (SIO::Stat & SIO::Status::STAT_ACK)
-                    ;  // Wait for ACK to return to high
+                while (SIO::Stat & SIO::Status::STAT_ACK);  // Wait for ACK to return to high
             }
         }  // tick loop
 
         // End transmission
         SIO::Ctrl = 0;
+        port ^= 1;
     }  // port loop
+    m_portToProbe = port;
 }
 
 inline bool psyqo::AdvancedPad::waitForAck() {
     int cyclesWaited = 0;
     static constexpr int max_ack_wait = 0x137;  // ~105us
 
-    while (!(CPU::IReg & (static_cast<uint32_t>(CPU::IRQ::Controller))) && ++cyclesWaited < max_ack_wait)
-        ;
+    while (!(CPU::IReg.isSet(CPU::IRQ::Controller)) && ++cyclesWaited < max_ack_wait);
 
     if (cyclesWaited >= max_ack_wait) {
         // Timeout waiting for ACK

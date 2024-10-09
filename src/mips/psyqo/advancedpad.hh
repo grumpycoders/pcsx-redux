@@ -75,9 +75,9 @@ class AdvancedPad {
         GetMotorInfo = 0x46,          // 'F' Allegedly get info about a motor
         GetMotorList = 0x47,          // 'G' Allegedly get list of motors
         GetMotorState = 0x48,         // 'H' Allegedly get motor state
-        GetSupportedModes = 0x4C,     // 'L' Allegedly get supported modes
-        ConfigRequestFormat = 0x4D,   // 'M' Allegedly configure poll request format
-        ConfigResponseFormat = 0x4F,  // 'O' Allegedly configure poll response format
+        GetSupportedModes = 0x4c,     // 'L' Allegedly get supported modes
+        ConfigRequestFormat = 0x4d,   // 'M' Allegedly configure poll request format
+        ConfigResponseFormat = 0x4f,  // 'O' Allegedly configure poll response format
     };
 
     enum PadType : uint8_t {
@@ -91,7 +91,7 @@ class AdvancedPad {
         Multitap = 0x80,        // (multiplayer adaptor) (when activated)
         Jogcon = 0xe3,          // (steering dial)
         ConfigMode = 0xf3,      // (when in config mode; see rumble command 43h)
-        None = 0xFF             // (no controller connected, pins floating High-Z)
+        None = 0xff             // (no controller connected, pins floating High-Z)
     };
 
     struct Event {
@@ -100,18 +100,21 @@ class AdvancedPad {
         Button button;
     };
 
-    enum class TapReadMode {
-        Passthrough,
-        BufferedTransferAll,
-    };
-
     /**
      * @brief Initializes the pads.
      *
-     * @details This will stop the BIOS driver and start psyqo's driver.
-     * This method should be called once at the beginning of the program.
+     * @details This method should be called once at the beginning of
+     * the program, preferably from the `Application::prepare` method.
+     * The `mode` parameter can be used to indicate whether the ports
+     * should be polled one at a time, or both at once. The default is
+     * `PollingMode::Normal`, which will poll one port per frame. The
+     * `PollingMode::Fast` mode will poll all ports at once each frame,
+     * which can reduce input lag, but will also increase the CPU usage.
+     *
+     * @param mode The polling mode to use.
      */
-    void initialize();
+    enum class PollingMode { Normal, Fast };
+    void initialize(PollingMode mode = PollingMode::Normal);
 
     /**
      * @brief Sets the event callback function.
@@ -159,14 +162,12 @@ class AdvancedPad {
   private:
     void busyLoop(unsigned delay) {
         unsigned cycles = 0;
-        while (++cycles < delay) {
-            asm("");
-        }
+        while (++cycles < delay) asm("");
     };
 
     void flushRxBuffer();
-    constexpr uint8_t outputDefault(unsigned ticks);
-    constexpr uint8_t outputMultitap(unsigned ticks);
+    uint8_t outputDefault(unsigned ticks);
+    uint8_t outputMultitap(unsigned ticks);
     void processChanges(Pad pad);
     void readPad();
     uint8_t transceive(uint8_t data_out);
@@ -178,6 +179,8 @@ class AdvancedPad {
     uint16_t m_buttons[8] = {
         0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
     };
+    uint8_t m_portToProbe = 0;
+    uint8_t m_portsToProbeByVSync = 0;
 };
 
 // prefix increment operator
