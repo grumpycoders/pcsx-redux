@@ -587,7 +587,12 @@ void psyqo::GPU::prepareForTakeover() {
     uint16_t lo = frameCountPtr & 0xffff;
     if (lo >= 0x8000) hi++;
     // Highly dependent on the assembly code in vector.s, as we're modifying it on the fly.
+    // See vector.s for more details.
     psyqoExceptionHandlerAdjustFrameCount[0] = hi;
     psyqoExceptionHandlerAdjustFrameCount[2] = lo;
     psyqoExceptionHandlerAdjustFrameCount[8] = lo;
+    Kernel::queueIRQHandler(Kernel::IRQ::VBlank, [this]() {
+        m_frameCount++;
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+    });
 }

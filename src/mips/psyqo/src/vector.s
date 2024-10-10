@@ -35,6 +35,18 @@ SOFTWARE.
     .global psyqoExceptionHandlerAdjustFrameCount
     .type psyqoAssemblyExceptionHandler, @function
 
+/*
+The way this handler works is a bit complicated. The idea is that VBlank
+is a common exception which has the singular purpose of incrementing a
+frame counter. If we get only VBlank, we increment the frame counter using
+self modifying code to poke at the GPU singleton object directly, and no
+C++ handler is called. If we get anything else, we call the C++ handler,
+which will be responsible for handling the stacked IRQs, including potentially
+calling the VBlank handler, which will increment the frame counter. In short,
+VBlank has a fast path case if it is the only exception, and a slow path case
+in C++ if there are other exceptions alongside it.
+*/
+
 psyqoAssemblyExceptionHandler:
     sw    $at, 0x100($0)
     sw    $v1, 0x108($0)
