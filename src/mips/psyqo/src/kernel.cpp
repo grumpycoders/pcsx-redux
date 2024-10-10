@@ -48,10 +48,11 @@ namespace {
 
 bool s_tookOverKernel = false;
 
-eastl::array<eastl::fixed_vector<eastl::function<void()>, 12>, static_cast<size_t>(psyqo::Kernel::IRQ::Max) - 1>*
-    s_irqHandlers = nullptr;
-eastl::array<eastl::fixed_vector<eastl::function<void()>, 12>, static_cast<size_t>(psyqo::Kernel::IRQ::Max) - 1>
-    s_irqHandlersStorage;
+typedef eastl::array<eastl::fixed_vector<eastl::function<void()>, 2>, static_cast<size_t>(psyqo::Kernel::IRQ::Max)>
+    IRQHandlers;
+
+IRQHandlers* s_irqHandlers = nullptr;
+IRQHandlers s_irqHandlersStorage;
 
 typedef void (*KernelEventFunction)();
 struct Function {
@@ -114,9 +115,9 @@ bool psyqo::Kernel::isKernelTakenOver() { return s_tookOverKernel; }
 
 extern "C" {
 void psyqoExceptionHandler(uint32_t ireg) {
-    constexpr uint32_t start = static_cast<uint32_t>(psyqo::Kernel::IRQ::GPU) - 1;
-    constexpr uint32_t end = static_cast<uint32_t>(psyqo::Kernel::IRQ::Max) - 1;
-    uint32_t mask = 1 << (start + 1);
+    constexpr uint32_t start = static_cast<uint32_t>(psyqo::Kernel::IRQ::VBlank);
+    constexpr uint32_t end = static_cast<uint32_t>(psyqo::Kernel::IRQ::Max);
+    uint32_t mask = 1 << start;
     for (uint32_t irq = start; irq < end; irq++, mask <<= 1) {
         if ((ireg & mask) == 0) continue;
         auto& handlers = s_irqHandlersStorage[irq];
@@ -165,9 +166,8 @@ void psyqo::Kernel::takeOverKernel() {
 }
 
 void psyqo::Kernel::queueIRQHandler(IRQ irq, eastl::function<void()>&& lambda) {
-    Kernel::assert(irq != IRQ::VBlank, "queueIRQHandler: VBlank cannot be queued");
     auto& handlers = *s_irqHandlers;
-    size_t index = static_cast<size_t>(irq) - 1;
+    size_t index = static_cast<size_t>(irq);
     Kernel::assert(index < handlers.size(), "queueIRQHandler: invalid irq");
     Kernel::assert(s_tookOverKernel, "queueIRQHandler: kernel not taken over");
     handlers[index].push_back(eastl::move(lambda));
