@@ -39,9 +39,12 @@ namespace psyqo {
 
 template <typename Prim>
 concept Primitive = requires {
-    { (alignof(Prim) & 3) == 0 };
-    { (sizeof(Prim) & 3) == 0 };
-    { !requires { typename Prim::head; } };
-};
+    {(alignof(Prim) & 3) == 0};
+    {(sizeof(Prim) & 3) == 0};
+    {!requires {typename Prim::head;
+}
+};  // namespace psyqo
+}
+;
 
 }  // namespace psyqo

@@ -118,14 +118,16 @@ static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t
 
     SPU_RAM_DTA = SpuAddr >> 3;
     SPU_CTRL = (SPU_CTRL & ~0x0030) | 0x0020;
-    while ((SPU_CTRL & 0x0030) != 0x0020);
+    while ((SPU_CTRL & 0x0030) != 0x0020)
+        ;
     // original code erroneously was doing SBUS_DEV4_CTRL = SBUS_DEV4_CTRL;
     SBUS_DEV4_CTRL &= ~0x0f000000;
     DMA_CTRL[DMA_SPU].MADR = (uint32_t)data;
     DMA_CTRL[DMA_SPU].BCR = bcr;
     DMA_CTRL[DMA_SPU].CHCR = 0x01000201;
 
-    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0);
+    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0)
+        ;
 }
 
 static void SPUUnMute() { SPU_CTRL = 0xc000; }

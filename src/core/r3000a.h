@@ -461,11 +461,9 @@ Formula One 2001
         memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
-    inline void flushICacheLine(uint32_t pc)
-    { 
+    inline void flushICacheLine(uint32_t pc) {
         uint32_t pcBank = pc >> 24;
-        if (pcBank == 0x00 || pcBank == 0x80)
-        {
+        if (pcBank == 0x00 || pcBank == 0x80) {
             uint32_t pcCache = pc & 0xfff;
             pcCache &= ~0xf;
 
