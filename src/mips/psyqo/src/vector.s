@@ -55,17 +55,18 @@ psyqoAssemblyExceptionHandler:
     andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
     lhu   $a0, 0x1070($k0) /* $a0 = IREG, which we will pass to our C++ handler */
     bne   $v1, $at, .LnoCOP2adjustmentNeeded
-    andi  $v1, $a0, 0xfffe      /* Preparing for IRQ test in (c), for VBlank */
+    andi  $v1, $a0, 0x7fe  /* Prepare for the IRQ test in (c) */
     addiu $k1, 4           /* If we were in cop2, we need to adjust our EPC */
 .LnoCOP2adjustmentNeeded:
-	beq   $v1, $a0, .LnotVBlank    /* (c) */
-    lw    $at, 0x100($0)   /* Load the old at */
-    sw    $v1, 0x1070($k0) /* ACK VBlank IRQ, $v1 no longer useful */
+    xori  $at, $a0, 0x7ff  /* $at = IRQ ACK bitfield */
+    bnez  $v1, .LgotIRQs   /* (c) Did we get anything beyond VBlank ? */
+    sw    $at, 0x1070($k0) /* ACK the IRQs we are signalling */
 psyqoExceptionHandlerAdjustFrameCount:
     /* Basically self modifying code here... */
     lui   $v1, 0
     /* ... here... */
     lw    $a0, 0($v1)      /* $a0 = m_frameCount */
+    lw    $at, 0x100($0)   /* Load the old at in the load delay slot of $a0 above */
     addiu $a0, 1           /* Increment m_frameCount */
     /* ... and here. */
     sw    $a0, 0($v1)      /* Store m_frameCount */
@@ -80,7 +81,7 @@ psyqoExceptionHandlerAdjustFrameCount:
     b     .LcallCPlusPlus
     addiu $k1, 4
 
-.LnotVBlank:
+.LgotIRQs:
     la    $v1, psyqoExceptionHandler
 .LcallCPlusPlus:
     /* We want to call into C++ now, so we need to save the rest of the registers */
@@ -104,8 +105,6 @@ psyqoExceptionHandlerAdjustFrameCount:
     /* Call the C++ exception or break handler while adjusting the stack */
     jalr  $v1
     li    $sp, 0x1000 - 16
-    /* Acknowledge all IRQs */
-    sw    $0, 0x1070($k0)
 
     /* Restore the registers and exit */
     lw    $at, 0x100($0)
