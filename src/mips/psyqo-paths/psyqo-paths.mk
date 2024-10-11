@@ -1,3 +1,4 @@
+ifndef PSYQOPATHSDIR
 PSYQOPATHSDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 LIBRARIES += $(PSYQOPATHSDIR)libpsyqo-paths.a
@@ -13,3 +14,4 @@ clean-psyqo-paths:
 	$(MAKE) -C $(PSYQOPATHSDIR) clean
 
 .PHONY: clean-psyqo-paths $(PSYQOPATHSDIR)libpsyqo-paths.a
+endif
