@@ -144,13 +144,15 @@ bool isKernelTakenOver();
  * @brief Queues an IRQ handler to be called from the exception handler.
  *
  * @details This function is used to queue an IRQ handler to be called
- * from the exception handler when the kernel has been taken over. The
- * VBlank IRQ is excluded from this function, as it is handled by the
- * GPU object instead. Also, note that the kernel has its own DMA IRQ
- * handler, and that the `registerDmaEvent` function should be used
+ * from the exception handler when the kernel has been taken over. While
+ * it is technically possible to queue VBlank, it should solely be reserved
+ * for the GPU object instead. Also, note that the kernel has its own DMA
+ * IRQ handler, and that the `registerDmaEvent` function should be used
  * instead of trying to queue a handler for the DMA IRQ. The specified
  * handler will be called from the exception handler, with the same
- * restrictions as for any other interrupt handler.
+ * restrictions as for any other interrupt handler. The queued handlers
+ * will be called in the order they were queued, but it is recommended
+ * to only queue one handler per IRQ.
  *
  * @param irq The IRQ to handle.
  * @param lambda The function to call when the IRQ is triggered.
