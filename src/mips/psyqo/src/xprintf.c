@@ -554,12 +554,14 @@ va_list ap;
                     register const char *cset;
                     cset = infop->charset;
                     if (precision < 0) precision = 6;
+                    bufpt -= precision;
+                    char *end = bufpt;
                     for (idx = precision; idx > 0; idx--) {
                         fractional *= 10;
                         uint32_t copy = fractional;
                         copy /= scale;
                         fractional -= copy * scale;
-                        *(--bufpt) = (copy % 10) + '0';
+                        *(end++) = (copy % 10) + '0';
                     }
                     *(--bufpt) = '.';
                     do {
