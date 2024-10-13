@@ -29,11 +29,12 @@ OUTPUT_FORMAT("binary")
 EXTERN(_start)
 ENTRY(_start)
 
+RAM_SIZE = DEFINED(RAM_SIZE) ? RAM_SIZE : 2M;
 TLOAD_ADDR = DEFINED(TLOAD_ADDR) ? TLOAD_ADDR : 0x80010000;
 
 MEMORY {
     loader      : ORIGIN = (TLOAD_ADDR - 0x800), LENGTH = 2048
-    ram (rwx)   : ORIGIN = TLOAD_ADDR, LENGTH = 2M - (TLOAD_ADDR - 0x80000000)
+    ram (rwx)   : ORIGIN = TLOAD_ADDR, LENGTH = RAM_SIZE - (TLOAD_ADDR - 0x80000000)
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
@@ -84,7 +85,7 @@ SECTIONS {
         LONG(0); LONG(0);
 
         /* 0x0030 - 0x0033 :  Initial stack address. */
-        LONG(DEFINED(_sp) ? ABSOLUTE(_sp) : 0x801FFF00);
+        LONG(DEFINED(_sp) ? ABSOLUTE(_sp) : __sp);
 
         /* 0x0034 - 0x0037 : Initial stack size, set it to 0. */
         LONG(0);
