@@ -37,9 +37,9 @@ namespace psyqo {
 
 namespace FixedPointInternals {
 
-uint32_t iDiv(uint64_t rem, uint32_t base, unsigned precisionBits);
-int32_t dDiv(int32_t a, int32_t b, unsigned precisionBits);
-void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned precisionBits);
+uint32_t iDiv(uint64_t rem, uint32_t base, unsigned scale);
+int32_t dDiv(int32_t a, int32_t b, unsigned scale);
+void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned scale);
 
 }  // namespace FixedPointInternals
 
@@ -53,16 +53,21 @@ void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned preci
  * specifying a different value for the template parameter
  * `precisionBits`. The underlying integer type can also be changed
  * by specifying a different type for the template parameter `T`.
- * The default is `int32_t`, but `int16_t`, `uint32_t`, `uint16_t`
- * are also supported. The template behaves as a value type, and
- * supports most of the usual arithmetic operators. Its size is the
- * same as the underlying integer type.
+ * The default is `int32_t`, but `int16_t`, `int8_t`, `uint32_t`,
+ * `uint16_t`, and `uint8_t` are also supported. The template
+ * behaves as a value type, and supports most of the usual arithmetic
+ * operators. Its size is the same as the underlying integer type.
  *
  * @tparam precisionBits The number of fractional bits to use.
  * @tparam T The underlying integer type to use.
+ * @tparam Scale The scale of the fixed point number. The default is
+ * 2 raised to the power of `precisionBits`, but this can be changed
+ * to produce fixed point numbers with a different range. A scale
+ * which is not a power of 2 will produce slower codegen. This is
+ * used for the external representation of the fixed point number.
  */
-template <unsigned precisionBits = 12, std::integral T = int32_t>
-requires((precisionBits > 0) && (precisionBits < 32) && ((sizeof(T) == 4) || (sizeof(T) == 2)))
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned Scale = 1 << precisionBits>
+    requires((precisionBits > 0) && (precisionBits < 32) && ((sizeof(T) == 4) || (sizeof(T) == 2) || sizeof(T) == 1))
 class FixedPoint {
     using signedUpType = std::conditional<sizeof(T) == 4, int64_t, int32_t>::type;
     using unsignedUpType = std::conditional<sizeof(T) == 4, uint64_t, uint32_t>::type;
@@ -83,11 +88,12 @@ class FixedPoint {
      * @brief The scale of the fixed point number.
      *
      */
-    static constexpr unsigned scale = 1 << precisionBits;
+    static constexpr unsigned scale = Scale;
 
     /**
      * @brief Constructs a fixed point number from an integer and a
-     * fraction.
+     * fraction. Specifying a fraction different from 0 when the
+     * scale is not a power of 2 is undefined behavior.
      */
     explicit constexpr FixedPoint(T integer, T fraction) : value(integer * scale + fraction) {
         static_assert(sizeof(FixedPoint) == sizeof(T));
@@ -104,7 +110,6 @@ class FixedPoint {
      * point arithmetic, which is not available on the PSX.
      */
     consteval FixedPoint(long double ld) {
-        static_assert(std::is_signed<T>::value || (ld >= 0));
         bool negative = ld < 0;
         T integer = negative ? -ld : ld;
         T fraction = ld * scale - integer * scale + (negative ? -0.5 : 0.5);
@@ -190,7 +195,7 @@ class FixedPoint {
                 copy = -copy;
             }
         }
-        FixedPointInternals::printInt(copy, charPrinter, precisionBits);
+        FixedPointInternals::printInt(copy, charPrinter, scale);
     }
 
     constexpr FixedPoint abs() const {
@@ -249,11 +254,11 @@ class FixedPoint {
         FixedPoint ret;
         if constexpr (sizeof(T) == 4) {
             if constexpr (std::is_signed<T>::value) {
-                ret.value = FixedPointInternals::dDiv(value, other.value, precisionBits);
+                ret.value = FixedPointInternals::dDiv(value, other.value, scale);
             } else if constexpr (!std::is_signed<T>::value) {
-                ret.value = FixedPointInternals::iDiv(value, other.value, precisionBits);
+                ret.value = FixedPointInternals::iDiv(value, other.value, scale);
             }
-        } else if constexpr (sizeof(T) == 2) {
+        } else if constexpr (sizeof(T) < 4) {
             upType t = value;
             t *= scale;
             t /= other.value;
@@ -314,9 +319,9 @@ class FixedPoint {
     constexpr FixedPoint& operator/=(FixedPoint other) {
         if constexpr (sizeof(T) == 4) {
             if constexpr (std::is_signed<T>::value) {
-                value = FixedPointInternals::dDiv(value, other.value, precisionBits);
+                value = FixedPointInternals::dDiv(value, other.value, scale);
             } else if constexpr (!std::is_signed<T>::value) {
-                value = FixedPointInternals::iDiv(value, other.value, precisionBits);
+                value = FixedPointInternals::iDiv(value, other.value, scale);
             }
         } else if constexpr (sizeof(T) == 2) {
             upType t = value;
@@ -382,29 +387,33 @@ class FixedPoint {
     constexpr bool operator!() const { return value == 0; }
 };
 
-template <unsigned precisionBits = 12, std::integral T = int32_t, std::integral U = int32_t>
-constexpr FixedPoint<precisionBits, T> operator+(U a, FixedPoint<precisionBits, T> b) {
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator+(U a, FixedPoint<precisionBits, T, scale> b) {
     return b + a;
 }
 
-template <unsigned precisionBits = 12, std::integral T = int32_t, std::integral U = int32_t>
-constexpr FixedPoint<precisionBits, T> operator-(U a, FixedPoint<precisionBits, T> b) {
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator-(U a, FixedPoint<precisionBits, T, scale> b) {
     return -b + a;
 }
 
-template <unsigned precisionBits = 12, std::integral T = int32_t, std::integral U = int32_t>
-constexpr FixedPoint<precisionBits, T> operator*(U a, FixedPoint<precisionBits, T> b) {
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator*(U a, FixedPoint<precisionBits, T, scale> b) {
     return b * a;
 }
 
-template <unsigned precisionBits = 12, std::integral T = int32_t, std::integral U = int32_t>
-constexpr FixedPoint<precisionBits, T> operator/(U a, FixedPoint<precisionBits, T> b) {
-    FixedPoint<precisionBits, T> ret;
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator/(U a, FixedPoint<precisionBits, T, scale> b) {
+    FixedPoint<precisionBits, T, scale> ret;
     if constexpr (sizeof(T) == 4) {
         if constexpr (std::is_signed<T>::value || std::is_signed<U>::value) {
-            ret.value = FixedPointInternals::dDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), precisionBits);
+            ret.value = FixedPointInternals::dDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), scale);
         } else if constexpr (!std::is_signed<T>::value && !std::is_signed<U>::value) {
-            ret.value = FixedPointInternals::iDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), precisionBits);
+            ret.value = FixedPointInternals::iDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), scale);
         }
     } else if constexpr (sizeof(T) == 2) {
         ret.value = a * FixedPoint<precisionBits, T>::scale / b.raw();
