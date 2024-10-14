@@ -1,13 +1,12 @@
 /*
- * This template is based on the following examples:
+ * This program is a simple demo that displays a 3D cube and some text (using
+ * the font spritesheet in the assets directory), based on the following
+ * examples:
  *     https://github.com/spicyjpeg/ps1-bare-metal/blob/main/src/06_fonts/main.c
  *     https://github.com/spicyjpeg/ps1-bare-metal/blob/main/src/08_spinningCube/main.c
  *
- * If you wish to modify the font image in the assets directory or add more
- * images, you may use the ps1-bare-metal/tools/convertImage.py script to
- * generate the texture and palette files to embed into the executable. Note
- * that the script requires additional dependencies to run; see
- * ps1-bare-metal/tools/requirements.txt for information on how to install them.
+ * For further information on the contents of the ps1-bare-metal submodule, see:
+ *     https://github.com/spicyjpeg/ps1-bare-metal
  */
 
 #include <stdbool.h>
