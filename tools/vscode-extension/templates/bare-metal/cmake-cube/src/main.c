@@ -12,34 +12,47 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "font.h"
 #include "gpu.h"
-#include "ps1/cop0gte.h"
+#include "ps1/cop0.h"
 #include "ps1/gpucmd.h"
+#include "ps1/gte.h"
 #include "ps1/registers.h"
 #include "trig.h"
 
-// The GTE uses a 4.12 fixed-point format for most values. What this means is
-// that most fractional values will be stored as integers by multiplying them by
-// a fixed unit, in this case 4096 or 1 << 12 (hence making the fractional part
-// 12 bits long). We'll define this unit value to make their handling easier.
+// The GTE uses a 20.12 fixed-point format for most values. What this means is
+// that fractional values will be stored as integers by multiplying them by a
+// fixed unit, in this case 4096 or 1 << 12 (hence making the fractional part 12
+// bits long). We'll define this unit value to make their handling easier.
 #define ONE (1 << 12)
 
 static void setupGTE(int width, int height) {
     // Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
-    // enabled through a register in coprocessor 0, which is always accessible.
-    cop0_setSR(cop0_getSR() | COP0_SR_CU2);
+    // enabled through the status register in coprocessor 0, which is always
+    // accessible.
+    cop0_setReg(COP0_SR, cop0_getReg(COP0_SR) | COP0_SR_CU2);
 
-    // Set the offset to be added to all calculated coordinates (we want our
-    // cube to appear at the center of the screen) as well as the field of view.
-    gte_setXYOrigin(width / 2, height / 2);
-    gte_setFieldOfView(width);
+    // Set the offset to be added to all calculated screen space coordinates (we
+    // want our cube to appear at the center of the screen) Note that OFX and
+    // OFY are 16.16 fixed-point rather than 20.12.
+    gte_setControlReg(GTE_OFX, (width  << 16) / 2);
+    gte_setControlReg(GTE_OFY, (height << 16) / 2);
+
+    // Set the distance of the perspective projection plane (i.e. the camera's
+    // focal length), which affects the field of view.
+    int focalLength = (width < height) ? width : height;
+
+    gte_setControlReg(GTE_H, focalLength / 2);
 
     // Set the scaling factor for Z averaging. For each polygon drawn, the GTE
     // will sum the transformed Z coordinates of its vertices multiplied by this
     // value in order to derive the ordering table bucket index the polygon will
-    // be sorted into.
-    gte_setZScaleFactor(ONE / ORDERING_TABLE_SIZE);
+    // be sorted into. This will work best if the ordering table length is a
+    // multiple of 12 (i.e. both 3 and 4) or high enough to make any rounding
+    // error negligible.
+    gte_setControlReg(GTE_ZSF3, ORDERING_TABLE_SIZE / 3);
+    gte_setControlReg(GTE_ZSF4, ORDERING_TABLE_SIZE / 4);
 }
 
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
@@ -52,19 +65,19 @@ static void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
     // done one column at a time, as the GTE only supports multiplying a matrix
     // by a vector using the MVMVA command.
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V0 | GTE_CV_NONE);
-    output->values[0][0] = gte_getIR1();
-    output->values[1][0] = gte_getIR2();
-    output->values[2][0] = gte_getIR3();
+    output->values[0][0] = gte_getDataReg(GTE_IR1);
+    output->values[1][0] = gte_getDataReg(GTE_IR2);
+    output->values[2][0] = gte_getDataReg(GTE_IR3);
 
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V1 | GTE_CV_NONE);
-    output->values[0][1] = gte_getIR1();
-    output->values[1][1] = gte_getIR2();
-    output->values[2][1] = gte_getIR3();
+    output->values[0][1] = gte_getDataReg(GTE_IR1);
+    output->values[1][1] = gte_getDataReg(GTE_IR2);
+    output->values[2][1] = gte_getDataReg(GTE_IR3);
 
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V2 | GTE_CV_NONE);
-    output->values[0][2] = gte_getIR1();
-    output->values[1][2] = gte_getIR2();
-    output->values[2][2] = gte_getIR3();
+    output->values[0][2] = gte_getDataReg(GTE_IR1);
+    output->values[1][2] = gte_getDataReg(GTE_IR2);
+    output->values[2][2] = gte_getDataReg(GTE_IR3);
 }
 
 static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
@@ -168,10 +181,15 @@ static const Face cubeFaces[NUM_CUBE_FACES] = {
 extern const uint8_t fontTexture[], fontPalette[];
 
 int main(int argc, const char **argv) {
-    if ((GPU_GP1 & GP1_STAT_MODE_BITMASK) == GP1_STAT_MODE_PAL)
+    initSerialIO(115200);
+
+    if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
+        puts("Using PAL mode");
         setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-    else
+    } else {
+        puts("Using NTSC mode");
         setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
 
     setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -181,7 +199,7 @@ int main(int argc, const char **argv) {
     GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
     GPU_GP1 = gp1_dispBlank(false);
 
-    // Upload the font texture into VRAM.
+    // Upload the font texture to VRAM.
     TextureInfo font;
 
     uploadIndexedTexture(
@@ -211,7 +229,9 @@ int main(int argc, const char **argv) {
         // transformation matrix, then modify the matrix to rotate the cube. The
         // translation vector is used here to move the cube away from the camera
         // so it can be seen.
-        gte_setTranslationVector(0, 0, 256);
+        gte_setControlReg(GTE_TRX,   0);
+        gte_setControlReg(GTE_TRY,   0);
+        gte_setControlReg(GTE_TRZ, 128);
         gte_setRotationMatrix(
             ONE,   0,   0,
               0, ONE,   0,
@@ -238,14 +258,14 @@ int main(int argc, const char **argv) {
             // be skipped as it is not facing the camera.
             gte_command(GTE_CMD_NCLIP);
 
-            if (gte_getMAC0() <= 0)
+            if (gte_getDataReg(GTE_MAC0) <= 0)
                 continue;
 
             // Save the first transformed vertex (the GTE only keeps the X/Y
             // coordinates of the last 3 vertices processed and Z coordinates of
             // the last 4 vertices processed) and apply projection to the last
             // vertex.
-            uint32_t xy0 = gte_getSXY0();
+            uint32_t xy0 = gte_getDataReg(GTE_SXY0);
 
             gte_loadV0(&cubeVertices[face->vertices[3]]);
             gte_command(GTE_CMD_RTPS | GTE_SF);
@@ -253,7 +273,7 @@ int main(int argc, const char **argv) {
             // Calculate the average Z coordinate of all vertices and use it to
             // determine the ordering table bucket index for this face.
             gte_command(GTE_CMD_AVSZ4 | GTE_SF);
-            int zIndex = gte_getOTZ();
+            int zIndex = gte_getDataReg(GTE_OTZ);
 
             if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
                 continue;
@@ -263,7 +283,9 @@ int main(int argc, const char **argv) {
             ptr    = allocatePacket(chain, zIndex, 5);
             ptr[0] = face->color | gp0_shadedQuad(false, false, false);
             ptr[1] = xy0;
-            gte_storeSXY012(&ptr[2]);
+            gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
+            gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+            gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
         }
 
         ptr    = allocatePacket(chain, ORDERING_TABLE_SIZE - 1, 3);
