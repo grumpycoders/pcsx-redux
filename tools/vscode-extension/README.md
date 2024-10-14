@@ -19,6 +19,8 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.8
+  - Added automatic setup of Python virtual environments in order to reflect the changes in ps1-bare-metal.
 - 0.3.7
   - Bumping gcc to 14.2.0
   - Bumping binutils to 2.43
