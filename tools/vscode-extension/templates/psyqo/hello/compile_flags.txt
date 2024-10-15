@@ -3,5 +3,5 @@
 -fcoroutines-ts
 -I.
 -Ithird_party/nugget
--Ithird_party/EASTL/include
--Ithird_party/EABase/include/Common
+-Ithird_party/nugget/third_party/EASTL/include
+-Ithird_party/nugget/third_party/EABase/include/Common
