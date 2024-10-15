@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -70,6 +70,11 @@
       {
         "command": "psxDev.restorePsyq",
         "title": "Restore Psy-Q",
+        "category": "PSX.Dev"
+      },
+      {
+        "command": "psxDev.restorePythonEnv",
+        "title": "Restore Python environment",
         "category": "PSX.Dev"
       },
       {
