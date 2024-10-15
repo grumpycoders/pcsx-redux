@@ -67,8 +67,8 @@ void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned scale
  * used for the external representation of the fixed point number.
  */
 template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned Scale = 1 << precisionBits>
-    requires((precisionBits > 0) && (precisionBits < 32) && ((sizeof(T) == 4) || (sizeof(T) == 2) || sizeof(T) == 1))
-class FixedPoint {
+requires((precisionBits > 0) && (precisionBits < 32) &&
+         ((sizeof(T) == 4) || (sizeof(T) == 2) || sizeof(T) == 1)) class FixedPoint {
     using signedUpType = std::conditional<sizeof(T) == 4, int64_t, int32_t>::type;
     using unsignedUpType = std::conditional<sizeof(T) == 4, uint64_t, uint32_t>::type;
     using upType = std::conditional<std::is_signed<T>::value, signedUpType, unsignedUpType>::type;

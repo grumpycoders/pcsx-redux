@@ -60,7 +60,7 @@ static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t addre
 static __attribute__((always_inline)) size_t syscall_write(int fd, const void *buf, size_t size) {
     register int n asm("t1") = 0x03;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((size_t (*)(int, const void *, size_t))0xa0)(fd, buf, size);
+    return ((size_t(*)(int, const void *, size_t))0xa0)(fd, buf, size);
 }
 
 static __attribute__((always_inline, returns_twice)) int syscall_setjmp(struct JmpBuf *buf) {

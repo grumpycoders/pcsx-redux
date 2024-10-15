@@ -35,8 +35,7 @@ SOFTWARE.
 namespace psyqo {
 
 template <unsigned N, unsigned precisionBits = 12, std::integral T = int32_t>
-    requires((N >= 2) && (N <= 4))
-struct Vector {
+requires((N >= 2) && (N <= 4)) struct Vector {
     typedef FixedPoint<precisionBits, T> FixedPointType;
     FixedPoint<precisionBits, T> x, y;
     struct EmptyZ {};
@@ -62,9 +61,7 @@ struct Vector {
         }
     }
     constexpr FixedPointType& operator[](unsigned i) { return get(i); }
-    constexpr operator Vertex() const
-        requires((N == 2) && std::is_signed<T>::value)
-    {
+    constexpr operator Vertex() const requires((N == 2) && std::is_signed<T>::value) {
         return {{.x = x.template integer<int16_t>(), .y = y.template integer<int16_t>()}};
     }
     constexpr Vector& operator+=(const Vector& rhs) {
@@ -156,72 +153,56 @@ struct Vector {
         }
         return result;
     }
-    static constexpr Vector ZERO()
-        requires(N <= 3)
-    {
+    static constexpr Vector ZERO() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector ONE()
-        requires(N <= 3)
-    {
+    static constexpr Vector ONE() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = FixedPointType(1.0);
         }
         return result;
     }
-    static constexpr Vector UP()
-        requires(N <= 3)
-    {
+    static constexpr Vector UP() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 1) ? FixedPointType(1.0) : FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector DOWN()
-        requires(N <= 3)
-    {
+    static constexpr Vector DOWN() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 1) ? -FixedPointType(1.0) : FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector LEFT()
-        requires(N <= 3)
-    {
+    static constexpr Vector LEFT() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 0) ? -FixedPointType(1.0) : FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector RIGHT()
-        requires(N <= 3)
-    {
+    static constexpr Vector RIGHT() requires(N <= 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 0) ? FixedPointType(1.0) : FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector FORWARD()
-        requires(N == 3)
-    {
+    static constexpr Vector FORWARD() requires(N == 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 2) ? FixedPointType(1.0) : FixedPointType(0.0);
         }
         return result;
     }
-    static constexpr Vector BACKWARD()
-        requires(N == 3)
-    {
+    static constexpr Vector BACKWARD() requires(N == 3) {
         Vector result;
         for (unsigned i = 0; i < N; i++) {
             result.get(i) = (i == 2) ? -FixedPointType(1.0) : FixedPointType(0.0);
