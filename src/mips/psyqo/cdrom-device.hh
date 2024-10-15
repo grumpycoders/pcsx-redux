@@ -52,7 +52,7 @@ struct CDRomDeviceStateEnumHasIdle<T, std::enable_if_t<T::IDLE == T(0)>> : std::
 
 template <typename T>
 concept IsCDRomDeviceStateEnum =
-    std::is_enum_v<T> && std::is_same_v<uint8_t, std::underlying_type_t<T>> && CDRomDeviceStateEnumHasIdle<T>::value;
+    std::is_enum_v<T> &&std::is_same_v<uint8_t, std::underlying_type_t<T>> &&CDRomDeviceStateEnumHasIdle<T>::value;
 
 }  // namespace Concepts
 
@@ -325,9 +325,7 @@ class CDRomDevice final : public CDRom {
      * @brief Checks if the CDROM device is in idle state.
      *
      */
-    [[nodiscard]] bool isIdle() const {
-        return m_state == 0;
-    }
+    [[nodiscard]] bool isIdle() const { return m_state == 0; }
 
   private:
     void switchAction(ActionBase *action);
