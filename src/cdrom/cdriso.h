@@ -65,6 +65,7 @@ class CDRIso {
     unsigned m_cdrIsoMultidiskSelect;
 
     bool CheckSBI(const uint8_t* time);
+    bool IsMode1ISO() { return m_isMode1ISO; }
 
   private:
     CDRIso();
