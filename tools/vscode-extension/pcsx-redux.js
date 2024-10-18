@@ -13,8 +13,8 @@ const dmg = require('dmg')
 const dmgMount = util.promisify(dmg.mount)
 const dmgUnmount = util.promisify(dmg.unmount)
 const terminal = require('./terminal.js')
-const execAsync = require('node:child_process').exec
-const exec = util.promisify(execAsync)
+const execFileAsync = require('node:child_process').execFile
+const execFile = util.promisify(execFileAsync)
 const os = require('node:os')
 
 const updateInfo = {
@@ -97,7 +97,7 @@ exports.install = async () => {
         'https://aka.ms/vs/17/release/vc_redist.x64.exe',
         fullPath
       )
-      await exec(fullPath)
+      await execFile(fullPath)
     }
   }
 

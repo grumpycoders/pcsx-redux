@@ -116,6 +116,6 @@
     "open-file-explorer": "^1.0.2",
     "simple-git": "^3.16.1",
     "unzipper": "^0.10.11",
-    "which": "^3.0.0"
+    "which": "^5.0.0"
   }
 }

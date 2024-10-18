@@ -2,11 +2,12 @@
 
 const vscode = require('vscode')
 const util = require('node:util')
-const execAsync = require('node:child_process').exec
-const exec = util.promisify(execAsync)
+const execFileAsync = require('node:child_process').execFile
+const execFile = util.promisify(execFileAsync)
 const terminal = require('./terminal.js')
 const pcsxRedux = require('./pcsx-redux.js')
 const fs = require('fs-extra')
+const which = require('which')
 const downloader = require('./downloader.js')
 const unzipper = require('unzipper')
 const path = require('node:path')
@@ -26,16 +27,16 @@ async function checkInstalled (name) {
   return tools[name].installed
 }
 
-function checkSimpleCommand (command) {
-  return new Promise((resolve) => {
-    execAsync(command, (error) => {
-      if (error) {
-        resolve(false)
-      } else {
-        resolve(true)
-      }
-    })
-  })
+async function checkCommands (commands, args) {
+  for (const command of commands) {
+    try {
+      await execFile(command, args)
+    } catch (error) {
+      continue
+    }
+    return true
+  }
+  return false
 }
 
 let mipsInstalling = false
@@ -164,13 +165,6 @@ async function installToolchain () {
       )
       throw new Error('Unsupported platform')
   }
-}
-
-function checkToolchain () {
-  return Promise.any([
-    exec('mipsel-linux-gnu-g++ --version'),
-    exec('mipsel-none-elf-g++ --version')
-  ])
 }
 
 async function installGDB () {
@@ -309,7 +303,7 @@ async function installCMake () {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await exec(`start ${filename}`)
+      await execFile('start', [filename])
       requiresReboot = true
       break
     case 'linux':
@@ -385,7 +379,7 @@ async function installGit () {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await exec(filename)
+      await execFile(filename)
       requiresReboot = true
       break
     }
@@ -428,7 +422,7 @@ async function installPython () {
         url.split('/').pop()
       )
       await downloader.downloadFile(url, filename)
-      await exec(filename)
+      await execFile(filename)
       requiresReboot = true
       break
     case 'linux':
@@ -460,21 +454,34 @@ async function installPython () {
   }
 }
 
-function checkPython () {
-  switch (process.platform) {
-    case 'win32':
-      // On Windows "python" and "python3" are aliased to a script that opens
-      // the Microsoft Store by default, so we must check for the "py" launcher
-      // provided by the official installers instead.
-      // TODO: try to detect other Python installations that do not come with
-      // the py launcher (e.g. ones from MSys2)
-      return checkSimpleCommand('py -3 --version')
-    default:
-      return Promise.any([
-        exec('python --version'),
-        exec('python3 --version')
-      ])
+async function checkPython () {
+  /*
+   * Windows ships by default with fake (zero-byte) 'python' and 'python3'
+   * executables that launch the Microsoft Store when invoked, so a manual PATH
+   * scan before running 'python --version' is needed to avoid executing them.
+   *
+   * IMPORTANT: this assumes that, if Python is installed but the dummy files
+   * are still listed in PATH before the real installation, the project's build
+   * system will also be able to detect and ignore them (rather than blindly
+   * executing 'python'). This is currently the case for the CMake-based
+   * templates.
+   */
+  for (const command of ['python3', 'python', 'py']) {
+    const matches = await which(command, { all: true })
+    for (const fullPath of matches) {
+      const stats = await fs.stat(fullPath)
+      if (!stats.size && !stats.isSymbolicLink()) {
+        continue
+      }
+      try {
+        await execFile(fullPath, ['--version'])
+      } catch (error) {
+        continue
+      }
+      return true
+    }
   }
+  return false
 }
 
 function unpackPsyq (destination) {
@@ -504,20 +511,20 @@ const tools = {
   mips: {
     type: 'internal',
     install: installMips,
-    check: () => checkSimpleCommand('mips --version')
+    check: () => checkCommands(['mips'], ['--version'])
   },
   apt: {
     type: 'internal',
-    check: () => checkSimpleCommand('apt-get --version')
+    check: () => checkCommands(['apt-get'], ['--version'])
   },
   trizen: {
     type: 'internal',
-    check: () => checkSimpleCommand('trizen --version')
+    check: () => checkCommands(['trizen'], ['--version'])
   },
   brew: {
     type: 'internal',
     install: 'https://brew.sh/',
-    check: () => checkSimpleCommand('brew --version')
+    check: () => checkCommands(['brew'], ['--version'])
   },
   toolchain: {
     type: 'package',
@@ -525,7 +532,10 @@ const tools = {
     description: 'The toolchain used to compile code for the PlayStation 1',
     homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
-    check: checkToolchain
+    check: () => checkCommands(
+      ['mipsel-none-elf-g++', 'mipsel-linux-gnu-g++'],
+      ['--version']
+    )
   },
   gdb: {
     type: 'package',
@@ -533,7 +543,10 @@ const tools = {
     description: 'The tool to debug code for the PlayStation 1',
     homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
-    check: () => checkGDB()
+    check: () => checkCommands(
+      [(process.platform === 'darwin') ? 'gdb' : 'gdb-multiarch'],
+      ['--version']
+    )
   },
   make: {
     type: 'package',
@@ -541,7 +554,7 @@ const tools = {
     description: 'Build code and various targets with this tool',
     homepage: 'https://www.gnu.org/software/make/',
     install: installMake,
-    check: () => checkSimpleCommand('make --version')
+    check: () => checkCommands(['make'], ['--version'])
   },
   cmake: {
     type: 'package',
@@ -549,7 +562,7 @@ const tools = {
     description: 'A more advanced building tool for projects that require it',
     homepage: 'https://cmake.org/',
     install: installCMake,
-    check: () => checkSimpleCommand('cmake --version')
+    check: () => checkCommands(['cmake'], ['--version'])
   },
   git: {
     type: 'package',
@@ -558,7 +571,7 @@ const tools = {
       'Tool to maintain your code, and initialize your project templates',
     homepage: 'https://git-scm.com/',
     install: installGit,
-    check: () => checkSimpleCommand('git --version')
+    check: () => checkCommands(['git'], ['--version'])
   },
   python: {
     type: 'package',
@@ -634,11 +647,6 @@ function checkLocalFile (filename) {
       resolve(!err)
     })
   })
-}
-
-function checkGDB () {
-  if (process.platform === 'darwin') return checkSimpleCommand('gdb --version')
-  return checkSimpleCommand('gdb-multiarch --version')
 }
 
 exports.refreshAll = async () => {
