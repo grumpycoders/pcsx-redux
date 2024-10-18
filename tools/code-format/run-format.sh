@@ -18,7 +18,7 @@ function format() {
   sed "s/ *$//" -i "$f"
 }
 
-find repository/src -name *.c -or -name *.cc -or -name *.h -or -name *.hh -or -name *.lua | while read f ; do
+find repository/src -name *.c -or -name *.cc -or -name *.cpp -or -name *.h -or -name *.hh -or -name *.lua | while read f ; do
   echo "$f"
   clean "$f"
   format "$f"
