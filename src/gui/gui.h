@@ -50,6 +50,7 @@
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/named_savestates.h"
+#include "gui/widgets/patches.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
@@ -97,6 +98,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
     typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
     typedef Setting<bool, TYPESTRING("ShowTypedDebugger")> ShowTypedDebugger;
+    typedef Setting<bool, TYPESTRING("ShowPatches")> ShowPatches;
     typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
@@ -151,7 +153,7 @@ class GUI final : public UI {
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
-             ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowNamedSaveStates,
+             ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowNamedSaveStates,
              ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger,
              MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
              ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4,
@@ -373,6 +375,7 @@ class GUI final : public UI {
                                         settings.get<VRAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::TypedDebugger m_typedDebugger = {settings.get<ShowTypedDebugger>().value};
+    Widgets::Patches m_patches = {settings.get<ShowPatches>().value};
     Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
