@@ -40,9 +40,9 @@ SOFTWARE.
 using namespace psyqo::fixed_point_literals;
 using namespace psyqo::trig_literals;
 
-#define NUM_CUBE_VERTICES 8
-#define NUM_CUBE_FACES    6
-#define ORDERING_TABLE_SIZE 240
+static constexpr unsigned NUM_CUBE_VERTICES = 8;
+static constexpr unsigned NUM_CUBE_FACES = 6;
+static constexpr unsigned ORDERING_TABLE_SIZE = 240;
 
 typedef struct {
 	uint8_t  vertices[4];
@@ -81,10 +81,10 @@ class CubeScene final : public psyqo::Scene {
 
     eastl::array<psyqo::Fragments::SimpleFragment<psyqo::Prim::Quad>, 6> m_quads;
 
-    psyqo::Color m_bg = {.r = 63, .g = 63, .b = 63};
+    static constexpr psyqo::Color c_bg = {.r = 63, .g = 63, .b = 63};
 
 
-    psyqo::Vec3 m_cubeVertices[NUM_CUBE_VERTICES] = {
+    static constexpr psyqo::Vec3 c_cubeVertices[NUM_CUBE_VERTICES] = {
         { .x = -0.05, .y = -0.05, .z = -0.05 },
         { .x =  0.05, .y = -0.05, .z = -0.05 },
         { .x = -0.05, .y =  0.05, .z = -0.05 },
@@ -96,7 +96,7 @@ class CubeScene final : public psyqo::Scene {
     };
 
 
-    Face m_cubeFaces[NUM_CUBE_FACES] = {
+    static constexpr Face c_cubeFaces[NUM_CUBE_FACES] = {
         { .vertices = { 0, 1, 2, 3 }, .color = {0,0,255} },
         { .vertices = { 6, 7, 4, 5 }, .color = {0,255,0} },
         { .vertices = { 4, 5, 0, 1 }, .color = {0,255,255} },
@@ -106,8 +106,8 @@ class CubeScene final : public psyqo::Scene {
     };
 };
 
-Cube cube;
-CubeScene cubeScene;
+static Cube cube;
+static CubeScene cubeScene;
 
 void Cube::prepare() {
   psyqo::GPU::Configuration config;
@@ -158,7 +158,7 @@ void CubeScene::frame() {
     auto& clear = m_clear[parity];
 
     // Chain the fill command accordingly to clear the buffer
-    gpu().getNextClear(clear.primitive, m_bg);
+    gpu().getNextClear(clear.primitive, c_bg);
     gpu().chain(clear);
     
 
@@ -184,13 +184,13 @@ void CubeScene::frame() {
 
     int faceNum = 0;
 
-    for(auto face : m_cubeFaces) {
+    for(auto face : c_cubeFaces) {
 
         // We load the first 3 vertices into the GTE. We can't do all 4 at once because the GTE 
         // handles only 3 at a time...
-        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_cubeVertices[face.vertices[0]]);
-        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V1>(m_cubeVertices[face.vertices[1]]);
-        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V2>(m_cubeVertices[face.vertices[2]]);
+        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(c_cubeVertices[face.vertices[0]]);
+        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V1>(c_cubeVertices[face.vertices[1]]);
+        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V2>(c_cubeVertices[face.vertices[2]]);
         
         // We perform rtpt (Perspective transformation) to the three verticies.
         psyqo::GTE::Kernels::rtpt();
@@ -210,7 +210,7 @@ void CubeScene::frame() {
         psyqo::GTE::read<psyqo::GTE::Register::SXY0>(&projected[0].packed);
 
         // Write the last vertex
-        psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_cubeVertices[face.vertices[3]]);
+        psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(c_cubeVertices[face.vertices[3]]);
 
         // Perform rtps (Perspective transformation) to the last vertice (rtpS - single, rtpT - triple).
         psyqo::GTE::Kernels::rtps();
