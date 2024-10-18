@@ -195,8 +195,7 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             if (b != g_mcChecksum[port]) return -1;
-            while ((SIOS[0].stat & 2) == 0)
-                ;
+            while ((SIOS[0].stat & 2) == 0);
             return SIOS[0].fifo == 0x47 ? 1 : -1;
         default:
             return -1;
@@ -292,8 +291,7 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
             SIOS[0].ctrl |= 0x0010;
             IREG = ~IRQ_CONTROLLER;
             if (b != 0x5d) return -1;
-            while ((SIOS[0].stat & 2) == 0)
-                ;
+            while ((SIOS[0].stat & 2) == 0);
             if (!g_skipErrorOnNewCard && ((s_mcFlagByte[port] & 4) != 0)) {
                 g_mcLastPort = g_mcPortFlipping;
                 g_skipErrorOnNewCard = 0;  // whyyyy

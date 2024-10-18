@@ -150,8 +150,7 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     _freea(str);
 #endif
 
-    while (!std::filesystem::exists(tmp / "pcsx-redux-update.started"))
-        ;
+    while (!std::filesystem::exists(tmp / "pcsx-redux-update.started"));
 
     return true;
 }

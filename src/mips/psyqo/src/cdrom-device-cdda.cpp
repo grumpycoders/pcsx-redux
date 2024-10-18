@@ -53,8 +53,7 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
     PlayCDDAAction() : Action("PlayCDDAAction") {}
     void start(psyqo::CDRomDevice *device, unsigned track, bool stopAtEndOfTrack,
                eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::playCDDA() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::playCDDA() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(PlayCDDAActionState::GETTD);
@@ -64,8 +63,7 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
     }
     void start(psyqo::CDRomDevice *device, psyqo::MSF msf, bool stopAtEndOfTrack,
                eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::playCDDA() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::playCDDA() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(PlayCDDAActionState::SEEK);
@@ -74,8 +72,7 @@ class PlayCDDAAction : public psyqo::CDRomDevice::Action<PlayCDDAActionState> {
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::SETMODE, stopAtEndOfTrack ? 3 : 1);
     }
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::playCDDA() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::playCDDA() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(PlayCDDAActionState::PLAY);

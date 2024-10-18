@@ -68,8 +68,8 @@ static Handler<0x40> s_handler40;
 static Handler<0x80> s_handler80;
 
 extern "C" void installExceptionHandlers(uint32_t (*handler)(uint32_t *regs, uint32_t from)) {
-    uint32_t (*wrapper)(uint32_t * regs, uint32_t from, uint32_t(*handler)(uint32_t * regs, uint32_t from)) =
-        [](uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t * regs, uint32_t from)) -> uint32_t {
+    uint32_t (*wrapper)(uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t *regs, uint32_t from)) =
+        [](uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t *regs, uint32_t from)) -> uint32_t {
         return handler(regs, from);
     };
     __asm__ volatile(

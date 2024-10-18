@@ -113,8 +113,7 @@ int GPU_sync() {
                 return -1;
             }
         }
-        while ((GPU_STATUS & 0x4000000) == 0)
-            ;
+        while ((GPU_STATUS & 0x4000000) == 0);
         GPU_STATUS = 0x4000000;
     }
     return 0;

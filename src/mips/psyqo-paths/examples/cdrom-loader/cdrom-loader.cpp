@@ -24,13 +24,14 @@ SOFTWARE.
 
 */
 
+#include "psyqo-paths/cdrom-loader.hh"
+
 #include "psyqo/application.hh"
 #include "psyqo/cdrom-device.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/iso9660-parser.hh"
 #include "psyqo/scene.hh"
-#include "psyqo-paths/cdrom-loader.hh"
 
 namespace {
 
@@ -71,9 +72,9 @@ void CDRomLoaderExample::createScene() {
     pushScene(&cdromLoaderExampleScene);
     m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.gpu(), cdromLoaderExample.m_isoParser,
                            [this](eastl::vector<uint8_t>&& buffer) {
-        m_buffer = eastl::move(buffer);
-        m_callbackCalled = true;
-    });
+                               m_buffer = eastl::move(buffer);
+                               m_callbackCalled = true;
+                           });
 }
 
 void CDRomLoaderExampleScene::frame() {

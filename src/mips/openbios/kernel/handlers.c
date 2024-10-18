@@ -107,8 +107,7 @@ void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
     osDbgPrintf("hi = %p - lo = %p\r\n", regs->GPR.r[32], regs->GPR.r[33]);
     osDbgPrintf("=== halting ===\r\n");
     pcsx_debugbreak();
-    while (1)
-        ;
+    while (1);
 }
 
 static void installExceptionHandler() { installHandler((uint32_t *)exceptionVector, (uint32_t *)0x80); }

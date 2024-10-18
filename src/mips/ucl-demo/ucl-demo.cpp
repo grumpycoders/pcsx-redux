@@ -97,7 +97,7 @@ int main() {
     // to overlap the decompressed data by 16 bytes, in order to be able to safely decompress
     // in-place. In practice, it only requires about 4 bytes, but we will use 16 bytes here
     // as documented in the UCL library.
-    uint8_t * compressed = buffer + header.decompsize - header.compsize + 16;
+    uint8_t* compressed = buffer + header.decompsize - header.compsize + 16;
 
     r = PCread(fd, compressed, header.compsize);
     if (r != header.compsize) {
