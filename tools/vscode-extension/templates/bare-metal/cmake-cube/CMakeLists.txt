@@ -16,9 +16,10 @@ project(
     HOMEPAGE_URL "https://github.com/grumpycoders/pcsx-redux"
 )
 
-# Locate a working Python installation in order to run the scripts in the tools
-# directory.
-find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+# Set up compiler flags and initialize the Python environment used to run the
+# scripts in the tools directory.
+include(ps1-bare-metal/cmake/setup.cmake)
+include(ps1-bare-metal/cmake/virtualenv.cmake)
 
 # Build a "common" library containing basic support code. We are going to link
 # this library into our executable.
@@ -39,40 +40,8 @@ target_include_directories(
     ps1-bare-metal/src/libc
 )
 
-# Define a helper function to embed the contents of a file into the executable.
-function(addBinaryFile target name path)
-    set(_file "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
-    cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE _path)
-
-    # Generate an assembly listing that uses the .incbin directive to embed the
-    # file and add it to the executable's list of source files. This may look
-    # hacky, but it works and lets us easily customize the symbol name (i.e. the
-    # name of the "array" that will contain the file's data).
-    file(
-        CONFIGURE
-        OUTPUT  "${_file}"
-        CONTENT [[
-.section .data.${name}, "aw"
-.balign 8
-
-.global ${name}
-.type ${name}, @object
-.size ${name}, (${name}_end - ${name})
-
-${name}:
-    .incbin "${_path}"
-${name}_end:
-]]
-        ESCAPE_QUOTES
-        NEWLINE_STYLE LF
-    )
-
-    target_sources(${target} PRIVATE "${_file}")
-    set_source_files_properties("${_file}" PROPERTIES OBJECT_DEPENDS "${_path}")
-endfunction()
-
-# Create the main executable. You may add more source files by listing them
-# here, or other images or files by adding calls to addBinaryFile().
+# Compile the main executable. You may add more source files by listing them
+# here.
 add_executable(
     {{projectName}}
     src/font.c
@@ -82,8 +51,28 @@ add_executable(
 )
 target_link_libraries({{projectName}} PRIVATE common)
 
-addBinaryFile({{projectName}} fontTexture assets/fontTexture.dat)
-addBinaryFile({{projectName}} fontPalette assets/fontPalette.dat)
+# Define a CMake macro that invokes convertImage.py in order to generate VRAM
+# texture data from an image file.
+function(convertImage input bpp)
+    add_custom_command(
+        OUTPUT  ${ARGN}
+        DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
+        COMMAND
+            "${Python3_EXECUTABLE}"
+            "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertImage.py"
+            -b ${bpp}
+            "${PROJECT_SOURCE_DIR}/${input}"
+            ${ARGN}
+        VERBATIM
+    )
+endfunction()
+
+# Convert the font spritesheet to a 4bpp texture and palette, then embed them
+# into the executable. The addBinaryFile() macro is defined in setup.cmake; you
+# may call it multiple times to embed other data into the binary.
+convertImage(assets/font.png 4 fontTexture.dat fontPalette.dat)
+addBinaryFile({{projectName}} fontTexture "${PROJECT_BINARY_DIR}/fontTexture.dat")
+addBinaryFile({{projectName}} fontPalette "${PROJECT_BINARY_DIR}/fontPalette.dat")
 
 # Add a step to run convertExecutable.py after the executable is compiled in
 # order to convert it into a PS1 executable. By default all custom commands run
@@ -95,6 +84,7 @@ add_custom_command(
     COMMAND
         "${Python3_EXECUTABLE}"
         "${PROJECT_SOURCE_DIR}/ps1-bare-metal/tools/convertExecutable.py"
-        "$<TARGET_FILE:{{projectName}}>" {{projectName}}.psexe
+        "$<TARGET_FILE:{{projectName}}>"
+        {{projectName}}.psexe
     VERBATIM
 )

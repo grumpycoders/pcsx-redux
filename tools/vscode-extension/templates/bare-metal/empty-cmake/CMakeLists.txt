@@ -16,9 +16,10 @@ project(
     HOMEPAGE_URL "https://github.com/grumpycoders/pcsx-redux"
 )
 
-# Locate a working Python installation in order to run the scripts in the tools
-# directory.
-find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+# Set up compiler flags and initialize the Python environment used to run the
+# scripts in the tools directory.
+include(ps1-bare-metal/cmake/setup.cmake)
+include(ps1-bare-metal/cmake/virtualenv.cmake)
 
 # Build a "common" library containing basic support code. We are going to link
 # this library into our executable.
