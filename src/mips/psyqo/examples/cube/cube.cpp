@@ -200,7 +200,7 @@ void CubeScene::frame() {
         psyqo::GTE::Kernels::nclip();
 
         // Read the result of nclip and skip rendering this face if it's not facing us
-        uint32_t mac0;
+        uint32_t mac0 = 0;
         psyqo::GTE::read<psyqo::GTE::Register::MAC0>(&mac0);
         if(mac0 <= 0)
             continue;
@@ -217,7 +217,7 @@ void CubeScene::frame() {
         
         // Calculate the average Z for the z-Index to be put in the ordering table
         psyqo::GTE::Kernels::avsz4();
-        uint32_t zIndex;
+        uint32_t zIndex = 0;
         psyqo::GTE::read<psyqo::GTE::Register::OTZ>(&zIndex);
 
 
