@@ -149,6 +149,7 @@
     <ClCompile Include="..\..\src\gui\widgets\memcard_manager.cc" />
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\named_savestates.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\patches.cc" />
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc" />
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
@@ -182,6 +183,7 @@
     <ClInclude Include="..\..\src\gui\widgets\memcard_manager.h" />
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h" />
     <ClInclude Include="..\..\src\gui\widgets\named_savestates.h" />
+    <ClInclude Include="..\..\src\gui\widgets\patches.h" />
     <ClInclude Include="..\..\src\gui\widgets\pio-cart.h" />
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />

@@ -37,6 +37,7 @@
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/web-server.h"
+#include "core/patchmanager.h"
 #include "gpu/soft/interface.h"
 #include "lua/extra.h"
 #include "lua/luafile.h"
@@ -66,6 +67,7 @@ PCSX::Emulator::Emulator()
       m_mdec(new PCSX::MDEC()),
       m_mem(new PCSX::Memory()),
       m_pads(PCSX::Pads::factory()),
+      m_patchManager(new PatchManager()),
       m_pioCart(new PCSX::PIOCart),
       m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),

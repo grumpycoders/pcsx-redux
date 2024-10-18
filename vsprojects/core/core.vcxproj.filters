@@ -142,6 +142,9 @@
     <ClCompile Include="..\..\src\core\arguments.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\patchmanager.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -290,6 +293,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\DynaRec_aa64\regAllocation.h">
       <Filter>Header Files\Dynarec Aarch64</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\patchmanager.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
