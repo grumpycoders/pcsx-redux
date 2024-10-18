@@ -75,6 +75,7 @@ class HW;
 class Lua;
 class MDEC;
 class Memory;
+class MemoryCards;
 class Pads;
 class R3000Acpu;
 class SIO;
@@ -248,6 +249,7 @@ class Emulator {
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<Memory> m_mem;
+    std::unique_ptr<MemoryCards> m_memoryCards;
     std::unique_ptr<Pads> m_pads;
     std::unique_ptr<PIOCart> m_pioCart;
     std::unique_ptr<R3000Acpu> m_cpu;
