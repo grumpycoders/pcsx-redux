@@ -23,7 +23,7 @@
 
 #include "core/decode_xa.h"
 
-//#define FIXED
+// #define FIXED
 
 #define NOT(_X_) (!(_X_))
 #define XACLAMP(_X_, _MI_, _MA_)    \
@@ -274,7 +274,7 @@ typedef struct {
 #define SUB_SUB_VIDEO (1 << 1)    // contains video
 #define SUB_SUB_EOR (1 << 0)      // end of record
 
-#define AUDIO_CODING_GET_STEREO(_X_) ((_X_)&3)
+#define AUDIO_CODING_GET_STEREO(_X_) ((_X_) & 3)
 #define AUDIO_CODING_GET_FREQ(_X_) (((_X_) >> 2) & 3)
 #define AUDIO_CODING_GET_BPS(_X_) (((_X_) >> 4) & 3)
 #define AUDIO_CODING_GET_EMPHASIS(_X_) (((_X_) >> 6) & 1)

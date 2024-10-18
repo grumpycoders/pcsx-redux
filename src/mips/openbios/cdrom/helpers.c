@@ -47,8 +47,7 @@ int cdromBlockReading(int count, int sector, char* buffer) {
 
     for (retries = 0; retries < 10; retries++) {
         int cyclesToWait = 99999;
-        while (!syscall_cdromSeekL(msf) && (--cyclesToWait > 0))
-            ;
+        while (!syscall_cdromSeekL(msf) && (--cyclesToWait > 0));
 
         if (cyclesToWait < 1) {
             syscall_exception(0x44, 0x0b);
@@ -63,8 +62,7 @@ int cdromBlockReading(int count, int sector, char* buffer) {
         }
 
         cyclesToWait = 99999;
-        while (!syscall_cdromRead(count, buffer, 0x80) && (--cyclesToWait > 0))
-            ;
+        while (!syscall_cdromRead(count, buffer, 0x80) && (--cyclesToWait > 0));
         if (cyclesToWait < 1) {
             syscall_exception(0x44, 0x0c);
             return -1;

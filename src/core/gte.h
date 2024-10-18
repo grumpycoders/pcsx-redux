@@ -27,7 +27,7 @@
 #undef NCCS
 
 #define gteoB (PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rs_] + _Imm_)
-#define gteop(instruction) ((instruction)&0x1ffffff)
+#define gteop(instruction) ((instruction) & 0x1ffffff)
 
 namespace PCSX {
 

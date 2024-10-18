@@ -41,8 +41,7 @@ class MuteAction : public psyqo::CDRomDevice::Action<MuteActionState> {
   public:
     MuteAction() : Action("MuteAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::mute() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::mute() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(MuteActionState::MUTE);
@@ -79,8 +78,7 @@ class UnmuteAction : public psyqo::CDRomDevice::Action<UnmuteActionState> {
   public:
     UnmuteAction() : Action("UnmuteAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::unmute() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::unmute() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(UnmuteActionState::UNMUTE);

@@ -35,7 +35,8 @@ void psyqo::OrderingTableBase::clear(uint32_t* table, size_t size) {
     }
 }
 
-void psyqo::OrderingTableBase::insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize, int32_t z) {
+void psyqo::OrderingTableBase::insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize,
+                                      int32_t z) {
     z = eastl::clamp(z, int32_t(0), size) + 1;
     *head = shiftedFragmentSize | table[z];
     table[z] = reinterpret_cast<uint32_t>(head) & 0xffffff;

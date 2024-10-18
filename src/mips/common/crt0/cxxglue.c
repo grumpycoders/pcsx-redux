@@ -70,8 +70,7 @@ void cxxmain() {
 __attribute__((weak)) void abort() {
     pcsx_debugbreak();
     // TODO: make this better
-    while (1)
-        ;
+    while (1);
 }
 
 // This will be called if a pure virtual function is called, usually mistakenly calling

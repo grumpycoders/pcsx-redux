@@ -72,10 +72,7 @@ struct DisplayModeConfig {
     enum HResolutionExtended hResolutionExtended;
 };
 
-static inline void waitGPU() {
-    while ((GPU_STATUS & 0x04000000) == 0)
-        ;
-}
+static inline void waitGPU() { while ((GPU_STATUS & 0x04000000) == 0); }
 
 static inline void sendGPUData(uint32_t data) {
     waitGPU();

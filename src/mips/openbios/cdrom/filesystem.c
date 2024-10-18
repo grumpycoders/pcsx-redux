@@ -238,13 +238,11 @@ int dev_cd_open(struct File *file, const char *filename, int mode) {
 
     char canonicalFilename[32];
     char *ptr = canonicalFilename;
-    while ((*ptr++ = toupper(*filename++)))
-        ;
+    while ((*ptr++ = toupper(*filename++)));
 
     ptr = canonicalFilename;
     char c;
-    while (((c = *ptr++) != 0) && (c != ';'))
-        ;
+    while (((c = *ptr++) != 0) && (c != ';'));
     if (c == 0) strcat(canonicalFilename, ";1");
 
     int id;
