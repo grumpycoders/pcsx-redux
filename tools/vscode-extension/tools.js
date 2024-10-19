@@ -47,7 +47,8 @@ async function installMips () {
   mipsInstalling = true
   try {
     await terminal.run('powershell', [
-      '-c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"'
+      '-c',
+      '& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -455,33 +456,56 @@ async function installPython () {
 }
 
 async function checkPython () {
-  /*
-   * Windows ships by default with fake (zero-byte) 'python' and 'python3'
-   * executables that launch the Microsoft Store when invoked, so a manual PATH
-   * scan before running 'python --version' is needed to avoid executing them.
-   *
-   * IMPORTANT: this assumes that, if Python is installed but the dummy files
-   * are still listed in PATH before the real installation, the project's build
-   * system will also be able to detect and ignore them (rather than blindly
-   * executing 'python'). This is currently the case for the CMake-based
-   * templates.
-   */
-  for (const command of ['python3', 'python', 'py']) {
-    const matches = await which(command, { all: true })
-    for (const fullPath of matches) {
-      const stats = await fs.stat(fullPath)
-      if (!stats.size && !stats.isSymbolicLink()) {
-        continue
-      }
+  switch (process.platform) {
+    case 'win32':
+      /*
+       * We cannot simply run 'python --version' here as Windows ships by
+       * default with fake (zero-byte) 'python' and 'python3' executables in its
+       * PATH. These files are actually links to UWP apps, implemented using a
+       * specific NTFS reparse tag. If Python is installed from the Microsoft
+       * Store they behave as if they were symlinks to the actual executables;
+       * if not, however, attempting to run them will result in the store
+       * popping up and prompting the user to install Python.
+       *
+       * A kludge is thus needed here in order to prevent this from happening.
+       * We'll first check for any UWP Python installations, then search PATH
+       * manually and skip the fake binaries if none was found. This ensures
+       * both UWP and non-UWP installs will be detected somewhat reliably.
+       *
+       * IMPORTANT: this assumes that the project's build system will also be
+       * able to detect and ignore the fake executables (rather than e.g.
+       * blindly executing 'python'). This is currently the case for the
+       * CMake-based templates.
+       */
+      let hasUWPPython
       try {
-        await execFile(fullPath, ['--version'])
+        const result = await execFile('powershell', [
+          '-c',
+          'Get-AppxPackage -Name PythonSoftwareFoundation.Python.*'
+        ])
+        hasUWPPython = (result.stdout.trim() !== '')
       } catch (error) {
-        continue
+        hasUWPPython = false
       }
-      return true
-    }
+      for (const command of ['python3', 'python', 'py']) {
+        const matches = await which(command, { all: true })
+        for (const fullPath of matches) {
+          const stats = await fs.stat(fullPath)
+          if (!stats.size && !hasUWPPython) {
+            continue
+          }
+          try {
+            await execFile(fullPath, ['--version'])
+          } catch (error) {
+            continue
+          }
+          return true
+        }
+      }
+      return false
+    default:
+      return checkCommands(['python3', 'python'], ['--version'])
   }
-  return false
 }
 
 function unpackPsyq (destination) {
