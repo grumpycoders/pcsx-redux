@@ -176,7 +176,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 }
             } break;
         }
-        // GPU back in Fifo polling mode, in case we were uploading to VRAM
+        // GPU back in Fifo polling mode
         Hardware::GPU::Ctrl = 0x04000001;
         if (m_flushCacheAfterDMA) {
             Prim::FlushCache fc;
@@ -350,7 +350,7 @@ void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect region, eastl::function
     bcr >>= 1;
 
     unsigned bs = 1;
-    while (((bcr & 1) == 0) && (bs < 16)) {
+    while (((bcr & 1) == 0) && (bs < 8)) {
         bs <<= 1;
         bcr >>= 1;
     }
@@ -474,6 +474,8 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
 void psyqo::GPU::scheduleChainedDMA(uintptr_t head) {
     Kernel::assert((DMA_CTRL[DMA_GPU].CHCR & 0x01000000) == 0, "GPU DMA busy");
     while ((Hardware::GPU::Ctrl & uint32_t(0x10000000)) == 0);
+    // Using block command mode, probably?
+    Hardware::GPU::Ctrl = 0x04000002;
     DMA_CTRL[DMA_GPU].MADR = head;
     eastl::atomic_signal_fence(eastl::memory_order_release);
     DMA_CTRL[DMA_GPU].CHCR = 0x01000401;
