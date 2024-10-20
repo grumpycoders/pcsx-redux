@@ -76,6 +76,7 @@ class Lua;
 class MDEC;
 class Memory;
 class Pads;
+class PatchManager;
 class R3000Acpu;
 class SIO;
 class SPUInterface;
@@ -249,6 +250,7 @@ class Emulator {
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<Memory> m_mem;
     std::unique_ptr<Pads> m_pads;
+    std::unique_ptr<PatchManager> m_patchManager;
     std::unique_ptr<PIOCart> m_pioCart;
     std::unique_ptr<R3000Acpu> m_cpu;
     std::unique_ptr<SIO> m_sio;

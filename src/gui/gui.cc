@@ -1297,6 +1297,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
+                    ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                     if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
                         ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
@@ -1565,6 +1566,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_patches.m_show) {
+        m_patches.draw(_("Patches"));
     }
 
     if (m_namedSaveStates.m_show) {

@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\src\core\DynaRec_x64\regAllocation.cc" />
     <ClCompile Include="..\..\src\core\DynaRec_x64\symbols.cc" />
     <ClCompile Include="..\..\src\core\eventslua.cc" />
+    <ClCompile Include="..\..\src\core\patchmanager.cc" />
     <ClCompile Include="..\..\src\core\pio-cart.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
@@ -190,6 +191,7 @@
     <ClInclude Include="..\..\src\core\DynaRec_x64\recompiler.h" />
     <ClInclude Include="..\..\src\core\DynaRec_x64\regAllocation.h" />
     <ClInclude Include="..\..\src\core\eventslua.h" />
+    <ClInclude Include="..\..\src\core\patchmanager.h" />
     <ClInclude Include="..\..\src\core\pio-cart.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
