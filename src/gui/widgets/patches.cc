@@ -17,9 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "gui/widgets/patches.h"
+
 #include "core/patchmanager.h"
 #include "core/r3000a.h"
-#include "gui/widgets/patches.h"
 #include "imgui.h"
 
 void PCSX::Widgets::Patches::draw(const char* title) {
@@ -37,8 +38,8 @@ void PCSX::Widgets::Patches::draw(const char* title) {
     }
 
     static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable |
-                            ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
-                            ImGuiTableFlags_ContextMenuInBody;
+                                   ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
+                                   ImGuiTableFlags_ContextMenuInBody;
 
     if (ImGui::BeginTable("Patches", 4, flags)) {
         ImGui::TableSetupColumn("#");
@@ -74,14 +75,10 @@ void PCSX::Widgets::Patches::draw(const char* title) {
 
             ImGui::TableSetColumnIndex(2);
             ImGui::PushID(row);
-            if (ImGui::Checkbox("", &patch.active))
-            {
-                if (patch.active)
-                {
+            if (ImGui::Checkbox("", &patch.active)) {
+                if (patch.active) {
                     patchManager.doPatch(row);
-                }
-                else
-                {
+                } else {
                     patchManager.undoPatch(row);
                 }
             }
@@ -110,6 +107,6 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             patchManager.deleteAllPatches();
         }
     }
-   
+
     ImGui::End();
 }

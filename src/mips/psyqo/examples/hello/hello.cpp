@@ -34,7 +34,6 @@ namespace {
 // A PSYQo software needs to declare one `Application` object.
 // This is the one we're going to do for our hello world.
 class Hello final : public psyqo::Application {
-
     void prepare() override;
     void createScene() override;
 

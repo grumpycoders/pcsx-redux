@@ -109,13 +109,13 @@ enum e_type {             /* The type of the format field */
 ** Each builtin conversion character (ex: the 'd' in "%d") is described
 ** by an instance of the following structure
 */
-typedef struct s_info {       /* Information about each format field */
-    int fmttype;              /* The format field code letter */
-    int base;                 /* The base for radix conversion, or the scale in fixed-point mode */
-    const char *charset;      /* The character set for conversion */
-    int flag_signed;          /* Is the quantity signed? */
-    const char *prefix;       /* Prefix on non-zero values in alt format */
-    enum e_type type;         /* Conversion paradigm */
+typedef struct s_info {  /* Information about each format field */
+    int fmttype;         /* The format field code letter */
+    int base;            /* The base for radix conversion, or the scale in fixed-point mode */
+    const char *charset; /* The character set for conversion */
+    int flag_signed;     /* Is the quantity signed? */
+    const char *prefix;  /* Prefix on non-zero values in alt format */
+    enum e_type type;    /* Conversion paradigm */
 } info;
 
 /*

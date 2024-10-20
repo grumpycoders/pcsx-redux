@@ -42,8 +42,7 @@ class ResetAction : public psyqo::CDRomDevice::Action<ResetActionState> {
   public:
     ResetAction() : Action("ResetAction") {}
     void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
-        psyqo::Kernel::assert(device->isIdle(),
-                              "CDRomDevice::reset() called while another action is in progress");
+        psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::reset() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(ResetActionState::RESET);
