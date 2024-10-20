@@ -17,11 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "patchmanager.h"
+#include "core/patchmanager.h"
 #include "core/psxmem.h"
 #include "core/psxemulator.h"
-
-extern PCSX::Emulator* g_emulator;
+#include "core/r3000a.h"
 
 int PCSX::PatchManager::registerPatch(uint32_t address, Patch::Type type) {
     int index = (int)m_patches.size();
@@ -39,10 +38,12 @@ void PCSX::PatchManager::doPatch(Patch& patch) {
         case PatchManager::Patch::Type::Return:
             g_emulator->m_mem->write32(patch.addr, 0x03e00008);
             g_emulator->m_mem->write32(patch.addr + 4, 0);
+            g_emulator->m_cpu->invalidateCache();
             break;
 
         case PatchManager::Patch::Type::NOP:
             g_emulator->m_mem->write32(patch.addr, 0);
+            g_emulator->m_cpu->invalidateCache();
             break;
 
         default:
@@ -56,10 +57,12 @@ void PCSX::PatchManager::undoPatch(Patch& patch) {
         case PatchManager::Patch::Type::Return:
             g_emulator->m_mem->write32(patch.addr, patch.org0);
             g_emulator->m_mem->write32(patch.addr + 4, patch.org1);
+            g_emulator->m_cpu->invalidateCache();
             break;
 
         case PatchManager::Patch::Type::NOP:
             g_emulator->m_mem->write32(patch.addr, patch.org0);
+            g_emulator->m_cpu->invalidateCache();
             break;
 
         default:
@@ -68,13 +71,11 @@ void PCSX::PatchManager::undoPatch(Patch& patch) {
     patch.active = false;
 }
 
-PCSX::PatchManager::Patch::Type PCSX::PatchManager::findPatch(uint32_t address) {
-    int idx = 0;
-    for (std::vector<Patch>::iterator it = m_patches.begin(); it != m_patches.end(); ++it) {
-        if (it->addr == address) {
-            return it->type;
+PCSX::PatchManager::Patch::Type PCSX::PatchManager::findPatch(uint32_t address) const {
+    for (const Patch& patch : m_patches) {
+        if (patch.addr == address) {
+            return patch.type;
         }
-        idx++;
     }
     return PCSX::PatchManager::Patch::Type::None;
 }
@@ -90,21 +91,17 @@ void PCSX::PatchManager::deleteAllPatches() {
 }
 
 void PCSX::PatchManager::deactivateAll() {
-    int idx = 0;
-    for (std::vector<Patch>::iterator it = m_patches.begin(); it != m_patches.end(); ++it) {
-        if (it->active) {
-            undoPatch(m_patches[idx]);
+    for (Patch& patch : m_patches) {
+        if (patch.active) {
+            undoPatch(patch);
         }
-        idx++;
     }
 }
 
 void PCSX::PatchManager::activateAll() {
-    int idx = 0;
-    for (std::vector<Patch>::iterator it = m_patches.begin(); it != m_patches.end(); ++it) {
-        if (!it->active) {
-            doPatch(m_patches[idx]);
+    for (Patch& patch : m_patches) {
+        if (!patch.active) {
+            doPatch(patch);
         }
-        idx++;
     }
 }

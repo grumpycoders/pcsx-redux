@@ -56,19 +56,16 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
-            char buf[256];
-            sprintf(buf, "%d", row);
-            ImGui::TextUnformatted(buf);
+            ImGui::Text("%d", row);
 
             ImGui::TableSetColumnIndex(1);
-            sprintf(buf, "%08x", patch.addr);
-
-            if (ImGui::Button(buf, ImVec2(-FLT_MIN, 0.0f))) {
+            std::string buttonStr = fmt::format("{:08x}", patch.addr);
+            if (ImGui::Button(buttonStr.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{patch.addr});
             }
             if (ImGui::BeginPopupContextItem()) {
-                ImGui::TextUnformatted("Delete Patch?");
-                if (ImGui::Button("Delete")) {
+                ImGui::TextUnformatted(_("Delete Patch?"));
+                if (ImGui::Button(_("Delete"))) {
                     deleteIndex = row;
                     ImGui::CloseCurrentPopup();
                 }
@@ -91,7 +88,7 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             ImGui::PopID();
 
             ImGui::TableSetColumnIndex(3);
-            ImGui::TextUnformatted(patch.type == PCSX::PatchManager::Patch::Type::Return ? "Return" : "NOP");
+            ImGui::TextUnformatted(patch.type == PCSX::PatchManager::Patch::Type::Return ? _("Return") : _("NOP"));
         }
         ImGui::EndTable();
 
@@ -99,17 +96,17 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             patchManager.deletePatch(deleteIndex);
         }
 
-        if (ImGui::Button("Activate All")) {
+        if (ImGui::Button(_("Activate All"))) {
             patchManager.activateAll();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Deactivate All")) {
+        if (ImGui::Button(_("Deactivate All"))) {
             patchManager.deactivateAll();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Delete All")) {
+        if (ImGui::Button(_("Delete All"))) {
             patchManager.deleteAllPatches();
         }
     }
