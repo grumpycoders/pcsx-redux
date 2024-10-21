@@ -638,8 +638,7 @@ settings, otherwise debugging features may not work.)");
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            process(addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
