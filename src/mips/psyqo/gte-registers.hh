@@ -843,7 +843,7 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 template <>
 inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
     write<Register::TRX, Unsafe>(in.x.raw());
-    write<Register::TRX, Unsafe>(in.y.raw());
+    write<Register::TRY, Unsafe>(in.y.raw());
     write<Register::TRZ, Safe>(in.z.raw());
 }
 
