@@ -386,7 +386,7 @@ template <Register reg>
 static inline void read(uint32_t* ptr) {
     static_assert(reg < Register::R11R12, "Unable to read from register to memory directly");
     if constexpr (reg < Register::R11R12) {
-        asm volatile("swc2 $%1, 0(%0)" ::"r"(ptr), "i"(static_cast<uint32_t>(reg)));
+        asm volatile("swc2 $%2, 0(%1)" : "=m"(*ptr) : "r"(ptr), "i"(static_cast<uint32_t>(reg)));
     }
 }
 
