@@ -101,6 +101,10 @@ enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFron
 enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
 }  // namespace Prim::TPageAttr
 
+namespace Prim {
+    enum class Transparency { Auto, Opaque, SemiTransparent };
+}
+
 namespace PrimPieces {
 
 /**

@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "psyqo/gte-kernels.hh"
+#include "psyqo/gte-registers.hh"
 #include "psyqo/primitives/common.hh"
 
 namespace psyqo {
@@ -167,6 +169,40 @@ struct GouraudTriangle {
         pointC = v;
         return *this;
     }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&a->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&c->packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x30000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x32000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(a.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(c.packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x30000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x32000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
+    }
 
   private:
     uint32_t command;
@@ -217,6 +253,40 @@ struct GouraudTexturedTriangle {
     GouraudTexturedTriangle& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&a->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&c->packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x34000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x36000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(a.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(c.packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x34000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x36000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
     }
 
   private:
