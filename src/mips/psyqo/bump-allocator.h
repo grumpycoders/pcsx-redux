@@ -28,7 +28,6 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "psyqo/fragment-concept.hh"
 #include "psyqo/fragments.hh"
 #include "psyqo/primitive-concept.hh"
 
@@ -53,19 +52,25 @@ namespace psyqo {
 template <size_t N>
 class BumpAllocator {
   public:
-    template <Primitive P>
-    Fragments::SimpleFragment<P> &allocate() {
-        constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
-        auto *ptr = m_current;
+    template <Primitive P, typename ...Args>
+    Fragments::SimpleFragment<P> &allocateFragment(Args ...args) {
+        static constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
+        uint8_t *ptr = m_current;
         m_current += size;
-        return *new (ptr) Fragments::SimpleFragment<P>();
+        return *new (ptr) Fragments::SimpleFragment<P>(args...);
     }
-    template <Fragment F>
-    F &allocate() {
-        constexpr size_t size = sizeof(F);
-        auto *ptr = m_current;
+    template <typename T, typename ...Args>
+    T &allocate(Args ...args) {
+        size_t size = sizeof(T);
+        uint8_t *ptr = m_current;
+        if constexpr (alignof(T) > 1) {
+            static constexpr size_t a = alignof(T) - 1;
+            auto alignedptr = reinterpret_cast<uint8_t *>((reinterpret_cast<uintptr_t>(ptr) + a) & ~a);
+            size += alignedptr - ptr;
+            ptr = alignedptr;
+        }
         m_current += size;
-        return *new (ptr) F();
+        return *new (ptr) T(args...);
     }
     void reset() { m_current = m_memory; }
 

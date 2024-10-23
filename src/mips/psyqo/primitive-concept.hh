@@ -26,9 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-#include <concepts>
-#include <cstddef>
-
 namespace psyqo {
 
 /**
