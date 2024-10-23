@@ -30,6 +30,7 @@
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
+#include "core/patchmanager.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
@@ -637,8 +638,7 @@ settings, otherwise debugging features may not work.)");
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            process(addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
@@ -787,6 +787,31 @@ settings, otherwise debugging features may not work.)");
                         ImGui::PopStyleColor();
                     }
                     if (absAddr < 0x00800000) {
+                        PatchManager& pm = *g_emulator->m_patchManager;
+                        PatchManager::Patch::Type patchType = pm.findPatch(dispAddr);
+                        switch (patchType) {
+                            case PatchManager::Patch::Type::None:
+                                if (ImGui::MenuItem(_("Patch in Return"))) {
+                                    pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
+                                }
+                                if (ImGui::MenuItem(_("Patch in NOP"))) {
+                                    pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
+                                }
+                                break;
+
+                            case PatchManager::Patch::Type::Return:
+                                if (ImGui::MenuItem(_("Remove Return Patch"))) {
+                                    pm.undoPatch(dispAddr);
+                                }
+                                break;
+
+                            case PatchManager::Patch::Type::NOP:
+                                if (ImGui::MenuItem(_("Remove NOP Patch"))) {
+                                    pm.undoPatch(dispAddr);
+                                }
+                                break;
+                        }
+
                         if (ImGui::MenuItem(_("Assemble"))) {
                             openAssembler = true;
                             m_assembleAddress = dispAddr;

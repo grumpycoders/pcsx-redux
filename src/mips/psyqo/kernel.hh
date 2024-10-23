@@ -262,10 +262,10 @@ void setBreakHandler(unsigned category, eastl::function<bool(uint32_t)>&& handle
 
 /**
  * @brief Queues a break handler for psyqo's reserved category.
- * 
+ *
  * @param handler The handler to call when a break occurs.
  */
-void queuePsyqoBreakHandler(eastl::function<bool(uint32_t)> && handler);
+void queuePsyqoBreakHandler(eastl::function<bool(uint32_t)>&& handler);
 
 namespace Internal {
 void pumpCallbacks();

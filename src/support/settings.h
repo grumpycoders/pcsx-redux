@@ -294,8 +294,7 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
                 return 1;
             },
             -1);
-        L.declareFunc(
-            "newindex", [](Lua L) -> int { return 0; }, -1);
+        L.declareFunc("newindex", [](Lua L) -> int { return 0; }, -1);
         L.declareFunc(
             "reset",
             [this](Lua L) -> int {

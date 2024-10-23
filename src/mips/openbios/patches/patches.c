@@ -213,7 +213,6 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
         romsyscall_printf("Stopping.\n", t, h);
         enterCriticalSection();
         pcsx_debugbreak();
-        while (1)
-            ;
+        while (1);
     }
 }

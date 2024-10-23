@@ -29,8 +29,6 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <stdint.h>
 
-#include "psyqo/application.hh"
-
 namespace psyqo {
 
 /**

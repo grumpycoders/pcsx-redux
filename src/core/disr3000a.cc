@@ -68,7 +68,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 
 #define declare(n) \
     void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
-#define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
+#define _Funct_ ((code) & 0x3F)     // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
 #define _Rs_ ((code >> 21) & 0x1F)  // The rs part of the instruction register
