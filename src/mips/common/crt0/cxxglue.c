@@ -43,9 +43,9 @@ extern fptr __preinit_array_end[] __attribute__((weak));
 extern fptr __init_array_start[] __attribute__((weak));
 extern fptr __init_array_end[] __attribute__((weak));
 
-void main();
+int main(int argc, char ** argv);
 
-void cxxmain() {
+void cxxmain(int argc, char ** argv) {
     size_t count, i;
 
     count = __preinit_array_end - __preinit_array_start;
@@ -64,13 +64,42 @@ void cxxmain() {
         }
     }
 
-    main();
+    pcsx_exit(main(argc, argv));
+}
+
+// These two technically aren't part of the standard library requirements, but can
+// be invoked by the freestanding libstdc++, so might as well.
+__attribute__((weak)) size_t strlen(const char * s) {
+    size_t r = 0;
+
+    while (*s++) r++;
+
+    return r;
+}
+
+__attribute__((weak)) const void * memchr(const void * _s, int c, size_t n) {
+    const uint8_t * s = (uint8_t *) _s;
+    size_t i;
+
+    for (i = 0; i < n; i++, s++) {
+        if (*s == c) return s;
+    }
+
+    return NULL;
+}
+
+// std::terminate(), called by the freestanding libstdc++ instead of
+// throwing exceptions, when they are disabled.
+__attribute__((weak)) void _ZSt9terminatev() {
+    pcsx_exit(-1);
+    while (1) asm("");
 }
 
 __attribute__((weak)) void abort() {
     pcsx_debugbreak();
+    pcsx_exit(-1);
     // TODO: make this better
-    while (1);
+    while (1) asm("");
 }
 
 // This will be called if a pure virtual function is called, usually mistakenly calling
