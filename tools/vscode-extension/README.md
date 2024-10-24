@@ -13,7 +13,6 @@ The panel will have the ability to install the tools on the most popular platfor
 - The extension is currently only targeting Windows, Linux Ubuntu, Arch Linux, and MacOS. It may work on more platforms, but it's not guaranteed, and won't be as automated as it is on the supported platforms.
 - Only Windows and Linux Ubuntu have been thoroughly tested for now.
 - The extension will not work from the browser as it requires running external tools. It may work in a remote SSH session, but it's not been tested.
-- The PCSX-Redux dependency is currently only available on x86_64 platforms, and may possibly work on M1/M2 Macs.
 - Linux requires libfuse2 to be installed, for AppImages like the PCSX-Redux dependency to work.
 - The PCSX-Redux workflow won't check for system-wide installations, and will always install the dependency locally.
 
@@ -21,6 +20,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 - 0.3.8
   - Added automatic setup of Python virtual environments in order to reflect the changes in ps1-bare-metal.
+  - Fixed compile_flags.txt in template file.
+  - Added psyqo cube example.
+  - Added download support for Darwin ARM64 (M1/M2/etc) for PCSX-Redux.
 - 0.3.7
   - Bumping gcc to 14.2.0
   - Bumping binutils to 2.43

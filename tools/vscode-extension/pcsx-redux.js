@@ -27,8 +27,12 @@ const updateInfo = {
     infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/',
     fileType: 'zip'
   },
-  darwin: {
+  darwin_Intel: {
     infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-x64/',
+    fileType: 'dmg'
+  },
+  darwin_Arm: {
+    infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/',
     fileType: 'dmg'
   }
 }
@@ -101,7 +105,9 @@ exports.install = async () => {
     }
   }
 
-  const updateInfoForPlatform = updateInfo[process.platform]
+  const darwinArch = process.arch === 'arm64' ? 'Arm' : 'Intel'
+  const platform = process.platform === 'darwin' ? 'darwin_' + darwinArch : process.platform
+  const updateInfoForPlatform = updateInfo[platform]
   const outputDir =
     process.platform === 'win32'
       ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').fsPath
