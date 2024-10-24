@@ -767,6 +767,33 @@ const templates = {
       )
     }
   },
+  psyqo_cube: {
+    name: 'PSYQo Cube',
+    category: 'PSYQo SDK',
+    description: 'A project featuring a rotating cube using the PSYQo SDK.',
+    url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
+    examples:
+      'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
+    requiredTools: ['git', 'make', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        psyqoTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'cube')
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
   psyq_netyaroze: {
     name: 'Net Yaroze Sprite',
     category: 'Psy-Q SDK',
