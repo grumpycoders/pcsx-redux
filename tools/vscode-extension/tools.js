@@ -105,7 +105,7 @@ async function installToolchain () {
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
-            'mipsel-none-elf-binutils.rb'
+            'mipsel-none-elf-gcc.rb'
           ).fsPath
           await terminal.run('brew', [
             'install',
@@ -136,7 +136,7 @@ async function installToolchain () {
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
-            'mipsel-none-elf-binutils.rb'
+            'mipsel-none-elf-gcc.rb'
           ).fsPath
           await terminal.run('brew', [
             'install',
