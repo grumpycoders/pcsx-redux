@@ -409,7 +409,7 @@ class R3000Acpu {
   public:
     template <bool checkPC = true>
     inline void InterceptBIOS(uint32_t currentPC) {
-        const uint32_t pc = currentPC & 0x1fffff;
+        const uint32_t pc = currentPC & g_emulator->getRamMask();
 
         if constexpr (checkPC) {
             const uint32_t base = (currentPC >> 20) & 0xffc;

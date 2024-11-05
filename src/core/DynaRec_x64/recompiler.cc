@@ -476,7 +476,7 @@ void DynaRecCPU::handleKernelCall() {
         return;
     }
 
-    const uint32_t pc = m_pc & 0x1fffff;
+    const uint32_t pc = m_pc & PCSX::g_emulator->getRamMask();
     const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector
