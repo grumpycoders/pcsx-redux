@@ -109,6 +109,7 @@ async function installToolchain () {
           ).fsPath
           await terminal.run('brew', [
             'install',
+            '--formula',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -140,6 +141,7 @@ async function installToolchain () {
           ).fsPath
           await terminal.run('brew', [
             'install',
+            '--formula',
             binutilsScriptPath,
             gccScriptPath
           ])
