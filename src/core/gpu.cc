@@ -533,7 +533,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU dma chain *** %8.8lx addr = %lx size = %lx\n", chcr, madr, bcr);
 
             size = gpuDmaChainSize(madr);
-            chainedDMAWrite((uint32_t *)PCSX::g_emulator->m_mem->m_wram, madr & 0x1fffff);
+            chainedDMAWrite((uint32_t *)PCSX::g_emulator->m_mem->m_wram, madr);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 
@@ -685,10 +685,8 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
-    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-
     do {
-        addr &= ramExpansion ? 0x7ffffc : 0x1ffffc;
+        addr &= g_emulator->getRamMask<4>();
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
