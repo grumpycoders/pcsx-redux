@@ -46,7 +46,7 @@ class Assembly : private Disasm {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
-    void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
+    bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
     bool& m_show;
 
