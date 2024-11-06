@@ -459,7 +459,8 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+    bool changed = false;
     auto& cpu = g_emulator->m_cpu;
     m_registers = registers;
     m_memory = memory;
@@ -467,7 +468,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
-        return;
+        return changed;
     }
 
     float glyphWidth = ImGui::GetFontSize();
@@ -1044,8 +1045,17 @@ if not success then return msg else return nil end
     }
     ImGui::End();
 
-    if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
+    auto& mapPath = g_emulator->settings.get<Emulator::SettingMapBrowsePath>();
+
+    if (openSymbolsDialog) {
+        if (!mapPath.empty()) {
+            m_symbolsFileDialog.m_currentPath = mapPath.value;
+        }
+        m_symbolsFileDialog.openDialog();
+    }
     if (m_symbolsFileDialog.draw()) {
+        mapPath.value = m_symbolsFileDialog.m_currentPath;
+        changed = true;
         std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
@@ -1100,6 +1110,7 @@ if not success then return msg else return nil end
         }
         ImGui::End();
     }
+    return changed;
 }
 
 std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
