@@ -15,7 +15,7 @@ PGXP_value* const g_CP0_reg = s_CP0_reg_mem;
 
 // Instruction register decoding
 #define op(_instr) (_instr >> 26)           // The op part of the instruction register
-#define func(_instr) ((_instr)&0x3F)        // The funct part of the instruction register
+#define func(_instr) ((_instr) & 0x3F)      // The funct part of the instruction register
 #define sa(_instr) ((_instr >> 6) & 0x1F)   // The sa part of the instruction register
 #define rd(_instr) ((_instr >> 11) & 0x1F)  // The rd part of the instruction register
 #define rt(_instr) ((_instr >> 16) & 0x1F)  // The rt part of the instruction register
@@ -427,9 +427,9 @@ void PGXP_CPU_SLT(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVal
     ret.y = 0.f;
     ret.compFlags[1] = VALID;
 
-    ret.x = (g_CPU_reg[rs(instr)].y < g_CPU_reg[rt(instr)].y)
-                ? 1.f
-                : (f16Unsign(g_CPU_reg[rs(instr)].x) < f16Unsign(g_CPU_reg[rt(instr)].x)) ? 1.f : 0.f;
+    ret.x = (g_CPU_reg[rs(instr)].y < g_CPU_reg[rt(instr)].y)                         ? 1.f
+            : (f16Unsign(g_CPU_reg[rs(instr)].x) < f16Unsign(g_CPU_reg[rt(instr)].x)) ? 1.f
+                                                                                      : 0.f;
 
     ret.value = rdVal;
     g_CPU_reg[rd(instr)] = ret;
@@ -452,9 +452,9 @@ void PGXP_CPU_SLTU(uint32_t instr, uint32_t rdVal, uint32_t rsVal, uint32_t rtVa
     ret.y = 0.f;
     ret.compFlags[1] = VALID;
 
-    ret.x = (f16Unsign(g_CPU_reg[rs(instr)].y) < f16Unsign(g_CPU_reg[rt(instr)].y))
-                ? 1.f
-                : (f16Unsign(g_CPU_reg[rs(instr)].x) < f16Unsign(g_CPU_reg[rt(instr)].x)) ? 1.f : 0.f;
+    ret.x = (f16Unsign(g_CPU_reg[rs(instr)].y) < f16Unsign(g_CPU_reg[rt(instr)].y))   ? 1.f
+            : (f16Unsign(g_CPU_reg[rs(instr)].x) < f16Unsign(g_CPU_reg[rt(instr)].x)) ? 1.f
+                                                                                      : 0.f;
 
     ret.value = rdVal;
     g_CPU_reg[rd(instr)] = ret;

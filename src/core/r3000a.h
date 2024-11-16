@@ -229,7 +229,7 @@ struct psxRegisters {
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
+#define _fFunct_(code) ((code) & 0x3F)       // The funct part of the instruction register
 #define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
 #define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
 #define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
@@ -409,7 +409,7 @@ class R3000Acpu {
   public:
     template <bool checkPC = true>
     inline void InterceptBIOS(uint32_t currentPC) {
-        const uint32_t pc = currentPC & 0x1fffff;
+        const uint32_t pc = currentPC & g_emulator->getRamMask();
 
         if constexpr (checkPC) {
             const uint32_t base = (currentPC >> 20) & 0xffc;
@@ -461,11 +461,9 @@ Formula One 2001
         memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
-    inline void flushICacheLine(uint32_t pc)
-    { 
+    inline void flushICacheLine(uint32_t pc) {
         uint32_t pcBank = pc >> 24;
-        if (pcBank == 0x00 || pcBank == 0x80)
-        {
+        if (pcBank == 0x00 || pcBank == 0x80) {
             uint32_t pcCache = pc & 0xfff;
             pcCache &= ~0xf;
 

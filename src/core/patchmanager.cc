@@ -18,8 +18,9 @@
  ***************************************************************************/
 
 #include "core/patchmanager.h"
-#include "core/psxmem.h"
+
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/r3000a.h"
 
 int PCSX::PatchManager::registerPatch(uint32_t address, Patch::Type type) {
