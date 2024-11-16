@@ -789,28 +789,29 @@ settings, otherwise debugging features may not work.)");
                     }
                     if (absAddr < 0x00800000) {
                         PatchManager& pm = *g_emulator->m_patchManager;
-                        PatchManager::Patch::Type patchType = pm.findPatch(dispAddr);
-                        switch (patchType) {
-                            case PatchManager::Patch::Type::None:
-                                if (ImGui::MenuItem(_("Patch in Return"))) {
-                                    pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
-                                }
-                                if (ImGui::MenuItem(_("Patch in NOP"))) {
-                                    pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
-                                }
-                                break;
+                        int patchIdx = pm.findPatch(dispAddr);
+                        if (patchIdx == -1) {
+                            if (ImGui::MenuItem(_("Patch in Return"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
+                            }
+                            if (ImGui::MenuItem(_("Patch in NOP"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
+                            }
+                        } else {
+                            PatchManager::Patch& patch = pm.getPatch(patchIdx);
+                            switch (patch.type) {
+                                case PatchManager::Patch::Type::Return:
+                                    if (ImGui::MenuItem(_("Delete Return Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
 
-                            case PatchManager::Patch::Type::Return:
-                                if (ImGui::MenuItem(_("Remove Return Patch"))) {
-                                    pm.undoPatch(dispAddr);
-                                }
-                                break;
-
-                            case PatchManager::Patch::Type::NOP:
-                                if (ImGui::MenuItem(_("Remove NOP Patch"))) {
-                                    pm.undoPatch(dispAddr);
-                                }
-                                break;
+                                case PatchManager::Patch::Type::NOP:
+                                    if (ImGui::MenuItem(_("Delete NOP Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+                            }
                         }
 
                         if (ImGui::MenuItem(_("Assemble"))) {
