@@ -1052,7 +1052,7 @@ void PCSX::GUI::endFrame() {
     m_outputShaderEditor.configure(this);
 
     if (m_fullWindowRender) {
-        ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+        ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
         const auto displayFramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
         const auto logicalRenderSize =
@@ -1086,7 +1086,7 @@ void PCSX::GUI::endFrame() {
                 m_setupScreenSize = true;
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
-            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            ImTextureID texture = m_offscreenTextures[m_currentTexture];
             if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
             } else {
