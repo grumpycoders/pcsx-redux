@@ -50,7 +50,7 @@ struct Sprite {
     Sprite(Color c) : command(BASE | c.packed) {}
     Sprite& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite& setOpaque() {
@@ -87,7 +87,7 @@ struct Sprite1x1 {
     Sprite1x1(Color c) : command(BASE | c.packed) {}
     Sprite1x1& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite1x1& setOpaque() {
@@ -123,7 +123,7 @@ struct Sprite8x8 {
     Sprite8x8(Color c) : command(BASE | c.packed) {}
     Sprite8x8& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite8x8& setOpaque() {
@@ -159,7 +159,7 @@ struct Sprite16x16 {
     Sprite16x16(Color c) : command(BASE | c.packed) {}
     Sprite16x16& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite16x16& setOpaque() {
