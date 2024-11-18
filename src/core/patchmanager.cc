@@ -72,13 +72,14 @@ void PCSX::PatchManager::undoPatch(Patch& patch) {
     patch.active = false;
 }
 
-PCSX::PatchManager::Patch::Type PCSX::PatchManager::findPatch(uint32_t address) const {
+int PCSX::PatchManager::findPatch(uint32_t address) const {
+    int idx = 0;
     for (const Patch& patch : m_patches) {
         if (patch.addr == address) {
-            return patch.type;
+            return idx;
         }
     }
-    return PCSX::PatchManager::Patch::Type::None;
+    return -1;
 }
 
 void PCSX::PatchManager::deletePatch(uint32_t index) {

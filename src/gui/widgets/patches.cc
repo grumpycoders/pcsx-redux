@@ -102,9 +102,18 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             patchManager.deactivateAll();
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button(_("Delete All"))) {
-            patchManager.deleteAllPatches();
+        if (patchManager.getNumPatches() > 0) {
+            ImGui::SameLine();
+            if (ImGui::Button(_("Delete All"))) {
+                ImGui::OpenPopup("delpatches_popup");
+            }
+            if (ImGui::BeginPopup("delpatches_popup")) {
+                ImGui::TextUnformatted(_("Delete all Patches?"));
+                if (ImGui::Button(_("Delete##patches"))) {
+                    patchManager.deleteAllPatches();
+                }
+                ImGui::EndPopup();
+            }
         }
     }
 
