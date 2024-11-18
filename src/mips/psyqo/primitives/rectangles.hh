@@ -49,7 +49,7 @@ struct Rectangle {
     Rectangle(Color c) : command(BASE | c.packed) {}
     Rectangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Rectangle& setOpaque() {
@@ -84,7 +84,7 @@ struct Pixel {
     Pixel(Color c) : command(BASE | c.packed) {}
     Pixel& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Pixel& setOpaque() {
@@ -118,7 +118,7 @@ struct Rectangle8x8 {
     Rectangle8x8(Color c) : command(BASE | c.packed) {}
     Rectangle8x8& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Rectangle8x8& setOpaque() {
@@ -152,7 +152,7 @@ struct Rectangle16x16 {
     Rectangle16x16(Color c) : command(BASE | c.packed) {}
     Rectangle16x16& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Rectangle16x16& setOpaque() {

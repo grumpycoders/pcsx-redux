@@ -54,7 +54,7 @@ struct Quad {
     Quad(Color c) : command(0x28000000 | c.packed) {}
     Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x28000000 | c.packed | wasSemiTrans;
+        command = 0x28000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Quad& setOpaque() {
@@ -109,7 +109,7 @@ struct TexturedQuad {
     TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
     TexturedQuad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x2c000000 | c.packed | wasSemiTrans;
+        command = 0x2c000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     TexturedQuad& setOpaque() {
@@ -151,7 +151,7 @@ struct GouraudQuad {
     GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | c.packed | wasSemiTrans;
+        command = 0x38000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -205,7 +205,7 @@ struct GouraudQuad {
         GTE::read<GTE::Register::RGB2>(&command);
         GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
         GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
-        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&d->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
         GTE::Kernels::dpct();
         GTE::read<GTE::Register::RGB0>(&colorB.packed);
         GTE::read<GTE::Register::RGB1>(&colorC.packed);
@@ -226,7 +226,7 @@ struct GouraudQuad {
         GTE::read<GTE::Register::RGB2>(&command);
         GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
         GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
-        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(d.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
         GTE::Kernels::dpct();
         GTE::read<GTE::Register::RGB0>(&colorB.packed);
         GTE::read<GTE::Register::RGB1>(&colorC.packed);
@@ -267,7 +267,7 @@ struct GouraudTexturedQuad {
     GouraudTexturedQuad(Color c) : command(0x3c000000 | c.packed) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3c000000 | c.packed | wasSemiTrans;
+        command = 0x3c000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
@@ -305,7 +305,7 @@ struct GouraudTexturedQuad {
         GTE::read<GTE::Register::RGB2>(&command);
         GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
         GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
-        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&d->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
         GTE::Kernels::dpct();
         GTE::read<GTE::Register::RGB0>(&colorB.packed);
         GTE::read<GTE::Register::RGB1>(&colorC.packed);
@@ -326,7 +326,7 @@ struct GouraudTexturedQuad {
         GTE::read<GTE::Register::RGB2>(&command);
         GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
         GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
-        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(d.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
         GTE::Kernels::dpct();
         GTE::read<GTE::Register::RGB0>(&colorB.packed);
         GTE::read<GTE::Register::RGB1>(&colorC.packed);

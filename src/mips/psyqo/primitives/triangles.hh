@@ -47,7 +47,7 @@ struct Triangle {
     Triangle(Color c) : command(0x20000000 | c.packed) {}
     Triangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x20000000 | c.packed | wasSemiTrans;
+        command = 0x20000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Triangle& setOpaque() {
@@ -98,7 +98,7 @@ struct TexturedTriangle {
     TexturedTriangle(Color c) : command(0x24000000 | c.packed) {}
     TexturedTriangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x24000000 | c.packed | wasSemiTrans;
+        command = 0x24000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     TexturedTriangle& setOpaque() {
@@ -138,7 +138,7 @@ struct GouraudTriangle {
     GouraudTriangle(Color c) : command(0x30000000 | c.packed) {}
     GouraudTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x30000000 | c.packed | wasSemiTrans;
+        command = 0x30000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTriangle& setColorB(Color c) {
@@ -235,7 +235,7 @@ struct GouraudTexturedTriangle {
     GouraudTexturedTriangle(Color c) : command(0x34000000 | c.packed) {}
     GouraudTexturedTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x34000000 | c.packed | wasSemiTrans;
+        command = 0x34000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedTriangle& setColorB(Color c) {
