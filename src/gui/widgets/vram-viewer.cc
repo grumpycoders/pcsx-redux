@@ -422,7 +422,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::ImageButton("vram", reinterpret_cast<ImTextureID *>(textureID), m_resolution, texTL, texBR);
+    ImGui::ImageButton("vram", textureID, m_resolution, texTL, texBR);
     ImGui::PopStyleVar();
     if (m_clutDestination && m_selectingClut) {
         m_clutDestination->m_clut = m_mouseUV;

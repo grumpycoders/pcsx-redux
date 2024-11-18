@@ -711,7 +711,7 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
             if (L.isfunction()) {
                 L.copy(-2);
                 L.setfenv();
-                L.push(static_cast<lua_Number>(reinterpret_cast<uintptr_t>(textureID)));
+                L.push(static_cast<lua_Number>(textureID));
                 L.push(srcSize.x);
                 L.push(srcSize.y);
                 L.push(dstSize.x);
@@ -752,7 +752,7 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
 }
 
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
-    GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
+    GLuint textureID = static_cast<GLuint>(cmd->TextureId);
 
     GLfloat projMtx[4][4];
     if (m_imguiProjMtxLoc == -1) {
