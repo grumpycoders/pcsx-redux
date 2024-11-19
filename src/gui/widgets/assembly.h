@@ -26,6 +26,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
@@ -42,7 +43,8 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
+    Assembly(bool& show, std::vector<std::string>& favorites)
+        : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
@@ -60,7 +62,7 @@ class Assembly : private Disasm {
     int m_numColumns = 4;
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
-    FileDialog<> m_symbolsFileDialog = {l_("Load Symbols")};
+    FileDialog<> m_symbolsFileDialog;
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section

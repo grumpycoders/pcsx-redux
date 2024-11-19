@@ -213,10 +213,7 @@ class GUI final : public UI {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI() : m_listener(g_system->m_eventBus) {
-        assert(g_gui == nullptr);
-        g_gui = this;
-    }
+    GUI(std::vector<std::string> &favorites);
     ~GUI() {
         assert(g_gui == this);
         g_gui = nullptr;
@@ -374,20 +371,20 @@ class GUI final : public UI {
     MemoryEditorWrapper m_vramEditor = {this, settings.get<ShowVRAMEditor>().value,
                                         settings.get<VRAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
-    Widgets::TypedDebugger m_typedDebugger = {settings.get<ShowTypedDebugger>().value};
+    Widgets::TypedDebugger m_typedDebugger;
     Widgets::Patches m_patches = {settings.get<ShowPatches>().value};
-    Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
+    Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
-    Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
+    Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::FileDialog<> m_openIsoFileDialog = {l_("Open Disk Image")};
-    Widgets::FileDialog<> m_openBinaryDialog = {l_("Open Binary")};
-    Widgets::FileDialog<> m_openArchiveDialog = {l_("Open Archive")};
-    Widgets::FileDialog<> m_selectBiosDialog = {l_("Select BIOS")};
-    Widgets::FileDialog<> m_selectEXP1Dialog = {l_("Select EXP1")};
+    Widgets::FileDialog<> m_openIsoFileDialog;
+    Widgets::FileDialog<> m_openBinaryDialog;
+    Widgets::FileDialog<> m_openArchiveDialog;
+    Widgets::FileDialog<> m_selectBiosDialog;
+    Widgets::FileDialog<> m_selectEXP1Dialog;
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
-    Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
+    Widgets::IsoBrowser m_isoBrowser;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -408,7 +405,7 @@ class GUI final : public UI {
 
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
-    Widgets::PIOCart m_pioCart = {settings.get<ShowPIOCartConfig>().value};
+    Widgets::PIOCart m_pioCart;
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};

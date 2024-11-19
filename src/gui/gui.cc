@@ -114,6 +114,22 @@ void PCSX::GUI::openUrl(std::string_view url) {
 }
 #endif
 
+PCSX::GUI::GUI(std::vector<std::string>& favorites)
+    : m_listener(g_system->m_eventBus),
+      m_typedDebugger(settings.get<ShowTypedDebugger>().value, favorites),
+      m_memcardManager(settings.get<ShowMemcardManager>().value, favorites),
+      m_assembly(settings.get<ShowAssembly>().value, favorites),
+      m_openIsoFileDialog(l_("Open Disk Image"), favorites),
+      m_openBinaryDialog(l_("Open Binary"), favorites),
+      m_openArchiveDialog(l_("Open Archive"), favorites),
+      m_selectBiosDialog(l_("Select BIOS"), favorites),
+      m_selectEXP1Dialog(l_("Select EXP1"), favorites),
+      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites),
+      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
+    assert(g_gui == nullptr);
+    g_gui = this;
+}
+
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
