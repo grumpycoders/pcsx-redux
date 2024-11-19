@@ -138,7 +138,11 @@ void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportT
     }
 }
 
-PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
+PCSX::Widgets::TypedDebugger::TypedDebugger(bool& show, std::vector<std::string>& favorites)
+    : m_show(show),
+      m_listener(g_system->m_eventBus),
+      m_importDataTypesFileDialog(l_("Import data types"), favorites),
+      m_importFunctionsFileDialog(l_("Import functions"), favorites) {
     m_listener.listen<PCSX::Events::ExecutionFlow::Reset>([this](const auto& event) {
         m_displayedWatchData.clear();
         for (const auto* bp : m_watchBreakpoints) {
