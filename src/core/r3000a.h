@@ -199,12 +199,12 @@ struct psxRegisters {
     psxCP2Ctrl CP2C;  // COP2 control registers
     uint32_t pc;      // Program counter
     uint32_t code;    // The current instruction
-    uint32_t cycle;
-    uint32_t previousCycles;
+    uint64_t cycle;
+    uint64_t previousCycles;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    uint32_t intTargets[32];
-    uint32_t lowestTarget;
+    uint64_t intTargets[32];
+    uint64_t lowestTarget;
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
 };

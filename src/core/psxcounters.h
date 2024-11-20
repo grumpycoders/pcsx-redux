@@ -40,7 +40,7 @@ class Counters {
     struct Rcnt {
         uint16_t mode, target;
         uint32_t rate, irq, counterState, irqState;
-        uint32_t cycle, cycleStart;
+        uint64_t cycle, cycleStart;
     };
 
     enum {
@@ -86,7 +86,7 @@ class Counters {
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
   public:
-    uint32_t m_psxNextCounter;
+    uint64_t m_psxNextCounter;
     bool m_pollSIO1 = false;
     void init();
     void update();
