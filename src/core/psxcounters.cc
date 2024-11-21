@@ -90,7 +90,7 @@ void PCSX::Counters::set() {
 }
 
 void PCSX::Counters::reset(uint32_t index) {
-    uint32_t count;
+    uint64_t count;
 
     if (m_rcnts[index].counterState == CountToTarget) {
         if (m_rcnts[index].mode & RcCountToTarget) {
