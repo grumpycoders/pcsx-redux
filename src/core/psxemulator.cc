@@ -30,6 +30,7 @@
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
+#include "core/patchmanager.h"
 #include "core/pcsxlua.h"
 #include "core/pio-cart.h"
 #include "core/r3000a.h"
@@ -37,7 +38,6 @@
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/web-server.h"
-#include "core/patchmanager.h"
 #include "gpu/soft/interface.h"
 #include "lua/extra.h"
 #include "lua/luafile.h"
@@ -120,6 +120,15 @@ void PCSX::Emulator::setLua() {
     L.pop();
     L.pop();
 
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("CONSTS");
+    L.getfieldtable("CPU");
+    L.push(lua_Number(m_psxClockSpeed));
+    L.setfield("CLOCKSPEED");
+    L.pop();
+    L.pop();
+    L.pop();
+    
     m_pads->setLua(L);
 
     assert(L.gettop() == 0);

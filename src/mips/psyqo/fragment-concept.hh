@@ -26,8 +26,9 @@ SOFTWARE.
 
 #pragma once
 
+#include <stddef.h>
+
 #include <concepts>
-#include <cstddef>
 #include <type_traits>
 
 namespace psyqo {

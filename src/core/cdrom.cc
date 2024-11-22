@@ -580,7 +580,9 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_irqRepeated) {
             m_irqRepeated = 0;
-            if (m_eCycle > PCSX::g_emulator->m_cpu->m_regs.cycle) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            auto diff = regs.intTargets[PCSX::PSXINT_CDR] - regs.cycle;
+            if (m_eCycle > diff) {
                 scheduleCDIRQ(m_eCycle);
                 goto finish;
             }

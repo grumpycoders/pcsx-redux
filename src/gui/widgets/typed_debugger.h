@@ -38,16 +38,16 @@ class TypedDebugger {
   public:
     void draw(const char* title, GUI* gui);
     bool& m_show;
-    TypedDebugger(bool& show);
+    TypedDebugger(bool& show, std::vector<std::string>& favorites);
 
   private:
     /**
      * Data importation.
      */
     std::vector<PCSX::u8string> m_dataTypesFile;
-    Widgets::FileDialog<> m_importDataTypesFileDialog = {l_("Import data types")};
+    Widgets::FileDialog<> m_importDataTypesFileDialog;
     std::vector<PCSX::u8string> m_functionsFile;
-    Widgets::FileDialog<> m_importFunctionsFileDialog = {l_("Import functions")};
+    Widgets::FileDialog<> m_importFunctionsFileDialog;
     enum class ImportType { DataTypes, Functions };
     void import(std::string_view filename, ImportType importType);
 

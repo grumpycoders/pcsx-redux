@@ -48,8 +48,7 @@ void GameOver::frame() {
         // The main difference with the Pause scene is we pop all the scenes,
         // not just the current one. This will force the application to
         // re-create the root scene.
-        while (popScene())
-            ;
+        while (popScene());
     }
 }
 

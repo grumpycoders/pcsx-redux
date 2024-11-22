@@ -114,6 +114,22 @@ void PCSX::GUI::openUrl(std::string_view url) {
 }
 #endif
 
+PCSX::GUI::GUI(std::vector<std::string>& favorites)
+    : m_listener(g_system->m_eventBus),
+      m_typedDebugger(settings.get<ShowTypedDebugger>().value, favorites),
+      m_memcardManager(settings.get<ShowMemcardManager>().value, favorites),
+      m_assembly(settings.get<ShowAssembly>().value, favorites),
+      m_openIsoFileDialog(l_("Open Disk Image"), favorites),
+      m_openBinaryDialog(l_("Open Binary"), favorites),
+      m_openArchiveDialog(l_("Open Archive"), favorites),
+      m_selectBiosDialog(l_("Select BIOS"), favorites),
+      m_selectEXP1Dialog(l_("Select EXP1"), favorites),
+      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites),
+      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
+    assert(g_gui == nullptr);
+    g_gui = this;
+}
+
 using json = nlohmann::json;
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
@@ -1052,7 +1068,7 @@ void PCSX::GUI::endFrame() {
     m_outputShaderEditor.configure(this);
 
     if (m_fullWindowRender) {
-        ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+        ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
         const auto displayFramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
         const auto logicalRenderSize =
@@ -1086,7 +1102,7 @@ void PCSX::GUI::endFrame() {
                 m_setupScreenSize = true;
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
-            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            ImTextureID texture = m_offscreenTextures[m_currentTexture];
             if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
             } else {
@@ -1557,7 +1573,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
+        changed |= m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {

@@ -33,7 +33,9 @@ SOFTWARE.
 #include "openbios/kernel/events.h"
 #include "openbios/kernel/threads.h"
 
-extern struct { uint32_t ramsize, unk1, unk2; } __globals60;
+extern struct {
+    uint32_t ramsize, unk1, unk2;
+} __globals60;
 
 extern struct {
     /* 100 */ struct HandlersStorage* handlersArray;

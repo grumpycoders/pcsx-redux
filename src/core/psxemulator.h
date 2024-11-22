@@ -24,6 +24,10 @@
 
 #pragma once
 
+// Windows include on top
+#include "support/windowswrapper.h"
+
+// Normal includes
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -45,7 +49,6 @@
 #include "support/strings-helpers.h"
 
 #ifndef MAXPATHLEN
-#include "support/windowswrapper.h"
 #if defined(MAX_PATH)
 #define MAXPATHLEN MAX_PATH
 #elif defined(PATH_MAX)
@@ -186,6 +189,8 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
+    typedef SettingPath<TYPESTRING("MapBrowsePath")> SettingMapBrowsePath;
+    typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
              SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
@@ -194,7 +199,7 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected>
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:
@@ -226,6 +231,16 @@ class Emulator {
     // FIXME: Count the proper cycle and get rid of this
     uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
     enum { BIAS = 2 };
+
+    template <unsigned alignment = 1>
+        requires((alignment == 1) || (alignment == 4))
+    constexpr uint32_t getRamMask() {
+        if constexpr (alignment == 1) {
+            return settings.get<PCSX::Emulator::Setting8MB>() ? 0x7fffff : 0x1fffff;
+        } else if constexpr (alignment == 4) {
+            return settings.get<PCSX::Emulator::Setting8MB>() ? 0x7ffffc : 0x1ffffc;
+        }
+    }
 
     int init();
     void reset();

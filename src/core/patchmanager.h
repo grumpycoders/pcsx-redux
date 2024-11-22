@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <vector>
 
 namespace PCSX {
@@ -47,7 +48,7 @@ class PatchManager {
     Patch& getPatch(int index) { return m_patches[index]; }
 
     int registerPatch(uint32_t address, Patch::Type type);
-    PatchManager::Patch::Type findPatch(uint32_t address) const;
+    int findPatch(uint32_t address) const;
     void deletePatch(uint32_t index);
     void deleteAllPatches();
     void deactivateAll();

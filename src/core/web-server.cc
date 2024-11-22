@@ -595,8 +595,8 @@ class StateExecutor : public PCSX::WebExecutor {
                             message =
                                 fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot index {} {} successful.", slot, path);
                         } else {
-                            message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nState slot index {} {} failed.",
-                                                  slot, path);
+                            message = fmt::format(
+                                "HTTP/1.1 500 Internal Server Error\r\n\r\nState slot index {} {} failed.", slot, path);
                         }
                     }
                     client->write(std::move(message));
@@ -634,8 +634,9 @@ class StateExecutor : public PCSX::WebExecutor {
                             message =
                                 fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot name \"{}\" {} successful.", name, path);
                         } else {
-                            message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nState slot name \"{}\" {} failed.",
-                                                  name, path);
+                            message = fmt::format(
+                                "HTTP/1.1 500 Internal Server Error\r\n\r\nState slot name \"{}\" {} failed.", name,
+                                path);
                         }
                     }
                     client->write(std::move(message));
@@ -683,8 +684,9 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     message =
                         fmt::format("HTTP/1.1 200 OK\r\n\r\nScreenshot saved successfully to \"{}\".", path.string());
                 } else {
-                    message = fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to save screenshot to \"{}\".",
-                                          path.string());
+                    message =
+                        fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to save screenshot to \"{}\".",
+                                    path.string());
                 }
                 client->write(std::move(message));
                 return true;

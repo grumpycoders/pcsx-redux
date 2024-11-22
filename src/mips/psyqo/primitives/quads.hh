@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "psyqo/gte-kernels.hh"
+#include "psyqo/gte-registers.hh"
 #include "psyqo/primitives/common.hh"
 
 namespace psyqo {
@@ -52,7 +54,7 @@ struct Quad {
     Quad(Color c) : command(0x28000000 | c.packed) {}
     Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x28000000 | c.packed | wasSemiTrans;
+        command = 0x28000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Quad& setOpaque() {
@@ -107,7 +109,7 @@ struct TexturedQuad {
     TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
     TexturedQuad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x2c000000 | c.packed | wasSemiTrans;
+        command = 0x2c000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     TexturedQuad& setOpaque() {
@@ -149,7 +151,7 @@ struct GouraudQuad {
     GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | c.packed | wasSemiTrans;
+        command = 0x38000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -188,6 +190,48 @@ struct GouraudQuad {
         pointD = v;
         return *this;
     }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c, const Color* d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a->packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a->packed & 0xffffff) | 0x38000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a->packed & 0xffffff) | 0x3a000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c, Color d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a.packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a.packed & 0xffffff) | 0x38000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a.packed & 0xffffff) | 0x3a000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
+    }
 
   private:
     uint32_t command;
@@ -223,7 +267,7 @@ struct GouraudTexturedQuad {
     GouraudTexturedQuad(Color c) : command(0x3c000000 | c.packed) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3c000000 | c.packed | wasSemiTrans;
+        command = 0x3c000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
@@ -245,6 +289,48 @@ struct GouraudTexturedQuad {
     GouraudTexturedQuad& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c, const Color* d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a->packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a->packed & 0xffffff) | 0x3c000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a->packed & 0xffffff) | 0x3e000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c, Color d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a.packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a.packed & 0xffffff) | 0x3c000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a.packed & 0xffffff) | 0x3e000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
     }
 
   private:
