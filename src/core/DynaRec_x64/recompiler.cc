@@ -452,7 +452,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         endProfiling();
     }
 
-    gen.add(dword[contextPointer + CYCLE_OFFSET],
+    gen.add(qword[contextPointer + CYCLE_OFFSET],
             (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);  // Add block cycles;
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
@@ -479,7 +479,7 @@ void DynaRecCPU::handleKernelCall() {
         return;
     }
 
-    const uint32_t pc = m_pc & 0x1fffff;
+    const uint32_t pc = m_pc & PCSX::g_emulator->getRamMask();
     const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector

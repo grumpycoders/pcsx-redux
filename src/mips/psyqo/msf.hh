@@ -67,6 +67,7 @@ struct MSF {
             uint8_t pad;
         };
         uint8_t data[4];
+        uint32_t full;
     };
 };
 

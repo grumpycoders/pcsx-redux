@@ -68,6 +68,7 @@ struct SimpleFragment {
     SimpleFragment() {
         static_assert(sizeof(*this) == (sizeof(uint32_t) + sizeof(Prim)), "Spurious padding in simple fragment");
     }
+    explicit SimpleFragment(const SimpleFragment &) = default;
     typedef Prim FragmentBaseType;
     constexpr size_t getActualFragmentSize() const { return sizeof(Prim) / sizeof(uint32_t); }
     uint32_t head;
@@ -92,6 +93,7 @@ struct FixedFragment {
         static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
     }
+    explicit FixedFragment(const FixedFragment &) = default;
     typedef Prim FragmentBaseType;
     size_t getActualFragmentSize() const { return (sizeof(Prim) * count) / sizeof(uint32_t); }
     unsigned count = N;
@@ -120,6 +122,7 @@ struct FixedFragmentWithPrologue {
         static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
     }
+    explicit FixedFragmentWithPrologue(const FixedFragmentWithPrologue &) = default;
     typedef Prim FragmentBaseType;
     size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(Prim) * count) / sizeof(uint32_t); }
     unsigned count = N;

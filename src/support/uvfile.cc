@@ -481,8 +481,7 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
 ssize_t PCSX::UvFile::write(const void *src, size_t size) {
     if (!writable()) return -1;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0);
         size_t newSize = m_ptrW + size;
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -529,8 +528,7 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
 void PCSX::UvFile::write(Slice &&slice) {
     if (!writable()) return;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0);
         size_t newSize = m_ptrW + slice.size();
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -629,8 +627,7 @@ ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
 ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
     if (!writable()) return -1;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0);
         size_t newSize = ptr + size;
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -673,8 +670,7 @@ ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
 void PCSX::UvFile::writeAt(Slice &&slice, size_t ptr) {
     if (!writable()) return;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0);
         size_t newSize = ptr + slice.size();
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -874,8 +870,7 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
             if (m_size.load() == 0) {
                 return ret == 0 ? -1 : ret;
             }
-            while (!m_queue.Dequeue(m_slice))
-                ;
+            while (!m_queue.Dequeue(m_slice));
         }
         auto toRead = std::min(size, static_cast<size_t>(m_slice.size()) - m_currentPtr);
         memcpy(dest, m_slice.data<uint8_t>() + m_currentPtr, toRead);

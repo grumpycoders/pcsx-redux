@@ -30,7 +30,7 @@
 #include "spu/interface.h"
 
 template <typename... Args>
-void verboseLog(int32_t level, const char *str, const Args &... args) {
+void verboseLog(int32_t level, const char *str, const Args &...args) {
     PSXHW_LOG(str, args...);
 }
 
@@ -55,7 +55,7 @@ inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value)
 }
 
 inline uint32_t PCSX::Counters::readCounterInternal(uint32_t index) {
-    uint32_t count;
+    uint64_t count;
 
     count = PCSX::g_emulator->m_cpu->m_regs.cycle;
     count -= m_rcnts[index].cycleStart;
@@ -71,17 +71,17 @@ inline uint32_t PCSX::Counters::readCounterInternal(uint32_t index) {
 
 void PCSX::Counters::set() {
     m_psxNextCounter = PCSX::g_emulator->m_cpu->m_regs.cycle;
-    uint32_t next = 0x7fffffff;
+    uint64_t next = 0x7fffffffffffffff;
 
     for (int i = 0; i < CounterQuantity; ++i) {
-        int32_t countToUpdate = m_rcnts[i].cycle - (m_psxNextCounter - m_rcnts[i].cycleStart);
+        int64_t countToUpdate = m_rcnts[i].cycle - (m_psxNextCounter - m_rcnts[i].cycleStart);
 
         if (countToUpdate < 0) {
             next = 0;
             break;
         }
 
-        if (countToUpdate < (int32_t)next) {
+        if (countToUpdate < (int64_t)next) {
             next = countToUpdate;
         }
     }
@@ -90,7 +90,7 @@ void PCSX::Counters::set() {
 }
 
 void PCSX::Counters::reset(uint32_t index) {
-    uint32_t count;
+    uint64_t count;
 
     if (m_rcnts[index].counterState == CountToTarget) {
         if (m_rcnts[index].mode & RcCountToTarget) {
@@ -138,19 +138,11 @@ void PCSX::Counters::reset(uint32_t index) {
 }
 
 void PCSX::Counters::update() {
-    const uint32_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    const uint64_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
 
     {
-        uint32_t prev = g_emulator->m_cpu->m_regs.previousCycles;
-        uint64_t diff;
-        if (cycle > prev) {
-            diff = cycle - prev;
-        } else {
-            diff = std::numeric_limits<uint32_t>::max();
-            diff += cycle + 1;
-            diff -= prev;
-            diff &= 0xffffffff;
-        }
+        uint64_t prev = g_emulator->m_cpu->m_regs.previousCycles;
+        uint64_t diff = cycle - prev;
         diff *= 4410000;
         diff /= g_emulator->settings.get<Emulator::SettingScaler>();
         diff /= g_emulator->m_psxClockSpeed;
@@ -297,8 +289,8 @@ uint32_t PCSX::Counters::readCounter(uint32_t index) {
          *affected).
          */
         static uint32_t clast = 0xffff;
-        static uint32_t cylast = 0;
-        uint32_t count1 = count;
+        static uint64_t cylast = 0;
+        uint64_t count1 = count;
         count /= PCSX::Emulator::BIAS;
         verboseLog(4, "[RCNT %i] rcountpe2: %x %x %x (%u)\n", index, count, count1, clast,
                    (PCSX::g_emulator->m_cpu->m_regs.cycle - cylast));

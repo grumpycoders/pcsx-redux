@@ -26,8 +26,8 @@ SOFTWARE.
 
 #include "psyqo/fixed-point.hh"
 
-uint32_t psyqo::FixedPointInternals::iDiv(uint64_t rem, uint32_t base, unsigned precisionBits) {
-    rem *= 1 << precisionBits;
+uint32_t psyqo::FixedPointInternals::iDiv(uint64_t rem, uint32_t base, unsigned scale) {
+    rem *= scale;
     uint64_t b = base;
     uint64_t res, d = 1;
     uint32_t high = rem >> 32;
@@ -56,7 +56,7 @@ uint32_t psyqo::FixedPointInternals::iDiv(uint64_t rem, uint32_t base, unsigned 
     return res;
 }
 
-int32_t psyqo::FixedPointInternals::dDiv(int32_t a, int32_t b, unsigned precisionBits) {
+int32_t psyqo::FixedPointInternals::dDiv(int32_t a, int32_t b, unsigned scale) {
     int s = 1;
     if (a < 0) {
         a = -a;
@@ -66,13 +66,13 @@ int32_t psyqo::FixedPointInternals::dDiv(int32_t a, int32_t b, unsigned precisio
         b = -b;
         s = -s;
     }
-    return iDiv(a, b, precisionBits) * s;
+    return iDiv(a, b, scale) * s;
 }
 
 void psyqo::FixedPointInternals::printInt(uint32_t value, const eastl::function<void(char)>& charPrinter,
-                                          unsigned precisionBits) {
-    uint32_t integer = value >> precisionBits;
-    uint32_t fractional = value - (integer << precisionBits);
+                                          unsigned scale) {
+    uint32_t integer = value / scale;
+    uint32_t fractional = value - (integer * scale);
     if (integer == 0) {
         charPrinter('0');
     } else {
@@ -92,8 +92,8 @@ void psyqo::FixedPointInternals::printInt(uint32_t value, const eastl::function<
     for (unsigned i = 0; i < 5; i++) {
         fractional *= 10;
         uint32_t copy = fractional;
-        copy >>= precisionBits;
-        fractional -= copy << precisionBits;
+        copy /= scale;
+        fractional -= copy * scale;
         charPrinter((copy % 10) + '0');
         if (fractional == 0) return;
     }

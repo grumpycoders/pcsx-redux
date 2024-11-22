@@ -1194,8 +1194,13 @@ class CDRomImpl final : public PCSX::CDRom {
                                     regs.pc, regs.cycle, command.payload[0], command.payload[1], command.payload[2]);
                 break;
             case CdlPlay:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay %i\n", regs.pc,
-                                    regs.cycle, command.payload[0]);
+                if (command.payloadSize == 0) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay\n", regs.pc,
+                                        regs.cycle);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay %i\n", regs.pc,
+                                        regs.cycle, command.payload[0]);
+                }
                 break;
             case CdlSetFilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM,

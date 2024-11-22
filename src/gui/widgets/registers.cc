@@ -23,6 +23,7 @@
 #include <numbers>
 
 #include "core/disr3000a.h"
+#include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
@@ -54,7 +55,58 @@ void PCSX::Widgets::Registers::makeEditableRegister(const char* name, uint32_t r
     }
 }
 
-void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, const char* title) {
+static constexpr std::string_view irqName(unsigned n) {
+    switch (n) {
+        case 0:
+            return "VBLANK";
+        case 1:
+            return "GPU";
+        case 2:
+            return "CDROM";
+        case 3:
+            return "DMA";
+        case 4:
+            return "TIMER0";
+        case 5:
+            return "TIMER1";
+        case 6:
+            return "TIMER2";
+        case 7:
+            return "CONTROLLER";
+        case 8:
+            return "SIO";
+        case 9:
+            return "SPU";
+        case 10:
+            return "PIO";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+static constexpr std::string_view dmaName(unsigned n) {
+    switch (n) {
+        case 0:
+            return "MDECin";
+        case 1:
+            return "MDECout";
+        case 2:
+            return "GPU";
+        case 3:
+            return "CDROM";
+        case 4:
+            return "SPU";
+        case 5:
+            return "PIO";
+        case 6:
+            return "OTC";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, PCSX::Memory* memory,
+                                    const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
@@ -288,6 +340,79 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             makeEditableRegister("pc", registers->pc);
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("sched: %08x", registers->scheduleMask);
+            ImGui::Separator();
+            uint32_t istat = memory->readHardwareRegister<PCSX::Memory::ISTAT>();
+            uint32_t imask = memory->readHardwareRegister<PCSX::Memory::IMASK>();
+            uint32_t dpcr = memory->readHardwareRegister<PCSX::Memory::DMA_PCR>();
+            uint32_t dicr = memory->readHardwareRegister<PCSX::Memory::DMA_ICR>();
+            std::string istatStr = fmt::format("IStat: {0:08x}###ISTAT", istat);
+            if (ImGui::TreeNode(istatStr.c_str())) {
+                for (unsigned i = 0; i < 11; i++) {
+                    bool enabled = istat & (1 << i);
+                    ImGui::Checkbox(irqName(i).data(), &enabled);
+                    uint32_t bit = 1 << i;
+                    istat = enabled ? (istat | bit) : (istat & ~bit);
+                }
+                ImGui::TreePop();
+            }
+            memory->writeHardwareRegister<PCSX::Memory::ISTAT>(istat);
+            std::string imaskStr = fmt::format("IMask: {0:08x}###IMASK", imask);
+            if (ImGui::TreeNode(imaskStr.c_str())) {
+                for (unsigned i = 0; i < 11; i++) {
+                    bool enabled = imask & (1 << i);
+                    ImGui::Checkbox(irqName(i).data(), &enabled);
+                    uint32_t bit = 1 << i;
+                    imask = enabled ? (imask | bit) : (imask & ~bit);
+                }
+                ImGui::TreePop();
+            }
+            memory->writeHardwareRegister<PCSX::Memory::IMASK>(imask);
+            ImGui::Separator();
+            std::string dpcrStr = fmt::format("DPCR : {0:08x}###DPCR", dpcr);
+            if (ImGui::TreeNode(dpcrStr.c_str())) {
+                for (unsigned i = 0; i < 7; i++) {
+                    unsigned priority = (dpcr >> (i * 4)) & 0x7;
+                    bool enabled = (dpcr >> (i * 4 + 3)) & 0x1;
+                    ImGui::Text("%8s: %u", dmaName(i).data(), priority);
+                    ImGui::SameLine();
+                    std::string checkboxStr = fmt::format("###Enabled{}", i);
+                    ImGui::Checkbox(checkboxStr.c_str(), &enabled);
+                    uint32_t bit = 1 << (i * 4 + 3);
+                    dpcr = enabled ? (dpcr | bit) : (dpcr & ~bit);
+                }
+                ImGui::Text("     CPU: %u", (dpcr >> 21) & 0x7);
+                memory->writeHardwareRegister<PCSX::Memory::DMA_PCR>(dpcr);
+                ImGui::TreePop();
+            }
+            std::string dicrStr = fmt::format("DICR : {0:08x}###DICR", dicr);
+            if (ImGui::TreeNode(dicrStr.c_str())) {
+                bool busError = (dicr >> 15) & 1;
+                ImGui::Checkbox(_("Bus Error"), &busError);
+                dicr = busError ? (dicr | (1 << 15)) : (dicr & ~(1 << 15));
+                bool dmaIrqEnabled = (dicr >> 23) & 1;
+                ImGui::Checkbox(_("DMA IRQ Enabled"), &dmaIrqEnabled);
+                dicr = dmaIrqEnabled ? (dicr | (1 << 23)) : (dicr & ~(1 << 23));
+                bool dmaIrqTriggered = (dicr >> 31) & 1;
+                ImGui::Checkbox(_("DMA IRQ Triggered"), &dmaIrqTriggered);
+                dicr = dmaIrqTriggered ? (dicr | (1 << 31)) : (dicr & ~(1 << 31));
+                for (unsigned i = 0; i < 7; i++) {
+                    auto name = dmaName(i);
+                    if (ImGui::TreeNode(name.data())) {
+                        bool completion = (dicr >> i) & 1;
+                        ImGui::Checkbox(_("Completion"), &completion);
+                        dicr = completion ? (dicr | (1 << i)) : (dicr & ~(1 << i));
+                        bool mask = (dicr >> (i + 16)) & 1;
+                        ImGui::Checkbox(_("IRQ Enabled"), &mask);
+                        dicr = mask ? (dicr | (1 << (i + 16))) : (dicr & ~(1 << (i + 16)));
+                        bool triggered = (dicr >> (i + 24)) & 1;
+                        ImGui::Checkbox(_("Triggered"), &triggered);
+                        dicr = triggered ? (dicr | (1 << (i + 24))) : (dicr & ~(1 << (i + 24)));
+                        ImGui::TreePop();
+                    }
+                }
+                memory->writeHardwareRegister<PCSX::Memory::DMA_ICR>(dicr);
+                ImGui::TreePop();
+            }
             ImGui::EndTabItem();
         }
         ImGui::PopFont();

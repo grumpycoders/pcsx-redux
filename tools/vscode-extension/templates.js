@@ -4,6 +4,7 @@ const path = require('node:path')
 const fs = require('fs-extra')
 const Mustache = require('mustache')
 const { simpleGit } = require('simple-git')
+const terminal = require('./terminal.js')
 const progressNotification = require('./progressnotification.js')
 
 let extensionUri
@@ -365,6 +366,7 @@ const baseCMakeTemplate = combine(baseTemplate, {
       name: '.gitignore',
       content: [
         'build/',
+        'env/',
         '.cache/',
         '__pycache__/',
         '*.pyc',
@@ -521,6 +523,27 @@ async function createGitRepository (fullPath, template, progressReporter) {
   return git
 }
 
+async function createPythonEnv (fullPath, name, packages, requirementsFiles) {
+  // On Windows "python" and "python3" are aliased to a script that opens the
+  // Microsoft Store by default, so the "py" launcher is invoked instead.
+  const pythonCommand = (process.platform === 'win32') ? 'py' : 'python3'
+  await terminal.run(pythonCommand, ['-m', 'venv', name], {
+    cwd: fullPath
+  })
+  const pipCommand = path.join(fullPath, name, 'bin', 'pip')
+  if (packages && packages.length) {
+    await terminal.run(pipCommand, ['install', ...packages], {
+      cwd: fullPath
+    })
+  }
+  if (requirementsFiles && requirementsFiles.length) {
+    const options = requirementsFiles.flatMap((file) => ['-r', file])
+    await terminal.run(pipCommand, ['install', ...options], {
+      cwd: fullPath
+    })
+  }
+}
+
 async function copyTemplateDirectory (git, fullPath, name, templates, data) {
   const binaryExtensions = ['.bin', '.dat', '.png', '.tim']
   const ignoredFiles = ['PSX.Dev-README.md']
@@ -620,6 +643,20 @@ const templates = {
         ],
         { projectName: name, isCMake: true }
       )
+      progressReporter.report({ message: 'Setting up Python environment...' })
+      await createPythonEnv(
+        fullPath,
+        'env',
+        [],
+        [
+          path.join(
+            fullPath,
+            'ps1-bare-metal',
+            'tools',
+            'requirements.txt'
+          )
+        ]
+      )
     }
   },
   cmake_cube: {
@@ -658,6 +695,20 @@ const templates = {
           )
         ],
         { projectName: name, isCMake: true }
+      )
+      progressReporter.report({ message: 'Setting up Python environment...' })
+      await createPythonEnv(
+        fullPath,
+        'env',
+        [],
+        [
+          path.join(
+            fullPath,
+            'ps1-bare-metal',
+            'tools',
+            'requirements.txt'
+          )
+        ]
       )
     }
   },
@@ -716,6 +767,33 @@ const templates = {
       )
     }
   },
+  psyqo_cube: {
+    name: 'PSYQo Cube',
+    category: 'PSYQo SDK',
+    description: 'A project featuring a rotating cube using the PSYQo SDK.',
+    url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
+    examples:
+      'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
+    requiredTools: ['git', 'make', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        psyqoTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'cube')
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
   psyq_netyaroze: {
     name: 'Net Yaroze Sprite',
     category: 'Psy-Q SDK',
@@ -731,7 +809,6 @@ const templates = {
         netyarozeTemplate,
         progressReporter
       )
-
       await copyTemplateDirectory(
         git,
         fullPath,
@@ -787,7 +864,7 @@ exports.createProjectFromTemplate = async function (tools, options) {
   let rejecter
   const { progressReporter, progressResolver } =
     await progressNotification.notify(
-      'Creating project...',
+      'Creating project',
       'Creating directories...'
     )
   const ret = new Promise((resolve, reject) => {
@@ -805,6 +882,14 @@ exports.createProjectFromTemplate = async function (tools, options) {
       rejecter(err)
     })
   return ret
+}
+exports.createPythonEnv = async function (options) {
+  await createPythonEnv(
+    options.path,
+    options.name,
+    options.packages,
+    options.requirementsFiles
+  )
 }
 
 exports.setExtensionUri = (uri) => {

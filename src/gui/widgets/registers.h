@@ -24,6 +24,7 @@
 
 namespace PCSX {
 struct psxRegisters;
+class Memory;
 class GUI;
 
 namespace Widgets {
@@ -31,7 +32,7 @@ namespace Widgets {
 class Registers {
   public:
     Registers(bool& show) : m_show(show) {}
-    void draw(GUI* gui, psxRegisters* registers, const char* title);
+    void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
     bool& m_show;
 

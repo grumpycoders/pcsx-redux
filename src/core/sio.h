@@ -233,7 +233,7 @@ class SIO {
 
     bool isReceiveIRQReady();
     bool isTransmitReady();
-    static inline void scheduleInterrupt(uint32_t eCycle) {
+    static inline void scheduleInterrupt(uint64_t eCycle) {
         g_emulator->m_cpu->schedule(Schedule::SIO, eCycle);
 #if 0
 // Breaks Twisted Metal 2 intro

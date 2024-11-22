@@ -19,7 +19,8 @@
 
 #pragma once
 
-#include <stdbool.h>
+#include <string>
+#include <vector>
 
 #include "gui/widgets/filedialog.h"
 
@@ -28,12 +29,13 @@ namespace PCSX {
 namespace Widgets {
 class PIOCart {
   public:
-    PIOCart(bool& show) : m_show(show) {}
+    PIOCart(bool& show, std::vector<std::string>& favorites)
+        : m_show(show), m_selectEXP1Dialog(l_("Select EXP1"), favorites) {}
     bool draw(const char* title);
     bool& m_show;
 
   private:
-    Widgets::FileDialog<> m_selectEXP1Dialog = {l_("Select EXP1")};
+    Widgets::FileDialog<> m_selectEXP1Dialog;
     int m_flashSizeIndex;
     bool m_switchOn = 1;
 };

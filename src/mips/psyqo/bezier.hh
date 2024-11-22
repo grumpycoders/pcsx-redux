@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include "psyqo/vector.hh"
 
 namespace psyqo {

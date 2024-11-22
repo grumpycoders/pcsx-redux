@@ -2,6 +2,7 @@
 // Copyright (c) Electronic Arts Inc. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
+#if 0
 
 #include <EASTL/internal/config.h>
 #include <EASTL/string.h>
@@ -96,17 +97,4 @@ namespace eastl
 
 } // namespace eastl
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif

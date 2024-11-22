@@ -6,9 +6,12 @@
  * back of the console or to another interface. Additionally, most emulators can
  * log calls to printf() and display the output in their log window.
  *
- * For a variant of this project that prints directly to the PS1's serial port
- * instead of using the kernel, see:
+ * A variant of this project that prints directly to the PS1's serial port
+ * instead of using the kernel is available here:
  *     https://github.com/spicyjpeg/ps1-bare-metal/blob/main/src/00_helloWorld/main.c
+ *
+ * For further information on the contents of the ps1-bare-metal submodule, see:
+ *     https://github.com/spicyjpeg/ps1-bare-metal
  */
 
 #define BIOS_API_TABLE ((void **) 0x80000200)

@@ -59,8 +59,8 @@ LuaFile* openFile(const char* filename, FileOps type) {
 }
 
 LuaFile* openFileWithCallback(const char* url, void (*callback)()) {
-    return new LuaFile(new PCSX::UvFile(
-        url, [callback]() { callback(); }, PCSX::g_system->getLoop(), PCSX::UvFile::DOWNLOAD_URL));
+    return new LuaFile(
+        new PCSX::UvFile(url, [callback]() { callback(); }, PCSX::g_system->getLoop(), PCSX::UvFile::DOWNLOAD_URL));
 }
 
 LuaFile* bufferFileReadOnly(void* data, uint64_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }

@@ -196,12 +196,12 @@ struct psxRegisters {
     psxCP2Ctrl CP2C;  // COP2 control registers
     uint32_t pc;      // Program counter
     uint32_t code;    // The current instruction
-    uint32_t cycle;
-    uint32_t previousCycles;
+    uint64_t cycle;
+    uint64_t previousCycles;
     uint32_t scheduleMask;
     std::atomic<bool> spuInterrupt;
-    uint32_t scheduleTargets[32];
-    uint32_t lowestTarget;
+    uint64_t scheduleTargets[32];
+    uint64_t lowestTarget;
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
     uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
@@ -217,7 +217,7 @@ struct psxRegisters {
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
+#define _fFunct_(code) ((code) & 0x3F)       // The funct part of the instruction register
 #define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
 #define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
 #define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
@@ -306,12 +306,12 @@ class R3000Acpu {
     void schedule(Schedule s_, uint32_t eCycle) {
         unsigned s = static_cast<unsigned>(s_);
         PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
-        const uint32_t cycle = m_regs.cycle;
-        uint32_t target = uint32_t(cycle + eCycle * m_scheduleScales[s]);
+        const uint64_t cycle = m_regs.cycle;
+        uint64_t target = uint64_t(cycle + eCycle * m_scheduleScales[s]);
         m_regs.scheduleMask |= (1 << s);
         m_regs.scheduleTargets[s] = target;
-        int32_t lowest = m_regs.lowestTarget - cycle;
-        int32_t maybeNewLowest = target - cycle;
+        int64_t lowest = m_regs.lowestTarget - cycle;
+        int64_t maybeNewLowest = target - cycle;
         if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
@@ -410,7 +410,7 @@ class R3000Acpu {
   public:
     template <bool checkPC = true>
     inline void InterceptBIOS(uint32_t currentPC) {
-        const uint32_t pc = currentPC & 0x1fffff;
+        const uint32_t pc = currentPC & g_emulator->getRamMask();
 
         if constexpr (checkPC) {
             const uint32_t base = (currentPC >> 20) & 0xffc;
@@ -462,16 +462,37 @@ Formula One 2001
         memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
+    inline void flushICacheLine(uint32_t pc) {
+        uint32_t pcBank = pc >> 24;
+        if (pcBank == 0x00 || pcBank == 0x80) {
+            uint32_t pcCache = pc & 0xfff;
+            pcCache &= ~0xf;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
+
+            *(uint32_t *)(iAddr + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0xc) = 0xff;
+
+            *(uint32_t *)(iCode + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0xc) = 0xff;
+        }
+    }
+
     inline uint32_t readICache(uint32_t pc) {
         uint32_t pcBank = pc >> 24;
-        uint32_t pcOffset = pc & 0xffffff;
-        uint32_t pcCache = pc & 0xfff;
-
-        uint8_t *iAddr = m_regs.iCacheAddr;
-        uint8_t *iCode = m_regs.iCacheCode;
 
         // cached - RAM
         if (pcBank == 0x00 || pcBank == 0x80) {
+            uint32_t pcOffset = pc & 0xffffff;
+            uint32_t pcCache = pc & 0xfff;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
             if (SWAP_LE32(*(uint32_t *)(iAddr + pcCache)) == pcOffset) {
                 // Cache hit - return last opcode used
                 return SWAP_LE32(*((uint32_t *)(iCode + pcCache)));

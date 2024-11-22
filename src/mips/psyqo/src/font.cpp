@@ -35,13 +35,13 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "system-font.inc"
 
-
 void psyqo::FontBase::uploadSystemFont(psyqo::GPU& gpu, psyqo::Vertex location) {
     initialize(gpu, location, {{.w = 8, .h = 16}});
     unpackFont(gpu, s_systemFont, location, {{.w = 256, .h = 48}});
 }
 
 void psyqo::FontBase::uploadKromFont(psyqo::GPU& gpu, psyqo::Vertex location) {
+    Kernel::assert(!Kernel::isKernelTakenOver(), "uploadKromFont can't be used after kernel takeover");
     static constexpr uint16_t sjisLookup[] = {
         0x0000,  // space
         0x8149,  // !
@@ -229,11 +229,11 @@ void psyqo::FontBase::unpackFont(GPU& gpu, const uint8_t* data, Vertex location,
 
 void psyqo::FontBase::initialize(GPU& gpu, Vertex location, Vertex glyphSize) {
     m_glyphSize = glyphSize;
-    Prim::ClutIndex clut(location);
+    PrimPieces::ClutIndex clut(location);
     unsigned glyphPerRow = 256 / glyphSize.w;
     uint8_t baseV = location.y & 0xff;
     for (unsigned i = 0; i < 224; i++) {
-        Prim::TexInfo texInfo = {.u = 0, .v = baseV, .clut = clut};
+        PrimPieces::TexInfo texInfo = {.u = 0, .v = baseV, .clut = clut};
         uint8_t l = i / glyphPerRow;
         texInfo.u = i * glyphSize.w;
         texInfo.v += glyphSize.h * l;
@@ -243,7 +243,7 @@ void psyqo::FontBase::initialize(GPU& gpu, Vertex location, Vertex glyphSize) {
         fragment.prologue.upload.region.pos = location;
         fragment.prologue.upload.region.size = {{.w = 2, .h = 1}};
         fragment.prologue.pixel = 0x7fff0000;
-        psyqo::Prim::TPageAttr attr;
+        psyqo::PrimPieces::TPageAttr attr;
         uint8_t pageX = location.x >> 6;
         uint8_t pageY = location.y >> 8;
         attr.setPageX(pageX)
@@ -291,34 +291,34 @@ void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color)
 
 void psyqo::FontBase::print(GPU& gpu, eastl::string_view text, Vertex pos, Color color,
                             eastl::function<void()>&& callback, DMA::DmaCallback dmaCallback) {
-    auto& fragment = getGlyphFragment(false);
+    auto fragment = getGlyphFragment(false);
     innerprint(fragment, gpu, text, pos, color);
-    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+    gpu.sendFragment(*fragment, eastl::move(callback), dmaCallback);
 }
 
 void psyqo::FontBase::print(GPU& gpu, const char* text, Vertex pos, Color color, eastl::function<void()>&& callback,
                             DMA::DmaCallback dmaCallback) {
-    auto& fragment = getGlyphFragment(false);
+    auto fragment = getGlyphFragment(false);
     innerprint(fragment, gpu, text, pos, color);
-    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+    gpu.sendFragment(*fragment, eastl::move(callback), dmaCallback);
 }
 
 void psyqo::FontBase::chainprint(GPU& gpu, eastl::string_view text, Vertex pos, Color color) {
-    auto& fragment = getGlyphFragment(true);
+    auto fragment = getGlyphFragment(true);
     innerprint(fragment, gpu, text, pos, color);
-    gpu.chain(fragment);
+    gpu.chain(*fragment);
 }
 
 void psyqo::FontBase::chainprint(GPU& gpu, const char* text, Vertex pos, Color color) {
-    auto& fragment = getGlyphFragment(true);
+    auto fragment = getGlyphFragment(true);
     innerprint(fragment, gpu, text, pos, color);
-    gpu.chain(fragment);
+    gpu.chain(*fragment);
 }
 
-void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color) {
+void psyqo::FontBase::innerprint(GlyphsFragment* fragment, GPU& gpu, eastl::string_view text, Vertex pos, Color color) {
     auto size = m_glyphSize;
     unsigned i = 0;
-    auto maxSize = fragment.primitives.size();
+    auto maxSize = fragment->primitives.size();
 
     for (auto c : text) {
         if (i >= maxSize) break;
@@ -329,24 +329,24 @@ void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, eastl::stri
             pos.x += size.w;
             continue;
         }
-        auto& f = fragment.primitives[i++];
+        auto& f = fragment->primitives[i++];
         auto p = m_lut[c - 32];
         f.position = pos;
         f.texInfo = p;
         pos.x += size.w;
     }
-    fragment.count = i;
+    fragment->count = i;
     color.r >>= 3;
     color.g >>= 3;
     color.b >>= 3;
     uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
-    fragment.prologue.pixel = pixel << 16;
+    fragment->prologue.pixel = pixel << 16;
 }
 
-void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, const char* text, Vertex pos, Color color) {
+void psyqo::FontBase::innerprint(GlyphsFragment* fragment, GPU& gpu, const char* text, Vertex pos, Color color) {
     auto size = m_glyphSize;
     unsigned i;
-    auto maxSize = fragment.primitives.size();
+    auto maxSize = fragment->primitives.size();
 
     for (i = 0; i < maxSize; pos.x += size.w) {
         uint8_t c = *text++;
@@ -357,17 +357,17 @@ void psyqo::FontBase::innerprint(GlyphsFragment& fragment, GPU& gpu, const char*
         if (c == ' ') {
             continue;
         }
-        auto& f = fragment.primitives[i++];
+        auto& f = fragment->primitives[i++];
         auto p = m_lut[c - 32];
         f.position = pos;
         f.texInfo = p;
     }
-    fragment.count = i;
+    fragment->count = i;
     color.r >>= 3;
     color.g >>= 3;
     color.b >>= 3;
     uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
-    fragment.prologue.pixel = pixel << 16;
+    fragment->prologue.pixel = pixel << 16;
 }
 
 void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
@@ -387,19 +387,19 @@ void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, const char* for
 
 void psyqo::FontBase::vprintf(GPU& gpu, Vertex pos, Color color, eastl::function<void()>&& callback,
                               DMA::DmaCallback dmaCallback, const char* format, va_list ap) {
-    auto& fragment = getGlyphFragment(false);
+    auto fragment = getGlyphFragment(false);
     innervprintf(fragment, gpu, pos, color, format, ap);
-    gpu.sendFragment(fragment, eastl::move(callback), dmaCallback);
+    gpu.sendFragment(*fragment, eastl::move(callback), dmaCallback);
 }
 
 void psyqo::FontBase::chainvprintf(GPU& gpu, Vertex pos, Color color, const char* format, va_list ap) {
-    auto& fragment = getGlyphFragment(true);
+    auto fragment = getGlyphFragment(true);
     innervprintf(fragment, gpu, pos, color, format, ap);
-    gpu.chain(fragment);
+    gpu.chain(*fragment);
 }
 
 struct psyqo::FontBase::XPrintfInfo {
-    GlyphsFragment& fragment;
+    GlyphsFragment* fragment;
     GPU& gpu;
     Vertex pos;
     FontBase* self;
@@ -407,26 +407,26 @@ struct psyqo::FontBase::XPrintfInfo {
 
 extern "C" int vxprintf(void (*func)(const char*, int, void*), void* arg, const char* format, va_list ap);
 
-void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex pos, Color color, const char* format,
+void psyqo::FontBase::innervprintf(GlyphsFragment* fragment, GPU& gpu, Vertex pos, Color color, const char* format,
                                    va_list ap) {
-    fragment.count = 0;
+    fragment->count = 0;
     color.r >>= 3;
     color.g >>= 3;
     color.b >>= 3;
     uint32_t pixel = color.r | (color.g << 5) | (color.b << 10);
-    fragment.prologue.pixel = pixel << 16;
+    fragment->prologue.pixel = pixel << 16;
     XPrintfInfo info{fragment, gpu, pos, this};
     vxprintf(
         [](const char* str, int len, void* info_) {
             auto& info = *static_cast<XPrintfInfo*>(info_);
             auto& fragment = info.fragment;
-            auto& primitives = info.fragment.primitives;
+            auto& primitives = info.fragment->primitives;
             auto maxSize = primitives.size();
             auto& pos = info.pos;
             auto self = info.self;
             unsigned i;
             for (i = 0; i < len; i++) {
-                if (fragment.count >= maxSize) break;
+                if (fragment->count >= maxSize) break;
                 auto c = str[i];
                 if (c < 32 || c > 127) {
                     c = '?';
@@ -435,7 +435,7 @@ void psyqo::FontBase::innervprintf(GlyphsFragment& fragment, GPU& gpu, Vertex po
                     pos.x += self->m_glyphSize.w;
                     continue;
                 }
-                auto& f = primitives[fragment.count++];
+                auto& f = primitives[fragment->count++];
                 auto p = self->m_lut[c - 32];
                 f.position = pos;
                 f.texInfo = p;

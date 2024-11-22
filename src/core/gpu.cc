@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "core/gpu.h"
 
 #include "core/debug.h"
@@ -25,6 +27,7 @@
 #include "core/psxdma.h"
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 #define GPUSTATUS_READYFORVRAM 0x08000000
@@ -530,7 +533,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             PSXDMA_LOG("*** DMA 2 - GPU dma chain *** %8.8lx addr = %lx size = %lx\n", chcr, madr, bcr);
 
             size = gpuDmaChainSize(madr);
-            chainedDMAWrite((uint32_t *)PCSX::g_emulator->m_mem->m_wram, madr & 0x1fffff);
+            chainedDMAWrite((uint32_t *)PCSX::g_emulator->m_mem->m_wram, madr);
 
             // Tekken 3 = use 1.0 only (not 1.5x)
 
@@ -682,10 +685,8 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
-    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-
     do {
-        addr &= ramExpansion ? 0x7ffffc : 0x1ffffc;
+        addr &= g_emulator->getRamMask<4>();
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
@@ -806,7 +807,8 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
             } break;
         }
         if (gotUnknown && (value != 0)) {
-            g_system->log(LogClass::GPU, "Got an unknown GPU data word: %08x\n", value);
+            g_system->log(LogClass::GPU, "Got an unknown GPU data word: %08x (cmdType: %hhu, command: %hhu)\n", value,
+                          cmdType, command);
         }
     }
 }
@@ -1069,16 +1071,43 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
     partialUpdateVRAM(dX, dY, w, h, rect.data(), PartialUpdateVram::Synchronous);
 }
 
-// These technically belong to gpulogger.cc, but due to the templatisation instanciation, they need to be here
+// These technically belong to gpulogger.cc, but due to the template instanciation, they need to be here
+
+void PCSX::GPU::Logged::drawColorBox(uint32_t color, unsigned itemIndex, unsigned colorIndex,
+                                     const DrawLogSettings &settings) {
+    auto R = (color >> 0) & 0xff;
+    auto G = (color >> 8) & 0xff;
+    auto B = (color >> 16) & 0xff;
+    ImGui::ColorButton(fmt::format("##ColorBox%i%i", itemIndex, colorIndex).c_str(),
+                       ImVec4{R / 255.0f, G / 255.0f, B / 255.0f, 1.0f}, ImGuiColorEditFlags_NoAlpha);
+
+    switch (settings.colorFormat) {
+        case DrawLogSettings::ColorFormat::None:
+            break;
+        case DrawLogSettings::ColorFormat::Expanded:
+            ImGui::SameLine();
+            ImGui::Text(" R: %i, G: %i, B: %i", R, G, B);
+            break;
+        case DrawLogSettings::ColorFormat::HTML: {
+            ImGui::SameLine();
+            ImGui::TextUnformatted(" ");
+            ImGui::SameLine();
+            std::string label = fmt::format("#{:02X}{:02X}{:02X}###ColorBox%i%i", R, G, B, itemIndex, colorIndex);
+            if (ImGui::Button(label.c_str())) {
+                ImGui::SetClipboardText(fmt::format("{:02X}{:02X}{:02X}", R, G, B).c_str());
+            }
+        } break;
+    }
+}
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(unsigned n) {
+void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(unsigned itemIndex,
+                                                                               const DrawLogSettings &settings) {
     if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
         if constexpr (shading == Shading::Flat) {
             ImGui::TextUnformatted(_("Shading: Flat"));
-            ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
-                        (colors[0] >> 16) & 0xff);
+            drawColorBox(colors[0], itemIndex, 0, settings);
         } else if constexpr (shading == Shading::Gouraud) {
             ImGui::TextUnformatted(_("Shading: Gouraud"));
         }
@@ -1111,8 +1140,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         maxX = std::max(maxX, x[i] + offset.x);
         maxY = std::max(maxY, y[i] + offset.y);
         if constexpr ((shading == Shading::Gouraud) && ((textured == Textured::No) || (modulation == Modulation::On))) {
-            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
-                        (colors[i] >> 16) & 0xff);
+            drawColorBox(colors[i], itemIndex, i, settings);
         }
         if constexpr (textured == Textured::Yes) {
             unsigned tx = tpage.tx * 64;
@@ -1127,7 +1155,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         }
     }
     ImGui::Separator();
-    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
     if (ImGui::Button(label.c_str())) {
         g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
     }
@@ -1135,19 +1163,18 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
         unsigned tx = tpage.tx * 64;
         unsigned ty = tpage.ty * 256;
         ImGui::SameLine();
-        std::string label = fmt::format(f_("Go to texture##{}"), n);
+        std::string label = fmt::format(f_("Go to texture##{}"), itemIndex);
         if (ImGui::Button(label.c_str())) {
-            const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                     : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(
                 Events::GUI::VRAMFocus{int(minU + tx), int(minV + ty), int(maxU + tx), int(maxV + ty), mode});
         }
         if (tpage.texDepth != TexDepth::Tex16Bits) {
             ImGui::SameLine();
-            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            std::string label = fmt::format(f_("Go to CLUT##{}"), itemIndex);
             if (ImGui::Button(label.c_str())) {
                 int depth = tpage.texDepth == TexDepth::Tex4Bits ? 16 : 256;
                 g_system->m_eventBus->signal(
@@ -1158,12 +1185,11 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
-void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
+void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned itemIndex, const DrawLogSettings &settings) {
     int minX = x[0], minY = y[0], maxX = x[0], maxY = y[0];
     if constexpr (shading == Shading::Flat) {
         ImGui::TextUnformatted(_("Shading: Flat"));
-        ImGui::Text("  R: %i, G: %i, B: %i", (colors[0] >> 0) & 0xff, (colors[0] >> 8) & 0xff,
-                    (colors[0] >> 16) & 0xff);
+        drawColorBox(colors[0], itemIndex, 0, settings);
     } else if constexpr (shading == Shading::Gouraud) {
         ImGui::TextUnformatted(_("Shading: Gouraud"));
     }
@@ -1178,14 +1204,12 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
         ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x[i - 1], offset.x, x[i - 1] + offset.x, y[i - 1], offset.y,
                     y[i - 1] + offset.y);
         if constexpr (shading == Shading::Gouraud) {
-            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i - 1] >> 0) & 0xff, (colors[i - 1] >> 8) & 0xff,
-                        (colors[i - 1] >> 16) & 0xff);
+            drawColorBox(colors[i - 1], itemIndex, i * 2, settings);
         }
         ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
                     y[i] + offset.y);
         if constexpr (shading == Shading::Gouraud) {
-            ImGui::Text("  R: %i, G: %i, B: %i", (colors[i] >> 0) & 0xff, (colors[i] >> 8) & 0xff,
-                        (colors[i] >> 16) & 0xff);
+            drawColorBox(colors[i], itemIndex, i * 2 + 1, settings);
         }
         minX = std::min(minX, x[i] + offset.x);
         minY = std::min(minY, y[i] + offset.y);
@@ -1193,20 +1217,21 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned n) {
         maxY = std::max(maxY, y[i] + offset.y);
     }
     ImGui::Separator();
-    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
     if (ImGui::Button(label.c_str())) {
         g_system->m_eventBus->signal(Events::GUI::VRAMFocus{minX, minY, maxX, maxY});
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
-void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n) {
+void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned itemIndex,
+                                                                     const DrawLogSettings &settings) {
     ImGui::Text("  X0: %i + %i = %i, Y0: %i + %i = %i", x, offset.x, x + offset.x, y, offset.y, y + offset.y);
     ImGui::Text("  X1: %i + %i = %i, Y1: %i + %i = %i", x + w, offset.x, x + w + offset.x, y + h, offset.y,
                 y + h + offset.y);
     ImGui::Text("  W: %i, H: %i", w, h);
     if constexpr ((textured == Textured::No) || (modulation == Modulation::On)) {
-        ImGui::Text("  R: %i, G: %i, B: %i", (color >> 0) & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
+        drawColorBox(color, itemIndex, 0, settings);
     }
     if constexpr (blend == Blend::Semi) {
         ImGui::TextUnformatted(_("Semi-transparency blending"));
@@ -1222,7 +1247,7 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         }
     }
     ImGui::Separator();
-    std::string label = fmt::format(f_("Go to primitive##{}"), n);
+    std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
     if (ImGui::Button(label.c_str())) {
         g_system->m_eventBus->signal(
             Events::GUI::VRAMFocus{x + offset.x, y + offset.y, x + w + offset.x, y + h + offset.y});
@@ -1232,19 +1257,18 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::drawLogNode(unsigned n)
         unsigned ty = tpage.ty * 256;
         unsigned shift = tpage.texDepth == TexDepth::Tex4Bits ? 2 : tpage.texDepth == TexDepth::Tex8Bits ? 1 : 0;
         ImGui::SameLine();
-        std::string label = fmt::format(f_("Go to texture##{}"), n);
+        std::string label = fmt::format(f_("Go to texture##{}"), itemIndex);
         if (ImGui::Button(label.c_str())) {
-            const auto mode = tpage.texDepth == TexDepth::Tex16Bits
-                                  ? Events::GUI::VRAMFocus::VRAM_16BITS
-                                  : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAMFocus::VRAM_8BITS
-                                                                         : Events::GUI::VRAMFocus::VRAM_4BITS;
+            const auto mode = tpage.texDepth == TexDepth::Tex16Bits  ? Events::GUI::VRAM_16BITS
+                              : tpage.texDepth == TexDepth::Tex8Bits ? Events::GUI::VRAM_8BITS
+                                                                     : Events::GUI::VRAM_4BITS;
             g_system->m_eventBus->signal(Events::GUI::SelectClut{clutX(), clutY()});
             g_system->m_eventBus->signal(Events::GUI::VRAMFocus{int((u >> shift) + tx), int(v + ty),
                                                                 int(((u + w) >> shift) + tx), int(v + h + ty), mode});
         }
         if (tpage.texDepth != TexDepth::Tex16Bits) {
             ImGui::SameLine();
-            std::string label = fmt::format(f_("Go to CLUT##{}"), n);
+            std::string label = fmt::format(f_("Go to CLUT##{}"), itemIndex);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(
                     Events::GUI::VRAMFocus{int(clutX()), int(clutY()), int(clutX() + 256), int(clutY() + 1)});
@@ -1418,4 +1442,16 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&ad
             add({int(maxU + tx), int(maxV + ty)}, {int(minU + tx), int(maxV + ty)}, {int(minU + tx), int(minV + ty)});
         }
     }
+}
+
+bool PCSX::GPU::Logged::isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    int o2 = (x - x2) * (y3 - y2) - (y - y2) * (x3 - x2);
+    int o3 = (x - x3) * (y1 - y3) - (y - y3) * (x1 - x3);
+    return (o1 >= 0 && o2 >= 0 && o3 >= 0) || (o1 <= 0 && o2 <= 0 && o3 <= 0);
+}
+
+bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y2) {
+    int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    return o1 == 0;
 }
