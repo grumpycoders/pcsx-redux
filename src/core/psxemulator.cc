@@ -120,6 +120,15 @@ void PCSX::Emulator::setLua() {
     L.pop();
     L.pop();
 
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("CONSTS");
+    L.getfieldtable("CPU");
+    L.push(lua_Number(m_psxClockSpeed));
+    L.setfield("CLOCKSPEED");
+    L.pop();
+    L.pop();
+    L.pop();
+    
     m_pads->setLua(L);
 
     assert(L.gettop() == 0);
