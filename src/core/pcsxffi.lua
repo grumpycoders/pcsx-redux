@@ -50,7 +50,7 @@ typedef struct {
 enum BreakpointType { Exec, Read, Write };
 typedef struct { uint8_t opaque[?]; } Breakpoint;
 
-uint32_t getCPUCycles();
+uint64_t getCPUCycles();
 uint8_t* getMemPtr();
 uint8_t* getParPtr();
 uint8_t* getRomPtr();
