@@ -199,12 +199,12 @@ struct psxRegisters {
     psxCP2Ctrl CP2C;  // COP2 control registers
     uint32_t pc;      // Program counter
     uint32_t code;    // The current instruction
-    uint32_t cycle;
-    uint32_t previousCycles;
+    uint64_t cycle;
+    uint64_t previousCycles;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    uint32_t intTargets[32];
-    uint32_t lowestTarget;
+    uint64_t intTargets[32];
+    uint64_t lowestTarget;
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
 };
@@ -317,12 +317,12 @@ class R3000Acpu {
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
-        const uint32_t cycle = m_regs.cycle;
-        uint32_t target = uint32_t(cycle + eCycle * m_interruptScales[interrupt]);
+        const uint64_t cycle = m_regs.cycle;
+        uint64_t target = uint64_t(cycle + eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
-        int32_t lowest = m_regs.lowestTarget - cycle;
-        int32_t maybeNewLowest = target - cycle;
+        int64_t lowest = m_regs.lowestTarget - cycle;
+        int64_t maybeNewLowest = target - cycle;
         if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
