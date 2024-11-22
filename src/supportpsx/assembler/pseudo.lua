@@ -42,12 +42,16 @@ PCSX.Assembler.Internals.pseudoInstructions = {
         if type(args[2]) ~= 'number' then error('li second argument must be a number') end
         local imm = args[2]
         if imm < -0x8000 or imm > 0xffff then
+            local lo16 = bit.band(imm, 0xffff)
+            if lo16 == 0 then
+                return { base = 0x3c000000, rt = checkGPR(args[1]), imm16 = bit.rshift(imm, 16) }
+            end
             return {
                 { base = 0x3c000000, rt = checkGPR(args[1]), imm16 = bit.rshift(imm, 16) },
-                { base = 0x34000000, rt = checkGPR(args[1]), imm16 = bit.band(imm, 0xffff) },
+                { base = 0x34000000, rt = checkGPR(args[1]), rs = checkGPR(args[1]), imm16 = lo16 },
             }
         else
-            return { base = 0x3c000000, rt = checkGPR(args[1]), imm16 = args[2] }
+            return { base = 0x34000000, rt = checkGPR(args[1]), imm16 = args[2] }
         end
     end,
 

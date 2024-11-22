@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <csignal>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -37,9 +38,10 @@
 #include "lua/luawrapper.h"
 #include "main/textui.h"
 #include "spu/interface.h"
+#include "support/binpath.h"
 #include "support/uvfile.h"
 #include "support/version.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 static PCSX::UI *s_ui;
 
@@ -190,11 +192,13 @@ int pcsxMain(int argc, char **argv) {
     // Creating the "system" global object first, making sure anything logging-related is
     // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
+    PCSX::g_system = system;
+    auto sigint = std::signal(SIGINT, [](auto signal) { PCSX::g_system->quit(-1); });
+    auto sigterm = std::signal(SIGTERM, [](auto signal) { PCSX::g_system->quit(-1); });
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
-    PCSX::g_system = system;
-    std::filesystem::path self = argv[0];
+    std::filesystem::path self = PCSX::BinPath::getExecutablePath();
     std::filesystem::path binDir = std::filesystem::absolute(self).parent_path();
     system->setBinDir(binDir);
     system->loadAllLocales();
@@ -216,9 +220,10 @@ int pcsxMain(int argc, char **argv) {
     // At this point, we're committed to run the emulator, so we first create it, and the UI next.
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
+    auto &favorites = emulator->settings.get<PCSX::Emulator::SettingOpenDialogFavorites>().value;
 
     s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
-                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI());
+                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(favorites));
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
         // Start tweaking / sanitizing settings a bit, while continuing to parse the command line
@@ -333,8 +338,10 @@ int pcsxMain(int argc, char **argv) {
     bool luacovEnabled = false;
     if (args.get<bool>("luacov")) {
         auto L = *emulator->m_lua;
-        L.load("package.path = package.path .. ';./lua_modules/share/lua/5.1/?.lua;../../../third_party/luacov/src/?.lua;./third_party/luacov/src/?.lua'",
-               "internal:package.path.lua");
+        L.load(
+            "package.path = package.path .. "
+            "';./lua_modules/share/lua/5.1/?.lua;../../../third_party/luacov/src/?.lua;./third_party/luacov/src/?.lua'",
+            "internal:package.path.lua");
         try {
             L.load(R"(
 local runner = require 'luacov.runner'
@@ -380,7 +387,7 @@ runner.init({
         // First, set up a closer. This makes sure that everything is shut down gracefully,
         // in the right order, once we exit the scope. This is because of how we're still
         // allowing exceptions to occur.
-        Cleaner cleaner([&emulator, &system, &exitCode, luacovEnabled]() {
+        Cleaner cleaner([&emulator, &system, &exitCode, luacovEnabled, sigint, sigterm]() {
             emulator->m_spu->close();
             emulator->m_cdrom->clearIso();
 
@@ -399,6 +406,8 @@ runner.init({
             PCSX::g_emulator = nullptr;
 
             exitCode = system->exitCode();
+            std::signal(SIGINT, sigint);
+            std::signal(SIGTERM, sigterm);
             delete system;
             PCSX::g_system = nullptr;
         });

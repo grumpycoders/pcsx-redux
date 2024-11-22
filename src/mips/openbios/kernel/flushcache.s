@@ -26,12 +26,73 @@ SOFTWARE.
 
 .include "common/hardware/hwregs.inc"
 
-    .section .text, "ax", @progbits
-    .align 2
-    .global flushCacheImpl
-    .type flushCacheImpl, @function
+/* This flushCache is a variant of the one found in the common/hardware/flushcache.s
+   file. It is a bit more straightforward as there is no need to ensure that the
+   code is run from the 0xbfc bios space, since the syscall will ensure that. */
 
-flushCacheImpl:
+    .section .text.flushCache, "ax", @progbits
+    .align 2
+    .set noreorder
+    .global flushCache
+    .type flushCache, @function
+
+flushCache:
+    /* Saves the cop0 Status register to $t0. */
+    mfc0  $t0, $12
+    /* First, disables interrupts. */
+    mtc0  $0, $12
+
+    /* Writes 0x0001e90c to the BIU_CONFIG register at 0xfffe0130.
+       This will let us continue to run from uncached memory, while
+       allowing us to access the i-cache. We keep the constant in
+       $t2, so we can reuse it later when re-enabling the i-cache. */
+    lui   $t5, %hi(BIU_CONFIG)
+    li    $t2, 0x0001e90c
+    sw    $t2, %lo(BIU_CONFIG)($t5)
+
+    /* Isolates the cache, and disables interrupts. */
+    li    $t1, 0x10000
+    mtc0  $t1, $12
+
+    /* Clears only the relevant parts of the i-cache. */
+    li    $t3, 0
+    li    $t4, 0x0f80
+
+1:
+    sw    $0, 0x00($t3)
+    sw    $0, 0x10($t3)
+    sw    $0, 0x20($t3)
+    sw    $0, 0x30($t3)
+    sw    $0, 0x40($t3)
+    sw    $0, 0x50($t3)
+    sw    $0, 0x60($t3)
+    sw    $0, 0x70($t3)
+    bne   $t3, $t4, 1b
+    addiu $t3, 0x80
+
+    /* First, un-isolate the cache. */
+    mtc0  $0, $12
+    /* Then, restore the BIU_CONFIG register to 0x0001e988. */
+    addiu $t2, 0x7c
+    sw    $t2, %lo(BIU_CONFIG)($t5)
+    /* Finally, restore the cop0 Status register, and return. It
+       might be unwise to do the mtc0 in the jr delay slot, in
+       case we arrive back at a cop2 instruction, but further
+       testing could be useful. */
+    mtc0  $t0, $12
+    jr    $ra
+    nop
+
+/* The code below is still kept as a reference, since it was directly reversed
+   from the retail bios, but it is not used anymore. */
+
+    .section .text.flushCacheOriginal, "ax", @progbits
+    .align 2
+    .set reorder
+    .global flushCacheOriginal
+    .type flushCacheOriginal, @function
+
+flushCacheOriginal:
     mfc0  $t3, $12
     nop
 

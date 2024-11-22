@@ -46,7 +46,7 @@ struct Line {
     Line(Color c) : command(0x40000000 | c.packed) {}
     Line& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x40000000 | c.packed | wasSemiTrans;
+        command = 0x40000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Line& setOpaque() {
@@ -81,7 +81,7 @@ struct GouraudLine {
     GouraudLine(Color c) : command(0x50000000 | c.packed) {}
     GouraudLine& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x50000000 | c.packed | wasSemiTrans;
+        command = 0x50000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudLine& setColorB(Color c) {
@@ -125,7 +125,7 @@ struct PolyLineBegin {
     PolyLineBegin(Color c) : command(0x48000000 | c.packed) {}
     PolyLineBegin& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x48000000 | c.packed | wasSemiTrans;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     PolyLineBegin& setOpaque() {
@@ -166,7 +166,7 @@ struct PolyLine {
     PolyLine(Color c) : command(0x48000000 | c.packed) {}
     PolyLine& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x48000000 | c.packed | wasSemiTrans;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     PolyLine& setOpaque() {

@@ -23,7 +23,7 @@
 #include <xbyak_util.h>
 #endif
 
-#include <magic_enum/include/magic_enum.hpp>
+#include <magic_enum/include/magic_enum/magic_enum_all.hpp>
 
 #include "core/debug.h"
 #include "core/psxemulator.h"
@@ -334,9 +334,9 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 ImGui::TableHeadersRow();
 
                 bool as_uint = (m_scanValueType == ScanValueType::Uint);
-                const auto valueDisplayFormat =
-                    m_hex ? "%x"
-                          : (m_fixedPoint && stride > 1) ? (as_uint ? "%u.%u" : "%i.%i") : (as_uint ? "%u" : "%i");
+                const auto valueDisplayFormat = m_hex                          ? "%x"
+                                                : (m_fixedPoint && stride > 1) ? (as_uint ? "%u.%u" : "%i.%i")
+                                                                               : (as_uint ? "%u" : "%i");
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_addressValuePairs.size());

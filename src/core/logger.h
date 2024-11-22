@@ -23,7 +23,7 @@
 
 #include "core/system.h"
 #include "fmt/printf.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 namespace PCSX {
 
@@ -48,12 +48,13 @@ enum class LogClass : unsigned {
     LUA,            // logs emitted by the Lua VM
     SPU,            // spu information
     GPU,            // gpu information
+    WEBSERVER,      // web server information
 };
 
 template <LogClass logClass, bool enabled>
 struct Logger {
     template <typename... Args>
-    static void Log(const char *format, const Args &... args) {
+    static void Log(const char *format, const Args &...args) {
         if (!enabled) return;
         std::string s = fmt::sprintf(format, args...);
         g_system->log(logClass, std::move(s));

@@ -26,7 +26,7 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #undef _PC_
 #undef _Op_
@@ -1583,7 +1583,14 @@ void InterpretedCPU::Execute() {
         }
     }
 }
-void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
+
+void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
+    for (auto i = 0; i < Size; i += 4) {
+        flushICacheLine(Addr);
+        Addr += 16;
+    }
+}
+
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
 template <bool debug, bool trace>

@@ -26,7 +26,7 @@ SOFTWARE.
 
 #pragma once
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && (__clang_major__ < 15)
 // Why has Apple become the Microsoft of Software Engineering?
 #include <experimental/coroutine>
 #else
@@ -38,7 +38,7 @@ namespace PCSX {
 
 template <typename T = void>
 struct Coroutine {
-#ifdef __APPLE__
+#if defined(__APPLE__) && (__clang_major__ < 15)
     template <typename U>
     using CoroutineHandle = std::experimental::coroutine_handle<U>;
     using CoroutineHandleVoid = std::experimental::coroutine_handle<void>;

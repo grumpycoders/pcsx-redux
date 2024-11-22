@@ -78,7 +78,7 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "nanovg/src/nanovg.h"
 #include "nanovg/src/nanovg_gl.h"
 #include "nanovg/src/nanovg_gl_utils.h"
@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {
@@ -96,23 +96,39 @@ __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 }
 
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     std::string storage = std::string(url);
     ShellExecuteA(0, 0, storage.c_str(), 0, 0, SW_SHOW);
 }
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("open {}", url);
     system(cmd.c_str());
 }
 #else
 #include <stdlib.h>
-void PCSX::GUI::openUrl(const std::string_view& url) {
+void PCSX::GUI::openUrl(std::string_view url) {
     auto cmd = fmt::format("xdg-open {}", url);
     system(cmd.c_str());
 }
 #endif
+
+PCSX::GUI::GUI(std::vector<std::string>& favorites)
+    : m_listener(g_system->m_eventBus),
+      m_typedDebugger(settings.get<ShowTypedDebugger>().value, favorites),
+      m_memcardManager(settings.get<ShowMemcardManager>().value, favorites),
+      m_assembly(settings.get<ShowAssembly>().value, favorites),
+      m_openIsoFileDialog(l_("Open Disk Image"), favorites),
+      m_openBinaryDialog(l_("Open Binary"), favorites),
+      m_openArchiveDialog(l_("Open Archive"), favorites),
+      m_selectBiosDialog(l_("Select BIOS"), favorites),
+      m_selectEXP1Dialog(l_("Select EXP1"), favorites),
+      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites),
+      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
+    assert(g_gui == nullptr);
+    g_gui = this;
+}
 
 using json = nlohmann::json;
 
@@ -136,7 +152,7 @@ static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
     return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
 }
 
-PCSX::GUI* PCSX::GUI::s_gui = nullptr;
+PCSX::GUI* PCSX::g_gui = nullptr;
 
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
@@ -170,7 +186,10 @@ static void drop_callback(GLFWwindow* window, int count, const char** paths) {
 
 void LoadImguiBindings(lua_State* lState);
 
-ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine) {
+ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, const ImWchar* ranges, bool combine,
+                            bool isSymbolsFont) {
+    if (!ranges) ranges = io.Fonts->GetGlyphRangesDefault();
+
     const System::Range knownRange = System::Range(reinterpret_cast<uintptr_t>(ranges));
     if (knownRange == System::Range::KOREAN) ranges = io.Fonts->GetGlyphRangesKorean();
     if (knownRange == System::Range::JAPANESE) ranges = io.Fonts->GetGlyphRangesJapanese();
@@ -179,6 +198,26 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     if (knownRange == System::Range::CYRILLIC) ranges = io.Fonts->GetGlyphRangesCyrillic();
     if (knownRange == System::Range::THAI) ranges = io.Fonts->GetGlyphRangesThai();
     if (knownRange == System::Range::VIETNAMESE) ranges = io.Fonts->GetGlyphRangesVietnamese();
+
+    if (isSymbolsFont) {
+        for (unsigned i = 0; ranges[i] != 0; i++) {
+            m_baseFontRanges.push_back(ranges[i]);
+        }
+
+        m_baseFontRanges.push_back(0x2190);  // ←: U+2190   ↑: U+2191
+        m_baseFontRanges.push_back(0x2193);  // →: U+2192   ↓: U+2193
+        m_baseFontRanges.push_back(0x2573);  // ╳: U+2573
+        m_baseFontRanges.push_back(0x2573);
+        m_baseFontRanges.push_back(0x25a1);  // □: U+25A1
+        m_baseFontRanges.push_back(0x25a1);
+        m_baseFontRanges.push_back(0x25b3);  // △: U+25B3
+        m_baseFontRanges.push_back(0x25b3);
+        m_baseFontRanges.push_back(0x25ef);  // ◯: U+25EF
+        m_baseFontRanges.push_back(0x25ef);
+
+        m_baseFontRanges.push_back(0);
+        ranges = m_baseFontRanges.data();
+    }
 
     decltype(s_imguiUserErrorFunctor) backup = [](const char*) {};
     std::swap(backup, s_imguiUserErrorFunctor);
@@ -285,7 +324,7 @@ void PCSX::GUI::glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum se
 void PCSX::GUI::setLua(Lua L) {
     setLuaCommon(L);
     LoadImguiBindings(L.getState());
-    LuaFFI::open_imguiextra(L);
+    LuaFFI::open_imguiextra(this, L);
     LuaFFI::open_gl(L);
     LuaFFI::open_nvg(L);
     {
@@ -520,7 +559,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     if (vg) {
         g_system->findResource(
             [vg](auto path) -> bool {
-                int res = nvgCreateFont(vg, "noto-sans-regular", path.string().c_str());
+                int res = nvgCreateFont(vg, "noto-sans-regular", (const char*)(path.u8string().c_str()));
                 return res >= 0;
             },
             MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
@@ -573,7 +612,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         finishLoadSettings();
 
         if (!g_system->getArgs().isUpdateDisabled() && emuSettings.get<PCSX::Emulator::SettingAutoUpdate>() &&
-            !g_system->getVersion().failed()) {
+            !g_system->getVersion().failed() && g_system->getVersion().hasUpdateInfo()) {
             m_update.downloadUpdateInfo(
                 g_system->getVersion(),
                 [this](bool success) {
@@ -609,27 +648,27 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     };
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
-        if (s_gui->m_createWindowOldCallback) s_gui->m_createWindowOldCallback(viewport);
+        if (g_gui->m_createWindowOldCallback) g_gui->m_createWindowOldCallback(viewport);
         auto window = getGLFWwindowFromImGuiViewport(viewport);
         glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
         auto id = viewport->ID;
-        s_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(s_gui->m_nvgContext);
+        g_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(g_gui->m_nvgContext);
     };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
-        if (s_gui->m_onChangedViewportOldCallback) s_gui->m_onChangedViewportOldCallback(viewport);
-        s_gui->changeScale(viewport->DpiScale);
+        if (g_gui->m_onChangedViewportOldCallback) g_gui->m_onChangedViewportOldCallback(viewport);
+        g_gui->changeScale(viewport->DpiScale);
     };
     m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
     platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
         auto id = viewport->ID;
-        auto& subContextes = s_gui->m_nvgSubContextes;
+        auto& subContextes = g_gui->m_nvgSubContextes;
         auto subContext = subContextes.find(id);
         if (subContext != subContextes.end()) {
             nvgDeleteSubContextGL(subContext->second);
             subContextes.erase(subContext);
         }
-        if (s_gui->m_destroyWindowOldCallback) s_gui->m_destroyWindowOldCallback(viewport);
+        if (g_gui->m_destroyWindowOldCallback) g_gui->m_destroyWindowOldCallback(viewport);
     };
     glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -663,8 +702,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     glGenRenderbuffers(1, &m_offscreenDepthBuffer);
 
     m_mainVRAMviewer.setMain();
-    m_mainVRAMviewer.setTitle([]() { return _("Main VRAM Viewer"); });
-    m_clutVRAMviewer.setTitle([]() { return _("CLUT VRAM selector"); });
+    m_mainVRAMviewer.setTitle(l_("Main VRAM Viewer"));
+    m_clutVRAMviewer.setTitle(l_("CLUT VRAM selector"));
     m_memcardManager.initTextures();
 
     unsigned counter = 1;
@@ -683,11 +722,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         counter++;
     }
-    m_parallelPortEditor.title = []() { return _("Parallel Port"); };
-    m_scratchPadEditor.title = []() { return _("Scratch Pad"); };
-    m_hwrEditor.title = []() { return _("Hardware Registers"); };
-    m_biosEditor.title = []() { return _("BIOS"); };
-    m_vramEditor.title = []() { return _("VRAM"); };
+    m_parallelPortEditor.title = l_("Parallel Port");
+    m_scratchPadEditor.title = l_("Scratch Pad");
+    m_hwrEditor.title = l_("Hardware Registers");
+    m_biosEditor.title = l_("BIOS");
+    m_vramEditor.title = l_("VRAM");
     m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
         constexpr size_t vramWidth = 1024;
         constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
@@ -708,6 +747,28 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
     };
 
+    auto exportFn = [this](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
+        std::filesystem::path writeFilepath =
+            g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+        IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
+        if (!f->failed()) {
+            f->write(data, len);
+            f->close();
+            g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
+        } else {
+            g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
+        }
+    };
+#define EXPORT_FUNC(name) [=](ImU8* data, size_t len, size_t base_addr) { exportFn(data, len, base_addr, name); }
+    for (auto& editor : m_mainMemEditors) {
+        editor.editor.ExportFn = EXPORT_FUNC("wram");
+    }
+    m_parallelPortEditor.editor.ExportFn = EXPORT_FUNC("parallel");
+    m_scratchPadEditor.editor.ExportFn = EXPORT_FUNC("scratch");
+    m_hwrEditor.editor.ExportFn = EXPORT_FUNC("hwr");
+    m_biosEditor.editor.ExportFn = EXPORT_FUNC("bios");
+    m_vramEditor.editor.ExportFn = EXPORT_FUNC("vram");
+
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
 
@@ -715,6 +776,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         const uint32_t base = (event.address >> 20) & 0xff8;
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
+        const uint32_t editorNum = event.editorNum;
+        const bool forceShowEditor = event.forceShowEditor;
         auto changeDataType = [](MemoryEditor* editor, int size) {
             bool isSigned = false;
             switch (editor->PreviewDataType) {
@@ -739,11 +802,13 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
             if (real < 0x00800000) {
-                m_mainMemEditors[0].editor.GotoAddrAndHighlight(real, real + size);
-                changeDataType(&m_mainMemEditors[0].editor, size);
+                if (forceShowEditor) m_mainMemEditors[editorNum].m_show = true;
+                m_mainMemEditors[editorNum].editor.GotoAddrAndHighlight(real, real + size);
+                changeDataType(&m_mainMemEditors[editorNum].editor, size);
             }
         } else if (base == 0x1f8) {
             if (real >= 0x1000 && real < 0x3000) {
+                if (forceShowEditor) m_hwrEditor.m_show = true;
                 m_hwrEditor.editor.GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
                 changeDataType(&m_hwrEditor.editor, size);
             }
@@ -769,6 +834,7 @@ void PCSX::GUI::close() {
 }
 
 void PCSX::GUI::saveCfg() {
+    if (g_system->getArgs().isTestModeEnabled()) return;
     std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
     json j;
 
@@ -841,6 +907,7 @@ void PCSX::GUI::startFrame() {
 
     if (m_reloadFonts) {
         m_reloadFonts = false;
+        m_baseFontRanges.clear();
         auto scales = m_allScales;
         if (scales.empty()) scales.emplace(1.0f);
 
@@ -852,15 +919,15 @@ void PCSX::GUI::startFrame() {
         io.Fonts->AddFontDefault();
         for (auto& scale : scales) {
             m_mainFonts[scale] = loadFont(MAKEU8("NotoSans-Regular.ttf"), settings.get<MainFontSize>().value * scale,
-                                          io, g_system->getLocaleRanges());
+                                          io, g_system->getLocaleRanges(), false, false);
             for (auto e : g_system->getLocaleExtra()) {
-                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true);
+                loadFont(e.first, settings.get<MainFontSize>().value * scale, io, e.second, true, false);
             }
             // try loading the japanese font for memory card manager
             m_hasJapanese = loadFont(MAKEU8("NotoSansCJKjp-Regular.otf"), settings.get<MainFontSize>().value * scale,
-                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true);
-            m_monoFonts[scale] =
-                loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale, io, nullptr);
+                                     io, reinterpret_cast<const ImWchar*>(PCSX::System::Range::JAPANESE), true, true);
+            m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
+                                          io, nullptr, false, false);
         }
         io.Fonts->Build();
         io.FontDefault = m_mainFonts.begin()->second;
@@ -1001,7 +1068,7 @@ void PCSX::GUI::endFrame() {
     m_outputShaderEditor.configure(this);
 
     if (m_fullWindowRender) {
-        ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+        ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
         const auto displayFramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
         const auto logicalRenderSize =
@@ -1035,7 +1102,7 @@ void PCSX::GUI::endFrame() {
                 m_setupScreenSize = true;
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
-            ImTextureID texture = reinterpret_cast<ImTextureID*>(m_offscreenTextures[m_currentTexture]);
+            ImTextureID texture = m_offscreenTextures[m_currentTexture];
             if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
             } else {
@@ -1246,9 +1313,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
+                    ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
                     if (ImGui::BeginMenu(_("First Chance Exceptions"))) {
-                        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+                        ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
                         constexpr auto& exceptions = magic_enum::enum_entries<PCSX::R3000Acpu::Exception>();
                         unsigned& s = debugSettings.get<Emulator::DebugSettings::FirstChanceException>().value;
                         for (auto& e : exceptions) {
@@ -1501,19 +1569,23 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &PCSX::g_emulator->m_cpu->m_regs, _("Registers"));
+        m_registers.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Registers"));
     }
 
     if (m_assembly.m_show) {
-        m_assembly.draw(this, &PCSX::g_emulator->m_cpu->m_regs, PCSX::g_emulator->m_mem.get(), _("Assembly"));
+        changed |= m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
-    if (m_disassembly.m_show && PCSX::g_emulator->m_cpu->isDynarec()) {
+    if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
+    }
+
+    if (m_patches.m_show) {
+        m_patches.draw(_("Patches"));
     }
 
     if (m_namedSaveStates.m_show) {
@@ -1621,7 +1693,7 @@ their TV set to match the aspect ratio of the game.)"));
     }
 
     if (!g_system->getArgs().isUpdateDisabled() && !g_system->getVersion().failed() &&
-        !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
+        g_system->getVersion().hasUpdateInfo() && !emuSettings.get<Emulator::SettingShownAutoUpdateConfig>().value) {
         if (ImGui::Begin(_("Update configuration"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted((_(R"(PCSX-Redux can automatically update itself.
 
@@ -1902,7 +1974,7 @@ the update and manually apply it.)")));
         L.setfield("DrawImguiFrame", LUA_GLOBALSINDEX);
     }
 
-    FrameMark
+    FrameMark;
 }
 
 bool PCSX::GUI::configure() {
@@ -1965,11 +2037,7 @@ when changing this setting.)"));
         }
 
         {
-            static const std::function<const char*()> types[] = {
-                []() { return _("Auto"); },
-                []() { return _("NTSC"); },
-                []() { return _("PAL"); },
-            };
+            static const std::function<const char*()> types[] = {l_("Auto"), l_("NTSC"), l_("PAL")};
             auto& autodetect = settings.get<Emulator::SettingAutoVideo>().value;
             auto& type = settings.get<Emulator::SettingVideo>().value;
             if (ImGui::BeginCombo(_("System Type"), types[autodetect ? 0 : (type + 1)]())) {
@@ -2205,9 +2273,8 @@ void PCSX::GUI::interruptsScaler() {
 
 bool PCSX::GUI::showThemes() {
     static const std::function<const char*()> imgui_themes[] = {
-        []() { return _("Default theme"); }, []() { return _("Classic"); }, []() { return _("Light"); },
-        []() { return _("Cherry"); },        []() { return _("Mono"); },    []() { return _("Dracula"); },
-        []() { return _("Olive"); },
+        l_("Default theme##Theme name"), l_("Classic##Theme name"), l_("Light##Theme name"), l_("Cherry##Theme name"),
+        l_("Mono##Theme name"),          l_("Dracula##Theme name"), l_("Olive##Theme name"),
     };
     auto changed = false;
     auto& currentTheme = g_emulator->settings.get<Emulator::SettingGUITheme>().value;
@@ -2248,16 +2315,31 @@ bool PCSX::GUI::about() {
                 if (version.failed()) {
                     ImGui::BeginDisabled();
                 }
-                if (ImGui::Button(_("Copy to clipboard"))) {
-                    clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
-                                               version.version, version.changeset, fmt::localtime(version.timestamp)));
-                }
                 if (version.failed()) {
                     ImGui::EndDisabled();
                     ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
                 } else {
+                    if (ImGui::Button(_("Copy to clipboard"))) {
+                        if (version.buildId.has_value()) {
+                            clip::set_text(
+                                fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                            version.version, version.buildId.value(), version.changeset,
+                                            fmt::localtime(version.timestamp)));
+                        } else {
+                            clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                                       version.version, version.changeset,
+                                                       fmt::localtime(version.timestamp)));
+                        }
+                    }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
-                    ImGui::Text(_("Changeset: %s"), version.changeset.c_str());
+                    if (version.buildId.has_value()) {
+                        ImGui::Text(_("Build: %i"), version.buildId.value());
+                    }
+                    ImGui::TextUnformatted(_("Changeset: "));
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(version.changeset.c_str())) {
+                        openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
+                    }
                     std::tm tm = fmt::localtime(version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());
@@ -2502,6 +2584,14 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
     g_emulator->m_cdrom->check();
 }
 
+bool PCSX::GUI::getSaveStateExists(uint32_t slot) {
+    if (slot >= 10) {
+        return false;
+    }
+    auto saveFilename = buildSaveStateFilename(slot);
+    return saveStateExists(saveFilename);
+}
+
 std::string PCSX::GUI::getSaveStatePrefix(bool includeSeparator) {
     // the ID of the game. Every savestate is marked with the ID of the game it's from.
     const auto gameID = g_emulator->m_cdrom->getCDRomID();
@@ -2525,22 +2615,28 @@ std::string PCSX::GUI::buildSaveStateFilename(int i) {
     return fmt::format("{}{}{}", getSaveStatePrefix(false), getSaveStatePostfix(), i);
 }
 
-void PCSX::GUI::saveSaveState(std::filesystem::path filename) {
+std::string PCSX::GUI::buildSaveStateFilename(std::string saveStateName) {
+    return fmt::format("{}{}{}", getSaveStatePrefix(true), saveStateName, getSaveStatePostfix());
+}
+
+bool PCSX::GUI::saveSaveState(std::filesystem::path filename) {
     if (filename.is_relative()) {
         filename = g_system->getPersistentDir() / filename;
     }
     // TODO: yeet this to libuv's threadpool.
     ZWriter save(new UvFile(filename, FileOps::TRUNCATE), ZWriter::GZIP);
-    if (!save.failed()) save.writeString(SaveStates::save());
+    bool success = !save.failed();
+    if (success) save.writeString(SaveStates::save());
     save.close();
+    return success;
 }
 
-void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
+bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     if (filename.is_relative()) {
         filename = g_system->getPersistentDir() / filename;
     }
     ZReader save(new PosixFile(filename));
-    if (save.failed()) return;
+    if (save.failed()) return false;
     std::ostringstream os;
     constexpr unsigned buff_size = 1 << 16;
     char* buff = new char[buff_size];
@@ -2560,7 +2656,21 @@ void PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     delete[] buff;
 
     if (!error) SaveStates::load(os.str());
+    return !error;
 }
+
+bool PCSX::GUI::deleteSaveState(std::filesystem::path filename) {
+    if (filename.is_relative()) {
+        filename = g_system->getPersistentDir() / filename;
+    }
+    return std::remove(filename.string().c_str()) == 0;
+}
+
+bool PCSX::GUI::saveSaveStateSlot(uint32_t slot) { return saveSaveState(buildSaveStateFilename(slot)); }
+
+bool PCSX::GUI::loadSaveStateSlot(uint32_t slot) { return loadSaveState(buildSaveStateFilename(slot)); }
+
+bool PCSX::GUI::deleteSaveStateSlot(uint32_t slot) { return deleteSaveState(buildSaveStateFilename(slot)); }
 
 bool PCSX::GUI::saveStateExists(std::filesystem::path filename) {
     if (filename.is_relative()) {
@@ -2568,6 +2678,10 @@ bool PCSX::GUI::saveStateExists(std::filesystem::path filename) {
     }
     ZReader save(new PosixFile(filename));
     return !save.failed();
+}
+
+std::vector<std::pair<std::filesystem::path, std::string>> PCSX::GUI::getNamedSaveStates() {
+    return m_namedSaveStates.getNamedSaveStates(this);
 }
 
 void PCSX::GUI::byteRateToString(float rate, std::string& str) {

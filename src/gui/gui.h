@@ -50,6 +50,7 @@
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/named_savestates.h"
+#include "gui/widgets/patches.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
@@ -58,7 +59,7 @@
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
 #include "support/version.h"
@@ -75,6 +76,9 @@ struct GLFWwindow;
 struct NVGcontext;
 
 namespace PCSX {
+
+class GUI;
+extern GUI *g_gui;
 
 enum class LogClass : unsigned;
 
@@ -94,6 +98,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowVRAMViewer4")> ShowVRAMViewer4;
     typedef Setting<bool, TYPESTRING("ShowMemoryObserver")> ShowMemoryObserver;
     typedef Setting<bool, TYPESTRING("ShowTypedDebugger")> ShowTypedDebugger;
+    typedef Setting<bool, TYPESTRING("ShowPatches")> ShowPatches;
     typedef Setting<bool, TYPESTRING("ShowMemcardManager")> ShowMemcardManager;
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
@@ -148,24 +153,23 @@ class GUI final : public UI {
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
              ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
-             ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints, ShowNamedSaveStates,
-             ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger,
-             MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
-             ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4,
-             ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor,
-             ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr,
-             MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
-             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr,
-             BiosEditorAddr, VRAMEditorAddr>
+             ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints,
+             ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser,
+             ShowGPULogger, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion,
+             WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3,
+             ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8,
+             ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor,
+             MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr,
+             MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr,
+             HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
 
     // imgui can't handle more than one "instance", so...
-    static GUI *s_gui;
     void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     static void glfwKeyCallbackTrampoline(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        s_gui->glfwKeyCallback(window, key, scancode, action, mods);
+        g_gui->glfwKeyCallback(window, key, scancode, action, mods);
     }
     void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
@@ -198,7 +202,7 @@ class GUI final : public UI {
       private:
         std::map<std::string_view, std::function<void()>> m_customURLs;
     };
-    static void openUrl(const std::string_view &url);
+    static void openUrl(std::string_view url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
     class ScopedOnlyLog {
       public:
@@ -209,13 +213,10 @@ class GUI final : public UI {
         GUI *m_gui = nullptr;
     };
     std::vector<std::string> getGLerrors() { return std::move(m_glErrors); }
-    GUI() : m_listener(g_system->m_eventBus) {
-        assert(s_gui == nullptr);
-        s_gui = this;
-    }
+    GUI(std::vector<std::string> &favorites);
     ~GUI() {
-        assert(s_gui == this);
-        s_gui = nullptr;
+        assert(g_gui == this);
+        g_gui = nullptr;
     }
     void init(std::function<void()> applyArguments) override;
     void setLua(Lua L);
@@ -308,6 +309,7 @@ class GUI final : public UI {
     GLuint m_VRAMTexture = 0;
     NVGcontext *m_nvgContext = nullptr;
     std::map<unsigned, void *> m_nvgSubContextes;
+    std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
     unsigned int m_offscreenTextures[2] = {0, 0};
@@ -369,19 +371,20 @@ class GUI final : public UI {
     MemoryEditorWrapper m_vramEditor = {this, settings.get<ShowVRAMEditor>().value,
                                         settings.get<VRAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
-    Widgets::TypedDebugger m_typedDebugger = {settings.get<ShowTypedDebugger>().value};
-    Widgets::MemcardManager m_memcardManager = {settings.get<ShowMemcardManager>().value};
+    Widgets::TypedDebugger m_typedDebugger;
+    Widgets::Patches m_patches = {settings.get<ShowPatches>().value};
+    Widgets::MemcardManager m_memcardManager;
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
-    Widgets::Assembly m_assembly = {settings.get<ShowAssembly>().value};
+    Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
-    Widgets::FileDialog<> m_openBinaryDialog = {[]() { return _("Open Binary"); }};
-    Widgets::FileDialog<> m_openArchiveDialog = {[]() { return _("Open Archive"); }};
-    Widgets::FileDialog<> m_selectBiosDialog = {[]() { return _("Select BIOS"); }};
-    Widgets::FileDialog<> m_selectEXP1Dialog = {[]() { return _("Select EXP1"); }};
+    Widgets::FileDialog<> m_openIsoFileDialog;
+    Widgets::FileDialog<> m_openBinaryDialog;
+    Widgets::FileDialog<> m_openArchiveDialog;
+    Widgets::FileDialog<> m_selectBiosDialog;
+    Widgets::FileDialog<> m_selectEXP1Dialog;
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
-    Widgets::IsoBrowser m_isoBrowser = {settings.get<ShowIsoBrowser>().value};
+    Widgets::IsoBrowser m_isoBrowser;
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -402,21 +405,27 @@ class GUI final : public UI {
 
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
-    Widgets::PIOCart m_pioCart = {settings.get<ShowPIOCartConfig>().value};
+    Widgets::PIOCart m_pioCart;
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
 
     EventBus::Listener m_listener;
 
-    std::string buildSaveStateFilename(int i);
-    bool saveStateExists(std::filesystem::path filename);
-
   public:
-    void saveSaveState(std::filesystem::path filename);
-    void loadSaveState(std::filesystem::path filename);
+    bool saveSaveState(std::filesystem::path filename);
+    bool loadSaveState(std::filesystem::path filename);
+    bool deleteSaveState(std::filesystem::path filename);
+    bool saveSaveStateSlot(uint32_t slot);
+    bool loadSaveStateSlot(uint32_t slot);
+    bool deleteSaveStateSlot(uint32_t slot);
     std::string getSaveStatePrefix(bool includeSeparator);
     static std::string getSaveStatePostfix();
+    bool getSaveStateExists(uint32_t slot);
+    std::vector<std::pair<std::filesystem::path, std::string>> getNamedSaveStates();
+    std::string buildSaveStateFilename(int i);
+    std::string buildSaveStateFilename(std::string name);
+    bool saveStateExists(std::filesystem::path filename);
 
   private:
     void applyTheme(int theme);
@@ -425,7 +434,7 @@ class GUI final : public UI {
     void draculaTheme();
     void oliveTheme();
 
-    Notifier m_notifier = {[]() { return _("Notification"); }};
+    Notifier m_notifier = {l_("Notification")};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
@@ -440,7 +449,8 @@ class GUI final : public UI {
     bool m_hasJapanese = false;
     float m_currentScale = 1.0f;
 
-    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine = false);
+    ImFont *loadFont(const PCSX::u8string &name, int size, ImGuiIO &io, const ImWchar *ranges, bool combine,
+                     bool isSymbolsFont);
 
     bool m_reloadFonts = true;
     Widgets::ShaderEditor m_outputShaderEditor = {"output"};
@@ -469,6 +479,6 @@ class GUI final : public UI {
 
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
                          ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
-};
+};  // namespace PCSX
 
 }  // namespace PCSX

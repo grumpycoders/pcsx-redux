@@ -60,10 +60,11 @@ typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_mode_exp"), 9> exRe
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("release_rate"), 10> exReleaseRate;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol"), 11> exEnvelopeVol;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("volume"), 12> exVolume;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("envelope_vol_fraction"), 13> exEnvelopeVolF;
 
 typedef Protobuf::Message<TYPESTRING("ADSRInfoEx"), exState, exAttackModeExp, exAttackRate, exDecayRate, exSustainLevel,
                           exSustainModeExp, exSustainIncrease, exSustainRate, exReleaseModeExp, exReleaseRate,
-                          exEnvelopeVol, exVolume>
+                          exEnvelopeVol, exVolume, exEnvelopeVolF>
     ADSRInfoEx;
 
 namespace Chan {
@@ -124,11 +125,13 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("noise"), 28> Noise;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
 // another reverb helper
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
-// skip id 31
+// solo mode
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("solo"), 31> Solo;
+// skip id 32
 typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
                           RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
-                          RVBNum>
+                          RVBNum, Solo>
     Data;
 }  // namespace Chan
 

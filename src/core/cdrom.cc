@@ -27,7 +27,7 @@
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "spu/interface.h"
 #include "support/strings-helpers.h"
 
@@ -580,7 +580,9 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_irqRepeated) {
             m_irqRepeated = 0;
-            if (m_eCycle > PCSX::g_emulator->m_cpu->m_regs.cycle) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            auto diff = regs.intTargets[PCSX::PSXINT_CDR] - regs.cycle;
+            if (m_eCycle > diff) {
                 scheduleCDIRQ(m_eCycle);
                 goto finish;
             }
@@ -1602,8 +1604,12 @@ class CDRomImpl : public PCSX::CDRom {
                                     delayedString, m_param[0], m_param[1], m_param[2]);
                 break;
             case CdlPlay:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc, delayedString,
-                                    m_param[0]);
+                if (m_paramC == 0) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay\n", pc, delayedString);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc,
+                                        delayedString, m_param[0]);
+                }
                 break;
             case CdlSetfilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM,

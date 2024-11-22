@@ -33,6 +33,8 @@ static const ImWchar c_greekRanges[] = {0x0020, 0x00ff, 0x0370, 0x03ff, 0};
 static const ImWchar c_hindiSupplementalRanges[] = {0x0900, 0x097f, 0};
 static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120, 0x0121,
                                           0x0126, 0x0127, 0x017b, 0x017c, 0};
+static const ImWchar c_polishRanges[] = {0x0020, 0x00ff, 0x0104, 0x0119, 0x0141, 0x0144,
+                                         0x015a, 0x015b, 0x0179, 0x017c, 0};
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
@@ -67,7 +69,11 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     },
     {
         "Nihongo",
-        {"jp.po", {}, nullptr},
+        {"ja.po", {}, nullptr},
+    },
+    {
+        "Polski",
+        {"pl.po", {}, c_polishRanges},
     },
     {
         "Português (Brasil)",
@@ -292,7 +298,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
 }
 
 std::filesystem::path PCSX::System::getPersistentDir() const {
-    if (getArgs().isPortable()) return "";
+    if (getArgs().isPortable()) return getArgs().getPortablePath();
 #ifdef _WIN32
     char* homeDir;
     auto ret = _dupenv_s(&homeDir, nullptr, "APPDATA");

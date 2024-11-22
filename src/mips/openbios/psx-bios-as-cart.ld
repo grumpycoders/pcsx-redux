@@ -50,8 +50,6 @@ __bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram);
 
-PROVIDE(flushCache = flushCacheFromRealBios);
-
 SECTIONS {
     .base (NOLOAD) : {
         __vector_00 = .;
@@ -196,12 +194,6 @@ SECTIONS {
         *(COMMON)
         . = ALIGN(4);
         __bss_end = .;
-    } > kseg0
-
-    .flushCacheHack (NOLOAD) : {
-        . = ALIGN(4);
-        __flush_cache_real_bios_ptr = .;
-        LONG(0);
     } > kseg0
 
     __heap_start = .;

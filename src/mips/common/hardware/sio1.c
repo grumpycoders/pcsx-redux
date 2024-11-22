@@ -29,8 +29,9 @@ SOFTWARE.
 #include "common/hardware/hwregs.h"
 
 void sio1_init() {
-    // enable TX and RX, and nothing else
-    SIO1_CTRL = 5;
+    // TX and RX enabled, all other bits disabled
+    // RTS on (for systems that loop it back to CTS, e.g. 573)
+    SIO1_CTRL = 0x25;
     // 01001110
     // Baudrate Reload Factor: MUL16 (2)
     // Character length: 8 (3)
@@ -43,7 +44,6 @@ void sio1_init() {
 }
 
 void sio1_putc(uint8_t byte) {
-    while ((SIO1_STAT & 1) == 0)
-        ;
+    while ((SIO1_STAT & 1) == 0);
     SIO1_DATA = byte;
 }

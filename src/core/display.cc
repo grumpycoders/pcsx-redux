@@ -20,7 +20,7 @@
 
 #include "core/gpu.h"
 #include "core/psxemulator.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 void PCSX::GPU::Display::reset() {
     x1 = 0x200;

@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include <EASTL/array.h>
 
-#include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/fixed-point.hh"
 #include "psyqo/font.hh"
@@ -74,7 +73,7 @@ struct TorusTemplate {
         // We're going to generate circles, rotating them around the Z axis.
         for (psyqo::Angle outside = 0.0_pi; outside < 2.0_pi; outside += incrementOutside) {
             // Generate a rotation matrix for the current angle.
-            auto rot = psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, &gteDemo.m_trig);
+            auto rot = psyqo::SoftMath::generateRotationMatrix33(outside, psyqo::SoftMath::Axis::Z, gteDemo.m_trig);
             // Uploading the matrix to the GTE. The matrix won't be used until we call mvmva, so we can use the unsafe
             // GTE write version.
             psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::Rotation>(rot);
@@ -214,11 +213,11 @@ void GTEScene::frame() {
     // Generate the rotation matrix for the current angles, by multiplying the three rotation matrices. This
     // is done in software, because the GTE doesn't have any way to multiply matrices. This is technically
     // costly, but it is done only once per frame, so it's not a big deal.
-    auto transform = psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, &gteDemo.m_trig);
-    auto rot = psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, &gteDemo.m_trig);
-    psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
-    psyqo::SoftMath::generateRotationMatrix33(&rot, m_angleZ, psyqo::SoftMath::Axis::Z, &gteDemo.m_trig);
-    psyqo::SoftMath::multiplyMatrix33(&transform, &rot, &transform);
+    auto transform = psyqo::SoftMath::generateRotationMatrix33(m_angleX, psyqo::SoftMath::Axis::X, gteDemo.m_trig);
+    auto rot = psyqo::SoftMath::generateRotationMatrix33(m_angleY, psyqo::SoftMath::Axis::Y, gteDemo.m_trig);
+    psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
+    psyqo::SoftMath::generateRotationMatrix33(&rot, m_angleZ, psyqo::SoftMath::Axis::Z, gteDemo.m_trig);
+    psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
 
     // Upload the rotation matrix to the GTE. We're using the unsafe GTE write version because we're
     // still away from the rtpt kernel.

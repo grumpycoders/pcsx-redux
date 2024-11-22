@@ -30,6 +30,7 @@
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
+#include "core/patchmanager.h"
 #include "core/pcsxlua.h"
 #include "core/pio-cart.h"
 #include "core/r3000a.h"
@@ -47,6 +48,7 @@ extern "C" {
 #include "luv/src/luv.h"
 }
 #include "spu/interface.h"
+#include "supportpsx/adpcmlua.h"
 #include "supportpsx/assembler.h"
 #include "supportpsx/binlua.h"
 
@@ -65,6 +67,7 @@ PCSX::Emulator::Emulator()
       m_mdec(new PCSX::MDEC()),
       m_mem(new PCSX::Memory()),
       m_pads(PCSX::Pads::factory()),
+      m_patchManager(new PatchManager()),
       m_pioCart(new PCSX::PIOCart),
       m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),
@@ -105,6 +108,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaSupportPSX::open_adpcm(L);
     LuaSupportPSX::open_assembler(L);
     LuaSupportPSX::open_binaries(L);
 

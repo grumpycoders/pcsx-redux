@@ -66,3 +66,5 @@ TEST(LuaBasic, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.basic"), 0); }
 TEST(LuaBasic, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.basic"), 0); }
 TEST(LuaFile, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.file"), 0); }
 TEST(LuaFile, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.file"), 0); }
+TEST(LuaAdpcm, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.adpcm"), 0); }
+TEST(LuaAdpcm, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.adpcm"), 0); }

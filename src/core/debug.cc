@@ -247,7 +247,7 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
     auto end = m_breakpoints.end();
     uint32_t normalizedAddress = normalizeAddress(address & ~0xe0000000);
 
-    BreakpointUserListType torun;
+    BreakpointTemporaryListType torun;
     for (auto it = m_breakpoints.find(normalizedAddress, normalizedAddress + width - 1); it != end; it++) {
         if (it->type() != type) continue;
         auto bp = &*it;
@@ -258,7 +258,7 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
         auto it = torun.begin();
         auto bp = &*it;
         torun.erase(it);
-        if (!triggerBP(bp, address, width, cause)) delete bp; 
+        if (!triggerBP(bp, address, width, cause)) delete bp;
     }
 }
 

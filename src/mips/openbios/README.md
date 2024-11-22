@@ -29,11 +29,15 @@ It is also possible to build using any PS1 compatible compiler, but this isn't t
 The result of the compilation should be a file called `openbios.elf` that contains all useful debugging symbols, and a file called `openbios.bin` which can be used in emulators or even burned to a chip and placed on a retail console.
 
 The Makefile features several toggles to mutate the way the compilation works. Don't forget to run `make clean` prior to try a different set of compilation options.
- - `BUILD=SmallDebug` will produce a working, yet somewhat debuggable version of the code.
- - `BOOT=cart` will produce a rom that's flashable on cheat carts like the action replay. This will disable booting from a cart, since it'd otherwise obviously lead to an infinite boot.
- - `EMBED_PSEXE=binary.ps-exe` will make the bios embed the specified ps-exe binary, and run it before running the shell.
- - `FASTBOOT=true` will skip running the shell and try booting the CD-Rom immediately. The code will not attempt re-reading the CD-Rom if inserted after booting.
- - `INSTALL_TTY_CONSOLE=true` will make OpenBIOS install its tty driver, instead of the null driver. The driver will be the same as the DTL-H2000 console, which is simpler than the default DUART driver from the retail bios.
+
+- `BUILD=SmallDebug` will produce a working, yet somewhat debuggable version of the code.
+- `BOOT=cart` will build the kernel as an expansion port ROM, bootable from an Action Replay or similar cheat carts. This will disable support for booting from a cart in order to prevent bootlooping.
+- `BOARD=system573` will build a kernel that can run on the Konami System 573 arcade board. Note that this option is only useful alongside `EMBED_PSEXE`, as it will force `BOOT=rom` and `BOOT_MODE=psexe` due to the 573's different CD-ROM hardware.
+- `EMBED_PSEXE=binary.ps-exe` will embed the specified executable into the kernel and run it before the shell.
+- `BOOT_MODE=fast` will skip running the shell and try booting from the CD-ROM after the embedded executable returns, or immediately on boot if `EMBED_PSEXE` is not used. Note that the code will *not* wait for a disc to be inserted after the executable returns. The old `FASTBOOT=true` option is kept for compatibility and is equivalent to `BOOT_MODE=fast`.
+- `BOOT_MODE=psexe` will remove the shell and CD-ROM boot code altogether. This is meant to be used alongside `EMBED_PSEXE` to build ROMs for arcade systems and such, which typically use non-standard storage devices and require a custom shell.
+- `SPLASH_SCREEN=true` will make the kernel display color bars on screen during initialization. This is also done by some official non-retail BIOS variants and is useful when using the `EMBED_PSEXE` option with a large (100+ KB) binary, as relocating it to RAM will take a couple of seconds.
+- `INSTALL_TTY_CONSOLE=true` will make OpenBIOS install a DTL-H2000 host console driver in place of the default "dummy" TTY driver. Note that this is *not* the DUART driver found in a retail BIOS.
 
 ## Status
 
@@ -49,7 +53,7 @@ While the first part is the main one that's being targeted here, the second one 
 
 The original code was most likely chunked into several sub-projects, that were all linked together like a giant patchwork. This approach is less readable, and for this reason, we're not going to do this. However this will result in the ROM/RAM split to be less obvious, and slower at times than the original. Tuning of the hot functions is eventually required.
 
-The startup point for the ROM version is the function `_reset` located in [`boot/boot.s`](boot/boot.s). The rom cart version is the function `_cartBoot` in the same file.
+The startup point for the ROM version is the function `_reset` located in [`boot/psx.s`](boot/psx.s) (or [`boot/system573.s`](boot/system573.s) depending on which board the kernel is compiled for). The rom cart version is the function `_cartBoot` in the same file.
 
 ## Direction
 
@@ -57,13 +61,13 @@ The primary repository for this project is a subdirectory of PCSX-Redux at the m
 
 ## Technicalities
 
-The code has been rewritten based off the reverse engineering of a dump of the BIOS of an american SCPH-7001 machine. MD5sum: 1e68c231d0896b7eadcad1d7d8e76129
+The code has been rewritten based off the reverse engineering of a dump of the BIOS of an american SCPH-7001 machine (MD5 `1e68c231d0896b7eadcad1d7d8e76129`). The System 573 specific parts are based on the kernel of the Konami 700B01 ROM (MD5 `d6960997e499f39047b64fa73e6ff382`).
 
 The ghidra database for it is currently being hosted on a server, alongside a few other pieces of software being reversed. Contact one of the authors if you want access.
 
 ## Commentary
 
-The retail PlayStation BIOS code is a constellation of bugs and bad design. It is very obvious the code has been written hastily, likely by different teams having little to no communication with each other, under heavy time pressure. The fact that the retail console boots at all is nothing short of a miracle. Half of the provided libc in the A0 table is buggy. The BIOS code is barely able to initialize the CD-Rom, and read the game's binary off of it to boot it; anything beyond that will be crippled with bugs. And this only is viable if you respect a very strict method to create your CD-Rom. The memory card and gamepad code is a steaming-hot heap of human excrement. The provided GPU stubs are inefficient at best. The only sane thing that any software running on the PlayStation ought to do is to immediately disable interrupts, grab the function pointer located at 0x00000310 for `FlushCache`, in order put it inside a wrapper that disables interrupts before calling it, and then trash the whole memory to install its own code. The only reason `FlushCache` is required from the retail code is because since the function will unplug the main memory bus off the CPU in order to work, it HAS to run from the 0xbfc0 memory map, which will still be connected. Anything else from the retail code is virtually useless, and shouldn't be relied upon. That being said, doing so will prevent tools from functioning properly, like cheat software, unirom, or even emulators that are sniffing the kernel to do debugging and reporting.
+The retail PlayStation BIOS code is a constellation of bugs and bad design. It is very obvious the code has been written hastily, likely by different teams having little to no communication with each other, under heavy time pressure. The fact that the retail console boots at all is nothing short of a miracle. Half of the provided libc in the A0 table is buggy. The BIOS code is barely able to initialize the CD-Rom, and read the game's binary off of it to boot it; anything beyond that will be crippled with bugs. And this only is viable if you respect a very strict method to create your CD-Rom. The memory card and gamepad code is a steaming-hot heap of human excrement. The provided GPU stubs are inefficient at best. The only sane thing that any software running on the PlayStation ought to do is to immediately disable interrupts, and then trash the whole memory to install its own code. Anything from the retail code is virtually useless, and shouldn't be relied upon. That being said, doing so will prevent tools from functioning properly, like cheat software, unirom, or even emulators that are sniffing the kernel to do debugging and reporting.
 
 ## Legality
 

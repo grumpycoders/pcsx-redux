@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.3.4",
+  "version": "0.3.8",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -73,6 +73,11 @@
         "category": "PSX.Dev"
       },
       {
+        "command": "psxDev.restorePythonEnv",
+        "title": "Restore Python environment",
+        "category": "PSX.Dev"
+      },
+      {
         "command": "psxDev.showReduxSettings",
         "title": "Show PCSX-Redux Settings",
         "category": "PSX.Dev"
@@ -111,6 +116,6 @@
     "open-file-explorer": "^1.0.2",
     "simple-git": "^3.16.1",
     "unzipper": "^0.10.11",
-    "which": "^3.0.0"
+    "which": "^5.0.0"
   }
 }

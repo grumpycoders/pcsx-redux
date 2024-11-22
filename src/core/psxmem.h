@@ -23,13 +23,14 @@
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/polyfills.h"
 #include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
-#define SWAP_LE16(v) ((((v)&0xff00) >> 8) | (((v)&0xff) << 8))
+#define SWAP_LE16(v) ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
 #define SWAP_LE32(v) \
-    ((((v)&0xff000000ul) >> 24) | (((v)&0xff0000ul) >> 8) | (((v)&0xff00ul) << 8) | (((v)&0xfful) << 24))
+    ((((v) & 0xff000000ul) >> 24) | (((v) & 0xff0000ul) >> 8) | (((v) & 0xff00ul) << 8) | (((v) & 0xfful) << 24))
 #define SWAP_LEu16(v) SWAP_LE16((uint16_t)(v))
 #define SWAP_LEu32(v) SWAP_LE32((uint32_t)(v))
 
@@ -153,31 +154,33 @@ class Memory {
     template <uint16_t reg, typename T = uint32_t>
     T readHardwareRegister() {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        return File::byte_swap(*ptr);
-#else
-        return *ptr;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            return PolyFill::byteSwap(*ptr);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            return *ptr;
+        }
     }
 
     template <uint16_t reg, typename T = uint32_t>
     void writeHardwareRegister(T value) {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        *ptr = File::byte_swap(value);
-#else
-        *ptr = value;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            *ptr = PolyFill::byteSwap(value);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            *ptr = value;
+        }
     }
 
     void setIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr |= irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat |= irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     void clearIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr &= ~irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat &= ~irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     uint32_t getBiosCRC32() { return m_biosCRC; }
@@ -223,15 +226,18 @@ class Memory {
 
     IO<MemoryAsFile> getMemoryAsFile() { return m_memoryAsFile; }
 
+    bool isiCacheEnabled() { return m_BIU == 0x1e988; }
+
   private:
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
-    int m_writeok = 1;
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
     SharedMem m_wramShared;
+
+    uint32_t m_BIU = 0;
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:

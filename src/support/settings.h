@@ -37,15 +37,46 @@ SOFTWARE.
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 #include "core/system.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/typestring-wrapper.h"
 #include "typestring.hh"
 
 namespace PCSX {
+
+namespace concepts {
+template <typename S>
+concept Setting = requires(S s) {
+    { s.serialize() } -> std::same_as<nlohmann::json>;
+    { s.deserialize(std::declval<nlohmann::json>()) } -> std::same_as<void>;
+    { s.reset() } -> std::same_as<void>;
+    { s.pushLuaClosures(std::declval<Lua>()) } -> std::same_as<void>;
+};
+template <typename S>
+concept Settings = requires(S s) {
+    { s.reset() } -> std::same_as<void>;
+    { s.serialize() } -> std::same_as<nlohmann::json>;
+    { s.deserialize(std::declval<nlohmann::json>()) } -> std::same_as<void>;
+    { s.pushValue(std::declval<Lua>()) } -> std::same_as<void>;
+};
+}  // namespace concepts
+
+template <typename type, typename name>
+struct SettingVector;
+template <typename type, char... C>
+struct SettingVector<type, irqus::typestring<C...>> {
+    using json = nlohmann::json;
+    typedef irqus::typestring<C...> name;
+    json serialize() const { return value; }
+    void deserialize(const json &j) { value = j.template get<std::vector<type>>(); }
+    void reset() { value.clear(); }
+    std::vector<type> value;
+    void pushLuaClosures(Lua L) {}
+};
 
 template <typename type, typename name, type defaultValue = type()>
 struct Setting;
@@ -275,9 +306,9 @@ struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
     float value = (float)defaultValue / (float)divisor;
 };
 
-template <typename name, typename nestedSettings>
+template <typename name, concepts::Settings nestedSettings>
 struct SettingNested;
-template <char... C, typename nestedSettings>
+template <char... C, concepts::Settings nestedSettings>
 struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
     typedef irqus::typestring<C...> name;
 
@@ -294,8 +325,7 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
                 return 1;
             },
             -1);
-        L.declareFunc(
-            "newindex", [](Lua L) -> int { return 0; }, -1);
+        L.declareFunc("newindex", [](Lua L) -> int { return 0; }, -1);
         L.declareFunc(
             "reset",
             [this](Lua L) -> int {
@@ -307,7 +337,7 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
     }
 };
 
-template <typename... settings>
+template <concepts::Setting... settings>
 struct Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
     template <typename setting>
@@ -337,6 +367,8 @@ struct Settings : private std::tuple<settings...> {
         L.declareFunc("__pairs", lua_pairswrapper, -1);
         L.setmetatable();
     }
+
+  private:
     static int lua_index(lua_State *L_) {
         Lua L(L_);
         int r = L.getmetatable(-2);
@@ -385,10 +417,9 @@ struct Settings : private std::tuple<settings...> {
         return 3;
     }
 
-  private:
     template <size_t index>
     constexpr void reset() {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void reset() {
         settingType &setting = std::get<index>(*this);
         setting.reset();
@@ -396,7 +427,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     constexpr void serialize(json &j) const {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void serialize(json &j) const {
         const settingType &setting = std::get<index>(*this);
         j[settingType::name::data()] = setting.serialize();
@@ -404,7 +435,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     constexpr void deserialize(const json &j, bool doReset = true) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void deserialize(const json &j, bool doReset = true) {
         settingType &setting = std::get<index>(*this);
         try {
@@ -420,7 +451,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     void pushValue(Lua L) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     void pushValue(Lua L) {
         settingType &setting = std::get<index>(*this);
         setting.pushLuaClosures(L);

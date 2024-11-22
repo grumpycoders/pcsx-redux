@@ -150,7 +150,8 @@ class File {
 
     Slice read(ssize_t size) {
         void* data = malloc(size);
-        read(data, size);
+        size = read(data, size);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -158,7 +159,8 @@ class File {
 
     Slice readAt(ssize_t size, ssize_t pos) {
         void* data = malloc(size);
-        readAt(data, size, pos);
+        size = readAt(data, size, pos);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -326,7 +328,8 @@ class IO : public IOBase {
         if (!r) throw std::runtime_error("operator-> used with incompatible type - shouldn't happen");
         return r;
     }
-    bool isNull() { return dynamic_cast<T*>(m_file); }
+    bool isNull() const { return !dynamic_cast<T*>(m_file); }
+    operator bool() const { return !isNull(); }
 };
 
 class FailedFile : public File {

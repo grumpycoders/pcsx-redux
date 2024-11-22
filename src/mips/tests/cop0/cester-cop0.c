@@ -71,8 +71,11 @@ CESTER_BODY(
     uint32_t cpu_LWR_LWL_half(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_nodelay(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial);
+    uint32_t cpu_LWR_LWL_load_different(uint32_t buff[], uint32_t initial);
+    uint32_t cpu_LW_LWR(uint32_t buff[], uint32_t initial);
     uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override);
     uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override);
+    uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override);
     uint32_t linkandload();
     uint32_t lwandlink();
     uint32_t nolink();
@@ -86,7 +89,7 @@ CESTER_BEFORE_EACH(cpu_tests, testname, testindex,
     s_oldDICR = DICR;
     IMASK = 0;
     IREG = 0;
-    for (unsigned i = 0; i < 6; i++) {
+    for (unsigned i = 0; i < 7; i++) {
         DMA_CTRL[i].CHCR = 0;
         DMA_CTRL[i].BCR = 0;
         DMA_CTRL[i].MADR = 0;

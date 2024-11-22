@@ -28,7 +28,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/strings-helpers.h"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
@@ -608,7 +608,7 @@ void PCSX::GdbClient::processCommand() {
                 auto& tree = g_emulator->m_debug->getTree();
                 auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
                 while (bp != tree.end()) {
-                    if (bp->type() == type && !bp->Debug::BreakpointUserListType::Node::isLinked()) {
+                    if (bp->type() == type && !m_breakpoints.isLinked(&*bp)) {
                         bp++;
                     } else {
                         g_emulator->m_debug->removeBreakpoint(&*bp);

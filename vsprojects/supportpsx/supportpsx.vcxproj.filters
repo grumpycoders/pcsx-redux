@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\assembler">
+      <UniqueIdentifier>{5dde879e-a880-427e-800f-fdefaa443bd1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\supportpsx\assembler.cc">
@@ -39,36 +42,45 @@
     <ClCompile Include="..\..\src\supportpsx\iec-60908b.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\adpcm.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\adpcmlua.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\supportpsx\assembler\assembler.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\gte.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\extra.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\pseudo.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\registers.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\symbols.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\loadstore.lua">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="..\..\src\supportpsx\assembler\simple.lua">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="..\..\src\supportpsx\binffi.lua">
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="..\..\src\supportpsx\assembler\assembler.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\extra.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\gte.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\loadstore.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\pseudo.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\symbols.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\registers.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\assembler\simple.lua">
+      <Filter>Source Files\assembler</Filter>
+    </None>
+    <None Include="..\..\src\supportpsx\adpcmffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\supportpsx\assembler.h">
@@ -84,6 +96,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\iec-60908b.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\adpcm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\adpcmlua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

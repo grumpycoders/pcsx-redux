@@ -22,6 +22,8 @@
 #include <stdint.h>
 
 #include <functional>
+#include <string>
+#include <vector>
 
 #include "gui/widgets/filedialog.h"
 #include "support/coroutine.h"
@@ -35,7 +37,8 @@ namespace Widgets {
 
 class IsoBrowser {
   public:
-    IsoBrowser(bool& show) : m_show(show) {}
+    IsoBrowser(bool& show, std::vector<std ::string>& favorites)
+        : m_show(show), m_openIsoFileDialog(l_("Open Disk Image"), favorites) {}
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
@@ -47,7 +50,7 @@ class IsoBrowser {
     float m_crcProgress = 0.0f;
 
     Coroutine<> computeCRC(CDRIso*);
-    FileDialog<> m_openIsoFileDialog = {[]() { return _("Open Disk Image"); }};
+    FileDialog<> m_openIsoFileDialog;
 };
 
 }  // namespace Widgets

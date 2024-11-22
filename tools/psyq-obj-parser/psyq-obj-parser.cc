@@ -27,7 +27,7 @@
 #include "elfio/elfio.hpp"
 #include "flags.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/djbhash.h"
 #include "support/file.h"
 #include "support/hashtable.h"
@@ -55,6 +55,7 @@ enum class PsyqOpcode : uint8_t {
     UNINITIALIZED = 48,
     INC_SLD_LINENUM = 50,
     INC_SLD_LINENUM_BY_BYTE = 52,
+    INC_SLD_LINENUM_BY_WORD = 54,
     SET_SLD_LINENUM = 56,
     SET_SLD_LINENUM_FILE = 58,
     END_SLD = 60,
@@ -477,6 +478,13 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 uint16_t offset = file->read<uint16_t>();
                 uint8_t _byte = file->read<uint8_t>();
                 vprint("INC_SLD_LINENUM_BY_BYTE offset {}, _byte {}\n", offset, _byte);
+
+                break;
+            }
+            case (uint8_t)PsyqOpcode::INC_SLD_LINENUM_BY_WORD: {
+                uint16_t offset = file->read<uint16_t>();
+                uint16_t _word = file->read<uint16_t>();
+                vprint("INC_SLD_LINENUM_BY_WORD offset {}, _word {}\n", offset, _word);
 
                 break;
             }
@@ -1206,8 +1214,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 if (symbolOffset & 0x8000) {
                     hi += 1;
                 }
-                sectionData[offset + 0] = (uint8_t)(hi >> 8);
-                sectionData[offset + 1] = (uint8_t)(hi >> 0);
+                sectionData[offset + 0] = (uint8_t)(hi >> 0);
+                sectionData[offset + 1] = (uint8_t)(hi >> 8);
                 break;
             }
             case PsyqRelocType::LO16: {
@@ -1338,6 +1346,10 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         uint8_t* sectionData = (uint8_t*)malloc(size);
                         memcpy(sectionData, section->section->get_data(), size);
                         fmt::print("      :: Altering bytestream to account for HI symbol+addend relocation\n");
+                        if (addend < 0) {
+                            fmt::print("        :: Adjusting for negative addend\n");
+                            addend += 0x10000;
+                        }
                         addend >>= 16;
                         sectionData[offset + 0] = addend & 0xff;
                         addend >>= 8;

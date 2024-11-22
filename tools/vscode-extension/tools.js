@@ -2,11 +2,12 @@
 
 const vscode = require('vscode')
 const util = require('node:util')
-const execAsync = require('node:child_process').exec
-const exec = util.promisify(execAsync)
+const execFileAsync = require('node:child_process').execFile
+const execFile = util.promisify(execFileAsync)
 const terminal = require('./terminal.js')
 const pcsxRedux = require('./pcsx-redux.js')
 const fs = require('fs-extra')
+const which = require('which')
 const downloader = require('./downloader.js')
 const unzipper = require('unzipper')
 const path = require('node:path')
@@ -14,7 +15,7 @@ const { Octokit } = require('@octokit/rest')
 const octokit = new Octokit()
 const os = require('node:os')
 
-const mipsVersion = '13.2.0'
+const mipsVersion = '14.2.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false
@@ -26,16 +27,16 @@ async function checkInstalled (name) {
   return tools[name].installed
 }
 
-function checkSimpleCommand (command) {
-  return new Promise((resolve) => {
-    execAsync(command, (error) => {
-      if (error) {
-        resolve(false)
-      } else {
-        resolve(true)
-      }
-    })
-  })
+async function checkCommands (commands, args) {
+  for (const command of commands) {
+    try {
+      await execFile(command, args)
+    } catch (error) {
+      continue
+    }
+    return true
+  }
+  return false
 }
 
 let mipsInstalling = false
@@ -46,7 +47,8 @@ async function installMips () {
   mipsInstalling = true
   try {
     await terminal.run('powershell', [
-      '-c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"'
+      '-c',
+      '& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -103,10 +105,11 @@ async function installToolchain () {
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
-            'mipsel-none-elf-binutils.rb'
+            'mipsel-none-elf-gcc.rb'
           ).fsPath
           await terminal.run('brew', [
             'install',
+            '--formula',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -134,10 +137,11 @@ async function installToolchain () {
           const gccScriptPath = vscode.Uri.joinPath(
             extensionUri,
             'scripts',
-            'mipsel-none-elf-binutils.rb'
+            'mipsel-none-elf-gcc.rb'
           ).fsPath
           await terminal.run('brew', [
             'install',
+            '--formula',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -164,13 +168,6 @@ async function installToolchain () {
       )
       throw new Error('Unsupported platform')
   }
-}
-
-function checkToolchain () {
-  return Promise.any([
-    exec('mipsel-linux-gnu-g++ --version'),
-    exec('mipsel-none-elf-g++ --version')
-  ])
 }
 
 async function installGDB () {
@@ -309,7 +306,7 @@ async function installCMake () {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await exec(`start ${filename}`)
+      await execFile('start', [filename])
       requiresReboot = true
       break
     case 'linux':
@@ -385,7 +382,7 @@ async function installGit () {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await exec(filename)
+      await execFile(filename)
       requiresReboot = true
       break
     }
@@ -428,7 +425,7 @@ async function installPython () {
         url.split('/').pop()
       )
       await downloader.downloadFile(url, filename)
-      await exec(filename)
+      await execFile(filename)
       requiresReboot = true
       break
     case 'linux':
@@ -460,20 +457,56 @@ async function installPython () {
   }
 }
 
-function checkPython () {
+async function checkPython () {
   switch (process.platform) {
     case 'win32':
-      // On Windows "python" and "python3" are aliased to a script that opens
-      // the Microsoft Store by default, so we must check for the "py" launcher
-      // provided by the official installers instead.
-      // TODO: try to detect other Python installations that do not come with
-      // the py launcher (e.g. ones from MSys2)
-      return checkSimpleCommand('py -3 --version')
+      /*
+       * We cannot simply run 'python --version' here as Windows ships by
+       * default with fake (zero-byte) 'python' and 'python3' executables in its
+       * PATH. These files are actually links to UWP apps, implemented using a
+       * specific NTFS reparse tag. If Python is installed from the Microsoft
+       * Store they behave as if they were symlinks to the actual executables;
+       * if not, however, attempting to run them will result in the store
+       * popping up and prompting the user to install Python.
+       *
+       * A kludge is thus needed here in order to prevent this from happening.
+       * We'll first check for any UWP Python installations, then search PATH
+       * manually and skip the fake binaries if none was found. This ensures
+       * both UWP and non-UWP installs will be detected somewhat reliably.
+       *
+       * IMPORTANT: this assumes that the project's build system will also be
+       * able to detect and ignore the fake executables (rather than e.g.
+       * blindly executing 'python'). This is currently the case for the
+       * CMake-based templates.
+       */
+      let hasUWPPython
+      try {
+        const result = await execFile('powershell', [
+          '-c',
+          'Get-AppxPackage -Name PythonSoftwareFoundation.Python.*'
+        ])
+        hasUWPPython = (result.stdout.trim() !== '')
+      } catch (error) {
+        hasUWPPython = false
+      }
+      for (const command of ['python3', 'python', 'py']) {
+        const matches = await which(command, { all: true })
+        for (const fullPath of matches) {
+          const stats = await fs.stat(fullPath)
+          if (!stats.size && !hasUWPPython) {
+            continue
+          }
+          try {
+            await execFile(fullPath, ['--version'])
+          } catch (error) {
+            continue
+          }
+          return true
+        }
+      }
+      return false
     default:
-      return Promise.any([
-        exec('python --version'),
-        exec('python3 --version')
-      ])
+      return checkCommands(['python3', 'python'], ['--version'])
   }
 }
 
@@ -504,20 +537,20 @@ const tools = {
   mips: {
     type: 'internal',
     install: installMips,
-    check: () => checkSimpleCommand('mips --version')
+    check: () => checkCommands(['mips'], ['--version'])
   },
   apt: {
     type: 'internal',
-    check: () => checkSimpleCommand('apt-get --version')
+    check: () => checkCommands(['apt-get'], ['--version'])
   },
   trizen: {
     type: 'internal',
-    check: () => checkSimpleCommand('trizen --version')
+    check: () => checkCommands(['trizen'], ['--version'])
   },
   brew: {
     type: 'internal',
     install: 'https://brew.sh/',
-    check: () => checkSimpleCommand('brew --version')
+    check: () => checkCommands(['brew'], ['--version'])
   },
   toolchain: {
     type: 'package',
@@ -525,7 +558,10 @@ const tools = {
     description: 'The toolchain used to compile code for the PlayStation 1',
     homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
-    check: checkToolchain
+    check: () => checkCommands(
+      ['mipsel-none-elf-g++', 'mipsel-linux-gnu-g++'],
+      ['--version']
+    )
   },
   gdb: {
     type: 'package',
@@ -533,7 +569,10 @@ const tools = {
     description: 'The tool to debug code for the PlayStation 1',
     homepage: 'https://www.sourceware.org/gdb/',
     install: installGDB,
-    check: () => checkGDB()
+    check: () => checkCommands(
+      [(process.platform === 'darwin') ? 'gdb' : 'gdb-multiarch'],
+      ['--version']
+    )
   },
   make: {
     type: 'package',
@@ -541,7 +580,7 @@ const tools = {
     description: 'Build code and various targets with this tool',
     homepage: 'https://www.gnu.org/software/make/',
     install: installMake,
-    check: () => checkSimpleCommand('make --version')
+    check: () => checkCommands(['make'], ['--version'])
   },
   cmake: {
     type: 'package',
@@ -549,7 +588,7 @@ const tools = {
     description: 'A more advanced building tool for projects that require it',
     homepage: 'https://cmake.org/',
     install: installCMake,
-    check: () => checkSimpleCommand('cmake --version')
+    check: () => checkCommands(['cmake'], ['--version'])
   },
   git: {
     type: 'package',
@@ -558,7 +597,7 @@ const tools = {
       'Tool to maintain your code, and initialize your project templates',
     homepage: 'https://git-scm.com/',
     install: installGit,
-    check: () => checkSimpleCommand('git --version')
+    check: () => checkCommands(['git'], ['--version'])
   },
   python: {
     type: 'package',
@@ -634,11 +673,6 @@ function checkLocalFile (filename) {
       resolve(!err)
     })
   })
-}
-
-function checkGDB () {
-  if (process.platform === 'darwin') return checkSimpleCommand('gdb --version')
-  return checkSimpleCommand('gdb-multiarch --version')
 }
 
 exports.refreshAll = async () => {

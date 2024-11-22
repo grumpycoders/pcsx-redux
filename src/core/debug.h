@@ -33,8 +33,7 @@ namespace PCSX {
 class Debug {
   public:
     uint32_t normalizeAddress(uint32_t address);
-    static inline std::function<const char*()> s_breakpoint_type_names[] = {
-        []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
+    static inline std::function<const char*()> s_breakpoint_type_names[] = {l_("Exec"), l_("Read"), l_("Write")};
     enum class BreakpointType { Exec, Read, Write };
 
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
@@ -62,11 +61,15 @@ class Debug {
     class Breakpoint;
     typedef Intrusive::Tree<uint32_t, Breakpoint> BreakpointTreeType;
     typedef Intrusive::List<Breakpoint> BreakpointUserListType;
+    struct InternalTemporaryList {};
+    typedef Intrusive::List<Breakpoint, InternalTemporaryList> BreakpointTemporaryListType;
 
     typedef std::function<bool(const Breakpoint*, uint32_t address, unsigned width, const char* cause)>
         BreakpointInvoker;
 
-    class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
+    class Breakpoint : public BreakpointTreeType::Node,
+                       public BreakpointUserListType::Node,
+                       public BreakpointTemporaryListType::Node {
       public:
         Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base,
                    std::string label = "")

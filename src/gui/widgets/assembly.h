@@ -26,6 +26,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
@@ -42,11 +43,12 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
+    Assembly(bool& show, std::vector<std::string>& favorites)
+        : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
         m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
-    void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
+    bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
     bool& m_show;
 
@@ -60,14 +62,14 @@ class Assembly : private Disasm {
     int m_numColumns = 4;
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
-    FileDialog<> m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
+    FileDialog<> m_symbolsFileDialog;
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section
     void sameLine();
     void comma();
     const uint8_t* ptr(uint32_t addr);
-    void jumpToMemory(uint32_t addr, unsigned size);
+    void jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex = 0, bool forceShowEditor = false);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
@@ -111,6 +113,8 @@ class Assembly : private Disasm {
     bool m_symbolsCachesValid = false;
 
     void rebuildSymbolsCaches();
+    void addMemoryEditorContext(uint32_t addr, int size);
+    void addMemoryEditorSubMenu(uint32_t addr, int size);
 
     bool m_showSymbols = false;
     std::string m_symbolFilter;

@@ -35,9 +35,10 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
+#include "gui/gui.h"
 #include "http-parser/http_parser.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"
@@ -530,6 +531,229 @@ class CDExecutor : public PCSX::WebExecutor {
     virtual ~CDExecutor() = default;
 };
 
+class StateExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return PCSX::StringsHelpers::startsWith(urldata.path, c_prefix);
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        if (PCSX::g_gui == nullptr) {
+            client->write("HTTP/1.1 500 Internal Server Error\r\n\r\nSave states unavailable in CLI/no-UI mode.");
+            return false;
+        }
+        auto path = request.urlData.path.substr(c_prefix.length());
+
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            if (path == "usage") {
+                nlohmann::json j;
+                for (uint32_t i = 0; i < 10; ++i) {
+                    j["slots"][i] = PCSX::g_gui->getSaveStateExists(i);
+                }
+                const auto& namedSaves = PCSX::g_gui->getNamedSaveStates();
+                for (uint32_t i = 0; i < namedSaves.size(); ++i) {
+                    const auto& filenamePair = namedSaves[i];
+                    j["named"][i]["name"] = filenamePair.second;
+                    j["named"][i]["filepath"] = filenamePair.first.string();
+                }
+                write200(client, j);
+                return true;
+            } else if (path == "load" || path == "save" || path == "delete") {
+                auto vars = parseQuery(request.urlData.query);
+                auto islot = vars.find("slot");
+                auto iname = vars.find("name");
+                if ((islot == vars.end()) && (iname == vars.end())) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                if ((islot != vars.end()) && (iname != vars.end())) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                if (islot != vars.end()) {
+                    std::string message;
+                    int slot = -1;
+                    try {
+                        slot = std::stoul(islot->second);
+                    } catch (std::exception const& ex) {
+                        message = fmt::format(
+                            "HTTP/1.1 400 Bad Request\r\n\r\nFailed to parse state slot value \"{}\".", islot->second);
+                        client->write(std::move(message));
+                        return true;
+                    }
+                    if (slot < 0 || slot >= 10) {
+                        message =
+                            fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nState slot index {} out of range 0-9.", slot);
+                    } else {
+                        bool success = false;
+                        if (path == "load") {
+                            success = PCSX::g_gui->loadSaveStateSlot(slot);
+                        } else if (path == "save") {
+                            success = PCSX::g_gui->saveSaveStateSlot(slot);
+                        } else if (path == "delete") {
+                            success = PCSX::g_gui->deleteSaveStateSlot(slot);
+                        }
+                        if (success) {
+                            message =
+                                fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot index {} {} successful.", slot, path);
+                        } else {
+                            message = fmt::format(
+                                "HTTP/1.1 500 Internal Server Error\r\n\r\nState slot index {} {} failed.", slot, path);
+                        }
+                    }
+                    client->write(std::move(message));
+                    return true;
+                } else if (iname != vars.end()) {
+                    std::string message;
+                    auto name = iname->second;
+                    if (name.empty()) {
+                        message = "HTTP/1.1 400 Bad Request\r\n\r\nState name is empty.";
+                    } else if (name.length() > PCSX::Widgets::NamedSaveStates::NAMED_SAVE_STATE_LENGTH_MAX) {
+                        message = fmt::format(
+                            "HTTP/1.1 400 Bad Request\r\n\r\nState name \"{}\" exceeds {} characters in length.", name,
+                            PCSX::Widgets::NamedSaveStates::NAMED_SAVE_STATE_LENGTH_MAX);
+                    } else {
+                        for (char c : name) {
+                            if (!PCSX::Widgets::NamedSaveStates::TextFilters::isValid(c)) {
+                                message = fmt::format(
+                                    "HTTP/1.1 400 Bad Request\r\n\r\nState name \"{}\" includes invalid character(s).",
+                                    name);
+                                break;
+                            }
+                        }
+                    }
+                    if (message.empty()) {
+                        std::filesystem::path saveFilepath(PCSX::g_gui->buildSaveStateFilename(name));
+                        bool success = false;
+                        if (path == "load") {
+                            success = PCSX::g_gui->loadSaveState(saveFilepath);
+                        } else if (path == "save") {
+                            success = PCSX::g_gui->saveSaveState(saveFilepath);
+                        } else if (path == "delete") {
+                            success = PCSX::g_gui->deleteSaveState(saveFilepath);
+                        }
+                        if (success) {
+                            message =
+                                fmt::format("HTTP/1.1 200 OK\r\n\r\nState slot name \"{}\" {} successful.", name, path);
+                        } else {
+                            message = fmt::format(
+                                "HTTP/1.1 500 Internal Server Error\r\n\r\nState slot name \"{}\" {} failed.", name,
+                                path);
+                        }
+                    }
+                    client->write(std::move(message));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+  public:
+    const std::string_view c_prefix = "/api/v1/state/";
+    StateExecutor() = default;
+    virtual ~StateExecutor() = default;
+};
+
+class ScreenExecutor : public PCSX::WebExecutor {
+    virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
+        return PCSX::StringsHelpers::startsWith(urldata.path, c_prefix);
+    }
+    virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
+        auto path = request.urlData.path.substr(c_prefix.length());
+
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
+            if (path == "save") {
+                auto vars = parseQuery(request.urlData.query);
+                auto ifilepath = vars.find("filepath");
+                if (ifilepath == vars.end()) {
+                    client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
+                    return true;
+                }
+                std::string message;
+                std::filesystem::path path = std::filesystem::path(ifilepath->second.c_str());
+                if (path.is_relative()) {
+                    std::filesystem::path persistentDir = PCSX::g_system->getPersistentDir();
+                    if (persistentDir.empty()) {
+                        persistentDir = std::filesystem::current_path();
+                    }
+                    path = persistentDir / path;
+                }
+                auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
+                clip::image img = convertScreenshotToImage(std::move(screenshot));
+                bool success = writeImagePNG(path.string(), std::move(img));
+                if (success) {
+                    message =
+                        fmt::format("HTTP/1.1 200 OK\r\n\r\nScreenshot saved successfully to \"{}\".", path.string());
+                } else {
+                    message =
+                        fmt::format("HTTP/1.1 500 Internal Server Error\r\n\r\nFailed to save screenshot to \"{}\".",
+                                    path.string());
+                }
+                client->write(std::move(message));
+                return true;
+            } else if (path == "still") {
+                auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
+                clip::image img = convertScreenshotToImage(std::move(screenshot));
+                writeImagePNG(client, std::move(img));
+                return true;
+            }
+        }
+        return false;
+    }
+    clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot) {
+        clip::image_spec spec;
+        spec.width = screenshot.width;
+        spec.height = screenshot.height;
+        if (screenshot.bpp == PCSX::GPU::ScreenShot::BPP_16) {
+            spec.bits_per_pixel = 16;
+            spec.bytes_per_row = screenshot.width * 2;
+            spec.red_mask = 0x1f;  // 0x7c00;
+            spec.green_mask = 0x3e0;
+            spec.blue_mask = 0x7c00;  // 0x1f;
+            spec.alpha_mask = 0;
+            spec.red_shift = 0;  // 10;
+            spec.green_shift = 5;
+            spec.blue_shift = 10;  // 0;
+            spec.alpha_shift = 0;
+        } else {
+            spec.bits_per_pixel = 24;
+            spec.bytes_per_row = screenshot.width * 3;
+            spec.red_mask = 0xff0000;
+            spec.green_mask = 0xff00;
+            spec.blue_mask = 0xff;
+            spec.alpha_mask = 0;
+            spec.red_shift = 16;
+            spec.green_shift = 8;
+            spec.blue_shift = 0;
+            spec.alpha_shift = 0;
+        }
+        clip::image img(screenshot.data.data(), spec);
+        return img.to_rgba8888();
+    }
+    bool writeImagePNG(std::string filename, clip::image&& img) { return img.export_to_png(filename); }
+    bool writeImagePNG(PCSX::WebClient* client, clip::image&& img) {
+        std::vector<uint8_t> pngData;
+        bool success = img.export_to_png(pngData);
+        if (!success) {
+            client->write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+            return false;
+        }
+        client->write(std::string("HTTP/1.1 200 OK\r\n"));
+        client->write(std::string("Cache-Control: no-cache, must-revalidate\r\n"));
+        client->write(std::string("Expires: Fri, 31 Dec 1999 23:59:59 GMT\r\n"));
+        client->write(std::string("Content-Type: image/png\r\n"));
+        client->write(std::string("Content-Length: " + std::to_string(pngData.size()) + "\r\n\r\n"));
+        PCSX::Slice slice;
+        slice.copy(pngData.data(), pngData.size());
+        client->write(std::move(slice));
+        return true;
+    }
+
+  public:
+    const std::string_view c_prefix = "/api/v1/screen/";
+    ScreenExecutor() = default;
+    virtual ~ScreenExecutor() = default;
+};
+
 }  // namespace
 
 std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
@@ -594,6 +818,8 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new FlowExecutor());
     m_executors.push_back(new LuaExecutor());
     m_executors.push_back(new CDExecutor());
+    m_executors.push_back(new StateExecutor());
+    m_executors.push_back(new ScreenExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
         if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
@@ -771,6 +997,8 @@ struct PCSX::WebClient::WebClientImpl {
         copyField(m_requestData.urlData.query, UF_QUERY);
         copyField(m_requestData.urlData.fragment, UF_FRAGMENT);
         copyField(m_requestData.urlData.userInfo, UF_USERINFO);
+        g_system->log(LogClass::WEBSERVER, "Received web api request, path: %s, query: %s\n",
+                      m_requestData.urlData.path.c_str(), m_requestData.urlData.query.c_str());
         return findExecutor() ? 0 : 1;
     }
     int onStatus(const Slice& slice) { return 0; }

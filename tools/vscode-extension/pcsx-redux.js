@@ -13,33 +13,26 @@ const dmg = require('dmg')
 const dmgMount = util.promisify(dmg.mount)
 const dmgUnmount = util.promisify(dmg.unmount)
 const terminal = require('./terminal.js')
-const execAsync = require('node:child_process').exec
-const exec = util.promisify(execAsync)
+const execFileAsync = require('node:child_process').execFile
+const execFile = util.promisify(execFileAsync)
 const os = require('node:os')
 
 const updateInfo = {
   win32: {
-    updateCatalog:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-win64-cli/distribution_groups/public/public_releases',
-    updateInfoBase:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-win64-cli/distribution_groups/public/releases/',
-    method: 'appcenter',
+    infoBase:
+      'https://distrib.app/storage/manifests/pcsx-redux/dev-win-cli-x64/',
     fileType: 'zip'
   },
   linux: {
-    updateCatalog:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/public_releases',
-    updateInfoBase:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-linux64/distribution_groups/public/releases/',
-    method: 'appcenter',
+    infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/',
     fileType: 'zip'
   },
-  darwin: {
-    updateCatalog:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/public_releases',
-    updateInfoBase:
-      'https://install.appcenter.ms/api/v0.1/apps/grumpycoders/pcsx-redux-macos/distribution_groups/public/releases/',
-    method: 'appcenter',
+  darwin_Intel: {
+    infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-x64/',
+    fileType: 'dmg'
+  },
+  darwin_Arm: {
+    infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/',
     fileType: 'dmg'
   }
 }
@@ -108,20 +101,23 @@ exports.install = async () => {
         'https://aka.ms/vs/17/release/vc_redist.x64.exe',
         fullPath
       )
-      await exec(fullPath)
+      await execFile(fullPath)
     }
   }
 
-  const updateInfoForPlatform = updateInfo[process.platform]
+  const darwinArch = process.arch === 'arm64' ? 'Arm' : 'Intel'
+  const platform = process.platform === 'darwin' ? 'darwin_' + darwinArch : process.platform
+  const updateInfoForPlatform = updateInfo[platform]
   const outputDir =
     process.platform === 'win32'
       ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').fsPath
       : globalStorageUri.fsPath
 
   await mkdirp(outputDir)
+  const manifestUrl = updateInfoForPlatform.infoBase + 'manifest.json'
   const responseCatalog = await axios.request({
     method: 'get',
-    url: updateInfoForPlatform.updateCatalog,
+    url: manifestUrl,
     responseType: 'stream'
   })
   const updateId = await new Promise((resolve, reject) => {
@@ -129,33 +125,38 @@ exports.install = async () => {
     responseCatalog.data
       .on('close', () => resolve(highestId))
       .on('error', (err) => reject(err))
-      .pipe(jsonStream.parse([true]))
+      .pipe(jsonStream.parse(['builds', true]))
       .on('data', (data) => {
         if (data.id > highestId) highestId = data.id
       })
   })
+  const packageManifestUrl =
+    updateInfoForPlatform.infoBase + 'manifest-' + updateId + '.json'
   const response = await axios.request({
     method: 'get',
-    url: updateInfoForPlatform.updateInfoBase + updateId,
+    url: packageManifestUrl,
     responseType: 'stream'
   })
-  const downloadUrl = await new Promise((resolve, reject) => {
-    let downloadUrl
+  const downloadPath = await new Promise((resolve, reject) => {
+    let downloadPath
     response.data
-      .on('close', () => resolve(downloadUrl))
+      .on('close', () => resolve(downloadPath))
       .on('error', (err) => reject(err))
-      .pipe(jsonStream.parse(['download_url']))
+      .pipe(jsonStream.parse(['path']))
       .on('data', (data) => {
-        downloadUrl = data
+        downloadPath = data
       })
   })
 
-  if (downloadUrl === undefined) {
-    throw new Error('Invalid AppCenter catalog information.')
+  if (downloadPath === undefined) {
+    throw new Error('Invalid AppDistrib manifest information.')
   }
+  const downloadUrl = 'https://distrib.app' + downloadPath
   await downloader.downloadFile(
     downloadUrl,
-    process.platform === 'darwin' ? path.join(outputDir, 'PCSX-Redux.dmg') : outputDir,
+    process.platform === 'darwin'
+      ? path.join(outputDir, 'PCSX-Redux.dmg')
+      : outputDir,
     updateInfoForPlatform.fileType === 'zip'
   )
   switch (process.platform) {

@@ -30,3 +30,6 @@ psyqo::Hardware::CPU::IRQReg<0x0070> psyqo::Hardware::CPU::IReg;
 psyqo::Hardware::CPU::IRQReg<0x0074> psyqo::Hardware::CPU::IMask;
 psyqo::Hardware::Register<0x00f0> psyqo::Hardware::CPU::DPCR;
 psyqo::Hardware::Register<0x00f4> psyqo::Hardware::CPU::DICR;
+
+psyqo::Hardware::Register<0x0000, uint32_t, psyqo::Hardware::WriteQueue::Bypass>
+    psyqo::Hardware::CPU::WriteQueueFlusher;

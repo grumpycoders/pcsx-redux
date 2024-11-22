@@ -282,8 +282,8 @@ struct Playfield {
     }
 
     // This method will render the playfield and the current tetromino.
-    // For now it sends the two fragments directly to the GPU, but
-    // this will be updated to use a DMA chain instead later on.
+    // The playfield fragment is too big to be chained, so we never
+    // end up using DMA chaining during this example.
     void render(psyqo::GPU& gpu) {
         gpu.sendFragment(m_fieldFragment);
         gpu.sendFragment(m_blockFragment);

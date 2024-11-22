@@ -30,6 +30,7 @@
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
+#include "core/patchmanager.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
@@ -325,8 +326,32 @@ const uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
         return dummy;
     }
 }
-void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size) {
-    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size});
+void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex /* = 0*/,
+                                           bool forceShowEditor /* = false*/) {
+    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size, editorIndex, forceShowEditor});
+}
+void PCSX::Widgets::Assembly::addMemoryEditorContext(uint32_t addr, int size) {
+    if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem(_("Go to in Memory Editor #1 (Default Click)"))) jumpToMemory(addr, size, 0, true);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #2 (Shift+Click)"))) jumpToMemory(addr, size, 1, true);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #3 (Ctrl+Click)"))) jumpToMemory(addr, size, 2, true);
+        std::string itemLabel;
+        for (unsigned i = 3; i < 8; ++i) {
+            itemLabel = fmt::format(f_("Go to in Memory Editor #{}"), i + 1);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i, true);
+        }
+        ImGui::EndPopup();
+    }
+}
+void PCSX::Widgets::Assembly::addMemoryEditorSubMenu(uint32_t addr, int size) {
+    if (ImGui::BeginMenu(_("Go to in Memory Editor..."))) {
+        std::string itemLabel;
+        for (unsigned i = 0; i < 8; ++i) {
+            itemLabel = fmt::format("#{}", i + 1);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i, true);
+        }
+        ImGui::EndMenu();
+    }
 }
 
 void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
@@ -344,11 +369,15 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     auto symbols = findSymbol(addr);
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ; ";
 
+    const auto& io = ImGui::GetIO();
+    unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
+
     ImGui::TextUnformatted(" ");
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size);
+    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex, false);
     ImGui::PopStyleVar();
+    addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -363,6 +392,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
                 ImGui::Text("%s[%8.8x] = %8.8x", longLabel.c_str(), addr, mem32(addr));
                 break;
         }
+        ImGui::Text(_("Go to in Memory Editor #%d"), targetEditorIndex + 1);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
@@ -399,11 +429,16 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     std::string longLabel = label;
     auto symbols = findSymbol(addr);
     if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+
+    const auto& io = ImGui::GetIO();
+    unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
+
     ImGui::TextUnformatted(" ");
     sameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex, false);
     ImGui::PopStyleVar();
+    addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -418,12 +453,14 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
                 ImGui::Text("[%8.8x] = %8.8x", addr, mem32(addr));
                 break;
         }
+        ImGui::Text(_("Go to in Memory Editor #%u"), targetEditorIndex + 1);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
 }
 
-void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+    bool changed = false;
     auto& cpu = g_emulator->m_cpu;
     m_registers = registers;
     m_memory = memory;
@@ -431,7 +468,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
-        return;
+        return changed;
     }
 
     float glyphWidth = ImGui::GetFontSize();
@@ -602,8 +639,7 @@ settings, otherwise debugging features may not work.)");
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            process(addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
@@ -729,9 +765,7 @@ settings, otherwise debugging features may not work.)");
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
                         ImGui::SetClipboardText(fmtAddr);
                     }
-                    if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
-                        jumpToMemory(dispAddr, 4);
-                    }
+                    addMemoryEditorSubMenu(addr, 4);
                     if (ImGui::MenuItem(_("Run to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_debug->addBreakpoint(
                             dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
@@ -754,6 +788,32 @@ settings, otherwise debugging features may not work.)");
                         ImGui::PopStyleColor();
                     }
                     if (absAddr < 0x00800000) {
+                        PatchManager& pm = *g_emulator->m_patchManager;
+                        int patchIdx = pm.findPatch(dispAddr);
+                        if (patchIdx == -1) {
+                            if (ImGui::MenuItem(_("Patch in Return"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
+                            }
+                            if (ImGui::MenuItem(_("Patch in NOP"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
+                            }
+                        } else {
+                            PatchManager::Patch& patch = pm.getPatch(patchIdx);
+                            switch (patch.type) {
+                                case PatchManager::Patch::Type::Return:
+                                    if (ImGui::MenuItem(_("Delete Return Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+
+                                case PatchManager::Patch::Type::NOP:
+                                    if (ImGui::MenuItem(_("Delete NOP Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+                            }
+                        }
+
                         if (ImGui::MenuItem(_("Assemble"))) {
                             openAssembler = true;
                             m_assembleAddress = dispAddr;
@@ -986,8 +1046,17 @@ if not success then return msg else return nil end
     }
     ImGui::End();
 
-    if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
+    auto& mapPath = g_emulator->settings.get<Emulator::SettingMapBrowsePath>();
+
+    if (openSymbolsDialog) {
+        if (!mapPath.empty()) {
+            m_symbolsFileDialog.m_currentPath = mapPath.value;
+        }
+        m_symbolsFileDialog.openDialog();
+    }
     if (m_symbolsFileDialog.draw()) {
+        mapPath.value = m_symbolsFileDialog.m_currentPath;
+        changed = true;
         std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
@@ -1042,6 +1111,7 @@ if not success then return msg else return nil end
         }
         ImGui::End();
     }
+    return changed;
 }
 
 std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {

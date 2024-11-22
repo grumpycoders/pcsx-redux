@@ -1,6 +1,6 @@
 # Dockerfile for ghcr.io/grumpycoders/pcsx-redux-build
 
-FROM ubuntu:23.10
+FROM ubuntu:24.04
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -15,7 +15,7 @@ RUN apt install -y make
 RUN apt install -y pkg-config
 
 # Compilers & base libraries
-RUN apt install -y g++-12
+RUN apt install -y g++
 RUN apt install -y g++-mipsel-linux-gnu
 
 # Development packages
@@ -44,15 +44,10 @@ RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/ap
     ln -s /opt/appimage-tool.AppDir/AppRun /usr/bin/appimagetool && \
     rm /tmp/appimagetool-x86_64.AppImage
 WORKDIR /
-RUN pip3 install --break-system-packages appimage-builder
+RUN pip3 install --break-system-packages appimage-builder pydpkg
+COPY appimage-dpkg.patch /appimage-dpkg.patch
+RUN patch -p 1 < appimage-dpkg.patch
 RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
-ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION 14.17.0
-RUN mkdir -p /usr/local/nvm
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-RUN . $NVM_DIR/nvm.sh && nvm alias default $NODE_VERSION
-RUN . $NVM_DIR/nvm.sh && nvm use default
-RUN . $NVM_DIR/nvm.sh && npm install -g appcenter-cli
 RUN apt install -y squashfs-tools zip zsync
 
 RUN mkdir /project

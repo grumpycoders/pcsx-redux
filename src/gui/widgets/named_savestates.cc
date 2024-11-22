@@ -1,3 +1,21 @@
+/***************************************************************************
+ *   Copyright (C) 2023 PCSX-Redux authors                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
 
 #include "gui/widgets/named_savestates.h"
 
@@ -59,9 +77,9 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     float posY = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(posY + verticalAlignAdjust);
 
-    ImGui::Text(_("Filename: "));
+    ImGui::TextUnformatted(_("Filename: "));
     ImGui::SameLine();
-    ImGui::Text(gui->getSaveStatePrefix(true).c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePrefix(true).c_str());
     ImGui::SameLine(0.0f, 0.0f);
 
     // Restore the vertical value
@@ -69,35 +87,14 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
 
     // Ensure that we don't add invalid characters to the filename
     // This also filters on pasted text
-    struct TextFilters {
-        static int FilterNonPathCharacters(ImGuiInputTextCallbackData* data) {
-            // Filter the core problematic characters for Windows and Linux
-            // Anything remaining outside of [a-zA-Z0-9._-] is also allowed
-            switch (data->EventChar) {
-                case '\\':
-                case '/':
-                case '<':
-                case '>':
-                case '|':
-                case '\"':
-                case ':':
-                case '?':
-                case '*':
-                case 0:
-                    return 1;
-            }
-            return 0;
-        }
-    };
-
-    ImGui::InputTextWithHint("##SaveNameInput", "Enter the name of your save state here", m_namedSaveNameString,
+    ImGui::InputTextWithHint("##SaveNameInput", _("Enter the name of your save state here"), m_namedSaveNameString,
                              NAMED_SAVE_STATE_LENGTH_MAX, ImGuiInputTextFlags_CallbackCharFilter,
-                             TextFilters::FilterNonPathCharacters);
+                             TextFilters::filterNonPathCharacters);
     ImGui::SameLine(0.0f, 0.0f);
 
     // Trailing text alignment also needs adjusting, but in the opposite direction
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalAlignAdjust);
-    ImGui::Text(gui->getSaveStatePostfix().c_str());
+    ImGui::TextUnformatted(gui->getSaveStatePostfix().c_str());
 
     ImGui::Separator();
 
@@ -115,9 +112,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     if (!exists) {
         if (strlen(m_namedSaveNameString) > 0) {
             // The save state doesn't exist, and the name is valid
-            std::string pathStr =
-                fmt::format("{}{}{}", gui->getSaveStatePrefix(true), m_namedSaveNameString, gui->getSaveStatePostfix());
-            std::filesystem::path newPath = pathStr;
+            std::filesystem::path newPath = createSaveStatePath(gui, m_namedSaveNameString);
             if (ImGui::Button(_("Create save"), buttonDims)) {
                 saveSaveState(gui, newPath);
             }
@@ -135,7 +130,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
         // There is no delete confirmation, and this makes a mis-click less likely to hit it
         ImGui::Dummy(buttonDims);
         if (ImGui::Button(_("Delete save"), buttonDims)) {
-            deleteSaveState(found->first);
+            deleteSaveState(gui, found->first);
         }
     }
 
@@ -172,17 +167,42 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
     return names;
 }
 
-void PCSX::Widgets::NamedSaveStates::saveSaveState(GUI* gui, std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::saveSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Saving named save state: %s\n", saveStatePath.filename().string().c_str());
-    gui->saveSaveState(saveStatePath);
+    return gui->saveSaveState(saveStatePath);
 }
 
-void PCSX::Widgets::NamedSaveStates::loadSaveState(GUI* gui, std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::loadSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Loading named save state: %s\n", saveStatePath.filename().string().c_str());
-    gui->loadSaveState(saveStatePath);
+    return gui->loadSaveState(saveStatePath);
 }
 
-void PCSX::Widgets::NamedSaveStates::deleteSaveState(std::filesystem::path saveStatePath) {
+bool PCSX::Widgets::NamedSaveStates::deleteSaveState(GUI* gui, std::filesystem::path saveStatePath) {
     g_system->log(LogClass::UI, "Deleting named save state: %s\n", saveStatePath.filename().string().c_str());
-    std::remove(saveStatePath.string().c_str());
+    return gui->deleteSaveState(saveStatePath);
+}
+
+std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* gui, std::string saveStateName) {
+    std::string pathStr =
+        fmt::format("{}{}{}", gui->getSaveStatePrefix(true), saveStateName, gui->getSaveStatePostfix());
+    return std::filesystem::path(pathStr);
+}
+
+int PCSX::Widgets::NamedSaveStates::TextFilters::testChar(ImWchar c) {
+    // Filter the core problematic characters for Windows and Linux
+    // Anything remaining outside of [a-zA-Z0-9._-] is also allowed
+    switch (c) {
+        case '\\':
+        case '/':
+        case '<':
+        case '>':
+        case '|':
+        case '\"':
+        case ':':
+        case '?':
+        case '*':
+        case 0:
+            return 1;
+    }
+    return 0;
 }

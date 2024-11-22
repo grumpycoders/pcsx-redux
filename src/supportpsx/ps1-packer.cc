@@ -79,7 +79,7 @@ int16_t getLO(uint32_t v) {
 
 void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
                            const Options& options) {
-    constexpr size_t stubSize = 8;
+    constexpr size_t stubSize = 7 * 4;
     std::vector<uint8_t> dataIn;
     dataIn.resize(src->size());
     src->read(dataIn.data(), dataIn.size());
@@ -98,21 +98,21 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     if (r != UCL_E_OK) {
         throw std::runtime_error("Fatal error during data compression.\n");
     }
-    dataOut.resize(outSize + (options.raw ? 16 : 0));
-    uint32_t newPC;
-    uint32_t compLoad;
-
+    dataOut.resize(outSize + (options.raw ? stubSize : 0));
     while ((dataOut.size() & 3) != 0) {
         dataOut.push_back(0);
     }
+    uint32_t newPC = dataOut.size();
+    uint32_t compLoad = 0;
+
     // If we're outputting a rom file, our tload will be fixed
     // at 0x1f000110, after the license string.
-    uint32_t tload = options.rom ? 0x1f000110 : options.tload;
+    uint32_t tload = options.raw ? 0 : options.rom ? 0x1f000110 : options.tload;
 
     if (tload != 0) {
         newPC = tload + dataOut.size();
         compLoad = tload;
-    } else {
+    } else if (!options.raw) {
         // If we don't have a tload, it means we're doing
         // in-place decompression. We need to make sure
         // we have enough space to decompress our binary
@@ -120,16 +120,34 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // ensure this property.
         newPC = addr + dataIn.size() + 16;
         compLoad = newPC - dataOut.size();
+        uint32_t rawCompLoad = compLoad & 0x1fffffff;
+        if (rawCompLoad < 0x10000) {
+            // We're loading inside the kernel, bump out of it.
+            newPC += 0x10000 - rawCompLoad;
+            compLoad += 0x10000 - rawCompLoad;
+        }
     }
     newPC += sizeof(n2e_d::code);
 
     if (options.raw) {
         // If outputting a raw file, our start address is going
         // to be the same as our tload address, so we need to inject
-        // a jump to the start of our code.
+        // a jump to the start of our code. We are doing this in
+        // a fully position-independent way, so raw files can be
+        // loaded anywhere in memory.
+        auto offset = newPC - 4 * 4;
         std::vector<uint8_t> stub;
-        pushBytes(stub, j(newPC));
-        pushBytes(stub, nop());
+        if (options.resetstack) {
+            pushBytes(stub, lui(Reg::SP, 0x8001));
+        } else {
+            pushBytes(stub, addiu(Reg::T8, Reg::RA, 0));
+        }
+        pushBytes(stub, lui(Reg::T1, getHI(offset)));
+        pushBytes(stub, bgezal(Reg::R0, 4));
+        pushBytes(stub, addiu(Reg::T1, Reg::T1, getLO(offset)));
+        pushBytes(stub, addu(Reg::T0, Reg::RA, Reg::T1));
+        pushBytes(stub, jr(Reg::T0));
+        pushBytes(stub, addiu(Reg::A0, Reg::RA, 12));
 
         assert(stub.size() == stubSize);
 
@@ -157,18 +175,22 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
     // binary file, and so the next instructions will
     // be the very first our binary will run.
 
-    if (!options.shell) {
+    if (!options.shell && !options.raw && !options.resetstack) {
         // We save $ra to $t8, so we can restore it later. This breaks ABI,
         // but the ucl-nrv2e decompressor won't use it. This isn't useful
         // for the shell trick, since we're just going to reboot the machine.
         pushBytes(dataOut, addiu(Reg::T8, Reg::RA, 0));
+    } else if (options.resetstack && !options.raw) {
+        pushBytes(dataOut, lui(Reg::SP, 0x8001));
     }
     // Kill interrupts by setting IMASK to 0.
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
     pushBytes(dataOut, sw(Reg::R0, 0x1074, Reg::V1));
     // Calls the ucl-nrv2e decompressor.
-    pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
-    pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
+    if (!options.raw) {
+        pushBytes(dataOut, lui(Reg::A0, getHI(compLoad)));
+        pushBytes(dataOut, addiu(Reg::A0, Reg::A0, getLO(compLoad)));
+    }
     pushBytes(dataOut, lui(Reg::A1, getHI(addr)));
     pushBytes(dataOut, bgezal(Reg::R0, -((int16_t)(dataOut.size() + 4 - n2estart))));
     pushBytes(dataOut, addiu(Reg::A1, Reg::A1, getLO(addr)));
@@ -243,6 +265,40 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // of all the cop0 registers.
         pushBytes(dataOut, jr(Reg::S0));
         pushBytes(dataOut, addiu(Reg::T1, Reg::R0, 0x44));
+    } else if (options.nokernel) {
+        // We can't call into the kernel, so we need to
+        // flush the cache ourselves first.
+        pushBytes(dataOut, bgezal(Reg::R0, 4));
+        pushBytes(dataOut, lui(Reg::T1, 0xa000));
+        pushBytes(dataOut, orr(Reg::T1, Reg::RA, Reg::T1));
+        pushBytes(dataOut, addiu(Reg::T1, Reg::T1, 16));
+        pushBytes(dataOut, jr(Reg::T1));
+        pushBytes(dataOut, mtc0(Reg::R0, 12));
+        pushBytes(dataOut, lui(Reg::T5, 0xfffe));
+        pushBytes(dataOut, lui(Reg::T2, 0x0001));
+        pushBytes(dataOut, ori(Reg::T2, Reg::T2, 0xe90c));
+        pushBytes(dataOut, sw(Reg::T2, 0x0130, Reg::T5));
+        pushBytes(dataOut, lui(Reg::T1, 1));
+        pushBytes(dataOut, mtc0(Reg::T1, 12));
+        pushBytes(dataOut, addu(Reg::T3, Reg::R0, Reg::R0));
+        pushBytes(dataOut, addiu(Reg::T4, Reg::R0, 0x0ff0));
+        pushBytes(dataOut, sw(Reg::R0, 0, Reg::T3));
+        pushBytes(dataOut, bne(Reg::T3, Reg::T4, -8));
+        pushBytes(dataOut, addiu(Reg::T3, Reg::T3, 0x10));
+        pushBytes(dataOut, mtc0(Reg::R0, 12));
+        pushBytes(dataOut, addiu(Reg::T2, Reg::T2, 0x7c));
+        pushBytes(dataOut, sw(Reg::T2, 0x0130, Reg::T5));
+        // Then jumps into the decompressed binary, restoring
+        // $ra if needed, so the decompressed binary can return
+        // to the caller gracefully.
+        pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
+        pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
+        pushBytes(dataOut, jr(Reg::T0));
+        if (options.resetstack) {
+            pushBytes(dataOut, ori(Reg::SP, Reg::SP, 0xfff0));
+        } else {
+            pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        }
     } else {
         // Calls A0:44 - FlushCache
         pushBytes(dataOut, addiu(Reg::T0, Reg::R0, 0xa0));
@@ -254,7 +310,11 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(dataOut, lui(Reg::T0, getHI(pc)));
         pushBytes(dataOut, addiu(Reg::T0, Reg::T0, getLO(pc)));
         pushBytes(dataOut, jr(Reg::T0));
-        pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        if (options.resetstack) {
+            pushBytes(dataOut, ori(Reg::SP, Reg::SP, 0xfff0));
+        } else {
+            pushBytes(dataOut, addiu(Reg::RA, Reg::T8, 0));
+        }
     }
 
     // Pad our PS-X EXE to a multiple of 2048 bytes, because

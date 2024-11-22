@@ -34,15 +34,15 @@
 #include "profiler.h"
 #include "regAllocation.h"
 #include "spu/interface.h"
-#include "tracy/Tracy.hpp"
+#include "tracy/public/tracy/Tracy.hpp"
 
-#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t)&m_hostRegisterCache[(x)] - (uintptr_t)this)
-#define GPR_OFFSET(x) ((uintptr_t)&m_regs.GPR.r[(x)] - (uintptr_t)this)
-#define COP0_OFFSET(x) ((uintptr_t)&m_regs.CP0.r[(x)] - (uintptr_t)this)
-#define PC_OFFSET ((uintptr_t)&m_regs.pc - (uintptr_t)this)
-#define LO_OFFSET ((uintptr_t)&m_regs.GPR.n.lo - (uintptr_t)this)
-#define HI_OFFSET ((uintptr_t)&m_regs.GPR.n.hi - (uintptr_t)this)
-#define CYCLE_OFFSET ((uintptr_t)&m_regs.cycle - (uintptr_t)this)
+#define HOST_REG_CACHE_OFFSET(x) ((uintptr_t) & m_hostRegisterCache[(x)] - (uintptr_t)this)
+#define GPR_OFFSET(x) ((uintptr_t) & m_regs.GPR.r[(x)] - (uintptr_t)this)
+#define COP0_OFFSET(x) ((uintptr_t) & m_regs.CP0.r[(x)] - (uintptr_t)this)
+#define PC_OFFSET ((uintptr_t) & m_regs.pc - (uintptr_t)this)
+#define LO_OFFSET ((uintptr_t) & m_regs.GPR.n.lo - (uintptr_t)this)
+#define HI_OFFSET ((uintptr_t) & m_regs.GPR.n.hi - (uintptr_t)this)
+#define CYCLE_OFFSET ((uintptr_t) & m_regs.cycle - (uintptr_t)this)
 
 #undef _PC_
 #undef _Op_
