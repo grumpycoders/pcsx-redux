@@ -449,7 +449,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
             ImGui::EndTabItem();
         }
 
-        ImGui::TreePop();
+        ImGui::EndTabBar();
     }
 
     ImGui::End();
