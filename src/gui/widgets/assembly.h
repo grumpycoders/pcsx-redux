@@ -45,7 +45,10 @@ class Assembly : private Disasm {
   public:
     Assembly(bool& show, std::vector<std::string>& favorites)
         : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
-        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) {
+            m_jumpToPC = event.pc;
+            m_show = true;
+        });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
