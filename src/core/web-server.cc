@@ -40,6 +40,7 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
+#include "core/screenshot.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "support/file.h"
@@ -692,8 +693,8 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     path = persistentDir / path;
                 }
                 auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
-                clip::image img = convertScreenshotToImage(std::move(screenshot));
-                bool success = writeImagePNG(path.string(), std::move(img));
+                clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
+                bool success = PCSX::ScreenShot::writeImagePNG(path.string(), std::move(img));
                 if (success) {
                     message =
                         fmt::format("HTTP/1.1 200 OK\r\n\r\nScreenshot saved successfully to \"{}\".", path.string());
@@ -706,44 +707,13 @@ class ScreenExecutor : public PCSX::WebExecutor {
                 return true;
             } else if (path == "still") {
                 auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
-                clip::image img = convertScreenshotToImage(std::move(screenshot));
+                clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
                 writeImagePNG(client, std::move(img));
                 return true;
             }
         }
         return false;
     }
-    clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot) {
-        clip::image_spec spec;
-        spec.width = screenshot.width;
-        spec.height = screenshot.height;
-        if (screenshot.bpp == PCSX::GPU::ScreenShot::BPP_16) {
-            spec.bits_per_pixel = 16;
-            spec.bytes_per_row = screenshot.width * 2;
-            spec.red_mask = 0x1f;  // 0x7c00;
-            spec.green_mask = 0x3e0;
-            spec.blue_mask = 0x7c00;  // 0x1f;
-            spec.alpha_mask = 0;
-            spec.red_shift = 0;  // 10;
-            spec.green_shift = 5;
-            spec.blue_shift = 10;  // 0;
-            spec.alpha_shift = 0;
-        } else {
-            spec.bits_per_pixel = 24;
-            spec.bytes_per_row = screenshot.width * 3;
-            spec.red_mask = 0xff0000;
-            spec.green_mask = 0xff00;
-            spec.blue_mask = 0xff;
-            spec.alpha_mask = 0;
-            spec.red_shift = 16;
-            spec.green_shift = 8;
-            spec.blue_shift = 0;
-            spec.alpha_shift = 0;
-        }
-        clip::image img(screenshot.data.data(), spec);
-        return img.to_rgba8888();
-    }
-    bool writeImagePNG(std::string filename, clip::image&& img) { return img.export_to_png(filename); }
     bool writeImagePNG(PCSX::WebClient* client, clip::image&& img) {
         std::vector<uint8_t> pngData;
         bool success = img.export_to_png(pngData);
