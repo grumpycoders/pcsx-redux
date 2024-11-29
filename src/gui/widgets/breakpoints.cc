@@ -214,14 +214,14 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         char* endPtr;
         uint32_t breakpointAddress = strtoul(m_bpAddressString, &endPtr, 16);
 
-        static int breakCondition2 = 0;
+        static int breakConditionImguiValue = 0;
         static int conditionVal = 0;
 
         Debug::BreakpointCondition breakCondition; 
         Debug::BreakpointType type = (Debug::BreakpointType)m_breakpointType;
         if (type != Debug::BreakpointType::Exec) {
-            ImGui::Combo(_("Break Condition"), &breakCondition2, _("Always\0Change\0Greater\0Less\0Equal\0"));
-            breakCondition = (Debug::BreakpointCondition)breakCondition2;
+            ImGui::Combo(_("Break Condition"), &breakConditionImguiValue, _("Always\0Change\0Greater\0Less\0Equal\0"));
+            breakCondition = (Debug::BreakpointCondition)breakConditionImguiValue;
 
             switch (breakCondition) {
                 default:
