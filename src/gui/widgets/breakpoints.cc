@@ -36,17 +36,17 @@ static uint32_t getValueAboutToWrite() {
 static const char* getBreakpointConditionName(PCSX::Debug::BreakpointCondition condition) {
     switch (condition) {
         case PCSX::Debug::BreakpointCondition::Always:
-            return "Always";
+            return _("Always");
         case PCSX::Debug::BreakpointCondition::Greater:
-            return "Greater";
+            return _("Greater");
         case PCSX::Debug::BreakpointCondition::Less:
-            return "Less";
+            return _("Less");
         case PCSX::Debug::BreakpointCondition::Change:
-            return "Change";
+            return _("Change");
         case PCSX::Debug::BreakpointCondition::Equal:
-            return "Equal";
+            return _("Equal");
     }
-    return "Unknown";
+    return _("Unknown");
 }
 
 static uint32_t getMemoryValue(uint32_t addr, int width, bool isSigned) {
@@ -85,21 +85,6 @@ static uint32_t getMemoryValue(uint32_t addr, int width, bool isSigned) {
     return final.uVal;
 }
 
-void PCSX::Widgets::Breakpoints::showEditLabelPopup(const Debug::Breakpoint* bp, int counter) {
-    std::string name = bp->name();
-    std::string title = fmt::format(f_("Edit label of breakpoint {}##{}"), name, counter);
-    if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text(_("Change the label of breakpoint %s:"), name.c_str());
-        if (ImGui::InputText(_("Label"), m_bpEditPopupLabel, sizeof(m_bpEditPopupLabel),
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-            bp->label(m_bpEditPopupLabel);
-            ImGui::CloseCurrentPopup();
-        }
-        if (ImGui::Button(_("Cancel"))) ImGui::CloseCurrentPopup();
-        ImGui::EndPopup();
-    }
-}
-
 static ImVec4 s_normalColor = ImColor(0xff, 0xff, 0xff);
 static ImVec4 s_hitColor = ImColor(0xff, 0x00, 0x00);
 
@@ -117,16 +102,10 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
     int counter = 0;
     if (!tree.empty()) {
-        /*
-        static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Resizable |
-                                       ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
-                                       ImGuiTableFlags_ContextMenuInBody;
-                                       */
         static ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable |
                                        ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                                        ImGuiTableFlags_ContextMenuInBody;
 
-        int row = 0;
         if (ImGui::BeginTable("Breakpoints", 5, flags)) {
             ImGui::TableSetupColumn("#");
             ImGui::TableSetupColumn("Address");
@@ -137,6 +116,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
             const uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
 
+            int row = 0;
             for (auto bp = tree.begin(); bp != tree.end(); bp++, row++) {
                 ImGui::TableNextRow();
 
@@ -205,9 +185,8 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
     }
 
     if (ImGui::BeginPopupContextItem("BreakpointPopup")) {
-        bool addBreakpoint =
-            ImGui::InputText(_("Address"), m_bpAddressString, sizeof(m_bpAddressString),
-                                ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AutoSelectAll);
+        ImGui::InputText(_("Address"), m_bpAddressString, sizeof(m_bpAddressString),
+                            ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AutoSelectAll);
         if (ImGui::BeginCombo(_("Type"), Debug::s_breakpoint_type_names[m_breakpointType]())) {
             for (int i = 0; i < 3; i++) {
                 if (ImGui::Selectable(Debug::s_breakpoint_type_names[i](), m_breakpointType == i)) {
@@ -226,7 +205,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
             ImGui::RadioButton(_("Range"), &width, 0);
 
             if (width == 0) {
-                ImGui::InputInt("Byte Width", &range);
+                ImGui::InputInt(_("Byte Width"), &range);
             }
         }
 
@@ -238,12 +217,10 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         static int breakCondition2 = 0;
         static int conditionVal = 0;
 
-        bool isSigned = false;
-
         Debug::BreakpointCondition breakCondition; 
         Debug::BreakpointType type = (Debug::BreakpointType)m_breakpointType;
         if (type != Debug::BreakpointType::Exec) {
-            ImGui::Combo(_("Break Condition"), &breakCondition2, "Always\0Change\0Greater\0Less\0Exact\0");
+            ImGui::Combo(_("Break Condition"), &breakCondition2, _("Always\0Change\0Greater\0Less\0Equal\0"));
             breakCondition = (Debug::BreakpointCondition)breakCondition2;
 
             switch (breakCondition) {
@@ -256,13 +233,13 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                 case Debug::BreakpointCondition::Less:
                 case Debug::BreakpointCondition::Greater:
                     ImGui::InputInt(_("Value"), &conditionVal);
-                    uint32_t curVal = getMemoryValue(breakpointAddress, actualWidth, isSigned);
+                    uint32_t curVal = getMemoryValue(breakpointAddress, actualWidth, false);
                     std::string buttonStr = fmt::format("{:08x} ({})", curVal, curVal);
                     if (ImGui::Button(buttonStr.c_str())) {
                         conditionVal = curVal;
                     }
                     ImGui::SameLine();
-                    ImGui::Text("Current Value");
+                    ImGui::Text(_("Current Value"));
                     break;
             }
         }
@@ -273,7 +250,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
             if (*m_bpAddressString && !*endPtr) {
                 Debug::BreakpointType bpType = Debug::BreakpointType(m_breakpointType);
 
-                Debug::BreakpointInvoker invoker = [](const Debug::Breakpoint* self, uint32_t address, unsigned width,
+                Debug::BreakpointInvoker invoker = [](Debug::Breakpoint* self, uint32_t address, unsigned width,
                                                       const char* cause) {
 
                     switch (self->type())
@@ -299,9 +276,8 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                                     break;
                                 case Debug::BreakpointCondition::Change:
                                     doBreak = curVal != self->conditionData();
-                                    if (doBreak)
-                                    {
-                                        // TODO: can't update since 'self' is const
+                                    if (doBreak) {
+                                        self->setConditionData(curVal);
                                     }
                                     break;
                                 case Debug::BreakpointCondition::Equal:
@@ -332,8 +308,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                                 case Debug::BreakpointCondition::Change:
                                     doBreak = curVal != self->conditionData();
                                     if (doBreak) {
-                                        // TODO: can't update since 'self' is const
-                                        // self->setConditionData(curVal);
+                                        self->setConditionData(curVal);
                                     }
                                     break;
                                 case Debug::BreakpointCondition::Equal:
@@ -353,7 +328,6 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                 };
 
                 uint32_t conditionData = 0;
-                uint32_t exactVal = 0;
                 switch (breakCondition) {
                     default:
                     case Debug::BreakpointCondition::Always:
