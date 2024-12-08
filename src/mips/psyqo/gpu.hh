@@ -494,6 +494,10 @@ class GPU {
 
   private:
     GPU();
+    GPU(const GPU &) = delete;
+    GPU(GPU &&) = delete;
+    GPU &operator=(const GPU &) = delete;
+    GPU &operator=(GPU &&) = delete;
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
@@ -502,6 +506,7 @@ class GPU {
     void chain(uint32_t *first, uint32_t *last, size_t count);
     void scheduleOTC(uint32_t *start, uint32_t count);
     void checkOTCAndTriggerCallback();
+    void prepareForTakeover();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
@@ -538,6 +543,7 @@ class GPU {
 
     void flip();
     friend class Application;
+    friend void psyqo::Kernel::takeOverKernel();
 };
 
 }  // namespace psyqo

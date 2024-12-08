@@ -80,8 +80,7 @@ void loadAndExec(const char *filename, uint32_t stackStart, uint32_t stackSize) 
         filename++;
     }
 
-    while ((*ptr++ = toupper(*filename++)) != 0)
-        ;
+    while ((*ptr++ = toupper(*filename++)) != 0);
 
     ptr = localFilename;
     while (((c = *ptr) != 0) && (c != ';')) ptr++;
@@ -107,6 +106,5 @@ void loadAndExec(const char *filename, uint32_t stackStart, uint32_t stackSize) 
         exec(&binaryHeader, 1, NULL);
     }
     psxprintf("No boot file !\n");
-    while (1)
-        ;
+    while (1);
 }

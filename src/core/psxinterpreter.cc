@@ -1583,7 +1583,14 @@ void InterpretedCPU::Execute() {
         }
     }
 }
-void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
+
+void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
+    for (auto i = 0; i < Size; i += 4) {
+        flushICacheLine(Addr);
+        Addr += 16;
+    }
+}
+
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
 template <bool debug, bool trace>

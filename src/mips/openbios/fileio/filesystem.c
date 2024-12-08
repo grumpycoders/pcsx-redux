@@ -55,9 +55,7 @@ struct DirEntry *firstFile(const char *filepath, struct DirEntry *entry) {
     }
 }
 
-struct DirEntry *nextFile(struct DirEntry *entry) {
-    return g_firstFile->device->nextFile(g_firstFile, entry);
-}
+struct DirEntry *nextFile(struct DirEntry *entry) { return g_firstFile->device->nextFile(g_firstFile, entry); }
 
 int format(const char *deviceName) {
     struct File *file = findEmptyFile();

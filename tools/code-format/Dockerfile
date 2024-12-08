@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 AS build
+FROM ubuntu:24.04 AS build
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -18,7 +18,7 @@ WORKDIR LuaFormatter
 RUN cmake .
 RUN make lua-format
 
-FROM ubuntu:20.04 AS run
+FROM ubuntu:24.04 AS run
 
 RUN apt-get -y update
 RUN apt-get -y install apt-utils

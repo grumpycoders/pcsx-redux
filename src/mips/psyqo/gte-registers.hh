@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 #include "psyqo/fixed-point.hh"
@@ -69,70 +71,70 @@ struct PackedVec3 {
  * @brief The list of available GTE registers.
  */
 enum class Register {
-    VXY0,
-    VZ0,
-    VXY1,
-    VZ1,
-    VXY2,
-    VZ2,
-    RGB,
-    OTZ,
-    IR0,
-    IR1,
-    IR2,
-    IR3,
-    SXY0,
-    SXY1,
-    SXY2,
-    SXYP,
-    SZ0,
-    SZ1,
-    SZ2,
-    SZ3,
-    RGB0,
-    RGB1,
-    RGB2,
-    RES1,
-    MAC0,
-    MAC1,
-    MAC2,
-    MAC3,
-    IRGB,
-    ORGB,
-    LZCS,
-    LZCR,
-    R11R12,
-    R13R21,
-    R22R23,
-    R31R32,
-    R33,
-    TRX,
-    TRY,
-    TRZ,
-    L11L12,
-    L13L21,
-    L22L23,
-    L31L32,
-    L33,
-    RBK,
-    GBK,
-    BBK,
-    LR1LR2,
-    LR3LG1,
-    LG2LG3,
-    LB1LB2,
-    LB3,
-    RFC,
-    GFC,
-    BFC,
-    OFX,
-    OFY,
-    H,
-    DQA,
-    DQB,
-    ZSF3,
-    ZSF4,
-    FLAG,
+    VXY0,   /* Vector 0 (X,Y) */
+    VZ0,    /* Vector 0 (Z) */
+    VXY1,   /* Vector 1 (X,Y) */
+    VZ1,    /* Vector 1 (Z) */
+    VXY2,   /* Vector 2 (X,Y) */
+    VZ2,    /* Vector 2 (Z) */
+    RGB,    /* Color/code value */
+    OTZ,    /* Average Z value (for Ordering Table) */
+    IR0,    /* 16bit Accumulator 0 (Interpolate) */
+    IR1,    /* 16bit Accumulator 1 (Vector) */
+    IR2,    /* 16bit Accumulator 2 (Vector) */
+    IR3,    /* 16bit Accumulator 3 (Vector) */
+    SXY0,   /* Screen XY-coordinate 0 FIFO */
+    SXY1,   /* Screen XY-coordinate 1 FIFO */
+    SXY2,   /* Screen XY-coordinate 2 FIFO */
+    SXYP,   /* Screen XY-coordinate P FIFO */
+    SZ0,    /* Screen Z-coordinate 0 FIFO */
+    SZ1,    /* Screen Z-coordinate 1 FIFO */
+    SZ2,    /* Screen Z-coordinate 2 FIFO */
+    SZ3,    /* Screen Z-coordinate 3 FIFO */
+    RGB0,   /* Color CRGB-code/color 0 FIFO */
+    RGB1,   /* Color CRGB-code/color 1 FIFO */
+    RGB2,   /* Color CRGB-code/color 2 FIFO */
+    RES1,   /* Prohibited */
+    MAC0,   /* 32bit Maths Accumulators 0 (Value) */
+    MAC1,   /* 32bit Maths Accumulators 1 (Vector) */
+    MAC2,   /* 32bit Maths Accumulators 2 (Vector) */
+    MAC3,   /* 32bit Maths Accumulators 3 (Vector) */
+    IRGB,   /* Convert RGB Color (48bit vs 15bit) */
+    ORGB,   /* Convert RGB Color (48bit vs 15bit) */
+    LZCS,   /* Count Leading-Zeroes/Ones (sign bits) */
+    LZCR,   /* Count Leading-Zeroes/Ones (sign bits) */
+    R11R12, /* Rotation matrix (3x3) */
+    R13R21, /* Rotation matrix (3x3) */
+    R22R23, /* Rotation matrix (3x3) */
+    R31R32, /* Rotation matrix (3x3) */
+    R33,    /* Rotation matrix (3x3) */
+    TRX,    /* Translation vector (X) */
+    TRY,    /* Translation vector (Y) */
+    TRZ,    /* Translation vector (Z) */
+    L11L12, /* Light source matrix (3x3) */
+    L13L21, /* Light source matrix (3x3) */
+    L22L23, /* Light source matrix (3x3) */
+    L31L32, /* Light source matrix (3x3) */
+    L33,    /* Light source matrix (3x3) */
+    RBK,    /* Background color(R) */
+    GBK,    /* Background color(G) */
+    BBK,    /* Background color(B) */
+    LR1LR2, /* Light color matrix source (3x3)  */
+    LR3LG1, /* Light color matrix source (3x3)  */
+    LG2LG3, /* Light color matrix source (3x3)  */
+    LB1LB2, /* Light color matrix source (3x3)  */
+    LB3,    /* Light color matrix source (3x3)  */
+    RFC,    /* Far color (R) */
+    GFC,    /* Far color (G) */
+    BFC,    /* Far color (B) */
+    OFX,    /* Screen offset (X) */
+    OFY,    /* Screen offset (Y) */
+    H,      /* Projection plane distance. */
+    DQA,    /* Depth queing parameter A (coeff) */
+    DQB,    /* Depth queing parameter B (offset) */
+    ZSF3,   /* Average Z scale factors */
+    ZSF4,   /* Average Z scale factors */
+    FLAG,   /* Returns any calculation errors */
 };
 
 /**
@@ -147,8 +149,8 @@ enum class Register {
  * used immediately after the operation.
  */
 enum Safety {
-    Unsafe,
-    Safe,
+    Unsafe, /* avoid nops */
+    Safe,   /* insert nops */
 };
 
 /**
@@ -244,7 +246,18 @@ static inline void writeUnsafe(Short low, Short hi) {
 /**
  * @brief The list of available GTE pseudo registers.
  */
-enum class PseudoRegister { Rotation, Light, Color, V0, V1, V2, SV, LV };
+enum class PseudoRegister {
+    Rotation,     /* pseudo register for full rotation matrix, mapped to registers R11R12-R33 */
+    Light,        /* pseudo register for full light matrix, mapped to registers L11L12-L33 */
+    Color,        /* pseudo register for full light color matrix, mapped to registers LR1LR2-LB3 */
+    V0,           /* pseudo register for full Vector 0, mapped to registers VXY0 and VZ0 */
+    V1,           /* pseudo register for full Vector 1, mapped to registers VXY1 and VZ1 */
+    V2,           /* pseudo register for full Vector 2, mapped to registers VXY2 and VZ2 */
+    SV,           /* pseudo register for full 16bit Accumulator Vector, mapped to registers IR1-IR3 */
+    LV,           /* pseudo register for full 32bit Maths Accumulator Vector, mapped to registers MAC1-MAC3 */
+    Translation,  /* pseudo register for full Translation vector, mapped to registers TRX-TRZ */
+    ScreenOffset, /* pseudo register for full Screen offset, mapped to registers OFX and OFY */
+};
 
 /**
  * @brief Write a 3x3 matrix to a GTE pseudo register, adding nops after the
@@ -283,6 +296,18 @@ static inline void writeSafe(const Vec3& in) {
 }
 
 /**
+ * @brief Write a 2D vector to a GTE pseudo register, adding nops after the
+ * operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeSafe(const Vec2& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
  * @brief Write a 3D vector to a GTE pseudo register, without adding nops after
  * the operation.
  *
@@ -291,6 +316,18 @@ static inline void writeSafe(const Vec3& in) {
  */
 template <PseudoRegister reg, bool valid = false>
 static inline void writeUnsafe(const Vec3& in) {
+    static_assert(valid, "Unable to write vector to pseudo register");
+}
+
+/**
+ * @brief Write a 2D vector to a GTE pseudo register, without adding nops after
+ * the operation.
+ *
+ * @tparam reg The pseudo register to write to.
+ * @param in The vector to write.
+ */
+template <PseudoRegister reg, bool valid = false>
+static inline void writeUnsafe(const Vec2& in) {
     static_assert(valid, "Unable to write vector to pseudo register");
 }
 
@@ -349,7 +386,7 @@ template <Register reg>
 static inline void read(uint32_t* ptr) {
     static_assert(reg < Register::R11R12, "Unable to read from register to memory directly");
     if constexpr (reg < Register::R11R12) {
-        asm volatile("swc2 $%1, 0(%0)" ::"r"(ptr), "i"(static_cast<uint32_t>(reg)));
+        asm volatile("swc2 $%2, 0(%1)" : "=m"(*ptr) : "r"(ptr), "i"(static_cast<uint32_t>(reg)));
     }
 }
 
@@ -380,7 +417,13 @@ static inline PackedVec3 readUnsafe() {
 }
 
 template <PseudoRegister reg, bool valid = false>
-static inline void read(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] static inline void read(Vec3* ptr) {
+    static_assert(valid, "Unable to read pseudo register as vector");
+    __builtin_unreachable();
+}
+
+template <PseudoRegister reg, bool valid = false>
+static inline void read(Vec3& vec) {
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
 }
@@ -798,6 +841,19 @@ inline void writeSafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
+inline void writeSafe<PseudoRegister::Translation>(const Vec3& in) {
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRY, Unsafe>(in.y.raw());
+    write<Register::TRZ, Safe>(in.z.raw());
+}
+
+template <>
+inline void writeSafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Safe>(in.y.raw());
+}
+
+template <>
 inline void writeUnsafe<PseudoRegister::Rotation>(const Matrix33& in) {
     writeUnsafe<Register::R11R12>(Short(in.vs[0].x), Short(in.vs[0].y));
     writeUnsafe<Register::R13R21>(Short(in.vs[0].z), Short(in.vs[1].x));
@@ -843,6 +899,19 @@ inline void writeUnsafe<PseudoRegister::V2>(const Vec3& in) {
 }
 
 template <>
+inline void writeUnsafe<PseudoRegister::Translation>(const Vec3& in) {
+    write<Register::TRX, Unsafe>(in.x.raw());
+    write<Register::TRY, Unsafe>(in.y.raw());
+    write<Register::TRZ, Unsafe>(in.z.raw());
+}
+
+template <>
+inline void writeUnsafe<PseudoRegister::ScreenOffset>(const Vec2& in) {
+    write<Register::OFX, Unsafe>(in.x.raw());
+    write<Register::OFY, Unsafe>(in.y.raw());
+}
+
+template <>
 inline PackedVec3 readSafe<PseudoRegister::SV>() {
     return PackedVec3(Short(readRaw<Register::IR1, Safe>(), Short::RAW),
                       Short(readRaw<Register::IR2, Safe>(), Short::RAW),
@@ -871,10 +940,17 @@ inline PackedVec3 readUnsafe<PseudoRegister::LV>() {
 }
 
 template <>
-inline void read<PseudoRegister::LV>(Vec3* ptr) {
+[[deprecated("Use the reference version instead")]] inline void read<PseudoRegister::LV>(Vec3* ptr) {
     read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr->x));
     read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr->y));
     read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr->z));
+}
+
+template <>
+inline void read<PseudoRegister::LV>(Vec3& ptr) {
+    read<Register::MAC1>(reinterpret_cast<uint32_t*>(&ptr.x));
+    read<Register::MAC2>(reinterpret_cast<uint32_t*>(&ptr.y));
+    read<Register::MAC3>(reinterpret_cast<uint32_t*>(&ptr.z));
 }
 
 }  // namespace GTE

@@ -39,7 +39,9 @@ namespace psyqo {
  * PAD interface, and has the same caveats, namely that it should be
  * initialized prior using the BIOS' memory card functions, and that
  * polling will alternate between the two pads at each frame when two
- * pads are connected, which can introduce input lags.
+ * pads are connected, which can introduce input lags. This class
+ * will not be able to be used if the kernel is taken over. See the
+ * `Kernel` namespace for more information.
  */
 
 class SimplePad {

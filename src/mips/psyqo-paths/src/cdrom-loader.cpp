@@ -29,8 +29,9 @@ SOFTWARE.
 #include "psyqo/kernel.hh"
 
 void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, GPU& gpu, psyqo::ISO9660Parser& parser,
-                                        eastl::function<void(eastl::vector<uint8_t>&&)>&& callback) {
+                                           eastl::function<void(eastl::vector<uint8_t>&&)>&& callback) {
     Kernel::assert(!m_pending, "Only one file can be read at a time");
+    m_queue.reset();
     m_pending = true;
     m_callback = eastl::move(callback);
     m_queue.startWith([](auto task) { task->resolve(); });
@@ -39,19 +40,18 @@ void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, GPU& gpu, ps
     }
     m_queue.then(parser.scheduleGetDirentry(path, &m_request.entry))
         .then([this](auto task) {
-            uint32_t size = (m_request.entry.size + 2047) & ~2048;
+            uint32_t size = (m_request.entry.size + 2047) & ~2047;
             m_data.resize(size);
             m_request.buffer = m_data.data();
             task->resolve();
         })
         .then(parser.scheduleReadRequest(&m_request))
-        .butCatch([this](auto task) {
-            m_request.entry.size = 0;
-        })
+        .butCatch([this](auto task) { m_request.entry.size = 0; })
         .finally([this](auto task) {
             m_pending = false;
             m_data.resize(m_request.entry.size);
-            m_callback(eastl::move(m_data));
+            auto callback = eastl::move(m_callback);
             m_callback = nullptr;
+            callback(eastl::move(m_data));
         });
 }

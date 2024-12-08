@@ -5,7 +5,7 @@
 
 #include <EASTL/internal/hashtable.h>
 #include <EASTL/utility.h>
-#include <math.h>  // Not all compilers support <cmath> and std::ceilf(), which we need below.
+//#include <math.h>  // Not all compilers support <cmath> and std::ceilf(), which we need below.
 #include <stddef.h>
 
 
@@ -105,7 +105,7 @@ namespace eastl
 	{
 		const uint32_t nPrime = *(eastl::upper_bound(gPrimeNumberArray, gPrimeNumberArray + kPrimeCount, nBucketCountHint) - 1);
 
-		mnNextResize = (uint32_t)ceilf(nPrime * mfMaxLoadFactor);
+		mnNextResize = nPrime * mfMaxLoadFactor;
 		return nPrime;
 	}
 
@@ -118,7 +118,7 @@ namespace eastl
 	{
 		const uint32_t nPrime = *eastl::lower_bound(gPrimeNumberArray, gPrimeNumberArray + kPrimeCount, nBucketCountHint);
 
-		mnNextResize = (uint32_t)ceilf(nPrime * mfMaxLoadFactor);
+		mnNextResize = nPrime * mfMaxLoadFactor;
 		return nPrime;
 	}
 
@@ -132,7 +132,7 @@ namespace eastl
 		const uint32_t nMinBucketCount = (uint32_t)(nElementCount / mfMaxLoadFactor);
 		const uint32_t nPrime          = *eastl::lower_bound(gPrimeNumberArray, gPrimeNumberArray + kPrimeCount, nMinBucketCount);
 
-		mnNextResize = (uint32_t)ceilf(nPrime * mfMaxLoadFactor);
+		mnNextResize = nPrime * mfMaxLoadFactor;
 		return nPrime;
 	}
 
@@ -151,19 +151,19 @@ namespace eastl
 			if(nBucketCount == 1) // We force rehashing to occur if the bucket count is < 2.
 				nBucketCount = 0;
 
-			float fMinBucketCount = (nElementCount + nElementAdd) / mfMaxLoadFactor;
+			auto fMinBucketCount = (nElementCount + nElementAdd) / mfMaxLoadFactor;
 
 			if(fMinBucketCount > (float)nBucketCount)
 			{
 				fMinBucketCount       = eastl::max_alt(fMinBucketCount, mfGrowthFactor * nBucketCount);
 				const uint32_t nPrime = *eastl::lower_bound(gPrimeNumberArray, gPrimeNumberArray + kPrimeCount, (uint32_t)fMinBucketCount);
-				mnNextResize          = (uint32_t)ceilf(nPrime * mfMaxLoadFactor);
+				mnNextResize          = nPrime * mfMaxLoadFactor;
 
 				return eastl::pair<bool, uint32_t>(true, nPrime);
 			}
 			else
 			{
-				mnNextResize = (uint32_t)ceilf(nBucketCount * mfMaxLoadFactor);
+				mnNextResize = nBucketCount * mfMaxLoadFactor;
 				return eastl::pair<bool, uint32_t>(false, (uint32_t)0);
 			}
 		}

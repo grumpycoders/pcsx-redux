@@ -62,10 +62,7 @@ CPPFLAGS_lto += -O3 -flto=auto -fno-fat-lto-objects -flto-partition=one
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
 
 ifeq ($(CC_IS_CLANG),true)
-    CXXFLAGS += -fcoroutines-ts
     LUAJIT_CFLAGS = -fno-stack-check
-else
-    CXXFLAGS += -fcoroutines
 endif
 
 ifeq ($(UNAME_S),Darwin)

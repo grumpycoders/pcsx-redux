@@ -30,6 +30,7 @@
 
 #include "core/debug.h"
 #include "core/disr3000a.h"
+#include "core/patchmanager.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
@@ -458,7 +459,8 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     }
 }
 
-void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+    bool changed = false;
     auto& cpu = g_emulator->m_cpu;
     m_registers = registers;
     m_memory = memory;
@@ -466,7 +468,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
-        return;
+        return changed;
     }
 
     float glyphWidth = ImGui::GetFontSize();
@@ -637,8 +639,7 @@ settings, otherwise debugging features may not work.)");
         };
         if (clipper.DisplayStart != 0) {
             uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            process(addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
@@ -787,6 +788,32 @@ settings, otherwise debugging features may not work.)");
                         ImGui::PopStyleColor();
                     }
                     if (absAddr < 0x00800000) {
+                        PatchManager& pm = *g_emulator->m_patchManager;
+                        int patchIdx = pm.findPatch(dispAddr);
+                        if (patchIdx == -1) {
+                            if (ImGui::MenuItem(_("Patch in Return"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
+                            }
+                            if (ImGui::MenuItem(_("Patch in NOP"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
+                            }
+                        } else {
+                            PatchManager::Patch& patch = pm.getPatch(patchIdx);
+                            switch (patch.type) {
+                                case PatchManager::Patch::Type::Return:
+                                    if (ImGui::MenuItem(_("Delete Return Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+
+                                case PatchManager::Patch::Type::NOP:
+                                    if (ImGui::MenuItem(_("Delete NOP Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+                            }
+                        }
+
                         if (ImGui::MenuItem(_("Assemble"))) {
                             openAssembler = true;
                             m_assembleAddress = dispAddr;
@@ -1019,8 +1046,17 @@ if not success then return msg else return nil end
     }
     ImGui::End();
 
-    if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
+    auto& mapPath = g_emulator->settings.get<Emulator::SettingMapBrowsePath>();
+
+    if (openSymbolsDialog) {
+        if (!mapPath.empty()) {
+            m_symbolsFileDialog.m_currentPath = mapPath.value;
+        }
+        m_symbolsFileDialog.openDialog();
+    }
     if (m_symbolsFileDialog.draw()) {
+        mapPath.value = m_symbolsFileDialog.m_currentPath;
+        changed = true;
         std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
@@ -1075,6 +1111,7 @@ if not success then return msg else return nil end
         }
         ImGui::End();
     }
+    return changed;
 }
 
 std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {

@@ -25,10 +25,47 @@
 #include "fmt/format.h"
 #include "support/imgui-helpers.h"
 
+PCSX::Widgets::GPULogger::GPULogger(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::GUI::VRAMHover>([this](auto event) {
+        if (!m_filterProbing) return;
+        m_filter.x = event.x;
+        m_filter.y = event.y;
+    });
+    m_listener.listen<Events::GUI::VRAMClick>([this](auto event) {
+        if (!m_filterProbing) return;
+        m_filter.x = event.x;
+        m_filter.y = event.y;
+        m_filterProbing = false;
+    });
+}
+
 void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) {
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return;
+    }
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("Settings"))) {
+            auto& colorFormat = m_settings.colorFormat;
+            if (ImGui::BeginMenu(_("Color Format"))) {
+                if (ImGui::MenuItem(_("None"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::None)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::None;
+                }
+                if (ImGui::MenuItem(_("Expanded"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::Expanded)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::Expanded;
+                }
+                if (ImGui::MenuItem(_("HTML"), nullptr,
+                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::HTML)) {
+                    colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::HTML;
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
     }
 
     if (ImGui::Checkbox(_("GPU logging"), &logger->m_enabled)) {
@@ -92,6 +129,17 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         _("When enabled, hovering a command in the logger view will highlight it in the vram display. Individual "
           "commands can be selected for highlight by using the second checkbox in the logger view. The [B] and [E] "
           "buttons can be used to specify the beginning and the end of a span of commands to highlight."));
+    ImGui::Checkbox(_("Filter by pixel"), &m_filterEnabled);
+    ImGuiHelpers::ShowHelpMarker(_(
+        "When enabled, only the commands that are related to the specified pixel will be shown. The pixel location is "
+        "specified in the next input fields. The [Probe VRAM] button can be used to set the pixel location by hovering "
+        "and clicking inside the VRAM viewer."));
+    ImGui::InputInt2(_("Pixel location"), m_filter.raw);
+    if (ImGui::Button(_("Probe VRAM"))) {
+        m_filterProbing = true;
+    }
+    ImGuiHelpers::ShowHelpMarker(_(
+        "When enabled, hovering then clicking inside the VRAM viewer will set the pixel location for the filtering."));
 
     std::string label;
 
@@ -125,6 +173,9 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     int n = 0;
 
     for (auto& logged : logger->m_list) {
+        if (m_filterEnabled && !logged.isInside(m_filter.x, m_filter.y)) {
+            continue;
+        }
         if (m_showOrigins) {
             if ((logged.origin != GPU::Logged::Origin::REPLAY) &&
                 ((origin != logged.origin) || (value != logged.value) || (length != logged.length))) {
@@ -202,7 +253,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         if (expandAll || m_expandAll) ImGui::SetNextItemOpen(true);
         label = fmt::format("{}##node{}", logged.getName(), n);
         if (ImGui::TreeNode(label.c_str())) {
-            logged.drawLogNode(n);
+            logged.drawLogNode(n, m_settings);
             ImGui::TreePop();
         }
         ImGui::EndGroup();

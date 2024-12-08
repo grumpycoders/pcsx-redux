@@ -50,6 +50,7 @@ typedef struct {
 enum BreakpointType { Exec, Read, Write };
 typedef struct { uint8_t opaque[?]; } Breakpoint;
 
+uint64_t getCPUCycles();
 uint8_t* getMemPtr();
 uint8_t* getParPtr();
 uint8_t* getRomPtr();
@@ -172,6 +173,7 @@ local function jumpToMemory(address, width)
 end
 
 PCSX = {
+    getCPUCycles = function() return C.getCPUCycles() end,
     getMemPtr = function() return C.getMemPtr() end,
     getParPtr = function() return C.getParPtr() end,
     getRomPtr = function() return C.getRomPtr() end,

@@ -26,10 +26,20 @@ SOFTWARE.
 
 #pragma once
 
+#include <stddef.h>
+
 #include <concepts>
-#include <cstddef>
+#include <type_traits>
 
 namespace psyqo {
+
+template <typename T, class Enable = void>
+struct has_explicit_copy_constructor : std::false_type {};
+
+template <typename T>
+struct has_explicit_copy_constructor<
+    T, typename std::enable_if<std::is_copy_constructible_v<T> && !std::is_convertible_v<const T&, T>>::type>
+    : std::true_type {};
 
 /**
  * @brief The Fragment concept.
@@ -39,12 +49,12 @@ namespace psyqo {
 
 template <typename Frag>
 concept Fragment = requires(Frag frag) {
-    {(alignof(Frag) & 3) == 0};
-    {(sizeof(Frag) & 3) == 0};
-    {(sizeof(frag.head)) == 4};
-    {((offsetof(Frag, head)) & 3) == 0};
-    { frag.getActualFragmentSize() }
-    ->std::convertible_to<size_t>;
+    { (alignof(Frag) & 3) == 0 };
+    { (sizeof(Frag) & 3) == 0 };
+    { (sizeof(frag.head)) == 4 };
+    { ((offsetof(Frag, head)) & 3) == 0 };
+    { has_explicit_copy_constructor<Frag>() } -> std::convertible_to<std::true_type>;
+    { frag.getActualFragmentSize() } -> std::convertible_to<size_t>;
 };
 
 }  // namespace psyqo

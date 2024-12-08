@@ -69,7 +69,7 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v4
       with:
-        node-version: 'latest'
+        node-version: '22.6.0'
     - name: Install jq
       run: |
         brew install jq
@@ -124,12 +124,12 @@ jobs:
     - name: Upload DMG
       uses: actions/upload-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-intel
         path: '**/*.dmg'
     - name: Upload version
       uses: actions/upload-artifact@v4
       with:
-        name: Version
+        name: Version-intel
         path: version.json
 
   publish-intel-app:
@@ -144,17 +144,17 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v4
       with:
-        node-version: 'latest'
+        node-version: '22.6.0'
     - name: Create BUILD environment
       run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
     - name: Download DMG
       uses: actions/download-artifact@v4
       with:
-        name: Dmg
+        name: Dmg-intel
     - name: Download version
       uses: actions/download-artifact@v4
       with:
-        name: Version
+        name: Version-intel
     - name: Distribute app
       env:
         APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
@@ -164,3 +164,128 @@ jobs:
       run: |
         npx appcenter-cli distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
         npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
+
+  macos-arm-build-and-test:
+    runs-on: macos-14
+    needs: build-openbios
+    steps:
+    - uses: actions/checkout@v1
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install dependencies
+      run: ./.github/scripts/install-brew-dependencies.sh
+    - name: Fetch submodules
+      run: git submodule update --init --recursive
+    - name: Build PCSX-Redux
+      run: make -j 2 all pcsx-redux-tests
+    - name: Download OpenBIOS build
+      uses: actions/download-artifact@v4
+      with:
+        name: OpenBIOS
+    - name: Download mips tests
+      uses: actions/download-artifact@v4
+      with:
+        name: tests
+    - name: Bundle
+      run: ./.github/scripts/create-app.sh
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Injecting OpenBIOS
+      run: cp openbios.bin PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.6.0'
+    - name: Install jq
+      run: |
+        brew install jq
+    - name: Packaging
+      env:
+        APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_ARM }}
+        APPDISTRIB_ORGANIZATION: pcsx-redux
+        APPDISTRIB_PROJECT: dev-macos-arm
+      run: |
+        npx @appdistrib/cli buildid > buildid.json
+        echo '{' > version.json
+        echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
+        echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
+        echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
+        echo '  "timestamp": '`date '+%s'`',' >> version.json
+        echo '  "channel": "dev",' >> version.json
+        echo '  "updateInfo": [' >> version.json
+        echo '    {' >> version.json
+        echo '      "channel": "dev",' >> version.json
+        echo '      "method": "appdistrib",' >> version.json
+        echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/manifest.json",' >> version.json
+        echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/",' >> version.json
+        echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
+        echo '    }' >> version.json
+        echo '  ]' >> version.json
+        echo '}' >> version.json
+        cp version.json PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
+    - name: Signing Application
+      run: codesign --force -s - -vvvv PCSX-Redux.app
+    - name: Adjusting for dmg folder
+      run: |
+        mkdir dmgdir
+        mv PCSX-Redux.app dmgdir
+        cp dmgdir/PCSX-Redux.app/Contents/Resources/AppIcon.icns .
+    - name: Creating dmg icon
+      run: |
+        sips -i AppIcon.icns
+        DeRez -only icns AppIcon.icns > icns.rsrc
+        cp AppIcon.icns dmgdir/.VolumeIcon.icns
+        SetFile -c icnC dmgdir/.VolumeIcon.icns
+        SetFile -a C dmgdir
+    - name: Creating Application link
+      run: ln -s /Applications dmgdir
+    - name: Creating dmg file
+      run: hdiutil create -volname PCSX-Redux-$BUILD -srcfolder dmgdir -ov -format UDZO PCSX-Redux-$BUILD-Arm.dmg
+    - name: Applying icon to dmg file
+      run: |
+        Rez -append icns.rsrc -o PCSX-Redux-$BUILD-Arm.dmg
+        SetFile -a C PCSX-Redux-$BUILD-Arm.dmg
+    - name: Removing temporary dmg folder
+      run: rm -rf dmgdir
+    - name: Upload DMG
+      uses: actions/upload-artifact@v4
+      with:
+        name: Dmg-arm
+        path: '**/*.dmg'
+    - name: Upload version
+      uses: actions/upload-artifact@v4
+      with:
+        name: Version-arm
+        path: version.json
+
+  publish-arm-app:
+    runs-on: ubuntu-latest
+    needs: macos-arm-build-and-test
+    if: github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v1
+    - uses: n1hility/cancel-previous-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.6.0'
+    - name: Create BUILD environment
+      run: echo "BUILD=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Download DMG
+      uses: actions/download-artifact@v4
+      with:
+        name: Dmg-arm
+    - name: Download version
+      uses: actions/download-artifact@v4
+      with:
+        name: Version-arm
+    - name: Distribute app
+      env:
+        APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_ARM }}
+        APPDISTRIB_ORGANIZATION: pcsx-redux
+        APPDISTRIB_PROJECT: dev-macos-arm
+      run: |
+        npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-Arm.dmg

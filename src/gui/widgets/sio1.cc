@@ -132,8 +132,7 @@ void PCSX::Widgets::SIO1::DrawRegisterEditor(T* reg, const char* regname, SIO1Re
     } else if constexpr (sizeof(T) == 4) {
         displayFormat = "%08x";
     } else {
-        []<bool f = false>() { static_assert(f, "No known formatter"); }
-        ();
+        []<bool f = false>() { static_assert(f, "No known formatter"); }();
     }
     snprintf(currentValue, 11, displayFormat, *reg);
 

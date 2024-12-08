@@ -87,19 +87,12 @@ static __inline__ size_t strlen(const char *s) {
 }
 
 /*
-** The maximum number of digits of accuracy in a floating-point conversion.
-*/
-#define MAXDIG 20
-
-/*
 ** Conversion types fall into various categories as defined by the
 ** following enumeration.
 */
 enum e_type {             /* The type of the format field */
               RADIX,      /* Integer types.  %d, %x, %o, and so forth */
-              FLOAT,      /* Floating point.  %f */
-              EXP,        /* Exponentional notation. %e and %E */
-              GENERIC,    /* Floating or exponential, depending on exponent. %g */
+              FIXED,      /* Fixed point.  %f, %e, and %a */
               SIZE,       /* Return number of characters processed so far. %n */
               STRING,     /* Strings. %s */
               PERCENT,    /* Percent symbol. %% */
@@ -116,13 +109,13 @@ enum e_type {             /* The type of the format field */
 ** Each builtin conversion character (ex: the 'd' in "%d") is described
 ** by an instance of the following structure
 */
-typedef struct s_info { /* Information about each format field */
-    int fmttype;        /* The format field code letter */
-    int base;           /* The base for radix conversion */
-    char *charset;      /* The character set for conversion */
-    int flag_signed;    /* Is the quantity signed? */
-    char *prefix;       /* Prefix on non-zero values in alt format */
-    enum e_type type;   /* Conversion paradigm */
+typedef struct s_info {  /* Information about each format field */
+    int fmttype;         /* The format field code letter */
+    int base;            /* The base for radix conversion, or the scale in fixed-point mode */
+    const char *charset; /* The character set for conversion */
+    int flag_signed;     /* Is the quantity signed? */
+    const char *prefix;  /* Prefix on non-zero values in alt format */
+    enum e_type type;    /* Conversion paradigm */
 } info;
 
 /*
@@ -212,43 +205,27 @@ static const info fmtinfo[] = {
     },
     {
         'f',
-        0,
+        4096,
         0,
         1,
         0,
-        FLOAT,
+        FIXED,
     },
     {
         'e',
+        4096,
         0,
-        "e",
-        1,
         0,
-        EXP,
+        0,
+        FIXED,
     },
     {
-        'E',
+        'a',
+        1024,
         0,
-        "E",
         1,
         0,
-        EXP,
-    },
-    {
-        'g',
-        0,
-        "e",
-        1,
-        0,
-        GENERIC,
-    },
-    {
-        'G',
-        0,
-        "E",
-        1,
-        0,
-        GENERIC,
+        FIXED,
     },
     {
         'i',
@@ -265,14 +242,6 @@ static const info fmtinfo[] = {
         0,
         0,
         SIZE,
-    },
-    {
-        'S',
-        0,
-        0,
-        0,
-        0,
-        SEEIT,
     },
     {
         '%',
@@ -359,6 +328,7 @@ va_list ap;
     register int idx;         /* A general purpose loop counter */
     int count;                /* Total number of characters output */
     int width;                /* Width of the current field */
+    int scale;                /* Scale factor for fixed-point numbers */
     int flag_leftjustify;     /* True if "-" flag is present */
     int flag_plussign;        /* True if "+" flag is present */
     int flag_blanksign;       /* True if " " flag is present */
@@ -367,7 +337,6 @@ va_list ap;
     int flag_long;            /* True if "l" flag is present */
     int flag_center;          /* True if "=" flag is present */
     unsigned long longvalue;  /* Value for integer types */
-    long double realvalue;    /* Value for real types */
     const info *infop;        /* Pointer to the appropriate info structure */
     char buf[BUFSIZE];        /* Conversion buffer */
     char prefix;              /* Prefix character.  "+" or "-" or " " or '\0'. */
@@ -469,6 +438,17 @@ va_list ap;
         } else {
             precision = -1;
         }
+        /* Get the scale factor */
+        if (c == '/') {
+            scale = 0;
+            c = *++fmt;
+            while (isdigit(c)) {
+                scale = scale * 10 + c - '0';
+                c = *++fmt;
+            }
+        } else {
+            scale = -1;
+        }
         /* Get the conversion type modifier */
         if (c == 'l') {
             flag_long = 1;
@@ -510,12 +490,15 @@ va_list ap;
         **                               always non-negative.  Zero is the default.
         **   precision                   The specified precision.  The default
         **                               is -1.
+        **   scale                       The scale factor for fixed-point
+        **                               conversions.  The default is 4096.
         **   xtype                       The class of the conversion.
         **   infop                       Pointer to the appropriate info struct.
         */
         switch (xtype) {
             case ORDINAL:
             case RADIX:
+            case FIXED:
                 if (flag_long)
                     longvalue = va_arg(ap, long);
                 else
@@ -564,8 +547,29 @@ va_list ap;
                         bufpt[1] = 'd';
                     }
                 }
-                {
-                    register char *cset; /* Use registers for speed */
+                if (xtype == FIXED) {
+                    if (scale < 0) scale = infop->base;
+                    unsigned long integer = longvalue / scale;
+                    unsigned long fractional = longvalue - (integer * scale);
+                    register const char *cset;
+                    cset = infop->charset;
+                    if (precision < 0) precision = 6;
+                    bufpt -= precision;
+                    char *end = bufpt;
+                    for (idx = precision; idx > 0; idx--) {
+                        fractional *= 10;
+                        uint32_t copy = fractional;
+                        copy /= scale;
+                        fractional -= copy * scale;
+                        *(end++) = (copy % 10) + '0';
+                    }
+                    *(--bufpt) = '.';
+                    do {
+                        *(--bufpt) = (integer % 10) + '0';
+                        integer = integer / 10;
+                    } while (integer > 0);
+                } else {
+                    register const char *cset; /* Use registers for speed */
                     register int base;
                     cset = infop->charset;
                     base = infop->base;
@@ -580,18 +584,14 @@ va_list ap;
                 }
                 if (prefix) *(--bufpt) = prefix;           /* Add sign */
                 if (flag_alternateform && infop->prefix) { /* Add "0" or "0x" */
-                    char *pre, x;
+                    const char *pre;
+                    char x;
                     pre = infop->prefix;
                     if (*bufpt != pre[0]) {
                         for (pre = infop->prefix; (x = (*pre)) != 0; pre++) *(--bufpt) = x;
                     }
                 }
                 length = (int)(&buf[BUFSIZE] - bufpt);
-                break;
-            case FLOAT:
-            case EXP:
-            case GENERIC:
-                realvalue = va_arg(ap, double);
                 break;
             case SIZE:
                 *(va_arg(ap, int *)) = count;

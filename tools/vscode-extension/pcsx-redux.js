@@ -13,8 +13,8 @@ const dmg = require('dmg')
 const dmgMount = util.promisify(dmg.mount)
 const dmgUnmount = util.promisify(dmg.unmount)
 const terminal = require('./terminal.js')
-const execAsync = require('node:child_process').exec
-const exec = util.promisify(execAsync)
+const execFileAsync = require('node:child_process').execFile
+const execFile = util.promisify(execFileAsync)
 const os = require('node:os')
 
 const updateInfo = {
@@ -27,8 +27,12 @@ const updateInfo = {
     infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/',
     fileType: 'zip'
   },
-  darwin: {
+  darwin_Intel: {
     infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-x64/',
+    fileType: 'dmg'
+  },
+  darwin_Arm: {
+    infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/',
     fileType: 'dmg'
   }
 }
@@ -97,11 +101,13 @@ exports.install = async () => {
         'https://aka.ms/vs/17/release/vc_redist.x64.exe',
         fullPath
       )
-      await exec(fullPath)
+      await execFile(fullPath)
     }
   }
 
-  const updateInfoForPlatform = updateInfo[process.platform]
+  const darwinArch = process.arch === 'arm64' ? 'Arm' : 'Intel'
+  const platform = process.platform === 'darwin' ? 'darwin_' + darwinArch : process.platform
+  const updateInfoForPlatform = updateInfo[platform]
   const outputDir =
     process.platform === 'win32'
       ? vscode.Uri.joinPath(globalStorageUri, 'pcsx-redux').fsPath
