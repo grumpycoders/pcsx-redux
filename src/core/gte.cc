@@ -446,9 +446,9 @@ static int32_t Lm_D(int64_t a, int sf) { return LIM(gte_shift(a, sf), 0xffff, 0x
 int64_t PCSX::GTE::F(int64_t a) {
     s_mac0 = a;
 
-    if (a > S64(0x7fffffff)) FLAG |= (1 << 31) | (1 << 16);
+    if (a > 0x7fffffffLL) FLAG |= (1 << 31) | (1 << 16);
 
-    if (a < S64(-0x80000000)) FLAG |= (1 << 31) | (1 << 15);
+    if (a < -0x80000000LL) FLAG |= (1 << 31) | (1 << 15);
 
     return a;
 }
