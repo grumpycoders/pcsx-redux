@@ -39,7 +39,7 @@ jobs:
         path: '**/*.ps-exe'
 
   macos-intel-build-and-test:
-    runs-on: macos-12
+    runs-on: macos-13
     needs: build-openbios
     steps:
     - uses: actions/checkout@v1
