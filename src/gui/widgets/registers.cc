@@ -295,9 +295,15 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 z /= magnitude;
                 ImGui::Text(" :: axis : {%3.5f, %3.5f, %3.5f}", x, y, z);
             }
-            ImGui::Text("trX : %i", registers->CP2C.n.trX);
-            ImGui::Text("trY : %i", registers->CP2C.n.trY);
-            ImGui::Text("trZ : %i", registers->CP2C.n.trZ);
+            if (showFixed) {
+                ImGui::Text("trX : % 3.5f", fixedToFloat(registers->CP2C.n.trX));
+                ImGui::Text("trY : % 3.5f", fixedToFloat(registers->CP2C.n.trY));
+                ImGui::Text("trZ : % 3.5f", fixedToFloat(registers->CP2C.n.trZ));
+            } else {
+                ImGui::Text("trX : %i", registers->CP2C.n.trX);
+                ImGui::Text("trY : %i", registers->CP2C.n.trY);
+                ImGui::Text("trZ : %i", registers->CP2C.n.trZ);
+            }
             displayMatrix(registers->CP2C.n.lMatrix, "L");
             if (showFixed) {
                 ImGui::Text("rbk : % 3.5f", fixedToFloat(registers->CP2C.n.rbk));
