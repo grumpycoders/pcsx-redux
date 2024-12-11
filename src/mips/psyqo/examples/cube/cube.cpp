@@ -175,7 +175,7 @@ void CubeScene::frame() {
 
         // Read the result of nclip and skip rendering this face if it's not facing us
         int32_t mac0 = 0;
-        psyqo::GTE::read<psyqo::GTE::Register::MAC0>(reinterpret_cast<uint32_t *>(&mac0));
+        psyqo::GTE::read<psyqo::GTE::Register::MAC0>(reinterpret_cast<uint32_t*>(&mac0));
         if (mac0 <= 0) continue;
 
         // Since the GTE can only handle 3 vertices at a time, we need to store our first vertex
@@ -191,7 +191,7 @@ void CubeScene::frame() {
         // Calculate the average Z for the z-Index to be put in the ordering table
         psyqo::GTE::Kernels::avsz4();
         int32_t zIndex = 0;
-        psyqo::GTE::read<psyqo::GTE::Register::OTZ>(reinterpret_cast<uint32_t *>(&zIndex));
+        psyqo::GTE::read<psyqo::GTE::Register::OTZ>(reinterpret_cast<uint32_t*>(&zIndex));
 
         // If the Z-index is out of bounds for our ordering table, we skip rendering this face.
         if (zIndex < 0 || zIndex >= ORDERING_TABLE_SIZE) continue;
