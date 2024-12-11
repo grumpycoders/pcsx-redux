@@ -239,7 +239,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                         conditionVal = curVal;
                     }
                     ImGui::SameLine();
-                    ImGui::Text(_("Current Value"));
+                    ImGui::TextUnformatted(_("Current Value"));
                     break;
             }
         }
