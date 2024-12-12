@@ -23,17 +23,22 @@
 
 #include "core/psxemulator.h"
 #include "core/sstate.h"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 namespace PCSX {
 class SIO;
-class Memorycards;
 
 /// <summary>
 /// Implements a memory card for SIO
 /// </summary>
 class MemoryCard {
   public:
-    MemoryCard(uint8_t device_index) : m_deviceIndex(device_index){}
+    enum class Which : uint8_t {
+        One = 0,
+        Two = 1,
+    };
+
+    MemoryCard(Which which) : m_whichDevice(which) {}
 
     // Hardware events
 
@@ -128,7 +133,7 @@ class MemoryCard {
     uint16_t m_directoryIndex = 0;
 
     SIO *m_sio = nullptr;
-    uint8_t m_deviceIndex = 0;
+    Which m_whichDevice = Which::One;
 };
 
 /// <summary>
@@ -148,7 +153,7 @@ class MemoryCards {
 
     struct McdBlock {
         McdBlock() { reset(); }
-        int mcd;
+        MemoryCard::Which mcd;
         int number;
         std::string titleAscii;
         std::string titleSjis;
@@ -161,7 +166,7 @@ class MemoryCards {
         uint32_t allocState;
         int16_t nextBlock;
         void reset() {
-            mcd = 0;
+            mcd = MemoryCard::Which::One;
             number = 0;
             titleAscii.clear();
             titleSjis.clear();
@@ -184,51 +189,52 @@ class MemoryCards {
 
     bool copyMcdFile(McdBlock block);
     void eraseMcdFile(const McdBlock &block);
-    void eraseMcdFile(int mcd, int block) {
+    void eraseMcdFile(MemoryCard::Which mcd, int block) {
         McdBlock info;
         getMcdBlockInfo(mcd, block, info);
         eraseMcdFile(info);
     }
-    int findFirstFree(int mcd);
-    unsigned getFreeSpace(int mcd);
+    int findFirstFree(MemoryCard::Which mcd);
+    unsigned getFreeSpace(MemoryCard::Which mcd);
     unsigned getFileBlockCount(McdBlock block);
-    void getMcdBlockInfo(int mcd, int block, McdBlock &info);
-    char *getMcdData(int mcd);
+    void getMcdBlockInfo(MemoryCard::Which mcd, int block, McdBlock &info);
+    char *getMcdData(MemoryCard::Which mcd);
     char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
 
     // File operations
     void createMcd(PCSX::u8string mcd);
     void loadMcds(const CommandLine::args &args);
-    bool saveMcd(int card_index);
+    bool saveMcd(MemoryCard::Which which);
 
     bool loadMcd(PCSX::u8string mcd, char *data);
     bool saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
 
-    static constexpr int otherMcd(int mcd) {
-        if ((mcd != 0) && (mcd != 1)) throw std::runtime_error("Bad memory card number");
-        if (mcd == 0) return 1;
-        return 0;
+    static constexpr MemoryCard::Which otherMcd(MemoryCard::Which mcd) {
+        if ((mcd != MemoryCard::Which::One) && (mcd != MemoryCard::Which::Two))
+            throw std::runtime_error("Bad memory card number");
+        if (mcd == MemoryCard::Which::One) return MemoryCard::Which::Two;
+        return MemoryCard::Which::One;
     }
 
-    PCSX::u8string getMcdPath(int index) {
+    PCSX::u8string getMcdPath(MemoryCard::Which which) {
         std::filesystem::path *paths[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().value,
                                           &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().value};
 
-        PCSX::u8string thepath = paths[index]->u8string();
+        PCSX::u8string thepath = paths[magic_enum::enum_integer(which)]->u8string();
         return thepath;
     }
-    bool isCardInserted(int index) {
+    bool isCardInserted(MemoryCard::Which which) {
         bool *const inserted_lut[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>().value,
                                       &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>().value};
 
-        return *inserted_lut[index];
+        return *inserted_lut[magic_enum::enum_integer(which)];
     }
 
-    static constexpr int otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
-    void resetCard(int index);
-    void setPocketstationEnabled(int index, bool enabled);
+    static constexpr MemoryCard::Which otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
+    void resetCard(MemoryCard::Which which);
+    void setPocketstationEnabled(MemoryCard::Which which, bool enabled);
 
-    MemoryCard m_memoryCard[2] = {MemoryCard(0), MemoryCard(1)};
+    MemoryCard m_memoryCard[2] = {MemoryCard(MemoryCard::Which::One), MemoryCard(MemoryCard::Which::Two)};
 };
 
 }  // namespace PCSX

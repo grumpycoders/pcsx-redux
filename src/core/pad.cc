@@ -698,7 +698,7 @@ void PadsImpl::Pad::getButtons() {
 }
 
 uint8_t PadsImpl::Pad::transceive(uint8_t value, bool* ack) {
-    uint8_t data_out = 0xff;
+    uint8_t dataOut = 0xff;
 
     switch (m_padState) {
         case Pads::PAD_STATE_IDLE:  // start pad
@@ -732,14 +732,14 @@ uint8_t PadsImpl::Pad::transceive(uint8_t value, bool* ack) {
             break;
     }
 
-    data_out = m_buffer[m_bufferIndex];
+    dataOut = m_buffer[m_bufferIndex];
 
     if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
     } else {
         *ack = true;
     }
 
-    return data_out;
+    return dataOut;
 }
 
 uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {

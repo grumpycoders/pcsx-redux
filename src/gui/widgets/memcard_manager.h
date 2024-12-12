@@ -68,8 +68,8 @@ class MemcardManager {
 
     std::unique_ptr<uint8_t[]> getLatest() {
         std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(MemoryCards::c_cardSize * 2);
-        std::memcpy(data.get(), g_emulator->m_memoryCards->getMcdData(0), MemoryCards::c_cardSize);
-        std::memcpy(data.get() + MemoryCards::c_cardSize, g_emulator->m_memoryCards->getMcdData(1),
+        std::memcpy(data.get(), g_emulator->m_memoryCards->getMcdData(MemoryCard::Which::One), MemoryCards::c_cardSize);
+        std::memcpy(data.get() + MemoryCards::c_cardSize, g_emulator->m_memoryCards->getMcdData(MemoryCard::Which::Two),
                     MemoryCards::c_cardSize);
 
         return data;
@@ -79,7 +79,7 @@ class MemcardManager {
     std::unique_ptr<uint8_t[]> m_latest;
     Widgets::FileDialog<> m_importMemoryCardDialog;
     Widgets::FileDialog<FileDialogMode::Save> m_exportMemoryCardDialog;
-    unsigned m_memoryCardImportExportIndex = 0;
+    MemoryCard::Which m_memoryCardImportExportIndex = MemoryCard::Which::One;
 
     void clearUndoBuffer() {
         m_undo.clear();

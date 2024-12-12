@@ -25,6 +25,7 @@
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/imgui-helpers.h"
 #include "support/uvfile.h"
 
@@ -63,19 +64,19 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         if (ImGui::BeginMenu(_("File"))) {
             if (ImGui::MenuItem(_("Import file into memory card 1"))) {
                 showImportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 0;
+                m_memoryCardImportExportIndex = MemoryCard::Which::One;
             }
             if (ImGui::MenuItem(_("Import file into memory card 2"))) {
                 showImportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 1;
+                m_memoryCardImportExportIndex = MemoryCard::Which::Two;
             }
             if (ImGui::MenuItem(_("Export memory card 1 to file"))) {
                 showExportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 0;
+                m_memoryCardImportExportIndex = MemoryCard::Which::One;
             }
             if (ImGui::MenuItem(_("Export memory card 2 to file"))) {
                 showExportMemoryCardDialog = true;
-                m_memoryCardImportExportIndex = 1;
+                m_memoryCardImportExportIndex = MemoryCard::Which::Two;
             }
             ImGui::EndMenu();
         }
@@ -90,7 +91,9 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
         if (!fileToOpen.empty()) {
             g_emulator->m_memoryCards->loadMcd(
-                fileToOpen[0], g_emulator->m_memoryCards->m_memoryCard[m_memoryCardImportExportIndex].getMcdData());
+                fileToOpen[0],
+                g_emulator->m_memoryCards->m_memoryCard[magic_enum::enum_integer(m_memoryCardImportExportIndex)]
+                    .getMcdData());
             g_emulator->m_memoryCards->saveMcd(m_memoryCardImportExportIndex);
             clearUndoBuffer();
         }
@@ -121,8 +124,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     const bool wasLatest = isLatest;
     if (ImGui::SliderInt(_("Undo"), &m_undoIndex, 0, m_undo.size(), "")) {
         isLatest = m_undo.size() == m_undoIndex;
-        const auto dataCard1 = g_emulator->m_memoryCards->getMcdData(0);
-        const auto dataCard2 = g_emulator->m_memoryCards->getMcdData(1);
+        const auto dataCard1 = g_emulator->m_memoryCards->getMcdData(MemoryCard::Which::One);
+        const auto dataCard2 = g_emulator->m_memoryCards->getMcdData(MemoryCard::Which::Two);
         if (isLatest) {
             std::memcpy(dataCard1, m_latest.get(), MemoryCards::c_cardSize);
             std::memcpy(dataCard2, m_latest.get() + MemoryCards::c_cardSize, MemoryCards::c_cardSize);
@@ -136,8 +139,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             std::memcpy(dataCard1, m_undo[m_undoIndex].second.get(), MemoryCards::c_cardSize);
             std::memcpy(dataCard2, m_undo[m_undoIndex].second.get() + MemoryCards::c_cardSize, MemoryCards::c_cardSize);
         }
-        g_emulator->m_memoryCards->saveMcd(0);
-        g_emulator->m_memoryCards->saveMcd(1);
+        g_emulator->m_memoryCards->saveMcd(MemoryCard::Which::One);
+        g_emulator->m_memoryCards->saveMcd(MemoryCard::Which::Two);
     }
     ImGui::TextUnformatted(_("Undo version: "));
     ImGui::SameLine();
@@ -165,7 +168,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
     if (ImGui::Checkbox(_("Card 1 Pocketstation"),
                         &g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value)) {
-        g_emulator->m_memoryCards->setPocketstationEnabled(0, g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value);
+        g_emulator->m_memoryCards->setPocketstationEnabled(
+            MemoryCard::Which::One, g_emulator->settings.get<Emulator::SettingMcd1Pocketstation>().value);
         changed = true;
     }
     ImGuiHelpers::ShowHelpMarker(
@@ -173,7 +177,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
           "allowing apps to be saved/exported."));
     if (ImGui::Checkbox(_("Card 2 Pocketstation"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
-        g_emulator->m_memoryCards->setPocketstationEnabled(1, g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value);
+        g_emulator->m_memoryCards->setPocketstationEnabled(
+            MemoryCard::Which::Two, g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value);
         changed = true;
     }
     ImGuiHelpers::ShowHelpMarker(
@@ -186,7 +191,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         initTextures();
     }
 
-    static const auto draw = [this, gui](int card, int othercard) {
+    static const auto draw = [this, gui](MemoryCard::Which card, MemoryCard::Which othercard) {
         static constexpr ImGuiTableFlags flags =
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
             ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchProp;
@@ -287,8 +292,8 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                                 std::move(latest),
                                 fmt::format(f_("Moved file {}({}) from card {} to card {}"), block.number,
                                             gui->hasJapanese() ? block.titleUtf8 : block.titleAscii, card, othercard));
-                            g_emulator->m_memoryCards->saveMcd(0);
-                            g_emulator->m_memoryCards->saveMcd(1);
+                            g_emulator->m_memoryCards->saveMcd(MemoryCard::Which::One);
+                            g_emulator->m_memoryCards->saveMcd(MemoryCard::Which::Two);
                         }
                     }
                 } else {
@@ -315,11 +320,11 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
 
     if (ImGui::BeginTabBar("Cards")) {
         if (ImGui::BeginTabItem(_("Memory Card 1"))) {
-            draw(0, 1);
+            draw(MemoryCard::Which::One, MemoryCard::Which::Two);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem(_("Memory Card 2"))) {
-            draw(1, 0);
+            draw(MemoryCard::Which::Two, MemoryCard::Which::One);
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

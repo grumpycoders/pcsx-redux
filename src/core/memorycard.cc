@@ -22,6 +22,7 @@
 #include <bitset>
 
 #include "core/sio.h"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/sjis_conv.h"
 
 void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
@@ -42,7 +43,7 @@ void PCSX::MemoryCards::loadMcds(const CommandLine::args &args) {
     loadMcd(path2, m_memoryCard[1].getMcdData());
 }
 
-void PCSX::MemoryCards::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
+void PCSX::MemoryCards::getMcdBlockInfo(MemoryCard::Which mcd, int block, McdBlock &info) {
     if (block < 1 || block > 15) {
         throw std::runtime_error(_("Wrong block number"));
     }
@@ -172,8 +173,8 @@ void PCSX::MemoryCards::getMcdBlockInfo(int mcd, int block, McdBlock &info) {
     }
 }
 
-char *PCSX::MemoryCards::getMcdData(int mcd) {
-        return m_memoryCard[mcd].getMcdData();
+char *PCSX::MemoryCards::getMcdData(MemoryCard::Which mcd) {
+    return m_memoryCard[magic_enum::enum_integer(mcd)].getMcdData();
 }
 
 // Erase a memory card block by clearing it with 0s
@@ -205,7 +206,7 @@ void PCSX::MemoryCards::eraseMcdFile(const McdBlock &block) {
     }
 }
 
-unsigned PCSX::MemoryCards::getFreeSpace(int mcd) {
+unsigned PCSX::MemoryCards::getFreeSpace(MemoryCard::Which mcd) {
     unsigned count = 0;
     for (int i = 1; i < 16; i++) {
         McdBlock block;
@@ -239,7 +240,7 @@ unsigned PCSX::MemoryCards::getFileBlockCount(McdBlock block) {
     }
 }
 
-int PCSX::MemoryCards::findFirstFree(int mcd) {
+int PCSX::MemoryCards::findFirstFree(MemoryCard::Which mcd) {
     McdBlock block;
     for (int i = 1; i < 16; i++) {
         getMcdBlockInfo(mcd, i, block);
@@ -302,31 +303,29 @@ bool PCSX::MemoryCards::copyMcdFile(McdBlock block) {
 
 // Back up the entire memory card to a file
 // index: The memory card to back up (0-7)
-bool PCSX::MemoryCards::saveMcd(int index) {
-    return saveMcd(getMcdPath(index), m_memoryCard[index].getMcdData(), 0, c_cardSize);
+bool PCSX::MemoryCards::saveMcd(MemoryCard::Which which) {
+    return saveMcd(getMcdPath(which), m_memoryCard[magic_enum::enum_integer(which)].getMcdData(), 0, c_cardSize);
 }
 
-void PCSX::MemoryCards::resetCard(int index) {
-        m_memoryCard[index].reset();
-}
+void PCSX::MemoryCards::resetCard(MemoryCard::Which which) { m_memoryCard[magic_enum::enum_integer(which)].reset(); }
 
-void PCSX::MemoryCards::setPocketstationEnabled(int index, bool enabled) {
-    m_memoryCard[index].setPocketstationEnabled(enabled);
+void PCSX::MemoryCards::setPocketstationEnabled(MemoryCard::Which which, bool enabled) {
+    m_memoryCard[magic_enum::enum_integer(which)].setPocketstationEnabled(enabled);
 }
 
 void PCSX::MemoryCard::commit() {
     for (int retry_count = 0; retry_count < 3; retry_count++) {
-        if (g_emulator->m_memoryCards->saveMcd(m_deviceIndex)) {
+        if (g_emulator->m_memoryCards->saveMcd(m_whichDevice)) {
             m_savedToDisk = true;
             break;
         } else {
-            PCSX::g_system->printf(_("Failed to save card %d, attempt %d/3"), m_deviceIndex + 1, retry_count + 1);
+            PCSX::g_system->printf(_("Failed to save card %d, attempt %d/3"), magic_enum::enum_integer(m_whichDevice) + 1, retry_count + 1);
         }
     }
 }
 
 uint8_t PCSX::MemoryCard::transceive(uint8_t value, bool *ack) {
-    uint8_t data_out = m_spdr;
+    uint8_t dataOut = m_spdr;
 
     if (m_currentCommand == Commands::None || m_currentCommand == Commands::Access) {
         m_currentCommand = value;
@@ -385,49 +384,49 @@ uint8_t PCSX::MemoryCard::transceive(uint8_t value, bool *ack) {
             break;
     }
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value, bool *ack) {
-    uint8_t data_out = 0xFF;
+    uint8_t dataOut = 0xFF;
 
     switch (m_commandTicks) {
         case 0:
-            data_out = Responses::ID1;
+            dataOut = Responses::ID1;
             break;
 
         case 1:
-            data_out = Responses::ID2;
+            dataOut = Responses::ID2;
             break;
 
         case 2:
-            data_out = Responses::Dummy;
+            dataOut = Responses::Dummy;
             break;
 
         case 3:  // MSB
             m_sector = (value << 8);
-            data_out = value;
+            dataOut = value;
             break;
 
         case 4:  // LSB
             // Store lower 8 bits of sector
             m_sector |= value;
             m_dataOffset = m_sector * 128;
-            data_out = Responses::CommandAcknowledge1;
+            dataOut = Responses::CommandAcknowledge1;
             break;
 
         case 5:  // 00h
-            data_out = Responses::CommandAcknowledge2;
+            dataOut = Responses::CommandAcknowledge2;
             break;
 
         case 6:  // 00h
             // Confirm MSB
-            data_out = m_sector >> 8;
+            dataOut = m_sector >> 8;
             break;
 
         case 7:  // 00h
             // Confirm LSB
-            data_out = (m_sector & 0xFF);
+            dataOut = (m_sector & 0xFF);
             m_checksumOut = (m_sector >> 8) ^ (m_sector & 0xff);
             break;
 
@@ -435,12 +434,12 @@ inline uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value, bool *ack) {
         default:
             if (m_commandTicks >= 8 && m_commandTicks <= 135) {  // Stay here for 128 bytes
                 if (m_sector >= 1024) {
-                    data_out = Responses::BadSector;
+                    dataOut = Responses::BadSector;
                 } else {
-                    data_out = m_mcdData[m_dataOffset++];
+                    dataOut = m_mcdData[m_dataOffset++];
                 }
 
-                m_checksumOut ^= data_out;
+                m_checksumOut ^= dataOut;
             } else {
                 // Send this till the spooky extra bytes go away
                 return Responses::CommandAcknowledge1;
@@ -448,22 +447,22 @@ inline uint8_t PCSX::MemoryCard::tickReadCommand(uint8_t value, bool *ack) {
             break;
 
         case 136:
-            data_out = m_checksumOut;
+            dataOut = m_checksumOut;
             break;
 
         case 137:
-            data_out = Responses::GoodReadWrite;
+            dataOut = Responses::GoodReadWrite;
             break;
     }
 
     m_commandTicks++;
     *ack = true;
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
-    uint8_t data_out = 0xFF;
+    uint8_t dataOut = 0xFF;
 
     switch (m_commandTicks) {
             // Data is sent and received simultaneously,
@@ -474,22 +473,22 @@ inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
             // Offset "Send" bytes noted from nocash's psx specs.
 
         case 0:  // 57h
-            data_out = Responses::ID1;
+            dataOut = Responses::ID1;
             break;
 
         case 1:  // 00h
-            data_out = Responses::ID2;
+            dataOut = Responses::ID2;
             break;
 
         case 2:  // 00h
-            data_out = Responses::Dummy;
+            dataOut = Responses::Dummy;
             break;
 
         case 3:  // MSB
             // Store upper 8 bits of sector
             m_sector = (value << 8);
             // Reply with (pre)
-            data_out = value;
+            dataOut = value;
             break;
 
         case 4:  // LSB
@@ -498,7 +497,7 @@ inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
             // m_dataOffset = (m_sector * 128);
             m_dataOffset = 0;
             m_checksumOut = (m_sector >> 8) ^ (m_sector & 0xFF);
-            data_out = value;
+            dataOut = value;
             break;
 
         // Cases 5 through 135 overloaded to default operator below
@@ -512,7 +511,7 @@ inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
                 m_checksumOut ^= value;
 
                 // Reply with (pre)
-                data_out = value;
+                dataOut = value;
                 m_dataOffset++;
             } else {
                 // Send this till the spooky extra bytes go away
@@ -534,17 +533,17 @@ inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
                 m_commandTicks = 0xFF;
                 return Responses::BadChecksum;
             } else {
-                data_out = Responses::CommandAcknowledge1;
+                dataOut = Responses::CommandAcknowledge1;
             }
             break;
 
         case 134:  // 00h
-            data_out = Responses::CommandAcknowledge2;
+            dataOut = Responses::CommandAcknowledge2;
             break;
 
         case 135:  // 00h
             m_directoryFlag = Flags::DirectoryRead;
-            data_out = Responses::GoodReadWrite;
+            dataOut = Responses::GoodReadWrite;
             memcpy(&m_mcdData[m_sector * 128], &m_tempBuffer, c_sectorSize);
             m_savedToDisk = false;
             commit();
@@ -554,17 +553,17 @@ inline uint8_t PCSX::MemoryCard::tickWriteCommand(uint8_t value, bool *ack) {
     m_commandTicks++;
     *ack = true;
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickPS_GetDirIndex(uint8_t value, bool *ack) {
-    uint8_t data_out = Responses::IdleHighZ;
+    uint8_t dataOut = Responses::IdleHighZ;
     static constexpr uint8_t response_count = 19;
     static constexpr uint8_t responses[response_count] = {0x12, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x13, 0x11, 0x4F,
                                                           0x41, 0x20, 0x01, 0x99, 0x19, 0x27, 0x30, 0x09, 0x04};
 
     if (m_commandTicks < response_count) {
-        data_out = responses[m_commandTicks];
+        dataOut = responses[m_commandTicks];
 
         // Don't ack the last byte
         if (m_commandTicks <= (response_count - 1)) {
@@ -574,54 +573,54 @@ inline uint8_t PCSX::MemoryCard::tickPS_GetDirIndex(uint8_t value, bool *ack) {
 
     m_commandTicks++;
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickPS_ExecCustom(uint8_t value, bool *ack) {
-    uint8_t data_out = Responses::IdleHighZ;
+    uint8_t dataOut = Responses::IdleHighZ;
 
     switch (m_commandTicks) {
         case 0:  // 5D
-            data_out = 0x03;
+            dataOut = 0x03;
             break;
 
         default:
-            data_out = 0x00;
+            dataOut = 0x00;
             break;
     }
 
     m_commandTicks++;
     *ack = true;
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickPS_PrepFileExec(uint8_t value, bool *ack) {
-    uint8_t data_out = Responses::IdleHighZ;
+    uint8_t dataOut = Responses::IdleHighZ;
 
     switch (m_commandTicks) {
         case 0:  // 59
-            data_out = 0x06;
+            dataOut = 0x06;
             break;
 
         default:
-            data_out = 0x00;
+            dataOut = 0x00;
             break;
     }
 
     m_commandTicks++;
     *ack = true;
 
-    return data_out;
+    return dataOut;
 }
 
 inline uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value, bool *ack) {
-    uint8_t data_out = Responses::IdleHighZ;
+    uint8_t dataOut = Responses::IdleHighZ;
     static constexpr uint8_t response_count = 3;
     static constexpr uint8_t responses[response_count] = {0x02, 0x01, 0x01};
 
     if (m_commandTicks < response_count) {
-        data_out = responses[m_commandTicks];
+        dataOut = responses[m_commandTicks];
 
         // Don't ack the last byte
         if (m_commandTicks <= (response_count - 1)) {
@@ -631,7 +630,7 @@ inline uint8_t PCSX::MemoryCard::tickPS_GetVersion(uint8_t value, bool *ack) {
 
     m_commandTicks++;
 
-    return data_out;
+    return dataOut;
 }
 
 // To-do: "All the code starting here is terrible and needs to be rewritten"
@@ -715,7 +714,7 @@ bool PCSX::MemoryCards::saveMcd(PCSX::u8string mcd, const char *data, uint32_t a
         fwrite(data + adr, 1, size, f);
         fclose(f);
         PCSX::g_system->printf(_("Saving memory card %s\n"), fname);
-        
+
         return true;
     } else {
         // try to create it again if we can't open it
