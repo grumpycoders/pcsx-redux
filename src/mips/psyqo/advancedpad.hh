@@ -63,21 +63,6 @@ class AdvancedPad {
         Square = 15,
     };
 
-    enum Command : uint8_t {
-        PadSelect = 0x01,
-        ReadPad = 0x42,  // 'B' Read Buttons AND analog inputs
-        // Config mode commands
-        ToggleConfigMode = 0x43,      // 'C' Enter/Exit Configuration Mode
-        SetLED = 0x44,                // 'D' Set LED State (analog mode on/off)
-        GetLED = 0x45,                // 'E' Get LED State (and whatever values)
-        GetMotorInfo = 0x46,          // 'F' Allegedly get info about a motor
-        GetMotorList = 0x47,          // 'G' Allegedly get list of motors
-        GetMotorState = 0x48,         // 'H' Allegedly get motor state
-        GetSupportedModes = 0x4c,     // 'L' Allegedly get supported modes
-        ConfigRequestFormat = 0x4d,   // 'M' Allegedly configure poll request format
-        ConfigResponseFormat = 0x4f,  // 'O' Allegedly configure poll response format
-    };
-
     enum PadType : uint8_t {
         Mouse = 0x12,           // (two button mouse)
         NegCon = 0x23,          // (steering twist/wheel/paddle)
@@ -157,7 +142,96 @@ class AdvancedPad {
      */
     bool isButtonPressed(Pad pad, Button button) const { return (m_padData[pad][1] & (1 << button)) == 0; }
 
+    /**
+     * @brief Returns the state of Analog Input 0 (if any).
+     *
+     * @details Returns the state of Analog Input 0 (if any).
+     *
+     * @param pad The pad to query.
+     * @return The state of the Analog Input.
+     */
+    uint8_t getAdc0(Pad pad) const { return m_padData[pad][2] & 0xff; }
+
+    /**
+     * @brief Returns the state of Analog Input 1 (if any).
+     *
+     * @details Returns the state of Analog Input 1 (if any).
+     *
+     * @param pad The pad to query.
+     * @return The state of the Analog Input.
+     */
+    uint8_t getAdc1(Pad pad) const { return m_padData[pad][2] >> 8; }
+
+    /**
+     * @brief Returns the state of Analog Input 2 (if any).
+     *
+     * @details Returns the state of Analog Input 2 (if any).
+     *
+     * @param pad The pad to query.
+     * @return The state of the Analog Input.
+     */
+    uint8_t getAdc2(Pad pad) const { return m_padData[pad][3] & 0xff; }
+
+    /**
+     * @brief Returns the state of Analog Input 3 (if any).
+     *
+     * @details Returns the state of Analog Input 3 (if any).
+     *
+     * @param pad The pad to query.
+     * @return The state of the Analog Input.
+     */
+    uint8_t getAdc3(Pad pad) const { return m_padData[pad][3] >> 8; }
+
+    /**
+     * @brief Returns the state of an Analog Input.
+     *
+     * @details Returns the state of an Analog Input.
+     *
+     * @param pad The pad to query.
+     * @param index The index of the Analog Input.
+     * @return The state of the Analog Input.
+     */
+    uint8_t getAdc(Pad pad, uint8_t index) const {
+        switch (index) {
+            case 0:
+                return getAdc0(pad);
+            case 1:
+                return getAdc1(pad);
+            case 2:
+                return getAdc2(pad);
+            case 3:
+                return getAdc3(pad);
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * @brief Returns the type of the pad.
+     *
+     * @details Returns the type of the pad.
+     *
+     * @param pad The pad to query.
+     * @return The type of the pad.
+     */
+    uint8_t getPadType(Pad pad) const { return m_padData[pad][0] >> 8; }
+
   private:
+    enum Command : uint8_t {
+        PadSelect = 0x01,
+        ReadPad = 0x42,  // 'B' Read Buttons AND analog inputs
+        // Config mode commands
+        ToggleConfigMode = 0x43,      // 'C' Enter/Exit Configuration Mode
+        SetLED = 0x44,                // 'D' Set LED State (analog mode on/off)
+        GetLED = 0x45,                // 'E' Get LED State (and whatever values)
+        GetMotorInfo = 0x46,          // 'F' Allegedly get info about a motor
+        GetMotorList = 0x47,          // 'G' Allegedly get list of motors
+        GetMotorState = 0x48,         // 'H' Allegedly get motor state
+        GetSupportedModes = 0x4c,     // 'L' Allegedly get supported modes
+        ConfigRequestFormat = 0x4d,   // 'M' Allegedly configure poll request format
+        ConfigResponseFormat = 0x4f,  // 'O' Allegedly configure poll response format
+    };
+
     void busyLoop(unsigned delay) {
         unsigned cycles = 0;
         while (++cycles < delay) asm("");
