@@ -138,8 +138,8 @@ void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, 
     const auto padType = input.getPadType(pad);
 
     if (((padType & 0x0f) > 1) && padType != psyqo::AdvancedPad::PadType::None) {
-        sprintf(m_textBuffer, "ADC[0-%d]", (padType & 0x0f));
-        print(column + 0, 9, true, m_textBuffer);
+        sprintf(m_textBuffer, "ADC[0-%d]", (((padType & 0x0f) - 1) * 2) - 1);
+        print(column + 0, 9, false, m_textBuffer);
 
         for (int i = 0; i < ((padType & 0x0f) - 1) * 2 && i < 4; i++) {
             sprintf(m_textBuffer, "%02X ", input.getAdc(pad, i));
