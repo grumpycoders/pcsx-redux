@@ -345,7 +345,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             ImGui::Text("pc   : %08x", registers->pc);
             makeEditableRegister("pc", registers->pc);
             ImGui::Text("cycle: %08x", registers->cycle);
-            ImGui::Text("int  : %08x", registers->interrupt);
+            ImGui::Text("sched: %08x", registers->scheduleMask);
             ImGui::Separator();
             uint32_t istat = memory->readHardwareRegister<PCSX::Memory::ISTAT>();
             uint32_t imask = memory->readHardwareRegister<PCSX::Memory::IMASK>();

@@ -37,8 +37,8 @@ class MDEC {
     uint32_t read1();
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void mdec0Interrupt();
-    void mdec1Interrupt();
+    void scheduledCallback0();
+    void scheduledCallback1();
 
     static const unsigned DSIZE = 8;
     static const unsigned DSIZE2 = DSIZE * DSIZE;
