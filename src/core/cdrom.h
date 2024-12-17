@@ -46,10 +46,12 @@ struct CdrStat {
 
 class CDRom {
   public:
+    using TrackType = PCSX::CDRIso::TrackType;
     using MSF = PCSX::IEC60908b::MSF;
     CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
+    bool isBootable() { return m_bootable; }
     bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
     void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
     void check();
@@ -165,6 +167,7 @@ class CDRom {
     friend class Widgets::IsoBrowser;
     std::string m_cdromId;
     std::string m_cdromLabel;
+    bool m_bootable;
 };
 
 }  // namespace PCSX
