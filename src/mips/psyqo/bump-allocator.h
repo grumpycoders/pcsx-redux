@@ -52,15 +52,15 @@ namespace psyqo {
 template <size_t N>
 class BumpAllocator {
   public:
-    template <Primitive P, typename ...Args>
-    Fragments::SimpleFragment<P> &allocateFragment(Args ...args) {
+    template <Primitive P, typename... Args>
+    Fragments::SimpleFragment<P> &allocateFragment(Args... args) {
         static constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
         uint8_t *ptr = m_current;
         m_current += size;
         return *new (ptr) Fragments::SimpleFragment<P>(args...);
     }
-    template <typename T, typename ...Args>
-    T &allocate(Args ...args) {
+    template <typename T, typename... Args>
+    T &allocate(Args... args) {
         size_t size = sizeof(T);
         uint8_t *ptr = m_current;
         if constexpr (alignof(T) > 1) {
