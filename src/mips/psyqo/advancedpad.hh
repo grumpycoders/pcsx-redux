@@ -191,7 +191,7 @@ class AdvancedPad {
      * @param index The index of the Analog Input.
      * @return The state of the Analog Input.
      */
-    uint8_t getAdc(Pad pad, uint8_t index) const {
+    uint8_t getAdc(Pad pad, unsigned int index) const {
         switch (index) {
             case 0:
                 return getAdc0(pad);
@@ -204,6 +204,20 @@ class AdvancedPad {
             default:
                 return 0;
         }
+    }
+
+    /**
+     * @brief Returns raw pad data as a 16-bit value.
+     *
+     * @details Returns the halfword value for the requested index of the given pad index.
+     *
+     * @param pad The pad to query.
+     * @param index The index of the halfword.
+     * @return The value of the halfword.
+     */
+
+    uint16_t getHalfword(Pad pad, unsigned int index) const {
+        return m_padData[pad][index % 4];
     }
 
     /**

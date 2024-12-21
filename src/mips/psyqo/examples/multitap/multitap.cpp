@@ -137,11 +137,16 @@ void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, 
     char m_textBuffer[32] = {'\0'};
     const auto padType = input.getPadType(pad);
 
-    if (((padType & 0x0f) > 1) && padType != psyqo::AdvancedPad::PadType::None) {
-        sprintf(m_textBuffer, "ADC[0-%d]", (((padType & 0x0f) - 1) * 2) - 1);
+    // The lower 4-bits of the pad type indicate the number of half-words of pad data
+    // The 1st half-word is for the digital switches
+    const auto halfWords = padType & 0xf;
+    const auto adcBytes = (halfWords - 1) * 2;
+
+    if (halfWords > 1 && padType != psyqo::AdvancedPad::PadType::None) {
+        sprintf(m_textBuffer, "ADC[0-%d]", adcBytes - 1);
         print(column + 0, 9, false, m_textBuffer);
 
-        for (int i = 0; i < ((padType & 0x0f) - 1) * 2 && i < 4; i++) {
+        for (int i = 0; i < adcBytes && i < 4; i++) {
             sprintf(m_textBuffer, "%02X ", input.getAdc(pad, i));
             print(column + 10 + (i * 3), 9, true, m_textBuffer);
         }
@@ -207,7 +212,7 @@ void MultitapTestScene::frame() {
     multitapTest.gpu().clear();
 
     if (multitapTest.m_input.isPadConnected(m_padIndex)) {
-        print(7, m_padIndex, true, ">");
+        print(1, m_padIndex, true, ">");
     }
 
     printPadConnectionStatus(psyqo::AdvancedPad::Pad1a, 0, "Pad 1a");
