@@ -195,6 +195,9 @@ int pcsxMain(int argc, char **argv) {
     PCSX::g_system = system;
     auto sigint = std::signal(SIGINT, [](auto signal) { PCSX::g_system->quit(-1); });
     auto sigterm = std::signal(SIGTERM, [](auto signal) { PCSX::g_system->quit(-1); });
+#ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+#endif
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
