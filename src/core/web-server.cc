@@ -757,47 +757,21 @@ class ScreenExecutor : public PCSX::WebExecutor {
 
 }  // namespace
 
-std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
+std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(std::string_view query) {
+    UriQueryListA* queryList;
+    int itemCount;
     std::multimap<std::string, std::string> ret;
-    auto fragments = StringsHelpers::split(std::string_view(query), "&");
-    for (auto& f : fragments) {
-        auto parts = StringsHelpers::split(f, "=", true);
-        if (parts.size() == 2) {
-            ret.emplace(percentDecode(parts[0]), percentDecode(parts[1]));
+    const char* queryStart = query.data();
+    const char* queryEnd = query.data() + query.size();
+    if (uriDissectQueryMallocA(&queryList, &itemCount, queryStart, queryEnd) == URI_SUCCESS) {
+        auto item = queryList;
+        for (int i = 0; i < itemCount; ++i) {
+            ret.emplace(item->key, item->value ? item->value : "");
+            item = item->next;
         }
+        uriFreeQueryListA(queryList);
     }
-    return ret;
-}
 
-std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
-    std::string ret;
-    auto len = str.length();
-    for (decltype(len) i = 0; i < len; i++) {
-        auto c = str[i];
-        switch (c) {
-            case '%': {
-                if ((len - i) < 3) return ret;
-
-                auto hex = str.substr(i + 1, 2);
-                uint8_t result = 0;
-
-                auto [ptr, ec]{std::from_chars(hex.data(), hex.data() + hex.size(), result, 16)};
-
-                if (ec != std::errc()) return ret;
-                ret += result;
-                i += 2;
-                break;
-            }
-            case '+': {
-                ret += ' ';
-                break;
-            }
-            default: {
-                ret += c;
-                break;
-            }
-        }
-    }
     return ret;
 }
 
