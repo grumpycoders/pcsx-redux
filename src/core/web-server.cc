@@ -36,13 +36,14 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "gui/gui.h"
-#include "http-parser/http_parser.h"
+#include "llhttp/llhttp.h"
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"
+#include "uriparser/Uri.h"
 
 namespace {
 
@@ -900,47 +901,48 @@ struct PCSX::WebClient::WebClientImpl {
     WebClientImpl(WebServer* server, WebClient* parent) : m_server(server), m_parent(parent) {
         uv_tcp_init(server->m_loop, &m_tcp);
         m_tcp.data = this;
-        m_httpParserSettings.on_message_begin = [](http_parser* parser) {
+        llhttp_settings_init(&m_httpParserSettings);
+        m_httpParserSettings.on_message_begin = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
         };
-        m_httpParserSettings.on_url = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_url = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onUrl(slice);
         };
-        m_httpParserSettings.on_status = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_status = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onStatus(slice);
         };
-        m_httpParserSettings.on_header_field = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_header_field = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onHeaderField(slice);
         };
-        m_httpParserSettings.on_header_value = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_header_value = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onHeaderValue(slice);
         };
-        m_httpParserSettings.on_headers_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_headers_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onHeadersComplete();
         };
-        m_httpParserSettings.on_body = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_body = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
         };
-        m_httpParserSettings.on_message_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_message_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onMessageComplete();
         };
-        m_httpParserSettings.on_chunk_header = [](http_parser* parser) {
+        m_httpParserSettings.on_chunk_header = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
         };
-        m_httpParserSettings.on_chunk_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_chunk_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
         };
-        http_parser_init(&m_httpParser, HTTP_REQUEST);
+        llhttp_init(&m_httpParser, HTTP_REQUEST, &m_httpParserSettings);
         m_httpParser.data = this;
     }
     void close() {
@@ -967,7 +969,7 @@ struct PCSX::WebClient::WebClientImpl {
     }
 
     void onEOF() {
-        http_parser_execute(&m_httpParser, &m_httpParserSettings, nullptr, 0);
+        llhttp_execute(&m_httpParser, nullptr, 0);
         if (m_httpParser.upgrade) {
             onUpgrade();
         }
@@ -977,26 +979,26 @@ struct PCSX::WebClient::WebClientImpl {
     void onUpgrade() {}
     int onMessageBegin() { return 0; }
     int onUrl(const Slice& slice) {
-        const char* data = static_cast<const char*>(slice.data());
-        int connect = m_httpParser.method == HTTP_CONNECT;
-        struct http_parser_url urlParser;
-        http_parser_url_init(&urlParser);
-        int result = http_parser_parse_url(data, slice.size(), connect, &urlParser);
-        if (result) return result;
-        auto copyField = [data, &urlParser](std::string& str, int field) {
-            if (urlParser.field_set & (1 << field)) {
-                str = std::string(data + urlParser.field_data[field].off, urlParser.field_data[field].len);
-            } else {
-                str.clear();
-            }
-        };
-        copyField(m_requestData.urlData.schema, UF_SCHEMA);
-        copyField(m_requestData.urlData.host, UF_HOST);
-        copyField(m_requestData.urlData.port, UF_PORT);
-        copyField(m_requestData.urlData.path, UF_PATH);
-        copyField(m_requestData.urlData.query, UF_QUERY);
-        copyField(m_requestData.urlData.fragment, UF_FRAGMENT);
-        copyField(m_requestData.urlData.userInfo, UF_USERINFO);
+        UriUriA uri;
+        std::string urlString = slice.asString();
+        const char* errorPos;
+        if (uriParseSingleUriA(&uri, urlString.c_str(), &errorPos) != URI_SUCCESS) return 1;
+        m_requestData.urlData.schema = uri.scheme.first ? std::string(uri.scheme.first, uri.scheme.afterLast) : "";
+        m_requestData.urlData.host = uri.hostText.first ? std::string(uri.hostText.first, uri.hostText.afterLast) : "";
+        m_requestData.urlData.port = uri.portText.first ? std::string(uri.portText.first, uri.portText.afterLast) : "";
+        std::string path;
+        auto pathFragment = uri.pathHead;
+        while (pathFragment) {
+            path += '/' + std::string(pathFragment->text.first, pathFragment->text.afterLast);
+            pathFragment = pathFragment->next;
+        }
+        m_requestData.urlData.path = std::move(path);
+        m_requestData.urlData.query = uri.query.first ? std::string(uri.query.first, uri.query.afterLast) : "";
+        m_requestData.urlData.fragment =
+            uri.fragment.first ? std::string(uri.fragment.first, uri.fragment.afterLast) : "";
+        m_requestData.urlData.userInfo =
+            uri.userInfo.first ? std::string(uri.userInfo.first, uri.userInfo.afterLast) : "";
+        uriFreeUriMembersA(&uri);
         g_system->log(LogClass::WEBSERVER, "Received web api request, path: %s, query: %s\n",
                       m_requestData.urlData.path.c_str(), m_requestData.urlData.query.c_str());
         return findExecutor() ? 0 : 1;
@@ -1134,7 +1136,7 @@ struct PCSX::WebClient::WebClientImpl {
         const char* ptr = reinterpret_cast<const char*>(slice.data());
         auto size = slice.size();
 
-        auto parsed = http_parser_execute(&m_httpParser, &m_httpParserSettings, ptr, size);
+        auto parsed = llhttp_execute(&m_httpParser, ptr, size);
         if (m_status != OPEN) return;
         if (parsed != size) send400();
         if (m_httpParser.upgrade) {
@@ -1203,8 +1205,8 @@ struct PCSX::WebClient::WebClientImpl {
     char m_buffer[BUFFER_SIZE];
     bool m_allocated = false;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
-    http_parser_settings m_httpParserSettings;
-    http_parser m_httpParser;
+    llhttp_settings_t m_httpParserSettings;
+    llhttp_t m_httpParser;
     Intrusive::List<WebExecutor>::iterator m_currentExecutor;
     WebClient* m_parent;
 
