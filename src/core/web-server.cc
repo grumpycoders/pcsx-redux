@@ -64,14 +64,16 @@ class VramExecutor : public PCSX::WebExecutor {
             auto iy = vars.find("y");
             auto iwidth = vars.find("width");
             auto iheight = vars.find("height");
-            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end())) {
+            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end()) ||
+                (!ix->second.has_value()) || (!iy->second.has_value()) || (!iwidth->second.has_value()) ||
+                (!iheight->second.has_value())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            auto x = std::stoi(ix->second);
-            auto y = std::stoi(iy->second);
-            auto width = std::stoi(iwidth->second);
-            auto height = std::stoi(iheight->second);
+            auto x = std::stoi(ix->second.value());
+            auto y = std::stoi(iy->second.value());
+            auto width = std::stoi(iwidth->second.value());
+            auto height = std::stoi(iheight->second.value());
             if ((x < 0) || (y < 0) || (width < 0) || (height < 0)) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
@@ -124,12 +126,13 @@ class RamExecutor : public PCSX::WebExecutor {
             auto vars = parseQuery(request.urlData.query);
             auto ioffset = vars.find("offset");
             auto isize = vars.find("size");
-            if ((ioffset == vars.end()) || (isize == vars.end())) {
+            if ((ioffset == vars.end()) || (isize == vars.end()) || (!isize->second.has_value()) ||
+                (!ioffset->second.has_value())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            auto offset = std::stoul(ioffset->second);
-            auto size = std::stoul(isize->second);
+            auto offset = std::stoul(ioffset->second.value());
+            auto size = std::stoul(isize->second.value());
             if ((offset >= ramSize) || (size > ramSize) || ((offset + size) > ramSize)) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
@@ -163,7 +166,7 @@ class AssemblyExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             auto& cpu = PCSX::g_emulator->m_cpu;
             if (function.compare("reset") == 0) {
                 cpu->m_symbols.clear();
@@ -214,7 +217,7 @@ class CacheExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             if (function.compare("flush") == 0) {
                 PCSX::g_emulator->m_cpu->invalidateCache();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
@@ -253,7 +256,7 @@ class FlowExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             if (function.compare("start") == 0) {
                 PCSX::g_system->resume();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
@@ -275,7 +278,7 @@ class FlowExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string type = itype->second;
+            std::string type = itype->second.value_or("");
             if (function.compare("reset") == 0) {
                 if (type.compare("hard") == 0) {
                     PCSX::g_system->hardReset();
@@ -434,11 +437,12 @@ class CDExecutor : public PCSX::WebExecutor {
                     client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                     return true;
                 }
-                PCSX::IO<PCSX::File> file = reader.open(filename->second);
+                PCSX::IO<PCSX::File> file = reader.open(filename->second.value_or(""));
                 if (file->failed()) {
                     std::string message = fmt::format(
-                        "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
-                        filename->second);
+                        "HTTP/1.1 404 File Not Found\r\n\r\nFile `{}` was not found in the currently loaded disc "
+                        "image.",
+                        filename->second.value_or(""));
                     client->write(std::move(message));
                     return true;
                 }
@@ -468,7 +472,7 @@ class CDExecutor : public PCSX::WebExecutor {
                     return true;
                 }
                 if (modeStr != vars.end()) {
-                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second);
+                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second.value_or(""));
                     if (modeCast.has_value()) {
                         mode = modeCast.value();
                     } else {
@@ -485,18 +489,18 @@ class CDExecutor : public PCSX::WebExecutor {
                 PCSX::IO<PCSX::File> file;
 
                 if (filename != vars.end()) {
-                    file = reader.open(filename->second);
+                    file = reader.open(filename->second.value_or(""));
                 }
 
                 if (sector != vars.end()) {
-                    auto sectorNumber = std::stoul(sector->second);
+                    auto sectorNumber = std::stoul(sector->second.value_or(""));
                     file = new PCSX::CDRIsoFile(iso, sectorNumber, request.body.size(), mode);
                 }
 
                 if (file->failed()) {
                     std::string message = fmt::format(
                         "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
-                        filename->second);
+                        filename->second.value_or(""));
                     client->write(std::move(message));
                     return true;
                 }
@@ -572,13 +576,18 @@ class StateExecutor : public PCSX::WebExecutor {
                 if (islot != vars.end()) {
                     std::string message;
                     int slot = -1;
-                    try {
-                        slot = std::stoul(islot->second);
-                    } catch (std::exception const& ex) {
-                        message = fmt::format(
-                            "HTTP/1.1 400 Bad Request\r\n\r\nFailed to parse state slot value \"{}\".", islot->second);
-                        client->write(std::move(message));
-                        return true;
+                    if (!islot->second.has_value()) {
+                        message = "HTTP/1.1 400 Bad Request\r\n\r\nState slot value is empty.";
+                    } else {
+                        try {
+                            slot = std::stoul(islot->second.value());
+                        } catch (std::exception const& ex) {
+                            message =
+                                fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nFailed to parse state slot value \"{}\".",
+                                            islot->second.value());
+                            client->write(std::move(message));
+                            return true;
+                        }
                     }
                     if (slot < 0 || slot >= 10) {
                         message =
@@ -604,7 +613,7 @@ class StateExecutor : public PCSX::WebExecutor {
                     return true;
                 } else if (iname != vars.end()) {
                     std::string message;
-                    auto name = iname->second;
+                    auto name = iname->second.value_or("");
                     if (name.empty()) {
                         message = "HTTP/1.1 400 Bad Request\r\n\r\nState name is empty.";
                     } else if (name.length() > PCSX::Widgets::NamedSaveStates::NAMED_SAVE_STATE_LENGTH_MAX) {
@@ -670,7 +679,7 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     return true;
                 }
                 std::string message;
-                std::filesystem::path path = std::filesystem::path(ifilepath->second.c_str());
+                std::filesystem::path path = std::filesystem::path(ifilepath->second.value_or("").c_str());
                 if (path.is_relative()) {
                     std::filesystem::path persistentDir = PCSX::g_system->getPersistentDir();
                     if (persistentDir.empty()) {
@@ -757,16 +766,16 @@ class ScreenExecutor : public PCSX::WebExecutor {
 
 }  // namespace
 
-std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(std::string_view query) {
+std::multimap<std::string, std::optional<std::string>> PCSX::WebExecutor::parseQuery(std::string_view query) {
     UriQueryListA* queryList;
     int itemCount;
-    std::multimap<std::string, std::string> ret;
+    std::multimap<std::string, std::optional<std::string>> ret;
     const char* queryStart = query.data();
     const char* queryEnd = query.data() + query.size();
     if (uriDissectQueryMallocA(&queryList, &itemCount, queryStart, queryEnd) == URI_SUCCESS) {
         auto item = queryList;
         for (int i = 0; i < itemCount; ++i) {
-            ret.emplace(item->key, item->value ? item->value : "");
+            ret.emplace(item->key, item->value ? std::optional<std::string>{item->value} : std::nullopt);
             item = item->next;
         }
         uriFreeQueryListA(queryList);

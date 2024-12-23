@@ -23,6 +23,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -93,7 +94,7 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
   public:
     virtual bool match(WebClient* client, const UrlData&) = 0;
     virtual bool execute(WebClient* client, RequestData&) = 0;
-    std::multimap<std::string, std::string> parseQuery(std::string_view);
+    std::multimap<std::string, std::optional<std::string>> parseQuery(std::string_view);
     void write200(WebClient* client, const nlohmann::json& j);
 };
 
