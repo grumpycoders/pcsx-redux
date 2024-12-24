@@ -340,6 +340,12 @@ void PCSX::Widgets::Assembly::addMemoryEditorContext(uint32_t addr, int size) {
             itemLabel = fmt::format(f_("Go to in Memory Editor #{}"), i + 1);
             if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i, true);
         }
+        if (ImGui::MenuItem(_("Create Memory Read Breakpoint"))) {
+            g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Read, size, _("GUI"));
+        }
+        if (ImGui::MenuItem(_("Create Memory Write Breakpoint"))) {
+            g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Write, size, _("GUI"));
+        }
         ImGui::EndPopup();
     }
 }
