@@ -128,7 +128,7 @@ void PCSX::Emulator::setLua() {
     L.pop();
     L.pop();
     L.pop();
-    
+
     m_pads->setLua(L);
 
     assert(L.gettop() == 0);
