@@ -161,6 +161,7 @@ struct Coroutine {
                 __builtin_coro_resume(awaitingCoroutine);
             }
         }
+        [[no_unique_address]] Empty m_value;
         void *m_awaitingCoroutine = nullptr;
     };
     struct PromiseValue {
@@ -189,19 +190,22 @@ struct Coroutine {
     void *m_awaitingCoroutine = nullptr;
     bool m_suspended = true;
     bool m_earlyResume = false;
-    friend struct PromiseValue;
 
   public:
     using promise_type = Promise;
 
-    constexpr bool await_ready() { return false; }
+    constexpr bool await_ready() { return m_handle.done(); }
     template <typename U>
     constexpr void await_suspend(std::coroutine_handle<U> h) {
         auto &promise = m_handle.promise();
         promise.m_awaitingCoroutine = h.address();
         resume();
     }
-    constexpr SafeT await_resume() { return m_handle.promise().m_value; }
+    constexpr SafeT await_resume() {
+        SafeT value = eastl::move(m_handle.promise().m_value);
+        m_handle.destroy();
+        return value;
+    }
 };
 
 }  // namespace psyqo
