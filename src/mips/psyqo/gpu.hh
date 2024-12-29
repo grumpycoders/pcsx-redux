@@ -33,6 +33,8 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
+#include <coroutine>
+
 #include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
 #include "psyqo/kernel.hh"
@@ -421,6 +423,30 @@ class GPU {
      * @return The id of the created timer.
      */
     uintptr_t armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback);
+
+    struct TimerAwaitable {
+        TimerAwaitable(GPU &gpu, uint32_t deadline) : m_gpu(gpu), m_deadline(deadline) {}
+        ~TimerAwaitable() {}
+        constexpr bool await_ready() const { return false; }
+        void await_suspend(std::coroutine_handle<> handle) {
+            m_gpu.armTimer(m_deadline, [handle](uint32_t) { handle.resume(); });
+        }
+        void await_resume() {}
+        GPU &m_gpu;
+        uintptr_t m_deadline;
+    };
+    /**
+     * @brief Delays the coroutine for a specified amount of time.
+     *
+     * @details This method will delay the coroutine for a specified amount of time. This
+     * is a coroutine-friendly version of the `armTimer` method. The coroutine will be
+     * suspended until the delay has passed. The delay is specified in microseconds, and
+     * the timer literals can be used to specify the delay. The function can only be called
+     * from within a coroutine, and is meant to be used with the `co_await` keyword.
+     * @param amount The amount of time to delay the coroutine in microseconds.
+     * @return TimerAwaitable The awaitable object to be used with the `co_await` keyword.
+     */
+    TimerAwaitable delay(uint32_t microseconds) { return TimerAwaitable(*this, now() + microseconds); }
 
     /**
      * @brief Creates a periodic timer.
