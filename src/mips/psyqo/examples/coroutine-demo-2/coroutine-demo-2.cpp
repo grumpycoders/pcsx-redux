@@ -79,9 +79,8 @@ void CoroutineDemoScene::start(StartReason reason) {
     m_coroutine.resume();
 }
 
-using namespace psyqo::timer_literals;
-
 psyqo::Coroutine<> CoroutineDemoScene::coroutine() {
+    using namespace psyqo::timer_literals;
     m_text = "Coroutine... sleeping for 2s";
     co_await gpu().delay(2_s);
     m_text = "Waking up... sleeping for 1s";
@@ -96,6 +95,7 @@ psyqo::Coroutine<> CoroutineDemoScene::coroutine() {
 }
 
 psyqo::Coroutine<int> CoroutineDemoScene::subcoroutine(int a, int b) {
+    using namespace psyqo::timer_literals;
     m_text = "Subcoroutine... sleeping for 2s";
     co_await gpu().delay(2_s);
     co_return a + b;
