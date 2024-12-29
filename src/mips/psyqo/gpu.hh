@@ -85,6 +85,18 @@ consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
  */
 
 class GPU {
+    struct TimerAwaiter {
+        TimerAwaiter(GPU &gpu, uint32_t deadline) : m_gpu(gpu), m_deadline(deadline) {}
+        ~TimerAwaiter() {}
+        constexpr bool await_ready() const { return false; }
+        void await_suspend(std::coroutine_handle<> handle) {
+            m_gpu.armTimer(m_deadline, [handle](uint32_t) { handle.resume(); });
+        }
+        void await_resume() {}
+        GPU &m_gpu;
+        uintptr_t m_deadline;
+    };
+
   public:
     struct Configuration;
     enum class Resolution { W256, W320, W368, W512, W640 };
@@ -424,17 +436,6 @@ class GPU {
      */
     uintptr_t armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback);
 
-    struct TimerAwaitable {
-        TimerAwaitable(GPU &gpu, uint32_t deadline) : m_gpu(gpu), m_deadline(deadline) {}
-        ~TimerAwaitable() {}
-        constexpr bool await_ready() const { return false; }
-        void await_suspend(std::coroutine_handle<> handle) {
-            m_gpu.armTimer(m_deadline, [handle](uint32_t) { handle.resume(); });
-        }
-        void await_resume() {}
-        GPU &m_gpu;
-        uintptr_t m_deadline;
-    };
     /**
      * @brief Delays the coroutine for a specified amount of time.
      *
@@ -444,9 +445,9 @@ class GPU {
      * the timer literals can be used to specify the delay. The function can only be called
      * from within a coroutine, and is meant to be used with the `co_await` keyword.
      * @param amount The amount of time to delay the coroutine in microseconds.
-     * @return TimerAwaitable The awaitable object to be used with the `co_await` keyword.
+     * @return TimerAwaiter The awaitable object to be used with the `co_await` keyword.
      */
-    TimerAwaitable delay(uint32_t microseconds) { return TimerAwaitable(*this, now() + microseconds); }
+    TimerAwaiter delay(uint32_t microseconds) { return {*this, now() + microseconds}; }
 
     /**
      * @brief Creates a periodic timer.
