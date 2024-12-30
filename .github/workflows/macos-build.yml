@@ -160,9 +160,7 @@ jobs:
         APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_MACOS_X64 }}
         APPDISTRIB_ORGANIZATION: pcsx-redux
         APPDISTRIB_PROJECT: dev-macos-x64
-        APPCENTER_ACCESS_TOKEN: ${{ secrets.MACOS_APPCENTER_ACCESS_TOKEN }}
       run: |
-        npx appcenter-cli distribute release -n 0 -b $BUILD -f PCSX-Redux-$BUILD-Intel.dmg -g 'Public' -a grumpycoders/pcsx-redux-macos --disable-telemetry
         npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-Intel.dmg
 
   macos-arm-build-and-test:
