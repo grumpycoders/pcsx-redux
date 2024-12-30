@@ -952,11 +952,14 @@ struct PCSX::WebClient::WebClientImpl {
     }
 
     void onEOF() {
-        llhttp_execute(&m_httpParser, nullptr, 0);
-        if (m_httpParser.upgrade) {
+        auto error = llhttp_finish(&m_httpParser);
+        if (error == HPE_PAUSED_UPGRADE) {
             onUpgrade();
+        } else if (error != HPE_OK) {
+            send400(magic_enum::enum_name(error));
+        } else {
+            scheduleClose();
         }
-        scheduleClose();
     }
 
     void onUpgrade() {}
@@ -1104,7 +1107,7 @@ struct PCSX::WebClient::WebClientImpl {
     void read(ssize_t nread, const uv_buf_t* buf) {
         m_allocated = false;
         if (nread <= 0) {
-            close();
+            onEOF();
             return;
         }
         Slice slice;
@@ -1119,11 +1122,12 @@ struct PCSX::WebClient::WebClientImpl {
         const char* ptr = reinterpret_cast<const char*>(slice.data());
         auto size = slice.size();
 
-        auto parsed = llhttp_execute(&m_httpParser, ptr, size);
+        auto error = llhttp_execute(&m_httpParser, ptr, size);
         if (m_status != OPEN) return;
-        if (parsed != size) send400();
-        if (m_httpParser.upgrade) {
+        if (error == HPE_PAUSED_UPGRADE) {
             onUpgrade();
+        } else if (error != HPE_OK) {
+            send400(magic_enum::enum_name(error));
         }
     }
 
@@ -1150,8 +1154,10 @@ struct PCSX::WebClient::WebClientImpl {
         write(std::move(slice));
     }
 
-    void send400() {
-        write("HTTP/1.1 400 Bad Request\r\n\r\nThis request failed to parse properly.\r\n");
+    void send400(std::string_view code) {
+        std::string str =
+            fmt::format("HTTP/1.1 400 Bad Request\r\n\r\Request failed to parse properly. Error: {}\r\n", code);
+        write(std::move(str));
         scheduleClose();
     }
 
