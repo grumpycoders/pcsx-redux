@@ -1131,6 +1131,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
     int minX = 2048, minY = 1024, maxX = -1024, maxY = -512;
     int minU = 2048, minV = 1024, maxU = -1024, maxV = -512;
     for (unsigned i = 0; i < count; i++) {
+        ImGui::PushID(i);
         ImGui::Separator();
         ImGui::Text(_("Vertex %i"), i);
         ImGui::Text("  X: %i + %i = %i, Y: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
@@ -1153,6 +1154,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
             maxU = std::max(maxU, int(u[i] >> shift));
             maxV = std::max(maxV, int(v[i]));
         }
+        ImGui::PopID();
     }
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
@@ -1197,6 +1199,7 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned itemIndex, 
         ImGui::TextUnformatted(_("Semi-transparency blending"));
     }
     for (unsigned i = 1; i < colors.size(); i++) {
+        ImGui::PushID(i);
         ImGui::Separator();
         if constexpr (lineType == LineType::Poly) {
             ImGui::Text(_("Line %i"), i);
@@ -1215,6 +1218,7 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned itemIndex, 
         minY = std::min(minY, y[i] + offset.y);
         maxX = std::max(maxX, x[i] + offset.x);
         maxY = std::max(maxY, y[i] + offset.y);
+        ImGui::PopID();
     }
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
