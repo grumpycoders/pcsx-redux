@@ -148,7 +148,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 if (count > (c_chainThreshold / 4)) {
                     // next one still too big
                     head &= 0xffffff;
-                    m_chainNext = head == 0xff0000 ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
+                    m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
                     scheduleNormalDMA(reinterpret_cast<uintptr_t>(chainNext) + 4, count);
                 } else {
                     // next one is small enough
@@ -159,7 +159,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
             }
             case 2: {  // was a linked DMA
                 uint32_t madr = DMA_CTRL[DMA_GPU].MADR;
-                if (madr != 0xff0000) {
+                if (madr != 0xffffff) {
                     madr &= 0x7fffff;
                     // Did we get interrupted in the middle of a chain?
                     // It means we linked a node too big for the DMA engine to handle,
@@ -168,7 +168,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                     uint32_t head = *next;
                     uint32_t count = head >> 24;
                     head &= 0xffffff;
-                    if (head != 0xff0000) {
+                    if (head != 0xffffff) {
                         m_chainNext = reinterpret_cast<uint32_t *>(head & 0x7fffff);
                     }
                     scheduleNormalDMA(madr + 4, count);
@@ -454,7 +454,7 @@ void psyqo::GPU::sendChain() {
 void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback dmaCallback) {
     auto chainHead = m_chainHead;
     uintptr_t ptr = reinterpret_cast<uintptr_t>(chainHead);
-    *m_chainTail = m_chainTailCount | 0xff0000;
+    *m_chainTail = m_chainTailCount | 0xffffff;
     Kernel::assert(!m_dmaCallback, "Only one GPU DMA transfer at a time is permitted");
     Kernel::assert((ptr & 3) == 0, "Unaligned DMA transfer");
     m_chainHead = m_chainTail = nullptr;
@@ -464,7 +464,7 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
     uint32_t count = head >> 24;
     head &= 0xffffff;
     if (count > (c_chainThreshold / 4)) {
-        m_chainNext = head == 0xff0000 ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
+        m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
         scheduleNormalDMA(ptr + 4, count);
     } else {
         scheduleChainedDMA(ptr);
