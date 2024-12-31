@@ -36,13 +36,14 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "gui/gui.h"
-#include "http-parser/http_parser.h"
+#include "llhttp/llhttp.h"
 #include "lua/luawrapper.h"
 #include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"
+#include "uriparser/Uri.h"
 
 namespace {
 
@@ -63,14 +64,16 @@ class VramExecutor : public PCSX::WebExecutor {
             auto iy = vars.find("y");
             auto iwidth = vars.find("width");
             auto iheight = vars.find("height");
-            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end())) {
+            if ((ix == vars.end()) || (iy == vars.end()) || (iwidth == vars.end()) || (iheight == vars.end()) ||
+                (!ix->second.has_value()) || (!iy->second.has_value()) || (!iwidth->second.has_value()) ||
+                (!iheight->second.has_value())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            auto x = std::stoi(ix->second);
-            auto y = std::stoi(iy->second);
-            auto width = std::stoi(iwidth->second);
-            auto height = std::stoi(iheight->second);
+            auto x = std::stoi(ix->second.value());
+            auto y = std::stoi(iy->second.value());
+            auto width = std::stoi(iwidth->second.value());
+            auto height = std::stoi(iheight->second.value());
             if ((x < 0) || (y < 0) || (width < 0) || (height < 0)) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
@@ -123,12 +126,13 @@ class RamExecutor : public PCSX::WebExecutor {
             auto vars = parseQuery(request.urlData.query);
             auto ioffset = vars.find("offset");
             auto isize = vars.find("size");
-            if ((ioffset == vars.end()) || (isize == vars.end())) {
+            if ((ioffset == vars.end()) || (isize == vars.end()) || (!isize->second.has_value()) ||
+                (!ioffset->second.has_value())) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            auto offset = std::stoul(ioffset->second);
-            auto size = std::stoul(isize->second);
+            auto offset = std::stoul(ioffset->second.value());
+            auto size = std::stoul(isize->second.value());
             if ((offset >= ramSize) || (size > ramSize) || ((offset + size) > ramSize)) {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
@@ -162,7 +166,7 @@ class AssemblyExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             auto& cpu = PCSX::g_emulator->m_cpu;
             if (function.compare("reset") == 0) {
                 cpu->m_symbols.clear();
@@ -213,7 +217,7 @@ class CacheExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             if (function.compare("flush") == 0) {
                 PCSX::g_emulator->m_cpu->invalidateCache();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
@@ -252,7 +256,7 @@ class FlowExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string function = ifunction->second;
+            std::string function = ifunction->second.value_or("");
             if (function.compare("start") == 0) {
                 PCSX::g_system->resume();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
@@ -274,7 +278,7 @@ class FlowExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                 return true;
             }
-            std::string type = itype->second;
+            std::string type = itype->second.value_or("");
             if (function.compare("reset") == 0) {
                 if (type.compare("hard") == 0) {
                     PCSX::g_system->hardReset();
@@ -433,11 +437,12 @@ class CDExecutor : public PCSX::WebExecutor {
                     client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                     return true;
                 }
-                PCSX::IO<PCSX::File> file = reader.open(filename->second);
+                PCSX::IO<PCSX::File> file = reader.open(filename->second.value_or(""));
                 if (file->failed()) {
                     std::string message = fmt::format(
-                        "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
-                        filename->second);
+                        "HTTP/1.1 404 File Not Found\r\n\r\nFile `{}` was not found in the currently loaded disc "
+                        "image.",
+                        filename->second.value_or(""));
                     client->write(std::move(message));
                     return true;
                 }
@@ -467,7 +472,7 @@ class CDExecutor : public PCSX::WebExecutor {
                     return true;
                 }
                 if (modeStr != vars.end()) {
-                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second);
+                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second.value_or(""));
                     if (modeCast.has_value()) {
                         mode = modeCast.value();
                     } else {
@@ -484,18 +489,18 @@ class CDExecutor : public PCSX::WebExecutor {
                 PCSX::IO<PCSX::File> file;
 
                 if (filename != vars.end()) {
-                    file = reader.open(filename->second);
+                    file = reader.open(filename->second.value_or(""));
                 }
 
                 if (sector != vars.end()) {
-                    auto sectorNumber = std::stoul(sector->second);
+                    auto sectorNumber = std::stoul(sector->second.value_or(""));
                     file = new PCSX::CDRIsoFile(iso, sectorNumber, request.body.size(), mode);
                 }
 
                 if (file->failed()) {
                     std::string message = fmt::format(
                         "HTTP/1.1 404 File Not Found\r\n\r\nFile {} was not found in the currently loaded disc image.",
-                        filename->second);
+                        filename->second.value_or(""));
                     client->write(std::move(message));
                     return true;
                 }
@@ -571,13 +576,18 @@ class StateExecutor : public PCSX::WebExecutor {
                 if (islot != vars.end()) {
                     std::string message;
                     int slot = -1;
-                    try {
-                        slot = std::stoul(islot->second);
-                    } catch (std::exception const& ex) {
-                        message = fmt::format(
-                            "HTTP/1.1 400 Bad Request\r\n\r\nFailed to parse state slot value \"{}\".", islot->second);
-                        client->write(std::move(message));
-                        return true;
+                    if (!islot->second.has_value()) {
+                        message = "HTTP/1.1 400 Bad Request\r\n\r\nState slot value is empty.";
+                    } else {
+                        try {
+                            slot = std::stoul(islot->second.value());
+                        } catch (std::exception const& ex) {
+                            message =
+                                fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nFailed to parse state slot value \"{}\".",
+                                            islot->second.value());
+                            client->write(std::move(message));
+                            return true;
+                        }
                     }
                     if (slot < 0 || slot >= 10) {
                         message =
@@ -603,7 +613,7 @@ class StateExecutor : public PCSX::WebExecutor {
                     return true;
                 } else if (iname != vars.end()) {
                     std::string message;
-                    auto name = iname->second;
+                    auto name = iname->second.value_or("");
                     if (name.empty()) {
                         message = "HTTP/1.1 400 Bad Request\r\n\r\nState name is empty.";
                     } else if (name.length() > PCSX::Widgets::NamedSaveStates::NAMED_SAVE_STATE_LENGTH_MAX) {
@@ -669,7 +679,7 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     return true;
                 }
                 std::string message;
-                std::filesystem::path path = std::filesystem::path(ifilepath->second.c_str());
+                std::filesystem::path path = std::filesystem::path(ifilepath->second.value_or("").c_str());
                 if (path.is_relative()) {
                     std::filesystem::path persistentDir = PCSX::g_system->getPersistentDir();
                     if (persistentDir.empty()) {
@@ -756,47 +766,21 @@ class ScreenExecutor : public PCSX::WebExecutor {
 
 }  // namespace
 
-std::multimap<std::string, std::string> PCSX::WebExecutor::parseQuery(const std::string& query) {
-    std::multimap<std::string, std::string> ret;
-    auto fragments = StringsHelpers::split(std::string_view(query), "&");
-    for (auto& f : fragments) {
-        auto parts = StringsHelpers::split(f, "=", true);
-        if (parts.size() == 2) {
-            ret.emplace(percentDecode(parts[0]), percentDecode(parts[1]));
+std::multimap<std::string, std::optional<std::string>> PCSX::WebExecutor::parseQuery(std::string_view query) {
+    UriQueryListA* queryList;
+    int itemCount;
+    std::multimap<std::string, std::optional<std::string>> ret;
+    const char* queryStart = query.data();
+    const char* queryEnd = query.data() + query.size();
+    if (uriDissectQueryMallocA(&queryList, &itemCount, queryStart, queryEnd) == URI_SUCCESS) {
+        auto item = queryList;
+        for (int i = 0; i < itemCount; ++i) {
+            ret.emplace(item->key, item->value ? std::optional<std::string>{item->value} : std::nullopt);
+            item = item->next;
         }
+        uriFreeQueryListA(queryList);
     }
-    return ret;
-}
 
-std::string PCSX::WebExecutor::percentDecode(std::string_view str) {
-    std::string ret;
-    auto len = str.length();
-    for (decltype(len) i = 0; i < len; i++) {
-        auto c = str[i];
-        switch (c) {
-            case '%': {
-                if ((len - i) < 3) return ret;
-
-                auto hex = str.substr(i + 1, 2);
-                uint8_t result = 0;
-
-                auto [ptr, ec]{std::from_chars(hex.data(), hex.data() + hex.size(), result, 16)};
-
-                if (ec != std::errc()) return ret;
-                ret += result;
-                i += 2;
-                break;
-            }
-            case '+': {
-                ret += ' ';
-                break;
-            }
-            default: {
-                ret += c;
-                break;
-            }
-        }
-    }
     return ret;
 }
 
@@ -900,47 +884,48 @@ struct PCSX::WebClient::WebClientImpl {
     WebClientImpl(WebServer* server, WebClient* parent) : m_server(server), m_parent(parent) {
         uv_tcp_init(server->m_loop, &m_tcp);
         m_tcp.data = this;
-        m_httpParserSettings.on_message_begin = [](http_parser* parser) {
+        llhttp_settings_init(&m_httpParserSettings);
+        m_httpParserSettings.on_message_begin = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
         };
-        m_httpParserSettings.on_url = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_url = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onUrl(slice);
         };
-        m_httpParserSettings.on_status = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_status = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onStatus(slice);
         };
-        m_httpParserSettings.on_header_field = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_header_field = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onHeaderField(slice);
         };
-        m_httpParserSettings.on_header_value = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_header_value = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onHeaderValue(slice);
         };
-        m_httpParserSettings.on_headers_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_headers_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onHeadersComplete();
         };
-        m_httpParserSettings.on_body = [](http_parser* parser, const char* data, size_t size) {
+        m_httpParserSettings.on_body = [](auto* parser, const char* data, size_t size) {
             Slice slice;
             slice.borrow(data, size);
             return static_cast<WebClientImpl*>(parser->data)->onBody(slice);
         };
-        m_httpParserSettings.on_message_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_message_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onMessageComplete();
         };
-        m_httpParserSettings.on_chunk_header = [](http_parser* parser) {
+        m_httpParserSettings.on_chunk_header = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onChunkHeader();
         };
-        m_httpParserSettings.on_chunk_complete = [](http_parser* parser) {
+        m_httpParserSettings.on_chunk_complete = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onChunkComplete();
         };
-        http_parser_init(&m_httpParser, HTTP_REQUEST);
+        llhttp_init(&m_httpParser, HTTP_REQUEST, &m_httpParserSettings);
         m_httpParser.data = this;
     }
     void close() {
@@ -967,36 +952,39 @@ struct PCSX::WebClient::WebClientImpl {
     }
 
     void onEOF() {
-        http_parser_execute(&m_httpParser, &m_httpParserSettings, nullptr, 0);
-        if (m_httpParser.upgrade) {
+        auto error = llhttp_finish(&m_httpParser);
+        if (error == HPE_PAUSED_UPGRADE) {
             onUpgrade();
+        } else if (error != HPE_OK) {
+            send400(magic_enum::enum_name(error));
+        } else {
+            scheduleClose();
         }
-        scheduleClose();
     }
 
     void onUpgrade() {}
     int onMessageBegin() { return 0; }
     int onUrl(const Slice& slice) {
-        const char* data = static_cast<const char*>(slice.data());
-        int connect = m_httpParser.method == HTTP_CONNECT;
-        struct http_parser_url urlParser;
-        http_parser_url_init(&urlParser);
-        int result = http_parser_parse_url(data, slice.size(), connect, &urlParser);
-        if (result) return result;
-        auto copyField = [data, &urlParser](std::string& str, int field) {
-            if (urlParser.field_set & (1 << field)) {
-                str = std::string(data + urlParser.field_data[field].off, urlParser.field_data[field].len);
-            } else {
-                str.clear();
-            }
-        };
-        copyField(m_requestData.urlData.schema, UF_SCHEMA);
-        copyField(m_requestData.urlData.host, UF_HOST);
-        copyField(m_requestData.urlData.port, UF_PORT);
-        copyField(m_requestData.urlData.path, UF_PATH);
-        copyField(m_requestData.urlData.query, UF_QUERY);
-        copyField(m_requestData.urlData.fragment, UF_FRAGMENT);
-        copyField(m_requestData.urlData.userInfo, UF_USERINFO);
+        UriUriA uri;
+        std::string urlString = slice.asString();
+        const char* errorPos;
+        if (uriParseSingleUriA(&uri, urlString.c_str(), &errorPos) != URI_SUCCESS) return 1;
+        m_requestData.urlData.schema = uri.scheme.first ? std::string(uri.scheme.first, uri.scheme.afterLast) : "";
+        m_requestData.urlData.host = uri.hostText.first ? std::string(uri.hostText.first, uri.hostText.afterLast) : "";
+        m_requestData.urlData.port = uri.portText.first ? std::string(uri.portText.first, uri.portText.afterLast) : "";
+        std::string path;
+        auto pathFragment = uri.pathHead;
+        while (pathFragment) {
+            path += '/' + std::string(pathFragment->text.first, pathFragment->text.afterLast);
+            pathFragment = pathFragment->next;
+        }
+        m_requestData.urlData.path = std::move(path);
+        m_requestData.urlData.query = uri.query.first ? std::string(uri.query.first, uri.query.afterLast) : "";
+        m_requestData.urlData.fragment =
+            uri.fragment.first ? std::string(uri.fragment.first, uri.fragment.afterLast) : "";
+        m_requestData.urlData.userInfo =
+            uri.userInfo.first ? std::string(uri.userInfo.first, uri.userInfo.afterLast) : "";
+        uriFreeUriMembersA(&uri);
         g_system->log(LogClass::WEBSERVER, "Received web api request, path: %s, query: %s\n",
                       m_requestData.urlData.path.c_str(), m_requestData.urlData.query.c_str());
         return findExecutor() ? 0 : 1;
@@ -1119,7 +1107,7 @@ struct PCSX::WebClient::WebClientImpl {
     void read(ssize_t nread, const uv_buf_t* buf) {
         m_allocated = false;
         if (nread <= 0) {
-            close();
+            onEOF();
             return;
         }
         Slice slice;
@@ -1134,11 +1122,12 @@ struct PCSX::WebClient::WebClientImpl {
         const char* ptr = reinterpret_cast<const char*>(slice.data());
         auto size = slice.size();
 
-        auto parsed = http_parser_execute(&m_httpParser, &m_httpParserSettings, ptr, size);
+        auto error = llhttp_execute(&m_httpParser, ptr, size);
         if (m_status != OPEN) return;
-        if (parsed != size) send400();
-        if (m_httpParser.upgrade) {
+        if (error == HPE_PAUSED_UPGRADE) {
             onUpgrade();
+        } else if (error != HPE_OK) {
+            send400(magic_enum::enum_name(error));
         }
     }
 
@@ -1165,8 +1154,10 @@ struct PCSX::WebClient::WebClientImpl {
         write(std::move(slice));
     }
 
-    void send400() {
-        write("HTTP/1.1 400 Bad Request\r\n\r\nThis request failed to parse properly.\r\n");
+    void send400(std::string_view code) {
+        std::string str =
+            fmt::format("HTTP/1.1 400 Bad Request\r\n\r\Request failed to parse properly. Error: {}\r\n", code);
+        write(std::move(str));
         scheduleClose();
     }
 
@@ -1203,8 +1194,8 @@ struct PCSX::WebClient::WebClientImpl {
     char m_buffer[BUFFER_SIZE];
     bool m_allocated = false;
     enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
-    http_parser_settings m_httpParserSettings;
-    http_parser m_httpParser;
+    llhttp_settings_t m_httpParserSettings;
+    llhttp_t m_httpParser;
     Intrusive::List<WebExecutor>::iterator m_currentExecutor;
     WebClient* m_parent;
 

@@ -128,21 +128,6 @@ void psyqo::CDRomDevice::readSectors(uint32_t sector, uint32_t count, void *buff
     s_readSectorsAction.start(this, sector, count, buffer, eastl::move(callback));
 }
 
-psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer) {
-    if (count == 0) {
-        return TaskQueue::Task([this](auto task) { task->complete(true); });
-    }
-    uint32_t *storage = reinterpret_cast<uint32_t *>(buffer);
-    storage[0] = sector;
-    storage[1] = count;
-    return TaskQueue::Task([this, buffer](auto task) {
-        uint32_t *storage = reinterpret_cast<uint32_t *>(buffer);
-        uint32_t sector = storage[0];
-        uint32_t count = storage[1];
-        readSectors(sector, count, buffer, [task](bool success) { task->complete(success); });
-    });
-}
-
 bool psyqo::CDRomDevice::readSectorsBlocking(uint32_t sector, uint32_t count, void *buffer, GPU &gpu) {
     Kernel::assert(m_callback == nullptr, "CDRomDevice::readSectorsBlocking called with pending action");
     bool success = false;

@@ -3497,7 +3497,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD(int16_t x1, int16_t y1, int16_t x2
                               vram16[(((((posY + difY) >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
                                      (((posX + difX) >> 16) & maskX) + globalTextAddrX + textureWindow.x0])
                          << 16) |
-                            vram16[((((posY >> 16) & maskY) + globalTextAddrY) << 10) + textureWindow.y0 +
+                            vram16[((((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
                                    ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0]);
 
                     posX += difX2;
@@ -3631,7 +3631,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TD_S(int16_t x1, int16_t y1, int16_t 
                               vram16[(((((posY + difY) >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
                                      (((posX + difX) >> 16) & maskX) + globalTextAddrX + textureWindow.x0])
                          << 16) |
-                            vram16[((((posY >> 16) & maskY) + globalTextAddrY) << 10) + textureWindow.y0 +
+                            vram16[((((posY >> 16) & maskY) + globalTextAddrY + textureWindow.y0) << 10) +
                                    ((posX >> 16) & maskX) + globalTextAddrX + textureWindow.x0]);
 
                     posX += difX2;

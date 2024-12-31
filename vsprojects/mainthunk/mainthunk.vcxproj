@@ -228,9 +228,6 @@
     <ProjectReference Include="..\gui\gui.vcxproj">
       <Project>{6ec7fdf3-1418-40bd-8584-1eea34ac3e3e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\http-parser\http-parser.vcxproj">
-      <Project>{2f6c532e-1d52-4e87-8b7d-979eaa214db6}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\ImFileDialog\ImFileDialog.vcxproj">
       <Project>{2bf92257-03c6-43fe-85e8-918166a07a26}</Project>
     </ProjectReference>
@@ -248,6 +245,9 @@
     </ProjectReference>
     <ProjectReference Include="..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\llhttp\llhttp.vcxproj">
+      <Project>{78bbe8e9-710d-4a8c-8ec5-a8d7864f6db8}</Project>
     </ProjectReference>
     <ProjectReference Include="..\lpeg\lpeg.vcxproj">
       <Project>{ce54ed92-4645-4ae9-bdc8-c0b9607765f8}</Project>
@@ -284,6 +284,9 @@
     </ProjectReference>
     <ProjectReference Include="..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\uriparser\uriparser.vcxproj">
+      <Project>{6acdc81a-f4d8-4c2d-8ccd-db72a88febed}</Project>
     </ProjectReference>
     <ProjectReference Include="..\zep\zep.vcxproj">
       <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
