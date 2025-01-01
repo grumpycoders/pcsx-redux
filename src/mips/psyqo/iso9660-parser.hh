@@ -26,11 +26,11 @@ SOFTWARE.
 
 #pragma once
 
-#include <coroutine>
-
 #include <EASTL/fixed_string.h>
 #include <EASTL/functional.h>
 #include <EASTL/string_view.h>
+
+#include <coroutine>
 
 #include "psyqo/cdrom.hh"
 #include "psyqo/task.hh"
