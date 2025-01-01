@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "supportpsx/memory.h"
 
 enum {
     MAP_EXEC = 1,
@@ -48,54 +49,64 @@ PCSX::Debug::Debug() : m_listener(g_system->m_eventBus) {
 }
 
 uint32_t PCSX::Debug::normalizeAddress(uint32_t address) {
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
+    PSXAddress addr(address);
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    if (!ramExpansion && ((base == 0x000) || (base == 0x800) || (base == 0xa00))) {
-        return address & ~0x00600000;
+    if (!ramExpansion && (addr.type == PSXAddress::Type::RAM)) {
+        addr.physical &= ~0x00600000;
     }
-    return address;
+    return addr.toVirtual().value_or(0xffffffff);
 }
 
 bool PCSX::Debug::isInKernel(uint32_t address, bool biosIsKernel) {
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
+    PSXAddress addr(address);
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    if (base == 0x1fc) return biosIsKernel;
-    if (base == 0x9fc) return biosIsKernel;
-    if (base == 0xbfc) return biosIsKernel;
-    if ((base != 0x000) && (base != 0x800) && (base != 0xa00)) {
-        return false;
-    }
-    if (ramExpansion) real &= ~0x00600000;
-    return real < 0x10000;
+    if (addr.type == PSXAddress::Type::ROM) return biosIsKernel;
+    if (addr.type != PSXAddress::Type::RAM) return false;
+    if (!ramExpansion) addr.physical &= ~0x00600000;
+    return addr.physical < 0x10000;
 }
 
 void PCSX::Debug::markMap(uint32_t address, int mask) {
-    address = normalizeAddress(address);
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
-    uint32_t shortReal = address & 0x3fffff;
-    if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
-        m_mainMemoryMap[real] |= mask;
-    } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
-        m_scratchPadMap[real] |= mask;
-    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
-        m_biosMemoryMap[shortReal] |= mask;
+    PSXAddress addr(normalizeAddress(address));
+
+    switch (addr.type) {
+        case PSXAddress::Type::RAM:
+            if (addr.physical < sizeof(m_mainMemoryMap)) {
+                m_mainMemoryMap[addr.physical] |= mask;
+            }
+            break;
+        case PSXAddress::Type::ScratchPad:
+            if (addr.physical < sizeof(m_scratchPadMap)) {
+                m_scratchPadMap[addr.physical] |= mask;
+            }
+            break;
+        case PSXAddress::Type::ROM:
+            if (addr.physical < sizeof(m_biosMemoryMap)) {
+                m_biosMemoryMap[addr.physical] |= mask;
+            }
+            break;
     }
 }
 
 bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
-    address = normalizeAddress(address);
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
-    uint32_t shortReal = address & 0x3fffff;
-    if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
-        return m_mainMemoryMap[real] & mask;
-    } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
-        return m_scratchPadMap[real] & mask;
-    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
-        return m_biosMemoryMap[shortReal] & mask;
+    PSXAddress addr(normalizeAddress(address));
+
+    switch (addr.type) {
+        case PSXAddress::Type::RAM:
+            if (addr.physical < sizeof(m_mainMemoryMap)) {
+                return m_mainMemoryMap[addr.physical] & mask;
+            }
+            break;
+        case PSXAddress::Type::ScratchPad:
+            if (addr.physical < sizeof(m_scratchPadMap)) {
+                return m_scratchPadMap[addr.physical] & mask;
+            }
+            break;
+        case PSXAddress::Type::ROM:
+            if (addr.physical < sizeof(m_biosMemoryMap)) {
+                return m_biosMemoryMap[addr.physical] & mask;
+            }
+            break;
     }
     return false;
 }
