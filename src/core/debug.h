@@ -32,6 +32,7 @@ namespace PCSX {
 
 class Debug {
   public:
+    Debug();
     static uint32_t normalizeAddress(uint32_t address);
     static bool isInKernel(uint32_t address, bool biosIsKernel = true);
     static inline std::function<const char*()> s_breakpoint_type_names[] = {l_("Exec"), l_("Read"), l_("Write")};
@@ -181,6 +182,7 @@ class Debug {
     bool m_wasInISR = false;
     Breakpoint* m_lastBP = nullptr;
     std::optional<std::tuple<uint32_t, bool>> m_scheduledCop0;
+    EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

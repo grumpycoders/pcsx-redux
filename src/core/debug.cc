@@ -40,6 +40,13 @@ enum {
     MAP_EXEC_JAL = 128,
 };
 
+PCSX::Debug::Debug() : m_listener(g_system->m_eventBus) {
+    m_listener.listen<PCSX::Events::ExecutionFlow::Reset>([this](auto&) {
+        m_checkKernel = false;
+        clearMaps();
+    });
+}
+
 uint32_t PCSX::Debug::normalizeAddress(uint32_t address) {
     uint32_t base = (address >> 20) & 0xffc;
     uint32_t real = address & 0x7fffff;
