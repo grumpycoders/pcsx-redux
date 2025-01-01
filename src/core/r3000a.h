@@ -321,9 +321,7 @@ class R3000Acpu {
         uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
-        int64_t lowest = m_regs.lowestTarget - cycle;
-        int64_t maybeNewLowest = target - cycle;
-        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
+        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
     }
 
     psxRegisters m_regs;
