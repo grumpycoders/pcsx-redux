@@ -163,7 +163,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     if ((isJR || isJALR) && !wasInKernel && isTargetInKernel && !isJRToRA && (targetBase != 0x40) &&
         (targetBase != 0x80) && (targetBase != 0xa0) && (targetBase != 0xb0) && (targetBase != 0xc0)) {
         if (m_checkKernel) {
-            g_system->printf(_("Jump from 0x%08x to 0x%08x\n"), oldPC, targetBase);
+            g_system->printf(_("Kernel checker: Jump from 0x%08x to 0x%08x\n"), oldPC, targetBase);
             g_system->pause();
         }
     }
@@ -216,10 +216,10 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
         if (!g_emulator->m_cpu->m_inISR && offsetIsInKernel && !wasInKernel) {
             if (m_checkKernel) {
                 if (isLoad) {
-                    g_system->printf(_("Reading %08x from %08x\n"), offset, oldPC);
+                    g_system->printf(_("Kernel checker: Reading %08x from %08x\n"), offset, oldPC);
                     g_system->pause();
                 } else {
-                    g_system->printf(_("Writing to %08x from %08x\n"), offset, oldPC);
+                    g_system->printf(_("Kernel checker: Writing to %08x from %08x\n"), offset, oldPC);
                     g_system->pause();
                 }
                 g_system->pause();
