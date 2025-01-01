@@ -173,6 +173,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     int n = 0;
 
     for (auto& logged : logger->m_list) {
+        ImGui::PushID(n);
         if (m_filterEnabled && !logged.isInside(m_filter.x, m_filter.y)) {
             continue;
         }
@@ -220,12 +221,10 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         if (disableFromHere) logged.enabled = false;
         if (removeHighlight) logged.highlight = false;
         ImGui::BeginGroup();
-        label = fmt::format("##enable{}", n);
         if (!m_replay) ImGui::BeginDisabled();
-        ImGui::Checkbox(label.c_str(), &logged.enabled);
+        ImGui::Checkbox("##enable", &logged.enabled);
         ImGui::SameLine();
-        label = fmt::format("T##upto{}", n);
-        if (ImGui::Button(label.c_str())) {
+        if (ImGui::Button("T")) {
             for (auto& before : logger->m_list) {
                 before.enabled = true;
                 if (&before == &logged) break;
@@ -234,17 +233,14 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
         }
         if (!m_replay) ImGui::EndDisabled();
         ImGui::SameLine();
-        label = fmt::format("##highlight{}", n);
-        ImGui::Checkbox(label.c_str(), &logged.highlight);
+        ImGui::Checkbox("##highlight", &logged.highlight);
         ImGui::SameLine();
-        label = fmt::format("B##upto{}", n);
-        if (ImGui::Button(label.c_str())) {
+        if (ImGui::Button("B")) {
             m_setHighlightRange = true;
             m_beginHighlight = n;
         }
         ImGui::SameLine();
-        label = fmt::format("E##upto{}", n);
-        if (ImGui::Button(label.c_str())) {
+        if (ImGui::Button("E")) {
             m_setHighlightRange = true;
             m_endHighlight = n;
         }
@@ -267,6 +263,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
             hasHighlight = true;
         }
         n++;
+        ImGui::PopID();
     }
 
     ImGui::EndChild();

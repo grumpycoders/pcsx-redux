@@ -29,6 +29,8 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <stdint.h>
 
+#include <coroutine>
+
 #include "psyqo/task.hh"
 
 namespace psyqo {
@@ -42,6 +44,28 @@ namespace psyqo {
  */
 
 class CDRom {
+    struct ReadSectorsAwaiter {
+        ReadSectorsAwaiter(uint32_t sector, uint32_t count, void *buffer, CDRom &cdrom)
+            : m_sector(sector), m_count(count), m_buffer(buffer), m_cdrom(cdrom) {}
+        ~ReadSectorsAwaiter() {}
+        constexpr bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_cdrom.readSectors(m_sector, m_count, m_buffer, [handle, this](bool result) {
+                m_result = result;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_result; }
+
+      private:
+        uint32_t m_sector;
+        uint32_t m_count;
+        void *m_buffer;
+        CDRom &m_cdrom;
+        bool m_result;
+    };
+
   public:
     virtual ~CDRom() {}
     /**
@@ -99,6 +123,22 @@ class CDRom {
      * @return A task that can be queued into a `TaskQueue`
      */
     TaskQueue::Task scheduleReadRequest(ReadRequest *request);
+
+    /**
+     * @brief Wrapper around the readSectors method for coroutines.
+     *
+     * @details This method will return an `Awaiter` object that can be used to
+     * suspend the coroutine until the read operation is complete. This is
+     * meant to be used in conjunction with the `co_await` keyword, in a coroutine.
+     *
+     * @param sector The sector to read.
+     * @param count The number of sectors to read.
+     * @param buffer The buffer to read into.
+     * @return ReadSectorsAwaiter The awaitable object to be used with the `co_await` keyword.
+     */
+    ReadSectorsAwaiter readSectorsForCoroutine(uint32_t sector, uint32_t count, void *buffer) {
+        return {sector, count, buffer, *this};
+    }
 
   private:
     ReadRequest m_readRequest;

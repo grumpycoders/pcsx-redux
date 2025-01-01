@@ -111,6 +111,8 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
         const bool isSWL = basic == 0x2a;
         const bool isSW = (basic == 0x2b) || (basic == 0x3a);
         const bool isSWR = basic == 0x2e;
+        const bool isLWC2 = basic == 0x32;
+        const bool isSWC2 = basic == 0x3a;
         uint32_t offset = regs.GPR.r[(newCode >> 21) & 0x1f] + int16_t(newCode);
         if (isLWL || isLWR || isSWR || isSWL) offset &= ~3;
         if (isLB || isLBU) {
@@ -127,7 +129,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
             if (m_mapping_r16) markMap(offset, MAP_R16);
         }
-        if (isLW || isLWR || isLWL) {
+        if (isLW || isLWR || isLWL || isLWC2) {
             checkBP(offset, BreakpointType::Read, 4);
             if (m_breakmp_r32 && !isMapMarked(offset, MAP_R32)) {
                 triggerBP(nullptr, offset, 4, _("Read 32 map"));
@@ -148,7 +150,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
             if (m_mapping_w16) markMap(offset, MAP_W16);
         }
-        if (isSW || isSWR || isSWL) {
+        if (isSW || isSWR || isSWL || isSWC2) {
             checkBP(offset, BreakpointType::Write, 4);
             if (m_breakmp_w32 && !isMapMarked(offset, MAP_W32)) {
                 triggerBP(nullptr, offset, 4, _("Write 32 map"));

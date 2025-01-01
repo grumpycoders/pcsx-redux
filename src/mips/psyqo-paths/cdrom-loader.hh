@@ -30,6 +30,8 @@ SOFTWARE.
 #include <EASTL/vector.h>
 #include <stdint.h>
 
+#include <coroutine>
+
 #include "psyqo/gpu.hh"
 #include "psyqo/iso9660-parser.hh"
 #include "psyqo/task.hh"
@@ -45,10 +47,34 @@ namespace psyqo::paths {
  * the data of the file, or an empty vector if the file could not be read.
  * This is going to allocate memory in different places. Only one file can
  * be read at a time, but it is safe to call readFile() again from the
- * callback.
+ * callback. If preferred, the loader can be cascaded into another `TaskQueue`.
+ * Also, for convenience, readFile() can be awaited on using the co_await
+ * keyword in a coroutine.
  */
 
 class CDRomLoader {
+    struct ReadFileAwaiter {
+        ReadFileAwaiter(eastl::string_view path, GPU &gpu, ISO9660Parser &parser, CDRomLoader &loader)
+            : m_path(path), m_gpu(gpu), m_parser(parser), m_loader(loader) {}
+        ~ReadFileAwaiter() {}
+        constexpr bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_loader.readFile(m_path, m_gpu, m_parser, [handle, this](eastl::vector<uint8_t> &&data) {
+                m_data = eastl::move(data);
+                handle.resume();
+            });
+        }
+        eastl::vector<uint8_t> await_resume() { return eastl::move(m_data); }
+
+      private:
+        eastl::string_view m_path;
+        GPU &m_gpu;
+        ISO9660Parser &m_parser;
+        CDRomLoader &m_loader;
+        eastl::vector<uint8_t> m_data;
+    };
+
   public:
     /**
      * @brief Reads a file from the CDRom.
@@ -61,16 +87,23 @@ class CDRomLoader {
      * will be called with the data of the file, or an empty vector if the file
      * could not be read.
      */
-    void readFile(eastl::string_view path, GPU& gpu, ISO9660Parser& parser,
-                  eastl::function<void(eastl::vector<uint8_t>&&)>&& callback) {
+    void readFile(eastl::string_view path, GPU &gpu, ISO9660Parser &parser,
+                  eastl::function<void(eastl::vector<uint8_t> &&)> &&callback) {
         setupQueue(path, gpu, parser, eastl::move(callback));
         m_queue.run();
     }
+    psyqo::TaskQueue::Task scheduleReadFile(eastl::string_view path, GPU &gpu, ISO9660Parser &parser) {
+        setupQueue(path, gpu, parser, {});
+        return m_queue.schedule();
+    }
+    ReadFileAwaiter readFile(eastl::string_view path, GPU &gpu, ISO9660Parser &parser) {
+        return {path, gpu, parser, *this};
+    }
 
   private:
-    void setupQueue(eastl::string_view path, GPU& gpu, ISO9660Parser& parser,
-                    eastl::function<void(eastl::vector<uint8_t>&&)>&& callback);
-    eastl::function<void(eastl::vector<uint8_t>&&)> m_callback;
+    void setupQueue(eastl::string_view path, GPU &gpu, ISO9660Parser &parser,
+                    eastl::function<void(eastl::vector<uint8_t> &&)> &&callback);
+    eastl::function<void(eastl::vector<uint8_t> &&)> m_callback;
     psyqo::TaskQueue m_queue;
     ISO9660Parser::ReadRequest m_request;
     eastl::vector<uint8_t> m_data;
