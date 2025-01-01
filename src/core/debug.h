@@ -32,7 +32,8 @@ namespace PCSX {
 
 class Debug {
   public:
-    uint32_t normalizeAddress(uint32_t address);
+    static uint32_t normalizeAddress(uint32_t address);
+    static bool isInKernel(uint32_t address, bool biosIsKernel = true);
     static inline std::function<const char*()> s_breakpoint_type_names[] = {l_("Exec"), l_("Read"), l_("Write")};
     enum class BreakpointType { Exec, Read, Write };
 
@@ -118,6 +119,7 @@ class Debug {
     bool m_breakmp_e = false;
     bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
     bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
+    bool m_checkKernel = false;
 
     void clearMaps() {
         memset(m_mainMemoryMap, 0, sizeof(m_mainMemoryMap));
