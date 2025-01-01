@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
@@ -116,6 +117,9 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             break;
         case 0x1f802083:
             hard = 0x58;
+            break;
+        case 0x1f802088:
+            hard = g_emulator->m_debug->m_checkKernel;
             break;
         default:
             hard = g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -440,6 +444,9 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
                 }
                 while (top != L.gettop()) L.pop();
             }
+            break;
+        case 0x1f802088:
+            g_emulator->m_debug->m_checkKernel = value;
             break;
 
         default:

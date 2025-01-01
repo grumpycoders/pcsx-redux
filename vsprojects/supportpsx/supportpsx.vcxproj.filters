@@ -104,5 +104,8 @@
     <ClInclude Include="..\..\src\supportpsx\adpcmlua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
