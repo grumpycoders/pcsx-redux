@@ -51,8 +51,30 @@ class GTE {
 
     void MTC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_); }
     void CTC2(uint32_t code) { CTC2_internal(PCSX::g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_); }
-    void LWC2(uint32_t code) { MTC2_internal(PCSX::g_emulator->m_mem->read32(gteoB), _Rt_); }
-    void SWC2(uint32_t code) { PCSX::g_emulator->m_mem->write32(gteoB, MFC2_internal(_Rt_)); }
+    void LWC2(uint32_t code) {
+        if (gteoB & 3) {
+            PCSX::g_emulator->m_cpu->m_regs.pc -= 4;
+            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LWC2 from 0x%08x\n"), gteoB,
+                                PCSX::g_emulator->m_cpu->m_regs.pc);
+            PCSX::g_emulator->m_cpu->m_regs.CP0.n.BadVAddr = gteoB;
+            PCSX::g_emulator->m_cpu->exception(PCSX::R3000Acpu::Exception::LoadAddressError,
+                                               PCSX::g_emulator->m_cpu->m_inDelaySlot);
+            return;
+        }
+        MTC2_internal(PCSX::g_emulator->m_mem->read32(gteoB), _Rt_);
+    }
+    void SWC2(uint32_t code) {
+        if (gteoB & 3) {
+            PCSX::g_emulator->m_cpu->m_regs.pc -= 4;
+            PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SWC2 from 0x%08x\n"), gteoB,
+                                PCSX::g_emulator->m_cpu->m_regs.pc);
+            PCSX::g_emulator->m_cpu->m_regs.CP0.n.BadVAddr = gteoB;
+            PCSX::g_emulator->m_cpu->exception(PCSX::R3000Acpu::Exception::StoreAddressError,
+                                               PCSX::g_emulator->m_cpu->m_inDelaySlot);
+            return;
+        }
+        PCSX::g_emulator->m_mem->write32(gteoB, MFC2_internal(_Rt_));
+    }
 
     void RTPS(uint32_t code);
     void NCLIP(uint32_t code);
