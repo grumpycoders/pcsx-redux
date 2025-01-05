@@ -123,9 +123,13 @@ class GPU {
      * @details This returns the internal frame counter being kept by the
      * GPU class. The 32 bits value will wrap around when it reaches 2^32
      * frames, which is 2 years, 3 months, 7 days, 6 hours, 6 minutes and
-     * 28.27 seconds when running constantly at a 60Hz refresh rate.
+     * 28.27 seconds when running constantly at a 60Hz refresh rate. This
+     * counter will be incremented during the frame flip operation by the
+     * appropriate number of hardware frames which have passed since the
+     * last frame flip. In other words, this counter monotonically increases
+     * by one for each vsync event that occurred during the last rendering.
      */
-    uint32_t getFrameCount() const { return m_frameCount; }
+    uint32_t getFrameCount() const { return m_previousFrameCount; }
 
     /**
      * @brief Get the index of the current display buffer.
