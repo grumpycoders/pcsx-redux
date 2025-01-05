@@ -53,6 +53,7 @@ find a link to the vendored version itself.
  - [nanosvg](https://github.com/memononen/nanosvg) ([vendored](https://github.com/grumpycoders/nanosvg))
  - [nanovg](https://github.com/memononen/nanovg) ([vendored](https://github.com/grumpycoders/nanovg))
  - [noto](https://fonts.google.com/noto) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/noto))
+ - [PEGTL](https://github.com/taocpp/PEGTL)
  - [pprint.lua](https://github.com/jagt/pprint.lua) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/pprint.lua))
  - [stb](https://github.com/nothings/stb)
  - [tracy](https://github.com/wolfpld/tracy)
