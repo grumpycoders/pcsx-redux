@@ -1,11 +1,11 @@
 R"(
 
-PCSX-Redux, Copyright (C) 2019-2024 [PCSX-Redux authors](AUTHORS)  
+PCSX-Redux, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)  
 PCSX-Redux comes with ABSOLUTELY NO WARRANTY.  
 This is free software, and you are welcome to redistribute it  
 under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/LICENSE) for details.
 
-OpenBIOS, Copyright (C) 2019-2024 [PCSX-Redux authors](AUTHORS)  
+OpenBIOS, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)  
 OpenBIOS comes with ABSOLUTELY NO WARRANTY.  
 This is free software, and you are welcome to redistribute it  
 under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/LICENSE) for details.
