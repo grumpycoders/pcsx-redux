@@ -339,7 +339,7 @@ static void boot(char *systemCnfPath, char *binaryPath) {
             }
             buildIDstring[count * 2] = 0;
         }
-        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2024 PCSX-Redux authors.\n",
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2025 PCSX-Redux authors.\n",
                   buildIDstring);
     }
     POST = 6;
