@@ -210,7 +210,9 @@
     <ClCompile Include="..\..\src\support\container-file.cc" />
     <ClCompile Include="..\..\src\support\ffmpeg-audio-file.cc" />
     <ClCompile Include="..\..\src\support\file.cc" />
-    <ClCompile Include="..\..\src\support\gnu-c++-demangler.cc" />
+    <ClCompile Include="..\..\src\support\gnu-c++-demangler.cc">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="..\..\src\support\md5.cc" />
     <ClCompile Include="..\..\src\support\mem4g.cc" />
     <ClCompile Include="..\..\src\support\sharedmem-unix.cc" />
