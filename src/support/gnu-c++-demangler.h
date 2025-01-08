@@ -34,7 +34,8 @@ namespace PCSX {
 namespace GNUDemangler {
 
 bool internalCheck();
-void trace(std::string_view mangled);
+bool trace(std::string_view mangled);
+void printDot(std::string_view mangled);
 std::string demangle(std::string_view mangled);
 
 }  // namespace GNUDemangler
