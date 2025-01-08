@@ -62,6 +62,10 @@ class MultitapTestScene final : public psyqo::Scene {
     void printPadList(int column);
     void printPadStatus(psyqo::AdvancedPad::Pad pad, int column);
     void printPadType(psyqo::AdvancedPad::Pad pad, int column, const char *name);
+
+    const char *c_padNames[8] = {"1a", "1b", "1c", "1d", "2a", "2b", "2c", "2d"};
+    const psyqo::Color c_colorWhite = {{.r = 255, .g = 255, .b = 255}};
+    const psyqo::Color c_colorGray = {{.r = 48, .g = 48, .b = 48}};
 };
 
 MultitapTest multitapTest;
@@ -101,9 +105,7 @@ void MultitapTestScene::nextPad() {
 void MultitapTestScene::print(int x, int y, bool enabled, const char *format, ...) {
     va_list args;
     const psyqo::Vertex pos = {{.x = int16_t(x * 8), .y = int16_t(y * 16)}};
-    static const auto WHITE = psyqo::Color{{.r = 255, .g = 255, .b = 255}};
-    static const auto GRAY = psyqo::Color{{.r = 48, .g = 48, .b = 48}};
-    const psyqo::Color c = enabled ? WHITE : GRAY;
+    const psyqo::Color c = enabled ? c_colorWhite : c_colorGray;
 
     va_start(args, format);
     multitapTest.m_font.vprintf(multitapTest.gpu(), pos, c, format, args);
@@ -112,13 +114,11 @@ void MultitapTestScene::print(int x, int y, bool enabled, const char *format, ..
 
 void MultitapTestScene::printPadList(int column) {
     // Print pad names and selected pad indicator
-    static const char *padNames[] = {"1a", "1b", "1c", "1d", "2a", "2b", "2c", "2d"};
-
     for (int i = 0; i < 8; i++) {
         const auto pad = static_cast<psyqo::AdvancedPad::Pad>(i);
         const bool isConnected = multitapTest.m_input.isPadConnected(pad);
         const char padIndicator = (m_padIndex == pad && isConnected) ? '>' : ' ';
-        print(column, i + 2, isConnected, "%cPad %s", padIndicator, padNames[i]);
+        print(column, i + 2, isConnected, "%cPad %s", padIndicator, c_padNames[i]);
     }
 }
 

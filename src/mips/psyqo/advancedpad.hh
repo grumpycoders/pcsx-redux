@@ -145,51 +145,54 @@ class AdvancedPad {
     /**
      * @brief Returns the state of Analog Input 0 (if any).
      *
-     * @details Returns the state of Analog Input 0 (if any).
+     * @details For analog pads, this is RightJoyX (00h=Left, 80h=Center, FFh=Right)
+     * For a mouse, this is the X-axis.
      *
      * @param pad The pad to query.
-     * @return The state of the Analog Input.
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc0(Pad pad) const { return m_padData[pad][2] & 0xff; }
 
     /**
-     * @brief Returns the state of Analog Input 1 (if any).
+     * @brief Returns the state of Analog Input 1 (if any)
      *
-     * @details Returns the state of Analog Input 1 (if any).
+     * @details For analog pads, this is RightJoyY (00h=Up, 80h=Center, FFh=Down)
+     * For a mouse, this is the Y-axis.
      *
      * @param pad The pad to query.
-     * @return The state of the Analog Input.
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc1(Pad pad) const { return m_padData[pad][2] >> 8; }
 
     /**
      * @brief Returns the state of Analog Input 2 (if any).
      *
-     * @details Returns the state of Analog Input 2 (if any).
+     * @details For analog pads, this is LeftJoyX (00h=Left, 80h=Center, FFh=Right)
      *
      * @param pad The pad to query.
-     * @return The state of the Analog Input.
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc2(Pad pad) const { return m_padData[pad][3] & 0xff; }
 
     /**
      * @brief Returns the state of Analog Input 3 (if any).
      *
-     * @details Returns the state of Analog Input 3 (if any).
+     * @details For analog pads, this is LeftJoyY (00h=Up, 80h=Center, FFh=Down)
      *
      * @param pad The pad to query.
-     * @return The state of the Analog Input.
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc3(Pad pad) const { return m_padData[pad][3] >> 8; }
 
     /**
      * @brief Returns the state of an Analog Input.
      *
-     * @details Returns the state of an Analog Input.
+     * @details See the specific Analog Input functions for details.
+     * The index is modulo 4, so it will wrap around if it is greater than 3.
      *
      * @param pad The pad to query.
      * @param index The index of the Analog Input.
-     * @return The state of the Analog Input.
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc(Pad pad, unsigned int index) const {
         switch (index) {
@@ -207,18 +210,23 @@ class AdvancedPad {
     }
 
     /**
-     * @brief Returns raw pad data as a 16-bit value.
+     * @brief Returns raw pad data as an unsigned 16-bit value.
      *
-     * @details Returns the halfword value for the requested index of the given pad index.
+     * @details A low level call which returns the halfword value for the requested index of the given pad index.
+     * It is recommended to use the higher level functions instead.
+     * index 0: pad type << 8 | connected(0 = connected, ffh = disconnected)
+     * index 1: button state
+     * index 2: analog input 1 << 8 | analog input 0
+     * index 3: analog input 3 << 8 | analog input 2
+     * The index is modulo 4, so it will wrap around if it is greater than 3.
+     *
      *
      * @param pad The pad to query.
      * @param index The index of the halfword.
      * @return The value of the halfword.
      */
 
-    uint16_t getHalfword(Pad pad, unsigned int index) const {
-        return m_padData[pad][index % 4];
-    }
+    uint16_t getHalfword(Pad pad, unsigned int index) const { return m_padData[pad][index % 4]; }
 
     /**
      * @brief Returns the type of the pad.
