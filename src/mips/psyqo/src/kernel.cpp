@@ -319,6 +319,7 @@ void psyqo::Kernel::Internal::prepare(Application& application) {
         KernelData* const events = reinterpret_cast<KernelData*>(0x120);
         __builtin_memset(handlers->data, 0, handlers->size);
         __builtin_memset(events->data, 0, events->size);
+        pcsx_checkKernel(1);
         syscall_setDefaultExceptionJmpBuf();
         syscall_enqueueSyscallHandler(0);
         syscall_enqueueIrqHandler(3);

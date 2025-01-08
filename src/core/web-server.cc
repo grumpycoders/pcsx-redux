@@ -1156,7 +1156,7 @@ struct PCSX::WebClient::WebClientImpl {
 
     void send400(std::string_view code) {
         std::string str =
-            fmt::format("HTTP/1.1 400 Bad Request\r\n\r\Request failed to parse properly. Error: {}\r\n", code);
+            fmt::format("HTTP/1.1 400 Bad Request\r\n\r\nRequest failed to parse properly. Error: {}\r\n", code);
         write(std::move(str));
         scheduleClose();
     }
