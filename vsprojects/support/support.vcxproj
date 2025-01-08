@@ -212,6 +212,7 @@
     <ClCompile Include="..\..\src\support\file.cc" />
     <ClCompile Include="..\..\src\support\gnu-c++-demangler.cc">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="..\..\src\support\md5.cc" />
     <ClCompile Include="..\..\src\support\mem4g.cc" />
