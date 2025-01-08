@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ class MultitapTest final : public psyqo::Application {
     void createScene() override;
 
   public:
-    psyqo::Font<1> m_font;
+    psyqo::Font<> m_font;
     psyqo::AdvancedPad m_input;
 };
 
@@ -58,9 +58,9 @@ class MultitapTestScene final : public psyqo::Scene {
 
     // Couple of small helpers.
     void nextPad();
-    void print(int x, int y, bool enabled, const char *text);
-    void printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const char *name);
-    void printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name);
+    void print(int x, int y, bool enabled, const char *format, ...);
+    void printPadList(int column);
+    void printPadStatus(psyqo::AdvancedPad::Pad pad, int column);
     void printPadType(psyqo::AdvancedPad::Pad pad, int column, const char *name);
 };
 
@@ -98,43 +98,52 @@ void MultitapTestScene::nextPad() {
     m_padIndex = psyqo::AdvancedPad::Pad::Pad1a;
 }
 
-void MultitapTestScene::print(int x, int y, bool enabled, const char *text) {
-    y += 2;
-    psyqo::Vertex pos = {{.x = int16_t(x * 8), .y = int16_t(y * 16)}};
+void MultitapTestScene::print(int x, int y, bool enabled, const char *format, ...) {
+    va_list args;
+    const psyqo::Vertex pos = {{.x = int16_t(x * 8), .y = int16_t(y * 16)}};
     static const auto WHITE = psyqo::Color{{.r = 255, .g = 255, .b = 255}};
     static const auto GRAY = psyqo::Color{{.r = 48, .g = 48, .b = 48}};
-    psyqo::Color c = enabled ? WHITE : GRAY;
-    multitapTest.m_font.print(multitapTest.gpu(), text, pos, c);
+    const psyqo::Color c = enabled ? WHITE : GRAY;
+
+    va_start(args, format);
+    multitapTest.m_font.vprintf(multitapTest.gpu(), pos, c, format, args);
+    va_end(args);
 }
 
-void MultitapTestScene::printPadConnectionStatus(psyqo::AdvancedPad::Pad pad, int row, const char *name) {
-    auto &input = multitapTest.m_input;
-    print(2, row, input.isPadConnected(pad), name);
+void MultitapTestScene::printPadList(int column) {
+    // Print pad names and selected pad indicator
+    static const char *padNames[] = {"1a", "1b", "1c", "1d", "2a", "2b", "2c", "2d"};
+
+    for (int i = 0; i < 8; i++) {
+        const auto pad = static_cast<psyqo::AdvancedPad::Pad>(i);
+        const bool isConnected = multitapTest.m_input.isPadConnected(pad);
+        const char padIndicator = (m_padIndex == pad && isConnected) ? '>' : ' ';
+        print(column, i + 2, isConnected, "%cPad %s", padIndicator, padNames[i]);
+    }
 }
 
-void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, const char *name) {
-    auto &input = multitapTest.m_input;
-    print(column + 0, 0, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Start), "Start");
-    print(column + 0, 1, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Select), "Select");
+void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column) {
+    const auto &input = multitapTest.m_input;
+    print(column + 0, 2, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Start), "Start");
+    print(column + 0, 3, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Select), "Select");
 
-    print(column + 0, 3, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L1), "L1");
-    print(column + 0, 4, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R1), "R1");
-    print(column + 0, 5, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L2), "L2");
-    print(column + 0, 6, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R2), "R2");
-    print(column + 0, 7, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L3), "L3");
-    print(column + 0, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R3), "R3");
+    print(column + 0, 5, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L1), "L1");
+    print(column + 0, 6, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R1), "R1");
+    print(column + 0, 7, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L2), "L2");
+    print(column + 0, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R2), "R2");
+    print(column + 0, 9, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::L3), "L3");
+    print(column + 0, 10, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::R3), "R3");
 
-    print(column + 10, 0, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Up), "Up");
-    print(column + 10, 1, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Down), "Down");
-    print(column + 10, 2, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Left), "Left");
-    print(column + 10, 3, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Right), "Right");
+    print(column + 10, 2, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Up), "Up");
+    print(column + 10, 3, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Down), "Down");
+    print(column + 10, 4, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Left), "Left");
+    print(column + 10, 5, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Right), "Right");
 
-    print(column + 10, 5, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Cross), "Cross");
-    print(column + 10, 6, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Circle), "Circle");
-    print(column + 10, 7, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Square), "Square");
-    print(column + 10, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Triangle), "Triangle");
+    print(column + 10, 7, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Cross), "Cross");
+    print(column + 10, 8, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Circle), "Circle");
+    print(column + 10, 9, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Square), "Square");
+    print(column + 10, 10, input.isButtonPressed(pad, psyqo::AdvancedPad::Button::Triangle), "Triangle");
 
-    char m_textBuffer[32] = {'\0'};
     const auto padType = input.getPadType(pad);
 
     // The lower 4-bits of the pad type indicate the number of half-words of pad data
@@ -143,61 +152,58 @@ void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column, 
     const auto adcBytes = (halfWords - 1) * 2;
 
     if (halfWords > 1 && padType != psyqo::AdvancedPad::PadType::None) {
-        sprintf(m_textBuffer, "ADC[0-%d]", adcBytes - 1);
-        print(column + 0, 9, false, m_textBuffer);
+        print(column + 0, 11, false, "ADC[0-%d]", adcBytes - 1);
 
         for (int i = 0; i < adcBytes && i < 4; i++) {
-            sprintf(m_textBuffer, "%02X ", input.getAdc(pad, i));
-            print(column + 10 + (i * 3), 9, true, m_textBuffer);
+            print(column + 10 + (i * 3), 11, true, "%02X ", input.getAdc(pad, i));
         }
     }
 }
 
 void MultitapTestScene::printPadType(psyqo::AdvancedPad::Pad pad, int column, const char *name) {
-    auto &input = multitapTest.m_input;
-    char m_textBuffer[16] = {'\0'};
-    const auto padType = input.getPadType(pad);
+    const auto padType = multitapTest.m_input.getPadType(pad);
+    const char *padTypeStr;
 
-    print(column + 0, 11, true, name);
     switch (padType) {
         case psyqo::AdvancedPad::PadType::Mouse:
-            sprintf(m_textBuffer, "Mouse");
+            padTypeStr = "Mouse";
             break;
         case psyqo::AdvancedPad::PadType::NegCon:
-            sprintf(m_textBuffer, "NegCon");
+            padTypeStr = "NegCon";
             break;
         case psyqo::AdvancedPad::PadType::KonamiLightgun:
-            sprintf(m_textBuffer, "KonamiLightgun");
+            padTypeStr = "KonamiLightgun";
             break;
         case psyqo::AdvancedPad::PadType::DigitalPad:
-            sprintf(m_textBuffer, "DigitalPad");
+            padTypeStr = "DigitalPad";
             break;
         case psyqo::AdvancedPad::PadType::AnalogStick:
-            sprintf(m_textBuffer, "AnalogStick");
+            padTypeStr = "AnalogStick";
             break;
         case psyqo::AdvancedPad::PadType::NamcoLightgun:
-            sprintf(m_textBuffer, "NamcoLightgun");
+            padTypeStr = "NamcoLightgun";
             break;
         case psyqo::AdvancedPad::PadType::AnalogPad:
-            sprintf(m_textBuffer, "AnalogPad");
+            padTypeStr = "AnalogPad";
             break;
         case psyqo::AdvancedPad::PadType::Multitap:
-            sprintf(m_textBuffer, "Multitap");
+            padTypeStr = "Multitap";
             break;
         case psyqo::AdvancedPad::PadType::Jogcon:
-            sprintf(m_textBuffer, "Jogcon");
+            padTypeStr = "Jogcon";
             break;
         case psyqo::AdvancedPad::PadType::ConfigMode:
-            sprintf(m_textBuffer, "ConfigMode");
+            padTypeStr = "ConfigMode";
             break;
         case psyqo::AdvancedPad::PadType::None:
-            sprintf(m_textBuffer, "None");
+            padTypeStr = "None";
             break;
         default:
-            sprintf(m_textBuffer, "Unknown");
+            padTypeStr = "Unknown";
             break;
     }
-    print(column + 10, 11, true, m_textBuffer);
+    print(column + 0, 13, true, name);
+    print(column + 10, 13, true, padTypeStr);
 }
 
 void MultitapTestScene::start(Scene::StartReason reason) {
@@ -211,21 +217,9 @@ void MultitapTestScene::start(Scene::StartReason reason) {
 void MultitapTestScene::frame() {
     multitapTest.gpu().clear();
 
-    if (multitapTest.m_input.isPadConnected(m_padIndex)) {
-        print(1, m_padIndex, true, ">");
-    }
-
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad1a, 0, "Pad 1a");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad1b, 1, "Pad 1b");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad1c, 2, "Pad 1c");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad1d, 3, "Pad 1d");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad2a, 4, "Pad 2a");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad2b, 5, "Pad 2b");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad2c, 6, "Pad 2c");
-    printPadConnectionStatus(psyqo::AdvancedPad::Pad2d, 7, "Pad 2d");
-
-    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16, "Pad Status");
-    printPadType(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16, "Pad Type");
+    printPadList(1);
+    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16);
+    printPadType(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16, "Type");
 }
 
 int main() { return multitapTest.run(); }
