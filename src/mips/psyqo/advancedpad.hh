@@ -188,7 +188,7 @@ class AdvancedPad {
      * @brief Returns the state of an Analog Input.
      *
      * @details See the specific Analog Input functions for details.
-     * The index is modulo 4, so it will wrap around if it is greater than 3.
+     * Indices greater than 3 will return 0.
      *
      * @param pad The pad to query.
      * @param index The index of the Analog Input.
