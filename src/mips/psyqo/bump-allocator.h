@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include <EASTL/utility.h>
+
 #include "psyqo/fragments.hh"
 #include "psyqo/primitive-concept.hh"
 
@@ -52,15 +54,15 @@ namespace psyqo {
 template <size_t N>
 class BumpAllocator {
   public:
-    template <Primitive P, typename ...Args>
-    Fragments::SimpleFragment<P> &allocateFragment(Args ...args) {
+    template <Primitive P, typename... Args>
+    Fragments::SimpleFragment<P> &allocateFragment(Args &&...args) {
         static constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
         uint8_t *ptr = m_current;
         m_current += size;
-        return *new (ptr) Fragments::SimpleFragment<P>(args...);
+        return *new (ptr) Fragments::SimpleFragment<P>(eastl::forward(args)...);
     }
-    template <typename T, typename ...Args>
-    T &allocate(Args ...args) {
+    template <typename T, typename... Args>
+    T &allocate(Args &&...args) {
         size_t size = sizeof(T);
         uint8_t *ptr = m_current;
         if constexpr (alignof(T) > 1) {
@@ -70,7 +72,7 @@ class BumpAllocator {
             ptr = alignedptr;
         }
         m_current += size;
-        return *new (ptr) T(args...);
+        return *new (ptr) T(eastl::forward(args)...);
     }
     void reset() { m_current = m_memory; }
     size_t remaining() const { return N - (m_current - m_memory); }
