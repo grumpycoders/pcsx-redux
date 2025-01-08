@@ -51,10 +51,11 @@ namespace Prim {
  */
 struct Quad {
     Quad() : command(0x28000000) {}
-    Quad(Color c) : command(0x28000000 | c.packed) {}
+    Quad(Color c) : command(0x28000000 | (c.packed & 0x00ffffff)) {}
+    Quad(const Quad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x28000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x28000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     Quad& setOpaque() {
@@ -106,10 +107,11 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  */
 struct TexturedQuad {
     TexturedQuad() : command(0x2d000000) {}
-    TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
+    TexturedQuad(Color c) : command(0x2c000000 | (c.packed & 0x00ffffff)) {}
+    TexturedQuad(const TexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     TexturedQuad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x2c000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x2c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     TexturedQuad& setOpaque() {
@@ -148,10 +150,11 @@ static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is n
  */
 struct GouraudQuad {
     GouraudQuad() : command(0x38000000) {}
-    GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
+    GouraudQuad(Color c) : command(0x38000000 | (c.packed & 0x00ffffff)) {}
+    GouraudQuad(const GouraudQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x38000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -264,10 +267,11 @@ static_assert(sizeof(GouraudQuad) == (sizeof(uint32_t) * 8), "GouraudQuad is not
  */
 struct GouraudTexturedQuad {
     GouraudTexturedQuad() : command(0x3c000000) {}
-    GouraudTexturedQuad(Color c) : command(0x3c000000 | c.packed) {}
+    GouraudTexturedQuad(Color c) : command(0x3c000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTexturedQuad(const GouraudTexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3c000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x3c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
