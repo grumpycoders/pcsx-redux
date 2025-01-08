@@ -24,70 +24,106 @@ SOFTWARE.
 
 */
 
+#ifdef _WIN32
+#include <Debugapi.h>
+#endif
+
 #include <cctype>
+#include <string>
+#include <string_view>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
+#include <tao/pegtl/contrib/parse_tree.hpp>
+#include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
+#include <tao/pegtl/demangle.hpp>
+#include <typeinfo>
+#include <vector>
 
 #include "support/gnu-c++-demangler.h"
 
 namespace pegtl = TAO_PEGTL_NAMESPACE;
 
-namespace {
+namespace PCSX::GNUDemangler {
 
-struct mangled_name;
+#ifdef _WIN32
+void debugbreak() {
+    if (IsDebuggerPresent()) __debugbreak();
+}
+#else
+void debugbreak() {}
+#endif
 
+// The global parser state
+struct DemanglerState {
+    std::string tostring() { return ""; }
+    std::vector<std::string> bag;
+    std::string_view lastName;
+    const std::type_info* lastAction;
+};
+
+// Unimplemented exception to throw
+struct Unimplemented {
+    Unimplemented(std::string_view name) : name(name) {}
+    std::string_view name;
+};
+
+// Forward declarations
+struct array_type;
+struct bare_function_type;
+struct builtin_type;
+struct closure_type_name;
+struct ctor_dtor_name;
+struct CV_qualifiers;
+struct data_member_prefix;
 struct encoding;
+struct expression;
+struct expr_primary;
+struct function;
+struct function_type;
+struct local_name;
+struct mangled_name;
+struct name;
+struct nested_name;
+struct operator_name;
+struct pointer_to_member_type;
+struct prefix;
+struct source_name;
+struct special_name;
+struct std_name;
+struct std_unqualified_name;
+struct substitution;
+struct template_arg;
+struct template_args;
+struct template_decl;
+struct template_param;
+struct template_prefix;
+struct template_prefix_with_args;
+struct template_template_param;
+struct type;
+struct unnamed_type_name;
+struct unqualified_name;
+struct unscoped_name;
+struct unscoped_template_name;
+
+// Grammar rules, in order of appearance in the grammar
+// See https://refspecs.linuxfoundation.org/cxxabi-1.86.html#mangling
 struct mangled_name : pegtl::seq<pegtl::string<'_', 'Z'>, encoding, pegtl::eof> {};
 
-struct function;
-struct name;
-struct special_name;
 struct encoding : pegtl::sor<function, name, special_name> {};
-
-struct bare_function_type;
-struct function : pegtl::seq<name, pegtl::plus<bare_function_type>> {};
-
-struct nested_name;
-struct unscoped_name;
-struct template_decl;
-struct local_name;
-struct std_name;
+struct function : pegtl::seq<name, bare_function_type> {};
 struct name : pegtl::sor<nested_name, template_decl, unscoped_name, local_name, std_name> {};
-
-struct unscoped_template_name;
-struct template_args;
 struct template_decl : pegtl::seq<unscoped_template_name, template_args> {};
-
-struct unqualified_name;
-struct std_unqualified_name;
 struct unscoped_name : pegtl::sor<unqualified_name, std_unqualified_name> {};
-
 struct std_unqualified_name : pegtl::seq<pegtl::string<'S', 't'>, unqualified_name> {};
-
-struct substitution;
 struct unscoped_template_name : pegtl::sor<unscoped_name, substitution> {};
-
-struct CV_qualifiers;
-struct template_prefix;
-struct prefix;
-
-struct nested_name : pegtl::seq<pegtl::one<'N'>, pegtl::opt<CV_qualifiers>, pegtl::star<prefix>, pegtl::one<'E'>> {};
-
-struct template_prefix_with_args;
-struct template_param;
-struct data_member_prefix;
+struct nested_name
+    : pegtl::seq<pegtl::one<'N'>, pegtl::opt<CV_qualifiers>,
+                 pegtl::star<pegtl::seq<pegtl::plus<prefix>, pegtl::opt<template_args>>>, pegtl::one<'E'>> {};
 struct prefix
     : pegtl::sor<template_param, substitution, template_prefix_with_args, unqualified_name, data_member_prefix> {};
-
 struct template_prefix_with_args : pegtl::seq<template_prefix, template_args> {};
-
 struct template_prefix : pegtl::sor<template_param, substitution> {};
-
-struct operator_name;
-struct ctor_dtor_name;
-struct source_name;
-struct unnamed_type_name;
 struct unqualified_name : pegtl::sor<operator_name, ctor_dtor_name, source_name, unnamed_type_name> {};
 
 struct source_name {
@@ -96,7 +132,7 @@ struct source_name {
 
     template <pegtl::apply_mode A, pegtl::rewind_mode M, template <typename...> class Action,
               template <typename...> class Control, typename ParseInput, typename... States>
-    [[nodiscard]] static bool match(ParseInput &in, States &&...st) {
+    [[nodiscard]] static bool match(ParseInput& in, States&&... st) {
         auto marker = in.template mark<M>();
         unsigned size = 0;
         while (in.size() > 0 && std::isdigit(in.peek_char())) {
@@ -111,7 +147,6 @@ struct source_name {
     }
 };
 
-struct type;
 struct new_operator : pegtl::seq<pegtl::string<'n', 'w'>, type> {};
 struct new_array_operator : pegtl::seq<pegtl::string<'n', 'a'>, type> {};
 struct delete_operator : pegtl::seq<pegtl::string<'d', 'l'>, type> {};
@@ -181,9 +216,11 @@ struct operator_name
 
 struct positive_number : pegtl::plus<pegtl::digit> {};
 struct number : pegtl::seq<pegtl::opt<pegtl::one<'n'>>, positive_number> {};
+
 struct nv_offset : pegtl::seq<pegtl::one<'h'>, number> {};
 struct v_offset : pegtl::seq<pegtl::one<'v'>, number, pegtl::one<'_'>, number> {};
 struct call_offset : pegtl::sor<nv_offset, v_offset> {};
+
 struct virtual_table : pegtl::seq<pegtl::string<'T', 'V'>, type> {};
 struct vtt_structure : pegtl::seq<pegtl::string<'T', 'T'>, type> {};
 struct typeinfo_structure : pegtl::seq<pegtl::string<'T', 'I'>, type> {};
@@ -197,12 +234,6 @@ struct special_name : pegtl::sor<virtual_table, vtt_structure, typeinfo_structur
 struct ctor_dtor_name : pegtl::sor<pegtl::string<'C', '1'>, pegtl::string<'C', '2'>, pegtl::string<'C', '3'>,
                                    pegtl::string<'D', '0'>, pegtl::string<'D', '1'>, pegtl::string<'D', '2'>> {};
 
-struct expression;
-struct builtin_type;
-struct function_type;
-struct array_type;
-struct pointer_to_member_type;
-struct template_template_param;
 struct template_type : pegtl::seq<template_template_param, template_args> {};
 struct CV_qualified_type : pegtl::seq<CV_qualifiers, type> {};
 struct pointer_to_type : pegtl::seq<pegtl::one<'P'>, type> {};
@@ -258,7 +289,7 @@ struct builtin_type
                  float128_type, ellipsis, ieee754_64_type, ieee754_128_type, ieee754_32_type, ieee754_16_type,
                  char32_type, char16_type, vendor_extended_builtin_type> {};
 
-struct function_type : pegtl::seq<pegtl::one<'F'>, pegtl::opt<pegtl::one<'Y'>, bare_function_type, pegtl::one<'E'>>> {};
+struct function_type : pegtl::seq<pegtl::one<'F'>, pegtl::opt<pegtl::one<'Y'>>, bare_function_type, pegtl::one<'E'>> {};
 struct bare_function_type : pegtl::plus<type> {};
 
 struct array_type_numerical : pegtl::seq<pegtl::one<'A'>, positive_number, pegtl::one<'_'>, type> {};
@@ -272,8 +303,6 @@ struct template_template_param : pegtl::sor<template_param, substitution> {};
 
 struct function_param : pegtl::seq<pegtl::string<'f', 'p'>, pegtl::opt<number>, pegtl::one<'_'>> {};
 
-struct template_arg;
-struct expr_primary;
 struct template_args : pegtl::seq<pegtl::one<'I'>, pegtl::plus<template_arg>, pegtl::one<'E'>> {};
 struct template_arg_expression : pegtl::seq<pegtl::one<'X'>, expression, pegtl::one<'E'>> {};
 struct template_arg_pack : pegtl::seq<pegtl::one<'I'>, pegtl::star<template_arg>, pegtl::one<'E'>> {};
@@ -302,7 +331,7 @@ struct dependent_operator_function_template_expression
 struct dependent_operator_template_id_expression : pegtl::seq<source_name, template_args> {};
 struct sizeof_param_pack_expression : pegtl::seq<pegtl::string<'s', 'Z'>, template_param> {};
 struct expression
-    : pegtl::sor<unary_operator_expression, binary_operator_expression, trinary_operator_expression, call_expression,
+    : pegtl::sor<trinary_operator_expression, binary_operator_expression, unary_operator_expression, call_expression,
                  conversion_expression, conversion_multiple_expression, sizeof_expression, alignof_expression,
                  template_param, function_param, dependent_name_expression, dependent_template_id_expression,
                  dot_expression, dot_template_expression, arrow_expression, arrow_template_expression,
@@ -323,7 +352,6 @@ struct discriminator : pegtl::sor<discriminator_single_digit, discriminator_mult
 struct local_name_simple : pegtl::seq<pegtl::one<'Z'>, encoding, pegtl::one<'E'>, pegtl::sor<name, pegtl::one<'s'>>,
                                       pegtl::opt<discriminator>> {};
 
-struct closure_type_name;
 struct unnamed_type_name_simple : pegtl::seq<pegtl::string<'U', 't'>, positive_number, pegtl::one<'_'>> {};
 struct unnamed_type_name : pegtl::sor<unnamed_type_name_simple, closure_type_name> {};
 
@@ -351,22 +379,1527 @@ struct substitution
 
 struct std_name : pegtl::seq<pegtl::string<'S', 't'>, unqualified_name> {};
 
-}  // namespace
+template <typename Rule>
+struct DemanglerAction : pegtl::nothing<Rule> {};
+
+template <>
+struct DemanglerAction<mangled_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("mangled_name");
+    }
+};
+template <>
+struct DemanglerAction<encoding> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("encoding");
+    }
+};
+template <>
+struct DemanglerAction<function> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("function");
+    }
+};
+template <>
+struct DemanglerAction<name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("name");
+    }
+};
+template <>
+struct DemanglerAction<template_decl> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_decl");
+    }
+};
+template <>
+struct DemanglerAction<unscoped_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unscoped_name");
+    }
+};
+template <>
+struct DemanglerAction<std_unqualified_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("std_unqualified_name");
+    }
+};
+template <>
+struct DemanglerAction<unscoped_template_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unscoped_template_name");
+    }
+};
+template <>
+struct DemanglerAction<nested_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("nested_name");
+    }
+};
+template <>
+struct DemanglerAction<prefix> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("prefix");
+    }
+};
+template <>
+struct DemanglerAction<template_prefix_with_args> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_prefix_with_args");
+    }
+};
+template <>
+struct DemanglerAction<template_prefix> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_prefix");
+    }
+};
+template <>
+struct DemanglerAction<unqualified_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unqualified_name");
+    }
+};
+template <>
+struct DemanglerAction<source_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        unsigned size = 0;
+        auto lengthPrefixedString = in.string_view();
+        unsigned prefixLength = 0;
+        while (std::isdigit(lengthPrefixedString[prefixLength])) {
+            size *= 10;
+            size += lengthPrefixedString[prefixLength++];
+        }
+        state.lastName = state.bag.emplace_back(lengthPrefixedString.substr(prefixLength));
+    }
+};
+template <>
+struct DemanglerAction<new_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("new_operator");
+    }
+};
+template <>
+struct DemanglerAction<new_array_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("new_array_operator");
+    }
+};
+template <>
+struct DemanglerAction<delete_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("delete_operator");
+    }
+};
+template <>
+struct DemanglerAction<delete_array_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("delete_array_operator");
+    }
+};
+template <>
+struct DemanglerAction<unary_plus_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unary_plus_operator");
+    }
+};
+template <>
+struct DemanglerAction<unary_minus_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unary_minus_operator");
+    }
+};
+template <>
+struct DemanglerAction<unary_address_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unary_address_operator");
+    }
+};
+template <>
+struct DemanglerAction<unary_deference_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unary_deference_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_not_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_not_operator");
+    }
+};
+template <>
+struct DemanglerAction<plus_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("plus_operator");
+    }
+};
+template <>
+struct DemanglerAction<minus_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("minus_operator");
+    }
+};
+template <>
+struct DemanglerAction<multiply_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("multiply_operator");
+    }
+};
+template <>
+struct DemanglerAction<divide_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("divide_operator");
+    }
+};
+template <>
+struct DemanglerAction<remainder_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("remainder_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_and_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_and_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_or_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_or_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_xor_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_xor_operator");
+    }
+};
+template <>
+struct DemanglerAction<assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<plus_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("plus_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<minus_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("minus_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<multiply_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("multiply_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<divide_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("divide_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<remainder_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("remainder_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_and_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_and_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_or_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_or_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<bitwise_xor_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bitwise_xor_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<left_shift_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("left_shift_operator");
+    }
+};
+template <>
+struct DemanglerAction<right_shift_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("right_shift_operator");
+    }
+};
+template <>
+struct DemanglerAction<left_shift_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("left_shift_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<right_shift_assign_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("right_shift_assign_operator");
+    }
+};
+template <>
+struct DemanglerAction<equal_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("equal_operator");
+    }
+};
+template <>
+struct DemanglerAction<not_equal_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("not_equal_operator");
+    }
+};
+template <>
+struct DemanglerAction<less_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("less_operator");
+    }
+};
+template <>
+struct DemanglerAction<greater_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("greater_operator");
+    }
+};
+template <>
+struct DemanglerAction<less_equal_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("less_equal_operator");
+    }
+};
+template <>
+struct DemanglerAction<greater_equal_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("greater_equal_operator");
+    }
+};
+template <>
+struct DemanglerAction<logical_not_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("logical_not_operator");
+    }
+};
+template <>
+struct DemanglerAction<logical_and_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("logical_and_operator");
+    }
+};
+template <>
+struct DemanglerAction<logical_or_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("logical_or_operator");
+    }
+};
+template <>
+struct DemanglerAction<increment_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("increment_operator");
+    }
+};
+template <>
+struct DemanglerAction<decrement_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("decrement_operator");
+    }
+};
+template <>
+struct DemanglerAction<comma_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("comma_operator");
+    }
+};
+template <>
+struct DemanglerAction<arrow_star_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("arrow_star_operator");
+    }
+};
+template <>
+struct DemanglerAction<arrow_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("arrow_operator");
+    }
+};
+template <>
+struct DemanglerAction<call_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("call_operator");
+    }
+};
+template <>
+struct DemanglerAction<index_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("index_operator");
+    }
+};
+template <>
+struct DemanglerAction<question_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("question_operator");
+    }
+};
+template <>
+struct DemanglerAction<sizeof_type_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("sizeof_type_operator");
+    }
+};
+template <>
+struct DemanglerAction<sizeof_expr_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("sizeof_expr_operator");
+    }
+};
+template <>
+struct DemanglerAction<alignof_type_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("alignof_type_operator");
+    }
+};
+template <>
+struct DemanglerAction<alignof_expr_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("alignof_expr_operator");
+    }
+};
+template <>
+struct DemanglerAction<cast_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("cast_operator");
+    }
+};
+template <>
+struct DemanglerAction<vendor_extended_operator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("vendor_extended_operator");
+    }
+};
+template <>
+struct DemanglerAction<operator_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("operator_name");
+    }
+};
+template <>
+struct DemanglerAction<positive_number> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("positive_number");
+    }
+};
+template <>
+struct DemanglerAction<number> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("number");
+    }
+};
+template <>
+struct DemanglerAction<nv_offset> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("nv_offset");
+    }
+};
+template <>
+struct DemanglerAction<v_offset> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("v_offset");
+    }
+};
+template <>
+struct DemanglerAction<call_offset> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("call_offset");
+    }
+};
+template <>
+struct DemanglerAction<virtual_table> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("virtual_table");
+    }
+};
+template <>
+struct DemanglerAction<vtt_structure> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("vtt_structure");
+    }
+};
+template <>
+struct DemanglerAction<typeinfo_structure> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("typeinfo_structure");
+    }
+};
+template <>
+struct DemanglerAction<typeinfo_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("typeinfo_name");
+    }
+};
+template <>
+struct DemanglerAction<guard_variable> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("guard_variable");
+    }
+};
+template <>
+struct DemanglerAction<virtual_thunk> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("virtual_thunk");
+    }
+};
+template <>
+struct DemanglerAction<virtual_covariant_thunk> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("virtual_covariant_thunk");
+    }
+};
+template <>
+struct DemanglerAction<special_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("special_name");
+    }
+};
+template <>
+struct DemanglerAction<ctor_dtor_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ctor_dtor_name");
+    }
+};
+template <>
+struct DemanglerAction<template_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_type");
+    }
+};
+template <>
+struct DemanglerAction<CV_qualified_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("CV_qualified_type");
+    }
+};
+template <>
+struct DemanglerAction<pointer_to_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("pointer_to_type");
+    }
+};
+template <>
+struct DemanglerAction<reference_to_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("reference_to_type");
+    }
+};
+template <>
+struct DemanglerAction<rvalue_reference_to_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("rvalue_reference_to_type");
+    }
+};
+template <>
+struct DemanglerAction<complex_pair_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("complex_pair_type");
+    }
+};
+template <>
+struct DemanglerAction<imaginary_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("imaginary_type");
+    }
+};
+template <>
+struct DemanglerAction<vendor_extended_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("vendor_extended_type");
+    }
+};
+template <>
+struct DemanglerAction<pack_expansion_of_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("pack_expansion_of_type");
+    }
+};
+template <>
+struct DemanglerAction<decltype_of_id_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("decltype_of_id_expression");
+    }
+};
+template <>
+struct DemanglerAction<decltype_of_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("decltype_of_expression");
+    }
+};
+template <>
+struct DemanglerAction<type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("type");
+    }
+};
+template <>
+struct DemanglerAction<CV_qualifiers> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("CV_qualifiers");
+    }
+};
+template <>
+struct DemanglerAction<void_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("void_type");
+    }
+};
+template <>
+struct DemanglerAction<wchar_t_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("wchar_t_type");
+    }
+};
+template <>
+struct DemanglerAction<bool_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bool_type");
+    }
+};
+template <>
+struct DemanglerAction<char_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("char_type");
+    }
+};
+template <>
+struct DemanglerAction<signed_char_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("signed_char_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_char_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_char_type");
+    }
+};
+template <>
+struct DemanglerAction<short_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("short_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_short_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_short_type");
+    }
+};
+template <>
+struct DemanglerAction<int_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("int_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_int_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_int_type");
+    }
+};
+template <>
+struct DemanglerAction<long_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("long_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_long_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_long_type");
+    }
+};
+template <>
+struct DemanglerAction<long_long_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("long_long_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_long_long> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_long_long");
+    }
+};
+template <>
+struct DemanglerAction<int128_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("int128_type");
+    }
+};
+template <>
+struct DemanglerAction<unsigned_int128_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unsigned_int128_type");
+    }
+};
+template <>
+struct DemanglerAction<float_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("float_type");
+    }
+};
+template <>
+struct DemanglerAction<double_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("double_type");
+    }
+};
+template <>
+struct DemanglerAction<long_double_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("long_double_type");
+    }
+};
+template <>
+struct DemanglerAction<float128_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("float128_type");
+    }
+};
+template <>
+struct DemanglerAction<ellipsis> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ellipsis");
+    }
+};
+template <>
+struct DemanglerAction<ieee754_64_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ieee754_64_type");
+    }
+};
+template <>
+struct DemanglerAction<ieee754_128_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ieee754_128_type");
+    }
+};
+template <>
+struct DemanglerAction<ieee754_32_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ieee754_32_type");
+    }
+};
+template <>
+struct DemanglerAction<ieee754_16_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("ieee754_16_type");
+    }
+};
+template <>
+struct DemanglerAction<char32_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("char32_type");
+    }
+};
+template <>
+struct DemanglerAction<char16_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("char16_type");
+    }
+};
+template <>
+struct DemanglerAction<vendor_extended_builtin_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("vendor_extended_builtin_type");
+    }
+};
+template <>
+struct DemanglerAction<builtin_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("builtin_type");
+    }
+};
+template <>
+struct DemanglerAction<function_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("function_type");
+    }
+};
+template <>
+struct DemanglerAction<bare_function_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("bare_function_type");
+    }
+};
+template <>
+struct DemanglerAction<array_type_numerical> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("array_type_numerical");
+    }
+};
+template <>
+struct DemanglerAction<array_type_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("array_type_expression");
+    }
+};
+template <>
+struct DemanglerAction<array_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("array_type");
+    }
+};
+template <>
+struct DemanglerAction<pointer_to_member_type> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("pointer_to_member_type");
+    }
+};
+template <>
+struct DemanglerAction<template_param> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_param");
+    }
+};
+template <>
+struct DemanglerAction<template_template_param> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_template_param");
+    }
+};
+template <>
+struct DemanglerAction<function_param> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("function_param");
+    }
+};
+template <>
+struct DemanglerAction<template_args> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_args");
+    }
+};
+template <>
+struct DemanglerAction<template_arg_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_arg_expression");
+    }
+};
+template <>
+struct DemanglerAction<template_arg_pack> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_arg_pack");
+    }
+};
+template <>
+struct DemanglerAction<template_pack_expansion> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_pack_expansion");
+    }
+};
+template <>
+struct DemanglerAction<template_arg> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("template_arg");
+    }
+};
+template <>
+struct DemanglerAction<unary_operator_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unary_operator_expression");
+    }
+};
+template <>
+struct DemanglerAction<binary_operator_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("binary_operator_expression");
+    }
+};
+template <>
+struct DemanglerAction<trinary_operator_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("trinary_operator_expression");
+    }
+};
+template <>
+struct DemanglerAction<call_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("call_expression");
+    }
+};
+template <>
+struct DemanglerAction<conversion_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("conversion_expression");
+    }
+};
+template <>
+struct DemanglerAction<conversion_multiple_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("conversion_multiple_expression");
+    }
+};
+template <>
+struct DemanglerAction<sizeof_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("sizeof_expression");
+    }
+};
+template <>
+struct DemanglerAction<alignof_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("alignof_expression");
+    }
+};
+template <>
+struct DemanglerAction<dependent_name_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dependent_name_expression");
+    }
+};
+template <>
+struct DemanglerAction<dependent_template_id_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dependent_template_id_expression");
+    }
+};
+template <>
+struct DemanglerAction<dot_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dot_expression");
+    }
+};
+template <>
+struct DemanglerAction<dot_template_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dot_template_expression");
+    }
+};
+template <>
+struct DemanglerAction<arrow_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("arrow_expression");
+    }
+};
+template <>
+struct DemanglerAction<arrow_template_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("arrow_template_expression");
+    }
+};
+template <>
+struct DemanglerAction<dependent_operator_function_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dependent_operator_function_expression");
+    }
+};
+template <>
+struct DemanglerAction<dependent_operator_function_template_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dependent_operator_function_template_expression");
+    }
+};
+template <>
+struct DemanglerAction<dependent_operator_template_id_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("dependent_operator_template_id_expression");
+    }
+};
+template <>
+struct DemanglerAction<sizeof_param_pack_expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("sizeof_param_pack_expression");
+    }
+};
+template <>
+struct DemanglerAction<expression> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("expression");
+    }
+};
+template <>
+struct DemanglerAction<hexdigit> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("hexdigit");
+    }
+};
+template <>
+struct DemanglerAction<float_value> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("float_value");
+    }
+};
+template <>
+struct DemanglerAction<expr_primary_integer> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("expr_primary_integer");
+    }
+};
+template <>
+struct DemanglerAction<expr_primary_floating> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("expr_primary_floating");
+    }
+};
+template <>
+struct DemanglerAction<expr_primary_external_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("expr_primary_external_name");
+    }
+};
+template <>
+struct DemanglerAction<expr_primary> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("expr_primary");
+    }
+};
+template <>
+struct DemanglerAction<discriminator_single_digit> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("discriminator_single_digit");
+    }
+};
+template <>
+struct DemanglerAction<discriminator_multiple_digits> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("discriminator_multiple_digits");
+    }
+};
+template <>
+struct DemanglerAction<discriminator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("discriminator");
+    }
+};
+template <>
+struct DemanglerAction<local_name_simple> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("local_name_simple");
+    }
+};
+template <>
+struct DemanglerAction<unnamed_type_name_simple> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unnamed_type_name_simple");
+    }
+};
+template <>
+struct DemanglerAction<unnamed_type_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("unnamed_type_name");
+    }
+};
+template <>
+struct DemanglerAction<lambda_sig> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("lambda_sig");
+    }
+};
+template <>
+struct DemanglerAction<closure_type_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("closure_type_name");
+    }
+};
+template <>
+struct DemanglerAction<local_name_lambda> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("local_name_lambda");
+    }
+};
+template <>
+struct DemanglerAction<local_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("local_name");
+    }
+};
+template <>
+struct DemanglerAction<data_member_prefix> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("data_member_prefix");
+    }
+};
+template <>
+struct DemanglerAction<seq_id> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("seq_id");
+    }
+};
+template <>
+struct DemanglerAction<substitution_simple> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_simple");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_allocator> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_allocator");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_basic_string> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_basic_string");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_basic_string_full> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_basic_string_full");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_basic_istream> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_basic_istream");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_basic_ostream> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_basic_ostream");
+    }
+};
+template <>
+struct DemanglerAction<substitution_std_basic_iostream> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution_std_basic_iostream");
+    }
+};
+template <>
+struct DemanglerAction<substitution> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("substitution");
+    }
+};
+template <>
+struct DemanglerAction<std_name> {
+    template <typename ActionInput>
+    static void apply(const ActionInput& in, DemanglerState& state) {
+        debugbreak();
+        throw Unimplemented("std_name");
+    }
+};
+
+}  // namespace PCSX::GNUDemangler
 
 template <typename Name>
-struct pegtl::analyze_traits<Name, source_name> : analyze_any_traits<> {};
+struct pegtl::analyze_traits<Name, PCSX::GNUDemangler::source_name> : analyze_any_traits<> {};
 
 bool PCSX::GNUDemangler::internalCheck() { return pegtl::analyze<mangled_name>() == 0; }
 
-void PCSX::GNUDemangler::trace(std::string_view mangled) {
+bool PCSX::GNUDemangler::trace(std::string_view mangled) {
     pegtl::string_input in(mangled, "mangled");
-    pegtl::standard_trace<mangled_name>(in);
+    return pegtl::standard_trace<mangled_name>(in);
+}
+
+#include <iostream>
+
+void PCSX::GNUDemangler::printDot(std::string_view mangled) {
+    pegtl::string_input in(mangled, "mangled");
+    const auto root = pegtl::parse_tree::parse<PCSX::GNUDemangler::mangled_name>(in);
+    if (root) {
+        pegtl::parse_tree::print_dot(std::cout, *root);
+    }
 }
 
 std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
-    std::string demangled;
-    pegtl::string_input in(mangled, "mangled");
-    auto result = pegtl::parse<mangled_name>(in, demangled);
-    if (!result) return std::string(mangled);
-    return demangled;
+    try {
+        DemanglerState state;
+        pegtl::string_input in(mangled, "mangled");
+        auto result = pegtl::parse<mangled_name, DemanglerAction>(in, state);
+        if (result) state.tostring();
+    } catch (Unimplemented unimplemented) {
+        std::cout << unimplemented.name;
+    } catch (...) {
+    }
+    return std::string(mangled);
 }
