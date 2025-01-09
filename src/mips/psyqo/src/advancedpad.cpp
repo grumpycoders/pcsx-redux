@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,14 +48,14 @@ void psyqo::AdvancedPad::initialize(PollingMode mode) {
 
         if (!m_callback) return;
 
-        processChanges(Pad1a);
-        processChanges(Pad1b);
-        processChanges(Pad1c);
-        processChanges(Pad1d);
-        processChanges(Pad2a);
-        processChanges(Pad2b);
-        processChanges(Pad2c);
-        processChanges(Pad2d);
+        processChanges(Pad::Pad1a);
+        processChanges(Pad::Pad1b);
+        processChanges(Pad::Pad1c);
+        processChanges(Pad::Pad1d);
+        processChanges(Pad::Pad2a);
+        processChanges(Pad::Pad2b);
+        processChanges(Pad::Pad2c);
+        processChanges(Pad::Pad2d);
     });
 }
 
@@ -114,18 +114,18 @@ uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
 
 void psyqo::AdvancedPad::processChanges(Pad pad) {
     bool padConnected = isPadConnected(pad);
-    bool wasConnected = m_connected[pad];
+    bool wasConnected = m_connected[static_cast<unsigned>(pad)];
     if (wasConnected && !padConnected) {
         m_callback(Event{Event::PadDisconnected, pad});
     } else if (!wasConnected && padConnected) {
         m_callback(Event{Event::PadConnected, pad});
     }
-    m_connected[pad] = padConnected;
+    m_connected[static_cast<unsigned>(pad)] = padConnected;
     if (!padConnected) return;
 
     uint32_t mask = 1;
-    uint32_t padData = m_padData[pad][1];
-    uint32_t buttons = m_buttons[pad];
+    uint32_t padData = m_padData[static_cast<unsigned>(pad)][1];
+    uint32_t buttons = m_buttons[static_cast<unsigned>(pad)];
     for (int i = 0; i < 16; i++, mask <<= 1) {
         bool buttonPressed = (padData & mask) == 0;
         bool wasButtonPressed = (buttons & mask) == 0;
@@ -135,7 +135,7 @@ void psyqo::AdvancedPad::processChanges(Pad pad) {
             m_callback(Event{Event::ButtonReleased, pad, Button(i)});
         }
     }
-    m_buttons[pad] = padData;
+    m_buttons[static_cast<unsigned>(pad)] = padData;
 }
 
 inline uint8_t psyqo::AdvancedPad::transceive(uint8_t data_out) {

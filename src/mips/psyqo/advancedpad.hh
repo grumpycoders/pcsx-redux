@@ -42,7 +42,7 @@ namespace psyqo {
 
 class AdvancedPad {
   public:
-    enum Pad { Pad1a, Pad1b, Pad1c, Pad1d, Pad2a, Pad2b, Pad2c, Pad2d };
+    enum class Pad : unsigned { Pad1a, Pad1b, Pad1c, Pad1d, Pad2a, Pad2b, Pad2c, Pad2d };
 
     enum Button {
         Select = 0,
@@ -128,7 +128,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return A boolean value indicating whether the pad is connected.
      */
-    bool isPadConnected(Pad pad) const { return (m_padData[pad][0] & 0xff) == 0; }
+    bool isPadConnected(Pad pad) const { return (m_padData[static_cast<unsigned>(pad)][0] & 0xff) == 0; }
 
     /**
      * @brief Returns the state of a button.
@@ -140,7 +140,9 @@ class AdvancedPad {
      * @param button The button to query.
      * @return A boolean value indicating whether the button is pressed.
      */
-    bool isButtonPressed(Pad pad, Button button) const { return (m_padData[pad][1] & (1 << button)) == 0; }
+    bool isButtonPressed(Pad pad, Button button) const {
+        return (m_padData[static_cast<unsigned>(pad)][1] & (1 << button)) == 0;
+    }
 
     /**
      * @brief Returns the state of Analog Input 0 (if any).
@@ -151,7 +153,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
-    uint8_t getAdc0(Pad pad) const { return m_padData[pad][2] & 0xff; }
+    uint8_t getAdc0(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][2] & 0xff; }
 
     /**
      * @brief Returns the state of Analog Input 1 (if any)
@@ -162,7 +164,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
-    uint8_t getAdc1(Pad pad) const { return m_padData[pad][2] >> 8; }
+    uint8_t getAdc1(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][2] >> 8; }
 
     /**
      * @brief Returns the state of Analog Input 2 (if any).
@@ -172,7 +174,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
-    uint8_t getAdc2(Pad pad) const { return m_padData[pad][3] & 0xff; }
+    uint8_t getAdc2(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][3] & 0xff; }
 
     /**
      * @brief Returns the state of Analog Input 3 (if any).
@@ -182,7 +184,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
-    uint8_t getAdc3(Pad pad) const { return m_padData[pad][3] >> 8; }
+    uint8_t getAdc3(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][3] >> 8; }
 
     /**
      * @brief Returns the state of an Analog Input.
@@ -226,17 +228,19 @@ class AdvancedPad {
      * @return The value of the halfword.
      */
 
-    uint16_t getHalfword(Pad pad, unsigned int index) const { return m_padData[pad][index % 4]; }
+    uint16_t getHalfword(Pad pad, unsigned int index) const { return m_padData[static_cast<unsigned>(pad)][index % 4]; }
 
     /**
      * @brief Returns the type of the pad.
      *
-     * @details Returns the type of the pad.
+     * @details Known pad types are defined in the PadType enum, returns 0xff if no pad is connected.
+     * PadType::Multitap is for internal use only, and should not be returned.
+     * Pad connection status should be checked with isPadConnected.
      *
      * @param pad The pad to query.
      * @return The type of the pad.
      */
-    uint8_t getPadType(Pad pad) const { return m_padData[pad][0] >> 8; }
+    uint8_t getPadType(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][0] >> 8; }
 
   private:
     enum Command : uint8_t {
