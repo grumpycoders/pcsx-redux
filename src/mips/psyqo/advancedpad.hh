@@ -145,67 +145,29 @@ class AdvancedPad {
     }
 
     /**
-     * @brief Returns the state of Analog Input 0 (if any).
-     *
-     * @details For analog pads, this is RightJoyX (00h=Left, 80h=Center, FFh=Right)
-     * For a mouse, this is the X-axis.
-     *
-     * @param pad The pad to query.
-     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
-     */
-    uint8_t getAdc0(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][2] & 0xff; }
-
-    /**
-     * @brief Returns the state of Analog Input 1 (if any)
-     *
-     * @details For analog pads, this is RightJoyY (00h=Up, 80h=Center, FFh=Down)
-     * For a mouse, this is the Y-axis.
-     *
-     * @param pad The pad to query.
-     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
-     */
-    uint8_t getAdc1(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][2] >> 8; }
-
-    /**
-     * @brief Returns the state of Analog Input 2 (if any).
-     *
-     * @details For analog pads, this is LeftJoyX (00h=Left, 80h=Center, FFh=Right)
-     *
-     * @param pad The pad to query.
-     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
-     */
-    uint8_t getAdc2(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][3] & 0xff; }
-
-    /**
-     * @brief Returns the state of Analog Input 3 (if any).
-     *
-     * @details For analog pads, this is LeftJoyY (00h=Up, 80h=Center, FFh=Down)
-     *
-     * @param pad The pad to query.
-     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
-     */
-    uint8_t getAdc3(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][3] >> 8; }
-
-    /**
      * @brief Returns the state of an Analog Input.
      *
      * @details See the specific Analog Input functions for details.
      * Indices greater than 3 will return 0.
+     * index 0: For analog pads: RightJoyX (00h=Left, 80h=Center, FFh=Right), mouse: X-axis
+     * index 1: For analog pads: RightJoyY (00h=Up, 80h=Center, FFh=Down), mouse: Y-axis
+     * index 2: For analog pads: LeftJoyX (00h=Left, 80h=Center, FFh=Right)
+     * index 3: For analog pads: LeftJoyY (00h=Up, 80h=Center, FFh=Down)
      *
      * @param pad The pad to query.
-     * @param index The index of the Analog Input.
+     * @param index The index of the Analog Input(adc#).
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc(Pad pad, unsigned int index) const {
         switch (index) {
             case 0:
-                return getAdc0(pad);
+                return m_padData[static_cast<unsigned>(pad)][2] & 0xff;
             case 1:
-                return getAdc1(pad);
+                return m_padData[static_cast<unsigned>(pad)][2] >> 8;
             case 2:
-                return getAdc2(pad);
+                return m_padData[static_cast<unsigned>(pad)][3] & 0xff;
             case 3:
-                return getAdc3(pad);
+                return m_padData[static_cast<unsigned>(pad)][3] >> 8;
             default:
                 return 0;
         }
