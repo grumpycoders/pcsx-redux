@@ -78,6 +78,7 @@ class BumpAllocator {
     }
     void reset() { m_current = m_memory; }
     size_t remaining() const { return N - (m_current - m_memory); }
+    size_t used() const { return m_current - m_memory; }
 
   private:
     uint8_t m_memory[N] __attribute__((aligned(4)));
