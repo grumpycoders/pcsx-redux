@@ -108,7 +108,7 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  * - `clutIndex`, `tpage`
  */
 struct TexturedQuad {
-    TexturedQuad() : command(0x2d000000) {}
+    TexturedQuad() : command(0x2c808080) {}
     TexturedQuad(Color c) : command(0x2c000000 | (c.packed & 0x00ffffff)) {}
     TexturedQuad(const TexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     TexturedQuad& setColor(Color c) {

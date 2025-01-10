@@ -97,7 +97,7 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  * - `clutIndex`, `tpage`
  */
 struct TexturedTriangle {
-    TexturedTriangle() : command(0x25000000) {}
+    TexturedTriangle() : command(0x24808080) {}
     TexturedTriangle(Color c) : command(0x24000000 | (c.packed & 0x00ffffff)) {}
     TexturedTriangle(const TexturedTriangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     TexturedTriangle& setColor(Color c) {
