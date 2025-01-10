@@ -181,14 +181,14 @@ void DrawTableGeneralTag(const size_t channel, SPU_CHANNELS_TAGS& tags) {
 void DrawTableGeneralOn(const Chan::Data& data) {
     ImGui::BeginDisabled();
     auto bit1 = data.get<Chan::On>().value;
-    ImGui::Checkbox("", &bit1);
+    ImGui::Checkbox("##On", &bit1);
     ImGui::EndDisabled();
 }
 
 void DrawTableGeneralOff(const Chan::Data& data) {
     auto bit2 = data.get<Chan::Stop>().value;
     ImGui::BeginDisabled();
-    ImGui::Checkbox("", &bit2);
+    ImGui::Checkbox("##Off", &bit2);
     ImGui::EndDisabled();
 }
 
@@ -237,7 +237,7 @@ void DrawTableGeneralFMod(const Chan::Data& data) { ImGui::Text("%i", data.get<C
 
 void DrawTableGeneralPlot(SPU_CHANNELS_PLOT plot, size_t channel) {
     constexpr auto plotSize = ImVec2(Grid::WidthGeneralPlot - TablePadding, 0);
-    ImGui::PlotHistogram("", plot[channel], impl::DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
+    ImGui::PlotHistogram("##Plot", plot[channel], impl::DEBUG_SAMPLES, 0, nullptr, 0.0f, 1.0f, plotSize);
 }
 
 void DrawTableGeneral(SPU_CHANNELS_INFO channels, const float rowHeight, SPU_CHANNELS_TAGS tags,
@@ -255,6 +255,7 @@ void DrawTableGeneral(SPU_CHANNELS_INFO channels, const float rowHeight, SPU_CHA
 
         ImGui::TableHeadersRow();
         for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
+            ImGui::PushID(i);
             const auto& data = channels[i].data;
 
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
@@ -282,6 +283,7 @@ void DrawTableGeneral(SPU_CHANNELS_INFO channels, const float rowHeight, SPU_CHA
             ImGui::TableNextColumn();
             DrawTableGeneralPlot(plot, i);
             // @formatter:on
+            ImGui::PopID();
         }
         ImGui::EndTable();
     }
