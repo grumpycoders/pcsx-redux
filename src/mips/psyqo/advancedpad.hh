@@ -128,7 +128,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return A boolean value indicating whether the pad is connected.
      */
-    bool isPadConnected(Pad pad) const { return (m_padData[static_cast<unsigned>(pad)][0] & 0xff) == 0; }
+    bool isPadConnected(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].connected == 0; }
 
     /**
      * @brief Returns the state of a button.
@@ -141,7 +141,7 @@ class AdvancedPad {
      * @return A boolean value indicating whether the button is pressed.
      */
     bool isButtonPressed(Pad pad, Button button) const {
-        return (m_padData[static_cast<unsigned>(pad)][1] & (1 << button)) == 0;
+        return (m_padData[static_cast<unsigned>(pad)].buttons & (1 << button)) == 0;
     }
 
     /**
@@ -159,15 +159,17 @@ class AdvancedPad {
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc(Pad pad, unsigned int index) const {
+        const unsigned padIndex = static_cast<unsigned>(pad);
+
         switch (index) {
             case 0:
-                return m_padData[static_cast<unsigned>(pad)][2] & 0xff;
+                return m_padData[padIndex].adc[0];
             case 1:
-                return m_padData[static_cast<unsigned>(pad)][2] >> 8;
+                return m_padData[padIndex].adc[1];
             case 2:
-                return m_padData[static_cast<unsigned>(pad)][3] & 0xff;
+                return m_padData[padIndex].adc[2];
             case 3:
-                return m_padData[static_cast<unsigned>(pad)][3] >> 8;
+                return m_padData[padIndex].adc[3];
             default:
                 return 0;
         }
@@ -190,7 +192,9 @@ class AdvancedPad {
      * @return The value of the halfword.
      */
 
-    uint16_t getHalfword(Pad pad, unsigned int index) const { return m_padData[static_cast<unsigned>(pad)][index % 4]; }
+    uint16_t getHalfword(Pad pad, unsigned int index) const {
+        return m_padData[static_cast<unsigned>(pad)].packed[index % 4];
+    }
 
     /**
      * @brief Returns the type of the pad.
@@ -202,7 +206,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The type of the pad.
      */
-    uint8_t getPadType(Pad pad) const { return m_padData[static_cast<unsigned>(pad)][0] >> 8; }
+    uint8_t getPadType(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].padType; }
 
   private:
     enum Command : uint8_t {
@@ -233,7 +237,17 @@ class AdvancedPad {
     uint8_t transceive(uint8_t data_out);
     bool waitForAck();  // true if ack received, false if timeout
 
-    uint16_t m_padData[8][4];
+    union PadData {
+        struct {
+            uint8_t connected;
+            uint8_t padType;
+            uint16_t buttons;
+            uint8_t adc[4];
+        };
+        uint16_t packed[4];
+    };
+
+    PadData m_padData[8];
     eastl::function<void(Event)> m_callback;
     bool m_connected[8] = {false, false, false, false, false, false, false, false};
     uint16_t m_buttons[8] = {
