@@ -113,7 +113,7 @@ PCSX::Slice* createSaveState() {
 void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
 
 void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
-    auto data = file->file->readAt(file->file->size(), 0);
+    auto data = file->file->readAt(64 * 1024 * 1024, 0);
     PCSX::SaveStates::load(data.asStringView());
 }
 
