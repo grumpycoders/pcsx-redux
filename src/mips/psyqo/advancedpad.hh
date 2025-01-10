@@ -161,18 +161,7 @@ class AdvancedPad {
     uint8_t getAdc(Pad pad, unsigned int index) const {
         const unsigned padIndex = static_cast<unsigned>(pad);
 
-        switch (index) {
-            case 0:
-                return m_padData[padIndex].adc[0];
-            case 1:
-                return m_padData[padIndex].adc[1];
-            case 2:
-                return m_padData[padIndex].adc[2];
-            case 3:
-                return m_padData[padIndex].adc[3];
-            default:
-                return 0;
-        }
+        return index <= 3 ? m_padData[padIndex].adc[index] : 0;
     }
 
     /**
