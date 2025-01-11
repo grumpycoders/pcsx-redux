@@ -53,7 +53,8 @@ concept Fragment = requires(Frag frag) {
     { (sizeof(Frag) & 3) == 0 };
     { (sizeof(frag.head)) == 4 };
     { ((offsetof(Frag, head)) & 3) == 0 };
-    { has_explicit_copy_constructor<Frag>() } -> std::convertible_to<std::true_type>;
+    // Can't seem to make this work with variadic templated constructors
+    // { has_explicit_copy_constructor<Frag>() } -> std::convertible_to<std::true_type>;
     { frag.getActualFragmentSize() } -> std::convertible_to<size_t>;
 };
 

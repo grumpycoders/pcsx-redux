@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <EASTL/array.h>
+#include <EASTL/utility.h>
 #include <stdint.h>
 
 #include "psyqo/primitive-concept.hh"
@@ -65,7 +66,8 @@ namespace Fragments {
 template <Primitive Prim>
 struct SimpleFragment {
     constexpr size_t maxSize() const { return 1; }
-    SimpleFragment() {
+    template <typename... Args>
+    SimpleFragment(Args &&...args) : primitive(eastl::forward<Args>(args)...) {
         static_assert(sizeof(*this) == (sizeof(uint32_t) + sizeof(Prim)), "Spurious padding in simple fragment");
     }
     explicit SimpleFragment(const SimpleFragment &) = default;

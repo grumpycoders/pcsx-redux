@@ -173,10 +173,17 @@ void psyqo::Kernel::queueIRQHandler(IRQ irq, eastl::function<void()>&& lambda) {
     handlers[index].push_back(eastl::move(lambda));
 }
 
-[[noreturn]] void psyqo::Kernel::abort(const char* msg, std::source_location loc) {
+[[noreturn]] void psyqo::Kernel::Internal::abort(const char* msg, std::source_location loc) {
     fastEnterCriticalSection();
     ramsyscall_printf("Abort at %s:%i: %s\n", loc.file_name(), loc.line(), msg);
     pcsx_message(msg);
+    pcsx_debugbreak();
+    while (1) asm("");
+    __builtin_unreachable();
+}
+
+[[noreturn]] void psyqo::Kernel::Internal::abort() {
+    fastEnterCriticalSection();
     pcsx_debugbreak();
     while (1) asm("");
     __builtin_unreachable();

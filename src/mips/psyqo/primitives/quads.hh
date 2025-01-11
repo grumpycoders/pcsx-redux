@@ -51,12 +51,14 @@ namespace Prim {
  */
 struct Quad {
     Quad() : command(0x28000000) {}
-    Quad(Color c) : command(0x28000000 | c.packed) {}
+    Quad(Color c) : command(0x28000000 | (c.packed & 0x00ffffff)) {}
+    Quad(const Quad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x28000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x28000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     Quad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -65,6 +67,7 @@ struct Quad {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     Quad& setPointA(Vertex v) {
         pointA = v;
         return *this;
@@ -105,13 +108,15 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  * - `clutIndex`, `tpage`
  */
 struct TexturedQuad {
-    TexturedQuad() : command(0x2d000000) {}
-    TexturedQuad(Color c) : command(0x2c000000 | c.packed) {}
+    TexturedQuad() : command(0x2c808080) {}
+    TexturedQuad(Color c) : command(0x2c000000 | (c.packed & 0x00ffffff)) {}
+    TexturedQuad(const TexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     TexturedQuad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x2c000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x2c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -120,6 +125,7 @@ struct TexturedQuad {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
 
   private:
     uint32_t command;
@@ -148,10 +154,11 @@ static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is n
  */
 struct GouraudQuad {
     GouraudQuad() : command(0x38000000) {}
-    GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
+    GouraudQuad(Color c) : command(0x38000000 | (c.packed & 0x00ffffff)) {}
+    GouraudQuad(const GouraudQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x38000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -166,6 +173,10 @@ struct GouraudQuad {
         colorD = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
+    Color getColorD() const { return colorD; }
     GouraudQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -174,6 +185,7 @@ struct GouraudQuad {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     GouraudQuad& setPointA(Vertex v) {
         pointA = v;
         return *this;
@@ -264,10 +276,11 @@ static_assert(sizeof(GouraudQuad) == (sizeof(uint32_t) * 8), "GouraudQuad is not
  */
 struct GouraudTexturedQuad {
     GouraudTexturedQuad() : command(0x3c000000) {}
-    GouraudTexturedQuad(Color c) : command(0x3c000000 | c.packed) {}
+    GouraudTexturedQuad(Color c) : command(0x3c000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTexturedQuad(const GouraudTexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3c000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x3c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
@@ -282,6 +295,10 @@ struct GouraudTexturedQuad {
         colorD = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
+    Color getColorD() const { return colorD; }
     GouraudTexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -290,6 +307,7 @@ struct GouraudTexturedQuad {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     template <Transparency transparency = Transparency::Auto>
     void interpolateColors(const Color* a, const Color* b, const Color* c, const Color* d) {
         uint32_t rgb;
