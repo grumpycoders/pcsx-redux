@@ -34,4 +34,4 @@ git filter-branch -f --tree-filter "find . -name '*.mk' -exec sed 's|\.\./\.\./\
 git filter-branch -f --tree-filter "find . -name '*.mk' -exec sed 's|\.\./\.\./\.\./third_party/EASTL/|../third_party/EASTL/|' -i {} \;" --tag-name-filter cat --prune-empty
 
 # Delete unwanted files
-git filter-branch -f --tree-filter 'find . -name compile_flags.txt -delete || true' --tag-name-filter cat --prune-empty
+git filter-branch -f --tree-filter 'find . -name compile_flags.txt -or -name Doxyfile -delete || true' --tag-name-filter cat --prune-empty

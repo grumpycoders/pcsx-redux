@@ -74,11 +74,14 @@ jobs:
       - uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install doxygen
+        run: sudo apt-get install -y doxygen
       - name: Filter repository
         env:
           FILTER_BRANCH_SQUELCH_WARNING: 1
         run: |
           cp -rv .github/filter-mips /tmp
+          cp src/mips/Doxyfile /tmp
           /tmp/filter-mips/filter.sh
       - name: Pushing result
         env:
@@ -87,6 +90,21 @@ jobs:
           git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
           git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
           git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
+      - name: Creating documentation
+        run: |
+          doxygen /tmp/Doxyfile
+          mv html /tmp
+          rm -rf latex
+          git checkout gh_pages
+          git rm -rf .
+          mv /tmp/html/* .
+          git add .
+          git commit --amend --no-edit
+      - name: Pushing documentation
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          git push --force "https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git" gh_pages
 
   export-support:
     runs-on: ubuntu-latest
