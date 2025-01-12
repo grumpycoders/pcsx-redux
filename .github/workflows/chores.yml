@@ -104,7 +104,7 @@ jobs:
         env:
           PAT: ${{ secrets.PAT }}
         run: |
-          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux.nugget.git gh_pages
+          git push --force "https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git" gh_pages
 
   export-support:
     runs-on: ubuntu-latest
