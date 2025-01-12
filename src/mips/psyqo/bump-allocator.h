@@ -60,7 +60,7 @@ class BumpAllocator {
         psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
         uint8_t *ptr = m_current;
         m_current += size;
-        return *new (ptr) Fragments::SimpleFragment<P>(eastl::forward(args)...);
+        return *new (ptr) Fragments::SimpleFragment<P>(eastl::forward<Args>(args)...);
     }
     template <typename T, typename... Args>
     T &allocate(Args &&...args) {
@@ -74,7 +74,7 @@ class BumpAllocator {
         }
         psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
         m_current += size;
-        return *new (ptr) T(eastl::forward(args)...);
+        return *new (ptr) T(eastl::forward<Args>(args)...);
     }
     void reset() { m_current = m_memory; }
     size_t remaining() const { return N - (m_current - m_memory); }
