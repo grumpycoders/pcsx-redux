@@ -99,6 +99,8 @@ jobs:
           git rm -rf .
           mv /tmp/html/* .
           git add .
+          git config --global user.email "pixel@nobis-crew.org."
+          git config --global user.name 'Nicolas "Pixel" Noble'
           git commit -m "Documentation."
       - name: Pushing documentation
         env:
