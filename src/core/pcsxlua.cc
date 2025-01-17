@@ -178,6 +178,9 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     registerAllSymbols(L);
     L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.push("execSlots");
+    L.newtable();
+    L.settable();
     L.declareFunc(
         "getSaveStateProtoSchema",
         [](lua_State* L_) -> int {
