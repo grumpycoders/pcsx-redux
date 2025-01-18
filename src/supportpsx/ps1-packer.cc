@@ -79,7 +79,7 @@ int16_t getLO(uint32_t v) {
 
 void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
                            const Options& options) {
-    constexpr size_t stubSize = 7 * 4;
+    constexpr size_t stubSize = 12 * 4;
     std::vector<uint8_t> dataIn;
     dataIn.resize(src->size());
     src->read(dataIn.data(), dataIn.size());
@@ -134,7 +134,9 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // to be the same as our tload address, so we need to inject
         // a jump to the start of our code. We are doing this in
         // a fully position-independent way, so raw files can be
-        // loaded anywhere in memory.
+        // loaded anywhere in memory. We're also going to ensure
+        // that we're jumping to a segment where the i-cache is
+        // enabled, so the decompressor code can run fast.
         auto offset = newPC - 4 * 4;
         std::vector<uint8_t> stub;
         if (options.resetstack) {
@@ -145,9 +147,14 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(stub, lui(Reg::T1, getHI(offset)));
         pushBytes(stub, bgezal(Reg::R0, 4));
         pushBytes(stub, addiu(Reg::T1, Reg::T1, getLO(offset)));
+        pushBytes(stub, lui(Reg::T0, 0x1fff));
+        pushBytes(stub, ori(Reg::T0, Reg::T0, 0xffff));
+        pushBytes(stub, andd(Reg::RA, Reg::RA, Reg::T0));
+        pushBytes(stub, lui(Reg::T0, 0x8000));
+        pushBytes(stub, orr(Reg::RA, Reg::RA, Reg::T0));
         pushBytes(stub, addu(Reg::T0, Reg::RA, Reg::T1));
         pushBytes(stub, jr(Reg::T0));
-        pushBytes(stub, addiu(Reg::A0, Reg::RA, 12));
+        pushBytes(stub, addiu(Reg::A0, Reg::RA, 32));
 
         assert(stub.size() == stubSize);
 
