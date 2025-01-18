@@ -49,7 +49,9 @@ static_assert(sizeof(TPage) == sizeof(uint32_t), "TPage is not 32 bits");
  * @details This primitive will define the start location of the drawing area.
  * It will be used by the `GPU` class when changing buffers, so there shouldn't
  * be any need to use it directly. Any primitive drawn outside of the drawing
- * area will be clipped away.
+ * area will be clipped away. There is no set method for the `Vertex` field, as
+ * there is no other field in the struct, and one can simply use a copy constructor
+ * to set it.
  */
 struct DrawingAreaStart {
     DrawingAreaStart(Vertex p) : command(0xe3000000 | p.x | (p.y << 10)) {}
@@ -65,7 +67,9 @@ static_assert(sizeof(DrawingAreaStart) == sizeof(uint32_t), "DrawingAreaStart is
  * @details This primitive will define the end location of the drawing area.
  * It will be used by the `GPU` class when changing buffers, so there shouldn't
  * be any need to use it directly. Any primitive drawn outside of the drawing
- * area will be clipped away.
+ * area will be clipped away. There is no set method for the `Vertex` field, as
+ * there is no other field in the struct, and one can simply use a copy constructor
+ * to set it.
  */
 struct DrawingAreaEnd {
     DrawingAreaEnd(Vertex p) : command(0xe4000000 | (p.x - 1) | ((p.y - 1) << 10)) {}
@@ -81,7 +85,9 @@ static_assert(sizeof(DrawingAreaEnd) == sizeof(uint32_t), "DrawingAreaEnd is not
  * @details This primitive will define the end location of the drawing area.
  * It will be used by the `GPU` class when changing buffers, so there shouldn't
  * be any need to use it directly. Any primitive drawn will be shifted by the
- * offset specified in the constructor.
+ * offset specified in the constructor. There is no set method for the `Vertex`
+ * field, as there is no other field in the struct, and one can simply use a copy
+ * constructor to set it.
  */
 struct DrawingOffset {
     DrawingOffset(Vertex p) : command(0xe5000000 | p.x | (p.y << 11)) {}
@@ -90,6 +96,56 @@ struct DrawingOffset {
     uint32_t command;
 };
 static_assert(sizeof(DrawingOffset) == sizeof(uint32_t), "DrawingOffset is not 32 bits");
+
+/**
+ * @brief The MaskControl primitive.
+ *
+ * @details This primitive will control the masking of the drawing area. Masking
+ * on the GPU is used to prevent drawing in certain areas of the screen. It can
+ * be used to create and use a sort of stencil buffer. When the mask is set to
+ * `ForceSet`, the "stencil buffer" will be set to 1, and when it's set to
+ * `FromSource`, it will be set to the value read from the source texel, knowing it is
+ * bit 15 of the texel or the CLUT used by the texture. Texture-less primitives will set
+ * the stencil buffer to 0 in this mode, effectively allowing subsequent drawings in
+ * the area. The mask can also be set to test the stencil buffer, and only draw if
+ * the stencil buffer is set to 0. The mechanism used here can be a little bit
+ * counter-intuitive compared with modern hardware, but it's the way the PS1 GPU works.
+ */
+struct MaskControl {
+    enum Set {
+        FromSource,
+        ForceSet,
+    };
+    enum class Test {
+        No,
+        Yes,
+    };
+    MaskControl() : command(0xe6000000) {}
+    MaskControl(Set set, Test test) : command(0xe6000000 | set | (static_cast<uint32_t>(test) << 1)) {}
+    MaskControl(Test test, Set set) : MaskControl(set, test) {}
+    MaskControl(Set set) : MaskControl(set, Test::No) {}
+    MaskControl(Test test) : MaskControl(Set::FromSource, test) {}
+    MaskControl &set(Set set) {
+        command &= ~0x1;
+        command |= set;
+        return *this;
+    }
+    MaskControl &set(Test test) {
+        command &= ~0x2;
+        command |= static_cast<uint32_t>(test) << 1;
+        return *this;
+    }
+    MaskControl &set(Set set, Test test) {
+        return *this = MaskControl(set, test);
+    }
+    MaskControl &set(Test test, Set set) {
+        return *this = MaskControl(set, test);
+    }
+
+  private:
+    uint32_t command;
+};
+static_assert(sizeof(MaskControl) == sizeof(uint32_t), "MaskControl is not 32 bits");
 
 /**
  * @brief A compounded Scissor primitive.

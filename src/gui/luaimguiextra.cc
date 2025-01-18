@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <string_view>
+
 #include "gui/luaimguiextra.h"
 
 #include "gui/gui.h"
@@ -68,6 +70,35 @@ void registerAllSymbols(PCSX::Lua L) {
 
     L.settable();
     L.pop();
+}
+
+bool validateColorArgs(PCSX::Lua L, std::string_view funcName) {
+    int n = L.gettop();
+    if (n < 2) return L.error("%s: not enough arguments", funcName);
+    if (n > 4) return L.error("%s: too many arguments", funcName);
+    if (!L.isstring(1)) return L.error("%s: argument 1 must be a string", funcName);
+    if (!L.istable(2)) return L.error("%s: argument 2 must be a table", funcName);
+    if (n == 3 && !L.isnumber(3)) return L.error("%s: argument 3 must be a number", funcName);
+    return true;
+}
+
+void extractColorComponents(PCSX::Lua L, float* col, int components) {
+    static const char* const fields[] = {"r", "g", "b", "a"};
+    for (int i = 0; i < components; i++) {
+        L.getfield(fields[i], 2);
+        col[i] = L.tonumber(-1);
+        L.pop();
+    }
+}
+
+void createColorTable(PCSX::Lua L, const float* col, int components) {
+    static const char* const fields[] = {"r", "g", "b", "a"};
+    L.newtable();
+    for (int i = 0; i < components; i++) {
+        L.push(fields[i]);
+        L.push(col[i]);
+        L.settable();
+    }
 }
 
 }  // namespace
@@ -152,6 +183,62 @@ void PCSX::LuaFFI::open_imguiextra(GUI* gui, Lua L) {
             bool ret = ImGui::InputTextWithHint(label.c_str(), hint.c_str(), &str, flags);
             L.push(ret);
             L.push(str);
+            return 2;
+        },
+        -1);
+    L.declareFunc(
+        "ColorEdit3",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (!validateColorArgs(L, "ColorEdit3")) return 0;
+            std::string label = L.tostring(1);
+            float col[3];
+            extractColorComponents(L, col, 3);
+            ImGuiColorEditFlags flags = L.gettop() == 3 ? L.tonumber(3) : 0;
+            L.push(ImGui::ColorEdit3(label.c_str(), col, flags));
+            createColorTable(L, col, 3);
+            return 2;
+        },
+        -1);
+    L.declareFunc(
+        "ColorEdit4",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (!validateColorArgs(L, "ColorEdit4")) return 0;
+            std::string label = L.tostring(1);
+            float col[4];
+            extractColorComponents(L, col, 4);
+            ImGuiColorEditFlags flags = L.gettop() == 3 ? L.tonumber(3) : 0;
+            L.push(ImGui::ColorEdit4(label.c_str(), col, flags));
+            createColorTable(L, col, 4);
+            return 2;
+        },
+        -1);
+    L.declareFunc(
+        "ColorPicker3",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (!validateColorArgs(L, "ColorPicker3")) return 0;
+            std::string label = L.tostring(1);
+            float col[3];
+            extractColorComponents(L, col, 3);
+            ImGuiColorEditFlags flags = L.gettop() == 3 ? L.tonumber(3) : 0;
+            L.push(ImGui::ColorPicker3(label.c_str(), col, flags));
+            createColorTable(L, col, 3);
+            return 2;
+        },
+        -1);
+    L.declareFunc(
+        "ColorPicker4",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (!validateColorArgs(L, "ColorPicker4")) return 0;
+            std::string label = L.tostring(1);
+            float col[4];
+            extractColorComponents(L, col, 4);
+            ImGuiColorEditFlags flags = L.gettop() == 3 ? L.tonumber(3) : 0;
+            L.push(ImGui::ColorPicker4(label.c_str(), col, flags));
+            createColorTable(L, col, 4);
             return 2;
         },
         -1);

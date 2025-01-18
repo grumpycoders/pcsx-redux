@@ -46,6 +46,12 @@ class Application;
 
 namespace Kernel {
 
+#ifdef PSYQO_RELEASE
+static constexpr bool debugMode = false;
+#else
+static constexpr bool debugMode = true;
+#endif
+
 namespace Internal {
 static inline uint32_t getCop0Status() {
     uint32_t r;
@@ -54,6 +60,10 @@ static inline uint32_t getCop0Status() {
 }
 
 static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+
+[[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
+[[noreturn]] void abort();
+
 }  // namespace Internal
 
 /**
@@ -100,7 +110,15 @@ enum class IRQ : unsigned {
 /**
  * @brief Stops the execution of the application.
  */
-[[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
+[[noreturn]] static inline void abort(const char* msg, std::source_location location = std::source_location::current()) {
+    if constexpr (debugMode) {
+        Internal::abort(msg, location);
+    } else if constexpr (!debugMode) {
+        (void)msg;
+        (void)location;
+        Internal::abort();
+    }
+}
 
 /**
  * @brief Takes over the kernel. Can only be called once inside the main function.
@@ -280,9 +298,18 @@ void beginFrame();
  */
 inline void assert(bool condition, const char* message,
                    std::source_location location = std::source_location::current()) {
-    if (!condition) {
-        abort(message, location);
-        __builtin_unreachable();
+    if constexpr (debugMode) {
+        if (!condition) {
+            Internal::abort(message, location);
+            __builtin_unreachable();
+        }
+    } else if constexpr (!debugMode) {
+        (void)message;
+        (void)location;
+        if (!condition) {
+            Internal::abort();
+            __builtin_unreachable();
+        }
     }
 }
 

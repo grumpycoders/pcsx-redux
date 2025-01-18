@@ -437,10 +437,7 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
                     try {
                         L.pcall();
                     } catch (...) {
-                        g_system->pause();
                     }
-                } else {
-                    g_system->pause();
                 }
                 while (top != L.gettop()) L.pop();
             }

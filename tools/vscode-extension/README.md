@@ -18,6 +18,9 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.3.9
+  - Fixed cube psyqo template's null pointer exception.
+  - Improved MacOS mips toolchain installation process.
 - 0.3.8
   - Added automatic setup of Python virtual environments in order to reflect the changes in ps1-bare-metal.
   - Fixed compile_flags.txt in template file.
