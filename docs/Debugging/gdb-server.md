@@ -22,14 +22,21 @@ Download a pre-compiled version from here : [https://static.grumpycoder.net/pixe
 
 ### GNU/Linux
 
+#### Debian based
+
 Install via your package manager :
 
 ```bash
 # Debian derivative; Ubuntu, Mint...
 sudo apt install gdb-multiarch
-# Arch derivative; Manjaro
-# 'gdb-multiarch' is available in aur : https://aur.archlinux.org/packages/gdb-multiarch/
-sudo trizen -S gdb-multiarch
+```
+
+#### Arch based
+
+On Arch based distributions, multiarch is now [enabled by default](https://gitlab.archlinux.org/archlinux/packaging/packages/gdb/-/blob/main/PKGBUILD?ref_type=heads#L50) in regular builds and you don't need to install a specific version anymore.  
+You can install the 'gdb' package with `pacman` :  
+```
+sudo pacman -S gdb
 ```
 
 ## IDE setup
