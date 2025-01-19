@@ -782,6 +782,14 @@ declare(disBEQ) {
     if (_Rs_ == _Rt_) {
         dOpCode("b");
         dBranch();
+    } else if (_Rs_ == 0) {
+        dOpCode("beqz");
+        GPR(_Rt_);
+        dBranch();
+    } else if (_Rt_ == 0) {
+        dOpCode("beqz");
+        GPR(_Rs_);
+        dBranch();
     } else {
         dOpCode("beq");
         GPR(_Rs_);
@@ -791,10 +799,20 @@ declare(disBEQ) {
 }
 declare(disBNE) {
     if (delaySlotNext) *delaySlotNext = true;
-    dOpCode("bne");
-    GPR(_Rs_);
-    GPR(_Rt_);
-    dBranch();
+    if (_Rs_ == 0) {
+        dOpCode("bnez");
+        GPR(_Rt_);
+        dBranch();
+    } else if (_Rt_ == 0) {
+        dOpCode("bnez");
+        GPR(_Rs_);
+        dBranch();
+    } else {
+        dOpCode("bne");
+        GPR(_Rs_);
+        GPR(_Rt_);
+        dBranch();
+    }
 }
 
 /*********************************************************
