@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,13 @@ SOFTWARE.
 
 */
 
-#include "psyqo/ordering-table.hh"
+#pragma once
 
-void psyqo::OrderingTableBase::clear(uint32_t* table, size_t size) {
-    table[0] = 0xffffff;
-    for (size_t i = 1; i <= size; i++) {
-        table[i] = reinterpret_cast<uint32_t>(&table[i - 1]) & 0xffffff;
-    }
+namespace psyqo {
+
+/**
+ * @brief Shared type for safe and unsafe operations throughout the codebase.
+ */
+enum class Safe : unsigned { No, Yes };
+
 }
