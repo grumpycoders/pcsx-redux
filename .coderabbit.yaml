@@ -1,0 +1,5 @@
+reviews:
+  high_level_summary: false
+  auto_review:
+    ignore_title_keywords:
+      - "[Chores]"
