@@ -32,6 +32,7 @@ SOFTWARE.
 #include "psyqo/fragments.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/primitive-concept.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -51,13 +52,15 @@ namespace psyqo {
  *
  * @tparam N The size of the memory buffer in bytes.
  */
-template <size_t N>
+template <size_t N, Safe safety = Safe::Yes>
 class BumpAllocator {
   public:
     template <Primitive P, typename... Args>
     Fragments::SimpleFragment<P> &allocateFragment(Args &&...args) {
         static constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
-        psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        if constexpr (safety == Safe::Yes) {
+            psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        }
         uint8_t *ptr = m_current;
         m_current += size;
         return *new (ptr) Fragments::SimpleFragment<P>(eastl::forward<Args>(args)...);
@@ -72,7 +75,9 @@ class BumpAllocator {
             size += alignedptr - ptr;
             ptr = alignedptr;
         }
-        psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        if constexpr (safety == Safe::Yes) {
+            psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        }
         m_current += size;
         return *new (ptr) T(eastl::forward<Args>(args)...);
     }
