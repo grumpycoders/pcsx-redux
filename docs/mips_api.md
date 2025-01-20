@@ -10,6 +10,8 @@ static __inline__ void pcsx_debugbreak() { *((volatile char* const)0x1f802081) =
 static __inline__ void pcsx_execSlot(uint8_t slot) { *((volatile uint8_t* const)0x1f802081) = slot; }
 static __inline__ void pcsx_exit(int code) { *((volatile int16_t* const)0x1f802082) = code; }
 static __inline__ void pcsx_message(const char* msg) { *((volatile char** const)0x1f802084) = msg; }
+static __inline__ void pcsx_checkKernel(int enable) { *((volatile char*)0x1f802088) = enable; }
+static __inline__ int pcsx_isCheckingKernel() { return *((volatile char* const)0x1f802088) != 0; }
 
 static __inline__ int pcsx_present() { return *((volatile uint32_t* const)0x1f802080) == 0x58534350; }
 ```
@@ -45,8 +47,17 @@ The following functions are available :
 |`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. The `slot` value can be between 1 and 255. If no Lua function exists within a slot, then this behaves the same as `pcsx_debugbreak()`. |
 |`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
+|`pcsx_checkKernel(int enable)` | Enable or disable kernel checking. |
+|`pcsx_isCheckingKernel()` | Returns truthy if kernel checking is enabled. |
 |`pcsx_present()` | Returns 1 if code is running in PCSX-Redux |
 
 Example of a UI dialog created with `pcsx_message()` :  
 
 ![pcsx_message() in action](./images/pcsx_message.png)
+
+The kernel checking feature is used to try and catch unwanted accesses to the kernel, which are usually a sign of a bug in the code, such as a buffer overflow or a null pointer dereference. If the kernel checking feature is enabled, the emulator will break execution and display a message in the console if it detects an unwanted access to the kernel. The following actions are considered unwanted accesses to the kernel:
+
+- Reading or writing to a kernel address from a user-mode address and while not in a kernel-mode context such as while in the ISR. The ISR sets up a stack frame within the kernel space, so callbacks from the kernel and into the user space will be using kernel space as the stack. This means that a null pointer dereference in a callback from the kernel during an interrupt or exception will not be caught by the kernel checking feature.
+- An indirect jump to a kernel address from a user-mode address and that isn't 0xa0, 0xb0, or 0xc0, and that isn't a `jr $ra` instruction. Direct jumps and branches to kernel addresses should be compiler-level problems, so they are not checked for. The `jr $ra` exception to the rule is because callbacks from the kernel will use `jr $ra` to return to the kernel. Optimizations which bypass the `jr $ra` instruction by using a different register to return to the kernel during a callback will cause false positives.
+
+The feature is disabled by default as many games and software will access the kernel in various ways, and it can be enabled by calling `pcsx_checkKernel(1)`. The feature can be disabled by calling `pcsx_checkKernel(0)`. Since many startup sequences will access the kernel to patch it or clean it, it is recommended to enable the feature after the startup sequence has completed. Some libraries may also access the kernel during their normal operations. The user can simply disable the checker temporarily by toggling it before and after calling such APIs. The kernel space is considered to be all the memory addresses between 0x80000000 and 0x8000ffff. The BIOS is considered to be part of the kernel space in terms of code, so any access to the RAM Kernel space from the BIOS memory space will not trigger any of the kernel checks. The kernel checking feature is only available in the interpreter with the debugger enabled, and it is not available in the dynarec. Trying to enable the feature while using the dynarec, or while the debugger is disabled, will not have any effect.
