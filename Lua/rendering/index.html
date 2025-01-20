@@ -1,0 +1,1235 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://pcsx-redux.consoledev.net/Lua/rendering/">
+      
+      
+        <link rel="prev" href="../redux-basics/">
+      
+      
+        <link rel="next" href="../file-api/">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.4">
+    
+    
+      
+        <title>Rendering - PCSX-Redux</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.240905d7.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.a0c5b2b5.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rendering" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PCSX-Redux" class="md-header__button md-logo" aria-label="PCSX-Redux" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PCSX-Redux
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Rendering
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </label>
+          
+        
+          
+          <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/grumpycoders/pcsx-redux/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PCSX-Redux" class="md-nav__button md-logo" aria-label="PCSX-Redux" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    PCSX-Redux
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/grumpycoders/pcsx-redux/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../menus/" class="md-nav__link">
+        PCSX-Redux menus
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiling/" class="md-nav__link">
+        Compiling PCSX-Redux
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli_flags/" class="md-nav__link">
+        Command Line Flags
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          Debugging
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Debugging
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/introduction/" class="md-nav__link">
+        Debugging with PCSX-Redux
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/gdb-server/" class="md-nav__link">
+        GDB server
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/ghidra/" class="md-nav__link">
+        Connecting Ghidra to PCSX-Redux
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/misc-features/" class="md-nav__link">
+        Misc Features
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/vram-viewer/" class="md-nav__link">
+        VRAM viewer
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Debugging/gpu-logger/" class="md-nav__link">
+        GPU Logger
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../mips_api/" class="md-nav__link">
+        Mips API
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web_server/" class="md-nav__link">
+        Web server
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          Lua
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          Lua
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../introduction/" class="md-nav__link">
+        Introduction
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../libraries/" class="md-nav__link">
+        Loaded libraries
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../redux-basics/" class="md-nav__link">
+        Redux basic API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Rendering
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Rendering
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emulated-gpu-rendering-pipeline" class="md-nav__link">
+    Emulated GPU rendering pipeline
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shader-editor" class="md-nav__link">
+    Shader editor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imgui" class="md-nav__link">
+    ImGui
+  </a>
+  
+    <nav class="md-nav" aria-label="ImGui">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#safety" class="md-nav__link">
+    Safety
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nanovg" class="md-nav__link">
+    NanoVG
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-of-using-everything-together" class="md-nav__link">
+    Example of using everything together
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file-api/" class="md-nav__link">
+        File API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../web-server/" class="md-nav__link">
+        Webserver Lua API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../memory-and-registers/" class="md-nav__link">
+        Memory and registers
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events/" class="md-nav__link">
+        Events
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../breakpoints/" class="md-nav__link">
+        Breakpoints
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assembler/" class="md-nav__link">
+        Inline assembler
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binary/" class="md-nav__link">
+        Handling of PSX binaries
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../case-studies/" class="md-nav__link">
+        Case studies
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../openbios/" class="md-nav__link">
+        Openbios
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emulated-gpu-rendering-pipeline" class="md-nav__link">
+    Emulated GPU rendering pipeline
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shader-editor" class="md-nav__link">
+    Shader editor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imgui" class="md-nav__link">
+    ImGui
+  </a>
+  
+    <nav class="md-nav" aria-label="ImGui">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#safety" class="md-nav__link">
+    Safety
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nanovg" class="md-nav__link">
+    NanoVG
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-of-using-everything-together" class="md-nav__link">
+    Example of using everything together
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="rendering">Rendering</h1>
+<p>PCSX-Redux is entirely running as an OpenGL3 application. All of its
+aspects, including the UI elements, are rendered using OpenGL
+primitives. This means there is very little boundaries between the
+various rendered elements on the screen.</p>
+<p>The rendering of the UI is done through <a href="https://github.com/ocornut/imgui">ImGui</a>, and a chunk of its API is
+bound is to Lua using <a href="https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings">bindings</a>.</p>
+<p>A good portion of the OpenGL3 API is also bound to Lua, as well as the
+<a href="https://github.com/grumpycoders/nanovg/tree/master">nanovg library</a>.</p>
+<h2 id="emulated-gpu-rendering-pipeline">Emulated GPU rendering pipeline</h2>
+<p>The content of the Output region is rendered in two steps. The first
+step is called the "Offscreen rendering", and is done during the
+emulated GPU vsyncs. Its job is to flush the contents of the VRAM
+texture to an offscreen texture, which may be of a different
+resolution. The resolution of the offscreen texture should be pixel
+perfect with that of the Output region. By default, the associated
+shader with this operation should only do a simple copy and
+interpolation, but as the first stage of the rendering pipeline, this
+can be used for some first pass output effect such as the first pass of
+a crt shader.</p>
+<p>The second step is called the "Output rendering", and is done every
+time the UI wants to refresh its display, which may or may not be at
+the same time as the emulated vsync. The resolution of the input will
+match exactly the resolution of the input texture, and the default
+shader should simply copy all the texels without any sort of
+interpolation, but as the second stage of the rendering pipeline, this
+can still be used for the second pass output effect.</p>
+<p>The <a href="https://github.com/grumpycoders/pcsx-redux/blob/main/src/gui/shaders">crt-lottes</a>
+implementation leverages these two passes to do the full CRT-like
+output.</p>
+<h2 id="shader-editor">Shader editor</h2>
+<p>The shader editor is a simple text editor that allows to edit the
+shader code. It is not a full IDE, and it is not meant to be. Its
+point is to do quick iterations on the shader code, and to be able to
+see the result of the changes in real time.</p>
+<p>The shader editor is split in 3 regions:</p>
+<ul>
+<li>
+<p>The left tab is the vertex shader code. It is technically editable,
+  but there shouldn't be much reason to edit it.</p>
+</li>
+<li>
+<p>The middle tab is the fragment shader code. This is the main shader
+  code. It is editable, and the changes will be reflected in real time.</p>
+</li>
+<li>
+<p>The right tab is the Lua invoker code. This is the code that will
+  be executed under multiple circumstances. It is editable, and the
+  changes will be reflected in real time.</p>
+</li>
+</ul>
+<p>The Lua invoker code will be compiled and executed in a soft sandbox
+environment. The code can still access already created globals and mutate them,
+but any newly created global will be kept within the sandbox and won't be
+accessible from other Lua code. All these globals will be saved and restored
+with the normal emulator settings.</p>
+<p>When the shaders are compiled, the Vertex and Fragment shader code will be
+compiled together, and if the resulting program is valid, the Lua invoker code
+will be compiled and executed. If the Lua code fails to compile or execute, the
+shader will be considered invalid and the error will be displayed in the
+shader editor.</p>
+<p>This compilation order allows the Lua code to access the shader program
+uniforms, and to set them up as needed. The global <code>shaderProgramID</code> will be
+available to the Lua code, and will contain the ID of the shader program.</p>
+<p>The code is expected to export a few functions:</p>
+<ul>
+<li>
+<p><code>Draw</code>, which will be called periodically within the ImGui context,
+  allowing to draw UI elements. The global <code>configureme</code> will be set to true
+  when the user selects the "Configure Shaders" menu item. This allows to
+  display a configuration UI to the user during this function call.</p>
+</li>
+<li>
+<p><code>Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)</code>, which will be
+  called periodically within the ImGui context, when the emulator needs to draw the texture
+  <code>textureID</code> at the given size. The texture ID is the OpenGL texture ID, and
+  the size is in pixels. The code is at best expected to do a simple call
+  to <code>imgui.Image(textureID, dstSizeX, dstSizeY, 0, 0, 1, 1)</code> to draw the
+  texture. For the Emulated GPU Pipeline, this function will only be called on
+  the Output shader, when being drawn to the Output region. As the function will be called
+  during the ImGui context, it can capture certain ImGui state, such as the
+  current ImGui cursor position, and use it to draw additional UI elements.
+  Note that as with any normal ImGui function, this isn't the moment when the
+  UI elements are actually drawn, but rather when the UI elements are queued
+  to be drawn, meaning this isn't when the shader program will be executed,
+  which is the point of the next function.</p>
+</li>
+<li>
+<p><code>BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, srcSizeY, dstSizeX, dstSizeY)</code>
+  will be called when the shader program is about to be executed, and needs
+  to bind the attributes. The texture ID is the OpenGL texture ID, and the
+  shader program ID is the OpenGL shader program ID. The location and sizes are in pixels, but are only
+  used for the Emulated GPU Pipeline, when the Offscreen shader is being
+  executed, as it needs to grab a portion of the VRAM texture to be rendered
+  to the offscreen texture.</p>
+</li>
+</ul>
+<p>Additionally, it is possible to programmatically set the content of the editors using the following methods:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OffscreenShader</span><span class="p">.</span><span class="n">setDefaults</span><span class="p">()</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OffscreenShader</span><span class="p">.</span><span class="n">setTextVS</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OffscreenShader</span><span class="p">.</span><span class="n">setTextPS</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OffscreenShader</span><span class="p">.</span><span class="n">setTextL</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OutputShader</span><span class="p">.</span><span class="n">setDefaults</span><span class="p">()</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OutputShader</span><span class="p">.</span><span class="n">setTextVS</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OutputShader</span><span class="p">.</span><span class="n">setTextPS</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="n">PCSX</span><span class="p">.</span><span class="n">GUI</span><span class="p">.</span><span class="n">OutputShader</span><span class="p">.</span><span class="n">setTextL</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+<p>The <code>setDefaults</code> method will set the default shader code, and the <code>setText*</code> methods will set the
+shader code to the given string. The <code>text</code> argument can be either an actual string, or a <a href="../file-api/"><code>File</code> object</a>.</p>
+<h2 id="imgui">ImGui</h2>
+<p>The ImGui API is bound to Lua, and can be used to draw UI elements. The
+ImGui API is documented on the <a href="https://github.com/ocornut/imgui/blob/docking/imgui.h">ImGui source code</a>.
+There is also an <a href="https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html">interactive manual available</a>.</p>
+<p>Not all functions are necessarily bound to Lua, and one can check the
+<a href="https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/imgui_lua_bindings/imgui_iterator.inl">bindings code</a>
+to see which functions are bound, and why some functions are not bound.</p>
+<p>The main reason for not binding a function is that its arguments or return
+values are not trivial to bind. For example, the <code>ImGui::Text</code> C++ function is not
+bound, as it takes a variadic number of arguments, which is not possible to
+bind in Lua easily. Instead, the <code>ImGui::TextUnformatted</code> C++ function is bound, which
+takes a single string argument.</p>
+<p>The emulator will periodically try to call the global function <code>DrawImguiFrame</code> with no
+arguments. If the function is not defined, nothing will happen. If the function
+fails to execute, it will be removed from the global environment, and the
+emulator will stop trying to call it until a new global is defined.</p>
+<p>The <code>DrawImguiFrame</code> function is expected to call the <code>imgui.Begin</code> function
+to create a new ImGui window, as there is no default window created by the
+emulator for the Lua context. The <code>DrawImguiFrame</code> function is also expected
+to call the <code>imgui.End</code> function as normal with the ImGui API.</p>
+<p>Some extra functions are bound to Lua beyond the API listed above:</p>
+<ul>
+<li>
+<p><code>imgui.extra.ImVec2.New(x, y)</code> will create a new FFI <code>ImVec2</code> object. The <code>ImVec2</code>
+  object is a simple struct with two fields, <code>x</code> and <code>y</code>. The <code>New</code> function
+  takes two optional arguments, the <code>x</code> and <code>y</code> values, and returns the new <code>ImVec2</code>
+  object.</p>
+</li>
+<li>
+<p><code>imgui.extra.getCurrentViewportId()</code> will return the current viewport ID.
+  Viewports in ImGui are a way to split the ImGui context into multiple
+  independent contexts, and the viewport ID is a unique identifier for each
+  viewport. Basically, each viewport is a physical window from the operating
+  system, and it can contain one or more ImGui windows.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportFlags(id)</code> will return the viewport flags for the
+  specified viewport. The viewport flags are of the type <code>ImGuiViewportFlags_</code>
+  in the ImGui C++ API, and is a bitmask of flags, which are exposed as
+  individual values in the Lua generated bindings.</p>
+</li>
+<li>
+<p><code>imgui.extra.setViewportFlags(id, flags)</code> will set the viewport flags for
+  the specified viewport. The proper usage of this function is to call
+  <code>imgui.extra.getViewportFlags</code> to get the current flags, modify the flags
+  as needed, and then call <code>imgui.extra.setViewportFlags</code> to set the new flags.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportPos(id)</code> will return the position of the specified
+  viewport. The position is returned as an <code>ImVec2</code> object.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportSize(id)</code> will return the size of the specified
+  viewport. The size is returned as an <code>ImVec2</code> object.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportWorkPos(id)</code> will return the work position of the
+  specified viewport. The work position is returned as an <code>ImVec2</code> object.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportWorkSize(id)</code> will return the work size of the
+  specified viewport. The work size is returned as an <code>ImVec2</code> object.</p>
+</li>
+<li>
+<p><code>imgui.extra.getViewportDpiScale(id)</code> will return the DPI scale of the
+  specified viewport. The DPI scale is returned as a number. A value of 1.0
+  means that the DPI scale for this viewport is 100%.</p>
+</li>
+<li>
+<p><code>imgui.extra.InputText(label, text[, flags])</code> will create an input text
+  widget. The <code>label</code> is the label to display next to the input text, and the
+  <code>text</code> is the current text to display in the input text. The <code>flags</code> are
+  optional, and are the same flags as the ones used by the <code>imgui::InputText</code>
+  C++ function. The function will return a boolean indicating if the text has
+  changed or not, and the new text.</p>
+</li>
+<li>
+<p><code>imgui.extra.InputTextWithHint(label, hint, text[, flags])</code> will create an
+  input text widget. The <code>label</code> is the label to display next to the input
+  text, and the <code>hint</code> is the hint to display in the input text when the text
+  is empty. The <code>text</code> is the current text to display in the input text. The
+  <code>flags</code> are optional, and are the same flags as the ones used by the
+  <code>imgui::InputTextWithHint</code> C++ function. The function will return a boolean
+  indicating if the text has changed or not, and the new text.</p>
+</li>
+<li>
+<p><code>imgui.extra.logText(text)</code> will call the <code>imgui::LogText</code> C++ function,
+  which will add the given text to current log buffer.</p>
+</li>
+<li>
+<p><code>PCSX.GUI.useMainFont()</code> will call the <code>imgui::PushFont</code> C++ function with
+  the proportional font. It will need to be followed by a call to <code>imgui.PopFont()</code>.</p>
+</li>
+<li>
+<p><code>PCSX.GUI.useMonoFont()</code> will call the <code>imgui::PushFont</code> C++ function with
+  the monospace font. It will need to be followed by a call to <code>imgui.PopFont()</code>.</p>
+</li>
+</ul>
+<h3 id="safety">Safety</h3>
+<p>The ImGui API will frequently assert and crash the process if the API calls
+are imbalanced. For example, if the <code>imgui.BeginTable</code> function is called without
+calling the <code>imgui.EndTable</code> function, the process will most likely crash.</p>
+<p>This can be problematic when using the ImGui API from Lua, as the Lua code
+is not able to catch the crash, and the process will crash without any
+indication of what went wrong.</p>
+<p>The main reason for imbalanced API calls can be attributed to the user code
+throwing an exception, which will cause the Lua code to unwind the stack,
+and the ImGui API will not be able to properly clean up its state.</p>
+<p>For example, consider the following code:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kr">function</span> <span class="nf">DrawImguiFrame</span><span class="p">()</span>
+    <span class="kr">if</span> <span class="n">imgui</span><span class="p">.</span><span class="n">Begin</span><span class="p">(</span><span class="s2">&quot;My Window&quot;</span><span class="p">)</span> <span class="kr">then</span>
+        <span class="nb">error</span><span class="p">(</span><span class="s2">&quot;Something went wrong&quot;</span><span class="p">)</span>
+    <span class="kr">end</span>
+    <span class="n">imgui</span><span class="p">.</span><span class="n">End</span><span class="p">()</span>
+<span class="kr">end</span>
+</code></pre></div></td></tr></table></div>
+<p>The <code>imgui.Begin</code> function will be called, but the <code>imgui.End</code> function will
+not be called, as the <code>error</code> function will unwind the stack, and the
+<code>imgui.End</code> function will never be called.</p>
+<p>In order to mitigate this, safe wrappers are provided for all of the ImGui
+Begin*/End* functions. The safe wrappers will catch any exception thrown
+by the user code, and will call the corresponding End* function if the
+Begin* function returned true. The error will be rethrown after the End* function
+is called. The wrapped lambda will only be called if the Begin* function
+returned true.</p>
+<p>The example above can be rewritten as:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kr">function</span> <span class="nf">DrawImguiFrame</span><span class="p">()</span>
+    <span class="n">imgui</span><span class="p">.</span><span class="n">safe</span><span class="p">.</span><span class="n">Begin</span><span class="p">(</span><span class="s2">&quot;My Window&quot;</span><span class="p">,</span> <span class="kr">function</span><span class="p">()</span>
+        <span class="nb">error</span><span class="p">(</span><span class="s2">&quot;Something went wrong&quot;</span><span class="p">)</span>
+    <span class="kr">end</span><span class="p">)</span>
+<span class="kr">end</span>
+</code></pre></div></td></tr></table></div>
+<h2 id="nanovg">NanoVG</h2>
+<p>The NanoVG library is bound to Lua, and can be used to draw arbitrary vector graphics
+on top of the emulator. The NanoVG API is documented on the <a href="https://github.com/grumpycoders/nanovg/blob/master/src/nanovg.h">NanoVG source code</a>. The API is very similar to the HTML5 Canvas API, meaning that
+one can use the <a href="https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D">MDN CanvasRenderingContext2D documentation</a> and <a href="https://www.w3schools.com/html/html5_canvas.asp">other</a> <a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes">related documentation</a> to learn how to use it.</p>
+<p>Using an HTML5 canvas toybox like <a href="https://codepen.io/nicolas_noble/pen/MWXqwQG">this one</a> is a good way to learn how to use this API safely.</p>
+<p>Note that the NanoVG rendering will happen after the ImGui rendering, meaning
+that the NanoVG rendering will be on top of the ImGui rendering, regardless
+of the order in which the NanoVG and ImGui functions are called.</p>
+<p>Most of the NanoVG API is bound to Lua, with the exception of the following functions:</p>
+<ul>
+<li><code>nvgBeginFrame</code></li>
+<li><code>nvgCancelFrame</code></li>
+<li><code>nvgEndFrame</code></li>
+<li><code>nvgCreateImage</code></li>
+<li><code>nvgCreateImageMem</code></li>
+</ul>
+<p>In addition, the enums and some constructors for the structures used in NanoVG are available
+as extra values and functions. Please refer <a href="https://github.com/grumpycoders/pcsx-redux/blob/main/src/gui/nvgffi.lua">to the Lua source code</a>
+for more details.</p>
+<p>The general idea is that the emulator will call <code>nvgBeginFrame</code> and <code>nvgEndFrame</code> before
+and after the Lua code is executed, and the Lua code will be able to call
+the other functions to draw the vector graphics.</p>
+<p>The proper way to use the NanoVG API is to call <code>nvg:queueNvgRender(function() ... end)</code>,
+when in an ImGui window in order to queue the NanoVG rendering for this specific window.</p>
+<p>The <code>nvg:queueNvgRender</code> function takes a single argument, which is a function
+that will be called when the NanoVG rendering is being executed. The function
+will be called without argument.</p>
+<p>All of the NanoVG functions are bound to the <code>nvg</code> object, which is a proxy
+object to the proper NanoVG context, meaning it is only valid within the
+function passed to <code>nvg:queueNvgRender</code>.</p>
+<p>This allows the user to call the NanoVG functions without having to pass the
+NanoVG context as the first argument, as it is done automatically by the
+proxy object.</p>
+<p>Note that the font used by the emulator is also loaded into the NanoVG context,
+meaning that it is possible to use <code>nvg:Text</code> without having to load a font
+first.</p>
+<h2 id="example-of-using-everything-together">Example of using everything together</h2>
+<p>As the NanoVG rendering is very low level, and requires a viewport to draw to,
+it is required to use the ImGui API to draw some UI, grab the positions of the
+vector graphics to add, and then queue some NanoVG calls within some ImGui
+context to draw the wanted vector graphics.</p>
+<p>The following example will draw a red rectangle in the middle of the Output
+region. The rectangle will be 100x100 pixels in size, and will be drawn on top
+of the emulator rendering. It should follow around the Output region when
+resizing or moving the window.</p>
+<p>In order to work, this example requires the code to be executed in the <code>Image</code> function
+of the Output shader invoker, so we can get the position of the Output region
+to draw to.</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="kr">function</span> <span class="nf">Image</span><span class="p">(</span><span class="n">textureID</span><span class="p">,</span> <span class="n">srcSizeX</span><span class="p">,</span> <span class="n">srcSizeY</span><span class="p">,</span> <span class="n">dstSizeX</span><span class="p">,</span> <span class="n">dstSizeY</span><span class="p">)</span>
+    <span class="c1">-- This helper is provided by the emulator, and will properly calculate</span>
+    <span class="c1">-- arbitrary coordinates within an ImGui image that is dstSizeX x dstSizeY</span>
+    <span class="c1">-- in size. The first two arguments are the coordinates to convert, and</span>
+    <span class="c1">-- the middle two arguments are the boundaries of the source image.</span>
+
+    <span class="c1">-- Here, we are using (1.0, 1.0) as the source image size, but it could</span>
+    <span class="c1">-- be any other size, as long as the coordinates are within the boundaries</span>
+    <span class="c1">-- of the source image. For example, if the source image is 320x240, then</span>
+    <span class="c1">-- the coordinates should be within (0, 0) and (320, 240), and the helper</span>
+    <span class="c1">-- will properly convert the coordinates to the destination image size.</span>
+
+    <span class="kd">local</span> <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span> <span class="o">=</span> <span class="n">PCSX</span><span class="p">.</span><span class="n">Helpers</span><span class="p">.</span><span class="n">UI</span><span class="p">.</span><span class="n">imageCoordinates</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dstSizeX</span><span class="p">,</span> <span class="n">dstSizeY</span><span class="p">)</span>
+
+    <span class="c1">-- As explained, we can&#39;t call NanoVG functions directly, so we need to</span>
+    <span class="c1">-- queue the rendering of the vector graphics.</span>
+    <span class="n">nvg</span><span class="p">:</span><span class="n">queueNvgRender</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span>
+        <span class="n">nvg</span><span class="p">:</span><span class="n">beginPath</span><span class="p">()</span>
+        <span class="n">nvg</span><span class="p">:</span><span class="n">rect</span><span class="p">(</span><span class="n">cx</span> <span class="o">-</span> <span class="mi">50</span><span class="p">,</span> <span class="n">cy</span> <span class="o">-</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="n">nvg</span><span class="p">:</span><span class="n">fillColor</span><span class="p">(</span><span class="n">nvg</span><span class="p">.</span><span class="n">Color</span><span class="p">.</span><span class="n">New</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">nvg</span><span class="p">:</span><span class="n">fill</span><span class="p">()</span>
+    <span class="kr">end</span><span class="p">)</span>
+    <span class="n">imgui</span><span class="p">.</span><span class="n">Image</span><span class="p">(</span><span class="n">textureID</span><span class="p">,</span> <span class="n">dstSizeX</span><span class="p">,</span> <span class="n">dstSizeY</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="kr">end</span>
+</code></pre></div></td></tr></table></div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.19047be9.min.js"></script>
+      
+    
+  </body>
+</html>
