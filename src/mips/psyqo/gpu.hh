@@ -43,6 +43,7 @@ SOFTWARE.
 #include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
 #include "psyqo/primitives/misc.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
