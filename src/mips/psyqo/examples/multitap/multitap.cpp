@@ -154,8 +154,8 @@ void MultitapTestScene::printPadStatus(psyqo::AdvancedPad::Pad pad, int column) 
     if (halfWords > 1 && padType != psyqo::AdvancedPad::PadType::None) {
         print(column + 0, 11, false, "ADC[0-%d]", adcBytes - 1);
 
-        for (int i = 0; i < adcBytes && i < 4; i++) {
-            print(column + 10 + (i * 3), 11, true, "%02X ", input.getAdc(pad, i));
+        for (int i = 0; i < adcBytes; i++) {
+            print(column + 10 + (i * 2), 11, true, "%02X", input.getAdc(pad, i));
         }
     }
 }
@@ -192,6 +192,9 @@ void MultitapTestScene::printPadType(psyqo::AdvancedPad::Pad pad, int column, co
         case psyqo::AdvancedPad::PadType::Jogcon:
             padTypeStr = "Jogcon";
             break;
+        case psyqo::AdvancedPad::PadType::Fishingcon:
+            padTypeStr = "Fishingcon";
+            break;
         case psyqo::AdvancedPad::PadType::ConfigMode:
             padTypeStr = "ConfigMode";
             break;
@@ -203,7 +206,7 @@ void MultitapTestScene::printPadType(psyqo::AdvancedPad::Pad pad, int column, co
             break;
     }
     print(column + 0, 13, true, name);
-    print(column + 10, 13, true, padTypeStr);
+    print(column + 10, 13, true, "%s %02x", padTypeStr, padType);
 }
 
 void MultitapTestScene::start(Scene::StartReason reason) {
@@ -218,8 +221,8 @@ void MultitapTestScene::frame() {
     multitapTest.gpu().clear();
 
     printPadList(1);
-    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16);
-    printPadType(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 16, "Type");
+    printPadStatus(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 10);
+    printPadType(static_cast<psyqo::AdvancedPad::Pad>(m_padIndex), 10, "Type");
 }
 
 int main() { return multitapTest.run(); }

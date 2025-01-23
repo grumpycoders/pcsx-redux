@@ -153,7 +153,7 @@ void psyqo::AdvancedPad::readPad() {
     uint8_t dataIn, dataOut;
     uint8_t portDevType[2] = {PadType::None, PadType::None};
 
-    static constexpr unsigned padDataWidth = 8;
+    static constexpr unsigned padDataWidth = sizeof(PadData);
     const unsigned portsToProbeByVSync = m_portsToProbeByVSync;
     uint8_t port = m_portToProbe;
 

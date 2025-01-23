@@ -73,6 +73,7 @@ class AdvancedPad {
         AnalogPad = 0x73,       // (in normal analog mode; LED=Red)
         Multitap = 0x80,        // (multiplayer adaptor) (when activated)
         Jogcon = 0xe3,          // (steering dial)
+        Fishingcon = 0xe5,      // (fishing rod)
         ConfigMode = 0xf3,      // (when in config mode; see rumble command 43h)
         None = 0xff             // (no controller connected, pins floating High-Z)
     };
@@ -161,7 +162,7 @@ class AdvancedPad {
     uint8_t getAdc(Pad pad, unsigned int index) const {
         const unsigned padIndex = static_cast<unsigned>(pad);
 
-        return index <= 3 ? m_padData[padIndex].adc[index] : 0;
+        return index <= 7 ? m_padData[padIndex].adc[index] : 0;
     }
 
     /**
@@ -231,9 +232,9 @@ class AdvancedPad {
             uint8_t connected;
             uint8_t padType;
             uint16_t buttons;
-            uint8_t adc[4];
+            uint8_t adc[8];
         };
-        uint16_t packed[4];
+        uint16_t packed[6];
     };
 
     PadData m_padData[8];
