@@ -33,4 +33,4 @@ namespace psyqo {
  */
 enum class Safe : unsigned { No, Yes };
 
-}
+}  // namespace psyqo
