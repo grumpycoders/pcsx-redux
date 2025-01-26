@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ namespace psyqo {
 
 class AdvancedPad {
   public:
-    enum Pad { Pad1a, Pad1b, Pad1c, Pad1d, Pad2a, Pad2b, Pad2c, Pad2d };
+    enum class Pad : unsigned { Pad1a, Pad1b, Pad1c, Pad1d, Pad2a, Pad2b, Pad2c, Pad2d };
 
     enum Button {
         Select = 0,
@@ -63,21 +63,6 @@ class AdvancedPad {
         Square = 15,
     };
 
-    enum Command : uint8_t {
-        PadSelect = 0x01,
-        ReadPad = 0x42,  // 'B' Read Buttons AND analog inputs
-        // Config mode commands
-        ToggleConfigMode = 0x43,      // 'C' Enter/Exit Configuration Mode
-        SetLED = 0x44,                // 'D' Set LED State (analog mode on/off)
-        GetLED = 0x45,                // 'E' Get LED State (and whatever values)
-        GetMotorInfo = 0x46,          // 'F' Allegedly get info about a motor
-        GetMotorList = 0x47,          // 'G' Allegedly get list of motors
-        GetMotorState = 0x48,         // 'H' Allegedly get motor state
-        GetSupportedModes = 0x4c,     // 'L' Allegedly get supported modes
-        ConfigRequestFormat = 0x4d,   // 'M' Allegedly configure poll request format
-        ConfigResponseFormat = 0x4f,  // 'O' Allegedly configure poll response format
-    };
-
     enum PadType : uint8_t {
         Mouse = 0x12,           // (two button mouse)
         NegCon = 0x23,          // (steering twist/wheel/paddle)
@@ -88,6 +73,7 @@ class AdvancedPad {
         AnalogPad = 0x73,       // (in normal analog mode; LED=Red)
         Multitap = 0x80,        // (multiplayer adaptor) (when activated)
         Jogcon = 0xe3,          // (steering dial)
+        Fishingcon = 0xe5,      // (fishing rod)
         ConfigMode = 0xf3,      // (when in config mode; see rumble command 43h)
         None = 0xff             // (no controller connected, pins floating High-Z)
     };
@@ -143,7 +129,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return A boolean value indicating whether the pad is connected.
      */
-    bool isPadConnected(Pad pad) const { return (m_padData[pad][0] & 0xff) == 0; }
+    bool isPadConnected(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].connected == 0; }
 
     /**
      * @brief Returns the state of a button.
@@ -155,9 +141,79 @@ class AdvancedPad {
      * @param button The button to query.
      * @return A boolean value indicating whether the button is pressed.
      */
-    bool isButtonPressed(Pad pad, Button button) const { return (m_padData[pad][1] & (1 << button)) == 0; }
+    bool isButtonPressed(Pad pad, Button button) const {
+        return (m_padData[static_cast<unsigned>(pad)].buttons & (1 << button)) == 0;
+    }
+
+    /**
+     * @brief Returns the state of an Analog Input.
+     *
+     * @details See the specific Analog Input functions for details.
+     * Indices greater than 3 will return 0.
+     * index 0: For analog pads: RightJoyX (00h=Left, 80h=Center, FFh=Right), mouse: X-axis
+     * index 1: For analog pads: RightJoyY (00h=Up, 80h=Center, FFh=Down), mouse: Y-axis
+     * index 2: For analog pads: LeftJoyX (00h=Left, 80h=Center, FFh=Right)
+     * index 3: For analog pads: LeftJoyY (00h=Up, 80h=Center, FFh=Down)
+     *
+     * @param pad The pad to query.
+     * @param index The index of the Analog Input(adc#).
+     * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
+     */
+    uint8_t getAdc(Pad pad, unsigned int index) const {
+        const unsigned padIndex = static_cast<unsigned>(pad);
+
+        return index <= 7 ? m_padData[padIndex].adc[index] : 0;
+    }
+
+    /**
+     * @brief Returns raw pad data as an unsigned 16-bit value.
+     *
+     * @details A low level call which returns the halfword value for the requested index of the given pad index.
+     * It is recommended to use the higher level functions instead.
+     * index 0: pad type << 8 | connected(0 = connected, ffh = disconnected)
+     * index 1: button state
+     * index 2: analog input 1 << 8 | analog input 0
+     * index 3: analog input 3 << 8 | analog input 2
+     * The index is modulo 4, so it will wrap around if it is greater than 3.
+     *
+     *
+     * @param pad The pad to query.
+     * @param index The index of the halfword.
+     * @return The value of the halfword.
+     */
+
+    uint16_t getHalfword(Pad pad, unsigned int index) const {
+        return m_padData[static_cast<unsigned>(pad)].packed[index % 4];
+    }
+
+    /**
+     * @brief Returns the type of the pad.
+     *
+     * @details Known pad types are defined in the PadType enum, returns 0xff if no pad is connected.
+     * PadType::Multitap is for internal use only, and should not be returned.
+     * Pad connection status should be checked with isPadConnected.
+     *
+     * @param pad The pad to query.
+     * @return The type of the pad.
+     */
+    uint8_t getPadType(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].padType; }
 
   private:
+    enum Command : uint8_t {
+        PadSelect = 0x01,
+        ReadPad = 0x42,  // 'B' Read Buttons AND analog inputs
+        // Config mode commands
+        ToggleConfigMode = 0x43,      // 'C' Enter/Exit Configuration Mode
+        SetLED = 0x44,                // 'D' Set LED State (analog mode on/off)
+        GetLED = 0x45,                // 'E' Get LED State (and whatever values)
+        GetMotorInfo = 0x46,          // 'F' Allegedly get info about a motor
+        GetMotorList = 0x47,          // 'G' Allegedly get list of motors
+        GetMotorState = 0x48,         // 'H' Allegedly get motor state
+        GetSupportedModes = 0x4c,     // 'L' Allegedly get supported modes
+        ConfigRequestFormat = 0x4d,   // 'M' Allegedly configure poll request format
+        ConfigResponseFormat = 0x4f,  // 'O' Allegedly configure poll response format
+    };
+
     void busyLoop(unsigned delay) {
         unsigned cycles = 0;
         while (++cycles < delay) asm("");
@@ -171,7 +227,17 @@ class AdvancedPad {
     uint8_t transceive(uint8_t data_out);
     bool waitForAck();  // true if ack received, false if timeout
 
-    uint16_t m_padData[8][4];
+    union PadData {
+        struct {
+            uint8_t connected;
+            uint8_t padType;
+            uint16_t buttons;
+            uint8_t adc[8];
+        };
+        uint16_t packed[6];
+    };
+
+    PadData m_padData[8];
     eastl::function<void(Event)> m_callback;
     bool m_connected[8] = {false, false, false, false, false, false, false, false};
     uint16_t m_buttons[8] = {
