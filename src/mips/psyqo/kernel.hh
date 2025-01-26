@@ -110,7 +110,8 @@ enum class IRQ : unsigned {
 /**
  * @brief Stops the execution of the application.
  */
-[[noreturn]] static inline void abort(const char* msg, std::source_location location = std::source_location::current()) {
+[[noreturn]] static inline void abort(const char* msg,
+                                      std::source_location location = std::source_location::current()) {
     if constexpr (debugMode) {
         Internal::abort(msg, location);
     } else if constexpr (!debugMode) {
