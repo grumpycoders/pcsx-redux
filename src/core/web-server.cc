@@ -39,7 +39,7 @@
 #include "llhttp/llhttp.h"
 #include "lua/luawrapper.h"
 #include <magic_enum_all.hpp>
-#include "multipart-parser-c/multipart_parser.h"
+#include <multipart_parser.h>
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"
