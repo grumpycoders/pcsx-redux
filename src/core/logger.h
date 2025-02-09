@@ -23,7 +23,7 @@
 
 #include "core/system.h"
 #include "fmt/printf.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include <magic_enum_all.hpp>
 
 namespace PCSX {
 

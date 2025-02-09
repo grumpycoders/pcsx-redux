@@ -78,7 +78,7 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include <magic_enum_all.hpp>
 #include "nanovg/src/nanovg.h"
 #include "nanovg/src/nanovg_gl.h"
 #include "nanovg/src/nanovg_gl_utils.h"

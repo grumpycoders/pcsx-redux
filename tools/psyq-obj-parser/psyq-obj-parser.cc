@@ -27,7 +27,7 @@
 #include "elfio/elfio.hpp"
 #include "flags.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include <magic_enum_all.hpp>
 #include "support/djbhash.h"
 #include "support/file.h"
 #include "support/hashtable.h"
