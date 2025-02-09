@@ -32,6 +32,7 @@ CPPFLAGS += -Ithird_party/imgui/backends
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/libelfin
+CPPFLAGS += -Ithird_party/llhttp
 CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS += -Ithird_party/luv/src
 CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api

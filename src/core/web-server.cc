@@ -36,7 +36,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "gui/gui.h"
-#include "llhttp/llhttp.h"
+#include <llhttp.h>
 #include "lua/luawrapper.h"
 #include <magic_enum_all.hpp>
 #include <multipart_parser.h>
