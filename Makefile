@@ -8,7 +8,7 @@ UNAME_M := $(shell uname -m)
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
+PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl luajit fmt md4c libluv
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
@@ -39,6 +39,7 @@ CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/magic_enum/include/magic_enum
 CPPFLAGS += -Ithird_party/md4c/src
 CPPFLAGS += -Ithird_party/multipart-parser-c
+CPPFLAGS += -Ithird_party/tracy/public
 CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
 CPPFLAGS += -Ithird_party/uriparser/include
 CPPFLAGS += -Ithird_party/zep/extensions
