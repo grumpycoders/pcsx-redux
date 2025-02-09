@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {
