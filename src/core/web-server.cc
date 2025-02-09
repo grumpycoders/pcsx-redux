@@ -36,10 +36,10 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "gui/gui.h"
-#include "llhttp/llhttp.h"
+#include <llhttp.h>
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
-#include "multipart-parser-c/multipart_parser.h"
+#include <magic_enum_all.hpp>
+#include <multipart_parser.h>
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"
