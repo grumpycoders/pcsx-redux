@@ -17,10 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 #include <algorithm>
+#include <magic_enum_all.hpp>
 
 #include "core/gpu.h"
 #include "core/psxemulator.h"
-#include <magic_enum_all.hpp>
 
 void PCSX::GPU::Display::reset() {
     x1 = 0x200;

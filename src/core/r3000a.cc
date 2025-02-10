@@ -23,6 +23,8 @@
 
 #include "core/r3000a.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
@@ -33,7 +35,6 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
-#include <magic_enum_all.hpp>
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));

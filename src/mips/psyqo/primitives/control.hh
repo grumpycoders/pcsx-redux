@@ -135,12 +135,8 @@ struct MaskControl {
         command |= static_cast<uint32_t>(test) << 1;
         return *this;
     }
-    MaskControl &set(Set set, Test test) {
-        return *this = MaskControl(set, test);
-    }
-    MaskControl &set(Test test, Set set) {
-        return *this = MaskControl(set, test);
-    }
+    MaskControl &set(Set set, Test test) { return *this = MaskControl(set, test); }
+    MaskControl &set(Test test, Set set) { return *this = MaskControl(set, test); }
 
   private:
     uint32_t command;
