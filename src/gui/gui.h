@@ -23,6 +23,7 @@
 #include <stdarg.h>
 
 #include <functional>
+#include <magic_enum_all.hpp>
 #include <map>
 #include <set>
 #include <string>
@@ -59,7 +60,6 @@
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/eventbus.h"
 #include "support/settings.h"
 #include "support/version.h"

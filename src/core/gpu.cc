@@ -21,6 +21,8 @@
 
 #include "core/gpu.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/debug.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
@@ -28,7 +30,6 @@
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready

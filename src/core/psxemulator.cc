@@ -45,7 +45,7 @@
 #include "lua/zlibffi.h"
 #include "luafilesystem/src/lfs.h"
 extern "C" {
-#include "luv/src/luv.h"
+#include <luv.h>
 }
 #include "spu/interface.h"
 #include "supportpsx/adpcmlua.h"
@@ -128,7 +128,7 @@ void PCSX::Emulator::setLua() {
     L.pop();
     L.pop();
     L.pop();
-    
+
     m_pads->setLua(L);
 
     assert(L.gettop() == 0);
