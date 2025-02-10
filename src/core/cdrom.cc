@@ -23,11 +23,12 @@
 
 #include "core/cdrom.h"
 
+#include <magic_enum_all.hpp>
+
 #include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
-#include <magic_enum_all.hpp>
 #include "spu/interface.h"
 #include "support/strings-helpers.h"
 

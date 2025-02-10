@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <functional>
+#include <magic_enum_all.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -31,7 +32,6 @@
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include <magic_enum_all.hpp>
 #include "support/eventbus.h"
 #include "support/file.h"
 #include "support/list.h"

@@ -27,13 +27,13 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <magic_enum_all.hpp>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
-#include <magic_enum_all.hpp>
 #include "support/file.h"
 #include "support/imgui-helpers.h"
 

@@ -33,6 +33,7 @@ SOFTWARE.
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <magic_enum_all.hpp>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -42,7 +43,6 @@ SOFTWARE.
 #include "core/system.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include <magic_enum_all.hpp>
 #include "support/typestring-wrapper.h"
 #include "typestring.hh"
 

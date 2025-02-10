@@ -19,11 +19,11 @@
 
 #include "core/kernel.h"
 
+#include <magic_enum_all.hpp>
 #include <string>
 
 #include "core/psxmem.h"
 #include "fmt/format.h"
-#include <magic_enum_all.hpp>
 
 enum class Hw {
     VBLANK = 0x00000001,

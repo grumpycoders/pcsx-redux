@@ -19,13 +19,14 @@
 
 #include "gui/widgets/log.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include <magic_enum_all.hpp>
 
 PCSX::Widgets::Log::json PCSX::Widgets::Log::serialize() const {
     json ret;
