@@ -26,7 +26,7 @@
 #include "gpu/soft/soft.h"
 #include "imgui.h"
 #include "support/imgui-helpers.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 #define GPUSTATUS_DMABITS 0x60000000
 #define GPUSTATUS_READYFORCOMMANDS 0x10000000

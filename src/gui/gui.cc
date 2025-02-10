@@ -78,7 +78,7 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include <magic_enum_all.hpp>
 #include "nanovg/src/nanovg.h"
 #include "nanovg/src/nanovg_gl.h"
 #include "nanovg/src/nanovg_gl_utils.h"
@@ -88,7 +88,7 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 #ifdef _WIN32
 extern "C" {

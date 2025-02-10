@@ -45,7 +45,7 @@
 #include "lua/zlibffi.h"
 #include "luafilesystem/src/lfs.h"
 extern "C" {
-#include "luv/src/luv.h"
+#include <luv.h>
 }
 #include "spu/interface.h"
 #include "supportpsx/adpcmlua.h"
