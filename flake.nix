@@ -18,14 +18,14 @@
     forAllSystems = lib.genAttrs lib.systems.flakeExposed;
   in {
     packages = forAllSystems (system:
-      let pkgs = { inherit system; };
+      let pkgs = import nixpkgs { inherit system; };
     in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix { src = self; };
       default = self.packages.${system}.pcsx-redux;
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forAllSystems self.packages;
+      checks = forAllSystems (system: self.packages.${system});
     };
   };
 }
