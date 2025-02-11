@@ -26,7 +26,7 @@
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forGithubSystems (system: self.packages.${system});
+      checks = forGithubSystems (system: self.packages.${system}.pcsx-redux);
     };
   };
 }
