@@ -27,4 +27,5 @@
     githubActions = nix-github-actions.lib.mkGithubMatrix {
       checks = forAllSystems self.packages;
     };
+  };
 }
