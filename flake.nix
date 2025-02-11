@@ -26,11 +26,11 @@
   in
   {
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-
       checks = self.packages;
     };
     packages."x86_64-linux" = {
       # TODO: debug should be another output not another derivation
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix { src = self; };
+    };
   };
 }
