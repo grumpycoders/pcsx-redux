@@ -81,21 +81,3 @@ index 553b99a2..f9f51921 100644
  SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
  OBJECTS := third_party/luajit/src/libluajit.a
  
-diff --git a/src/main/main.cc b/src/main/main.cc
-index 850617ee..cecc64f4 100644
---- a/src/main/main.cc
-+++ b/src/main/main.cc
-@@ -364,11 +364,12 @@ runner.init({
-             luacovEnabled = false;
-         }
-     }
-+/*
-     emulator->setLua();
-     s_ui->setLua(*emulator->m_lua);
-     emulator->m_spu->setLua(*emulator->m_lua);
-     assert(emulator->m_lua->gettop() == 0);
--
-+*/
-     // Starting up the whole emulator; we delay setting the GPU only now because why not.
-     auto &emuSettings = emulator->settings;
-     emulator->m_spu->open();
