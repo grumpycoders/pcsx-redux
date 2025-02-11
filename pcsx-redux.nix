@@ -103,18 +103,18 @@ in stdenv.mkDerivation {
 */
 
   postUnpack = ''
-    rmdir source/third_party/miniaudio
-    rmdir source/third_party/zep
-    rmdir source/third_party/nanosvg
-    rmdir source/third_party/nanovg
-    rmdir source/third_party/imgui
-    rmdir source/third_party/imgui_md
-    rmdir source/third_party/xbyak
-    rmdir source/third_party/luafilesystem
-    rmdir source/third_party/luv
-    rmdir source/third_party/SDL_GameControllerDB
-    rmdir source/third_party/tracy
-    rmdir source/third_party/luajit
+    # rmdir source/third_party/miniaudio
+    # rmdir source/third_party/zep
+    # rmdir source/third_party/nanosvg
+    # rmdir source/third_party/nanovg
+    # rmdir source/third_party/imgui
+    # rmdir source/third_party/imgui_md
+    # rmdir source/third_party/xbyak
+    # rmdir source/third_party/luafilesystem
+    # rmdir source/third_party/luv
+    # rmdir source/third_party/SDL_GameControllerDB
+    # rmdir source/third_party/tracy
+    # rmdir source/third_party/luajit
 
     cp -r ${miniaudio.out} source/third_party/miniaudio
     cp -r ${zep.out} source/third_party/zep
