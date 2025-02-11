@@ -22,11 +22,12 @@
       let pkgs = import nixpkgs { inherit system; };
     in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix { src = self; };
-      default = self.packages.${system}.pcsx-redux;
+      # default gets duplicated in githubActions
+      # default = self.packages.${system}.pcsx-redux;
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forGithubSystems (system: self.packages.${system}.pcsx-redux);
+      checks = forGithubSystems (system: self.packages.${system}.packages);
     };
   };
 }
