@@ -259,13 +259,13 @@ $(TARGET): $(OBJECTS)
 %.o: %.mm
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.dep: %.c
+%.dep: third_party/luajit/src/luajit.h %.c
 	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
-%.dep: %.cc
+%.dep: third_party/luajit/src/luajit.h %.cc
 	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
-%.dep: %.cpp
+%.dep: third_party/luajit/src/luajit.h %.cpp
 	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
@@ -329,3 +329,7 @@ endif
 endif
 endif
 endif
+
+third_party/luajit/src/lua.hpp: third_party/luajit/src/luajit.h
+
+third_party/luajit/src/luajit.h: third_party/luajit/src/libluajit.a
