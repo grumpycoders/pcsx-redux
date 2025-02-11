@@ -1,5 +1,5 @@
 {
-  description = "";
+  description = "PlayStation 1 emulator and debugger";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";

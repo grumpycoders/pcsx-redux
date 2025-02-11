@@ -32,7 +32,6 @@
   platforms,
 }:
 let
-# get rid of this nonsense
   zep = fetchFromGitHub {
     owner = "grumpycoders";
     repo = "zep";
@@ -93,35 +92,12 @@ let
       rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
       hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
   };
-  # commit = "faee80688fa03d924437118b28720184b7b58de1";
 in stdenv.mkDerivation {
   pname = "pcsx-redux";
   version = "0.99test";
   inherit src;
-/*
-  src = fetchFromGitHub {
-    owner = "grumpycoders";
-    # owner = "NotExactlySiev";
-    repo = "pcsx-redux";
-    rev = commit;
-    hash = "sha256-qbpeNCv7jsRBg7GOn/EAm1A2K3F/zHuMHF/bBOb9q0o=";
-  };
-*/
 
   postUnpack = ''
-    # rmdir source/third_party/miniaudio
-    # rmdir source/third_party/zep
-    # rmdir source/third_party/nanosvg
-    # rmdir source/third_party/nanovg
-    # rmdir source/third_party/imgui
-    # rmdir source/third_party/imgui_md
-    # rmdir source/third_party/xbyak
-    # rmdir source/third_party/luafilesystem
-    # rmdir source/third_party/luv
-    # rmdir source/third_party/SDL_GameControllerDB
-    # rmdir source/third_party/tracy
-    # rmdir source/third_party/luajit
-
     cp -r ${miniaudio.out} source/third_party/miniaudio
     cp -r ${zep.out} source/third_party/zep
     cp -r ${nanosvg.out} source/third_party/nanosvg
@@ -162,12 +138,7 @@ in stdenv.mkDerivation {
   buildInputs = [
     stb
     ucl
-    #imgui
     md4c
-    # luajit
-    # luajitPackages.lpeg
-    #luajitPackages.luafilesystem
-    #luajitPackages.lua-protobuf
     luajitPackages.libluv
     multipart-parser-c
     fmt
@@ -201,15 +172,12 @@ in stdenv.mkDerivation {
   enableDebugging = debugBuild;
   
   enableParallelBuilding = true;
-  # NIX_BUILD_CORES = 10;
   NIX_BUILD_CORES = 2;
 
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";
     description = "PlayStation 1 emulator and debugger";
-    #license = lib.licenses.;
     mainProgram = "pcsx-redux";
-    #maintainers = with lib.maintainers; [];
     inherit platforms;
   };
 }
