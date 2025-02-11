@@ -28,8 +28,9 @@
   ucl,
   llhttp,
 
+  src,
   debugBuild ? false,
-  src
+  platforms,
 }:
 let
 # get rid of this nonsense
@@ -197,9 +198,9 @@ in stdenv.mkDerivation {
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";
     description = "PlayStation 1 emulator and debugger";
-    #license = lib.licenses.gpl3Only;
+    #license = lib.licenses.;
     mainProgram = "pcsx-redux";
-    #maintainers = with lib.maintainers; [ guibou AndersonTorres ];
-    platforms = lib.platforms.linux;
+    #maintainers = with lib.maintainers; [];
+    inherit platforms;
   };
 }

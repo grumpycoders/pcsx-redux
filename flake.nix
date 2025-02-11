@@ -21,7 +21,10 @@
     packages = forAllSystems (system:
       let pkgs = import nixpkgs { inherit system; };
     in {
-      pcsx-redux = pkgs.callPackage ./pcsx-redux.nix { src = self; };
+      pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
+          src = self;
+          platforms = lib.systems.flakeExposed;
+      };
       # default gets duplicated in githubActions
       # default = self.packages.${system}.pcsx-redux;
     });
