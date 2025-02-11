@@ -10,12 +10,13 @@
   outputs = {
     self,
     nixpkgs,
-    nix-github-actions,
-    ...
+    nix-github-actions
   }:
   let
+    githubSystems = builtins.attrNames nix-github-actions.githubPlatforms;
     lib = nixpkgs.lib;
     forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+    forGithubSystems = lib.genAttrs githubSystems;
   in {
     packages = forAllSystems (system:
       let pkgs = import nixpkgs { inherit system; };
@@ -25,7 +26,7 @@
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forAllSystems (system: self.packages.${system});
+      checks = forGithubSystems (system: self.packages.${system});
     };
   };
 }
