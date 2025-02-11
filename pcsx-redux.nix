@@ -191,7 +191,8 @@ in stdenv.mkDerivation {
   enableDebugging = debugBuild;
   
   enableParallelBuilding = true;
-  NIX_BUILD_CORES = 10;
+  # NIX_BUILD_CORES = 10;
+  NIX_BUILD_CORES = 2;
 
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";
