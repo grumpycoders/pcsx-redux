@@ -13,10 +13,15 @@
     nix-github-actions
   }:
   let
-    githubSystems = builtins.attrNames nix-github-actions.lib.githubPlatforms;
     lib = nixpkgs.lib;
-    forAllSystems = lib.genAttrs lib.systems.flakeExposed;
-    forGithubSystems = lib.genAttrs githubSystems;
+    # githubSystems = builtins.attrNames nix-github-actions.lib.githubPlatforms;
+    # forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+    # forGithubSystems = lib.genAttrs githubSystems;
+    # TODO: githubSystems should be supportedSystems intersects lib.githubPlatforms
+    # Some of the dependencies don't build on aarch64. Will fix later
+    supportedSystems = [ "x86_64-linux" "x86_64-darwin" ];
+    forAllSystems = lib.genAttrs supportedSystems;
+    forGithubSystems = lib.genAttrs supportedSystems;
   in {
     packages = forAllSystems (system:
       let pkgs = import nixpkgs { inherit system; };
@@ -25,7 +30,7 @@
           src = self;
           platforms = lib.systems.flakeExposed;
       };
-      # default gets duplicated in githubActions
+      # FIXME: default gets duplicated in githubActions
       # default = self.packages.${system}.pcsx-redux;
     });
 
