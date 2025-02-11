@@ -14,23 +14,17 @@
     ...
   }:
   let
-    ignorePaths = [
-      # ".github"
-      # ".gitignore"
-      # "flake.nix"
-      # "flake.lock"
-      # "pcsx-redux.nix"
-    ];
-    # TODO: do all platforms
-    pkgs = import nixpkgs { system = "x86_64-linux"; };
-  in
-  {
-    githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = self.packages;
-    };
-    packages."x86_64-linux" = {
-      # TODO: debug should be another output not another derivation
+    lib = nixpkgs.lib;
+    forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+  in {
+    packages = forAllSystems (system:
+      let pkgs = { inherit system; };
+    in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix { src = self; };
+      default = self.packages.${system}.pcsx-redux;
+    });
+
+    githubActions = nix-github-actions.lib.mkGithubMatrix {
+      checks = forAllSystems self.packages;
     };
-  };
 }
