@@ -19,8 +19,7 @@
     # forGithubSystems = lib.genAttrs githubSystems;
     # TODO: githubSystems should be supportedSystems intersects lib.githubPlatforms
     # Some of the dependencies don't build on clang. Will fix later
-    # vixl won't build on aarch64. Something to do with the include paths
-    supportedSystems = [ "x86_64-linux" ];
+    supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
     forAllSystems = lib.genAttrs supportedSystems;
     forGithubSystems = lib.genAttrs supportedSystems;
   in {

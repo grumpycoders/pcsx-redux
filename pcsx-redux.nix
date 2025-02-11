@@ -12,7 +12,6 @@
   libX11,
   pkg-config,
   imagemagick,
-  # luajit,
   luajitPackages,
   multipart-parser-c,
   fmt,
@@ -51,6 +50,12 @@ let
     repo = "nanovg";
     rev = "7c021819bbd4843a1a3091fe47346d3fcb2a3e1a";
     hash = "sha256-gZHbNuDkLXlLlXZZpLBHcbwzTfeBBkLY7xl4L5yr2lY=";
+  };
+  vixl = fetchFromGitHub {
+    owner = "grumpycoders";
+    repo = "vixl";
+    rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
+    hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
   };
   imgui-md = fetchFromGitHub {
       owner = "mekhontsev";
@@ -139,7 +144,11 @@ in stdenv.mkDerivation {
     chmod -R +w source/third_party/SDL_GameControllerDB
     chmod -R +w source/third_party/tracy
     chmod -R +w source/third_party/luajit
- '';
+  ''
+  + lib.optionalString stdenv.hostPlatform.isAarch ''
+    cp -r ${vixl.out} source/third_party/vixl
+    chmod -R +w source/third_party/vixl
+  '';
 
    patches = [
      ./001-patch.diff
