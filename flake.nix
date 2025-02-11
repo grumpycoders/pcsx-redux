@@ -13,7 +13,7 @@
     nix-github-actions
   }:
   let
-    githubSystems = builtins.attrNames nix-github-actions.githubPlatforms;
+    githubSystems = builtins.attrNames nix-github-actions.lib.githubPlatforms;
     lib = nixpkgs.lib;
     forAllSystems = lib.genAttrs lib.systems.flakeExposed;
     forGithubSystems = lib.genAttrs githubSystems;
