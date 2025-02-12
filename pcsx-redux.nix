@@ -138,10 +138,6 @@ in stdenv.mkDerivation {
     chmod -R +w source/third_party/vixl
   '';
 
-   patches = [
-     ./001-patch.diff
-   ];
-
   nativeBuildInputs = [
     pkg-config
     imagemagick
@@ -169,10 +165,6 @@ in stdenv.mkDerivation {
     uriparser
     libX11
     llhttp
-  ];
-
-  runtimeDependencies = [
-    # zlib
   ];
 
   makeFlags = [

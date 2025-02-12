@@ -27,5 +27,8 @@ jobs:
       matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
     steps:
       - uses: actions/checkout@v4
+      - uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: cachix/install-nix-action@v30
       - run: nix build -L '.#${{ matrix.attr }}'
