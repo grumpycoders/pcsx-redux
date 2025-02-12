@@ -98,6 +98,18 @@ in stdenv.mkDerivation {
   inherit src;
 
   postUnpack = ''
+    rm -rf source/third_party/miniaudio
+    rm -rf source/third_party/zep
+    rm -rf source/third_party/nanosvg
+    rm -rf source/third_party/nanovg
+    rm -rf source/third_party/imgui
+    rm -rf source/third_party/imgui_md
+    rm -rf source/third_party/xbyak
+    rm -rf source/third_party/luafilesystem
+    rm -rf source/third_party/SDL_GameControllerDB
+    rm -rf source/third_party/tracy
+    rm -rf source/third_party/luajit
+
     cp -r ${miniaudio.out} source/third_party/miniaudio
     cp -r ${zep.out} source/third_party/zep
     cp -r ${nanosvg.out} source/third_party/nanosvg
