@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,14 +48,14 @@ void psyqo::AdvancedPad::initialize(PollingMode mode) {
 
         if (!m_callback) return;
 
-        processChanges(Pad1a);
-        processChanges(Pad1b);
-        processChanges(Pad1c);
-        processChanges(Pad1d);
-        processChanges(Pad2a);
-        processChanges(Pad2b);
-        processChanges(Pad2c);
-        processChanges(Pad2d);
+        processChanges(Pad::Pad1a);
+        processChanges(Pad::Pad1b);
+        processChanges(Pad::Pad1c);
+        processChanges(Pad::Pad1d);
+        processChanges(Pad::Pad2a);
+        processChanges(Pad::Pad2b);
+        processChanges(Pad::Pad2c);
+        processChanges(Pad::Pad2d);
     });
 }
 
@@ -113,19 +113,20 @@ uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
 }
 
 void psyqo::AdvancedPad::processChanges(Pad pad) {
+    const unsigned padIndex = static_cast<unsigned>(pad);
     bool padConnected = isPadConnected(pad);
-    bool wasConnected = m_connected[pad];
+    bool wasConnected = m_connected[padIndex];
     if (wasConnected && !padConnected) {
         m_callback(Event{Event::PadDisconnected, pad});
     } else if (!wasConnected && padConnected) {
         m_callback(Event{Event::PadConnected, pad});
     }
-    m_connected[pad] = padConnected;
+    m_connected[padIndex] = padConnected;
     if (!padConnected) return;
 
-    uint32_t mask = 1;
-    uint32_t padData = m_padData[pad][1];
-    uint32_t buttons = m_buttons[pad];
+    uint16_t mask = 1;
+    uint16_t padData = m_padData[padIndex].buttons;
+    uint16_t buttons = m_buttons[padIndex];
     for (int i = 0; i < 16; i++, mask <<= 1) {
         bool buttonPressed = (padData & mask) == 0;
         bool wasButtonPressed = (buttons & mask) == 0;
@@ -135,7 +136,7 @@ void psyqo::AdvancedPad::processChanges(Pad pad) {
             m_callback(Event{Event::ButtonReleased, pad, Button(i)});
         }
     }
-    m_buttons[pad] = padData;
+    m_buttons[padIndex] = padData;
 }
 
 inline uint8_t psyqo::AdvancedPad::transceive(uint8_t data_out) {
@@ -152,13 +153,13 @@ void psyqo::AdvancedPad::readPad() {
     uint8_t dataIn, dataOut;
     uint8_t portDevType[2] = {PadType::None, PadType::None};
 
-    static constexpr unsigned padDataWidth = 8;
+    static constexpr unsigned padDataWidth = sizeof(PadData);
     const unsigned portsToProbeByVSync = m_portsToProbeByVSync;
     uint8_t port = m_portToProbe;
 
     for (unsigned i = 0; i < portsToProbeByVSync; i++) {
         // Select enable on current port
-        SIO::Ctrl = (static_cast<uint16_t>(port) << 13) | SIO::Control::CTRL_DTR;
+        SIO::Ctrl = (port * SIO::Control::CTRL_PORTSEL) | SIO::Control::CTRL_DTR;
 
         // Set baud 250kHz
         SIO::Baud = 0x88;
@@ -171,7 +172,7 @@ void psyqo::AdvancedPad::readPad() {
         // Pads get finicky if we don't wait a bit here
         busyLoop(100);
 
-        uint8_t *padData = reinterpret_cast<uint8_t *>(&m_padData[port * 4][0]);
+        uint8_t *padData = reinterpret_cast<uint8_t *>(&m_padData[port * 4].packed[0]);
         __builtin_memset(padData, 0xff, sizeof(m_padData[0]));
 
         for (unsigned ticks = 0, max_ticks = 5; ticks < max_ticks; ticks++) {
