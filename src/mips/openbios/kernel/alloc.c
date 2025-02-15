@@ -64,38 +64,20 @@ typedef struct allocated_block_ {
 _Static_assert(sizeof(empty_block) == (2 * sizeof(void *)), "empty_block is of the wrong size");
 _Static_assert(sizeof(allocated_block) == (2 * sizeof(void *)), "allocated_block is of the wrong size");
 
-static void *user_heap_start = NULL;
-static void *user_heap_end = NULL;
-static void *kern_heap_start = NULL;
-static void *kern_heap_end = NULL;
-
 static empty_block *user_heap_head = NULL;
 static empty_block *kern_heap_head = NULL;
 
-static empty_block marker;
+static empty_block marker = { .next = NULL, .size = 0 };
 
 enum heap { HEAP_USER, HEAP_KERNEL };
 
-static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size_, enum heap heap) {
+static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size_, const enum heap heap) {
     empty_block *curr = heap == HEAP_USER ? user_heap_head : kern_heap_head;
     empty_block *prev = NULL;
     empty_block *best_fit = NULL;
     empty_block *best_fit_prev = NULL;
 
     size_t size = ALIGN_TO(size_ + sizeof(allocated_block));
-
-    if (curr == NULL) {
-        marker.next = NULL;
-        marker.size = 0;
-        curr = (empty_block *)ALIGN_TO(heap == HEAP_USER ? user_heap_start : kern_heap_start);
-        if (heap == HEAP_USER) {
-            user_heap_head = curr;
-        } else {
-            kern_heap_head = curr;
-        }
-        curr->next = &marker;
-        curr->size = ALIGN_TO(((size_t)(heap == HEAP_USER ? user_heap_end : kern_heap_end)) - sizeof(empty_block));
-    }
 
     size_t curr_size = 0;
     while ((curr_size != size) && (curr != &marker)) {
@@ -147,7 +129,7 @@ static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size_, enu
     return ptr;
 }
 
-static __attribute__((section(".ramtext"))) void multi_free(void *ptr_, enum heap heap) {
+static __attribute__((section(".ramtext"))) void multi_free(void *ptr_, const enum heap heap) {
     if (ptr_ == NULL) {
         return;
     }
@@ -218,7 +200,7 @@ static __attribute__((section(".ramtext"))) void multi_free(void *ptr_, enum hea
     }
 }
 
-static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size_t size_, enum heap heap) {
+static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size_t size_, const enum heap heap) {
     if (ptr_ == NULL) {
         return multi_malloc(size_, heap);
     }
@@ -341,7 +323,6 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
     if (new_ptr == NULL) {
         return NULL;
     }
-    //__builtin_memcpy(new_ptr, ptr_, old_size - sizeof(empty_block));
     uint32_t * src = (uint32_t *)ptr_;
     uint32_t * dst = (uint32_t *)new_ptr;
     uint32_t size_to_copy = old_size - sizeof(empty_block);
@@ -359,9 +340,9 @@ __attribute__((section(".ramtext"))) void *user_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_USER);
 }
 __attribute__((section(".ramtext"))) void user_initheap(void *base, size_t size) {
-    user_heap_start = base;
-    user_heap_end = ((char *)base) + size;
-    user_heap_head = NULL;
+    user_heap_head = (empty_block*)ALIGN_TO(base);
+    user_heap_head->next = &marker;
+    user_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }
 
 __attribute__((section(".ramtext"))) void *kern_malloc(size_t size) { return multi_malloc(size, HEAP_KERNEL); }
@@ -370,7 +351,7 @@ __attribute__((section(".ramtext"))) void *kern_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_KERNEL);
 }
 __attribute__((section(".ramtext"))) void kern_initheap(void *base, size_t size) {
-    kern_heap_start = base;
-    kern_heap_end = ((char *)base) + size;
-    kern_heap_head = NULL;
+    kern_heap_head = (empty_block*)ALIGN_TO(base);
+    kern_heap_head->next = &marker;
+    kern_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }
