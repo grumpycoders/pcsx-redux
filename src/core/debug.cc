@@ -59,6 +59,7 @@ uint32_t PCSX::Debug::normalizeAddress(uint32_t address) {
 
 bool PCSX::Debug::isInKernel(uint32_t address, bool biosIsKernel) {
     PSXAddress addr(address);
+    if (addr.type == PSXAddress::Type::MSAN) return false;
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
     if (addr.type == PSXAddress::Type::ROM) return biosIsKernel;
     if (addr.type != PSXAddress::Type::RAM) return false;

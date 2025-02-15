@@ -25,6 +25,12 @@ namespace PCSX {
 
 struct PSXAddress {
     explicit PSXAddress(uint32_t virt) {
+        if ((virt >= 0x20000000) && (virt < 0x80000000)) {
+            segment = Segment::MSAN;
+            type = Type::MSAN;
+            physical = virt - 0x20000000;
+            return;
+        }
         physical = virt & 0x1fffffff;
         if (virt == 0xfffe0130) {
             segment = Segment::Internal;
@@ -96,8 +102,12 @@ struct PSXAddress {
             case Type::ROM:
                 ret += 0x1fc00000;
                 break;
+            case Type::MSAN:
+                ret += 0x20000000;
+                break;
         }
         switch (segment) {
+            case Segment::MSAN:
             case Segment::KUSEG:
                 return ret;
             case Segment::KSEG0:
@@ -105,6 +115,7 @@ struct PSXAddress {
             case Segment::KSEG1:
                 return ret | 0xa0000000;
         }
+        return {};
     }
 
     uint32_t physical = 0;
@@ -117,6 +128,7 @@ struct PSXAddress {
         EXP3,
         ROM,
         Internal,
+        MSAN,
     } type = Type::RAM;
     enum class Segment {
         KUSEG,
@@ -124,6 +136,7 @@ struct PSXAddress {
         KSEG1,
         Internal,
         Invalid,
+        MSAN,
     } segment = Segment::Invalid;
 };
 

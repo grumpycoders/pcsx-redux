@@ -20,9 +20,11 @@
 #pragma once
 
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/eventbus.h"
 #include "support/polyfills.h"
 #include "support/sharedmem.h"
 
@@ -47,6 +49,7 @@ namespace PCSX {
 
 class Memory {
   public:
+    Memory();
     int init();
     void reset();
     void shutdown();
@@ -73,6 +76,12 @@ class Memory {
     static constexpr uint16_t DMA_CHCR = 8;
     static constexpr uint16_t DMA_PCR = 0x10f0;
     static constexpr uint16_t DMA_ICR = 0x10f4;
+
+    void initMsan(bool reset);
+    bool msanInitialized() { return m_msanRAM != nullptr; }
+    uint32_t msanAlloc(uint32_t size);
+    void msanFree(uint32_t ptr);
+    uint32_t msanRealloc(uint32_t ptr, uint32_t size);
 
     template <unsigned n>
     void dmaInterrupt() {
@@ -248,6 +257,15 @@ class Memory {
 
     uint8_t **m_writeLUT = nullptr;
     uint8_t **m_readLUT = nullptr;
+
+    static constexpr uint32_t c_msanSize = 1'610'612'736;
+    uint8_t *m_msanRAM = nullptr;
+    uint8_t *m_msanBitmap = nullptr;
+    uint8_t *m_msanWrittenBitmap = nullptr;
+    uint32_t m_msanPtr = 1024;
+    EventBus::Listener m_listener;
+
+    std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
 
     template <typename T = void>
     T *getPointer(uint32_t address) {
