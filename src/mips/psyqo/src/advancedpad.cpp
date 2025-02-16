@@ -187,7 +187,12 @@ void psyqo::AdvancedPad::readPad() {
             dataIn = transceive(dataOut);
 
             if (ticks == 2) {
-                if (dataIn == 0x5a) {
+                if (dataIn == 0x5a || dataIn == 0x00) {
+                    // To-do: Implement config mode
+                    // If the LED was previously forced off, as is the case with xloader, the pad will return 0x00 for
+                    // idhi. The pad will reset after a few seconds of no activity, but we can't wait that long. For
+                    // now, we can just ignore this and treat it as a normal pad
+
                     // Set number of half-words to read
                     max_ticks = portDevType[port] & 0x0f;
                     if (!max_ticks) {
@@ -200,6 +205,7 @@ void psyqo::AdvancedPad::readPad() {
                     // Derp? Unknown device type or bad data, stop reading
                     max_ticks = ticks;
                     padData[0] = 0xff;
+                    padData[1] = PadType::None;
                 }
             }
 
