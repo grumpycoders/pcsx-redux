@@ -94,3 +94,6 @@
 [submodule "third_party/uriparser"]
 	path = third_party/uriparser
 	url = https://github.com/uriparser/uriparser.git
+[submodule "third_party/PEGTL"]
+	path = third_party/PEGTL
+	url = https://github.com/taocpp/PEGTL.git

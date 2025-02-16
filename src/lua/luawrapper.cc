@@ -27,7 +27,7 @@ static int callwrap(lua_State* raw, lua_CFunction func) {
     try {
         return func(raw);
     } catch (std::exception& e) {
-        return L.error(std::string("LuaException: ") + e.what());
+        return L.error("LuaException: %s", e.what());
     }
 }
 

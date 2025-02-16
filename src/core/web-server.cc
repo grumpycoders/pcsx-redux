@@ -19,7 +19,11 @@
 
 #include "core/web-server.h"
 
+#include <llhttp.h>
+#include <multipart_parser.h>
+
 #include <charconv>
+#include <magic_enum_all.hpp>
 #include <map>
 #include <memory>
 #include <string>
@@ -36,10 +40,7 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "gui/gui.h"
-#include "llhttp/llhttp.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
-#include "multipart-parser-c/multipart_parser.h"
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"

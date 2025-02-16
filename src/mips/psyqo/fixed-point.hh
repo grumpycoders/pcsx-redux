@@ -172,7 +172,49 @@ class FixedPoint {
                 return U((value - scale / 2) / scale);
             }
         }
-        return U((value + scale / 2) / scale);
+        return U(value + scale / 2) / U(scale);
+    }
+
+    /**
+     * @brief Returns the floor of the fixed point number.
+     *
+     * @details This returns the largest integer less than or equal
+     * to the fixed point number. For example, floor of 3.7 is 3,
+     * floor of -3.7 is -4.
+     *
+     * @tparam U The type to return the floor value in. Defaults to
+     * the underlying type T.
+     * @return constexpr U The floor value of the fixed point number.
+     */
+    template <std::integral U = T>
+    constexpr U floor() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U(value - scale + 1) / U(scale);
+            }
+        }
+        return U(value) / U(scale);
+    }
+
+    /**
+     * @brief Returns the ceiling of the fixed point number.
+     *
+     * @details This returns the smallest integer greater than or
+     * equal to the fixed point number. For example, ceil of 3.2
+     * is 4, ceil of -3.2 is -3.
+     *
+     * @tparam U The type to return the ceiling value in. Defaults
+     * to the underlying type T.
+     * @return constexpr U The ceiling value of the fixed point number.
+     */
+    template <std::integral U = T>
+    constexpr U ceil() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U(value) / U(scale);
+            }
+        }
+        return U(value + scale - 1) / U(scale);
     }
 
     /**
