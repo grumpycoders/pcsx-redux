@@ -97,6 +97,7 @@ _Static_assert(sizeof(allocated_block) == (2 * sizeof(void *)), "allocated_block
 static empty_block *head = NULL;
 static allocated_block *bottom = NULL;
 static allocated_block *top = NULL;
+static void *maximum_heap_end = NULL;
 // The marker is here to make sure that the list is always terminated,
 // so when we completely fill the heap, we don't end up with a NULL pointer
 // back to the head. It will never fit any allocation, and will always
@@ -328,6 +329,10 @@ void *psyqo_malloc(size_t size_) {
     }
 
     // Store the size of the allocation before the pointer.
+    void *end = (void *)((char *)ptr + size);
+    if (end > maximum_heap_end) {
+        maximum_heap_end = end;
+    }
     ptr->size = size;
     ptr++;
 
@@ -656,4 +661,4 @@ void _ZdlPvj(void *ptr, unsigned int size) { psyqo_free(ptr); }
 void _ZdaPvj(void *ptr, unsigned int size) { psyqo_free(ptr); }
 
 void *psyqo_heap_start() { return bottom; }
-void *psyqo_heap_end() { return top; }
+void *psyqo_heap_end() { return maximum_heap_end; }
