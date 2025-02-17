@@ -90,8 +90,10 @@ void *psyqo_heap_start();
  *
  * @details This function will return the pointer to the end of the
  * heap. The heap works lazily, and this function may return a NULL
- * pointer. Once it returns a non-NULL pointer, it will always return
- * the same pointer to the maximum address of the heap.
+ * pointer. Once it returns a non-NULL pointer, it will approximately
+ * correspond to the current end of the heap. The heap may actually
+ * be larger than this pointer on occasion. The heap will always
+ * grow, and never shrink.
  *
  * @return void* The end of the heap.
  */
