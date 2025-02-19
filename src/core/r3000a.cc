@@ -141,7 +141,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
-                    if (regs.a1 == 0) {
+                    if (regs.a2 == 0) {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path));
                     } else {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path, FileOps::READWRITE));
