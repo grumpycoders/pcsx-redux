@@ -980,7 +980,7 @@ void PCSX::GUI::startFrame() {
             } else {
                 g_emulator->m_debug->stepIn();
             }
-        } else if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Pause) || ImGui::IsKeyPressed(ImGuiKey_F5)) {
             g_system->resume();
         }
     } else {
