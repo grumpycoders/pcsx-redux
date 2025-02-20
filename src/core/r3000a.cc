@@ -23,6 +23,8 @@
 
 #include "core/r3000a.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
@@ -33,7 +35,6 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -140,7 +141,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
-                    if (regs.a1 == 0) {
+                    if (regs.a2 == 0) {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path));
                     } else {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path, FileOps::READWRITE));

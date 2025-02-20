@@ -34,7 +34,7 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
-uint64_t getCPUCycles() { return PCSX::g_emulator->m_cpu->m_regs.cycle;  }
+uint64_t getCPUCycles() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_wram; }
 void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
@@ -178,6 +178,9 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     registerAllSymbols(L);
     L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.push("execSlots");
+    L.newtable();
+    L.settable();
     L.declareFunc(
         "getSaveStateProtoSchema",
         [](lua_State* L_) -> int {

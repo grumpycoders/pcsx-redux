@@ -360,7 +360,17 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         case 0x1f802080:
             hard = 0x58534350;
             break;
-
+        case 0x1f80208c: {
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            hard = g_emulator->m_mem->msanAlloc(size);
+            break;
+        }
+        case 0x1f802090: {
+            uint32_t ptr = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a1;
+            hard = g_emulator->m_mem->msanRealloc(ptr, size);
+            break;
+        }
         default: {
             uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
             hard = SWAP_LEu32(*ptr);
@@ -437,10 +447,7 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
                     try {
                         L.pcall();
                     } catch (...) {
-                        g_system->pause();
                     }
-                } else {
-                    g_system->pause();
                 }
                 while (top != L.gettop()) L.pop();
             }
@@ -448,7 +455,9 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
         case 0x1f802088:
             g_emulator->m_debug->m_checkKernel = value;
             break;
-
+        case 0x1f802089:
+            g_emulator->m_mem->initMsan(value);
+            break;
         default:
             if (addressInRegisterSpace(hwadd)) {
                 uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -790,6 +799,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             memFile->rSeek(value);
             g_system->message("%s", memFile->gets<false>());
+            break;
+        }
+        case 0x1f80208c: {
+            g_emulator->m_mem->msanFree(value);
             break;
         }
         default: {

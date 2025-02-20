@@ -149,13 +149,13 @@ void psyqo::Kernel::takeOverKernel() {
         uint16_t lo = printfAddr & 0xffff;
         if (lo >= 0x8000) hi++;
         // a0
-        handlers[0] = Mips::Encoder::addiu(Mips::Encoder::Reg::T0, Mips::Encoder::Reg::R0, 0x3f);
+        handlers[0] = Mips::Encoder::li(Mips::Encoder::Reg::T0, 0x3f);
         handlers[1] = Mips::Encoder::beq(Mips::Encoder::Reg::T1, Mips::Encoder::Reg::T0, 12);
         handlers[2] = Mips::Encoder::lui(Mips::Encoder::Reg::T0, hi);
         handlers[3] = Mips::Encoder::nop();
         // b0
         handlers[4] = Mips::Encoder::jr(Mips::Encoder::Reg::RA);
-        handlers[5] = Mips::Encoder::addiu(Mips::Encoder::Reg::T0, Mips::Encoder::Reg::T0, lo);
+        handlers[5] = Mips::Encoder::li(Mips::Encoder::Reg::T0, lo);
         handlers[6] = Mips::Encoder::jr(Mips::Encoder::Reg::T0);
         handlers[7] = Mips::Encoder::nop();
         // c0
@@ -173,10 +173,17 @@ void psyqo::Kernel::queueIRQHandler(IRQ irq, eastl::function<void()>&& lambda) {
     handlers[index].push_back(eastl::move(lambda));
 }
 
-[[noreturn]] void psyqo::Kernel::abort(const char* msg, std::source_location loc) {
+[[noreturn]] void psyqo::Kernel::Internal::abort(const char* msg, std::source_location loc) {
     fastEnterCriticalSection();
     ramsyscall_printf("Abort at %s:%i: %s\n", loc.file_name(), loc.line(), msg);
     pcsx_message(msg);
+    pcsx_debugbreak();
+    while (1) asm("");
+    __builtin_unreachable();
+}
+
+[[noreturn]] void psyqo::Kernel::Internal::abort() {
+    fastEnterCriticalSection();
     pcsx_debugbreak();
     while (1) asm("");
     __builtin_unreachable();

@@ -19,9 +19,10 @@
 
 #include "cdrom/file.h"
 
+#include <magic_enum_all.hpp>
+
 #include "cdrom/cdriso.h"
 #include "iec-60908b/edcecc.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, SectorMode mode)
     : File(RW_SEEKABLE), m_iso(iso), m_lba(lba) {

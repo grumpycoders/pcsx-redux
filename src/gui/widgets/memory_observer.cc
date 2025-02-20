@@ -23,7 +23,7 @@
 #include <xbyak_util.h>
 #endif
 
-#include <magic_enum/include/magic_enum/magic_enum_all.hpp>
+#include <magic_enum_all.hpp>
 
 #include "core/debug.h"
 #include "core/psxemulator.h"

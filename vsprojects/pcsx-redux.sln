@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\src\.clang-format = ..\src\.clang-format
 		..\src\.editorconfig = ..\src\.editorconfig
 		..\AUTHORS = ..\AUTHORS
+		..\third_party\imgui\misc\debuggers\imgui.natstepfilter = ..\third_party\imgui\misc\debuggers\imgui.natstepfilter
+		..\third_party\imgui\misc\debuggers\imgui.natvis = ..\third_party\imgui\misc\debuggers\imgui.natvis
 		..\LICENSES.md = ..\LICENSES.md
 	EndProjectSection
 EndProject
@@ -565,7 +567,7 @@ Global
 		{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

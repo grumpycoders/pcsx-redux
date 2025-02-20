@@ -43,6 +43,7 @@ SOFTWARE.
 #include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
 #include "psyqo/primitives/misc.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -351,8 +352,8 @@ class GPU {
      *
      * @param table The ordering table to chain.
      */
-    template <size_t N>
-    void chain(OrderingTable<N> &table) {
+    template <size_t N, Safe safety = Safe::Yes>
+    void chain(OrderingTable<N, safety> &table) {
         chain(&table.m_table[N], &table.m_table[0], 0);
         scheduleOTC(&table.m_table[N], N + 1);
     }
