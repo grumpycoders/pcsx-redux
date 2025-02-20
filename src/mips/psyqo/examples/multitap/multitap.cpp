@@ -82,7 +82,9 @@ void MultitapTest::prepare() {
     gpu().initialize(config);
     // Unlike the `SimplePad` class, the `AdvancedPad` class doesn't need to be initialized
     // in the `start` method of the root `Scene` object. It can be initialized here.
-    m_input.initialize();
+    // PollingMode::Fast is used to reduce input lag, but it will increase CPU usage.
+    // PollingMode::Normal is the default, and will poll one port per frame.
+    m_input.initialize(psyqo::AdvancedPad::PollingMode::Fast);
 }
 
 void MultitapTest::createScene() {
@@ -180,8 +182,8 @@ void MultitapTestScene::printPadType(psyqo::AdvancedPad::Pad pad, int column, co
         case psyqo::AdvancedPad::PadType::AnalogStick:
             padTypeStr = "AnalogStick";
             break;
-        case psyqo::AdvancedPad::PadType::NamcoLightgun:
-            padTypeStr = "NamcoLightgun";
+        case psyqo::AdvancedPad::PadType::NamcoLightGun:
+            padTypeStr = "NamcoLightGun";
             break;
         case psyqo::AdvancedPad::PadType::AnalogPad:
             padTypeStr = "AnalogPad";
@@ -189,11 +191,11 @@ void MultitapTestScene::printPadType(psyqo::AdvancedPad::Pad pad, int column, co
         case psyqo::AdvancedPad::PadType::Multitap:
             padTypeStr = "Multitap";
             break;
-        case psyqo::AdvancedPad::PadType::Jogcon:
-            padTypeStr = "Jogcon";
+        case psyqo::AdvancedPad::PadType::JogCon:
+            padTypeStr = "JogCon";
             break;
-        case psyqo::AdvancedPad::PadType::Fishingcon:
-            padTypeStr = "Fishingcon";
+        case psyqo::AdvancedPad::PadType::FishingCon:
+            padTypeStr = "FishingCon";
             break;
         case psyqo::AdvancedPad::PadType::ConfigMode:
             padTypeStr = "ConfigMode";

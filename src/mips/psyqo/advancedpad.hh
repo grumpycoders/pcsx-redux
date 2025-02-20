@@ -69,11 +69,11 @@ class AdvancedPad {
         KonamiLightgun = 0x31,  // (IRQ10-type)
         DigitalPad = 0x41,      // (or analog pad/stick in digital mode; LED=Off)
         AnalogStick = 0x53,     // (or analog pad in "flight mode"; LED=Green)
-        NamcoLightgun = 0x63,   // (Cinch-type)
+        NamcoLightGun = 0x63,   // (Cinch-type)
         AnalogPad = 0x73,       // (in normal analog mode; LED=Red)
         Multitap = 0x80,        // (multiplayer adaptor) (when activated)
-        Jogcon = 0xe3,          // (steering dial)
-        Fishingcon = 0xe5,      // (fishing rod)
+        JogCon = 0xe3,          // (steering dial)
+        FishingCon = 0xe5,      // (fishing rod)
         ConfigMode = 0xf3,      // (when in config mode; see rumble command 43h)
         None = 0xff             // (no controller connected, pins floating High-Z)
     };
@@ -219,12 +219,14 @@ class AdvancedPad {
         while (++cycles < delay) asm("");
     };
 
+    void configurePort(uint8_t port);
+
     void flushRxBuffer();
     uint8_t outputDefault(unsigned ticks);
     uint8_t outputMultitap(unsigned ticks);
     void processChanges(Pad pad);
     void readPad();
-    uint8_t transceive(uint8_t data_out);
+    uint8_t transceive(uint8_t dataOut);
     bool waitForAck();  // true if ack received, false if timeout
 
     union PadData {
