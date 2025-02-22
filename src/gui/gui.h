@@ -179,28 +179,19 @@ class GUI final : public UI {
 
   public:
     struct MarkDown : public imgui_md {
-        MarkDown() {}
-        MarkDown(std::map<std::string_view, std::function<void()>> &&customURLs)
-            : m_customURLs(std::move(customURLs)) {}
-        int print(const std::string_view text) {
-            const char *ptr = text.data();
-            const char *end = ptr + text.size();
-            return imgui_md::print(ptr, end);
-        }
-
-        void open_url() const override {
-            if (m_href.starts_with("http")) {
-                openUrl(m_href);
-                return;
-            }
-            auto i = m_customURLs.find(m_href);
-            if (i != m_customURLs.end()) i->second();
-        }
-
-        bool get_image(image_info &nfo) const override { return false; }
+        static void newFrame() { m_id = 0; }
+        MarkDown(GUI *gui);
+        MarkDown(GUI *gui, std::map<std::string_view, std::function<void()>> &&customURLs);
+        int print(const std::string_view text);
+        void open_url() const override;
+        bool get_image(image_info &nfo) const override;
+        void BLOCK_CODE(const MD_BLOCK_CODE_DETAIL *d, bool e);
+        void SPAN_CODE(bool e) override;
 
       private:
         std::map<std::string_view, std::function<void()>> m_customURLs;
+        GUI *m_gui;
+        static unsigned m_id;
     };
     static void openUrl(std::string_view url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
