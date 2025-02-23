@@ -49,7 +49,12 @@ class HW {
         mem->setCHCR<n>(chcr);
         if ((chcr & 0x01000000) && mem->template isDMAEnabled<n>()) {
             uint32_t madr = mem->template getMADR<n>();
-            madr &= 0x7ffffc;
+            bool usingMsan = g_emulator->m_mem->msanInitialized();
+            if (usingMsan && madr >= Memory::c_msanStart && madr < Memory::c_msanEnd) {
+                madr &= 0xfffffffc;
+            } else {
+                madr &= 0x7ffffc;
+            }
             uint32_t bcr = mem->template getBCR<n>();
             uint32_t mode = (chcr & 0x00000600) >> 9;
             if constexpr (n == 0) {
@@ -70,7 +75,12 @@ class HW {
                 uint32_t DMACommandCounter = 0;
 
                 do {
-                    madr &= 0x7ffffc;
+                    uint32_t *madrAsPtr;
+                    if (usingMsan && madr >= Memory::c_msanStart && madr < Memory::c_msanEnd) {
+                        madr &= 0xfffffffc;
+                    } else {
+                        madr &= 0x7ffffc;
+                    }
 
                     if (DMACommandCounter++ > 2000000) break;
                     if (madr == usedAddr[1]) break;
@@ -83,7 +93,12 @@ class HW {
                     }
 
                     usedAddr[0] = madr;
-                    madr = SWAP_LEu32(*mem->getPointer<uint32_t>(madr)) & 0xffffff;
+                    uint32_t nextMadr = SWAP_LEu32(*mem->getPointer<uint32_t>(madr)) & 0xffffff;
+                    if (usingMsan && nextMadr == Memory::c_msanChainMarker) {
+                        madr = g_emulator->m_mem->msanGetChainPtr(madr);
+                        continue;
+                    }
+                    madr = nextMadr;
                 } while (!(madr & 0x800000));
                 if ((madr & 0xffffff) != 0xffffff) {
                     mem->dmaInterruptError();

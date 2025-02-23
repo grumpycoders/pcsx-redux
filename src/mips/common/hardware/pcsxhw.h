@@ -47,5 +47,14 @@ static __inline__ void* pcsx_msanRealloc(void* ptr, uint32_t size) {
     register uint32_t a1 asm("a1") = size;
     return *((void* volatile* const)0x1f802090);
 }
+static __inline__ void pcsx_msanSetChainPtr(void* headerAddr, void* ptrToNext, uint32_t wordCount) {
+    register void* a0 asm("a0") = ptrToNext;
+    register uint32_t a1 asm("a1") = wordCount;
+    *((void* volatile* const)0x1f802094) = headerAddr;
+}
+static __inline__ void* pcsx_msanGetChainPtr(void* headerAddr) {
+    register void* a0 asm("a0") = headerAddr;
+    return *((void* volatile* const)0x1f802094);
+}
 
 static __inline__ int pcsx_present() { return *((volatile uint32_t* const)0x1f802080) == 0x58534350; }

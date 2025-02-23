@@ -99,12 +99,24 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         // already 32-bit size
         size = bcr;
 
-        while (bcr--) {
-            *mem-- = SWAP_LE32((madr - 4) & 0xffffff);
-            madr -= 4;
+        if (PCSX::g_emulator->m_mem->msanInitialized() && madr >= PCSX::Memory::c_msanStart && madr < PCSX::Memory::c_msanEnd) {
+            uint32_t msanAddress = madr - PCSX::Memory::c_msanStart;
+            while (bcr--) {
+                // use write32 instead of the direct pointer so that the msan memory gets marked as usable
+                PCSX::g_emulator->m_mem->write32(madr, PCSX::Memory::c_msanChainMarker);
+                PCSX::g_emulator->m_mem->msanSetChainPtr(madr, madr - 4, 0);
+                madr -= 4;
+            }
+            madr += 4;
+            PCSX::g_emulator->m_mem->write32(madr, 0xffffff);
+        } else {
+            while (bcr--) {
+                *mem-- = SWAP_LE32((madr - 4) & 0xffffff);
+                madr -= 4;
+            }
+            mem++;
+            *mem = 0xffffff;
         }
-        mem++;
-        *mem = 0xffffff;
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::Debug>()) {
             PCSX::g_emulator->m_debug->checkDMAwrite(6, madr, size * 4);
