@@ -446,7 +446,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
 
     do {
         uint32_t header;
-        if (usingMsan && addr >= PCSX::Memory::c_msanStart && addr < PCSX::Memory::c_msanEnd) {
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
             header = *(uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
         } else {
@@ -699,7 +699,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
     do {
         uint32_t header;
         const uint32_t *feed;
-        if (usingMsan && addr >= PCSX::Memory::c_msanStart && addr < PCSX::Memory::c_msanEnd) {
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
             const uint32_t *headerPtr = (uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
             header = *headerPtr;

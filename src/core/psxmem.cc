@@ -278,7 +278,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     const auto pointer = (uint8_t *)m_readLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         if ((m_msanWrittenBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) == 0) {
             g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
@@ -327,7 +327,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     const auto pointer = (uint8_t *)m_readLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         for (unsigned offset = 0; offset < 2; offset++) {
             if ((m_msanWrittenBitmap[(msanAddress + offset) / 8] & (1 << ((msanAddress + offset) % 8))) == 0) {
@@ -376,7 +376,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     const auto pointer = (uint8_t *)m_readLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         for (unsigned offset = 0; offset < 4; offset++) {
             if ((m_msanWrittenBitmap[(msanAddress + offset) / 8] & (1 << ((msanAddress + offset) % 8))) == 0) {
@@ -501,7 +501,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     const auto pointer = (uint8_t *)m_writeLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
             m_msanWrittenBitmap[msanAddress / 8] |= (1 << (msanAddress % 8));
@@ -538,7 +538,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     const auto pointer = (uint8_t *)m_writeLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
             for (unsigned offset = 0; offset < 2; offset++) {
@@ -578,7 +578,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     const auto pointer = (uint8_t *)m_writeLUT[page];
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
-    if (msanInitialized() && address >= c_msanStart && address < c_msanEnd) {
+    if (msanInitialized() && inMsanRange(address)) {
         uint32_t msanAddress = address - c_msanStart;
         if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
             for (unsigned offset = 0; offset < 4; offset++) {
@@ -877,7 +877,7 @@ void PCSX::Memory::msanFree(uint32_t ptr) {
         return;
     }
     // Check if the pointer is valid.
-    if (ptr < c_msanStart || ptr >= c_msanEnd) {
+    if (!inMsanRange(ptr)) {
         g_system->printf(_("Invalid pointer passed to MsanFree: %08x\n"), ptr);
         g_system->pause();
         return;
@@ -906,7 +906,7 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
         return 0;
     }
     // Check if the pointer is valid.
-    if (ptr < c_msanStart || ptr >= c_msanEnd) {
+    if (!inMsanRange(ptr)) {
         g_system->printf(_("Invalid pointer passed to MsanRealloc: %08x\n"), ptr);
         g_system->pause();
         return 0;
@@ -943,10 +943,10 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
 }
 
 uint32_t PCSX::Memory::msanSetChainPtr(uint32_t headerAddr, uint32_t nextPtr, uint32_t wordCount) {
-    if (headerAddr < c_msanStart || headerAddr >= c_msanEnd) {
+    if (!inMsanRange(headerAddr)) {
         headerAddr &= 0xffffff;
     }
-    if (nextPtr >= c_msanStart && nextPtr < c_msanEnd) {
+    if (inMsanRange(nextPtr)) {
         // map the location of an entry to the real pointer it's supposed to contain
         m_msanChainRegistry[headerAddr] = nextPtr;
         return c_msanChainMarker | wordCount << 24;
@@ -954,7 +954,7 @@ uint32_t PCSX::Memory::msanSetChainPtr(uint32_t headerAddr, uint32_t nextPtr, ui
     return (nextPtr & 0xffffff) | wordCount << 24;
 }
 
-uint32_t PCSX::Memory::msanGetChainPtr(uint32_t headerAddr) {
+uint32_t PCSX::Memory::msanGetChainPtr(uint32_t headerAddr) const {
     auto it = m_msanChainRegistry.find(headerAddr);
     if (it == m_msanChainRegistry.end()) {
         g_system->printf(_("Unregistered msan chain header at %08x\n"), headerAddr);

@@ -78,12 +78,16 @@ class Memory {
     static constexpr uint16_t DMA_ICR = 0x10f4;
 
     void initMsan(bool reset);
-    bool msanInitialized() { return m_msanRAM != nullptr; }
+    inline bool msanInitialized() const { return m_msanRAM != nullptr; }
     uint32_t msanAlloc(uint32_t size);
     void msanFree(uint32_t ptr);
     uint32_t msanRealloc(uint32_t ptr, uint32_t size);
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
-    uint32_t msanGetChainPtr(uint32_t addr);
+    uint32_t msanGetChainPtr(uint32_t addr) const;
+
+    static inline bool inMsanRange(uint32_t addr) {
+        return addr >= c_msanStart && addr < c_msanEnd;
+    }
 
     template <unsigned n>
     void dmaInterrupt() {
@@ -139,7 +143,7 @@ class Memory {
 
     template <unsigned n>
     void setMADR(uint32_t value) {
-        if (!msanInitialized() || value < c_msanStart || value >= c_msanEnd) {
+        if (!msanInitialized() || !inMsanRange(value)) {
             value &= 0xffffff;
         }
         writeHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>(value);

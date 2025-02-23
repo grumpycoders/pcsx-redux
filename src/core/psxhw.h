@@ -50,7 +50,7 @@ class HW {
         if ((chcr & 0x01000000) && mem->template isDMAEnabled<n>()) {
             uint32_t madr = mem->template getMADR<n>();
             bool usingMsan = g_emulator->m_mem->msanInitialized();
-            if (usingMsan && madr >= Memory::c_msanStart && madr < Memory::c_msanEnd) {
+			if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                 madr &= 0xfffffffc;
             } else {
                 madr &= 0x7ffffc;
@@ -75,8 +75,7 @@ class HW {
                 uint32_t DMACommandCounter = 0;
 
                 do {
-                    uint32_t *madrAsPtr;
-                    if (usingMsan && madr >= Memory::c_msanStart && madr < Memory::c_msanEnd) {
+					if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                         madr &= 0xfffffffc;
                     } else {
                         madr &= 0x7ffffc;

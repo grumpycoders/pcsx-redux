@@ -99,8 +99,7 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
         // already 32-bit size
         size = bcr;
 
-        if (PCSX::g_emulator->m_mem->msanInitialized() && madr >= PCSX::Memory::c_msanStart && madr < PCSX::Memory::c_msanEnd) {
-            uint32_t msanAddress = madr - PCSX::Memory::c_msanStart;
+        if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::Memory::inMsanRange(madr)) {
             while (bcr--) {
                 // use write32 instead of the direct pointer so that the msan memory gets marked as usable
                 PCSX::g_emulator->m_mem->write32(madr, PCSX::Memory::c_msanChainMarker);
