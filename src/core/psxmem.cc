@@ -88,10 +88,10 @@ static const std::map<uint32_t, std::string_view> s_knownBioses = {
 PCSX::Memory::Memory() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::ExecutionFlow::Reset>([this](auto &) {
         free(m_msanRAM);
-        free(m_msanBitmap);
+        free(m_msanUsableBitmap);
         free(m_msanWrittenBitmap);
         m_msanRAM = nullptr;
-        m_msanBitmap = nullptr;
+        m_msanUsableBitmap = nullptr;
         m_msanWrittenBitmap = nullptr;
         m_msanAllocs.clear();
     });
@@ -264,10 +264,10 @@ void PCSX::Memory::shutdown() {
     free(m_writeLUT);
 
     free(m_msanRAM);
-    free(m_msanBitmap);
+    free(m_msanUsableBitmap);
     free(m_msanWrittenBitmap);
     m_msanRAM = nullptr;
-    m_msanBitmap = nullptr;
+    m_msanUsableBitmap = nullptr;
     m_msanWrittenBitmap = nullptr;
     m_msanAllocs.clear();
 }
@@ -279,19 +279,18 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        if ((m_msanWrittenBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) == 0) {
-            g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
-            g_system->pause();
-            return 0;
+        switch (msanGetStatus(address, 1)) {
+            case MsanStatus::UNINITIALIZED:
+                g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::UNUSABLE:
+                g_system->log(LogClass::CPU, _("8-bit read from unusable msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::OK:
+                return m_msanRAM[address - c_msanStart];
         }
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            return m_msanRAM[msanAddress];
-        } else {
-            g_system->log(LogClass::CPU, _("8-bit read from unusable msan memory: %8.8lx\n"), address);
-            g_system->pause();
-            return 0;
-        }
+        g_system->pause();
+        return 0;
     } else if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return *(pointer + offset);
@@ -328,22 +327,18 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        for (unsigned offset = 0; offset < 2; offset++) {
-            if ((m_msanWrittenBitmap[(msanAddress + offset) / 8] & (1 << ((msanAddress + offset) % 8))) == 0) {
-                g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"),
-                              address);
-                g_system->pause();
-                return 0;
-            }
+        switch (msanGetStatus(address, 2)) {
+            case MsanStatus::UNINITIALIZED:
+                g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::UNUSABLE:
+                g_system->log(LogClass::CPU, _("16-bit read from unusable msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::OK:
+                return *(uint16_t *)&m_msanRAM[address - c_msanStart];
         }
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            return *(uint16_t *)&m_msanRAM[msanAddress];
-        } else {
-            g_system->log(LogClass::CPU, _("16-bit read from unusable msan memory: %8.8lx\n"), address);
-            g_system->pause();
-            return 0;
-        }
+        g_system->pause();
+        return 0;
     } else if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu16(*(uint16_t *)(pointer + offset));
@@ -377,22 +372,18 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        for (unsigned offset = 0; offset < 4; offset++) {
-            if ((m_msanWrittenBitmap[(msanAddress + offset) / 8] & (1 << ((msanAddress + offset) % 8))) == 0) {
-                g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
-                              address);
-                g_system->pause();
-                return 0;
-            }
+        switch (msanGetStatus(address, 4)) {
+            case MsanStatus::UNINITIALIZED:
+                g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::UNUSABLE:
+                g_system->log(LogClass::CPU, _("32-bit read from unusable msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::OK:
+                return *(uint32_t *)&m_msanRAM[address - c_msanStart];
         }
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            return *(uint32_t *)&m_msanRAM[msanAddress];
-        } else {
-            g_system->log(LogClass::CPU, _("32-bit read from unusable msan memory: %8.8lx\n"), address);
-            g_system->pause();
-            return 0;
-        }
+        g_system->pause();
+        return 0;
     } else if (pointer != nullptr) {
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu32(*(uint32_t *)(pointer + offset));
@@ -502,10 +493,8 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            m_msanWrittenBitmap[msanAddress / 8] |= (1 << (msanAddress % 8));
-            m_msanRAM[msanAddress] = value;
+        if (msanValidateWrite(address, 1)) {
+            m_msanRAM[address - c_msanStart] = value;
         } else {
             g_system->log(LogClass::CPU, _("8-bit write to unusable msan memory: %8.8lx\n"), address);
             g_system->pause();
@@ -539,12 +528,8 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            for (unsigned offset = 0; offset < 2; offset++) {
-                m_msanWrittenBitmap[(msanAddress + offset) / 8] |= (1 << ((msanAddress + offset) % 8));
-            }
-            *(uint16_t *)&m_msanRAM[msanAddress] = value;
+        if (msanValidateWrite(address, 2)) {
+            *(uint16_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu16(value);
         } else {
             g_system->log(LogClass::CPU, _("16-bit write to unusable msan memory: %8.8lx\n"), address);
             g_system->pause();
@@ -579,12 +564,8 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (msanInitialized() && inMsanRange(address)) {
-        uint32_t msanAddress = address - c_msanStart;
-        if (m_msanBitmap[msanAddress / 8] & (1 << (msanAddress % 8))) {
-            for (unsigned offset = 0; offset < 4; offset++) {
-                m_msanWrittenBitmap[(msanAddress + offset) / 8] |= (1 << ((msanAddress + offset) % 8));
-            }
-            *(uint32_t *)&m_msanRAM[msanAddress] = value;
+        if (msanValidateWrite(address, 4)) {
+            *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
         } else {
             g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
             g_system->pause();
@@ -820,10 +801,10 @@ void PCSX::Memory::MemoryAsFile::writeBlock(const void *src, size_t size, size_t
 void PCSX::Memory::initMsan(bool reset) {
     if (reset) {
         free(m_msanRAM);
-        free(m_msanBitmap);
+        free(m_msanUsableBitmap);
         free(m_msanWrittenBitmap);
         m_msanRAM = nullptr;
-        m_msanBitmap = nullptr;
+        m_msanUsableBitmap = nullptr;
         m_msanWrittenBitmap = nullptr;
         m_msanAllocs.clear();
         m_msanChainRegistry.clear();
@@ -836,7 +817,7 @@ void PCSX::Memory::initMsan(bool reset) {
 
     // 1.5GB of RAM, with 384MB worth of bitmap, between 0x20000000 and 0x80000000
     m_msanRAM = (uint8_t *)calloc(c_msanSize, 1);
-    m_msanBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
+    m_msanUsableBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
     m_msanWrittenBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
     m_msanPtr = 1024;
     for (uint32_t segment = c_msanStart; segment < c_msanEnd; segment += 0x10000) {
@@ -864,7 +845,7 @@ uint32_t PCSX::Memory::msanAlloc(uint32_t size) {
     m_msanPtr += actualSize;
     // Mark the allocation as usable.
     for (uint32_t i = 0; i < size; i++) {
-        m_msanBitmap[(ptr + i) / 8] |= 1 << ((ptr + i) % 8);
+        m_msanUsableBitmap[(ptr + i) / 8] |= 1 << ((ptr + i) % 8);
     }
 
     // Insert the allocation into the list of allocations.
@@ -891,7 +872,7 @@ void PCSX::Memory::msanFree(uint32_t ptr) {
     }
     // Mark the allocation as unusable.
     for (uint32_t i = 0; i < m_msanAllocs[ptr]; i++) {
-        m_msanBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
+        m_msanUsableBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
     }
     // Remove the allocation from the list of allocations.
     m_msanAllocs.erase(ptr);
@@ -930,7 +911,7 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
 
     // Mark the old allocation as unusable
     for (uint32_t i = 0; i < oldSize; i++) {
-        m_msanBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
+        m_msanUsableBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
     }
     // Mark the new allocation as written to
     auto toCopy = std::min(size, oldSize);
@@ -940,6 +921,30 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
     // Remove the allocation from the list of allocations.
     m_msanAllocs.erase(ptr);
     return newPtr + c_msanStart;
+}
+
+PCSX::MsanStatus PCSX::Memory::msanGetStatus(uint32_t addr, uint32_t size) const {
+    uint32_t msanAddr = addr - c_msanStart;
+    if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
+        return PCSX::MsanStatus::UNUSABLE;
+    }
+    for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
+        if (!(m_msanWrittenBitmap[checkAddr / 8] & (1 << checkAddr % 8))) {
+            return PCSX::MsanStatus::UNINITIALIZED;
+        }
+    }
+    return PCSX::MsanStatus::OK;
+}
+
+bool PCSX::Memory::msanValidateWrite(uint32_t addr, uint32_t size) {
+    uint32_t msanAddr = addr - c_msanStart;
+    if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
+        return false;
+    }
+    for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
+        m_msanWrittenBitmap[checkAddr / 8] |= 1 << checkAddr % 8;
+    }
+    return true;
 }
 
 uint32_t PCSX::Memory::msanSetChainPtr(uint32_t headerAddr, uint32_t nextPtr, uint32_t wordCount) {

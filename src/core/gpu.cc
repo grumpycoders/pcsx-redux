@@ -448,7 +448,19 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         uint32_t header;
         if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
-            header = *(uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+            switch (g_emulator->m_mem->msanGetStatus(addr, 4)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::OK:
+                    header = *(uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+                    break;
+            }
         } else {
             addr &= g_emulator->getRamMask<4>();
             header = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
@@ -702,6 +714,18 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
             const uint32_t *headerPtr = (uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+            switch (g_emulator->m_mem->msanGetStatus(addr, 4)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::OK:
+                    break;
+            }
             header = *headerPtr;
             feed = headerPtr + 1;
         } else {

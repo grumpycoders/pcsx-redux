@@ -47,6 +47,12 @@
 
 namespace PCSX {
 
+enum class MsanStatus {
+    UNUSABLE,      // memory that hasn't been allocated or has been freed
+    UNINITIALIZED, // allocated memory that has never been written to; unreliable
+    OK             // free to use
+};
+
 class Memory {
   public:
     Memory();
@@ -84,6 +90,8 @@ class Memory {
     uint32_t msanRealloc(uint32_t ptr, uint32_t size);
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
+	MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const;
+	bool msanValidateWrite(uint32_t addr, uint32_t size);
 
     static inline bool inMsanRange(uint32_t addr) {
         return addr >= c_msanStart && addr < c_msanEnd;
@@ -271,7 +279,7 @@ class Memory {
     static constexpr uint32_t c_msanStart = 0x20000000;
     static constexpr uint32_t c_msanEnd = c_msanStart + c_msanSize;
     uint8_t *m_msanRAM = nullptr;
-    uint8_t *m_msanBitmap = nullptr;
+    uint8_t *m_msanUsableBitmap = nullptr;
     uint8_t *m_msanWrittenBitmap = nullptr;
     uint32_t m_msanPtr = 1024;
     EventBus::Listener m_listener;

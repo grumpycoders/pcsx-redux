@@ -77,6 +77,18 @@ class HW {
                 do {
 					if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                         madr &= 0xfffffffc;
+						switch (g_emulator->m_mem->msanGetStatus(madr, 4)) {
+							case PCSX::MsanStatus::UNINITIALIZED:
+								g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), madr);
+								g_system->pause();
+								return;
+							case PCSX::MsanStatus::UNUSABLE:
+								g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), madr);
+								g_system->pause();
+								return;
+							case PCSX::MsanStatus::OK:
+								break;
+						}
                     } else {
                         madr &= 0x7ffffc;
                     }
