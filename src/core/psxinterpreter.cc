@@ -997,7 +997,9 @@ void InterpretedCPU::psxSW(uint32_t code) {
 void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    // the check avoids msan interpreting a fully aligned store as a read
+    // however it may still interpret misaligned stores as reads
+    uint32_t mem = shift != 3? PCSX::g_emulator->m_mem->read32(addr & ~3): 0;
 
     PCSX::g_emulator->m_mem->write32(addr & ~3, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
@@ -1012,7 +1014,9 @@ void InterpretedCPU::psxSWL(uint32_t code) {
 void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    // the check avoids msan interpreting a fully aligned store as a read
+    // however it may still interpret misaligned stores as reads
+    uint32_t mem = shift != 0? PCSX::g_emulator->m_mem->read32(addr & ~3): 0;
 
     PCSX::g_emulator->m_mem->write32(addr & ~3, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 

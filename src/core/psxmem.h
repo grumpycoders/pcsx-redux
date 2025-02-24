@@ -47,6 +47,12 @@
 
 namespace PCSX {
 
+enum class MsanStatus {
+    UNUSABLE,      // memory that hasn't been allocated or has been freed
+    UNINITIALIZED, // allocated memory that has never been written to; unreliable
+    OK             // free to use
+};
+
 class Memory {
   public:
     Memory();
@@ -78,10 +84,18 @@ class Memory {
     static constexpr uint16_t DMA_ICR = 0x10f4;
 
     void initMsan(bool reset);
-    bool msanInitialized() { return m_msanRAM != nullptr; }
+    inline bool msanInitialized() const { return m_msanRAM != nullptr; }
     uint32_t msanAlloc(uint32_t size);
     void msanFree(uint32_t ptr);
     uint32_t msanRealloc(uint32_t ptr, uint32_t size);
+    uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
+    uint32_t msanGetChainPtr(uint32_t addr) const;
+	MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const;
+	bool msanValidateWrite(uint32_t addr, uint32_t size);
+
+    static inline bool inMsanRange(uint32_t addr) {
+        return addr >= c_msanStart && addr < c_msanEnd;
+    }
 
     template <unsigned n>
     void dmaInterrupt() {
@@ -137,6 +151,9 @@ class Memory {
 
     template <unsigned n>
     void setMADR(uint32_t value) {
+        if (!msanInitialized() || !inMsanRange(value)) {
+            value &= 0xffffff;
+        }
         writeHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>(value);
     }
 
@@ -259,13 +276,17 @@ class Memory {
     uint8_t **m_readLUT = nullptr;
 
     static constexpr uint32_t c_msanSize = 1'610'612'736;
+    static constexpr uint32_t c_msanStart = 0x20000000;
+    static constexpr uint32_t c_msanEnd = c_msanStart + c_msanSize;
     uint8_t *m_msanRAM = nullptr;
-    uint8_t *m_msanBitmap = nullptr;
+    uint8_t *m_msanUsableBitmap = nullptr;
     uint8_t *m_msanWrittenBitmap = nullptr;
     uint32_t m_msanPtr = 1024;
     EventBus::Listener m_listener;
 
     std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
+    static constexpr uint32_t c_msanChainMarker = 0x7ffffc;
+    std::unordered_map<uint32_t, uint32_t> m_msanChainRegistry;
 
     template <typename T = void>
     T *getPointer(uint32_t address) {
