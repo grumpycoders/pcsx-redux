@@ -1150,16 +1150,15 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
 }
 
 std::optional<std::string> PCSX::Widgets::Assembly::findPreviousSymbol(uint32_t addr) {
-    std::optional<std::string> ret;
-    for (auto& symbol : g_emulator->m_cpu->m_symbols) {
-        if (symbol.first >= addr) {
-            break;
-        }
-        if (symbol.first >= m_ramBase) {
-            ret = symbol.second;
+    auto& symbols = g_emulator->m_cpu->m_symbols;
+    auto symBeforeAddr = symbols.lower_bound(addr);
+    if (symBeforeAddr != symbols.begin()) { // verify there is actually a symbol before addr
+        symBeforeAddr--;
+        if (symBeforeAddr->first < addr && symBeforeAddr->first >= m_ramBase) {
+            return symBeforeAddr->second;
         }
     }
-    return ret;
+    return {};
 }
 
 void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
