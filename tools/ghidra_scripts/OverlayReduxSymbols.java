@@ -12,7 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
 
-public class PsxOverlayReduxSymbols extends GhidraScript {
+public class OverlayReduxSymbols extends GhidraScript {
 
     public void run() throws Exception {
         List<String> options = this.getMemoryBlockOptions();
