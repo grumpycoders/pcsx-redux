@@ -26,6 +26,30 @@
 #include "gui/gui.h"
 #include "imgui.h"
 
+void drawSymbol(unsigned pc) {
+    auto& symbols = PCSX::g_emulator->m_cpu->m_symbols;
+    auto symBeforePc = symbols.lower_bound(pc);
+    if (symBeforePc != symbols.begin()) { // verify there is actually a symbol before pc
+        symBeforePc--;
+        if (symBeforePc->first != pc) {
+            uint32_t pcBase =
+                pc >= 0xa0000000? 0xa0000000:
+                pc >= 0x80000000? 0x80000000: 0;
+            uint32_t foundBase =
+                symBeforePc->first >= 0xa0000000? 0xa0000000:
+                symBeforePc->first >= 0x80000000? 0x80000000: 0;
+            if (pcBase != foundBase) {
+                // if the symbol is different and not in the same memory region, it'd be wrong
+                return;
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted(" :: ");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(symBeforePc->second.data(), symBeforePc->second.data() + symBeforePc->second.size());
+    }
+}
+
 void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
@@ -35,7 +59,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     gui->useMonoFont();
 
     ImGui::TextUnformatted("    low SP    -   high sp  ");
-    ImGui::TextUnformatted("      ra       :: stack pointer ::  stack frame");
+    ImGui::TextUnformatted("      ra      :: stack pointer ::  stack frame  :: ra symbol");
     ImGui::Separator();
 
     auto& callstacks = g_emulator->m_callStacks;
@@ -69,6 +93,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp, 1});
             }
+            drawSymbol(call.ra);
         }
         if (stack.ra != 0) {
             std::string label = fmt::format("0x{:08x}", stack.ra);
@@ -88,6 +113,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp, 1});
             }
+            drawSymbol(stack.ra);
         }
         ImGui::TreePop();
     }
