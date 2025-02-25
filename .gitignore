@@ -124,3 +124,9 @@ luacov.stats.out
 /lua
 /lua_modules
 /.luarocks
+
+# appimage build files
+/appimage-build
+/AppDir
+/*.AppImage
+/*.AppImage.zsync
