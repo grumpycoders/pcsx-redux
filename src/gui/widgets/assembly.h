@@ -111,6 +111,7 @@ class Assembly : private Disasm {
     };
 
     std::list<std::string> findSymbol(uint32_t addr);
+	std::optional<std::string> findPreviousSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
     std::map<uint32_t, std::string> m_elfSymbolsCache;
     bool m_symbolsCachesValid = false;

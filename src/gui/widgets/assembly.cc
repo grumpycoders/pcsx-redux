@@ -598,6 +598,10 @@ settings, otherwise debugging features may not work.)");
     bool openAssembler = false;
     bool openSymbolAdder = false;
 
+    float lineHeight = ImGui::GetTextLineHeight();
+    float previousSymbolY = topleft.y;
+    std::optional<std::string> previousSymbol;
+
     while (clipper.Step()) {
         bool skipNext = false;
         bool delaySlotNext = false;
@@ -681,6 +685,17 @@ settings, otherwise debugging features may not work.)");
                     ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
                     ImGui::Text("%s:", symbols.begin()->c_str());
                     ImGui::PopStyleColor();
+                } else {
+                    // if the first visible line is not a symbol, show the previous symbol
+                    float y = ImGui::GetCursorScreenPos().y;
+                    if (y + lineHeight >= topleft.y && y <= topleft.y + lineHeight) {
+                        previousSymbol = findPreviousSymbol(dispAddr);
+                        // if the second line is a symbol, push the previous symbol display up
+                        auto secondLineSymbol = findSymbol(dispAddr + 4);
+                        if (secondLineSymbol.size() != 0 && y < previousSymbolY) {
+                            previousSymbolY = y;
+                        }
+                    }
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
@@ -938,6 +953,13 @@ settings, otherwise debugging features may not work.)");
         }
     }
     drawList->ChannelsMerge();
+    if (previousSymbol) {
+        ImVec2 pos(ImGui::GetCursorScreenPos().x, previousSymbolY);
+        ImVec2 posEnd(pos.x + glyphWidth * 64, pos.y + ImGui::GetTextLineHeight());
+        drawList->AddRectFilled(pos, posEnd, ImGui::GetColorU32(ImGuiCol_WindowBg));
+        std::string text = "^ " + previousSymbol.value() + " ^";
+        drawList->AddText(pos, ImGui::GetColorU32(s_labelColor), text.data(), text.data() + text.size());
+    }
     ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
@@ -1124,6 +1146,19 @@ std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
     auto elfSymbol = m_elfSymbolsCache.find(addr);
     if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
 
+    return ret;
+}
+
+std::optional<std::string> PCSX::Widgets::Assembly::findPreviousSymbol(uint32_t addr) {
+    std::optional<std::string> ret;
+    for (auto& symbol : g_emulator->m_cpu->m_symbols) {
+        if (symbol.first >= addr) {
+            break;
+        }
+        if (symbol.first >= m_ramBase) {
+            ret = symbol.second;
+        }
+    }
     return ret;
 }
 
