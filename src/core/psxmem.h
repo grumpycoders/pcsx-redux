@@ -90,9 +90,11 @@ class Memory {
     uint32_t msanRealloc(uint32_t ptr, uint32_t size);
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
+
     inline MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const {
         uint32_t msanAddr = addr - c_msanStart;
         if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
+            [[unlikely]];
             return MsanStatus::UNUSABLE;
         }
         for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
@@ -102,7 +104,18 @@ class Memory {
         }
         return MsanStatus::OK;
     }
-	bool msanValidateWrite(uint32_t addr, uint32_t size);
+
+	inline bool msanValidateWrite(uint32_t addr, uint32_t size) {
+        uint32_t msanAddr = addr - c_msanStart;
+        if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
+            [[unlikely]];
+            return false;
+        }
+        for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
+            m_msanWrittenBitmap[checkAddr / 8] |= 1 << checkAddr % 8;
+        }
+        return true;
+    }
 
     static inline bool inMsanRange(uint32_t addr) {
         return addr >= c_msanStart && addr < c_msanEnd;

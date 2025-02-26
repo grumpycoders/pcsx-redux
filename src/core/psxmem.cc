@@ -935,18 +935,6 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
     return newPtr + c_msanStart;
 }
 
-bool PCSX::Memory::msanValidateWrite(uint32_t addr, uint32_t size) {
-    uint32_t msanAddr = addr - c_msanStart;
-    if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
-        return false;
-    }
-    for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
-        m_msanWrittenBitmap[checkAddr / 8] |= 1 << checkAddr % 8;
-    }
-    [[likely]];
-    return true;
-}
-
 uint32_t PCSX::Memory::msanSetChainPtr(uint32_t headerAddr, uint32_t nextPtr, uint32_t wordCount) {
     if (!inMsanRange(headerAddr)) {
         headerAddr &= 0xffffff;
