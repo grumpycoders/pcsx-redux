@@ -34,6 +34,7 @@
 #include "core/sio.h"
 #include "core/sio1.h"
 #include "core/spu.h"
+#include "supportpsx/memory.h"
 #include "fmt/format.h"
 
 int PCSX::R3000Acpu::psxInit() {
@@ -501,4 +502,29 @@ void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
             break;
         }
     }
+}
+
+std::pair<const uint32_t, std::string>* PCSX::R3000Acpu::findContainingSymbol(uint32_t addr) {
+    auto symBefore = m_symbols.upper_bound(addr);
+    if (symBefore != m_symbols.begin()) { // verify there is actually a symbol before addr
+        symBefore--;
+        if (symBefore->first != addr) {
+            PCSX::PSXAddress addrInfo(addr);
+            PCSX::PSXAddress symbolInfo(symBefore->first);
+            if (addrInfo.segment != symbolInfo.segment) {
+                // if the symbol is different and not in the same memory region, it'd be wrong
+                return nullptr;
+            }
+        }
+        return &*symBefore;
+    }
+    return nullptr;
+}
+
+std::string* PCSX::R3000Acpu::getSymbolAt(uint32_t addr) {
+    auto symBefore = m_symbols.find(addr);
+    if (symBefore != m_symbols.end()) {
+        return &symBefore->second;
+    }
+    return nullptr;
 }
