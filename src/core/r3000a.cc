@@ -516,15 +516,15 @@ std::pair<const uint32_t, std::string>* PCSX::R3000Acpu::findContainingSymbol(ui
                 return nullptr;
             }
         }
-		return &*symBefore;
+        return &*symBefore;
     }
-	return nullptr;
+    return nullptr;
 }
 
 std::string* PCSX::R3000Acpu::getSymbolAt(uint32_t addr) {
     auto symBefore = m_symbols.find(addr);
     if (symBefore != m_symbols.end()) {
-		return &symBefore->second;
+        return &symBefore->second;
     }
-	return nullptr;
+    return nullptr;
 }
