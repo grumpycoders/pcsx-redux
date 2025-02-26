@@ -302,8 +302,8 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     std::string longLabel = label;
-    auto symbols = findSymbol(value);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
+    if (symbol) longLabel = *symbol + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
         m_jumpToPC = value;
@@ -366,8 +366,8 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     uint32_t addr = m_registers->GPR.r[reg] + offset;
 
     std::string longLabel;
-    auto symbols = findSymbol(addr);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ; ";
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
+    if (symbol) longLabel = *symbol + " ; ";
 
     const auto& io = ImGui::GetIO();
     unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
@@ -405,17 +405,17 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     sameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbols = findSymbol(value);
-    if (symbols.size() == 0) {
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
+    if (symbol) {
+        std::string longLabel = *symbol + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(label)) {
+        if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     } else {
-        std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(longLabel.c_str())) {
+        if (ImGui::Button(label)) {
             m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
@@ -427,8 +427,8 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
     std::string longLabel = label;
-    auto symbols = findSymbol(addr);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
+    if (symbol) longLabel = *symbol + " ;" + label;
 
     const auto& io = ImGui::GetIO();
     unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
@@ -598,6 +598,10 @@ settings, otherwise debugging features may not work.)");
     bool openAssembler = false;
     bool openSymbolAdder = false;
 
+    float lineHeight = ImGui::GetTextLineHeight();
+    float previousSymbolY = topleft.y;
+    std::optional<std::string> previousSymbol;
+
     while (clipper.Step()) {
         bool skipNext = false;
         bool delaySlotNext = false;
@@ -676,11 +680,23 @@ settings, otherwise debugging features may not work.)");
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
 
-                auto symbols = findSymbol(dispAddr);
-                if (symbols.size() != 0) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                    ImGui::Text("%s:", symbols.begin()->c_str());
-                    ImGui::PopStyleColor();
+                std::pair<const uint32_t, std::string>* symbol = cpu->findContainingSymbol(dispAddr);
+                if (symbol) {
+                    if (symbol->first == dispAddr) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
+                        ImGui::Text("%s:", symbol->second.c_str());
+                        ImGui::PopStyleColor();
+                    } else {
+                        // if this is the first visible line and it's not a label itself, store the previous symbol
+                        float y = ImGui::GetCursorScreenPos().y;
+                        if (y + lineHeight >= topleft.y && y <= topleft.y + lineHeight) {
+                            previousSymbol = symbol->second;
+                            // if the second visible line is a symbol, push the previous symbol display up
+                            if (cpu->getSymbolAt(dispAddr + 4) && y < previousSymbolY) {
+                                previousSymbolY = y;
+                            }
+                        }
+                    }
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
@@ -750,14 +766,14 @@ settings, otherwise debugging features may not work.)");
                 }
                 std::string contextMenuID = fmt::format("assembly address menu {}", dispAddr);
                 if (ImGui::BeginPopupContextItem(contextMenuID.c_str())) {
-                    if (symbols.size() == 0) {
+                    if (symbol) {
+                        if (ImGui::MenuItem(_("Remove symbol"))) {
+                            cpu->m_symbols.erase(dispAddr);
+                        }
+                    } else {
                         if (ImGui::MenuItem(_("Create symbol here"))) {
                             openSymbolAdder = true;
                             m_symbolAddress = dispAddr;
-                        }
-                    } else {
-                        if (ImGui::MenuItem(_("Remove symbol"))) {
-                            cpu->m_symbols.erase(dispAddr);
                         }
                     }
                     if (ImGui::MenuItem(_("Copy Address"))) {
@@ -938,6 +954,13 @@ settings, otherwise debugging features may not work.)");
         }
     }
     drawList->ChannelsMerge();
+    if (previousSymbol) {
+        ImVec2 pos(ImGui::GetCursorScreenPos().x, previousSymbolY);
+        ImVec2 posEnd(pos.x + glyphWidth * 64, pos.y + ImGui::GetTextLineHeight());
+        drawList->AddRectFilled(pos, posEnd, ImGui::GetColorU32(ImGuiCol_WindowBg));
+        std::string text = "^ " + previousSymbol.value() + " ^";
+        drawList->AddText(pos, ImGui::GetColorU32(s_labelColor), text.data(), text.data() + text.size());
+    }
     ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
@@ -1078,7 +1101,7 @@ if not success then return msg else return nil end
 
     if (m_showSymbols) {
         if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
-            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCaches();
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCache();
             ImGui::SameLine();
             ImGui::InputText(_("Filter"), &m_symbolFilter);
             ImGui::BeginChild("symbolsList");
@@ -1114,24 +1137,11 @@ if not success then return msg else return nil end
     return changed;
 }
 
-std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
-    auto& cpu = g_emulator->m_cpu;
-    std::list<std::string> ret;
-    auto symbol = cpu->m_symbols.find(addr);
-    if (symbol != cpu->m_symbols.end()) ret.emplace_back(symbol->second);
-
-    if (!m_symbolsCachesValid) rebuildSymbolsCaches();
-    auto elfSymbol = m_elfSymbolsCache.find(addr);
-    if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
-
-    return ret;
-}
-
-void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
+void PCSX::Widgets::Assembly::rebuildSymbolsCache() {
     auto& cpu = g_emulator->m_cpu;
     m_symbolsCache.clear();
     for (auto& symbol : cpu->m_symbols) {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
     }
-    m_symbolsCachesValid = true;
+    m_symbolsCacheValid = true;
 }

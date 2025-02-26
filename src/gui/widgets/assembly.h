@@ -110,12 +110,10 @@ class Assembly : private Disasm {
         uint32_t addr;
     };
 
-    std::list<std::string> findSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
-    std::map<uint32_t, std::string> m_elfSymbolsCache;
-    bool m_symbolsCachesValid = false;
+    bool m_symbolsCacheValid = false;
 
-    void rebuildSymbolsCaches();
+    void rebuildSymbolsCache();
     void addMemoryEditorContext(uint32_t addr, int size);
     void addMemoryEditorSubMenu(uint32_t addr, int size);
 
