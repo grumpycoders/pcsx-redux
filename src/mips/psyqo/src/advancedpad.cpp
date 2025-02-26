@@ -132,9 +132,10 @@ void psyqo::AdvancedPad::processChanges(Pad pad) {
     m_connected[padIndex] = padConnected;
     if (!padConnected) return;
 
-    uint16_t mask = 1;
-    uint16_t padData = m_padData[padIndex].buttons;
-    uint16_t buttons = m_buttons[padIndex];
+    // Note: Data is only 16-bits, but leave these as uint32_t, for codegen
+    uint32_t mask = 1;
+    uint32_t padData = m_padData[padIndex].buttons;
+    uint32_t buttons = m_buttons[padIndex];
     for (int i = 0; i < 16; i++, mask <<= 1) {
         bool buttonPressed = (padData & mask) == 0;
         bool wasButtonPressed = (buttons & mask) == 0;
