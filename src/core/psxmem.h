@@ -49,7 +49,7 @@ namespace PCSX {
 
 enum class MsanStatus {
     UNUSABLE,      // memory that hasn't been allocated or has been freed
-    UNINITIALIZED, // allocated memory that has never been written to; unreliable
+    UNINITIALIZED, // allocated memory that has never been written to, has undefined contents
     OK             // free to use
 };
 
@@ -90,7 +90,18 @@ class Memory {
     uint32_t msanRealloc(uint32_t ptr, uint32_t size);
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
-	MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const;
+    inline MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const {
+        uint32_t msanAddr = addr - c_msanStart;
+        if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
+            return MsanStatus::UNUSABLE;
+        }
+        for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
+            if (!(m_msanWrittenBitmap[checkAddr / 8] & (1 << checkAddr % 8))) {
+                return MsanStatus::UNINITIALIZED;
+            }
+        }
+        return MsanStatus::OK;
+    }
 	bool msanValidateWrite(uint32_t addr, uint32_t size);
 
     static inline bool inMsanRange(uint32_t addr) {
@@ -285,7 +296,7 @@ class Memory {
     EventBus::Listener m_listener;
 
     std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
-    static constexpr uint32_t c_msanChainMarker = 0x7ffffc;
+    static constexpr uint32_t c_msanChainMarker = 0x7ffffd;
     std::unordered_map<uint32_t, uint32_t> m_msanChainRegistry;
 
     template <typename T = void>

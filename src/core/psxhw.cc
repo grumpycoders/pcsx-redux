@@ -30,6 +30,7 @@
 #include "core/psxemulator.h"
 #include "core/sio.h"
 #include "core/sio1.h"
+#include "supportpsx/memory.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
 
@@ -373,16 +374,22 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         }
         case 0x1f802094: {
             uint32_t headerAddr = g_emulator->m_cpu->m_regs.GPR.n.a0;
-            if (headerAddr == 0x1f802094) {
-                g_system->printf(_("Recursive msanGetChainPtr\n"));
-                g_system->pause();
-                return 0xffffffff;
-            }
-            uint32_t ptr = g_emulator->m_mem->read32(headerAddr) & 0xfffffc;
-            if (ptr == PCSX::Memory::c_msanChainMarker) {
-                return g_emulator->m_mem->msanGetChainPtr(headerAddr);
-            } else {
-                return ptr;
+            PSXAddress headerAddrInfo(headerAddr);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptr = g_emulator->m_mem->read32(headerAddr) & 0xffffff;
+                    if (ptr == PCSX::Memory::c_msanChainMarker) {
+                        return g_emulator->m_mem->msanGetChainPtr(headerAddr);
+                    } else {
+                        return ptr;
+                    }
+                }
+                default: {
+                    g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
+                    g_system->pause();
+                    return 0xffffffff;
+                }
             }
         }
         default: {
@@ -820,16 +827,22 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         }
         case 0x1f802094: {
-            if (value == 0x1f802094) {
-                g_system->printf(_("Recursive msanSetChainPtr\n"));
-                g_system->pause();
-                return;
+            PSXAddress headerAddrInfo(value);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptrToNext = g_emulator->m_cpu->m_regs.GPR.n.a0;
+                    uint32_t wordCount = g_emulator->m_cpu->m_regs.GPR.n.a1;
+                    uint32_t markerValue = g_emulator->m_mem->msanSetChainPtr(value, ptrToNext, wordCount);
+                    g_emulator->m_mem->write32(value, markerValue);
+                    return;
+                }
+                default: {
+                    g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
+                    g_system->pause();
+                    return;
+                }
             }
-            uint32_t ptrToNext = g_emulator->m_cpu->m_regs.GPR.n.a0;
-            uint32_t wordCount = g_emulator->m_cpu->m_regs.GPR.n.a1;
-            uint32_t markerValue = g_emulator->m_mem->msanSetChainPtr(value, ptrToNext, wordCount);
-            g_emulator->m_mem->write32(value, markerValue);
-            return;
         }
         default: {
             if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {

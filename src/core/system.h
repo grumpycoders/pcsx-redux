@@ -168,7 +168,7 @@ class System {
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
-    void pause(bool exception = false) {
+    [[gnu::cold]] void pause(bool exception = false) {
         if (!m_running) return;
         m_running = false;
         m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
@@ -179,7 +179,7 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     virtual void testQuit(int code) = 0;
-    void quit(int code = 0) {
+    [[gnu::cold]] void quit(int code = 0) {
         m_quitting = true;
         pause();
         m_exitCode = code;
