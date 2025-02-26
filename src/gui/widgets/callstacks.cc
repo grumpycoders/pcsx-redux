@@ -22,31 +22,18 @@
 #include "core/callstacks.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
+#include "supportpsx/memory.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
 
-void drawSymbol(unsigned pc) {
-    auto& symbols = PCSX::g_emulator->m_cpu->m_symbols;
-    auto symBeforePc = symbols.lower_bound(pc);
-    if (symBeforePc != symbols.begin()) { // verify there is actually a symbol before pc
-        symBeforePc--;
-        if (symBeforePc->first != pc) {
-            uint32_t pcBase =
-                pc >= 0xa0000000? 0xa0000000:
-                pc >= 0x80000000? 0x80000000: 0;
-            uint32_t foundBase =
-                symBeforePc->first >= 0xa0000000? 0xa0000000:
-                symBeforePc->first >= 0x80000000? 0x80000000: 0;
-            if (pcBase != foundBase) {
-                // if the symbol is different and not in the same memory region, it'd be wrong
-                return;
-            }
-        }
+static void drawSymbol(unsigned pc) {
+    std::pair<const uint32_t, std::string>* symbol = PCSX::g_emulator->m_cpu->findContainingSymbol(pc);
+    if (symbol) {
         ImGui::SameLine();
         ImGui::TextUnformatted(" :: ");
         ImGui::SameLine();
-        ImGui::TextUnformatted(symBeforePc->second.data(), symBeforePc->second.data() + symBeforePc->second.size());
+        ImGui::TextUnformatted(symbol->second.data(), symbol->second.end().base());
     }
 }
 
