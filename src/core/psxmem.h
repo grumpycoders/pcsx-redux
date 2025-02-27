@@ -91,29 +91,45 @@ class Memory {
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
-    inline MsanStatus msanGetStatus(uint32_t addr, uint32_t size) const {
-        uint32_t msanAddr = addr - c_msanStart;
-        if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
-            [[unlikely]];
-            return MsanStatus::UNUSABLE;
-        }
-        for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
-            if (!(m_msanWrittenBitmap[checkAddr / 8] & (1 << checkAddr % 8))) {
-                return MsanStatus::UNINITIALIZED;
+    template<uint32_t length>
+    MsanStatus msanGetStatus(uint32_t addr) const {
+        uint32_t bitmapIndex = (addr - c_msanStart) / 8;
+        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        MsanStatus bestCase = MsanStatus::OK;
+        if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
+            if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                    return MsanStatus::UNUSABLE;
+                }
+                bestCase = MsanStatus::UNINITIALIZED;
             }
+            bitmask &= 0xFF;
         }
-        return MsanStatus::OK;
+        if ((m_msanInitializedBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
+            if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) {
+                return MsanStatus::UNUSABLE;
+            }
+            return MsanStatus::UNINITIALIZED;
+        }
+        return bestCase;
     }
 
-	inline bool msanValidateWrite(uint32_t addr, uint32_t size) {
-        uint32_t msanAddr = addr - c_msanStart;
-        if (!(m_msanUsableBitmap[msanAddr / 8] & (1 << msanAddr % 8))) {
-            [[unlikely]];
+    // if the write is valid, marks the address as initialized, otherwise returns false
+    template<uint32_t length>
+	bool msanValidateWrite(uint32_t addr) {
+        uint32_t bitmapIndex = (addr - c_msanStart) / 8;
+        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
+            if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                return false;
+            }
+            m_msanInitializedBitmap[bitmapIndex + 1] |= nextBitmask;
+            bitmask &= 0xFF;
+        }
+        if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
             return false;
         }
-        for (uint32_t checkAddr = msanAddr; checkAddr < msanAddr + size; checkAddr++) {
-            m_msanWrittenBitmap[checkAddr / 8] |= 1 << checkAddr % 8;
-        }
+        m_msanInitializedBitmap[bitmapIndex] |= bitmask;
         return true;
     }
 
@@ -304,7 +320,7 @@ class Memory {
     static constexpr uint32_t c_msanEnd = c_msanStart + c_msanSize;
     uint8_t *m_msanRAM = nullptr;
     uint8_t *m_msanUsableBitmap = nullptr;
-    uint8_t *m_msanWrittenBitmap = nullptr;
+    uint8_t *m_msanInitializedBitmap = nullptr;
     uint32_t m_msanPtr = 1024;
     EventBus::Listener m_listener;
 

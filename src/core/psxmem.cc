@@ -89,10 +89,10 @@ PCSX::Memory::Memory() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::ExecutionFlow::Reset>([this](auto &) {
         free(m_msanRAM);
         free(m_msanUsableBitmap);
-        free(m_msanWrittenBitmap);
+        free(m_msanInitializedBitmap);
         m_msanRAM = nullptr;
         m_msanUsableBitmap = nullptr;
-        m_msanWrittenBitmap = nullptr;
+        m_msanInitializedBitmap = nullptr;
         m_msanAllocs.clear();
     });
 }
@@ -265,10 +265,10 @@ void PCSX::Memory::shutdown() {
 
     free(m_msanRAM);
     free(m_msanUsableBitmap);
-    free(m_msanWrittenBitmap);
+    free(m_msanInitializedBitmap);
     m_msanRAM = nullptr;
     m_msanUsableBitmap = nullptr;
-    m_msanWrittenBitmap = nullptr;
+    m_msanInitializedBitmap = nullptr;
     m_msanAllocs.clear();
 }
 
@@ -280,7 +280,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
 
     if (pointer != nullptr) {
 		if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
-			switch (msanGetStatus(address, 1)) {
+			switch (msanGetStatus<1>(address)) {
 				case MsanStatus::UNINITIALIZED:
 					g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
 					break;
@@ -330,7 +330,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
 
     if (pointer != nullptr) {
 		if (msanInitialized() && inMsanRange(address)) {
-            switch (msanGetStatus(address, 2)) {
+            switch (msanGetStatus<2>(address)) {
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
                     break;
@@ -377,7 +377,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            switch (msanGetStatus(address, 4)) {
+            switch (msanGetStatus<4>(address)) {
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
                     break;
@@ -500,7 +500,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite(address, 1)) {
+            if (msanValidateWrite<1>(address)) {
                 m_msanRAM[address - c_msanStart] = value;
             } else {
                 g_system->log(LogClass::CPU, _("8-bit write to unusable msan memory: %8.8lx\n"), address);
@@ -537,7 +537,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite(address, 2)) {
+            if (msanValidateWrite<2>(address)) {
                 *(uint16_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu16(value);
             } else {
                 g_system->log(LogClass::CPU, _("16-bit write to unusable msan memory: %8.8lx\n"), address);
@@ -575,7 +575,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite(address, 4)) {
+            if (msanValidateWrite<4>(address)) {
                 *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
             } else {
                 g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
@@ -814,10 +814,10 @@ void PCSX::Memory::initMsan(bool reset) {
     if (reset) {
         free(m_msanRAM);
         free(m_msanUsableBitmap);
-        free(m_msanWrittenBitmap);
+        free(m_msanInitializedBitmap);
         m_msanRAM = nullptr;
         m_msanUsableBitmap = nullptr;
-        m_msanWrittenBitmap = nullptr;
+        m_msanInitializedBitmap = nullptr;
         m_msanAllocs.clear();
         m_msanChainRegistry.clear();
     }
@@ -830,7 +830,7 @@ void PCSX::Memory::initMsan(bool reset) {
     // 1.5GB of RAM, with 384MB worth of bitmap, between 0x20000000 and 0x80000000
     m_msanRAM = (uint8_t *)calloc(c_msanSize, 1);
     m_msanUsableBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
-    m_msanWrittenBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
+    m_msanInitializedBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
     m_msanPtr = 1024;
     for (uint32_t segment = c_msanStart; segment < c_msanEnd; segment += 0x10000) {
         m_readLUT[segment >> 16] = m_msanRAM + (segment - c_msanStart);
@@ -928,7 +928,7 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
     // Mark the new allocation as written to
     auto toCopy = std::min(size, oldSize);
     for (uint32_t i = 0; i < toCopy; i++) {
-        m_msanWrittenBitmap[(newPtr + i) / 8] |= 1 << ((newPtr + i) % 8);
+        m_msanInitializedBitmap[(newPtr + i) / 8] |= 1 << ((newPtr + i) % 8);
     }
     // Remove the allocation from the list of allocations.
     m_msanAllocs.erase(ptr);
