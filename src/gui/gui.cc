@@ -657,10 +657,10 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
                 glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
             if (settings.get<WindowMaximized>().value) {
-				glfwMaximizeWindow(m_window);
-			} else {
-				glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
-			}
+                glfwMaximizeWindow(m_window);
+            } else {
+                glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            }
         } else {
             saveCfg();
         }
