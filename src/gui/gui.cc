@@ -656,8 +656,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
             if ((settings.get<WindowPosX>().value > 0) && (settings.get<WindowPosY>().value > 0)) {
                 glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
-
-            glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            if (settings.get<WindowMaximized>().value) {
+				glfwMaximizeWindow(m_window);
+			} else {
+				glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+			}
         } else {
             saveCfg();
         }
@@ -897,9 +900,11 @@ void PCSX::GUI::saveCfg() {
         m_glfwPosY = settings.get<WindowPosY>();
         m_glfwSizeX = settings.get<WindowSizeX>();
         m_glfwSizeY = settings.get<WindowSizeY>();
+        m_glfwMaximized = settings.get<WindowMaximized>();
     } else {
         glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
         glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+        m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
     }
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
