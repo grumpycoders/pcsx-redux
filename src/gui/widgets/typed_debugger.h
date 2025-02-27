@@ -154,8 +154,9 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer,
                      uint32_t extraImGuiId = 0);
-    void printValue(const char* type, size_t type_size, void* address);
-    void displayNewValueInput(const char* type, size_t size_type, void* address);
+    void printValue(const char* type, size_t type_size, void* value);
+    void printValue(const char* type, size_t type_size, Slice value);
+    void displayNewValueInput(const char* type, size_t size_type, Slice value, IO<File> memFile);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address);
 
     /**
