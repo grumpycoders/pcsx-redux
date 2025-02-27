@@ -30,6 +30,7 @@ SOFTWARE.
 #include "psyqo/hardware/cpu.hh"
 #include "psyqo/hardware/sio.hh"
 #include "psyqo/kernel.hh"
+#include "psyqo/utility-polyfill.h"
 
 using namespace psyqo::Hardware;
 
@@ -121,7 +122,7 @@ uint8_t psyqo::AdvancedPad::outputMultitap(unsigned ticks) {
 }
 
 void psyqo::AdvancedPad::processChanges(Pad pad) {
-    const unsigned padIndex = static_cast<unsigned>(pad);
+    const unsigned padIndex = toUnderlying(pad);
     bool padConnected = isPadConnected(pad);
     bool wasConnected = m_connected[padIndex];
     if (wasConnected && !padConnected) {

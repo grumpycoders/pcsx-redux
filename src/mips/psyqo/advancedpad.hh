@@ -29,6 +29,8 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <stdint.h>
 
+#include "psyqo/utility-polyfill.h"
+
 namespace psyqo {
 
 /**
@@ -129,7 +131,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return A boolean value indicating whether the pad is connected.
      */
-    bool isPadConnected(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].connected == 0; }
+    bool isPadConnected(Pad pad) const { return m_padData[toUnderlying(pad)].connected == 0; }
 
     /**
      * @brief Returns the state of a button.
@@ -142,7 +144,7 @@ class AdvancedPad {
      * @return A boolean value indicating whether the button is pressed.
      */
     bool isButtonPressed(Pad pad, Button button) const {
-        return (m_padData[static_cast<unsigned>(pad)].buttons & (1 << button)) == 0;
+        return (m_padData[toUnderlying(pad)].buttons & (1 << button)) == 0;
     }
 
     /**
@@ -160,7 +162,7 @@ class AdvancedPad {
      * @return The state of the Analog Input as an unsigned 8-bit value(0-255).
      */
     uint8_t getAdc(Pad pad, unsigned int index) const {
-        const unsigned padIndex = static_cast<unsigned>(pad);
+        const unsigned padIndex = toUnderlying(pad);
 
         return index <= 7 ? m_padData[padIndex].adc[index] : 0;
     }
@@ -182,9 +184,7 @@ class AdvancedPad {
      * @return The value of the halfword.
      */
 
-    uint16_t getHalfword(Pad pad, unsigned int index) const {
-        return m_padData[static_cast<unsigned>(pad)].packed[index % 4];
-    }
+    uint16_t getHalfword(Pad pad, unsigned int index) const { return m_padData[toUnderlying(pad)].packed[index % 4]; }
 
     /**
      * @brief Returns the type of the pad.
@@ -196,7 +196,7 @@ class AdvancedPad {
      * @param pad The pad to query.
      * @return The type of the pad.
      */
-    uint8_t getPadType(Pad pad) const { return m_padData[static_cast<unsigned>(pad)].padType; }
+    uint8_t getPadType(Pad pad) const { return m_padData[toUnderlying(pad)].padType; }
 
   private:
     enum Command : uint8_t {
@@ -251,25 +251,25 @@ class AdvancedPad {
 
 // prefix increment operator
 inline psyqo::AdvancedPad::Pad& operator++(psyqo::AdvancedPad::Pad& pad) {
-    return pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) + 1) & 7);
+    return pad = static_cast<psyqo::AdvancedPad::Pad>((toUnderlying(pad) + 1) & 7);
 }
 
 // postfix increment operator
 inline psyqo::AdvancedPad::Pad operator++(psyqo::AdvancedPad::Pad& pad, int) {
     psyqo::AdvancedPad::Pad copy(pad);
-    pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) + 1) & 7);
+    pad = static_cast<psyqo::AdvancedPad::Pad>((toUnderlying(pad) + 1) & 7);
     return copy;
 }
 
 // prefix decrement operator
 inline psyqo::AdvancedPad::Pad& operator--(psyqo::AdvancedPad::Pad& pad) {
-    return pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) - 1) & 7);
+    return pad = static_cast<psyqo::AdvancedPad::Pad>((toUnderlying(pad) - 1) & 7);
 }
 
 // postfix decrement operator
 inline psyqo::AdvancedPad::Pad operator--(psyqo::AdvancedPad::Pad& pad, int) {
     psyqo::AdvancedPad::Pad copy(pad);
-    pad = static_cast<psyqo::AdvancedPad::Pad>((static_cast<unsigned>(pad) - 1) & 7);
+    pad = static_cast<psyqo::AdvancedPad::Pad>((toUnderlying(pad) - 1) & 7);
     return copy;
 }
 
