@@ -1127,12 +1127,12 @@ void PCSX::GUI::endFrame() {
     m_offscreenShaderEditor.configure(this);
     m_outputShaderEditor.configure(this);
 
-    ImGuiID dockspace = ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
     ImGuiContext* context = ImGui::GetCurrentContext();
-    ImGuiDockNode* dockspaceNode = ImGui::DockContextFindNodeByID(context, dockspace);
+    ImGuiDockNode* dockspaceNode = ImGui::DockContextFindNodeByID(context, dockspaceId);
     if (m_fullWindowRender && !dockspaceNode->IsEmpty()) {
         m_fullWindowRender = false;
-        ImGui::SetNextWindowDockID(dockspace);
+        ImGui::SetNextWindowDockID(dockspaceId);
     }
     if (m_fullWindowRender) {
         ImTextureID texture = m_offscreenTextures[m_currentTexture];
@@ -1186,7 +1186,7 @@ void PCSX::GUI::endFrame() {
         if (!outputWindowShown) {
             m_fullWindowRender = true;
             // full window render mode can't have anything docked in the dockspace
-            ImGui::DockContextClearNodes(context, dockspace, true);
+            ImGui::DockContextClearNodes(context, dockspaceId, true);
         }
     }
 
@@ -1451,7 +1451,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
                         m_setupScreenSize = true;
                         // full window render mode can't have anything docked in the dockspace
-                        ImGui::DockContextClearNodes(context, dockspace, true);
+                        ImGui::DockContextClearNodes(context, dockspaceId, true);
                     }
                     if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
                         setFullscreen(m_fullscreen);
