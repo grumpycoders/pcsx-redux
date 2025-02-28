@@ -67,7 +67,7 @@ _Static_assert(sizeof(allocated_block) == (2 * sizeof(void *)), "allocated_block
 static empty_block *user_heap_head = NULL;
 static empty_block *kern_heap_head = NULL;
 
-static empty_block marker = { .next = NULL, .size = 0 };
+static empty_block marker = {.next = NULL, .size = 0};
 
 enum heap { HEAP_USER, HEAP_KERNEL };
 
@@ -137,7 +137,7 @@ static __attribute__((section(".ramtext"))) void multi_free(void *ptr_, const en
     empty_block *block = (empty_block *)ptr_;
     block--;
     size_t size = block->size;
-    empty_block * const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
+    empty_block *const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
 
     if (head == &marker) {
         if (heap == HEAP_USER) {
@@ -218,7 +218,7 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
         return ptr_;
     }
 
-    empty_block * const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
+    empty_block *const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
     if (head == &marker) {
         if (size < old_size) {
             empty_block *new_block = (empty_block *)((char *)block + size);
@@ -323,8 +323,8 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
     if (new_ptr == NULL) {
         return NULL;
     }
-    uint32_t * src = (uint32_t *)ptr_;
-    uint32_t * dst = (uint32_t *)new_ptr;
+    uint32_t *src = (uint32_t *)ptr_;
+    uint32_t *dst = (uint32_t *)new_ptr;
     uint32_t size_to_copy = old_size - sizeof(empty_block);
     while (size_to_copy > 0) {
         *dst++ = *src++;
@@ -340,7 +340,7 @@ __attribute__((section(".ramtext"))) void *user_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_USER);
 }
 __attribute__((section(".ramtext"))) void user_initheap(void *base, size_t size) {
-    user_heap_head = (empty_block*)ALIGN_TO(base);
+    user_heap_head = (empty_block *)ALIGN_TO(base);
     user_heap_head->next = &marker;
     user_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }
@@ -351,7 +351,7 @@ __attribute__((section(".ramtext"))) void *kern_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_KERNEL);
 }
 __attribute__((section(".ramtext"))) void kern_initheap(void *base, size_t size) {
-    kern_heap_head = (empty_block*)ALIGN_TO(base);
+    kern_heap_head = (empty_block *)ALIGN_TO(base);
     kern_heap_head->next = &marker;
     kern_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }

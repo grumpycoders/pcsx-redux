@@ -30,9 +30,9 @@
 #include "core/psxemulator.h"
 #include "core/sio.h"
 #include "core/sio1.h"
-#include "supportpsx/memory.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "supportpsx/memory.h"
 
 static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
     return (beg > end) ? false : (val >= beg && val <= end - 3);

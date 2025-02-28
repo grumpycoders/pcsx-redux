@@ -50,7 +50,7 @@ class HW {
         if ((chcr & 0x01000000) && mem->template isDMAEnabled<n>()) {
             uint32_t madr = mem->template getMADR<n>();
             bool usingMsan = g_emulator->m_mem->msanInitialized();
-			if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
+            if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                 madr &= 0xfffffffc;
             } else {
                 madr &= 0x7ffffc;
@@ -75,20 +75,23 @@ class HW {
                 uint32_t DMACommandCounter = 0;
 
                 do {
-					if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
+                    if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                         madr &= 0xfffffffc;
-						switch (g_emulator->m_mem->msanGetStatus<4>(madr)) {
-							case PCSX::MsanStatus::UNINITIALIZED:
-								g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), madr);
-								g_system->pause();
-								return;
-							case PCSX::MsanStatus::UNUSABLE:
-								g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), madr);
-								g_system->pause();
-								return;
-							case PCSX::MsanStatus::OK:
-								break;
-						}
+                        switch (g_emulator->m_mem->msanGetStatus<4>(madr)) {
+                            case PCSX::MsanStatus::UNINITIALIZED:
+                                g_system->log(LogClass::GPU,
+                                              _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                              madr);
+                                g_system->pause();
+                                return;
+                            case PCSX::MsanStatus::UNUSABLE:
+                                g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"),
+                                              madr);
+                                g_system->pause();
+                                return;
+                            case PCSX::MsanStatus::OK:
+                                break;
+                        }
                     } else {
                         madr &= 0x7ffffc;
                     }
