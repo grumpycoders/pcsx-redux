@@ -33,7 +33,7 @@ static void drawSymbol(unsigned pc) {
         ImGui::SameLine();
         ImGui::TextUnformatted(" :: ");
         ImGui::SameLine();
-        ImGui::TextUnformatted(symbol->second.data(), symbol->second.end().base());
+        ImGui::TextUnformatted(symbol->second.data(), &*symbol->second.end());
     }
 }
 
