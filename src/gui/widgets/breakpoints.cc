@@ -124,7 +124,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                 ImGui::TextColored(((bp->address() | bp->base()) == pc) ? s_hitColor : s_normalColor, "%d", row);
 
                 ImGui::TableNextColumn();
-                std::string buttonStr = fmt::format("{:08x}", bp->address() | bp->base());
+                std::string buttonStr = fmt::format("{:08x}##{:d}", bp->address() | bp->base(), row);
                 if (ImGui::Button(buttonStr.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
                     if (bp->type() == Debug::BreakpointType::Exec) {
                         g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{bp->address() | bp->base()});
@@ -217,7 +217,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         static int breakConditionImguiValue = 0;
         static int conditionVal = 0;
 
-        Debug::BreakpointCondition breakCondition; 
+        Debug::BreakpointCondition breakCondition = Debug::BreakpointCondition::Always; 
         Debug::BreakpointType type = (Debug::BreakpointType)m_breakpointType;
         if (type != Debug::BreakpointType::Exec) {
             ImGui::Combo(_("Break Condition"), &breakConditionImguiValue, _("Always\0Change\0Greater\0Less\0Equal\0"));

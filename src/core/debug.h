@@ -101,7 +101,7 @@ class Debug {
 
         const BreakpointType m_type;
         BreakpointCondition m_condition = BreakpointCondition::Always;
-        uint32_t m_conditionData;
+        uint32_t m_conditionData = 0;
         const std::string m_source;
         const BreakpointInvoker m_invoker;
         mutable std::string m_label;
@@ -165,7 +165,10 @@ class Debug {
         if (m_lastBP == bp) m_lastBP = nullptr;
         delete const_cast<Breakpoint*>(bp);
     }
-    void removeAllBreakpoints() { m_breakpoints.clear(); }
+    void removeAllBreakpoints() { 
+        m_breakpoints.clear(); 
+        m_lastBP = nullptr;
+    }
 
   private:
     bool triggerBP(Breakpoint* bp, uint32_t address, unsigned width, const char* reason = "");
