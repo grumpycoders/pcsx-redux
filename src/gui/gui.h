@@ -116,6 +116,7 @@ class GUI final : public UI {
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
     typedef Setting<int, TYPESTRING("WindowSizeY"), 800> WindowSizeY;
+    typedef Setting<bool, TYPESTRING("WindowMaximized"), false> WindowMaximized;
     typedef Setting<int, TYPESTRING("IdleSwapInterval"), 1> IdleSwapInterval;
     typedef Setting<int, TYPESTRING("MainFontSize"), 16> MainFontSize;
     typedef Setting<int, TYPESTRING("MonoFontSize"), 16> MonoFontSize;
@@ -151,17 +152,17 @@ class GUI final : public UI {
     typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
     typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
-             IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer, ShowCLUTVRAMViewer,
-             ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver, ShowTypedDebugger,
-             ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowBreakpoints,
-             ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1, ShowIsoBrowser,
-             ShowGPULogger, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion,
-             WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3,
-             ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8,
-             ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor,
-             MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr,
-             MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr,
-             HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
+             WindowMaximized, IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer,
+             ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
+             ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
+             ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
+             ShowIsoBrowser, ShowGPULogger, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
+             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
+             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
+             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -179,28 +180,19 @@ class GUI final : public UI {
 
   public:
     struct MarkDown : public imgui_md {
-        MarkDown() {}
-        MarkDown(std::map<std::string_view, std::function<void()>> &&customURLs)
-            : m_customURLs(std::move(customURLs)) {}
-        int print(const std::string_view text) {
-            const char *ptr = text.data();
-            const char *end = ptr + text.size();
-            return imgui_md::print(ptr, end);
-        }
-
-        void open_url() const override {
-            if (m_href.starts_with("http")) {
-                openUrl(m_href);
-                return;
-            }
-            auto i = m_customURLs.find(m_href);
-            if (i != m_customURLs.end()) i->second();
-        }
-
-        bool get_image(image_info &nfo) const override { return false; }
+        static void newFrame() { m_id = 0; }
+        MarkDown(GUI *gui);
+        MarkDown(GUI *gui, std::map<std::string_view, std::function<void()>> &&customURLs);
+        int print(const std::string_view text);
+        void open_url() const override;
+        bool get_image(image_info &nfo) const override;
+        void BLOCK_CODE(const MD_BLOCK_CODE_DETAIL *d, bool e);
+        void SPAN_CODE(bool e) override;
 
       private:
         std::map<std::string_view, std::function<void()>> m_customURLs;
+        GUI *m_gui;
+        static unsigned m_id;
     };
     static void openUrl(std::string_view url);
     void setOnlyLogGLErrors(bool value) { m_onlyLogGLErrors = value; }
@@ -306,6 +298,7 @@ class GUI final : public UI {
     int &m_glfwPosY = settings.get<WindowPosY>().value;
     int &m_glfwSizeX = settings.get<WindowSizeX>().value;
     int &m_glfwSizeY = settings.get<WindowSizeY>().value;
+    bool &m_glfwMaximized = settings.get<WindowMaximized>().value;
     GLuint m_VRAMTexture = 0;
     NVGcontext *m_nvgContext = nullptr;
     std::map<unsigned, void *> m_nvgSubContextes;

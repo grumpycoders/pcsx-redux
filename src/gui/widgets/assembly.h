@@ -45,7 +45,10 @@ class Assembly : private Disasm {
   public:
     Assembly(bool& show, std::vector<std::string>& favorites)
         : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
-        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) {
+            m_jumpToPC = event.pc;
+            m_show = true;
+        });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
@@ -107,12 +110,10 @@ class Assembly : private Disasm {
         uint32_t addr;
     };
 
-    std::list<std::string> findSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
-    std::map<uint32_t, std::string> m_elfSymbolsCache;
-    bool m_symbolsCachesValid = false;
+    bool m_symbolsCacheValid = false;
 
-    void rebuildSymbolsCaches();
+    void rebuildSymbolsCache();
     void addMemoryEditorContext(uint32_t addr, int size);
     void addMemoryEditorSubMenu(uint32_t addr, int size);
 

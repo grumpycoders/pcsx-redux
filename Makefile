@@ -5,10 +5,12 @@ CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
-rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
+PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libcurl libuv zlib
+OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
+OPTIONAL_LIBRARIES := multipart ucl
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
@@ -19,12 +21,11 @@ HAS_SUBMODULES = true
 endif
 
 CXXFLAGS += -std=c++2b
-CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/ELFIO
-CPPFLAGS += -Ithird_party/fmt/include/
+CPPFLAGS_pkg_fmt += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
@@ -32,16 +33,16 @@ CPPFLAGS += -Ithird_party/imgui/backends
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
 CPPFLAGS += -Ithird_party/libelfin
-CPPFLAGS += -Ithird_party/llhttp
+CPPFLAGS_pkg_libllhttp += -Ithird_party/llhttp
 CPPFLAGS += -Ithird_party/luajit/src
-CPPFLAGS += -Ithird_party/luv/src
-CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
+CPPFLAGS_pkg_libluv += -Ithird_party/luv/src
+CPPFLAGS_pkg_libluv += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/magic_enum/include/magic_enum
-CPPFLAGS += -Ithird_party/md4c/src
-CPPFLAGS += -Ithird_party/multipart-parser-c
+CPPFLAGS_pkg_md4c += -Ithird_party/md4c/src
+CPPFLAGS_lib_multipart += -Ithird_party/multipart-parser-c
 CPPFLAGS += -Ithird_party/tracy/public
-CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
-CPPFLAGS += -Ithird_party/uriparser/include
+CPPFLAGS_lib_ucl += -Ithird_party/ucl -Ithird_party/ucl/include
+CPPFLAGS_pkg_liburiparser += -Ithird_party/uriparser/include
 CPPFLAGS += -Ithird_party/zep/extensions
 CPPFLAGS += -Ithird_party/zep/include
 CPPFLAGS += -Ithird_party/xbyak/xbyak
@@ -75,7 +76,6 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 LUAJIT_LDFLAGS := $(LDFLAGS)
-LDFLAGS += `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation -framework Cocoa
@@ -108,8 +108,8 @@ endif
 
 LD := $(CXX)
 
-SRCS := $(call rwildcard,src/,*.cc)
-SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
+SRCS += $(call rwildcard,src/,*.cc)
+SRCS_pkg_fmt += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
 VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
@@ -129,16 +129,16 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
-SRCS += $(wildcard third_party/llhttp/*.c)
+SRCS_pkg_libllhttp += $(wildcard third_party/llhttp/*.c)
 SRCS += $(wildcard third_party/lpeg/*.c)
 SRCS += third_party/lua-protobuf/pb.c
 SRCS += third_party/luafilesystem/src/lfs.c
-SRCS += third_party/luv/src/luv.c
-SRCS += third_party/md4c/src/md4c.c
-SRCS += third_party/multipart-parser-c/multipart_parser.c
+SRCS_pkg_libluv += third_party/luv/src/luv.c
+SRCS_pkg_md4c += third_party/md4c/src/md4c.c
+SRCS_lib_multipart += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
-SRCS += third_party/tracy/public/TracyClient.cpp
-SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
+SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -175,6 +175,37 @@ OBJECTS := third_party/luajit/src/libluajit.a
 TOOLS = exe2elf exe2iso modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
+
+SRCS += $(SRCS_$(BUILD))
+
+define CHECK_PKG
+ifeq ($(shell pkg-config --exists $(1) && echo true || echo false),true)
+PACKAGES += $(1)
+else
+CPPFLAGS += $(CPPFLAGS_pkg_$(1))
+LDFLAGS += $(LDFLAGS_pkg_$(1))
+SRCS += $(SRCS_pkg_$(1))
+endif
+endef
+
+define CHECK_LIB
+ifeq ($(shell echo "int main(){}" | gcc -x c - -l$(1) -Wl,--no-as-needed -Wl,--unresolved-symbols=ignore-all -Wl,--no-undefined -o /dev/null >& /dev/null && echo true || echo false),true)
+LDFLAGS += -l$(1)
+else
+CPPFLAGS += $(CPPFLAGS_lib_$(1))
+LDFLAGS += $(LDFLAGS_lib_$(1))
+SRCS += $(SRCS_lib_$(1))
+endif
+endef
+
+$(foreach pkg,$(OPTIONAL_PACKAGES),$(eval $(call CHECK_PKG,$(pkg))))
+$(foreach lib,$(OPTIONAL_LIBRARIES),$(eval $(call CHECK_LIB,$(lib))))
+
+CPPFLAGS_PKGCONFIG := $(shell pkg-config --cflags $(PACKAGES))
+LDFLAGS_PKGCONFIG := $(shell pkg-config --libs $(PACKAGES))
+
+CPPFLAGS += $(CPPFLAGS_PKGCONFIG)
+LDFLAGS += $(LDFLAGS_PKGCONFIG)
 
 OBJECTS += $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
 OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
@@ -259,13 +290,13 @@ $(TARGET): $(OBJECTS)
 %.o: %.mm
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.dep: %.c
+%.dep: third_party/luajit/src/luajit.h %.c
 	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
-%.dep: %.cc
+%.dep: third_party/luajit/src/luajit.h %.cc
 	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
-%.dep: %.cpp
+%.dep: third_party/luajit/src/luajit.h %.cpp
 	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
 
 clean:
@@ -329,3 +360,7 @@ endif
 endif
 endif
 endif
+
+third_party/luajit/src/lua.hpp: third_party/luajit/src/luajit.h
+
+third_party/luajit/src/luajit.h: third_party/luajit/src/libluajit.a

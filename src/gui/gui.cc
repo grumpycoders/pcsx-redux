@@ -90,6 +90,60 @@ extern "C" {
 #include "supportpsx/binloader.h"
 #include "tracy/Tracy.hpp"
 
+unsigned PCSX::GUI::MarkDown::m_id = 0;
+
+PCSX::GUI::MarkDown::MarkDown(GUI* gui) : m_gui(gui) {}
+
+PCSX::GUI::MarkDown::MarkDown(GUI* gui, std::map<std::string_view, std::function<void()>>&& customURLs)
+    : m_customURLs(std::move(customURLs)), m_gui(gui) {}
+
+int PCSX::GUI::MarkDown::print(const std::string_view text) {
+    const char* ptr = text.data();
+    const char* end = ptr + text.size();
+    return imgui_md::print(ptr, end);
+}
+
+void PCSX::GUI::MarkDown::open_url() const {
+    if (m_href.starts_with("http")) {
+        openUrl(m_href);
+        return;
+    }
+    auto i = m_customURLs.find(m_href);
+    if (i != m_customURLs.end()) i->second();
+}
+
+bool PCSX::GUI::MarkDown::get_image(image_info& nfo) const { return false; }
+
+void PCSX::GUI::MarkDown::BLOCK_CODE(const MD_BLOCK_CODE_DETAIL* d, bool e) {
+    imgui_md::BLOCK_CODE(d, e);
+    if (e) {
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 5.0f);
+        auto color = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::PushID(m_id++);
+        ImGui::BeginChild("pre", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        m_gui->useMonoFont();
+    } else {
+        ImGui::PopFont();
+        ImGui::EndChild();
+        ImGui::PopID();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+    }
+}
+
+void PCSX::GUI::MarkDown::SPAN_CODE(bool e) {
+    imgui_md::SPAN_CODE(e);
+    if (e) {
+        auto color = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        m_gui->useMonoFont();
+    } else {
+        ImGui::PopFont();
+        ImGui::PopStyleColor();
+    }
+}
+
 #ifdef _WIN32
 extern "C" {
 __declspec(dllexport) DWORD NvOptimusEnablement = 1;
@@ -602,8 +656,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
             if ((settings.get<WindowPosX>().value > 0) && (settings.get<WindowPosY>().value > 0)) {
                 glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
-
-            glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            if (settings.get<WindowMaximized>().value) {
+                glfwMaximizeWindow(m_window);
+            } else {
+                glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            }
         } else {
             saveCfg();
         }
@@ -843,9 +900,11 @@ void PCSX::GUI::saveCfg() {
         m_glfwPosY = settings.get<WindowPosY>();
         m_glfwSizeX = settings.get<WindowSizeX>();
         m_glfwSizeY = settings.get<WindowSizeY>();
+        m_glfwMaximized = settings.get<WindowMaximized>();
     } else {
         glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
         glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+        m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
     }
 
     j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
@@ -937,6 +996,7 @@ void PCSX::GUI::startFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    MarkDown::newFrame();
     if (io.WantSaveIniSettings) {
         io.WantSaveIniSettings = false;
         saveCfg();
@@ -980,7 +1040,7 @@ void PCSX::GUI::startFrame() {
             } else {
                 g_emulator->m_debug->stepIn();
             }
-        } else if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Pause) || ImGui::IsKeyPressed(ImGuiKey_F5)) {
             g_system->resume();
         }
     } else {
@@ -2362,7 +2422,7 @@ bool PCSX::GUI::about() {
             if (ImGui::BeginTabItem(_("Licenses"))) {
                 ImGui::BeginChild("Licenses", ImVec2(0, 0), true);
 
-                static MarkDown md({{"AUTHORS", [this]() { m_aboutSelectAuthors = true; }}});
+                MarkDown md(this, {{"AUTHORS", [this]() { m_aboutSelectAuthors = true; }}});
                 std::string_view text =
 #include "LICENSES.md"
                     ;

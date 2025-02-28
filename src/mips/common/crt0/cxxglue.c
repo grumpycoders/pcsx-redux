@@ -48,6 +48,10 @@ int main(int argc, char** argv);
 void cxxmain(int argc, char** argv) {
     size_t count, i;
 
+#ifdef USE_PCSXMSAN
+    pcsx_msanInit();
+#endif
+
     count = __preinit_array_end - __preinit_array_start;
     for (i = 0; i < count; i++) {
         fptr f = __preinit_array_start[i];

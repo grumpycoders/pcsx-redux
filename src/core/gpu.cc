@@ -437,6 +437,7 @@ inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
 uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     uint32_t size;
     uint32_t DMACommandCounter = 0;
+    bool usingMsan = g_emulator->m_mem->msanInitialized();
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
@@ -444,22 +445,43 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     size = 1;
 
     do {
-        addr &= 0x7ffffc;
+        uint32_t header;
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
+            addr &= 0xfffffffc;
+            switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::OK:
+                    header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+                    break;
+            }
+        } else {
+            addr &= g_emulator->getRamMask<4>();
+            header = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
+        }
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
-        uint32_t head = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
-
         // # 32-bit blocks to transfer
-        size += head >> 24;
+        size += (header >> 24) + 1;
 
         // next 32-bit pointer
-        addr = head & 0xfffffc;
-        size += 1;
+        uint32_t nextAddr = header & 0xffffff;
+        if (usingMsan && nextAddr == PCSX::Memory::c_msanChainMarker) {
+            addr = g_emulator->m_mem->msanGetChainPtr(addr);
+            continue;
+        }
+        addr = nextAddr;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-    return size;
+    return size;  // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
 uint32_t PCSX::GPU::readStatus() {
@@ -683,30 +705,56 @@ void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr)
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
     uint32_t addr = hwAddr;
     uint32_t DMACommandCounter = 0;
+    bool usingMsan = g_emulator->m_mem->msanInitialized();
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
     do {
-        addr &= g_emulator->getRamMask<4>();
+        uint32_t header;
+        const uint32_t *feed;
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
+            addr &= 0xfffffffc;
+            const uint32_t *headerPtr = (uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+            switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::OK:
+                    break;
+            }
+            header = *headerPtr;
+            feed = headerPtr + 1;
+        } else {
+            addr &= g_emulator->getRamMask<4>();
+            header = memory[addr / 4];
+            feed = memory + addr / 4 + 1;
+        }
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
         // # 32-bit blocks to transfer
-        addr >>= 2;
-        uint32_t header = memory[addr];
-        uint32_t transferSize = header >> 24;
-        const uint32_t *feed = memory + addr + 1;
-        Buffer buf(feed, transferSize);
+        uint32_t transferWords = header >> 24;
+        Buffer buf(feed, transferWords);
         while (!buf.isEmpty()) {
-            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr << 2, transferSize);
+            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr, transferWords);
         }
 
         // next 32-bit pointer
-        addr = header & 0xfffffc;
+        uint32_t nextAddr = header & 0xffffff;
+        if (usingMsan && nextAddr == PCSX::Memory::c_msanChainMarker) {
+            addr = g_emulator->m_mem->msanGetChainPtr(addr);
+            continue;
+        }
+        addr = nextAddr;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-}
+}  // 0xFF'FFFF any pointer with bit 23 set will do.
 
 void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t originValue, uint32_t length) {
     while (!buf.isEmpty()) {

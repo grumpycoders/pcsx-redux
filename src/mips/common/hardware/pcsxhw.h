@@ -35,5 +35,26 @@ static __inline__ void pcsx_exit(int code) { *((volatile int16_t* const)0x1f8020
 static __inline__ void pcsx_message(const char* msg) { *((volatile const char** const)0x1f802084) = msg; }
 static __inline__ void pcsx_checkKernel(int enable) { *((volatile char*)0x1f802088) = enable; }
 static __inline__ int pcsx_isCheckingKernel() { return *((volatile char* const)0x1f802088) != 0; }
+static __inline__ void pcsx_initMsan() { *((volatile char* const)0x1f802089) = 0; }
+static __inline__ void pcsx_resetMsan() { *((volatile char* const)0x1f802089) = 1; }
+static __inline__ void* pcsx_msanAlloc(uint32_t size) {
+    register uint32_t a0 asm("a0") = size;
+    return *((void* volatile* const)0x1f80208c);
+}
+static __inline__ void pcsx_msanFree(void* ptr) { *((void* volatile* const)0x1f80208c) = ptr; }
+static __inline__ void* pcsx_msanRealloc(void* ptr, uint32_t size) {
+    register void* a0 asm("a0") = ptr;
+    register uint32_t a1 asm("a1") = size;
+    return *((void* volatile* const)0x1f802090);
+}
+static __inline__ void pcsx_msanSetChainPtr(void* headerAddr, void* ptrToNext, uint32_t wordCount) {
+    register void* a0 asm("a0") = ptrToNext;
+    register uint32_t a1 asm("a1") = wordCount;
+    *((void* volatile* const)0x1f802094) = headerAddr;
+}
+static __inline__ void* pcsx_msanGetChainPtr(void* headerAddr) {
+    register void* a0 asm("a0") = headerAddr;
+    return *((void* volatile* const)0x1f802094);
+}
 
 static __inline__ int pcsx_present() { return *((volatile uint32_t* const)0x1f802080) == 0x58534350; }

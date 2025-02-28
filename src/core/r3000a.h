@@ -290,6 +290,9 @@ class R3000Acpu {
 
     std::map<uint32_t, std::string> m_symbols;
 
+    std::pair<const uint32_t, std::string> *findContainingSymbol(uint32_t addr);
+    std::string *getSymbolAt(uint32_t addr);
+
     static int psxInit();
     virtual bool isDynarec() = 0;
     void psxReset();
