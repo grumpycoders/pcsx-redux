@@ -27,13 +27,17 @@
 #include "gui/gui.h"
 #include "imgui.h"
 
-static void drawSymbol(unsigned pc) {
+static void drawSymbol(uint32_t pc) {
     std::pair<const uint32_t, std::string>* symbol = PCSX::g_emulator->m_cpu->findContainingSymbol(pc);
     if (symbol) {
+        auto symbolNameBegin = symbol->second.data();
+        auto symbolNameEnd = symbolNameBegin + symbol->second.size();
         ImGui::SameLine();
         ImGui::TextUnformatted(" :: ");
         ImGui::SameLine();
-        ImGui::TextUnformatted(symbol->second.data(), &*symbol->second.end());
+        ImGui::TextUnformatted(symbolNameBegin, symbolNameEnd);
+        ImGui::SameLine();
+        ImGui::Text("+0x%08x", pc - symbol->first);
     }
 }
 
