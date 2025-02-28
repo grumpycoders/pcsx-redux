@@ -48,9 +48,9 @@
 namespace PCSX {
 
 enum class MsanStatus {
-    UNUSABLE,      // memory that hasn't been allocated or has been freed
-    UNINITIALIZED, // allocated memory that has never been written to, has undefined contents
-    OK             // free to use
+    UNUSABLE,       // memory that hasn't been allocated or has been freed
+    UNINITIALIZED,  // allocated memory that has never been written to, has undefined contents
+    OK              // free to use
 };
 
 class Memory {
@@ -91,7 +91,7 @@ class Memory {
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
-    template<uint32_t length>
+    template <uint32_t length>
     MsanStatus msanGetStatus(uint32_t addr) const {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = ((1 << length) - 1) << addr % 8;
@@ -115,8 +115,8 @@ class Memory {
     }
 
     // if the write is valid, marks the address as initialized, otherwise returns false
-    template<uint32_t length>
-	bool msanValidateWrite(uint32_t addr) {
+    template <uint32_t length>
+    bool msanValidateWrite(uint32_t addr) {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = ((1 << length) - 1) << addr % 8;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
@@ -133,9 +133,7 @@ class Memory {
         return true;
     }
 
-    static inline bool inMsanRange(uint32_t addr) {
-        return addr >= c_msanStart && addr < c_msanEnd;
-    }
+    static inline bool inMsanRange(uint32_t addr) { return addr >= c_msanStart && addr < c_msanEnd; }
 
     template <unsigned n>
     void dmaInterrupt() {

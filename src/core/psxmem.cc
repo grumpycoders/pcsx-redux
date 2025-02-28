@@ -279,23 +279,24 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
-		if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
-			switch (msanGetStatus<1>(address)) {
-				case MsanStatus::UNINITIALIZED:
-					g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
-					break;
-				case MsanStatus::UNUSABLE:
-					g_system->log(LogClass::CPU, _("8-bit read from unusable msan memory: %8.8lx\n"), address);
-					break;
-				case MsanStatus::OK:
-					return m_msanRAM[address - c_msanStart];
-			}
-			g_system->pause();
-			return 0;
-		}
+        if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
+            switch (msanGetStatus<1>(address)) {
+                case MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
+                case MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::CPU, _("8-bit read from unusable msan memory: %8.8lx\n"), address);
+                    break;
+                case MsanStatus::OK:
+                    return m_msanRAM[address - c_msanStart];
+            }
+            g_system->pause();
+            return 0;
+        }
         [[likely]];
         const uint32_t offset = address & 0xffff;
-		return *(pointer + offset);
+        return *(pointer + offset);
     } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
         if ((address & 0xffff) < 0x400) {
             return m_hard[address & 0x3ff];
@@ -329,10 +330,11 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
-		if (msanInitialized() && inMsanRange(address)) {
+        if (msanInitialized() && inMsanRange(address)) {
             switch (msanGetStatus<2>(address)) {
                 case MsanStatus::UNINITIALIZED:
-                    g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
+                    g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
                     break;
                 case MsanStatus::UNUSABLE:
                     g_system->log(LogClass::CPU, _("16-bit read from unusable msan memory: %8.8lx\n"), address);
@@ -379,7 +381,8 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
         if (msanInitialized() && inMsanRange(address)) {
             switch (msanGetStatus<4>(address)) {
                 case MsanStatus::UNINITIALIZED:
-                    g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"), address);
+                    g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
                     break;
                 case MsanStatus::UNUSABLE:
                     g_system->log(LogClass::CPU, _("32-bit read from unusable msan memory: %8.8lx\n"), address);

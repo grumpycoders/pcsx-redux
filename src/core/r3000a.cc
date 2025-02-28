@@ -34,8 +34,8 @@
 #include "core/sio.h"
 #include "core/sio1.h"
 #include "core/spu.h"
-#include "supportpsx/memory.h"
 #include "fmt/format.h"
+#include "supportpsx/memory.h"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
@@ -506,7 +506,7 @@ void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
 
 std::pair<const uint32_t, std::string>* PCSX::R3000Acpu::findContainingSymbol(uint32_t addr) {
     auto symBefore = m_symbols.upper_bound(addr);
-    if (symBefore != m_symbols.begin()) { // verify there is actually a symbol before addr
+    if (symBefore != m_symbols.begin()) {  // verify there is actually a symbol before addr
         symBefore--;
         if (symBefore->first != addr) {
             PCSX::PSXAddress addrInfo(addr);

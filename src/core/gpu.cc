@@ -450,7 +450,8 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
             addr &= 0xfffffffc;
             switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
                 case PCSX::MsanStatus::UNINITIALIZED:
-                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), addr);
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
                     g_system->pause();
                     return size;
                 case PCSX::MsanStatus::UNUSABLE:
@@ -458,7 +459,7 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
                     g_system->pause();
                     return size;
                 case PCSX::MsanStatus::OK:
-                    header = *(uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+                    header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
                     break;
             }
         } else {
@@ -479,8 +480,8 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
             continue;
         }
         addr = nextAddr;
-    } while (!(addr & 0x800000)); // contrary to some documentation, the end-of-linked-list marker is not actually
-    return size;                  // 0xFF'FFFF any pointer with bit 23 set will do.
+    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
+    return size;  // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
 uint32_t PCSX::GPU::readStatus() {
@@ -713,10 +714,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
         const uint32_t *feed;
         if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
-            const uint32_t *headerPtr = (uint32_t *) (g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+            const uint32_t *headerPtr = (uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
             switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
                 case PCSX::MsanStatus::UNINITIALIZED:
-                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"), addr);
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
                     g_system->pause();
                     return;
                 case PCSX::MsanStatus::UNUSABLE:
@@ -751,8 +753,8 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
             continue;
         }
         addr = nextAddr;
-    } while (!(addr & 0x800000)); // contrary to some documentation, the end-of-linked-list marker is not actually
-}                                 // 0xFF'FFFF any pointer with bit 23 set will do.
+    } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
+}  // 0xFF'FFFF any pointer with bit 23 set will do.
 
 void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t originValue, uint32_t length) {
     while (!buf.isEmpty()) {

@@ -22,10 +22,10 @@
 #include "core/callstacks.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
-#include "supportpsx/memory.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
+#include "supportpsx/memory.h"
 
 static void drawSymbol(uint32_t pc) {
     std::pair<const uint32_t, std::string>* symbol = PCSX::g_emulator->m_cpu->findContainingSymbol(pc);
