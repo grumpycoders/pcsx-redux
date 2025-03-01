@@ -1127,6 +1127,13 @@ void PCSX::GUI::endFrame() {
     m_offscreenShaderEditor.configure(this);
     m_outputShaderEditor.configure(this);
 
+    ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGuiContext* context = ImGui::GetCurrentContext();
+    ImGuiDockNode* dockspaceNode = ImGui::DockContextFindNodeByID(context, dockspaceId);
+    if (m_fullWindowRender && !dockspaceNode->IsEmpty()) {
+        m_fullWindowRender = false;
+        ImGui::SetNextWindowDockID(dockspaceId);
+    }
     if (m_fullWindowRender) {
         ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
@@ -1152,16 +1159,24 @@ void PCSX::GUI::endFrame() {
     } else {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        bool outputShown = true;
+        bool outputWindowShown = true;
         if (ImGui::Begin(
-                _("Output"), &outputShown,
+                _("Output"), &outputWindowShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            ImGuiDockNode* outputNode = ImGui::GetWindowDockNode();
+            if (outputNode && dockspaceNode->OnlyNodeWithWindows == outputNode
+                    && (!outputNode->TabBar || outputNode->TabBar->Tabs.size() == 1)) {
+                // if output is the only visible window in dockspace, switch to full window render mode automatically
+                outputWindowShown = false;
+            }
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            ImVec2 textureSize = contentRegion;
             if ((m_outputWindowSize.x != textureSize.x) || (m_outputWindowSize.y != textureSize.y)) {
                 m_outputWindowSize = textureSize;
                 m_setupScreenSize = true;
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
+			ImGui::SetCursorPos(ImGui::GetCursorPos() + (contentRegion - textureSize) * 0.5f);
             ImTextureID texture = m_offscreenTextures[m_currentTexture];
             if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
@@ -1170,7 +1185,11 @@ void PCSX::GUI::endFrame() {
             }
         }
         ImGui::End();
-        if (!outputShown) m_fullWindowRender = true;
+        if (!outputWindowShown) {
+            m_fullWindowRender = true;
+            // full window render mode can't have anything docked in the dockspace
+            ImGui::DockContextClearNodes(context, dockspaceId, true);
+        }
     }
 
     bool showOpenIsoFileDialog = false;
@@ -1433,6 +1452,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 if (ImGui::BeginMenu(_("Rendering"))) {
                     if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
                         m_setupScreenSize = true;
+                        // full window render mode can't have anything docked in the dockspace
+                        ImGui::DockContextClearNodes(context, dockspaceId, true);
                     }
                     if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
                         setFullscreen(m_fullscreen);
