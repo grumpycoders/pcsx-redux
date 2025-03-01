@@ -193,8 +193,9 @@ int pcsxMain(int argc, char **argv) {
     // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
     PCSX::g_system = system;
-    auto sigint = std::signal(SIGINT, [](auto signal) { PCSX::g_system->quit(-1); });
-    auto sigterm = std::signal(SIGTERM, [](auto signal) { PCSX::g_system->quit(-1); });
+	static std::atomic_bool scheduledQuit = false;
+    auto sigint = std::signal(SIGINT, [](auto signal) { scheduledQuit = true; });
+    auto sigterm = std::signal(SIGTERM, [](auto signal) { scheduledQuit = true; });
 #ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
 #endif
@@ -454,6 +455,10 @@ runner.init({
                     // when the emulator is paused.
                     s_ui->update();
                 }
+				if (scheduledQuit) {
+					PCSX::g_system->quit(-1);
+					return exitCode;
+				}
             }
         } catch (...) {
             // This will ensure we don't do certain cleanups that are awaiting other tasks,

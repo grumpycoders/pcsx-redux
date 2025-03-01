@@ -43,12 +43,10 @@ vsprojects/packages
 /modconv
 /ps1-packer
 /psyq-obj-parser
-/pcsx.json
-/memcard1.mcd
-/memcard2.mcd
 
 # Temporary files from pcsx itself
 pcsx.json
+pcsx.json.tmp
 *.mcd
 
 # FastBuild and msfastbuild stuff
