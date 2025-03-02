@@ -892,28 +892,35 @@ void PCSX::GUI::close() {
 
 void PCSX::GUI::saveCfg() {
     if (g_system->getArgs().isTestModeEnabled()) return;
-    std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
-    json j;
+	std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
+	std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
+	{
+		std::ofstream cfg(cfgTmpPath);
+		json j;
 
-    if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
-        m_glfwPosX = settings.get<WindowPosX>();
-        m_glfwPosY = settings.get<WindowPosY>();
-        m_glfwSizeX = settings.get<WindowSizeX>();
-        m_glfwSizeY = settings.get<WindowSizeY>();
-        m_glfwMaximized = settings.get<WindowMaximized>();
-    } else {
-        glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
-        glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
-        m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
-    }
+		if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
+			m_glfwPosX = settings.get<WindowPosX>();
+			m_glfwPosY = settings.get<WindowPosY>();
+			m_glfwSizeX = settings.get<WindowSizeX>();
+			m_glfwSizeY = settings.get<WindowSizeY>();
+			m_glfwMaximized = settings.get<WindowMaximized>();
+		} else {
+			glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
+			glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+			m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
+		}
 
-    j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
-    j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
-    j["emulator"] = PCSX::g_emulator->settings.serialize();
-    j["gui"] = settings.serialize();
-    j["loggers"] = m_log.serialize();
-    j["pads"] = PCSX::g_emulator->m_pads->getCfg();
-    cfg << std::setw(2) << j << std::endl;
+		j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
+		j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
+		j["emulator"] = PCSX::g_emulator->settings.serialize();
+		j["gui"] = settings.serialize();
+		j["loggers"] = m_log.serialize();
+		j["pads"] = PCSX::g_emulator->m_pads->getCfg();
+		cfg << std::setw(2) << j << std::endl;
+	}
+	if (std::filesystem::copy_file(cfgTmpPath, cfgPath, std::filesystem::copy_options::overwrite_existing)) {
+		std::filesystem::remove(cfgTmpPath);
+	}
 }
 
 void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
