@@ -1,6 +1,6 @@
 ![Debugger screenshot](https://pcsx-redux.consoledev.net/images/debugger1.png)
 
-<a href='https://ko-fi.com/nicolasnoble' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://github.githubassets.com/assets/ko_fi-53a60c17e75c.svg' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+<a href='https://ko-fi.com/nicolasnoble' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://github.githubassets.com/assets/ko_fi-53a60c17e75c.svg' border='0' alt='Buy Me a Coffee at ko-fi.com' />Buy Me a Coffee at ko-fi.com</a>
 
 |Platform|Build status|Download|
 |--------|------------|--------|
