@@ -166,6 +166,7 @@ class System {
     bool running() { return m_running; }
     const bool *runningPtr() { return &m_running; }
     bool quitting() { return m_quitting; }
+    bool terminating() { return m_terminating; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
     [[gnu::cold]] void pause(bool exception = false) {
@@ -174,11 +175,16 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
     }
     void resume() {
-        if (m_running) return;
+        if (m_running || m_terminating) return;
         m_running = true;
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     virtual void testQuit(int code) = 0;
+    [[gnu::cold]] void terminateSignalSafe() {
+        // about the only thing signal handlers can do safely is switch a flag
+        m_terminating = true;
+        m_running = false;
+    }
     [[gnu::cold]] void quit(int code = 0) {
         m_quitting = true;
         pause();
@@ -259,6 +265,7 @@ class System {
     std::string m_currentLocale;
     bool m_running = false;
     bool m_quitting = false;
+    bool m_terminating = false;
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;
