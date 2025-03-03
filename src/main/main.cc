@@ -166,7 +166,7 @@ struct Cleaner {
     std::function<void()> f;
 };
 
-void handleSignal(auto signal) {
+void handleSignal(int signal) {
     PCSX::g_system->terminateSignalSafe();
 }
 
@@ -200,7 +200,7 @@ int pcsxMain(int argc, char **argv) {
     auto sigint = std::signal(SIGINT, handleSignal);
     auto sigterm = std::signal(SIGTERM, handleSignal);
 #ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
+    std::signal(SIGPIPE, SIG_IGN);
 #endif
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
