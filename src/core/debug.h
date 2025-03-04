@@ -37,6 +37,7 @@ class Debug {
     static bool isInKernel(uint32_t address, bool biosIsKernel = true);
     static inline std::function<const char*()> s_breakpoint_type_names[] = {l_("Exec"), l_("Read"), l_("Write")};
     enum class BreakpointType { Exec, Read, Write };
+    enum class BreakpointCondition { Always, Change, Greater, Less, Equal };
 
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} read", c);
@@ -66,7 +67,7 @@ class Debug {
     struct InternalTemporaryList {};
     typedef Intrusive::List<Breakpoint, InternalTemporaryList> BreakpointTemporaryListType;
 
-    typedef std::function<bool(const Breakpoint*, uint32_t address, unsigned width, const char* cause)>
+    typedef std::function<bool(Breakpoint*, uint32_t address, unsigned width, const char* cause)>
         BreakpointInvoker;
 
     class Breakpoint : public BreakpointTreeType::Node,
@@ -78,6 +79,10 @@ class Debug {
             : m_type(type), m_source(source), m_invoker(invoker), m_base(base), m_label(label) {}
         std::string name() const;
         BreakpointType type() const { return m_type; }
+        BreakpointCondition condition() const { return m_condition; }
+        void setCondition(BreakpointCondition condition) { m_condition = condition; }
+        uint32_t conditionData() const { return m_conditionData; }
+        void setConditionData(uint32_t data) { m_conditionData = data; }
         unsigned width() const { return getHigh() - getLow() + 1; }
         uint32_t address() const { return getLow(); }
         bool enabled() const { return m_enabled; }
@@ -95,6 +100,8 @@ class Debug {
         }
 
         const BreakpointType m_type;
+        BreakpointCondition m_condition = BreakpointCondition::Always;
+        uint32_t m_conditionData = 0;
         const std::string m_source;
         const BreakpointInvoker m_invoker;
         mutable std::string m_label;
@@ -157,6 +164,10 @@ class Debug {
     void removeBreakpoint(const Breakpoint* bp) {
         if (m_lastBP == bp) m_lastBP = nullptr;
         delete const_cast<Breakpoint*>(bp);
+    }
+    void removeAllBreakpoints() { 
+        m_breakpoints.clear(); 
+        m_lastBP = nullptr;
     }
 
   private:
