@@ -18,19 +18,20 @@
  ***************************************************************************/
 
 #include "gui/widgets/breakpoints.h"
+
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "fmt/format.h"
 #include "imgui.h"
+#include "mips/common/util/decoder.hh"
 #include "support/imgui-helpers.h"
 
-// Note: We ignore SWL and SWR
-static uint32_t getValueAboutToWrite() {
-    uint32_t opcode = PCSX::g_emulator->m_mem->read32(PCSX::g_emulator->m_cpu->m_regs.pc);
-    uint32_t storeType = opcode >> 26;
-    uint32_t reg = ((opcode >> 16) & 0x1F);
-    uint32_t mask = (storeType == 0x28) ? 0xff : (storeType == 0x29) ? 0xffff : 0xffffffff;
-    return PCSX::g_emulator->m_cpu->m_regs.GPR.r[reg] & mask;
+static uint32_t getValueAboutToWrite(PCSX::R3000Acpu& cpu) {
+    Mips::Decoder::Instruction instr(cpu.m_regs.code);
+    if (instr.isStore()) {
+        return instr.getValueToStore(cpu.m_regs.GPR, cpu.m_regs.CP2D.r);
+    }
+    return 0;
 }
 
 static const char* getBreakpointConditionName(PCSX::Debug::BreakpointCondition condition) {
@@ -50,43 +51,33 @@ static const char* getBreakpointConditionName(PCSX::Debug::BreakpointCondition c
 }
 
 static uint32_t getMemoryValue(uint32_t addr, int width, bool isSigned) {
+    PCSX::IO<PCSX::File> mem = PCSX::g_emulator->m_mem->getMemoryAsFile();
 
-    union MemVal {
-        uint32_t uVal;
-        int32_t sVal;
-    };
-
-    MemVal final = {};
     switch (width) {
         case 1: {
-            uint8_t val = PCSX::g_emulator->m_mem->read8(addr);
             if (isSigned) {
-                final.uVal = val << 24;
-                final.sVal = final.sVal >> 24;
+                return mem->readAt<int8_t>(addr);
             } else {
-                final.uVal = val;
+                return mem->readAt<uint8_t>(addr);
             }
-        }
-        break;
+        } break;
         case 2: {
-            uint16_t val = PCSX::g_emulator->m_mem->read16(addr);
             if (isSigned) {
-                final.uVal = val << 16;
-                final.sVal = final.sVal >> 16;
+                return mem->readAt<int16_t>(addr);
             } else {
-                final.uVal = val;
+                return mem->readAt<uint16_t>(addr);
             }
-        }
-        break;
-        case 4: 
-            final.uVal = PCSX::g_emulator->m_mem->read32(addr);
+        } break;
+        case 4: {
+            return mem->readAt<uint32_t>(addr);
             break;
+        }
     }
-    return final.uVal;
+    return 0;
 }
 
-static ImVec4 s_normalColor = ImColor(0xff, 0xff, 0xff);
-static ImVec4 s_hitColor = ImColor(0xff, 0x00, 0x00);
+static const ImVec4 s_normalColor = ImColor(0xff, 0xff, 0xff);
+static const ImVec4 s_hitColor = ImColor(0xff, 0x00, 0x00);
 
 void PCSX::Widgets::Breakpoints::draw(const char* title) {
     ImGui::SetNextWindowPos(ImVec2(520, 30), ImGuiCond_FirstUseEver);
@@ -99,6 +90,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
     const Debug::Breakpoint* toErase = nullptr;
     auto& tree = debugger->getTree();
+    auto& cpu = PCSX::g_emulator->m_cpu;
 
     int counter = 0;
     if (!tree.empty()) {
@@ -114,7 +106,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
             ImGui::TableSetupColumn("Label");
             ImGui::TableHeadersRow();
 
-            const uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
+            const uint32_t pc = cpu->m_regs.pc;
 
             int row = 0;
             for (auto bp = tree.begin(); bp != tree.end(); bp++, row++) {
@@ -161,7 +153,8 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                         fmt::format("{} {}", Debug::s_breakpoint_type_names[(unsigned)bp->type()](), bp->source());
                 } else {
                     textStr = fmt::format("{}:{} {} {} {}", Debug::s_breakpoint_type_names[(unsigned)bp->type()](),
-                                          bp->width(), bp->source(), getBreakpointConditionName(bp->condition()), bp->conditionData());
+                                          bp->width(), bp->source(), getBreakpointConditionName(bp->condition()),
+                                          bp->conditionData());
                 }
                 ImGui::TextUnformatted(textStr.c_str());
 
@@ -186,7 +179,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
     if (ImGui::BeginPopupContextItem("BreakpointPopup")) {
         ImGui::InputText(_("Address"), m_bpAddressString, sizeof(m_bpAddressString),
-                            ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AutoSelectAll);
+                         ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_AutoSelectAll);
         if (ImGui::BeginCombo(_("Type"), Debug::s_breakpoint_type_names[m_breakpointType]())) {
             for (int i = 0; i < 3; i++) {
                 if (ImGui::Selectable(Debug::s_breakpoint_type_names[i](), m_breakpointType == i)) {
@@ -217,7 +210,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         static int breakConditionImguiValue = 0;
         static int conditionVal = 0;
 
-        Debug::BreakpointCondition breakCondition = Debug::BreakpointCondition::Always; 
+        Debug::BreakpointCondition breakCondition = Debug::BreakpointCondition::Always;
         Debug::BreakpointType type = (Debug::BreakpointType)m_breakpointType;
         if (type != Debug::BreakpointType::Exec) {
             ImGui::Combo(_("Break Condition"), &breakConditionImguiValue, _("Always\0Change\0Greater\0Less\0Equal\0"));
@@ -252,9 +245,8 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
 
                 Debug::BreakpointInvoker invoker = [](Debug::Breakpoint* self, uint32_t address, unsigned width,
                                                       const char* cause) {
-
-                    switch (self->type())
-                    {
+                    auto& cpu = PCSX::g_emulator->m_cpu;
+                    switch (self->type()) {
                         case Debug::BreakpointType::Exec:
                             g_system->pause();
                             break;
@@ -262,7 +254,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                         case Debug::BreakpointType::Write: {
                             // We can't rely on data in memory since the bp triggers before the instruction executes
                             // So we grab the value to be written directly from the instruction itself
-                            uint32_t curVal = getValueAboutToWrite();
+                            uint32_t curVal = getValueAboutToWrite(*cpu);
                             bool doBreak = true;
                             switch (self->condition()) {
                                 default:
@@ -342,9 +334,9 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                         break;
                 }
 
-                Debug::Breakpoint* bp = debugger->addBreakpoint(breakpointAddress, bpType,
-                                                     (bpType == Debug::BreakpointType::Exec) ? 4 : actualWidth, _("GUI"),
-                                                       m_bpLabelString, invoker);
+                Debug::Breakpoint* bp = debugger->addBreakpoint(
+                    breakpointAddress, bpType, (bpType == Debug::BreakpointType::Exec) ? 4 : actualWidth, _("GUI"),
+                    m_bpLabelString, invoker);
 
                 bp->setCondition(breakCondition);
                 bp->setConditionData(conditionData);

@@ -34,6 +34,7 @@
 #include "core/psxmem.h"
 #include "support/file.h"
 #include "support/hashtable.h"
+#include "mips/common/util/mips.hh"
 
 #if defined(__i386__) || defined(_M_IX86)
 #define DYNAREC_NONE  // Hahano
@@ -89,20 +90,7 @@ typedef union {
     int32_t sd;
 } PAIR;
 
-typedef union {
-    struct {
-        uint32_t r0, at, v0, v1, a0, a1, a2, a3;
-        uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
-        uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-        uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
-        uint32_t lo, hi;
-    } n;
-    uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
-    PAIR p[34];
-} psxGPRRegs;
-
-// Make sure no packing is inserted anywhere
-static_assert(sizeof(psxGPRRegs) == 34 * sizeof(uint32_t));
+using psxGPRRegs = Mips::GPRRegs;
 
 typedef union {
     struct {
