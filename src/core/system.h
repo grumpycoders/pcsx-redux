@@ -168,6 +168,7 @@ class System {
         return m_running && !m_quitting;
     }
     const bool *runningPtr() { return &m_running; }
+    const bool *quittingPtr() { return &m_quitting; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
