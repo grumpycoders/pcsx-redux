@@ -116,8 +116,6 @@ class SystemImpl final : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
-
     virtual void testQuit(int code) final override {
         if (m_args.isTestModeEnabled()) {
             quit(code);
@@ -134,6 +132,8 @@ class SystemImpl final : public PCSX::System {
     const PCSX::Arguments m_args;
 
   public:
+    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
+
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
@@ -167,7 +167,7 @@ struct Cleaner {
 };
 
 void handleSignal(int signal) {
-    PCSX::g_system->terminateSignalSafe();
+    PCSX::g_system->quit(-1);
 }
 
 int pcsxMain(int argc, char **argv) {
@@ -454,15 +454,14 @@ runner.init({
                     emulator->m_cpu->Execute();
                 } else {
                     // The "update" method will be called periodically by the emulator while
-                    // meaning if we want our UI to work, we have to manually call "update"
-                    // when the emulator is paused.
+                    // it's running, meaning if we want our UI to work, we have to manually
+                    // call "update" when the emulator is paused.
                     s_ui->update();
                 }
-				if (system->terminating()) {
-					PCSX::g_system->quit(-1);
-					return exitCode;
-				}
             }
+            system->pause();
+            system->m_eventBus->signal(PCSX::Events::Quitting{});
+            system->purgeAllEvents();
         } catch (...) {
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.
