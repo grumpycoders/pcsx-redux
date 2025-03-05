@@ -163,8 +163,12 @@ class System {
     // Close mem and plugins
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;
-    bool running() { return m_running; }
+    bool running() {
+        std::atomic_signal_fence(std::memory_order_relaxed);
+        return m_running && !m_quitting;
+    }
     const bool *runningPtr() { return &m_running; }
+    const bool *quittingPtr() { return &m_quitting; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
@@ -179,12 +183,10 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     virtual void testQuit(int code) = 0;
+    // This needs to only mutate variables, as it requires to be signal-safe.
     [[gnu::cold]] void quit(int code = 0) {
         m_quitting = true;
-        pause();
         m_exitCode = code;
-        m_eventBus->signal(Events::Quitting{});
-        purgeAllEvents();
     }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
@@ -257,7 +259,17 @@ class System {
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
     std::string m_currentLocale;
+    // If true, indicates that the emulator is currently capturing the main loop
+    // and actively emulates the PSX hardware. If false, the emulator is paused,
+    // waiting for user input or other events inside the UI. The way the UI
+    // is refreshed is by calling update() periodically, so this boolean affects
+    // the moment when and how update() is called.
     bool m_running = false;
+    // If true, indicates that the emulator is quitting. This can be set by a
+    // number of events, including the user pressing the quit button or the
+    // emulator itself requesting a quit due to testing for instance. This will
+    // cause the two main loop to exit: the inner one being the emulator itself,
+    // and the outer one being the main.cc loop.
     bool m_quitting = false;
     int m_exitCode = 0;
     struct LocaleInfo {
