@@ -35,8 +35,9 @@ vsprojects/packages
 .Trash-1000/
 
 # Linux files
-*.o
-*.dep
+deps/
+objs/
+bins/
 /pcsx-redux
 /exe2elf
 /exe2iso

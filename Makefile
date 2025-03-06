@@ -170,7 +170,7 @@ SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportp
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
-OBJECTS := third_party/luajit/src/libluajit.a
+LIBS := third_party/luajit/src/libluajit.a
 
 TOOLS = exe2elf exe2iso modconv ps1-packer psyq-obj-parser
 
@@ -189,7 +189,7 @@ endif
 endef
 
 define CHECK_LIB
-ifeq ($(shell echo "int main(){}" | gcc -x c - -l$(1) -Wl,--no-as-needed -Wl,--unresolved-symbols=ignore-all -Wl,--no-undefined -o /dev/null >& /dev/null && echo true || echo false),true)
+ifeq ($(shell echo "int main(){}" | gcc -x c - -l$(1) -Wl,--no-as-needed -Wl,--unresolved-symbols=ignore-all -Wl,--no-undefined -o /dev/null 1> /dev/null 2> /dev/null && echo true || echo false),true)
 LDFLAGS += -l$(1)
 else
 CPPFLAGS += $(CPPFLAGS_lib_$(1))
@@ -207,19 +207,23 @@ LDFLAGS_PKGCONFIG := $(shell pkg-config --libs $(PACKAGES))
 CPPFLAGS += $(CPPFLAGS_PKGCONFIG)
 LDFLAGS += $(LDFLAGS_PKGCONFIG)
 
-OBJECTS += $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
-OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
-OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
-OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
-SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
-SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
-NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
-IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
-VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.c,%.o,$(filter %.c,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.mm,%.o,$(filter %.mm,$(SRCS))))
+SUPPORT_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS))))
+SUPPORT_OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS))))
+NONMAIN_OBJECTS := $(filter-out objs/$(BUILD)/src/main/mainthunk.o,$(OBJECTS))
+IMGUI_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS))))
+VIXL_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS))))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
+
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.c,%.dep,$(filter %.c,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS))))
 
 CP ?= cp
 MKDIRP ?= mkdir -p
@@ -228,6 +232,7 @@ all: check_submodules dep $(TARGET)
 
 ifeq ($(HAS_SUBMODULES),true)
 check_submodules:
+	@true
 
 else
 check_submodules:
@@ -275,39 +280,56 @@ third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
 endif
 
-$(TARGET): $(OBJECTS)
-	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
+bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
+	@$(MKDIRP) $(dir $@)
+	$(LD) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS)
 
-%.o: %.c
+$(TARGET): bins/$(BUILD)/$(TARGET)
+	$(CP) $< $@
+
+objs/$(BUILD)/%.o: %.c
+	@$(MKDIRP) $(dir $@)
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.o: %.cc
+objs/$(BUILD)/%.o: %.cc
+	@$(MKDIRP) $(dir $@)
 	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
-%.o: %.cpp
+objs/$(BUILD)/%.o: %.cpp
+	@$(MKDIRP) $(dir $@)
 	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
-%.o: %.mm
+objs/$(BUILD)/%.o: %.mm
+	@$(MKDIRP) $(dir $@)
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.dep: third_party/luajit/src/luajit.h %.c
-	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.c
+	@$(MKDIRP) $(dir $@)
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
 
-%.dep: third_party/luajit/src/luajit.h %.cc
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cc
+	@$(MKDIRP) $(dir $@)
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
 
-%.dep: third_party/luajit/src/luajit.h %.cpp
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cpp
+	@$(MKDIRP) $(dir $@)
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+
+objs/$(BUILD)/gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
+	@$(MKDIRP) $(dir $@)
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc -o objs/$(BUILD)/gtest-all.o
+
+objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
+	@$(MKDIRP) $(dir $@)
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc -o objs/$(BUILD)/gtest_main.o
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o gtest_main.o
+	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
-gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
-	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
-
-gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
-	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc
+cleanall:
+	rm -rf bins objs deps $(TOOLS) $(TARGET)
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
 gitclean:
 	git clean -f -d -x
@@ -327,35 +349,41 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o
-	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+bins/$(BUILD)/pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+	@$(MKDIRP) $(dir $@)
+	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+
+pcsx-redux-tests: check_submodules bins/$(BUILD)/pcsx-redux-tests
+	$(CP) bins/$(BUILD)/pcsx-redux-tests pcsx-redux-tests
 
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 define TOOLDEF
-$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).o
-	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static -lz
+bins/$(BUILD)/$(1): $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o
+	@$(MKDIRP) $(dir bins/$(BUILD)/$(1))
+	$(LD) -o bins/$(BUILD)/$(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o -static -lz
+
+$(1): check_submodules bins/$(BUILD)/$(1)
+	$(CP) bins/$(BUILD)/$(1) $(1)
 
 endef
 
 $(foreach tool,$(TOOLS),$(eval $(call TOOLDEF,$(tool))))
 
-tools: $(TOOLS)
+tools: check_submodules dep $(TOOLS)
 
-.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
+dep: check_submodules $(DEPS)
 
-DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS += $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
-DEPS += $(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS)))
-
-dep: $(DEPS)
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools $(TOOLS) $(TARGET)
 
 ifneq ($(MAKECMDGOALS), regen-i18n)
 ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), cleanall)
 ifneq ($(MAKECMDGOALS), gitclean)
 ifeq ($(HAS_SUBMODULES), true)
 -include $(DEPS)
+endif
 endif
 endif
 endif
