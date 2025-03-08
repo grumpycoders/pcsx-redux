@@ -327,7 +327,7 @@ const uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
     }
 }
 void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex /* = 0*/,
-                                           bool forceShowEditor /* = false*/) {
+                                           bool forceShowEditor /* = true*/) {
     g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size, editorIndex, forceShowEditor});
 }
 void PCSX::Widgets::Assembly::addMemoryEditorContext(uint32_t addr, int size) {
@@ -381,7 +381,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     ImGui::TextUnformatted(" ");
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex, false);
+    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex, true);
     ImGui::PopStyleVar();
     addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
@@ -442,7 +442,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     ImGui::TextUnformatted(" ");
     sameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex, false);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex, true);
     ImGui::PopStyleVar();
     addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
