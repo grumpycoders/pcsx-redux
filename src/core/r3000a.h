@@ -32,9 +32,9 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "mips/common/util/mips.hh"
 #include "support/file.h"
 #include "support/hashtable.h"
-#include "mips/common/util/mips.hh"
 
 #if defined(__i386__) || defined(_M_IX86)
 #define DYNAREC_NONE  // Hahano

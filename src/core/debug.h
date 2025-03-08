@@ -67,8 +67,7 @@ class Debug {
     struct InternalTemporaryList {};
     typedef Intrusive::List<Breakpoint, InternalTemporaryList> BreakpointTemporaryListType;
 
-    typedef std::function<bool(Breakpoint*, uint32_t address, unsigned width, const char* cause)>
-        BreakpointInvoker;
+    typedef std::function<bool(Breakpoint*, uint32_t address, unsigned width, const char* cause)> BreakpointInvoker;
 
     class Breakpoint : public BreakpointTreeType::Node,
                        public BreakpointUserListType::Node,
@@ -165,8 +164,8 @@ class Debug {
         if (m_lastBP == bp) m_lastBP = nullptr;
         delete const_cast<Breakpoint*>(bp);
     }
-    void removeAllBreakpoints() { 
-        m_breakpoints.clear(); 
+    void removeAllBreakpoints() {
+        m_breakpoints.clear();
         m_lastBP = nullptr;
     }
 
