@@ -166,9 +166,7 @@ struct Cleaner {
     std::function<void()> f;
 };
 
-void handleSignal(int signal) {
-    PCSX::g_system->quit(-1);
-}
+void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
