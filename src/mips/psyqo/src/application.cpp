@@ -51,15 +51,20 @@ int psyqo::Application::run() {
     clearAllGTERegisters();
     prepare();
     Kernel::fastLeaveCriticalSection();
+    start();
     while (true) {
-        if (m_scenesStack.empty()) {
-            createScene();
-        }
-        Kernel::assert(m_scenesStack.size() > 0, "Scenes stack is empty");
-        getCurrentScene()->frame();
+        frame();
         m_gpu.flip();
     }
     __builtin_unreachable();
+}
+
+void psyqo::Application::frame() {
+    if (m_scenesStack.empty()) {
+        createScene();
+    }
+    Kernel::assert(m_scenesStack.size() > 0, "Scenes stack is empty");
+    getCurrentScene()->frame();
 }
 
 psyqo::Scene* psyqo::Application::getCurrentScene() {

@@ -58,17 +58,30 @@ class Application {
     /**
      * @brief Prepare the objects for the application
      *
-     * @details This will be called once before creating the first scene,
-     * and should be used to initialize any other objects necessary. Do
-     * not try to access any hardware resources during this call.
+     * @details This will be called once before the main loop, and
+     * should be used to initialize any other objects necessary. Do
+     * not try to access any hardware resources during this call,
+     * as interrupts are disabled at this point.
      */
     virtual void prepare() {}
+
+    /**
+     * @brief Start the application.
+     *
+     * @details This will be called once before the main loop, and
+     * after the `prepare` method. It should be used to initialize
+     * any hardware resources necessary, as interrupts are enabled.
+     */
+    virtual void start() {}
 
     /**
      * @brief Create the root scene object.
      *
      * @details This will be called once before the main loop. It should
-     * create the root scene object and push it onto the stack.
+     * create the root scene object and push it onto the stack. This will
+     * only be called if the `frame` method of the `Application` class
+     * hasn't been overridden. If you override the `frame` method, you
+     * are responsible for managing your own scene system.
      */
     virtual void createScene() {}
 
@@ -110,6 +123,18 @@ class Application {
      * @return the popped scene, potentially for deletion if needed.
      */
     Scene* popScene();
+
+    /**
+     * @brief The frame method.
+     *
+     * @details The default implementation of this method will call the
+     * `createScene` method if the scene stack is empty, and then call
+     * the `frame` method of the current scene. This method is called
+     * once per frame, and should be used to update the application
+     * state. If you override this method, you are responsible for
+     * managing your own scene system.
+     */
+    virtual void frame();
 
     virtual ~Application() = default;
 
