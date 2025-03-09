@@ -2,27 +2,25 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 # Translators:
 # Name LastName, 2022
 # Whitehole <javi_del_95@hotmail.com>, 2022
-# Víctor González, 2024
-#
+# Víctor González, 2025
+# 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Víctor González, 2024\n"
-"Language-Team: Spanish (Spain) (https://app.transifex.com/grumpycoders/"
-"teams/99251/es_ES/)\n"
-"Language: es_ES\n"
+"Last-Translator: Víctor González, 2025\n"
+"Language-Team: Spanish (Spain) (https://app.transifex.com/grumpycoders/teams/99251/es_ES/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
-"1 : 2;\n"
+"Language: es_ES\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: src/cdrom/cdriso-ecm.cc:282
 #, c-format
@@ -31,8 +29,7 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo "
-"correctos.\n"
+"Detectado un archivo ECM con la cabecera y el sufijo en su nombre de archivo correctos.\n"
 
 #: src/cdrom/cdriso-sbi.cc:41
 #, c-format
@@ -143,7 +140,7 @@ msgstr "Mapa de ejecuciones"
 #: src/core/debug.cc:167
 #, c-format
 msgid "Kernel checker: Jump from 0x%08x to 0x%08x\n"
-msgstr ""
+msgstr "Comprobación del kernel: salto de 0x%08x a 0x%08x\n"
 
 #: src/core/debug.cc:177
 msgid "Read 8 map"
@@ -172,12 +169,12 @@ msgstr "Escribir mapa de 32 bits"
 #: src/core/debug.cc:220
 #, c-format
 msgid "Kernel checker: Reading %08x from %08x\n"
-msgstr ""
+msgstr "Comprobación del kernel: leyendo %08x desde %08x\n"
 
 #: src/core/debug.cc:223
 #, c-format
 msgid "Kernel checker: Writing to %08x from %08x\n"
-msgstr ""
+msgstr "Comprobación del kernel: escribiendo a %08x desde %08x\n"
 
 #: src/core/debug.cc:241
 msgid "Step in"
@@ -226,11 +223,13 @@ msgstr "Cliente GDB"
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
+"Un DMA de la GPU ha ido a memoria de msan utilizable, pero sin inicializar: "
+"%8.8lx\n"
 
 #: src/core/gpu.cc:458 src/core/gpu.cc:725 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
-msgstr ""
+msgstr "Un DMA de la GPU ha ido a memoria de msan no utilizable: %8.8lx\n"
 
 #: src/core/gpu.cc:1158 src/core/gpu.cc:1242
 msgid "Shading: Flat"
@@ -412,14 +411,14 @@ msgid "Unknown"
 msgstr "Elemento desconocido"
 
 #: src/core/gte.h:57
-#, fuzzy, c-format
+#, c-format
 msgid "Unaligned address 0x%08x in LWC2 from 0x%08x\n"
-msgstr "Dirección 0x%08x no alineada en LW de 0x%08x\n"
+msgstr "Dirección sin alinear 0x%08x en LWC2 de 0x%08x\n"
 
 #: src/core/gte.h:69
-#, fuzzy, c-format
+#, c-format
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
-msgstr "Dirección 0x%08x no alineada en SW de 0x%08x\n"
+msgstr "Dirección sin alinear 0x%08x en SWC2 de 0x%08x\n"
 
 #: src/core/memorycard.cc:348
 #, c-format
@@ -703,11 +702,15 @@ msgstr "Escritura desconocida de 8 bits en EXP1/PIO: %8.8lx\n"
 #, c-format
 msgid "Called msanGetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
+"Se ha invocado a msanGetChainPtr con el puntero de cabecera no válido "
+"%8.8lx\n"
 
 #: src/core/psxhw.cc:841
 #, c-format
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
+"Se ha invocado a msanSetChainPtr con el puntero de cabecera no válido "
+"%8.8lx\n"
 
 #: src/core/psxinterpreter.cc:359
 #, c-format
@@ -784,8 +787,8 @@ msgstr "Se ha intentado acceder a COP3 desde 0x%08x. Ignorando.\n"
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
-"SharedMem no ha podido compartir memoria para la wram, utilizando asignación "
-"de memoria como método de reserva\n"
+"SharedMem no ha podido compartir memoria para la wram, utilizando asignación"
+" de memoria como método de reserva\n"
 
 #: src/core/psxmem.cc:115
 msgid "Error allocating memory!"
@@ -806,15 +809,13 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   No se ha cargado una BIOS, emulación detenida.\n"
 "\n"
-"Elige un archivo de BIOS en la configuración y luego haz un reinicio "
-"completo de la emulación.\n"
+"Elige un archivo de BIOS en la configuración y luego haz un reinicio completo de la emulación.\n"
 "El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
 "\n"
 
@@ -855,14 +856,16 @@ msgid "Unknown bios loaded (%08x)\n"
 msgstr "Se ha cargado una BIOS desconocida (%08x)\n"
 
 #: src/core/psxmem.cc:285
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "Lectura de 8 bits desde dirección desconocida: %8.8lx\n"
+msgstr ""
+"Lectura de 8 bits desde memoria msan utilizable, pero sin inicializar: "
+"%8.8lx\n"
 
 #: src/core/psxmem.cc:289
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
-msgstr "Lectura de 8 bits desde dirección desconocida: %8.8lx\n"
+msgstr "Lectura de 8 bits desde memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:318
 #, c-format
@@ -870,14 +873,16 @@ msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 8 bits desde dirección desconocida: %8.8lx\n"
 
 #: src/core/psxmem.cc:336
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "Lectura de 16 bits desde dirección desconocida: %8.8lx\n"
+msgstr ""
+"Lectura de 16 bits desde memoria msan utilizable, pero sin inicializar: "
+"%8.8lx\n"
 
 #: src/core/psxmem.cc:340
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
-msgstr "Lectura de 16 bits desde dirección desconocida: %8.8lx\n"
+msgstr "Lectura de 16 bits desde memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:366
 #, c-format
@@ -885,14 +890,16 @@ msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 16 bits desde dirección desconocida: %8.8lx\n"
 
 #: src/core/psxmem.cc:384
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "Lectura de 32 bits desde dirección desconocida: %8.8lx\n"
+msgstr ""
+"Lectura de 32 bits desde memoria msan utilizable, pero sin inicializar: "
+"%8.8lx\n"
 
 #: src/core/psxmem.cc:388
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
-msgstr "Lectura de 32 bits desde dirección desconocida: %8.8lx\n"
+msgstr "Lectura de 32 bits desde memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:416
 #, c-format
@@ -900,9 +907,9 @@ msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 32 bits desde dirección desconocida: %8.8lx\n"
 
 #: src/core/psxmem.cc:509
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
-msgstr "Escritura de 8 bits a dirección desconocida: %8.8lx\n"
+msgstr "Escritura de 8 bits a memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:528
 #, c-format
@@ -910,9 +917,9 @@ msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "Escritura de 8 bits a dirección desconocida: %8.8lx\n"
 
 #: src/core/psxmem.cc:546
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
-msgstr "Escritura de 16 bits a dirección desconocida: %8.8lx\n"
+msgstr "Escritura de 16 bits a memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:566
 #, c-format
@@ -920,9 +927,9 @@ msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "Escritura de 16 bits a dirección desconocida: %8.8lx\n"
 
 #: src/core/psxmem.cc:584
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
-msgstr "Escritura de 32 bits a dirección desconocida: %8.8lx\n"
+msgstr "Escritura de 32 bits a memoria msan no utilizable: %8.8lx\n"
 
 #: src/core/psxmem.cc:613
 #, c-format
@@ -937,27 +944,27 @@ msgstr "Escritura de 32 bits a dirección desconocida: %8.8lx\n"
 #: src/core/psxmem.cc:828
 #, c-format
 msgid "MSAN system was already initialized.\n"
-msgstr ""
+msgstr "El sistema MSAN ya ha sido iniciado.\n"
 
 #: src/core/psxmem.cc:853
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
-msgstr ""
+msgstr "No queda memoria en MsanAlloc\n"
 
 #: src/core/psxmem.cc:877 src/core/psxmem.cc:884
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
-msgstr ""
+msgstr "Puntero no válido transmitido a MsanFree: %08x\n"
 
 #: src/core/psxmem.cc:906 src/core/psxmem.cc:913
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
-msgstr ""
+msgstr "Puntero no válido transmitido a MsanRealloc: %08x\n"
 
 #: src/core/psxmem.cc:956
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
-msgstr ""
+msgstr "Cabecera de cadena msan sin registrar en %08x\n"
 
 #: src/core/r3000a.cc:41
 #, c-format
@@ -1029,11 +1036,11 @@ msgstr ""
 
 #: src/gpu/soft/gpu.cc:261
 msgid "Disable textures for polygons"
-msgstr ""
+msgstr "Desactivar texturas de polígonos"
 
 #: src/gpu/soft/gpu.cc:262
 msgid "Disable textures for sprites"
-msgstr ""
+msgstr "Desactivar texturas de sprites"
 
 #: src/gpu/soft/gpu.cc:271
 msgid "Soft GPU debugger"
@@ -1321,8 +1328,7 @@ msgstr "Mostrar desensamblador del DynaRec"
 
 #: src/gui/gui.cc:1384
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
-"[Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "El desensamblador del DynaRec no se encuentra disponible\n"
@@ -1351,9 +1357,8 @@ msgid "Show Typed Debugger"
 msgstr "Mostrar depurador con tipos"
 
 #: src/gui/gui.cc:1402
-#, fuzzy
 msgid "Show Patches"
-msgstr "Mostrar pilas de llamadas"
+msgstr "Mostrar parches"
 
 #: src/gui/gui.cc:1403
 msgid "Show Interrupts Scaler"
@@ -1537,9 +1542,8 @@ msgid "Breakpoints"
 msgstr "Puntos de interrupción"
 
 #: src/gui/gui.cc:1676
-#, fuzzy
 msgid "Patches"
-msgstr "Inspección"
+msgstr "Parches"
 
 #: src/gui/gui.cc:1680
 msgid "Named Save States"
@@ -2145,8 +2149,8 @@ msgid ""
 "be able to properly report problems accurately."
 msgstr ""
 "Se ha desactivado el informe de errores de OpenGL porque tu controlador de "
-"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo, "
-"de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
+"OpenGL es demasiado antiguo. Los informes de errores requieren, como mínimo,"
+" de la versión 4.3 de Open GL. Recomendamos actualizar los controladores de "
 "tu tarjeta gráfica o contactar con el fabricante de tu GPU para obtener los "
 "controladores más recientes para OpenGL. Desactivar los informes de errores "
 "de OpenGL no afectará de forma negativa al rendimiento de este software, "
@@ -2163,8 +2167,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"El informe de errores de OpenGL es necesario para poder informar debidamente "
-"de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
+"El informe de errores de OpenGL es necesario para poder informar debidamente"
+" de cualquier problema que pueda ocurrir con OpenGL. Sin embargo, es "
 "necesaria la versión 4.3 o superior de OpenGL y esto podría afectar al "
 "rendimiento de algunos equipos (es necesario reiniciar el emulador)."
 
@@ -2322,9 +2326,8 @@ msgid "Go to in Memory Editor #{}"
 msgstr "Ver en editor de memoria {}"
 
 #: src/gui/widgets/assembly.cc:343
-#, fuzzy
 msgid "Create Memory Read Breakpoint"
-msgstr "Quitar punto de interrupción"
+msgstr "Crear punto de interrupción de lectura en memoria"
 
 #: src/gui/widgets/assembly.cc:344 src/gui/widgets/assembly.cc:347
 #: src/gui/widgets/assembly.cc:767 src/gui/widgets/assembly.cc:793
@@ -2333,9 +2336,8 @@ msgid "GUI"
 msgstr "Interfaz de usuario"
 
 #: src/gui/widgets/assembly.cc:346
-#, fuzzy
 msgid "Create Memory Write Breakpoint"
-msgstr "Interrup. de escritura"
+msgstr "Crear punto de interrupción de escritura a memoria"
 
 #: src/gui/widgets/assembly.cc:353
 msgid "Go to in Memory Editor..."
@@ -2475,19 +2477,19 @@ msgstr "Quitar punto de interrupción"
 
 #: src/gui/widgets/assembly.cc:816
 msgid "Patch in Return"
-msgstr ""
+msgstr "Parchear en punto de retorno"
 
 #: src/gui/widgets/assembly.cc:819
 msgid "Patch in NOP"
-msgstr ""
+msgstr "Parchear en NOP"
 
 #: src/gui/widgets/assembly.cc:826
 msgid "Delete Return Patch"
-msgstr ""
+msgstr "Eliminar parche en retorno"
 
 #: src/gui/widgets/assembly.cc:832
 msgid "Delete NOP Patch"
-msgstr ""
+msgstr "Eliminar parche en NOP"
 
 #: src/gui/widgets/assembly.cc:839 src/gui/widgets/assembly.cc:1043
 #: src/gui/widgets/assembly.cc:1045 src/gui/widgets/assembly.cc:1051
@@ -2497,7 +2499,8 @@ msgstr "Ensamblar"
 #: src/gui/widgets/assembly.cc:976 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
-#: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:927
+#: src/gui/widgets/memory_observer.cc:424
+#: src/gui/widgets/typed_debugger.cc:927
 msgid "Address"
 msgstr "Dirección"
 
@@ -2560,40 +2563,36 @@ msgstr "Cargar símbolos"
 
 #: src/gui/widgets/breakpoints.cc:40 src/gui/widgets/breakpoints.cc:216
 msgid "Always"
-msgstr ""
+msgstr "Siempre"
 
 #: src/gui/widgets/breakpoints.cc:42
 msgid "Greater"
-msgstr ""
+msgstr "Mayor que"
 
 #: src/gui/widgets/breakpoints.cc:44
 msgid "Less"
-msgstr ""
+msgstr "Menor que"
 
 #: src/gui/widgets/breakpoints.cc:46
-#, fuzzy
 msgid "Change"
-msgstr "Conjunto de cambios: "
+msgstr "Cambio"
 
 #: src/gui/widgets/breakpoints.cc:48
 msgid "Equal"
-msgstr ""
+msgstr "Igual a"
 
 #: src/gui/widgets/breakpoints.cc:129
-#, fuzzy
 msgid "Delete Breakpoint?"
-msgstr "Alternar punto de interrupción"
+msgstr "¿Eliminar el punto de interrupción?"
 
 #: src/gui/widgets/breakpoints.cc:130 src/gui/widgets/breakpoints.cc:375
 #: src/gui/widgets/patches.cc:69
-#, fuzzy
 msgid "Delete"
-msgstr "Eliminar estado"
+msgstr "Eliminar"
 
 #: src/gui/widgets/breakpoints.cc:176
-#, fuzzy
 msgid "Add Breakpoint..."
-msgstr "Añadir un punto de interrupción"
+msgstr "Añadir punto de interrupción..."
 
 #: src/gui/widgets/breakpoints.cc:183 src/gui/widgets/typed_debugger.cc:826
 #: src/gui/widgets/typed_debugger.cc:872
@@ -2602,29 +2601,27 @@ msgstr "Tipo"
 
 #: src/gui/widgets/breakpoints.cc:195
 msgid "Byte"
-msgstr ""
+msgstr "Byte"
 
 #: src/gui/widgets/breakpoints.cc:196
 msgid "Half"
-msgstr ""
+msgstr "«Half»"
 
 #: src/gui/widgets/breakpoints.cc:197
 msgid "Word"
-msgstr ""
+msgstr "«Word»"
 
 #: src/gui/widgets/breakpoints.cc:198
 msgid "Range"
-msgstr ""
+msgstr "Rango"
 
 #: src/gui/widgets/breakpoints.cc:201
-#, fuzzy
 msgid "Byte Width"
-msgstr "Ancho de punto de interrupción"
+msgstr "Longitud de byte"
 
 #: src/gui/widgets/breakpoints.cc:216
-#, fuzzy
 msgid "Break Condition"
-msgstr "Interrumpir en ejecuciones del mapa"
+msgstr "Condición de interrupción"
 
 #. 1
 #: src/gui/widgets/breakpoints.cc:228 src/gui/widgets/memory_observer.cc:289
@@ -2634,7 +2631,6 @@ msgid "Value"
 msgstr "Valor"
 
 #: src/gui/widgets/breakpoints.cc:235
-#, fuzzy
 msgid "Current Value"
 msgstr "Valor actual"
 
@@ -2646,32 +2642,31 @@ msgstr "Etiqueta"
 #, c-format
 msgid "Breakpoint condition met! Type:%s writing:%d condVal:%d\n"
 msgstr ""
+"¡Condición de interrupción alcanzada! Tipo: %s Escritura: %d condVal: %d\n"
 
 #: src/gui/widgets/breakpoints.cc:311
 #, c-format
 msgid "Breakpoint condition met! Type:%s reading:%d condVal:%d\n"
 msgstr ""
+"¡Condición de interrupción alcanzada! Tipo: %s Lectura: %d condVal: %d\n"
 
 #: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:96
 msgid "Activate All"
-msgstr ""
+msgstr "Activar todo"
 
 #: src/gui/widgets/breakpoints.cc:363 src/gui/widgets/patches.cc:101
 msgid "Deactivate All"
-msgstr ""
+msgstr "Desactivar todo"
 
 #: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:107
-#, fuzzy
 msgid "Delete All"
-msgstr "Eliminar estado"
+msgstr "Eliminar todo"
 
 #: src/gui/widgets/breakpoints.cc:374
-#, fuzzy
 msgid "Delete all Breakpoints?"
-msgstr "Eliminar puntos de interrupción"
+msgstr "¿Eliminar todos los puntos de interrupción?"
 
 #: src/gui/widgets/breakpoints.cc:383
-#, fuzzy
 msgid "Execution Map"
 msgstr "Mapa de ejecuciones"
 
@@ -2826,24 +2821,23 @@ msgstr "CB"
 
 #: src/gui/widgets/gpulogger.cc:49
 msgid "Settings"
-msgstr ""
+msgstr "Configuración"
 
 #: src/gui/widgets/gpulogger.cc:51
 msgid "Color Format"
-msgstr ""
+msgstr "Formato de color"
 
 #: src/gui/widgets/gpulogger.cc:52
 msgid "None"
-msgstr ""
+msgstr "Ninguno"
 
 #: src/gui/widgets/gpulogger.cc:56
-#, fuzzy
 msgid "Expanded"
-msgstr "Mantener expandidos"
+msgstr "Expandido"
 
 #: src/gui/widgets/gpulogger.cc:60
 msgid "HTML"
-msgstr ""
+msgstr "HTML"
 
 #: src/gui/widgets/gpulogger.cc:71
 msgid "GPU logging"
@@ -2851,8 +2845,8 @@ msgstr "Registro de GPU"
 
 #: src/gui/widgets/gpulogger.cc:79
 msgid ""
-"Logs each frame's draw calls. When enabled, all the commands sent to the GPU "
-"will be logged and displayed here. This will contain only a single frame "
+"Logs each frame's draw calls. When enabled, all the commands sent to the GPU"
+" will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
 "Registra las llamadas de dibujo de cada fotograma. Al activar esta opción, "
@@ -2872,18 +2866,19 @@ msgstr "Repetir fotograma"
 msgid ""
 "When enabled, the framebuffer will be constantly redrawned using the "
 "selected commands, allowing to see the resulting output immediately. This "
-"doesn't make sense to have this enabled when: (1) the CPU is running and (2) "
-"the GPU logging isn't enabled. Selection of which commands to replay is done "
-"using the first checkbox in the logger display below. The [T] button will "
-"select all commands for replay from the top and until this command."
+"doesn't make sense to have this enabled when: (1) the CPU is running and (2)"
+" the GPU logging isn't enabled. Selection of which commands to replay is "
+"done using the first checkbox in the logger display below. The [T] button "
+"will select all commands for replay from the top and until this command."
 msgstr ""
-"Al activar esta opción, el búfer de fotogramas será reescrito constantemente "
-"con los comandos seleccionados, lo que permitirá mostrar la salida "
+"Al activar esta opción, el búfer de fotogramas será reescrito constantemente"
+" con los comandos seleccionados, lo que permitirá mostrar la salida "
 "resultante de forma inmediata. No tiene sentido activar esta opción en los "
 "siguientes casos: (1) si la CPU está funcionando y (2) si el registro de la "
-"GPU no está activado. Puedes seleccionar qué comandos repetir con la primera "
-"casilla de la ventana de registro que hay debajo. El botón [T] seleccionará "
-"todos los comandos desde el primero hasta el que se muestre para repetirlos."
+"GPU no está activado. Puedes seleccionar qué comandos repetir con la primera"
+" casilla de la ventana de registro que hay debajo. El botón [T] seleccionará"
+" todos los comandos desde el primero hasta el que se muestre para "
+"repetirlos."
 
 #: src/gui/widgets/gpulogger.cc:94
 msgid "Show origins"
@@ -2925,44 +2920,49 @@ msgstr "Resaltar al pasar el cursor por encima"
 
 #: src/gui/widgets/gpulogger.cc:129
 msgid ""
-"When enabled, hovering a command in the logger view will highlight it in the "
-"vram display. Individual commands can be selected for highlight by using the "
-"second checkbox in the logger view. The [B] and [E] buttons can be used to "
-"specify the beginning and the end of a span of commands to highlight."
+"When enabled, hovering a command in the logger view will highlight it in the"
+" vram display. Individual commands can be selected for highlight by using "
+"the second checkbox in the logger view. The [B] and [E] buttons can be used "
+"to specify the beginning and the end of a span of commands to highlight."
 msgstr ""
-"Al activar esta opción, cuando pases el cursor del ratón sobre un comando en "
-"la ventana de registro, este se resaltará en el visualizador de VRAM. Se "
+"Al activar esta opción, cuando pases el cursor del ratón sobre un comando en"
+" la ventana de registro, este se resaltará en el visualizador de VRAM. Se "
 "pueden seleccionar comandos individuales para resaltarlos con la segunda "
 "casilla de la ventana de registro. Los botones [B] y [E] pueden utilizarse "
 "para especificar el inicio y el final de un rango de comandos a resaltar."
 
 #: src/gui/widgets/gpulogger.cc:132
 msgid "Filter by pixel"
-msgstr ""
+msgstr "Filtrar por píxeles"
 
 #: src/gui/widgets/gpulogger.cc:134
 msgid ""
-"When enabled, only the commands that are related to the specified pixel will "
-"be shown. The pixel location is specified in the next input fields. The "
+"When enabled, only the commands that are related to the specified pixel will"
+" be shown. The pixel location is specified in the next input fields. The "
 "[Probe VRAM] button can be used to set the pixel location by hovering and "
 "clicking inside the VRAM viewer."
 msgstr ""
+"Al activar esta opción, se mostrarán únicamente los comandos relacionados "
+"con el píxel especificado. La ubicación del mismo puede especificarse en los"
+" campos de entrada de más abajo. Puedes utilizar el botón [Sondear VRAM] "
+"para establecer la ubicación del píxel si haces clic con el ratón dentro del"
+" visualizador de VRAM."
 
 #: src/gui/widgets/gpulogger.cc:137
-#, fuzzy
 msgid "Pixel location"
-msgstr "Pausar emulación"
+msgstr "Ubicación del píxel"
 
 #: src/gui/widgets/gpulogger.cc:138
-#, fuzzy
 msgid "Probe VRAM"
-msgstr "Borrar VRAM"
+msgstr "Sondear VRAM"
 
 #: src/gui/widgets/gpulogger.cc:142
 msgid ""
 "When enabled, hovering then clicking inside the VRAM viewer will set the "
 "pixel location for the filtering."
 msgstr ""
+"Al activar esta opción, se podrá establecer la ubicación del píxel a filtrar"
+" haciendo clic dentro del visualizador de VRAM."
 
 #: src/gui/widgets/gpulogger.cc:147
 msgid "Frame {}###FrameCounterNode"
@@ -3039,24 +3039,21 @@ msgid "Invalid data at 0x100"
 msgstr "Datos no válidos en 0x100"
 
 #: src/gui/widgets/handlers.cc:44
-#, fuzzy, c-format
+#, c-format
 msgid "Handlers info at %08x"
-msgstr "  Datos de controlador en "
+msgstr "Información de controladores en %08x"
 
 #: src/gui/widgets/handlers.cc:49
-#, fuzzy
 msgid "Priority {}"
-msgstr "Prioridad %i"
+msgstr "Prioridad {}"
 
 #: src/gui/widgets/handlers.cc:55
-#, fuzzy
 msgid "No handlers"
-msgstr "  No hay controladores"
+msgstr "No hay controladores"
 
 #: src/gui/widgets/handlers.cc:61
-#, fuzzy
 msgid "Handler data at "
-msgstr "  Datos de controlador en "
+msgstr "Datos de controlador en "
 
 #: src/gui/widgets/handlers.cc:67
 msgid "  verifier: "
@@ -3215,7 +3212,8 @@ msgstr "Última"
 msgid "Clear Undo buffer"
 msgstr "Borrar búfer de acciones deshechas"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
 msgid "Memory Card 1 inserted"
 msgstr "Tarjeta de memoria 1 introducida"
@@ -3235,8 +3233,8 @@ msgid ""
 "Pocketstation commands, possibly allowing apps to be saved/exported."
 msgstr ""
 "Experimental. El emulador intentará enviar respuestas artificiales a los "
-"comandos de PocketStation, lo que tal vez permita el guardado o exportado de "
-"aplicaciones."
+"comandos de PocketStation, lo que tal vez permita el guardado o exportado de"
+" aplicaciones."
 
 #: src/gui/widgets/memcard_manager.cc:173
 msgid "Card 2 Pocketstation"
@@ -3337,7 +3335,8 @@ msgstr "Búsqueda sin formato"
 msgid "Pattern"
 msgstr "Patrón"
 
-#: src/gui/widgets/memory_observer.cc:99 src/gui/widgets/memory_observer.cc:288
+#: src/gui/widgets/memory_observer.cc:99
+#: src/gui/widgets/memory_observer.cc:288
 msgid "Hex"
 msgstr "Hexadecimal"
 
@@ -3477,30 +3476,27 @@ msgstr "Eliminar estado"
 
 #: src/gui/widgets/patches.cc:35
 msgid "Patching is only available in Interpreted CPU mode"
-msgstr ""
+msgstr "Solo se pueden aplicar parches en el modo de CPU interpretada"
 
 #: src/gui/widgets/patches.cc:68
-#, fuzzy
 msgid "Delete Patch?"
-msgstr "Eliminar estado"
+msgstr "¿Eliminar el parche?"
 
 #: src/gui/widgets/patches.cc:88
 msgid "NOP"
-msgstr ""
+msgstr "NOP"
 
 #: src/gui/widgets/patches.cc:88
 msgid "Return"
-msgstr ""
+msgstr "Retorno"
 
 #: src/gui/widgets/patches.cc:111
-#, fuzzy
 msgid "Delete all Patches?"
-msgstr "Eliminar estado"
+msgstr "¿Eliminar todos los parches?"
 
 #: src/gui/widgets/patches.cc:112
-#, fuzzy
 msgid "Delete##patches"
-msgstr "Eliminar estado"
+msgstr "Eliminar##parches"
 
 #: src/gui/widgets/pio-cart.cc:36
 msgid "ROM"
@@ -3553,30 +3549,27 @@ msgstr "Otros"
 
 #: src/gui/widgets/registers.cc:396
 msgid "Bus Error"
-msgstr ""
+msgstr "Error de bus"
 
 #: src/gui/widgets/registers.cc:399
-#, fuzzy
 msgid "DMA IRQ Enabled"
-msgstr "Activados"
+msgstr "IRQ de DMA habilitada"
 
 #: src/gui/widgets/registers.cc:402
 msgid "DMA IRQ Triggered"
-msgstr ""
+msgstr "IRQ de DMA desencadenada"
 
 #: src/gui/widgets/registers.cc:408
-#, fuzzy
 msgid "Completion"
-msgstr "Emulación"
+msgstr "Finalización"
 
 #: src/gui/widgets/registers.cc:411
-#, fuzzy
 msgid "IRQ Enabled"
-msgstr "Activados"
+msgstr "Habilitar IRQ"
 
 #: src/gui/widgets/registers.cc:414
 msgid "Triggered"
-msgstr ""
+msgstr "Desencadenada"
 
 #: src/gui/widgets/registers.cc:456
 #, c-format
@@ -3692,11 +3685,13 @@ msgstr "WritePause"
 msgid "Display log entries##{}{}"
 msgstr "Mostrar entradas del registro##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:315 src/gui/widgets/typed_debugger.cc:1031
+#: src/gui/widgets/typed_debugger.cc:315
+#: src/gui/widgets/typed_debugger.cc:1031
 msgid "Re-enable##{}"
 msgstr "Reactivar##{}"
 
-#: src/gui/widgets/typed_debugger.cc:316 src/gui/widgets/typed_debugger.cc:1032
+#: src/gui/widgets/typed_debugger.cc:316
+#: src/gui/widgets/typed_debugger.cc:1032
 msgid "Disable##{}"
 msgstr "Desactivar##{}"
 
@@ -3724,15 +3719,11 @@ msgid "New value##{}"
 msgstr "Valor nuevo##{}"
 
 #: src/gui/widgets/typed_debugger.cc:621
-#, fuzzy
 msgid ""
 "\n"
-"Data types can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will\n"
-"generate a redux_data_types.txt file in its folder, or from any text file "
-"where each line specifies the\n"
-"data type's name and fields, separated by semi-colons; fields are specified "
-"in type-name-size tuples\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will\n"
+"generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the\n"
+"data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -3742,25 +3733,22 @@ msgid ""
 "\n"
 "Arrays are specified as `type[number]` and pointers as `type *`."
 msgstr ""
-"Los tipos de datos se pueden importar de Ghidra mediante el script tools/"
-"ghidra_scripts/export_redux.py, el cual generará un archivo llamado "
-"redux_data_types.txt en su carpeta; o a partir de cualquier archivo de texto "
-"donde cada línea especifique el nombre y los campos del tipo de datos "
-"separados por puntos y coma. Los campos se deben especificar como tuplas "
-"tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
+"\n"
+"Los tipos de datos se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_data_types.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique el nombre y los campos del tipo de datos separados por puntos y coma. Los campos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
 "\n"
 "Por ejemplo:\n"
+"```\n"
+"CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n"
+"```\n"
+"\n"
+"Las matrices se especifican como `type[number]` y los punteros como `type *`."
 
 #: src/gui/widgets/typed_debugger.cc:651
-#, fuzzy
 msgid ""
 "\n"
-"Functions can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate\n"
-"a redux_funcs.txt file in its folder, or from any text file where each line "
-"specifies the function\n"
-"address, name and arguments, separated by semi-colons; arguments are "
-"specified in type-name-size tuples\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate\n"
+"a redux_funcs.txt file in its folder, or from any text file where each line specifies the function\n"
+"address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -3770,15 +3758,15 @@ msgid ""
 "\n"
 "Arrays and pointers are specified as for data types"
 msgstr ""
-"Las funciones se pueden importar de Ghidra mediante el script tools/"
-"ghidra_scripts/export_redux.py, el cual generará un archivo llamado "
-"redux_funcs.txt en su carpeta; o a partir de cualquier archivo de texto "
-"donde cada línea especifique la dirección de la función, su nombre y sus "
-"argumentos, todos ellos separados por puntos y coma. Los argumentos se deben "
-"especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar "
-"separados por comas.\n"
+"\n"
+"Las funciones se pueden importar de Ghidra mediante el script tools/ghidra_scripts/export_redux.py, el cual generará un archivo llamado redux_funcs.txt en su carpeta; o a partir de cualquier archivo de texto donde cada línea especifique la dirección de la función, su nombre y sus argumentos, todos ellos separados por puntos y coma. Los argumentos se deben especificar como tuplas tipo/nombre/tamaño y sus elementos deben estar separados por comas.\n"
 "\n"
 "Por ejemplo:\n"
+"```\n"
+"800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n"
+"```\n"
+"\n"
+"Las matrices y los punteros se especifican como tipos de datos «for»"
 
 #: src/gui/widgets/typed_debugger.cc:728
 msgid "Reimport data types from updated file"
@@ -4066,8 +4054,8 @@ msgstr "Capturar/Decodificar búfer de IRQ"
 
 #: src/spu/cfg.cc:90
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
 msgstr ""
 "Activa las IRQ de la SPU basadas en las escrituras\n"
 "al búfer de decodificación/captura.\n"
@@ -4076,34 +4064,3 @@ msgstr ""
 #: src/spu/debug.cc:583
 msgid "SPU Debug"
 msgstr "Depurador de SPU"
-
-#~ msgid "Edit label of breakpoint {}##{}"
-#~ msgstr "Editar etiqueta de punto {}##{}"
-
-#, c-format
-#~ msgid "Change the label of breakpoint %s:"
-#~ msgstr "Cambiar la etiqueta del punto %s:"
-
-#~ msgid "Remove##"
-#~ msgstr "Quitar##"
-
-#~ msgid "Disable##"
-#~ msgstr "Desactivar##"
-
-#~ msgid "Enable##"
-#~ msgstr "Activar##"
-
-#~ msgid "Breakpoint Type"
-#~ msgstr "Tipo de punto de interrupción"
-
-#~ msgid "  Corrupted info"
-#~ msgstr "  Información dañada"
-
-#~ msgid "Arrays are specified as\n"
-#~ msgstr "Las matrices se especifican así:\n"
-
-#~ msgid "and pointers as\n"
-#~ msgstr "Y los punteros, así:\n"
-
-#~ msgid "Arrays and pointers are specified as for data types.\n"
-#~ msgstr "Las matrices y los punteros se especifican como tipos de datos.\n"
