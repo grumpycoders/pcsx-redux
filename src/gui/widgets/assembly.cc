@@ -326,19 +326,18 @@ const uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
         return dummy;
     }
 }
-void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex /* = 0*/,
-                                           bool forceShowEditor /* = false*/) {
-    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size, editorIndex, forceShowEditor});
+void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex /* = 0*/) {
+    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size, editorIndex});
 }
 void PCSX::Widgets::Assembly::addMemoryEditorContext(uint32_t addr, int size) {
     if (ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem(_("Go to in Memory Editor #1 (Default Click)"))) jumpToMemory(addr, size, 0, true);
-        if (ImGui::MenuItem(_("Go to in Memory Editor #2 (Shift+Click)"))) jumpToMemory(addr, size, 1, true);
-        if (ImGui::MenuItem(_("Go to in Memory Editor #3 (Ctrl+Click)"))) jumpToMemory(addr, size, 2, true);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #1 (Default Click)"))) jumpToMemory(addr, size, 0);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #2 (Shift+Click)"))) jumpToMemory(addr, size, 1);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #3 (Ctrl+Click)"))) jumpToMemory(addr, size, 2);
         std::string itemLabel;
         for (unsigned i = 3; i < 8; ++i) {
             itemLabel = fmt::format(f_("Go to in Memory Editor #{}"), i + 1);
-            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i, true);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i);
         }
         if (ImGui::MenuItem(_("Create Memory Read Breakpoint"))) {
             g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Read, size, _("GUI"));
@@ -354,7 +353,7 @@ void PCSX::Widgets::Assembly::addMemoryEditorSubMenu(uint32_t addr, int size) {
         std::string itemLabel;
         for (unsigned i = 0; i < 8; ++i) {
             itemLabel = fmt::format("#{}", i + 1);
-            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i, true);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i);
         }
         ImGui::EndMenu();
     }
@@ -381,7 +380,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     ImGui::TextUnformatted(" ");
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex, false);
+    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex);
     ImGui::PopStyleVar();
     addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
@@ -442,7 +441,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     ImGui::TextUnformatted(" ");
     sameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex, false);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex);
     ImGui::PopStyleVar();
     addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {

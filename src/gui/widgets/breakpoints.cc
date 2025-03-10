@@ -122,7 +122,7 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
                         g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{bp->address() | bp->base()});
                     } else {
                         g_system->m_eventBus->signal(
-                            PCSX::Events::GUI::JumpToMemory{bp->address() | bp->base(), bp->width(), 0, true});
+                            PCSX::Events::GUI::JumpToMemory{bp->address() | bp->base(), bp->width(), 0});
                     }
                 }
                 if (ImGui::BeginPopupContextItem()) {
