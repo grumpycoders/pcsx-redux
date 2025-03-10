@@ -171,10 +171,6 @@ void psyqo::ISO9660Parser::findDirEntry() {
     }
 
     auto name = m_path.substr(0, pos);
-    m_path.remove_prefix(pos);
-    if ((m_path.length() > 0) && (m_path[0] == '/')) {
-        m_path.remove_prefix(1);
-    }
 
     if (m_cachedEntry.type == DirEntry::INVALID) {
         m_cachedPath.clear();
@@ -214,6 +210,7 @@ void psyqo::ISO9660Parser::findDirEntry() {
                 return;
             } else {
                 if ((entry[25] & 2) == 0) {
+                    parseDirEntry(entry, m_dirEntry);
                     auto callback = eastl::move(m_callback);
                     m_callback = nullptr;
                     callback(true);
@@ -223,6 +220,10 @@ void psyqo::ISO9660Parser::findDirEntry() {
                 parseDirEntry(entry, &m_cachedEntry);
                 m_cachedPath.append(name.data(), name.length());
                 m_cachedLBA = 0;
+                m_path.remove_prefix(pos);
+                if ((m_path.length() > 0) && (m_path[0] == '/')) {
+                    m_path.remove_prefix(1);
+                }
                 m_cdrom->readSectors(m_cachedEntry.LBA, 1, m_buffer, [this](bool success) {
                     if (!success) {
                         auto callback = eastl::move(m_callback);
