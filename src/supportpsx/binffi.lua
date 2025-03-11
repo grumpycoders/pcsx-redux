@@ -48,7 +48,7 @@ struct PS1PackerOptions {
 bool binaryLoaderLoad(LuaFile* src, LuaFile* dest, struct BinaryLoaderInfo* info);
 void ps1PackerPack(LuaFile* src, LuaFile* dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
           struct PS1PackerOptions options);
-uint32_t uclPack(LuaFile* src, LuaFile* dest);
+uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out);
 uint32_t writeUclDecomp(LuaFile* dest);
 
 ]]
@@ -146,9 +146,63 @@ end
 if type(PCSX.Misc) ~= 'table' then PCSX.Misc = {} end
 
 PCSX.Misc.uclPack = function(src, dest)
-    if type(src) ~= 'table' or src._type ~= 'File' then error('Expected a File object as first argument') end
-    if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as second argument') end
-    return C.uclPack(src._wrapper, dest._wrapper)
+    local srcPtr
+    local srcSize
+    if type(src) == 'table' and src._type == 'File' then
+        src = src:read(src:size())
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'string' then
+        srcPtr = ffi.cast('uint8_t*', src)
+        srcSize = #src
+    elseif Support.isLuaBuffer(src) then
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'table' and src._type == 'Slice' then
+        srcPtr = src.data
+        srcSize = src.size
+    else
+        error('Expected a File object, string, LuaBuffer, or Slice as first argument')
+    end
+
+    local bufferSize = srcSize * 1.2 + 2048
+
+    local retIsDest = false
+    local destPtr
+    local destSlice
+    if not dest then
+        dest = Support.File.createEmptySlice()
+        dest:resize(bufferSize)
+        destPtr = dest.mutable
+        retIsDest = true
+    elseif type(dest) == 'table' and dest._type == 'File' then
+        destSlice = Support.File.createEmptySlice()
+        destSlice:resize(bufferSize)
+        destPtr = destSlice.mutable
+    elseif Support.isLuaBuffer(dest) then
+        destPtr = ffi.cast('uint8_t*', dest.data)
+        dest:resize(bufferSize)
+    elseif type(dest) == 'table' and dest._type == 'Slice' then
+        destPtr = dest.mutable
+        dest:resize(bufferSize)
+    else
+        error('Expected a File object, string, LuaBuffer, or Slice as second argument')
+    end
+
+    local outSize = C.uclWrapper(srcPtr, srcSize, destPtr)
+
+    if outSize == 0 then
+        error('Fatal error during data compression.')
+    end
+
+    if type(dest) == 'table' and dest._type == 'File' then
+        destSlice:resize(outSize)
+        dest:writeMoveSlice(destSlice)
+    else
+        dest:resize(outSize)
+    end
+
+    return retIsDest and dest or outSize
 end
 
 PCSX.Misc.writeUclDecomp = function(dest)
