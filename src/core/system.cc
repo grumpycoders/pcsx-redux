@@ -232,7 +232,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                                 if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
                                 break;
                             case WAITING_MSGSTRTOKEN:
-                                hashValue = djbHash::hash(currentString);
+                                hashValue = djb::hash(currentString);
                                 break;
                         }
                         currentString = "";
