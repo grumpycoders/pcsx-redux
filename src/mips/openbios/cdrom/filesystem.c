@@ -70,7 +70,7 @@ int cdromReadPathTable() {
 
     const uint32_t *const buffer = (uint32_t *)g_readBuffer;
     s_pathTableSize = buffer[132 / 4];
-    s_rootDirectorySector = readUnaligned(buffer, 158);
+    s_rootDirectorySector = load32Unaligned(buffer, 158);
     s_currentDiscHash = buffer[80 / 4];
     uint32_t lba = s_pathTableLocation = buffer[140 / 4];
 
@@ -83,7 +83,7 @@ int cdromReadPathTable() {
     int entryID = 1;
     while ((ptr < g_readBuffer + sizeof(g_readBuffer)) && (entryID <= sizeof(s_pathTable) / sizeof(s_pathTable[0]))) {
         if (!ptr[0]) break;
-        entry->LBA = readUnaligned(ptr, 2);
+        entry->LBA = load32Unaligned(ptr, 2);
         // ...why? it's literally the array entry number.
         entry->ID = entryID;
         // Yes. I can't even.
@@ -122,8 +122,8 @@ static int readDirectory(int entryID) {
     while ((ptr < (g_readBuffer + sizeof(g_readBuffer))) &&
            (entry < s_cachedDirectoryEntry + sizeof(s_cachedDirectoryEntry) / sizeof(s_cachedDirectoryEntry[0])) &&
            ptr[0]) {
-        entry->LBA = readUnaligned(ptr, 2);
-        entry->size = readUnaligned(ptr, 10);
+        entry->LBA = load32Unaligned(ptr, 2);
+        entry->size = load32Unaligned(ptr, 10);
         uint8_t nameSize = ptr[32];
         memcpy(entry->name, ptr + 33, nameSize);
         entry->name[nameSize] = 0;
