@@ -90,7 +90,7 @@ void PCSX::Emulator::setLua() {
             return L.error("t_ expects a string");
         }
         auto str = L.tostring(1);
-        L.push(g_system->getStr(djbHash::hash(str), str.c_str()));
+        L.push(g_system->getStr(djb::hash(str), str.c_str()));
         return 1;
     });
     L.load("ffi = require('ffi')", "internal:setffi.lua");

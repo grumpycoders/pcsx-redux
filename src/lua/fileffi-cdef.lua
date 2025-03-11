@@ -89,8 +89,11 @@ LuaFile* dupFile(LuaFile*);
 
 LuaFile* zReader(LuaFile*, int64_t size, bool raw);
 
+LuaSlice* createEmptySlice();
 uint64_t getSliceSize(LuaSlice*);
 const void* getSliceData(LuaSlice*);
+void* getSliceMutableData(LuaSlice*);
+void resizeSlice(LuaSlice* slice, uint32_t size);
 void destroySlice(LuaSlice*);
 
 LuaFile* mem4g();

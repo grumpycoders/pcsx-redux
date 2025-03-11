@@ -167,10 +167,11 @@ LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
                            : new PCSX::ZReader(wrapper->file, size));
 }
 
+PCSX::Slice* createEmptySlice() { return new PCSX::Slice(); }
 uint64_t getSliceSize(PCSX::Slice* slice) { return slice->size(); }
-
 const void* getSliceData(PCSX::Slice* slice) { return slice->data(); }
-
+void* getSliceMutableData(PCSX::Slice* slice) { return slice->mutableData(); }
+void resizeSlice(PCSX::Slice* slice, uint32_t size) { slice->resize(size); }
 void destroySlice(PCSX::Slice* slice) { delete slice; }
 
 int readFileUserData(PCSX::Lua L) {
@@ -343,8 +344,11 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, zReader);
 
+    REGISTER(L, createEmptySlice);
     REGISTER(L, getSliceSize);
     REGISTER(L, getSliceData);
+    REGISTER(L, getSliceMutableData);
+    REGISTER(L, resizeSlice);
     REGISTER(L, destroySlice);
 
     REGISTER(L, mem4g);
