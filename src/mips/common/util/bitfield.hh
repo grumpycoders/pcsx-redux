@@ -224,7 +224,7 @@ struct BitField {
             storeUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset, span);
         }
     }
-    uint8_t storage[BitFieldInternal::ComputeStorage<T...>::size()] = {0};
+    uint8_t storage[BitFieldInternal::ComputeStorage<T...>::size()];
 };
 
 }  // namespace Utilities
