@@ -167,6 +167,11 @@ struct BitField {
         set<offset, Field::Width,
             BitFieldInternal::SignedStorageType<(offset % 8) + Field::Width, typename Field::Underlying>>(v);
     }
+    void clear() {
+        for (unsigned i = 0; i < sizeof(storage); i++) {
+            storage[i] = 0;
+        }
+    }
 
   private:
     template <unsigned offset, unsigned width, std::integral U>
