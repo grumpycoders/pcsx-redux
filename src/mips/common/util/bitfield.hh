@@ -176,8 +176,7 @@ struct BitField {
             return reinterpret_cast<const U*>(storage)[helper::firstByteOffset / sizeof(U)] >> helper::shift &
                    helper::mask;
         } else {
-            return (loadUnaligned<U>(storage + helper::firstByteOffset, helper::bytesCount) >> helper::shift) &
-                   helper::mask;
+            return (loadUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset) >> helper::shift) & helper::mask;
         }
         return 0;
     }
