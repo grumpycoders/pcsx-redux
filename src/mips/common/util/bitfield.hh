@@ -176,7 +176,8 @@ struct BitField {
             return reinterpret_cast<const U*>(storage)[helper::firstByteOffset / sizeof(U)] >> helper::shift &
                    helper::mask;
         } else {
-            return (loadUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset) >> helper::shift) & helper::mask;
+            return (loadUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset) >> helper::shift) &
+                   helper::mask;
         }
         return 0;
     }
@@ -198,8 +199,7 @@ struct BitField {
                     storage[helper::firstByteOffset + 2] = static_cast<uint8_t>(v >> 16);
                 } else {
                     storage[helper::firstByteOffset] = static_cast<uint8_t>(v);
-                    *reinterpret_cast<uint16_t*>(storage + helper::firstByteOffset + 1) =
-                        static_cast<uint16_t>(v >> 8);
+                    *reinterpret_cast<uint16_t*>(storage + helper::firstByteOffset + 1) = static_cast<uint16_t>(v >> 8);
                 }
             } else if constexpr (helper::bytesCount == 4) {
                 if constexpr (helper::isAlignedAndSafe) {
@@ -219,7 +219,7 @@ struct BitField {
             storeUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset, span);
         }
     }
-    uint8_t storage[BitFieldInternal::ComputeStorage<T...>::size()];
+    uint8_t storage[BitFieldInternal::ComputeStorage<T...>::size()] = {0};
 };
 
 }  // namespace Utilities
