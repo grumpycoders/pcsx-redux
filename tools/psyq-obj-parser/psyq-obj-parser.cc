@@ -70,7 +70,9 @@ enum class PsyqOpcode : uint8_t {
 
 enum class PsyqRelocType : uint8_t {
     REL32_BE = 8,
+    GPREL16_BE = 12,
     REL32 = 16,
+    GPREL16_LE = 30,
     REL26 = 74,
     HI16 = 82,
     LO16 = 84,
@@ -337,6 +339,14 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                     }
                     case (uint8_t)PsyqRelocType::GPREL16: {
                         vprint("(GPREL16), ");
+                        break;
+                    }
+                    case (uint8_t)PsyqRelocType::GPREL16_LE: {
+                        vprint("(GPREL16 LE), ");
+                        break;
+                    }
+                    case (uint8_t)PsyqRelocType::GPREL16_BE: {
+                        vprint("(GPREL16 BE), ");
                         break;
                     }
                     case (uint8_t)PsyqRelocType::HI16_BE: {
@@ -764,10 +774,11 @@ void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
 
 void PsyqLnkFile::Relocation::display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
     static const std::map<PsyqRelocType, std::string> typeStr = {
-        {PsyqRelocType::REL32, "REL32"},       {PsyqRelocType::REL26, "REL26"},
-        {PsyqRelocType::HI16, "HI16"},         {PsyqRelocType::LO16, "LO16"},
-        {PsyqRelocType::GPREL16, "GPREL16"},   {PsyqRelocType::REL32_BE, "REL32 BE"},
-        {PsyqRelocType::REL26_BE, "REL26 BE"}, {PsyqRelocType::HI16_BE, "HI16 BE"},
+        {PsyqRelocType::REL32, "REL32"},           {PsyqRelocType::REL26, "REL26"},
+        {PsyqRelocType::HI16, "HI16"},             {PsyqRelocType::LO16, "LO16"},
+        {PsyqRelocType::GPREL16, "GPREL16"},       {PsyqRelocType::GPREL16_LE, "GPREL16 LE"},
+        {PsyqRelocType::GPREL16_BE, "GPREL16 BE"}, {PsyqRelocType::REL32_BE, "REL32 BE"},
+        {PsyqRelocType::REL26_BE, "REL26 BE"},     {PsyqRelocType::HI16_BE, "HI16 BE"},
         {PsyqRelocType::LO16_BE, "LO16 BE"},
     };
     fmt::print("    {:8}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
@@ -994,6 +1005,8 @@ static const std::map<PsyqRelocType, elf_mips_reloc_type> typeMap = {
     {PsyqRelocType::HI16, elf_mips_reloc_type::R_MIPS_HI16},
     {PsyqRelocType::LO16, elf_mips_reloc_type::R_MIPS_LO16},
     {PsyqRelocType::GPREL16, elf_mips_reloc_type::R_MIPS_GPREL16},
+    {PsyqRelocType::GPREL16_LE, elf_mips_reloc_type::R_MIPS_GPREL16},
+    {PsyqRelocType::GPREL16_BE, elf_mips_reloc_type::R_MIPS_GPREL16},
     {PsyqRelocType::REL26_BE, elf_mips_reloc_type::R_MIPS_26},
     {PsyqRelocType::HI16_BE, elf_mips_reloc_type::R_MIPS_HI16},
     {PsyqRelocType::LO16_BE, elf_mips_reloc_type::R_MIPS_LO16},
@@ -1182,7 +1195,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             }
             elfSym = symbol->elfSym;
         }
-        if (type == PsyqRelocType::HI16_BE || type == PsyqRelocType::LO16_BE) {
+        if (type == PsyqRelocType::HI16_BE || type == PsyqRelocType::LO16_BE || type == PsyqRelocType::GPREL16_BE) {
             offset -= 0x2;
         }
         auto elfType = typeMap.find(type);
@@ -1228,6 +1241,18 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             case PsyqRelocType::GPREL16: {
                 sectionData[offset + 0] = 0;
                 sectionData[offset + 1] = 0;
+                break;
+            }
+            case PsyqRelocType::GPREL16_LE: {
+                uint16_t lo = symbolOffset & 0xFFFF;
+                sectionData[offset + 0] = (uint8_t)(lo >> 0);
+                sectionData[offset + 1] = (uint8_t)(lo >> 8);
+                break;
+            }
+            case PsyqRelocType::GPREL16_BE: {
+                uint16_t lo = symbolOffset & 0xFFFF;
+                sectionData[offset + 3] = (uint8_t)(lo >> 0);
+                sectionData[offset + 2] = (uint8_t)(lo >> 8);
                 break;
             }
             case PsyqRelocType::REL32_BE: {
@@ -1300,6 +1325,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             case PsyqExprOpcode::SECTION_BASE: {
                 return localSymbolReloc(expr->sectionIndex, 0);
             }
+            case PsyqExprOpcode::SECTION_START:
             case PsyqExprOpcode::SYMBOL: {
                 if (pass == ElfRelocationPass::PASS1) {
                     skipped.skipped = true;
@@ -1424,6 +1450,16 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                     }
                 } else {
                     return check(expression->left.get(), -((int32_t)expression->right->value));
+                }
+            } else if (expression->right->type == PsyqExprOpcode::SECTION_START) {
+                // Why
+                if (expression->left->type == PsyqExprOpcode::ADD) {
+                    if (expression->left->left->type == PsyqExprOpcode::VALUE) {
+                        return check(expression->left->right.get(),
+                                     expression->left->left->value - expression->right->value);
+                    }
+                } else {
+                    return checkZero(expression->left.get());
                 }
             } else {
                 psyq->setElfConversionError("Unsupported SUB operation in relocation");
