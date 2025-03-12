@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 #include <concepts>
@@ -36,6 +38,9 @@ namespace Utilities {
 namespace BitFieldInternal {
 
 template <typename T>
+concept IntegralLike = std::is_integral_v<T> || std::is_enum_v<T>;
+
+template <IntegralLike T>
 struct DefaultBitSize {
     static constexpr unsigned size = sizeof(T) * 8;
 };
@@ -80,63 +85,139 @@ struct ComputeOffset {
     }
 };
 
-}  // namespace BitFieldInternal
+template <std::integral T, std::integral U = T>
+using SignedType = typename std::conditional_t<std::is_signed_v<T>, std::make_signed_t<U>, std::make_unsigned_t<U>>;
 
-template <std::integral T, unsigned width = BitFieldInternal::DefaultBitSize<T>::size>
-struct BitSpan {
-    static constexpr unsigned Width = width;
-    using Underlying = T;
+template <unsigned span>
+using StorageType = typename std::conditional_t<
+    span <= 8, uint8_t,
+    typename std::conditional_t<span <= 16, uint16_t, typename std::conditional_t<span <= 32, uint32_t, void>>>;
+
+template <unsigned span, std::integral T>
+using SignedStorageType = SignedType<T, StorageType<span>>;
+
+template <unsigned Offset, unsigned Width, unsigned storageSize, std::integral T>
+struct BitFieldHelper {
+    static constexpr unsigned offset = Offset;
+    static constexpr unsigned width = Width;
+    static constexpr unsigned firstByteOffset = offset / 8;
+    static constexpr unsigned lastByteOffset = (offset + width - 1) / 8;
+    static constexpr unsigned bytesCount = lastByteOffset - firstByteOffset + 1;
+    static constexpr unsigned shift = offset % 8;
+    static constexpr uint32_t mask = (1 << width) - 1;
+    static constexpr bool isAlignedAndSafe =
+        ((firstByteOffset % sizeof(T)) == 0) && (firstByteOffset + sizeof(T)) <= storageSize;
+    static constexpr bool fullBytes = ((width % 8) == 0) && ((offset % 8) == 0);
+    BitFieldHelper() {
+        static_assert(bytesCount <= 4, "Type too large");
+        static_assert(width > 0, "Width must be greater than 0");
+        static_assert(width <= 32, "Width must be less than or equal to 32");
+        static_assert(offset + width <= storageSize * 8, "Offset + Width must be less than or equal to storage size");
+    }
 };
 
+enum Dummy : int;
+
+}  // namespace BitFieldInternal
+
+/**
+ * @brief A bit field element to be used in a BitField.
+ *
+ * @tparam T The type of the field. This can be any integral type or enum type.
+ * @tparam width The width of the field in bits.
+ */
+template <BitFieldInternal::IntegralLike T, unsigned width = BitFieldInternal::DefaultBitSize<T>::size>
+struct BitSpan {
+    static constexpr unsigned Width = width;
+    using Type = T;
+    using Underlying =
+        std::conditional_t<std::is_enum_v<T>,
+                           std::underlying_type_t<std::conditional_t<std::is_enum_v<T>, T, BitFieldInternal::Dummy>>,
+                           T>;
+};
+
+/**
+ * @brief A bit field that can hold multiple bit field elements of different types.
+ *
+ * @details This class is used to hold multiple bit field elements of different types. The
+ * elements are stored in a single byte array, and the offsets of each element are computed
+ * at compile time. The elements can be accessed using the get() and set() methods.
+ * The get() method returns the value of the element, and the set() method sets the value
+ * of the element. The bit field elements are stored in the order they are defined in the template
+ * parameter pack. The order of the elements is important, as the offsets are computed based on the order
+ * of the elements. The maximum size of a single element is technically 32 bits, but this
+ * actually varies depending on the alignment of the element. One element can only span a maximum
+ * of 4 bytes. There is no limit on the number of elements that can be stored in the bit field.
+ *
+ * @tparam... T The types of the bit field elements. These need to be BitSpan types.
+ */
 template <typename... T>
 struct BitField {
-    template <typename One>
-    constexpr typename One::Underlying get() {
-        if constexpr (std::is_signed_v<typename One::Underlying>) {
-            return get<BitFieldInternal::ComputeOffset<One, T...>::offset(), One::Width, signed>();
-        } else if constexpr (std::is_unsigned_v<typename One::Underlying>) {
-            return get<BitFieldInternal::ComputeOffset<One, T...>::offset(), One::Width, unsigned>();
-        }
-        return 0;
+    template <typename Field>
+    constexpr Field::Type get() const {
+        constexpr unsigned offset = BitFieldInternal::ComputeOffset<Field, T...>::offset();
+        auto ret = get<offset, Field::Width,
+                       BitFieldInternal::SignedStorageType<(offset % 8) + Field::Width, typename Field::Underlying>>();
+        return static_cast<Field::Type>(ret);
     }
-    template <typename One>
-    constexpr void set(typename One::Underlying v) {
-        if constexpr (std::is_signed_v<typename One::Underlying>) {
-            set<BitFieldInternal::ComputeOffset<One, T...>::offset(), One::Width, signed>(v);
-        } else if constexpr (std::is_unsigned_v<typename One::Underlying>) {
-            set<BitFieldInternal::ComputeOffset<One, T...>::offset(), One::Width, unsigned>(v);
-        }
+    template <typename Field>
+    constexpr void set(Field::Type v_) {
+        constexpr unsigned offset = BitFieldInternal::ComputeOffset<Field, T...>::offset();
+        auto v = static_cast<Field::Underlying>(v_);
+        set<offset, Field::Width,
+            BitFieldInternal::SignedStorageType<(offset % 8) + Field::Width, typename Field::Underlying>>(v);
     }
 
   private:
     template <unsigned offset, unsigned width, std::integral U>
-    constexpr U get() {
-        constexpr unsigned firstByteOffset = offset / 8;
-        constexpr unsigned lastByteOffset = (offset + width - 1) / 8;
-        constexpr unsigned shift = offset % 8;
-        constexpr uint32_t mask = (1 << width) - 1;
-        if constexpr ((firstByteOffset % 4) == 0) {
-            return reinterpret_cast<const U*>(storage)[firstByteOffset / 4] >> shift & mask;
-        } else if constexpr ((firstByteOffset % 4) != 0) {
-            return (loadUnaligned<U>(storage + firstByteOffset, lastByteOffset - firstByteOffset + 1) >> shift) & mask;
+    constexpr U get() const {
+        using helper = BitFieldInternal::BitFieldHelper<offset, width, sizeof(storage), U>;
+        if constexpr (helper::isAlignedAndSafe) {
+            return reinterpret_cast<const U*>(storage)[helper::firstByteOffset / sizeof(U)] >> helper::shift &
+                   helper::mask;
+        } else {
+            return (loadUnaligned<U>(storage + helper::firstByteOffset, helper::bytesCount) >> helper::shift) &
+                   helper::mask;
         }
         return 0;
     }
     template <unsigned offset, unsigned width, std::integral U>
     constexpr void set(U v) {
-        constexpr unsigned firstByteOffset = offset / 8;
-        constexpr unsigned lastByteOffset = (offset + width - 1) / 8;
-        constexpr unsigned shift = offset % 8;
-        constexpr uint32_t mask = (1 << width) - 1;
-        if constexpr ((firstByteOffset % 4) == 0) {
+        using helper = BitFieldInternal::BitFieldHelper<offset, width, sizeof(storage), U>;
+        if constexpr (helper::fullBytes) {
+            if constexpr (helper::bytesCount == 1) {
+                storage[helper::firstByteOffset] = static_cast<uint8_t>(v);
+            } else if constexpr (helper::bytesCount == 2) {
+                if constexpr (helper::isAlignedAndSafe) {
+                    *reinterpret_cast<U*>(storage + helper::firstByteOffset) = v;
+                } else {
+                    storeUnaligned<U>(storage + helper::firstByteOffset, v);
+                }
+            } else if constexpr (helper::bytesCount == 3) {
+                if constexpr ((helper::firstByteOffset % 2) == 0) {
+                    *reinterpret_cast<uint16_t*>(storage + helper::firstByteOffset) = static_cast<uint16_t>(v);
+                    storage[helper::firstByteOffset + 2] = static_cast<uint8_t>(v >> 16);
+                } else {
+                    storage[helper::firstByteOffset] = static_cast<uint8_t>(v);
+                    *reinterpret_cast<uint16_t*>(storage + helper::firstByteOffset + 1) =
+                        static_cast<uint16_t>(v >> 8);
+                }
+            } else if constexpr (helper::bytesCount == 4) {
+                if constexpr (helper::isAlignedAndSafe) {
+                    *reinterpret_cast<U*>(storage + helper::firstByteOffset) = v;
+                } else {
+                    storeUnaligned<U>(storage + helper::firstByteOffset, v);
+                }
+            }
+        } else if constexpr (helper::isAlignedAndSafe) {
             U* ptr = reinterpret_cast<U*>(storage);
-            ptr[firstByteOffset / 4] &= ~(mask << shift);
-            ptr[firstByteOffset / 4] |= (v & mask) << shift;
-        } else if constexpr ((firstByteOffset % 4) != 0) {
-            U span = loadUnaligned<U>(storage + firstByteOffset, lastByteOffset - firstByteOffset + 1);
-            span &= ~(mask << shift);
-            span |= (v & mask) << shift;
-            storeUnaligned<U>(storage + firstByteOffset, span, lastByteOffset - firstByteOffset + 1);
+            ptr[helper::firstByteOffset / sizeof(U)] &= ~(helper::mask << helper::shift);
+            ptr[helper::firstByteOffset / sizeof(U)] |= (v & helper::mask) << helper::shift;
+        } else {
+            U span = loadUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset);
+            span &= ~(helper::mask << helper::shift);
+            span |= (v & helper::mask) << helper::shift;
+            storeUnaligned<U, helper::bytesCount>(storage + helper::firstByteOffset, span);
         }
     }
     uint8_t storage[BitFieldInternal::ComputeStorage<T...>::size()];
