@@ -766,7 +766,7 @@ void PsyqLnkFile::display() {
         section.display(this);
     }
     fmt::print("\n\n\n  :: Relocations\n\n");
-    fmt::print("    {:8}   {:>12}::{:8}  {}\n", "type", "section", "offset", "expression");
+    fmt::print("    {:10}   {:>10}::{:8}  {}\n", "type", "section", "offset", "expression");
     fmt::print("    ------------------------------------------\n");
     for (auto& section : sectionsList) {
         section.displayRelocs(this);
