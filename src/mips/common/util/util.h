@@ -34,8 +34,8 @@ SOFTWARE.
 
 namespace Utilities {
 
-template <std::integral T>
-T loadUnaligned(const uint8_t *ptr, unsigned size = (sizeof(T) + 7) / 8) {
+template <std::integral T, unsigned size = (sizeof(T) + 7) / 8>
+T loadUnaligned(const uint8_t *ptr) {
     T ret = 0;
     for (unsigned i = 0; i < size; i++) {
         ret |= (ptr[i] << (i * 8));
@@ -43,8 +43,8 @@ T loadUnaligned(const uint8_t *ptr, unsigned size = (sizeof(T) + 7) / 8) {
     return ret;
 }
 
-template <std::integral T>
-void storeUnaligned(uint8_t *ptr, T value, unsigned size = (sizeof(T) + 7) / 8) {
+template <std::integral T, unsigned size = (sizeof(T) + 7) / 8>
+void storeUnaligned(uint8_t *ptr, T value) {
     for (unsigned i = 0; i < size; i++) {
         ptr[i] = value >> (i * 8);
     }
