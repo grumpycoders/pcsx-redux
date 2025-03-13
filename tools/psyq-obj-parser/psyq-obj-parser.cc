@@ -816,7 +816,7 @@ void PsyqLnkFile::Relocation::display(PsyqLnkFile* lnk, PsyqLnkFile::Section* se
         {PsyqRelocType::REL26_BE, "REL26 BE"},     {PsyqRelocType::HI16_BE, "HI16 BE"},
         {PsyqRelocType::LO16_BE, "LO16 BE"},
     };
-    fmt::print("    {:8}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
+    fmt::print("    {:10}   {:>10}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
     expression->display(lnk, true);
 }
 
