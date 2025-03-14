@@ -2,27 +2,23 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 # Translators:
-# Stanley Kid, 2024
-#
+# Stanley Kid, 2025
+# 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Stanley Kid, 2024\n"
-"Language-Team: Ukrainian (https://app.transifex.com/grumpycoders/teams/99251/"
-"uk/)\n"
-"Language: uk\n"
+"Last-Translator: Stanley Kid, 2025\n"
+"Language-Team: Ukrainian (https://app.transifex.com/grumpycoders/teams/99251/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
-"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
-"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
-"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+"Language: uk\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
 
 #: src/cdrom/cdriso-ecm.cc:282
 #, c-format
@@ -41,8 +37,7 @@ msgstr "Завантажено SBI: %s.\n"
 #: src/cdrom/cdriso.cc:251
 #, c-format
 msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
-msgstr ""
-"Трек %.2d (%s) - початок: %.2d:%.2d:%.2d, тривалість: %.2d:%.2d:%.2d.\n"
+msgstr "Трек %.2d (%s) - початок: %.2d:%.2d:%.2d, тривалість: %.2d:%.2d:%.2d.\n"
 
 #: src/cdrom/cdriso.cc:270
 #, c-format
@@ -51,7 +46,7 @@ msgstr "Завантажено CD-образ: %s."
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:463
 msgid "OpenGL GPU configuration"
-msgstr "Конфігурація Open GL GPU"
+msgstr "Конфігурація ГП Open GL"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:464
 msgid "Fill polygons"
@@ -87,11 +82,11 @@ msgstr "Використовувати лінійну фільтрацію"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:504
 msgid "Edit OpenGL GPU shaders"
-msgstr "Редагувати Open GL GPU-шейдери"
+msgstr "Редагувати ГП-шейдери Open GL"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:512
 msgid "OpenGL GPU Debugger"
-msgstr "Налагоджувач Open GL GPU"
+msgstr "ГП-налагоджувач Open GL"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:518
 #, c-format
@@ -143,7 +138,7 @@ msgstr "Мапа виконання"
 #: src/core/debug.cc:167
 #, c-format
 msgid "Kernel checker: Jump from 0x%08x to 0x%08x\n"
-msgstr ""
+msgstr "Перевірка ядра: перехід від 0x%08x до 0x%08x.\n"
 
 #: src/core/debug.cc:177
 msgid "Read 8 map"
@@ -172,12 +167,12 @@ msgstr "Записати мапу 32"
 #: src/core/debug.cc:220
 #, c-format
 msgid "Kernel checker: Reading %08x from %08x\n"
-msgstr ""
+msgstr "Перевірка ядра: читання %08x із %08x.\n"
 
 #: src/core/debug.cc:223
 #, c-format
 msgid "Kernel checker: Writing to %08x from %08x\n"
-msgstr ""
+msgstr "Перевірка ядра: запис до %08x із %08x.\n"
 
 #: src/core/debug.cc:241
 msgid "Step in"
@@ -225,12 +220,12 @@ msgstr "GDB-клієнт"
 #: src/core/gpu.cc:453 src/core/gpu.cc:720 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
-msgstr ""
+msgstr "DMA ГП перейшов до придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/gpu.cc:458 src/core/gpu.cc:725 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
-msgstr ""
+msgstr "DMA ГП перейшов до непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/gpu.cc:1158 src/core/gpu.cc:1242
 msgid "Shading: Flat"
@@ -341,7 +336,7 @@ msgstr "Вимкнути відображення"
 
 #: src/core/gpulogger.cc:356
 msgid "DMA Off"
-msgstr "Вимкнути прямий доступ до пам'яті (DMA)"
+msgstr "Вимкнути DMA"
 
 #: src/core/gpulogger.cc:359
 msgid "FIFO Query"
@@ -412,14 +407,14 @@ msgid "Unknown"
 msgstr "Невідомо"
 
 #: src/core/gte.h:57
-#, fuzzy, c-format
+#, c-format
 msgid "Unaligned address 0x%08x in LWC2 from 0x%08x\n"
-msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
+msgstr "Нерівна адреса 0x%08x в LWC2 з 0x%08x.\n"
 
 #: src/core/gte.h:69
-#, fuzzy, c-format
+#, c-format
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
-msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
+msgstr "Нерівна адреса 0x%08x в SWC2 з 0x%08x.\n"
 
 #: src/core/memorycard.cc:348
 #, c-format
@@ -475,8 +470,8 @@ msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
-"Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із "
-"керуванням мишею."
+"Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із"
+" керуванням мишею."
 
 #: src/core/pad.cc:917
 msgid "Allow mouse capture toggle"
@@ -700,12 +695,12 @@ msgstr "Невідомий 8-бітний запис у EXP1 / PIO: %8.8lx.\n"
 #: src/core/psxhw.cc:389
 #, c-format
 msgid "Called msanGetChainPtr with invalid header pointer %8.8lx\n"
-msgstr ""
+msgstr "Викликано msanGetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
 #: src/core/psxhw.cc:841
 #, c-format
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
-msgstr ""
+msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
 #: src/core/psxinterpreter.cc:359
 #, c-format
@@ -802,15 +797,13 @@ msgid ""
 "\n"
 "                   No BIOS loaded, emulation halted.\n"
 "\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
 msgstr ""
 "\n"
 "                   BIOS не завантажено, емуляцію зупинено.\n"
 "\n"
-"Встанови BIOS у конфігурації та виконай апаратне перезавантаження "
-"емулятора.\n"
+"Встанови BIOS у конфігурації та виконай апаратне перезавантаження емулятора.\n"
 "Поширений OpenBIOS.bin може бути відповідною заміною BIOS.\n"
 
 #: src/core/psxmem.cc:212
@@ -848,14 +841,14 @@ msgid "Unknown bios loaded (%08x)\n"
 msgstr "Завантажено невідомий BIOS (%08x).\n"
 
 #: src/core/psxmem.cc:285
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "8-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "8-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:289
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
-msgstr "8-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "8-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:318
 #, c-format
@@ -863,14 +856,14 @@ msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "8-бітне читання з невідомої адреси: %8.8lx.\n"
 
 #: src/core/psxmem.cc:336
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "16-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "16-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:340
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
-msgstr "16-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "16-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:366
 #, c-format
@@ -878,14 +871,14 @@ msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "16-бітне читання з невідомої адреси: %8.8lx.\n"
 
 #: src/core/psxmem.cc:384
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
-msgstr "32-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "32-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:388
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
-msgstr "32-бітне читання з невідомої адреси: %8.8lx.\n"
+msgstr "32-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:416
 #, c-format
@@ -893,9 +886,9 @@ msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "32-бітне читання з невідомої адреси: %8.8lx.\n"
 
 #: src/core/psxmem.cc:509
-#, fuzzy, c-format
+#, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
-msgstr "8-бітний запис із невідомої адреси: %8.8lx.\n"
+msgstr "8-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:528
 #, c-format
@@ -903,9 +896,9 @@ msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "8-бітний запис із невідомої адреси: %8.8lx.\n"
 
 #: src/core/psxmem.cc:546
-#, fuzzy, c-format
+#, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
-msgstr "16-бітний запис із невідомої адреси: %8.8lx.\n"
+msgstr "16-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:566
 #, c-format
@@ -913,9 +906,9 @@ msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "16-бітний запис із невідомої адреси: %8.8lx.\n"
 
 #: src/core/psxmem.cc:584
-#, fuzzy, c-format
+#, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
-msgstr "32-бітний запис із невідомої адреси: %8.8lx.\n"
+msgstr "32-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
 #: src/core/psxmem.cc:613
 #, c-format
@@ -930,27 +923,27 @@ msgstr "32-бітний запис із невідомої адреси: %8.8lx.
 #: src/core/psxmem.cc:828
 #, c-format
 msgid "MSAN system was already initialized.\n"
-msgstr ""
+msgstr "MSAN-систему визначено.\n"
 
 #: src/core/psxmem.cc:853
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
-msgstr ""
+msgstr "Недостатньо пам'яті в MsanAlloc.\n"
 
 #: src/core/psxmem.cc:877 src/core/psxmem.cc:884
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
-msgstr ""
+msgstr "Передано недійсний указівник до MsanFree: %08x.\n"
 
 #: src/core/psxmem.cc:906 src/core/psxmem.cc:913
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
-msgstr ""
+msgstr "Передано недійсний указівник до MsanRealloc: %08x.\n"
 
 #: src/core/psxmem.cc:956
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
-msgstr ""
+msgstr "Незареєстрований заголовок MSAN-ланцюжка у %08x.\n"
 
 #: src/core/r3000a.cc:41
 #, c-format
@@ -1001,7 +994,7 @@ msgstr "Завжди згладжувати Гуро-затемнені полі
 
 #: src/gpu/soft/gpu.cc:240
 msgid "Soft GPU configuration"
-msgstr "Конфігурація програмного GPU"
+msgstr "Конфігурація Soft GPU"
 
 #: src/gpu/soft/gpu.cc:241
 msgid "Dithering"
@@ -1021,24 +1014,23 @@ msgstr ""
 
 #: src/gpu/soft/gpu.cc:261
 msgid "Disable textures for polygons"
-msgstr ""
+msgstr "Вимкнути текстури для полігонів"
 
 #: src/gpu/soft/gpu.cc:262
 msgid "Disable textures for sprites"
-msgstr ""
+msgstr "Вимкнути текстури для спрайтів"
 
 #: src/gpu/soft/gpu.cc:271
 msgid "Soft GPU debugger"
-msgstr "Налагоджувач програмного GPU"
+msgstr "Soft GPU-налагоджувач"
 
 #: src/gpu/soft/gpu.cc:273
 msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
-"Функції налагодження ще не підтримувані при використанні програмного "
-"опрацьовувача.\n"
-"Натомість розглянь увімкнення опції Open GL GPU."
+"Функції налагодження ще не підтримувані при використанні програмного опрацьовувача.\n"
+"Натомість розглянь увімкнення опції ГП Open GL."
 
 #: src/gui/gui.cc:176 src/gui/gui.cc:1209 src/gui/widgets/isobrowser.cc:67
 #: src/gui/widgets/isobrowser.h:41
@@ -1070,7 +1062,8 @@ msgid ""
 "The argument to the setText* functions need to be convertible to a string, "
 "or be a File object"
 msgstr ""
-"Аргумент для setText*-функцій необхідно конвертувати до рядка чи бути файлом."
+"Аргумент для setText*-функцій необхідно конвертувати до рядка чи бути "
+"файлом."
 
 #: src/gui/gui.cc:423
 msgid "Error compiling new shader code: {}"
@@ -1081,8 +1074,8 @@ msgid ""
 "Warning: OpenGL error reporting disabled. See About dialog for more "
 "information.\n"
 msgstr ""
-"Попередження: звітність помилок Open GL вимкнено. Докладні відомості у вікні "
-"\"Про додаток\".\n"
+"Попередження: звітність помилок Open GL вимкнено. Докладні відомості у вікні"
+" \"Про додаток\".\n"
 
 #: src/gui/gui.cc:762
 msgid "Main VRAM Viewer"
@@ -1232,11 +1225,11 @@ msgstr "Керувати картами пам'яті"
 
 #: src/gui/gui.cc:1323 src/gui/gui.cc:1424
 msgid "GPU"
-msgstr "GPU"
+msgstr "ГП"
 
 #: src/gui/gui.cc:1324 src/gui/gui.cc:1440
 msgid "SPU"
-msgstr "SPU"
+msgstr "СП"
 
 #: src/gui/gui.cc:1325
 msgid "UI"
@@ -1296,7 +1289,7 @@ msgstr "Показати Lua-редактор"
 
 #: src/gui/gui.cc:1376
 msgid "CPU"
-msgstr "CPU"
+msgstr "ЦП"
 
 #: src/gui/gui.cc:1377
 msgid "Show Registers"
@@ -1312,8 +1305,7 @@ msgstr "Показати розбір динамічної перекомпіл�
 
 #: src/gui/gui.cc:1384
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
-"[Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 "Розбірник динамічної перекомпіляції недоступний у режимі\n"
@@ -1342,9 +1334,8 @@ msgid "Show Typed Debugger"
 msgstr "Показати налагоджувач типів"
 
 #: src/gui/gui.cc:1402
-#, fuzzy
 msgid "Show Patches"
-msgstr "Показати стеки викликів"
+msgstr "Показати виправлення"
 
 #: src/gui/gui.cc:1403
 msgid "Show Interrupts Scaler"
@@ -1372,15 +1363,15 @@ msgstr "Показати VRAM-переглядач #"
 
 #: src/gui/gui.cc:1436
 msgid "Show GPU logger"
-msgstr "Показати GPU-реєстратор"
+msgstr "Показати ГП-реєстратор"
 
 #: src/gui/gui.cc:1437
 msgid "Show GPU debug"
-msgstr "Показати GPU-налагодження"
+msgstr "Показати ГП-налагодження"
 
 #: src/gui/gui.cc:1441
 msgid "Show SPU debug"
-msgstr "Показати SPU-налагодження"
+msgstr "Показати СП-налагодження"
 
 #: src/gui/gui.cc:1444
 msgid "CD-Rom"
@@ -1528,9 +1519,8 @@ msgid "Breakpoints"
 msgstr "Точки зупинки"
 
 #: src/gui/gui.cc:1676
-#, fuzzy
 msgid "Patches"
-msgstr "Перегляд"
+msgstr "Виправлення"
 
 #: src/gui/gui.cc:1680
 msgid "Named Save States"
@@ -1567,7 +1557,7 @@ msgstr "ISO-браузер"
 
 #: src/gui/gui.cc:1723
 msgid "GPU Logger"
-msgstr "GPU-реєстратор"
+msgstr "ГП-реєстратор"
 
 #: src/gui/gui.cc:1726
 msgid "UI Configuration"
@@ -1786,7 +1776,7 @@ msgstr "Увімкнути XA-декодер"
 
 #: src/gui/gui.cc:2094
 msgid "Always enable SPU IRQ"
-msgstr "Завжди вмикати SPU IRQ"
+msgstr "Завжди вмикати СП IRQ"
 
 #: src/gui/gui.cc:2095
 msgid "Decode MDEC videos in B&W"
@@ -1828,7 +1818,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2115
 msgid "OpenGL GPU *ALPHA STATE*"
-msgstr "Open GL GPU *АЛЬФА-СТАН*"
+msgstr "ГП Open GL *АЛЬФА-СТАН*"
 
 #: src/gui/gui.cc:2116
 msgid ""
@@ -1838,7 +1828,7 @@ msgid ""
 "to use the software renderer instead. Requires a restart\n"
 "when changing this setting."
 msgstr ""
-"Увімкнення опрацьовувача Open GL GPU.\n"
+"Увімкнення ГП-опрацьовувача Open GL.\n"
 "Не рекомендовано для звичайного використання, оскільки\n"
 "ще не повністю реалізовано. Натомість рекомендовано\n"
 "використовувати програмний опрацьовувач.\n"
@@ -2117,7 +2107,7 @@ msgid ""
 "be able to properly report problems accurately."
 msgstr ""
 "Звітність помилок Open GL вимкнено. Драйвер дуже старий, необхідно Open GL "
-"4.3+. Онови графічні драйвери чи зв'яжися з постачальником GPU для отримання "
+"4.3+. Онови графічні драйвери чи зв'яжися з постачальником ГП для отримання "
 "найновіших драйверів. Вимкнення не матиме негативного впливу на "
 "продуктивність програмного забезпечення, але код користувача, наприклад, "
 "редактор шейдерів, не зможе належно точно повідомляти проблеми."
@@ -2132,8 +2122,8 @@ msgid ""
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
-"Звітність помилок OpenGL необхідна для правильного звітності проблем. Однак, "
-"необхідний Open GL 4.3+, і можливий вплив на продуктивність деяких "
+"Звітність помилок OpenGL необхідна для правильного звітності проблем. Однак,"
+" необхідний Open GL 4.3+, і можливий вплив на продуктивність деяких "
 "комп'ютерів (необхідний перезапуск емулятора)."
 
 #: src/gui/gui.cc:2484
@@ -2290,9 +2280,8 @@ msgid "Go to in Memory Editor #{}"
 msgstr "Перейти до редактора пам'яті #{}"
 
 #: src/gui/widgets/assembly.cc:343
-#, fuzzy
 msgid "Create Memory Read Breakpoint"
-msgstr "Вилучити точку зупинки"
+msgstr "Створити точку зупинки читання пам'яті"
 
 #: src/gui/widgets/assembly.cc:344 src/gui/widgets/assembly.cc:347
 #: src/gui/widgets/assembly.cc:767 src/gui/widgets/assembly.cc:793
@@ -2301,9 +2290,8 @@ msgid "GUI"
 msgstr "Графічний інтерфейс користувача"
 
 #: src/gui/widgets/assembly.cc:346
-#, fuzzy
 msgid "Create Memory Write Breakpoint"
-msgstr "Запис точки зупинки"
+msgstr "Створити точку зупинки запису пам'яті"
 
 #: src/gui/widgets/assembly.cc:353
 msgid "Go to in Memory Editor..."
@@ -2394,7 +2382,7 @@ msgstr "Стовпці"
 
 #: src/gui/widgets/assembly.cc:559 src/gui/widgets/log.cc:112
 msgid "CPU trace"
-msgstr "Відстеження CPU"
+msgstr "Відстеження ЦП"
 
 #: src/gui/widgets/assembly.cc:561
 msgid "Skip ISR"
@@ -2439,19 +2427,19 @@ msgstr "Вилучити точку зупинки"
 
 #: src/gui/widgets/assembly.cc:816
 msgid "Patch in Return"
-msgstr ""
+msgstr "Виправити в Return"
 
 #: src/gui/widgets/assembly.cc:819
 msgid "Patch in NOP"
-msgstr ""
+msgstr "Виправити в NOP"
 
 #: src/gui/widgets/assembly.cc:826
 msgid "Delete Return Patch"
-msgstr ""
+msgstr "Видалити Return-виправлення"
 
 #: src/gui/widgets/assembly.cc:832
 msgid "Delete NOP Patch"
-msgstr ""
+msgstr "Видалити NOP-виправлення"
 
 #: src/gui/widgets/assembly.cc:839 src/gui/widgets/assembly.cc:1043
 #: src/gui/widgets/assembly.cc:1045 src/gui/widgets/assembly.cc:1051
@@ -2461,7 +2449,8 @@ msgstr "Зібрати"
 #: src/gui/widgets/assembly.cc:976 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
-#: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:927
+#: src/gui/widgets/memory_observer.cc:424
+#: src/gui/widgets/typed_debugger.cc:927
 msgid "Address"
 msgstr "Адреса"
 
@@ -2524,40 +2513,36 @@ msgstr "Завантаження символів"
 
 #: src/gui/widgets/breakpoints.cc:40 src/gui/widgets/breakpoints.cc:216
 msgid "Always"
-msgstr ""
+msgstr "Завжди"
 
 #: src/gui/widgets/breakpoints.cc:42
 msgid "Greater"
-msgstr ""
+msgstr "Більше"
 
 #: src/gui/widgets/breakpoints.cc:44
 msgid "Less"
-msgstr ""
+msgstr "Менше"
 
 #: src/gui/widgets/breakpoints.cc:46
-#, fuzzy
 msgid "Change"
-msgstr "Набір змін: "
+msgstr "Змінити"
 
 #: src/gui/widgets/breakpoints.cc:48
 msgid "Equal"
-msgstr ""
+msgstr "Рівно"
 
 #: src/gui/widgets/breakpoints.cc:129
-#, fuzzy
 msgid "Delete Breakpoint?"
-msgstr "Перемкнути точку зупинки"
+msgstr "Видалити точку зупинки?"
 
 #: src/gui/widgets/breakpoints.cc:130 src/gui/widgets/breakpoints.cc:375
 #: src/gui/widgets/patches.cc:69
-#, fuzzy
 msgid "Delete"
-msgstr "Видалити збереження"
+msgstr "Видалити"
 
 #: src/gui/widgets/breakpoints.cc:176
-#, fuzzy
 msgid "Add Breakpoint..."
-msgstr "Додати точку зупинки"
+msgstr "Додати точку зупинки..."
 
 #: src/gui/widgets/breakpoints.cc:183 src/gui/widgets/typed_debugger.cc:826
 #: src/gui/widgets/typed_debugger.cc:872
@@ -2566,29 +2551,27 @@ msgstr "Тип"
 
 #: src/gui/widgets/breakpoints.cc:195
 msgid "Byte"
-msgstr ""
+msgstr "Байт"
 
 #: src/gui/widgets/breakpoints.cc:196
 msgid "Half"
-msgstr ""
+msgstr "Половина"
 
 #: src/gui/widgets/breakpoints.cc:197
 msgid "Word"
-msgstr ""
+msgstr "Слово"
 
 #: src/gui/widgets/breakpoints.cc:198
 msgid "Range"
-msgstr ""
+msgstr "Діапазон"
 
 #: src/gui/widgets/breakpoints.cc:201
-#, fuzzy
 msgid "Byte Width"
-msgstr "Ширина точки зупинки"
+msgstr "Ширина байту"
 
 #: src/gui/widgets/breakpoints.cc:216
-#, fuzzy
 msgid "Break Condition"
-msgstr "Зупинка виконання мапи"
+msgstr "Умова зупинки"
 
 #. 1
 #: src/gui/widgets/breakpoints.cc:228 src/gui/widgets/memory_observer.cc:289
@@ -2598,7 +2581,6 @@ msgid "Value"
 msgstr "Значення"
 
 #: src/gui/widgets/breakpoints.cc:235
-#, fuzzy
 msgid "Current Value"
 msgstr "Поточне значення"
 
@@ -2609,33 +2591,30 @@ msgstr "Позначка"
 #: src/gui/widgets/breakpoints.cc:280
 #, c-format
 msgid "Breakpoint condition met! Type:%s writing:%d condVal:%d\n"
-msgstr ""
+msgstr "Умову точки зупинки виконано! Тип: %s запис: %d condVal: %d.\n"
 
 #: src/gui/widgets/breakpoints.cc:311
 #, c-format
 msgid "Breakpoint condition met! Type:%s reading:%d condVal:%d\n"
-msgstr ""
+msgstr "Умову точки зупинки виконано! Тип: %s читання: %d condVal: %d.\n"
 
 #: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:96
 msgid "Activate All"
-msgstr ""
+msgstr "Активувати всі"
 
 #: src/gui/widgets/breakpoints.cc:363 src/gui/widgets/patches.cc:101
 msgid "Deactivate All"
-msgstr ""
+msgstr "Деактивувати всі"
 
 #: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:107
-#, fuzzy
 msgid "Delete All"
-msgstr "Видалити збереження"
+msgstr "Видалити всі"
 
 #: src/gui/widgets/breakpoints.cc:374
-#, fuzzy
 msgid "Delete all Breakpoints?"
-msgstr "Очистити точки зупинки"
+msgstr "Видалити всі точки зупинки?"
 
 #: src/gui/widgets/breakpoints.cc:383
-#, fuzzy
 msgid "Execution Map"
 msgstr "Мапа виконання"
 
@@ -2790,39 +2769,37 @@ msgstr "CB"
 
 #: src/gui/widgets/gpulogger.cc:49
 msgid "Settings"
-msgstr ""
+msgstr "Налаштування"
 
 #: src/gui/widgets/gpulogger.cc:51
 msgid "Color Format"
-msgstr ""
+msgstr "Формат кольору"
 
 #: src/gui/widgets/gpulogger.cc:52
 msgid "None"
-msgstr ""
+msgstr "Не вказано"
 
 #: src/gui/widgets/gpulogger.cc:56
-#, fuzzy
 msgid "Expanded"
-msgstr "Розгорнути всі вузли"
+msgstr "Розгорнуто"
 
 #: src/gui/widgets/gpulogger.cc:60
 msgid "HTML"
-msgstr ""
+msgstr "HTML"
 
 #: src/gui/widgets/gpulogger.cc:71
 msgid "GPU logging"
-msgstr "GPU-реєстрація"
+msgstr "ГП-реєстрація"
 
 #: src/gui/widgets/gpulogger.cc:79
 msgid ""
-"Logs each frame's draw calls. When enabled, all the commands sent to the GPU "
-"will be logged and displayed here. This will contain only a single frame "
+"Logs each frame's draw calls. When enabled, all the commands sent to the GPU"
+" will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
-"Реєстрація кожного виклику показу кадру. Усі надіслані до графічного "
-"процесора команди буде зареєстровано та відображено. Міститиметься лише один "
-"кадр зі значеннями команд. Функція може бути досить вимогливою до "
-"центрального процесора та пам'яті."
+"Реєстрація кожного виклику показу кадру. Усі надіслані до ГП команди буде "
+"зареєстровано та відображено. Міститиметься лише один кадр зі значеннями "
+"команд. Функція може бути досить вимогливою до ЦП та пам'яті."
 
 #: src/gui/widgets/gpulogger.cc:82
 msgid "Breakpoint on vsync"
@@ -2836,16 +2813,16 @@ msgstr "Повторити кадр"
 msgid ""
 "When enabled, the framebuffer will be constantly redrawned using the "
 "selected commands, allowing to see the resulting output immediately. This "
-"doesn't make sense to have this enabled when: (1) the CPU is running and (2) "
-"the GPU logging isn't enabled. Selection of which commands to replay is done "
-"using the first checkbox in the logger display below. The [T] button will "
-"select all commands for replay from the top and until this command."
+"doesn't make sense to have this enabled when: (1) the CPU is running and (2)"
+" the GPU logging isn't enabled. Selection of which commands to replay is "
+"done using the first checkbox in the logger display below. The [T] button "
+"will select all commands for replay from the top and until this command."
 msgstr ""
 "Буфер кадрів буде постійно перепоказано вибраними командами для дозволу "
-"негайного показу результату. Безсенсово вмикати функцію при роботі "
-"центрального процесора та вимкненому журналі графічного процесора.Команди "
-"для повтору буде вибрано першою позначкою наведеного дисплея реєстратора. "
-"Кнопка [T] - вибір усіх команд для повтору від початку до команди."
+"негайного показу результату. Безсенсово вмикати функцію при роботі ЦП та "
+"вимкненому журналі ГП. Команди для повтору буде вибрано першою позначкою "
+"наведеного дисплея реєстратора. Кнопка [T] - вибір усіх команд для повтору "
+"від початку до команди."
 
 #: src/gui/widgets/gpulogger.cc:94
 msgid "Show origins"
@@ -2857,8 +2834,8 @@ msgid ""
 "from, which can be useful to debug or reverse engineer, but will also "
 "clutter the logger view."
 msgstr ""
-"У дисплеї реєстратора також буде показано, звідки надіслано команду, що може "
-"бути корисно для налагодження чи зворотного проектування, але також буде "
+"У дисплеї реєстратора також буде показано, звідки надіслано команду, що може"
+" бути корисно для налагодження чи зворотного проектування, але також буде "
 "заважати перегляду реєстратора."
 
 #: src/gui/widgets/gpulogger.cc:109
@@ -2887,43 +2864,47 @@ msgstr "Виділити при наведенні"
 
 #: src/gui/widgets/gpulogger.cc:129
 msgid ""
-"When enabled, hovering a command in the logger view will highlight it in the "
-"vram display. Individual commands can be selected for highlight by using the "
-"second checkbox in the logger view. The [B] and [E] buttons can be used to "
-"specify the beginning and the end of a span of commands to highlight."
+"When enabled, hovering a command in the logger view will highlight it in the"
+" vram display. Individual commands can be selected for highlight by using "
+"the second checkbox in the logger view. The [B] and [E] buttons can be used "
+"to specify the beginning and the end of a span of commands to highlight."
 msgstr ""
 "Наведення на команду в режимі реєстратора для виділення її на vram-дисплеї. "
 "Можливий вибір окремих команд для виділення другою позначкою у вікні "
-"реєстратора. Кнопки [B] і [E] вказують початок і кінець діапазону команд для "
-"виділення."
+"реєстратора. Кнопки [B] і [E] вказують початок і кінець діапазону команд для"
+" виділення."
 
 #: src/gui/widgets/gpulogger.cc:132
 msgid "Filter by pixel"
-msgstr ""
+msgstr "Фільтрувати за пікселем"
 
 #: src/gui/widgets/gpulogger.cc:134
 msgid ""
-"When enabled, only the commands that are related to the specified pixel will "
-"be shown. The pixel location is specified in the next input fields. The "
+"When enabled, only the commands that are related to the specified pixel will"
+" be shown. The pixel location is specified in the next input fields. The "
 "[Probe VRAM] button can be used to set the pixel location by hovering and "
 "clicking inside the VRAM viewer."
 msgstr ""
+"При увімкненні буде показано лише команди, пов'язані з указаним пікселем. "
+"Розташування пікселя вказується в наступних полях. Кнопку [Probe VRAM] можна"
+" використовувати для встановлення розташування пікселя наведенням курсора та"
+" натсиканнням усередині VRAM-переглядача."
 
 #: src/gui/widgets/gpulogger.cc:137
-#, fuzzy
 msgid "Pixel location"
-msgstr "Призупинити емуляцію"
+msgstr "Положення пікселя"
 
 #: src/gui/widgets/gpulogger.cc:138
-#, fuzzy
 msgid "Probe VRAM"
-msgstr "Очистити VRAM"
+msgstr "Дослідити VRAM"
 
 #: src/gui/widgets/gpulogger.cc:142
 msgid ""
 "When enabled, hovering then clicking inside the VRAM viewer will set the "
 "pixel location for the filtering."
 msgstr ""
+"При увімкненні буде встановлено розташування пікселя для фільтрації "
+"наведенням курсора та натисканням усередині VRAM-переглядача."
 
 #: src/gui/widgets/gpulogger.cc:147
 msgid "Frame {}###FrameCounterNode"
@@ -3000,24 +2981,21 @@ msgid "Invalid data at 0x100"
 msgstr "Недійсні дані в 0x100."
 
 #: src/gui/widgets/handlers.cc:44
-#, fuzzy, c-format
+#, c-format
 msgid "Handlers info at %08x"
-msgstr "  Дані опрацьовувача в "
+msgstr "Дані опрацьовувача в %08x"
 
 #: src/gui/widgets/handlers.cc:49
-#, fuzzy
 msgid "Priority {}"
-msgstr "Пріоритет %i"
+msgstr "Пріоритет {}"
 
 #: src/gui/widgets/handlers.cc:55
-#, fuzzy
 msgid "No handlers"
-msgstr "  Без опрацьовувачів"
+msgstr "Без опрацьовувачів"
 
 #: src/gui/widgets/handlers.cc:61
-#, fuzzy
 msgid "Handler data at "
-msgstr "  Дані опрацьовувача в "
+msgstr "Дані опрацьовувача в "
 
 #: src/gui/widgets/handlers.cc:67
 msgid "  verifier: "
@@ -3112,7 +3090,7 @@ msgstr "Журнал CD-ROM-команд"
 
 #: src/gui/widgets/log.cc:113
 msgid "Skip ISR during CPU traces"
-msgstr "Пропустити ISR упродовж відстежень CPU"
+msgstr "Пропустити ISR упродовж відстежень ЦП"
 
 #: src/gui/widgets/log.cc:115
 msgid "Log kernel calls"
@@ -3174,7 +3152,8 @@ msgstr "Остання"
 msgid "Clear Undo buffer"
 msgstr "Очистити буфер скасувань"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
 msgid "Memory Card 1 inserted"
 msgstr "Карту пам'яті 1 вставлено."
@@ -3295,7 +3274,8 @@ msgstr "Простий пошук"
 msgid "Pattern"
 msgstr "Шаблон"
 
-#: src/gui/widgets/memory_observer.cc:99 src/gui/widgets/memory_observer.cc:288
+#: src/gui/widgets/memory_observer.cc:99
+#: src/gui/widgets/memory_observer.cc:288
 msgid "Hex"
 msgstr "Hex"
 
@@ -3435,30 +3415,27 @@ msgstr "Видалити збереження"
 
 #: src/gui/widgets/patches.cc:35
 msgid "Patching is only available in Interpreted CPU mode"
-msgstr ""
+msgstr "Виправлення доступне лише в режимі інтерпретованого ЦП."
 
 #: src/gui/widgets/patches.cc:68
-#, fuzzy
 msgid "Delete Patch?"
-msgstr "Видалити збереження"
+msgstr "Видалити виправлення?"
 
 #: src/gui/widgets/patches.cc:88
 msgid "NOP"
-msgstr ""
+msgstr "NOP"
 
 #: src/gui/widgets/patches.cc:88
 msgid "Return"
-msgstr ""
+msgstr "Повернути"
 
 #: src/gui/widgets/patches.cc:111
-#, fuzzy
 msgid "Delete all Patches?"
-msgstr "Видалити збереження"
+msgstr "Видалити всі виправлення?"
 
 #: src/gui/widgets/patches.cc:112
-#, fuzzy
 msgid "Delete##patches"
-msgstr "Видалити збереження"
+msgstr "Видалити##виправлення"
 
 #: src/gui/widgets/pio-cart.cc:36
 msgid "ROM"
@@ -3511,30 +3488,27 @@ msgstr "Інше"
 
 #: src/gui/widgets/registers.cc:396
 msgid "Bus Error"
-msgstr ""
+msgstr "Помилка шини."
 
 #: src/gui/widgets/registers.cc:399
-#, fuzzy
 msgid "DMA IRQ Enabled"
-msgstr "Увімкнено."
+msgstr "DMA IRQ увімкнено."
 
 #: src/gui/widgets/registers.cc:402
 msgid "DMA IRQ Triggered"
-msgstr ""
+msgstr "DMA IRQ викликано."
 
 #: src/gui/widgets/registers.cc:408
-#, fuzzy
 msgid "Completion"
-msgstr "Емуляція"
+msgstr "Завершення"
 
 #: src/gui/widgets/registers.cc:411
-#, fuzzy
 msgid "IRQ Enabled"
-msgstr "Увімкнено."
+msgstr "IRQ увімкнено."
 
 #: src/gui/widgets/registers.cc:414
 msgid "Triggered"
-msgstr ""
+msgstr "Викликано."
 
 #: src/gui/widgets/registers.cc:456
 #, c-format
@@ -3650,11 +3624,13 @@ msgstr "Пауза запису"
 msgid "Display log entries##{}{}"
 msgstr "Відобразити записи журналу##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:315 src/gui/widgets/typed_debugger.cc:1031
+#: src/gui/widgets/typed_debugger.cc:315
+#: src/gui/widgets/typed_debugger.cc:1031
 msgid "Re-enable##{}"
 msgstr "Повторно увімкнути##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:316 src/gui/widgets/typed_debugger.cc:1032
+#: src/gui/widgets/typed_debugger.cc:316
+#: src/gui/widgets/typed_debugger.cc:1032
 msgid "Disable##{}"
 msgstr "Вимкнути##{}{}"
 
@@ -3682,15 +3658,11 @@ msgid "New value##{}"
 msgstr "Нове значення##{}"
 
 #: src/gui/widgets/typed_debugger.cc:621
-#, fuzzy
 msgid ""
 "\n"
-"Data types can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will\n"
-"generate a redux_data_types.txt file in its folder, or from any text file "
-"where each line specifies the\n"
-"data type's name and fields, separated by semi-colons; fields are specified "
-"in type-name-size tuples\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will\n"
+"generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the\n"
+"data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -3700,24 +3672,25 @@ msgid ""
 "\n"
 "Arrays are specified as `type[number]` and pointers as `type *`."
 msgstr ""
-"Імпорт типів даних із Ghidra можливий за використання tools/ghidra_scripts/"
-"export_redux.py для генерації файлу redux_data_types.txt у теці чи з будь-"
-"якого текстового файлу, де кожен рядок указує ім'я типу даних і поля, "
-"розділені крапкою з комою; поля вказано в кортежах тип-ім'я-розмір, елементи "
-"яких розділено комами.\n"
+"\n"
+"Імпорт типів даних із Ghidra можливий за використання tools/ghidra_scripts/export_redux.py\n"
+"для генерації файлу redux_data_types.txt у теці чи з будь-якого текстового файлу, де кожен рядок\n"
+"указує ім'я типу даних і поля, розділені крапкою з комою; поля вказано в кортежах тип-ім'я-розмір,\n"
+"елементи яких розділено комами.\n"
 "\n"
 "Наприклад:\n"
+"```\n"
+"CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n"
+"```\n"
+"\n"
+"Масиви вказано як `type[number]` і вказівник як `type *`."
 
 #: src/gui/widgets/typed_debugger.cc:651
-#, fuzzy
 msgid ""
 "\n"
-"Functions can be imported from Ghidra using tools/ghidra_scripts/"
-"export_redux.py, which will generate\n"
-"a redux_funcs.txt file in its folder, or from any text file where each line "
-"specifies the function\n"
-"address, name and arguments, separated by semi-colons; arguments are "
-"specified in type-name-size tuples\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate\n"
+"a redux_funcs.txt file in its folder, or from any text file where each line specifies the function\n"
+"address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -3727,13 +3700,18 @@ msgid ""
 "\n"
 "Arrays and pointers are specified as for data types"
 msgstr ""
-"Імпорт функцій із Ghidra можливий за використання tools/ghidra_scripts/"
-"export_redux.py для генерації файлу redux_funcs.txt у теці чи з будь-якого "
-"текстового файлу, де кожен рядок указує адресу функції, ім'я й аргументи, "
-"розділені крапкою з комою; аргументи вказано в кортежах тип-ім'я-розмір, "
+"\n"
+"Імпорт функцій із Ghidra можливий за використання tools/ghidra_scripts/export_redux.py для генерації\n"
+"файлу redux_funcs.txt у теці чи з будь-якого текстового файлу, де кожен рядок указує адресу функції,\n"
+"ім'я й аргументи, розділені крапкою з комою; аргументи вказано в кортежах тип-ім'я-розмір,\n"
 "елементи яких розділено комами.\n"
 "\n"
 "Наприклад:\n"
+"```\n"
+"800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n"
+"```\n"
+"\n"
+"Масиви й указівники вказано як для типів даних."
 
 #: src/gui/widgets/typed_debugger.cc:728
 msgid "Reimport data types from updated file"
@@ -3909,7 +3887,7 @@ msgid ""
 "More precise CPU-SPU synchronization,\n"
 "at the cost of extra power required."
 msgstr ""
-"Більш точна синхронізація CPU-SPU\n"
+"Більш точна синхронізація ЦП-СП\n"
 "за рахунок необхідної додаткової потужності."
 
 #: src/spu/cfg.cc:65
@@ -3927,7 +3905,7 @@ msgid ""
 "XA audio and audio tracks."
 msgstr ""
 "Зніми позначку для притлумлення\n"
-"потокового каналу від головного CPU до SPU.\n"
+"потокового каналу від головного ЦП до СП.\n"
 "Сюди входять XA-аудіо й аудіодоріжки."
 
 #: src/spu/cfg.cc:70
@@ -3955,12 +3933,12 @@ msgid ""
 "Attempts to make the CPU-to-SPU audio stream\n"
 "in sync, by changing its pitch. Consumes more CPU."
 msgstr ""
-"Спроба синхронізувати аудіопотік CPU-SPU\n"
-"зміною його висоти. Споживає більше CPU."
+"Спроба синхронізувати аудіопотік ЦП-СП\n"
+"зміною його висоти. Споживає більше ЦП."
 
 #: src/spu/cfg.cc:74
 msgid "Pause SPU waiting for CPU IRQ"
-msgstr "Призупинити SPU очікуванням CPU IRQ"
+msgstr "Призупинити СП очікуванням ЦП IRQ"
 
 #: src/spu/cfg.cc:75
 msgid ""
@@ -3968,10 +3946,10 @@ msgid ""
 "for the main CPU to acknowledge it. Fixes issues\n"
 "with some games, but slows SPU processing."
 msgstr ""
-"Призупинення опрацювання SPU впродовж IRQ\n"
-"очікуванням підтвердження головного процесора.\n"
-"Виправлення проблем деяких ігор при сповільненні\n"
-"опрацювання SPU."
+"Призупинення опрацювання СП впродовж IRQ\n"
+"очікуванням підтвердження головного ЦП.\n"
+"Виправлення проблем деяких ігор\n"
+"при сповільненні опрацювання СП."
 
 #: src/spu/cfg.cc:78 src/spu/cfg.cc:81
 msgid "None - fastest"
@@ -4019,43 +3997,12 @@ msgstr "Буфер захоплення / декодування IRQ"
 
 #: src/spu/cfg.cc:90
 msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
 msgstr ""
-"Активація SPU IRQ на основі запису до буфера декодування / захоплення. "
+"Активація СП IRQ на основі запису до буфера декодування / захоплення. "
 "Необхідно для деяких ігор."
 
 #: src/spu/debug.cc:583
 msgid "SPU Debug"
-msgstr "SPU-налагодження"
-
-#~ msgid "Edit label of breakpoint {}##{}"
-#~ msgstr "Редагувати позначку точки зупинки {}##{}"
-
-#, c-format
-#~ msgid "Change the label of breakpoint %s:"
-#~ msgstr "Змінити позначку точки зупинки %s:"
-
-#~ msgid "Remove##"
-#~ msgstr "Вилучити##"
-
-#~ msgid "Disable##"
-#~ msgstr "Вимкнути##"
-
-#~ msgid "Enable##"
-#~ msgstr "Увімкнути##"
-
-#~ msgid "Breakpoint Type"
-#~ msgstr "Тип точки зупинки"
-
-#~ msgid "  Corrupted info"
-#~ msgstr "  Пошкоджені відомості"
-
-#~ msgid "Arrays are specified as\n"
-#~ msgstr "Масиви вказано як\n"
-
-#~ msgid "and pointers as\n"
-#~ msgstr "і вказівники як\n"
-
-#~ msgid "Arrays and pointers are specified as for data types.\n"
-#~ msgstr "Масиви й указівники вказано як для типів даних.\n"
+msgstr "СП-налагодження"
