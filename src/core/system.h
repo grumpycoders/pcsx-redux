@@ -89,7 +89,6 @@ struct JumpToMemory {
     uint32_t address;
     unsigned size;
     unsigned editorNum;
-    bool forceShowEditor;
 };
 struct SelectClut {
     unsigned x, y;
