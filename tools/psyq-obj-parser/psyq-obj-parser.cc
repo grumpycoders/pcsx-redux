@@ -766,7 +766,7 @@ void PsyqLnkFile::display() {
         section.display(this);
     }
     fmt::print("\n\n\n  :: Relocations\n\n");
-    fmt::print("    {:8}   {:>12}::{:8}  {}\n", "type", "section", "offset", "expression");
+    fmt::print("    {:10}   {:>10}::{:8}  {}\n", "type", "section", "offset", "expression");
     fmt::print("    ------------------------------------------\n");
     for (auto& section : sectionsList) {
         section.displayRelocs(this);
@@ -816,7 +816,7 @@ void PsyqLnkFile::Relocation::display(PsyqLnkFile* lnk, PsyqLnkFile::Section* se
         {PsyqRelocType::REL26_BE, "REL26 BE"},     {PsyqRelocType::HI16_BE, "HI16 BE"},
         {PsyqRelocType::LO16_BE, "LO16 BE"},
     };
-    fmt::print("    {:8}   {:>12}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
+    fmt::print("    {:10}   {:>10}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
     expression->display(lnk, true);
 }
 
