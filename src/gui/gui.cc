@@ -1206,6 +1206,13 @@ void PCSX::GUI::endFrame() {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
+                auto currentIso = PCSX::g_emulator->m_cdrom->getIso();
+                if (ImGui::MenuItem(_("Reload Disk Image"), nullptr, nullptr, currentIso && !currentIso->failed())) {
+                    PCSX::g_emulator->m_cdrom->clearIso();
+                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso(currentIso->getIsoPath()));
+                    PCSX::g_emulator->m_cdrom->check();
+                    g_system->hardReset();
+                }
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                     PCSX::g_emulator->m_cdrom->check();
