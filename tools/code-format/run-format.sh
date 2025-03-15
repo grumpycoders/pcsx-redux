@@ -24,6 +24,11 @@ find repository/src -name *.c -or -name *.cc -or -name *.cpp -or -name *.h -or -
   format "$f"
 done
 
+find repository/src -name *.s -or -name *.S | while read f ; do
+  echo "$f"
+  clean "$f"
+done
+
 find repository/vsprojects -name *.vcxproj | while read f ; do
   echo "$f"
   clean "$f"
