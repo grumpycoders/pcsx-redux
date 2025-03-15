@@ -191,9 +191,7 @@ PCSX.Misc.uclPack = function(src, dest)
 
     local outSize = C.uclWrapper(srcPtr, srcSize, destPtr)
 
-    if outSize == 0 then
-        error('Fatal error during data compression.')
-    end
+    if outSize == 0 then error('Fatal error during data compression.') end
 
     if type(dest) == 'table' and dest._type == 'File' then
         destSlice:resize(outSize)
