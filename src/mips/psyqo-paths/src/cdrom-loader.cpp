@@ -46,8 +46,8 @@ void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, GPU& gpu, ps
             task->resolve();
         })
         .then(parser.scheduleReadRequest(&m_request))
-        .butCatch([this](auto task) { m_request.entry.size = 0; })
-        .finally([this](auto task) {
+        .butCatch([this](auto queue) { m_request.entry.size = 0; })
+        .finally([this](auto queue) {
             m_pending = false;
             m_data.resize(m_request.entry.size);
             auto callback = eastl::move(m_callback);

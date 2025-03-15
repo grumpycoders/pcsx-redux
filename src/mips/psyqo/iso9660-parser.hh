@@ -163,7 +163,7 @@ class ISO9660Parser {
      *
      * @param[in] request The request to fill.
      */
-    TaskQueue::Task scheduleReadRequest(ReadRequest* request);
+    TaskQueue::Task scheduleReadRequest(const ReadRequest* request);
 
     /**
      * @brief Returns the state of the parser.

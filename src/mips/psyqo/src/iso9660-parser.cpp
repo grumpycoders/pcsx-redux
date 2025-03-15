@@ -113,7 +113,7 @@ psyqo::TaskQueue::Task psyqo::ISO9660Parser::scheduleGetDirentry(eastl::string_v
         [this](auto task) { getDirentry(m_path, m_dirEntry, [task](bool success) { task->complete(success); }); });
 }
 
-psyqo::TaskQueue::Task psyqo::ISO9660Parser::scheduleReadRequest(ReadRequest* request) {
+psyqo::TaskQueue::Task psyqo::ISO9660Parser::scheduleReadRequest(const ReadRequest* request) {
     return TaskQueue::Task([this, request](auto task) {
         unsigned count = (request->entry.size + 2047) / 2048;
         m_cdrom->readSectors(request->entry.LBA, count, request->buffer,
