@@ -5,6 +5,8 @@ TYPE = library
 
 SRCS = \
 src/cdrom-loader.cpp \
+src/archive-manager.cpp \
+../ucl-demo/n2e-d.S \
 
 EXTRA_DEPS += $(PSYQOPATHSDIR)Makefile
 

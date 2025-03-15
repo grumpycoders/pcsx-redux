@@ -28,8 +28,8 @@ SOFTWARE.
 
 #include "psyqo/kernel.hh"
 
-void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, GPU& gpu, psyqo::ISO9660Parser& parser,
-                                           eastl::function<void(eastl::vector<uint8_t>&&)>&& callback) {
+void psyqo::paths::CDRomLoader::setupQueue(eastl::string_view path, psyqo::ISO9660Parser& parser,
+                                           eastl::function<void(Buffer<uint8_t>&&)>&& callback) {
     Kernel::assert(!m_pending, "Only one file can be read at a time");
     m_queue.reset();
     m_pending = true;
