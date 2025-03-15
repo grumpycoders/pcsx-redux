@@ -122,7 +122,7 @@ class CDRom {
      * @param[in] request The request to schedule.
      * @return A task that can be queued into a `TaskQueue`
      */
-    TaskQueue::Task scheduleReadRequest(ReadRequest *request);
+    TaskQueue::Task scheduleReadRequest(const ReadRequest *request);
 
     /**
      * @brief Wrapper around the readSectors method for coroutines.

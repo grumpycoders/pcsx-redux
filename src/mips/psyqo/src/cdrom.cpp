@@ -36,7 +36,7 @@ psyqo::TaskQueue::Task psyqo::CDRom::scheduleReadSectors(uint32_t sector, uint32
     });
 }
 
-psyqo::TaskQueue::Task psyqo::CDRom::scheduleReadRequest(ReadRequest *request) {
+psyqo::TaskQueue::Task psyqo::CDRom::scheduleReadRequest(const ReadRequest *request) {
     return TaskQueue::Task([this, request](auto task) {
         readSectors(request->LBA, request->count, request->buffer, [task](bool success) { task->complete(success); });
     });
