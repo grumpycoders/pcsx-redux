@@ -86,6 +86,12 @@ uint64_t readFileBuffer(LuaFile* wrapper, void* buffer) {
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->read(data, *pSize);
 }
+PCSX::Slice* readFileToSlice(LuaFile* wrapper, uint64_t size) {
+    return new PCSX::Slice(std::move(wrapper->file->read(size)));
+}
+uint64_t readFileToExistingSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t size) {
+    return wrapper->file->read(slice->mutableData(), size);
+}
 
 uint64_t writeFileRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size) {
     return wrapper->file->write(data, size);
@@ -116,6 +122,12 @@ uint64_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint64_t pos) {
     uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->readAt(data, *pSize, pos);
+}
+PCSX::Slice* readFileAtToSlice(LuaFile* wrapper, uint64_t size, uint64_t pos) {
+    return new PCSX::Slice(std::move(wrapper->file->readAt(pos, size)));
+}
+uint64_t readFileAtToExistingSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t size, uint64_t pos) {
+    return wrapper->file->readAt(slice->mutableData(), size, pos);
 }
 
 uint64_t writeFileAtRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size, uint64_t pos) {
@@ -312,6 +324,9 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, readFileRawPtr);
     REGISTER(L, readFileBuffer);
+    REGISTER(L, readFileToSlice);
+    REGISTER(L, readFileToExistingSlice);
+
     REGISTER(L, writeFileRawPtr);
     REGISTER(L, writeFileBuffer);
     REGISTER(L, writeFileMoveSlice);
@@ -325,6 +340,8 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, readFileAtRawPtr);
     REGISTER(L, readFileAtBuffer);
+    REGISTER(L, readFileAtToSlice);
+    REGISTER(L, readFileAtToExistingSlice);
 
     REGISTER(L, writeFileAtRawPtr);
     REGISTER(L, writeFileAtBuffer);
