@@ -55,7 +55,7 @@ typedef PCSX::BinStruct::Struct<TYPESTRING("ModFile"), ModTitle, ModSamples, Pos
 
 int main(int argc, char** argv) {
     CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
+    const auto output = args.get<std::string>("o");
 
     fmt::print(R"(
 modconv by Nicolas "Pixel" Noble
@@ -63,12 +63,12 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
 
 )");
 
-    auto inputs = args.positional();
+    const auto inputs = args.positional();
     const bool asksForHelp = args.get<bool>("h").value_or(false);
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
-    auto samplesFile = args.get<std::string>("s");
-    auto amplification = args.get<unsigned>("a").value_or(175);
+    const auto samplesFile = args.get<std::string>("s");
+    const auto amplification = args.get<unsigned>("a").value_or(175);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
 Usage: {} input.mod [-h] [-s output.smp] [-a amp] -o output.hit
@@ -87,7 +87,7 @@ both the pattern and sample data.
         return -1;
     }
 
-    auto& input = inputs[0];
+    const auto& input = inputs[0];
     PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
     if (file->failed()) {
         fmt::print("Unable to open file: {}\n", input);

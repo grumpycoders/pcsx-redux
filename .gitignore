@@ -39,6 +39,7 @@ deps/
 objs/
 bins/
 /pcsx-redux
+/authoring
 /exe2elf
 /exe2iso
 /modconv

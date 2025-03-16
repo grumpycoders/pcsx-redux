@@ -109,6 +109,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "llhttp", "llhttp\llhttp.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uriparser", "uriparser\uriparser.vcxproj", "{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "authoring", "authoring\authoring.vcxproj", "{74766710-2FA8-4400-B035-321B4A7ACD9C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -518,6 +520,16 @@ Global
 		{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
 		{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}.ReleaseWithTracy|x64.ActiveCfg = ReleaseWithTracy|x64
 		{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}.ReleaseWithTracy|x64.Build.0 = ReleaseWithTracy|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.Debug|x64.ActiveCfg = Debug|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.Debug|x64.Build.0 = Debug|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.Release|x64.ActiveCfg = Release|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.Release|x64.Build.0 = Release|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -565,9 +577,10 @@ Global
 		{74F6A549-AB14-4369-A382-C31C0ED97A92} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 		{78BBE8E9-710D-4A8C-8EC5-A8D7864F6DB8} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 		{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
+		{74766710-2FA8-4400-B035-321B4A7ACD9C} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal

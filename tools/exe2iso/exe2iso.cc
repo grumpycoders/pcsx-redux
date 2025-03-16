@@ -95,8 +95,8 @@ exe2iso by Nicolas "Pixel" Noble
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2iso/
 )");
 
-    auto output = args.get<std::string>("o");
-    auto inputs = args.positional();
+    const auto output = args.get<std::string>("o");
+    const auto inputs = args.positional();
     const bool asksForHelp = args.get<bool>("h").value_or(false);
     const uint32_t offset = std::stoul(args.get<std::string>("offset").value_or("0"), nullptr, 0);
     const bool hasOutput = output.has_value();
@@ -191,6 +191,7 @@ Usage: {} input.ps-exe [-offset value] [-pad] [-regen] [-license file] -o output
     }
     if (!wroteLicense) {
         memset(sector, 0, sizeof(sector));
+        makeHeaderOnce(sector);
         for (unsigned i = 0; i < 16; i++) {
             writeSector();
         }
