@@ -31,7 +31,6 @@
 #include "GL/gl3w.h"
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
-#include "cdrom/iso9660-builder.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -44,6 +43,7 @@
 #include "support/file.h"
 #include "support/hashtable.h"
 #include "support/strings-helpers.h"
+#include "supportpsx/iso9660-builder.h"
 #include "uriparser/Uri.h"
 
 namespace {
@@ -463,7 +463,7 @@ class CDExecutor : public PCSX::WebExecutor {
                 auto filename = vars.find("filename");
                 auto sector = vars.find("sector");
                 auto modeStr = vars.find("mode");
-                PCSX::SectorMode mode = PCSX::SectorMode::GUESS;
+                PCSX::IEC60908b::SectorMode mode = PCSX::IEC60908b::SectorMode::GUESS;
                 if ((filename == vars.end()) && (sector == vars.end())) {
                     client->write("HTTP/1.1 400 Bad Request\r\n\r\n");
                     return true;
@@ -473,7 +473,7 @@ class CDExecutor : public PCSX::WebExecutor {
                     return true;
                 }
                 if (modeStr != vars.end()) {
-                    auto modeCast = magic_enum::enum_cast<PCSX::SectorMode>(modeStr->second.value_or(""));
+                    auto modeCast = magic_enum::enum_cast<PCSX::IEC60908b::SectorMode>(modeStr->second.value_or(""));
                     if (modeCast.has_value()) {
                         mode = modeCast.value();
                     } else {

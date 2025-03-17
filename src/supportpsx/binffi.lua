@@ -165,7 +165,7 @@ PCSX.Misc.uclPack = function(src, dest)
         error('Expected a File object, string, LuaBuffer, or Slice as first argument')
     end
 
-    local bufferSize = srcSize * 1.2 + 2048
+    local bufferSize = srcSize * 1.2 + 2064
 
     local retIsDest = false
     local destPtr

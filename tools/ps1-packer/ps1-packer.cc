@@ -34,7 +34,7 @@ ps1-packer by Nicolas "Pixel" Noble
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
 )");
 
-    auto inputs = args.positional();
+    const auto inputs = args.positional();
     const bool asksForHelp = args.get<bool>("h").value_or(false);
     const bool hasOutput = output.has_value();
     const uint32_t tload = std::stoul(args.get<std::string>("tload").value_or("0"), nullptr, 0);
@@ -47,7 +47,7 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
     const bool rom = args.get<bool>("rom").value_or(false);
     const bool cpe = args.get<bool>("cpe").value_or(false);
     const bool nopad = args.get<bool>("nopad").value_or(false);
-    unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
+    const unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(
 Usage: {} input.ps-exe [-h] [-tload addr] [-shell] [-nokernel] [-resetstack] [-raw | -booty | -rom | -cpe] -o output.ps-exe

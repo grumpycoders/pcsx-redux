@@ -39,6 +39,15 @@ namespace PCSX {
 
 namespace IEC60908b {
 
+enum class SectorMode {
+    GUESS,     // will try and guess the sector mode based on flags found in the first sector
+    RAW,       // 2352 bytes per sector
+    M1,        // 2048 bytes per sector
+    M2_RAW,    // 2336 bytes per sector, includes subheader; can't be guessed
+    M2_FORM1,  // 2048 bytes per sector
+    M2_FORM2,  // 2324 bytes per sector
+};
+
 static constexpr size_t FRAMESIZE_RAW = 2352;
 static constexpr size_t DATA_SIZE = FRAMESIZE_RAW - 12;
 static constexpr size_t SUB_FRAMESIZE = 96;

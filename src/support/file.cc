@@ -52,6 +52,12 @@ PCSX::BufferFile::BufferFile(void *data, size_t size, Acquire) : File(RW_SEEKABL
     m_owned = true;
 }
 
+PCSX::BufferFile::BufferFile(void *data, size_t size, Borrow) : File(RW_SEEKABLE) {
+    m_data = reinterpret_cast<uint8_t *>(data);
+    m_size = size;
+    m_owned = false;
+}
+
 PCSX::BufferFile::BufferFile() : File(RO_SEEKABLE) {
     m_data = &m_internalBuffer;
     m_size = 1;
@@ -146,16 +152,16 @@ ssize_t PCSX::BufferFile::write(const void *src, size_t size) {
 bool PCSX::BufferFile::eof() { return m_size == m_ptrR; }
 
 PCSX::File *PCSX::BufferFile::dup() {
-    if (!m_owned) {
+    if (m_owned && !writable()) {
         return new BufferFile(m_data, m_size);
     } else {
         return new BufferFile(m_data, m_size, FileOps::READWRITE);
     }
 }
 
-PCSX::Slice PCSX::BufferFile::borrow() {
+PCSX::Slice PCSX::BufferFile::borrow(size_t offset) {
     Slice ret;
-    ret.borrow(m_data, m_size);
+    ret.borrow(m_data + offset, m_size - offset);
     return ret;
 }
 

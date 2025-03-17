@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2021 PCSX-Redux authors
+Copyright (c) 2022 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,39 +26,29 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
+#include "support/file.h"
+#include "supportpsx/iec-60908b.h"
 
-#ifdef __cplusplus
+namespace PCSX {
 
-#include <concepts>
-
-namespace Utilities {
-
-template <std::integral T, unsigned size = (sizeof(T) + 7) / 8>
-T loadUnaligned(const uint8_t *ptr) {
-    T ret = 0;
-    for (unsigned i = 0; i < size; i++) {
-        ret |= (ptr[i] << (i * 8));
+class ISO9660Builder {
+  public:
+    ISO9660Builder(IO<File> out) : m_out(out) {}
+    bool failed() { return !m_out || m_out->failed(); }
+    IEC60908b::MSF getCurrentLocation() { return m_location; }
+    void writeLicense(IO<File> licenseFile = nullptr);
+    IEC60908b::MSF writeSector(const uint8_t* sectorData, IEC60908b::SectorMode mode) {
+        return writeSectorAt(sectorData, m_location++, mode);
     }
-    return ret;
-}
-
-template <std::integral T, unsigned size = (sizeof(T) + 7) / 8>
-void storeUnaligned(uint8_t *ptr, T value) {
-    for (unsigned i = 0; i < size; i++) {
-        ptr[i] = value >> (i * 8);
+    IEC60908b::MSF writeSectorAt(const uint8_t* sectorData, IEC60908b::MSF msf, IEC60908b::SectorMode mode);
+    void close() {
+        m_out->close();
+        m_out = nullptr;
     }
-}
 
-}  // namespace Utilities
+  private:
+    IO<File> m_out;
+    IEC60908b::MSF m_location = {0, 2, 0};
+};
 
-#endif
-
-#ifdef __mips__
-static __inline__ uint32_t load32Unaligned(const void *in, int pos) {
-    const uint8_t *buffer = (const uint8_t *)in;
-    uint32_t r;
-    __builtin_memcpy(&r, buffer + pos, sizeof(uint32_t));
-    return r;
-}
-#endif
+}  // namespace PCSX

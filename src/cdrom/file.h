@@ -24,8 +24,8 @@
 #include <memory>
 #include <string_view>
 
-#include "cdrom/common.h"
 #include "support/file.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 
@@ -37,7 +37,8 @@ class CDRIsoFile : public File {
 
     static constexpr uint32_t c_sectorSizes[] = {2352, 2352, 2048, 2336, 2048, 2324};
     static constexpr size_t c_sectorOffsets[] = {0, 0, 16, 16, 24, 24};
-    CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1, SectorMode = SectorMode::GUESS);
+    CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size = -1,
+               IEC60908b::SectorMode = IEC60908b::SectorMode::GUESS);
     virtual bool failed() final override { return m_failed; }
     virtual ssize_t rSeek(ssize_t pos, int wheel) override;
     virtual ssize_t rTell() override { return m_ptrR; }
@@ -54,7 +55,7 @@ class CDRIsoFile : public File {
     int32_t m_cachedLBA = -1;
     uint32_t m_lba;
     uint32_t m_size;
-    SectorMode m_mode;
+    IEC60908b::SectorMode m_mode;
     size_t m_ptrR = 0;
     size_t m_ptrW = 0;
 
