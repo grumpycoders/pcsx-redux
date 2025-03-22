@@ -43,10 +43,14 @@ extern fptr __preinit_array_end[] __attribute__((weak));
 extern fptr __init_array_start[] __attribute__((weak));
 extern fptr __init_array_end[] __attribute__((weak));
 
-int main(int argc, char ** argv);
+int main(int argc, char** argv);
 
-void cxxmain(int argc, char ** argv) {
+void cxxmain(int argc, char** argv) {
     size_t count, i;
+
+#ifdef USE_PCSXMSAN
+    pcsx_msanInit();
+#endif
 
     count = __preinit_array_end - __preinit_array_start;
     for (i = 0; i < count; i++) {
@@ -69,7 +73,7 @@ void cxxmain(int argc, char ** argv) {
 
 // These two technically aren't part of the standard library requirements, but can
 // be invoked by the freestanding libstdc++, so might as well.
-__attribute__((weak)) size_t strlen(const char * s) {
+__attribute__((weak)) size_t strlen(const char* s) {
     size_t r = 0;
 
     while (*s++) r++;
@@ -77,8 +81,8 @@ __attribute__((weak)) size_t strlen(const char * s) {
     return r;
 }
 
-__attribute__((weak)) const void * memchr(const void * _s, int c, size_t n) {
-    const uint8_t * s = (uint8_t *) _s;
+__attribute__((weak)) const void* memchr(const void* _s, int c, size_t n) {
+    const uint8_t* s = (uint8_t*)_s;
     size_t i;
 
     for (i = 0; i < n; i++, s++) {

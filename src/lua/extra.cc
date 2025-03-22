@@ -28,6 +28,7 @@
 #include "lua/luawrapper.h"
 #include "support/file.h"
 #include "support/strings-helpers.h"
+#include "support/djbhash.h"
 #include "support/zip.h"
 
 namespace {
@@ -79,6 +80,30 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
         delete file;
     }
     return new PCSX::PosixFile(absolutePath);
+}
+
+uint64_t djbHash(const char* str, size_t len) {
+    return PCSX::djb::hash(str, len);
+}
+
+template <typename T, size_t S>
+void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
+}
+
+#define REGISTER(L, s) registerSymbol(L, #s, s)
+
+void registerAllSymbols(PCSX::Lua L) {
+    L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
+    L.push("SUPPORT_EXTRA");
+    L.newtable();
+
+    REGISTER(L, djbHash);
+
+    L.settable();
+    L.pop();
 }
 
 }  // namespace
@@ -138,6 +163,7 @@ void PCSX::LuaFFI::open_extra(Lua L) {
     static const char* extra = (
 #include "lua/extra.lua"
     );
+    registerAllSymbols(L);
     L.load(pprint, "third_party:pprint.lua/pprint.lua");
     L.load(pprint_internals, "third_party:pprint.lua/pprint-internals.lua");
     L.load(reflectFFI, "third_party:ffi-reflect/reflect.lua");

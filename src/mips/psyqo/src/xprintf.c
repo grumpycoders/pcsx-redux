@@ -223,7 +223,7 @@ static const info fmtinfo[] = {
         'a',
         1024,
         0,
-        0,
+        1,
         0,
         FIXED,
     },

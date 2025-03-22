@@ -26,7 +26,7 @@
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 #undef _PC_
 #undef _Op_
@@ -997,9 +997,16 @@ void InterpretedCPU::psxSW(uint32_t code) {
 void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    addr ^= shift;
+    uint32_t mem;
+    // special handling to avoid msan interpreting this as a read
+    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
+        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
+    } else {
+        mem = PCSX::g_emulator->m_mem->read32(addr);
+    }
 
-    PCSX::g_emulator->m_mem->write32(addr & ~3, (_rRt_ >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32(addr, ((_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
     0   123a   (reg >> 24) | (mem & 0xffffff00)
@@ -1012,9 +1019,16 @@ void InterpretedCPU::psxSWL(uint32_t code) {
 void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    addr ^= shift;
+    uint32_t mem;
+    // special handling to avoid msan interpreting this as a read
+    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
+        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
+    } else {
+        mem = PCSX::g_emulator->m_mem->read32(addr);
+    }
 
-    PCSX::g_emulator->m_mem->write32(addr & ~3, (_rRt_ << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32(addr, ((_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd

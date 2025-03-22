@@ -149,13 +149,17 @@ struct CString {
     static constexpr char const typeName[] = "CString";
     typedef std::string_view type;
     operator type() const { return {value, S}; }
-    CString<S> operator=(const type &v) {
+    CString &operator=(const type &v) {
         memcpy(value, v.data(), S);
         return *this;
     }
-    void set(const type &v) {
+    void set(const type &v, char padding = 0) {
         value[S] = 0;
-        memcpy(value, v.data(), S);
+        auto toCopy = std::min(S, v.size());
+        memcpy(value, v.data(), toCopy);
+        if (toCopy < S) {
+            memset(value + toCopy, padding, S - toCopy);
+        }
     }
     void serialize(IO<File> f) const { f->write(value, S); }
     void deserialize(IO<File> f) {

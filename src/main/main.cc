@@ -41,7 +41,7 @@
 #include "support/binpath.h"
 #include "support/uvfile.h"
 #include "support/version.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 static PCSX::UI *s_ui;
 
@@ -116,8 +116,6 @@ class SystemImpl final : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
-
     virtual void testQuit(int code) final override {
         if (m_args.isTestModeEnabled()) {
             quit(code);
@@ -134,6 +132,8 @@ class SystemImpl final : public PCSX::System {
     const PCSX::Arguments m_args;
 
   public:
+    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
+
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
@@ -166,6 +166,8 @@ struct Cleaner {
     std::function<void()> f;
 };
 
+void handleSignal(int signal) { PCSX::g_system->quit(-1); }
+
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     // Command line arguments are parsed after this point.
@@ -193,8 +195,11 @@ int pcsxMain(int argc, char **argv) {
     // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
     PCSX::g_system = system;
-    auto sigint = std::signal(SIGINT, [](auto signal) { PCSX::g_system->quit(-1); });
-    auto sigterm = std::signal(SIGTERM, [](auto signal) { PCSX::g_system->quit(-1); });
+    auto sigint = std::signal(SIGINT, handleSignal);
+    auto sigterm = std::signal(SIGTERM, handleSignal);
+#ifndef _WIN32
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
@@ -447,11 +452,14 @@ runner.init({
                     emulator->m_cpu->Execute();
                 } else {
                     // The "update" method will be called periodically by the emulator while
-                    // meaning if we want our UI to work, we have to manually call "update"
-                    // when the emulator is paused.
+                    // it's running, meaning if we want our UI to work, we have to manually
+                    // call "update" when the emulator is paused.
                     s_ui->update();
                 }
             }
+            system->pause();
+            system->m_eventBus->signal(PCSX::Events::Quitting{});
+            system->purgeAllEvents();
         } catch (...) {
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.

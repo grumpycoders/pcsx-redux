@@ -26,10 +26,13 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/utility.h>
 #include <stdint.h>
 
 #include "psyqo/fragments.hh"
+#include "psyqo/kernel.hh"
 #include "psyqo/primitive-concept.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -49,18 +52,21 @@ namespace psyqo {
  *
  * @tparam N The size of the memory buffer in bytes.
  */
-template <size_t N>
+template <size_t N, Safe safety = Safe::Yes>
 class BumpAllocator {
   public:
-    template <Primitive P, typename ...Args>
-    Fragments::SimpleFragment<P> &allocateFragment(Args ...args) {
+    template <Primitive P, typename... Args>
+    Fragments::SimpleFragment<P> &allocateFragment(Args &&...args) {
         static constexpr size_t size = sizeof(Fragments::SimpleFragment<P>);
+        if constexpr (safety == Safe::Yes) {
+            psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        }
         uint8_t *ptr = m_current;
         m_current += size;
-        return *new (ptr) Fragments::SimpleFragment<P>(args...);
+        return *new (ptr) Fragments::SimpleFragment<P>(eastl::forward<Args>(args)...);
     }
-    template <typename T, typename ...Args>
-    T &allocate(Args ...args) {
+    template <typename T, typename... Args>
+    T &allocate(Args &&...args) {
         size_t size = sizeof(T);
         uint8_t *ptr = m_current;
         if constexpr (alignof(T) > 1) {
@@ -69,10 +75,15 @@ class BumpAllocator {
             size += alignedptr - ptr;
             ptr = alignedptr;
         }
+        if constexpr (safety == Safe::Yes) {
+            psyqo::Kernel::assert(remaining() >= size, "BumpAllocator: Out of memory");
+        }
         m_current += size;
-        return *new (ptr) T(args...);
+        return *new (ptr) T(eastl::forward<Args>(args)...);
     }
     void reset() { m_current = m_memory; }
+    size_t remaining() const { return N - (m_current - m_memory); }
+    size_t used() const { return m_current - m_memory; }
 
   private:
     uint8_t m_memory[N] __attribute__((aligned(4)));

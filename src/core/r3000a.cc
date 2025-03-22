@@ -23,6 +23,8 @@
 
 #include "core/r3000a.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
@@ -33,11 +35,11 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include "supportpsx/memory.h"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
-    g_system->printf(_("Copyright (C) 2019-%i PCSX-Redux authors\n"), 2024);
+    g_system->printf(_("Copyright (C) 2019-%i PCSX-Redux authors\n"), 2025);
     const auto& args = g_system->getArgs();
 
     if (g_emulator->settings.get<Emulator::SettingDynarec>()) {
@@ -140,7 +142,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
-                    if (regs.a1 == 0) {
+                    if (regs.a2 == 0) {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path));
                     } else {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path, FileOps::READWRITE));
@@ -476,4 +478,29 @@ void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
             break;
         }
     }
+}
+
+std::pair<const uint32_t, std::string>* PCSX::R3000Acpu::findContainingSymbol(uint32_t addr) {
+    auto symBefore = m_symbols.upper_bound(addr);
+    if (symBefore != m_symbols.begin()) {  // verify there is actually a symbol before addr
+        symBefore--;
+        if (symBefore->first != addr) {
+            PCSX::PSXAddress addrInfo(addr);
+            PCSX::PSXAddress symbolInfo(symBefore->first);
+            if (addrInfo.segment != symbolInfo.segment) {
+                // if the symbol is different and not in the same memory region, it'd be wrong
+                return nullptr;
+            }
+        }
+        return &*symBefore;
+    }
+    return nullptr;
+}
+
+std::string* PCSX::R3000Acpu::getSymbolAt(uint32_t addr) {
+    auto symBefore = m_symbols.find(addr);
+    if (symBefore != m_symbols.end()) {
+        return &symBefore->second;
+    }
+    return nullptr;
 }

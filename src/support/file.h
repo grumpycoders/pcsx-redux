@@ -341,6 +341,7 @@ class FailedFile : public File {
 class BufferFile : public File {
   public:
     enum Acquire { ACQUIRE };
+    enum Borrow { BORROW };
     // Makes a read-only buffer in memory, referencing the memory
     // without acquiring it. Therefore, memory must remain allocated
     // for the lifespan of the File object. Any dup call will still
@@ -352,6 +353,10 @@ class BufferFile : public File {
     BufferFile(void* data, size_t size, FileOps::ReadWrite);
     // Same as above, but acquires the memory instead of copying it.
     BufferFile(void* data, size_t size, Acquire);
+    // Same as above, but borrows the memory instead of copying it.
+    // The buffer will be written to if needed, but will not be
+    // enlarged if the write goes past the end.
+    BufferFile(void* data, size_t size, Borrow);
     // Makes a dummy read-only file of size 1.
     BufferFile();
     // Makes an empty read-write buffer.
@@ -369,7 +374,7 @@ class BufferFile : public File {
     virtual bool eof() final override;
     virtual File* dup() final override;
 
-    Slice borrow();
+    Slice borrow(size_t offset = 0);
 
   private:
     virtual void closeInternal() final override;

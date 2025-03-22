@@ -197,6 +197,9 @@
     <ProjectReference Include="..\..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\llhttp\llhttp.vcxproj">
+      <Project>{78bbe8e9-710d-4a8c-8ec5-a8d7864f6db8}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lpeg\lpeg.vcxproj">
       <Project>{ce54ed92-4645-4ae9-bdc8-c0b9607765f8}</Project>
     </ProjectReference>
@@ -233,6 +236,9 @@
     <ProjectReference Include="..\..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\uriparser\uriparser.vcxproj">
+      <Project>{6acdc81a-f4d8-4c2d-8ccd-db72a88febed}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\zep\zep.vcxproj">
       <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
     </ProjectReference>
@@ -261,16 +267,16 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets')" />
     <Import Project="..\..\packages\glfw.3.4.0\build\native\glfw.targets" Condition="Exists('..\..\packages\glfw.3.4.0\build\native\glfw.targets')" />
     <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" />
+    <Import Project="..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets'))" />
     <Error Condition="!Exists('..\..\packages\glfw.3.4.0\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\glfw.3.4.0\build\native\glfw.targets'))" />
     <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

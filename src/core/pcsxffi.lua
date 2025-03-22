@@ -227,5 +227,6 @@ PCSX = {
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
 printError = function(...) printLike(function(s) C.luaMessage(s, true) end, ...) end
+bit.extract = function(x, n, w) return bit.rshift(bit.band(x, bit.lshift(1, w) - 1), n) end
 
 -- )EOF"

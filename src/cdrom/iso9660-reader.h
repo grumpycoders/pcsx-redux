@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "cdrom/file.h"
-#include "cdrom/iso9660-lowlevel.h"
+#include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
 

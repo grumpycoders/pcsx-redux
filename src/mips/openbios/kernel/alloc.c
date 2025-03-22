@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2021 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,291 +44,294 @@ located in the ROM, while the kernel versions are located in RAM.
 Our version here will be completely located in RAM, and has a single
 implementation, with a parameter to switch between kernel and user heaps.
 
- */
+*/
 
-static void *user_heap_start = NULL;
-static void *user_heap_end = NULL;
-static void *kern_heap_start = NULL;
-static void *kern_heap_end = NULL;
+// See alloc.c in the psyqo project for more details on this allocator.
 
-static void *user_heap_base = NULL;
-static void *user_heap_bottom = NULL;
-static void *kern_heap_base = NULL;
-static void *kern_heap_bottom = NULL;
+#define ALIGN_MASK ((2 * sizeof(void *)) - 1)
+#define ALIGN_TO(x) (((uintptr_t)(x) + ALIGN_MASK) & ~ALIGN_MASK)
 
-typedef struct _heap_t {
-    void *ptr;
+typedef struct empty_block_ {
+    struct empty_block_ *next;
     size_t size;
-    struct _heap_t *prev, *next;
-} heap_t;
+} empty_block;
 
-static heap_t *user_head = NULL, *user_tail = NULL;
-static heap_t *kern_head = NULL, *kern_tail = NULL;
+typedef struct allocated_block_ {
+    uintptr_t dummy;
+    size_t size;
+} allocated_block;
+
+_Static_assert(sizeof(empty_block) == (2 * sizeof(void *)), "empty_block is of the wrong size");
+_Static_assert(sizeof(allocated_block) == (2 * sizeof(void *)), "allocated_block is of the wrong size");
+
+static empty_block *user_heap_head = NULL;
+static empty_block *kern_heap_head = NULL;
+
+static empty_block marker = {.next = NULL, .size = 0};
 
 enum heap { HEAP_USER, HEAP_KERNEL };
 
-static __attribute__((section(".ramtext"))) void *sbrk(ptrdiff_t incr, enum heap heap) {
-    void *prev_heap_end, *next_heap_end, *ret;
+static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size_, const enum heap heap) {
+    empty_block *curr = heap == HEAP_USER ? user_heap_head : kern_heap_head;
+    empty_block *prev = NULL;
+    empty_block *best_fit = NULL;
+    empty_block *best_fit_prev = NULL;
 
-    if (heap == HEAP_USER) {
-        prev_heap_end = user_heap_bottom ? user_heap_bottom : user_heap_start;
-    } else {
-        prev_heap_end = kern_heap_bottom ? kern_heap_bottom : kern_heap_start;
-    }
+    size_t size = ALIGN_TO(size_ + sizeof(allocated_block));
 
-    /* Align to always be on 8-byte boundaries */
-    next_heap_end = (void *)((((uintptr_t)prev_heap_end + incr) + 7) & ~7);
-
-    /* Check if this allocation would exceed the end of the ram */
-    if (next_heap_end > (heap == HEAP_USER ? user_heap_end : kern_heap_end)) {
-        ret = NULL;
-    } else {
-        if (heap == HEAP_USER) {
-            user_heap_bottom = next_heap_end;
-        } else {
-            kern_heap_bottom = next_heap_end;
-        }
-        ret = (void *)prev_heap_end;
-    }
-
-    return ret;
-}
-
-static __attribute__((section(".ramtext"))) heap_t *find_fit(heap_t *head, size_t size) {
-    heap_t *prev = head;
-    uintptr_t prev_top, next_bot;
-
-    while (prev) {
-        if (prev->next) {
-            prev_top = (uintptr_t)prev->ptr + prev->size;
-            next_bot = (uintptr_t)prev->next - prev_top;
-            if (next_bot >= size) return prev;
-        }
-        prev = prev->next;
-    }
-
-    return prev;
-}
-
-static __attribute__((section(".ramtext"))) void *multi_malloc(size_t size, enum heap heap) {
-    void *ptr = NULL, *heap_ptr;
-    heap_t *new, *prev;
-
-    size = (size + sizeof(heap_t) + 7) & ~7;
-
-    // Nothing's initialized yet ? Let's just initialize the bottom of our heap,
-    // flag it as allocated.
-    if (heap == HEAP_USER ? !user_head : !kern_head) {
-        if (heap == HEAP_USER ? !user_heap_base : !kern_heap_base) {
-            void *heap_base = sbrk(0, heap);
-            if (heap == HEAP_USER) {
-                user_heap_base = heap_base;
-            } else {
-                kern_heap_base = heap_base;
+    size_t curr_size = 0;
+    while ((curr_size != size) && (curr != &marker)) {
+        curr_size = curr->size;
+        if (curr_size >= size) {
+            if ((best_fit == NULL) || (curr_size < best_fit->size)) {
+                best_fit = curr;
+                best_fit_prev = prev;
             }
         }
-        heap_ptr = sbrk(size, heap);
-
-        if (!heap_ptr) return NULL;
-
-        ptr = (void *)((uintptr_t)heap_ptr + sizeof(heap_t));
-        heap_t *head;
-        if (heap == HEAP_USER) {
-            head = user_head = (heap_t *)heap_ptr;
-        } else {
-            head = kern_head = (heap_t *)heap_ptr;
-        }
-        head->ptr = ptr;
-        head->size = size - sizeof(heap_t);
-        head->prev = NULL;
-        head->next = NULL;
-        if (heap == HEAP_USER) {
-            user_tail = head;
-        } else {
-            kern_tail = head;
-        }
-        return ptr;
+        prev = curr;
+        curr = curr->next;
     }
 
-    // We *may* have the bottom of our heap that has shifted, because of a free.
-    // So let's check first if we have free space there, because I'm nervous
-    // about having an incomplete data structure.
-    void *heap_base = heap == HEAP_USER ? user_heap_base : kern_heap_base;
-    heap_t *head = heap == HEAP_USER ? user_head : kern_head;
-    if (((uintptr_t)heap_base + size) < (uintptr_t)head) {
-        new = (heap_t *)heap_base;
-        ptr = (void *)((uintptr_t) new + sizeof(heap_t));
-
-        new->ptr = ptr;
-        new->size = size - sizeof(heap_t);
-        new->prev = NULL;
-        new->next = head;
-        head->prev = new;
-        head = new;
-        if (heap == HEAP_USER) {
-            user_head = head;
-        } else {
-            kern_head = head;
-        }
-        return ptr;
-    }
-
-    // No luck at the beginning of the heap, let's walk the heap to find a fit.
-    prev = find_fit(head, size);
-    if (prev) {
-        new = (heap_t *)((uintptr_t)prev->ptr + prev->size);
-        ptr = (void *)((uintptr_t) new + sizeof(heap_t));
-
-        new->ptr = ptr;
-        new->size = size - sizeof(heap_t);
-        new->prev = prev;
-        new->next = prev->next;
-        new->next->prev = new;
-        prev->next = new;
-        return ptr;
-    }
-
-    // Time to extend the size of the heap.
-    heap_ptr = sbrk(size, heap);
-    if (!heap_ptr) return NULL;
-
-    ptr = (void *)((uintptr_t)heap_ptr + sizeof(heap_t));
-    new = (heap_t *)heap_ptr;
-    new->ptr = ptr;
-    new->size = size - sizeof(heap_t);
-    new->prev = heap == HEAP_USER ? user_tail : kern_tail;
-    new->next = NULL;
-    if (heap == HEAP_USER) {
-        user_tail->next = new;
-        user_tail = new;
-    } else {
-        kern_tail->next = new;
-        kern_tail = new;
-    }
-    return ptr;
-}
-
-static __attribute__((section(".ramtext"))) void multi_free(void *ptr, enum heap heap) {
-    heap_t *cur;
-    void *top;
-    size_t size;
-
-    heap_t *head = heap == HEAP_USER ? user_head : kern_head;
-
-    if (!ptr || !head) return;
-
-    // First block; bumping head ahead.
-    if (ptr == head->ptr) {
-        size = head->size + (size_t)(head->ptr - (void *)head);
-        head = head->next;
-
-        if (head) {
-            if (heap == HEAP_USER) {
-                user_head = head;
-            } else {
-                kern_head = head;
-            }
-            head->prev = NULL;
-        } else {
-            if (heap == HEAP_USER) {
-                user_tail = NULL;
-                user_heap_base = NULL;
-                user_head = NULL;
-                user_heap_bottom = NULL;
-            } else {
-                kern_tail = NULL;
-                kern_heap_base = NULL;
-                kern_head = NULL;
-                kern_heap_bottom = NULL;
-            }
-        }
-
-        return;
-    }
-
-    // Finding the proper block
-    cur = head;
-    for (cur = head; ptr != cur->ptr; cur = cur->next) {
-        if (!cur->next) return;
-    }
-
-    if (cur->next) {
-        // In the middle, just unlink it
-        cur->next->prev = cur->prev;
-    } else {
-        // At the end, shrink heap
-        if (heap == HEAP_USER) {
-            user_tail = cur->prev;
-            if (!user_tail) {
-                user_heap_base = NULL;
-                user_head = NULL;
-                user_heap_bottom = NULL;
-            }
-        } else {
-            kern_tail = cur->prev;
-            if (!kern_tail) {
-                kern_heap_base = NULL;
-                kern_head = NULL;
-                kern_heap_bottom = NULL;
-            }
-        }
-        top = sbrk(0, heap);
-        size = (top - cur->prev->ptr) - cur->prev->size;
-        sbrk(-size, heap);
-    }
-
-    cur->prev->next = cur->next;
-}
-
-static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr, size_t size, enum heap heap) {
-    heap_t *prev;
-    void *new = NULL;
-
-    if (!size && ptr) {
-        multi_free(ptr, heap);
+    if (best_fit == NULL) {
         return NULL;
     }
 
-    if (!ptr) return multi_malloc(size, heap);
+    size_t best_fit_size = best_fit->size;
+    allocated_block *ptr = (allocated_block *)best_fit;
 
-    size_t block_size = (size + sizeof(heap_t) + 7) & ~7;
-
-    prev = (heap_t *)((uintptr_t)ptr - sizeof(heap_t));
-
-    // New memory block shorter ?
-    if (prev->size >= block_size) {
-        prev->size = block_size;
-        if (!prev->next) sbrk(ptr + block_size - sbrk(0, heap), heap);
-
-        return ptr;
+    if (best_fit_size == size) {
+        if (best_fit_prev == NULL) {
+            if (heap == HEAP_USER) {
+                user_heap_head = best_fit->next;
+            } else {
+                kern_heap_head = best_fit->next;
+            }
+        } else {
+            best_fit_prev->next = best_fit->next;
+        }
+    } else {
+        empty_block *new_block = (empty_block *)((char *)best_fit + size);
+        new_block->next = best_fit->next;
+        new_block->size = best_fit_size - size;
+        if (best_fit_prev == NULL) {
+            if (heap == HEAP_USER) {
+                user_heap_head = new_block;
+            } else {
+                kern_heap_head = new_block;
+            }
+        } else {
+            best_fit_prev->next = new_block;
+        }
     }
 
-    // New memory block larger
-    // Is it the last one ?
-    if (!prev->next) {
-        new = sbrk(block_size - prev->size, heap);
-        if (!new) return NULL;
+    ptr->size = size;
+    ptr++;
+    return ptr;
+}
 
-        prev->size = block_size;
-        return ptr;
+static __attribute__((section(".ramtext"))) void multi_free(void *ptr_, const enum heap heap) {
+    if (ptr_ == NULL) {
+        return;
     }
 
-    // Do we have free memory after it ?
-    if ((prev->next->ptr - ptr) > block_size) {
-        prev->size = block_size;
-        return ptr;
+    empty_block *block = (empty_block *)ptr_;
+    block--;
+    size_t size = block->size;
+    empty_block *const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
+
+    if (head == &marker) {
+        if (heap == HEAP_USER) {
+            user_heap_head = block;
+        } else {
+            kern_heap_head = block;
+        }
+        block->next = &marker;
+        return;
     }
 
-    // No luck.
-    new = multi_malloc(size, heap);
-    if (!new) return NULL;
+    if (head == NULL) {
+        return;
+    }
 
-    uint32_t *src = (uint32_t *)ptr;
-    uint32_t *dst = (uint32_t *)new;
-    size = prev->size / 4;
-    for (size_t i = 0; i < size; i++) *dst++ = *src++;
-    multi_free(ptr, heap);
-    return new;
+    if (head > block) {
+        if (((char *)block + size) == (char *)head) {
+            block->size = head->size + size;
+            block->next = head->next;
+        } else {
+            block->next = head;
+        }
+        if (heap == HEAP_USER) {
+            user_heap_head = block;
+        } else {
+            kern_heap_head = block;
+        }
+        return;
+    }
+
+    empty_block *curr = head;
+    empty_block *next = NULL;
+    while ((next = curr->next) != &marker) {
+        if (next <= block) {
+            curr = next;
+            continue;
+        }
+        if (((char *)curr + curr->size) == (char *)block) {
+            curr->size += size;
+            if (((char *)curr + curr->size) == (char *)next) {
+                curr->size += next->size;
+                curr->next = next->next;
+            }
+        } else if (((char *)block + size) == (char *)next) {
+            block->next = next->next;
+            block->size = size + next->size;
+            curr->next = block;
+        } else {
+            block->next = next;
+            curr->next = block;
+        }
+        return;
+    }
+
+    if (((char *)curr + curr->size) == (char *)block) {
+        curr->size += size;
+    } else {
+        block->next = &marker;
+        curr->next = block;
+    }
+}
+
+static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size_t size_, const enum heap heap) {
+    if (ptr_ == NULL) {
+        return multi_malloc(size_, heap);
+    }
+
+    if (size_ == 0) {
+        multi_free(ptr_, heap);
+        return NULL;
+    }
+
+    size_t size = ALIGN_TO(size_ + sizeof(empty_block));
+    empty_block *block = (empty_block *)ptr_;
+    size_t old_size = (--block)->size;
+
+    if (size == old_size) {
+        return ptr_;
+    }
+
+    empty_block *const head = heap == HEAP_USER ? user_heap_head : kern_heap_head;
+    if (head == &marker) {
+        if (size < old_size) {
+            empty_block *new_block = (empty_block *)((char *)block + size);
+            new_block->next = &marker;
+            new_block->size = old_size - size;
+            if (heap == HEAP_USER) {
+                user_heap_head = new_block;
+            } else {
+                kern_heap_head = new_block;
+            }
+            block->size = size;
+            return ptr_;
+        }
+        return NULL;
+    }
+
+    if (block < head) {
+        if (size < old_size) {
+            empty_block *new_block = (empty_block *)((char *)block + size);
+            if (head == (empty_block *)((char *)block + size)) {
+                new_block->next = head->next;
+                new_block->size = head->size + (old_size - size);
+            } else {
+                new_block->next = head;
+                new_block->size = old_size - size;
+            }
+            if (heap == HEAP_USER) {
+                user_heap_head = new_block;
+            } else {
+                kern_heap_head = new_block;
+            }
+            block->size = size;
+            return ptr_;
+        }
+        if (((char *)block + old_size) == (char *)head) {
+            size_t delta = size - old_size;
+            if (head->size >= delta) {
+                // If it has exactly the right amount of space, we can just remove
+                // the first block from the list.
+                if (head->size == delta) {
+                    if (heap == HEAP_USER) {
+                        user_heap_head = head->next;
+                    } else {
+                        kern_heap_head = head->next;
+                    }
+                } else {
+                    // Otherwise, we need to create a new empty block after what we are re-allocating.
+                    empty_block *new_block = (empty_block *)((char *)block + size);
+                    new_block->next = head;
+                    new_block->size = delta;
+                    if (heap == HEAP_USER) {
+                        user_heap_head = new_block;
+                    } else {
+                        kern_heap_head = new_block;
+                    }
+                }
+                block->size = size;
+                return ptr_;
+            }
+        }
+    } else {
+        empty_block *curr = head;
+        empty_block *next = NULL;
+        while ((next = curr->next) != NULL) {
+            if ((next <= block) && (next != &marker)) {
+                curr = next;
+            } else {
+                break;
+            }
+        }
+
+        if (size < old_size) {
+            empty_block *new_block = (empty_block *)((char *)block + size);
+            if ((next != &marker) && (((char *)block + size) == (char *)next)) {
+                new_block->next = next->next;
+                new_block->size = old_size - size + next->size;
+            } else {
+                new_block->next = next;
+                new_block->size = old_size - size;
+            }
+            curr->next = new_block;
+            block->size = size;
+            return ptr_;
+        }
+
+        size_t delta = size - old_size;
+        if ((next != &marker) && (((char *)block + old_size) == (char *)next) && (next->size >= delta)) {
+            if (next->size == delta) {
+                curr->next = next->next;
+            } else {
+                empty_block *new_block = (empty_block *)((char *)block + size);
+                new_block->next = next->next;
+                new_block->size = next->size - delta;
+                curr->next = new_block;
+            }
+            block->size = size;
+            return ptr_;
+        }
+    }
+
+    void *new_ptr = multi_malloc(size_, heap);
+    if (new_ptr == NULL) {
+        return NULL;
+    }
+    uint32_t *src = (uint32_t *)ptr_;
+    uint32_t *dst = (uint32_t *)new_ptr;
+    uint32_t size_to_copy = old_size - sizeof(empty_block);
+    while (size_to_copy > 0) {
+        *dst++ = *src++;
+        size_to_copy -= sizeof(uint32_t);
+    }
+    multi_free(ptr_, heap);
+    return new_ptr;
 }
 
 __attribute__((section(".ramtext"))) void *user_malloc(size_t size) { return multi_malloc(size, HEAP_USER); }
@@ -337,13 +340,9 @@ __attribute__((section(".ramtext"))) void *user_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_USER);
 }
 __attribute__((section(".ramtext"))) void user_initheap(void *base, size_t size) {
-    user_heap_start = base;
-    user_heap_end = ((char *)base) + size;
-
-    user_heap_base = NULL;
-    user_heap_bottom = NULL;
-    user_head = NULL;
-    user_tail = NULL;
+    user_heap_head = (empty_block *)ALIGN_TO(base);
+    user_heap_head->next = &marker;
+    user_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }
 
 __attribute__((section(".ramtext"))) void *kern_malloc(size_t size) { return multi_malloc(size, HEAP_KERNEL); }
@@ -352,11 +351,7 @@ __attribute__((section(".ramtext"))) void *kern_realloc(void *ptr, size_t size) 
     return multi_realloc(ptr, size, HEAP_KERNEL);
 }
 __attribute__((section(".ramtext"))) void kern_initheap(void *base, size_t size) {
-    kern_heap_start = base;
-    kern_heap_end = ((char *)base) + size;
-
-    kern_heap_base = NULL;
-    kern_heap_bottom = NULL;
-    kern_head = NULL;
-    kern_tail = NULL;
+    kern_heap_head = (empty_block *)ALIGN_TO(base);
+    kern_heap_head->next = &marker;
+    kern_heap_head->size = ALIGN_TO(size - sizeof(empty_block));
 }

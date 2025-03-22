@@ -31,6 +31,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include <concepts>
+#include <coroutine>
 #include <cstdint>
 #include <type_traits>
 
@@ -69,7 +70,10 @@ concept IsCDRomDeviceStateEnum =
  * quickly, and should not be used in performance-critical code, as they
  * can still block the system for several milliseconds. The callbacks
  * will be called from the main thread, and have a boolean parameter
- * that indicates whether the operation was successful.
+ * that indicates whether the operation was successful. Last but not
+ * least, the class provides a coroutine-friendly API, which allows
+ * the use of the `co_await` keyword to suspend the coroutine until
+ * the operation is complete.
  *
  */
 class CDRomDevice final : public CDRom {
@@ -80,6 +84,111 @@ class CDRomDevice final : public CDRom {
         MSF absolute;
         unsigned track;
         unsigned index;
+    };
+
+    struct ResetAwaiter {
+        ResetAwaiter(CDRomDevice &device) : m_device(device) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.reset([handle, this](bool result) {
+                m_result = result;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_result; }
+
+      private:
+        CDRomDevice &m_device;
+        bool m_result;
+    };
+
+    struct GetTOCSizeAwaiter {
+        GetTOCSizeAwaiter(CDRomDevice &device) : m_device(device) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.getTOCSize(&m_result, [handle, this](bool success) {
+                m_success = success;
+                handle.resume();
+            });
+        }
+        unsigned await_resume() { return m_success ? m_result : 0; }
+
+      private:
+        CDRomDevice &m_device;
+        unsigned m_result;
+        bool m_success;
+    };
+
+    struct ReadTOCAwaiter {
+        ReadTOCAwaiter(CDRomDevice &device, MSF *toc, unsigned size) : m_device(device), m_toc(toc), m_size(size) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.readTOC(m_toc, m_size, [handle, this](bool result) {
+                m_result = result;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_result; }
+
+      private:
+        CDRomDevice &m_device;
+        MSF *m_toc;
+        unsigned m_size;
+        bool m_result;
+    };
+
+    struct MuteAwaiter {
+        MuteAwaiter(CDRomDevice &device) : m_device(device) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.mute([handle, this](bool result) {
+                m_result = result;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_result; }
+
+      private:
+        CDRomDevice &m_device;
+        bool m_result;
+    };
+
+    struct UnmuteAwaiter {
+        UnmuteAwaiter(CDRomDevice &device) : m_device(device) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.unmute([handle, this](bool result) {
+                m_result = result;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_result; }
+
+      private:
+        CDRomDevice &m_device;
+        bool m_result;
+    };
+
+    struct GetPlaybackLocationAwaiter {
+        GetPlaybackLocationAwaiter(CDRomDevice &device) : m_device(device) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_device.getPlaybackLocation([handle, this](PlaybackLocation *location) {
+                m_location = location;
+                handle.resume();
+            });
+        }
+        PlaybackLocation *await_resume() { return m_location; }
+
+      private:
+        CDRomDevice &m_device;
+        PlaybackLocation *m_location;
     };
 
   private:
@@ -133,6 +242,7 @@ class CDRomDevice final : public CDRom {
     void reset(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleReset();
     bool resetBlocking(GPU &);
+    ResetAwaiter reset() { return {*this}; }
 
     /**
      * @brief Reads sectors from the CDRom.
@@ -151,7 +261,6 @@ class CDRomDevice final : public CDRom {
      *
      */
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
-    TaskQueue::Task scheduleReadSectors(uint32_t sector, uint32_t count, void *buffer);
     bool readSectorsBlocking(uint32_t sector, uint32_t count, void *buffer, GPU &);
 
     /**
@@ -166,6 +275,7 @@ class CDRomDevice final : public CDRom {
     void getTOCSize(unsigned *size, eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleGetTOCSize(unsigned *size);
     unsigned getTOCSizeBlocking(GPU &);
+    GetTOCSizeAwaiter getTOCSize() { return {*this}; }
 
     /**
      * @brief Reads the Table of Contents from the CDRom.
@@ -187,6 +297,7 @@ class CDRomDevice final : public CDRom {
     void readTOC(MSF *toc, unsigned size, eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleReadTOC(MSF *toc, unsigned size);
     bool readTOCBlocking(MSF *toc, unsigned size, GPU &);
+    ReadTOCAwaiter readTOC(MSF *toc, unsigned size) { return {*this, toc, size}; }
 
     /**
      * @brief Mutes the CD audio for both CDDA and CDXA.
@@ -196,6 +307,7 @@ class CDRomDevice final : public CDRom {
     void mute(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleMute();
     void muteBlocking(GPU &);
+    MuteAwaiter mute() { return MuteAwaiter(*this); }
 
     /**
      * @brief Unmutes the CD audio for both CDDA and CDXA.
@@ -205,6 +317,7 @@ class CDRomDevice final : public CDRom {
     void unmute(eastl::function<void(bool)> &&callback);
     TaskQueue::Task scheduleUnmute();
     void unmuteBlocking(GPU &);
+    UnmuteAwaiter unmute() { return {*this}; }
 
     /**
      * @brief Begins playing CDDA audio from a given starting point.
@@ -275,6 +388,7 @@ class CDRomDevice final : public CDRom {
     void getPlaybackLocation(PlaybackLocation *location, eastl::function<void(PlaybackLocation *)> &&callback);
     void getPlaybackLocation(eastl::function<void(PlaybackLocation *)> &&callback);
     TaskQueue::Task scheduleGetPlaybackLocation(PlaybackLocation *location);
+    GetPlaybackLocationAwaiter getPlaybackLocation() { return {*this}; }
 
     /**
      * @brief Set the Volume of the CDDA audio.

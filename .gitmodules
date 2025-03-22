@@ -16,9 +16,6 @@
 [submodule "third_party/fmt"]
 	path = third_party/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "third_party/http-parser"]
-	path = third_party/http-parser
-	url = https://github.com/nodejs/http-parser.git
 [submodule "third_party/ELFIO"]
 	path = third_party/ELFIO
 	url = https://github.com/serge1/ELFIO.git
@@ -94,3 +91,9 @@
 [submodule "third_party/luaunit"]
 	path = third_party/luaunit
 	url = https://github.com/bluebird75/luaunit.git
+[submodule "third_party/uriparser"]
+	path = third_party/uriparser
+	url = https://github.com/uriparser/uriparser.git
+[submodule "third_party/PEGTL"]
+	path = third_party/PEGTL
+	url = https://github.com/taocpp/PEGTL.git

@@ -44,12 +44,14 @@ namespace Prim {
  */
 struct Triangle {
     Triangle() : command(0x20000000) {}
-    Triangle(Color c) : command(0x20000000 | c.packed) {}
+    Triangle(Color c) : command(0x20000000 | (c.packed & 0x00ffffff)) {}
+    Triangle(const Triangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     Triangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x20000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x20000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     Triangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -58,6 +60,7 @@ struct Triangle {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     Triangle& setPointA(Vertex v) {
         pointA = v;
         return *this;
@@ -94,13 +97,15 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  * - `clutIndex`, `tpage`
  */
 struct TexturedTriangle {
-    TexturedTriangle() : command(0x25000000) {}
-    TexturedTriangle(Color c) : command(0x24000000 | c.packed) {}
+    TexturedTriangle() : command(0x24808080) {}
+    TexturedTriangle(Color c) : command(0x24000000 | (c.packed & 0x00ffffff)) {}
+    TexturedTriangle(const TexturedTriangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     TexturedTriangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x24000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x24000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -109,6 +114,7 @@ struct TexturedTriangle {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
 
   private:
     uint32_t command;
@@ -135,10 +141,11 @@ static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTrian
  */
 struct GouraudTriangle {
     GouraudTriangle() : command(0x30000000) {}
-    GouraudTriangle(Color c) : command(0x30000000 | c.packed) {}
+    GouraudTriangle(Color c) : command(0x30000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTriangle(const GouraudTriangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x30000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x30000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTriangle& setColorB(Color c) {
@@ -149,6 +156,9 @@ struct GouraudTriangle {
         colorC = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
     GouraudTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -157,6 +167,7 @@ struct GouraudTriangle {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     GouraudTriangle& setPointA(Vertex v) {
         pointA = v;
         return *this;
@@ -232,10 +243,12 @@ static_assert(sizeof(GouraudTriangle) == (sizeof(uint32_t) * 6), "GouraudTriangl
  */
 struct GouraudTexturedTriangle {
     GouraudTexturedTriangle() : command(0x34000000) {}
-    GouraudTexturedTriangle(Color c) : command(0x34000000 | c.packed) {}
+    GouraudTexturedTriangle(Color c) : command(0x34000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTexturedTriangle(const GouraudTexturedTriangle& other, Color c)
+        : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTexturedTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x34000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        command = 0x34000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedTriangle& setColorB(Color c) {
@@ -246,6 +259,9 @@ struct GouraudTexturedTriangle {
         colorC = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
     GouraudTexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -254,6 +270,7 @@ struct GouraudTexturedTriangle {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
     template <Transparency transparency = Transparency::Auto>
     void interpolateColors(const Color* a, const Color* b, const Color* c) {
         GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&a->packed);

@@ -68,26 +68,6 @@ void ps1PackerPack(PCSX::LuaFFI::LuaFile* src, PCSX::LuaFFI::LuaFile* dest, uint
     PCSX::PS1Packer::pack(src->file, dest->file, addr, pc, gp, sp, options);
 }
 
-uint32_t uclPack(PCSX::LuaFFI::LuaFile* src, PCSX::LuaFFI::LuaFile* dest) {
-    std::vector<uint8_t> dataIn;
-    dataIn.resize(src->file->size());
-    src->file->read(dataIn.data(), dataIn.size());
-
-    std::vector<uint8_t> dataOut;
-    dataOut.resize(dataIn.size() * 1.2 + 2048);
-    ucl_uint outSize;
-    int r;
-
-    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data(), &outSize, nullptr, 10, nullptr, nullptr);
-    if (r != UCL_E_OK) {
-        throw std::runtime_error("Fatal error during data compression.\n");
-    }
-    dataOut.resize(outSize);
-    dest->file->write(dataOut.data(), outSize);
-
-    return outSize;
-}
-
 uint32_t writeUclDecomp(PCSX::LuaFFI::LuaFile* dest) {
     dest->file->write(n2e_d::code, sizeof(n2e_d::code));
     return sizeof(n2e_d::code);
@@ -100,6 +80,12 @@ void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
     L.settable();
 }
 
+uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out) {
+    ucl_uint outSize;
+    auto r = ucl_nrv2e_99_compress(in, size, out, &outSize, nullptr, 10, nullptr, nullptr);
+    return r == UCL_E_OK ? outSize : 0;
+}
+
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 void registerAllSymbols(PCSX::Lua L) {
@@ -108,7 +94,7 @@ void registerAllSymbols(PCSX::Lua L) {
     L.newtable();
     REGISTER(L, binaryLoaderLoad);
     REGISTER(L, ps1PackerPack);
-    REGISTER(L, uclPack);
+    REGISTER(L, uclWrapper);
     REGISTER(L, writeUclDecomp);
     L.settable();
     L.pop();

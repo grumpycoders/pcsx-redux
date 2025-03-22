@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
@@ -31,6 +32,7 @@
 #include "core/sio1.h"
 #include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "supportpsx/memory.h"
 
 static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
     return (beg > end) ? false : (val >= beg && val <= end - 3);
@@ -116,6 +118,9 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             break;
         case 0x1f802083:
             hard = 0x58;
+            break;
+        case 0x1f802088:
+            hard = g_emulator->m_debug->m_checkKernel;
             break;
         default:
             hard = g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -356,7 +361,37 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         case 0x1f802080:
             hard = 0x58534350;
             break;
-
+        case 0x1f80208c: {
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            hard = g_emulator->m_mem->msanAlloc(size);
+            break;
+        }
+        case 0x1f802090: {
+            uint32_t ptr = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a1;
+            hard = g_emulator->m_mem->msanRealloc(ptr, size);
+            break;
+        }
+        case 0x1f802094: {
+            uint32_t headerAddr = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            PSXAddress headerAddrInfo(headerAddr);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptr = g_emulator->m_mem->read32(headerAddr) & 0xffffff;
+                    if (ptr == PCSX::Memory::c_msanChainMarker) {
+                        return g_emulator->m_mem->msanGetChainPtr(headerAddr);
+                    } else {
+                        return ptr;
+                    }
+                }
+                default: {
+                    g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
+                    g_system->pause();
+                    return 0xffffffff;
+                }
+            }
+        }
         default: {
             uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
             hard = SWAP_LEu32(*ptr);
@@ -433,15 +468,17 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
                     try {
                         L.pcall();
                     } catch (...) {
-                        g_system->pause();
                     }
-                } else {
-                    g_system->pause();
                 }
                 while (top != L.gettop()) L.pop();
             }
             break;
-
+        case 0x1f802088:
+            g_emulator->m_debug->m_checkKernel = value;
+            break;
+        case 0x1f802089:
+            g_emulator->m_mem->initMsan(value);
+            break;
         default:
             if (addressInRegisterSpace(hwadd)) {
                 uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -640,7 +677,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f801080:
             PSXHW_LOG("DMA0 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<0>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<0>(value);
             return;
         case 0x1f801088:
             PSXHW_LOG("DMA0 CHCR 32bit write %x\n", value);
@@ -648,7 +685,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             return;
         case 0x1f801090:
             PSXHW_LOG("DMA1 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<1>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<1>(value);
             return;
         case 0x1f801098:
             PSXHW_LOG("DMA1 CHCR 32bit write %x\n", value);
@@ -656,7 +693,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             return;
         case 0x1f8010a0:
             PSXHW_LOG("DMA2 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<2>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<2>(value);
             return;
         case 0x1f8010a8:
             PSXHW_LOG("DMA2 CHCR 32bit write %x\n", value);
@@ -664,7 +701,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             return;
         case 0x1f8010b0:
             PSXHW_LOG("DMA3 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<3>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<3>(value);
             return;
         case 0x1f8010b8:
             PSXHW_LOG("DMA3 CHCR 32bit write %x\n", value);
@@ -672,7 +709,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             return;
         case 0x1f8010c0:
             PSXHW_LOG("DMA4 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<4>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<4>(value);
             return;
         case 0x1f8010c8:
             PSXHW_LOG("DMA4 CHCR 32bit write %x\n", value);
@@ -680,7 +717,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             return;
         case 0x1f8010d0:
             PSXHW_LOG("DMA5 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<5>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<5>(value);
             return;
 #if 0
         case 0x1f8010d8:
@@ -690,7 +727,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
 #endif
         case 0x1f8010e0:
             PSXHW_LOG("DMA6 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->setMADR<6>(value & 0xffffff);
+            g_emulator->m_mem->setMADR<6>(value);
             return;
         case 0x1f8010e8:
             PSXHW_LOG("DMA6 CHCR 32bit write %x\n", value);
@@ -784,6 +821,28 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             memFile->rSeek(value);
             g_system->message("%s", memFile->gets<false>());
             break;
+        }
+        case 0x1f80208c: {
+            g_emulator->m_mem->msanFree(value);
+            break;
+        }
+        case 0x1f802094: {
+            PSXAddress headerAddrInfo(value);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptrToNext = g_emulator->m_cpu->m_regs.GPR.n.a0;
+                    uint32_t wordCount = g_emulator->m_cpu->m_regs.GPR.n.a1;
+                    uint32_t markerValue = g_emulator->m_mem->msanSetChainPtr(value, ptrToNext, wordCount);
+                    g_emulator->m_mem->write32(value, markerValue);
+                    return;
+                }
+                default: {
+                    g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
+                    g_system->pause();
+                    return;
+                }
+            }
         }
         default: {
             if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {

@@ -90,7 +90,7 @@ static_assert(sizeof(Rect) == sizeof(uint64_t), "Rect is not 64 bits");
 
 union Color {
     struct {
-        uint8_t r, g, b;
+        uint8_t r, g, b, user;
     };
     uint32_t packed;
 };
@@ -102,7 +102,7 @@ enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
 }  // namespace Prim::TPageAttr
 
 namespace Prim {
-    enum class Transparency { Auto, Opaque, SemiTransparent };
+enum class Transparency { Auto, Opaque, SemiTransparent };
 }
 
 namespace PrimPieces {
@@ -233,9 +233,7 @@ static_assert(sizeof(UVCoords) == sizeof(uint16_t), "UVCoords is not 16 bits");
 struct UVCoordsPadded {
     uint8_t u;
     uint8_t v;
-
-  private:
-    uint16_t padding;
+    uint16_t user;
 };
 static_assert(sizeof(UVCoordsPadded) == sizeof(uint32_t), "UVCoordsPadded is not 32 bits");
 

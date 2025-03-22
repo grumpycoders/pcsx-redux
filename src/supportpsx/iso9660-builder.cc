@@ -1,23 +1,30 @@
-/***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
 
-#include "cdrom/iso9660-builder.h"
+MIT License
+
+Copyright (c) 2022 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#include "supportpsx/iso9660-builder.h"
 
 #include <stdexcept>
 
@@ -32,13 +39,14 @@ void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
             // official license file from the sdk, in 2336 bytes per sector.
             // It's unfortunately usually mangled badly, and we need to massage it.
             for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + 2336 * i + 8, {0, 2, uint8_t(i)}, SectorMode::M2_FORM1);
+                writeSectorAt(licenseData + 2336 * i + 8, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
             }
             return;
         } else if (licenseData[0x24e2] == 'L') {
             // looks like an iso file itself
             for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + IEC60908b::FRAMESIZE_RAW * i, {0, 2, uint8_t(i)}, SectorMode::RAW);
+                writeSectorAt(licenseData + IEC60908b::FRAMESIZE_RAW * i, {0, 2, uint8_t(i)},
+                              IEC60908b::SectorMode::RAW);
             }
             return;
         }
@@ -46,22 +54,22 @@ void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
     uint8_t dummy[2048];
     memset(dummy, 0, 2048);
     for (unsigned i = 0; i < 16; i++) {
-        writeSectorAt(dummy, {0, 2, uint8_t(i)}, SectorMode::M2_FORM1);
+        writeSectorAt(dummy, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
     }
 }
 
 PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorData, PCSX::IEC60908b::MSF msf,
-                                                         SectorMode mode) {
+                                                         IEC60908b::SectorMode mode) {
     if (failed()) return {0, 0, 0};
     Slice slice;
     uint8_t* ptr;
     static const uint8_t c_sync[12] = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00};
     uint32_t lba = msf.toLBA() - 150;
     switch (mode) {
-        case SectorMode::RAW:
+        case IEC60908b::SectorMode::RAW:
             m_out->writeAt(sectorData, IEC60908b::FRAMESIZE_RAW, lba * IEC60908b::FRAMESIZE_RAW);
             break;
-        case SectorMode::M2_RAW:
+        case IEC60908b::SectorMode::M2_RAW:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
             ptr = slice.mutableData<uint8_t>();
             memcpy(ptr, c_sync, sizeof(c_sync));
@@ -71,7 +79,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             compute_edcecc(ptr);
             m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
-        case SectorMode::M2_FORM1:
+        case IEC60908b::SectorMode::M2_FORM1:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
             ptr = slice.mutableData<uint8_t>();
             memcpy(ptr, c_sync, sizeof(c_sync));
@@ -85,7 +93,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             compute_edcecc(ptr);
             m_out->writeAt(std::move(slice), lba * IEC60908b::FRAMESIZE_RAW);
             break;
-        case SectorMode::M2_FORM2:
+        case IEC60908b::SectorMode::M2_FORM2:
             slice.resize(IEC60908b::FRAMESIZE_RAW);
             ptr = slice.mutableData<uint8_t>();
             memcpy(ptr, c_sync, sizeof(c_sync));
