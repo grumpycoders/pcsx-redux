@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ SOFTWARE.
 #include <cstdint>
 #include <type_traits>
 
+#include "psyqo/cdrom-commandbuffer.hh"
 #include "psyqo/cdrom.hh"
 #include "psyqo/msf.hh"
 #include "psyqo/task.hh"
@@ -411,6 +412,15 @@ class CDRomDevice final : public CDRom {
      * @param rightToRight The volume of the right channel to the right speaker.
      */
     void setVolume(uint8_t leftToLeft, uint8_t rightToLeft, uint8_t leftToRight, uint8_t rightToRight);
+
+    /**
+     * @brief Sends a test command to the CDRom mech
+     *
+     * @param callback The callback to call when the command operation is complete.
+     */
+    void test(CDRomCommandBuffer commandBuffer, eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleTest(CDRomCommandBuffer commandBuffer);
+    void testBlocking(GPU &, CDRomCommandBuffer commandBuffer);
 
     /**
      * @brief The action base class for the internal state machine.
