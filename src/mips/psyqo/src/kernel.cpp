@@ -99,6 +99,7 @@ bool handleBreak(uint32_t code) {
     return false;
 }
 
+[[noreturn]] void (*s_crashHandlerPtr)(uint32_t, uint32_t*) = nullptr;
 }  // namespace
 
 void psyqo::Kernel::setBreakHandler(unsigned category, eastl::function<bool(uint32_t)>&& handler) {
@@ -126,10 +127,14 @@ void psyqoExceptionHandler(uint32_t ireg) {
 }
 void psyqoBreakHandler(uint32_t code) {
     if (handleBreak(code)) return;
+    if (s_crashHandlerPtr) {
+        s_crashHandlerPtr(9, nullptr);
+    }
     ramsyscall_printf("Unhandled break: %08x\n", code);
     psyqo::Kernel::abort("Unhandled break");
 }
 void psyqoAssemblyExceptionHandler();
+extern uint32_t psyqoExceptionHandlerStop[];
 }
 
 void psyqo::Kernel::takeOverKernel() {
@@ -163,6 +168,18 @@ void psyqo::Kernel::takeOverKernel() {
         handlers[9] = Mips::Encoder::nop();
         flushCache();
     });
+}
+
+void psyqo::Kernel::installCrashHandler() {
+    if (s_tookOverKernel) {
+        uintptr_t crashHandlerAddr = reinterpret_cast<uintptr_t>(Internal::crashHandler);
+        uint16_t hi = crashHandlerAddr >> 16;
+        uint16_t lo = crashHandlerAddr & 0xffff;
+        psyqoExceptionHandlerStop[0] = Mips::Encoder::lui(Mips::Encoder::Reg::V1, hi);
+        psyqoExceptionHandlerStop[1] = Mips::Encoder::ori(Mips::Encoder::Reg::V1, lo);
+        flushCache();
+    }
+    s_crashHandlerPtr = Internal::crashHandler;
 }
 
 void psyqo::Kernel::queueIRQHandler(IRQ irq, eastl::function<void()>&& lambda) {
@@ -337,12 +354,14 @@ void psyqo::Kernel::Internal::prepare(Application& application) {
             Process* processes = *reinterpret_cast<Process**>(0x108);
             Thread* currentThread = processes[0].thread;
             unsigned exCode = currentThread->registers.Cause & 0x3c;
-            if (exCode != 0x24) return;
-            unsigned code = *reinterpret_cast<uint32_t*>(currentThread->registers.returnPC) >> 6;
-            if (handleBreak(code)) {
-                currentThread->registers.returnPC += 4;
-                syscall_returnFromException();
+            if (exCode == 0x24) {
+                unsigned code = *reinterpret_cast<uint32_t*>(currentThread->registers.returnPC) >> 6;
+                if (handleBreak(code)) {
+                    currentThread->registers.returnPC += 4;
+                    syscall_returnFromException();
+                }
             }
+            if (s_crashHandlerPtr) s_crashHandlerPtr(exCode >> 2, &currentThread->registers.GPR.r[0]);
         });
         syscall_enableEvent(event);
     } else {
