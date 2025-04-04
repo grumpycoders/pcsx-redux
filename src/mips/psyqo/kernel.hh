@@ -160,6 +160,24 @@ void takeOverKernel();
 bool isKernelTakenOver();
 
 /**
+ * @brief Installs a crash handler for the application.
+ *
+ * @details This function installs a crash handler for the application.
+ * The crash handler will be called when the application crashes, such
+ * when an unhandled exception occurs. It will display a message on the screen
+ * with the crash information, including the exception type, the exception
+ * address, and the value of all the registers at the time of the crash.
+ * The crash handler requires the system font to be uploaded to VRAM, at
+ * the default location (960, 464). If the system font is not available,
+ * the crash handler will not be able to display the message properly.
+ *
+ * As usual, this function should be called from `main`, before handing
+ * over control to the application, it should only be called once, and
+ * its associated cost will only be added to the binary if it is called.
+ */
+void installCrashHandler();
+
+/**
  * @brief Queues an IRQ handler to be called from the exception handler.
  *
  * @details This function is used to queue an IRQ handler to be called
@@ -292,6 +310,7 @@ void prepare(Application&);
 void addInitializer(eastl::function<void(Application&)>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
+[[noreturn]] void crashHandler(uint32_t exceptionCode, uint32_t* kernelRegisters);
 }  // namespace Internal
 
 /**
