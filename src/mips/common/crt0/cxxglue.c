@@ -49,7 +49,7 @@ void cxxmain(int argc, char** argv) {
     size_t count, i;
 
 #ifdef USE_PCSXMSAN
-    pcsx_msanInit();
+    pcsx_initMsan();
 #endif
 
     count = __preinit_array_end - __preinit_array_start;

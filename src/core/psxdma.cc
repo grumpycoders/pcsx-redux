@@ -61,6 +61,7 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
             PCSX::g_emulator->m_spu->readDMAMem(ptr, size);
+            PCSX::g_emulator->m_mem->msanDmaWrite(madr, size * 2);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                     .get<PCSX::Emulator::DebugSettings::Debug>()) {
                 PCSX::g_emulator->m_debug->checkDMAwrite(4, madr, size * 2);
@@ -116,6 +117,7 @@ void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr) {
             mem++;
             *mem = 0xffffff;
         }
+        PCSX::g_emulator->m_mem->msanDmaWrite(madr, size * 4);
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::Debug>()) {
             PCSX::g_emulator->m_debug->checkDMAwrite(6, madr, size * 4);
