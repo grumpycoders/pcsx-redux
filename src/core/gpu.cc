@@ -514,6 +514,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             size = (bcr >> 16) * (bcr & 0xffff);
             directDMARead(ptr, size, madr);
             g_emulator->m_cpu->Clear(madr, size);
+            g_emulator->m_mem->msanDmaWrite(madr, size * 4);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 g_emulator->m_debug->checkDMAwrite(2, madr, size * 4);
             }
