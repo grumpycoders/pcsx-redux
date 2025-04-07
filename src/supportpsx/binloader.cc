@@ -231,9 +231,6 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
 
         auto name = psec->get_name();
         if (StringsHelpers::endsWith(name, "_Header")) continue;
-#if 0
-        if (StringsHelpers::startsWith(name, ".comment")) continue;
-#endif
 
         auto size = psec->get_size();
         auto data = psec->get_data();
