@@ -97,3 +97,6 @@
 [submodule "third_party/PEGTL"]
 	path = third_party/PEGTL
 	url = https://github.com/taocpp/PEGTL.git
+[submodule "third_party/psxlua"]
+	path = third_party/psxlua
+	url = https://github.com/grumpycoders/psxlua.git
