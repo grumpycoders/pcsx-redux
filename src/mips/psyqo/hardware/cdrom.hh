@@ -26,6 +26,12 @@ SOFTWARE.
 
 #pragma once
 
+#include <stdint.h>
+
+#include <concepts>
+#include <type_traits>
+
+#include "psyqo/cdrom-commandbuffer.hh"
 #include "psyqo/hardware/hwregs.hh"
 
 namespace psyqo::Hardware::CDRom {
@@ -78,6 +84,13 @@ struct Access {
 };
 
 struct CommandFifo {
+    void send(CDL cmd, const CDRomCommandBuffer& commandBuffer) {
+        Ctrl = 0;
+        for (unsigned i = 0; i < commandBuffer.size; i++) {
+            Fifo = commandBuffer.buffer[i];
+        }
+        Response = static_cast<uint8_t>(cmd);
+    }
     void send(CDL cmd) {
         Ctrl = 0;
         Response = static_cast<uint8_t>(cmd);

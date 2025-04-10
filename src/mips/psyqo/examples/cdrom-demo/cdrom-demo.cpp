@@ -27,6 +27,7 @@ SOFTWARE.
 #include "common/syscalls/syscalls.h"
 #include "psyqo/application.hh"
 #include "psyqo/cdrom-device.hh"
+#include "psyqo/cdrom-commandbuffer.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/scene.hh"
@@ -75,6 +76,11 @@ void CDRomDemo::createScene() {
             syscall_puts("Failure\n");
         }
     });
+
+
+    psyqo::Hardware::CDRom::CDRomCommandBuffer commandBuffer;
+    commandBuffer.set(0x50, 0xf2, 0xde, 0xad);
+    m_cdrom.testBlocking(gpu(), commandBuffer);
 }
 
 void CDRomDemoScene::frame() {
