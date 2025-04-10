@@ -5,7 +5,6 @@ TARGET = openbios
 TYPE = bin
 
 SRCS = \
-../common/hardware/sio1.c \
 ../common/psxlibc/fastmemset.s \
 boot/$(BOARD).s \
 card/backupunit.c \
