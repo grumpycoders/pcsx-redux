@@ -225,13 +225,12 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     Elf_Half sec_num = reader.sections.size();
     for (unsigned i = 0; i < sec_num; i++) {
         section* psec = reader.sections[i];
+
+        if (!(psec->get_flags() & SHF_ALLOC)) continue;
+        if (psec->get_type() == SHT_NOBITS) continue;
+
         auto name = psec->get_name();
-
         if (StringsHelpers::endsWith(name, "_Header")) continue;
-        if (StringsHelpers::startsWith(name, ".comment")) continue;
-
-        auto type = psec->get_type();
-        if (type != SHT_PROGBITS) continue;
 
         auto size = psec->get_size();
         auto data = psec->get_data();
