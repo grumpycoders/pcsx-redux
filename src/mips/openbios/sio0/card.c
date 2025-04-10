@@ -30,6 +30,7 @@ SOFTWARE.
 
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
+#include "common/hardware/sio.h"
 #include "common/kernel/events.h"
 #include "common/syscalls/syscalls.h"
 #include "openbios/kernel/events.h"
