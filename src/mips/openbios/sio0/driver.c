@@ -96,7 +96,7 @@ static void __attribute__((section(".ramtext"))) padAbort(int pad) {
     padBuffer[0] = 0xff;
 
     if (s_disable_slotChangeOnAbort) {
-        SIOS[0].ctrl = pad ? 0x2002 : 0x0002;
+        SIOS[0].ctrl = SIO_CTRL_DTR | (pad ? SIO_CTRL_PORTSEL : 0x0000);
         busyloop(10);
     }
     SIOS[0].ctrl = 0;
@@ -106,21 +106,21 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     uint8_t** padBufferPtr = &s_padBufferPtrs[pad];
     uint8_t* padBuffer = *padBufferPtr;
     padBuffer[0] = 0xff;
-    uint16_t mask = pad == 0 ? 0x0000 : 0x2000;
-    SIOS[0].ctrl = mask | 2;
+    uint16_t mask = pad == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
+    SIOS[0].ctrl = mask | SIO_CTRL_DTR;
     uint8_t* padOutputBuffer = s_padOutputBuffers[pad];  // always NULL
     // this test is reversed in retail; first dereference, then test for NULL
     int doPadOutput = padOutputBuffer && *padOutputBuffer ? -1 : 0;
     SIOS[0].fifo;  // throw away
     busyloop(40);
-    SIOS[0].ctrl = mask | 0x1003;
-    while (!(SIOS[0].stat & 1));
+    SIOS[0].ctrl = mask | SIO_CTRL_TXEN | SIO_CTRL_DTR | SIO_CTRL_ACKIRQEN;
+    while (!(SIOS[0].stat & SIO_STAT_TXRDY));
     g_sio0Mask = mask;
     SIOS[0].fifo = 1;
     busyloop(20);
-    SIOS[0].ctrl |= 0x10;
+    SIOS[0].ctrl |= SIO_CTRL_ERRRES;
     IREG = ~IRQ_CONTROLLER;
-    while (!(SIOS[0].stat & 2));
+    while (!(SIOS[0].stat & SIO_STAT_RXRDY));
     SIOS[0].fifo;  // throw away
     busyloop(40);
 
@@ -134,10 +134,10 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
 
     SIOS[0].fifo = 0x42;
     busyloop(25);
-    SIOS[0].ctrl |= 0x10;
+    SIOS[0].ctrl |= SIO_CTRL_ERRRES;
     IREG = ~IRQ_CONTROLLER;
 
-    while (!(SIOS[0].stat & 2));
+    while (!(SIOS[0].stat & SIO_STAT_RXRDY));
     uint32_t fifoBytes = SIOS[0].fifo;
     padBuffer[1] = fifoBytes & 0xff;
     fifoBytes &= 0x0f;
@@ -154,10 +154,10 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
     SIOS[0].fifo = 0;
     busyloop(20);
 
-    SIOS[0].ctrl |= 0x10;
+    SIOS[0].ctrl |= SIO_CTRL_ERRRES;
     IREG = ~IRQ_CONTROLLER;
 
-    while (!(SIOS[0].stat & 2));
+    while (!(SIOS[0].stat & SIO_STAT_RXRDY));
 
     if (SIOS[0].fifo != 0x5a) {
         padAbort(pad);
@@ -177,13 +177,13 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         SIOS[0].fifo = s_send_pad ? doPadOutput & padOutputBuffer[1] : doPadOutput && padOutputBuffer[1];
         padOutputBuffer += 2;
         busyloop(10);
-        SIOS[0].ctrl |= 0x10;
+        SIOS[0].ctrl |= SIO_CTRL_ERRRES;
         IREG = ~IRQ_CONTROLLER;
 
         cyclesWaited = 0;
-        while (!(SIOS[0].stat & 2)) {
+        while (!(SIOS[0].stat & SIO_STAT_RXRDY)) {
             if (!(IREG & IRQ_CONTROLLER)) continue;
-            while (!(SIOS[0].stat & 2));
+            while (!(SIOS[0].stat & SIO_STAT_RXRDY));
             padAbort(pad);
             return 0xffff;
         }
@@ -202,10 +202,10 @@ static uint32_t __attribute__((section(".ramtext"))) readPad(int pad) {
         SIOS[0].fifo = s_send_pad ? doPadOutput & padOutputBuffer[0] : doPadOutput && padOutputBuffer[0];
         busyloop(10);
 
-        SIOS[0].ctrl |= 0x10;
+        SIOS[0].ctrl |= SIO_CTRL_ERRRES;
         IREG = ~IRQ_CONTROLLER;
 
-        while (!(SIOS[0].stat & 2));
+        while (!(SIOS[0].stat & SIO_STAT_RXRDY));
 
         padBuffer[3] = SIOS[0].fifo;
         padBuffer += 2;
@@ -252,7 +252,7 @@ static void __attribute__((section(".ramtext"))) mcHandler(int v) {
         g_sio0Mask = 0x2000;
     }
 
-    SIOS[0].ctrl |= g_sio0Mask | 0x0012;
+    SIOS[0].ctrl |= g_sio0Mask | SIO_CTRL_ERRRES | SIO_CTRL_DTR;
     int delay = g_mcHandlerDelayPatch;
     for (unsigned i = 0; i < delay; i++) __asm__ __volatile__("");
 
@@ -316,9 +316,9 @@ static void __attribute__((section(".ramtext"))) firstStageCardAction() {
         syscall_buLowLevelOpError2();
         deliverEvent(EVENT_CARD, 0x0100);
         sysDeqIntRP(1, &g_mcHandlerInfo);
-        SIOS[0].ctrl = 0x40;
-        SIOS[0].baudRate = 0x88;
-        SIOS[0].mode = 13;
+        SIOS[0].ctrl = SIO_CTRL_IR;
+        SIOS[0].baudRate = 2073600 / 15200;
+        SIOS[0].mode = 13; // MUL1, 8bit, no parity, normal polarity
         SIOS[0].ctrl = 0;
         return;
     }
@@ -378,14 +378,14 @@ int __attribute__((section(".ramtext"))) initPad(uint8_t* pad1Buffer, size_t pad
 }
 
 static void __attribute__((section(".ramtext"))) setupSIO0() {
-    SIOS[0].ctrl = 0x40;
-    SIOS[0].baudRate = 0x88;
+    SIOS[0].ctrl = SIO_CTRL_IR;
+    SIOS[0].baudRate = 2073600 / 15200;
     SIOS[0].mode = 13;
     SIOS[0].ctrl = 0;
     busyloop(10);
-    SIOS[0].ctrl = 2;
+    SIOS[0].ctrl = SIO_CTRL_DTR;
     busyloop(10);
-    SIOS[0].ctrl = 0x2002;
+    SIOS[0].ctrl = SIO_CTRL_PORTSEL | SIO_CTRL_DTR;
     busyloop(10);
     SIOS[0].ctrl = 0;
     g_skipErrorOnNewCard = 0;
