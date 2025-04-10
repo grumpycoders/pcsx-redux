@@ -68,3 +68,11 @@ enum {
     SIO_STAT_CTS = (1 << 8),      // Clear to Send (output), unused on SIO0
     SIO_STAT_IRQ = (1 << 9),      // Interrupt Request
 };
+
+static inline uint8_t __attribute__((always_inline)) exchangeByte(uint8_t b) {
+    uint8_t ret = SIOS[0].fifo;  // may throw away
+    SIOS[0].fifo = b;
+    SIOS[0].ctrl |= SIO_CTRL_ERRRES;
+    IREG = ~IRQ_CONTROLLER;
+    return ret;
+}

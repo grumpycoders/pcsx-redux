@@ -96,25 +96,17 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
 
     switch (g_mcOperation) {
         case 1:
-            g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
-            SIOS[0].ctrl = g_sio0Mask | 0x1003;
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
+                | SIO_CTRL_DTR;
+            exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;
         case 2:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = 'R';
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte('R');
             break;
         case 3:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (g_skipErrorOnNewCard) return 0;
             if ((b & 0x08) == 0) return 0;
             g_skipErrorOnNewCard = 0;  // durr?
@@ -126,77 +118,47 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
             return -1;
             break;
         case 4:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5a) return -1;
             break;
         case 5:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = sector >> 8;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(sector >> 8);
             if (b != 0x5d) return -1;
             break;
         case 6:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = sector;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte(sector);
             break;
         case 7:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte(0);
             break;
         case 8:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5c) return -1;
             break;
         case 9:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5d) return -1;
             break;
         case 10:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != (sector >> 8)) return -1;
             g_mcChecksum[port] = (sector ^ (sector >> 8)) & 0xff;
             s_mcCommand[port] = 0;
             break;
         case 11:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = s_mcCommand[port];
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(s_mcCommand[port]);
             if (b != (sector & 0xff)) return -1;
             g_mcFastTrackActive = 1;
             break;
         case 12:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             buffer[0x7f] = b;
             g_mcChecksum[port] ^= b;
             break;
         case 13:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != g_mcChecksum[port]) return -1;
-            while ((SIOS[0].stat & 2) == 0);
+            while ((SIOS[0].stat & SIO_STAT_RXRDY) == 0);
             return SIOS[0].fifo == 0x47 ? 1 : -1;
         default:
             return -1;
@@ -213,25 +175,17 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
 
     switch (g_mcOperation) {
         case 1:
-            g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
-            SIOS[0].ctrl = g_sio0Mask | 0x1003;
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
+                | SIO_CTRL_DTR;
+            exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;
         case 2:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = 'W';
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte('W');
             break;
         case 3:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             s_mcFlagByte[port] = b;
             if (g_skipErrorOnNewCard) return 0;
             if ((b & 0x08) == 0) return 0;
@@ -244,55 +198,34 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
             return -1;
             break;
         case 4:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5a) return -1;
             break;
         case 5:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = sector >> 8;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(sector >> 8);
             if (b != 0x5d) return -1;
             g_mcChecksum[port] = sector >> 8;
             break;
         case 6:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = sector & 0xff;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte(sector & 0xff);
             g_mcChecksum[port] ^= sector & 0xff;
             g_mcFastTrackActive = 1;
             break;
         case 7:
             SIOS[0].fifo;  // throw away
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = g_mcChecksum[port];
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte(g_mcChecksum[port]);
             break;
         case 8:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte(0);
             break;
         case 9:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5c) return -1;
             break;
         case 10:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            b = exchangeByte(0);
             if (b != 0x5d) return -1;
-            while ((SIOS[0].stat & 2) == 0);
+            while ((SIOS[0].stat & SIO_STAT_RXRDY) == 0);
             if (!g_skipErrorOnNewCard && ((s_mcFlagByte[port] & 4) != 0)) {
                 g_mcLastPort = g_mcPortFlipping;
                 g_skipErrorOnNewCard = 0;  // whyyyy
@@ -315,28 +248,20 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
     port = g_mcPortFlipping;
     switch (g_mcOperation) {
         case 1:
-            g_sio0Mask = port == 0 ? 0x0000 : 0x2000;
-            SIOS[0].ctrl = g_sio0Mask | 0x1003;
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = (g_mcDeviceId[port] & 0x0f) + 0x81;
-            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
+                | SIO_CTRL_DTR;
+            exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;
         case 2:
-            SIOS[0].fifo;  // throw away
-            SIOS[0].fifo = 'R';
-            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            exchangeByte('R');
             break;
         case 3:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl = SIOS[0].ctrl | 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+
+            b = exchangeByte(0);
             if (g_skipErrorOnNewCard) return 0;
             if ((b & 0x0c) == 0) break;
-
             g_skipErrorOnNewCard = 0;
             g_mcFlags[port] = 1;
             g_mcLastPort = g_mcPortFlipping;
@@ -352,7 +277,7 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
         case 4:
             b = SIOS[0].fifo;
             if (!g_mcCardInfoPatchActivated) SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
+            SIOS[0].ctrl |= SIO_CTRL_ERRRES;
             IREG = ~IRQ_CONTROLLER;
             return (b == 0x5a) ? 1 : -1;
         default:
