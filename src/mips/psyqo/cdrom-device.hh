@@ -418,9 +418,9 @@ class CDRomDevice final : public CDRom {
      *
      * @param callback The callback to call when the command operation is complete.
      */
-    void test(CDRomCommandBuffer commandBuffer, eastl::function<void(bool)> &&callback);
-    TaskQueue::Task scheduleTest(CDRomCommandBuffer commandBuffer);
-    void testBlocking(GPU &, CDRomCommandBuffer commandBuffer);
+    void test(const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer, eastl::function<void(bool)> &&callback);
+    TaskQueue::Task scheduleTest(const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer);
+    void testBlocking(GPU &, const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer);
 
     /**
      * @brief The action base class for the internal state machine.

@@ -43,13 +43,17 @@ class TestAction : public psyqo::CDRomDevice::Action<TestActionState> {
   public:
     TestAction() : Action("TestAction") {}
 
-    void start(psyqo::CDRomDevice *device, CDRomCommandBuffer commandBuffer, eastl::function<void(bool)> &&callback) {
+    void start(psyqo::CDRomDevice *device, const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer,
+               eastl::function<void(bool)> &&callback) {
         psyqo::Kernel::assert(device->isIdle(), "CDRomDevice::test() called while another action is in progress");
         registerMe(device);
         setCallback(eastl::move(callback));
         setState(TestActionState::TEST);
         eastl::atomic_signal_fence(eastl::memory_order_release);
         psyqo::Hardware::CDRom::Command.send(psyqo::Hardware::CDRom::CDL::TEST, commandBuffer);
+    }
+    void start(psyqo::CDRomDevice *device, eastl::function<void(bool)> &&callback) {
+        start(device, m_commandBuffer, eastl::move(callback));
     }
     bool complete(const psyqo::CDRomDevice::Response &) override {
         setSuccess(true);
@@ -59,23 +63,29 @@ class TestAction : public psyqo::CDRomDevice::Action<TestActionState> {
         setSuccess(true);
         return true;
     }
+
+    psyqo::Hardware::CDRom::CDRomCommandBuffer m_commandBuffer;
 };
 
 TestAction s_testAction;
 
 }  // namespace
 
-void psyqo::CDRomDevice::test(CDRomCommandBuffer commandBuffer, eastl::function<void(bool)> &&callback) {
+void psyqo::CDRomDevice::test(const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer,
+                              eastl::function<void(bool)> &&callback) {
     Kernel::assert(m_callback == nullptr, "CDRomDevice::test called with pending action");
     s_testAction.start(this, commandBuffer, eastl::move(callback));
 }
 
-psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleTest(CDRomCommandBuffer commandBuffer) {
+psyqo::TaskQueue::Task psyqo::CDRomDevice::scheduleTest(
+    const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer) {
+    s_testAction.m_commandBuffer = commandBuffer;
+
     return TaskQueue::Task(
-        [this, commandBuffer](auto task) { test(commandBuffer, [task](bool success) { task->complete(success); }); });
+        [this](auto task) { s_testAction.start(this, [task](bool success) { task->complete(success); }); });
 }
 
-void psyqo::CDRomDevice::testBlocking(GPU &gpu, CDRomCommandBuffer commandBuffer) {
+void psyqo::CDRomDevice::testBlocking(GPU &gpu, const psyqo::Hardware::CDRom::CDRomCommandBuffer &commandBuffer) {
     Kernel::assert(m_callback == nullptr, "CDRomDevice::testBlocking called with pending action");
     bool success = false;
     {

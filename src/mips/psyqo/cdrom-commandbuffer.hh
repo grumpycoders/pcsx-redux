@@ -31,6 +31,8 @@ SOFTWARE.
 #include <concepts>
 #include <type_traits>
 
+namespace psyqo::Hardware::CDRom {
+
 template <typename T>
 concept CDRomArgumentType = std::is_integral<T>::value;
 
@@ -53,3 +55,4 @@ struct CDRomCommandBuffer {
         recursiveSet(pos + 1, args...);
     }
 };
+} // namespace psyqo::Hardware::CDRom
