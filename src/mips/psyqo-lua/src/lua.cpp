@@ -46,7 +46,7 @@ static constexpr char PSYQO_FIXEDPOINT_METATABLE[] = "psyqo.FixedPoint";
 void psyqo::Lua::push(FixedPoint<> fp) {
     // Get the FixedPoint constructor from registry
     getMetatable(PSYQO_FIXEDPOINT_METATABLE);
-    getField(-1, "new");
+    getField(-1, "newFromRaw");
     pushNumber(fp.raw());
     call(1, 1);  // Create new FixedPoint table
     remove(-2);  // Remove metatable from stack
@@ -329,8 +329,14 @@ void psyqo::Lua::setupFixedPointMetatable() {
         end
 
         -- Create a new FixedPoint from raw value
-        function FixedPoint.new(raw_value)
+        function FixedPoint.newFromRaw(raw_value)
             return setmetatable({_raw = raw_value}, FixedPoint)
+        end
+
+        -- Create a new FixedPoint
+        function FixedPoint.new(integer, fraction)
+            if fraction == nil then fraction = 0 end
+            return setmetatable({_raw = bit.lshift(integer, 12) + fraction}, FixedPoint)
         end
     end
     )lua";
