@@ -1,7 +1,7 @@
 class MipselNoneElfGdb < Formula
   desc "GDB: The GNU Project Debugger compiled for Mips"
   homepage "https://sourceware.org/gdb/"
-  url "https://ftp.gnu.org/gnu/gdb/gdb-15.1.tar.xz"
+  url "https://ftpmirror.gnu.org/gnu/gdb/gdb-15.1.tar.xz"
   mirror "https://mirrors.kernel.org/gnu/gdb/gdb-15.1.tar.xz"
   sha256 "38254eacd4572134bca9c5a5aa4d4ca564cbbd30c369d881f733fb6b903354f2"
 
