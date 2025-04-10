@@ -18,11 +18,11 @@ $(PSYQOLUADIR)libpsyqo-lua.a:
 	$(MAKE) -C $(PSYQOLUADIR) BUILD=$(BUILD)
 
 $(PSYQOLUADIR)../../../third_party/psxlua/src/liblua.a:
-	$(MAKE) -C $(PSYQOLUADIR)../../../third_party/psxlua psx
+	$(MAKE) -C $(PSYQOLUADIR)../../../third_party/psxlua/ psx
 
 clean-psyqo-lua:
 	$(MAKE) -C $(PSYQOLUADIR) clean
-	$(MAKE) -C $(PSYQOLUADIR)../../../third_party/psxlua clean
+	$(MAKE) -C $(PSYQOLUADIR)../../../third_party/psxlua/ clean
 
 .PHONY: clean-psyqo-lua $(PSYQOLUADIR)libpsyqo-lua.a $(PSYQOLUADIR)../../../third_party/psxlua/src/liblua.a
 endif
