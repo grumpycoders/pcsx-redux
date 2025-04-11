@@ -118,7 +118,10 @@ in stdenv.mkDerivation {
   nativeBuildInputs = [
     pkg-config
     imagemagick
-    gccMips
+  ] ++ lib.optionals withOpenbios [
+    # unwrap them
+    gccMips.cc
+    gccMips.bintools.bintools
   ];
 
   buildInputs = [
