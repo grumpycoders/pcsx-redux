@@ -36,7 +36,7 @@
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
-          gccMips = cross.buildPackages.gcc.cc; # unwrapped
+          gccMips = cross.buildPackages.gccWithoutTargetLibc.cc; # unwrapped
       };
     });
 

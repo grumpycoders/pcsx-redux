@@ -31,6 +31,7 @@
   debugBuild ? false,
   platforms,
   gccMips,
+  withOpenbios ? true,
 }:
 let
   # TODO: read the revs from elsewhere to avoid duplication
@@ -94,6 +95,11 @@ let
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
+  } ++ lib.optional withOpenbios {
+    owner = "grumpycoders";
+    repo = "uC-sdk";
+    rev = "69e06871824e2d62069487a7426ded09090ceb69";
+    hash = "";
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
@@ -140,14 +146,14 @@ in stdenv.mkDerivation {
   ];
 
   makeFlags = [
-    "openbios"
+    (lib.optionalString withOpenbios "openbios")
     "pcsx-redux"
     "PREFIX=mipsel-unknown-none-elf"
   ];
 
   installFlags = [
     "install"
-    "install-openbios"
+    (lib.optionalString withOpenbios "install-openbios")
     "DESTDIR=$out"
   ];
 
