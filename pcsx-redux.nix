@@ -144,14 +144,7 @@ in stdenv.mkDerivation {
   buildPhase = ''
     runHook preBuild
 
-    local flagsArray=(
-      ${enableParallelBuilding:+-j${NIX_BUILD_CORES}}
-      SHELL="$SHELL"
-      DESTDIR="$out"
-    )
-    concatTo flagsArray makeFlags makeFlagsArray buildFlags buildFlagsArray
-    echoCmd 'build flags' "${flagsArray[@]}"
-    make pcsx-redux openbios "${flagsArray[@]}"
+    make pcsx-redux openbios -j2 SHELL="$SHELL" DESTDIR="$out"
 
     runHook postBuild
   '';
@@ -159,17 +152,7 @@ in stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    local flagsArray=(
-        ${enableParallelInstalling:+-j${NIX_BUILD_CORES}}
-        SHELL="$SHELL"
-        DESTDIR="$out"
-    )
-
-    concatTo flagsArray makeFlags makeFlagsArray installFlags installFlagsArray installTargets=install
-
-    echoCmd 'install flags' "${flagsArray[@]}"
-    make install install-openbios "${flagsArray[@]}"
-    unset flagsArray
+    make install install-openbios -j2 SHELL="$SHELL" DESTDIR="$out"
 
     runHook postInstall
   '';
