@@ -26,6 +26,7 @@
   uriparser,
   ucl,
   llhttp,
+  zip,
 
   src,
   debugBuild ? false,
@@ -122,6 +123,7 @@ in stdenv.mkDerivation {
     # unwrap them
     gccMips.cc
     gccMips.bintools.bintools
+    zip
   ];
 
   buildInputs = [
