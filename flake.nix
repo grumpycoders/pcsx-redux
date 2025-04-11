@@ -26,7 +26,10 @@
     packages = forAllSystems (system:
     let 
       pkgs = nixpkgs.legacyPackages.${system};
-      cross = import nixpkgs { inherit system; crossSystem = "mipsel-none"; };
+      cross = import nixpkgs {
+        inherit system;
+        crossSystem = "mipsel-none-elf";
+      };
     in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
