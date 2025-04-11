@@ -25,13 +25,12 @@
   in {
     packages = forAllSystems (system:
     let 
-      pkgs = import nixpkgs { inherit system; };
-      pkgsCross = import nixpkgs { inherit system; crossSystem = "mipsel-none"; };
+      pkgs = nixpkgs.legacyPackages.${system};
     in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
-          gccMips = pkgsCross.buildPackages.gcc-unwrapped;
+          gccMips = pkgs.pkgsCross.mips-embedded.buildPackages.gcc;
       };
       # FIXME: default gets duplicated in githubActions
       # default = self.packages.${system}.pcsx-redux;
