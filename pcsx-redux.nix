@@ -140,8 +140,8 @@ in stdenv.mkDerivation {
   ];
 
   makeFlags = [
-    "pcsx-redux"
     "openbios"
+    "pcsx-redux"
     "PREFIX=mipsel-unknown-none-elf"
   ];
 
@@ -156,7 +156,7 @@ in stdenv.mkDerivation {
   enableDebugging = debugBuild;
   
   enableParallelBuilding = true;
-  NIX_BUILD_CORES = 2;
+  NIX_BUILD_CORES = 4;
 
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";
