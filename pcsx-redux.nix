@@ -159,7 +159,7 @@ in stdenv.mkDerivation {
   installFlags = [
     "install"
     (lib.optionalString withOpenbios "install-openbios")
-    "DESTDIR=$out"
+    "DESTDIR=$(out)"
   ];
 
   # TODO: learn how to use separate debug info
