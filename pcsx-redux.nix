@@ -30,6 +30,7 @@
   src,
   debugBuild ? false,
   platforms,
+  gccMips,
 }:
 let
   # TODO: read the revs from elsewhere to avoid duplication
@@ -111,6 +112,7 @@ in stdenv.mkDerivation {
   nativeBuildInputs = [
     pkg-config
     imagemagick
+    gccMips
   ];
 
   buildInputs = [
@@ -138,24 +140,15 @@ in stdenv.mkDerivation {
   ];
 
   makeFlags = [
-    ""
+    "pcsx-redux"
+    "openbios"
+    "PREFIX=mipsel-unknown-none-elf"
   ];
 
-  buildPhase = ''
-    runHook preBuild
-
-    make pcsx-redux openbios -j2 SHELL="$SHELL" DESTDIR="$out"
-
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    make install install-openbios -j2 SHELL="$SHELL" DESTDIR="$out"
-
-    runHook postInstall
-  '';
+  installFlags = [
+    "install-openbios"
+    "DESTDIR=$out"
+  ];
 
   # TODO: learn how to use separate debug info
   dontStrip = debugBuild;

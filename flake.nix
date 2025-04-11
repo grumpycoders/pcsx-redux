@@ -24,11 +24,14 @@
     forGithubSystems = lib.genAttrs supportedSystems;
   in {
     packages = forAllSystems (system:
-      let pkgs = import nixpkgs { inherit system; };
+    let 
+      pkgs = import nixpkgs { inherit system; };
+      pkgsCross = import nixpkgs { inherit system; crossSystem = "mipsel-none"; };
     in {
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
+          gccMips = pkgsCross.buildPackages.gcc-unwrapped;
       };
       # FIXME: default gets duplicated in githubActions
       # default = self.packages.${system}.pcsx-redux;
