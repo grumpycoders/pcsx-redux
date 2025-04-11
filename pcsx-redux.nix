@@ -146,6 +146,7 @@ in stdenv.mkDerivation {
   ];
 
   installFlags = [
+    "install"
     "install-openbios"
     "DESTDIR=$out"
   ];
