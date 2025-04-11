@@ -32,6 +32,7 @@
   platforms,
 }:
 let
+  # TODO: read the revs from elsewhere to avoid duplication
   submodules = [
     ({
       owner = "grumpycoders";
@@ -134,8 +135,41 @@ in stdenv.mkDerivation {
   ];
 
   makeFlags = [
-    "DESTDIR=$(out)"
+    ""
   ];
+
+  buildPhase = ''
+    runHook preBuild
+
+    local flagsArray=(
+      ${enableParallelBuilding:+-j${NIX_BUILD_CORES}}
+      SHELL="$SHELL"
+      DESTDIR="$out"
+    )
+    concatTo flagsArray makeFlags makeFlagsArray buildFlags buildFlagsArray
+    echoCmd 'build flags' "${flagsArray[@]}"
+    make pcsx-redux openbios "${flagsArray[@]}"
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    local flagsArray=(
+        ${enableParallelInstalling:+-j${NIX_BUILD_CORES}}
+        SHELL="$SHELL"
+        DESTDIR="$out"
+    )
+
+    concatTo flagsArray makeFlags makeFlagsArray installFlags installFlagsArray installTargets=install
+
+    echoCmd 'install flags' "${flagsArray[@]}"
+    make install install-openbios "${flagsArray[@]}"
+    unset flagsArray
+
+    runHook postInstall
+  '';
 
   # TODO: learn how to use separate debug info
   dontStrip = debugBuild;
