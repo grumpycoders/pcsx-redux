@@ -47,7 +47,7 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label) {
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint ") + cause, label,
+        address, type, width, std::string("Lua Breakpoint"), cause,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
