@@ -103,7 +103,10 @@ in stdenv.mkDerivation {
   version = "0.99test";
   inherit src;
 
-  postUnpack = builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
+  postUnpack = ''
+    cp -ru --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
+    cp -ru --no-preserve=all ${tracy.src} source/third_party/tracy
+  '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
   nativeBuildInputs = [
     pkg-config
