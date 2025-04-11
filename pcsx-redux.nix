@@ -99,7 +99,7 @@ let
     owner = "grumpycoders";
     repo = "uC-sdk";
     rev = "69e06871824e2d62069487a7426ded09090ceb69";
-    hash = "";
+    hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
