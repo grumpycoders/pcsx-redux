@@ -70,6 +70,7 @@ steps:
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.main
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.exe
       vsprojects/x64/ReleaseWithClangCL/crashpad_handler.exe
+      vsprojects/x64/ReleaseWithClangCL/authoring.exe
       vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
       vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
       vsprojects/x64/ReleaseWithClangCL/modconv.exe
@@ -90,6 +91,7 @@ steps:
     testAssemblyVer2: |
       **\*.exe
       !**\crashpad_handler.exe
+      !**\authoring.exe
       !**\exe2elf.exe
       !**\exe2iso.exe
       !**\modconv.exe

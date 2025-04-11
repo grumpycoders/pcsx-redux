@@ -33,7 +33,7 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
     auto portablePath = args.get<std::string_view>("portable");
     if (portablePath.has_value()) m_portablePath = portablePath.value();
     if (std::filesystem::exists("pcsx.json")) m_portable = true;
-    if (std::filesystem::exists("Makefile")) m_portable = true;
+    if (std::filesystem::exists(std::filesystem::path("vsprojects") / "pcsx-redux.sln")) m_portable = true;
     if (std::filesystem::exists(std::filesystem::path("..") / "pcsx-redux.sln")) m_portable = true;
     if (args.get<bool>("safe") || args.get<bool>("testmode") || args.get<bool>("cli")) m_safeModeEnabled = true;
     if (args.get<bool>("resetui")) m_uiResetRequested = true;

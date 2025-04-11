@@ -25,6 +25,21 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
+#include "supportpsx/memory.h"
+
+static void drawSymbol(uint32_t pc) {
+    std::pair<const uint32_t, std::string>* symbol = PCSX::g_emulator->m_cpu->findContainingSymbol(pc);
+    if (symbol) {
+        auto symbolNameBegin = symbol->second.data();
+        auto symbolNameEnd = symbolNameBegin + symbol->second.size();
+        ImGui::SameLine();
+        ImGui::TextUnformatted(" :: ");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(symbolNameBegin, symbolNameEnd);
+        ImGui::SameLine();
+        ImGui::Text("+0x%08x", pc - symbol->first);
+    }
+}
 
 void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -35,7 +50,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     gui->useMonoFont();
 
     ImGui::TextUnformatted("    low SP    -   high sp  ");
-    ImGui::TextUnformatted("      ra       :: stack pointer ::  stack frame");
+    ImGui::TextUnformatted("      ra      :: stack pointer ::  stack frame  :: ra symbol");
     ImGui::Separator();
 
     auto& callstacks = g_emulator->m_callStacks;
@@ -69,6 +84,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp, 1});
             }
+            drawSymbol(call.ra);
         }
         if (stack.ra != 0) {
             std::string label = fmt::format("0x{:08x}", stack.ra);
@@ -88,6 +104,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp, 1});
             }
+            drawSymbol(stack.ra);
         }
         ImGui::TreePop();
     }

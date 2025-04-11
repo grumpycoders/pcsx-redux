@@ -15,6 +15,13 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+ffi.cdef [[
+uint64_t djbHash(const char* str, size_t len);
+]]
+
+local C = ffi.load 'SUPPORT_EXTRA'
+
 Support.extra = {
 
     loadfile = function(name) return loadstring(Support._internal.loadfile(name), '@' .. name) end,
@@ -33,5 +40,8 @@ Support.extra = {
         error('FFI call failed in ' .. name .. ': ' .. ret)
     end,
 
+    djbHash = function(str)
+        return C.djbHash(str, #str)
+    end,
 }
 -- )EOF"

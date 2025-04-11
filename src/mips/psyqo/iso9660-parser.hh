@@ -30,6 +30,8 @@ SOFTWARE.
 #include <EASTL/functional.h>
 #include <EASTL/string_view.h>
 
+#include <coroutine>
+
 #include "psyqo/cdrom.hh"
 #include "psyqo/task.hh"
 
@@ -95,6 +97,23 @@ class ISO9660Parser {
      */
     void initialize(eastl::function<void(bool success)> callback);
     TaskQueue::Task scheduleInitialize();
+    struct InitializeAwaiter {
+        InitializeAwaiter(ISO9660Parser& parser) : m_parser(parser) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_parser.initialize([handle, this](bool success) {
+                m_success = success;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_success; }
+
+      private:
+        ISO9660Parser& m_parser;
+        bool m_success;
+    };
+    InitializeAwaiter initialize() { return InitializeAwaiter(*this); }
 
     /**
      * @brief Get the Direntry object for a given path.
@@ -109,6 +128,28 @@ class ISO9660Parser {
      */
     void getDirentry(eastl::string_view path, DirEntry* entry, eastl::function<void(bool success)> callback);
     TaskQueue::Task scheduleGetDirentry(eastl::string_view path, DirEntry* entry);
+    struct GetDirentryAwaiter {
+        GetDirentryAwaiter(ISO9660Parser& parser, eastl::string_view path, DirEntry* entry)
+            : m_parser(parser), m_path(path), m_entry(entry) {}
+        bool await_ready() const { return false; }
+        template <typename U>
+        void await_suspend(std::coroutine_handle<U> handle) {
+            m_parser.getDirentry(m_path, m_entry, [handle, this](bool success) {
+                m_success = success;
+                handle.resume();
+            });
+        }
+        bool await_resume() { return m_success; }
+
+      private:
+        ISO9660Parser& m_parser;
+        eastl::string_view m_path;
+        DirEntry* m_entry;
+        bool m_success;
+    };
+    GetDirentryAwaiter getDirentry(eastl::string_view path, DirEntry* entry) {
+        return GetDirentryAwaiter(*this, path, entry);
+    }
 
     /**
      * @brief Read a file asynchronously.
@@ -122,7 +163,7 @@ class ISO9660Parser {
      *
      * @param[in] request The request to fill.
      */
-    TaskQueue::Task scheduleReadRequest(ReadRequest* request);
+    TaskQueue::Task scheduleReadRequest(const ReadRequest* request);
 
     /**
      * @brief Returns the state of the parser.

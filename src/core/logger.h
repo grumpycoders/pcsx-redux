@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include <stdarg.h>
+#include <magic_enum_all.hpp>
+#include <utility>
 
 #include "core/system.h"
 #include "fmt/printf.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 namespace PCSX {
 
@@ -54,9 +54,9 @@ enum class LogClass : unsigned {
 template <LogClass logClass, bool enabled>
 struct Logger {
     template <typename... Args>
-    static void Log(const char *format, const Args &...args) {
+    static void Log(const char *format, Args &&...args) {
         if (!enabled) return;
-        std::string s = fmt::sprintf(format, args...);
+        std::string s = fmt::sprintf(format, std::forward<Args>(args)...);
         g_system->log(logClass, std::move(s));
     }
     static void Log(std::string &&s) {

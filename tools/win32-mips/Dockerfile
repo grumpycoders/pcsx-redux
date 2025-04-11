@@ -45,8 +45,8 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-readline'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -Scc --noconfirm'
 
-ARG BINUTILS=https://ftp.gnu.org/gnu/binutils/binutils-2.43.tar.xz
-ARG GCC=https://ftp.gnu.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz
+ARG BINUTILS=https://ftpmirror.gnu.org/gnu/binutils/binutils-2.43.tar.xz
+ARG GCC=https://ftpmirror.gnu.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz
 
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `
     Invoke-WebRequest $env:BINUTILS -OutFile "C:\Windows\Temp\binutils-2.43.tar.xz"; `

@@ -45,7 +45,7 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-readline'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -Scc --noconfirm'
 
-ARG GDB=https://ftp.gnu.org/gnu/gdb/gdb-15.1.tar.xz
+ARG GDB=https://ftpmirror.gnu.org/gnu/gdb/gdb-15.1.tar.xz
 
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `
     Invoke-WebRequest $env:GDB -OutFile "C:\Windows\Temp\gdb-15.1.tar.xz"; `

@@ -23,11 +23,12 @@
 
 #include "core/cdrom.h"
 
+#include <magic_enum_all.hpp>
+
 #include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "spu/interface.h"
 #include "support/strings-helpers.h"
 
@@ -1465,6 +1466,7 @@ class CDRomImpl : public PCSX::CDRom {
                     memFile->write<uint8_t>(m_transfer[m_transferIndex++]);
                     adjustTransferIndex();
                 }
+                PCSX::g_emulator->m_mem->msanDmaWrite(madr, cdsize);
                 if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                         .get<PCSX::Emulator::DebugSettings::Debug>()) {
                     PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, cdsize);

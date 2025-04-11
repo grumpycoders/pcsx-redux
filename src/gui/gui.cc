@@ -42,6 +42,7 @@ extern "C" {
 #include <exception>
 #include <fstream>
 #include <iomanip>
+#include <magic_enum_all.hpp>
 #include <numbers>
 #include <type_traits>
 #include <unordered_set>
@@ -78,7 +79,6 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "nanovg/src/nanovg.h"
 #include "nanovg/src/nanovg_gl.h"
 #include "nanovg/src/nanovg_gl_utils.h"
@@ -88,7 +88,61 @@ extern "C" {
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
-#include "tracy/public/tracy/Tracy.hpp"
+#include "tracy/Tracy.hpp"
+
+unsigned PCSX::GUI::MarkDown::m_id = 0;
+
+PCSX::GUI::MarkDown::MarkDown(GUI* gui) : m_gui(gui) {}
+
+PCSX::GUI::MarkDown::MarkDown(GUI* gui, std::map<std::string_view, std::function<void()>>&& customURLs)
+    : m_customURLs(std::move(customURLs)), m_gui(gui) {}
+
+int PCSX::GUI::MarkDown::print(const std::string_view text) {
+    const char* ptr = text.data();
+    const char* end = ptr + text.size();
+    return imgui_md::print(ptr, end);
+}
+
+void PCSX::GUI::MarkDown::open_url() const {
+    if (m_href.starts_with("http")) {
+        openUrl(m_href);
+        return;
+    }
+    auto i = m_customURLs.find(m_href);
+    if (i != m_customURLs.end()) i->second();
+}
+
+bool PCSX::GUI::MarkDown::get_image(image_info& nfo) const { return false; }
+
+void PCSX::GUI::MarkDown::BLOCK_CODE(const MD_BLOCK_CODE_DETAIL* d, bool e) {
+    imgui_md::BLOCK_CODE(d, e);
+    if (e) {
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 5.0f);
+        auto color = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        ImGui::PushID(m_id++);
+        ImGui::BeginChild("pre", ImVec2(-FLT_MIN, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        m_gui->useMonoFont();
+    } else {
+        ImGui::PopFont();
+        ImGui::EndChild();
+        ImGui::PopID();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+    }
+}
+
+void PCSX::GUI::MarkDown::SPAN_CODE(bool e) {
+    imgui_md::SPAN_CODE(e);
+    if (e) {
+        auto color = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        m_gui->useMonoFont();
+    } else {
+        ImGui::PopFont();
+        ImGui::PopStyleColor();
+    }
+}
 
 #ifdef _WIN32
 extern "C" {
@@ -602,8 +656,11 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
             if ((settings.get<WindowPosX>().value > 0) && (settings.get<WindowPosY>().value > 0)) {
                 glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
-
-            glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            if (settings.get<WindowMaximized>().value) {
+                glfwMaximizeWindow(m_window);
+            } else {
+                glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+            }
         } else {
             saveCfg();
         }
@@ -777,7 +834,6 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         const uint32_t real = event.address & 0x7fffff;
         const uint32_t size = event.size;
         const uint32_t editorNum = event.editorNum;
-        const bool forceShowEditor = event.forceShowEditor;
         auto changeDataType = [](MemoryEditor* editor, int size) {
             bool isSigned = false;
             switch (editor->PreviewDataType) {
@@ -802,13 +858,13 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         };
         if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
             if (real < 0x00800000) {
-                if (forceShowEditor) m_mainMemEditors[editorNum].m_show = true;
+                m_mainMemEditors[editorNum].m_show = true;
                 m_mainMemEditors[editorNum].editor.GotoAddrAndHighlight(real, real + size);
                 changeDataType(&m_mainMemEditors[editorNum].editor, size);
             }
         } else if (base == 0x1f8) {
             if (real >= 0x1000 && real < 0x3000) {
-                if (forceShowEditor) m_hwrEditor.m_show = true;
+                m_hwrEditor.m_show = true;
                 m_hwrEditor.editor.GotoAddrAndHighlight(real - 0x1000, real - 0x1000 + size);
                 changeDataType(&m_hwrEditor.editor, size);
             }
@@ -835,26 +891,35 @@ void PCSX::GUI::close() {
 
 void PCSX::GUI::saveCfg() {
     if (g_system->getArgs().isTestModeEnabled()) return;
-    std::ofstream cfg(g_system->getPersistentDir() / "pcsx.json");
-    json j;
+    std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
+    std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
+    {
+        std::ofstream cfg(cfgTmpPath);
+        json j;
 
-    if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
-        m_glfwPosX = settings.get<WindowPosX>();
-        m_glfwPosY = settings.get<WindowPosY>();
-        m_glfwSizeX = settings.get<WindowSizeX>();
-        m_glfwSizeY = settings.get<WindowSizeY>();
-    } else {
-        glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
-        glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+        if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
+            m_glfwPosX = settings.get<WindowPosX>();
+            m_glfwPosY = settings.get<WindowPosY>();
+            m_glfwSizeX = settings.get<WindowSizeX>();
+            m_glfwSizeY = settings.get<WindowSizeY>();
+            m_glfwMaximized = settings.get<WindowMaximized>();
+        } else {
+            glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
+            glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
+            m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
+        }
+
+        j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
+        j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
+        j["emulator"] = PCSX::g_emulator->settings.serialize();
+        j["gui"] = settings.serialize();
+        j["loggers"] = m_log.serialize();
+        j["pads"] = PCSX::g_emulator->m_pads->getCfg();
+        cfg << std::setw(2) << j << std::endl;
     }
-
-    j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
-    j["SPU"] = PCSX::g_emulator->m_spu->getCfg();
-    j["emulator"] = PCSX::g_emulator->settings.serialize();
-    j["gui"] = settings.serialize();
-    j["loggers"] = m_log.serialize();
-    j["pads"] = PCSX::g_emulator->m_pads->getCfg();
-    cfg << std::setw(2) << j << std::endl;
+    if (std::filesystem::copy_file(cfgTmpPath, cfgPath, std::filesystem::copy_options::overwrite_existing)) {
+        std::filesystem::remove(cfgTmpPath);
+    }
 }
 
 void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -937,6 +1002,7 @@ void PCSX::GUI::startFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    MarkDown::newFrame();
     if (io.WantSaveIniSettings) {
         io.WantSaveIniSettings = false;
         saveCfg();
@@ -980,7 +1046,7 @@ void PCSX::GUI::startFrame() {
             } else {
                 g_emulator->m_debug->stepIn();
             }
-        } else if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Pause) || ImGui::IsKeyPressed(ImGuiKey_F5)) {
             g_system->resume();
         }
     } else {
@@ -1067,6 +1133,13 @@ void PCSX::GUI::endFrame() {
     m_offscreenShaderEditor.configure(this);
     m_outputShaderEditor.configure(this);
 
+    ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGuiContext* context = ImGui::GetCurrentContext();
+    ImGuiDockNode* dockspaceNode = ImGui::DockContextFindNodeByID(context, dockspaceId);
+    if (m_fullWindowRender && !dockspaceNode->IsEmpty()) {
+        m_fullWindowRender = false;
+        ImGui::SetNextWindowDockID(dockspaceId);
+    }
     if (m_fullWindowRender) {
         ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
@@ -1092,16 +1165,24 @@ void PCSX::GUI::endFrame() {
     } else {
         ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(640, 480), ImGuiCond_FirstUseEver);
-        bool outputShown = true;
+        bool outputWindowShown = true;
         if (ImGui::Begin(
-                _("Output"), &outputShown,
+                _("Output"), &outputWindowShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
-            ImVec2 textureSize = ImGui::GetContentRegionAvail();
+            ImGuiDockNode* outputNode = ImGui::GetWindowDockNode();
+            if (outputNode && dockspaceNode->OnlyNodeWithWindows == outputNode &&
+                (!outputNode->TabBar || outputNode->TabBar->Tabs.size() == 1)) {
+                // if output is the only visible window in dockspace, switch to full window render mode automatically
+                outputWindowShown = false;
+            }
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            ImVec2 textureSize = contentRegion;
             if ((m_outputWindowSize.x != textureSize.x) || (m_outputWindowSize.y != textureSize.y)) {
                 m_outputWindowSize = textureSize;
                 m_setupScreenSize = true;
             }
             ImGuiHelpers::normalizeDimensions(textureSize, renderRatio);
+            ImGui::SetCursorPos(ImGui::GetCursorPos() + (contentRegion - textureSize) * 0.5f);
             ImTextureID texture = m_offscreenTextures[m_currentTexture];
             if (g_system->getArgs().isShadersDisabled()) {
                 ImGui::Image(texture, textureSize, ImVec2(0, 0), ImVec2(1, 1));
@@ -1110,7 +1191,11 @@ void PCSX::GUI::endFrame() {
             }
         }
         ImGui::End();
-        if (!outputShown) m_fullWindowRender = true;
+        if (!outputWindowShown) {
+            m_fullWindowRender = true;
+            // full window render mode can't have anything docked in the dockspace
+            ImGui::DockContextClearNodes(context, dockspaceId, true);
+        }
     }
 
     bool showOpenIsoFileDialog = false;
@@ -1121,6 +1206,13 @@ void PCSX::GUI::endFrame() {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu(_("File"))) {
                 showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
+                auto currentIso = PCSX::g_emulator->m_cdrom->getIso();
+                if (ImGui::MenuItem(_("Reload Disk Image"), nullptr, nullptr, currentIso && !currentIso->failed())) {
+                    PCSX::g_emulator->m_cdrom->clearIso();
+                    PCSX::g_emulator->m_cdrom->setIso(new CDRIso(currentIso->getIsoPath()));
+                    PCSX::g_emulator->m_cdrom->check();
+                    g_system->hardReset();
+                }
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
                     PCSX::g_emulator->m_cdrom->check();
@@ -1373,6 +1465,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 if (ImGui::BeginMenu(_("Rendering"))) {
                     if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
                         m_setupScreenSize = true;
+                        // full window render mode can't have anything docked in the dockspace
+                        ImGui::DockContextClearNodes(context, dockspaceId, true);
                     }
                     if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
                         setFullscreen(m_fullscreen);
@@ -2362,7 +2456,7 @@ bool PCSX::GUI::about() {
             if (ImGui::BeginTabItem(_("Licenses"))) {
                 ImGui::BeginChild("Licenses", ImVec2(0, 0), true);
 
-                static MarkDown md({{"AUTHORS", [this]() { m_aboutSelectAuthors = true; }}});
+                MarkDown md(this, {{"AUTHORS", [this]() { m_aboutSelectAuthors = true; }}});
                 std::string_view text =
 #include "LICENSES.md"
                     ;

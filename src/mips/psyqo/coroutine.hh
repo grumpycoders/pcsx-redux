@@ -29,6 +29,8 @@ SOFTWARE.
 #include <coroutine>
 #include <type_traits>
 
+#include "common/syscalls/syscalls.h"
+
 namespace psyqo {
 
 /**
@@ -72,7 +74,7 @@ struct Coroutine {
             m_coroutine->m_earlyResume = false;
             return ret;
         }
-        void await_suspend(std::coroutine_handle<> h) { m_coroutine->m_suspended = true; }
+        constexpr void await_suspend(std::coroutine_handle<> h) { m_coroutine->m_suspended = true; }
         constexpr void await_resume() const noexcept {}
 
       private:
@@ -151,7 +153,16 @@ struct Coroutine {
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
-        void return_void() {}
+        void return_void() {
+            auto awaitingCoroutine = m_awaitingCoroutine;
+            if (awaitingCoroutine) {
+                // This doesn't feel right, but I don't know how to do it otherwise,
+                // since the coroutine is a template and I can't forward the type.
+                __builtin_coro_resume(awaitingCoroutine);
+            }
+        }
+        [[no_unique_address]] Empty m_value;
+        void *m_awaitingCoroutine = nullptr;
     };
     struct PromiseValue {
         Coroutine<T> get_return_object() {
@@ -160,18 +171,41 @@ struct Coroutine {
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
-        void return_value(T &&value) { m_value = eastl::move(value); }
+        void return_value(T &&value) {
+            m_value = eastl::move(value);
+            auto awaitingCoroutine = m_awaitingCoroutine;
+            if (awaitingCoroutine) {
+                // This doesn't feel right, but I don't know how to do it otherwise,
+                // since the coroutine is a template and I can't forward the type.
+                __builtin_coro_resume(awaitingCoroutine);
+            }
+        }
         T m_value;
+        void *m_awaitingCoroutine = nullptr;
     };
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
     Coroutine(std::coroutine_handle<Promise> &&handle) : m_handle(eastl::move(handle)) {}
     std::coroutine_handle<Promise> m_handle;
     [[no_unique_address]] SafeT m_value;
+    void *m_awaitingCoroutine = nullptr;
     bool m_suspended = true;
     bool m_earlyResume = false;
 
   public:
     using promise_type = Promise;
+
+    constexpr bool await_ready() { return m_handle.done(); }
+    template <typename U>
+    constexpr void await_suspend(std::coroutine_handle<U> h) {
+        auto &promise = m_handle.promise();
+        promise.m_awaitingCoroutine = h.address();
+        resume();
+    }
+    constexpr SafeT await_resume() {
+        SafeT value = eastl::move(m_handle.promise().m_value);
+        m_handle.destroy();
+        return value;
+    }
 };
 
 }  // namespace psyqo

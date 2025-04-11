@@ -108,11 +108,11 @@
     <ClCompile Include="..\..\tools\exe2iso\exe2iso.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\cdrom\cdrom.vcxproj">
-      <Project>{026aecdd-eb41-4afd-866c-59f9fe886ff6}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\fmt\fmt.vcxproj">
       <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\supportpsx\supportpsx.vcxproj">
+      <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>

@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "supportpsx/memory.h"
 
 enum {
     MAP_EXEC = 1,
@@ -40,78 +41,135 @@ enum {
     MAP_EXEC_JAL = 128,
 };
 
+PCSX::Debug::Debug() : m_listener(g_system->m_eventBus) {
+    m_listener.listen<PCSX::Events::ExecutionFlow::Reset>([this](auto&) {
+        m_checkKernel = false;
+        clearMaps();
+    });
+}
+
 uint32_t PCSX::Debug::normalizeAddress(uint32_t address) {
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
+    PSXAddress addr(address);
     const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
-    if (!ramExpansion && ((base == 0x000) || (base == 0x800) || (base == 0xa00))) {
-        return address & ~0x00600000;
+    if (!ramExpansion && (addr.type == PSXAddress::Type::RAM)) {
+        addr.physical &= ~0x00600000;
     }
-    return address;
+    return addr.toVirtual().value_or(0xffffffff);
+}
+
+bool PCSX::Debug::isInKernel(uint32_t address, bool biosIsKernel) {
+    PSXAddress addr(address);
+    if (addr.type == PSXAddress::Type::MSAN) return false;
+    const bool ramExpansion = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>();
+    if (addr.type == PSXAddress::Type::ROM) return biosIsKernel;
+    if (addr.type != PSXAddress::Type::RAM) return false;
+    if (!ramExpansion) addr.physical &= ~0x00600000;
+    return addr.physical < 0x10000;
 }
 
 void PCSX::Debug::markMap(uint32_t address, int mask) {
-    address = normalizeAddress(address);
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
-    uint32_t shortReal = address & 0x3fffff;
-    if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
-        m_mainMemoryMap[real] |= mask;
-    } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
-        m_scratchPadMap[real] |= mask;
-    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
-        m_biosMemoryMap[shortReal] |= mask;
+    PSXAddress addr(normalizeAddress(address));
+
+    switch (addr.type) {
+        case PSXAddress::Type::RAM:
+            if (addr.physical < sizeof(m_mainMemoryMap)) {
+                m_mainMemoryMap[addr.physical] |= mask;
+            }
+            break;
+        case PSXAddress::Type::ScratchPad:
+            if (addr.physical < sizeof(m_scratchPadMap)) {
+                m_scratchPadMap[addr.physical] |= mask;
+            }
+            break;
+        case PSXAddress::Type::ROM:
+            if (addr.physical < sizeof(m_biosMemoryMap)) {
+                m_biosMemoryMap[addr.physical] |= mask;
+            }
+            break;
     }
 }
 
 bool PCSX::Debug::isMapMarked(uint32_t address, int mask) {
-    address = normalizeAddress(address);
-    uint32_t base = (address >> 20) & 0xffc;
-    uint32_t real = address & 0x7fffff;
-    uint32_t shortReal = address & 0x3fffff;
-    if (((base == 0x000) || (base == 0x800) || (base == 0xa00)) && (real < sizeof(m_mainMemoryMap))) {
-        return m_mainMemoryMap[real] & mask;
-    } else if ((base == 0x1f8) && (real < sizeof(m_scratchPadMap))) {
-        return m_scratchPadMap[real] & mask;
-    } else if ((base == 0xbfc) && (shortReal < sizeof(m_biosMemoryMap))) {
-        return m_biosMemoryMap[shortReal] & mask;
+    PSXAddress addr(normalizeAddress(address));
+
+    switch (addr.type) {
+        case PSXAddress::Type::RAM:
+            if (addr.physical < sizeof(m_mainMemoryMap)) {
+                return m_mainMemoryMap[addr.physical] & mask;
+            }
+            break;
+        case PSXAddress::Type::ScratchPad:
+            if (addr.physical < sizeof(m_scratchPadMap)) {
+                return m_scratchPadMap[addr.physical] & mask;
+            }
+            break;
+        case PSXAddress::Type::ROM:
+            if (addr.physical < sizeof(m_biosMemoryMap)) {
+                return m_biosMemoryMap[addr.physical] & mask;
+            }
+            break;
     }
     return false;
 }
 
 void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint32_t newCode, bool linked) {
+    const auto& regs = g_emulator->m_cpu->m_regs;
     const uint32_t basic = newCode >> 26;
     const bool isAnyLoadOrStore = (basic >= 0x20) && (basic < 0x3b);
-    const auto& regs = g_emulator->m_cpu->m_regs;
+    const bool isJAL = basic == 3;
+    const bool isJR = (basic == 0) && ((newCode & 0x3f) == 8);
+    const bool isJALR = (basic == 0) && ((newCode & 0x3f) == 9);
+    const bool isLB = basic == 0x20;
+    const bool isLH = basic == 0x21;
+    const bool isLWL = basic == 0x22;
+    const bool isLW = basic == 0x23;
+    const bool isLBU = basic == 0x24;
+    const bool isLHU = basic == 0x25;
+    const bool isLWR = basic == 0x26;
+    const bool isSB = basic == 0x28;
+    const bool isSH = basic == 0x29;
+    const bool isSWL = basic == 0x2a;
+    const bool isSW = basic == 0x2b;
+    const bool isSWR = basic == 0x2e;
+    const bool isLWC2 = basic == 0x32;
+    const bool isSWC2 = basic == 0x3a;
+    const bool isLoad = isLB || isLBU || isLH || isLHU || isLW || isLWL || isLWR || isLWC2;
+    const bool isStore = isSB || isSH || isSW || isSWL || isSWR || isSWC2;
+    const bool wasInKernel = isInKernel(oldPC);
+    const bool isInKernelNow = isInKernel(newPC);
+    const uint32_t target = (newCode & 0x03ffffff) * 4 + (newPC & 0xf0000000);
+    const bool isTargetInKernel = isInKernel(target);
+    const uint32_t rd = (newCode >> 11) & 0x1f;
+    uint32_t offset = regs.GPR.r[(newCode >> 21) & 0x1f] + int16_t(newCode);
+    const bool offsetIsInKernel = isInKernel(offset, false);
+    const bool isJRToRA = isJR && (rd == 31);
+    const uint32_t oldPCBase = normalizeAddress(oldPC) & ~0xe0000000;
+    const uint32_t newPCBase = normalizeAddress(newPC) & ~0xe0000000;
+    const uint32_t targetBase = normalizeAddress(target) & ~0xe0000000;
 
     checkBP(newPC, BreakpointType::Exec, 4);
     if (m_breakmp_e && !isMapMarked(newPC, MAP_EXEC)) {
         triggerBP(nullptr, newPC, 4, _("Execution map"));
     }
     if (m_mapping_e) {
-        const bool isJAL = basic == 3;
-        const bool isJALR = (basic == 0) && ((newCode & 0x3F) == 9);
-        const uint32_t target = (newCode & 0x03ffffff) * 4 + (newPC & 0xf0000000);
-        const uint32_t rd = (newCode >> 11) & 0x1f;
         markMap(newPC, MAP_EXEC);
         if (isJAL) markMap(target, MAP_EXEC_JAL);
         if (isJALR) markMap(regs.GPR.r[rd], MAP_EXEC_JAL);
     }
 
+    // Are we jumping from a non-kernel address to a kernel address which:
+    // - is not a jr to $ra (aka a return from a callback)
+    // - is not a jump to 0xa0 / 0xb0 / 0xc0 (aka the syscall gates)
+    // - is not going to the break or exception handler
+    if ((isJR || isJALR) && !wasInKernel && isTargetInKernel && !isJRToRA && (targetBase != 0x40) &&
+        (targetBase != 0x80) && (targetBase != 0xa0) && (targetBase != 0xb0) && (targetBase != 0xc0)) {
+        if (m_checkKernel) {
+            g_system->printf(_("Kernel checker: Jump from 0x%08x to 0x%08x\n"), oldPC, targetBase);
+            g_system->pause();
+        }
+    }
+
     if (isAnyLoadOrStore) {
-        const bool isLB = basic == 0x20;
-        const bool isLH = basic == 0x21;
-        const bool isLWL = basic == 0x22;
-        const bool isLW = (basic == 0x23) || (basic == 0x32);
-        const bool isLBU = basic == 0x24;
-        const bool isLHU = basic == 0x25;
-        const bool isLWR = basic == 0x26;
-        const bool isSB = basic == 0x28;
-        const bool isSH = basic == 0x29;
-        const bool isSWL = basic == 0x2a;
-        const bool isSW = (basic == 0x2b) || (basic == 0x3a);
-        const bool isSWR = basic == 0x2e;
-        uint32_t offset = regs.GPR.r[(newCode >> 21) & 0x1f] + int16_t(newCode);
         if (isLWL || isLWR || isSWR || isSWL) offset &= ~3;
         if (isLB || isLBU) {
             checkBP(offset, BreakpointType::Read, 1);
@@ -127,7 +185,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
             if (m_mapping_r16) markMap(offset, MAP_R16);
         }
-        if (isLW || isLWR || isLWL) {
+        if (isLW || isLWR || isLWL || isLWC2) {
             checkBP(offset, BreakpointType::Read, 4);
             if (m_breakmp_r32 && !isMapMarked(offset, MAP_R32)) {
                 triggerBP(nullptr, offset, 4, _("Read 32 map"));
@@ -148,12 +206,25 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
             }
             if (m_mapping_w16) markMap(offset, MAP_W16);
         }
-        if (isSW || isSWR || isSWL) {
+        if (isSW || isSWR || isSWL || isSWC2) {
             checkBP(offset, BreakpointType::Write, 4);
             if (m_breakmp_w32 && !isMapMarked(offset, MAP_W32)) {
                 triggerBP(nullptr, offset, 4, _("Write 32 map"));
             }
             if (m_mapping_w32) markMap(offset, MAP_W32);
+        }
+        // Are we accessing a kernel address from a non-kernel address, while not in IRQ?
+        if (!g_emulator->m_cpu->m_inISR && offsetIsInKernel && !wasInKernel) {
+            if (m_checkKernel) {
+                if (isLoad) {
+                    g_system->printf(_("Kernel checker: Reading %08x from %08x\n"), offset, oldPC);
+                    g_system->pause();
+                } else {
+                    g_system->printf(_("Kernel checker: Writing to %08x from %08x\n"), offset, oldPC);
+                    g_system->pause();
+                }
+                g_system->pause();
+            }
         }
     }
 
@@ -217,6 +288,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
     if (g_system->running()) return keepBP;
     m_step = STEP_NONE;
     g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"), pc, name, cause);
+    g_system->m_eventBus->signal(Events::GUI::JumpToPC{pc});
     return keepBP;
 }
 

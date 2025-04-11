@@ -19,19 +19,20 @@
 
 #include "cdrom/file.h"
 
+#include <magic_enum_all.hpp>
+
 #include "cdrom/cdriso.h"
 #include "iec-60908b/edcecc.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
-PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, SectorMode mode)
+PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t size, IEC60908b::SectorMode mode)
     : File(RW_SEEKABLE), m_iso(iso), m_lba(lba) {
     uint8_t* sector = m_cachedSector;
     if (iso->failed()) {
         m_failed = true;
         return;
     }
-    if (mode == SectorMode::GUESS) {
-        mode = SectorMode::RAW;
+    if (mode == IEC60908b::SectorMode::GUESS) {
+        mode = IEC60908b::SectorMode::RAW;
         do {
             m_cachedLBA = lba;
             iso->readSectors(lba, sector, 1);
@@ -47,7 +48,7 @@ PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t 
             }
             switch (sector[15]) {
                 case 1:
-                    mode = SectorMode::M1;
+                    mode = IEC60908b::SectorMode::M1;
                     break;
                 case 2: {
                     uint8_t* subheaders = sector + 16;
@@ -56,9 +57,9 @@ PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t 
                         break;
                     }
                     if (subheaders[2] & 32) {
-                        mode = SectorMode::M2_FORM2;
+                        mode = IEC60908b::SectorMode::M2_FORM2;
                     } else {
-                        mode = SectorMode::M2_FORM1;
+                        mode = IEC60908b::SectorMode::M2_FORM1;
                     }
                     break;
                 }
@@ -73,7 +74,7 @@ PCSX::CDRIsoFile::CDRIsoFile(std::shared_ptr<CDRIso> iso, uint32_t lba, int32_t 
         return;
     }
 
-    if ((mode != SectorMode::M2_FORM1) && (mode != SectorMode::M2_FORM2)) {
+    if ((mode != IEC60908b::SectorMode::M2_FORM1) && (mode != IEC60908b::SectorMode::M2_FORM2)) {
         // can't detect file size on non-mode2 sectors
         m_failed = true;
         return;
@@ -199,8 +200,8 @@ ssize_t PCSX::CDRIsoFile::write(const void* buffer_, size_t size) {
         size_t blocSize = std::min(toCopy, c_sectorSizes[modeIndex] - sectorOffset);
         memcpy(patched + c_sectorOffsets[modeIndex] + sectorOffset, buffer + actualSize, blocSize);
         switch (m_mode) {
-            case SectorMode::M2_FORM1:
-            case SectorMode::M2_FORM2:
+            case IEC60908b::SectorMode::M2_FORM1:
+            case IEC60908b::SectorMode::M2_FORM2:
                 compute_edcecc(patched);
                 break;
         }

@@ -5,10 +5,12 @@ CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
-rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
-PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libuv zlib libcurl
+PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libcurl libuv zlib
+OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
+OPTIONAL_LIBRARIES := multipart ucl
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
@@ -19,25 +21,28 @@ HAS_SUBMODULES = true
 endif
 
 CXXFLAGS += -std=c++2b
-CPPFLAGS += `pkg-config --cflags $(PACKAGES)`
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/ELFIO
-CPPFLAGS += -Ithird_party/fmt/include/
+CPPFLAGS_pkg_fmt += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
 CPPFLAGS += -Ithird_party/imgui/backends
 CPPFLAGS += -Ithird_party/imgui/examples
 CPPFLAGS += -Ithird_party/imgui/misc/cpp
-CPPFLAGS += -Ithird_party/http-parser
 CPPFLAGS += -Ithird_party/libelfin
+CPPFLAGS_pkg_libllhttp += -Ithird_party/llhttp
 CPPFLAGS += -Ithird_party/luajit/src
-CPPFLAGS += -Ithird_party/luv/src
-CPPFLAGS += -Ithird_party/luv/deps/lua-compat-5.3/c-api
-CPPFLAGS += -Ithird_party/md4c/src
-CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
+CPPFLAGS_pkg_libluv += -Ithird_party/luv/src
+CPPFLAGS_pkg_libluv += -Ithird_party/luv/deps/lua-compat-5.3/c-api
+CPPFLAGS += -Ithird_party/magic_enum/include/magic_enum
+CPPFLAGS_pkg_md4c += -Ithird_party/md4c/src
+CPPFLAGS_lib_multipart += -Ithird_party/multipart-parser-c
+CPPFLAGS += -Ithird_party/tracy/public
+CPPFLAGS_lib_ucl += -Ithird_party/ucl -Ithird_party/ucl/include
+CPPFLAGS_pkg_liburiparser += -Ithird_party/uriparser/include
 CPPFLAGS += -Ithird_party/zep/extensions
 CPPFLAGS += -Ithird_party/zep/include
 CPPFLAGS += -Ithird_party/xbyak/xbyak
@@ -71,7 +76,6 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 LUAJIT_LDFLAGS := $(LDFLAGS)
-LDFLAGS += `pkg-config --libs $(PACKAGES)`
 
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation -framework Cocoa
@@ -104,8 +108,8 @@ endif
 
 LD := $(CXX)
 
-SRCS := $(call rwildcard,src/,*.cc)
-SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
+SRCS += $(call rwildcard,src/,*.cc)
+SRCS_pkg_fmt += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
 VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
@@ -116,7 +120,6 @@ SRCS += third_party/clip/image.cpp
 SRCS += $(wildcard third_party/cueparser/*.c)
 SRCS += third_party/gl3w/GL/gl3w.c
 SRCS += third_party/gl3w/GL/gl3w-throwers.cc
-SRCS += third_party/http-parser/http_parser.c
 SRCS += $(wildcard third_party/iec-60908b/*.c)
 SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
@@ -126,15 +129,17 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
+SRCS_pkg_libllhttp += $(wildcard third_party/llhttp/*.c)
 SRCS += $(wildcard third_party/lpeg/*.c)
 SRCS += third_party/lua-protobuf/pb.c
 SRCS += third_party/luafilesystem/src/lfs.c
-SRCS += third_party/luv/src/luv.c
-SRCS += third_party/md4c/src/md4c.c
-SRCS += third_party/multipart-parser-c/multipart_parser.c
+SRCS_pkg_libluv += third_party/luv/src/luv.c
+SRCS_pkg_md4c += third_party/md4c/src/md4c.c
+SRCS_lib_multipart += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
-SRCS += third_party/tracy/public/TracyClient.cpp
-SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
+SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS += $(wildcard third_party/uriparser/src/*.c)
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
@@ -160,30 +165,65 @@ ifeq ($(CROSS),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
-SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/ps1-packer.cc
+SUPPORT_SRCS := src/support/container-file.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
+SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
-OBJECTS := third_party/luajit/src/libluajit.a
+LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = exe2elf exe2iso modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2iso modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 
-OBJECTS += $(patsubst %.c,%.o,$(filter %.c,$(SRCS)))
-OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SRCS)))
-OBJECTS += $(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS)))
-OBJECTS += $(patsubst %.mm,%.o,$(filter %.mm,$(SRCS)))
-SUPPORT_OBJECTS := $(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS)))
-SUPPORT_OBJECTS += $(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS)))
-NONMAIN_OBJECTS := $(filter-out src/main/mainthunk.o,$(OBJECTS))
-IMGUI_OBJECTS := $(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS)))
-VIXL_OBJECTS := $(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS)))
+SRCS += $(SRCS_$(BUILD))
+
+define CHECK_PKG
+ifeq ($(shell pkg-config --exists $(1) && echo true || echo false),true)
+PACKAGES += $(1)
+else
+CPPFLAGS += $(CPPFLAGS_pkg_$(1))
+LDFLAGS += $(LDFLAGS_pkg_$(1))
+SRCS += $(SRCS_pkg_$(1))
+endif
+endef
+
+define CHECK_LIB
+ifeq ($(shell echo "int main(){}" | gcc -x c - -l$(1) -Wl,--no-as-needed -Wl,--unresolved-symbols=ignore-all -Wl,--no-undefined -o /dev/null 1> /dev/null 2> /dev/null && echo true || echo false),true)
+LDFLAGS += -l$(1)
+else
+CPPFLAGS += $(CPPFLAGS_lib_$(1))
+LDFLAGS += $(LDFLAGS_lib_$(1))
+SRCS += $(SRCS_lib_$(1))
+endif
+endef
+
+$(foreach pkg,$(OPTIONAL_PACKAGES),$(eval $(call CHECK_PKG,$(pkg))))
+$(foreach lib,$(OPTIONAL_LIBRARIES),$(eval $(call CHECK_LIB,$(lib))))
+
+CPPFLAGS_PKGCONFIG := $(shell pkg-config --cflags $(PACKAGES))
+LDFLAGS_PKGCONFIG := $(shell pkg-config --libs $(PACKAGES))
+
+CPPFLAGS += $(CPPFLAGS_PKGCONFIG)
+LDFLAGS += $(LDFLAGS_PKGCONFIG)
+
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.c,%.o,$(filter %.c,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(SRCS))))
+OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.mm,%.o,$(filter %.mm,$(SRCS))))
+SUPPORT_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.c,%.o,$(filter %.c,$(SUPPORT_SRCS))))
+SUPPORT_OBJECTS += $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(SUPPORT_SRCS))))
+NONMAIN_OBJECTS := $(filter-out objs/$(BUILD)/src/main/mainthunk.o,$(OBJECTS))
+IMGUI_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS))))
+VIXL_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS))))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
+
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.c,%.dep,$(filter %.c,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS))))
 
 CP ?= cp
 MKDIRP ?= mkdir -p
@@ -192,6 +232,7 @@ all: check_submodules dep $(TARGET)
 
 ifeq ($(HAS_SUBMODULES),true)
 check_submodules:
+	@true
 
 else
 check_submodules:
@@ -239,39 +280,56 @@ third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
 endif
 
-$(TARGET): $(OBJECTS)
-	$(LD) -o $@ $(OBJECTS) $(LDFLAGS)
+bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
+	@$(MKDIRP) $(dir $@)
+	$(LD) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS)
 
-%.o: %.c
+$(TARGET): bins/$(BUILD)/$(TARGET)
+	$(CP) $< $@
+
+objs/$(BUILD)/%.o: %.c
+	@$(MKDIRP) $(dir $@)
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.o: %.cc
+objs/$(BUILD)/%.o: %.cc
+	@$(MKDIRP) $(dir $@)
 	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
-%.o: %.cpp
+objs/$(BUILD)/%.o: %.cpp
+	@$(MKDIRP) $(dir $@)
 	$(CXX) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS)
 
-%.o: %.mm
+objs/$(BUILD)/%.o: %.mm
+	@$(MKDIRP) $(dir $@)
 	$(CC) -c -o $@ $< $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS)
 
-%.dep: %.c
-	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.c
+	@$(MKDIRP) $(dir $@)
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
 
-%.dep: %.cc
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cc
+	@$(MKDIRP) $(dir $@)
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
 
-%.dep: %.cpp
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
+deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cpp
+	@$(MKDIRP) $(dir $@)
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+
+objs/$(BUILD)/gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
+	@$(MKDIRP) $(dir $@)
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc -o objs/$(BUILD)/gtest-all.o
+
+objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
+	@$(MKDIRP) $(dir $@)
+	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc -o objs/$(BUILD)/gtest_main.o
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(DEPS) gtest-all.o gtest_main.o
+	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
-gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
-	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest-all.cc
-
-gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
-	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc
+cleanall:
+	rm -rf bins objs deps $(TOOLS) $(TARGET)
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
 
 gitclean:
 	git clean -f -d -x
@@ -291,32 +349,37 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o
-	$(LD) -o pcsx-redux-tests $(NONMAIN_OBJECTS) gtest-all.o gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+bins/$(BUILD)/pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+	@$(MKDIRP) $(dir $@)
+	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+
+pcsx-redux-tests: check_submodules bins/$(BUILD)/pcsx-redux-tests
+	$(CP) bins/$(BUILD)/pcsx-redux-tests pcsx-redux-tests
 
 runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 define TOOLDEF
-$(1): $(SUPPORT_OBJECTS) tools/$(1)/$(1).o
-	$(LD) -o $(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) tools/$(1)/$(1).o -static -lz
+bins/$(BUILD)/$(1): $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o
+	@$(MKDIRP) $(dir bins/$(BUILD)/$(1))
+	$(LD) -o bins/$(BUILD)/$(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o -static -lz
+
+$(1): check_submodules bins/$(BUILD)/$(1)
+	$(CP) bins/$(BUILD)/$(1) $(1)
 
 endef
 
 $(foreach tool,$(TOOLS),$(eval $(call TOOLDEF,$(tool))))
 
-tools: $(TOOLS)
+tools: check_submodules dep $(TOOLS)
 
-.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools
+dep: check_submodules $(DEPS)
 
-DEPS += $(patsubst %.c,%.dep,$(filter %.c,$(SRCS)))
-DEPS += $(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS)))
-DEPS += $(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS)))
-
-dep: $(DEPS)
+.PHONY: all dep clean gitclean regen-i18n runtests openbios install strip appimage tools $(TOOLS) $(TARGET)
 
 ifneq ($(MAKECMDGOALS), regen-i18n)
 ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), cleanall)
 ifneq ($(MAKECMDGOALS), gitclean)
 ifeq ($(HAS_SUBMODULES), true)
 -include $(DEPS)
@@ -324,3 +387,8 @@ endif
 endif
 endif
 endif
+endif
+
+third_party/luajit/src/lua.hpp: third_party/luajit/src/luajit.h
+
+third_party/luajit/src/luajit.h: third_party/luajit/src/libluajit.a

@@ -125,7 +125,7 @@ void CubeScene::frame() {
     psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);
 
     // Generate a Z-axis rotation matrix (Empty, but it's here for your use)
-    psyqo::SoftMath::generateRotationMatrix33(0, 0, psyqo::SoftMath::Axis::Z, cube.m_trig);
+    psyqo::SoftMath::generateRotationMatrix33(&rot, 0, psyqo::SoftMath::Axis::Z, cube.m_trig);
 
     // Apply the combined rotation and write it to the pseudo register for the cube's rotation
     psyqo::SoftMath::multiplyMatrix33(transform, rot, &transform);

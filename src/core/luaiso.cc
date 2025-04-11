@@ -23,11 +23,11 @@
 
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
-#include "cdrom/iso9660-builder.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
+#include "supportpsx/iso9660-builder.h"
 
 namespace {
 
@@ -53,7 +53,7 @@ bool isReaderFailed(PCSX::ISO9660Reader* reader) { return reader->failed(); }
 PCSX::LuaFFI::LuaFile* readerOpen(PCSX::ISO9660Reader* reader, const char* path) {
     return new PCSX::LuaFFI::LuaFile(reader->open(path));
 }
-PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::SectorMode mode) {
+PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::IEC60908b::SectorMode mode) {
     return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
 }
 
@@ -64,7 +64,7 @@ void deleteIsoBuilder(PCSX::ISO9660Builder* builder) { delete builder; }
 void isoBuilderWriteLicense(PCSX::ISO9660Builder* builder, PCSX::LuaFFI::LuaFile* licenseWrapper) {
     builder->writeLicense(licenseWrapper->file);
 }
-void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::SectorMode mode) {
+void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::IEC60908b::SectorMode mode) {
     builder->writeSector(sectorData, mode);
 }
 void isoBuilderClose(PCSX::ISO9660Builder* builder) { builder->close(); }

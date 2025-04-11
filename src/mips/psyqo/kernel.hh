@@ -46,6 +46,12 @@ class Application;
 
 namespace Kernel {
 
+#ifdef PSYQO_RELEASE
+static constexpr bool debugMode = false;
+#else
+static constexpr bool debugMode = true;
+#endif
+
 namespace Internal {
 static inline uint32_t getCop0Status() {
     uint32_t r;
@@ -54,6 +60,10 @@ static inline uint32_t getCop0Status() {
 }
 
 static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+
+[[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
+[[noreturn]] void abort();
+
 }  // namespace Internal
 
 /**
@@ -100,7 +110,16 @@ enum class IRQ : unsigned {
 /**
  * @brief Stops the execution of the application.
  */
-[[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
+[[noreturn]] static inline void abort(const char* msg,
+                                      std::source_location location = std::source_location::current()) {
+    if constexpr (debugMode) {
+        Internal::abort(msg, location);
+    } else if constexpr (!debugMode) {
+        (void)msg;
+        (void)location;
+        Internal::abort();
+    }
+}
 
 /**
  * @brief Takes over the kernel. Can only be called once inside the main function.
@@ -139,6 +158,24 @@ void takeOverKernel();
  * @brief Returns whether the kernel has been taken over.
  */
 bool isKernelTakenOver();
+
+/**
+ * @brief Installs a crash handler for the application.
+ *
+ * @details This function installs a crash handler for the application.
+ * The crash handler will be called when the application crashes, such
+ * when an unhandled exception occurs. It will display a message on the screen
+ * with the crash information, including the exception type, the exception
+ * address, and the value of all the registers at the time of the crash.
+ * The crash handler requires the system font to be uploaded to VRAM, at
+ * the default location (960, 464). If the system font is not available,
+ * the crash handler will not be able to display the message properly.
+ *
+ * As usual, this function should be called from `main`, before handing
+ * over control to the application, it should only be called once, and
+ * its associated cost will only be added to the binary if it is called.
+ */
+void installCrashHandler();
 
 /**
  * @brief Queues an IRQ handler to be called from the exception handler.
@@ -273,6 +310,7 @@ void prepare(Application&);
 void addInitializer(eastl::function<void(Application&)>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
+[[noreturn]] void crashHandler(uint32_t exceptionCode, uint32_t* kernelRegisters);
 }  // namespace Internal
 
 /**
@@ -280,9 +318,18 @@ void beginFrame();
  */
 inline void assert(bool condition, const char* message,
                    std::source_location location = std::source_location::current()) {
-    if (!condition) {
-        abort(message, location);
-        __builtin_unreachable();
+    if constexpr (debugMode) {
+        if (!condition) {
+            Internal::abort(message, location);
+            __builtin_unreachable();
+        }
+    } else if constexpr (!debugMode) {
+        (void)message;
+        (void)location;
+        if (!condition) {
+            Internal::abort();
+            __builtin_unreachable();
+        }
     }
 }
 

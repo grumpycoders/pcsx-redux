@@ -21,6 +21,8 @@
 
 #include <assert.h>
 
+#include <magic_enum_all.hpp>
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/psxemulator.h"
@@ -28,7 +30,6 @@
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/strings-helpers.h"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
@@ -268,6 +269,9 @@ static const std::string memoryMap = R"(<?xml version="1.0"?>
   <memory type="ram" start="0x000000001fc00000" length="0x80000"/>
   <memory type="ram" start="0xffffffff9fc00000" length="0x80000"/>
   <memory type="ram" start="0xffffffffbfc00000" length="0x80000"/>
+
+  <!-- MSAN -->
+  <memory type="ram" start="0x0000000020000000" length="0x60000000"/>
 
   <!-- This really is only for 0xfffe0130 -->
   <memory type="ram" start="0xfffffffffffe0000" length="0x200"/>

@@ -21,6 +21,8 @@
 
 #include "core/gpu.h"
 
+#include <magic_enum_all.hpp>
+
 #include "core/debug.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
@@ -28,7 +30,6 @@
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready
@@ -436,6 +437,7 @@ inline bool PCSX::GPU::CheckForEndlessLoop(uint32_t laddr) {
 uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     uint32_t size;
     uint32_t DMACommandCounter = 0;
+    bool usingMsan = g_emulator->m_mem->msanInitialized();
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
@@ -443,22 +445,43 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
     size = 1;
 
     do {
-        addr &= 0x7ffffc;
+        uint32_t header;
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
+            addr &= 0xfffffffc;
+            switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return size;
+                case PCSX::MsanStatus::OK:
+                    header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+                    break;
+            }
+        } else {
+            addr &= g_emulator->getRamMask<4>();
+            header = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
+        }
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
-        uint32_t head = SWAP_LEu32(*g_emulator->m_mem->getPointer<uint32_t>(addr));
-
         // # 32-bit blocks to transfer
-        size += head >> 24;
+        size += (header >> 24) + 1;
 
         // next 32-bit pointer
-        addr = head & 0xfffffc;
-        size += 1;
+        uint32_t nextAddr = header & 0xffffff;
+        if (usingMsan && nextAddr == PCSX::Memory::c_msanChainMarker) {
+            addr = g_emulator->m_mem->msanGetChainPtr(addr);
+            continue;
+        }
+        addr = nextAddr;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-    return size;
+    return size;  // 0xFF'FFFF any pointer with bit 23 set will do.
 }
 
 uint32_t PCSX::GPU::readStatus() {
@@ -491,6 +514,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             size = (bcr >> 16) * (bcr & 0xffff);
             directDMARead(ptr, size, madr);
             g_emulator->m_cpu->Clear(madr, size);
+            g_emulator->m_mem->msanDmaWrite(madr, size * 4);
             if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                 g_emulator->m_debug->checkDMAwrite(2, madr, size * 4);
             }
@@ -682,30 +706,56 @@ void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr)
 void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
     uint32_t addr = hwAddr;
     uint32_t DMACommandCounter = 0;
+    bool usingMsan = g_emulator->m_mem->msanInitialized();
 
     s_usedAddr[0] = s_usedAddr[1] = s_usedAddr[2] = 0xffffff;
 
     do {
-        addr &= g_emulator->getRamMask<4>();
+        uint32_t header;
+        const uint32_t *feed;
+        if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
+            addr &= 0xfffffffc;
+            const uint32_t *headerPtr = (uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
+            switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
+                                  addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
+                    g_system->pause();
+                    return;
+                case PCSX::MsanStatus::OK:
+                    break;
+            }
+            header = *headerPtr;
+            feed = headerPtr + 1;
+        } else {
+            addr &= g_emulator->getRamMask<4>();
+            header = memory[addr / 4];
+            feed = memory + addr / 4 + 1;
+        }
 
         if (DMACommandCounter++ > 2000000) break;
         if (CheckForEndlessLoop(addr)) break;
 
         // # 32-bit blocks to transfer
-        addr >>= 2;
-        uint32_t header = memory[addr];
-        uint32_t transferSize = header >> 24;
-        const uint32_t *feed = memory + addr + 1;
-        Buffer buf(feed, transferSize);
+        uint32_t transferWords = header >> 24;
+        Buffer buf(feed, transferWords);
         while (!buf.isEmpty()) {
-            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr << 2, transferSize);
+            m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr, transferWords);
         }
 
         // next 32-bit pointer
-        addr = header & 0xfffffc;
+        uint32_t nextAddr = header & 0xffffff;
+        if (usingMsan && nextAddr == PCSX::Memory::c_msanChainMarker) {
+            addr = g_emulator->m_mem->msanGetChainPtr(addr);
+            continue;
+        }
+        addr = nextAddr;
     } while (!(addr & 0x800000));  // contrary to some documentation, the end-of-linked-list marker is not actually
-                                   // 0xFF'FFFF any pointer with bit 23 set will do.
-}
+}  // 0xFF'FFFF any pointer with bit 23 set will do.
 
 void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32_t originValue, uint32_t length) {
     while (!buf.isEmpty()) {
@@ -1131,6 +1181,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
     int minX = 2048, minY = 1024, maxX = -1024, maxY = -512;
     int minU = 2048, minV = 1024, maxU = -1024, maxV = -512;
     for (unsigned i = 0; i < count; i++) {
+        ImGui::PushID(i);
         ImGui::Separator();
         ImGui::Text(_("Vertex %i"), i);
         ImGui::Text("  X: %i + %i = %i, Y: %i + %i = %i", x[i], offset.x, x[i] + offset.x, y[i], offset.y,
@@ -1153,6 +1204,7 @@ void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::drawLogNode(u
             maxU = std::max(maxU, int(u[i] >> shift));
             maxV = std::max(maxV, int(v[i]));
         }
+        ImGui::PopID();
     }
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);
@@ -1197,6 +1249,7 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned itemIndex, 
         ImGui::TextUnformatted(_("Semi-transparency blending"));
     }
     for (unsigned i = 1; i < colors.size(); i++) {
+        ImGui::PushID(i);
         ImGui::Separator();
         if constexpr (lineType == LineType::Poly) {
             ImGui::Text(_("Line %i"), i);
@@ -1215,6 +1268,7 @@ void PCSX::GPU::Line<shading, lineType, blend>::drawLogNode(unsigned itemIndex, 
         minY = std::min(minY, y[i] + offset.y);
         maxX = std::max(maxX, x[i] + offset.x);
         maxY = std::max(maxY, y[i] + offset.y);
+        ImGui::PopID();
     }
     ImGui::Separator();
     std::string label = fmt::format(f_("Go to primitive##{}"), itemIndex);

@@ -26,9 +26,11 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/algorithm.h>
 #include <stdint.h>
 
 #include "psyqo/fragment-concept.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -37,7 +39,6 @@ class GPU;
 class OrderingTableBase {
   protected:
     static void clear(uint32_t* table, size_t size);
-    static void insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize, int32_t z);
 };
 
 /**
@@ -54,7 +55,7 @@ class OrderingTableBase {
  * @tparam N The number of buckets in the ordering table. The larger the number,
  * the more precise the sorting will be, but the more memory will be used.
  */
-template <size_t N = 4096>
+template <size_t N = 4096, Safe safety = Safe::Yes>
 class OrderingTable : private OrderingTableBase {
   public:
     OrderingTable() { clear(); }
@@ -74,7 +75,8 @@ class OrderingTable : private OrderingTableBase {
      *
      * @details This function inserts a fragment into the ordering table. The fragment
      * will be inserted into the bucket corresponding to its Z value. Any value outside
-     * of the range [0, N - 1] will be clamped to the nearest valid value.
+     * of the range [0, N - 1] will be clamped to the nearest valid value when `safety`
+     * is set to `Safe::Yes`, which is the default.
      *
      * @param frag The fragment to insert.
      * @param z The Z value of the fragment.
@@ -82,7 +84,13 @@ class OrderingTable : private OrderingTableBase {
     template <Fragment Frag>
     void insert(Frag& frag, int32_t z) {
         // TODO: cater for big packets
-        OrderingTableBase::insert(m_table, N, &frag.head, uint32_t(frag.getActualFragmentSize() << 24), z);
+        uint32_t* table = m_table + 1;
+        uint32_t* head = &frag.head;
+        if constexpr (safety == Safe::Yes) {
+            z = eastl::clamp(z, int32_t(0), int32_t(N - 1));
+        }
+        *head = (frag.getActualFragmentSize() << 24) | table[z];
+        table[z] = reinterpret_cast<uint32_t>(head) & 0xffffff;
     }
 
   private:

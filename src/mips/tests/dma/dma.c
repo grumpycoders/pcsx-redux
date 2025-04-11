@@ -361,6 +361,104 @@ CESTER_TEST(normal_dma_odd_address, dma_tests,
     cester_assert_uint_eq(0x00840000, dicr);
 )
 
+CESTER_TEST(linked_dma_3_links, dma_tests,
+    sendGPUStatus(0);
+    sendGPUStatus(0x04000001);
+    sendGPUData(0xe1000000);
+    DPCR = 0x00000800;
+    DICR = 0x00840000;
+    IMASK = IRQ_VBLANK | IRQ_DMA;
+    uint32_t cmd1[2] = { 0x01000000, 0x00000000 };
+    uint32_t cmd2[2] = { 0x01000000, 0x00000000 };
+    uint32_t cmd3[2] = { 0x01ffffff, 0xe1000555 };
+    cmd1[0] = (((uint32_t)&cmd2) & 0xffffff) | 0x01000000;
+    cmd2[0] = (((uint32_t)&cmd3) & 0xffffff) | 0x01000000;
+    sendGPUStatus(0x04000002);
+    while ((GPU_STATUS & 0x10000000) == 0);
+    DMA_CTRL[DMA_GPU].MADR = (uintptr_t)&cmd1;
+    DMA_CTRL[DMA_GPU].BCR = 0x12345678;
+    DMA_CTRL[DMA_GPU].CHCR = 0x01000401;
+    unsigned count = 0;
+    unsigned timeout = 0;
+    while (1) {
+        while ((IREG & (IRQ_VBLANK | IRQ_DMA)) == 0);
+        if (IREG & IRQ_DMA) break;
+        IREG &= ~IRQ_VBLANK;
+        if (count++ == 128) {
+            timeout = 1;
+            break;
+        }
+    }
+    IREG = 0;
+    uint32_t stat = GPU_STATUS & 0x000007ff;
+    uintptr_t bcr = DMA_CTRL[DMA_GPU].BCR;
+    uint32_t madr = DMA_CTRL[DMA_GPU].MADR;
+    uint32_t chcr = DMA_CTRL[DMA_GPU].CHCR;
+    uint32_t dicr = DICR;
+    cester_assert_uint_eq(0, timeout);
+    cester_assert_uint_eq(0, s_got40);
+    cester_assert_uint_eq(0, s_got80);
+    cester_assert_uint_eq(0, s_from);
+    cester_assert_uint_eq(0, s_epc);
+    cester_assert_uint_eq(0x555, stat);
+    cester_assert_uint_eq(0x12345678, bcr);
+    cester_assert_uint_eq(0x00ffffff, madr);
+    cester_assert_uint_eq(0x00000401, chcr);
+    cester_assert_uint_eq(0x84840000, dicr);
+    DICR = (dicr & ~0x7f000000) | 0x04000000;
+    dicr = DICR;
+    cester_assert_uint_eq(0x00840000, dicr);
+)
+
+CESTER_TEST(linked_dma_3_oddlinks, dma_tests,
+    sendGPUStatus(0);
+    sendGPUStatus(0x04000001);
+    sendGPUData(0xe1000000);
+    DPCR = 0x00000800;
+    DICR = 0x00840000;
+    IMASK = IRQ_VBLANK | IRQ_DMA;
+    uint32_t cmd1[2] = { 0x01000000, 0x00000000 };
+    uint32_t cmd2[2] = { 0x01000000, 0x00000000 };
+    uint32_t cmd3[2] = { 0x01ffffff, 0xe1000555 };
+    cmd1[0] = (((uint32_t)&cmd2) & 0xffffff) | 0x01000003;
+    cmd2[0] = (((uint32_t)&cmd3) & 0xffffff) | 0x01000003;
+    sendGPUStatus(0x04000002);
+    while ((GPU_STATUS & 0x10000000) == 0);
+    DMA_CTRL[DMA_GPU].MADR = (uintptr_t)&cmd1;
+    DMA_CTRL[DMA_GPU].BCR = 0x12345678;
+    DMA_CTRL[DMA_GPU].CHCR = 0x01000401;
+    unsigned count = 0;
+    unsigned timeout = 0;
+    while (1) {
+        while ((IREG & (IRQ_VBLANK | IRQ_DMA)) == 0);
+        if (IREG & IRQ_DMA) break;
+        IREG &= ~IRQ_VBLANK;
+        if (count++ == 128) {
+            timeout = 1;
+            break;
+        }
+    }
+    IREG = 0;
+    uint32_t stat = GPU_STATUS & 0x000007ff;
+    uintptr_t bcr = DMA_CTRL[DMA_GPU].BCR;
+    uint32_t madr = DMA_CTRL[DMA_GPU].MADR;
+    uint32_t chcr = DMA_CTRL[DMA_GPU].CHCR;
+    uint32_t dicr = DICR;
+    cester_assert_uint_eq(0, timeout);
+    cester_assert_uint_eq(0, s_got40);
+    cester_assert_uint_eq(0, s_got80);
+    cester_assert_uint_eq(0, s_from);
+    cester_assert_uint_eq(0, s_epc);
+    cester_assert_uint_eq(0x555, stat);
+    cester_assert_uint_eq(0x12345678, bcr);
+    cester_assert_uint_eq(0x00ffffff, madr);
+    cester_assert_uint_eq(0x00000401, chcr);
+    cester_assert_uint_eq(0x84840000, dicr);
+    DICR = (dicr & ~0x7f000000) | 0x04000000;
+    dicr = DICR;
+    cester_assert_uint_eq(0x00840000, dicr);
+)
+
 CESTER_TEST(linked_dma_ffffff_terminator, dma_tests,
     sendGPUStatus(0);
     sendGPUStatus(0x04000001);

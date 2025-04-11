@@ -32,6 +32,7 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "mips/common/util/mips.hh"
 #include "support/file.h"
 #include "support/hashtable.h"
 
@@ -89,20 +90,7 @@ typedef union {
     int32_t sd;
 } PAIR;
 
-typedef union {
-    struct {
-        uint32_t r0, at, v0, v1, a0, a1, a2, a3;
-        uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
-        uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-        uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
-        uint32_t lo, hi;
-    } n;
-    uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
-    PAIR p[34];
-} psxGPRRegs;
-
-// Make sure no packing is inserted anywhere
-static_assert(sizeof(psxGPRRegs) == 34 * sizeof(uint32_t));
+using psxGPRRegs = Mips::GPRRegs;
 
 typedef union {
     struct {
@@ -290,6 +278,9 @@ class R3000Acpu {
 
     std::map<uint32_t, std::string> m_symbols;
 
+    std::pair<const uint32_t, std::string> *findContainingSymbol(uint32_t addr);
+    std::string *getSymbolAt(uint32_t addr);
+
     static int psxInit();
     virtual bool isDynarec() = 0;
     void psxReset();
@@ -318,12 +309,10 @@ class R3000Acpu {
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
         const uint64_t cycle = m_regs.cycle;
-        uint64_t target = uint64_t(cycle + eCycle * m_interruptScales[interrupt]);
+        uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
-        int64_t lowest = m_regs.lowestTarget - cycle;
-        int64_t maybeNewLowest = target - cycle;
-        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
+        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
     }
 
     psxRegisters m_regs;

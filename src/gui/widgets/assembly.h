@@ -45,7 +45,10 @@ class Assembly : private Disasm {
   public:
     Assembly(bool& show, std::vector<std::string>& favorites)
         : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
-        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) {
+            m_jumpToPC = event.pc;
+            m_show = true;
+        });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
     bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
@@ -69,7 +72,7 @@ class Assembly : private Disasm {
     void sameLine();
     void comma();
     const uint8_t* ptr(uint32_t addr);
-    void jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex = 0, bool forceShowEditor = false);
+    void jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex = 0);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
@@ -107,12 +110,10 @@ class Assembly : private Disasm {
         uint32_t addr;
     };
 
-    std::list<std::string> findSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
-    std::map<uint32_t, std::string> m_elfSymbolsCache;
-    bool m_symbolsCachesValid = false;
+    bool m_symbolsCacheValid = false;
 
-    void rebuildSymbolsCaches();
+    void rebuildSymbolsCache();
     void addMemoryEditorContext(uint32_t addr, int size);
     void addMemoryEditorSubMenu(uint32_t addr, int size);
 

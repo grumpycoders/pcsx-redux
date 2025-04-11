@@ -48,12 +48,20 @@
     <ClCompile Include="..\..\src\supportpsx\adpcmlua.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\iec-60908b\edcecc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\iec-60908b\tables.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\iso9660-builder.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\binffi.lua">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\..\src\supportpsx\assembler\assembler.lua">
       <Filter>Source Files\assembler</Filter>
     </None>
@@ -81,6 +89,7 @@
     <None Include="..\..\src\supportpsx\adpcmffi.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\supportpsx\assembler.h">
@@ -102,6 +111,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\adpcmlua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\iso9660-lowlevel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\iec-60908b\tables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\iec-60908b\edcecc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

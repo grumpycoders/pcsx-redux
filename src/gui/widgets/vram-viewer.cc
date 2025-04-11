@@ -358,6 +358,7 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : m_show(show), m_listener(g_s
     m_listener.listen<PCSX::Events::GUI::VRAMFocus>([this](auto event) {
         if (!m_isMain) return;
         bool changed = false;
+        m_show = true;
         switch (event.vramMode) {
             case PCSX::Events::GUI::VRAM_4BITS:
                 if (m_vramMode != VRAM_4BITS) {

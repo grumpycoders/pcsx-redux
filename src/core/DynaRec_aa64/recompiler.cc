@@ -169,8 +169,7 @@ void DynaRecCPU::emitDispatcher() {
     gen.Str(contextPointer,
             MemOperand(sp, -16, PreIndex));  // Save contextPointer register in stack (also align stack pointer)
 
-    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());  // Move runningPtr to runningPointer register
-    gen.Mov(contextPointer, (uintptr_t)this);                          // Load context pointer
+    gen.Mov(contextPointer, (uintptr_t)this);  // Load context pointer
 
     // Back up all our allocateable volatile regs
     static_assert((ALLOCATEABLE_NON_VOLATILE_COUNT & 1) == 0);  // Make sure we've got an even number of regs
@@ -188,9 +187,13 @@ void DynaRecCPU::emitDispatcher() {
 
     loadThisPointer(arg1.X());  // Poll events
     call(recBranchTestWrapper);
-    gen.Ldrb(w0, MemOperand(runningPointer));  // Check if PCSX::g_system->running is true
-    gen.Cbz(w0, &done);                        // If it's not, return
-    emitBlockLookup();                         // Otherwise, look up next block
+    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());   // Move runningPtr to runningPointer register
+    gen.Ldrb(w0, MemOperand(runningPointer));                           // Check if PCSX::g_system->running is true
+    gen.Cbz(w0, &done);                                                 // If it's not, return
+    gen.Mov(runningPointer, (uintptr_t)PCSX::g_system->quittingPtr());  // Load pointer to "quitting" variable
+    gen.Ldrb(w0, MemOperand(runningPointer));                           // Check if PCSX::g_system->quitting is true
+    gen.Cbnz(w0, &done);                                                // If it is, return
+    emitBlockLookup();                                                  // Otherwise, look up next block
 
     gen.align();
 
