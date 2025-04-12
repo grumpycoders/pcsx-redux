@@ -262,31 +262,36 @@ void psyqo::Lua::setupFixedPointMetatable() {
         end
 
         FixedPoint.newFromRaw = newFromRaw
+        local lshift = bit32.lshift
+        local rshift = bit32.rshift
+        local err = function(op)
+            error('Cannot ' .. op .. ' FixedPoint to this type')
+        end
 
         -- Simple operations can be done directly in Lua
         function FixedPoint.__add(a, b)
             local raw_a = a._raw
-            if type(b) == "number" then
-                -- FixedPoint + number (treated as integer)
-                return newFromRaw(raw_a + bit32.lshift(b, 12))
-            elseif type(b) == "table" and b._raw then
+            if type(b) == 'number' then
+                -- FixedPoint + number
+                return newFromRaw(raw_a + lshift(b, 12))
+            elseif type(b) == 'table' and b._raw then
                 -- FixedPoint + FixedPoint
                 return newFromRaw(raw_a + b._raw)
             else
-                error("Cannot add FixedPoint to this type")
+                err('add')
             end
         end
 
         function FixedPoint.__sub(a, b)
             local raw_a = a._raw
-            if type(b) == "number" then
-                -- FixedPoint - number (treated as integer)
-                return newFromRaw(raw_a - bit32.lshift(b, 12))
-            elseif type(b) == "table" and b._raw then
+            if type(b) == 'number' then
+                -- FixedPoint - number
+                return newFromRaw(raw_a - lshift(b, 12))
+            elseif type(b) == 'table' and b._raw then
                 -- FixedPoint - FixedPoint
                 return newFromRaw(raw_a - b._raw)
             else
-                error("Cannot subtract this type from FixedPoint")
+                err('subtract')
             end
         end
 
@@ -296,35 +301,35 @@ void psyqo::Lua::setupFixedPointMetatable() {
         end
 
         function FixedPoint.__eq(a, b)
-            if type(b) == "table" and b._raw then
+            if type(b) == 'table' and b._raw then
                 return a._raw == b._raw
-            elseif type(b) == "number" then
+            elseif type(b) == 'number' then
                 -- Compare with an integer number (shifted)
-                return a._raw == bit32.lshift(b, 12)
+                return a._raw == lshift(b, 12)
             else
                 return false
             end
         end
 
         function FixedPoint.__lt(a, b)
-            if type(b) == "table" and b._raw then
+            if type(b) == 'table' and b._raw then
                 return a._raw < b._raw
-            elseif type(b) == "number" then
+            elseif type(b) == 'number' then
                 -- Compare with an integer number (shifted)
-                return a._raw < bit32.lshift(b, 12)
+                return a._raw < lshift(b, 12)
             else
-                error("Cannot compare FixedPoint with this type")
+                err('compare')
             end
         end
 
         function FixedPoint.__le(a, b)
-            if type(b) == "table" and b._raw then
+            if type(b) == 'table' and b._raw then
                 return a._raw <= b._raw
-            elseif type(b) == "number" then
+            elseif type(b) == 'number' then
                 -- Compare with an integer number (shifted)
-                return a._raw <= bit32.lshift(b, 12)
+                return a._raw <= lshift(b, 12)
             else
-                error("Cannot compare FixedPoint with this type")
+                err('compare')
             end
         end
 
@@ -335,13 +340,13 @@ void psyqo::Lua::setupFixedPointMetatable() {
 
         -- Method to convert to a simple number (for simple calculations)
         function FixedPoint:toNumber()
-            return bit32.rshift((self._raw + 2048), 12)
+            return rshift((self._raw + 2048), 12)
         end
 
         -- Create a new FixedPoint
         function FixedPoint.new(integer, fraction)
             if fraction == nil then fraction = 0 end
-            return setmetatable({_raw = bit32.lshift(integer, 12) + fraction}, FixedPoint)
+            return setmetatable({_raw = lshift(integer, 12) + fraction}, FixedPoint)
         end
     end
     )lua";
