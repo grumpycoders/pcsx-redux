@@ -7,6 +7,7 @@ SRCS = \
 src/lua.cpp \
 
 CPPFLAGS += -I$(PSYQOLUADIR)../../../third_party/psxlua/src
+CPPFLAGS += -DLUA_TARGET_PSX
 
 EXTRA_DEPS += $(PSYQOLUADIR)Makefile
 

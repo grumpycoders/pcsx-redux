@@ -45,6 +45,12 @@ function factorial(n)
     end
 end
 
+function printfactorial(n)
+    local f = factorial(n)
+    print('Factorial of ' .. tostring(n) .. ' is ' .. tostring(f))
+    return f
+end
+
 -- Calculate some values
 results = {
     factorial = factorial(5),
@@ -159,6 +165,8 @@ void LuaExample::createScene() {
     pushScene(&luaExampleScene);
 }
 
+using namespace psyqo::fixed_point_literals;
+
 void LuaExampleScene::frame() {
     auto& gpu = luaExample.gpu();
     auto& font = luaExample.m_font;
@@ -187,6 +195,20 @@ void LuaExampleScene::frame() {
         } else {
             int factorial7 = luaExample.L.toNumber(-1);
             font.printf(gpu, {{.x = 16, .y = 144}}, textColor, "Calling factorial(7) from C++: %d", factorial7);
+        }
+        luaExample.L.pop();
+
+        // Example of using FixedPoint
+        luaExample.L.getGlobal("printfactorial");
+        luaExample.L.push(6.0_fp);
+        if (luaExample.L.pcall(1, 1) != 0) {
+            // Error occurred
+            font.print(gpu, "Error calling printfactorial(6):", {{.x = 16, .y = 160}}, textColor);
+            font.print(gpu, luaExample.L.toString(-1), {{.x = 16, .y = 176}}, textColor);
+        } else {
+            auto factorial6 = luaExample.L.toFixedPoint(-1);
+            font.print(gpu, "Calling printfactorial(6.0_fp):", {{.x = 16, .y = 176}}, textColor);
+            font.printf(gpu, {{.x = 16, .y = 192}}, textColor, "Factorial(6) is %.2f", factorial6);
         }
         luaExample.L.pop();
     } else {

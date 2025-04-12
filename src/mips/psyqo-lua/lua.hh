@@ -29,6 +29,7 @@ SOFTWARE.
 extern "C" {
 #include "lauxlib.h"
 #include "lua.h"
+#include "lualib.h"
 }
 
 #include "EASTL/string_view.h"
@@ -78,7 +79,8 @@ struct Lua {
         lua_pushlstring(L, s, S - 1);
     }
     void push(eastl::string_view s) { lua_pushlstring(L, s.data(), s.size()); }
-    void push(const char* fmt, ...);
+    void vpushf(const char* fmt, va_list ap) { lua_pushvfstring(L, fmt, ap); }
+    void pushf(const char* fmt, ...);
     void push(lua_CFunction f, int closure = 0) { lua_pushcclosure(L, f, closure); }
     void push(lua_CPPFunction f);
     void push(void* p) { lua_pushlightuserdata(L, p); }
@@ -97,7 +99,10 @@ struct Lua {
     const char* toString(int idx, size_t* len = nullptr) { return lua_tolstring(L, idx, len); }
     size_t rawLen(int idx) { return lua_rawlen(L, idx); }
     lua_CFunction toCFunction(int idx) { return lua_tocfunction(L, idx); }
-    void* toUserdata(int idx) { return lua_touserdata(L, idx); }
+    template <typename T = void>
+    T* toUserdata(int idx) {
+        return reinterpret_cast<T*>(lua_touserdata(L, idx));
+    }
     lua_State* toThread(int idx) { return lua_tothread(L, idx); }
     const void* toPointer(int idx) { return lua_topointer(L, idx); }
 
@@ -141,8 +146,8 @@ struct Lua {
     int setMetatable(int objindex) { return lua_setmetatable(L, objindex); }
 
     // Function calling
-    void call(int nargs, int nresults) { lua_call(L, nargs, nresults); }
-    int pcall(int nargs, int nresults, int errfunc = 0) { return lua_pcall(L, nargs, nresults, errfunc); }
+    void call(int nargs, int nresults = LUA_MULTRET) { lua_call(L, nargs, nresults); }
+    int pcall(int nargs, int nresults = LUA_MULTRET);
 
     // Loading and executing
     int loadBuffer(const char* buff, size_t sz, const char* chunkname = nullptr) {
@@ -197,6 +202,7 @@ struct Lua {
   private:
     lua_State* L;
     void setupFixedPointMetatable();
+    static int traceback(lua_State* L);
 };
 
 }  // namespace psyqo
