@@ -11,5 +11,5 @@ $(PSYQOPATHSDIR)libpsyqo-paths.a:
 clean::
 	$(MAKE) -C $(PSYQOPATHSDIR) clean
 
-.PHONY: clean-psyqo-paths $(PSYQOPATHSDIR)libpsyqo-paths.a
+.PHONY: clean $(PSYQOPATHSDIR)libpsyqo-paths.a
 endif
