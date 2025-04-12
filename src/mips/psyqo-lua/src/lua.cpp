@@ -26,6 +26,8 @@ SOFTWARE.
 
 #include "psyqo-lua/lua.hh"
 
+#include <EASTL/string.h>
+
 #include "psyqo/kernel.hh"
 #include "psyqo/xprintf.h"
 
@@ -111,6 +113,7 @@ psyqo::FixedPoint<> psyqo::Lua::optFixedPoint(int idx, FixedPoint<> def) {
 psyqo::Lua::Lua() : L(luaL_newstate()) {
     static_assert(sizeof(Lua) == sizeof(lua_State*));
     Kernel::assert(L, "Couldn't create Lua VM");
+    luaL_openlibs(L);
     lua_atpanic(L, [](lua_State* L) -> int {
         const char* errorMsg = lua_tolstring(L, 1, nullptr);
         Kernel::abort(errorMsg);
@@ -153,7 +156,7 @@ int psyqo::Lua::error(const char* fmt, ...) {
     return lua_error(L);
 }
 
-void psyqo::Lua::push(const char* fmt, ...) {
+void psyqo::Lua::pushf(const char* fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
     lua_pushvfstring(L, fmt, argp);
@@ -238,10 +241,10 @@ void psyqo::Lua::setupFixedPointMetatable() {
         unsigned fraction = raw & 0xfff;
 
         if (fraction == 0) {
-            L.push("%d", integer);
+            L.pushf("%d", integer);
         } else {
             unsigned decimal = (fraction * 1000) >> 12;
-            L.push("%d.%03u", integer, decimal);
+            L.pushf("%d.%03u", integer, decimal);
         }
 
         return 1;
@@ -253,15 +256,22 @@ void psyqo::Lua::setupFixedPointMetatable() {
     return function(metatable)
         FixedPoint = metatable
 
+        -- Create a new FixedPoint from raw value
+        local newFromRaw = function(raw_value)
+            return setmetatable({_raw = raw_value}, FixedPoint)
+        end
+
+        FixedPoint.newFromRaw = newFromRaw
+
         -- Simple operations can be done directly in Lua
         function FixedPoint.__add(a, b)
             local raw_a = a._raw
             if type(b) == "number" then
                 -- FixedPoint + number (treated as integer)
-                return FixedPoint.new(raw_a + bit.lshift(b, 12))
+                return newFromRaw(raw_a + bit32.lshift(b, 12))
             elseif type(b) == "table" and b._raw then
                 -- FixedPoint + FixedPoint
-                return FixedPoint.new(raw_a + b._raw)
+                return newFromRaw(raw_a + b._raw)
             else
                 error("Cannot add FixedPoint to this type")
             end
@@ -271,10 +281,10 @@ void psyqo::Lua::setupFixedPointMetatable() {
             local raw_a = a._raw
             if type(b) == "number" then
                 -- FixedPoint - number (treated as integer)
-                return FixedPoint.new(raw_a - bit.lshift(b, 12))
+                return newFromRaw(raw_a - bit32.lshift(b, 12))
             elseif type(b) == "table" and b._raw then
                 -- FixedPoint - FixedPoint
-                return FixedPoint.new(raw_a - b._raw)
+                return newFromRaw(raw_a - b._raw)
             else
                 error("Cannot subtract this type from FixedPoint")
             end
@@ -282,7 +292,7 @@ void psyqo::Lua::setupFixedPointMetatable() {
 
         function FixedPoint.__unm(a)
             -- Unary minus
-            return FixedPoint.new(-a._raw)
+            return newFromRaw(-a._raw)
         end
 
         function FixedPoint.__eq(a, b)
@@ -290,7 +300,7 @@ void psyqo::Lua::setupFixedPointMetatable() {
                 return a._raw == b._raw
             elseif type(b) == "number" then
                 -- Compare with an integer number (shifted)
-                return a._raw == bit.lshift(b, 12)
+                return a._raw == bit32.lshift(b, 12)
             else
                 return false
             end
@@ -301,7 +311,7 @@ void psyqo::Lua::setupFixedPointMetatable() {
                 return a._raw < b._raw
             elseif type(b) == "number" then
                 -- Compare with an integer number (shifted)
-                return a._raw < bit.lshift(b, 12)
+                return a._raw < bit32.lshift(b, 12)
             else
                 error("Cannot compare FixedPoint with this type")
             end
@@ -312,7 +322,7 @@ void psyqo::Lua::setupFixedPointMetatable() {
                 return a._raw <= b._raw
             elseif type(b) == "number" then
                 -- Compare with an integer number (shifted)
-                return a._raw <= bit.lshift(b, 12)
+                return a._raw <= bit32.lshift(b, 12)
             else
                 error("Cannot compare FixedPoint with this type")
             end
@@ -325,24 +335,19 @@ void psyqo::Lua::setupFixedPointMetatable() {
 
         -- Method to convert to a simple number (for simple calculations)
         function FixedPoint:toNumber()
-            return (self._raw + 2048) / 4096
-        end
-
-        -- Create a new FixedPoint from raw value
-        function FixedPoint.newFromRaw(raw_value)
-            return setmetatable({_raw = raw_value}, FixedPoint)
+            return bit32.rshift((self._raw + 2048), 12)
         end
 
         -- Create a new FixedPoint
         function FixedPoint.new(integer, fraction)
             if fraction == nil then fraction = 0 end
-            return setmetatable({_raw = bit.lshift(integer, 12) + fraction}, FixedPoint)
+            return setmetatable({_raw = bit32.lshift(integer, 12) + fraction}, FixedPoint)
         end
     end
     )lua";
 
     // Load the Lua script
-    if (loadBuffer(fixedPointScript, sizeof(fixedPointScript) - 1) != 0) {
+    if (loadBuffer(fixedPointScript, sizeof(fixedPointScript) - 1, "buffer:fixedPointScript") != 0) {
         const char* errorMsg = toString(2);
         psyqo::Kernel::abort(errorMsg);
     }
@@ -361,4 +366,23 @@ void psyqo::Lua::setupFixedPointMetatable() {
     }
 
     pop();
+}
+
+int psyqo::Lua::pcall(int nargs, int nresults) {
+    int n = getTop();
+    int errorfunc = n - nargs;
+    lua_pushcfunction(L, traceback);
+    insert(errorfunc);
+    int r = lua_pcall(L, nargs, nresults, errorfunc);
+    remove(errorfunc);
+    return r;
+}
+
+int psyqo::Lua::traceback(lua_State* L) {
+    int n = lua_gettop(L);
+    const char* msgPtr = n >= 1 ? lua_tostring(L, 1) : nullptr;
+    eastl::string msg = msgPtr ? msgPtr : "no message";
+    lua_settop(L, 0);
+    luaL_traceback(L, L, msg.c_str(), 1);
+    return 1;
 }
