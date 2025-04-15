@@ -30,17 +30,6 @@ SOFTWARE.
 
 #include "common/hardware/counters.h"
 
-struct SIO {
-    uint8_t fifo;
-    uint8_t preview[3];
-    uint16_t stat;
-    uint16_t padding;
-    uint16_t mode;
-    uint16_t ctrl;
-    uint16_t reserved;
-    uint16_t baudRate;
-};
-
 #define HW_U8(x) (*(volatile uint8_t *)(x))
 #define HW_U16(x) (*(volatile uint16_t *)(x))
 #define HW_U32(x) (*(volatile uint32_t *)(x))
@@ -51,8 +40,6 @@ struct SIO {
 #define SBUS_DEV4_CTRL HW_U32(0x1f801014)
 #define SBUS_DEV5_CTRL HW_U32(0x1f801018)
 #define SBUS_COM_CTRL HW_U32(0x1f801020)
-
-#define SIOS ((volatile struct SIO *)0x1f801040)
 
 #define RAM_SIZE HW_U32(0x1f801060)
 

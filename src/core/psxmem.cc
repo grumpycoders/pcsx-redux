@@ -791,10 +791,19 @@ ssize_t PCSX::Memory::MemoryAsFile::writeAt(const void *src, size_t size, size_t
     return ret;
 }
 
-void PCSX::Memory::MemoryAsFile::readBlock(void *dest, size_t size, size_t ptr) {
+void PCSX::Memory::MemoryAsFile::readBlock(void *dest_, size_t size, size_t ptr) {
+    auto dest = reinterpret_cast<uint8_t *>(dest_);
     auto block = m_memory->m_readLUT[ptr / c_blockSize];
     if (!block) {
         memset(dest, 0, size);
+        if (m_memory->msanInitialized()) {
+            for (size_t i = 0; i < size; ++i) {
+                size_t msanPtr = ptr + i;
+                if (inMsanRange(msanPtr) && (m_memory->msanGetStatus<1>(msanPtr) == MsanStatus::OK)) {
+                    dest[i] = m_memory->m_msanRAM[msanPtr - c_msanStart];
+                }
+            }
+        }
         return;
     }
     auto offset = ptr % c_blockSize;
@@ -802,10 +811,19 @@ void PCSX::Memory::MemoryAsFile::readBlock(void *dest, size_t size, size_t ptr) 
     memcpy(dest, block + offset, toCopy);
 }
 
-void PCSX::Memory::MemoryAsFile::writeBlock(const void *src, size_t size, size_t ptr) {
+void PCSX::Memory::MemoryAsFile::writeBlock(const void *src_, size_t size, size_t ptr) {
     // Yes. That's not a bug nor a typo.
+    auto src = reinterpret_cast<const uint8_t *>(src_);
     auto block = m_memory->m_readLUT[ptr / c_blockSize];
     if (!block) {
+        if (m_memory->msanInitialized()) {
+            for (size_t i = 0; i < size; ++i) {
+                size_t msanPtr = ptr + i;
+                if (inMsanRange(msanPtr)) {
+                    m_memory->m_msanRAM[msanPtr - c_msanStart] = src[i];
+                }
+            }
+        }
         return;
     }
     auto offset = ptr % c_blockSize;
