@@ -24,18 +24,27 @@
     forGithubSystems = lib.genAttrs supportedSystems;
   in {
     packages = forAllSystems (system:
-      let pkgs = import nixpkgs { inherit system; };
+    let 
+      pkgs = nixpkgs.legacyPackages.${system};
+      cross = import nixpkgs {
+        inherit system;
+        crossSystem = "mipsel-none-elf";
+      };
     in {
+      default = self.packages.${system}.pcsx-redux;
+
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
+          gccMips = cross.buildPackages.gccWithoutTargetLibc;
       };
-      # FIXME: default gets duplicated in githubActions
-      # default = self.packages.${system}.pcsx-redux;
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forGithubSystems (system: self.packages.${system});
+      checks = forGithubSystems (system: 
+        # Prevent double build
+        builtins.removeAttrs self.packages.${system} ["default"]
+      );
     };
   };
 }
