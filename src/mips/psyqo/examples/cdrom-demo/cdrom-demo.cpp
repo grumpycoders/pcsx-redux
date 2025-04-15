@@ -76,11 +76,6 @@ void CDRomDemo::createScene() {
             syscall_puts("Failure\n");
         }
     });
-
-
-    psyqo::Hardware::CDRom::CDRomCommandBuffer commandBuffer;
-    commandBuffer.set(0x50, 0xf2, 0xde, 0xad);
-    m_cdrom.testBlocking(gpu(), commandBuffer);
 }
 
 void CDRomDemoScene::frame() {
