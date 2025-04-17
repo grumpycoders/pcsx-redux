@@ -6,7 +6,7 @@ LIBRARIES += $(PSYQOPATHSDIR)libpsyqo-paths.a
 include $(PSYQOPATHSDIR)../psyqo/psyqo.mk
 
 $(PSYQOPATHSDIR)libpsyqo-paths.a:
-	$(MAKE) -C $(PSYQOPATHSDIR) BUILD=$(BUILD)
+	$(MAKE) -C $(PSYQOPATHSDIR) BUILD=$(BUILD) CPPFLAGS_$(BUILD)="$(CPPFLAGS_$(BUILD))" LDFLAGS_$(BUILD)="$(LDFLAGS_$(BUILD))"
 
 clean::
 	$(MAKE) -C $(PSYQOPATHSDIR) clean

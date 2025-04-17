@@ -14,7 +14,7 @@ LDFLAGS += \
 include $(PSYQOLUADIR)../psyqo/psyqo.mk
 
 $(PSYQOLUADIR)libpsyqo-lua.a:
-	$(MAKE) -C $(PSYQOLUADIR) BUILD=$(BUILD)
+	$(MAKE) -C $(PSYQOLUADIR) BUILD=$(BUILD) CPPFLAGS_$(BUILD)="$(CPPFLAGS_$(BUILD))" LDFLAGS_$(BUILD)="$(LDFLAGS_$(BUILD))"
 
 $(PSYQOLUADIR)../../../third_party/psxlua/src/liblua.a:
 	$(MAKE) -C $(PSYQOLUADIR)../../../third_party/psxlua/ psx
