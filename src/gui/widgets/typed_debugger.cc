@@ -490,10 +490,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
         printValue(nodeType, node->size, value);
         ImGui::TableNextColumn();  // New value.
         memFile->wSeek(startAddress, SEEK_SET);
-        displayNewValueInput(nodeType, node->size, value, memFile);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        ImGui::TextUnformatted("--");
-        ImGui::PopStyleColor();
+        displayNewValueInput(nodeType, node->size, value, memFile, currentAddress);
         ImGui::TableNextColumn();  // Breakpoints.
         if (watchView) {
             displayBreakpointOptions(node, currentAddress);
@@ -551,56 +548,61 @@ void PCSX::Widgets::TypedDebugger::printValue(const char* type, size_t type_size
 // Make an input widget for the value at the given address of the given type. If
 // type is not a known primitive, it'll try to allow editing of the value
 // anyway.
-void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t type_size, Slice value,
-                                                        IO<File> memFile) {
-    static char s[64];
+void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t type_size, const Slice& value,
+                                                        IO<File>& memFile, uint32_t address) {
     static const int8_t step = 1;
     static const int8_t stepFast = 100;
     const auto signedFormat = m_hex ? "%x" : "%d";
     const auto unsignedFormat = m_hex ? "%x" : "%u";
     const auto inputFlags = m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal;
-    const uint32_t address = memFile->rTell();
 
     switch (type_size) {
         case 1:
             if (equals(type, "char")) {
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S8, &m_newValue,
-                                       &step, &stepFast, signedFormat, inputFlags)) {
-                    memFile->write<int8_t>(m_newValue);
+                m_newValues[address] = *value.data<int8_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S8,
+                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                    memFile->write<int8_t>(m_newValues[address]);
                 }
             } else {
                 // We have a uchar or something of size 1.
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U8, &m_newValue,
-                                       &step, &stepFast, unsignedFormat, inputFlags)) {
-                    memFile->write<uint8_t>(m_newValue);
+
+                m_newValues[address] = *value.data<uint8_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U8,
+                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                    memFile->write<uint8_t>(m_newValues[address]);
                 }
             }
             break;
         case 2:
             if (equals(type, "short")) {
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S16,
-                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
-                    memFile->write<int16_t>(m_newValue);
+                m_newValues[address] = *value.data<int16_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S16,
+                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                    memFile->write<int16_t>(m_newValues[address]);
                 }
             } else {
                 // We have a ushort or something of size 2.
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U16,
-                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
-                    memFile->write<uint16_t>(m_newValue);
+                m_newValues[address] = *value.data<uint16_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U16,
+                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memFile->write<uint16_t>(m_newValues[address]);
                 }
             }
             break;
         case 4:
             if (equals(type, "int") || equals(type, "long")) {
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_S32,
-                                       &m_newValue, &step, &stepFast, signedFormat, inputFlags)) {
-                    memFile->write<int32_t>(m_newValue);
+                m_newValues[address] = *value.data<int32_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S32,
+                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                    memFile->write<int32_t>(m_newValues[address]);
                 }
             } else {
                 // We have uint or something of size 4.
-                if (ImGui::InputScalar(fmt::format(f_("New value##{}"), address).c_str(), ImGuiDataType_U32,
-                                       &m_newValue, &step, &stepFast, unsignedFormat, inputFlags)) {
-                    memFile->write<uint32_t>(m_newValue);
+                m_newValues[address] = *value.data<uint32_t>();
+                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U32,
+                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
+                    memFile->write<uint32_t>(m_newValues[address]);
                 }
             }
             break;
