@@ -142,6 +142,34 @@ struct TexInfo {
 };
 static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
 
+struct TPageAttr;
+/**
+ * @brief A primitive's tpage location.
+ *
+ * @details This represents the location of a texture page in the VRAM space, and is
+ * used in the `TPageAttr` struct. This can be used to easily set the page location
+ * in a primitive's attribute while keeping the other attributes intact.
+ */
+struct TPageLoc {
+    TPageLoc& setPageX(uint8_t x) {
+        info &= ~0x000f;
+        x &= 0x000f;
+        info |= x;
+        return *this;
+    }
+    TPageLoc& setPageY(uint8_t y) {
+        info &= ~0x0010;
+        y &= 0x0001;
+        info |= y << 4;
+        return *this;
+    }
+
+  private:
+    uint8_t info = 0;
+    friend struct TPageAttr;
+};
+static_assert(sizeof(TPageLoc) == sizeof(uint8_t), "TPageLoc is not 8 bits");
+
 /**
  * @brief A primitive's tpage attribute.
  *
@@ -156,6 +184,21 @@ static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
  * as the compiler will better optimize the former sequence of operations.
  */
 struct TPageAttr {
+    TPageAttr() {}
+    TPageAttr(TPageAttr&& other) : info(other.info) {}
+    TPageAttr(const TPageAttr& other) : info(other.info) {}
+    TPageAttr& operator=(TPageAttr&& other) {
+        info = other.info;
+        return *this;
+    }
+    TPageAttr& operator=(const TPageAttr& other) {
+        info = other.info;
+        return *this;
+    }
+    TPageAttr& copy(const TPageAttr& other) {
+        info = other.info;
+        return *this;
+    }
     TPageAttr& setPageX(uint8_t x) {
         info &= ~0x000f;
         x &= 0x000f;
@@ -166,6 +209,11 @@ struct TPageAttr {
         info &= ~0x0010;
         y &= 0x0001;
         info |= y << 4;
+        return *this;
+    }
+    TPageAttr& setPageLoc(TPageLoc loc) {
+        info &= ~0x001f;
+        info |= loc.info;
         return *this;
     }
     TPageAttr& set(Prim::TPageAttr::SemiTrans trans) {
@@ -196,6 +244,17 @@ struct TPageAttr {
         info |= 0x0400;
         return *this;
     }
+    uint8_t getPageX() const { return info & 0x000f; }
+    uint8_t getPageY() const { return (info >> 4) & 0x0001; }
+    uint8_t getPageLoc() const { return info & 0x001f; }
+    Prim::TPageAttr::SemiTrans getSemiTrans() const {
+        return static_cast<Prim::TPageAttr::SemiTrans>((info >> 5) & 0x0003);
+    }
+    Prim::TPageAttr::ColorMode getColorMode() const {
+        return static_cast<Prim::TPageAttr::ColorMode>((info >> 7) & 0x0003);
+    }
+    bool hasDithering() const { return (info & 0x0200) != 0; }
+    bool isDisplayAreaEnabled() const { return (info & 0x0400) != 0; }
 
   private:
     uint16_t info = 0;
