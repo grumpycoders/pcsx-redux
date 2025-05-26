@@ -26,6 +26,9 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/functional.h>
+#include <EASTL/utility.h>
+
 #include <coroutine>
 #include <type_traits>
 
