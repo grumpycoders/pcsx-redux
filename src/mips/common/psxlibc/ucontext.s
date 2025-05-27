@@ -110,6 +110,7 @@ makecontext:
     sw    $a1, FUNCPTR($a0)
     sw    $a2, ARGPTR($a0)
     sw    $a0, S0PTR($a0)
+    addiu $t0, -16
     addu  $v1, $t0
     sw    $v1, SPPTR($a0)
     jr    $ra
