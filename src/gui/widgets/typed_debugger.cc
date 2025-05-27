@@ -569,7 +569,7 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t
 
                 m_newValues[address] = *value.data<uint8_t>();
                 if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U8,
-                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
                     memFile->write<uint8_t>(m_newValues[address]);
                 }
             }
