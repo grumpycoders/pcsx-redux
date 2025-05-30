@@ -683,6 +683,7 @@ class CDRomImpl final : public PCSX::CDRom {
         memFile->write(m_dataFIFO + m_dataFIFOIndex, size);
         m_dataFIFOIndex += size;
         PCSX::g_emulator->m_cpu->Clear(madr, size / 4);
+        PCSX::g_emulator->m_mem->msanDmaWrite(madr, size);
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                 .get<PCSX::Emulator::DebugSettings::Debug>()) {
             PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, size);
@@ -1148,7 +1149,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     typedef bool (CDRomImpl::*CommandType)(const QueueElement &, bool);
 
-    const CommandType c_commandsHandlers[31] {
+    const CommandType c_commandsHandlers[31]{
 #if 0
         &CDRomImpl::cdlSync, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
         &CDRomImpl::cdlForward, &CDRomImpl::cdlBackward, &CDRomImpl::cdlReadN, &CDRomImpl::cdlStandby, // 4
@@ -1159,14 +1160,37 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
         &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
 #else
-        &CDRomImpl::cdlSync, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, nullptr,            // 0
-            nullptr, nullptr, &CDRomImpl::cdlReadN, nullptr,                                // 4
-            nullptr, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute,        // 8
-            &CDRomImpl::cdlDemute, nullptr, &CDRomImpl::cdlSetMode, nullptr,                // 12
-            &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, nullptr, &CDRomImpl::cdlGetTN,  // 16
-            &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, nullptr,      // 20
-            nullptr, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS,          // 24
-            nullptr, nullptr, nullptr,                                                      // 28
+        &CDRomImpl::cdlSync,
+        &CDRomImpl::cdlNop,
+        &CDRomImpl::cdlSetLoc,
+        nullptr,  // 0
+        nullptr,
+        nullptr,
+        &CDRomImpl::cdlReadN,
+        nullptr,  // 4
+        nullptr,
+        &CDRomImpl::cdlPause,
+        &CDRomImpl::cdlInit,
+        &CDRomImpl::cdlMute,  // 8
+        &CDRomImpl::cdlDemute,
+        nullptr,
+        &CDRomImpl::cdlSetMode,
+        nullptr,  // 12
+        &CDRomImpl::cdlGetLocL,
+        &CDRomImpl::cdlGetLocP,
+        nullptr,
+        &CDRomImpl::cdlGetTN,  // 16
+        &CDRomImpl::cdlGetTD,
+        &CDRomImpl::cdlSeekL,
+        &CDRomImpl::cdlSeekP,
+        nullptr,  // 20
+        nullptr,
+        &CDRomImpl::cdlTest,
+        &CDRomImpl::cdlID,
+        &CDRomImpl::cdlReadS,  // 24
+        nullptr,
+        nullptr,
+        nullptr,  // 28
 #endif
     };
 

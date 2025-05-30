@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,26 +24,29 @@ SOFTWARE.
 
 */
 
-#include "common/hardware/sio1.h"
+#include "psyqo/coroutine.hh"
 
-#include "common/hardware/hwregs.h"
-
-void sio1_init() {
-    // TX and RX enabled, all other bits disabled
-    // RTS on (for systems that loop it back to CTS, e.g. 573)
-    SIO1_CTRL = 0x25;
-    // 01001110
-    // Baudrate Reload Factor: MUL16 (2)
-    // Character length: 8 (3)
-    // Parity Disabled
-    // Parity Type: irrelevant
-    // Stop bit length: 1 (1)
-    //  --> 8N1
-    SIO1_MODE = 0x4e;
-    SIO1_BAUD = 2073600 / 115200;
+void psyqo::StackfulBase::initializeInternal(eastl::function<void()>&& func, void* ss_sp, unsigned ss_size) {
+    m_isAlive = true;
+    m_func = eastl::move(func);
+    getcontext(&m_coroutine);
+    m_coroutine.uc_stack.ss_sp = ss_sp;
+    m_coroutine.uc_stack.ss_size = ss_size;
+    m_coroutine.uc_link = &m_return;
+    makecontext(&m_coroutine, trampoline, this);
 }
 
-void sio1_putc(uint8_t byte) {
-    while ((SIO1_STAT & 1) == 0);
-    SIO1_DATA = byte;
+void psyqo::StackfulBase::trampoline() {
+    m_func();
+    m_isAlive = false;
+}
+
+void psyqo::StackfulBase::resume() {
+    if (!m_isAlive) return;
+    swapcontext(&m_return, &m_coroutine);
+}
+
+void psyqo::StackfulBase::yield() {
+    if (!m_isAlive) return;
+    swapcontext(&m_coroutine, &m_return);
 }

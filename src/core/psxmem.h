@@ -103,7 +103,7 @@ class Memory {
                 }
                 bestCase = MsanStatus::UNINITIALIZED;
             }
-            bitmask &= 0xFF;
+            bitmask &= 0xff;
         }
         if ((m_msanInitializedBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) {
@@ -124,13 +124,21 @@ class Memory {
                 return false;
             }
             m_msanInitializedBitmap[bitmapIndex + 1] |= nextBitmask;
-            bitmask &= 0xFF;
+            bitmask &= 0xff;
         }
         if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
             return false;
         }
         m_msanInitializedBitmap[bitmapIndex] |= bitmask;
         return true;
+    }
+
+    void msanDmaWrite(uint32_t addr, uint32_t size) {
+        if (!msanInitialized() || !inMsanRange(addr)) return;
+        addr -= c_msanStart;
+        for (uint32_t i = 0; i < size; ++i) {
+            m_msanInitializedBitmap[(addr + i) / 8] |= 1 << ((addr + i) % 8);
+        }
     }
 
     static inline bool inMsanRange(uint32_t addr) { return addr >= c_msanStart && addr < c_msanEnd; }

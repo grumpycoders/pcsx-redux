@@ -267,8 +267,8 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
                 } else {
                     // Otherwise, we need to create a new empty block after what we are re-allocating.
                     empty_block *new_block = (empty_block *)((char *)block + size);
-                    new_block->next = head;
-                    new_block->size = delta;
+                    new_block->next = head->next;
+                    new_block->size = head->size - delta;
                     if (heap == HEAP_USER) {
                         user_heap_head = new_block;
                     } else {

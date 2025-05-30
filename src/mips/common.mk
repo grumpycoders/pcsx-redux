@@ -114,7 +114,7 @@ DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)
 
-clean: $(EXTRA_CLEAN)
+clean::
 	rm -f $(OBJS) $(BINDIR)*.a $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)

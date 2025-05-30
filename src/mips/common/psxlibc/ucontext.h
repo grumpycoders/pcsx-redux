@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2025 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +26,37 @@ SOFTWARE.
 
 #pragma once
 
+// This file provides an ersatz for the ucontext.h API, which is otherwise not available on PSX.
+// It defines the necessary structures and function prototypes to allow for context switching,
+// similar to what ucontext.h provides in POSIX systems. It's not strictly compliant with the POSIX standard,
+// but it provides a minimal implementation suitable for coroutine management in a PSX environment.
+
 #include <stdint.h>
 
-#include "common/hardware/hwregs.h"
+struct stack_t {
+    void *ss_sp;
+    unsigned ss_size;
+};
 
-#define SIO1_DATA HW_U8(0x1f801050)
-#define SIO1_STAT HW_U16(0x1f801054)
-#define SIO1_MODE HW_U16(0x1f801058)
-#define SIO1_CTRL HW_U16(0x1f80105a)
-#define SIO1_BAUD HW_U16(0x1f80105e)
+struct mcontext_t {
+    uint32_t reserved[16];
+};
 
-void sio1_init();
-void sio1_putc(uint8_t byte);
+struct ucontext_t {
+    struct mcontext_t uc_mcontext;
+    struct ucontext_t *uc_link;
+    struct stack_t uc_stack;
+};
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int getcontext(struct ucontext_t *ucp);
+int setcontext(const struct ucontext_t *ucp);
+int makecontext(struct ucontext_t *ucp, void (*func)(void *), void *arg);
+int swapcontext(struct ucontext_t *oucp, const struct ucontext_t *ucp);
+
+#ifdef __cplusplus
+}
+#endif

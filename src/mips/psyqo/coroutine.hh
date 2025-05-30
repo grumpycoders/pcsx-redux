@@ -26,9 +26,13 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/functional.h>
+#include <EASTL/utility.h>
+
 #include <coroutine>
 #include <type_traits>
 
+#include "common/psxlibc/ucontext.h"
 #include "common/syscalls/syscalls.h"
 
 namespace psyqo {
@@ -206,6 +210,99 @@ struct Coroutine {
         m_handle.destroy();
         return value;
     }
+};
+
+class StackfulBase {
+  protected:
+    void initializeInternal(eastl::function<void()>&& func, void* ss_sp, unsigned ss_size);
+    void resume();
+    void yield();
+    [[nodiscard]] bool isAlive() const { return m_isAlive; }
+
+    StackfulBase() = default;
+    StackfulBase(const StackfulBase&) = delete;
+    StackfulBase& operator=(const StackfulBase&) = delete;
+
+  private:
+    static void trampoline(void* arg) {
+        StackfulBase* self = static_cast<StackfulBase*>(arg);
+        self->trampoline();
+    }
+    void trampoline();
+    ucontext_t m_coroutine;
+    ucontext_t m_return;
+    eastl::function<void()> m_func;
+    bool m_isAlive = false;
+};
+
+/**
+ * @brief Stackful coroutine class.
+ *
+ * @details This class provides a simple stackful coroutine implementation.
+ * It allows you to create coroutines that can yield and resume execution.
+ * While the Coroutine class above is a C++20 coroutine, it requires
+ * that all of the code being run are coroutines or awaitables all the way down.
+ * This class is a more traditional coroutine implementation that uses
+ * a separate stack for each coroutine, allowing it to yield and resume
+ * execution without requiring the entire call stack to be coroutine-aware.
+ * It is suitable for use in scenarios where you need to yield execution
+ * from legacy code without converting it to C++20 coroutines.
+ */
+template <unsigned StackSize = 0x10000>
+class Stackful : public StackfulBase {
+  public:
+    static constexpr unsigned c_stackSize = (StackSize + 7) & ~7;
+
+    Stackful() = default;
+    Stackful(const Stackful&) = delete;
+    Stackful& operator=(const Stackful&) = delete;
+
+    /**
+     * @brief Initialize the coroutine with a function and an argument.
+     *
+     * @param func Function to be executed by the coroutine.
+     * @param arg Argument to be passed to the function.
+     */
+    void initialize(eastl::function<void()>&& func) {
+        initializeInternal(eastl::move(func), m_stack.data, c_stackSize);
+    }
+
+    /**
+     * @brief Resume the coroutine.
+     *
+     * @details This will switch to the coroutine's context and execute it.
+     * If the coroutine is not alive, this function does nothing. This
+     * function should be called after the coroutine has been initialized,
+     * and it will return to the point where the coroutine was last yielded.
+     * It can only be called from the "main thread".
+     */
+    void resume() { StackfulBase::resume(); }
+
+    /**
+     * @brief Yield the coroutine.
+     *
+     * @details This will switch back to the main thread and save the
+     * coroutine's context. The coroutine can be resumed later using
+     * `resume()`. It can only be called from within the coroutine
+     * to yield execution.
+     */
+    void yield() { StackfulBase::yield(); }
+
+    /**
+     * @brief Check if the coroutine is currently alive.
+     * @details A coroutine is considered alive if it has been initialized
+     * and has not yet completed its execution. It becomes not alive
+     * when it returns from its function.
+     *
+     * @return true if the coroutine is alive, false otherwise.
+     */
+    [[nodiscard]] bool isAlive() const { return StackfulBase::isAlive(); }
+
+  private:
+    struct alignas(8) Stack {
+        uint8_t data[c_stackSize];
+    };
+    Stack m_stack;
 };
 
 }  // namespace psyqo
