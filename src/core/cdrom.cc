@@ -116,8 +116,8 @@ class CDRomImpl : public PCSX::CDRom {
         STATUS_SEEK = 1 << 6,       // 0x40
         STATUS_READ = 1 << 5,       // 0x20
         STATUS_SHELLOPEN = 1 << 4,  // 0x10
-        STATUS_UNKNOWN3 = 1 << 3,   // 0x08
-        STATUS_UNKNOWN2 = 1 << 2,   // 0x04
+        STATUS_IDERROR = 1 << 3,    // 0x08
+        STATUS_SEEKERROR = 1 << 2,  // 0x04
         STATUS_ROTATING = 1 << 1,   // 0x02
         STATUS_ERROR = 1 << 0,      // 0x01
     };
@@ -127,6 +127,20 @@ class CDRomImpl : public PCSX::CDRom {
         ERROR_NOTREADY = 1 << 7,    // 0x80
         ERROR_INVALIDCMD = 1 << 6,  // 0x40
         ERROR_INVALIDARG = 1 << 5,  // 0x20
+    };
+
+    /* Disc Flags */
+    enum {
+        FLAG_CDDA = 1 << 4,        // 0x10
+        FLAG_NODISC = 1 << 6,      // 0x40
+        FLAG_UNLICENSED = 1 << 7,  // 0x80
+    };
+
+    /* Disc Types */
+    enum {
+        DISCTYPE_CDROM = 0x00,
+        DISCTYPE_CDI = 0x10,
+        DISCTYPE_CDROMXA = 0x20,
     };
 
 // 1x = 75 sectors per second
@@ -298,6 +312,9 @@ class CDRomImpl : public PCSX::CDRom {
                     StopCdda();
                     m_driveState = DRIVESTATE_LID_OPEN;
                     scheduleCDLidIRQ(8 * irqReschedule);
+                }else if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
+                    // No Disc
+                    m_statP &= ~(STATUS_PLAY | STATUS_READ | STATUS_ROTATING);
                 }
                 break;
 
@@ -573,9 +590,10 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_ctrl &= ~BUSYSTS;  // Command/parameter transmission not busy
-
+               
         // default response
         SetResultSize(1);
+        memset(m_result, 0, sizeof(m_result));  // Clear result buffer
         m_result[0] = m_statP;
         m_stat = Acknowledge;
 
@@ -658,32 +676,44 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlForward:
-                // TODO: error 80 if stopped
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastForward == 0) {
-                    m_fastForward = 2;
+                if ((m_statP & STATUS_PLAY) == 0) {
+                    SetResultSize(2);
+                    m_stat = DiskError;
+                    m_result[0] += 1;
+                    m_result[1] = ERROR_NOTREADY;
                 } else {
-                    m_fastForward++;
+                    // GameShark CD Player: Calls 2x + Play 2x
+                    if (m_fastForward == 0) {
+                        m_fastForward = 2;
+                    } else {
+                        m_fastForward++;
+                    }
+                    
+                    m_fastBackward = 0;
+                    
+                    m_stat = Acknowledge;
+                    m_suceeded = true;
                 }
-
-                m_fastBackward = 0;
                 break;
 
             case CdlBackward:
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastBackward == 0) {
-                    m_fastBackward = 2;
+                if ((m_statP & STATUS_PLAY) == 0) {
+                    SetResultSize(2);
+                    m_stat = DiskError;
+                    m_result[0] += 1;
+                    m_result[1] = ERROR_NOTREADY;
                 } else {
-                    m_fastBackward++;
+                    // GameShark CD Player: Calls 2x + Play 2x
+                    if (m_fastBackward == 0) {
+                        m_fastBackward = 2;
+                    } else {
+                        m_fastBackward++;
+                    }
+                    m_fastForward = 0;
+                    
+                    m_stat = Acknowledge;
+                    m_suceeded = true;
                 }
-
-                m_fastForward = 0;
                 break;
 
             case CdlStandby:
@@ -843,10 +873,9 @@ class CDRomImpl : public PCSX::CDRom {
                     m_result[0] |= STATUS_ERROR;
                 } else {
                     m_track = PCSX::IEC60908b::btoi(m_param[0]);
-                    SetResultSize(4);
+                    SetResultSize(3);
                     m_stat = Acknowledge;
                     MSF td = m_iso->getTD(m_track);
-                    m_result[0] = m_statP;
                     m_result[1] = PCSX::IEC60908b::itob(td.m);
                     m_result[2] = PCSX::IEC60908b::itob(td.s);
                 }
@@ -901,34 +930,31 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlID + 0x100:
-                SetResultSize(8);
+                SetResultSize(8);  // m_result = {stat,flags,type,atip,"PCSX"}
 
-                if (m_iso->failed()) {
-                    m_result[0] = 0x08;
-                    m_result[1] = 0x40;
-                    memset((char *)&m_result[2], 0, 6);
-                    m_stat = DiskError;
-                    break;
-                }
-
-                m_result[0] = m_statP;
-                m_result[1] = 0;
-                m_result[2] = 0;
-                m_result[3] = 0;
-
-                // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
+                // No Disc
                 getStatus(&cdr_stat);
-                if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
-                    m_result[1] = 0xc0;
+                if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CLOSED) || cdr_stat.Type == 0xff) {
+                    m_result[0] |= STATUS_IDERROR;
+                    m_result[1] = FLAG_NODISC;
+                    m_stat = DiskError;
                 } else {
-                    // Audio, unlicensed
-                    if (cdr_stat.Type == 2) m_result[1] |= (0x10 | 0x80);
-                }
-                m_result[0] |= (m_result[1] >> 4) & 0x08;
+                    if (isBootable()) {
+                        strncpy((char *)&m_result[4], "PCSX", 4);
+                        m_stat = Complete;
+                    } else {
+                        m_result[0] |= STATUS_IDERROR;
+                        m_result[1] |= FLAG_UNLICENSED;
+                        m_stat = DiskError;
+                    }
 
-                strncpy((char *)&m_result[4], "PCSX", 4);
-                m_stat = Complete;
-                m_suceeded = true;
+                    if (cdr_stat.Type == magic_enum::enum_integer(TrackType::CDDA)) {
+                        m_result[1] |= FLAG_CDDA;  // Audio
+                    }
+
+                    m_result[2] = m_iso->IsMode1ISO() ? DISCTYPE_CDROM : DISCTYPE_CDROMXA;
+                    m_suceeded = true;
+                }
                 break;
 
             case CdlInit:
@@ -1561,7 +1587,8 @@ class CDRomImpl : public PCSX::CDRom {
         m_transferIndex = 0;
         m_reg2 = 0x1f;
         m_stat = NoIntr;
-        m_driveState = DRIVESTATE_STANDBY;
+        m_driveState = DRIVESTATE_RESCAN_CD;
+        scheduleCDLidIRQ(cdReadTime * 105);
         m_statP = STATUS_ROTATING;
 
         // BIOS player - default values
@@ -1569,8 +1596,6 @@ class CDRomImpl : public PCSX::CDRom {
         m_attenuatorLeftToRight = 0x00;
         m_attenuatorRightToLeft = 0x00;
         m_attenuatorRightToRight = 0x80;
-
-        getCdInfo();
     }
 
     void load() final {
@@ -1672,6 +1697,7 @@ PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
 void PCSX::CDRom::check() {
     m_cdromId.clear();
     m_cdromLabel.clear();
+    m_bootable = false;
     ISO9660Reader reader(m_iso);
     if (reader.failed()) return;
     IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));
@@ -1703,6 +1729,10 @@ void PCSX::CDRom::check() {
                 m_cdromId += filename.substr(9, 2);
             }
 
+            if (filename.size() > 0) {
+                m_bootable = true;
+            }
+
             break;
         }
     } else {
@@ -1710,9 +1740,11 @@ void PCSX::CDRom::check() {
         if (!psxexe->failed()) {
             m_cdromId = "SLUS99999";
             exename = "PSX.EXE;1";
+            m_bootable = true;
         }
     }
 
+    g_system->printf(_("CD-ROM is %s\n"), m_bootable ? _("Bootable") : _("Not Bootable"));
     g_system->printf(_("CD-ROM Label: %.32s\n"), m_cdromLabel);
     g_system->printf(_("CD-ROM ID: %.9s\n"), m_cdromId);
     g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
