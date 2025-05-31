@@ -214,18 +214,18 @@ struct Coroutine {
 
 class StackfulBase {
   protected:
-    void initializeInternal(eastl::function<void()>&& func, void* ss_sp, unsigned ss_size);
+    void initializeInternal(eastl::function<void()> &&func, void *ss_sp, unsigned ss_size);
     void resume();
     void yield();
     [[nodiscard]] bool isAlive() const { return m_isAlive; }
 
     StackfulBase() = default;
-    StackfulBase(const StackfulBase&) = delete;
-    StackfulBase& operator=(const StackfulBase&) = delete;
+    StackfulBase(const StackfulBase &) = delete;
+    StackfulBase &operator=(const StackfulBase &) = delete;
 
   private:
-    static void trampoline(void* arg) {
-        StackfulBase* self = static_cast<StackfulBase*>(arg);
+    static void trampoline(void *arg) {
+        StackfulBase *self = static_cast<StackfulBase *>(arg);
         self->trampoline();
     }
     void trampoline();
@@ -254,8 +254,8 @@ class Stackful : public StackfulBase {
     static constexpr unsigned c_stackSize = (StackSize + 7) & ~7;
 
     Stackful() = default;
-    Stackful(const Stackful&) = delete;
-    Stackful& operator=(const Stackful&) = delete;
+    Stackful(const Stackful &) = delete;
+    Stackful &operator=(const Stackful &) = delete;
 
     /**
      * @brief Initialize the coroutine with a function and an argument.
@@ -263,7 +263,7 @@ class Stackful : public StackfulBase {
      * @param func Function to be executed by the coroutine.
      * @param arg Argument to be passed to the function.
      */
-    void initialize(eastl::function<void()>&& func) {
+    void initialize(eastl::function<void()> &&func) {
         initializeInternal(eastl::move(func), m_stack.data, c_stackSize);
     }
 
