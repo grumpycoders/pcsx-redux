@@ -42,7 +42,6 @@ SOFTWARE.
 #else
 #define PCSX_RTTI 0
 #define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION 1
-#define CTTI_HAS_VARIABLE_TEMPLATES 1
 #include "ctti/type_id.hpp"
 #define PCSX_HASH_TYPE(type) ctti::unnamed_type_id<type>().hash()
 #endif
