@@ -29,16 +29,32 @@ SOFTWARE.
 #include <any>
 #include <functional>
 #include <memory>
-#include <typeindex>
-#include <typeinfo>
 #include <utility>
 
 #include "support/hashtable.h"
 #include "support/list.h"
 
+#if defined(_CPPRTTI) || defined(__GXX_RTTI) || defined(__cpp_rtti)
+#define PCSX_RTTI 1
+#include <typeindex>
+#include <typeinfo>
+#define PCSX_HASH_TYPE(type) typeid(type).hash_code()
+#else
+#define PCSX_RTTI 0
+#define CTTI_HAS_ENUM_AWARE_PRETTY_FUNCTION 1
+#include "ctti/type_id.hpp"
+#define PCSX_HASH_TYPE(type) ctti::unnamed_type_id<type>().hash()
+#endif
+
 namespace PCSX {
 
 namespace EventBus {
+
+#if PCSX_RTTI
+typedef std::size_t HashType;
+#else
+typedef std::uint64_t HashType;
+#endif
 
 struct ListenerElementBaseEventBusList {};
 struct ListenerElementBase;
@@ -70,7 +86,7 @@ class Listener {
 };
 
 struct ListenerElementsHashTableList;
-typedef PCSX::Intrusive::HashTable<std::size_t, ListenerElementsHashTableList> ListenersHashTable;
+typedef PCSX::Intrusive::HashTable<HashType, ListenerElementsHashTableList> ListenersHashTable;
 struct ListenerElementsHashTableList : public ListenersHashTable::Node {
     ~ListenerElementsHashTableList() { list.destroyAll(); }
     ListenerBaseEventBusList list;
@@ -82,7 +98,7 @@ class EventBus {
     template <typename Event>
     void signal(const Event& event) {
         using Functor = typename ListenerElement<Event>::Functor;
-        auto list = m_table.find(typeid(Event).hash_code());
+        auto list = m_table.find(PCSX_HASH_TYPE(Event));
         if (list == m_table.end()) return;
         for (auto& listener : list->list) {
             std::any cb = listener.getCB();
@@ -92,7 +108,7 @@ class EventBus {
     }
 
   private:
-    void listen(std::size_t id, ListenerElementBase* listenerElement) {
+    void listen(HashType id, ListenerElementBase* listenerElement) {
         auto list = m_table.find(id);
         if (list == m_table.end()) {
             list = m_table.insert(id, new ListenerElementsHashTableList());
@@ -107,7 +123,7 @@ template <typename Event>
 void Listener::listen(typename ListenerElement<Event>::Functor&& cb) {
     ListenerElement<Event>* element = new ListenerElement(std::move(cb));
     m_listeners.push_back(element);
-    m_bus->listen(typeid(Event).hash_code(), element);
+    m_bus->listen(PCSX_HASH_TYPE(Event), element);
 }
 
 }  // namespace EventBus
