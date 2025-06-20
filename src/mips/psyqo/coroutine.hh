@@ -34,6 +34,7 @@ SOFTWARE.
 
 #include "common/psxlibc/ucontext.h"
 #include "common/syscalls/syscalls.h"
+#include "psyqo/kernel.hh"
 
 namespace psyqo {
 
@@ -43,7 +44,7 @@ namespace psyqo {
  * @details C++20 introduced the concept of coroutines in the language. This
  * type can be used to properly hold a coroutine and yield and resume it
  * within psyqo. An important caveat of using coroutines is that the language
- * insist on calling `new` and `delete` silently within the coroutine object.
+ * insists on calling `new` and `delete` silently within the coroutine object.
  * This may be a problem for users who don't want to use the heap.
  *
  * @tparam T The type the coroutine returns. `void` by default.
@@ -55,16 +56,50 @@ struct Coroutine {
     typedef typename std::conditional<std::is_void<T>::value, Empty, T>::type SafeT;
 
     Coroutine() = default;
-    Coroutine(Coroutine &&other) = default;
-    Coroutine &operator=(Coroutine &&other) = default;
+
+    Coroutine(Coroutine &&other) {
+        if (m_handle) m_handle.destroy();
+        m_handle = nullptr;
+        m_handle = other.m_handle;
+        m_value = eastl::move(other.m_value);
+        m_suspended = other.m_suspended;
+        m_earlyResume = other.m_earlyResume;
+
+        other.m_handle = nullptr;
+        other.m_value = SafeT{};
+        other.m_suspended = true;
+        other.m_earlyResume = false;
+    }
+
+    Coroutine &operator=(Coroutine &&other) {
+        if (this != &other) {
+            if (m_handle) m_handle.destroy();
+            m_handle = nullptr;
+            m_handle = other.m_handle;
+            m_value = eastl::move(other.m_value);
+            m_suspended = other.m_suspended;
+            m_earlyResume = other.m_earlyResume;
+
+            other.m_handle = nullptr;
+            other.m_value = SafeT{};
+            other.m_suspended = true;
+            other.m_earlyResume = false;
+        }
+        return *this;
+    }
+
     Coroutine(Coroutine const &) = delete;
     Coroutine &operator=(Coroutine const &) = delete;
+    ~Coroutine() {
+        if (m_handle) m_handle.destroy();
+        m_handle = nullptr;
+    }
 
     /**
      * @brief The awaiter type.
      *
      * @details The awaiter type is the type that is used to suspend the coroutine
-     * after scheduling an asychronous operation. The keyword `co_await` can be used
+     * after scheduling an asynchronous operation. The keyword `co_await` can be used
      * on an instance of the object to suspend the current coroutine. Creating an
      * instance of this object is done by calling `coroutine.awaiter()`.
      */
@@ -158,16 +193,15 @@ struct Coroutine {
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
         void return_void() {
-            auto awaitingCoroutine = m_awaitingCoroutine;
-            if (awaitingCoroutine) {
-                // This doesn't feel right, but I don't know how to do it otherwise,
-                // since the coroutine is a template and I can't forward the type.
-                __builtin_coro_resume(awaitingCoroutine);
+            if (m_awaitingCoroutine) {
+                Kernel::queueCallback([h = m_awaitingCoroutine]() { h.resume(); });
+                m_awaitingCoroutine = nullptr;
             }
         }
         [[no_unique_address]] Empty m_value;
-        void *m_awaitingCoroutine = nullptr;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     struct PromiseValue {
         Coroutine<T> get_return_object() {
             return Coroutine{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
@@ -177,21 +211,21 @@ struct Coroutine {
         void unhandled_exception() {}
         void return_value(T &&value) {
             m_value = eastl::move(value);
-            auto awaitingCoroutine = m_awaitingCoroutine;
-            if (awaitingCoroutine) {
-                // This doesn't feel right, but I don't know how to do it otherwise,
-                // since the coroutine is a template and I can't forward the type.
-                __builtin_coro_resume(awaitingCoroutine);
+            if (m_awaitingCoroutine) {
+                Kernel::queueCallback([h = m_awaitingCoroutine]() { h.resume(); });
+                m_awaitingCoroutine = nullptr;
             }
         }
         T m_value;
-        void *m_awaitingCoroutine = nullptr;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
+
     Coroutine(std::coroutine_handle<Promise> &&handle) : m_handle(eastl::move(handle)) {}
+
     std::coroutine_handle<Promise> m_handle;
     [[no_unique_address]] SafeT m_value;
-    void *m_awaitingCoroutine = nullptr;
     bool m_suspended = true;
     bool m_earlyResume = false;
 
@@ -201,31 +235,32 @@ struct Coroutine {
     constexpr bool await_ready() { return m_handle.done(); }
     template <typename U>
     constexpr void await_suspend(std::coroutine_handle<U> h) {
-        auto &promise = m_handle.promise();
-        promise.m_awaitingCoroutine = h.address();
+        m_handle.promise().m_awaitingCoroutine = h;
         resume();
     }
-    constexpr SafeT await_resume() {
-        SafeT value = eastl::move(m_handle.promise().m_value);
-        m_handle.destroy();
-        return value;
+    constexpr T await_resume() {
+        if constexpr (std::is_void<T>::value) {
+            return;
+        } else {
+            return eastl::move(m_handle.promise().m_value);
+        }
     }
 };
 
 class StackfulBase {
   protected:
-    void initializeInternal(eastl::function<void()>&& func, void* ss_sp, unsigned ss_size);
+    void initializeInternal(eastl::function<void()> &&func, void *ss_sp, unsigned ss_size);
     void resume();
     void yield();
     [[nodiscard]] bool isAlive() const { return m_isAlive; }
 
     StackfulBase() = default;
-    StackfulBase(const StackfulBase&) = delete;
-    StackfulBase& operator=(const StackfulBase&) = delete;
+    StackfulBase(const StackfulBase &) = delete;
+    StackfulBase &operator=(const StackfulBase &) = delete;
 
   private:
-    static void trampoline(void* arg) {
-        StackfulBase* self = static_cast<StackfulBase*>(arg);
+    static void trampoline(void *arg) {
+        StackfulBase *self = static_cast<StackfulBase *>(arg);
         self->trampoline();
     }
     void trampoline();
@@ -254,8 +289,8 @@ class Stackful : public StackfulBase {
     static constexpr unsigned c_stackSize = (StackSize + 7) & ~7;
 
     Stackful() = default;
-    Stackful(const Stackful&) = delete;
-    Stackful& operator=(const Stackful&) = delete;
+    Stackful(const Stackful &) = delete;
+    Stackful &operator=(const Stackful &) = delete;
 
     /**
      * @brief Initialize the coroutine with a function and an argument.
@@ -263,7 +298,7 @@ class Stackful : public StackfulBase {
      * @param func Function to be executed by the coroutine.
      * @param arg Argument to be passed to the function.
      */
-    void initialize(eastl::function<void()>&& func) {
+    void initialize(eastl::function<void()> &&func) {
         initializeInternal(eastl::move(func), m_stack.data, c_stackSize);
     }
 
