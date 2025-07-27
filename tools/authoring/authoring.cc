@@ -96,6 +96,7 @@ int main(int argc, char** argv) {
     const auto inputs = args.positional();
     const auto license = args.get<std::string>("license");
     const bool asksForHelp = !!args.get<bool>("h");
+    const bool quiet = !!args.get<bool>("q");
     const bool hasOutput = output.has_value();
     const bool hasExactlyOneInput = inputs.size() == 1;
 
@@ -107,6 +108,7 @@ Usage: {} input.json [-h] -o output.bin
   -basedir path     optional: base directory for the input files.
   -license file     optional: use this license file.
   -threads count    optional: number of threads to use for compression.
+  -q                optional: only print errors.
   -h                displays this help information and exit.
 )",
                    argv[0]);
@@ -199,7 +201,9 @@ Usage: {} input.json [-h] -o output.bin
         fmt::print("Too many files specified ({}), max allowed is {}\n", filesCount, c_maximumSectorCount);
         return -1;
     }
-    fmt::print("Index size: {}\n", indexSectorsCount * 2048);
+    if (!quiet) {
+        fmt::print("Index size: {}\n", indexSectorsCount * 2048);
+    }
 
     PCSX::PS1Packer::Options options;
     options.booty = false;
@@ -219,8 +223,10 @@ Usage: {} input.json [-h] -o output.bin
         fmt::print("Executable size is not a multiple of 2048\n");
         return -1;
     }
-    fmt::print("Executable size: {}\n", compressedExecutable->size());
-    fmt::print("Executable location: {}\n", 23 + indexSectorsCount);
+    if (!quiet) {
+        fmt::print("Executable size: {}\n", compressedExecutable->size());
+        fmt::print("Executable location: {}\n", 23 + indexSectorsCount);
+    }
 
     const unsigned executableSectorsCount = compressedExecutable->size() / 2048;
     unsigned currentSector = 23 + indexSectorsCount;
@@ -356,11 +362,13 @@ Usage: {} input.json [-h] -o output.bin
             return -1;
         }
         IndexEntry* entry = &indexEntryData[workUnitIndex];
-        fmt::print("Processed file: {}\n", workUnit.fileInfo["path"].get<std::string>());
-        fmt::print("  Original size: {}\n", entry->getDecompSize());
-        fmt::print("  Compressed size: {}\n", entry->getCompressedSize() * 2048);
-        fmt::print("  Compression method: {}\n", static_cast<uint32_t>(entry->getCompressionMethod()));
-        fmt::print("  Sector offset: {}\n", currentSector);
+        if (!quiet) {
+            fmt::print("Processed file: {}\n", workUnit.fileInfo["path"].get<std::string>());
+            fmt::print("  Original size: {}\n", entry->getDecompSize());
+            fmt::print("  Compressed size: {}\n", entry->getCompressedSize() * 2048);
+            fmt::print("  Compression method: {}\n", static_cast<uint32_t>(entry->getCompressionMethod()));
+            fmt::print("  Sector offset: {}\n", currentSector);
+        }
         entry->setSectorOffset(currentSector);
         unsigned sectorCount = entry->getCompressedSize();
         for (unsigned sector = 0; sector < sectorCount; sector++) {
@@ -370,7 +378,9 @@ Usage: {} input.json [-h] -o output.bin
         }
     }
 
-    fmt::print("Processed {} files.\n", filesCount);
+    if (!quiet) {
+        fmt::print("Processed {} files.\n", filesCount);
+    }
 
     uint8_t empty[2048] = {0};
     for (unsigned i = 0; i < 150; i++) {
