@@ -62,8 +62,7 @@ PCSXLuaScene pcsxLuaScene;
 void pcsxRegisterVariable(void* address, const char* name) {
     register void* a0 asm("a0") = address;
     register const char* a1 asm("a1") = name;
-    __asm__ volatile("" : : "r"(a0), "r"(a1));
-    *((volatile uint8_t* const)0x1f802081) = 255;
+    __asm__ volatile("sw %0, 0x2081(%1)" : : "r"(255), "r"(0x1f800000), "r"(a0), "r"(a1));
 }
 
 }  // namespace
