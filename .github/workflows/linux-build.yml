@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      options: --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined
       env:
         TEST_RESULTS: /tmp/test-results
     steps:

@@ -172,7 +172,7 @@ class FixedPoint {
                 return U((value - scale / 2) / scale);
             }
         }
-        return U(value + scale / 2) / U(scale);
+        return U((value + scale / 2) / scale);
     }
 
     /**
