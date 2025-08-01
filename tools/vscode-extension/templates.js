@@ -4,6 +4,7 @@ const path = require('node:path')
 const fs = require('fs-extra')
 const Mustache = require('mustache')
 const { simpleGit } = require('simple-git')
+const tools = require('./tools.js')
 const terminal = require('./terminal.js')
 const progressNotification = require('./progressnotification.js')
 
@@ -524,13 +525,17 @@ async function createGitRepository (fullPath, template, progressReporter) {
 }
 
 async function createPythonEnv (fullPath, name, packages, requirementsFiles) {
-  // On Windows "python" and "python3" are aliased to a script that opens the
-  // Microsoft Store by default, so the "py" launcher is invoked instead.
-  const pythonCommand = (process.platform === 'win32') ? 'py' : 'python3'
+  const pythonCommand = await tools.findPython()
+  const pipCommand = path.join(
+    fullPath,
+    name,
+    (process.platform === 'win32') ? 'Scripts' : 'bin',
+    'pip'
+  )
+
   await terminal.run(pythonCommand, ['-m', 'venv', name], {
     cwd: fullPath
   })
-  const pipCommand = path.join(fullPath, name, 'bin', 'pip')
   if (packages && packages.length) {
     await terminal.run(pipCommand, ['install', ...packages], {
       cwd: fullPath
