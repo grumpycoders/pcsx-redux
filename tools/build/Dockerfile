@@ -36,22 +36,17 @@ RUN apt install -y xvfb
 RUN apt install -y python3-pip python3-setuptools patchelf desktop-file-utils libgdk-pixbuf2.0-dev fakeroot strace
 RUN apt install -y glibc-tools lcov
 RUN apt install -y file
-
-# AppImage dependencies
-RUN apt install -y libfuse2t64
-RUN apt install -y fuse
-
 WORKDIR /tmp
-RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage && \
+RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage && \
     chmod +x /tmp/appimagetool-x86_64.AppImage && \
     cd /opt && /tmp/appimagetool-x86_64.AppImage --appimage-extract && \
     mv squashfs-root appimage-tool.AppDir && \
     ln -s /opt/appimage-tool.AppDir/AppRun /usr/bin/appimagetool && \
     rm /tmp/appimagetool-x86_64.AppImage
 WORKDIR /
-RUN wget -O appimage-builder-x86_64.AppImage https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
-RUN chmod +x appimage-builder-x86_64.AppImage
-RUN mv appimage-builder-x86_64.AppImage /usr/local/bin/appimage-builder
+RUN pip3 install --break-system-packages appimage-builder pydpkg
+COPY appimage-dpkg.patch /appimage-dpkg.patch
+RUN patch -p 1 < appimage-dpkg.patch
 RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
 RUN apt install -y squashfs-tools zip zsync
 
