@@ -36,21 +36,25 @@ RUN apt install -y xvfb
 RUN apt install -y python3-pip python3-setuptools patchelf desktop-file-utils libgdk-pixbuf2.0-dev fakeroot strace
 RUN apt install -y glibc-tools lcov
 RUN apt install -y file
-WORKDIR /tmp
-RUN wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage && \
-    chmod +x /tmp/appimagetool-x86_64.AppImage && \
-    cd /opt && /tmp/appimagetool-x86_64.AppImage --appimage-extract && \
-    mv squashfs-root appimage-tool.AppDir && \
-    ln -s /opt/appimage-tool.AppDir/AppRun /usr/bin/appimagetool && \
-    rm /tmp/appimagetool-x86_64.AppImage
-WORKDIR /
-RUN pip3 install --break-system-packages appimage-builder pydpkg
-COPY appimage-dpkg.patch /appimage-dpkg.patch
-RUN patch -p 1 < appimage-dpkg.patch
+
+# AppImage dependencies
+RUN apt install -y libfuse2t64
+RUN apt install -y fuse
+
+# AppImage tools
 RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
 RUN apt install -y squashfs-tools zip zsync
+
+WORKDIR /tmp
+RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage && \
+    chmod +x appimagetool-x86_64.AppImage && \
+    mv appimagetool-x86_64.AppImage /usr/bin/appimagetool
+RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && \
+    chmod +x linuxdeploy-x86_64.AppImage && \
+    mv linuxdeploy-x86_64.AppImage /usr/bin/linuxdeploy
 
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf
 RUN chmod a+rwx /home/coder/dconf
+
 WORKDIR /project
