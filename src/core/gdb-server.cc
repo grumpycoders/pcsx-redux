@@ -520,7 +520,7 @@ void PCSX::GdbClient::processCommand() {
         uint8_t n = fromHexChar(m_cmd[1]);
         n <<= 4;
         n |= fromHexChar(m_cmd[2]);
-        dumpOneRegister(n);
+        write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
         if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
             write("E00");
