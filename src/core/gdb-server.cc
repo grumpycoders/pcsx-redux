@@ -760,6 +760,16 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             g_emulator->m_cdrom->setIso(new CDRIso(pathView));
             g_emulator->m_cdrom->check();
         }
+    } else if (words[0] == "sharedmem") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: sharedmem <type>");
+        } else {
+            if (words[1] == "wram") {
+                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName().c_str());
+            } else {
+                writeEscaped("Unknown type. Valid types: wram");
+            }
+        }
     }
     write("OK");
 }
