@@ -765,7 +765,7 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             writeEscaped("Usage: sharedmem <type>");
         } else {
             if (words[1] == "wram") {
-                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName().c_str());
+                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName());
             } else {
                 writeEscaped("Unknown type. Valid types: wram");
             }
