@@ -57,6 +57,8 @@ PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleInfoDictionaryVersion 
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleName string ${APP}"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundlePackageType string APPL"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add NSHumanReadableCopyright string Copyright PCSX-Redux Authors"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSApplicationCategoryType string public.app-category.games"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSSupportsGameMode bool true"
 
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSMinimumSystemVersion string 10.15"
 
