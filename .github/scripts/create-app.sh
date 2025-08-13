@@ -40,6 +40,9 @@ cp pcsx-redux.icns ${APPROOT}/Contents/Resources/AppIcon.icns
 # Remove source images that were used to create the app icon.
 rm -rfv ${APPROOT}/Contents/Resources/share/icons
 
+# Remove temporary image files
+rm -rfv pcsx-redux.iconset pcsx-redux.icns
+
 # Create the required Info.plist and version.plist files
 # with the minimum information.
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleDisplayName string ${APP}"
