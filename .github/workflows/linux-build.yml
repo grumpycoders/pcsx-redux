@@ -42,6 +42,7 @@ jobs:
           npx @appdistrib/cli buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           make install install-openbios DESTDIR=AppDir/usr
+          sed -i s:/usr/bin/:: AppDir/usr/share/applications/pcsx-redux.desktop
           echo '{' > version.json
           echo '  "version": "'`git rev-parse HEAD | cut -c 1-8`'",' >> version.json
           echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
@@ -59,7 +60,8 @@ jobs:
           echo '  ]' >> version.json
           echo '}' >> version.json
           cp version.json AppDir/usr/share/pcsx-redux/resources
-          appimage-builder --skip-tests
+          linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
+          mv PCSX-Redux-x86_64.AppImage PCSX-Redux-HEAD-x86_64.AppImage
       - name: Test
         run: |
           export GTEST_OUTPUT=xml:${TEST_RESULTS}/
