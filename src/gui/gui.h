@@ -25,6 +25,7 @@
 #include <functional>
 #include <magic_enum_all.hpp>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <string_view>
@@ -456,6 +457,7 @@ class GUI final : public UI {
     bool m_aboutSelectAuthors = false;
 
     void setDefaultShaders();
+    std::unique_ptr<uint32_t[]> getSplashScreen(uint32_t destWidth, uint32_t destHeight);
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

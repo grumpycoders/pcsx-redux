@@ -951,16 +951,20 @@ void PCSX::GUI::startFrame() {
         glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-        if (m_clearTextures) {
-            const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
-            GLubyte* data = new GLubyte[allocSize]();
+        if (m_clearTextures || !g_system->running()) {
+            std::unique_ptr<uint32_t[]> splashImageData = getSplashScreen(m_renderSize.x, m_renderSize.y);
+
+            // Upload to both textures
             for (int i = 0; i < 2; i++) {
                 glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
-                                data);
+                                splashImageData.get());
             }
+
             m_clearTextures = false;
-            delete[] data;
         }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
