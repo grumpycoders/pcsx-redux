@@ -553,6 +553,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
+        m_enableSplashScreen = false;
+
         glfwSwapInterval(0);
         setRawMouseMotion();
     });
@@ -951,7 +953,8 @@ void PCSX::GUI::startFrame() {
         glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-        if (m_clearTextures || !g_system->running()) {
+        if (m_clearTextures || m_enableSplashScreen) {
+            m_clearTextures = false;
             std::unique_ptr<uint32_t[]> splashImageData = getSplashScreen(m_renderSize.x, m_renderSize.y);
 
             // Upload to both textures
@@ -963,8 +966,6 @@ void PCSX::GUI::startFrame() {
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
                                 splashImageData.get());
             }
-
-            m_clearTextures = false;
         }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
@@ -1070,9 +1071,6 @@ void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y)
 void PCSX::GUI::flip() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);

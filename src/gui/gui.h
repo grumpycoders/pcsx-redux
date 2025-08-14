@@ -455,6 +455,7 @@ class GUI final : public UI {
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
+    bool m_enableSplashScreen = true;
 
     void setDefaultShaders();
     std::unique_ptr<uint32_t[]> getSplashScreen(uint32_t destWidth, uint32_t destHeight);
