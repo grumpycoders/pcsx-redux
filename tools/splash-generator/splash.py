@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Generates the splash screen data the emulator displays while nothing is loaded
 import sys
 from PIL import Image
@@ -20,9 +20,10 @@ for r, g, b, a in pixels:
     data.append(val)
 
 print("// Generated using tools/splash-generator/splash.py")
+
 # First 2 u32s are the splash screen's width and height
 # The rest of the array is the pixel data in little endian RGBA8888
-print(f"static const uint32_t s_splashImageData[] = {{")
+print("static const uint32_t s_splashImageData[] = {{")
 print(f"    {width}, {height},", end=" ")
 
 for i, val in enumerate(data):
