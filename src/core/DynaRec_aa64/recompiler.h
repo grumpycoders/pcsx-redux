@@ -237,6 +237,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     virtual void Shutdown() final;
     virtual bool isDynarec() final { return true; }
 
+    virtual void invalidateCache() override final {
+        memset(m_regs.iCacheAddr, 0xff, sizeof(m_regs.iCacheAddr));
+        memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
+        uncompileAll();  // Mark all blocks as uncompiled
+    }
+
     virtual void SetPGXPMode(uint32_t pgxpMode) final {
         if (pgxpMode != 0) {
             throw std::runtime_error("PGXP not supported in x64 JIT");
