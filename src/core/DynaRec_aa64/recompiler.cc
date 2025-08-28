@@ -102,8 +102,6 @@ void DynaRecCPU::Shutdown() {
     delete[] m_ramBlocks;
     delete[] m_biosBlocks;
     delete[] m_dummyBlocks;
-
-    gen.dumpBuffer();  // dump buffer on shutdown/hard-reset for diagnostics
 }
 
 /// Params: A program counter value
