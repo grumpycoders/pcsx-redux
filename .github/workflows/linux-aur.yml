@@ -13,15 +13,20 @@ jobs:
       image: archlinux:latest
     steps:
       - name: Install dependencies
-        run: | 
+        run: |
           pacman -Syu --noconfirm --needed capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config sudo base-devel pacman-contrib
+      - uses: actions/checkout@v3
+        with:
+          set-safe-directory: true
       - name: Create builduser
         run: |
           useradd builduser -m
           passwd -d builduser
       - name: Build AUR Package
         run: |
-          git clone https://aur.archlinux.org/pcsx-redux-git.git
-          chown -R builduser:builduser pcsx-redux-git
-          cd pcsx-redux-git
+          mkdir /build
+          git clone https://aur.archlinux.org/pcsx-redux-git.git /build/pcsx-redux-git
+          chown -R builduser:builduser /build
+          cd /build/pcsx-redux-git
+          sed -i s,git+https://github.com/grumpycoders/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g PKGBUILD
           sudo -u builduser makepkg
