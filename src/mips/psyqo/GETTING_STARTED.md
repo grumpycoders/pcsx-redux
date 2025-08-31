@@ -26,8 +26,9 @@ trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 Using [Homebrew](https://brew.sh/), you can install the mips toolchain after downloading [these two scripts](https://github.com/grumpycoders/pcsx-redux/tree/main/tools/macos-mips) (or cloning the whole PCSX-Redux repository).
 
 ```bash
-brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install nikitabobko/tap/brew-install-path
+brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
 ## Windows
@@ -107,13 +108,13 @@ The recommended IDE is [Visual Studio Code](https://code.visualstudio.com/). The
 # Build options
 When using the `psyqo.mk` file, you can specify build options for the PSYQo library and your binary. It is possible to specify the following options:
 
-- `make BUILD=Release`  
+- `make BUILD=Release`
 This is the default build, and will enable a release build of the library and your binary. It will be fast and small, but debugging will be hard.
-- `make BUILD=Debug`  
+- `make BUILD=Debug`
 This will enable a full debug build of the library and your binary. It will be slow and bloated, but debugging will be very easy.
-- `make BUILD=SmallDebug`  
+- `make BUILD=SmallDebug`
 This will enable a debug build of the library and your binary with still some optimizations. Debugging is possible, but will be hindered at times. It is the best compromise if debugging is needed while retaining some speed and small code footprint.
-- `make BUILD=LTO`  
+- `make BUILD=LTO`
 This will enable a release build of the library and your binary with [LTO](https://gcc.gnu.org/wiki/LinkTimeOptimization) enabled. It will be really fast and really small, but debugging will be impossible.
 
 # Further reading
