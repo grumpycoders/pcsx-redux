@@ -13,11 +13,11 @@ set -ex
 
 PREFIX=${PREFIX:-"/usr/local"}
 
-for url in https://ftpmirror.gnu.org/gnu/binutils/binutils-2.43.tar.gz https://mirrors.kernel.org/gnu/binutils/binutils-2.43.tar.gz ; do
+for url in https://ftpmirror.gnu.org/gnu/binutils/binutils-2.45.tar.gz https://mirrors.kernel.org/gnu/binutils/binutils-2.45.tar.gz ; do
     wget --max-redirect=2 --timeout=60 --continue --trust-server-names $url && break
 done
-tar xvfz binutils-2.43.tar.gz
-cd binutils-2.43
+tar xvfz binutils-2.45.tar.gz
+cd binutils-2.45
 ./configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=$PREFIX
 make
 make install-strip
