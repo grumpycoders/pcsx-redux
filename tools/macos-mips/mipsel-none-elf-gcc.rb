@@ -11,6 +11,8 @@ class MipselNoneElfGcc < Formula
   depends_on "mpfr"
   depends_on "gnu-sed"
 
+  patch :DATA
+
   def install
     ENV.prepend_path "PATH", Formula["gnu-sed"].opt_libexec/"gnubin"
     mkdir "mipsel-none-elf-gcc-build" do
@@ -50,3 +52,47 @@ class MipselNoneElfGcc < Formula
     system "#{bin}/mipsel-none-elf-gcc", "-c", "-o", "test-c.o", "test-c.c"
   end
 end
+
+__END__
+diff --git a/zlib/zutil.h b/zlib/zutil.h
+index 0bd2dbcba..bb513cb4b 100644
+--- a/zlib/zutil.h
++++ b/zlib/zutil.h
+@@ -130,17 +130,8 @@
+ #  endif
+ #endif
+
+-#if defined(MACOS) || defined(TARGET_OS_MAC)
++#if defined(MACOS)
+ #  define OS_CODE  7
+-#  ifndef Z_SOLO
+-#    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+-#      include <unix.h> /* for fdopen */
+-#    else
+-#      ifndef fdopen
+-#        define fdopen(fd,mode) NULL /* No fdopen() */
+-#      endif
+-#    endif
+-#  endif
+ #endif
+
+ #ifdef __acorn
+@@ -163,19 +154,12 @@
+ #  define OS_CODE 19
+ #endif
+
+-#if defined(_BEOS_) || defined(RISCOS)
+-#  define fdopen(fd,mode) NULL /* No fdopen() */
+-#endif
+-
+ #if (defined(_MSC_VER) && (_MSC_VER > 600)) && !defined __INTERIX
+ #  if defined(_WIN32_WCE)
+-#    define fdopen(fd,mode) NULL /* No fdopen() */
+ #    ifndef _PTRDIFF_T_DEFINED
+        typedef int ptrdiff_t;
+ #      define _PTRDIFF_T_DEFINED
+ #    endif
+-#  else
+-#    define fdopen(fd,type)  _fdopen(fd,type)
+ #  endif
+ #endif
