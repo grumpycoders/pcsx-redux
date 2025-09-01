@@ -20,10 +20,10 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: install dependencies
-      run: brew install nikitabobko/tap/brew-install-path
+      run: brew install --verbose nikitabobko/tap/brew-install-path
     - name: build mips binutils
-      run: brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+      run: brew install --verbose ./tools/macos-mips/mipsel-none-elf-binutils.rb
     - name: build mips gcc
-      run: brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
+      run: brew install --verbose ./tools/macos-mips/mipsel-none-elf-gcc.rb
     - name: build openbios
       run: make -C ./src/mips/openbios
