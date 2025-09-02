@@ -130,8 +130,9 @@ You need MacOS Catalina or later with the latest XCode to build, as well as a fe
 
 Compiling OpenBIOS will require a mips compiler, that you can generate using the following commands:
 ```bash
-brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install nikitabobko/tap/brew-install-path
+brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
 Then, you can compile OpenBIOS using `make -C ./src/mips/openbios`.
