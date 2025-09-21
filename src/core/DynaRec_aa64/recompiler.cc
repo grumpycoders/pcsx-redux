@@ -67,8 +67,7 @@ bool DynaRecCPU::Init() {
         PCSX::g_system->message("[Dynarec] Failed to allocate executable memory.\nTry disabling the Dynarec CPU.");
         return false;
     }
-#endif
-#if defined(__APPLE__)
+#else
     gen.setRW();  // M1 wants buffer marked as readable/writable with mprotect before emitting code
 #endif
     emitDispatcher();  // Emit our assembly dispatcher
@@ -102,8 +101,6 @@ void DynaRecCPU::Shutdown() {
     delete[] m_ramBlocks;
     delete[] m_biosBlocks;
     delete[] m_dummyBlocks;
-
-    gen.dumpBuffer();  // dump buffer on shutdown/hard-reset for diagnostics
 }
 
 /// Params: A program counter value

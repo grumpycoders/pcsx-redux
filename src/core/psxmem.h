@@ -307,6 +307,7 @@ class Memory {
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
+    friend class GdbClient;
     SharedMem m_wramShared;
 
     uint32_t m_BIU = 0;
