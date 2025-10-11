@@ -104,7 +104,7 @@ let
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ru --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";
@@ -112,8 +112,8 @@ in stdenv.mkDerivation {
   inherit src;
 
   postUnpack = ''
-    cp -ru --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
-    cp -ru --no-preserve=all ${tracy.src} source/third_party/tracy
+    cp -ruT --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
+    cp -ruT --no-preserve=all ${tracy.src} source/third_party/tracy
   '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
   nativeBuildInputs = [
@@ -165,9 +165,8 @@ in stdenv.mkDerivation {
   # TODO: learn how to use separate debug info
   dontStrip = debugBuild;
   enableDebugging = debugBuild;
-  
+
   enableParallelBuilding = true;
-  NIX_BUILD_CORES = 4;
 
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";

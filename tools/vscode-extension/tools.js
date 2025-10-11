@@ -20,14 +20,14 @@ let extensionUri
 let globalStorageUri
 let requiresReboot = false
 
-async function checkInstalled (name) {
+async function checkInstalled(name) {
   if (tools[name].installed === undefined) {
     tools[name].installed = await tools[name].check()
   }
   return tools[name].installed
 }
 
-async function findCommand (commands, args) {
+async function findCommand(commands, args) {
   for (const command of commands) {
     try {
       await execFile(command, args)
@@ -39,14 +39,14 @@ async function findCommand (commands, args) {
   return null
 }
 
-async function checkCommands (commands, args) {
+async function checkCommands(commands, args) {
   return (await findCommand(commands, args)) !== null
 }
 
 let mipsInstalling = false
 let win32MipsToolsInstalling = false
 
-async function installMips () {
+async function installMips() {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
@@ -66,7 +66,7 @@ async function installMips () {
   }
 }
 
-async function installToolchain () {
+async function installToolchain() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -111,9 +111,9 @@ async function installToolchain () {
             'scripts',
             'mipsel-none-elf-gcc.rb'
           ).fsPath
+          await terminal.run('brew', ['install', 'nikitabobko/tap/brew-install-path'])
           await terminal.run('brew', [
-            'install',
-            '--formula',
+            'install-path',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -143,9 +143,9 @@ async function installToolchain () {
             'scripts',
             'mipsel-none-elf-gcc.rb'
           ).fsPath
+          await terminal.run('brew', ['install', 'nikitabobko/tap/brew-install-path'])
           await terminal.run('brew', [
-            'install',
-            '--formula',
+            'install-path',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -174,7 +174,7 @@ async function installToolchain () {
   }
 }
 
-async function installGDB () {
+async function installGDB() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -244,7 +244,7 @@ async function installGDB () {
   }
 }
 
-async function installMake () {
+async function installMake() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -289,7 +289,7 @@ async function installMake () {
   }
 }
 
-async function installCMake () {
+async function installCMake() {
   switch (process.platform) {
     case 'win32':
       const release = await octokit.rest.repos.getLatestRelease({
@@ -365,7 +365,7 @@ async function installCMake () {
   }
 }
 
-async function installGit () {
+async function installGit() {
   switch (process.platform) {
     case 'win32': {
       const release = await octokit.rest.repos.getLatestRelease({
@@ -404,7 +404,7 @@ async function installGit () {
   }
 }
 
-async function installPython () {
+async function installPython() {
   switch (process.platform) {
     case 'win32':
       const tags = await octokit.rest.repos.listTags({
@@ -461,7 +461,7 @@ async function installPython () {
   }
 }
 
-async function findPython () {
+async function findPython() {
   switch (process.platform) {
     case 'win32':
       /*
@@ -514,7 +514,7 @@ async function findPython () {
   }
 }
 
-function unpackPsyq (destination) {
+function unpackPsyq(destination) {
   const filename = vscode.Uri.joinPath(
     globalStorageUri,
     tools.psyq.filename
@@ -670,7 +670,7 @@ const tools = {
   }
 }
 
-function checkLocalFile (filename) {
+function checkLocalFile(filename) {
   return new Promise((resolve) => {
     filename = vscode.Uri.joinPath(globalStorageUri, filename).fsPath
     fs.access(filename, fs.constants.F_OK, (err) => {

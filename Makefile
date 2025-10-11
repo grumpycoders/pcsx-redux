@@ -270,7 +270,9 @@ install-openbios: openbios
 appimage:
 	rm -rf AppDir
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
-	appimage-builder --skip-tests
+	sed -i s:/usr/bin/:: AppDir/usr/share/applications/pcsx-redux.desktop
+	linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
+	mv PCSX-Redux-x86_64.AppImage PCSX-Redux-HEAD-x86_64.AppImage
 
 ifeq ($(CROSS),arm64)
 third_party/luajit/src/libluajit.a:
