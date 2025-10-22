@@ -63,7 +63,6 @@ extern "C" {
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "flags.h"
-#include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"
 #include "gui/luanvg.h"
@@ -2413,16 +2412,17 @@ bool PCSX::GUI::about() {
                     ImGui::EndDisabled();
                     ImGui::TextUnformatted(_("No version information.\n\nProbably built from source."));
                 } else {
+                    auto timestamp = version.formatTimestamp("{:%Y-%m-%d %H:%M:%S}");
                     if (ImGui::Button(_("Copy to clipboard"))) {
                         if (version.buildId.has_value()) {
                             clip::set_text(
-                                fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                                fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {}",
                                             version.version, version.buildId.value(), version.changeset,
-                                            fmt::localtime(version.timestamp)));
+                                            timestamp));
                         } else {
-                            clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
+                            clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {}",
                                                        version.version, version.changeset,
-                                                       fmt::localtime(version.timestamp)));
+                                                       timestamp));
                         }
                     }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
@@ -2434,8 +2434,6 @@ bool PCSX::GUI::about() {
                     if (ImGui::SmallButton(version.changeset.c_str())) {
                         openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
                     }
-                    std::tm tm = fmt::localtime(version.timestamp);
-                    std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());
                 }
                 ImGui::EndTabItem();

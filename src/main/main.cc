@@ -32,7 +32,6 @@
 #include "core/sstate.h"
 #include "core/ui.h"
 #include "flags.h"
-#include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "lua/extra.h"
 #include "lua/luawrapper.h"
@@ -217,8 +216,8 @@ int pcsxMain(int argc, char **argv) {
         }
         fmt::print(
             "{{\n  \"version\": \"{}\",\n  \"changeset\": \"{}\",\n  \"timestamp\": \"{}\",\n  \"timestampDecoded\": "
-            "\"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
-            version.version, version.changeset, version.timestamp, fmt::localtime(version.timestamp));
+            "\"{}\"\n}}\n",
+            version.version, version.changeset, version.timestamp, version.formatTimestamp("{:%Y-%m-%d %H:%M:%S}"));
         return 0;
     }
 
