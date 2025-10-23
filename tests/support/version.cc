@@ -17,8 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <ctime>
+#include <fmt/chrono.h>
 #include "support/version.h"
-
 #include "gtest/gtest.h"
 
 using namespace PCSX;
@@ -31,10 +32,18 @@ protected:
         "06fdac536d1d8301fdc626fe89d1084a3ad241ad",
         1737185273,
     };
+    static std::string formatWithStdLocal(std::time_t ts, const char* fmt_str) {
+        auto tm_ptr = std::localtime(&ts);
+        if (!tm_ptr) {
+            return {};
+        }
+        return fmt::format(fmt::runtime(fmt_str), *tm_ptr);
+    }
 };
 
 TEST_F(VersionInfoTest, TimestampFormatsDateAndTime) {
-    EXPECT_EQ(vi.formatTimestamp("{:%Y-%m-%d %H:%M:%S}"), "2025-01-18 02:27:53");
+    auto format = "{:%Y-%m-%d %H:%M:%S}";
+    EXPECT_EQ(vi.formatTimestamp(format), formatWithStdLocal(vi.timestamp, format));
 }
 
 TEST_F(VersionInfoTest, TimestampNullFormatReturnsNullString) {
@@ -46,10 +55,11 @@ TEST_F(VersionInfoTest, TimestampFormatNoPlaceholderReturnsCopy) {
 }
 
 TEST_F(VersionInfoTest, TimestampFormatReturnsNonPlaceholderText) {
-    EXPECT_EQ(vi.formatTimestamp("123 {}"), "123 2025-01-18 02:27:53");
+    auto format = "123 {}";
+    EXPECT_EQ(vi.formatTimestamp(format), formatWithStdLocal(vi.timestamp, format));
 }
 
 TEST_F(VersionInfoTest, TimestampFormatHandlesNegativeNumber) {
     vi.timestamp = -1;
-    EXPECT_EQ(vi.formatTimestamp("{}"), "1969-12-31 18:59:59");
+    EXPECT_EQ(vi.formatTimestamp("{}"), formatWithStdLocal(vi.timestamp, "{}"));
 }
