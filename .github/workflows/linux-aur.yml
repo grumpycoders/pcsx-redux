@@ -22,6 +22,7 @@ jobs:
         run: |
           useradd builduser -m
           passwd -d builduser
+          echo "builduser ALL=(ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/builduser && chmod 440 /etc/sudoers.d/builduser
       - name: Build AUR Package
         run: |
           mkdir /build
@@ -29,4 +30,4 @@ jobs:
           chown -R builduser:builduser /build
           cd /build/pcsx-redux-git
           sed -i s,git+https://github.com/grumpycoders/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g PKGBUILD
-          sudo -u builduser makepkg
+          sudo -u builduser bash -c 'makepkg --noconfirm --syncdeps'
