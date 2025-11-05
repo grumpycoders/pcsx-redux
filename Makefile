@@ -62,6 +62,7 @@ else
     CPPFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
+CPPFLAGS_tsan += -O3 -fsanitize=thread -fno-omit-frame-pointer
 CPPFLAGS_ubsan += -O1 -fsanitize=undefined -fno-omit-frame-pointer
 CPPFLAGS_lto += -O3 -flto=auto -fno-fat-lto-objects -flto-partition=one
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
@@ -95,6 +96,7 @@ else
     LDFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 LDFLAGS_asan += -fsanitize=address
+LDFLAGS_tsan += -fsanitize=thread
 LDFLAGS_ubsan += -fsanitize=undefined
 LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 
