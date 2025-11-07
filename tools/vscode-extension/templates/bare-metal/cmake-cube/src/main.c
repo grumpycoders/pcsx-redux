@@ -30,7 +30,7 @@ static void setupGTE(int width, int height) {
     // Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
     // enabled through the status register in coprocessor 0, which is always
     // accessible.
-    cop0_setReg(COP0_SR, cop0_getReg(COP0_SR) | COP0_SR_CU2);
+    cop0_setReg(COP0_STATUS, cop0_getReg(COP0_STATUS) | COP0_STATUS_CU2);
 
     // Set the offset to be added to all calculated screen space coordinates (we
     // want our cube to appear at the center of the screen) Note that OFX and
@@ -192,8 +192,9 @@ int main(int argc, const char **argv) {
 
     setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    DMA_DPCR |= DMA_DPCR_ENABLE << (DMA_GPU * 4);
-    DMA_DPCR |= DMA_DPCR_ENABLE << (DMA_OTC * 4);
+    DMA_DPCR |= 0
+        | DMA_DPCR_CH_ENABLE(DMA_GPU)
+        | DMA_DPCR_CH_ENABLE(DMA_OTC);
 
     GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
     GPU_GP1 = gp1_dispBlank(false);
