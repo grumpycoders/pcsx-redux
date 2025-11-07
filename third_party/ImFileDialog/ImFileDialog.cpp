@@ -1072,7 +1072,7 @@ namespace ifd {
 		std::error_code ec;
 		ImGui::PushID(node);
 		bool isClicked = false;
-		std::string displayName = u8StringToString(node->Path.stem().u8string());
+		std::string displayName = u8StringToString(node->Path.filename().u8string());
 		if (displayName.size() == 0)
 			displayName = u8StringToString(node->Path.u8string());
 		if (FolderNode(displayName.c_str(), (ImTextureID)m_getIcon(node->Path), isClicked)) {
