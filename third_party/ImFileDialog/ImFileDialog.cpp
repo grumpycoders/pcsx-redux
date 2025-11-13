@@ -409,7 +409,7 @@ namespace ifd {
 		DWORD d = GetLogicalDrives();
 		for (int i = 0; i < 26; i++)
 			if (d & (1 << i))
-				thisPC->Children.push_back(new FileTreeNode(std::string(1, 'A' + i) + ":"));
+				thisPC->Children.push_back(new FileTreeNode(std::string(1, 'A' + i) + ":\\"));
 		m_treeCache.push_back(thisPC);
 #else
 		std::error_code ec;
