@@ -2418,11 +2418,11 @@ bool PCSX::GUI::about() {
                             clip::set_text(
                                 fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
                                             version.version, version.buildId.value(), version.changeset,
-                                            fmt::localtime(version.timestamp)));
+                                            *std::localtime(&version.timestamp)));
                         } else {
                             clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
                                                        version.version, version.changeset,
-                                                       fmt::localtime(version.timestamp)));
+                                                       *std::localtime(&version.timestamp)));
                         }
                     }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
@@ -2434,7 +2434,7 @@ bool PCSX::GUI::about() {
                     if (ImGui::SmallButton(version.changeset.c_str())) {
                         openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
                     }
-                    std::tm tm = fmt::localtime(version.timestamp);
+                    std::tm tm = *std::localtime(&version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());
                 }
