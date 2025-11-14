@@ -105,7 +105,7 @@ struct Coroutine {
             return {};
         }
         void return_value(T &&value) { coroutine->m_value = std::forward(value); }
-        Coroutine<T> coroutine = nullptr;
+        Coroutine<T> *coroutine = nullptr;
     };
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
     Coroutine(CoroutineHandle<Promise> &&handle) : m_handle(std::move(handle)) {}
