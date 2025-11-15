@@ -60,6 +60,7 @@ struct VersionInfo {
         }
         return (updateMethod == "appcenter");
     }
+    std::string formatTimestamp(const std::string& format) const;
     void clear() {
         version.clear();
         buildId = std::nullopt;

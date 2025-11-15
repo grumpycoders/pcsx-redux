@@ -27,6 +27,9 @@ SOFTWARE.
 #include "support/version.h"
 
 #include <algorithm>
+#include <chrono>
+#include <fmt/chrono.h>
+#include <fmt/format.h>
 
 #include "json.hpp"
 #include "support/container-file.h"
@@ -63,6 +66,12 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     updateCatalog = getString("updateCatalog");
     updateInfoBase = getString("updateInfoBase");
     updateStorageUrl = getString("updateStorageUrl");
+}
+
+std::string PCSX::VersionInfo::formatTimestamp(const std::string& format) const {
+    auto timepoint = std::chrono::system_clock::from_time_t(timestamp);
+    auto local = std::chrono::current_zone()->to_local(timepoint);
+    return fmt::format(fmt::runtime(format), floor<std::chrono::seconds>(local));
 }
 
 bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::function<void(bool)> callback,
