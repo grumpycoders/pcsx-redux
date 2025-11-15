@@ -1059,6 +1059,11 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
+
+    if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+        m_turboEnabled = !m_turboEnabled;
+        g_emulator->settings.get<Emulator::SettingScaler>() = m_turboEnabled ? 200 : 100;
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -1503,6 +1508,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
                 ImGui::TextUnformatted(_("Idle"));
+            }
+            if (m_turboEnabled) {
+                ImGui::Separator();
+                ImGui::TextUnformatted(_("Turbo"));
             }
 
             ImGui::EndMainMenuBar();
