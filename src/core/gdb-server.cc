@@ -758,7 +758,7 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             auto pathCmd = cmd.substr(8);
             auto pathView = StringsHelpers::trim(pathCmd);
             g_emulator->m_cdrom->setIso(new CDRIso(pathView));
-            g_emulator->m_cdrom->check();
+            g_emulator->m_cdrom->parseIso();
         }
     } else if (words[0] == "sharedmem") {
         if (words.size() != 2) {

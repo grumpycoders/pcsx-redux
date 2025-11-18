@@ -28,6 +28,7 @@ enum SectorMode {
 
 typedef struct { char opaque[?]; } LuaIso;
 typedef struct { char opaque[?]; } IsoReader;
+typedef struct { uint8_t m, s, f; } MSF;
 
 void deleteIso(LuaIso* wrapper);
 bool isIsoFailed(LuaIso* wrapper);
@@ -42,6 +43,8 @@ void deleteIsoReader(IsoReader* isoReader);
 bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
 LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
+uint32_t getIsoTN(LuaIso* wrapper);
+MSF getIsoTD(LuaIso* wrapper, uint32_t tn);
 
 typedef struct { char opaque[?]; } ISO9660Builder;
 ISO9660Builder* createIsoBuilder(LuaFile* out);
@@ -77,6 +80,12 @@ local function createIsoWrapper(wrapper)
             if size == nil then size = -1 end
             if mode == nil then mode = 'GUESS' end
             return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
+        end,
+        getTD = function(self, tn)
+            return C.getIsoTD(self._wrapper, tn)
+        end,
+        getTN = function(self)
+            return C.getIsoTN(self._wrapper)
         end,
     }
     return iso

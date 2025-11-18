@@ -334,7 +334,7 @@ int pcsxMain(int argc, char **argv) {
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
     if (!isoToOpen.empty()) emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
-    emulator->m_cdrom->check();
+    emulator->m_cdrom->parseIso();
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();

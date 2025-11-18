@@ -47,8 +47,14 @@ LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os
 
+CPPFLAGS_ReleaseFast += -O3
+LDFLAGS_ReleaseFast += -O3
+
 CPPFLAGS_LTO += -Os -flto -ffat-lto-objects
 LDFLAGS_LTO += -Os -flto -ffat-lto-objects
+
+CPPFLAGS_LTOFast += -O3 -flto -ffat-lto-objects
+LDFLAGS_LTOFast += -O3 -flto -ffat-lto-objects
 
 CPPFLAGS_Debug += -O0
 CPPFLAGS_SmallDebug += -Og

@@ -245,7 +245,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     m_pc = pc & ~3;
 
     const auto startingPC = m_pc;
-    int count = 0;  // How many instructions have we compiled?
+    unsigned count = 0;  // How many instructions have we compiled?
+    unsigned extra = 0;  // How many instructions from rom?
 
 #if defined(__APPLE__)
     gen.setRW();  // Mark code cache as readable/writeable before emitting code
@@ -288,6 +289,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         uint32_t code = m_regs.code = *p;  // Actually read the instruction
         m_pc += 4;                         // Increment recompiler PC
         count++;                           // Increment instruction count
+        if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it
@@ -305,7 +307,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     }
 
     gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch cycle count from memory
-    gen.Add(x0, x0, count * PCSX::Emulator::BIAS);          // Add block cycles
+    gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);          // Add block cycles
     gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store cycles back to memory
 
     // Link block else return to dispatcher

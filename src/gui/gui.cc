@@ -1212,12 +1212,12 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Reload Disk Image"), nullptr, nullptr, currentIso && !currentIso->failed())) {
                     PCSX::g_emulator->m_cdrom->clearIso();
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(currentIso->getIsoPath()));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                     g_system->hardReset();
                 }
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -1286,16 +1286,13 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->openLid();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->closeLid();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->scheduleCloseLid();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reboot"))) {
@@ -1525,7 +1522,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            PCSX::g_emulator->m_cdrom->check();
+            PCSX::g_emulator->m_cdrom->parseIso();
         }
     }
 
@@ -2348,18 +2345,17 @@ of the emulator to take effect.)");
 
 void PCSX::GUI::interruptsScaler() {
     static const char* names[] = {
-        "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
-        "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
-        "CDR Play",
+        "SIO",          "SIO1",    "CDR FIFO",    "CDR Command", "CDR Reads", "GPU DMA",
+        "MDEC Out DMA", "SPU DMA", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",
     };
-    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+    if (ImGui::Begin(_("Scheduler Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
@@ -2677,7 +2673,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     // Iso loader is last because its detection is the most broken at the moment.
     g_emulator->m_cdrom->setIso(new CDRIso(path));
-    g_emulator->m_cdrom->check();
+    g_emulator->m_cdrom->parseIso();
 }
 
 bool PCSX::GUI::getSaveStateExists(uint32_t slot) {

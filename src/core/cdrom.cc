@@ -24,6 +24,7 @@
 #include "core/cdrom.h"
 
 #include <magic_enum_all.hpp>
+#include <string_view>
 
 #include "cdrom/iso9660-reader.h"
 #include "core/debug.h"
@@ -31,15 +32,20 @@
 #include "core/psxemulator.h"
 #include "spu/interface.h"
 #include "support/strings-helpers.h"
+#include "supportpsx/iec-60908b.h"
 
 namespace {
 
-class CDRomImpl : public PCSX::CDRom {
-    /* CD-ROM magic numbers */
+using namespace std::literals;
+
+// The buffer/decoder chip the PSX CPU will talk to is the CXD1199, which
+// datasheet can be found at https://archive.org/details/cxd-1199
+
+class CDRomImpl final : public PCSX::CDRom {
     enum Commands {
         CdlSync = 0,
-        CdlGetStat = 1,
-        CdlSetloc = 2,
+        CdlNop = 1,
+        CdlSetLoc = 2,
         CdlPlay = 3,
         CdlForward = 4,
         CdlBackward = 5,
@@ -47,1449 +53,198 @@ class CDRomImpl : public PCSX::CDRom {
         CdlStandby = 7,
         CdlStop = 8,
         CdlPause = 9,
-        CdlReset = 10,
+        CdlInit = 10,
         CdlMute = 11,
         CdlDemute = 12,
-        CdlSetfilter = 13,
-        CdlSetmode = 14,
-        CdlGetparam = 15,
-        CdlGetlocL = 16,
-        CdlGetlocP = 17,
+        CdlSetFilter = 13,
+        CdlSetMode = 14,
+        CdlGetParam = 15,
+        CdlGetLocL = 16,
+        CdlGetLocP = 17,
         CdlReadT = 18,
         CdlGetTN = 19,
         CdlGetTD = 20,
         CdlSeekL = 21,
         CdlSeekP = 22,
-        CdlSetclock = 23,
-        CdlGetclock = 24,
+        CdlSetClock = 23,
+        CdlGetClock = 24,
         CdlTest = 25,
         CdlID = 26,
         CdlReadS = 27,
-        CdlInit = 28,
+        CdlReset = 28,
         CdlGetQ = 29,
         CdlReadToc = 30,
     };
 
-    static const size_t cdCmdEnumCount = magic_enum::enum_count<Commands>();
-
-    static const inline uint8_t Test20[] = {0x98, 0x06, 0x10, 0xC3};
-    static const inline uint8_t Test22[] = {0x66, 0x6F, 0x72, 0x20, 0x45, 0x75, 0x72, 0x6F};
-    static const inline uint8_t Test23[] = {0x43, 0x58, 0x44, 0x32, 0x39, 0x34, 0x30, 0x51};
-    static const unsigned irqReschedule = 0x100;
-
-    // m_stat:
-    enum {
-        NoIntr = 0,
-        DataReady = 1,
-        Complete = 2,
-        Acknowledge = 3,
-        DataEnd = 4,
-        DiskError = 5,
-    };
-
-    /* m_ctrl */
-    enum {
-        BUSYSTS = 1 << 7,  // 0x80 Command/parameter transmission busy  (1=Busy)
-        DRQSTS = 1 << 6,   // 0x40 Data fifo empty                      (0=Empty)
-        RSLRRDY = 1 << 5,  // 0x20 Response fifo empty                  (0=Empty)
-        PRMWRDY = 1 << 4,  // 0x10 Parameter fifo full                  (0=Full)
-        PRMEMPT = 1 << 3,  // 0x08 Parameter fifo empty                 (1=Empty)
-        ADPBUSY = 1 << 2   // 0x04 XA-ADPCM fifo empty                  (0=Empty)
-    };
-
-    /* Modes flags */
-    enum {
-        MODE_SPEED = 1 << 7,      // 0x80
-        MODE_STRSND = 1 << 6,     // 0x40 ADPCM on/off
-        MODE_SIZE_2340 = 1 << 5,  // 0x20
-        MODE_SIZE_2328 = 1 << 4,  // 0x10
-        MODE_SIZE_2048 = 0 << 4,  // 0x00
-        MODE_SF = 1 << 3,         // 0x08 channel on/off
-        MODE_REPORT = 1 << 2,     // 0x04
-        MODE_AUTOPAUSE = 1 << 1,  // 0x02
-        MODE_CDDA = 1 << 0,       // 0x01
-    };
-
-    /* Status flags */
-    enum {
-        STATUS_PLAY = 1 << 7,       // 0x80
-        STATUS_SEEK = 1 << 6,       // 0x40
-        STATUS_READ = 1 << 5,       // 0x20
-        STATUS_SHELLOPEN = 1 << 4,  // 0x10
-        STATUS_UNKNOWN3 = 1 << 3,   // 0x08
-        STATUS_UNKNOWN2 = 1 << 2,   // 0x04
-        STATUS_ROTATING = 1 << 1,   // 0x02
-        STATUS_ERROR = 1 << 0,      // 0x01
-    };
-
-    /* Errors */
-    enum {
-        ERROR_NOTREADY = 1 << 7,    // 0x80
-        ERROR_INVALIDCMD = 1 << 6,  // 0x40
-        ERROR_INVALIDARG = 1 << 5,  // 0x20
-    };
-
-// 1x = 75 sectors per second
-// PCSX::g_emulator->m_psxClockSpeed = 1 sec in the ps
-// so (PCSX::g_emulator->m_psxClockSpeed / 75) = m_cdr read time (linuzappz)
-#define cdReadTime (PCSX::g_emulator->m_psxClockSpeed / 75)
-
-    enum drive_state {
-        DRIVESTATE_STANDBY = 0,
-        DRIVESTATE_LID_OPEN,
-        DRIVESTATE_RESCAN_CD,
-        DRIVESTATE_PREPARE_CD,
-        DRIVESTATE_STOPPED,
-    };
-
-    // for m_seeked
-    enum seeked_state {
-        SEEK_PENDING = 0,
-        SEEK_DONE = 1,
-    };
-
-    struct PCSX::CdrStat cdr_stat;
-
-    static const uint32_t H_SPUirqAddr = 0x1f801da4;
-    static const uint32_t H_SPUctrl = 0x1f801daa;
-
-    // interrupt
-    static inline void scheduleCDIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDR, eCycle);
-    }
-
-    // readInterrupt
-    static inline void scheduleCDReadIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDREAD, eCycle);
-    }
-
-    // decodedBufferInterrupt
-    static inline void scheduleDecodeBufferIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDBUF, eCycle);
-    }
-
-    // lidSeekInterrupt
-    static inline void scheduleCDLidIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRLID, eCycle);
-    }
-
-    // playInterrupt
-    static inline void scheduleCDPlayIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRPLAY, eCycle);
-    }
-
-    static inline void scheduleCDDMAIRQ(uint32_t eCycle) {
-        PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_CDRDMA, eCycle);
-    }
-
-    inline void StopReading() {
-        if (m_reading) {
-            m_reading = 0;
-            PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_CDREAD);
-        }
-        m_statP &= ~(STATUS_READ | STATUS_SEEK);
-    }
-
-    inline void StopCdda() {
-        if (m_play) {
-            m_statP &= ~STATUS_PLAY;
-            m_play = false;
-            m_fastForward = 0;
-            m_fastBackward = 0;
-            // PCSX::g_emulator->m_spu->registerCallback(SPUirq);
-        }
-    }
-
-    inline void SetResultSize(uint8_t size) {
-        m_resultP = 0;
-        m_resultC = size;
-        m_resultReady = 1;
-    }
-
-    inline void setIrq(void) {
-        if (m_stat & m_reg2) PCSX::g_emulator->m_mem->setIRQ(4);
-    }
-
-    void adjustTransferIndex(void) {
-        size_t bufSize = 0;
-
-        switch (m_mode & (MODE_SIZE_2340 | MODE_SIZE_2328)) {
-            case MODE_SIZE_2340:
-                bufSize = 2340;
-                break;
-            case MODE_SIZE_2328:
-                bufSize = 12 + 2328;
-                break;
-            case MODE_SIZE_2048:
-            default:
-                bufSize = 12 + 2048;
-                break;
-        }
-
-        if (m_transferIndex >= bufSize) m_transferIndex -= bufSize;
-
-        // FIFO empty
-        if (m_transferIndex == 0) {
-            m_ctrl &= ~DRQSTS;  // Data fifo empty
-            m_read = 0;
-        }
-    }
-
-    // FIXME: do this in SPU instead
-    void decodedBufferInterrupt() final {
-#if 0
-    return;
-#endif
-
-        // check dbuf IRQ still active
-        if (!m_play) return;
-        if ((PCSX::g_emulator->m_spu->readRegister(H_SPUctrl) & 0x40) == 0) return;
-        if ((PCSX::g_emulator->m_spu->readRegister(H_SPUirqAddr) * 8) >= 0x800) return;
-
-        // turn off plugin SPU IRQ decoded buffer handling
-        // PCSX::g_emulator->m_spu->registerCallback(0);
-
-        /*
-        Vib Ribbon
-
-        000-3FF = left CDDA
-        400-7FF = right CDDA
-
-        Assume IRQ every wrap
-        */
-
-        // signal CDDA data ready
-        PCSX::g_emulator->m_mem->setIRQ(0x200);
-
-        // time for next full buffer
-        // scheduleDecodeBufferIRQ( PCSX::g_emulator->m_psxClockSpeed / 44100 * 0x200 );
-        scheduleDecodeBufferIRQ(PCSX::g_emulator->m_psxClockSpeed / 44100 * 0x100);
-    }
-
-    void getStatus(PCSX::CdrStat *stat) {
-        if (isLidOpened()) {
-            stat->Status = 0x10;
+    std::string_view commandName(uint8_t command) {
+        if (command > c_cdCmdEnumCount) {
+            return "Unknown";
         } else {
-            stat->Status = 0;
-        }
-        if (m_play) {
-            stat->Type = 0x02;
-            stat->Status |= 0x80;
-        } else {
-            // BIOS - boot ID (CD type)
-            stat->Type = magic_enum::enum_integer(m_iso->getTrackType(1));
-        }
-
-        // relative -> absolute time
-        stat->Time = m_setSectorPlay;
-    }
-
-    // timing used in this function was taken from tests on real hardware
-    // (yes it's slow, but you probably don't want to modify it)
-    void lidSeekInterrupt() final {
-        switch (m_driveState) {
-            default:
-            case DRIVESTATE_STANDBY:
-                m_statP &= ~STATUS_SEEK;
-
-                getStatus(&cdr_stat);
-
-                if (cdr_stat.Status & STATUS_SHELLOPEN) {
-                    StopCdda();
-                    m_driveState = DRIVESTATE_LID_OPEN;
-                    scheduleCDLidIRQ(8 * irqReschedule);
-                }
-                break;
-
-            case DRIVESTATE_LID_OPEN:
-                getStatus(&cdr_stat);
-
-                // 02, 12, 10
-                if (!(m_statP & STATUS_SHELLOPEN)) {
-                    StopReading();
-                    m_statP |= STATUS_SHELLOPEN;
-
-                    // could generate error irq here, but real hardware
-                    // only sometimes does that
-                    // (not done when lots of commands are sent?)
-
-                    scheduleCDLidIRQ(cdReadTime * 30);
-                    break;
-                } else if (m_statP & STATUS_ROTATING) {
-                    m_statP &= ~STATUS_ROTATING;
-                } else if (!(cdr_stat.Status & STATUS_SHELLOPEN)) {
-                    // closed now
-                    check();
-
-                    // m_statP STATUS_SHELLOPEN is "sticky"
-                    // and is only cleared by CdlGetStat
-
-                    m_driveState = DRIVESTATE_RESCAN_CD;
-                    scheduleCDLidIRQ(cdReadTime * 105);
-                    break;
-                }
-
-                // recheck for close
-                scheduleCDLidIRQ(cdReadTime * 3);
-                break;
-
-            case DRIVESTATE_RESCAN_CD:
-                m_statP |= STATUS_ROTATING;
-                m_driveState = DRIVESTATE_PREPARE_CD;
-
-                // this is very long on real hardware, over 6 seconds
-                // make it a bit faster here...
-                scheduleCDLidIRQ(cdReadTime * 150);
-                break;
-
-            case DRIVESTATE_PREPARE_CD:
-                m_statP |= STATUS_SEEK;
-
-                m_driveState = DRIVESTATE_STANDBY;
-                scheduleCDLidIRQ(cdReadTime * 26);
-                break;
+            return magic_enum::enum_names<Commands>()[command];
         }
     }
 
-    void Find_CurTrack(const MSF time) {
-        int current, sect;
+    static constexpr size_t c_cdCmdEnumCount = magic_enum::enum_count<Commands>();
+    static constexpr bool isValidBCD(uint8_t value) { return (value & 0x0f) <= 9 && (value & 0xf0) <= 0x90; }
+    static std::optional<PCSX::IEC60908b::MSF> getMSF(const uint8_t *msf) {
+        bool validBCD = isValidBCD(msf[0]) && isValidBCD(msf[1]) && isValidBCD(msf[2]);
+        if (!validBCD) return {};
+        uint8_t m = PCSX::IEC60908b::btoi(msf[0]);
+        uint8_t s = PCSX::IEC60908b::btoi(msf[1]);
+        uint8_t f = PCSX::IEC60908b::btoi(msf[2]);
 
-        current = time.toLBA();
-
-        for (m_curTrack = 1; m_curTrack < m_iso->getTN(); m_curTrack++) {
-            sect = static_cast<int>(m_iso->getTD(m_curTrack + 1).toLBA());
-            if (sect - current >= 150) break;
-        }
-        CDROM_LOG("Find_CurTrack *** %02d %02d\n", m_curTrack, current);
+        if (s >= 60) return {};
+        if (f >= 75) return {};
+        return PCSX::IEC60908b::MSF(m, s, f);
     }
 
-    void generate_subq(const MSF time) {
-        unsigned int this_s, start_s, next_s, pregap;
-        int relative_s;
-
-        MSF start = m_iso->getTD(m_curTrack);
-        MSF next;
-        if (m_curTrack + 1 <= m_iso->getTN()) {
-            pregap = 150;
-            next = m_iso->getTD(m_curTrack + 1);
-        } else {
-            // last track - cd size
-            pregap = 0;
-            next = m_setSectorEnd;
-        }
-
-        this_s = time.toLBA();
-        start_s = start.toLBA();
-        next_s = next.toLBA();
-
-        m_trackChanged = false;
-
-        if (next_s - this_s < pregap) {
-            m_trackChanged = true;
-            m_curTrack++;
-            start_s = next_s;
-        }
-
-        m_subq.index = 1;
-
-        relative_s = this_s - start_s;
-        if (relative_s < 0) {
-            m_subq.index = 0;
-            relative_s = -relative_s;
-        }
-        m_subq.track = PCSX::IEC60908b::itob(m_curTrack);
-        MSF(relative_s).toBCD(m_subq.relative);
-        time.toBCD(m_subq.absolute);
+    uint32_t rand() {
+        m_seed *= 14726776315600504853ull;
+        return m_seed >> 9;
     }
 
-    void readTrack(MSF time) {
-        if (m_prev == time) return;
+    void reset() override {
+        m_seed = 9223521712174600777ull;
+        m_dataFIFOIndex = 0;
+        m_dataFIFOSize = 0;
+        m_registerAddress = 0;
+        m_currentPosition.reset();
+        m_seekPosition.reset();
+        m_speed = Speed::Simple;
+        m_speedChanged = false;
+        m_status = Status::Idle;
+        m_dataRequested = false;
+        m_interruptCauseMask = 0x1f;
+        m_subheaderFilter = false;
+        m_realtime = false;
+        m_commandFifo.clear();
+        m_commandExecuting.clear();
+        m_responseFifo[0].clear();
+        m_responseFifo[1].clear();
+        m_readingState = ReadingState::None;
+    }
 
-        CDROM_LOG("ReadTrack *** %02i:%02i:%02i\n", time.m, time.s, time.f);
-
-        m_prev.reset();
-        if (m_iso->getTrackType(m_curTrack) == PCSX::CDRIso::TrackType::CDDA) {
-            m_suceeded = false;
-        } else {
-            m_suceeded = m_iso->readTrack(time);
-            if (m_suceeded) m_prev = time;
-        }
-
-        const PCSX::IEC60908b::Sub *sub = m_iso->getBufferSub();
-        if (sub && m_curTrack == 1) {
-            uint16_t calcCRC = PCSX::IEC60908b::subqCRC(sub->Q);
-            uint16_t actualCRC = sub->CRC[0];
-            actualCRC <<= 8;
-            actualCRC |= sub->CRC[1];
-            if (calcCRC == actualCRC) {
-                m_subq.track = sub->TrackNumber;
-                m_subq.index = sub->IndexNumber;
-                memcpy(m_subq.relative, sub->RelativeAddress, 3);
-                memcpy(m_subq.absolute, sub->AbsoluteAddress, 3);
-            } else {
-                CDROM_IO_LOG("subq bad crc @%02i:%02i:%02i\n", time.m, time.s, time.f);
+    void fifoScheduledCallback() override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
+            m_responseFifo[0] = m_responseFifo[1];
+            m_responseFifo[1].clear();
+            PCSX::g_emulator->m_mem->setIRQ(4);
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
             }
-        } else {
-            generate_subq(time);
         }
-
-        CDROM_LOG(" -> %02x,%02x %02x:%02x:%02x %02x:%02x:%02x\n", m_subq.track, m_subq.index, m_subq.relative[0],
-                  m_subq.relative[1], m_subq.relative[2], m_subq.absolute[0], m_subq.absolute[1], m_subq.absolute[2]);
+        maybeStartCommand();
     }
 
-    void AddIrqQueue(unsigned short irq, unsigned long ecycle) {
-        if (m_irq != 0) {
-            if (irq == m_irq || irq + 0x100 == m_irq) {
-                m_irqRepeated = 1;
-                scheduleCDIRQ(ecycle);
-                return;
-            }
-            CDROM_IO_LOG("cdr: override cmd %02x -> %02x\n", m_irq, irq);
-        }
-
-        m_irq = irq;
-        m_eCycle = ecycle;
-
-        scheduleCDIRQ(ecycle);
+    void commandsScheduledCallback() override {
+        auto command = m_commandExecuting.value;
+        auto handler = c_commandsHandlers[command];
+        (this->*handler)(m_commandExecuting, false);
     }
 
-    void cdrPlayInterrupt_Autopause() {
-        if ((m_mode & MODE_AUTOPAUSE) && m_trackChanged) {
-            CDROM_LOG("CDDA STOP\n");
-            // Magic the Gathering
-            // - looping territory cdda
-
-            // ...?
-            // m_resultReady = 1;
-            // m_stat = DataReady;
-            m_stat = DataEnd;
-            setIrq();
-
-            StopCdda();
-        } else if (m_mode & MODE_REPORT) {
-            m_result[0] = m_statP;
-            m_result[1] = m_subq.track;
-            m_result[2] = m_subq.index;
-            unsigned abs_lev_chselect = m_subq.absolute[1] & 0x01;
-            uint32_t abs_lev_max = 0;
-            int16_t *data = reinterpret_cast<int16_t *>(m_transfer);
-            for (unsigned i = 0; i < 588; i++) {
-                abs_lev_max = std::max<uint16_t>(abs_lev_max, std::abs(data[i * 2 + abs_lev_chselect]));
+    void readScheduledCallback() override {
+        static const std::chrono::nanoseconds c_retryDelay = 50us;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (m_readingState == ReadingState::Seeking) {
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA, true);
+            m_status = Status::Seeking;
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
             }
-            abs_lev_max = std::min<uint32_t>(abs_lev_max, 32767U);
-            abs_lev_max |= abs_lev_chselect << 15;
-
-            if (m_subq.absolute[2] & 0x10) {
-                m_result[3] = m_subq.relative[0];
-                m_result[4] = m_subq.relative[1] | 0x80;
-                m_result[5] = m_subq.relative[2];
-            } else {
-                m_result[3] = m_subq.absolute[0];
-                m_result[4] = m_subq.absolute[1];
-                m_result[5] = m_subq.absolute[2];
+            m_currentPosition = m_seekPosition;
+            scheduleRead(seekDelay + computeReadDelay());
+            m_readingState = ReadingState::Reading;
+            return;
+        } else if (m_readingState == ReadingState::Reading) {
+            m_readingState = ReadingState::None;
+            m_status = Status::ReadingData;
+        } else if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
+            m_readingType = ReadingType::None;
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: cancelling read.\n");
             }
-
-            m_result[6] = abs_lev_max & 0xff;
-            m_result[7] = abs_lev_max >> 8;
-
-            // Rayman: Logo freeze (resultready + dataready)
-            m_resultReady = 1;
-            m_stat = DataReady;
-
-            SetResultSize(8);
-            setIrq();
-        }
-    }
-
-    // also handles seek
-    void playInterrupt() final {
-        if (m_seeked == SEEK_PENDING) {
-            if (m_stat) {
-                scheduleCDPlayIRQ(irqReschedule);
-                return;
-            }
-            SetResultSize(1);
-            m_statP |= STATUS_ROTATING;
-            m_statP &= ~STATUS_SEEK;
-            m_result[0] = m_statP;
-            m_seeked = SEEK_DONE;
-            if (m_irq == 0) {
-                m_stat = Complete;
-                m_suceeded = true;
-                setIrq();
-            }
-
-            if (m_setlocPending) {
-                m_setSectorPlay = m_setSector;
-                m_setlocPending = 0;
-                m_locationChanged = true;
-            }
-            Find_CurTrack(m_setSectorPlay);
-            readTrack(m_setSectorPlay);
-            m_trackChanged = false;
-        }
-
-        if (!m_play) return;
-        CDROM_LOG("CDDA - %02d:%02d:%02d\n", m_setSectorPlay.m, m_setSectorPlay.s, m_setSectorPlay.f);
-        if (m_setSectorPlay == m_setSectorEnd) {
-            StopCdda();
-            m_trackChanged = true;
-        }
-
-        m_iso->readCDDA(m_setSectorPlay, m_transfer);
-        if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
-
-        if (!m_play) return;
-
-        if (!m_muted) {
-            attenuate((int16_t *)m_transfer, PCSX::IEC60908b::FRAMESIZE_RAW / 4, 1);
-            PCSX::g_emulator->m_spu->playCDDAchannel((short *)m_transfer, PCSX::IEC60908b::FRAMESIZE_RAW);
-        }
-
-        m_setSectorPlay++;
-
-        if (m_locationChanged) {
-            scheduleCDPlayIRQ(cdReadTime * 30);
-            m_locationChanged = false;
-        } else {
-            scheduleCDPlayIRQ(cdReadTime);
-        }
-
-        // update for CdlGetlocP/autopause
-        generate_subq(m_setSectorPlay);
-    }
-
-    void interrupt() final {
-        uint16_t irq = m_irq;
-        int no_busy_error = 0;
-        int start_rotating = 0;
-        int error = 0;
-        int delay;
-
-        // Reschedule IRQ
-        if (m_stat) {
-            scheduleCDIRQ(irqReschedule);
             return;
         }
 
-        m_ctrl &= ~BUSYSTS;  // Command/parameter transmission not busy
-
-        // default response
-        SetResultSize(1);
-        m_result[0] = m_statP;
-        m_stat = Acknowledge;
-
-        if (m_irqRepeated) {
-            m_irqRepeated = 0;
-            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
-            auto diff = regs.intTargets[PCSX::PSXINT_CDR] - regs.cycle;
-            if (m_eCycle > diff) {
-                scheduleCDIRQ(m_eCycle);
-                goto finish;
-            }
-        }
-
-        m_irq = 0;
-        CDROM_IO_LOG("CDRINT %x %x %x %x\n", m_seeked, m_stat, irq, m_irqRepeated);
-        if ((irq & 0x100) && PCSX ::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                                 .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-            logCDROM(irq);
-        }
-
-        switch (irq) {
-            case CdlGetStat:
-                if (m_driveState != DRIVESTATE_LID_OPEN) m_statP &= ~STATUS_SHELLOPEN;
-                no_busy_error = 1;
-                break;
-
-            case CdlSetloc:
-                break;
-
-            do_CdlPlay:
-            case CdlPlay:
-                StopCdda();
-                if (m_seeked == SEEK_PENDING) {
-                    // XXX: wrong, should seek instead..
-                    m_seeked = SEEK_DONE;
-                }
-                if (m_setlocPending) {
-                    m_setSectorPlay = m_setSector;
-                    m_setlocPending = 0;
-                    m_locationChanged = true;
-                }
-
-                // BIOS CD Player
-                // - Pause player, hit Track 01/02/../xx (Setloc issued!!)
-
-                if (m_paramC == 0 || m_param[0] == 0) {
-                    CDROM_LOG("PLAY Resume @ %d:%d:%d\n", m_setSectorPlay.m, m_setSectorPlay.s, m_setSectorPlay.f);
+        switch (m_status) {
+            case Status::ReadingData: {
+                unsigned track = m_iso->getTrack(m_currentPosition);
+                if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                    m_status = Status::Idle;
+                    maybeEnqueueError(4, 4);
+                } else if (track == 0) {
+                    m_status = Status::Idle;
+                    maybeEnqueueError(4, 0x10);
                 } else {
-                    int track = PCSX::IEC60908b::btoi(m_param[0]);
-                    if (track <= m_iso->getTN()) m_curTrack = track;
-                    CDROM_LOG("PLAY track %d\n", m_curTrack);
-                    m_setSectorPlay = m_iso->getTD(m_curTrack);
-                }
-
-                /*
-                Rayman: detect track changes
-                - fixes logo freeze
-
-                Twisted Metal 2: skip PREGAP + starting accurate SubQ
-                - plays tracks without retry play
-
-                Wild 9: skip PREGAP + starting accurate SubQ
-                - plays tracks without retry play
-                */
-                Find_CurTrack(m_setSectorPlay);
-                readTrack(m_setSectorPlay);
-                m_trackChanged = false;
-
-                // Vib Ribbon: gameplay checks flag
-                m_statP &= ~STATUS_SEEK;
-                m_result[0] = m_statP;
-
-                m_statP |= STATUS_PLAY;
-
-                // BIOS player - set flag again
-                m_play = true;
-
-                scheduleCDPlayIRQ(cdReadTime);
-                start_rotating = 1;
-                break;
-
-            case CdlForward:
-                // TODO: error 80 if stopped
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastForward == 0) {
-                    m_fastForward = 2;
-                } else {
-                    m_fastForward++;
-                }
-
-                m_fastBackward = 0;
-                break;
-
-            case CdlBackward:
-                m_stat = Complete;
-                m_suceeded = true;
-
-                // GameShark CD Player: Calls 2x + Play 2x
-                if (m_fastBackward == 0) {
-                    m_fastBackward = 2;
-                } else {
-                    m_fastBackward++;
-                }
-
-                m_fastForward = 0;
-                break;
-
-            case CdlStandby:
-                if (m_driveState != DRIVESTATE_STOPPED) {
-                    error = ERROR_INVALIDARG;
-                    goto set_error;
-                }
-                AddIrqQueue(CdlStandby + 0x100, cdReadTime * 125 / 2);
-                start_rotating = 1;
-                break;
-
-            case CdlStandby + 0x100:
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlStop:
-                if (m_play) {
-                    // grab time for current track
-                    m_setSectorPlay = m_iso->getTD(m_curTrack);
-                }
-
-                StopCdda();
-                StopReading();
-
-                delay = 0x800;
-                if (m_driveState == DRIVESTATE_STANDBY) delay = cdReadTime * 30 / 2;
-
-                m_driveState = DRIVESTATE_STOPPED;
-                AddIrqQueue(CdlStop + 0x100, delay);
-                break;
-
-            case CdlStop + 0x100:
-                m_statP &= ~STATUS_ROTATING;
-                m_result[0] = m_statP;
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlPause:
-                /*
-                Gundam Battle Assault 2: much slower (*)
-                - Fixes boot, gameplay
-
-                Hokuto no Ken 2: slower
-                - Fixes intro + subtitles
-
-                InuYasha - Feudal Fairy Tale: slower
-                - Fixes battles
-                */
-                /*
-                 * Gameblabla -
-                 * The timings are based on hardware tests and were taken from Duckstation.
-                 * A couple of notes :
-                 * Gundam Battle Assault 2 in PAL mode (this includes the PAL release) needs a high enough delay
-                 * if not, the game will either crash after the FMV intro or upon starting a new game.
-                 *
-                 */
-                if (m_driveState == DRIVESTATE_STANDBY) {
-                    /* Gameblabla -
-                     * Dead or Alive needs this condition and a shorter delay otherwise : if you pause ingame, music
-                     * will not resume. */
-                    delay = 7000;
-                } else {
-                    delay = (((m_mode & MODE_SPEED) ? 2 : 1) * (1000000));
-                    scheduleCDPlayIRQ((m_mode & MODE_SPEED) ? cdReadTime / 2 : cdReadTime);
-                }
-                AddIrqQueue(CdlPause + 0x100, delay);
-                m_ctrl |= BUSYSTS;  // Command/parameter transmission busy
-                break;
-
-            case CdlPause + 0x100:
-                m_statP &= ~STATUS_READ;
-                m_result[0] = m_statP;
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlReset:
-                m_muted = false;
-                m_mode = 0x20;                           /* This fixes This is Football 2, Pooh's Party lockups */
-                AddIrqQueue(CdlReset + 0x100, 4100000);  // 4100000 is from Mednafen
-                no_busy_error = 1;
-                start_rotating = 1;
-                break;
-
-            case CdlReset + 0x100:
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlMute:
-                m_muted = true;
-                break;
-
-            case CdlDemute:
-                m_muted = false;
-                break;
-
-            case CdlSetfilter:
-                m_file = m_param[0];
-                m_channel = m_param[1];
-                break;
-
-            case CdlSetmode:
-                no_busy_error = 1;
-                break;
-
-            case CdlGetparam:
-                SetResultSize(5);
-                m_result[1] = m_mode;
-                m_result[2] = 0;
-                m_result[3] = m_file;
-                m_result[4] = m_channel;
-                no_busy_error = 1;
-                break;
-
-            case CdlGetlocL:
-                SetResultSize(8);
-                memcpy(m_result, m_transfer, 8);
-                break;
-
-            case CdlGetlocP:
-                SetResultSize(8);
-                memcpy(&m_result, &m_subq, 8);
-
-                if (!m_play && m_iso->CheckSBI(m_result + 5)) memset(m_result + 2, 0, 6);
-                if (!m_play && !m_reading) m_result[1] = 0;  // HACK?
-                break;
-
-            case CdlReadT:  // SetSession?
-                // really long
-                AddIrqQueue(CdlReadT + 0x100, cdReadTime * 290 / 4);
-                start_rotating = 1;
-                break;
-
-            case CdlReadT + 0x100:
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlGetTN:
-                if (m_iso->failed()) {
-                    m_stat = DiskError;
-                    m_result[0] |= STATUS_ERROR;
-                } else {
-                    SetResultSize(3);
-                    m_stat = Acknowledge;
-                    m_result[1] = 1;
-                    m_result[2] = PCSX::IEC60908b::itob(m_iso->getTN());
-                }
-                break;
-
-            case CdlGetTD: {
-                if (m_iso->failed()) {
-                    m_stat = DiskError;
-                    m_result[0] |= STATUS_ERROR;
-                } else {
-                    m_track = PCSX::IEC60908b::btoi(m_param[0]);
-                    SetResultSize(4);
-                    m_stat = Acknowledge;
-                    MSF td = m_iso->getTD(m_track);
-                    m_result[0] = m_statP;
-                    m_result[1] = PCSX::IEC60908b::itob(td.m);
-                    m_result[2] = PCSX::IEC60908b::itob(td.s);
-                }
-                break;
-            }
-
-            case CdlSeekL:
-            case CdlSeekP:
-                StopCdda();
-                StopReading();
-                m_statP |= STATUS_SEEK;
-
-                /*
-                Crusaders of Might and Magic = 0.5x-4x
-                - fix cutscene speech start
-
-                Eggs of Steel = 2x-?
-                - fix new game
-
-                Medievil = ?-4x
-                - fix cutscene speech
-
-                Rockman X5 = 0.5-4x
-                - fix capcom logo
-                */
-                scheduleCDPlayIRQ(m_seeked == SEEK_DONE ? 0x800 : cdReadTime * 4);
-                m_seeked = SEEK_PENDING;
-                start_rotating = 1;
-                break;
-
-            case CdlTest:
-                switch (m_param[0]) {
-                    case 0x20:  // System Controller ROM Version
-                        SetResultSize(4);
-                        memcpy(m_result, Test20, 4);
-                        break;
-                    case 0x22:
-                        SetResultSize(8);
-                        memcpy(m_result, Test22, 4);
-                        break;
-                    case 0x23:
-                    case 0x24:
-                        SetResultSize(8);
-                        memcpy(m_result, Test23, 4);
-                        break;
-                }
-                no_busy_error = 1;
-                break;
-
-            case CdlID:
-                AddIrqQueue(CdlID + 0x100, 20480);
-                break;
-
-            case CdlID + 0x100:
-                SetResultSize(8);
-
-                if (m_iso->failed()) {
-                    m_result[0] = 0x08;
-                    m_result[1] = 0x40;
-                    memset((char *)&m_result[2], 0, 6);
-                    m_stat = DiskError;
-                    break;
-                }
-
-                m_result[0] = m_statP;
-                m_result[1] = 0;
-                m_result[2] = 0;
-                m_result[3] = 0;
-
-                // 0x10 - audio | 0x40 - disk missing | 0x80 - unlicensed
-                getStatus(&cdr_stat);
-                if (cdr_stat.Type == 0 || cdr_stat.Type == 0xff) {
-                    m_result[1] = 0xc0;
-                } else {
-                    // Audio, unlicensed
-                    if (cdr_stat.Type == 2) m_result[1] |= (0x10 | 0x80);
-                }
-                m_result[0] |= (m_result[1] >> 4) & 0x08;
-
-                strncpy((char *)&m_result[4], "PCSX", 4);
-                m_stat = Complete;
-                m_suceeded = true;
-                break;
-
-            case CdlInit:
-                // yes, it really sets STATUS_SHELLOPEN
-                m_statP |= STATUS_SHELLOPEN;
-                m_driveState = DRIVESTATE_RESCAN_CD;
-                scheduleCDLidIRQ(20480);
-                no_busy_error = 1;
-                start_rotating = 1;
-                break;
-
-            case CdlGetQ:
-                // TODO?
-                CDROM_LOG("got CdlGetQ\n");
-                break;
-
-            case CdlReadToc:
-                AddIrqQueue(CdlReadToc + 0x100, cdReadTime * 180 / 4);
-                no_busy_error = 1;
-                start_rotating = 1;
-                break;
-
-            case CdlReadToc + 0x100:
-                m_stat = Complete;
-                m_suceeded = true;
-                no_busy_error = 1;
-                break;
-
-            case CdlReadN:
-            case CdlReadS:
-                if (m_setlocPending) {
-                    m_setSectorPlay = m_setSector;
-                    m_setlocPending = 0;
-                    m_locationChanged = true;
-                }
-                Find_CurTrack(m_setSectorPlay);
-
-                if ((m_mode & MODE_CDDA) && m_curTrack > 1) {
-                    // Read* acts as play for cdda tracks in cdda mode
-                    goto do_CdlPlay;
-                }
-
-                m_reading = 1;
-                m_firstSector = 1;
-
-                // Fighting Force 2 - update m_subq time immediately
-                // - fixes new game
-                readTrack(m_setSectorPlay);
-
-                // Crusaders of Might and Magic - update getlocl now
-                // - fixes cutscene speech
-                {
-                    uint8_t *buf = m_iso->getBuffer();
-                    if (buf != NULL) memcpy(m_transfer, buf, 8);
-                }
-
-                /*
-                Duke Nukem: Land of the Babes - seek then delay read for one frame
-                - fixes cutscenes
-                C-12 - Final Resistance - doesn't like seek
-                */
-
-                // It LOOKS like this logic is wrong, therefore disabling it with `&& false` for now.
-                //
-                // For "PoPoLoCrois Monogatari II", the game logic will soft lock and will never issue GetLocP to detect
-                // the end of its XA streams, as it seems to assume ReadS will not return a status byte with the SEEK
-                // flag set. I think the reasonning is that since it's invalid to call GetLocP while seeking, the game
-                // tries to protect itself against errors by preventing from issuing a GetLocP while it knows the
-                // last status was "seek". But this makes the logic just softlock as it'll never get a notification
-                // about the fact the drive is done seeking and the read actually started.
-                //
-                // In other words, this state machine here is probably wrong in assuming the response to ReadS/ReadN is
-                // done right away. It's rather when it's done seeking, and the read has actually started. This probably
-                // requires a bit more work to make sure seek delays are processed properly.
-                //
-                // Checked with a few games, this seems to work fine.
-                if ((m_seeked != SEEK_DONE) && false) {
-                    m_statP |= STATUS_SEEK;
-                    m_statP &= ~STATUS_READ;
-
-                    // Crusaders of Might and Magic - use short time
-                    // - fix cutscene speech (startup)
-
-                    // ??? - use more accurate seek time later
-                    scheduleCDReadIRQ((m_mode & 0x80) ? (cdReadTime) : cdReadTime * 2);
-                } else {
-                    m_statP |= STATUS_READ;
-                    m_statP &= ~STATUS_SEEK;
-
-                    scheduleCDReadIRQ((m_mode & 0x80) ? (cdReadTime) : cdReadTime * 2);
-                }
-
-                m_result[0] = m_statP;
-                start_rotating = 1;
-                break;
-            case CdlSync:
-            default:
-                CDROM_LOG("Invalid command: %02x\n", irq);
-                error = ERROR_INVALIDCMD;
-
-            set_error:
-                SetResultSize(2);
-                m_result[0] = m_statP | STATUS_ERROR;
-                m_result[1] = error;
-                m_stat = DiskError;
-                break;
-        }
-
-        if (m_driveState == DRIVESTATE_STOPPED && start_rotating) {
-            m_driveState = DRIVESTATE_STANDBY;
-            m_statP |= STATUS_ROTATING;
-        }
-
-        if (!no_busy_error) {
-            switch (m_driveState) {
-                case DRIVESTATE_LID_OPEN:
-                case DRIVESTATE_RESCAN_CD:
-                case DRIVESTATE_PREPARE_CD:
-                    SetResultSize(2);
-                    m_result[0] = m_statP | STATUS_ERROR;
-                    m_result[1] = ERROR_NOTREADY;
-                    m_stat = DiskError;
-                    break;
-            }
-        }
-
-    finish:
-        setIrq();
-        m_paramC = 0;
-
-        {
-            CDROM_IO_LOG("CDR IRQ %d cmd %02x stat %02x: ", !!(m_stat & m_reg2), irq, m_stat);
-            for (int i = 0; i < m_resultC; i++) CDROM_IO_LOG("%02x ", m_result[i]);
-            CDROM_IO_LOG("\n");
-        }
-    }
-
-    static constexpr inline int ssat32_to_16(int v) {
-        if (v < -32768) {
-            v = -32768;
-        } else if (v > 32767) {
-            v = 32767;
-        }
-        return v;
-    }
-
-    void attenuate(int16_t *buf, int samples, int stereo) final {
-        int i, l, r;
-        int ll = m_attenuatorLeftToLeft;
-        int lr = m_attenuatorLeftToRight;
-        int rl = m_attenuatorRightToLeft;
-        int rr = m_attenuatorRightToRight;
-
-        if (lr == 0 && rl == 0 && 0x78 <= ll && ll <= 0x88 && 0x78 <= rr && rr <= 0x88) return;
-
-        if (!stereo && ll == 0x40 && lr == 0x40 && rl == 0x40 && rr == 0x40) return;
-
-        if (stereo) {
-            for (i = 0; i < samples; i++) {
-                l = buf[i * 2];
-                r = buf[i * 2 + 1];
-                l = (l * ll + r * rl) >> 7;
-                r = (r * rr + l * lr) >> 7;
-                buf[i * 2] = ssat32_to_16(l);
-                buf[i * 2 + 1] = ssat32_to_16(r);
-            }
-        } else {
-            for (i = 0; i < samples; i++) {
-                l = buf[i];
-                l = l * (ll + rl) >> 7;
-                buf[i] = ssat32_to_16(l);
-            }
-        }
-    }
-
-    void readInterrupt() final {
-        uint8_t *buf;
-
-        if (!m_reading) return;
-
-        if (m_irq || m_stat) {
-            scheduleCDReadIRQ(irqReschedule);
-            return;
-        }
-
-        uint32_t istat = PCSX::g_emulator->m_mem->readHardwareRegister<PCSX::Memory::ISTAT>();
-        uint32_t imask = PCSX::g_emulator->m_mem->readHardwareRegister<PCSX::Memory::IMASK>();
-
-        if ((istat & imask & 4) && !m_readRescheduled) {
-            // HACK: with PCSX::Emulator::BIAS 2, emulated CPU is often slower than real thing,
-            // game may be unfinished with prev data read, so reschedule
-            // (Brave Fencer Musashi)
-            scheduleCDReadIRQ(cdReadTime / 2);
-            m_readRescheduled = 1;
-            return;
-        }
-
-        SetResultSize(1);
-        m_statP |= STATUS_READ | STATUS_ROTATING;
-        m_statP &= ~STATUS_SEEK;
-        m_result[0] = m_statP;
-        m_seeked = SEEK_DONE;
-
-        readTrack(m_setSectorPlay);
-
-        buf = m_iso->getBuffer();
-        if (buf == NULL) m_suceeded = false;
-
-        if (!m_suceeded) {
-            CDROM_LOG("readInterrupt() Log: err\n");
-            memset(m_transfer, 0, PCSX::IEC60908b::DATA_SIZE);
-            m_stat = DiskError;
-            m_result[0] |= STATUS_ERROR;
-            setIrq();
-            return;
-        }
-
-        memcpy(m_transfer, buf, PCSX::IEC60908b::DATA_SIZE);
-        m_ctrl |= DRQSTS;  // Data fifo not empty
-
-        CDROM_LOG("readInterrupt() Log: cdr.m_transfer %x:%x:%x\n", m_transfer[0], m_transfer[1], m_transfer[2]);
-
-        if ((!m_muted) && (m_mode & MODE_STRSND) && (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingXa>()) &&
-            (m_firstSector != -1)) {  // CD-XA
-            // Firemen 2: Multi-XA files - briefings, cutscenes
-            if (m_firstSector == 1 && (m_mode & MODE_SF) == 0) {
-                m_file = m_transfer[4 + 0];
-                m_channel = m_transfer[4 + 1];
-            }
-
-            /* Gameblabla - Ignore sectors with channel 255.
-             * This fixes the missing sound in Blue's Clues : Blue's Big Musical.
-             * (Taxi 2 is also said to be affected by the same issue)
-             * */
-            if ((m_transfer[4 + 2] & 0x4) && (m_transfer[4 + 1] == m_channel) && (m_transfer[4 + 0] == m_file) &&
-                m_channel != 255) {
-                int ret = xa_decode_sector(&m_xa, m_transfer + 4, m_firstSector);
-                if (!ret) {
-                    attenuate(m_xa.pcm, m_xa.nsamples, m_xa.stereo);
-                    PCSX::g_emulator->m_spu->playADPCMchannel(&m_xa);
-                    m_firstSector = 0;
-                } else {
-                    m_firstSector = -1;
-                }
-            }
-        }
-
-        m_setSectorPlay++;
-        m_read = 0;
-        m_readRescheduled = 0;
-
-        uint32_t delay = (m_mode & MODE_SPEED) ? (cdReadTime / 2) : cdReadTime;
-        if (m_locationChanged) {
-            scheduleCDReadIRQ(delay * 30);
-            m_locationChanged = false;
-        } else {
-            scheduleCDReadIRQ(delay);
-        }
-
-        /*
-        Croc 2: $40 - only FORM1 (*)
-        Judge Dredd: $C8 - only FORM1 (*)
-        Sim Theme Park - no adpcm at all (zero)
-        */
-
-        if (!(m_mode & MODE_STRSND) || !(m_transfer[4 + 2] & 0x4)) {
-            m_stat = DataReady;
-            setIrq();
-        }
-
-        // update for CdlGetlocP
-        readTrack(m_setSectorPlay);
-    }
-
-    /*
-    read0:
-            03 - bit 0,1 - mode
-            04 - bit 2 - xa-adpcm fifo occupied
-            08 - bit 3 - parameter fifo empty
-            10 - bit 4 - parameter fifo safe to push to
-            20 - bit 5 - 1 result ready
-            40 - bit 6 - 1 dma ready
-            80 - bit 7 - 1 command being processed
-    */
-
-    uint8_t read0(void) final {
-        if (m_resultReady) {
-            m_ctrl |= RSLRRDY;  // Response fifo not empty
-        } else {
-            m_ctrl &= ~RSLRRDY;  // Response fifo empty
-        }
-
-        m_ctrl |= (PRMEMPT | PRMWRDY);  // Parameter fifo empty, parameter not fifo full
-
-        CDROM_IO_LOG("cdr r0: %02x\n", m_ctrl);
-        return m_ctrl;
-    }
-
-    void write0(uint8_t rt) final {
-        CDROM_IO_LOG("cdr w0: %02x\n", rt);
-        m_ctrl = (rt & 3) | (m_ctrl & ~3);
-    }
-
-    uint8_t read1(void) final {
-        uint8_t ret = 0;
-        if ((m_resultP & 0xf) < m_resultC) {
-            ret = m_result[m_resultP & 0xf];
-        }
-        m_resultP++;
-        if (m_resultP == m_resultC) m_resultReady = 0;
-        CDROM_IO_LOG("cdr r1: %02x\n", ret);
-        return ret;
-    }
-
-    void write1(uint8_t rt) final {
-        MSF set_loc;
-        int i;
-        CDROM_IO_LOG("cdr w1: %02x\n", rt);
-        switch (m_ctrl & 3) {
-            case 0:
-                break;
-            case 3:
-                m_attenuatorRightToRightT = rt;
-                return;
-            default:
-                return;
-        }
-
-        m_cmd = rt;
-        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-            logCDROM(rt);
-        }
-
-        if constexpr (PCSX::CDROM_IO_LOGGER::c_enabled) {
-            std::string args;
-            if (m_paramC) {
-                args = fmt::format(" Param[{}] = {{", m_paramC);
-                for (i = 0; i < m_paramC; i++) args += fmt::format(" {:02x},", m_param[i]);
-                args += "}";
-            }
-
-            if (rt > cdCmdEnumCount) {
-                CDROM_IO_LOG("CD1 write: %x (CdlUnknown) %s\n", rt, args);
-            } else {
-                CDROM_IO_LOG("CD1 write: %x (%s) %s\n", rt, magic_enum::enum_names<Commands>()[rt], args);
-            }
-        }
-
-        m_resultReady = 0;
-        m_ctrl |= BUSYSTS;  // Command/parameter transmission busy
-        // m_stat = NoIntr;
-        AddIrqQueue(m_cmd, 0x800);
-
-        switch (m_cmd) {
-            case CdlSetloc:
-                CDROM_LOG("CDROM setloc command (%02x, %02x, %02x)\n", m_param[0], m_param[1], m_param[2]);
-                // MM must be BCD, SS must be BCD and <0x60, FF must be BCD and <0x75
-                if (((m_param[0] & 0x0f) > 0x09) || (m_param[0] > 0x99) || ((m_param[1] & 0x0f) > 0x09) ||
-                    (m_param[1] >= 0x60) || ((m_param[2] & 0x0f) > 0x09) || (m_param[2] >= 0x75)) {
-                    CDROM_LOG("Invalid/out of range seek to %02x:%02x:%02x\n", m_param[0], m_param[1], m_param[2]);
-                } else {
-                    set_loc.fromBCD(m_param);
-
-                    i = m_setSectorPlay.toLBA();
-                    i = abs(i - int(set_loc.toLBA()));
-                    if (i > 16) m_seeked = SEEK_PENDING;
-
-                    m_setSector = set_loc;
-                    m_setlocPending = 1;
-                }
-                break;
-
-            case CdlReadN:
-            case CdlReadS:
-            case CdlPause:
-                StopCdda();
-                StopReading();
-                break;
-
-            case CdlInit:
-            case CdlReset:
-                m_seeked = SEEK_DONE;
-                StopCdda();
-                StopReading();
-                break;
-
-            case CdlSetmode:
-                CDROM_LOG("write1() Log: Setmode %x\n", m_param[0]);
-                if ((m_mode != MODE_STRSND) && (m_param[0] == MODE_STRSND)) {
-                    xa_decode_reset(&m_xa);
-                }
-                m_mode = m_param[0];
-
-                // Squaresoft on PlayStation 1998 Collector's CD Vol. 1
-                // - fixes choppy movie sound
-                if (m_play && (m_mode & MODE_CDDA) == 0) StopCdda();
-                break;
-        }
-    }
-
-    uint8_t read2(void) final {
-        unsigned char ret;
-
-        if (m_read == 0) {
-            m_ctrl &= ~DRQSTS;  // Data fifo empty
-            ret = 0;
-        } else {
-            ret = m_transfer[m_transferIndex];
-            m_transferIndex++;
-            adjustTransferIndex();
-        }
-        CDROM_IO_LOG("cdr r2: %02x\n", ret);
-        return ret;
-    }
-
-    void write2(uint8_t rt) final {
-        CDROM_IO_LOG("cdr w2: %02x\n", rt);
-        switch (m_ctrl & 3) {
-            case 0:
-                if (m_paramC < 8) {  // FIXME: size and wrapping
-                    m_param[m_paramC++] = rt;
-                }
-                return;
-            case 1:
-                m_reg2 = rt;
-                setIrq();
-                return;
-            case 2:
-                m_attenuatorLeftToLeftT = rt;
-                return;
-            case 3:
-                m_attenuatorRightToLeftT = rt;
-                return;
-        }
-    }
-
-    uint8_t read3(void) final {
-        uint8_t ret;
-        if (m_ctrl & 0x1) {
-            ret = m_stat | 0xE0;
-        } else {
-            ret = m_reg2 | 0xE0;
-        }
-        CDROM_IO_LOG("cdr r3: %02x\n", ret);
-        return ret;
-    }
-
-    void write3(uint8_t rt) final {
-        CDROM_IO_LOG("cdr w3: %02x\n", rt);
-        switch (m_ctrl & 3) {
-            case 0:
-                break;  // transfer
-            case 1:
-                m_stat &= ~rt;
-
-                if (rt & 0x40) m_paramC = 0;
-                return;
-            case 2:
-                m_attenuatorLeftToRightT = rt;
-                return;
-            case 3:
-                if (rt & 0x20) {
-                    memcpy(&m_attenuatorLeftToLeft, &m_attenuatorLeftToLeftT, 4);
-                    CDROM_IO_LOG("CD-XA Volume: %02x %02x | %02x %02x\n", m_attenuatorLeftToLeft,
-                                 m_attenuatorLeftToRight, m_attenuatorRightToLeft, m_attenuatorRightToRight);
-                }
-                return;
-        }
-
-        if ((rt & 0x80) && m_read == 0) {
-            m_read = 1;
-            m_transferIndex = 0;
-
-            switch (m_mode & (MODE_SIZE_2340 | MODE_SIZE_2328)) {
-                case MODE_SIZE_2328:
-                case MODE_SIZE_2048:
-                    m_transferIndex += 12;
-                    break;
-
-                case MODE_SIZE_2340:
-                    m_transferIndex += 0;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) final {
-        uint32_t cdsize;
-        unsigned i;
-        uint8_t *ptr;
-
-        CDROM_LOG("dma() Log: *** DMA 3 *** %x addr = %x size = %x\n", chcr, madr, bcr);
-
-        switch (chcr) {
-            case 0x11000000:
-            case 0x11400100: {
-                if (m_read == 0) {
-                    CDROM_LOG("dma() Log: *** DMA 3 *** NOT READY\n");
-                    break;
-                }
-
-                cdsize = (bcr & 0xffff) * 4;
-
-                // Ape Escape: bcr = 0001 / 0000
-                // - fix boot
-                if (cdsize == 0) {
-                    switch (m_mode & (MODE_SIZE_2340 | MODE_SIZE_2328)) {
-                        case MODE_SIZE_2340:
-                            cdsize = 2340;
-                            break;
-                        case MODE_SIZE_2328:
-                            cdsize = 2328;
-                            break;
-                        case MODE_SIZE_2048:
-                        default:
-                            cdsize = 2048;
-                            break;
+                    m_invalidLocL = false;
+                    m_iso->readTrack(m_currentPosition);
+                    auto buffer = m_iso->getBuffer();
+                    memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
+                    uint32_t size = 0;
+                    bool passToData = true;
+                    if ((buffer[3] == 2) && m_realtime) {
+                        PCSX::IEC60908b::SubHeaders subHeaders;
+                        subHeaders.fromBuffer(buffer + 4);
+                        if (subHeaders.isRealTime() && subHeaders.isAudio()) {
+                            passToData = false;
+                            if (m_subheaderFilter) {
+                                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: filtering not supported yet.\n");
+                                PCSX::g_system->pause();
+                            }
+                            // TODO: play XA sector.
+                        }
                     }
+                    if (passToData) {
+                        switch (m_readSpan) {
+                            case ReadSpan::S2048:
+                                size = 2048;
+                                if (buffer[3] == 1) {
+                                    memcpy(m_dataFIFO, buffer + 4, 2048);
+                                } else {
+                                    memcpy(m_dataFIFO, buffer + 12, 2048);
+                                }
+                                break;
+                            case ReadSpan::S2328:
+                                size = 2328;
+                                memcpy(m_dataFIFO, buffer + 12, 2328);
+                                break;
+                            case ReadSpan::S2340:
+                                size = 2340;
+                                memcpy(m_dataFIFO, buffer, 2340);
+                                break;
+                        }
+                    }
+                    auto readDelay = computeReadDelay();
+                    m_dataFIFOIndex = 0;
+                    m_dataFIFOPending = size;
+                    if (m_dataRequested) m_dataFIFOSize = size;
+                    m_currentPosition++;
+                    if (debug) {
+                        std::string msfFormat = fmt::format("{}", m_currentPosition);
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: advancing to %s.\n",
+                                            msfFormat);
+                    }
+                    if (passToData) {
+                        QueueElement ready;
+                        ready.pushPayloadData(getStatus());
+                        maybeTriggerIRQ(Cause::DataReady, ready);
+                    }
+                    scheduleRead(readDelay);
                 }
-
-                PCSX::IO<PCSX::File> memFile = PCSX::g_emulator->m_mem->getMemoryAsFile();
-                memFile->wSeek(madr);
-
-                /*
-                GS CDX: Enhancement CD crash
-                - Setloc 0:0:0
-                - CdlPlay
-                - Spams DMA3 and gets buffer overrun
-                */
-                for (i = 0; i < cdsize; ++i) {
-                    memFile->write<uint8_t>(m_transfer[m_transferIndex++]);
-                    adjustTransferIndex();
-                }
-                PCSX::g_emulator->m_mem->msanDmaWrite(madr, cdsize);
-                if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                        .get<PCSX::Emulator::DebugSettings::Debug>()) {
-                    PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, cdsize);
-                }
-                PCSX::g_emulator->m_cpu->Clear(madr, cdsize / 4);
-                // burst vs normal
-                if (chcr == 0x11400100) {
-                    scheduleCDDMAIRQ((cdsize / 4) / 4);
-                } else if (chcr == 0x11000000) {
-                    scheduleCDDMAIRQ((cdsize / 4) * 1);
-                }
-                return;
-            }
-
+            } break;
             default:
-                CDROM_LOG("dma() Log: Unknown cddma %x\n", chcr);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "unsupported yet\n");
+                PCSX::g_system->pause();
                 break;
         }
-
-        dmaInterrupt();
     }
 
-    void dmaInterrupt() final {
+    void scheduledDmaCallback() override {
         auto &mem = PCSX::g_emulator->m_mem;
         if (mem->isDMABusy<3>()) {
             mem->clearDMABusy<3>();
@@ -1497,129 +252,987 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void getCdInfo(void) { m_setSectorEnd = m_iso->getTD(0); }
+    void scheduleFifo(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRFIFO, cycles); }
+    void scheduleFifo(std::chrono::nanoseconds delay) { scheduleFifo(PCSX::psxRegisters::durationToCycles(delay)); }
 
-    void reset() final {
-        m_reg1Mode = 0;
-        m_cmdProcess = 0;
-        m_ctrl = 0;
+    void schedule(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRCOMMANDS, cycles); }
+    void schedule(std::chrono::nanoseconds delay) { schedule(PCSX::psxRegisters::durationToCycles(delay)); }
 
-        memset(m_transfer, 0, sizeof(m_transfer));
-        m_prev.reset();
-        memset(m_param, 0, sizeof(m_param));
-        memset(m_result, 0, sizeof(m_result));
+    void scheduleRead(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDREAD, cycles); }
+    void scheduleRead(std::chrono::nanoseconds delay) { scheduleRead(PCSX::psxRegisters::durationToCycles(delay)); }
 
-        m_paramC = 0;
-        m_resultC = 0;
-        m_resultP = 0;
-        m_resultReady = 0;
-        m_cmd = 0;
-        m_read = 0;
-        m_setlocPending = 0;
-        m_locationChanged = false;
-        m_reading = 0;
+    void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRDMA, cycles); }
+    void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
-        m_setSectorPlay.reset();
-        m_setSectorEnd.reset();
-        m_setSector.reset();
-        m_track = 0;
-        m_play = false;
-        m_muted = false;
-        m_mode = 0;
-        m_suceeded = true;
-        m_firstSector = 0;
-
-        memset(&m_xa, 0, sizeof(m_xa));
-
-        m_irq = 0;
-        m_irqRepeated = 0;
-        m_eCycle = 0;
-
-        m_seeked = 0;
-        m_readRescheduled = 0;
-
-        m_fastForward = 0;
-        m_fastBackward = 0;
-
-        m_attenuatorLeftToLeftT = 0;
-        m_attenuatorLeftToRightT = 0;
-        m_attenuatorRightToRightT = 0;
-        m_attenuatorRightToLeftT = 0;
-
-        m_subq.index = 0;
-        m_subq.relative[0] = 0;
-        m_subq.relative[1] = 0;
-        m_subq.relative[2] = 0;
-        m_subq.absolute[0] = 0;
-        m_subq.absolute[1] = 0;
-        m_subq.absolute[2] = 0;
-        m_trackChanged = false;
-
-        m_curTrack = 1;
-        m_file = 1;
-        m_channel = 1;
-        m_transferIndex = 0;
-        m_reg2 = 0x1f;
-        m_stat = NoIntr;
-        m_driveState = DRIVESTATE_STANDBY;
-        m_statP = STATUS_ROTATING;
-
-        // BIOS player - default values
-        m_attenuatorLeftToLeft = 0x80;
-        m_attenuatorLeftToRight = 0x00;
-        m_attenuatorRightToLeft = 0x00;
-        m_attenuatorRightToRight = 0x80;
-
-        getCdInfo();
+    bool maybeEnqueueResponse(QueueElement &response) {
+        if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
+            m_responseFifo[0] = m_responseFifo[1];
+            m_responseFifo[1] = response;
+            return true;
+        }
+        if (m_responseFifo[0].empty()) {
+            m_responseFifo[0] = response;
+            return true;
+        } else if (m_responseFifo[1].empty()) {
+            m_responseFifo[1] = response;
+        }
+        return false;
     }
 
-    void load() final {
-        getCdInfo();
-
-        // read right sub data
-        MSF tmp = m_prev;
-        readTrack(++tmp);
-
-        if (m_play) {
-            Find_CurTrack(m_setSectorPlay);
+    void maybeTriggerIRQ(Cause cause, QueueElement &element) {
+        uint8_t causeValue = static_cast<uint8_t>(cause);
+        uint8_t bit = 1 << (causeValue - 1);
+        if (m_interruptCauseMask & bit) {
+            element.setValue(cause);
+            bool actuallyTriggering = false;
+            if (maybeEnqueueResponse(element)) {
+                PCSX::g_emulator->m_mem->setIRQ(4);
+                actuallyTriggering = true;
+            }
+            const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                                   .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+            if (debug) {
+                auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+                if (actuallyTriggering) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] triggering IRQ with cause %d\n",
+                                        regs.pc, regs.cycle, causeValue);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                        "CD-Rom: %08x.%08x] wanted to trigger IRQ with cause %d, but queue is full\n",
+                                        regs.pc, regs.cycle, causeValue);
+                }
+            }
+        } else {
+            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: wanted to trigger IRQ but cause %d is masked...\n",
+                                    causeValue);
+            }
         }
     }
 
-    void lidInterrupt() final {
-        getCdInfo();
-        StopCdda();
-        lidSeekInterrupt();
+    uint8_t getStatus(bool resetLid = false) {
+        bool lidOpen = isLidOpen();
+        if (resetLid && !lidOpen) m_wasLidOpened = false;
+        uint8_t v1 = m_motorOn && !lidOpen ? 0x02 : 0;
+        uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
+        uint8_t v567 = 0;
+        switch (m_status) {
+            case Status::ReadingData:
+                v567 = 0x20;
+                break;
+            case Status::Seeking:
+                v567 = 0x40;
+                break;
+            case Status::PlayingCDDA:
+                v567 = 0x80;
+                break;
+        }
+        return v1 | v4 | v567;
     }
 
-    void logCDROM(int command) {
-        const auto delayedString = (command & 0x100) ? "[Delayed]" : "";  // log if this is a delayed CD-ROM IRQ
-        uint32_t pc = PCSX::g_emulator->m_cpu->m_regs.pc;
+    uint8_t read0() override {
+        // HSTS (host status) register
+        /*
+          bit 7: BUSYSTS (busy status)
+                 This is high when the host writes a command into the command register and low when the sub
+                 CPU sets the CLRBUSY bit (bit 6) of the CLRCTL register.
+         */
+        uint8_t v7 = m_commandFifo.hasValue ? 0x80 : 0;
+        /*
+          bit 6: DRQSTS (data request status)
+                 Indicates to the host that the buffer memory data transfer request status is established. When
+                 transferring data in the I/O mode, the host should confirm that this bit is high before accessing the
+                 WRDATA or RDDATA register.
+         */
+        uint8_t v6 = m_dataFIFOSize != m_dataFIFOIndex ? 0x40 : 0;
+        /*
+          bit 5: RSLRRDY (result read ready)
+                 The result register is not empty when this bit is high. At this time, the host can read the result
+                 register.
+         */
+        uint8_t v5 = !m_responseFifo[0].isPayloadAtEnd() ? 0x20 : 0;
+        /*
+          bit 4: PRMWRDY (parameter write ready)
+                 The PARAMETER register is not full when this bit is high. At this time, the host writes data into the
+                 PARAMETER register.
+         */
+        uint8_t v4 = !m_commandFifo.isPayloadFull() ? 0x10 : 0;
+        /*
+          bit 3: PRMEMPT (parameter empty)
+                 The PARAMETER register is empty when this bit is high.
+         */
+        uint8_t v3 = m_commandFifo.isPayloadEmpty() ? 0x08 : 0;
+        /*
+          bit 2: ADPBUSY (ADPCM busy)
+                 This bit is set high for ADPCM decoding.
+         */
+        uint8_t v2 = 0; /* adpcmPlaying */
+        /*
+          bits 1, 0: RA1, 0
+                 The values of the RA1 and 0 bits for the ADDRESS register can be read from these bits.
+         */
+        uint8_t v01 = m_registerAddress & 3;
 
-        switch (command & 0xff) {
-            // TODO: decode more commands
-            case CdlTest:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlTest %02x\n", pc, delayedString,
-                                    m_param[0]);
+        uint8_t ret = v01 | v2 | v3 | v4 | v5 | v6 | v7;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r0: %02x\n", regs.pc, regs.cycle, ret);
+        }
+
+        return ret;
+    }
+
+    uint8_t read1() override {
+        // RESULT
+        uint8_t ret = m_responseFifo[0].readPayloadByte();
+        maybeScheduleNextCommand();
+
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r1: %02x\n", regs.pc, regs.cycle, ret);
+        }
+        return ret;
+    }
+
+    uint8_t read2() override {
+        // RD DATA
+        uint8_t ret = 0;
+        if (!dataFIFOHasData()) {
+            ret = 0;
+        } else {
+            ret = m_dataFIFO[m_dataFIFOIndex++];
+        }
+
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r2: %02x\n", regs.pc, regs.cycle, ret);
+        }
+        return ret;
+    }
+
+    uint8_t read3() override {
+        /*
+         * bit 4: BFWRDY (buffer write ready)
+         *        The BFWRDY status is established if there is area where writing is possible in the buffer of 1 sector
+         *        or more for sound map playback. It is established in any of the following cases:
+         *        (1) When the host has set the SMEN bit (bit 5) of the HCHPCTL register high
+         *        (2) When there is sound map data area of 1 sector or more in the buffer memory (when the buffer
+         *            is not full) after the sound map data equivalent to 1 sector from the host has been written into
+         *            the buffer memory
+         *        (3) When an area for writing the sound map data has been created in the buffer memory by the
+         *            completion of the sound map ADPCM decoding of one sector
+         * bit 3: BFEMPT (buffer empty)
+         *        The BFEMPT status is established when there is no more sector data in the buffer memory upon
+         *        completion of the sound map ADPCM decoding of one sector for sound map playback.
+         * bits 2 to 0: INTSTS#2 to 0
+         *        The values of these bits are those of the corresponding bits for the sub CPU HIFCTL register.
+         */
+
+        uint8_t ret = 0;
+        switch (m_registerAddress & 1) {
+            case 0: {
+                // HINT MSK (host interrupt mask)
+                ret = m_interruptCauseMask;
+            } break;
+            case 1: {
+                // HINT STS (host interrupt status)
+                ret = m_responseFifo[0].getValue();
+            } break;
+        }
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] r3.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerAddress & 1, ret);
+        }
+        return ret | 0xe0;
+    }
+
+    void write0(uint8_t value) override {
+        // ADDRESS
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w0: %02x\n", regs.pc, regs.cycle, value);
+        }
+        m_registerAddress = value & 3;
+    }
+
+    void write1(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w1.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerAddress, value);
+        }
+        switch (m_registerAddress) {
+            case 0:
+                // COMMAND
+                m_commandFifo.value = value;
+                if (!m_commandFifo.hasValue) {
+                    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                            .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
+                        logCDROM(m_commandFifo);
+                    }
+                    scheduleFifo(797us);
+                }
+                m_commandFifo.hasValue = true;
                 break;
-            case CdlSetloc:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlSetloc %02x:%02x:%02x\n", pc,
-                                    delayedString, m_param[0], m_param[1], m_param[2]);
-                break;
-            case CdlPlay:
-                if (m_paramC == 0) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay\n", pc, delayedString);
+            case 1: {
+                // WR DATA
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:1 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 2: {
+                /*
+                CI (coding information)
+                This sets the coding information for sound map playback. The bit allocation is the same as that for the
+                coding information bytes of the sub header.
+                  bits 7, 5, 3, 1: Reserved
+                  bit 6: EMPHASIS
+                      High: Emphasis ON
+                      Low : Emphasis OFF
+                  bit 4: BITLNGTH
+                      High: 8 bits
+                      Low : 4 bits
+                  bit 2: FS
+                      High: 18.9 kHz
+                      Low : 37.8 kHz
+                  bit 0: S/M (stereo/mono)
+                      High: Stereo
+                      Low : Mono
+                */
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w1:2 not available yet\n");
+                PCSX::g_system->pause();
+            } break;
+            case 3: {
+                // ATV2 Right-to-Right
+                m_atv[2] = value;
+            } break;
+        }
+    }
+
+    void write2(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w2.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerAddress, value);
+        }
+        switch (m_registerAddress) {
+            case 0: {
+                // PARAMETER
+                m_commandFifo.pushPayloadData(value);
+            } break;
+            case 1: {
+                // HINT MSK (host interrupt mask)
+                m_interruptCauseMask = value;
+            } break;
+            case 2: {
+                // ATV0 Left-to-Left
+                m_atv[0] = value;
+            } break;
+            case 3: {
+                // ATV3 Right-to-Left
+                m_atv[3] = value;
+            } break;
+        }
+    }
+
+    void write3(uint8_t value) override {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingHWCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] w3.%i: %02x\n", regs.pc, regs.cycle,
+                                m_registerAddress, value);
+        }
+        switch (m_registerAddress) {
+            case 0: {
+                // clang-format off
+                /*
+                HCHPCTL (host chip control) register
+                  bit 7: BFRD (buffer read)
+                         The transfer of (drive) data from the buffer memory to the host is started by setting this bit high.
+                         The bit is automatically set low upon completion of the transfer.
+                  bit 6: BFWR (buffer write)
+                         The transfer of data from the host to the buffer memory is started by setting this bit high. The bit is
+                         automatically set low upon completion of the transfer.
+                  bit 5: SMEN (sound map En)
+                         This is set high to perform sound map ADPCM playback.
+                */
+                // clang-format on
+                bool bfrd = value & 0x80;
+                bool bfwr = value & 0x40;
+                bool smen = value & 0x20;
+                if (bfrd) {
+                    m_dataRequested = true;
+                    m_dataFIFOSize = m_dataFIFOPending;
                 } else {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc,
-                                        delayedString, m_param[0]);
+                    m_dataRequested = false;
+                    m_dataFIFOSize = 0;
+                    m_dataFIFOIndex = 0;
+                }
+                m_soundMapEnabled = smen;
+            } break;
+            case 1: {
+                // clang-format off
+                /*
+                HCLRCTL (host clear control)
+                When each bit of this register is set high, the chip, status, register, interrupt status and interrupt request to
+                the host generated by the status are cleared.
+                  bit 7: CHPRST (chip reset)
+                         The inside of the IC is initialized by setting this bit high. The bit is automatically set low upon
+                         completion of the initialization of the IC. There is therefore no need for the host to reset low. When
+                         the inside of the IC is initialized by setting bit high, the XHRS pin is set low.
+                  bit 6: CLRPRM (clear parameter)
+                         The parameter register is cleared by setting this bit high. The bit is automatically set low upon
+                         completion of the clearing for the parameter register. There is therefore no need for the host to
+                         reset low.
+                  bit 5: SMADPCLR (sound map ADPCM clear)
+                         This bit is set high to terminate sound map ADPCM decoding forcibly.
+                         (1) When this bit has been set high for sound map ADPCM playback (when both SMEN and
+                             ADPBSY (HSTS register bit 2) are high):
+                             • ADPCM decoding during playback is suspended. (Noise may be generated).
+                             • The sound map and buffer management circuits in the IC are cleared, making the buffer
+                               empty. The BFEMPT interrupt status is established.
+                             (Note) Set the SMEN bit low at the same time as this bit is set high.
+                         (2) Setting this bit high when the sound map ADPCM playback is not being performed has no
+                             effect whatsoever
+                  bit 4: CLRBFWRDY (clear buffer write ready interrupt)
+                  bit 3: CLRBFEMPT (clear buffer write empty interrupt)
+                  bits 2 to 0: CLRINT#2 to 0 (clear interrupt #2 to 0)
+                      bit 4 clears the corresponding interrupt status.
+                */
+                // clang-format on
+                bool ack = false;
+                // cause ack
+                if (value == 0x07) {
+                    // partial ack?
+                    ack = true;
+                }
+                if (value == 0x1f) {
+                    // all ack?
+                    ack = true;
+                }
+                if (ack) {
+                    if (debug) {
+                        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: acked %02x (was %i)\n", value,
+                                            m_responseFifo[0].value);
+                    }
+                    m_responseFifo[0].valueRead = true;
+                    maybeScheduleNextCommand();
+                    return;
+                }
+                if (value & 0x10) {
+                    // request ack?
+                    // TODO: act on this?
+                }
+                if (value & 0x08) {
+                    // ??
+                    // TODO: act on this?
+                }
+                if (value & 0x40) {
+                    m_commandFifo.payloadSize = 0;
+                    return;
+                }
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:1(%02x) not available yet\n", value);
+                PCSX::g_system->pause();
+            } break;
+            case 2: {
+                // ATV1 Left-to-Right
+                m_atv[1] = value;
+            } break;
+            case 3: {
+                // clang-format off
+                /*
+                ADPCTL (ADPCM control) register
+                  bit 5: CHNGATV (change ATV register)
+                         The host sets this bit high after the changes of the ATV 3 to 0 registers have been completed. The
+                         attenuator value in the IC is switched for the first time. There is no need for the host to set this bit
+                         low. The bit used to set the ATV3 to 0 registers of the host and to synchronize the IC audio
+                         playback.
+                  bit 0: ADPMUTE (ADPCM mute)
+                         Set high to mute the ADPCM sound for ADPCM decoding.
+                  bits 7, 6, 4 to 1: Reserved
+                */
+                // clang-format on
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:3 not available yet\n");
+            } break;
+        }
+    }
+
+    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) override {
+        uint32_t size = bcr & 0xffff;
+        size *= 4;
+        if (size == 0) size = 0xffffffff;
+        size = std::min(m_dataFIFOSize - m_dataFIFOIndex, size);
+        PCSX::IO<PCSX::File> memFile = PCSX::g_emulator->m_mem->getMemoryAsFile();
+        memFile->wSeek(madr);
+        memFile->write(m_dataFIFO + m_dataFIFOIndex, size);
+        m_dataFIFOIndex += size;
+        PCSX::g_emulator->m_cpu->Clear(madr, size / 4);
+        PCSX::g_emulator->m_mem->msanDmaWrite(madr, size);
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                .get<PCSX::Emulator::DebugSettings::Debug>()) {
+            PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, size);
+        }
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (debug) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                "CD-Rom: %08x.%08x] DMA transfer requested to address %08x, size %08x\n", regs.pc,
+                                regs.cycle, madr, size);
+        }
+        if (chcr == 0x11400100) {
+            scheduleDMA(size / 16);
+        } else {
+            scheduleDMA(size / 4);
+        }
+    }
+
+    void maybeEnqueueError(uint8_t mask1, uint8_t mask2) {
+        QueueElement error;
+        error.pushPayloadData(getStatus() | mask1);
+        error.pushPayloadData(mask2);
+        maybeTriggerIRQ(Cause::Error, error);
+    }
+
+    void maybeStartCommand() {
+        if (m_commandFifo.empty()) return;
+        auto command = m_commandFifo.value;
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (!m_responseFifo[0].valueRead || !m_responseFifo[1].empty()) {
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n",
+                                    commandName(command), command);
+            }
+            return;
+        }
+        if (debug) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Starting command %s (%i)\n", commandName(command),
+                                command);
+        }
+        static constexpr unsigned c_commandMax = sizeof(c_commandsArgumentsCount) / sizeof(c_commandsArgumentsCount[0]);
+        if (command >= c_commandMax) {
+            maybeEnqueueError(1, 0x40);
+            maybeScheduleNextCommand();
+            m_commandFifo.clear();
+            return;
+        }
+        auto expectedCount = c_commandsArgumentsCount[command];
+        if ((expectedCount >= 0) && (expectedCount != m_commandFifo.payloadSize)) {
+            maybeEnqueueError(1, 0x20);
+            maybeScheduleNextCommand();
+            m_commandFifo.clear();
+            return;
+        }
+        auto handler = c_commandsHandlers[command];
+        if (handler) {
+            if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
+        } else {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unsupported command %i (%s).\n", command,
+                                commandName(command));
+            PCSX::g_system->pause();
+            maybeEnqueueError(1, 0x40);
+            maybeScheduleNextCommand();
+        }
+        m_commandFifo.clear();
+    }
+
+    void maybeScheduleNextCommand() {
+        const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+                               .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
+        if (!responseFifoFull()) {
+            if (debug) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Scheduling queued next command to run.\n");
+            }
+            scheduleFifo(797us);
+        } else if (debug) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                "CD-Rom: Won't schedule next command to run as response fifo is full.\n");
+        }
+    }
+
+    enum class SeekType { DATA, CDDA };
+
+    std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading = false) {
+        unsigned destTrack = m_iso->getTrack(to);
+        if (destTrack == 0) return 650ms;
+        if ((seekType == SeekType::DATA) && (m_iso->getTrackType(destTrack) == PCSX::CDRIso::TrackType::CDDA)) {
+            return 4s;
+        }
+        uint32_t distance = 0;
+        if (from > to) {
+            distance = (from - to).toLBA();
+        } else {
+            distance = (to - from).toLBA();
+        }
+        // TODO: ought to be a decent approximation for now,
+        // but may require some tuning later on.
+        return std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms);
+    }
+
+    std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
+
+    // "Command" 0, which doesn't actually exist.
+    bool cdlSync(const QueueElement &command, bool start) {
+        maybeEnqueueError(1, 0x40);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 1.
+    bool cdlNop(const QueueElement &command, bool start) {
+        QueueElement response;
+        response.pushPayloadData(getStatus(true));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 2.
+    bool cdlSetLoc(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        // What happens when issued during Read / Play?
+        auto maybeMSF = getMSF(command.payload);
+        QueueElement response;
+        Cause cause;
+        if (maybeMSF.has_value()) {
+            response.pushPayloadData(getStatus());
+            cause = Cause::Acknowledge;
+            maybeTriggerIRQ(cause, response);
+            m_seekPosition = maybeMSF.value();
+        } else {
+            maybeEnqueueError(1, 0x10);
+        }
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 6.
+    bool cdlReadN(const QueueElement &command, bool start) {
+        m_status = Status::Idle;
+        scheduleRead(20ms);
+        m_readingType = ReadingType::Normal;
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        m_readingState = ReadingState::Seeking;
+        return false;
+    }
+
+    // Command 9.
+    bool cdlPause(const QueueElement &command, bool start) {
+        if (start) {
+            if (m_status == Status::Idle) {
+                schedule(200us);
+            } else {
+                schedule(m_speed == Speed::Simple ? 70ms : 35ms);
+            }
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            m_status = Status::Idle;
+            m_invalidLocL = true;
+            return true;
+        } else {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 10.
+    bool cdlInit(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            m_motorOn = true;
+            m_speedChanged = false;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(120ms);
+            // TODO: figure out exactly the various states of the CD-Rom controller
+            // that are being reset, and their value.
+            m_currentPosition.reset();
+            m_currentPosition.s = 2;
+            m_seekPosition.reset();
+            m_seekPosition.s = 2;
+            m_invalidLocL = false;
+            m_speed = Speed::Simple;
+            m_status = Status::Idle;
+            m_interruptCauseMask = 0x1f;
+            m_readingState = ReadingState::None;
+            memset(m_lastLocP, 0, sizeof(m_lastLocP));
+            // Probably need to cancel other scheduled tasks here.
+            return true;
+        } else {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 11
+    bool cdlMute(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Mute - not yet implemented.\n");
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 12
+    bool cdlDemute(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Demute - not yet implemented.\n");
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 14
+    bool cdlSetMode(const QueueElement &command, bool start) {
+        uint8_t mode = command.payload[0];
+        // TODO: add the rest of the mode bits.
+        if (mode & 0x80) {
+            if (m_speed == Speed::Simple) {
+                m_speed = Speed::Double;
+                m_speedChanged = true;
+            }
+        } else {
+            if (m_speed == Speed::Double) {
+                m_speed = Speed::Simple;
+                m_speedChanged = true;
+            }
+        }
+        switch ((mode & 0x30) >> 4) {
+            case 0:
+                m_readSpan = ReadSpan::S2048;
+                break;
+            case 1:
+                m_readSpan = ReadSpan::S2328;
+                break;
+            case 2:
+                m_readSpan = ReadSpan::S2340;
+                break;
+            case 3:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
+                PCSX::g_system->pause();
+                break;
+        }
+        m_subheaderFilter = (mode & 0x08) != 0;
+        m_realtime = (mode & 0x40) != 0;
+        if (mode & 0x07) {
+            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
+            PCSX::g_system->pause();
+        }
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 16.
+    bool cdlGetLocL(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        if (m_invalidLocL) {
+            maybeEnqueueError(1, 0x80);
+        } else {
+            QueueElement response;
+            response.pushPayloadData(std::string_view((char *)m_lastLocL, sizeof(m_lastLocL)));
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+        }
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 17.
+    bool cdlGetLocP(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        m_iso->getLocP(m_currentPosition, m_lastLocP);
+        QueueElement response;
+        response.pushPayloadData(std::string_view((char *)m_lastLocP, sizeof(m_lastLocP)));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 19.
+    bool cdlGetTN(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        response.pushPayloadData(1);
+        response.pushPayloadData(PCSX::IEC60908b::itob(m_iso->getTN()));
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 20.
+    bool cdlGetTD(const QueueElement &command, bool start) {
+        // TODO: probably should error out if no disc or
+        // lid open?
+        auto track = PCSX::IEC60908b::btoi(command.payload[0]);
+        if (!isValidBCD(command.payload[0]) || (track > m_iso->getTN())) {
+            maybeEnqueueError(1, 0x10);
+        } else {
+            auto td = m_iso->getTD(track);
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            response.pushPayloadData(PCSX::IEC60908b::itob(td.m));
+            response.pushPayloadData(PCSX::IEC60908b::itob(td.s));
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+        }
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 21.
+    bool cdlSeekL(const QueueElement &command, bool start) {
+        m_readingState = ReadingState::None;
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(15ms);
+            return true;
+        } else if (m_status != Status::Seeking) {
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA);
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
+            }
+            m_status = Status::Seeking;
+            schedule(seekDelay);
+            return true;
+        } else {
+            m_status = Status::Idle;
+            m_currentPosition = m_seekPosition;
+            unsigned track = m_iso->getTrack(m_seekPosition);
+            if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
+                maybeEnqueueError(4, 4);
+            } else if (track == 0) {
+                maybeEnqueueError(4, 0x10);
+            } else {
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Complete, response);
+            }
+            m_invalidLocL = true;
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 22.
+    bool cdlSeekP(const QueueElement &command, bool start) {
+        m_readingState = ReadingState::None;
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(15ms);
+            return true;
+        } else if (m_status != Status::Seeking) {
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::CDDA);
+            if (m_speedChanged) {
+                m_speedChanged = false;
+                seekDelay += 650ms;
+            }
+            m_status = Status::Seeking;
+            schedule(seekDelay);
+            return true;
+        } else {
+            m_status = Status::Idle;
+            MSF fudge = m_seekPosition - MSF{m_seekPosition.toLBA() / 32768};
+            m_currentPosition = fudge;
+            if (m_iso->getTrack(m_seekPosition) == 0) {
+                maybeEnqueueError(4, 0x10);
+            } else {
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Complete, response);
+            }
+            m_invalidLocL = true;
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 25.
+    bool cdlTest(const QueueElement &command, bool start) {
+        static constexpr uint8_t c_test20[] = {0x94, 0x09, 0x19, 0xc0};
+        if (command.isPayloadEmpty()) {
+            maybeEnqueueError(1, 0x20);
+            maybeScheduleNextCommand();
+            return false;
+        }
+
+        switch (command.payload[0]) {
+            case 0x20:
+                if (command.payloadSize == 1) {
+                    QueueElement response;
+                    response.pushPayloadData(std::string_view((const char *)c_test20, sizeof(c_test20)));
+                    maybeTriggerIRQ(Cause::Acknowledge, response);
+                } else {
+                    maybeEnqueueError(1, 0x20);
                 }
                 break;
-            case CdlSetfilter:
-                PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "%08x [CDROM]%s Command: CdlSetfilter file: %i, channel: %i\n", pc, delayedString,
-                                    m_param[0], m_param[1]);
+            default:
+                maybeEnqueueError(1, 0x10);
                 break;
-            case CdlSetmode: {
-                auto mode = m_param[0];
+        }
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 26.
+    bool cdlID(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(5ms);
+            return true;
+        } else {
+            // Adjust this response for various types of discs and situations.
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            response.pushPayloadData(0x00);
+            response.pushPayloadData(0x20);
+            response.pushPayloadData(0x00);
+            response.pushPayloadData("PCSX"sv);
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 27.
+    bool cdlReadS(const QueueElement &command, bool start) {
+        bool ret = cdlReadN(command, start);
+        m_readingType = ReadingType::Streaming;
+        return ret;
+    }
+
+    typedef bool (CDRomImpl::*CommandType)(const QueueElement &, bool);
+
+    const CommandType c_commandsHandlers[31]{
+#if 0
+        &CDRomImpl::cdlSync, &CDRomImpl::cdlNop, &CDRomImpl::cdlSetLoc, &CDRomImpl::cdlPlay, // 0
+        &CDRomImpl::cdlForward, &CDRomImpl::cdlBackward, &CDRomImpl::cdlReadN, &CDRomImpl::cdlStandby, // 4
+        &CDRomImpl::cdlStop, &CDRomImpl::cdlPause, &CDRomImpl::cdlInit, &CDRomImpl::cdlMute, // 8
+        &CDRomImpl::cdlDemute, &CDRomImpl::cdlSetFilter, &CDRomImpl::cdlSetMode, &CDRomImpl::cdlGetParam, // 12
+        &CDRomImpl::cdlGetLocL, &CDRomImpl::cdlGetLocP, &CDRomImpl::cdlReadT, &CDRomImpl::cdlGetTN, // 16
+        &CDRomImpl::cdlGetTD, &CDRomImpl::cdlSeekL, &CDRomImpl::cdlSeekP, &CDRomImpl::cdlSetClock,  // 20
+        &CDRomImpl::cdlGetClock, &CDRomImpl::cdlTest, &CDRomImpl::cdlID, &CDRomImpl::cdlReadS, // 24
+        &CDRomImpl::cdlReset, &CDRomImpl::cdlGetQ, &CDRomImpl::cdlReadTOC,                    // 28
+#else
+        &CDRomImpl::cdlSync,
+        &CDRomImpl::cdlNop,
+        &CDRomImpl::cdlSetLoc,
+        nullptr,  // 0
+        nullptr,
+        nullptr,
+        &CDRomImpl::cdlReadN,
+        nullptr,  // 4
+        nullptr,
+        &CDRomImpl::cdlPause,
+        &CDRomImpl::cdlInit,
+        &CDRomImpl::cdlMute,  // 8
+        &CDRomImpl::cdlDemute,
+        nullptr,
+        &CDRomImpl::cdlSetMode,
+        nullptr,  // 12
+        &CDRomImpl::cdlGetLocL,
+        &CDRomImpl::cdlGetLocP,
+        nullptr,
+        &CDRomImpl::cdlGetTN,  // 16
+        &CDRomImpl::cdlGetTD,
+        &CDRomImpl::cdlSeekL,
+        &CDRomImpl::cdlSeekP,
+        nullptr,  // 20
+        nullptr,
+        &CDRomImpl::cdlTest,
+        &CDRomImpl::cdlID,
+        &CDRomImpl::cdlReadS,  // 24
+        nullptr,
+        nullptr,
+        nullptr,  // 28
+#endif
+    };
+
+    static constexpr int c_commandsArgumentsCount[31] = {
+        0, 0,  3, -1,  // 0
+        0, 0,  0, 0,   // 4
+        0, 0,  0, 0,   // 8
+        0, 2,  1, 0,   // 12
+        0, 0,  1, 0,   // 16
+        1, 0,  0, 0,   // 20
+        0, -1, 0, 0,   // 24
+        0, 0,  0,      // 28
+    };
+
+    void logCDROM(const QueueElement &command) {
+        auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+
+        switch (command.value) {
+            case CdlTest:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlTest %02x\n", regs.pc,
+                                    regs.cycle, command.payload[0]);
+                break;
+            case CdlSetLoc:
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetloc %02x:%02x:%02x\n",
+                                    regs.pc, regs.cycle, command.payload[0], command.payload[1], command.payload[2]);
+                break;
+            case CdlPlay:
+                if (command.payloadSize == 0) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay\n", regs.pc,
+                                        regs.cycle);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlPlay %i\n", regs.pc,
+                                        regs.cycle, command.payload[0]);
+                }
+                break;
+            case CdlSetFilter:
+                PCSX::g_system->log(PCSX::LogClass::CDROM,
+                                    "CD-Rom: %08x.%08x] Command: CdlSetfilter file: %i, channel: %i\n", regs.pc,
+                                    regs.cycle, command.payload[0], command.payload[1]);
+                break;
+            case CdlSetMode: {
+                auto mode = command.payload[0];
                 std::string modeDecode = mode & 1 ? "CDDA" : "DATA";
                 if (mode & 2) modeDecode += " Autopause";
                 if (mode & 4) modeDecode += " Report";
@@ -1640,26 +1253,26 @@ class CDRomImpl : public PCSX::CDRom {
                 }
                 if (mode & 0x40) modeDecode += " RealTimePlay";
                 modeDecode += mode & 0x80 ? " @2x" : " @1x";
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlSetmode %02x (%s)\n", pc,
-                                    delayedString, m_param[0], modeDecode);
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlSetmode %02x (%s)\n",
+                                    regs.pc, regs.cycle, command.payload[0], modeDecode);
             } break;
             case CdlGetTN:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlGetTN (returns %i)\n", pc,
-                                    delayedString, m_iso->getTN());
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlGetTN (returns %i)\n",
+                                    regs.pc, regs.cycle, m_iso->getTN());
                 break;
             case CdlGetTD: {
-                auto ret = m_iso->getTD(m_param[0]);
+                auto ret = m_iso->getTD(command.payload[0]);
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                    "%08x [CDROM]%s Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", pc, delayedString,
-                                    m_param[0], ret.m, ret.s, ret.f);
+                                    "CD-Rom: %08x.%08x] Command: CdlGetTD %i (returns %02i:%02i:%02i)\n", regs.pc,
+                                    regs.cycle, command.payload[0], ret.m, ret.s, ret.f);
             } break;
             default:
-                if ((command & 0xff) > cdCmdEnumCount) {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlUnknown(0x%02X)\n", pc,
-                                        delayedString, command & 0xff);
+                if (command.value > c_cdCmdEnumCount) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlUnknown(0x%02X)\n",
+                                        regs.pc, regs.cycle, command.value);
                 } else {
-                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: %s\n", pc, delayedString,
-                                        magic_enum::enum_names<Commands>()[command & 0xff]);
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: %s\n", regs.pc, regs.cycle,
+                                        commandName(command.value));
                 }
                 break;
         }
@@ -1669,7 +1282,8 @@ class CDRomImpl : public PCSX::CDRom {
 }  // namespace
 
 PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
-void PCSX::CDRom::check() {
+
+void PCSX::CDRom::parseIso() {
     m_cdromId.clear();
     m_cdromLabel.clear();
     ISO9660Reader reader(m_iso);
@@ -1716,4 +1330,15 @@ void PCSX::CDRom::check() {
     g_system->printf(_("CD-ROM Label: %.32s\n"), m_cdromLabel);
     g_system->printf(_("CD-ROM ID: %.9s\n"), m_cdromId);
     g_system->printf(_("CD-ROM EXE Name: %.255s\n"), exename);
+}
+
+bool PCSX::CDRom::isLidOpen() {
+    if (m_lidCloseScheduled) {
+        const uint32_t cycle = g_emulator->m_cpu->m_regs.cycle;
+        if (((int32_t)(m_lidCloseAtCycles - cycle)) <= 0) {
+            m_lidCloseScheduled = false;
+            m_lidOpen = false;
+        }
+    }
+    return m_lidOpen;
 }

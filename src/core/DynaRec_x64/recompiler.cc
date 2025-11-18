@@ -334,6 +334,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 
     const auto startingPC = m_pc;
     unsigned count = 0;                                 // How many instructions have we compiled?
+    unsigned extra = 0;                                 // How many instructions in rom?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
@@ -395,7 +396,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         }
     };
 
-    const auto compileInstruction = [this, &count, &memory]() -> bool {
+    const auto compileInstruction = [this, &count, &memory, &extra]() -> bool {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
 
@@ -405,6 +406,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         uint32_t code = m_regs.code = *ptr;
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
+        if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it
@@ -453,7 +455,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         endProfiling();
     }
 
-    gen.add(qword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
+    gen.add(qword[contextPointer + CYCLE_OFFSET],
+            (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);  // Add block cycles;
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {

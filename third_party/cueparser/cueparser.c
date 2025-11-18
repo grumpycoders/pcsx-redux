@@ -135,6 +135,7 @@ void CueParser_construct(struct CueParser* parser, struct CueDisc* disc) {
     parser->currentFile = NULL;
     parser->currentTrack = 0;
     parser->currentSectorNumber = 0;
+    parser->cutting = 0;
     parser->isTrackANewFile = 0;
     disc->catalog[0] = 0;
     disc->isrc[0] = 0;
@@ -484,17 +485,19 @@ static void parse(struct CueParser* parser, struct CueFile* file, struct CueSche
                     return;
                 }
                 struct CueTrack* track = &parser->disc->tracks[parser->currentTrack];
-                track->indices[track->indexCount] = parser->currentSectorNumber + sectorNumber;
+                if (parser->implicitIndex || (track->indexCount == 0)) {
+                    parser->cutting = sectorNumber;
+                    parser->currentFileSize -= sectorNumber * 2352;
+                }
+                track->indices[track->indexCount] = parser->currentSectorNumber + sectorNumber - parser->cutting;
                 if (parser->implicitIndex) {
-                    if (parser->currentTrack == 1) {
-                        track->indices[0] = 0;
-                    } else {
-                        track->indices[0] = track->indices[1];
-                        track->indices[1] += parser->currentPregap;
-                        track->fileOffset += parser->currentPregap;
-                        parser->currentSectorNumber += parser->currentPregap;
-                    }
+                    track->indices[0] = track->indices[1];
+                    track->indices[1] += parser->currentPregap;
+                    track->fileOffset += parser->currentPregap + sectorNumber;
+                    parser->currentSectorNumber += parser->currentPregap;
                     parser->implicitIndex = 0;
+                } else if (track->indexCount == 0) {
+                    track->fileOffset += sectorNumber;
                 }
                 parser->state = CUE_PARSER_START;
             } break;

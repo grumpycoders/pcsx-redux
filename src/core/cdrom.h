@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "cdrom/cdriso.h"
 #include "core/decode_xa.h"
@@ -38,21 +39,30 @@ namespace Widgets {
 class IsoBrowser;
 }
 
-struct CdrStat {
-    uint32_t Type;
-    uint32_t Status;
-    IEC60908b::MSF Time;
-};
-
 class CDRom {
   public:
-    using MSF = PCSX::IEC60908b::MSF;
+    using MSF = IEC60908b::MSF;
     CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
-    bool isLidOpened() { return m_lidOpenTime < 0 || m_lidOpenTime > (int64_t)time(nullptr); }
-    void setLidOpenTime(int64_t time) { m_lidOpenTime = time; }
-    void check();
+    bool isLidOpen();
+    void closeLid() {
+        m_lidOpen = false;
+        m_lidCloseScheduled = false;
+    }
+    void openLid() {
+        m_lidOpen = true;
+        m_wasLidOpened = true;
+        m_lidCloseScheduled = false;
+    }
+    void scheduleCloseLid() {
+        m_lidOpen = true;
+        m_wasLidOpened = true;
+        m_lidCloseScheduled = true;
+        using namespace std::chrono_literals;
+        m_lidCloseAtCycles = g_emulator->m_cpu->m_regs.getFutureCycle(1s);
+    }
+    void parseIso();
 
     std::shared_ptr<CDRIso> getIso() { return m_iso; }
     void clearIso() {
@@ -68,24 +78,19 @@ class CDRom {
     const std::string& getCDRomLabel() { return m_cdromLabel; }
 
     virtual void reset() = 0;
-    virtual void attenuate(int16_t* buf, int samples, int stereo) = 0;
 
-    virtual void interrupt() = 0;
-    virtual void readInterrupt() = 0;
-    virtual void decodedBufferInterrupt() = 0;
-    virtual void lidSeekInterrupt() = 0;
-    virtual void playInterrupt() = 0;
-    virtual void dmaInterrupt() = 0;
-    virtual void lidInterrupt() = 0;
-    virtual uint8_t read0(void) = 0;
-    virtual uint8_t read1(void) = 0;
-    virtual uint8_t read2(void) = 0;
-    virtual uint8_t read3(void) = 0;
+    virtual void fifoScheduledCallback() = 0;
+    virtual void commandsScheduledCallback() = 0;
+    virtual void readScheduledCallback() = 0;
+    virtual void scheduledDmaCallback() = 0;
+    virtual uint8_t read0() = 0;
+    virtual uint8_t read1() = 0;
+    virtual uint8_t read2() = 0;
+    virtual uint8_t read3() = 0;
     virtual void write0(uint8_t rt) = 0;
     virtual void write1(uint8_t rt) = 0;
     virtual void write2(uint8_t rt) = 0;
     virtual void write3(uint8_t rt) = 0;
-    virtual void load() = 0;
 
     virtual void dma(uint32_t madr, uint32_t bcr, uint32_t chcr) = 0;
 
@@ -93,73 +98,113 @@ class CDRom {
 
   protected:
     std::shared_ptr<CDRIso> m_iso;
-    // savestate stuff starts here
-    uint8_t m_reg1Mode;
-    uint8_t m_reg2;
-    uint8_t m_cmdProcess;
-    uint8_t m_ctrl;
-    uint8_t m_stat;
-
-    uint8_t m_statP;
-
-    uint8_t m_transfer[PCSX::IEC60908b::FRAMESIZE_RAW];
-    unsigned int m_transferIndex;
-
-    MSF m_prev;
-    uint8_t m_param[8];
-    uint8_t m_result[16];
-
-    uint8_t m_paramC;
-    uint8_t m_resultC;
-    uint8_t m_resultP;
-    uint8_t m_resultReady;
-    uint8_t m_cmd;
-    uint8_t m_read;
-    uint8_t m_setlocPending;
-    bool m_locationChanged;
-    uint32_t m_reading;
-
-    MSF m_setSectorPlay;
-    MSF m_setSectorEnd;
-    MSF m_setSector;
-    uint8_t m_track;
-    bool m_play, m_muted;
-    int m_curTrack;
-    int m_mode, m_file, m_channel;
-    bool m_suceeded;
-    int m_firstSector;
-
-  public:
-    // this belongs in the SPU, not here.
-    xa_decode_t m_xa;
-
-  protected:
-    int64_t m_lidOpenTime = 0;
-    uint16_t m_irq;
-    uint8_t m_irqRepeated;
-    uint32_t m_eCycle;
-
-    uint8_t m_seeked;
-    uint8_t m_readRescheduled;
-
-    uint8_t m_driveState;
-    uint8_t m_fastForward;
-    uint8_t m_fastBackward;
-
-    uint8_t m_attenuatorLeftToLeft, m_attenuatorLeftToRight;
-    uint8_t m_attenuatorRightToRight, m_attenuatorRightToLeft;
-    uint8_t m_attenuatorLeftToLeftT, m_attenuatorLeftToRightT;
-    uint8_t m_attenuatorRightToRightT, m_attenuatorRightToLeftT;
-
-    struct {
-        uint8_t track;
-        uint8_t index;
-        uint8_t relative[3];
-        uint8_t absolute[3];
-    } m_subq;
-    bool m_trackChanged;
-    // end savestate
     friend SaveStates::SaveState SaveStates::constructSaveState();
+
+    bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
+
+    bool m_lidOpen = false;
+    bool m_wasLidOpened = false;
+    bool m_lidCloseScheduled = false;
+    uint32_t m_lidCloseAtCycles = 0;
+
+    // to save/init
+    uint64_t m_seed = 9223521712174600777ull;
+    uint8_t m_dataFIFO[2352] = {0};
+    uint32_t m_dataFIFOIndex = 0;
+    uint32_t m_dataFIFOSize = 0;
+    uint32_t m_dataFIFOPending = 0;
+    uint8_t m_registerAddress = 0;
+    bool m_motorOn = false;
+    bool m_speedChanged = false;
+    bool m_invalidLocL = false;
+    bool m_dataRequested = false;
+    bool m_subheaderFilter = false;
+    bool m_realtime = false;
+    enum class ReadingState : uint8_t {
+        None,
+        Seeking,
+        Reading,
+    } m_readingState = ReadingState::None;
+    bool m_startPlaying = false;
+    enum class ReadingType : uint8_t {
+        None,
+        Normal,
+        Streaming,
+    } m_readingType = ReadingType::None;
+    enum class Status : uint8_t {
+        Idle,
+        ReadingData,
+        Seeking,
+        PlayingCDDA,
+    } m_status = Status::Idle;
+    enum class Speed : uint8_t { Simple, Double } m_speed;
+    enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
+    uint8_t m_interruptCauseMask = 0x1f;
+    uint8_t m_atv[4] = {0};
+    bool m_soundMapEnabled = false;
+
+    enum class Cause : uint8_t {
+        None = 0,
+        DataReady = 1,
+        Complete = 2,
+        Acknowledge = 3,
+        End = 4,
+        Error = 5,
+    };
+
+    MSF m_currentPosition;
+    MSF m_seekPosition;
+    uint8_t m_lastLocP[8] = {0};
+    uint8_t m_lastLocL[8] = {0};
+
+    struct QueueElement {
+        uint8_t payload[16];
+        uint8_t value;
+        bool valueRead = false;
+        bool hasValue = false;
+        bool hitMax = false;
+        uint8_t payloadSize = 0;
+        uint8_t payloadIndex = 0;
+        bool isPayloadAtEnd() const { return payloadIndex == payloadSize; }
+        bool isPayloadEmpty() const { return (payloadSize == 0) || hitMax; }
+        bool isPayloadFull() const { return payloadSize == sizeof(payload); }
+        bool empty() const { return valueEmpty() && isPayloadEmpty(); }
+        bool valueEmpty() const { return !hasValue || valueRead; }
+        void clear() {
+            hasValue = false;
+            valueRead = false;
+            payloadSize = 0;
+            payloadIndex = 0;
+        }
+        void setValue(uint8_t newValue) {
+            value = newValue;
+            hasValue = true;
+        }
+        void setValue(Cause cause) { setValue(static_cast<uint8_t>(cause)); }
+        void pushPayloadData(uint8_t value) {
+            if (payloadSize < sizeof(payload)) payload[payloadSize++] = value;
+        }
+        void pushPayloadData(std::string_view values) {
+            for (auto value : values) {
+                pushPayloadData(value);
+            }
+        }
+        uint8_t getValue() const { return valueRead ? 0 : value; }
+        uint8_t readPayloadByte() {
+            while (payloadIndex >= 16) payloadIndex -= 16;
+            uint8_t r = 0;
+            if (payloadIndex < payloadSize) {
+                r = payload[payloadIndex];
+            }
+            if (++payloadIndex == payloadSize) hitMax = true;
+            return r;
+        }
+    };
+
+    QueueElement m_commandFifo;
+    QueueElement m_commandExecuting;
+    QueueElement m_responseFifo[2];
+    bool responseFifoFull() { return !m_responseFifo[0].empty() && !m_responseFifo[1].empty(); }
 
   private:
     friend class Widgets::IsoBrowser;
