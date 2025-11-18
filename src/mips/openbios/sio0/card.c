@@ -97,8 +97,7 @@ int __attribute__((section(".ramtext"))) mcReadHandler() {
     switch (g_mcOperation) {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
-            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
-                | SIO_CTRL_DTR;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN | SIO_CTRL_DTR;
             exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;
@@ -176,8 +175,7 @@ int __attribute__((section(".ramtext"))) mcWriteHandler() {
     switch (g_mcOperation) {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
-            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
-                | SIO_CTRL_DTR;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN | SIO_CTRL_DTR;
             exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;
@@ -249,8 +247,7 @@ int __attribute__((section(".ramtext"))) mcInfoHandler() {
     switch (g_mcOperation) {
         case 1:
             g_sio0Mask = port == 0 ? 0x0000 : SIO_CTRL_PORTSEL;
-            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN
-                | SIO_CTRL_DTR;
+            SIOS[0].ctrl = g_sio0Mask | SIO_CTRL_TXEN | SIO_CTRL_ACKIRQEN | SIO_CTRL_DTR;
             exchangeByte((g_mcDeviceId[port] & 0x0f) + 0x81);
             g_mcActionInProgress = 1;
             break;

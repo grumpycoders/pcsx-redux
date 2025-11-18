@@ -19,7 +19,6 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
-
 --[[
 
 This script creates a PSX archive file from a JSON index file. The JSON file needs
@@ -199,77 +198,58 @@ The archive manager may simply be given a hardcoded LBA for the beginning of the
 archive, and the authoring software would always write the archive at that location,
 while reserving space inside the archive for the iso9660 filesystem.
 
-]]--
-
+]] --
 -- Taken and adapted from https://gist.github.com/hmenke/4536dda27095634b4563a1a9d854a040
-local bit      = require 'bit'
-local ffi      = require 'ffi'
-local lpeg     = require 'lpeg'
-local C        = lpeg.C
-local Cf       = lpeg.Cf
-local Cg       = lpeg.Cg
-local Ct       = lpeg.Ct
-local P        = lpeg.P
-local R        = lpeg.R
-local S        = lpeg.S
-local V        = lpeg.V
+local bit = require 'bit'
+local ffi = require 'ffi'
+local lpeg = require 'lpeg'
+local C = lpeg.C
+local Cf = lpeg.Cf
+local Cg = lpeg.Cg
+local Ct = lpeg.Ct
+local P = lpeg.P
+local R = lpeg.R
+local S = lpeg.S
+local V = lpeg.V
 
 -- number parsing
-local digit    = R '09'
-local dot      = P '.'
-local eE       = S 'eE'
-local sign     = S '+-' ^ -1
+local digit = R '09'
+local dot = P '.'
+local eE = S 'eE'
+local sign = S '+-' ^ -1
 local mantissa = digit ^ 1 * dot * digit ^ 0 + dot * digit ^ 1 + digit ^ 1
 local exponent = (eE * sign * digit ^ 1) ^ -1
-local real     = sign * mantissa * exponent / tonumber
+local real = sign * mantissa * exponent / tonumber
 
 -- optional whitespace
-local ws       = S ' \t\n\r' ^ 0
+local ws = S ' \t\n\r' ^ 0
 
 -- match a literal string surrounded by whitespace
-local lit      = function(str)
-    return ws * P(str) * ws
-end
+local lit = function(str) return ws * P(str) * ws end
 
 -- match a literal string and synthesize an attribute
-local attr     = function(str, attr)
-    return ws * P(str) / function() return attr end * ws
-end
+local attr = function(str, attr) return ws * P(str) / function() return attr end * ws end
 
 -- JSON grammar
-local json     = P {
+local json = P {
     'value',
 
-    value        =
-        V 'null_value' +
-        V 'bool_value' +
-        V 'string_value' +
-        V 'real_value' +
-        V 'array' +
-        V 'object',
+    value = V 'null_value' + V 'bool_value' + V 'string_value' + V 'real_value' + V 'array' + V 'object',
 
-    null_value   = attr('null', nil),
-    bool_value   = attr('true', true) + attr('false', false),
+    null_value = attr('null', nil),
+    bool_value = attr('true', true) + attr('false', false),
     string_value = ws * P '"' * C((P '\\"' + 1 - P '"') ^ 0) * P '"' * ws,
-    real_value   = ws * real * ws,
-    array        = lit '[' * Ct((V 'value' * lit ',' ^ -1) ^ 0) * lit ']',
-    member_pair  = Cg(V 'string_value' * lit ':' * V 'value') * lit ',' ^ -1,
-    object       = lit '{' * Cf(Ct '' * V 'member_pair' ^ 0, rawset) * lit '}'
+    real_value = ws * real * ws,
+    array = lit '[' * Ct((V 'value' * lit ',' ^ -1) ^ 0) * lit ']',
+    member_pair = Cg(V 'string_value' * lit ':' * V 'value') * lit ',' ^ -1,
+    object = lit '{' * Cf(Ct '' * V 'member_pair' ^ 0, rawset) * lit '}',
 }
 
 function mkarchive(index, out)
-    if type(index) == 'string' then
-        index = Support.File.open(index)
-    end
-    if type(index) == 'table' and index._type == 'File' then
-        index = tostring(index:read(index:size()))
-    end
-    if type(index) == 'string' then
-        index = json:match(index)
-    end
-    if type(index) ~= 'table' then
-        error('mkarchive: invalid index type')
-    end
+    if type(index) == 'string' then index = Support.File.open(index) end
+    if type(index) == 'table' and index._type == 'File' then index = tostring(index:read(index:size())) end
+    if type(index) == 'string' then index = json:match(index) end
+    if type(index) ~= 'table' then error('mkarchive: invalid index type') end
     index = index.files or {}
 
     local needsToClose = false
@@ -280,12 +260,8 @@ function mkarchive(index, out)
     end
 
     for k, v in ipairs(index) do
-        if type(v) ~= 'table' then
-            error('mkarchive: invalid index entry type')
-        end
-        if not v.path then
-            error('mkarchive: missing file path in index entry')
-        end
+        if type(v) ~= 'table' then error('mkarchive: invalid index entry type') end
+        if not v.path then error('mkarchive: missing file path in index entry') end
 
         index[k].hash = v.hash or Support.extra.djbHash(v.path)
     end
@@ -314,9 +290,7 @@ function mkarchive(index, out)
             compressedSize = index[k].decompressedSize
             local padding = compressedSize % 2048
             out:writeMoveSlice(srcData)
-            if padding > 0 then
-                out:write(zeroBuffer, 2048 - padding)
-            end
+            if padding > 0 then out:write(zeroBuffer, 2048 - padding) end
             index[k].compressionMethod = 0
             index[k].padding = 0
         else
@@ -344,9 +318,7 @@ function mkarchive(index, out)
     out:writeU32(fileCount)
     out:writeU32(totalSize)
 
-    table.sort(index, function(a, b)
-        return a.hash < b.hash
-    end)
+    table.sort(index, function(a, b) return a.hash < b.hash end)
 
     for _, v in ipairs(index) do
         out:writeU32(bit.band(v.hash, 0xffffffff))
@@ -362,22 +334,13 @@ function mkarchive(index, out)
         local offset = bit.band(v.offset, 0x7ffff)
         local compressedSize = bit.band(v.compressedSize, 0x3ff)
         local compressionMethod = bit.band(v.compressionMethod, 0x7)
-        local low = bit.bor(
-            bit.lshift(decompressedSize, 0),
-            bit.lshift(padding, 21)
-        )
-        local high = bit.bor(
-            bit.lshift(offset, 0),
-            bit.lshift(compressedSize, 19),
-            bit.lshift(compressionMethod, 29)
-        )
+        local low = bit.bor(bit.lshift(decompressedSize, 0), bit.lshift(padding, 21))
+        local high = bit.bor(bit.lshift(offset, 0), bit.lshift(compressedSize, 19), bit.lshift(compressionMethod, 29))
         out:writeU32(low)
         out:writeU32(high)
     end
 
-    if needsToClose then
-        out:close()
-    end
+    if needsToClose then out:close() end
 
     print('Packed', fileCount, 'files into', tonumber(totalSize), 'sectors, with', indexSectors, 'sectors of index data')
     pprint(index)
