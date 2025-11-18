@@ -116,17 +116,17 @@ msgstr "清理色彩"
 msgid "Clear VRAM"
 msgstr "清理显存（VRAM）"
 
-#: src/core/cdrom.cc:1715
+#: src/core/cdrom.cc:1716
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM 标签：%.32s\n"
 
-#: src/core/cdrom.cc:1716
+#: src/core/cdrom.cc:1717
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM ID: %.9s\n"
 
-#: src/core/cdrom.cc:1717
+#: src/core/cdrom.cc:1718
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE 名字：%.255s\n"
@@ -178,8 +178,8 @@ msgstr ""
 msgid "Step in"
 msgstr "Step in"
 
-#: src/core/debug.cc:249 src/gui/widgets/assembly.cc:497
-#: src/gui/widgets/assembly.cc:574
+#: src/core/debug.cc:249 src/gui/widgets/assembly.cc:496
+#: src/gui/widgets/assembly.cc:573
 msgid "Step Over"
 msgstr "Step Over"
 
@@ -196,8 +196,8 @@ msgstr "Step out (没有调用栈)"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr "断点触发：PC=0x%08x-原因：%s%s\n"
 
-#: src/core/debug.cc:391 src/gui/widgets/assembly.cc:498
-#: src/gui/widgets/assembly.cc:576
+#: src/core/debug.cc:391 src/gui/widgets/assembly.cc:497
+#: src/gui/widgets/assembly.cc:575
 msgid "Step Out"
 msgstr "Step Out"
 
@@ -213,55 +213,55 @@ msgstr "读"
 msgid "Write"
 msgstr "写"
 
-#: src/core/gdb-server.cc:605
+#: src/core/gdb-server.cc:608
 msgid "GDB client"
 msgstr "GDB 客户端"
 
-#: src/core/gpu.cc:453 src/core/gpu.cc:720 src/core/psxhw.h:83
+#: src/core/gpu.cc:453 src/core/gpu.cc:721 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:458 src/core/gpu.cc:725 src/core/psxhw.h:88
+#: src/core/gpu.cc:458 src/core/gpu.cc:726 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:1158 src/core/gpu.cc:1242
+#: src/core/gpu.cc:1159 src/core/gpu.cc:1243
 msgid "Shading: Flat"
 msgstr ""
 
-#: src/core/gpu.cc:1161 src/core/gpu.cc:1245
+#: src/core/gpu.cc:1162 src/core/gpu.cc:1246
 msgid "Shading: Gouraud"
 msgstr ""
 
-#: src/core/gpu.cc:1165
+#: src/core/gpu.cc:1166
 msgid "Textured"
 msgstr ""
 
-#: src/core/gpu.cc:1168 src/core/gpu.cc:1248 src/core/gpu.cc:1290
+#: src/core/gpu.cc:1169 src/core/gpu.cc:1249 src/core/gpu.cc:1291
 msgid "Semi-transparency blending"
 msgstr ""
 
-#: src/core/gpu.cc:1185
+#: src/core/gpu.cc:1186
 #, fuzzy, c-format
 msgid "Vertex %i"
 msgstr "顶点渲染器"
 
-#: src/core/gpu.cc:1209 src/core/gpu.cc:1273 src/core/gpu.cc:1303
+#: src/core/gpu.cc:1210 src/core/gpu.cc:1274 src/core/gpu.cc:1304
 msgid "Go to primitive##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1217 src/core/gpu.cc:1313
+#: src/core/gpu.cc:1218 src/core/gpu.cc:1314
 #, fuzzy
 msgid "Go to texture##{}"
 msgstr "Context##{0}"
 
-#: src/core/gpu.cc:1228 src/core/gpu.cc:1324
+#: src/core/gpu.cc:1229 src/core/gpu.cc:1325
 msgid "Go to CLUT##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1254
+#: src/core/gpu.cc:1255
 #, c-format
 msgid "Line %i"
 msgstr ""
@@ -540,7 +540,7 @@ msgstr "未知键盘按键{0}"
 msgid "Keyboard {}"
 msgstr "键盘{0}"
 
-#: src/core/pad.cc:986 src/gui/gui.cc:2128
+#: src/core/pad.cc:986 src/gui/gui.cc:2136
 msgid "Auto"
 msgstr "自动"
 
@@ -928,27 +928,27 @@ msgstr "检测到未知的BIOS（%08x）\n"
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:828
+#: src/core/psxmem.cc:846
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr ""
 
-#: src/core/psxmem.cc:853
+#: src/core/psxmem.cc:871
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr ""
 
-#: src/core/psxmem.cc:877 src/core/psxmem.cc:884
+#: src/core/psxmem.cc:895 src/core/psxmem.cc:902
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:906 src/core/psxmem.cc:913
+#: src/core/psxmem.cc:924 src/core/psxmem.cc:931
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:956
+#: src/core/psxmem.cc:974
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr ""
@@ -1038,7 +1038,7 @@ msgstr ""
 "使用软件渲染时不支持调试功能\n"
 "请考虑在设置中启用OpenGL 渲染"
 
-#: src/gui/gui.cc:176 src/gui/gui.cc:1209 src/gui/widgets/isobrowser.cc:67
+#: src/gui/gui.cc:176 src/gui/gui.cc:1210 src/gui/widgets/isobrowser.cc:67
 #: src/gui/widgets/isobrowser.h:41
 msgid "Open Disk Image"
 msgstr "打开磁盘文件"
@@ -1074,241 +1074,246 @@ msgstr ""
 msgid "Error compiling new shader code: {}"
 msgstr ""
 
-#: src/gui/gui.cc:749
+#: src/gui/gui.cc:751
 msgid ""
 "Warning: OpenGL error reporting disabled. See About dialog for more "
 "information.\n"
 msgstr "警告：OpenGL 错误报告已禁用。 有关详细信息，请参阅关于界面。\n"
 
-#: src/gui/gui.cc:762
+#: src/gui/gui.cc:764
 msgid "Main VRAM Viewer"
 msgstr "主显存（VRAM）查看器"
 
-#: src/gui/gui.cc:763
+#: src/gui/gui.cc:765
 msgid "CLUT VRAM selector"
 msgstr "显存颜色表（CLUT）查看器"
 
-#: src/gui/gui.cc:768
+#: src/gui/gui.cc:770
 msgid "Vram Viewer #"
 msgstr "显存查看器 #"
 
-#: src/gui/gui.cc:777
+#: src/gui/gui.cc:779
 msgid "Memory Editor #"
 msgstr "内存编辑器 #"
 
-#: src/gui/gui.cc:782
+#: src/gui/gui.cc:784
 msgid "Parallel Port"
 msgstr "并口"
 
-#: src/gui/gui.cc:783
+#: src/gui/gui.cc:785
 msgid "Scratch Pad"
 msgstr "Scratch Pad"
 
-#: src/gui/gui.cc:784
+#: src/gui/gui.cc:786
 msgid "Hardware Registers"
 msgstr "硬件寄存器"
 
-#: src/gui/gui.cc:785
+#: src/gui/gui.cc:787
 msgid "BIOS"
 msgstr "BIOS"
 
-#: src/gui/gui.cc:786
+#: src/gui/gui.cc:788
 msgid "VRAM"
 msgstr "显存"
 
-#: src/gui/gui.cc:1171
+#: src/gui/gui.cc:1172
 msgid "Output"
 msgstr "输出"
 
-#: src/gui/gui.cc:1208 src/gui/widgets/assembly.cc:485
+#: src/gui/gui.cc:1209 src/gui/widgets/assembly.cc:484
 #: src/gui/widgets/isobrowser.cc:66 src/gui/widgets/memcard_manager.cc:63
 #: src/gui/widgets/vram-viewer.cc:597
 msgid "File"
 msgstr "文件"
 
-#: src/gui/gui.cc:1210 src/gui/widgets/isobrowser.cc:68
+#: src/gui/gui.cc:1212
+#, fuzzy
+msgid "Reload Disk Image"
+msgstr "关闭磁盘文件"
+
+#: src/gui/gui.cc:1218 src/gui/widgets/isobrowser.cc:68
 msgid "Close Disk Image"
 msgstr "关闭磁盘文件"
 
-#: src/gui/gui.cc:1214
+#: src/gui/gui.cc:1222
 msgid "Load binary"
 msgstr "加载二进制程序"
 
-#: src/gui/gui.cc:1217
+#: src/gui/gui.cc:1225
 msgid "Add Lua archive"
 msgstr ""
 
-#: src/gui/gui.cc:1221
+#: src/gui/gui.cc:1229
 msgid "Dump save state proto schema"
 msgstr "Dump 存档原始文件"
 
-#: src/gui/gui.cc:1226
+#: src/gui/gui.cc:1234
 msgid "global{}"
 msgstr ""
 
-#: src/gui/gui.cc:1228
+#: src/gui/gui.cc:1236
 msgid "Save state slots"
 msgstr "保存存档至存档槽"
 
-#: src/gui/gui.cc:1229
+#: src/gui/gui.cc:1237
 msgid "Quick-save slot"
 msgstr "快速存档"
 
-#: src/gui/gui.cc:1234 src/gui/gui.cc:1255
+#: src/gui/gui.cc:1242 src/gui/gui.cc:1263
 msgid "Slot {}"
 msgstr "槽 {0}"
 
-#: src/gui/gui.cc:1241
+#: src/gui/gui.cc:1249
 msgid "Show named save states"
 msgstr ""
 
-#: src/gui/gui.cc:1246
+#: src/gui/gui.cc:1254
 msgid "Save global state"
 msgstr "保存全局存档"
 
-#: src/gui/gui.cc:1248
+#: src/gui/gui.cc:1256
 msgid "Load state slots"
 msgstr "加载存档槽"
 
-#: src/gui/gui.cc:1251
+#: src/gui/gui.cc:1259
 #, fuzzy
 msgid "Quick-load slot"
 msgstr "快速存档"
 
-#: src/gui/gui.cc:1276
+#: src/gui/gui.cc:1284
 msgid "Load global state"
 msgstr "加载全局存档"
 
-#: src/gui/gui.cc:1280
+#: src/gui/gui.cc:1288
 msgid "Open LID"
 msgstr "打开 PS光盘盖"
 
-#: src/gui/gui.cc:1284
+#: src/gui/gui.cc:1292
 msgid "Close LID"
 msgstr "关闭 PS光盘盖"
 
-#: src/gui/gui.cc:1288
+#: src/gui/gui.cc:1296
 msgid "Open and close LID"
 msgstr "打开和关闭 PS光盘盖"
 
-#: src/gui/gui.cc:1293
+#: src/gui/gui.cc:1301
 msgid "Reboot"
 msgstr "重启"
 
-#: src/gui/gui.cc:1296
+#: src/gui/gui.cc:1304
 msgid "Quit"
 msgstr "退出"
 
-#: src/gui/gui.cc:1302 src/gui/gui.cc:1319
+#: src/gui/gui.cc:1310 src/gui/gui.cc:1327
 msgid "Emulation"
 msgstr "模拟"
 
-#: src/gui/gui.cc:1303
+#: src/gui/gui.cc:1311
 msgid "Start emulation"
 msgstr "开始模拟"
 
-#: src/gui/gui.cc:1306
+#: src/gui/gui.cc:1314
 msgid "Pause emulation"
 msgstr "暂停模拟"
 
-#: src/gui/gui.cc:1309
+#: src/gui/gui.cc:1317
 msgid "Soft Reset"
 msgstr "软重启"
 
-#: src/gui/gui.cc:1312
+#: src/gui/gui.cc:1320
 msgid "Hard Reset"
 msgstr "硬重启"
 
-#: src/gui/gui.cc:1318 src/gui/widgets/vram-viewer.cc:639
+#: src/gui/gui.cc:1326 src/gui/widgets/vram-viewer.cc:639
 msgid "Configuration"
 msgstr "设置"
 
-#: src/gui/gui.cc:1320
+#: src/gui/gui.cc:1328
 msgid "Manage Memory Cards"
 msgstr "管理记忆卡"
 
-#: src/gui/gui.cc:1323 src/gui/gui.cc:1424
+#: src/gui/gui.cc:1331 src/gui/gui.cc:1432
 msgid "GPU"
 msgstr "GPU"
 
-#: src/gui/gui.cc:1324 src/gui/gui.cc:1440
+#: src/gui/gui.cc:1332 src/gui/gui.cc:1448
 msgid "SPU"
 msgstr "SPU"
 
-#: src/gui/gui.cc:1325
+#: src/gui/gui.cc:1333
 msgid "UI"
 msgstr "UI"
 
-#: src/gui/gui.cc:1326
+#: src/gui/gui.cc:1334
 msgid "System"
 msgstr "系统"
 
-#: src/gui/gui.cc:1327
+#: src/gui/gui.cc:1335
 msgid "Controls"
 msgstr "控制"
 
-#: src/gui/gui.cc:1328
+#: src/gui/gui.cc:1336
 msgid "Shader presets"
 msgstr "着色器预设"
 
-#: src/gui/gui.cc:1329
+#: src/gui/gui.cc:1337
 msgid "Default shader"
 msgstr "默认渲染器"
 
-#: src/gui/gui.cc:1332
+#: src/gui/gui.cc:1340
 msgid "CRT-lottes shader"
 msgstr "CRT-lottes 渲染器"
 
-#: src/gui/gui.cc:1359
+#: src/gui/gui.cc:1367
 msgid "Configure Shaders"
 msgstr "设置渲染器"
 
-#: src/gui/gui.cc:1363
+#: src/gui/gui.cc:1371
 msgid "PIO Cartridge"
 msgstr ""
 
-#: src/gui/gui.cc:1367 src/gui/widgets/assembly.cc:492
+#: src/gui/gui.cc:1375 src/gui/widgets/assembly.cc:491
 msgid "Debug"
 msgstr "调试"
 
-#: src/gui/gui.cc:1368
+#: src/gui/gui.cc:1376
 msgid "Show Logs"
 msgstr "打开日志"
 
-#: src/gui/gui.cc:1369
+#: src/gui/gui.cc:1377
 msgid "Lua"
 msgstr ""
 
-#: src/gui/gui.cc:1370
+#: src/gui/gui.cc:1378
 msgid "Show Lua Console"
 msgstr "打开 Lua 控制台"
 
-#: src/gui/gui.cc:1371
+#: src/gui/gui.cc:1379
 msgid "Show Lua Inspector"
 msgstr "打开 Lua 检查器"
 
-#: src/gui/gui.cc:1372
+#: src/gui/gui.cc:1380
 msgid "Show Lua editor"
 msgstr "打开 Lua 编辑器"
 
-#: src/gui/gui.cc:1376
+#: src/gui/gui.cc:1384
 #, fuzzy
 msgid "CPU"
 msgstr "GPU"
 
-#: src/gui/gui.cc:1377
+#: src/gui/gui.cc:1385
 msgid "Show Registers"
 msgstr "打开寄存器"
 
-#: src/gui/gui.cc:1378
+#: src/gui/gui.cc:1386
 msgid "Show Assembly"
 msgstr "打开汇编调试器"
 
-#: src/gui/gui.cc:1380 src/gui/gui.cc:1382
+#: src/gui/gui.cc:1388 src/gui/gui.cc:1390
 msgid "Show DynaRec Disassembly"
 msgstr "打开 DynaRec 反汇编器"
 
-#: src/gui/gui.cc:1384
+#: src/gui/gui.cc:1392
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
@@ -1317,287 +1322,287 @@ msgstr ""
 "DynaRec 反汇编程序在Interpreted CPU 模式下不可用\n"
 "请在设置->模拟中打开 [Dynarec CPU]并重启PCSX-Redux 后重试"
 
-#: src/gui/gui.cc:1387
+#: src/gui/gui.cc:1395
 msgid "Show Breakpoints"
 msgstr "显示断点"
 
-#: src/gui/gui.cc:1388
+#: src/gui/gui.cc:1396
 msgid "Show Callstacks"
 msgstr "显示调用堆栈"
 
-#: src/gui/gui.cc:1389
+#: src/gui/gui.cc:1397
 msgid "Memory Editors"
 msgstr "内存编辑器"
 
-#: src/gui/gui.cc:1400
+#: src/gui/gui.cc:1408
 msgid "Show Memory Observer"
 msgstr "打开内存观察器"
 
-#: src/gui/gui.cc:1401
+#: src/gui/gui.cc:1409
 msgid "Show Typed Debugger"
 msgstr "显示 Typed Debugger"
 
-#: src/gui/gui.cc:1402
+#: src/gui/gui.cc:1410
 #, fuzzy
 msgid "Show Patches"
 msgstr "显示调用堆栈"
 
-#: src/gui/gui.cc:1403
+#: src/gui/gui.cc:1411
 msgid "Show Interrupts Scaler"
 msgstr "显示中断定标器"
 
-#: src/gui/gui.cc:1404
+#: src/gui/gui.cc:1412
 msgid "First Chance Exceptions"
 msgstr "First Chance Exceptions"
 
-#: src/gui/gui.cc:1425
+#: src/gui/gui.cc:1433
 msgid "VRAM viewers"
 msgstr "显存（VRAM）查看器"
 
-#: src/gui/gui.cc:1426
+#: src/gui/gui.cc:1434
 msgid "Show main VRAM viewer"
 msgstr "打开主显存（VRAM）查看器"
 
-#: src/gui/gui.cc:1427
+#: src/gui/gui.cc:1435
 msgid "Show CLUT VRAM viewer"
 msgstr "打开显存颜色表（CLUT）查看器"
 
-#: src/gui/gui.cc:1430
+#: src/gui/gui.cc:1438
 msgid "Show VRAM viewer #"
 msgstr "打开显存查看器 #"
 
-#: src/gui/gui.cc:1436
+#: src/gui/gui.cc:1444
 #, fuzzy
 msgid "Show GPU logger"
 msgstr "打开 GPU 调试"
 
-#: src/gui/gui.cc:1437
+#: src/gui/gui.cc:1445
 msgid "Show GPU debug"
 msgstr "打开 GPU 调试"
 
-#: src/gui/gui.cc:1441
+#: src/gui/gui.cc:1449
 msgid "Show SPU debug"
 msgstr "打开 SPU 调试"
 
-#: src/gui/gui.cc:1444
+#: src/gui/gui.cc:1452
 msgid "CD-Rom"
 msgstr ""
 
-#: src/gui/gui.cc:1445
+#: src/gui/gui.cc:1453
 msgid "Show Iso Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1448
+#: src/gui/gui.cc:1456
 msgid "Misc hardware"
 msgstr ""
 
-#: src/gui/gui.cc:1449
+#: src/gui/gui.cc:1457
 msgid "Show SIO1 debug"
 msgstr "打开 SIO1 调试"
 
-#: src/gui/gui.cc:1453
+#: src/gui/gui.cc:1461
 #, fuzzy
 msgid "Kernel"
 msgstr "内核调用"
 
-#: src/gui/gui.cc:1454
+#: src/gui/gui.cc:1462
 msgid "Kernel Events"
 msgstr "内核事件"
 
-#: src/gui/gui.cc:1455
+#: src/gui/gui.cc:1463
 msgid "Kernel Handlers"
 msgstr "内核处理程序"
 
-#: src/gui/gui.cc:1456 src/gui/gui.cc:1604
+#: src/gui/gui.cc:1464 src/gui/gui.cc:1612
 msgid "Kernel Calls"
 msgstr "内核调用"
 
-#: src/gui/gui.cc:1459
+#: src/gui/gui.cc:1467
 #, fuzzy
 msgid "Rendering"
 msgstr "渲染器"
 
-#: src/gui/gui.cc:1460
+#: src/gui/gui.cc:1468
 #, fuzzy
 msgid "Full window render"
 msgstr "全屏渲染"
 
-#: src/gui/gui.cc:1465
+#: src/gui/gui.cc:1473
 #, fuzzy
 msgid "Fullscreen"
 msgstr "全屏渲染"
 
-#: src/gui/gui.cc:1469
+#: src/gui/gui.cc:1477
 msgid "Show Output Shader Editor"
 msgstr "打开渲染器输出编辑器"
 
-#: src/gui/gui.cc:1470
+#: src/gui/gui.cc:1478
 msgid "Show Offscreen Shader Editor"
 msgstr "显示离屏着色器编辑器"
 
-#: src/gui/gui.cc:1471
+#: src/gui/gui.cc:1479
 #, fuzzy
 msgid "Reset shaders"
 msgstr "重置 Scaler"
 
-#: src/gui/gui.cc:1479
+#: src/gui/gui.cc:1487
 msgid "Help"
 msgstr "帮助"
 
-#: src/gui/gui.cc:1480
+#: src/gui/gui.cc:1488
 msgid "Show ImGui Demo"
 msgstr "打开 ImGUI Demo"
 
-#: src/gui/gui.cc:1482
+#: src/gui/gui.cc:1490
 msgid "Show UvFile information"
 msgstr "显示 UvFile 信息"
 
-#: src/gui/gui.cc:1484 src/gui/gui.cc:2393
+#: src/gui/gui.cc:1492 src/gui/gui.cc:2401
 msgid "About"
 msgstr "关于"
 
-#: src/gui/gui.cc:1489
+#: src/gui/gui.cc:1497
 #, c-format
 msgid "CPU: %s"
 msgstr "CPU:%s"
 
-#: src/gui/gui.cc:1491 src/gui/widgets/isobrowser.cc:102
+#: src/gui/gui.cc:1499 src/gui/widgets/isobrowser.cc:102
 #, c-format
 msgid "GAME ID: %s"
 msgstr "游戏光盘ID：%s"
 
-#: src/gui/gui.cc:1494
+#: src/gui/gui.cc:1502
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f FPS (%.2f ms)"
 
-#: src/gui/gui.cc:1497
+#: src/gui/gui.cc:1505
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr "%.2f ms 音频缓冲器 (%i 帧)"
 
-#: src/gui/gui.cc:1499
+#: src/gui/gui.cc:1507
 msgid "Idle"
 msgstr "闲置中"
 
-#: src/gui/gui.cc:1580
+#: src/gui/gui.cc:1588
 msgid "Logs"
 msgstr "日志"
 
-#: src/gui/gui.cc:1586
+#: src/gui/gui.cc:1594
 msgid "Lua Console"
 msgstr "Lua 控制台"
 
-#: src/gui/gui.cc:1592
+#: src/gui/gui.cc:1600
 msgid "Lua Inspector"
 msgstr "Lua 检查器"
 
-#: src/gui/gui.cc:1595
+#: src/gui/gui.cc:1603
 msgid "Lua Editor"
 msgstr "Lua 编辑器"
 
-#: src/gui/gui.cc:1598
+#: src/gui/gui.cc:1606
 msgid "Kernel events"
 msgstr "内核事件"
 
-#: src/gui/gui.cc:1601
+#: src/gui/gui.cc:1609
 msgid "Kernel handlers"
 msgstr "内核处理程序"
 
-#: src/gui/gui.cc:1607
+#: src/gui/gui.cc:1615
 msgid "Callstacks"
 msgstr "调用堆栈"
 
-#: src/gui/gui.cc:1656
+#: src/gui/gui.cc:1664
 msgid "Memory Card Manager"
 msgstr "记忆卡管理器"
 
-#: src/gui/gui.cc:1660 src/gui/widgets/registers.cc:117
+#: src/gui/gui.cc:1668 src/gui/widgets/registers.cc:117
 msgid "Registers"
 msgstr "寄存器"
 
-#: src/gui/gui.cc:1664
+#: src/gui/gui.cc:1672
 msgid "Assembly"
 msgstr "汇编"
 
-#: src/gui/gui.cc:1668
+#: src/gui/gui.cc:1676
 msgid "DynaRec Disassembler"
 msgstr "DynaRec 反汇编"
 
-#: src/gui/gui.cc:1672 src/gui/widgets/typed_debugger.cc:830
+#: src/gui/gui.cc:1680 src/gui/widgets/typed_debugger.cc:830
 #: src/gui/widgets/typed_debugger.cc:876 src/gui/widgets/typed_debugger.cc:929
 msgid "Breakpoints"
 msgstr "断点"
 
-#: src/gui/gui.cc:1676
+#: src/gui/gui.cc:1684
 #, fuzzy
 msgid "Patches"
 msgstr "Watch"
 
-#: src/gui/gui.cc:1680
+#: src/gui/gui.cc:1688
 #, fuzzy
 msgid "Named Save States"
 msgstr "保存存档至存档槽"
 
-#: src/gui/gui.cc:1684 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1692 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr "内存观察器"
 
-#: src/gui/gui.cc:1688 src/gui/widgets/typed_debugger.cc:1026
+#: src/gui/gui.cc:1696 src/gui/widgets/typed_debugger.cc:1026
 msgid "Typed Debugger"
 msgstr "Typed 调试"
 
-#: src/gui/gui.cc:1694
+#: src/gui/gui.cc:1702
 msgid "Output Video"
 msgstr "输出视频"
 
-#: src/gui/gui.cc:1699
+#: src/gui/gui.cc:1707
 msgid "Offscreen Render"
 msgstr "离屏渲染器"
 
-#: src/gui/gui.cc:1705
+#: src/gui/gui.cc:1713
 #, fuzzy
 msgid "PIO Cartridge Configuration"
 msgstr "手柄配置"
 
-#: src/gui/gui.cc:1709
+#: src/gui/gui.cc:1717
 msgid "SIO1 Debug"
 msgstr "SIO1 调试"
 
-#: src/gui/gui.cc:1713
+#: src/gui/gui.cc:1721
 msgid "ISO Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1723
+#: src/gui/gui.cc:1731
 msgid "GPU Logger"
 msgstr ""
 
-#: src/gui/gui.cc:1726
+#: src/gui/gui.cc:1734
 msgid "UI Configuration"
 msgstr "UI 配置"
 
-#: src/gui/gui.cc:1732
+#: src/gui/gui.cc:1740
 msgid "Locale"
 msgstr "本地化"
 
-#: src/gui/gui.cc:1747
+#: src/gui/gui.cc:1755
 msgid "Reload locales"
 msgstr "重新加载本地化翻译"
 
-#: src/gui/gui.cc:1752
+#: src/gui/gui.cc:1760
 msgid "Main Font Size"
 msgstr "主字体大小"
 
-#: src/gui/gui.cc:1753
+#: src/gui/gui.cc:1761
 msgid "Mono Font Size"
 msgstr "副字体大小"
 
-#: src/gui/gui.cc:1755
+#: src/gui/gui.cc:1763
 msgid "Use Widescreen Aspect Ratio"
 msgstr "使用宽屏长宽比"
 
-#: src/gui/gui.cc:1756
+#: src/gui/gui.cc:1764
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1620,23 +1625,23 @@ msgstr ""
 "并要求用户更改设置\n"
 "他们的电视机以匹配游戏的长宽比。"
 
-#: src/gui/gui.cc:1775
+#: src/gui/gui.cc:1783
 msgid "System Configuration"
 msgstr "系统设置"
 
-#: src/gui/gui.cc:1777
+#: src/gui/gui.cc:1785
 msgid "Preload Disk Image files"
 msgstr "预加载磁盘映像文件"
 
-#: src/gui/gui.cc:1778
+#: src/gui/gui.cc:1786
 msgid "Enable Auto Update"
 msgstr "启动自动更新"
 
-#: src/gui/gui.cc:1785
+#: src/gui/gui.cc:1793
 msgid "Update configuration"
 msgstr "更新设置"
 
-#: src/gui/gui.cc:1786
+#: src/gui/gui.cc:1794
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1662,19 +1667,19 @@ msgstr ""
 "\n"
 "你可以在设置 -> 系统 菜单中修改自动更新设置"
 
-#: src/gui/gui.cc:1799
+#: src/gui/gui.cc:1807
 msgid "Enable auto update"
 msgstr "启用自动更新"
 
-#: src/gui/gui.cc:1805
+#: src/gui/gui.cc:1813
 msgid "No thanks"
 msgstr "不，谢谢"
 
-#: src/gui/gui.cc:1814
+#: src/gui/gui.cc:1822
 msgid "Update available"
 msgstr "有新更新可用"
 
-#: src/gui/gui.cc:1816
+#: src/gui/gui.cc:1824
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1689,7 +1694,7 @@ msgstr ""
 "\n"
 "单击“下载”来通过浏览器手动下载并安装"
 
-#: src/gui/gui.cc:1823
+#: src/gui/gui.cc:1831
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1706,89 +1711,89 @@ msgstr ""
 "\n"
 "单击“下载”通过浏览器手动下载并安装"
 
-#: src/gui/gui.cc:1834
+#: src/gui/gui.cc:1842
 msgid "Update"
 msgstr "更新"
 
-#: src/gui/gui.cc:1846 src/gui/gui.cc:1851
+#: src/gui/gui.cc:1854 src/gui/gui.cc:1859
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
 msgstr "下载或安装更新时发生致命错误"
 
-#: src/gui/gui.cc:1857
+#: src/gui/gui.cc:1865
 msgid "Download"
 msgstr "下载"
 
-#: src/gui/gui.cc:1867
+#: src/gui/gui.cc:1875
 msgid "An error has occured while downloading the update."
 msgstr "下载更新时发生致命错误"
 
-#: src/gui/gui.cc:1873 src/gui/widgets/assembly.cc:1036
+#: src/gui/gui.cc:1881 src/gui/widgets/assembly.cc:1035
 #: src/gui/widgets/registers.cc:470 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "取消"
 
-#: src/gui/gui.cc:1882
+#: src/gui/gui.cc:1890
 msgid "UvFiles"
 msgstr "UvFiles"
 
-#: src/gui/gui.cc:1885
+#: src/gui/gui.cc:1893
 #, c-format
 msgid "Read rate: %s"
 msgstr "读取速度：%s"
 
-#: src/gui/gui.cc:1887
+#: src/gui/gui.cc:1895
 #, c-format
 msgid "Write rate: %s"
 msgstr "写入速度：%s"
 
-#: src/gui/gui.cc:1889
+#: src/gui/gui.cc:1897
 #, c-format
 msgid "Download rate: %s"
 msgstr "下载速度：%s"
 
-#: src/gui/gui.cc:1891
+#: src/gui/gui.cc:1899
 msgid "Caching"
 msgstr "缓存中"
 
-#: src/gui/gui.cc:1892 src/gui/widgets/memcard_manager.cc:201
+#: src/gui/gui.cc:1900 src/gui/widgets/memcard_manager.cc:201
 msgid "Filename"
 msgstr "文件名"
 
-#: src/gui/gui.cc:2079
+#: src/gui/gui.cc:2087
 msgid "Emulation Configuration"
 msgstr "模拟设置"
 
-#: src/gui/gui.cc:2080
+#: src/gui/gui.cc:2088
 msgid "Idle Swap Interval"
 msgstr "闲置 Swap Interval"
 
-#: src/gui/gui.cc:2085
+#: src/gui/gui.cc:2093
 msgid "Reset Scaler"
 msgstr "重置 Scaler"
 
-#: src/gui/gui.cc:2091
+#: src/gui/gui.cc:2099
 msgid "Speed Scaler"
 msgstr "Speed Scaler"
 
-#: src/gui/gui.cc:2093
+#: src/gui/gui.cc:2101
 msgid "Enable XA decoder"
 msgstr "启用 XA 解码器"
 
-#: src/gui/gui.cc:2094
+#: src/gui/gui.cc:2102
 msgid "Always enable SPU IRQ"
 msgstr "总是启用 SPU IRQ"
 
-#: src/gui/gui.cc:2095
+#: src/gui/gui.cc:2103
 msgid "Decode MDEC videos in B&W"
 msgstr "在B&W中解码 MDEC 视频"
 
-#: src/gui/gui.cc:2096
+#: src/gui/gui.cc:2104
 msgid "Dynarec CPU"
 msgstr "Dynarec CPU"
 
-#: src/gui/gui.cc:2104
+#: src/gui/gui.cc:2112
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -1804,11 +1809,11 @@ msgstr ""
 "且不支持所有的CPU型号\n"
 "所以此设置可能不适应你的电脑"
 
-#: src/gui/gui.cc:2110
+#: src/gui/gui.cc:2118
 msgid "8MB"
 msgstr "8MB 内存"
 
-#: src/gui/gui.cc:2111
+#: src/gui/gui.cc:2119
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -1817,11 +1822,11 @@ msgstr ""
 "使用8MB 内存模式来代替原始的2MB 内存模式\n"
 "这对于开发程序或游戏来说很实用"
 
-#: src/gui/gui.cc:2115
+#: src/gui/gui.cc:2123
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr "OpenGL GPU *ALPHA STATE*"
 
-#: src/gui/gui.cc:2116
+#: src/gui/gui.cc:2124
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -1834,23 +1839,23 @@ msgstr ""
 "推荐使用软件渲染模式\n"
 "更改此项目后需要重启才能生效"
 
-#: src/gui/gui.cc:2128
+#: src/gui/gui.cc:2136
 msgid "NTSC"
 msgstr "NTSC 制式"
 
-#: src/gui/gui.cc:2128
+#: src/gui/gui.cc:2136
 msgid "PAL"
 msgstr "PAL 制式"
 
-#: src/gui/gui.cc:2131
+#: src/gui/gui.cc:2139
 msgid "System Type"
 msgstr "系统类型"
 
-#: src/gui/gui.cc:2150
+#: src/gui/gui.cc:2158
 msgid "Fast boot"
 msgstr "快速启动"
 
-#: src/gui/gui.cc:2151
+#: src/gui/gui.cc:2159
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1860,15 +1865,15 @@ msgstr ""
 "这会使BIOS跳过可能会进行附加检查的shell\n"
 "同时也会取消播放PS logo来减少启动时间"
 
-#: src/gui/gui.cc:2156
+#: src/gui/gui.cc:2164
 msgid "BIOS file"
 msgstr "BIOS 文件"
 
-#: src/gui/gui.cc:2160 src/gui/widgets/assembly.cc:550
+#: src/gui/gui.cc:2168 src/gui/widgets/assembly.cc:549
 msgid "Enable Debugger"
 msgstr "启动调试"
 
-#: src/gui/gui.cc:2167
+#: src/gui/gui.cc:2175
 #, fuzzy
 msgid ""
 "This will enable the usage of various breakpoints\n"
@@ -1878,11 +1883,11 @@ msgstr ""
 "这将允许在整个 mips 代码的执行过程中使用断点\n"
 "启用此功能可能会导致模拟效率显著降低"
 
-#: src/gui/gui.cc:2170
+#: src/gui/gui.cc:2178
 msgid "Enable GDB Server"
 msgstr "启用 GDB 服务器"
 
-#: src/gui/gui.cc:2179
+#: src/gui/gui.cc:2187
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
@@ -1891,11 +1896,11 @@ msgstr ""
 "激活GDB服务端来允许任何gdb远程客户端连接\n"
 "此功能需要开启调试选项"
 
-#: src/gui/gui.cc:2183
+#: src/gui/gui.cc:2191
 msgid "GDB send manifest"
 msgstr "GDB send manifest"
 
-#: src/gui/gui.cc:2184
+#: src/gui/gui.cc:2192
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -1907,19 +1912,19 @@ msgstr ""
 "you want to connect IDA to this server, as it\n"
 "has a bug in its manifest parser."
 
-#: src/gui/gui.cc:2191
+#: src/gui/gui.cc:2199
 msgid "PCSX Logs to GDB"
 msgstr "转发PCSX 日志到GDB"
 
-#: src/gui/gui.cc:2207
+#: src/gui/gui.cc:2215
 msgid "GDB Server Port"
 msgstr "GDB 服务端口"
 
-#: src/gui/gui.cc:2209
+#: src/gui/gui.cc:2217
 msgid "GDB Server Trace"
 msgstr "GDB 服务追踪"
 
-#: src/gui/gui.cc:2210
+#: src/gui/gui.cc:2218
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
@@ -1928,11 +1933,11 @@ msgstr ""
 "GDB 服务器将开始跟踪它的协议写入日志\n"
 "这有助于调试gdb 服务器系统本身。"
 
-#: src/gui/gui.cc:2213
+#: src/gui/gui.cc:2221
 msgid "Enable Web Server"
 msgstr "启用 Web 服务器"
 
-#: src/gui/gui.cc:2222
+#: src/gui/gui.cc:2230
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
@@ -1941,15 +1946,15 @@ msgstr ""
 "启动Web服务器来允许你使用REST api查询\n"
 "详细信息请参考wiki，在某些情况下可能需要启动调试。"
 
-#: src/gui/gui.cc:2226
+#: src/gui/gui.cc:2234
 msgid "Web Server Port"
 msgstr "Web 服务器端口"
 
-#: src/gui/gui.cc:2227
+#: src/gui/gui.cc:2235
 msgid "Enable SIO1 Server"
 msgstr "启动 SIO1 服务器"
 
-#: src/gui/gui.cc:2236
+#: src/gui/gui.cc:2244
 msgid ""
 "This will activate a tcp server, that will\n"
 "relay information between tcp and sio1.\n"
@@ -1958,15 +1963,15 @@ msgstr ""
 "激活TCP 服务器，允许在TCP和SIO1之间中继信息\n"
 "详细信息请参阅WIKI"
 
-#: src/gui/gui.cc:2240
+#: src/gui/gui.cc:2248
 msgid "SIO1 Server Port"
 msgstr "SIO1 服务器端口"
 
-#: src/gui/gui.cc:2241
+#: src/gui/gui.cc:2249
 msgid "Enable SIO1 Client"
 msgstr "启动 SIO1客户端"
 
-#: src/gui/gui.cc:2254
+#: src/gui/gui.cc:2262
 msgid ""
 "This will activate a tcp client, that can connect\n"
 "to another PCSX-Redux server to relay information between tcp and sio1.\n"
@@ -1975,72 +1980,72 @@ msgstr ""
 "激活SIO1 TCP客户端来连接其他PCSX-Redux SIO1服务端\n"
 "详细信息请参阅WIKI"
 
-#: src/gui/gui.cc:2258
+#: src/gui/gui.cc:2266
 msgid "SIO1 Client Host"
 msgstr "SI01 客户端主机"
 
-#: src/gui/gui.cc:2261
+#: src/gui/gui.cc:2269
 msgid "SIO1 Client Port"
 msgstr "SIO1 客户端端口"
 
-#: src/gui/gui.cc:2265
+#: src/gui/gui.cc:2273
 msgid "Reset SIO"
 msgstr "重启 SIO"
 
-#: src/gui/gui.cc:2276
+#: src/gui/gui.cc:2284
 msgid "Reconnect"
 msgstr "重新连接"
 
-#: src/gui/gui.cc:2289
+#: src/gui/gui.cc:2297
 msgid "SIO1Mode"
 msgstr "SIO1模式"
 
-#: src/gui/gui.cc:2347
+#: src/gui/gui.cc:2355
 msgid "Interrupt Scaler"
 msgstr "中断 Scaler"
 
-#: src/gui/gui.cc:2348
+#: src/gui/gui.cc:2356
 msgid "Reset all"
 msgstr "全部重置"
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2372
 msgid "Cherry##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2372
 msgid "Classic##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2372
 #, fuzzy
 msgid "Default theme##Theme name"
 msgstr "默认主题"
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2372
 msgid "Light##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2365
+#: src/gui/gui.cc:2373
 msgid "Dracula##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2365
+#: src/gui/gui.cc:2373
 msgid "Mono##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2365
+#: src/gui/gui.cc:2373
 msgid "Olive##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2370
+#: src/gui/gui.cc:2378
 msgid "Themes"
 msgstr "主题"
 
-#: src/gui/gui.cc:2401 src/gui/gui.cc:2490
+#: src/gui/gui.cc:2409 src/gui/gui.cc:2498
 msgid "Version"
 msgstr "版本"
 
-#: src/gui/gui.cc:2408
+#: src/gui/gui.cc:2416
 msgid ""
 "No version information.\n"
 "\n"
@@ -2050,51 +2055,51 @@ msgstr ""
 "\n"
 "可能是自编译版本"
 
-#: src/gui/gui.cc:2410
+#: src/gui/gui.cc:2418
 msgid "Copy to clipboard"
 msgstr "复制到剪切板"
 
-#: src/gui/gui.cc:2422 src/gui/gui.cc:2507
+#: src/gui/gui.cc:2430 src/gui/gui.cc:2515
 #, c-format
 msgid "Version: %s"
 msgstr "版本：%s"
 
-#: src/gui/gui.cc:2424
+#: src/gui/gui.cc:2432
 #, c-format
 msgid "Build: %i"
 msgstr ""
 
-#: src/gui/gui.cc:2426
+#: src/gui/gui.cc:2434
 #, fuzzy
 msgid "Changeset: "
 msgstr "Changeset: %s"
 
-#: src/gui/gui.cc:2433
+#: src/gui/gui.cc:2441
 #, c-format
 msgid "Date & time: %s"
 msgstr "Date & time: %s"
 
-#: src/gui/gui.cc:2442
+#: src/gui/gui.cc:2450
 msgid "Authors"
 msgstr "作者"
 
-#: src/gui/gui.cc:2450
+#: src/gui/gui.cc:2458
 msgid "Licenses"
 msgstr "协议"
 
-#: src/gui/gui.cc:2462
+#: src/gui/gui.cc:2470
 msgid "OpenGL information"
 msgstr "OpenGL 信息"
 
-#: src/gui/gui.cc:2464
+#: src/gui/gui.cc:2472
 msgid "OpenGL error reporting: enabled"
 msgstr "OpenGL 错误信息报告：启用"
 
-#: src/gui/gui.cc:2466
+#: src/gui/gui.cc:2474
 msgid "OpenGL error reporting: disabled"
 msgstr "OpenGL 错误信息报告：禁用"
 
-#: src/gui/gui.cc:2469
+#: src/gui/gui.cc:2477
 #, fuzzy
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
@@ -2109,11 +2114,11 @@ msgstr ""
 "OpenGL 驱动程序。 禁用 OpenGL 错误报告不会对该软件的性能产生负面影响，但着色"
 "器编辑器等将无法准确地报告问题。"
 
-#: src/gui/gui.cc:2477
+#: src/gui/gui.cc:2485
 msgid "Enable OpenGL error reporting"
 msgstr "启动 OpenGL 错误信息报告"
 
-#: src/gui/gui.cc:2480
+#: src/gui/gui.cc:2488
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
@@ -2122,78 +2127,78 @@ msgstr ""
 "OpenGL 错误报告对于正确报告 OpenGL 问题是必要的。 但是，它需要 OpenGL 4.3+ 版"
 "本，并且可能会对某些计算机产生性能影响。 （需要重启模拟器）"
 
-#: src/gui/gui.cc:2484
+#: src/gui/gui.cc:2492
 msgid "OpenGL error reporting severity"
 msgstr "OpenGL 错误报告严重性"
 
-#: src/gui/gui.cc:2487
+#: src/gui/gui.cc:2495
 #, c-format
 msgid "Core profile: %s"
 msgstr "Core profile: %s"
 
-#: src/gui/gui.cc:2487 src/gui/widgets/assembly.cc:578
+#: src/gui/gui.cc:2495 src/gui/widgets/assembly.cc:577
 msgid "no"
 msgstr "否"
 
-#: src/gui/gui.cc:2487 src/gui/widgets/assembly.cc:578
+#: src/gui/gui.cc:2495 src/gui/widgets/assembly.cc:577
 msgid "yes"
 msgstr "是"
 
-#: src/gui/gui.cc:2488
+#: src/gui/gui.cc:2496
 msgid "Vendor"
 msgstr "Vendor"
 
-#: src/gui/gui.cc:2489
+#: src/gui/gui.cc:2497
 msgid "Renderer"
 msgstr "渲染器"
 
-#: src/gui/gui.cc:2491
+#: src/gui/gui.cc:2499
 msgid "Shading language version"
 msgstr "着色器语言版本"
 
-#: src/gui/gui.cc:2494
+#: src/gui/gui.cc:2502
 #, c-format
 msgid "Texture units: %d"
 msgstr ""
 
-#: src/gui/gui.cc:2497
+#: src/gui/gui.cc:2505
 msgid "Extensions:"
 msgstr "扩展："
 
-#: src/gui/gui.cc:2506
+#: src/gui/gui.cc:2514
 #, fuzzy
 msgid "FFmpeg information"
 msgstr "OpenGL 信息"
 
-#: src/gui/gui.cc:2508
+#: src/gui/gui.cc:2516
 #, fuzzy, c-format
 msgid "License: %s"
 msgstr "协议"
 
-#: src/gui/gui.cc:2509
+#: src/gui/gui.cc:2517
 #, fuzzy, c-format
 msgid "Configuration: %s"
 msgstr "设置"
 
-#: src/gui/gui.cc:2512
+#: src/gui/gui.cc:2520
 msgid "List of supported formats:"
 msgstr ""
 
-#: src/gui/gui.cc:2530
+#: src/gui/gui.cc:2538
 msgid ""
 "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
 msgstr ""
 
-#: src/gui/gui.cc:2570
+#: src/gui/gui.cc:2578
 #, c-format
 msgid "%s codecs"
 msgstr ""
 
-#: src/gui/gui.h:246
+#: src/gui/gui.h:247
 msgid "Ok"
 msgstr "好"
 
-#: src/gui/gui.h:430
+#: src/gui/gui.h:431
 msgid "Notification"
 msgstr "通知"
 
@@ -2258,109 +2263,109 @@ msgstr "Trio"
 msgid "Mask type"
 msgstr "Mask 类型"
 
-#: src/gui/widgets/assembly.cc:335
+#: src/gui/widgets/assembly.cc:334
 #, fuzzy
 msgid "Go to in Memory Editor #1 (Default Click)"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:336
+#: src/gui/widgets/assembly.cc:335
 #, fuzzy
 msgid "Go to in Memory Editor #2 (Shift+Click)"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:337
+#: src/gui/widgets/assembly.cc:336
 #, fuzzy
 msgid "Go to in Memory Editor #3 (Ctrl+Click)"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:340
+#: src/gui/widgets/assembly.cc:339
 #, fuzzy
 msgid "Go to in Memory Editor #{}"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:343
+#: src/gui/widgets/assembly.cc:342
 #, fuzzy
 msgid "Create Memory Read Breakpoint"
 msgstr "切换断点"
 
-#: src/gui/widgets/assembly.cc:344 src/gui/widgets/assembly.cc:347
-#: src/gui/widgets/assembly.cc:767 src/gui/widgets/assembly.cc:793
+#: src/gui/widgets/assembly.cc:343 src/gui/widgets/assembly.cc:346
+#: src/gui/widgets/assembly.cc:766 src/gui/widgets/assembly.cc:792
 #: src/gui/widgets/breakpoints.cc:338
 msgid "GUI"
 msgstr "GUI"
 
-#: src/gui/widgets/assembly.cc:346
+#: src/gui/widgets/assembly.cc:345
 #, fuzzy
 msgid "Create Memory Write Breakpoint"
 msgstr "写入断点"
 
-#: src/gui/widgets/assembly.cc:353
+#: src/gui/widgets/assembly.cc:352
 #, fuzzy
 msgid "Go to in Memory Editor..."
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:401
+#: src/gui/widgets/assembly.cc:400
 #, fuzzy, c-format
 msgid "Go to in Memory Editor #%d"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:462
+#: src/gui/widgets/assembly.cc:461
 #, fuzzy, c-format
 msgid "Go to in Memory Editor #%u"
 msgstr "跳转到内存编辑器中"
 
-#: src/gui/widgets/assembly.cc:486
+#: src/gui/widgets/assembly.cc:485
 msgid "Load symbols map"
 msgstr "加载 symbols map"
 
-#: src/gui/widgets/assembly.cc:487
+#: src/gui/widgets/assembly.cc:486
 msgid "Reset symbols map"
 msgstr "重置 symbols map"
 
-#: src/gui/widgets/assembly.cc:493 src/gui/widgets/assembly.cc:568
+#: src/gui/widgets/assembly.cc:492 src/gui/widgets/assembly.cc:567
 msgid "Pause"
 msgstr "暂停"
 
-#: src/gui/widgets/assembly.cc:494 src/gui/widgets/assembly.cc:570
+#: src/gui/widgets/assembly.cc:493 src/gui/widgets/assembly.cc:569
 #: src/gui/widgets/gpulogger.cc:84
 msgid "Resume"
 msgstr "恢复"
 
-#: src/gui/widgets/assembly.cc:496 src/gui/widgets/assembly.cc:572
+#: src/gui/widgets/assembly.cc:495 src/gui/widgets/assembly.cc:571
 msgid "Step In"
 msgstr "Step In"
 
 #. Options, Filter
-#: src/gui/widgets/assembly.cc:502 src/gui/widgets/console.cc:53
+#: src/gui/widgets/assembly.cc:501 src/gui/widgets/console.cc:53
 #: src/gui/widgets/dynarec_disassembly.cc:106
 msgid "Options"
 msgstr "选项"
 
-#: src/gui/widgets/assembly.cc:503
+#: src/gui/widgets/assembly.cc:502
 msgid "Combined pseudo-instructions"
 msgstr "组合伪指令"
 
-#: src/gui/widgets/assembly.cc:508
+#: src/gui/widgets/assembly.cc:507
 msgid ""
 "When two instructions are detected to be a single pseudo-instruction, "
 "combine them into the actual pseudo-instruction."
 msgstr "当检测到两条指令是一条伪指令时，将它们组合成实际的伪指令。"
 
-#: src/gui/widgets/assembly.cc:513
+#: src/gui/widgets/assembly.cc:512
 msgid "Pseudo-instructions filling"
 msgstr "Pseudo-instructions filling"
 
-#: src/gui/widgets/assembly.cc:518
+#: src/gui/widgets/assembly.cc:517
 msgid ""
 "When combining two instructions into a single pseudo-instruction, add a "
 "placeholder for the second one."
 msgstr "将两条指令组合成一条伪指令时，为第二条指令添加一个占位符。"
 
-#: src/gui/widgets/assembly.cc:523
+#: src/gui/widgets/assembly.cc:522
 msgid "Delay slot notch"
 msgstr "延迟 slot notch"
 
-#: src/gui/widgets/assembly.cc:528
+#: src/gui/widgets/assembly.cc:527
 msgid ""
 "Add a small visible notch to indicate instructions that are on the delay "
 "slot of a branch."
@@ -2368,146 +2373,146 @@ msgstr ""
 "Add a small visible notch to indicate instructions that are on the delay "
 "slot of a branch."
 
-#: src/gui/widgets/assembly.cc:532
+#: src/gui/widgets/assembly.cc:531
 msgid "Draw arrows for jumps"
 msgstr "Draw arrows for jumps"
 
-#: src/gui/widgets/assembly.cc:536
+#: src/gui/widgets/assembly.cc:535
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
 msgstr "Display arrows for jumps， 这可能会使屏幕过于拥挤。"
 
-#: src/gui/widgets/assembly.cc:540
+#: src/gui/widgets/assembly.cc:539
 msgid "Columns"
 msgstr "列"
 
-#: src/gui/widgets/assembly.cc:559 src/gui/widgets/log.cc:112
+#: src/gui/widgets/assembly.cc:558 src/gui/widgets/log.cc:112
 msgid "CPU trace"
 msgstr "追踪CPU"
 
-#: src/gui/widgets/assembly.cc:561
+#: src/gui/widgets/assembly.cc:560
 msgid "Skip ISR"
 msgstr "跳过 ISR"
 
-#: src/gui/widgets/assembly.cc:563
+#: src/gui/widgets/assembly.cc:562
 msgid "Follow PC"
 msgstr "跟踪 PC"
 
-#: src/gui/widgets/assembly.cc:565
+#: src/gui/widgets/assembly.cc:564
 msgid "Jump to PC"
 msgstr "跳转PC至"
 
-#: src/gui/widgets/assembly.cc:578
+#: src/gui/widgets/assembly.cc:577
 #, c-format
 msgid "In ISR: %s"
 msgstr "In ISR: %s"
 
-#: src/gui/widgets/assembly.cc:776
+#: src/gui/widgets/assembly.cc:775
 #, fuzzy
 msgid "Remove symbol"
 msgstr "重置 symbols map"
 
-#: src/gui/widgets/assembly.cc:780
+#: src/gui/widgets/assembly.cc:779
 msgid "Create symbol here"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:785
+#: src/gui/widgets/assembly.cc:784
 msgid "Copy Address"
 msgstr "复制地址"
 
-#: src/gui/widgets/assembly.cc:791
+#: src/gui/widgets/assembly.cc:790
 msgid "Run to Cursor"
 msgstr "运行到光标处"
 
-#: src/gui/widgets/assembly.cc:800
+#: src/gui/widgets/assembly.cc:799
 msgid "Toggle Breakpoint"
 msgstr "切换断点"
 
-#: src/gui/widgets/assembly.cc:804 src/gui/widgets/assembly.cc:809
+#: src/gui/widgets/assembly.cc:803 src/gui/widgets/assembly.cc:808
 #, fuzzy
 msgid "Remove Breakpoint"
 msgstr "切换断点"
 
-#: src/gui/widgets/assembly.cc:816
+#: src/gui/widgets/assembly.cc:815
 msgid "Patch in Return"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:819
+#: src/gui/widgets/assembly.cc:818
 msgid "Patch in NOP"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:826
+#: src/gui/widgets/assembly.cc:825
 msgid "Delete Return Patch"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:832
+#: src/gui/widgets/assembly.cc:831
 msgid "Delete NOP Patch"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:839 src/gui/widgets/assembly.cc:1043
-#: src/gui/widgets/assembly.cc:1045 src/gui/widgets/assembly.cc:1051
+#: src/gui/widgets/assembly.cc:838 src/gui/widgets/assembly.cc:1042
+#: src/gui/widgets/assembly.cc:1044 src/gui/widgets/assembly.cc:1050
 #, fuzzy
 msgid "Assemble"
 msgstr "汇编"
 
-#: src/gui/widgets/assembly.cc:976 src/gui/widgets/breakpoints.cc:181
+#: src/gui/widgets/assembly.cc:975 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:927
 msgid "Address"
 msgstr "地址"
 
-#: src/gui/widgets/assembly.cc:990
+#: src/gui/widgets/assembly.cc:989
 msgid "RAM base"
 msgstr "RAM base"
 
-#: src/gui/widgets/assembly.cc:999 src/gui/widgets/assembly.cc:1109
+#: src/gui/widgets/assembly.cc:998 src/gui/widgets/assembly.cc:1108
 msgid "Symbols"
 msgstr "Symbols"
 
-#: src/gui/widgets/assembly.cc:1025 src/gui/widgets/assembly.cc:1027
+#: src/gui/widgets/assembly.cc:1024 src/gui/widgets/assembly.cc:1026
 #, fuzzy
 msgid "Add symbol"
 msgstr "加载Symbols"
 
-#: src/gui/widgets/assembly.cc:1028
+#: src/gui/widgets/assembly.cc:1027
 #, c-format
 msgid "Add symbol for address 0x%08x:"
 msgstr ""
 
-#: src/gui/widgets/assembly.cc:1030 src/gui/widgets/breakpoints.cc:242
+#: src/gui/widgets/assembly.cc:1029 src/gui/widgets/breakpoints.cc:242
 #, fuzzy
 msgid "Add"
 msgstr "地址"
 
-#: src/gui/widgets/assembly.cc:1046
+#: src/gui/widgets/assembly.cc:1045
 #, c-format
 msgid "Assemble code for address 0x%08x:"
 msgstr ""
 
 #. Clear items button
-#: src/gui/widgets/assembly.cc:1071 src/gui/widgets/console.cc:39
+#: src/gui/widgets/assembly.cc:1070 src/gui/widgets/console.cc:39
 #: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:129
 #: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:793
 msgid "Clear"
 msgstr "清除"
 
-#: src/gui/widgets/assembly.cc:1073 src/gui/widgets/dynarec_disassembly.cc:73
+#: src/gui/widgets/assembly.cc:1072 src/gui/widgets/dynarec_disassembly.cc:73
 msgid "Close"
 msgstr "关闭"
 
-#: src/gui/widgets/assembly.cc:1110
+#: src/gui/widgets/assembly.cc:1109
 msgid "Refresh"
 msgstr "刷新"
 
-#: src/gui/widgets/assembly.cc:1112
+#: src/gui/widgets/assembly.cc:1111
 msgid "Filter"
 msgstr "Filter"
 
-#: src/gui/widgets/assembly.cc:1126
+#: src/gui/widgets/assembly.cc:1125
 msgid "Code##{}{:08x}"
 msgstr "Code##{0}{:08x}"
 
-#: src/gui/widgets/assembly.cc:1127
+#: src/gui/widgets/assembly.cc:1126
 msgid "Data##{}{:08x}"
 msgstr "Data##{0}{:08x}"
 
