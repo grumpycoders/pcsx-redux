@@ -15,7 +15,6 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 ffi.cdef [[
 uint64_t djbHash(const char* str, size_t len);
 ]]
@@ -40,8 +39,6 @@ Support.extra = {
         error('FFI call failed in ' .. name .. ': ' .. ret)
     end,
 
-    djbHash = function(str)
-        return C.djbHash(str, #str)
-    end,
+    djbHash = function(str) return C.djbHash(str, #str) end,
 }
 -- )EOF"

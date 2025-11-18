@@ -382,7 +382,8 @@ class ArchiveManager {
         uint32_t indexSize = (getIndexCount() + 1) * sizeof(IndexEntry);
         return (indexSize + 2047) / 2048;
     }
-    static eastl::array<void (ArchiveManager::*)(const IndexEntry *), toUnderlying(IndexEntry::Method::COUNT)> s_decompressors;
+    static eastl::array<void (ArchiveManager::*)(const IndexEntry *), toUnderlying(IndexEntry::Method::COUNT)>
+        s_decompressors;
     void decompressUCL_NRV2E(const IndexEntry *entry);
     void decompressLZ4(const IndexEntry *entry);
 };

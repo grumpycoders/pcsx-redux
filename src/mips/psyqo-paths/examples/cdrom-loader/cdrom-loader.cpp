@@ -70,11 +70,10 @@ void CDRomLoaderExample::prepare() {
 void CDRomLoaderExample::createScene() {
     m_font.uploadSystemFont(gpu());
     pushScene(&cdromLoaderExampleScene);
-    m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.m_isoParser,
-                           [this](psyqo::Buffer<uint8_t>&& buffer) {
-                               m_buffer = eastl::move(buffer);
-                               m_callbackCalled = true;
-                           });
+    m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.m_isoParser, [this](psyqo::Buffer<uint8_t>&& buffer) {
+        m_buffer = eastl::move(buffer);
+        m_callbackCalled = true;
+    });
 }
 
 void CDRomLoaderExampleScene::frame() {
