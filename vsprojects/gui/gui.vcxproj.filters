@@ -103,6 +103,9 @@
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\splash.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\patches.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
