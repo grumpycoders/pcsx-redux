@@ -45,8 +45,6 @@ class PadsImpl : public PCSX::Pads {
     PadsImpl();
     void init() override;
     void shutdown() override;
-    uint8_t startPoll(Port port) override;
-    uint8_t poll(uint8_t value, Port port, uint32_t& padState) override;
 
     json getCfg() override;
     void setCfg(const json& j) override;
@@ -63,9 +61,17 @@ class PadsImpl : public PCSX::Pads {
         if (pad > m_pads.size()) {
             return false;
         } else {
-            return m_pads[pad - 1].isControllerConnected();
+            return m_pads[pad].isControllerConnected();
         }
     }
+
+    void deselect() {
+        for (int i = 0; i < m_pads.size(); i++) {
+            m_pads[i].deselect();
+        }
+    }
+
+    uint8_t transceive(int index, uint8_t value, bool* ack) override { return m_pads[index].transceive(value, ack); }
 
   private:
     PCSX::EventBus::Listener m_listener;
@@ -168,6 +174,12 @@ class PadsImpl : public PCSX::Pads {
         bool isControllerButtonPressed(int button, GLFWgamepadstate* state);
         bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
 
+        void deselect() {
+            m_bufferIndex = 0;
+            m_padState = Pads::PAD_STATE_IDLE;
+        }
+        uint8_t transceive(uint8_t value, bool* ack);
+
         json getCfg();
         void setCfg(const json& j);
         void setDefaults(bool firstController);
@@ -199,6 +211,13 @@ class PadsImpl : public PCSX::Pads {
         uint8_t m_stdpar[8] = {0x41, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_mousepar[6] = {0x12, 0x5a, 0xff, 0xff, 0xff, 0xff};
         uint8_t m_analogpar[8] = {0x73, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+        static constexpr size_t c_padBufferSize = 0x1010;
+
+        uint8_t m_buffer[c_padBufferSize];
+        uint32_t m_bufferIndex = 0;
+        uint32_t m_maxBufferIndex = 0;
+        uint32_t m_padState = Pads::PAD_STATE_IDLE;
     };
 
     std::array<Pad, 2> m_pads;
@@ -678,15 +697,49 @@ void PadsImpl::Pad::getButtons() {
     pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
 }
 
-uint8_t PadsImpl::startPoll(Port port) {
-    int index = magic_enum::enum_integer(port);
-    m_pads[index].getButtons();
-    return m_pads[index].startPoll();
-}
+uint8_t PadsImpl::Pad::transceive(uint8_t value, bool* ack) {
+    uint8_t dataOut = 0xff;
 
-uint8_t PadsImpl::poll(uint8_t value, Port port, uint32_t& padState) {
-    int index = magic_enum::enum_integer(port);
-    return m_pads[index].poll(value, padState);
+    switch (m_padState) {
+        case Pads::PAD_STATE_IDLE:  // start pad
+            getButtons();
+            m_buffer[0] = startPoll();
+            m_maxBufferIndex = 2;
+            m_bufferIndex = 0;
+            m_padState = Pads::PAD_STATE_READ_COMMAND;
+            break;
+
+        case Pads::PAD_STATE_READ_COMMAND:
+            m_padState = Pads::PAD_STATE_READ_DATA;
+            m_bufferIndex = 1;
+            m_buffer[m_bufferIndex] = poll(value, m_padState);
+
+            if (!(m_buffer[m_bufferIndex] & 0x0f)) {
+                m_maxBufferIndex = 2 + 32;
+            } else {
+                m_maxBufferIndex = 2 + (m_buffer[m_bufferIndex] & 0x0f) * 2;
+            }
+
+            break;
+
+        case Pads::PAD_STATE_READ_DATA:
+            m_bufferIndex++;
+            m_buffer[m_bufferIndex] = poll(value, m_padState);
+
+            if (m_bufferIndex == m_maxBufferIndex) {
+                m_padState = Pads::PAD_STATE_BAD_COMMAND;
+            }
+            break;
+    }
+
+    dataOut = m_buffer[m_bufferIndex];
+
+    if (m_padState == Pads::PAD_STATE_BAD_COMMAND) {
+    } else {
+        *ack = true;
+    }
+
+    return dataOut;
 }
 
 uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {

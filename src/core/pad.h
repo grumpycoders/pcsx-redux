@@ -29,6 +29,7 @@ using json = nlohmann::json;
 namespace PCSX {
 
 class GUI;
+class SIO;
 
 class Pads {
   public:
@@ -36,10 +37,17 @@ class Pads {
 
     virtual ~Pads() = default;
 
+    class InputDevice {
+        virtual void* getPadState() = 0;
+        virtual bool isButtonPressed(int button) = 0;
+        virtual void updateInput() = 0;
+    };
+
     virtual void init() = 0;
     virtual void shutdown() = 0;
-    virtual uint8_t startPoll(Port port) = 0;
-    virtual uint8_t poll(uint8_t value, Port port, uint32_t& padState) = 0;
+
+    virtual void deselect() = 0;
+    virtual uint8_t transceive(int index, uint8_t value, bool* ack) = 0;
 
     virtual json getCfg() = 0;
     virtual void setCfg(const json& j) = 0;

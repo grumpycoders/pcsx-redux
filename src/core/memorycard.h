@@ -21,18 +21,27 @@
 
 #include <stdint.h>
 
+#include "core/psxemulator.h"
 #include "core/sstate.h"
+#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 
 namespace PCSX {
 class SIO;
 
+/// <summary>
+/// Implements a memory card for SIO
+/// </summary>
 class MemoryCard {
   public:
-    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, c_cardSize); }
-    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, c_cardSize); }
+    enum class Which : uint8_t {
+        One = 0,
+        Two = 1,
+    };
+
+    MemoryCard(Which which) : m_whichDevice(which) {}
 
     // Hardware events
-    void acknowledge();
+
     void deselect() {
         memset(&m_tempBuffer, 0, c_sectorSize);
         m_currentCommand = Commands::None;
@@ -41,21 +50,16 @@ class MemoryCard {
         m_sector = 0;
         m_spdr = Responses::IdleHighZ;
     }
+    void reset() {
+        deselect();
+        m_directoryFlag = Flags::DirectoryUnread;
+    }
+
+    void setPocketstationEnabled(bool enabled) { m_pocketstationEnabled = enabled; };
 
     // File system / data manipulation
-    void commit(const PCSX::u8string path) {
-        if (!m_savedToDisk) {
-            saveMcd(path);
-        }
-    }
-    void createMcd(PCSX::u8string mcd);
-    bool dataChanged() { return !m_savedToDisk; }
-    void disablePocketstation() { m_pocketstationEnabled = false; };
-    void enablePocketstation() { m_pocketstationEnabled = true; };
+    void commit();
     char *getMcdData() { return m_mcdData; }
-    void loadMcd(PCSX::u8string mcd);
-    void saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void saveMcd(PCSX::u8string mcd) { saveMcd(mcd, m_mcdData, 0, c_cardSize); }
 
   private:
     enum Commands : uint8_t {
@@ -97,21 +101,21 @@ class MemoryCard {
     friend class SIO;
     friend SaveStates::SaveState SaveStates::constructSaveState();
 
-    static constexpr size_t c_sectorSize = 8 * 16;
-    static constexpr size_t c_blockSize = 8192;
-    static constexpr size_t c_cardSize = 1024 * c_sectorSize;
+    static constexpr size_t c_sectorSize = 8 * 16;            // 80h bytes per sector/frame
+    static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
+    static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves);
 
     // State machine / handlers
-    uint8_t transceive(uint8_t value);
-    uint8_t tickReadCommand(uint8_t value);
-    uint8_t tickWriteCommand(uint8_t value);
-    uint8_t tickPS_GetDirIndex(uint8_t value);   // 5Ah
-    uint8_t tickPS_GetVersion(uint8_t value);    // 58h
-    uint8_t tickPS_PrepFileExec(uint8_t value);  // 59h
-    uint8_t tickPS_ExecCustom(uint8_t value);    // 5Dh
+    uint8_t transceive(uint8_t value, bool *ack);           // *
+    uint8_t tickReadCommand(uint8_t value, bool *ack);      // 52h
+    uint8_t tickWriteCommand(uint8_t value, bool *ack);     // 57h
+    uint8_t tickPS_GetDirIndex(uint8_t value, bool *ack);   // 5Ah
+    uint8_t tickPS_GetVersion(uint8_t value, bool *ack);    // 58h
+    uint8_t tickPS_PrepFileExec(uint8_t value, bool *ack);  // 59h
+    uint8_t tickPS_ExecCustom(uint8_t value, bool *ack);    // 5Dh
 
-    char m_mcdData[c_cardSize];
-    uint8_t m_tempBuffer[c_sectorSize];
+    char m_mcdData[c_cardSize] = {0};
+    uint8_t m_tempBuffer[c_blockSize] = {0};
     bool m_savedToDisk = false;
 
     uint8_t m_checksumIn = 0, m_checksumOut = 0;
@@ -128,7 +132,109 @@ class MemoryCard {
     bool m_pocketstationEnabled = false;
     uint16_t m_directoryIndex = 0;
 
-    SIO *m_sio;
+    SIO *m_sio = nullptr;
+    Which m_whichDevice = Which::One;
+};
+
+/// <summary>
+/// Helper functions for MemoryCard class, gui, and filesystem
+/// </summary>
+class MemoryCards {
+  public:
+    void deselect() {
+        m_memoryCard[0].deselect();
+        m_memoryCard[1].deselect();
+    }
+
+    void reset() {
+        m_memoryCard[0].reset();
+        m_memoryCard[1].reset();
+    }
+
+    struct McdBlock {
+        McdBlock() { reset(); }
+        MemoryCard::Which mcd;
+        int number;
+        std::string titleAscii;
+        std::string titleSjis;
+        std::string titleUtf8;
+        std::string id;
+        std::string name;
+        uint32_t fileSize;
+        uint32_t iconCount;
+        uint16_t icon[16 * 16 * 3];
+        uint32_t allocState;
+        int16_t nextBlock;
+        void reset() {
+            mcd = MemoryCard::Which::One;
+            number = 0;
+            titleAscii.clear();
+            titleSjis.clear();
+            titleUtf8.clear();
+            id.clear();
+            name.clear();
+            fileSize = 0;
+            iconCount = 0;
+            memset(icon, 0, sizeof(icon));
+            allocState = 0;
+            nextBlock = -1;
+        }
+        bool isErased() const { return (allocState & 0xa0) == 0xa0; }
+        bool isChained() const { return (allocState & ~1) == 0x52; }
+    };
+
+    static constexpr size_t c_sectorSize = 8 * 16;            // 80h bytes per sector/frame
+    static constexpr size_t c_blockSize = c_sectorSize * 64;  // 40h sectors per block
+    static constexpr size_t c_cardSize = c_blockSize * 16;    // 16 blocks per frame(directory+15 saves)
+
+    bool copyMcdFile(McdBlock block);
+    void eraseMcdFile(const McdBlock &block);
+    void eraseMcdFile(MemoryCard::Which mcd, int block) {
+        McdBlock info;
+        getMcdBlockInfo(mcd, block, info);
+        eraseMcdFile(info);
+    }
+    int findFirstFree(MemoryCard::Which mcd);
+    unsigned getFreeSpace(MemoryCard::Which mcd);
+    unsigned getFileBlockCount(McdBlock block);
+    void getMcdBlockInfo(MemoryCard::Which mcd, int block, McdBlock &info);
+    char *getMcdData(MemoryCard::Which mcd);
+    char *getMcdData(const McdBlock &block) { return getMcdData(block.mcd); }
+
+    // File operations
+    void createMcd(PCSX::u8string mcd);
+    void loadMcds(const CommandLine::args &args);
+    bool saveMcd(MemoryCard::Which which);
+
+    bool loadMcd(PCSX::u8string mcd, char *data);
+    bool saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+
+    static constexpr MemoryCard::Which otherMcd(MemoryCard::Which mcd) {
+        if ((mcd != MemoryCard::Which::One) && (mcd != MemoryCard::Which::Two))
+            throw std::runtime_error("Bad memory card number");
+        if (mcd == MemoryCard::Which::One) return MemoryCard::Which::Two;
+        return MemoryCard::Which::One;
+    }
+
+    PCSX::u8string getMcdPath(MemoryCard::Which which) {
+        std::filesystem::path *paths[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1>().value,
+                                          &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2>().value};
+
+        PCSX::u8string thepath = paths[magic_enum::enum_integer(which)]->u8string();
+        return thepath;
+    }
+    bool isCardInserted(MemoryCard::Which which) {
+        bool *const inserted_lut[] = {&PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd1Inserted>().value,
+                                      &PCSX::g_emulator->settings.get<PCSX::Emulator::SettingMcd2Inserted>().value};
+
+        return *inserted_lut[magic_enum::enum_integer(which)];
+    }
+
+    static constexpr MemoryCard::Which otherMcd(const McdBlock &block) { return otherMcd(block.mcd); }
+    void resetCard(MemoryCard::Which which);
+    void setPocketstationEnabled(MemoryCard::Which which, bool enabled);
+
+    MemoryCard m_memoryCard[2] = {MemoryCard(MemoryCard::Which::One), MemoryCard(MemoryCard::Which::Two)};
 };
 
 }  // namespace PCSX
