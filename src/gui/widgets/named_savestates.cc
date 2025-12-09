@@ -185,13 +185,21 @@ bool PCSX::Widgets::NamedSaveStates::deleteSaveState(GUI* gui, std::filesystem::
 }
 
 std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* gui, std::string saveStateName) {
+
+    // Check sub-folder for active game exists.
     std::error_code ec;
-    std::filesystem::path base_path = g_system->getPersistentDir() / gui->getSaveStatePrefix(false);
+    std::string sub_folder = gui->getSaveStatePrefix(false);
+    std::filesystem::path base_path = g_system->getPersistentDir() / sub_folder;
     if (!std::filesystem::exists(base_path, ec)) {
         std::filesystem::create_directory(base_path);
+        g_system->log(LogClass::UI, "Created save state folder: %s\n", sub_folder.c_str());
     }
 
-    std::string pathStr = fmt::format("{}//{}{}", base_path.string(), saveStateName, gui->getSaveStatePostfix());
+    // Merge base_path with the potential save-state name.
+    base_path = base_path / saveStateName;
+
+    // Append file format.
+    std::string pathStr = fmt::format("{}{}", base_path.string(), gui->getSaveStatePostfix());
     return std::filesystem::path(pathStr);
 }
 
