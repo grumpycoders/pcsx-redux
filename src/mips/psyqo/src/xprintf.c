@@ -315,11 +315,7 @@ static const info fmtinfo[] = {
 ** seems to make a big difference in determining how fast this beast
 ** will run.
 */
-int vxprintf(func, arg, format, ap) void (*func)(const char *, int, void *);
-void *arg;
-const char *format;
-va_list ap;
-{
+int vxprintf(void (*func)(const char *, int, void *), void *arg, const char *format, va_list ap) {
     register const char *fmt; /* The format string. */
     register int c;           /* Next character in the format string */
     register char *bufpt;     /* Pointer to the conversion buffer */
@@ -704,10 +700,7 @@ struct s_strargument { /* Describes the string being written to */
     char *last;        /* Last available slot in the string */
 };
 
-static void sout(txt, amt, arg) char *txt;
-int amt;
-void *arg;
-{
+static void sout(const char *txt, int amt, void *arg) {
     register char *head;
     register const char *t;
     register int a;
@@ -756,10 +749,7 @@ struct sgMprintf {
 };
 
 /* The xprintf callback function. */
-static void mout(zNewText, nNewChar, arg) char *zNewText;
-int nNewChar;
-void *arg;
-{
+static void mout(const char *zNewText, int nNewChar, void *arg) {
     struct sgMprintf *pM = (struct sgMprintf *)arg;
     if (pM->nChar + nNewChar + 1 > pM->nAlloc) {
         pM->nAlloc = pM->nChar + nNewChar * 2 + 1;
