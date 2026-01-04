@@ -2618,11 +2618,11 @@ msgstr "Mappa byte-läsningar         "
 
 #: src/gui/widgets/breakpoints.cc:393
 msgid "Map half reads         "
-msgstr "Mappa half-läsningar "
+msgstr "Mappa half-läsningar         "
 
 #: src/gui/widgets/breakpoints.cc:395
 msgid "Map word reads         "
-msgstr "Mappa word-läsningar "
+msgstr "Mappa word-läsningar         "
 
 #: src/gui/widgets/breakpoints.cc:396
 msgid "Map byte writes        "
