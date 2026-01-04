@@ -1297,11 +1297,11 @@ msgstr "Visa register"
 
 #: src/gui/gui.cc:1378
 msgid "Show Assembly"
-msgstr "Visa montering"
+msgstr "Visa Assembly"
 
 #: src/gui/gui.cc:1380 src/gui/gui.cc:1382
 msgid "Show DynaRec Disassembly"
-msgstr "Visa DynaRec-demontering"
+msgstr "Visa DynaRec Disassembly"
 
 #: src/gui/gui.cc:1384
 msgid ""
