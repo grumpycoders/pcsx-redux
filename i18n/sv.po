@@ -82,7 +82,7 @@ msgstr "Använd linjär filtrering"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:504
 msgid "Edit OpenGL GPU shaders"
-msgstr "Redigera OpenGL GPU-skuggare"
+msgstr "Redigera OpenGL GPU-shaders"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:512
 msgid "OpenGL GPU Debugger"
@@ -1249,7 +1249,7 @@ msgstr "Förinställda shaders"
 
 #: src/gui/gui.cc:1329
 msgid "Default shader"
-msgstr "Standardskuggare"
+msgstr "Standardshader"
 
 #: src/gui/gui.cc:1332
 msgid "CRT-lottes shader"
