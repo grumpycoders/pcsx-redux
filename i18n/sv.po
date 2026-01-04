@@ -2823,11 +2823,11 @@ msgstr "Fäll in alla noder"
 
 #: src/gui/widgets/gpulogger.cc:113
 msgid "Keep collapsed"
-msgstr "Håll hopfällt"
+msgstr "Håll infällda"
 
 #: src/gui/widgets/gpulogger.cc:116
 msgid "Expand all nodes"
-msgstr "Expandera alla noder"
+msgstr "Fäll ut alla noder"
 
 #: src/gui/widgets/gpulogger.cc:120
 msgid "Keep expanded"
