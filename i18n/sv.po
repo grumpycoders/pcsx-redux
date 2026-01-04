@@ -2461,7 +2461,7 @@ msgstr "Montera kod för adress 0x%08x:"
 #: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:129
 #: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:793
 msgid "Clear"
-msgstr "Rensa"
+msgstr "Töm"
 
 #: src/gui/widgets/assembly.cc:1073 src/gui/widgets/dynarec_disassembly.cc:73
 msgid "Close"
