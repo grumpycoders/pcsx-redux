@@ -2614,7 +2614,7 @@ msgstr "Mappa exekvering"
 
 #: src/gui/widgets/breakpoints.cc:391
 msgid "Map byte reads         "
-msgstr "Karta byte läser "
+msgstr "Mappa byte-läsningar         "
 
 #: src/gui/widgets/breakpoints.cc:393
 msgid "Map half reads         "
