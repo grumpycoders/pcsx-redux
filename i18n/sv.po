@@ -2646,11 +2646,11 @@ msgstr "Bryt på byte-läsningskarta "
 
 #: src/gui/widgets/breakpoints.cc:405
 msgid "Break on half read map "
-msgstr "Pausa på halvläst karta "
+msgstr "Bryt på halvläst karta "
 
 #: src/gui/widgets/breakpoints.cc:407
 msgid "Break on word read map "
-msgstr "Paus vid ordläsningskarta "
+msgstr "Bryt på ordläsningskarta "
 
 #: src/gui/widgets/breakpoints.cc:408
 msgid "Break on byte write map"
