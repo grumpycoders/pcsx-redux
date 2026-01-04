@@ -1165,7 +1165,7 @@ msgstr "Spara globalt tillstånd"
 
 #: src/gui/gui.cc:1248
 msgid "Load state slots"
-msgstr "Läs in tillståndsslots"
+msgstr "Läs in tillståndsplatser"
 
 #: src/gui/gui.cc:1251
 msgid "Quick-load slot"
