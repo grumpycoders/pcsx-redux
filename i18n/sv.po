@@ -1695,7 +1695,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1857
 msgid "Download"
-msgstr "Läs in ner"
+msgstr "Ladda ner"
 
 #: src/gui/gui.cc:1867
 msgid "An error has occured while downloading the update."
