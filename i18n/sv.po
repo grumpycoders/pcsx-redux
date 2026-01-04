@@ -2584,7 +2584,7 @@ msgstr "Inaktivera alla"
 
 #: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:107
 msgid "Delete All"
-msgstr "Radera alla"
+msgstr "Ta bort alla"
 
 #: src/gui/widgets/breakpoints.cc:374
 msgid "Delete all Breakpoints?"
@@ -2596,7 +2596,7 @@ msgstr "Exekveringskarta"
 
 #: src/gui/widgets/breakpoints.cc:384
 msgid "Clear maps"
-msgstr "Tydliga kartor"
+msgstr "Töm kartor"
 
 #: src/gui/widgets/breakpoints.cc:388
 msgid ""
