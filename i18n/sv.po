@@ -2610,7 +2610,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:390
 msgid "Map execution"
-msgstr "Karta utförande"
+msgstr "Mappa exekvering"
 
 #: src/gui/widgets/breakpoints.cc:391
 msgid "Map byte reads         "
