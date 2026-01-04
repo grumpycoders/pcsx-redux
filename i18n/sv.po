@@ -3127,7 +3127,7 @@ msgstr "Senaste"
 
 #: src/gui/widgets/memcard_manager.cc:151
 msgid "Clear Undo buffer"
-msgstr "Rensa ångra-bufferten"
+msgstr "Rensa ångringsbuffert"
 
 #. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
 #. happens as well.
