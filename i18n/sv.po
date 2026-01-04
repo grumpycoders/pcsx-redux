@@ -1165,7 +1165,7 @@ msgstr "Spara globalt tillstånd"
 
 #: src/gui/gui.cc:1248
 msgid "Load state slots"
-msgstr "Ladda tillståndsslots"
+msgstr "Läs in tillståndsslots"
 
 #: src/gui/gui.cc:1251
 msgid "Quick-load slot"
@@ -1173,7 +1173,7 @@ msgstr "Snabbmatningsfack"
 
 #: src/gui/gui.cc:1276
 msgid "Load global state"
-msgstr "Ladda globalt tillstånd"
+msgstr "Läs in globalt tillstånd"
 
 #: src/gui/gui.cc:1280
 msgid "Open LID"
@@ -1567,7 +1567,7 @@ msgstr "Locale"
 
 #: src/gui/gui.cc:1747
 msgid "Reload locales"
-msgstr "Ladda om lokaliseringar"
+msgstr "Läs in om lokaliseringar"
 
 #: src/gui/gui.cc:1752
 msgid "Main Font Size"
@@ -1658,7 +1658,7 @@ msgid ""
 msgstr ""
 "En uppdatering är tillgänglig. Klicka på \"Uppdatera\" för att ladda ner och"
 " installera uppdateringen. PCSX-Redux startas om automatiskt för att "
-"installera uppdateringen. Klicka på \"Ladda ner\" för att ladda ner "
+"installera uppdateringen. Klicka på \"Läs in ner\" för att ladda ner "
 "uppdateringen med din webbläsare och installera den manuellt."
 
 #: src/gui/gui.cc:1823
@@ -1678,7 +1678,7 @@ msgstr ""
 "måste installera den manuellt, på samma sätt som tidigare.\n"
 "PCSX-Redux stängs ner när uppdateringen har laddats ner.\n"
 "\n"
-"Klicka på \"Ladda ner\" för att använda din webbläsare för att\n"
+"Klicka på \"Läs in ner\" för att använda din webbläsare för att\n"
 "ladda ner uppdateringen och installera den manuellt."
 
 #: src/gui/gui.cc:1834
@@ -1695,7 +1695,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1857
 msgid "Download"
-msgstr "Ladda ner"
+msgstr "Läs in ner"
 
 #: src/gui/gui.cc:1867
 msgid "An error has occured while downloading the update."
