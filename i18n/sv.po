@@ -3413,7 +3413,7 @@ msgstr "Ta bort alla patchar?"
 
 #: src/gui/widgets/patches.cc:112
 msgid "Delete##patches"
-msgstr "Ta bort##patches"
+msgstr "Ta bort##patchar"
 
 #: src/gui/widgets/pio-cart.cc:36
 msgid "ROM"
