@@ -54,7 +54,7 @@ msgstr "Fyll polygoner"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:464
 msgid "Wireframe"
-msgstr "Wireframe"
+msgstr "Trådramar"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:465
 msgid "Vertices only"
