@@ -3801,7 +3801,7 @@ msgstr "Visa rutnät"
 
 #: src/gui/widgets/vram-viewer.cc:629
 msgid "Select pixel grid color"
-msgstr "Välj pixelrutnätets färg"
+msgstr "Välj färg för pixelrutnätet"
 
 #: src/gui/widgets/vram-viewer.cc:630
 msgid "Select TPage grid color"
