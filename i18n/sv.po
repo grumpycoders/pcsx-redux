@@ -2638,11 +2638,11 @@ msgstr "Mappa word-skrivningar        "
 
 #: src/gui/widgets/breakpoints.cc:402
 msgid "Break on execution map"
-msgstr "Paus på exekveringskarta"
+msgstr "Bryt på exekveringskarta"
 
 #: src/gui/widgets/breakpoints.cc:403
 msgid "Break on byte read map "
-msgstr "Avbryt vid byte-läsningskarta "
+msgstr "Bryt på byte-läsningskarta "
 
 #: src/gui/widgets/breakpoints.cc:405
 msgid "Break on half read map "
