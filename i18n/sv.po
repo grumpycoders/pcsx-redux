@@ -1145,7 +1145,7 @@ msgstr "global{}"
 
 #: src/gui/gui.cc:1228
 msgid "Save state slots"
-msgstr "Spara statliga platser"
+msgstr "Platser för sparade tillstånd"
 
 #: src/gui/gui.cc:1229
 msgid "Quick-save slot"
