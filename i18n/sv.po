@@ -1253,7 +1253,7 @@ msgstr "Standardshader"
 
 #: src/gui/gui.cc:1332
 msgid "CRT-lottes shader"
-msgstr "CRT-lottes skuggare"
+msgstr "CRT-lottes shader"
 
 #: src/gui/gui.cc:1359
 msgid "Configure Shaders"
@@ -1425,7 +1425,7 @@ msgstr "Visa skärmredigeraren för skuggning"
 
 #: src/gui/gui.cc:1471
 msgid "Reset shaders"
-msgstr "Återställ skuggare"
+msgstr "Återställ shaders"
 
 #: src/gui/gui.cc:1479
 msgid "Help"
