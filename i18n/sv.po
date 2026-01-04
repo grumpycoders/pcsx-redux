@@ -2706,7 +2706,7 @@ msgid ""
 "Disassembly Failed.\n"
 "Check Logs"
 msgstr ""
-"Demonteringen misslyckades.\n"
+"Disassembly misslyckades.\n"
 "Kontrollera loggarna"
 
 #: src/gui/widgets/dynarec_disassembly.cc:82
