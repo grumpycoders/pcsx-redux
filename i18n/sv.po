@@ -2831,7 +2831,7 @@ msgstr "Fäll ut alla noder"
 
 #: src/gui/widgets/gpulogger.cc:120
 msgid "Keep expanded"
-msgstr "Håll expanderat"
+msgstr "Håll utfällda"
 
 #: src/gui/widgets/gpulogger.cc:124
 msgid "Remove all highlight selections"
