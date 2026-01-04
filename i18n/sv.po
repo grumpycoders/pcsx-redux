@@ -2975,7 +2975,7 @@ msgstr "Inga hanterare"
 
 #: src/gui/widgets/handlers.cc:61
 msgid "Handler data at "
-msgstr "Handlerdata på "
+msgstr "Hanterardata på "
 
 #: src/gui/widgets/handlers.cc:67
 msgid "  verifier: "
