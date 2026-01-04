@@ -2160,7 +2160,7 @@ msgstr "Lista över format som stöds:"
 msgid ""
 "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
 msgstr ""
-"Lista över stödda kodekar: (D: Avkodare, E: Kodare, L: Förlustbefängd, S: "
+"Lista över kodekar som stöds: (D: Avkodare, E: Kodare, L: Med förlust, S: "
 "Förlustfri)"
 
 #: src/gui/gui.cc:2570
