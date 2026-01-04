@@ -1543,7 +1543,7 @@ msgstr "Offscreen-rendering"
 
 #: src/gui/gui.cc:1705
 msgid "PIO Cartridge Configuration"
-msgstr "PIO-patronkonfiguration"
+msgstr "Konfiguration för PIO-kassett"
 
 #: src/gui/gui.cc:1709
 msgid "SIO1 Debug"
