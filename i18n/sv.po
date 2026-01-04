@@ -2987,7 +2987,7 @@ msgstr "  hanterare: "
 
 #: src/gui/widgets/isobrowser.cc:97
 msgid "No iso or invalid iso loaded."
-msgstr "Ingen iso eller ogiltig iso laddad."
+msgstr "Ingen iso eller ogiltig iso inläst."
 
 #: src/gui/widgets/isobrowser.cc:103
 #, c-format
