@@ -1505,7 +1505,7 @@ msgstr "Register"
 
 #: src/gui/gui.cc:1664
 msgid "Assembly"
-msgstr "Montering"
+msgstr "Assembly"
 
 #: src/gui/gui.cc:1668
 msgid "DynaRec Disassembler"
@@ -2420,7 +2420,7 @@ msgstr "Ta bort NOP-patch"
 #: src/gui/widgets/assembly.cc:839 src/gui/widgets/assembly.cc:1043
 #: src/gui/widgets/assembly.cc:1045 src/gui/widgets/assembly.cc:1051
 msgid "Assemble"
-msgstr "Montering"
+msgstr "Assemble"
 
 #: src/gui/widgets/assembly.cc:976 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
