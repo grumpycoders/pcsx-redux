@@ -2876,7 +2876,7 @@ msgstr "Pixelposition"
 
 #: src/gui/widgets/gpulogger.cc:138
 msgid "Probe VRAM"
-msgstr "Prova VRAM"
+msgstr "Läs av VRAM"
 
 #: src/gui/widgets/gpulogger.cc:142
 msgid ""
