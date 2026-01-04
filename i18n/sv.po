@@ -2819,7 +2819,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:109
 msgid "Collapse all nodes"
-msgstr "Dölj alla noder"
+msgstr "Fäll in alla noder"
 
 #: src/gui/widgets/gpulogger.cc:113
 msgid "Keep collapsed"
