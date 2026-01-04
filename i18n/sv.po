@@ -1293,7 +1293,7 @@ msgstr "CPU"
 
 #: src/gui/gui.cc:1377
 msgid "Show Registers"
-msgstr "Visa kassor"
+msgstr "Visa register"
 
 #: src/gui/gui.cc:1378
 msgid "Show Assembly"
