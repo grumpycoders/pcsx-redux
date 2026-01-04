@@ -3376,7 +3376,7 @@ msgstr "Ange namnet på ditt sparade tillstånd här"
 
 #: src/gui/widgets/named_savestates.cc:116
 msgid "Create save"
-msgstr "Skapa spara"
+msgstr "Skapa sparat tillstånd"
 
 #. The save state exists
 #: src/gui/widgets/named_savestates.cc:122
@@ -3385,7 +3385,7 @@ msgstr "Skriv över spara"
 
 #: src/gui/widgets/named_savestates.cc:126
 msgid "Load save"
-msgstr "Ladda sparat"
+msgstr "Läs in sparat tillstånd"
 
 #: src/gui/widgets/named_savestates.cc:132
 msgid "Delete save"
