@@ -1465,7 +1465,7 @@ msgstr "%.2f ms ljudbuffert (%i ramar)"
 
 #: src/gui/gui.cc:1499
 msgid "Idle"
-msgstr "Sysslolös"
+msgstr "Overksam"
 
 #: src/gui/gui.cc:1580
 msgid "Logs"
