@@ -1341,7 +1341,7 @@ msgstr "Visa avbrottsskalare"
 
 #: src/gui/gui.cc:1404
 msgid "First Chance Exceptions"
-msgstr "Första chansens undantag"
+msgstr "Första chans-undantag"
 
 #: src/gui/gui.cc:1425
 msgid "VRAM viewers"
