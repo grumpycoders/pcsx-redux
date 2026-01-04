@@ -2888,7 +2888,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:147
 msgid "Frame {}###FrameCounterNode"
-msgstr "Ram {}###FrameCounterNode"
+msgstr "Bildruta {}###FrameCounterNode"
 
 #: src/gui/widgets/gpulogger.cc:149
 msgid "Reset frame counter"
