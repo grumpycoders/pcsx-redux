@@ -2119,7 +2119,7 @@ msgstr "ja"
 
 #: src/gui/gui.cc:2488
 msgid "Vendor"
-msgstr "Säljare"
+msgstr "Tillverkare"
 
 #: src/gui/gui.cc:2489
 msgid "Renderer"
@@ -2127,7 +2127,7 @@ msgstr "Renderare"
 
 #: src/gui/gui.cc:2491
 msgid "Shading language version"
-msgstr "Skuggning av språkversion"
+msgstr "Språkversion för skuggning"
 
 #: src/gui/gui.cc:2494
 #, c-format
