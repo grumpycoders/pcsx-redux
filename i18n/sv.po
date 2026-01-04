@@ -1137,7 +1137,7 @@ msgstr "Lägg till Lua-arkiv"
 
 #: src/gui/gui.cc:1221
 msgid "Dump save state proto schema"
-msgstr "Dump spara tillstånd proto schema"
+msgstr "Dumpa proto-schema för sparat tillstånd"
 
 #: src/gui/gui.cc:1226
 msgid "global{}"
