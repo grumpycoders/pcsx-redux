@@ -1417,7 +1417,7 @@ msgstr "Helskärm"
 
 #: src/gui/gui.cc:1469
 msgid "Show Output Shader Editor"
-msgstr "Visa utgångsredigerare"
+msgstr "Visa redigerare för shader-utdata"
 
 #: src/gui/gui.cc:1470
 msgid "Show Offscreen Shader Editor"
