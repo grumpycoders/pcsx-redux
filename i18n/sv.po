@@ -1181,7 +1181,7 @@ msgstr "Öppna locket"
 
 #: src/gui/gui.cc:1284
 msgid "Close LID"
-msgstr "Stäng LID"
+msgstr "Stäng locket"
 
 #: src/gui/gui.cc:1288
 msgid "Open and close LID"
