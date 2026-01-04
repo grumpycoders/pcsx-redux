@@ -3389,7 +3389,7 @@ msgstr "Ladda sparat"
 
 #: src/gui/widgets/named_savestates.cc:132
 msgid "Delete save"
-msgstr "Radera spara"
+msgstr "Ta bort sparat tillstånd"
 
 #: src/gui/widgets/patches.cc:35
 msgid "Patching is only available in Interpreted CPU mode"
