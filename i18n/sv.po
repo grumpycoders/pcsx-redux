@@ -3765,7 +3765,7 @@ msgstr "Återställ vy"
 
 #: src/gui/widgets/vram-viewer.cc:605
 msgid "24 bits shift"
-msgstr "24 bitar förskjutning"
+msgstr "24-bitarsförskjutning"
 
 #: src/gui/widgets/vram-viewer.cc:606
 msgid "View VRAM in 24 bits"
