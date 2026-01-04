@@ -2634,7 +2634,7 @@ msgstr "Mappa half-skrivningar "
 
 #: src/gui/widgets/breakpoints.cc:400
 msgid "Map word writes        "
-msgstr "Karta ord skriver "
+msgstr "Mappa word-skrivningar "
 
 #: src/gui/widgets/breakpoints.cc:402
 msgid "Break on execution map"
