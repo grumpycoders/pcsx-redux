@@ -1317,7 +1317,7 @@ msgstr "Visa brytpunkter"
 
 #: src/gui/gui.cc:1388
 msgid "Show Callstacks"
-msgstr "Visa samtalsstackar"
+msgstr "Visa anropsstackar"
 
 #: src/gui/gui.cc:1389
 msgid "Memory Editors"
