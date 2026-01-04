@@ -3071,7 +3071,7 @@ msgstr "Hoppa över ISR under CPU-spårning"
 
 #: src/gui/widgets/log.cc:115
 msgid "Log kernel calls"
-msgstr "Logga kärnans anrop"
+msgstr "Logga kärnanrop"
 
 #: src/gui/widgets/log.cc:125
 msgid "Follow"
