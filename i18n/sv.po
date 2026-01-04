@@ -1333,7 +1333,7 @@ msgstr "Visa typad felsökare"
 
 #: src/gui/gui.cc:1402
 msgid "Show Patches"
-msgstr "Visa lappar"
+msgstr "Visa patchar"
 
 #: src/gui/gui.cc:1403
 msgid "Show Interrupts Scaler"
