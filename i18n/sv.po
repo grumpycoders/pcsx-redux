@@ -3047,7 +3047,7 @@ msgstr "Inaktivera alla"
 
 #: src/gui/widgets/log.cc:87
 msgid "Displayed"
-msgstr "Visas"
+msgstr "Visade"
 
 #: src/gui/widgets/log.cc:89
 msgid "Display all"
