@@ -2558,7 +2558,7 @@ msgstr "Värde"
 
 #: src/gui/widgets/breakpoints.cc:235
 msgid "Current Value"
-msgstr "Nuvarande värde"
+msgstr "Aktuellt värde"
 
 #: src/gui/widgets/breakpoints.cc:240
 msgid "Label"
