@@ -2485,7 +2485,7 @@ msgstr "Data##{}{:08x}"
 
 #: src/gui/widgets/assembly.h:47
 msgid "Load Symbols"
-msgstr "Ladda symboler"
+msgstr "Läs in symboler"
 
 #: src/gui/widgets/breakpoints.cc:40 src/gui/widgets/breakpoints.cc:216
 msgid "Always"
