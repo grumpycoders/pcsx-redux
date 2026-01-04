@@ -3202,7 +3202,7 @@ msgstr "Radera##{}"
 
 #: src/gui/widgets/memcard_manager.cc:248
 msgid "Erased file {}({}) off card {}"
-msgstr "Raderad fil {}({}) från kort {}"
+msgstr "Tog bort filen {}({}) från kort {}"
 
 #: src/gui/widgets/memcard_manager.cc:254
 msgid "Copy##{}"
@@ -3218,7 +3218,7 @@ msgstr "Flytta##{}"
 
 #: src/gui/widgets/memcard_manager.cc:287
 msgid "Moved file {}({}) from card {} to card {}"
-msgstr "Flyttade fil {}({}) från kort {} till kort {}"
+msgstr "Flyttade filen {}({}) från kort {} till kort {}"
 
 #: src/gui/widgets/memcard_manager.cc:300
 msgid "Export PNG##{}"
