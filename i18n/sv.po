@@ -1261,7 +1261,7 @@ msgstr "Konfigurera shaders"
 
 #: src/gui/gui.cc:1363
 msgid "PIO Cartridge"
-msgstr "PIO-patron"
+msgstr "PIO-kassett"
 
 #: src/gui/gui.cc:1367 src/gui/widgets/assembly.cc:492
 msgid "Debug"
