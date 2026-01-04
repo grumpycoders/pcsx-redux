@@ -3286,7 +3286,7 @@ msgstr "Delta-över-tid-sökning"
 
 #: src/gui/widgets/memory_observer.cc:200
 msgid "First scan"
-msgstr "Första skanningen"
+msgstr "Första skanning"
 
 #: src/gui/widgets/memory_observer.cc:243
 msgid "Next scan"
