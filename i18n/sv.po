@@ -1265,7 +1265,7 @@ msgstr "PIO-patron"
 
 #: src/gui/gui.cc:1367 src/gui/widgets/assembly.cc:492
 msgid "Debug"
-msgstr "Debugg"
+msgstr "Felsök"
 
 #: src/gui/gui.cc:1368
 msgid "Show Logs"
