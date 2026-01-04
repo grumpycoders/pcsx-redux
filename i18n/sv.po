@@ -3393,7 +3393,7 @@ msgstr "Radera spara"
 
 #: src/gui/widgets/patches.cc:35
 msgid "Patching is only available in Interpreted CPU mode"
-msgstr "Patching är endast tillgängligt i tolkat CPU-läge"
+msgstr "Patchning är endast tillgängligt i tolkat CPU-läge"
 
 #: src/gui/widgets/patches.cc:68
 msgid "Delete Patch?"
