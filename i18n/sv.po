@@ -1153,7 +1153,7 @@ msgstr "Snabbsparplats"
 
 #: src/gui/gui.cc:1234 src/gui/gui.cc:1255
 msgid "Slot {}"
-msgstr "Slot {}"
+msgstr "Plats {}"
 
 #: src/gui/gui.cc:1241
 msgid "Show named save states"
