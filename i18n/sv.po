@@ -1321,7 +1321,7 @@ msgstr "Visa anropsstackar"
 
 #: src/gui/gui.cc:1389
 msgid "Memory Editors"
-msgstr "Minnesredaktörer"
+msgstr "Minnesredigerare"
 
 #: src/gui/gui.cc:1400
 msgid "Show Memory Observer"
