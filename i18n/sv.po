@@ -3183,7 +3183,7 @@ msgstr "Åtgärd"
 
 #: src/gui/widgets/memcard_manager.cc:220
 msgid "Chained block"
-msgstr "Kedjad block"
+msgstr "Kedjat block"
 
 #: src/gui/widgets/memcard_manager.cc:225
 msgid "Free block"
