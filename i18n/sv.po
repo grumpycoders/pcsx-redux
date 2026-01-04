@@ -2992,7 +2992,7 @@ msgstr "Ingen iso eller ogiltig iso laddad."
 #: src/gui/widgets/isobrowser.cc:103
 #, c-format
 msgid "GAME Label: %s"
-msgstr "SPEL Etikett: %s"
+msgstr "SPEL-etikett: %s"
 
 #: src/gui/widgets/isobrowser.cc:119
 msgid "Cache files"
