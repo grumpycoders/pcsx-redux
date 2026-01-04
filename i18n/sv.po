@@ -2630,7 +2630,7 @@ msgstr "Mappa byte-skrivningar        "
 
 #: src/gui/widgets/breakpoints.cc:398
 msgid "Map half writes        "
-msgstr "Mappa half-skrivningar "
+msgstr "Mappa half-skrivningar        "
 
 #: src/gui/widgets/breakpoints.cc:400
 msgid "Map word writes        "
