@@ -2662,7 +2662,7 @@ msgstr "Bryt på halvskrivningskarta"
 
 #: src/gui/widgets/breakpoints.cc:412
 msgid "Break on word write map"
-msgstr "Paus vid ord skriv karta"
+msgstr "Bryt på word-skrivningskarta"
 
 #: src/gui/widgets/console.cc:34
 msgid "Close Console"
