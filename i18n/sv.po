@@ -3805,7 +3805,7 @@ msgstr "Välj pixelrutnätets färg"
 
 #: src/gui/widgets/vram-viewer.cc:630
 msgid "Select TPage grid color"
-msgstr "Välj TPage-rutnätets färg"
+msgstr "Välj TPage-rutnätsfärg"
 
 #: src/gui/widgets/vram-viewer.cc:633
 msgid "Show Shader Editor"
