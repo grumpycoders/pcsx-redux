@@ -2283,7 +2283,7 @@ msgstr "Gå till minnesredigeraren #%u"
 
 #: src/gui/widgets/assembly.cc:486
 msgid "Load symbols map"
-msgstr "Ladda symbolkarta"
+msgstr "Läs in symbolkarta"
 
 #: src/gui/widgets/assembly.cc:487
 msgid "Reset symbols map"
@@ -2300,7 +2300,7 @@ msgstr "Återuppta"
 
 #: src/gui/widgets/assembly.cc:496 src/gui/widgets/assembly.cc:572
 msgid "Step In"
-msgstr "Steg in"
+msgstr "Stega in"
 
 #. Options, Filter
 #: src/gui/widgets/assembly.cc:502 src/gui/widgets/console.cc:53
