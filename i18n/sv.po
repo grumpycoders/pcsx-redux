@@ -3878,7 +3878,7 @@ msgstr ""
 
 #: src/spu/cfg.cc:70
 msgid "Loud"
-msgstr "Högljudd"
+msgstr "Hög"
 
 #: src/spu/cfg.cc:70
 msgid "Loudest"
