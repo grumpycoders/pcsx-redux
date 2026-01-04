@@ -3833,7 +3833,7 @@ msgstr "Pixelrutnätets färgväljare"
 
 #: src/gui/widgets/vram-viewer.cc:695 src/gui/widgets/vram-viewer.cc:697
 msgid "TPage Grid Color Picker"
-msgstr "TPage Grid färgväljare"
+msgstr "Färgväljare för TPage-rutnät"
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"
