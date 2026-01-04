@@ -2942,7 +2942,7 @@ msgstr "Dataportskrivning: %08x"
 #: src/gui/widgets/gpulogger.cc:193
 #, c-format
 msgid "Control port write: %08x"
-msgstr "Kontrollport skriv: %08x"
+msgstr "Kontrollportskrivning: %08x"
 
 #: src/gui/widgets/gpulogger.cc:196
 msgid "Direct DMA from"
