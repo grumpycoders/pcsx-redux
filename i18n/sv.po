@@ -2166,7 +2166,7 @@ msgstr ""
 #: src/gui/gui.cc:2570
 #, c-format
 msgid "%s codecs"
-msgstr "%s kodekar"
+msgstr "%s-kodekar"
 
 #: src/gui/gui.h:246
 msgid "Ok"
