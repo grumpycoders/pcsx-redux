@@ -3210,7 +3210,7 @@ msgstr "Kopiera##{}"
 
 #: src/gui/widgets/memcard_manager.cc:264
 msgid "Copied file {}({}) from card {} to card {}"
-msgstr "Kopierade fil {}({}) från kort {} till kort {}"
+msgstr "Kopierade filen {}({}) från kort {} till kort {}"
 
 #: src/gui/widgets/memcard_manager.cc:276
 msgid "Move##{}"
