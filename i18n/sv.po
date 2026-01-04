@@ -3095,7 +3095,7 @@ msgstr "Visa"
 
 #: src/gui/widgets/luainspector.cc:104
 msgid "Raw"
-msgstr "Raw"
+msgstr "Rå"
 
 #: src/gui/widgets/memcard_manager.cc:64
 msgid "Import file into memory card 1"
