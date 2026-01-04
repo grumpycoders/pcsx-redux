@@ -1739,7 +1739,7 @@ msgstr "Emuleringskonfiguration"
 
 #: src/gui/gui.cc:2080
 msgid "Idle Swap Interval"
-msgstr "Tomgångsbyteintervall"
+msgstr "Intervall för idle swap"
 
 #: src/gui/gui.cc:2085
 msgid "Reset Scaler"
