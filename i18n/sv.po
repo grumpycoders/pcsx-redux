@@ -2370,7 +2370,7 @@ msgstr "Följ PC"
 
 #: src/gui/widgets/assembly.cc:565
 msgid "Jump to PC"
-msgstr "Gå till PC"
+msgstr "Hoppa till PC"
 
 #: src/gui/widgets/assembly.cc:578
 #, c-format
