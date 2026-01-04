@@ -2543,7 +2543,7 @@ msgstr "Intervall"
 
 #: src/gui/widgets/breakpoints.cc:201
 msgid "Byte Width"
-msgstr "Bytbredd"
+msgstr "Bytebredd"
 
 #: src/gui/widgets/breakpoints.cc:216
 msgid "Break Condition"
