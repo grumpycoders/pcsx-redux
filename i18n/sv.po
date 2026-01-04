@@ -3187,7 +3187,7 @@ msgstr "Kedjad block"
 
 #: src/gui/widgets/memcard_manager.cc:225
 msgid "Free block"
-msgstr "Fri blockering"
+msgstr "Lediga block"
 
 #: src/gui/widgets/memcard_manager.cc:238
 #, c-format
