@@ -1121,7 +1121,7 @@ msgstr "Utmatning"
 #: src/gui/widgets/isobrowser.cc:66 src/gui/widgets/memcard_manager.cc:63
 #: src/gui/widgets/vram-viewer.cc:597
 msgid "File"
-msgstr "Fil"
+msgstr "Arkiv"
 
 #: src/gui/gui.cc:1210 src/gui/widgets/isobrowser.cc:68
 msgid "Close Disk Image"
@@ -1129,7 +1129,7 @@ msgstr "Stäng diskavbildning"
 
 #: src/gui/gui.cc:1214
 msgid "Load binary"
-msgstr "Ladda binärfil"
+msgstr "Läs in binärfil"
 
 #: src/gui/gui.cc:1217
 msgid "Add Lua archive"
