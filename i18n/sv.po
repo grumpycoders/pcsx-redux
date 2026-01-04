@@ -2174,7 +2174,7 @@ msgstr "Ok"
 
 #: src/gui/gui.h:430
 msgid "Notification"
-msgstr "Notifikation"
+msgstr "Avisering"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:53
 msgid "Offscreen CRT shader Configuration"
