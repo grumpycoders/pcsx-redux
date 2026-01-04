@@ -2136,7 +2136,7 @@ msgstr "Texturenheter: %d"
 
 #: src/gui/gui.cc:2497
 msgid "Extensions:"
-msgstr "Tillägg:"
+msgstr "Utökningar:"
 
 #: src/gui/gui.cc:2506
 msgid "FFmpeg information"
