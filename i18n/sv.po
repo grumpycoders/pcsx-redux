@@ -1718,7 +1718,7 @@ msgstr "Läsfrekvens: %s"
 #: src/gui/gui.cc:1887
 #, c-format
 msgid "Write rate: %s"
-msgstr "Skrivhastighet: %s"
+msgstr "Skrivfrekvens: %s"
 
 #: src/gui/gui.cc:1889
 #, c-format
