@@ -2178,7 +2178,7 @@ msgstr "Avisering"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:53
 msgid "Offscreen CRT shader Configuration"
-msgstr "Offscreen CRT-skuggare Konfiguration"
+msgstr "Konfiguration för offscreen CRT-shader"
 
 #: src/gui/shaders/crt-lottes-offscreen.lua:59
 msgid "Enable gaussian blur"
@@ -3527,7 +3527,7 @@ msgstr "Konfigurera shader"
 
 #: src/gui/widgets/shader-editor.cc:521
 msgid "Vertex Shader"
-msgstr "Vertex-skuggare"
+msgstr "Vertex-shader"
 
 #: src/gui/widgets/shader-editor.cc:527
 msgid "Pixel Shader"
