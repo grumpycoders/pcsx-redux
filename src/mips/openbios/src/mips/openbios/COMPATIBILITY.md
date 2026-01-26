@@ -1,8 +1,8 @@
-# Emulators that ships with OpenBIOS
+# Emulators shipping with OpenBIOS
 * PCSX PCSX-Redux
 * PCSX ReARMed
 
-# Other emulators that are compatible with OpenBIOS
+# Other emulators compatible with OpenBIOS
 
 RetroArch cores:
 * Beetle PSX HW
