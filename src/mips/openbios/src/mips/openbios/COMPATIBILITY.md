@@ -1,7 +1,7 @@
 # Emulator compatibility
 
 ## Emulators shipping with OpenBIOS
-* PCSX PCSX-Redux
+* PCSX-Redux
 * PCSX ReARMed
 
 ## Other emulators compatible with OpenBIOS
