@@ -13,4 +13,5 @@ RetroArch cores:
 * SwanStation
 
 # Incompatible games
-* [Azure Dreams](https://github.com/grumpycoders/pcsx-redux/issues/1249)
+* [Azure Dreams (NTSC)](https://github.com/grumpycoders/pcsx-redux/issues/1249)
+* [Wipeout (NTSC-U/C)](https://github.com/grumpycoders/pcsx-redux/issues/1913)
