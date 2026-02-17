@@ -114,8 +114,7 @@ _boot:
     /* 256 bytes with a 16-bit bus, different value from the default one in psx.s
        (the ZN-1/ZN-2 kernels actually use 0x71011/0x71077 respectively here, but
        it needs to be extended from 128 to 256 bytes in order for the writes to
-       0x1f802080 not to crash on real hardware)
-     */
+       0x1f802080 not to crash on real hardware) */
     li    $t0, 0x81077
     sw    $t0, SBUS_DEV8_CTRL
 
@@ -125,14 +124,11 @@ _boot:
     lbu   $t1, ZN_BOARD_CONFIG
     la    $t0, _zn_ram_configs
     andi  $t1, 3
-    sll   $t1, 2
-    addu  $t1, $t0
+    sll   $t1, 1
+    addu  $t0, $t1
 
-    lhu   $t0, 0($t1)
-    lhu   $t1, 2($t1)
+    lhu   $t0, 0($t0)
     sw    $t0, RAM_SIZE
-    nop
-    sw    $t1, 0x60($0)
 
     /* clearing out all registers */
     .set push
@@ -234,6 +230,15 @@ bss_init_skip:
     la    $sp, __sp
     move  $fp, $sp
 
+    /* set __globals60.ramsize */
+    lbu   $t1, ZN_BOARD_CONFIG
+    la    $t0, _zn_ram_sizes
+    andi  $t1, 3
+    addu  $t0, $t1
+
+    lbu   $t0, 0($t0)
+    sw    $t0, 0x60($0)
+
     jal   _ucsdk_start
 
     li    $t0, 0x1f802080
@@ -245,13 +250,20 @@ stop:
 
     .section .rodata._zn_ram_configs, "a", @progbits
     .align 2
+    .type _zn_ram_configs, @object
 
 _zn_ram_configs:
-    /* Configuration 00: two 2 MB banks, bit 3 set */
-    .hword 0xcbc, 4
-    /* Configuration 01: two 2 MB banks */
-    .hword 0xcb4, 4
-    /* Configuration 10: single 8 MB bank */
-    .hword 0xbb4, 8
-    /* Configuration 11: two 8 MB banks */
-    .hword 0xfa4, 16
+    .hword 0xcbc /* 00: two 2 MB banks, bit 3 set */
+    .hword 0xcb4 /* 01: two 2 MB banks */
+    .hword 0xbb4 /* 10: single 8 MB bank */
+    .hword 0xfa4 /* 11: two 8 MB banks */
+
+    .section .rodata._zn_ram_sizes, "a", @progbits
+    .align 1
+    .type _zn_ram_sizes, @object
+
+_zn_ram_sizes:
+    .byte 4  /* 00: two 2 MB banks, bit 3 set */
+    .byte 4  /* 01: two 2 MB banks */
+    .byte 8  /* 10: single 8 MB bank */
+    .byte 16 /* 11: two 8 MB banks */

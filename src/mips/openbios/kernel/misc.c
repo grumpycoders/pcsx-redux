@@ -41,7 +41,7 @@ static __inline__ int getVRAMSize() { return 2048; }
 static __inline__ int getSPURAMSize() { return 512; }
 #elif defined(OPENBIOS_BOARD_ZN)
 static const char s_kernelName[] = "OpenBIOS (ZN-1/ZN-2)";
-static const int s_kernelFlags = 0x11001;
+static const int s_kernelFlags = 0x11001; // ZN-1: 0x11001, ZN-2: 0x13000
 static const int s_isArcadeBoard = 1;
 static const int s_unknownFlag = 1;
 
