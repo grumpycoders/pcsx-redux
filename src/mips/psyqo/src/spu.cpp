@@ -64,7 +64,7 @@ void psyqo::SPU::silenceChannels(const uint32_t channelMask) {
         }
         SPU_VOICES[channel].volumeLeft = 0;
         SPU_VOICES[channel].volumeRight = 0;
-        SPU_VOICES[channel].sampleRate = 0;
+        SPU_VOICES[channel].sampleRate = 0x1000;
         SPU_VOICES[channel].sampleStartAddr = DUMMY_SAMPLE_POSITION / 8;
         SPU_VOICES[channel].sampleRepeatAddr = DUMMY_SAMPLE_POSITION / 8;
     }
@@ -87,10 +87,10 @@ void psyqo::SPU::initialize() {
     SBUS_DEV4_CTRL = 1 | 0b1110 << 4 | 1 << 8 | 1 << 12 | 1 << 13 | 0b1001 << 16 | 0 << 24 | 1 << 29;
     DPCR |= 1 << 19;
 
-    SPU_CTRL = 0;
+    SPU_CTRL = 1 << 15 | 1 << 14 | 1 << 6;
 
-    SPU_VOL_MAIN_LEFT = 0x7fff;
-    SPU_VOL_MAIN_RIGHT = 0x7fff;
+    SPU_VOL_MAIN_LEFT  = 0x3fff;
+    SPU_VOL_MAIN_RIGHT = 0x3fff;
     SPU_REVERB_LEFT = 0;
     SPU_REVERB_RIGHT = 0;
 
@@ -109,8 +109,6 @@ void psyqo::SPU::initialize() {
 
     dmaWrite(DUMMY_SAMPLE_POSITION, &DUMMY_SAMPLE, DUMMY_SAMPLE_SIZE, 4);
 
-    SPU_CTRL = 1 << 15 | 1 << 14 | 1 << 6;
-
     silenceChannels(0xffffffff);
 }
 
@@ -119,9 +117,9 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
     Kernel::assert(channelId < 24, "Invalid SPU channel ID");
     if (hardCut) {
         if (channelId > 15) {
-            SPU_KEY_OFF_HIGH |= 1 << (channelId - 16);
+            SPU_KEY_OFF_HIGH = 1 << (channelId - 16);
         } else {
-            SPU_KEY_OFF_LOW |= 1 << (channelId);
+            SPU_KEY_OFF_LOW = 1 << (channelId);
         }
     }
 
@@ -133,17 +131,18 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
     SPU_VOICES[channelId].sr = (config.adsr >> 16) & 0xffff;
 
     if (channelId > 15) {
-        SPU_KEY_ON_HIGH |= 1 << (channelId - 16);
+        SPU_KEY_ON_HIGH = 1 << (channelId - 16);
     } else {
-        SPU_KEY_ON_LOW |= 1 << (channelId);
+        SPU_KEY_ON_LOW = 1 << (channelId);
     }
 }
 
 uint32_t psyqo::SPU::getNextFreeChannel() {
+    const uint32_t endx = static_cast<uint32_t>(SPU_ENDX_LOW)
+                        | (static_cast<uint32_t>(SPU_ENDX_HIGH) << 16);
+
     for (uint8_t channel = 0; channel < 24; channel++) {
-        if (SPU_VOICES[channel].currentVolume == 0) {
-            return channel;
-        }
+        if ((endx >> channel) & 1) return channel;
     }
     return NO_FREE_CHANNEL;
 }
