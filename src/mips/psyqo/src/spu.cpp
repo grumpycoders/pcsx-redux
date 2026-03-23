@@ -87,7 +87,7 @@ void psyqo::SPU::initialize() {
     SBUS_DEV4_CTRL = 1 | 0b1110 << 4 | 1 << 8 | 1 << 12 | 1 << 13 | 0b1001 << 16 | 0 << 24 | 1 << 29;
     DPCR |= 1 << 19;
 
-    SPU_CTRL = 1 << 15 | 1 << 14 | 1 << 6;
+    SPU_CTRL = 0;
 
     SPU_VOL_MAIN_LEFT  = 0x3fff;
     SPU_VOL_MAIN_RIGHT = 0x3fff;
@@ -106,6 +106,8 @@ void psyqo::SPU::initialize() {
     SPU_VOL_EXT_LEFT = 0;
     SPU_VOL_EXT_RIGHT = 0;
     SPU_RAM_DTC = 4;
+
+    SPU_CTRL = 1 << 15 | 1 << 14 | 1 << 6;
 
     dmaWrite(DUMMY_SAMPLE_POSITION, &DUMMY_SAMPLE, DUMMY_SAMPLE_SIZE, 4);
 
@@ -138,11 +140,10 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
 }
 
 uint32_t psyqo::SPU::getNextFreeChannel() {
-    const uint32_t endx = static_cast<uint32_t>(SPU_ENDX_LOW)
-                        | (static_cast<uint32_t>(SPU_ENDX_HIGH) << 16);
-
     for (uint8_t channel = 0; channel < 24; channel++) {
-        if ((endx >> channel) & 1) return channel;
+        if (SPU_VOICES[channel].currentVolume == 0) {
+            return channel;
+        }
     }
     return NO_FREE_CHANNEL;
 }
