@@ -64,7 +64,7 @@ void psyqo::SPU::silenceChannels(const uint32_t channelMask) {
         }
         SPU_VOICES[channel].volumeLeft = 0;
         SPU_VOICES[channel].volumeRight = 0;
-        SPU_VOICES[channel].sampleRate = 0;
+        SPU_VOICES[channel].sampleRate = 0x1000;
         SPU_VOICES[channel].sampleStartAddr = DUMMY_SAMPLE_POSITION / 8;
         SPU_VOICES[channel].sampleRepeatAddr = DUMMY_SAMPLE_POSITION / 8;
     }
@@ -89,8 +89,8 @@ void psyqo::SPU::initialize() {
 
     SPU_CTRL = 0;
 
-    SPU_VOL_MAIN_LEFT = 0x7fff;
-    SPU_VOL_MAIN_RIGHT = 0x7fff;
+    SPU_VOL_MAIN_LEFT  = 0x3fff;
+    SPU_VOL_MAIN_RIGHT = 0x3fff;
     SPU_REVERB_LEFT = 0;
     SPU_REVERB_RIGHT = 0;
 
@@ -107,9 +107,9 @@ void psyqo::SPU::initialize() {
     SPU_VOL_EXT_RIGHT = 0;
     SPU_RAM_DTC = 4;
 
-    dmaWrite(DUMMY_SAMPLE_POSITION, &DUMMY_SAMPLE, DUMMY_SAMPLE_SIZE, 4);
-
     SPU_CTRL = 1 << 15 | 1 << 14 | 1 << 6;
+
+    dmaWrite(DUMMY_SAMPLE_POSITION, &DUMMY_SAMPLE, DUMMY_SAMPLE_SIZE, 4);
 
     silenceChannels(0xffffffff);
 }
@@ -119,9 +119,9 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
     Kernel::assert(channelId < 24, "Invalid SPU channel ID");
     if (hardCut) {
         if (channelId > 15) {
-            SPU_KEY_OFF_HIGH |= 1 << (channelId - 16);
+            SPU_KEY_OFF_HIGH = 1 << (channelId - 16);
         } else {
-            SPU_KEY_OFF_LOW |= 1 << (channelId);
+            SPU_KEY_OFF_LOW = 1 << (channelId);
         }
     }
 
@@ -133,9 +133,9 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
     SPU_VOICES[channelId].sr = (config.adsr >> 16) & 0xffff;
 
     if (channelId > 15) {
-        SPU_KEY_ON_HIGH |= 1 << (channelId - 16);
+        SPU_KEY_ON_HIGH = 1 << (channelId - 16);
     } else {
-        SPU_KEY_ON_LOW |= 1 << (channelId);
+        SPU_KEY_ON_LOW = 1 << (channelId);
     }
 }
 
