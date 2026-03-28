@@ -1378,9 +1378,10 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
+                ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
+                ImGui::Separator();
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
-                ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
