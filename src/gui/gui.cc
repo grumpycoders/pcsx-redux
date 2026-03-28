@@ -1370,15 +1370,16 @@ void PCSX::GUI::endFrame() {
                     m_outputShaderEditor.setConfigure();
                 }
                 ImGui::Separator();
-                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
                     m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
                 }
+                ImGui::Separator();
+                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
                 ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
                 ImGui::EndMenu();
             }
