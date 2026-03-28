@@ -1324,6 +1324,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
+                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                    setFullscreen(m_fullscreen);
+                    m_setupScreenSize = true;
+                }
+                if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
+                    m_setupScreenSize = true;
+                    // full window render mode can't have anything docked in the dockspace
+                    ImGui::DockContextClearNodes(context, dockspaceId, true);
+                }
+                ImGui::Separator();
                 ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
                 if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
                     m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
@@ -1465,15 +1475,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Rendering"))) {
-                    if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
-                        m_setupScreenSize = true;
-                        // full window render mode can't have anything docked in the dockspace
-                        ImGui::DockContextClearNodes(context, dockspaceId, true);
-                    }
-                    if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
-                        setFullscreen(m_fullscreen);
-                        m_setupScreenSize = true;
-                    }
                     ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                     ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                     if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
