@@ -37,16 +37,14 @@ class Registers {
     bool& m_show;
 
   private:
-    void makeEditableRegister(const char* name, uint32_t reg);
+    void contextMenu(const char* name, uint32_t reg, uint32_t radix);
+    void updateRegisterValue(PCSX::psxRegisters* registers, const std::string& val, int reg, int radix);
     template <size_t Fract = 12>
     static float fixedToFloat(int32_t value) {
         return static_cast<float>(value) / static_cast<float>(1 << Fract);
     }
 
-    unsigned m_selected = 0;
     bool m_showFixed = false;
-    char m_registerEditor[20];
-    std::string m_editorToOpen;
 };
 
 }  // namespace Widgets
