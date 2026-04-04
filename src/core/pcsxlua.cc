@@ -88,6 +88,7 @@ void jumpToMemory(uint32_t address, unsigned width) {
     PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
 }
 void invalidateCache() { PCSX::g_emulator->m_cpu->invalidateCache(); }
+void scheduleInterrupt(uint32_t eCycle) { PCSX::g_emulator->m_cpu->scheduleInterrupt(PCSX::PSXINT_LUA, eCycle); }
 
 struct LuaScreenShot {
     PCSX::Slice* data;
@@ -159,6 +160,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, luaLog);
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
+    REGISTER(L, scheduleInterrupt);
     REGISTER(L, invalidateCache);
     REGISTER(L, takeScreenShot);
     REGISTER(L, createSaveState);

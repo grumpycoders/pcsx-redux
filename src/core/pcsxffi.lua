@@ -72,6 +72,7 @@ void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
 void invalidateCache();
+void scheduleInterrupt(uint32_t eCycle);
 
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
@@ -172,6 +173,11 @@ local function jumpToMemory(address, width)
     C.jumpToMemory(address, width)
 end
 
+local function scheduleInterrupt(eCycle)
+    if type(eCycle) ~= 'number' then error 'PCSX.scheduleInterrupt requires a numeric cycle count' end
+    C.scheduleInterrupt(eCycle)
+end
+
 PCSX = {
     getCPUCycles = function() return C.getCPUCycles() end,
     getMemPtr = function() return C.getMemPtr() end,
@@ -187,6 +193,7 @@ PCSX = {
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
     invalidateCache = function() C.invalidateCache() end,
+    scheduleInterrupt = scheduleInterrupt,
     log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     nextTick = function(f)

@@ -177,7 +177,8 @@ enum {
     PSXINT_SPUASYNC,
     PSXINT_CDRDBUF,
     PSXINT_CDRLID,
-    PSXINT_CDRPLAY
+    PSXINT_CDRPLAY,
+    PSXINT_LUA,
 };
 
 struct psxRegisters {
@@ -316,8 +317,8 @@ class R3000Acpu {
     }
 
     psxRegisters m_regs;
-    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_interruptScales[16] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {

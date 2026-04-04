@@ -396,6 +396,7 @@ void PCSX::R3000Acpu::branchTest() {
         checkAndUpdate(PSXINT_CDRPLAY, g_emulator->m_cdrom->playInterrupt);
         checkAndUpdate(PSXINT_CDRDBUF, g_emulator->m_cdrom->decodedBufferInterrupt);
         checkAndUpdate(PSXINT_CDRLID, g_emulator->m_cdrom->lidSeekInterrupt);
+        checkAndUpdate(PSXINT_LUA, g_emulator->m_lua->interrupt);
         m_regs.lowestTarget = lowestTarget;
     }
     auto& mem = g_emulator->m_mem;

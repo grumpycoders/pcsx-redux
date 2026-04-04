@@ -205,7 +205,10 @@ void PCSX::LuaBindings::open_events(Lua L) {
                 createListener<Events::Keyboard>(L);
             } else if (name == "Memory::SetLuts") {
                 createListener<Events::Memory::SetLuts>(L);
-            } else {
+            } else if (name == "CPU::Interrupt") {
+                createListener<Events::CPU::Interrupt>(L);
+            }
+            else {
                 return L.error("createListener: unknown event name");
             }
             return 1;
