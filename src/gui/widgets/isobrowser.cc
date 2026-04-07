@@ -338,6 +338,15 @@ significantly by caching the files beforehand.)"));
             showSaveDialog = ImGui::Button(_("Extract"));
             ImGui::SameLine();
             showReplaceDialog = ImGui::Button(_("Replace"));
+            ImGui::SameLine();
+            if (ImGui::Button(_("Hex Edit"))) {
+                auto isoPtr = m_cachedIso.lock();
+                if (isoPtr) {
+                    m_hexEditFile.setFile(new CDRIsoFile(isoPtr, m_selectedLBA, m_selectedSize));
+                    m_hexEditorOpen = true;
+                    m_hexEditorOffset = 0;
+                }
+            }
             if (!canExtractReplace) ImGui::EndDisabled();
         }
 
@@ -443,4 +452,20 @@ significantly by caching the files beforehand.)"));
     }
 
     ImGui::End();
+
+    // Hex editor window (rendered outside the main ISO browser window)
+    if (m_hexEditorOpen && m_hexEditFile) {
+        auto size = m_hexEditFile->size();
+        m_hexEditor.ReadFn = [this](size_t off) -> ImU8 {
+            ImU8 b;
+            m_hexEditFile->readAt(&b, 1, off);
+            return b;
+        };
+        m_hexEditor.WriteFn = [this](size_t off, ImU8 d) { m_hexEditFile->writeAt(&d, 1, off); };
+        m_hexEditor.Cache.BulkReadFn = [this](void* dest, size_t off, size_t len) {
+            m_hexEditFile->readAt(dest, len, off);
+        };
+        auto title = fmt::format(f_("Hex Editor - {}"), m_selectedPath);
+        m_hexEditor.DrawWindow(title.c_str(), size);
+    }
 }

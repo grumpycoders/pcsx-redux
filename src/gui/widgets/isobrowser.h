@@ -28,7 +28,9 @@
 
 #include "cdrom/iso9660-reader.h"
 #include "gui/widgets/filedialog.h"
+#include "imgui_memory_editor/imgui_memory_editor.h"
 #include "support/coroutine.h"
+#include "support/file.h"
 #include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
@@ -88,6 +90,11 @@ class IsoBrowser {
     FileDialog<> m_openIsoFileDialog;
     FileDialog<FileDialogMode::Save> m_saveFileDialog;
     FileDialog<> m_openReplaceFileDialog;
+
+    bool m_hexEditorOpen = false;
+    size_t m_hexEditorOffset = 0;
+    MemoryEditor m_hexEditor{m_hexEditorOpen, 0, m_hexEditorOffset};
+    IO<File> m_hexEditFile;
 };
 
 }  // namespace Widgets
