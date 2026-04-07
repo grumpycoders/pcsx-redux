@@ -40,13 +40,15 @@ class ISO9660Reader {
         return std::string_view(m_pvd.get<ISO9660LowLevel::PVD_VolumeIdent>());
     }
 
+    typedef std::pair<ISO9660LowLevel::DirEntry, ISO9660LowLevel::DirEntry_XA> FullDirEntry;
+    std::vector<FullDirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
+    const ISO9660LowLevel::DirEntry& getRootDirEntry() { return m_pvd.get<ISO9660LowLevel::PVD_RootDir>(); }
+
   private:
     std::shared_ptr<CDRIso> m_iso;
     bool m_failed = false;
-    typedef std::pair<ISO9660LowLevel::DirEntry, ISO9660LowLevel::DirEntry_XA> FullDirEntry;
 
     std::optional<FullDirEntry> findEntry(const std::string_view& filename);
-    std::vector<FullDirEntry> listAllEntriesFrom(const ISO9660LowLevel::DirEntry& entry);
     ISO9660LowLevel::PVD m_pvd;
 };
 

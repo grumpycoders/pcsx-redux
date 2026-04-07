@@ -22,11 +22,14 @@
 #include <stdint.h>
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "cdrom/iso9660-reader.h"
 #include "gui/widgets/filedialog.h"
 #include "support/coroutine.h"
+#include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
 
@@ -38,7 +41,10 @@ namespace Widgets {
 class IsoBrowser {
   public:
     IsoBrowser(bool& show, std::vector<std ::string>& favorites)
-        : m_show(show), m_openIsoFileDialog(l_("Open Disk Image"), favorites) {}
+        : m_show(show),
+          m_openIsoFileDialog(l_("Open Disk Image"), favorites),
+          m_saveFileDialog(l_("Extract File"), favorites),
+          m_openReplaceFileDialog(l_("Replace File"), favorites) {}
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
@@ -48,9 +54,23 @@ class IsoBrowser {
     uint32_t m_crcs[100] = {0};
     Coroutine<> m_crcCalculator;
     float m_crcProgress = 0.0f;
-
     Coroutine<> computeCRC(CDRIso*);
+
+    std::unique_ptr<ISO9660Reader> m_reader;
+    std::weak_ptr<CDRIso> m_cachedIso;
+    std::string m_selectedPath;
+    ISO9660LowLevel::DirEntry m_selectedEntry;
+    bool m_hasSelection = false;
+    bool m_selectedIsDir = false;
+
+    Coroutine<> m_extractionCoroutine;
+    float m_extractionProgress = 0.0f;
+
+    void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
+
     FileDialog<> m_openIsoFileDialog;
+    FileDialog<FileDialogMode::Save> m_saveFileDialog;
+    FileDialog<> m_openReplaceFileDialog;
 };
 
 }  // namespace Widgets

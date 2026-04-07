@@ -23,6 +23,8 @@
 
 #include <chrono>
 
+#include "cdrom/cdriso.h"
+#include "cdrom/ppf.h"
 #include "core/cdrom.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
@@ -53,6 +55,51 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
 
     m_fullCRC = fullCRC;
 };
+
+void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path) {
+    auto entries = m_reader->listAllEntriesFrom(entry);
+
+    for (auto& [dirEntry, xa] : entries) {
+        const auto& filename = dirEntry.get<ISO9660LowLevel::DirEntry_Filename>().value;
+        if (filename.size() == 1 && (filename[0] == '\0' || filename[0] == '\1')) continue;
+
+        bool isDir = (dirEntry.get<ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
+        uint32_t lba = dirEntry.get<ISO9660LowLevel::DirEntry_LBA>();
+        uint32_t size = dirEntry.get<ISO9660LowLevel::DirEntry_Size>();
+        auto fullPath = path.empty() ? filename : path + "/" + filename;
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+
+        if (isDir) {
+            bool open = ImGui::TreeNodeEx(filename.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%u", lba);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TextUnformatted(_("<DIR>"));
+            if (open) {
+                drawFilesystemTree(dirEntry, fullPath);
+                ImGui::TreePop();
+            }
+        } else {
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
+                                       ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth;
+            if (m_hasSelection && m_selectedPath == fullPath) flags |= ImGuiTreeNodeFlags_Selected;
+            ImGui::TreeNodeEx(filename.c_str(), flags);
+            if (ImGui::IsItemClicked()) {
+                m_selectedPath = fullPath;
+                m_selectedEntry = dirEntry;
+                m_hasSelection = true;
+                m_selectedIsDir = false;
+            }
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%u", lba);
+            ImGui::TableSetColumnIndex(2);
+            auto str = fmt::format("{}", size);
+            ImGui::TextUnformatted(str.c_str());
+        }
+    }
+}
 
 void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
@@ -169,6 +216,130 @@ significantly by caching the files beforehand.)"));
             ImGui::TextUnformatted(str.c_str());
         }
         ImGui::EndTable();
+    }
+
+    // Filesystem browser
+    auto currentIso = cdrom->getIso();
+    if (m_cachedIso.lock() != currentIso) {
+        m_cachedIso = currentIso;
+        m_reader.reset();
+        m_hasSelection = false;
+        m_selectedPath.clear();
+        if (currentIso && !currentIso->failed()) {
+            m_reader = std::make_unique<ISO9660Reader>(currentIso);
+            if (m_reader->failed()) m_reader.reset();
+        }
+    }
+
+    if (m_reader && ImGui::CollapsingHeader(_("Filesystem"), ImGuiTreeNodeFlags_DefaultOpen)) {
+        bool extracting = !m_extractionCoroutine.done();
+        bool showSaveDialog = false;
+        bool showReplaceDialog = false;
+
+        if (extracting) {
+            ImGui::ProgressBar(m_extractionProgress);
+            m_extractionCoroutine.resume();
+        } else {
+            if (!m_hasSelection || m_selectedIsDir) ImGui::BeginDisabled();
+            showSaveDialog = ImGui::Button(_("Extract"));
+            ImGui::SameLine();
+            showReplaceDialog = ImGui::Button(_("Replace"));
+            if (!m_hasSelection || m_selectedIsDir) ImGui::EndDisabled();
+        }
+
+        if (showSaveDialog) {
+            m_saveFileDialog.openDialog();
+        }
+        if (showReplaceDialog) {
+            m_openReplaceFileDialog.openDialog();
+        }
+
+        // Handle extract dialog result
+        if (m_saveFileDialog.draw()) {
+            auto selected = m_saveFileDialog.selected();
+            if (!selected.empty() && m_hasSelection) {
+                auto destPath = reinterpret_cast<const char*>(selected[0].c_str());
+                uint32_t lba = m_selectedEntry.get<ISO9660LowLevel::DirEntry_LBA>();
+                uint32_t size = m_selectedEntry.get<ISO9660LowLevel::DirEntry_Size>();
+                auto isoPtr = m_cachedIso.lock();
+                if (isoPtr) {
+                    m_extractionProgress = 0.0f;
+                    m_extractionCoroutine = [](IsoBrowser* self, std::shared_ptr<CDRIso> iso, uint32_t lba,
+                                               uint32_t size,
+                                               std::string dest) -> Coroutine<> {
+                        auto time = std::chrono::steady_clock::now();
+                        IO<File> src(new CDRIsoFile(iso, lba, size));
+                        IO<File> out(new UvFile(dest, FileOps::TRUNCATE));
+                        if (out->failed()) co_return;
+                        uint8_t buffer[2048];
+                        uint32_t remaining = size;
+                        uint32_t written = 0;
+                        while (remaining > 0) {
+                            uint32_t chunk = std::min(remaining, (uint32_t)sizeof(buffer));
+                            auto read = src->read(buffer, chunk);
+                            if (read <= 0) break;
+                            out->write(buffer, read);
+                            remaining -= read;
+                            written += read;
+                            if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                                self->m_extractionProgress = (float)written / (float)size;
+                                co_yield self->m_extractionCoroutine.awaiter();
+                                time = std::chrono::steady_clock::now();
+                            }
+                        }
+                        self->m_extractionProgress = 1.0f;
+                    }(this, isoPtr, lba, size, destPath);
+                }
+            }
+        }
+
+        // Handle replace dialog result
+        if (m_openReplaceFileDialog.draw()) {
+            auto selected = m_openReplaceFileDialog.selected();
+            if (!selected.empty() && m_hasSelection) {
+                auto srcPath = reinterpret_cast<const char*>(selected[0].c_str());
+                uint32_t lba = m_selectedEntry.get<ISO9660LowLevel::DirEntry_LBA>();
+                uint32_t originalSize = m_selectedEntry.get<ISO9660LowLevel::DirEntry_Size>();
+                auto isoPtr = m_cachedIso.lock();
+                if (isoPtr) {
+                    IO<File> replacement(new UvFile(srcPath));
+                    if (!replacement->failed()) {
+                        IO<File> isoFile(new CDRIsoFile(isoPtr, lba, originalSize));
+                        uint32_t replaceSize = std::min((uint32_t)replacement->size(), originalSize);
+                        uint8_t buffer[2048];
+                        uint32_t remaining = replaceSize;
+                        while (remaining > 0) {
+                            uint32_t chunk = std::min(remaining, (uint32_t)sizeof(buffer));
+                            auto read = replacement->read(buffer, chunk);
+                            if (read <= 0) break;
+                            isoFile->write(buffer, read);
+                            remaining -= read;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (ImGui::BeginTable("Filesystem", 3,
+                              ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
+                              ImVec2(0, 300))) {
+            ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+            ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+            ImGui::TableHeadersRow();
+            drawFilesystemTree(m_reader->getRootDirEntry(), "");
+            ImGui::EndTable();
+        }
+
+        // PPF patch controls
+        ImGui::Separator();
+        if (ImGui::Button(_("Clear Patches"))) {
+            currentIso->getPPF()->clear();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Save PPF"))) {
+            currentIso->getPPF()->save(currentIso->getIsoPath());
+        }
     }
 
     ImGui::End();
