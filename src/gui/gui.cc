@@ -1454,6 +1454,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Misc hardware"))) {
+                    ImGui::MenuItem(_("Show HW Registers"), nullptr, &m_hwRegs.m_show);
                     ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
@@ -1665,7 +1666,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Registers"));
+        m_registers.draw(this, &g_emulator->m_cpu->m_regs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
@@ -1711,6 +1712,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_pioCart.m_show) {
         changed |= m_pioCart.draw(_("PIO Cartridge Configuration"));
+    }
+
+    if (m_hwRegs.m_show) {
+        m_hwRegs.draw(this, g_emulator->m_mem.get(), _("HW Registers"));
     }
 
     if (m_sio1.m_show) {

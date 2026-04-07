@@ -142,6 +142,7 @@
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\hwregs.cc" />
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
@@ -176,6 +177,7 @@
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h" />
     <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
+    <ClInclude Include="..\..\src\gui\widgets\hwregs.h" />
     <ClInclude Include="..\..\src\gui\widgets\isobrowser.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />

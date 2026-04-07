@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -20,32 +20,19 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 namespace PCSX {
-struct psxRegisters;
+class Memory;
 class GUI;
 
 namespace Widgets {
 
-class Registers {
+class HWRegs {
   public:
-    Registers(bool& show) : m_show(show) {}
-    void draw(GUI* gui, psxRegisters* registers, const char* title);
+    HWRegs(bool& show) : m_show(show) {}
+    void draw(GUI* gui, Memory* memory, const char* title);
 
     bool& m_show;
-
-  private:
-    void makeEditableRegister(const char* name, uint32_t reg);
-    template <size_t Fract = 12>
-    static float fixedToFloat(int32_t value) {
-        return static_cast<float>(value) / static_cast<float>(1 << Fract);
-    }
-
-    unsigned m_selected = 0;
-    bool m_showFixed = false;
-    char m_registerEditor[20];
-    std::string m_editorToOpen;
 };
 
 }  // namespace Widgets
