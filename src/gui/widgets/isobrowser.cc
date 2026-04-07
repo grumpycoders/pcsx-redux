@@ -90,8 +90,11 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
             if (ImGui::IsItemClicked()) {
                 m_selectedPath = fullPath;
                 m_selectedEntry = dirEntry;
+                m_selectedLBA = lba;
+                m_selectedSize = size;
                 m_hasSelection = true;
                 m_selectedIsDir = false;
+                m_selectedIsGap = false;
             }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%u", lba);
@@ -113,7 +116,7 @@ void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEnt
         uint32_t size = dirEntry.get<ISO9660LowLevel::DirEntry_Size>();
         auto fullPath = path.empty() ? filename : path + "/" + filename;
 
-        m_flatEntries.push_back({fullPath, lba, size, isDir, dirEntry});
+        m_flatEntries.push_back({fullPath, lba, size, isDir, false, dirEntry});
         if (isDir) collectFlatEntries(dirEntry, fullPath);
     }
 }
@@ -124,37 +127,67 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
         collectFlatEntries(m_reader->getRootDirEntry(), "");
         std::sort(m_flatEntries.begin(), m_flatEntries.end(),
                   [](const FlatEntry& a, const FlatEntry& b) { return a.lba < b.lba; });
+
+        // Insert gap entries between files
+        std::vector<FlatEntry> withGaps;
+        uint32_t nextExpected = 0;
+        for (auto& entry : m_flatEntries) {
+            if (entry.lba > nextExpected) {
+                uint32_t gapSectors = entry.lba - nextExpected;
+                auto label = fmt::format(f_("<GAP {} sectors>"), gapSectors);
+                withGaps.push_back({label, nextExpected, gapSectors * 2048, false, true, {}});
+            }
+            withGaps.push_back(entry);
+            uint32_t sectors = (entry.size + 2047) / 2048;
+            uint32_t end = entry.lba + sectors;
+            if (end > nextExpected) nextExpected = end;
+        }
+        m_flatEntries = std::move(withGaps);
         m_flatEntriesDirty = false;
     }
 
     if (ImGui::BeginTable("FilesystemFlat", 4,
-                          ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY |
-                              ImGuiTableFlags_Sortable,
+                          ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
                           ImVec2(0, 300))) {
         ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
-        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort, 80.0f);
+        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
         ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
         ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
 
-        for (auto& entry : m_flatEntries) {
+        for (size_t i = 0; i < m_flatEntries.size(); i++) {
+            auto& entry = m_flatEntries[i];
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            bool selected = m_hasSelection && m_selectedPath == entry.path;
-            if (ImGui::Selectable(entry.path.c_str(), selected,
+            bool selected = m_hasSelection && m_selectedPath == entry.path &&
+                            m_selectedLBA == entry.lba && m_selectedIsGap == entry.isGap;
+            auto id = fmt::format("{}##{}", entry.path, i);
+            if (ImGui::Selectable(id.c_str(), selected,
                                   ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
                 m_selectedPath = entry.path;
+                m_selectedLBA = entry.lba;
+                m_selectedSize = entry.size;
                 m_selectedEntry = entry.dirEntry;
                 m_hasSelection = true;
                 m_selectedIsDir = entry.isDir;
+                m_selectedIsGap = entry.isGap;
             }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%u", entry.lba);
             ImGui::TableSetColumnIndex(2);
-            auto str = fmt::format("{}", entry.size);
-            ImGui::TextUnformatted(str.c_str());
+            if (entry.isGap) {
+                auto str = fmt::format("{} sectors", entry.size / 2048);
+                ImGui::TextUnformatted(str.c_str());
+            } else {
+                auto str = fmt::format("{}", entry.size);
+                ImGui::TextUnformatted(str.c_str());
+            }
             ImGui::TableSetColumnIndex(3);
-            ImGui::TextUnformatted(entry.isDir ? _("<DIR>") : _("File"));
+            if (entry.isGap) {
+                ImGui::TextUnformatted(_("Gap"));
+            } else {
+                ImGui::TextUnformatted(entry.isDir ? _("<DIR>") : _("File"));
+            }
         }
         ImGui::EndTable();
     }
@@ -300,11 +333,12 @@ significantly by caching the files beforehand.)"));
             ImGui::ProgressBar(m_extractionProgress);
             m_extractionCoroutine.resume();
         } else {
-            if (!m_hasSelection || m_selectedIsDir) ImGui::BeginDisabled();
+            bool canExtractReplace = m_hasSelection && (!m_selectedIsDir || m_selectedIsGap);
+            if (!canExtractReplace) ImGui::BeginDisabled();
             showSaveDialog = ImGui::Button(_("Extract"));
             ImGui::SameLine();
             showReplaceDialog = ImGui::Button(_("Replace"));
-            if (!m_hasSelection || m_selectedIsDir) ImGui::EndDisabled();
+            if (!canExtractReplace) ImGui::EndDisabled();
         }
 
         if (showSaveDialog) {
@@ -319,8 +353,8 @@ significantly by caching the files beforehand.)"));
             auto selected = m_saveFileDialog.selected();
             if (!selected.empty() && m_hasSelection) {
                 auto destPath = reinterpret_cast<const char*>(selected[0].c_str());
-                uint32_t lba = m_selectedEntry.get<ISO9660LowLevel::DirEntry_LBA>();
-                uint32_t size = m_selectedEntry.get<ISO9660LowLevel::DirEntry_Size>();
+                uint32_t lba = m_selectedLBA;
+                uint32_t size = m_selectedSize;
                 auto isoPtr = m_cachedIso.lock();
                 if (isoPtr) {
                     m_extractionProgress = 0.0f;
@@ -358,8 +392,8 @@ significantly by caching the files beforehand.)"));
             auto selected = m_openReplaceFileDialog.selected();
             if (!selected.empty() && m_hasSelection) {
                 auto srcPath = reinterpret_cast<const char*>(selected[0].c_str());
-                uint32_t lba = m_selectedEntry.get<ISO9660LowLevel::DirEntry_LBA>();
-                uint32_t originalSize = m_selectedEntry.get<ISO9660LowLevel::DirEntry_Size>();
+                uint32_t lba = m_selectedLBA;
+                uint32_t originalSize = m_selectedSize;
                 auto isoPtr = m_cachedIso.lock();
                 if (isoPtr) {
                     IO<File> replacement(new UvFile(srcPath));

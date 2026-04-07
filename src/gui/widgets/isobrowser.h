@@ -60,8 +60,11 @@ class IsoBrowser {
     std::weak_ptr<CDRIso> m_cachedIso;
     std::string m_selectedPath;
     ISO9660LowLevel::DirEntry m_selectedEntry;
+    uint32_t m_selectedLBA = 0;
+    uint32_t m_selectedSize = 0;
     bool m_hasSelection = false;
     bool m_selectedIsDir = false;
+    bool m_selectedIsGap = false;
 
     Coroutine<> m_extractionCoroutine;
     float m_extractionProgress = 0.0f;
@@ -72,6 +75,7 @@ class IsoBrowser {
         uint32_t lba;
         uint32_t size;
         bool isDir;
+        bool isGap;
         ISO9660LowLevel::DirEntry dirEntry;
     };
     std::vector<FlatEntry> m_flatEntries;
