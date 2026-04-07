@@ -52,6 +52,7 @@
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/named_savestates.h"
 #include "gui/widgets/patches.h"
+#include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
@@ -112,6 +113,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
+    typedef Setting<bool, TYPESTRING("ShowMsanViewer")> ShowMsanViewer;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -162,7 +164,7 @@ class GUI final : public UI {
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
              ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr>
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -402,6 +404,7 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
+    Widgets::MsanViewer m_msanViewer{settings.get<ShowMsanViewer>().value};
 
     EventBus::Listener m_listener;
 

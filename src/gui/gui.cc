@@ -1404,6 +1404,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
+                    ImGui::MenuItem(_("Show MSAN Viewer"), nullptr, &m_msanViewer.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
@@ -1688,6 +1689,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_memoryObserver.m_show) {
         m_memoryObserver.draw(_("Memory Observer"));
+    }
+
+    if (m_msanViewer.m_show) {
+        m_msanViewer.draw(this, g_emulator->m_mem.get(), _("MSAN Viewer"));
     }
 
     if (m_typedDebugger.m_show) {
