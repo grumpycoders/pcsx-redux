@@ -1457,6 +1457,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem(_("Show PSYQo heap viewer"), nullptr, &m_heapViewer.m_show);
                 ImGui::Separator();
                 if (ImGui::BeginMenu(_("Kernel"))) {
                     ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
@@ -1729,6 +1730,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
+    if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {

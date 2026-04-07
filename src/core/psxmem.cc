@@ -174,6 +174,7 @@ void PCSX::Memory::reset() {
     memset(m_wram, 0, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
+    m_psyqoHeapMetadata = 0;
     static const uint32_t nobios[6] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
         Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
