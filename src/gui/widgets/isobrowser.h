@@ -66,7 +66,20 @@ class IsoBrowser {
     Coroutine<> m_extractionCoroutine;
     float m_extractionProgress = 0.0f;
 
+    bool m_flatView = false;
+    struct FlatEntry {
+        std::string path;
+        uint32_t lba;
+        uint32_t size;
+        bool isDir;
+        ISO9660LowLevel::DirEntry dirEntry;
+    };
+    std::vector<FlatEntry> m_flatEntries;
+    bool m_flatEntriesDirty = true;
+
     void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
+    void drawFilesystemFlat();
+    void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
 
     FileDialog<> m_openIsoFileDialog;
     FileDialog<FileDialogMode::Save> m_saveFileDialog;

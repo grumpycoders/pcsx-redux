@@ -21,6 +21,7 @@
 
 #include <zlib.h>
 
+#include <algorithm>
 #include <chrono>
 
 #include "cdrom/cdriso.h"
@@ -98,6 +99,64 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
             auto str = fmt::format("{}", size);
             ImGui::TextUnformatted(str.c_str());
         }
+    }
+}
+
+void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path) {
+    auto entries = m_reader->listAllEntriesFrom(entry);
+    for (auto& [dirEntry, xa] : entries) {
+        const auto& filename = dirEntry.get<ISO9660LowLevel::DirEntry_Filename>().value;
+        if (filename.size() == 1 && (filename[0] == '\0' || filename[0] == '\1')) continue;
+
+        bool isDir = (dirEntry.get<ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
+        uint32_t lba = dirEntry.get<ISO9660LowLevel::DirEntry_LBA>();
+        uint32_t size = dirEntry.get<ISO9660LowLevel::DirEntry_Size>();
+        auto fullPath = path.empty() ? filename : path + "/" + filename;
+
+        m_flatEntries.push_back({fullPath, lba, size, isDir, dirEntry});
+        if (isDir) collectFlatEntries(dirEntry, fullPath);
+    }
+}
+
+void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
+    if (m_flatEntriesDirty) {
+        m_flatEntries.clear();
+        collectFlatEntries(m_reader->getRootDirEntry(), "");
+        std::sort(m_flatEntries.begin(), m_flatEntries.end(),
+                  [](const FlatEntry& a, const FlatEntry& b) { return a.lba < b.lba; });
+        m_flatEntriesDirty = false;
+    }
+
+    if (ImGui::BeginTable("FilesystemFlat", 4,
+                          ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY |
+                              ImGuiTableFlags_Sortable,
+                          ImVec2(0, 300))) {
+        ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
+        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort, 80.0f);
+        ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+        ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, 60.0f);
+        ImGui::TableHeadersRow();
+
+        for (auto& entry : m_flatEntries) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            bool selected = m_hasSelection && m_selectedPath == entry.path;
+            if (ImGui::Selectable(entry.path.c_str(), selected,
+                                  ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
+                m_selectedPath = entry.path;
+                m_selectedEntry = entry.dirEntry;
+                m_hasSelection = true;
+                m_selectedIsDir = entry.isDir;
+            }
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%u", entry.lba);
+            ImGui::TableSetColumnIndex(2);
+            auto str = fmt::format("{}", entry.size);
+            ImGui::TextUnformatted(str.c_str());
+            ImGui::TableSetColumnIndex(3);
+            ImGui::TextUnformatted(entry.isDir ? _("<DIR>") : _("File"));
+        }
+        ImGui::EndTable();
     }
 }
 
@@ -225,6 +284,7 @@ significantly by caching the files beforehand.)"));
         m_reader.reset();
         m_hasSelection = false;
         m_selectedPath.clear();
+        m_flatEntriesDirty = true;
         if (currentIso && !currentIso->failed()) {
             m_reader = std::make_unique<ISO9660Reader>(currentIso);
             if (m_reader->failed()) m_reader.reset();
@@ -320,15 +380,21 @@ significantly by caching the files beforehand.)"));
             }
         }
 
-        if (ImGui::BeginTable("Filesystem", 3,
-                              ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
-                              ImVec2(0, 300))) {
-            ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
-            ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
-            ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
-            ImGui::TableHeadersRow();
-            drawFilesystemTree(m_reader->getRootDirEntry(), "");
-            ImGui::EndTable();
+        ImGui::Checkbox(_("Flat view (by sector)"), &m_flatView);
+
+        if (m_flatView) {
+            drawFilesystemFlat();
+        } else {
+            if (ImGui::BeginTable("Filesystem", 3,
+                                  ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
+                                  ImVec2(0, 300))) {
+                ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+                ImGui::TableHeadersRow();
+                drawFilesystemTree(m_reader->getRootDirEntry(), "");
+                ImGui::EndTable();
+            }
         }
 
         // PPF patch controls
