@@ -25,6 +25,7 @@ TEST(GNUDemangler, _Z1fi) { EXPECT_EQ(PCSX::GNUDemangler::demangle("_Z1fi"), "f(
 TEST(GNUDemangler, _Z3foo3bar) { EXPECT_EQ(PCSX::GNUDemangler::demangle("_Z3foo3bar"), "foo(bar)"); }
 TEST(GNUDemangler, _Zrm1XS_) { EXPECT_EQ(PCSX::GNUDemangler::demangle("_Zrm1XS_"), "operator%(X, X)"); }
 TEST(GNUDemangler, _ZplR1XS0_) { EXPECT_EQ(PCSX::GNUDemangler::demangle("_ZplR1XS0_"), "operator+(X&, X&)"); }
+TEST(GNUDemangler, _Zoo1XS_) { EXPECT_EQ(PCSX::GNUDemangler::demangle("_Zoo1XS_"), "operator||(X, X)"); }
 TEST(GNUDemangler, _ZlsRK1XS1_) {
     EXPECT_EQ(PCSX::GNUDemangler::demangle("_ZlsRK1XS1_"), "operator<<(X const&, X const&)");
 }

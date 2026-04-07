@@ -154,7 +154,7 @@ struct less_equal_operator : pegtl::string<'l', 'e'> {};
 struct greater_equal_operator : pegtl::string<'g', 'e'> {};
 struct logical_not_operator : pegtl::string<'n', 't'> {};
 struct logical_and_operator : pegtl::string<'a', 'a'> {};
-struct logical_or_operator : pegtl::string<'o', 'r'> {};
+struct logical_or_operator : pegtl::string<'o', 'o'> {};
 struct increment_operator : pegtl::string<'p', 'p'> {};
 struct decrement_operator : pegtl::string<'m', 'm'> {};
 struct comma_operator : pegtl::string<'c', 'm'> {};
