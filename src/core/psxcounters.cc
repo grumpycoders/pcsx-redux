@@ -43,7 +43,11 @@ inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value)
     m_rcnts[index].cycleStart = PCSX::g_emulator->m_cpu->m_regs.cycle;
     m_rcnts[index].cycleStart -= value * m_rcnts[index].rate;
 
-    // TODO: <=.
+    // Hardware tested (SCPH-5501): counter reaches target value briefly before
+    // resetting. Fast reads can observe the target value; slow reads (printf) cannot.
+    // The comparison boundary needs more precise measurement to determine if
+    // reset happens on the same cycle as reaching target or the next cycle.
+    // TODO: determine exact reset timing with cycle-accurate measurement.
     if (value < m_rcnts[index].target) {
         m_rcnts[index].cycle = m_rcnts[index].target * m_rcnts[index].rate;
         m_rcnts[index].counterState = CountToTarget;
@@ -132,7 +136,15 @@ void PCSX::Counters::reset(uint32_t index) {
         m_rcnts[index].mode |= RcOverflow;
     }
 
-    m_rcnts[index].mode |= RcIrqRequest;
+    // IRQ request flag (bit 10) behavior depends on bit 7 (toggle mode):
+    // Pulse mode (bit7=0): bit 10 resets to 1 after IRQ (short pulse low)
+    // Toggle mode (bit7=1): bit 10 toggles (XOR) on each IRQ
+    // Hardware verified: toggle mode produces different bit10 state than pulse mode.
+    if (m_rcnts[index].mode & RcIrqToggle) {
+        m_rcnts[index].mode ^= RcIrqRequest;
+    } else {
+        m_rcnts[index].mode |= RcIrqRequest;
+    }
 
     set();
 }
@@ -179,6 +191,24 @@ void PCSX::Counters::update() {
         m_hSyncCount++;
         m_spuSyncCountdown--;
 
+        // Counter 0 gate: triggered by Hblank
+        if (isGateEnabled(0, m_rcnts[0].mode)) {
+            switch (gateSyncMode(m_rcnts[0].mode)) {
+                case 1:  // Reset at Hblank
+                case 2:  // Reset at Hblank + pause outside
+                    writeCounterInternal(0, 0);
+                    break;
+                case 3:  // Pause until first Hblank, then free run
+                    if (!m_rcnts[0].gateStarted) {
+                        m_rcnts[0].gateStarted = 1;
+                        recalculateRate(0);
+                        writeCounterInternal(0, 0);
+                        set();
+                    }
+                    break;
+            }
+        }
+
         // Update spu.
         if (m_spuSyncCountdown <= 0) {
             // Scanlines until next sync
@@ -197,6 +227,24 @@ void PCSX::Counters::update() {
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
             setIrq(0x01);
             PCSX::g_emulator->vsync();
+
+            // Counter 1 gate: triggered by VBlank start
+            if (isGateEnabled(1, m_rcnts[1].mode)) {
+                switch (gateSyncMode(m_rcnts[1].mode)) {
+                    case 1:  // Reset at VBlank
+                    case 2:  // Reset at VBlank + pause outside
+                        writeCounterInternal(1, 0);
+                        break;
+                    case 3:  // Pause until first VBlank, then free run
+                        if (!m_rcnts[1].gateStarted) {
+                            m_rcnts[1].gateStarted = 1;
+                            recalculateRate(1);
+                            writeCounterInternal(1, 0);
+                            set();
+                        }
+                        break;
+                }
+            }
         }
 
         if (m_hSyncCount >= m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
@@ -213,17 +261,22 @@ void PCSX::Counters::writeCounter(uint32_t index, uint32_t value) {
     set();
 }
 
-void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
-    verboseLog(1, "[RCNT %i] writeMode: %x\n", index, value);
-
-    update();
-    m_rcnts[index].mode = value;
-    m_rcnts[index].irqState = false;
-
+void PCSX::Counters::recalculateRate(uint32_t index) {
+    uint16_t value = m_rcnts[index].mode;
     switch (index) {
         case 0:
             if (value & Rc0PixelClock) {
-                m_rcnts[index].rate = 5;
+                // Dotclock rate depends on GPU horizontal resolution and video standard.
+                static constexpr uint32_t dotclockDividers[] = {10, 8, 5, 4, 7, 7};
+                auto hres = PCSX::g_emulator->m_gpu->m_display.info.hres;
+                auto videoMode = PCSX::g_emulator->m_gpu->m_display.info.mode;
+                uint32_t divider = dotclockDividers[static_cast<int>(hres)];
+                uint32_t videoCyclesPerScanline = (videoMode == GPU::CtrlDisplayMode::VM_PAL) ? 3406 : 3413;
+                uint32_t dotsPerScanline = videoCyclesPerScanline / divider;
+                uint32_t cpuCyclesPerScanline = (PCSX::g_emulator->m_psxClockSpeed /
+                    (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                     m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+                m_rcnts[index].rate = std::max<uint32_t>(cpuCyclesPerScanline / dotsPerScanline, 1);
             } else {
                 m_rcnts[index].rate = 1;
             }
@@ -243,12 +296,37 @@ void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
             } else {
                 m_rcnts[index].rate = 1;
             }
-
-            // TODO: wcount must work.
+            // Timer 2 sync modes: 0,3 = stop counter; 1,2 = free run
+            // Hardware verified (SCPH-5501): modes 0,3 produce delta=0, modes 1,2 run normally.
             if (value & Rc2Disable) {
-                m_rcnts[index].rate = 0xffffffff;
+                uint8_t syncMode = gateSyncMode(value);
+                if (syncMode == 0 || syncMode == 3) {
+                    m_rcnts[index].rate = 0xffffffff;
+                }
             }
             break;
+    }
+}
+
+void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
+    verboseLog(1, "[RCNT %i] writeMode: %x\n", index, value);
+
+    update();
+    m_rcnts[index].mode = value;
+    m_rcnts[index].irqState = false;
+
+    recalculateRate(index);
+
+    // Initialize gate state
+    m_rcnts[index].gateStarted = 0;
+
+    if (isGateEnabled(index, value)) {
+        uint8_t syncMode = gateSyncMode(value);
+        if (syncMode == 2 || syncMode == 3) {
+            // Mode 2: pause outside blank. Mode 3: pause until first blank.
+            // Both start paused.
+            m_rcnts[index].rate = 0xffffffff;
+        }
     }
 
     writeCounterInternal(index, 0);
