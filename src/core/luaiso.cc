@@ -27,6 +27,7 @@
 #include "core/cdrom.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
+#include "support/strings-helpers.h"
 #include "supportpsx/iso9660-builder.h"
 
 namespace {
@@ -55,6 +56,59 @@ PCSX::LuaFFI::LuaFile* readerOpen(PCSX::ISO9660Reader* reader, const char* path)
 }
 PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::IEC60908b::SectorMode mode) {
     return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
+}
+
+struct DirEntries {
+    std::vector<PCSX::ISO9660Reader::FullDirEntry> entries;
+};
+
+DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
+    auto root = reader->getRootDirEntry();
+    if (path == nullptr || path[0] == '\0') {
+        return new DirEntries{reader->listAllEntriesFrom(root)};
+    }
+    auto* file = reader->open(path);
+    if (file->failed()) {
+        delete file;
+        return new DirEntries{};
+    }
+    delete file;
+    // Need to find the directory entry for the given path to list its contents.
+    // Walk the path manually using listAllEntriesFrom.
+    auto parts = PCSX::StringsHelpers::split(std::string_view(path), "/");
+    PCSX::ISO9660LowLevel::DirEntry current = root;
+    for (auto& part : parts) {
+        auto entries = reader->listAllEntriesFrom(current);
+        bool found = false;
+        for (auto& [entry, xa] : entries) {
+            if (entry.get<PCSX::ISO9660LowLevel::DirEntry_Filename>().value == part) {
+                current = entry;
+                found = true;
+                break;
+            }
+        }
+        if (!found) return new DirEntries{};
+    }
+    return new DirEntries{reader->listAllEntriesFrom(current)};
+}
+
+void deleteDirEntries(DirEntries* entries) { delete entries; }
+uint32_t dirEntriesCount(DirEntries* entries) { return entries->entries.size(); }
+const char* dirEntryName(DirEntries* entries, uint32_t index) {
+    if (index >= entries->entries.size()) return "";
+    return entries->entries[index].first.get<PCSX::ISO9660LowLevel::DirEntry_Filename>().value.c_str();
+}
+uint32_t dirEntryLBA(DirEntries* entries, uint32_t index) {
+    if (index >= entries->entries.size()) return 0;
+    return entries->entries[index].first.get<PCSX::ISO9660LowLevel::DirEntry_LBA>();
+}
+uint32_t dirEntrySize(DirEntries* entries, uint32_t index) {
+    if (index >= entries->entries.size()) return 0;
+    return entries->entries[index].first.get<PCSX::ISO9660LowLevel::DirEntry_Size>();
+}
+bool dirEntryIsDir(DirEntries* entries, uint32_t index) {
+    if (index >= entries->entries.size()) return false;
+    return (entries->entries[index].first.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
 }
 
 PCSX::ISO9660Builder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) {
@@ -97,6 +151,14 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isReaderFailed);
     REGISTER(L, readerOpen);
     REGISTER(L, fileisoOpen);
+
+    REGISTER(L, readerListDir);
+    REGISTER(L, deleteDirEntries);
+    REGISTER(L, dirEntriesCount);
+    REGISTER(L, dirEntryName);
+    REGISTER(L, dirEntryLBA);
+    REGISTER(L, dirEntrySize);
+    REGISTER(L, dirEntryIsDir);
 
     REGISTER(L, createIsoBuilder);
     REGISTER(L, deleteIsoBuilder);

@@ -43,6 +43,15 @@ bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
 LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
 
+typedef struct { char opaque[?]; } DirEntries;
+DirEntries* readerListDir(IsoReader* reader, const char* path);
+void deleteDirEntries(DirEntries* entries);
+uint32_t dirEntriesCount(DirEntries* entries);
+const char* dirEntryName(DirEntries* entries, uint32_t index);
+uint32_t dirEntryLBA(DirEntries* entries, uint32_t index);
+uint32_t dirEntrySize(DirEntries* entries, uint32_t index);
+bool dirEntryIsDir(DirEntries* entries, uint32_t index);
+
 typedef struct { char opaque[?]; } ISO9660Builder;
 ISO9660Builder* createIsoBuilder(LuaFile* out);
 void deleteIsoBuilder(ISO9660Builder* builder);
@@ -58,6 +67,24 @@ local function createIsoReaderWrapper(isoReader)
     local reader = {
         _wrapper = ffi.gc(isoReader, C.deleteIsoReader),
         open = function(self, fname) return Support.File._createFileWrapper(C.readerOpen(self._wrapper, fname)) end,
+        listDir = function(self, path)
+            if path == nil then path = '' end
+            local entries = ffi.gc(C.readerListDir(self._wrapper, path), C.deleteDirEntries)
+            local count = C.dirEntriesCount(entries)
+            local result = {}
+            for i = 0, count - 1 do
+                local name = ffi.string(C.dirEntryName(entries, i))
+                if name ~= '\0' and name ~= '\1' then
+                    table.insert(result, {
+                        name = name,
+                        lba = C.dirEntryLBA(entries, i),
+                        size = C.dirEntrySize(entries, i),
+                        isDir = C.dirEntryIsDir(entries, i),
+                    })
+                end
+            end
+            return result
+        end,
     }
     return reader
 end
