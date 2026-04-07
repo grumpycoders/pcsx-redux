@@ -786,47 +786,32 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = l_("BIOS");
     m_vramEditor.title = l_("VRAM");
-    m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
-        constexpr size_t vramWidth = 1024;
-        constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
-
-        // x and y coordinates of pixel
-        const auto x = (offset % stride) / sizeof(uint16_t);
-        const auto y = offset / stride;
-        const bool offsetIsOdd = (offset & 1) == 1;
-        const auto maskedOffset = offset & ~1;
-        uint16_t newPixel;
-
-        if (offsetIsOdd) {
-            newPixel = (writtenByte << 8) | data[maskedOffset];
-        } else {
-            newPixel = writtenByte | (data[maskedOffset] << 8);
-        }
-
-        g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
+    auto makeExportFn = [this](MemoryEditorWrapper &wrapper, std::string postfixName) {
+        return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
+            std::filesystem::path writeFilepath =
+                g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+            IO<File> out(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
+            if (!out->failed()) {
+                std::vector<uint8_t> buf(len);
+                if (wrapper.editor.Cache.BulkReadFn) {
+                    wrapper.editor.Cache.BulkReadFn(buf.data(), 0, len);
+                }
+                out->write(buf.data(), len);
+                out->close();
+                g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
+            } else {
+                g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
+            }
+        };
     };
-
-    auto exportFn = [this](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
-        std::filesystem::path writeFilepath =
-            g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
-        IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
-        if (!f->failed()) {
-            f->write(data, len);
-            f->close();
-            g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
-        } else {
-            g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
-        }
-    };
-#define EXPORT_FUNC(name) [=](ImU8* data, size_t len, size_t base_addr) { exportFn(data, len, base_addr, name); }
     for (auto& editor : m_mainMemEditors) {
-        editor.editor.ExportFn = EXPORT_FUNC("wram");
+        editor.editor.ExportFn = makeExportFn(editor, "wram");
     }
-    m_parallelPortEditor.editor.ExportFn = EXPORT_FUNC("parallel");
-    m_scratchPadEditor.editor.ExportFn = EXPORT_FUNC("scratch");
-    m_hwrEditor.editor.ExportFn = EXPORT_FUNC("hwr");
-    m_biosEditor.editor.ExportFn = EXPORT_FUNC("bios");
-    m_vramEditor.editor.ExportFn = EXPORT_FUNC("vram");
+    m_parallelPortEditor.editor.ExportFn = makeExportFn(m_parallelPortEditor, "parallel");
+    m_scratchPadEditor.editor.ExportFn = makeExportFn(m_scratchPadEditor, "scratch");
+    m_hwrEditor.editor.ExportFn = makeExportFn(m_hwrEditor, "hwr");
+    m_biosEditor.editor.ExportFn = makeExportFn(m_biosEditor, "bios");
+    m_vramEditor.editor.ExportFn = makeExportFn(m_vramEditor, "vram");
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -1616,47 +1601,70 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     {
+        IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
             if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
+                editor.draw(memFile, 8 * 1024 * 1024);
             }
             counter++;
         }
         if (m_parallelPortEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024);
+            m_parallelPortEditor.draw(memFile, 512 * 1024);
         }
         counter++;
         if (m_scratchPadEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024);
+            m_scratchPadEditor.draw(memFile, 1024);
         }
         counter++;
         if (m_hwrEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024);
+            m_hwrEditor.draw(memFile, 8 * 1024);
         }
         counter++;
         if (m_biosEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024);
+            m_biosEditor.draw(memFile, 512 * 1024);
         }
         counter++;
         if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
 
-            // This const_cast is disgusting but we only use it to satisfy the type system
-            // The slice data is indeed treated as read-only
             const Slice vram = g_emulator->m_gpu->getVRAM();
-            m_vramEditor.draw(const_cast<void*>(vram.data()), vram.size());
+            auto* vramData = (const ImU8*)vram.data();
+            size_t vramSize = vram.size();
+            m_vramEditor.editor.ReadFn = [vramData](size_t off) -> ImU8 { return vramData[off]; };
+            m_vramEditor.editor.WriteFn = [vramData](size_t off, ImU8 writtenByte) {
+                constexpr size_t vramWidth = 1024;
+                constexpr size_t stride = vramWidth * sizeof(uint16_t);
+
+                const auto x = (off % stride) / sizeof(uint16_t);
+                const auto y = off / stride;
+                const bool offsetIsOdd = (off & 1) == 1;
+                const auto maskedOffset = off & ~(size_t)1;
+                uint16_t newPixel;
+
+                if (offsetIsOdd) {
+                    newPixel = (writtenByte << 8) | vramData[maskedOffset];
+                } else {
+                    newPixel = writtenByte | (vramData[maskedOffset + 1] << 8);
+                }
+
+                g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
+            };
+            m_vramEditor.editor.Cache.BulkReadFn = [vramData](void* dest, size_t off, size_t len) {
+                memcpy(dest, vramData + off, len);
+            };
+            m_vramEditor.editor.DrawWindow(m_vramEditor.title(), vramSize);
         }
     }
 
