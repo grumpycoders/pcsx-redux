@@ -180,6 +180,16 @@ struct Coroutine {
     struct ChainAwaiter {
         std::coroutine_handle<Promise> handle;
 
+        explicit ChainAwaiter(std::coroutine_handle<Promise> h) : handle(h) {}
+        ~ChainAwaiter() {
+            if (handle) handle.destroy();
+        }
+
+        ChainAwaiter(ChainAwaiter &&other) : handle(other.handle) { other.handle = nullptr; }
+        ChainAwaiter &operator=(ChainAwaiter &&) = delete;
+        ChainAwaiter(const ChainAwaiter &) = delete;
+        ChainAwaiter &operator=(const ChainAwaiter &) = delete;
+
         constexpr bool await_ready() { return handle.done(); }
 
         void await_suspend(std::coroutine_handle<> h) {
@@ -190,10 +200,12 @@ struct Coroutine {
         constexpr T await_resume() {
             if constexpr (std::is_void<T>::value) {
                 handle.destroy();
+                handle = nullptr;
                 return;
             } else {
                 auto val = std::move(handle.promise().m_value);
                 handle.destroy();
+                handle = nullptr;
                 return val;
             }
         }
