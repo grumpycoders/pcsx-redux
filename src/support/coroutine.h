@@ -123,32 +123,43 @@ struct Coroutine {
 
   private:
     struct PromiseVoid {
+        struct FinalAwaiter {
+            bool await_ready() const noexcept { return false; }
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<PromiseVoid> h) const noexcept {
+                auto next = h.promise().m_awaitingCoroutine;
+                return next ? next : std::noop_coroutine();
+            }
+            void await_resume() const noexcept {}
+        };
         Coroutine<> get_return_object() {
             return Coroutine<>{std::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
+        FinalAwaiter final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
         template <typename From>
         From yield_value(From &&from) {
             return std::forward<From>(from);
         }
-        void return_void() {
-            if (m_awaitingCoroutine) {
-                m_awaitingCoroutine.resume();
-                m_awaitingCoroutine = nullptr;
-            }
-        }
+        void return_void() {}
         [[no_unique_address]] Empty m_value;
         std::coroutine_handle<> m_awaitingCoroutine;
     };
 
     struct PromiseValue {
+        struct FinalAwaiter {
+            bool await_ready() const noexcept { return false; }
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<PromiseValue> h) const noexcept {
+                auto next = h.promise().m_awaitingCoroutine;
+                return next ? next : std::noop_coroutine();
+            }
+            void await_resume() const noexcept {}
+        };
         Coroutine<T> get_return_object() {
             return Coroutine{std::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
+        FinalAwaiter final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
         template <typename From>
         From yield_value(From &&from) {
@@ -156,10 +167,6 @@ struct Coroutine {
         }
         void return_value(T &&value) {
             m_value = std::move(value);
-            if (m_awaitingCoroutine) {
-                m_awaitingCoroutine.resume();
-                m_awaitingCoroutine = nullptr;
-            }
         }
         T m_value;
         std::coroutine_handle<> m_awaitingCoroutine;
