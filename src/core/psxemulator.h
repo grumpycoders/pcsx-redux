@@ -109,6 +109,7 @@ class Emulator {
         typedef Setting<uint32_t, TYPESTRING("FirstChanceException"), 0x00001cf0> FirstChanceException;
         typedef Setting<bool, TYPESTRING("SkipISR")> SkipISR;
         typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> LoggingCDROM;
+        typedef Setting<bool, TYPESTRING("LoggingHWCDROM"), false> LoggingHWCDROM;
         typedef Setting<bool, TYPESTRING("GdbServer"), false> GdbServer;
         typedef Setting<bool, TYPESTRING("GdbManifest"), true> GdbManifest;
         enum class GdbLog {
@@ -143,12 +144,12 @@ class Emulator {
             Raw,
         };
         typedef Setting<SIO1Mode, TYPESTRING("SIO1Mode"), SIO1Mode::Protobuf> SIO1ModeSetting;
-        typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
-                         GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
-                         KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
-                         KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
-                         KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost,
-                         SIO1ClientPort, SIO1ModeSetting>
+        typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, LoggingHWCDROM,
+                         GdbServer, GdbManifest, GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort,
+                         KernelCallA0_00_1f, KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f,
+                         KernelCallA0_80_9f, KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f,
+                         KernelCallB0_40_5f, KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort,
+                         SIO1Client, SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -229,8 +230,9 @@ class Emulator {
     // Make the timing events trigger faster as we are currently assuming everything
     // takes one cycle, which is not the case on real hardware.
     // FIXME: Count the proper cycle and get rid of this
-    uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
-    enum { BIAS = 2 };
+    static constexpr uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
+    static constexpr uint32_t BIAS = 2;
+    static constexpr uint32_t ROM_EXTRA_BIAS = 10;
 
     template <unsigned alignment = 1>
         requires((alignment == 1) || (alignment == 4))
