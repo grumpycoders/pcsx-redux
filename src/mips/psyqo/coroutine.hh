@@ -232,18 +232,40 @@ struct Coroutine {
   public:
     using promise_type = Promise;
 
-    constexpr bool await_ready() { return m_handle.done(); }
-    template <typename U>
-    constexpr void await_suspend(std::coroutine_handle<U> h) {
-        m_handle.promise().m_awaitingCoroutine = h;
-        resume();
-    }
-    constexpr T await_resume() {
-        if constexpr (std::is_void<T>::value) {
-            return;
-        } else {
-            return eastl::move(m_handle.promise().m_value);
+    /**
+     * @brief The awaiter type for coroutine-to-coroutine chaining via co_await.
+     *
+     * @details GCC has known bugs across versions 10-15+ where the awaitable temporary
+     * in a `co_await` expression is not correctly promoted to the coroutine frame.
+     * By using `operator co_await()`, we transfer the coroutine handle to this
+     * awaiter object that GCC's coroutine pass reliably stores in the frame.
+     */
+    struct ChainAwaiter {
+        std::coroutine_handle<Promise> handle;
+
+        constexpr bool await_ready() { return handle.done(); }
+
+        void await_suspend(std::coroutine_handle<> h) {
+            handle.promise().m_awaitingCoroutine = h;
+            if (!handle.done()) handle.resume();
         }
+
+        constexpr T await_resume() {
+            if constexpr (std::is_void<T>::value) {
+                handle.destroy();
+                return;
+            } else {
+                auto val = eastl::move(handle.promise().m_value);
+                handle.destroy();
+                return val;
+            }
+        }
+    };
+
+    ChainAwaiter operator co_await() && {
+        auto h = m_handle;
+        m_handle = nullptr;
+        return ChainAwaiter{h};
     }
 };
 
