@@ -128,7 +128,7 @@ struct Coroutine {
      * @details This method is used to create an instance of the `Awaiter` object.
      * It's used to suspend the coroutine after scheduling an asynchronous operation.
      */
-    Awaiter awaiter() { return Awaiter(this); }
+    Awaiter awaiter() & { return Awaiter(this); }
 
     /**
      * @brief Resumes the coroutine.

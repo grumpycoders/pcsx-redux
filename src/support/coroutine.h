@@ -39,15 +39,11 @@ struct Coroutine {
 
     Coroutine() = default;
 
-    Coroutine(Coroutine &&other) {
-        if (m_handle) m_handle.destroy();
-        m_handle = other.m_handle;
-        m_value = std::move(other.m_value);
-        m_suspended = other.m_suspended;
-        m_earlyResume = other.m_earlyResume;
-
-        other.m_handle = nullptr;
-        other.m_value = SafeT{};
+    Coroutine(Coroutine &&other)
+        : m_handle(std::exchange(other.m_handle, nullptr)),
+          m_value(std::move(other.m_value)),
+          m_suspended(other.m_suspended),
+          m_earlyResume(other.m_earlyResume) {
         other.m_suspended = true;
         other.m_earlyResume = false;
     }
@@ -55,13 +51,10 @@ struct Coroutine {
     Coroutine &operator=(Coroutine &&other) {
         if (this != &other) {
             if (m_handle) m_handle.destroy();
-            m_handle = other.m_handle;
+            m_handle = std::exchange(other.m_handle, nullptr);
             m_value = std::move(other.m_value);
             m_suspended = other.m_suspended;
             m_earlyResume = other.m_earlyResume;
-
-            other.m_handle = nullptr;
-            other.m_value = SafeT{};
             other.m_suspended = true;
             other.m_earlyResume = false;
         }
@@ -94,7 +87,7 @@ struct Coroutine {
         friend struct Coroutine;
     };
 
-    Awaiter awaiter() { return Awaiter(this); }
+    Awaiter awaiter() & { return Awaiter(this); }
 
     void resume() {
         if (!m_handle) return;
