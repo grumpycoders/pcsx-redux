@@ -295,6 +295,17 @@ int pcsxMain(int argc, char **argv) {
             debugSettings.get<PCSX::Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
         }
 
+        if (args.get<bool>("webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = true;
+        }
+        if (args.get<bool>("no-webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = false;
+        }
+
+        if (args.get<int>("webserver-port")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServerPort>() = args.get<int>("webserver-port").value();
+        }
+
         auto argPCdrvBase = args.get<std::string>("pcdrvbase");
         if (args.get<bool>("pcdrv")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>() = true;
