@@ -133,4 +133,5 @@ CESTER_BEFORE_ALL(gte_tests,
 #include "gte-mvmva.c"
 #include "gte-depthcue.c"
 #include "gte-lighting.c"
+#include "gte-edgecase.c"
 #include "gte-encoding.c"
