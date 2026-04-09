@@ -175,6 +175,7 @@ end
 
 local function scheduleInterrupt(eCycle)
     if type(eCycle) ~= 'number' then error 'PCSX.scheduleInterrupt requires a numeric cycle count' end
+    if (eCycle < 0) or (eCycle > 0xffffffff) then error 'PCSX.scheduleInterrupt cycle count parameter should be an unsigned 32-bit integer'
     C.scheduleInterrupt(eCycle)
 end
 
