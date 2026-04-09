@@ -35,6 +35,7 @@ SOFTWARE.
 #endif
 
 #include "common/hardware/counters.h"
+#include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
 #include "common/syscalls/syscalls.h"
 
@@ -386,4 +387,132 @@ CESTER_TEST(timerDotclockRate, timer_tests,
      * Allow some tolerance for fractional rounding. */
     cester_assert_cmp(dots_per_line, >=, 330);
     cester_assert_cmp(dots_per_line, <=, 860);
+)
+
+/* =================================================================
+ * Precise dotclock measurements per resolution.
+ * Measures dots per N scanlines at each GPU horizontal resolution
+ * in both NTSC and PAL modes. Uses 100 scanlines for precision.
+ *
+ * Hardware verified on SCPH-5501, 2026-04-08:
+ *   256px: NTSC 341, PAL 340
+ *   320px: NTSC 426, PAL 426 (rounds UP from 425.75)
+ *   512px: NTSC 682, PAL 681
+ *   640px: NTSC 853, PAL 851
+ *   368px: NTSC 487, PAL 486
+ * ================================================================= */
+
+CESTER_BODY(
+static int measureDotsPerLine(void) {
+    int scanlines = 100;
+
+    /* Timer1: hsync clock, free run */
+    COUNTERS[1].target = 0xFFFF;
+    COUNTERS[1].mode = TM_CLK_EXTERNAL;
+
+    /* Timer0: dotclock, free run */
+    COUNTERS[0].target = 0xFFFF;
+    COUNTERS[0].mode = TM_CLK_EXTERNAL;
+
+    /* Reset both by re-writing mode */
+    COUNTERS[1].mode = TM_CLK_EXTERNAL;
+    COUNTERS[0].mode = TM_CLK_EXTERNAL;
+
+    /* Wait for exactly N scanlines */
+    while (COUNTERS[1].value < scanlines) {}
+
+    int dots = COUNTERS[0].value;
+    int lines = COUNTERS[1].value;
+    return dots / lines;
+}
+)
+
+/* 256px NTSC: 3413/10 = 341.3 -> 341 */
+CESTER_MAYBE_TEST(timerDotclock256NTSC, timer_tests,
+    struct DisplayModeConfig cfg = { HR_256, VR_240, VM_NTSC, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 341);
+)
+
+/* 256px PAL: 3406/10 = 340.6 -> 340 */
+CESTER_MAYBE_TEST(timerDotclock256PAL, timer_tests,
+    struct DisplayModeConfig cfg = { HR_256, VR_240, VM_PAL, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 340);
+)
+
+/* 320px NTSC: 3413/8 = 426.625 -> 426 */
+CESTER_MAYBE_TEST(timerDotclock320NTSC, timer_tests,
+    struct DisplayModeConfig cfg = { HR_320, VR_240, VM_NTSC, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 426);
+)
+
+/* 320px PAL: 3406/8 = 425.75 -> 426 (only mode that rounds up) */
+CESTER_MAYBE_TEST(timerDotclock320PAL, timer_tests,
+    struct DisplayModeConfig cfg = { HR_320, VR_240, VM_PAL, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 426);
+)
+
+/* 512px NTSC: 3413/5 = 682.6 -> 682 */
+CESTER_MAYBE_TEST(timerDotclock512NTSC, timer_tests,
+    struct DisplayModeConfig cfg = { HR_512, VR_240, VM_NTSC, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 682);
+)
+
+/* 512px PAL: 3406/5 = 681.2 -> 681 */
+CESTER_MAYBE_TEST(timerDotclock512PAL, timer_tests,
+    struct DisplayModeConfig cfg = { HR_512, VR_240, VM_PAL, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 681);
+)
+
+/* 640px NTSC: 3413/4 = 853.25 -> 853 */
+CESTER_MAYBE_TEST(timerDotclock640NTSC, timer_tests,
+    struct DisplayModeConfig cfg = { HR_640, VR_240, VM_NTSC, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 853);
+)
+
+/* 640px PAL: 3406/4 = 851.5 -> 851 */
+CESTER_MAYBE_TEST(timerDotclock640PAL, timer_tests,
+    struct DisplayModeConfig cfg = { HR_640, VR_240, VM_PAL, CD_15BITS, VI_OFF, HRE_NORMAL };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 851);
+)
+
+/* 368px NTSC: 3413/7 = 487.57 -> 487 */
+CESTER_MAYBE_TEST(timerDotclock368NTSC, timer_tests,
+    struct DisplayModeConfig cfg = { HR_256, VR_240, VM_NTSC, CD_15BITS, VI_OFF, HRE_368 };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 487);
+)
+
+/* 368px PAL: 3406/7 = 486.57 -> 486 */
+CESTER_MAYBE_TEST(timerDotclock368PAL, timer_tests,
+    struct DisplayModeConfig cfg = { HR_256, VR_240, VM_PAL, CD_15BITS, VI_OFF, HRE_368 };
+    setDisplayMode(&cfg);
+    BUSY_WAIT(5000);
+    int dpl = measureDotsPerLine();
+    cester_assert_equal(dpl, 486);
 )
