@@ -44,6 +44,7 @@ struct closure_type_name;
 struct ctor_dtor_name;
 struct CV_qualifiers;
 struct data_member_prefix;
+struct discriminator;
 struct encoding;
 struct expression;
 struct expr_primary;
@@ -91,7 +92,8 @@ struct prefix
     : pegtl::sor<template_param, substitution, template_prefix_with_args, unqualified_name, data_member_prefix> {};
 struct template_prefix_with_args : pegtl::seq<template_prefix, template_args> {};
 struct template_prefix : pegtl::sor<template_param, substitution> {};
-struct unqualified_name : pegtl::sor<operator_name, ctor_dtor_name, source_name, unnamed_type_name> {};
+struct local_source_name : pegtl::seq<pegtl::one<'L'>, source_name, pegtl::opt<discriminator>> {};
+struct unqualified_name : pegtl::sor<operator_name, ctor_dtor_name, local_source_name, source_name, unnamed_type_name> {};
 
 // Custom rule for length-prefixed source names (e.g., "3foo" -> "foo")
 struct source_name {

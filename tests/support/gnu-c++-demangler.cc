@@ -108,6 +108,18 @@ TEST(GNUDemangler, eastl_list_DoErase) {
 TEST(GNUDemangler, operator_delete) {
     EXPECT_EQ(PCSX::GNUDemangler::demangle("_ZdlPvj"), "operator delete(void*, unsigned int)");
 }
+// Internal linkage qualifier (L before source_name)
+TEST(GNUDemangler, internal_linkage) {
+    EXPECT_EQ(PCSX::GNUDemangler::demangle("_ZN5psyqo6KernelL24fastEnterCriticalSectionEv"),
+              "psyqo::Kernel::fastEnterCriticalSection()");
+}
+
+// GCC thread-safe static cleanup functions
+TEST(GNUDemangler, tcf_cleanup) {
+    EXPECT_EQ(PCSX::GNUDemangler::demangle("__tcf_ZN12_GLOBAL__N_1L11s_functionsE"),
+              "cleanup for _GLOBAL__N_1::s_functions");
+}
+
 // Variadic templates (parameter packs)
 TEST(GNUDemangler, variadic_func) {
     EXPECT_EQ(PCSX::GNUDemangler::demangle("_Z13variadic_funcIJidcEEvDpT_"),

@@ -293,6 +293,7 @@ class TreeWalker {
         if (n.is_root()) return demangle(n);
 
         if (n.is_type<source_name>()) return std::string(extractName(n.string_view()));
+        if (n.is_type<local_source_name>()) return walk(*n.children[0]);  // L<source_name> - internal linkage
         if (isBuiltinType(n)) return builtinName(n);
 
         if (isOperator(n)) {
@@ -568,8 +569,8 @@ class TreeWalker {
                                                                       : "{tmpl(" + std::to_string(idx) + ")}";
             } else if (child->is_type<template_prefix_with_args>()) {
                 component = walk(*child);
-            } else if (child->is_type<source_name>()) {
-                component = std::string(extractName(child->string_view()));
+            } else if (child->is_type<source_name>() || child->is_type<local_source_name>()) {
+                component = walk(*child);
                 lastSourceName = component;
             } else {
                 component = walk(*child);
@@ -664,6 +665,11 @@ std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
     if (mangled.size() > globalDtorPrefix.size() &&
         mangled.substr(0, globalDtorPrefix.size()) == globalDtorPrefix) {
         return "global destructors keyed to " + demangle(mangled.substr(globalDtorPrefix.size()));
+    }
+    // GCC thread-safe static cleanup functions
+    static constexpr std::string_view tcfPrefix = "__tcf";
+    if (mangled.size() > tcfPrefix.size() && mangled.substr(0, tcfPrefix.size()) == tcfPrefix) {
+        return "cleanup for " + demangle(mangled.substr(tcfPrefix.size()));
     }
     if (mangled.size() < 2 || mangled[0] != '_' || mangled[1] != 'Z') {
         return std::string(mangled);

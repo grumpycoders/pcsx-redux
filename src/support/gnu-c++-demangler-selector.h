@@ -89,6 +89,7 @@ DEMANGLE_SELECT(template_arg_pack);
 
 // Leaf nodes (store matched content)
 DEMANGLE_SELECT(source_name);
+DEMANGLE_SELECT(local_source_name);
 DEMANGLE_SELECT(ctor_dtor_name);
 DEMANGLE_SELECT(CV_qualifiers);
 DEMANGLE_SELECT(positive_number);
