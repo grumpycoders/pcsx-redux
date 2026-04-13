@@ -654,6 +654,17 @@ void PCSX::GNUDemangler::printDot(std::string_view mangled) {
 }
 
 std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
+    // GCC global constructor/destructor wrappers
+    static constexpr std::string_view globalCtorPrefix = "_GLOBAL__sub_I_";
+    static constexpr std::string_view globalDtorPrefix = "_GLOBAL__sub_D_";
+    if (mangled.size() > globalCtorPrefix.size() &&
+        mangled.substr(0, globalCtorPrefix.size()) == globalCtorPrefix) {
+        return "global constructors keyed to " + demangle(mangled.substr(globalCtorPrefix.size()));
+    }
+    if (mangled.size() > globalDtorPrefix.size() &&
+        mangled.substr(0, globalDtorPrefix.size()) == globalDtorPrefix) {
+        return "global destructors keyed to " + demangle(mangled.substr(globalDtorPrefix.size()));
+    }
     if (mangled.size() < 2 || mangled[0] != '_' || mangled[1] != 'Z') {
         return std::string(mangled);
     }

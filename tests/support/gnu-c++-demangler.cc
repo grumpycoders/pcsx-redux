@@ -192,6 +192,18 @@ TEST(GNUDemangler, coroutine_destroy) {
         "N_113CoroutineDemo16generalCoroutineEv.Frame*) [destroy]");
 }
 
+// GCC global constructor/destructor wrappers
+TEST(GNUDemangler, global_ctor) {
+    EXPECT_EQ(
+        PCSX::GNUDemangler::demangle(
+            "_GLOBAL__sub_I__ZN5psyqo6Kernel15setBreakHandlerEjON5eastl8functionIFbmEEE"),
+        "global constructors keyed to psyqo::Kernel::setBreakHandler(unsigned int, eastl::function<bool(unsigned "
+        "long)>&&)");
+}
+TEST(GNUDemangler, global_ctor_plain) {
+    EXPECT_EQ(PCSX::GNUDemangler::demangle("_GLOBAL__sub_I_main"), "global constructors keyed to main");
+}
+
 TEST(GNUDemangler, psyqo_sendFragment) {
     EXPECT_EQ(
         PCSX::GNUDemangler::demangle(
