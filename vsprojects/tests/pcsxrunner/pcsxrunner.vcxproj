@@ -260,6 +260,7 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\memcpy.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
