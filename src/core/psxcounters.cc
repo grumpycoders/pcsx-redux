@@ -318,7 +318,7 @@ void PCSX::Counters::writeMode(uint32_t index, uint32_t value) {
     verboseLog(1, "[RCNT %i] writeMode: %x\n", index, value);
 
     update();
-    m_rcnts[index].mode = value;
+    m_rcnts[index].mode = value | RcIrqRequest;  // Hardware sets bit 10 on mode write
     m_rcnts[index].irqState = false;
 
     recalculateRate(index);
