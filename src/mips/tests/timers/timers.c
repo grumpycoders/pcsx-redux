@@ -159,15 +159,15 @@ CESTER_TEST(timerModeWriteResetsCounter, timer_tests,
  * ================================================================= */
 CESTER_TEST(timerHitTargetFlagSetAndCleared, timer_tests,
     /* Warmup pass to prime icache */
-    COUNTERS[2].target = 0x0010;
+    COUNTERS[2].target = 0x1000;
     COUNTERS[2].mode = TM_RESET_TARGET;
-    BUSY_WAIT(500);
+    BUSY_WAIT(50000);
     (void)COUNTERS[2].mode;
     (void)COUNTERS[2].mode;
 
     /* Real measurement */
     COUNTERS[2].mode = TM_RESET_TARGET;
-    BUSY_WAIT(500);
+    BUSY_WAIT(50000);
 
     uint16_t mode1 = COUNTERS[2].mode;
     uint16_t mode2 = COUNTERS[2].mode;

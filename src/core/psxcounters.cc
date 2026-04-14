@@ -48,7 +48,13 @@ inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value)
     // The comparison boundary needs more precise measurement to determine if
     // reset happens on the same cycle as reaching target or the next cycle.
     // TODO: determine exact reset timing with cycle-accurate measurement.
-    if (value < m_rcnts[index].target) {
+    // Schedule next event: target hit first (for flag/IRQ), then overflow.
+    // If RcCountToTarget is not set, the counter doesn't reset at target,
+    // but bit 11 (RcCountEqTarget) is still set when the counter passes
+    // the target value. However, if target == 0xFFFF, the target and
+    // overflow events coincide - skip straight to overflow to avoid
+    // redundant processing.
+    if (value < m_rcnts[index].target && m_rcnts[index].target != 0xffff) {
         m_rcnts[index].cycle = m_rcnts[index].target * m_rcnts[index].rate;
         m_rcnts[index].counterState = CountToTarget;
     } else {
