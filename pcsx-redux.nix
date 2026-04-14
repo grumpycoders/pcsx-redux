@@ -22,7 +22,6 @@
   elfio,
   tracy,
   md4c,
-  stb,
   uriparser,
   ucl,
   llhttp,
@@ -133,7 +132,6 @@ in stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    stb
     ucl
     md4c
     luajitPackages.libluv

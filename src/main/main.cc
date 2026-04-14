@@ -218,7 +218,7 @@ int pcsxMain(int argc, char **argv) {
         fmt::print(
             "{{\n  \"version\": \"{}\",\n  \"changeset\": \"{}\",\n  \"timestamp\": \"{}\",\n  \"timestampDecoded\": "
             "\"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
-            version.version, version.changeset, version.timestamp, fmt::localtime(version.timestamp));
+            version.version, version.changeset, version.timestamp, *std::localtime(&version.timestamp));
         return 0;
     }
 

@@ -317,7 +317,7 @@ void dmaIRQ() {
 }  // namespace
 
 void psyqo::Kernel::Internal::prepare(Application& application) {
-    SPU::reset();
+    SPU::initialize();
     Hardware::CPU::IMask.clear();
     Hardware::CPU::IReg.clear();
     for (unsigned i = 0; i < 7; i++) {

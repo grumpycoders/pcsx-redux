@@ -410,7 +410,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(header, mtc0(Reg::R0, 7));
         pushBytes(header, li(Reg::T2, -1));
         pushBytes(header, lui(Reg::T1, 0x8003));
-        pushBytes(header, lui(Reg::T0, 0b1100101010000000));
+        pushBytes(header, lui(Reg::T0, 0b1110101110000000));
         pushBytes(header, mtc0(Reg::T2, 11));
         pushBytes(header, mtc0(Reg::T2, 9));
         pushBytes(header, mtc0(Reg::T1, 5));
