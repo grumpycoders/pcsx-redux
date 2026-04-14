@@ -584,8 +584,8 @@ void *psyqo_realloc(void *ptr_, size_t size_) {
         if (size < old_size) {
             // We're going to create a new block at the end of what we are re-allocating.
             empty_block *new_block = (empty_block *)((char *)block + size);
-            // Is the next block adjacent to the block we're re-allocating?
-            if ((next != &marker) && (((char *)block + size) == (char *)next)) {
+            // Is the next block adjacent to the end of our original allocation?
+            if ((next != &marker) && (((char *)block + old_size) == (char *)next)) {
                 // Yes, we can merge them.
                 new_block->next = next->next;
                 new_block->size = old_size - size + next->size;

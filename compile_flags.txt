@@ -1,8 +1,9 @@
--std=c++2a
+-std=c++2b
 -fexceptions
 -I.
 -Isrc
 -Ithird_party
+-Ithird_party/ELFIO
 -Ithird_party/fmt/include/
 -Ithird_party/gl3w
 -Ithird_party/googletest/googletest/include
@@ -10,18 +11,20 @@
 -Ithird_party/imgui/backends
 -Ithird_party/imgui/examples
 -Ithird_party/imgui/misc/cpp
--Ithird_party/http-parser
+-Ithird_party/libelfin
 -Ithird_party/luajit/src
 -Ithird_party/luv/src
 -Ithird_party/luv/deps/lua-compat-5.3/c-api
--Ithird_party/ucl
--Ithird_party/ucl/include
--Ithird_party/libuv/include
--Ithird_party/zlib
+-Ithird_party/md4c/src
+-Ithird_party/PEGTL/include
+-Ithird_party/ucl -Ithird_party/ucl/include
+-Ithird_party/uriparser/include
 -Ithird_party/zep/extensions
 -Ithird_party/zep/include
 -Ithird_party/xbyak/xbyak
+-DLUAJIT_ENABLE_LUA52COMPAT
 -DIMGUI_IMPL_OPENGL_LOADER_GL3W
 -DIMGUI_ENABLE_FREETYPE
--DLUAJIT_ENABLE_LUA52COMPAT
 -DZEP_FEATURE_CPP_FILE_SYSTEM
+-DNVG_NO_STB
+-DPB_STATIC_API
