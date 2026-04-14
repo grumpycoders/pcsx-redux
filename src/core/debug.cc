@@ -318,6 +318,16 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
     return keepBP;
 }
 
+void PCSX::Debug::logDMAAccess(uint32_t address, uint32_t len, bool isWrite) {
+    auto *ramLogger = g_emulator->m_ramLogger.get();
+    if (!ramLogger->isEnabled()) return;
+    PSXAddress addr(normalizeAddress(address));
+    if (addr.type != PSXAddress::Type::RAM) return;
+    uint32_t cycle = static_cast<uint32_t>(g_emulator->m_cpu->m_regs.cycle);
+    auto type = isWrite ? RAMLogger::AccessType::Write : RAMLogger::AccessType::Read;
+    ramLogger->recordAccess(addr.physical, len, type, cycle);
+}
+
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
     auto& cpu = g_emulator->m_cpu;
     auto& regs = cpu->m_regs;
