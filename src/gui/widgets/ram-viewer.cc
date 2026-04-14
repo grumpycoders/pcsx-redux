@@ -100,7 +100,7 @@ float heatFromAge(float age) {
 float sampleGlyph(int nibble, vec2 cellPos) {
     vec4 gUV = u_glyphUVs[nibble];
     vec2 glyphUV = mix(gUV.xy, gUV.zw, cellPos);
-    return texture(u_fontAtlas, glyphUV).r;
+    return texture(u_fontAtlas, glyphUV).a;
 }
 
 void main() {
