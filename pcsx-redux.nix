@@ -91,6 +91,12 @@ let
       rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
       hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
     })
+    ({
+      owner = "taocpp";
+      repo = "PEGTL";
+      rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
+      hash = "sha256-1hTwoTCkfOX7e0unAlZ8TnYva3enkCgfrfriZfx2AoE=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
