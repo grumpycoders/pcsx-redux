@@ -64,6 +64,7 @@ uniform vec4 u_execColor;
 uniform bool u_showRead;
 uniform bool u_showWrite;
 uniform bool u_showExec;
+uniform bool u_showGreyscale;
 
 uniform float u_ramHeight;
 uniform uint u_currentCycle;
@@ -117,7 +118,7 @@ void main() {
     // Sample raw RAM value
     float ramByte = texture(u_ramTexture, ramUV).r;
     int byteVal = int(ramByte * 255.0 + 0.5);
-    vec3 baseColor = vec3(ramByte);
+    vec3 baseColor = u_showGreyscale ? vec3(ramByte) : vec3(0.0);
 
     // Sample cycle timestamps
     uint readStamp = texture(u_readHeatmap, ramUV).r;
@@ -293,6 +294,7 @@ void PCSX::Widgets::RAMViewer::compileShader(GUI *gui) {
     m_locGlyphUVs = glGetUniformLocation(m_shaderProgram, "u_glyphUVs");
     m_locGlyphAspect = glGetUniformLocation(m_shaderProgram, "u_glyphAspect");
     m_locShowHex = glGetUniformLocation(m_shaderProgram, "u_showHex");
+    m_locShowGreyscale = glGetUniformLocation(m_shaderProgram, "u_showGreyscale");
 }
 
 void PCSX::Widgets::RAMViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -338,6 +340,7 @@ void PCSX::Widgets::RAMViewer::imguiCB(const ImDrawList *parentList, const ImDra
     glUniform1i(m_locDrawGrid, m_drawGrid);
     glUniform4f(m_locGridColor, m_gridColor.x, m_gridColor.y, m_gridColor.z, m_gridColor.w);
     glUniform1i(m_locShowHex, m_showHex);
+    glUniform1i(m_locShowGreyscale, m_showGreyscale);
 
     // Extract glyph UV rects for hex digits from ImGui font atlas
     ImFont *font = ImGui::GetFont();
@@ -475,6 +478,7 @@ void PCSX::Widgets::RAMViewer::draw(GUI *gui) {
                 ImGui::MenuItem(_("Show reads"), nullptr, &m_showRead);
                 ImGui::MenuItem(_("Show writes"), nullptr, &m_showWrite);
                 ImGui::MenuItem(_("Show execution"), nullptr, &m_showExec);
+                ImGui::MenuItem(_("Show greyscale"), nullptr, &m_showGreyscale);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show grid"), nullptr, &m_drawGrid);
                 ImGui::MenuItem(_("Show hex values"), nullptr, &m_showHex);

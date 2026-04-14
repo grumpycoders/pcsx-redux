@@ -79,9 +79,13 @@ class RAMViewer : public ZoomableImage {
     int m_locGlyphUVs;
     int m_locGlyphAspect;
     int m_locShowHex;
+    int m_locShowGreyscale;
 
     // Hex display
     bool m_showHex = true;
+
+    // Greyscale base
+    bool m_showGreyscale = true;
 
     // Channel colors
     ImVec4 m_readColor = ImVec4{0.0f, 1.0f, 0.0f, 0.75f};
