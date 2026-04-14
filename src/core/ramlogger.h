@@ -51,6 +51,7 @@ class RAMLogger {
     void bindWriteHeatmap() { m_writeHeatmapTex.bind(); }
     void bindExecHeatmap() { m_execHeatmapTex.bind(); }
     void bindRAMTexture() { m_ramTexture.bind(); }
+    GLuint getRAMTextureID() { return m_ramTexture.handle(); }
 
     // Configurable decay half-life in cycles (how many cycles until intensity halves)
     float m_decayHalfLife = 33868800.0f;  // ~1 second at 33.8MHz
