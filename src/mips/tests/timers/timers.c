@@ -288,12 +288,13 @@ CESTER_TEST(timerRc2SyncMode3Stop, timer_tests,
 
 /* =================================================================
  * Counter 0 gate modes (Hblank-synced).
- * Unimplemented in Redux - use CESTER_MAYBE_TEST.
+ * Modes 1 and 3 are implemented. Modes 0 and 2 (pause logic) are
+ * not yet implemented - use CESTER_MAYBE_TEST to skip on emulator.
  * ================================================================= */
 
 /* Gate mode 0: pause during Hblank.
  * Counter should advance slower than free run. */
-CESTER_TEST(timerC0GateMode0PauseDuringHblank, timer_tests,
+CESTER_MAYBE_TEST(timerC0GateMode0PauseDuringHblank, timer_tests,
     COUNTERS[0].target = 0xFFFF;
 
     /* Measure gated first, then free run, to avoid ordering bias */
@@ -323,7 +324,7 @@ CESTER_TEST(timerC0GateMode1ResetAtHblank, timer_tests,
 
 /* Gate mode 2: reset at Hblank + pause outside.
  * Counter only runs during Hblank and resets each time. */
-CESTER_TEST(timerC0GateMode2ResetPauseOutside, timer_tests,
+CESTER_MAYBE_TEST(timerC0GateMode2ResetPauseOutside, timer_tests,
     COUNTERS[0].target = 0xFFFF;
     COUNTERS[0].mode = TM_SYNC_EN | TM_SYNC_MODE(2);
     BUSY_WAIT(50000);
