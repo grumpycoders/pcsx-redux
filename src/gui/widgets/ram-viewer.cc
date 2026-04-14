@@ -161,14 +161,13 @@ void main() {
         int hiNibble = (byteVal >> 4) & 0xf;
         int loNibble = byteVal & 0xf;
 
-        // Layout: two glyphs side by side within the cell
-        // Each glyph occupies glyphAspect * cellHeight in width
-        // Center the pair horizontally with small padding
-        float glyphW = u_glyphAspect * 0.8;  // 80% of cell height used for glyph height
-        float totalW = glyphW * 2.0 + 0.05;  // two glyphs + small gap
+        // Layout: two glyphs side by side within the cell, centered
+        float glyphH = 0.5;  // 50% of cell height
+        float glyphW = u_glyphAspect * glyphH;
+        float gap = 0.02;
+        float totalW = glyphW * 2.0 + gap;
         float startX = (1.0 - totalW) * 0.5;
-        float startY = 0.1;  // 10% top padding
-        float glyphH = 0.8;  // 80% of cell height
+        float startY = (1.0 - glyphH) * 0.5;  // vertically centered
 
         float glyphAlpha = 0.0;
         vec2 cellPos;
@@ -180,7 +179,7 @@ void main() {
             glyphAlpha = sampleGlyph(hiNibble, cellPos);
         }
         // Low nibble
-        float loX = startX + glyphW + 0.05;
+        float loX = startX + glyphW + gap;
         if (pixelFrac.x >= loX && pixelFrac.x < loX + glyphW &&
             pixelFrac.y >= startY && pixelFrac.y < startY + glyphH) {
             cellPos = vec2((pixelFrac.x - loX) / glyphW, (pixelFrac.y - startY) / glyphH);
