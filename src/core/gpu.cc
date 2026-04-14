@@ -700,6 +700,7 @@ void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr)
     dest += size / 4;
     while (transferSize != 0) {
         *dest++ = m_dataRet;
+        transferSize--;
     }
 }
 
