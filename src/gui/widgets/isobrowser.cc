@@ -116,8 +116,92 @@ void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEnt
         uint32_t size = dirEntry.get<ISO9660LowLevel::DirEntry_Size>();
         auto fullPath = path.empty() ? filename : path + "/" + filename;
 
-        m_flatEntries.push_back({fullPath, lba, size, isDir, false, dirEntry});
+        m_flatEntries.push_back({fullPath, lba, size, isDir ? FlatEntry::Directory : FlatEntry::File, dirEntry});
         if (isDir) collectFlatEntries(dirEntry, fullPath);
+    }
+}
+
+void PCSX::Widgets::IsoBrowser::scanGapSectors(std::vector<FlatEntry>& out, uint32_t startLBA, uint32_t sectorCount,
+                                                std::shared_ptr<CDRIso> iso) {
+    uint32_t lba = startLBA;
+    uint32_t end = startLBA + sectorCount;
+
+    while (lba < end) {
+        uint8_t sector[2352];
+        if (iso->readSectors(lba, sector, 1) != 1) {
+            // Read failed, treat rest as gap
+            uint32_t remaining = end - lba;
+            auto label = fmt::format(f_("<gap {} sectors>"), remaining);
+            out.push_back({label, lba, remaining * 2352, FlatEntry::Gap, {}});
+            break;
+        }
+
+        uint8_t mode = sector[15];
+
+        if (mode == 0) {
+            // Mode 0: true gap. Accumulate consecutive mode 0 sectors.
+            uint32_t gapStart = lba;
+            while (lba < end) {
+                if (lba != gapStart) {
+                    if (iso->readSectors(lba, sector, 1) != 1) break;
+                    if (sector[15] != 0) break;
+                }
+                lba++;
+            }
+            uint32_t count = lba - gapStart;
+            auto label = fmt::format(f_("<gap {} sectors>"), count);
+            out.push_back({label, gapStart, count * 2352, FlatEntry::Gap, {}});
+            continue;
+        }
+
+        if (mode == 1) {
+            // Mode 1 hidden data. Accumulate until mode changes or gap ends.
+            uint32_t fileStart = lba;
+            lba++;
+            while (lba < end) {
+                if (iso->readSectors(lba, sector, 1) != 1) break;
+                if (sector[15] != 1) break;
+                lba++;
+            }
+            uint32_t count = lba - fileStart;
+            auto label = fmt::format(f_("<hidden M1 {} sectors>"), count);
+            out.push_back({label, fileStart, count * 2048, FlatEntry::HiddenM1, {}});
+            continue;
+        }
+
+        if (mode == 2) {
+            // Mode 2: parse subheader for form and file boundaries
+            uint8_t* sub = sector + 16;
+            uint8_t fileNum = sub[0];
+            uint8_t channelNum = sub[1];
+            uint8_t submode = sub[2];
+            bool isForm2 = (submode & 0x20) != 0;
+            auto type = isForm2 ? FlatEntry::HiddenM2F2 : FlatEntry::HiddenM2F1;
+
+            uint32_t fileStart = lba;
+            bool hitEof = (submode & 0x80) != 0;
+            lba++;
+
+            while (lba < end && !hitEof) {
+                if (iso->readSectors(lba, sector, 1) != 1) break;
+                if (sector[15] != 2) break;
+                sub = sector + 16;
+                // Different file/channel = new subfile
+                if (sub[0] != fileNum || sub[1] != channelNum) break;
+                hitEof = (sub[2] & 0x80) != 0;
+                lba++;
+            }
+
+            uint32_t count = lba - fileStart;
+            uint32_t dataSize = isForm2 ? count * 2324 : count * 2048;
+            auto label = fmt::format(f_("<hidden {} f={} ch={} {} sectors>"),
+                                     isForm2 ? "M2F2" : "M2F1", fileNum, channelNum, count);
+            out.push_back({label, fileStart, dataSize, type, {}});
+            continue;
+        }
+
+        // Unknown mode, skip sector
+        lba++;
     }
 }
 
@@ -128,14 +212,14 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
         std::sort(m_flatEntries.begin(), m_flatEntries.end(),
                   [](const FlatEntry& a, const FlatEntry& b) { return a.lba < b.lba; });
 
-        // Insert gap entries between files
+        // Insert simple gap placeholders (no sector scanning yet)
         std::vector<FlatEntry> withGaps;
         uint32_t nextExpected = 0;
         for (auto& entry : m_flatEntries) {
             if (entry.lba > nextExpected) {
                 uint32_t gapSectors = entry.lba - nextExpected;
-                auto label = fmt::format(f_("<GAP {} sectors>"), gapSectors);
-                withGaps.push_back({label, nextExpected, gapSectors * 2048, false, true, {}});
+                auto label = fmt::format(f_("<gap {} sectors>"), gapSectors);
+                withGaps.push_back({label, nextExpected, gapSectors * 2352, FlatEntry::Gap, {}});
             }
             withGaps.push_back(entry);
             uint32_t sectors = (entry.size + 2047) / 2048;
@@ -144,6 +228,30 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
         }
         m_flatEntries = std::move(withGaps);
         m_flatEntriesDirty = false;
+        m_gapsScanned = false;
+    }
+
+    if (!m_gapsScanned) {
+        if (ImGui::Button(_("Scan gaps for hidden files"))) {
+            auto iso = m_cachedIso.lock();
+            if (iso) {
+                std::vector<FlatEntry> scanned;
+                for (auto& entry : m_flatEntries) {
+                    if (entry.isGap()) {
+                        uint32_t sectorCount = entry.size / 2352;
+                        scanGapSectors(scanned, entry.lba, sectorCount, iso);
+                    } else {
+                        scanned.push_back(entry);
+                    }
+                }
+                m_flatEntries = std::move(scanned);
+                m_gapsScanned = true;
+            }
+        }
+        ImGuiHelpers::ShowHelpMarker(_(R"(Reads sector headers in gap regions to detect
+hidden files that were removed from the ISO9660
+directory but still have intact Mode 1/2 sector
+headers and subheader file boundary markers.)"));
     }
 
     if (ImGui::BeginTable("FilesystemFlat", 4,
@@ -159,8 +267,8 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
             auto& entry = m_flatEntries[i];
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            bool selected = m_hasSelection && m_selectedPath == entry.path &&
-                            m_selectedLBA == entry.lba && m_selectedIsGap == entry.isGap;
+            bool selected = m_hasSelection && m_selectedLBA == entry.lba &&
+                            m_selectedIsGap == entry.isGap();
             auto id = fmt::format("{}##{}", entry.path, i);
             if (ImGui::Selectable(id.c_str(), selected,
                                   ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
@@ -169,25 +277,25 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
                 m_selectedSize = entry.size;
                 m_selectedEntry = entry.dirEntry;
                 m_hasSelection = true;
-                m_selectedIsDir = entry.isDir;
-                m_selectedIsGap = entry.isGap;
+                m_selectedIsDir = entry.isDir();
+                m_selectedIsGap = entry.isGap() || entry.isHidden();
             }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%u", entry.lba);
             ImGui::TableSetColumnIndex(2);
-            if (entry.isGap) {
-                auto str = fmt::format("{} sectors", entry.size / 2048);
-                ImGui::TextUnformatted(str.c_str());
-            } else {
-                auto str = fmt::format("{}", entry.size);
-                ImGui::TextUnformatted(str.c_str());
-            }
+            auto str = fmt::format("{}", entry.size);
+            ImGui::TextUnformatted(str.c_str());
             ImGui::TableSetColumnIndex(3);
-            if (entry.isGap) {
-                ImGui::TextUnformatted(_("Gap"));
-            } else {
-                ImGui::TextUnformatted(entry.isDir ? _("<DIR>") : _("File"));
+            const char* typeStr;
+            switch (entry.type) {
+                case FlatEntry::File: typeStr = _("File"); break;
+                case FlatEntry::Directory: typeStr = _("<DIR>"); break;
+                case FlatEntry::Gap: typeStr = _("Gap"); break;
+                case FlatEntry::HiddenM1: typeStr = _("M1"); break;
+                case FlatEntry::HiddenM2F1: typeStr = _("M2F1"); break;
+                case FlatEntry::HiddenM2F2: typeStr = _("M2F2"); break;
             }
+            ImGui::TextUnformatted(typeStr);
         }
         ImGui::EndTable();
     }

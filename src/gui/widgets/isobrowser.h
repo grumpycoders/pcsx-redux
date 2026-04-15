@@ -73,19 +73,27 @@ class IsoBrowser {
 
     bool m_flatView = false;
     struct FlatEntry {
+        enum Type { File, Directory, Gap, HiddenM1, HiddenM2F1, HiddenM2F2 };
         std::string path;
         uint32_t lba;
         uint32_t size;
-        bool isDir;
-        bool isGap;
+        Type type;
         ISO9660LowLevel::DirEntry dirEntry;
+
+        bool isGap() const { return type == Gap; }
+        bool isDir() const { return type == Directory; }
+        bool isHidden() const { return type == HiddenM1 || type == HiddenM2F1 || type == HiddenM2F2; }
+        bool isSelectable() const { return type != Directory; }
     };
     std::vector<FlatEntry> m_flatEntries;
     bool m_flatEntriesDirty = true;
+    bool m_gapsScanned = false;
 
     void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
     void drawFilesystemFlat();
     void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
+    void scanGapSectors(std::vector<FlatEntry>& out, uint32_t startLBA, uint32_t sectorCount,
+                        std::shared_ptr<CDRIso> iso);
 
     FileDialog<> m_openIsoFileDialog;
     FileDialog<FileDialogMode::Save> m_saveFileDialog;
