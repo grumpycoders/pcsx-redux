@@ -165,6 +165,7 @@
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
+    <ClCompile Include="..\..\src\core\ramlogger.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\sio1-server.cc" />
     <ClCompile Include="..\..\src\core\sio1.cc" />
@@ -216,6 +217,7 @@
     <ClInclude Include="..\..\src\core\psxhw.h" />
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
+    <ClInclude Include="..\..\src\core\ramlogger.h" />
     <ClInclude Include="..\..\src\core\sio.h" />
     <ClInclude Include="..\..\src\core\sio1.h" />
     <ClInclude Include="..\..\src\core\sio1-server.h" />

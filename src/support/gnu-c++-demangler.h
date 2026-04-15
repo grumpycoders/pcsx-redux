@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2026 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,31 +26,18 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
+#include <string>
+#include <string_view>
 
-struct Counter {
-    uint16_t value;
-    uint16_t padding1;
-    uint16_t mode;
-    uint16_t padding2;
-    uint16_t target;
-    uint8_t padding[6];
-};
+namespace PCSX {
 
-#define COUNTERS ((volatile struct Counter *)0xbf801100)
+namespace GNUDemangler {
 
-enum {
-    TM_SYNC_EN      = 0x0001,
-    TM_RESET_TARGET = 0x0008,
-    TM_IRQ_TARGET   = 0x0010,
-    TM_IRQ_OVERFLOW = 0x0020,
-    TM_IRQ_REPEAT   = 0x0040,
-    TM_IRQ_TOGGLE   = 0x0080,
-    TM_CLK_EXTERNAL = 0x0100,
-    TM_CLK_DIV8     = 0x0200,
-    TM_IRQ_REQUEST  = 0x0400,
-    TM_HIT_TARGET   = 0x0800,
-    TM_HIT_OVERFLOW = 0x1000,
-};
+bool internalCheck();
+bool trace(std::string_view mangled);
+void printDot(std::string_view mangled);
+std::string demangle(std::string_view mangled);
 
-#define TM_SYNC_MODE(n) (((n) & 3) << 1)
+}  // namespace GNUDemangler
+
+}  // namespace PCSX

@@ -6,17 +6,18 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-openbios:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
         set-safe-directory: true
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Update packages
       run: sudo apt-get update
     - name: Install dependencies
@@ -42,10 +43,7 @@ jobs:
     runs-on: macos-14
     needs: build-openbios
     steps:
-    - uses: actions/checkout@v1
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
@@ -137,10 +135,7 @@ jobs:
     needs: macos-arm-build-and-test
     if: github.event_name == 'push'
     steps:
-    - uses: actions/checkout@v1
-    - uses: n1hility/cancel-previous-runs@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v4
     - name: Install node
       uses: actions/setup-node@v4
       with:

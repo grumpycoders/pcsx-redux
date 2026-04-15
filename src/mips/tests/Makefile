@@ -8,6 +8,7 @@ all:
 	$(MAKE) -C memcpy all
 	$(MAKE) -C memset all
 	$(MAKE) -C pcdrv all
+	$(MAKE) -C timers all
 
 clean:
 	$(MAKE) -C basic clean
@@ -19,3 +20,4 @@ clean:
 	$(MAKE) -C memcpy clean
 	$(MAKE) -C memset clean
 	$(MAKE) -C pcdrv clean
+	$(MAKE) -C timers clean
