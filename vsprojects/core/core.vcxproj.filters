@@ -145,6 +145,7 @@
     <ClCompile Include="..\..\src\core\patchmanager.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\ramlogger.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
@@ -297,6 +298,7 @@
     <ClInclude Include="..\..\src\core\patchmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\ramlogger.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
