@@ -208,9 +208,10 @@ PCSX::Widgets::RAMViewer::RAMViewer(bool &show) : ZoomableImage(show), m_listene
 
 void PCSX::Widgets::RAMViewer::focusOn(uint32_t address, uint32_t size) {
     // Convert PS1 address to physical RAM offset
-    address &= 0x1fffff;
     if (g_emulator->settings.get<Emulator::Setting8MB>()) {
         address &= 0x7fffff;
+    } else {
+        address &= 0x1fffff;
     }
 
     // Convert to pixel coordinates in the 2048-wide layout
