@@ -74,6 +74,7 @@ class GdbServer;
 class GPU;
 class GPULogger;
 class GTE;
+class RAMLogger;
 class HW;
 class Lua;
 class MDEC;
@@ -261,6 +262,7 @@ class Emulator {
     std::unique_ptr<GPU> m_gpu;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
+    std::unique_ptr<RAMLogger> m_ramLogger;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
