@@ -111,6 +111,59 @@ bool dirEntryIsDir(DirEntries* entries, uint32_t index) {
     return (entries->entries[index].first.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
 }
 
+struct GapEntry {
+    uint32_t lba;
+    uint32_t sectors;
+};
+
+struct GapList {
+    std::vector<GapEntry> gaps;
+};
+
+static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660LowLevel::DirEntry& dir,
+                              std::vector<std::pair<uint32_t, uint32_t>>& out) {
+    auto entries = reader->listAllEntriesFrom(dir);
+    for (auto& [entry, xa] : entries) {
+        const auto& name = entry.get<PCSX::ISO9660LowLevel::DirEntry_Filename>().value;
+        if (name.size() == 1 && (name[0] == '\0' || name[0] == '\1')) continue;
+        uint32_t lba = entry.get<PCSX::ISO9660LowLevel::DirEntry_LBA>();
+        uint32_t size = entry.get<PCSX::ISO9660LowLevel::DirEntry_Size>();
+        uint32_t sectors = (size + 2047) / 2048;
+        out.push_back({lba, sectors});
+        bool isDir = (entry.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
+        if (isDir) collectAllEntries(reader, entry, out);
+    }
+}
+
+GapList* readerFindGaps(PCSX::ISO9660Reader* reader) {
+    if (reader->failed()) return new GapList{};
+    std::vector<std::pair<uint32_t, uint32_t>> allFiles;
+    collectAllEntries(reader, reader->getRootDirEntry(), allFiles);
+    std::sort(allFiles.begin(), allFiles.end());
+
+    auto* result = new GapList{};
+    uint32_t nextExpected = 0;
+    for (auto& [lba, sectors] : allFiles) {
+        if (lba > nextExpected) {
+            result->gaps.push_back({nextExpected, lba - nextExpected});
+        }
+        uint32_t end = lba + sectors;
+        if (end > nextExpected) nextExpected = end;
+    }
+    return result;
+}
+
+void deleteGapList(GapList* list) { delete list; }
+uint32_t gapListCount(GapList* list) { return list->gaps.size(); }
+uint32_t gapEntryLBA(GapList* list, uint32_t index) {
+    if (index >= list->gaps.size()) return 0;
+    return list->gaps[index].lba;
+}
+uint32_t gapEntrySectors(GapList* list, uint32_t index) {
+    if (index >= list->gaps.size()) return 0;
+    return list->gaps[index].sectors;
+}
+
 PCSX::ISO9660Builder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) {
     return new PCSX::ISO9660Builder(wrapper->file);
 }
@@ -159,6 +212,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dirEntryLBA);
     REGISTER(L, dirEntrySize);
     REGISTER(L, dirEntryIsDir);
+
+    REGISTER(L, readerFindGaps);
+    REGISTER(L, deleteGapList);
+    REGISTER(L, gapListCount);
+    REGISTER(L, gapEntryLBA);
+    REGISTER(L, gapEntrySectors);
 
     REGISTER(L, createIsoBuilder);
     REGISTER(L, deleteIsoBuilder);
