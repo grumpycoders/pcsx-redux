@@ -73,25 +73,25 @@ class int44 {
 // ============================================================================
 
 namespace Flag {
-constexpr uint32_t ERROR = 1u << 31;
-constexpr uint32_t MAC1_POS = ERROR | (1u << 30);
-constexpr uint32_t MAC1_NEG = ERROR | (1u << 27);
-constexpr uint32_t MAC2_POS = ERROR | (1u << 29);
-constexpr uint32_t MAC2_NEG = ERROR | (1u << 26);
-constexpr uint32_t MAC3_POS = ERROR | (1u << 28);
-constexpr uint32_t MAC3_NEG = ERROR | (1u << 25);
-constexpr uint32_t IR1_SAT = ERROR | (1u << 24);
-constexpr uint32_t IR2_SAT = ERROR | (1u << 23);
+constexpr uint32_t GTE_ERROR = 1u << 31;
+constexpr uint32_t MAC1_POS = GTE_ERROR | (1u << 30);
+constexpr uint32_t MAC1_NEG = GTE_ERROR | (1u << 27);
+constexpr uint32_t MAC2_POS = GTE_ERROR | (1u << 29);
+constexpr uint32_t MAC2_NEG = GTE_ERROR | (1u << 26);
+constexpr uint32_t MAC3_POS = GTE_ERROR | (1u << 28);
+constexpr uint32_t MAC3_NEG = GTE_ERROR | (1u << 25);
+constexpr uint32_t IR1_SAT = GTE_ERROR | (1u << 24);
+constexpr uint32_t IR2_SAT = GTE_ERROR | (1u << 23);
 constexpr uint32_t IR3_SAT = 1u << 22;
 constexpr uint32_t COLOR_R_SAT = 1u << 21;
 constexpr uint32_t COLOR_G_SAT = 1u << 20;
 constexpr uint32_t COLOR_B_SAT = 1u << 19;
-constexpr uint32_t SZ_SAT = ERROR | (1u << 18);
-constexpr uint32_t DIV_OVER = ERROR | (1u << 17);
-constexpr uint32_t MAC0_POS = ERROR | (1u << 16);
-constexpr uint32_t MAC0_NEG = ERROR | (1u << 15);
-constexpr uint32_t SX_SAT = ERROR | (1u << 14);
-constexpr uint32_t SY_SAT = ERROR | (1u << 13);
+constexpr uint32_t SZ_SAT = GTE_ERROR | (1u << 18);
+constexpr uint32_t DIV_OVER = GTE_ERROR | (1u << 17);
+constexpr uint32_t MAC0_POS = GTE_ERROR | (1u << 16);
+constexpr uint32_t MAC0_NEG = GTE_ERROR | (1u << 15);
+constexpr uint32_t SX_SAT = GTE_ERROR | (1u << 14);
+constexpr uint32_t SY_SAT = GTE_ERROR | (1u << 13);
 constexpr uint32_t IR0_SAT = 1u << 12;
 constexpr uint32_t ERROR_BITS = 0x7f87e000u;
 }  // namespace Flag

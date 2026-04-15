@@ -89,7 +89,7 @@ void PCSX::GTE::CTC2(uint32_t value, int reg) {
             break;
         case 31:
             value = value & 0x7ffff000;
-            if (value & Flag::ERROR_BITS) value |= Flag::ERROR;
+            if (value & Flag::ERROR_BITS) value |= Flag::GTE_ERROR;
             break;
     }
     ctrlRegs()[reg].d = value;
