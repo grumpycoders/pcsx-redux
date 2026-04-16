@@ -284,7 +284,7 @@ headers and subheader file boundary markers.)"));
 
     if (ImGui::BeginTable("FilesystemFlat", 4,
                           ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
-                          ImVec2(0, 300))) {
+                          ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y))) {
         ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
         ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
         ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
@@ -567,7 +567,7 @@ significantly by caching the files beforehand.)"));
         } else {
             if (ImGui::BeginTable("Filesystem", 3,
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
-                                  ImVec2(0, 300))) {
+                                  ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y))) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
