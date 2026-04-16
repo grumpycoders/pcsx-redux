@@ -16,6 +16,7 @@ list of the libraries used by PCSX-Redux. Some of them have been
 vendored with modifications. If this is the case, you will also  
 find a link to the vendored version itself.
 
+ - [arith64](https://github.com/glitchub/arith64) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/arith64))
  - [Capstone](https://github.com/capstone-engine/capstone)
  - [Clip](https://github.com/dacap/clip) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/clip))
  - [CompletionQueue](https://github.com/bhhbazinga/ConcurrentQueue) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/cq))
@@ -54,6 +55,7 @@ find a link to the vendored version itself.
  - [nanovg](https://github.com/memononen/nanovg) ([vendored](https://github.com/grumpycoders/nanovg))
  - [noto](https://fonts.google.com/noto) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/noto))
  - [pprint.lua](https://github.com/jagt/pprint.lua) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/pprint.lua))
+ - [snitch](https://github.com/snitch-org/snitch) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/snitch))
  - [stb](https://github.com/nothings/stb)
  - [tracy](https://github.com/wolfpld/tracy)
  - [typestring](https://github.com/irrequietus/typestring) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/typestring.hh))
