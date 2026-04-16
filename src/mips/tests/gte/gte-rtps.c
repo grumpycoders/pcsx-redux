@@ -35,6 +35,8 @@ CESTER_TEST(rtps_offset_vertex, gte_tests,
     int16_t sx = (int16_t)(sxy2 & 0xffff);
     int16_t sy = (int16_t)(sxy2 >> 16);
     ramsyscall_printf("RTPS offset: SX=%d SY=%d\n", sx, sy);
+    cester_assert_int_eq(199, sx);
+    cester_assert_int_eq(139, sy);
     cester_assert_uint_eq(500, sz3);
 )
 
@@ -114,6 +116,8 @@ CESTER_TEST(rtps_depth_cue, gte_tests,
     cop2_get(8, ir0);
     ramsyscall_printf("RTPS depth: MAC0=%d IR0=0x%04x\n", mac0, ir0 & 0xffff);
     // IR0 should be clamped to [0, 0x1000]
+    cester_assert_int_eq(-8388224, mac0);
+    cester_assert_uint_eq(0, ir0);
 )
 
 // RTPS with sf=0
@@ -135,6 +139,10 @@ CESTER_TEST(rtps_sf0, gte_tests,
                       mac3, ir3 & 0xffff, sz3, flag);
     // sf=0: MAC3 = TRZ<<12 + rotation = 0x1000<<12 = 0x1000000 (no >>12 shift)
     // IR3 uses Lm_B3_sf which checks MAC3>>12 for FLAG but clamps the unshifted value
+    cester_assert_int_eq(16777216, mac3);
+    cester_assert_uint_eq(0x7fff, ir3);
+    cester_assert_uint_eq(4096, sz3);
+    cester_assert_uint_eq(0, flag);
 )
 
 // RTPT: triple perspective transform

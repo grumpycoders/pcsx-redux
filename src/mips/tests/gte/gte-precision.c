@@ -117,6 +117,8 @@ CESTER_TEST(prec_mac_double_overflow, gte_tests,
     // R22*IR3 = 0x7FFF*0x7FFF = 0x3FFF0001 (fits in 44-bit)
     // Then subtract R33*IR2 = 0x7FFF*0x7FFF = 0x3FFF0001
     // Result = 0, but check if intermediate overflow flagged
+    cester_assert_int_eq(0, mac1);
+    cester_assert_uint_eq(0, flag);
 )
 
 // ==========================================================================
@@ -174,6 +176,7 @@ CESTER_TEST(prec_div_100_over_1000, gte_tests,
     int16_t sx = (int16_t)(sxy2 & 0xffff);
     ramsyscall_printf("div 100/1000: SX=%d\n", sx);
     // SX = 1000 * (100/1000) = 100 (roughly, depends on table rounding)
+    cester_assert_int_eq(100, sx);
 )
 
 // The documented corner case: H=0xF015, SZ3=0x780B -> 0x20000 saturates to 0x1FFFF
@@ -290,6 +293,11 @@ CESTER_TEST(prec_rtps_sf0_ir3_flag_anomaly, gte_tests,
     // Hmm, 0x8000 = 32768 which is > 0x7FFF. IR3 should saturate to 0x7FFF.
     // MAC3 >> 12 = 0x8000 >> 12 = 0 -> in range -> FLAG.22 should NOT be set.
     // This is the anomaly: IR3 saturated but FLAG.22 not set.
+    cester_assert_int_eq(32768, mac3);
+    cester_assert_uint_eq(0x7fff, ir3);
+    cester_assert_uint_eq(0, f22);
+    uint32_t f17 = (flag >> 17) & 1;
+    cester_assert_uint_eq(1, f17);
 )
 
 // Stronger test: MAC3 = 0x10000 -> well above 0x7FFF, but >>12 = 1 (in range)

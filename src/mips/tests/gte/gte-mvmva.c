@@ -134,6 +134,10 @@ CESTER_TEST(mvmva_cv2_fc_bug, gte_tests,
     // MAC2 = R23*VZ >> 12 = 0 (but VY contribution leaks? Let's check)
     // MAC3 = R33*VZ >> 12 = 0x300
     ramsyscall_printf("MVMVA cv=2: MAC=(%d,%d,%d) FLAG=0x%08x\n", mac1, mac2, mac3, flag);
+    cester_assert_int_eq(0, mac1);
+    cester_assert_int_eq(512, mac2);
+    cester_assert_int_eq(768, mac3);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // mx=3 (garbage matrix)
@@ -155,6 +159,10 @@ CESTER_TEST(mvmva_mx3_garbage, gte_tests,
     cop2_get(27, mac3);
     flag = gte_read_flag();
     ramsyscall_printf("MVMVA mx=3: MAC=(%d,%d,%d) FLAG=0x%08x\n", mac1, mac2, mac3, flag);
+    cester_assert_int_eq(128, mac1);
+    cester_assert_int_eq(2304, mac2);
+    cester_assert_int_eq(3840, mac3);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // MVMVA with lm=1

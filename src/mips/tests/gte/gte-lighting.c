@@ -21,6 +21,10 @@ CESTER_TEST(ncs_z_normal_white_light, gte_tests,
     // Stage 1: L * normal = (0,0,0x1000).(0,0,0x1000) = only IR3 = 0x1000
     // Stage 2: LC * (0,0,0x1000) + BK = (0,0,0x1000) since LC is identity, BK=0
     // Color FIFO: MAC/16 = 0x1000/16 = 256 -> saturates to 255
+    cester_assert_int_eq(0, mac1);
+    cester_assert_int_eq(0, mac2);
+    cester_assert_int_eq(4096, mac3);
+    cester_assert_uint_eq(0x00ff0000, rgb2);
 )
 
 // NCS with background color
@@ -70,6 +74,9 @@ CESTER_TEST(nct_three_normals, gte_tests,
     ramsyscall_printf("NCT: RGB0=0x%08x RGB1=0x%08x RGB2=0x%08x\n", rgb0, rgb1, rgb2);
     // V0 facing light: should have color
     // V1, V2 perpendicular: should be dark (light only in Z)
+    cester_assert_uint_eq(0x00ff0000, rgb0);
+    cester_assert_uint_eq(0x00000000, rgb1);
+    cester_assert_uint_eq(0x00000000, rgb2);
 )
 
 // NCCS: normal color color single (adds vertex color multiplication)
@@ -95,6 +102,10 @@ CESTER_TEST(nccs_basic, gte_tests,
     // Actually after stage 2, IR1=0, IR2=0, IR3=0x1000
     // Stage 3: MAC1 = (R<<4)*IR1 = 0x800*0 = 0
     // Only B channel gets lit since only IR3 is non-zero
+    cester_assert_int_eq(0, mac1);
+    cester_assert_int_eq(0, mac2);
+    cester_assert_int_eq(2048, mac3);
+    cester_assert_uint_eq(0x00800000, rgb2);
 )
 
 // NCCT: normal color color triple
@@ -117,6 +128,9 @@ CESTER_TEST(ncct_basic, gte_tests,
     cop2_get(22, rgb2);
     ramsyscall_printf("NCCT: RGB0=0x%08x RGB1=0x%08x RGB2=0x%08x\n", rgb0, rgb1, rgb2);
     // All three normals identical -> all three results should match
+    cester_assert_uint_eq(0x00800000, rgb0);
+    cester_assert_uint_eq(0x00800000, rgb1);
+    cester_assert_uint_eq(0x00800000, rgb2);
 )
 
 // NCDS: normal color depth single (full 3-stage pipeline + depth cue)
@@ -138,6 +152,10 @@ CESTER_TEST(ncds_no_depth, gte_tests,
     cop2_get(27, mac3);
     cop2_get(22, rgb2);
     ramsyscall_printf("NCDS no depth: MAC=(%d,%d,%d) RGB2=0x%08x\n", mac1, mac2, mac3, rgb2);
+    cester_assert_int_eq(0, mac1);
+    cester_assert_int_eq(0, mac2);
+    cester_assert_int_eq(2048, mac3);
+    cester_assert_uint_eq(0x00800000, rgb2);
 )
 
 // NCDS with depth cue
@@ -161,6 +179,11 @@ CESTER_TEST(ncds_with_depth, gte_tests,
     flag = gte_read_flag();
     ramsyscall_printf("NCDS depth: MAC=(%d,%d,%d) RGB2=0x%08x FLAG=0x%08x\n",
                       mac1, mac2, mac3, rgb2, flag);
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_int_eq(2048, mac2);
+    cester_assert_int_eq(3072, mac3);
+    cester_assert_uint_eq(0x00c08080, rgb2);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // NCDT: normal color depth triple
@@ -185,6 +208,9 @@ CESTER_TEST(ncdt_basic, gte_tests,
     cop2_get(22, rgb2);
     ramsyscall_printf("NCDT: RGB0=0x%08x RGB1=0x%08x RGB2=0x%08x\n", rgb0, rgb1, rgb2);
     // V0 has strongest light (normal = 0x1000), V2 weakest (0x400)
+    cester_assert_uint_eq(0x00800000, rgb0);
+    cester_assert_uint_eq(0x00400000, rgb1);
+    cester_assert_uint_eq(0x00200000, rgb2);
 )
 
 // CC: color color (light-to-color + vertex color multiply)
@@ -209,6 +235,10 @@ CESTER_TEST(cc_basic, gte_tests,
     // MAC = LC*IR = IR (identity)
     // Stage 2 (color mult): MAC = (R<<4)*IR1 = 0x800*0x1000 = 0x800000
     // After >>12 = 0x800, /16 = 128
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_int_eq(1024, mac2);
+    cester_assert_int_eq(512, mac3);
+    cester_assert_uint_eq(0x00204080, rgb2);
 )
 
 // CDP: color depth cue with pre-computed light
@@ -230,6 +260,10 @@ CESTER_TEST(cdp_basic, gte_tests,
     cop2_get(27, mac3);
     cop2_get(22, rgb2);
     ramsyscall_printf("CDP: MAC=(%d,%d,%d) RGB2=0x%08x\n", mac1, mac2, mac3, rgb2);
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_int_eq(2048, mac2);
+    cester_assert_int_eq(2048, mac3);
+    cester_assert_uint_eq(0x00808080, rgb2);
 )
 
 // CDP with depth cue
@@ -253,6 +287,11 @@ CESTER_TEST(cdp_with_depth, gte_tests,
     flag = gte_read_flag();
     ramsyscall_printf("CDP depth: MAC=(%d,%d,%d) RGB2=0x%08x FLAG=0x%08x\n",
                       mac1, mac2, mac3, rgb2, flag);
+    cester_assert_int_eq(3072, mac1);
+    cester_assert_int_eq(3072, mac2);
+    cester_assert_int_eq(3072, mac3);
+    cester_assert_uint_eq(0x00c0c0c0, rgb2);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // Full lighting pipeline: light matrix with non-trivial light direction

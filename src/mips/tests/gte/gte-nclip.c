@@ -56,6 +56,8 @@ CESTER_TEST(nclip_large_coords, gte_tests,
     //      = 0x3FF*0x3FF + (-0x400)*0x400
     //      = 1046529 - 1048576 = -2047
     ramsyscall_printf("NCLIP large: MAC0=%d FLAG=0x%08x\n", mac0, flag);
+    cester_assert_int_eq(-2047, mac0);
+    cester_assert_uint_eq(0, flag);
 )
 
 // NCLIP MAC0 overflow: maximum possible cross product
@@ -76,4 +78,7 @@ CESTER_TEST(nclip_overflow, gte_tests,
     ramsyscall_printf("NCLIP overflow: MAC0=%d FLAG=0x%08x\n", mac0, flag);
     // Check if FLAG.16 or FLAG.15 (MAC0 overflow) is set
     ramsyscall_printf("  FLAG.16=%u FLAG.15=%u\n", (flag >> 16) & 1, (flag >> 15) & 1);
+    cester_assert_int_eq(131071, mac0);
+    uint32_t f15 = (flag >> 15) & 1;
+    cester_assert_uint_eq(1, f15);
 )

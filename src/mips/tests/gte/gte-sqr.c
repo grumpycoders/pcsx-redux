@@ -61,6 +61,10 @@ CESTER_TEST(sqr_saturation_shifted, gte_tests,
     flag = gte_read_flag();
     ramsyscall_printf("SQR sat: IR1=0x%04x IR2=0x%04x IR3=0x%04x FLAG=0x%08x\n",
                       ir1 & 0xffff, ir2 & 0xffff, ir3 & 0xffff, flag);
+    cester_assert_uint_eq(0x7fff, ir1 & 0xffff);
+    cester_assert_uint_eq(0x7fff, ir2 & 0xffff);
+    cester_assert_uint_eq(0x7fff, ir3 & 0xffff);
+    cester_assert_uint_eq(0x81c00000, flag);
 )
 
 // SQR with negative input (result should still be positive: square)
@@ -78,4 +82,7 @@ CESTER_TEST(sqr_negative_input, gte_tests,
     // But GTE multiplies IR*IR where IR is 16-bit signed
     // -10 * -10 = 100, -50 * -50 = 2500, -100 * -100 = 10000
     ramsyscall_printf("SQR neg: MAC1=%d MAC2=%d MAC3=%d\n", mac1, mac2, mac3);
+    cester_assert_int_eq(100, mac1);
+    cester_assert_int_eq(2500, mac2);
+    cester_assert_int_eq(10000, mac3);
 )

@@ -14,6 +14,10 @@ CESTER_TEST(dpcs_basic, gte_tests,
     cop2_get(27, mac3);
     cop2_get(22, rgb2);
     ramsyscall_printf("DPCS: MAC=(%d,%d,%d) RGB2=0x%08x\n", mac1, mac2, mac3, rgb2);
+    cester_assert_int_eq(3072, mac1);
+    cester_assert_int_eq(3072, mac2);
+    cester_assert_int_eq(3072, mac3);
+    cester_assert_uint_eq(0x00c0c0c0, rgb2);
     // Formula: MAC = R<<16 + IR0*(FC<<12 - R<<16) >> shift
     // R<<16 = 0x80<<16 = 0x800000
     // FC<<12 = 0x1000<<12 = 0x1000000
@@ -51,6 +55,9 @@ CESTER_TEST(dpcs_ir0_max, gte_tests,
     cop2_get(26, mac2);
     cop2_get(27, mac3);
     ramsyscall_printf("DPCS max: MAC=(%d,%d,%d)\n", mac1, mac2, mac3);
+    cester_assert_int_eq(4096, mac1);
+    cester_assert_int_eq(2048, mac2);
+    cester_assert_int_eq(1024, mac3);
     // With R=0, MAC = 0 + IR0 * (FC<<12 - 0) = 1.0 * FC<<12 >> 12 = FC
 )
 
@@ -90,7 +97,9 @@ CESTER_TEST(dpct_reads_fifo, gte_tests,
     // Iteration 3: reads new RGB0 (was RGB2: 0x708090), pushes
     // Result FIFO should contain the 3 processed colors
     // CODE comes from RGBC (0xff)
-    cester_assert_uint_eq(0xff, (rgb0 >> 24) & 0xff);
+    cester_assert_uint_eq(0xff102030, rgb0);
+    cester_assert_uint_eq(0xff405060, rgb1);
+    cester_assert_uint_eq(0xff708090, rgb2);
 )
 
 // DCPL: depth cue with pre-computed light
@@ -111,6 +120,10 @@ CESTER_TEST(dcpl_basic, gte_tests,
     cop2_get(27, mac3);
     cop2_get(22, rgb2);
     ramsyscall_printf("DCPL: MAC=(%d,%d,%d) RGB2=0x%08x\n", mac1, mac2, mac3, rgb2);
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_int_eq(1024, mac2);
+    cester_assert_int_eq(512, mac3);
+    cester_assert_uint_eq(0x00204080, rgb2);
     // With IR0=0: MAC = (R<<4)*IR, no depth cue interpolation
     // MAC1 = (0x80 << 4) * 0x1000 = 0x800 * 0x1000 = 0x800000
     // After >>12: 0x800 = 2048 -> IR1, /16 = 128 -> R2
@@ -133,6 +146,10 @@ CESTER_TEST(dcpl_with_depth, gte_tests,
     cop2_get(27, mac3);
     flag = gte_read_flag();
     ramsyscall_printf("DCPL depth: MAC=(%d,%d,%d) FLAG=0x%08x\n", mac1, mac2, mac3, flag);
+    cester_assert_int_eq(3072, mac1);
+    cester_assert_int_eq(3072, mac2);
+    cester_assert_int_eq(3072, mac3);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // INTPL: interpolation (depth cue on IR vector directly)
@@ -167,6 +184,9 @@ CESTER_TEST(intpl_half, gte_tests,
     cop2_get(26, mac2);
     cop2_get(27, mac3);
     ramsyscall_printf("INTPL half: MAC=(%d,%d,%d)\n", mac1, mac2, mac3);
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_int_eq(2048, mac2);
+    cester_assert_int_eq(2048, mac3);
     // IR=0, FC=0x1000, IR0=0.5
     // MAC = 0 + 0.5*(FC - 0) = 0.5 * 0x1000 = 0x800
 )
@@ -188,5 +208,8 @@ CESTER_TEST(intpl_color_push, gte_tests,
     uint8_t g = (rgb2 >> 8) & 0xff;
     uint8_t b = (rgb2 >> 16) & 0xff;
     ramsyscall_printf("INTPL color: R=%u G=%u B=%u CD=0x%02x raw=0x%08x\n", r, g, b, cd, rgb2);
+    cester_assert_uint_eq(255, r);
+    cester_assert_uint_eq(128, g);
+    cester_assert_uint_eq(1, b);
     cester_assert_uint_eq(0xcc, cd);
 )

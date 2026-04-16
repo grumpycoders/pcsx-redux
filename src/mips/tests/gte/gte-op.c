@@ -78,4 +78,5 @@ CESTER_TEST(op_overflow_flag, gte_tests,
     ramsyscall_printf("OP overflow: FLAG=0x%08x\n", flag);
     // With sf=0: MAC = 0x7fff*0x7fff - 0x7fff*0x7fff = 0 for all
     // Actually this produces zero cross product since all components are equal
+    cester_assert_uint_eq(0x00000000, flag);
 )

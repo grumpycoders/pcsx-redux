@@ -160,6 +160,9 @@ CESTER_TEST(edge_mac0_positive_overflow, gte_tests,
     // Need asymmetric triangle for overflow
     ramsyscall_printf("MAC0 overflow test: MAC0=%d FLAG=0x%08x (F16=%u F15=%u)\n",
                       mac0, flag, (flag >> 16) & 1, (flag >> 15) & 1);
+    // Cancels to zero - no actual overflow despite the test name
+    cester_assert_int_eq(0, mac0);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // NCLIP that actually overflows MAC0 negatively
@@ -177,6 +180,10 @@ CESTER_TEST(edge_mac0_negative_overflow, gte_tests,
     ramsyscall_printf("MAC0 neg overflow: MAC0=%d FLAG=0x%08x\n", mac0, flag);
     // The cross product should be large negative
     // FLAG.15 (MAC0 negative overflow) should be set
+    cester_assert_int_eq(-131071, mac0);
+    // FLAG.16 set from intermediate positive overflow in NCLIP's chained additions
+    uint32_t f16 = (flag >> 16) & 1;
+    cester_assert_uint_eq(1, f16);
 )
 
 // ==========================================================================
@@ -352,6 +359,8 @@ CESTER_TEST(edge_max_matrix, gte_tests,
     ramsyscall_printf("max matrix: MAC1=%d FLAG=0x%08x\n", mac1, flag);
     // 3 * 0x7FFF * 0x7FFF = 3 * 1073676289 = 3221028867
     // >> 12 = 786380, fits in 32-bit MAC. But 44-bit accumulator overflow?
+    cester_assert_int_eq(786384, mac1);
+    cester_assert_uint_eq(0x81c00000, flag);
 )
 
 // Negative Z in RTPS (behind camera)
@@ -518,6 +527,9 @@ CESTER_TEST(edge_depthcue_fc_less_than_input, gte_tests,
     // FC=0, R=0xFF: diff = (0<<12) - (0xFF<<16) = -0xFF0000 (negative)
     // Inner clamp (lm=0): clamps to [-0x8000, 0x7FFF]
     // Then IR0 * clamped_diff + R<<16 -> should produce intermediate result
+    cester_assert_int_eq(2040, mac1);
+    cester_assert_uint_eq(0x007f7f7f, rgb2);
+    cester_assert_uint_eq(0x00000000, flag);
 )
 
 // ==========================================================================
@@ -543,4 +555,6 @@ CESTER_TEST(edge_intpl_fc_less_than_ir, gte_tests,
     // inner clamp: -0x1000000 >> 12 = -0x1000 -> clamped to -0x1000 (in range)
     // MAC = 0x1000<<12 + 0x800 * (-0x1000) = 0x1000000 + (-0x800000)
     // >> 12 = (0x800000) >> 12 = 0x800 = 2048
+    cester_assert_int_eq(2048, mac1);
+    cester_assert_uint_eq(0x00000000, flag);
 )
