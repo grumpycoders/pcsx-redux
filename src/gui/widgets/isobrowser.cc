@@ -208,6 +208,34 @@ void PCSX::Widgets::IsoBrowser::scanGapSectors(std::vector<FlatEntry>& out, uint
 void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
     if (m_flatEntriesDirty) {
         m_flatEntries.clear();
+
+        // Add ISO9660 system structures
+        auto& pvd = m_reader->getPVD();
+        m_flatEntries.push_back({_("<License/System Area>"), 0, 16 * 2352, FlatEntry::System, {}});
+        m_flatEntries.push_back({_("<Volume Descriptors>"), 16, 2048, FlatEntry::System, {}});
+        // End volume descriptor at sector 17 (minimum), but path table location tells us where it ends
+        uint32_t lPathLoc = pvd.get<ISO9660LowLevel::PVD_LPathTableLocation>();
+        if (lPathLoc > 17) {
+            m_flatEntries.push_back({_("<Volume Descriptors cont.>"), 17, (lPathLoc - 17) * 2048, FlatEntry::System, {}});
+        }
+        uint32_t pathTableSize = pvd.get<ISO9660LowLevel::PVD_PathTableSize>();
+        uint32_t pathTableSectors = (pathTableSize + 2047) / 2048;
+        m_flatEntries.push_back({_("<L Path Table>"), lPathLoc, pathTableSize, FlatEntry::System, {}});
+        uint32_t lPathOptLoc = pvd.get<ISO9660LowLevel::PVD_LPathTableOptLocation>();
+        if (lPathOptLoc != 0) {
+            m_flatEntries.push_back({_("<L Path Table (opt)>"), lPathOptLoc, pathTableSize, FlatEntry::System, {}});
+        }
+        uint32_t mPathLoc = pvd.get<ISO9660LowLevel::PVD_MPathTableLocation>();
+        m_flatEntries.push_back({_("<M Path Table>"), mPathLoc, pathTableSize, FlatEntry::System, {}});
+        uint32_t mPathOptLoc = pvd.get<ISO9660LowLevel::PVD_MPathTableOptLocation>();
+        if (mPathOptLoc != 0) {
+            m_flatEntries.push_back({_("<M Path Table (opt)>"), mPathOptLoc, pathTableSize, FlatEntry::System, {}});
+        }
+        auto& rootDir = m_reader->getRootDirEntry();
+        uint32_t rootLBA = rootDir.get<ISO9660LowLevel::DirEntry_LBA>();
+        uint32_t rootSize = rootDir.get<ISO9660LowLevel::DirEntry_Size>();
+        m_flatEntries.push_back({_("<Root Directory>"), rootLBA, rootSize, FlatEntry::System, {}});
+
         collectFlatEntries(m_reader->getRootDirEntry(), "");
         std::sort(m_flatEntries.begin(), m_flatEntries.end(),
                   [](const FlatEntry& a, const FlatEntry& b) { return a.lba < b.lba; });
@@ -294,6 +322,7 @@ headers and subheader file boundary markers.)"));
                 case FlatEntry::HiddenM1: typeStr = _("M1"); break;
                 case FlatEntry::HiddenM2F1: typeStr = _("M2F1"); break;
                 case FlatEntry::HiddenM2F2: typeStr = _("M2F2"); break;
+                case FlatEntry::System: typeStr = _("System"); break;
             }
             ImGui::TextUnformatted(typeStr);
         }

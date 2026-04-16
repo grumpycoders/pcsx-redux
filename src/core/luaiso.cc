@@ -138,6 +138,26 @@ static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660Lo
 GapList* readerFindGaps(PCSX::ISO9660Reader* reader) {
     if (reader->failed()) return new GapList{};
     std::vector<std::pair<uint32_t, uint32_t>> allFiles;
+
+    // Account for ISO9660 system structures
+    allFiles.push_back({0, 16});  // License/system area
+    auto& pvd = reader->getPVD();
+    uint32_t lPathLoc = pvd.get<PCSX::ISO9660LowLevel::PVD_LPathTableLocation>();
+    allFiles.push_back({16, lPathLoc > 16 ? lPathLoc - 16 : 1});  // Volume descriptors
+    uint32_t pathTableSize = pvd.get<PCSX::ISO9660LowLevel::PVD_PathTableSize>();
+    uint32_t pathTableSectors = (pathTableSize + 2047) / 2048;
+    allFiles.push_back({lPathLoc, pathTableSectors});
+    uint32_t lPathOptLoc = pvd.get<PCSX::ISO9660LowLevel::PVD_LPathTableOptLocation>();
+    if (lPathOptLoc != 0) allFiles.push_back({lPathOptLoc, pathTableSectors});
+    uint32_t mPathLoc = pvd.get<PCSX::ISO9660LowLevel::PVD_MPathTableLocation>();
+    allFiles.push_back({mPathLoc, pathTableSectors});
+    uint32_t mPathOptLoc = pvd.get<PCSX::ISO9660LowLevel::PVD_MPathTableOptLocation>();
+    if (mPathOptLoc != 0) allFiles.push_back({mPathOptLoc, pathTableSectors});
+    auto& rootDir = reader->getRootDirEntry();
+    uint32_t rootLBA = rootDir.get<PCSX::ISO9660LowLevel::DirEntry_LBA>();
+    uint32_t rootSize = rootDir.get<PCSX::ISO9660LowLevel::DirEntry_Size>();
+    allFiles.push_back({rootLBA, (rootSize + 2047) / 2048});
+
     collectAllEntries(reader, reader->getRootDirEntry(), allFiles);
     std::sort(allFiles.begin(), allFiles.end());
 

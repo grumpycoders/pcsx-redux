@@ -73,7 +73,7 @@ class IsoBrowser {
 
     bool m_flatView = false;
     struct FlatEntry {
-        enum Type { File, Directory, Gap, HiddenM1, HiddenM2F1, HiddenM2F2 };
+        enum Type { File, Directory, Gap, HiddenM1, HiddenM2F1, HiddenM2F2, System };
         std::string path;
         uint32_t lba;
         uint32_t size;
