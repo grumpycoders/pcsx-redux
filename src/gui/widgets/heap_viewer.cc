@@ -20,6 +20,7 @@
 #include "gui/widgets/heap_viewer.h"
 
 #include "core/psxmem.h"
+#include "core/system.h"
 #include "fmt/format.h"
 #include "imgui.h"
 
@@ -270,7 +271,7 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
                           IM_COL32(200, 200, 200, 255));
         ImGui::Dummy(ImVec2(barWidth, barHeight));
 
-        // Tooltip on hover.
+        // Tooltip on hover, jump to memory on click.
         if (ImGui::IsItemHovered()) {
             float mouseX = ImGui::GetMousePos().x - barPos.x;
             uint32_t hoverAddr = bottomPtr + (uint32_t)((float)heapSize * mouseX / barWidth);
@@ -279,9 +280,19 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
                     ImGui::BeginTooltip();
                     ImGui::Text("%s at %08x, %u bytes", b.free ? "Free" : "Allocated", b.address, b.size);
                     if (!b.free && b.size > 8) {
-                        ImGui::Text("User payload: %u bytes", b.size - 8);
+                        ImGui::Text("User payload: %u bytes (click to jump)", b.size - 8);
+                    } else {
+                        ImGui::TextUnformatted("Click to jump");
                     }
                     ImGui::EndTooltip();
+                    if (ImGui::IsMouseClicked(0)) {
+                        // For allocated blocks, jump to user data (past the 8-byte header).
+                        // For free blocks, jump to the block start.
+                        uint32_t jumpAddr = b.free ? b.address : b.address + 8;
+                        uint32_t jumpSize = b.free ? b.size : (b.size > 8 ? b.size - 8 : b.size);
+                        g_system->m_eventBus->signal(
+                            Events::GUI::JumpToMemory{jumpAddr | 0x80000000, jumpSize});
+                    }
                     break;
                 }
             }
@@ -313,10 +324,20 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 
-        for (auto& b : blocks) {
+        for (size_t i = 0; i < blocks.size(); i++) {
+            auto& b = blocks[i];
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::Text("%08x", b.address);
+
+            // Make the entire row clickable via a Selectable spanning all columns.
+            char label[32];
+            snprintf(label, sizeof(label), "%08x##block%zu", b.address, i);
+            if (ImGui::Selectable(label, false,
+                                  ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
+                uint32_t jumpAddr = b.free ? b.address : b.address + 8;
+                uint32_t jumpSize = b.free ? b.size : (b.size > 8 ? b.size - 8 : b.size);
+                g_system->m_eventBus->signal(Events::GUI::JumpToMemory{jumpAddr | 0x80000000, jumpSize});
+            }
             ImGui::TableNextColumn();
             ImGui::Text("%u", b.size);
             ImGui::TableNextColumn();
