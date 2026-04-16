@@ -42,11 +42,15 @@ namespace Widgets {
 
 class IsoBrowser {
   public:
-    IsoBrowser(bool& show, std::vector<std ::string>& favorites)
+    IsoBrowser(bool& show, std::vector<std ::string>& favorites, std::function<void()> monoFont = nullptr)
         : m_show(show),
           m_openIsoFileDialog(l_("Open Disk Image"), favorites),
           m_saveFileDialog(l_("Extract File"), favorites),
-          m_openReplaceFileDialog(l_("Replace File"), favorites) {}
+          m_openReplaceFileDialog(l_("Replace File"), favorites) {
+        m_hexEditor.OptShowDataPreview = true;
+        m_hexEditor.OptUpperCaseHex = false;
+        m_hexEditor.PushMonoFont = monoFont;
+    }
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
