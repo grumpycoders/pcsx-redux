@@ -31,6 +31,7 @@
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "support/coroutine.h"
 #include "support/file.h"
+#include "support/list.h"
 #include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
@@ -46,11 +47,9 @@ class IsoBrowser {
         : m_show(show),
           m_openIsoFileDialog(l_("Open Disk Image"), favorites),
           m_saveFileDialog(l_("Extract File"), favorites),
-          m_openReplaceFileDialog(l_("Replace File"), favorites) {
-        m_hexEditor.OptShowDataPreview = true;
-        m_hexEditor.OptUpperCaseHex = false;
-        m_hexEditor.PushMonoFont = monoFont;
-    }
+          m_openReplaceFileDialog(l_("Replace File"), favorites),
+          m_monoFont(monoFont) {}
+    ~IsoBrowser() { m_hexEditors.destroyAll(); }
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
@@ -103,10 +102,23 @@ class IsoBrowser {
     FileDialog<FileDialogMode::Save> m_saveFileDialog;
     FileDialog<> m_openReplaceFileDialog;
 
-    bool m_hexEditorOpen = false;
-    size_t m_hexEditorOffset = 0;
-    MemoryEditor m_hexEditor{m_hexEditorOpen, 0, m_hexEditorOffset};
-    IO<File> m_hexEditFile;
+    struct HexEditorInstance : public Intrusive::List<HexEditorInstance>::Node {
+        HexEditorInstance(const std::string& title, IO<File> file, std::function<void()> monoFont)
+            : m_title(title), m_file(file), m_editor(m_open, 0, m_offset) {
+            m_editor.OptShowDataPreview = true;
+            m_editor.OptUpperCaseHex = false;
+            m_editor.PushMonoFont = monoFont;
+        }
+        std::string m_title;
+        IO<File> m_file;
+        bool m_open = true;
+        size_t m_offset = 0;
+        MemoryEditor m_editor;
+    };
+    Intrusive::List<HexEditorInstance> m_hexEditors;
+    std::function<void()> m_monoFont;
+
+    void openHexEditor(const std::string& title, IO<File> file);
 };
 
 }  // namespace Widgets

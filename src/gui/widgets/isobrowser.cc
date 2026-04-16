@@ -96,6 +96,29 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                 m_selectedIsDir = false;
                 m_selectedIsGap = false;
             }
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem(_("Extract"))) {
+                    m_selectedPath = fullPath;
+                    m_selectedLBA = lba;
+                    m_selectedSize = size;
+                    m_hasSelection = true;
+                    m_saveFileDialog.openDialog();
+                }
+                if (ImGui::MenuItem(_("Replace"))) {
+                    m_selectedPath = fullPath;
+                    m_selectedLBA = lba;
+                    m_selectedSize = size;
+                    m_hasSelection = true;
+                    m_openReplaceFileDialog.openDialog();
+                }
+                if (ImGui::MenuItem(_("Hex Edit"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) {
+                        openHexEditor(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
+                    }
+                }
+                ImGui::EndPopup();
+            }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%u", lba);
             ImGui::TableSetColumnIndex(2);
@@ -308,6 +331,29 @@ headers and subheader file boundary markers.)"));
                 m_selectedIsDir = entry.isDir();
                 m_selectedIsGap = entry.isGap() || entry.isHidden();
             }
+            if (!entry.isDir() && ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem(_("Extract"))) {
+                    m_selectedPath = entry.path;
+                    m_selectedLBA = entry.lba;
+                    m_selectedSize = entry.size;
+                    m_hasSelection = true;
+                    m_saveFileDialog.openDialog();
+                }
+                if (ImGui::MenuItem(_("Replace"))) {
+                    m_selectedPath = entry.path;
+                    m_selectedLBA = entry.lba;
+                    m_selectedSize = entry.size;
+                    m_hasSelection = true;
+                    m_openReplaceFileDialog.openDialog();
+                }
+                if (ImGui::MenuItem(_("Hex Edit"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) {
+                        openHexEditor(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size)));
+                    }
+                }
+                ImGui::EndPopup();
+            }
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%u", entry.lba);
             ImGui::TableSetColumnIndex(2);
@@ -463,35 +509,10 @@ significantly by caching the files beforehand.)"));
 
     if (m_reader && ImGui::CollapsingHeader(_("Filesystem"), ImGuiTreeNodeFlags_DefaultOpen)) {
         bool extracting = !m_extractionCoroutine.done();
-        bool showSaveDialog = false;
-        bool showReplaceDialog = false;
 
         if (extracting) {
             ImGui::ProgressBar(m_extractionProgress);
             m_extractionCoroutine.resume();
-        } else {
-            bool canExtractReplace = m_hasSelection && (!m_selectedIsDir || m_selectedIsGap);
-            if (!canExtractReplace) ImGui::BeginDisabled();
-            showSaveDialog = ImGui::Button(_("Extract"));
-            ImGui::SameLine();
-            showReplaceDialog = ImGui::Button(_("Replace"));
-            ImGui::SameLine();
-            if (ImGui::Button(_("Hex Edit"))) {
-                auto isoPtr = m_cachedIso.lock();
-                if (isoPtr) {
-                    m_hexEditFile.setFile(new CDRIsoFile(isoPtr, m_selectedLBA, m_selectedSize));
-                    m_hexEditorOpen = true;
-                    m_hexEditorOffset = 0;
-                }
-            }
-            if (!canExtractReplace) ImGui::EndDisabled();
-        }
-
-        if (showSaveDialog) {
-            m_saveFileDialog.openDialog();
-        }
-        if (showReplaceDialog) {
-            m_openReplaceFileDialog.openDialog();
         }
 
         // Handle extract dialog result
@@ -590,19 +611,31 @@ significantly by caching the files beforehand.)"));
 
     ImGui::End();
 
-    // Hex editor window (rendered outside the main ISO browser window)
-    if (m_hexEditorOpen && m_hexEditFile) {
-        auto size = m_hexEditFile->size();
-        m_hexEditor.ReadFn = [this](size_t off) -> ImU8 {
+    // Render hex editor windows and clean up closed ones
+    for (auto it = m_hexEditors.begin(); it != m_hexEditors.end();) {
+        auto& inst = *it;
+        if (!inst.m_open) {
+            it = m_hexEditors.erase(it);
+            delete &inst;
+            continue;
+        }
+        auto size = inst.m_file->size();
+        inst.m_editor.ReadFn = [&inst](size_t off) -> ImU8 {
             ImU8 b;
-            m_hexEditFile->readAt(&b, 1, off);
+            inst.m_file->readAt(&b, 1, off);
             return b;
         };
-        m_hexEditor.WriteFn = [this](size_t off, ImU8 d) { m_hexEditFile->writeAt(&d, 1, off); };
-        m_hexEditor.Cache.BulkReadFn = [this](void* dest, size_t off, size_t len) {
-            m_hexEditFile->readAt(dest, len, off);
+        inst.m_editor.WriteFn = [&inst](size_t off, ImU8 d) { inst.m_file->writeAt(&d, 1, off); };
+        inst.m_editor.Cache.BulkReadFn = [&inst](void* dest, size_t off, size_t len) {
+            inst.m_file->readAt(dest, len, off);
         };
-        auto title = fmt::format(f_("Hex Editor - {}"), m_selectedPath);
-        m_hexEditor.DrawWindow(title.c_str(), size);
+        inst.m_editor.DrawWindow(inst.m_title.c_str(), size);
+        ++it;
     }
+}
+
+void PCSX::Widgets::IsoBrowser::openHexEditor(const std::string& title, IO<File> file) {
+    auto label = fmt::format(f_("Hex Editor - {}"), title);
+    auto* inst = new HexEditorInstance(label, file, m_monoFont);
+    m_hexEditors.push_back(inst);
 }
