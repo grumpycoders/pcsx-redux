@@ -65,8 +65,8 @@ static void rtps(bool last) {
     sx2() = limG1(F(gteOFX() + (int64_t)ir1() * hOverSz3 * widescreenFactor) >> 16);
     sy2() = limG2(F(gteOFY() + (int64_t)ir2() * hOverSz3) >> 16);
 
-    PGXP_pushSXYZ2s(limG1ia(gteOFX() + (int64_t)(ir1() * hOverSz3) * widescreenFactor),
-                     limG2ia(gteOFY() + (int64_t)(ir2() * hOverSz3)),
+    PGXP_pushSXYZ2s(limG1ia(gteOFX() + (int64_t)ir1() * hOverSz3 * widescreenFactor),
+                     limG2ia(gteOFY() + (int64_t)ir2() * hOverSz3),
                      std::max((int)sz3(), gteH() / 2), sxy2());
 
     if (last) {

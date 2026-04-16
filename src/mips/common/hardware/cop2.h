@@ -188,6 +188,7 @@ SOFTWARE.
 
 #define cop2_get(reg, dest) do {            \
     __asm__ volatile("mfc2 %0, $" #reg      \
+                     "\n\tnop\n\tnop"        \
                      : "=r"(dest));          \
 } while (0)
 
@@ -201,6 +202,7 @@ SOFTWARE.
 
 #define cop2_getc(reg, dest) do {           \
     __asm__ volatile("cfc2 %0, $" #reg      \
+                     "\n\tnop\n\tnop"        \
                      : "=r"(dest));          \
 } while (0)
 
