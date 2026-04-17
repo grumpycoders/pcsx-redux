@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +46,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
