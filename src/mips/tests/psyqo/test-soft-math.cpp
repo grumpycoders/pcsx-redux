@@ -1,3 +1,29 @@
+/*
+
+MIT License
+
+Copyright (c) 2026 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
 #include "psyqo/soft-math.hh"
 
 #include "snitch_all.hpp"
@@ -7,31 +33,33 @@ using namespace psyqo::trig_literals;
 
 static Trig<> trig;
 
+static void requireIdentityMatrix33(const Matrix33& m) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (i == j) {
+                REQUIRE(m.vs[i].get(j).integer() == 1);
+            } else {
+                REQUIRE(m.vs[i].get(j).raw() == 0);
+            }
+        }
+    }
+}
+
 // --- Rotation matrices ---
 
 TEST_CASE("Rotation matrix at angle 0 is identity") {
     auto m = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::X, trig);
-    // Diagonal should be 1, off-diagonal 0
-    REQUIRE(m.vs[0].x.integer() == 1);
-    REQUIRE(m.vs[1].y.integer() == 1);
-    REQUIRE(m.vs[2].z.integer() == 1);
-    REQUIRE(m.vs[0].y.raw() == 0);
-    REQUIRE(m.vs[0].z.raw() == 0);
-    REQUIRE(m.vs[1].x.raw() == 0);
+    requireIdentityMatrix33(m);
 }
 
 TEST_CASE("Rotation matrix Y-axis at 0 is identity") {
     auto m = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::Y, trig);
-    REQUIRE(m.vs[0].x.integer() == 1);
-    REQUIRE(m.vs[1].y.integer() == 1);
-    REQUIRE(m.vs[2].z.integer() == 1);
+    requireIdentityMatrix33(m);
 }
 
 TEST_CASE("Rotation matrix Z-axis at 0 is identity") {
     auto m = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::Z, trig);
-    REQUIRE(m.vs[0].x.integer() == 1);
-    REQUIRE(m.vs[1].y.integer() == 1);
-    REQUIRE(m.vs[2].z.integer() == 1);
+    requireIdentityMatrix33(m);
 }
 
 // --- Matrix multiplication ---
