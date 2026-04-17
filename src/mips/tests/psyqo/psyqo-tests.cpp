@@ -24,10 +24,6 @@ SOFTWARE.
 
 */
 
-// PSYQo unit test suite using snitch.
-// Runs on the PlayStation 1 via pcsx-redux.
-// Output goes through the BIOS TTY (captured by --stdout).
-
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
 
