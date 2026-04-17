@@ -17,6 +17,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <EnableModules>false</EnableModules>
       <BuildStlModules>false</BuildStlModules>
+      <AdditionalOptions>/utf-8 /validate-charset %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>crypt32.lib;dbghelp.lib;normaliz.lib;wldap32.lib;%(AdditionalDependencies)</AdditionalDependencies>
