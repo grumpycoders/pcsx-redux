@@ -28,13 +28,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -48,7 +48,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -153,6 +153,7 @@
     <ClCompile Include="..\..\src\gui\widgets\named_savestates.cc" />
     <ClCompile Include="..\..\src\gui\widgets\patches.cc" />
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\ram-viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\registers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\shader-editor.cc" />
@@ -160,6 +161,7 @@
     <ClCompile Include="..\..\src\gui\widgets\vram-viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\zep-lua.cc" />
     <ClCompile Include="..\..\src\gui\widgets\zep.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\zoomable-image.cc" />
     <ClCompile Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +190,7 @@
     <ClInclude Include="..\..\src\gui\widgets\named_savestates.h" />
     <ClInclude Include="..\..\src\gui\widgets\patches.h" />
     <ClInclude Include="..\..\src\gui\widgets\pio-cart.h" />
+    <ClInclude Include="..\..\src\gui\widgets\ram-viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h" />
     <ClInclude Include="..\..\src\gui\widgets\registers.h" />
     <ClInclude Include="..\..\src\gui\widgets\shader-editor.h" />
@@ -195,6 +198,7 @@
     <ClInclude Include="..\..\src\gui\widgets\vram-viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\zep-lua.h" />
     <ClInclude Include="..\..\src\gui\widgets\zep.h" />
+    <ClInclude Include="..\..\src\gui\widgets\zoomable-image.h" />
     <ClInclude Include="..\..\third_party\imgui_memory_editor\imgui_memory_editor.h" />
   </ItemGroup>
   <ItemGroup>

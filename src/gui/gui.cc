@@ -54,6 +54,7 @@ extern "C" {
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
+#include "core/ramlogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -1406,6 +1407,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
+                    ImGui::MenuItem(_("Show RAM viewer"), nullptr, &m_ramViewer.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
@@ -1581,6 +1583,17 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         if (viewer.m_show) {
             viewer.draw(this, g_emulator->m_gpu->getVRAMTexture());
         }
+    }
+
+    if (m_ramViewer.m_show) {
+        auto *ramLogger = g_emulator->m_ramLogger.get();
+        if (!ramLogger->isEnabled()) ramLogger->enable();
+        ramLogger->uploadRAM();
+        ramLogger->uploadHeatmaps();
+        m_ramViewer.draw(this);
+    } else {
+        auto *ramLogger = g_emulator->m_ramLogger.get();
+        if (ramLogger->isEnabled()) ramLogger->disable();
     }
 
     if (m_log.m_show) {
