@@ -460,7 +460,7 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 
 	char buf[128] = "";
 	float x = s.GlyphWidth * 6.0f;
-	bool has_value = DataPreviewAddr != (size_t)-1;
+	bool has_value = DataPreviewAddr != (size_t)-1 && DataPreviewAddr < mem_size;
 	if (has_value)
 		DrawPreviewData(DataPreviewAddr, mem_size, PreviewDataType, DataFormat_Dec, buf, (size_t)IM_ARRAYSIZE(buf));
 	ImGui::Text("Dec"); ImGui::SameLine(x); ImGui::TextUnformatted(has_value ? buf : "N/A");
@@ -563,6 +563,7 @@ const char* MemoryEditor::FormatBinary(const uint8_t* buf, int width) const
 // [Internal]
 void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const
 {
+	if (addr >= mem_size) { out_buf[0] = 0; return; }
 	uint8_t buf[8];
 	size_t elem_size = DataTypeGetSize(data_type);
 	size_t size = addr + elem_size > mem_size ? mem_size - addr : elem_size;
