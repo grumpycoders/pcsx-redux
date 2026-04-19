@@ -91,18 +91,26 @@ _Static_assert(sizeof(empty_block) == (2 * sizeof(void *)), "empty_block is of t
 // The same goes with allocated_block.
 _Static_assert(sizeof(allocated_block) == (2 * sizeof(void *)), "allocated_block is of the wrong size");
 
-// We keep track of the head of the list of empty blocks here.
-// It is initialized to NULL at compile-time, and will be initialized
-// when the first allocation is made.
-static empty_block *head = NULL;
-static allocated_block *bottom = NULL;
-static allocated_block *top = NULL;
-static void *maximum_heap_end = NULL;
-// The marker is here to make sure that the list is always terminated,
-// so when we completely fill the heap, we don't end up with a NULL pointer
-// back to the head. It will never fit any allocation, and will always
-// be the last block in the list.
-static empty_block marker;
+// Heap metadata struct, registered with the emulator so
+// it can walk the allocator state for the heap viewer.
+static struct {
+    empty_block *head;
+    allocated_block *bottom;
+    allocated_block *top;
+    void *maximum_heap_end;
+    // The marker is here to make sure that the list is always terminated,
+    // so when we completely fill the heap, we don't end up with a NULL pointer
+    // back to the head. It will never fit any allocation, and will always
+    // be the last block in the list.
+    empty_block marker;
+} s_heap_metadata = {NULL, NULL, NULL, NULL, NULL};
+
+// Convenience aliases so the rest of the code reads the same.
+#define head s_heap_metadata.head
+#define bottom s_heap_metadata.bottom
+#define top s_heap_metadata.top
+#define maximum_heap_end s_heap_metadata.maximum_heap_end
+#define marker s_heap_metadata.marker
 
 // Enable this to debug the allocator very thoroughly. May be used to
 // detect memory corruption, and other issues.
@@ -120,16 +128,16 @@ static void print_block(const empty_block *block) {
     }
 }
 
-static int check_subintegrity(const allocated_block *first, const allocated_block *top, size_t size_start,
+static int check_subintegrity(const allocated_block *first, const allocated_block *top_block, size_t size_start,
                               size_t hypothetical_size) {
-    if (first == top) {
+    if (first == top_block) {
         return 0;
     }
-    printf("Integrity check: checking sublist from %p to %p, size_start = %u, hypothetical_size: %u\n", first, top,
+    printf("Integrity check: checking sublist from %p to %p, size_start = %u, hypothetical_size: %u\n", first, top_block,
            size_start, hypothetical_size);
     const allocated_block *curr = first;
     size_t size = size_start;
-    while (curr < top) {
+    while (curr < top_block) {
         size += curr->size;
         printf("Integrity check: checking allocated block at %p (size: %u) - current total = %u\n", curr, curr->size,
                size);
@@ -260,6 +268,9 @@ void *psyqo_malloc(size_t size_) {
         // Its size needs to be aligned to the empty_block size.
         curr->size = ALIGN_TO(((size_t)&__stack_start) - ((size_t)curr) - sizeof(empty_block));
         top = (allocated_block *)((char *)curr + curr->size);
+        if (pcsx_present()) {
+            pcsx_registerHeapMetadata(&s_heap_metadata);
+        }
     }
 
     // Walk the full list of empty blocks, and find the best fit,

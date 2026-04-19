@@ -113,7 +113,10 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\zoomable-image.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc">
+      <Filter>Source Files\widgets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -202,10 +205,10 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\named_savestates.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\luanvg.h">
       <Filter>Header Files</Filter>
@@ -217,10 +220,13 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\ram-viewer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\zoomable-image.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h">
+      <Filter>Header Files\widgets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
