@@ -119,8 +119,8 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
             break;
         }
 
-        // Block must not extend past top.
-        if (curr + *size > *topPtr) {
+        // Block must not extend past top (overflow-safe form).
+        if (*size > (*topPtr - curr)) {
             result.error =
                 fmt::format("Free block at {:08x} (size {}) extends past heap top {:08x}.", curr, *size, *topPtr);
             break;
