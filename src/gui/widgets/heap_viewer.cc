@@ -126,6 +126,11 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
             break;
         }
 
+        if (!next) {
+            result.error = fmt::format("Free block at {:08x} has unreadable next pointer.", curr);
+            break;
+        }
+
         freeBlocks.push_back({curr, *size});
         prevAddr = curr;
         curr = *next;
