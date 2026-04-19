@@ -150,7 +150,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 
 	bool data_next = false;
 
-	if (ReadOnly || DataEditingAddr >= mem_size)
+	if (ReadOnly || !WriteFn || DataEditingAddr >= mem_size)
 		DataEditingAddr = (size_t)-1;
 	if (DataPreviewAddr >= mem_size)
 		DataPreviewAddr = (size_t)-1;
@@ -295,7 +295,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 						else
 							ImGui::Text(format_byte_space, b);
 					}
-					if (!ReadOnly && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+					if (!ReadOnly && WriteFn && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
 					{
 						DataEditingTakeFocus = true;
 						data_editing_addr_next = addr;
@@ -312,8 +312,11 @@ void MemoryEditor::DrawContents(size_t mem_size)
 				ImGui::PushID(line_i);
 				if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
 				{
-					DataEditingAddr = DataPreviewAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
-					DataEditingTakeFocus = true;
+					DataPreviewAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
+					if (!ReadOnly && WriteFn) {
+						DataEditingAddr = DataPreviewAddr;
+						DataEditingTakeFocus = true;
+					}
 				}
 				ImGui::PopID();
 				for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
