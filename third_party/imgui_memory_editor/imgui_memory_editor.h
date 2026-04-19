@@ -99,7 +99,7 @@ struct MemoryEditor
         std::function<void(void* dest, size_t off, size_t len)> BulkReadFn = nullptr;
 
         ImU8 read(size_t off) {
-            if (!BulkReadFn) return 0;
+            if (!BulkReadFn || off >= m_totalSize) return 0;
             if (off < m_base || off >= m_base + m_len) fill(off);
             return m_buf[off - m_base];
         }
@@ -111,6 +111,11 @@ struct MemoryEditor
     private:
         void fill(size_t off) {
             m_base = off & ~(kPageSize - 1);
+            if (m_base >= m_totalSize) {
+                m_len = 0;
+                m_buf.clear();
+                return;
+            }
             m_len = std::min(kPageSize, m_totalSize - m_base);
             m_buf.resize(m_len);
             BulkReadFn(m_buf.data(), m_base, m_len);
