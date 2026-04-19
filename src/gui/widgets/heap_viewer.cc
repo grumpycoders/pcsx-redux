@@ -84,7 +84,13 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
     uint32_t prevAddr = 0;
     constexpr int maxFreeBlocks = 100000;
 
-    while (curr != markerPtr && curr != 0 && (int)freeBlocks.size() < maxFreeBlocks) {
+    while (curr != markerPtr && (int)freeBlocks.size() < maxFreeBlocks) {
+        // A null next-pointer is not a valid terminator; it means the link was smashed.
+        if (curr == 0) {
+            result.error = "Free list contains a null pointer (expected marker) - heap corruption.";
+            break;
+        }
+
         // Free block must be within heap range.
         if (curr < bottomPtr || curr >= topPtr) {
             result.error = fmt::format("Free list entry at {:08x} is outside heap range [{:08x}, {:08x}).", curr,
