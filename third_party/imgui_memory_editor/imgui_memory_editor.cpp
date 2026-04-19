@@ -80,7 +80,7 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size)
 	if (PushMonoFont) ImGui::PopFont();
 }
 
-ImU8 MemoryEditor::ReadByte(size_t addr)
+ImU8 MemoryEditor::ReadByte(size_t addr) const
 {
 	if (Cache.BulkReadFn) return Cache.read(addr);
 	if (ReadFn) return ReadFn(addr);
@@ -567,7 +567,7 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 	size_t elem_size = DataTypeGetSize(data_type);
 	size_t size = addr + elem_size > mem_size ? mem_size - addr : elem_size;
 	for (int i = 0, n = (int)size; i < n; ++i)
-		buf[i] = const_cast<MemoryEditor*>(this)->ReadByte(addr + i);
+		buf[i] = ReadByte(addr + i);
 
 	if (data_format == DataFormat_Bin)
 	{

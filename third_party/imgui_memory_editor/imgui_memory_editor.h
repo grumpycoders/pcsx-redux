@@ -127,7 +127,7 @@ struct MemoryEditor
         size_t m_totalSize = 0;
     };
 
-    ReadCache Cache;
+    mutable ReadCache Cache;
 
 private:
     // [Internal State]
@@ -186,6 +186,6 @@ public:
 
 private:
     // [Internal]
-    ImU8 ReadByte(size_t addr);
+    ImU8 ReadByte(size_t addr) const;
     void DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const;
 };
