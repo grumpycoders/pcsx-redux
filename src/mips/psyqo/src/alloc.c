@@ -128,16 +128,16 @@ static void print_block(const empty_block *block) {
     }
 }
 
-static int check_subintegrity(const allocated_block *first, const allocated_block *top, size_t size_start,
+static int check_subintegrity(const allocated_block *first, const allocated_block *top_block, size_t size_start,
                               size_t hypothetical_size) {
-    if (first == top) {
+    if (first == top_block) {
         return 0;
     }
-    printf("Integrity check: checking sublist from %p to %p, size_start = %u, hypothetical_size: %u\n", first, top,
+    printf("Integrity check: checking sublist from %p to %p, size_start = %u, hypothetical_size: %u\n", first, top_block,
            size_start, hypothetical_size);
     const allocated_block *curr = first;
     size_t size = size_start;
-    while (curr < top) {
+    while (curr < top_block) {
         size += curr->size;
         printf("Integrity check: checking allocated block at %p (size: %u) - current total = %u\n", curr, curr->size,
                size);
