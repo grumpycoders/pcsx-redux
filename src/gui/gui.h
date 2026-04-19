@@ -345,7 +345,27 @@ class GUI final : public UI {
         std::function<const char *()> title;
 
         void MenuItem() { ImGui::MenuItem(title(), nullptr, &m_show); }
-        void draw(void *mem, size_t size) { editor.DrawWindow(title(), mem, size); }
+        void draw(void *mem, size_t size) {
+            editor.ReadFn = [mem](size_t off) -> ImU8 { return ((ImU8 *)mem)[off]; };
+            editor.WriteFn = [mem](size_t off, ImU8 d) { ((ImU8 *)mem)[off] = d; };
+            editor.Cache.BulkReadFn = [mem](void *dest, size_t off, size_t len) {
+                memcpy(dest, (ImU8 *)mem + off, len);
+            };
+            editor.DrawWindow(title(), size);
+        }
+        void draw(IO<File> file, size_t size) {
+            IO<File> sub(new SubFile(file, m_baseAddr, size, FileOps::READWRITE));
+            editor.ReadFn = [sub](size_t off) mutable -> ImU8 {
+                ImU8 b;
+                sub->readAt(&b, 1, off);
+                return b;
+            };
+            editor.WriteFn = [sub](size_t off, ImU8 d) mutable { sub->writeAt(&d, 1, off); };
+            editor.Cache.BulkReadFn = [sub](void *dest, size_t off, size_t len) mutable {
+                sub->readAt(dest, len, off);
+            };
+            editor.DrawWindow(title(), size);
+        }
     };
     std::string m_stringHolder;
     const size_t wramBaseAddr = 0x80000000;
