@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "gui/widgets/heap_viewer.h"
+#include <optional>
 
 #include "core/psxmem.h"
 #include "core/system.h"
@@ -35,9 +36,9 @@
 //   uint32_t next;  // offset 0: pointer to next free block
 //   uint32_t size;  // offset 4: size in bytes including header
 
-static uint32_t readGuest32(PCSX::Memory* memory, uint32_t addr) {
+static std::optional<uint32_t> readGuest32(PCSX::Memory* memory, uint32_t addr) {
     auto* ptr = memory->getPointer<uint32_t>(addr);
-    if (!ptr) return 0;
+    if (!ptr) return std::nullopt;
     return *ptr;
 }
 
@@ -47,21 +48,26 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
     uint32_t metaAddr = memory->m_psyqoHeapMetadata;
     if (metaAddr == 0) return result;
 
-    uint32_t headPtr = readGuest32(memory, metaAddr + 0);
-    uint32_t bottomPtr = readGuest32(memory, metaAddr + 4);
-    uint32_t topPtr = readGuest32(memory, metaAddr + 8);
-    uint32_t markerPtr = metaAddr + 16;
+    auto headPtr = readGuest32(memory, metaAddr + 0);
+    auto bottomPtr = readGuest32(memory, metaAddr + 4);
+    auto topPtr = readGuest32(memory, metaAddr + 8);
+    auto markerPtr = metaAddr + 16;
+
+    if (!headPtr || !bottomPtr || !topPtr) {
+        result.error = "Heap metadata contains invalid pointers - likely corrupted metadata.";
+        return result;
+    }
 
     if (bottomPtr == 0 || topPtr == 0 || bottomPtr >= topPtr) return result;
 
     // Sanity check: heap shouldn't be larger than 8MB (max PS1 RAM).
-    if (topPtr - bottomPtr > 8 * 1024 * 1024) {
+    if (*topPtr - *bottomPtr > 8 * 1024 * 1024) {
         result.error = "Heap range exceeds 8MB - likely corrupted metadata.";
         return result;
     }
 
     // Validate that all metadata pointers resolve to readable memory.
-    if (!memory->getPointer(bottomPtr) || !memory->getPointer(topPtr - 1)) {
+    if (!memory->getPointer(*bottomPtr) || !memory->getPointer(*topPtr - 1)) {
         result.error = "Heap range points to unmapped memory.";
         return result;
     }
@@ -74,7 +80,7 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
     };
     std::vector<FreeBlock> freeBlocks;
 
-    uint32_t curr = headPtr;
+    uint32_t curr = *headPtr;
     uint32_t prevAddr = 0;
     constexpr int maxFreeBlocks = 100000;
 
@@ -82,7 +88,7 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
         // Free block must be within heap range.
         if (curr < bottomPtr || curr >= topPtr) {
             result.error = fmt::format("Free list entry at {:08x} is outside heap range [{:08x}, {:08x}).", curr,
-                                       bottomPtr, topPtr);
+                                       *bottomPtr, *topPtr);
             break;
         }
 
@@ -98,25 +104,25 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
             break;
         }
 
-        uint32_t next = readGuest32(memory, curr + 0);
-        uint32_t size = readGuest32(memory, curr + 4);
+        auto next = readGuest32(memory, curr + 0);
+        auto size = readGuest32(memory, curr + 4);
 
         // Size must be at least 8 (sizeof empty_block) and aligned to 8.
-        if (size < 8 || (size & 7) != 0) {
-            result.error = fmt::format("Free block at {:08x} has invalid size {} (must be >= 8 and 8-aligned).", curr, size);
+        if (!size || *size < 8 || (*size & 7) != 0) {
+            result.error = fmt::format("Free block at {:08x} has invalid size {} (must be >= 8 and 8-aligned).", curr, size ? *size : 0);
             break;
         }
 
         // Block must not extend past top.
-        if (curr + size > topPtr) {
+        if (curr + *size > *topPtr) {
             result.error =
-                fmt::format("Free block at {:08x} (size {}) extends past heap top {:08x}.", curr, size, topPtr);
+                fmt::format("Free block at {:08x} (size {}) extends past heap top {:08x}.", curr, *size, *topPtr);
             break;
         }
 
-        freeBlocks.push_back({curr, size});
+        freeBlocks.push_back({curr, *size});
         prevAddr = curr;
-        curr = next;
+        curr = *next;
     }
 
     if (freeBlocks.size() >= maxFreeBlocks && result.error.empty()) {
@@ -125,32 +131,32 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
 
     // Walk from bottom to top, emitting allocated and free blocks.
     // Even if the free list walk hit an error, use whatever we collected.
-    uint32_t pos = bottomPtr;
+    uint32_t pos = *bottomPtr;
     size_t freeIdx = 0;
     constexpr int maxBlocks = 200000;
 
-    while (pos < topPtr && (int)result.blocks.size() < maxBlocks) {
+    while (pos < *topPtr && (int)result.blocks.size() < maxBlocks) {
         if (freeIdx < freeBlocks.size() && freeBlocks[freeIdx].address == pos) {
             result.blocks.push_back({pos, freeBlocks[freeIdx].size, true});
             pos += freeBlocks[freeIdx].size;
             freeIdx++;
         } else {
             // Allocated block. Read size from header (offset 4, same layout as empty_block).
-            uint32_t size = readGuest32(memory, pos + 4);
+            auto size = readGuest32(memory, pos + 4);
 
-            if (size < 8 || (size & 7) != 0 || size > (topPtr - pos)) {
+            if (!size || *size < 8 || (*size & 7) != 0 || *size > (*topPtr - pos)) {
                 // Corrupted allocated block. Emit remainder as unknown.
                 if (result.error.empty()) {
                     result.error = fmt::format(
-                        "Allocated block at {:08x} has invalid size {} (remaining space: {}).", pos, size, topPtr - pos);
+                        "Allocated block at {:08x} has invalid size {} (remaining space: {}).", pos, size ? *size : 0, *topPtr - pos);
                 }
-                result.blocks.push_back({pos, topPtr - pos, false});
+                result.blocks.push_back({pos, *topPtr - pos, false});
                 break;
             }
 
             // Skip past any free blocks that fall within this allocated block's range.
             // (Shouldn't happen in a healthy heap, but be defensive.)
-            while (freeIdx < freeBlocks.size() && freeBlocks[freeIdx].address < pos + size) {
+            while (freeIdx < freeBlocks.size() && freeBlocks[freeIdx].address < pos + *size) {
                 if (result.error.empty()) {
                     result.error = fmt::format("Free block at {:08x} overlaps allocated block at {:08x}.",
                                                freeBlocks[freeIdx].address, pos);
@@ -158,8 +164,8 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
                 freeIdx++;
             }
 
-            result.blocks.push_back({pos, size, false});
-            pos += size;
+            result.blocks.push_back({pos, *size, false});
+            pos += *size;
         }
     }
 
@@ -185,15 +191,21 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
         return;
     }
 
-    uint32_t headPtr = readGuest32(memory, metaAddr + 0);
-    uint32_t bottomPtr = readGuest32(memory, metaAddr + 4);
-    uint32_t topPtr = readGuest32(memory, metaAddr + 8);
-    uint32_t maxEnd = readGuest32(memory, metaAddr + 12);
+    auto headPtr = readGuest32(memory, metaAddr + 0);
+    auto bottomPtr = readGuest32(memory, metaAddr + 4);
+    auto topPtr = readGuest32(memory, metaAddr + 8);
+    auto maxEnd = readGuest32(memory, metaAddr + 12);
     uint32_t markerPtr = metaAddr + 16;
 
-    ImGui::Text("Heap range: %08x - %08x (%u bytes)", bottomPtr, topPtr, topPtr - bottomPtr);
-    ImGui::Text("High-water mark: %08x", maxEnd);
-    ImGui::Text("Free list head: %08x  Marker: %08x", headPtr, markerPtr);
+    if (!headPtr || !bottomPtr || !topPtr) {
+        ImGui::Text("Heap metadata at %08x contains invalid pointers - likely corrupted metadata.", metaAddr);
+        ImGui::End();
+        return;
+    }
+
+    ImGui::Text("Heap range: %08x - %08x (%u bytes)", bottomPtr ? *bottomPtr : 0, topPtr ? *topPtr : 0, bottomPtr && topPtr ? *topPtr - *bottomPtr : 0);
+    ImGui::Text("High-water mark: %08x", maxEnd ? *maxEnd : 0);
+    ImGui::Text("Free list head: %08x  Marker: %08x", headPtr ? *headPtr : 0, markerPtr);
     ImGui::Separator();
 
     auto result = walkHeap(memory);
@@ -231,7 +243,7 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
     }
 
     uint32_t totalAccountedFor = totalFree + totalAlloc;
-    uint32_t heapSize = topPtr > bottomPtr ? topPtr - bottomPtr : 0;
+    uint32_t heapSize = topPtr && bottomPtr ? *topPtr - *bottomPtr : 0;
 
     ImGui::Text("Allocated: %u bytes (%u blocks)  Free: %u bytes (%u blocks)", totalAlloc, allocCount, totalFree,
                 freeCount);
@@ -257,8 +269,8 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
 
         for (auto& b : blocks) {
-            float x0 = barWidth * (float)(b.address - bottomPtr) / (float)heapSize;
-            float x1 = barWidth * (float)(b.address + b.size - bottomPtr) / (float)heapSize;
+            float x0 = barWidth * (float)(b.address - (bottomPtr ? *bottomPtr : 0)) / (float)heapSize;
+            float x1 = barWidth * (float)(b.address + b.size - (bottomPtr ? *bottomPtr : 0)) / (float)heapSize;
             // Clamp to bar bounds.
             if (x0 < 0) x0 = 0;
             if (x1 > barWidth) x1 = barWidth;
@@ -274,7 +286,7 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
         // Tooltip on hover, jump to memory on click.
         if (ImGui::IsItemHovered()) {
             float mouseX = ImGui::GetMousePos().x - barPos.x;
-            uint32_t hoverAddr = bottomPtr + (uint32_t)((float)heapSize * mouseX / barWidth);
+            uint32_t hoverAddr = bottomPtr ? *bottomPtr + (uint32_t)((float)heapSize * mouseX / barWidth) : 0;
             for (auto& b : blocks) {
                 if (hoverAddr >= b.address && hoverAddr < b.address + b.size) {
                     ImGui::BeginTooltip();
