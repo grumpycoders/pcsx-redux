@@ -26,8 +26,8 @@
 // MVMVA is further templatized on mx, v, and cv for full compile-time
 // elimination of the matrix/vector selection branches.
 
-#include "core/gte.h"
 #include "core/gte-internal.h"
+#include "core/gte.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
 
@@ -41,13 +41,10 @@ using namespace PCSX::GTEImpl;
 // When last=true, computes the depth queue interpolation at the end.
 template <bool sf, bool lm, int v>
 static void rtps(bool last) {
-    mac1() = A1<sf>(int44(trX() << 12) +
-                    r11() * vertexX<v>() + r12() * vertexY<v>() + r13() * vertexZ<v>());
-    mac2() = A2<sf>(int44(trY() << 12) +
-                    r21() * vertexX<v>() + r22() * vertexY<v>() + r23() * vertexZ<v>());
+    mac1() = A1<sf>(int44(trX() << 12) + r11() * vertexX<v>() + r12() * vertexY<v>() + r13() * vertexZ<v>());
+    mac2() = A2<sf>(int44(trY() << 12) + r21() * vertexX<v>() + r22() * vertexY<v>() + r23() * vertexZ<v>());
     int64_t rawMac3;
-    mac3() = A3<sf>(int44(trZ() << 12) +
-                    r31() * vertexX<v>() + r32() * vertexY<v>() + r33() * vertexZ<v>(), rawMac3);
+    mac3() = A3<sf>(int44(trZ() << 12) + r31() * vertexX<v>() + r32() * vertexY<v>() + r33() * vertexZ<v>(), rawMac3);
 
     ir1() = limB1<lm>(mac1());
     ir2() = limB2<lm>(mac2());
@@ -66,8 +63,7 @@ static void rtps(bool last) {
     sy2() = limG2(F(gteOFY() + (int64_t)ir2() * hOverSz3) >> 16);
 
     PGXP_pushSXYZ2s(limG1ia(gteOFX() + (int64_t)ir1() * hOverSz3 * widescreenFactor),
-                     limG2ia(gteOFY() + (int64_t)ir2() * hOverSz3),
-                     std::max((int)sz3(), gteH() / 2), sxy2());
+                    limG2ia(gteOFY() + (int64_t)ir2() * hOverSz3), std::max((int)sz3(), gteH() / 2), sxy2());
 
     if (last) {
         int64_t rawMac0;
@@ -225,8 +221,7 @@ struct MvmvaEntry {
 
 using MvmvaFn = void (*)();
 
-constexpr auto mvmvaTable =
-    PCSX::GTEImpl::makeMvmvaTable<MvmvaFn, MvmvaEntry>(std::make_index_sequence<256>{});
+constexpr auto mvmvaTable = PCSX::GTEImpl::makeMvmvaTable<MvmvaFn, MvmvaEntry>(std::make_index_sequence<256>{});
 
 }  // anonymous namespace
 
@@ -234,25 +229,41 @@ constexpr auto mvmvaTable =
 // Public dispatch methods
 // ============================================================================
 
-#define GTE_DISPATCH_SF_LM(method, ...)                                    \
-    do {                                                                    \
-        uint32_t _op = code & 0x1ffffff;                                    \
-        switch (sfLmIndex(_op)) {                                           \
-            case 0: method<false, false>(_op, ##__VA_ARGS__); break;        \
-            case 1: method<false, true>(_op, ##__VA_ARGS__); break;         \
-            case 2: method<true, false>(_op, ##__VA_ARGS__); break;         \
-            case 3: method<true, true>(_op, ##__VA_ARGS__); break;          \
-        }                                                                   \
+#define GTE_DISPATCH_SF_LM(method, ...)                   \
+    do {                                                  \
+        uint32_t _op = code & 0x1ffffff;                  \
+        switch (sfLmIndex(_op)) {                         \
+            case 0:                                       \
+                method<false, false>(_op, ##__VA_ARGS__); \
+                break;                                    \
+            case 1:                                       \
+                method<false, true>(_op, ##__VA_ARGS__);  \
+                break;                                    \
+            case 2:                                       \
+                method<true, false>(_op, ##__VA_ARGS__);  \
+                break;                                    \
+            case 3:                                       \
+                method<true, true>(_op, ##__VA_ARGS__);   \
+                break;                                    \
+        }                                                 \
     } while (0)
 
 void PCSX::GTE::RTPS(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: rtps<false, false, 0>(true); break;
-        case 1: rtps<false, true, 0>(true); break;
-        case 2: rtps<true, false, 0>(true); break;
-        case 3: rtps<true, true, 0>(true); break;
+        case 0:
+            rtps<false, false, 0>(true);
+            break;
+        case 1:
+            rtps<false, true, 0>(true);
+            break;
+        case 2:
+            rtps<true, false, 0>(true);
+            break;
+        case 3:
+            rtps<true, true, 0>(true);
+            break;
     }
 }
 
@@ -260,10 +271,26 @@ void PCSX::GTE::RTPT(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: rtps<false, false, 0>(false); rtps<false, false, 1>(false); rtps<false, false, 2>(true); break;
-        case 1: rtps<false, true, 0>(false); rtps<false, true, 1>(false); rtps<false, true, 2>(true); break;
-        case 2: rtps<true, false, 0>(false); rtps<true, false, 1>(false); rtps<true, false, 2>(true); break;
-        case 3: rtps<true, true, 0>(false); rtps<true, true, 1>(false); rtps<true, true, 2>(true); break;
+        case 0:
+            rtps<false, false, 0>(false);
+            rtps<false, false, 1>(false);
+            rtps<false, false, 2>(true);
+            break;
+        case 1:
+            rtps<false, true, 0>(false);
+            rtps<false, true, 1>(false);
+            rtps<false, true, 2>(true);
+            break;
+        case 2:
+            rtps<true, false, 0>(false);
+            rtps<true, false, 1>(false);
+            rtps<true, false, 2>(true);
+            break;
+        case 3:
+            rtps<true, true, 0>(false);
+            rtps<true, true, 1>(false);
+            rtps<true, true, 2>(true);
+            break;
     }
 }
 
@@ -272,8 +299,8 @@ void PCSX::GTE::NCLIP(uint32_t code) {
     if (PGXP_NLCIP_valid(sxy0(), sxy1(), sxy2()))
         mac0() = F(PGXP_NCLIP());
     else
-        mac0() = F((int64_t)sx0() * sy1() + sx1() * sy2() + sx2() * sy0() -
-                    sx0() * sy2() - sx1() * sy0() - sx2() * sy1());
+        mac0() =
+            F((int64_t)sx0() * sy1() + sx1() * sy2() + sx2() * sy0() - sx0() * sy2() - sx1() * sy0() - sx2() * sy1());
 }
 
 void PCSX::GTE::OP(uint32_t code) { GTE_DISPATCH_SF_LM(op); }
@@ -295,10 +322,18 @@ void PCSX::GTE::NCDS(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: ncdsCore<false, false, 0>(); break;
-        case 1: ncdsCore<false, true, 0>(); break;
-        case 2: ncdsCore<true, false, 0>(); break;
-        case 3: ncdsCore<true, true, 0>(); break;
+        case 0:
+            ncdsCore<false, false, 0>();
+            break;
+        case 1:
+            ncdsCore<false, true, 0>();
+            break;
+        case 2:
+            ncdsCore<true, false, 0>();
+            break;
+        case 3:
+            ncdsCore<true, true, 0>();
+            break;
     }
 }
 
@@ -308,10 +343,26 @@ void PCSX::GTE::NCDT(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: ncdsCore<false, false, 0>(); ncdsCore<false, false, 1>(); ncdsCore<false, false, 2>(); break;
-        case 1: ncdsCore<false, true, 0>(); ncdsCore<false, true, 1>(); ncdsCore<false, true, 2>(); break;
-        case 2: ncdsCore<true, false, 0>(); ncdsCore<true, false, 1>(); ncdsCore<true, false, 2>(); break;
-        case 3: ncdsCore<true, true, 0>(); ncdsCore<true, true, 1>(); ncdsCore<true, true, 2>(); break;
+        case 0:
+            ncdsCore<false, false, 0>();
+            ncdsCore<false, false, 1>();
+            ncdsCore<false, false, 2>();
+            break;
+        case 1:
+            ncdsCore<false, true, 0>();
+            ncdsCore<false, true, 1>();
+            ncdsCore<false, true, 2>();
+            break;
+        case 2:
+            ncdsCore<true, false, 0>();
+            ncdsCore<true, false, 1>();
+            ncdsCore<true, false, 2>();
+            break;
+        case 3:
+            ncdsCore<true, true, 0>();
+            ncdsCore<true, true, 1>();
+            ncdsCore<true, true, 2>();
+            break;
     }
 }
 
@@ -319,10 +370,18 @@ void PCSX::GTE::NCCS(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: nccsCore<false, false, 0>(); break;
-        case 1: nccsCore<false, true, 0>(); break;
-        case 2: nccsCore<true, false, 0>(); break;
-        case 3: nccsCore<true, true, 0>(); break;
+        case 0:
+            nccsCore<false, false, 0>();
+            break;
+        case 1:
+            nccsCore<false, true, 0>();
+            break;
+        case 2:
+            nccsCore<true, false, 0>();
+            break;
+        case 3:
+            nccsCore<true, true, 0>();
+            break;
     }
 }
 
@@ -332,10 +391,18 @@ void PCSX::GTE::NCS(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: ncsCore<false, false, 0>(); break;
-        case 1: ncsCore<false, true, 0>(); break;
-        case 2: ncsCore<true, false, 0>(); break;
-        case 3: ncsCore<true, true, 0>(); break;
+        case 0:
+            ncsCore<false, false, 0>();
+            break;
+        case 1:
+            ncsCore<false, true, 0>();
+            break;
+        case 2:
+            ncsCore<true, false, 0>();
+            break;
+        case 3:
+            ncsCore<true, true, 0>();
+            break;
     }
 }
 
@@ -343,10 +410,26 @@ void PCSX::GTE::NCT(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: ncsCore<false, false, 0>(); ncsCore<false, false, 1>(); ncsCore<false, false, 2>(); break;
-        case 1: ncsCore<false, true, 0>(); ncsCore<false, true, 1>(); ncsCore<false, true, 2>(); break;
-        case 2: ncsCore<true, false, 0>(); ncsCore<true, false, 1>(); ncsCore<true, false, 2>(); break;
-        case 3: ncsCore<true, true, 0>(); ncsCore<true, true, 1>(); ncsCore<true, true, 2>(); break;
+        case 0:
+            ncsCore<false, false, 0>();
+            ncsCore<false, false, 1>();
+            ncsCore<false, false, 2>();
+            break;
+        case 1:
+            ncsCore<false, true, 0>();
+            ncsCore<false, true, 1>();
+            ncsCore<false, true, 2>();
+            break;
+        case 2:
+            ncsCore<true, false, 0>();
+            ncsCore<true, false, 1>();
+            ncsCore<true, false, 2>();
+            break;
+        case 3:
+            ncsCore<true, true, 0>();
+            ncsCore<true, true, 1>();
+            ncsCore<true, true, 2>();
+            break;
     }
 }
 
@@ -375,10 +458,26 @@ void PCSX::GTE::NCCT(uint32_t code) {
     uint32_t _op = code & 0x1ffffff;
     gteFlag() = 0;
     switch (sfLmIndex(_op)) {
-        case 0: nccsCore<false, false, 0>(); nccsCore<false, false, 1>(); nccsCore<false, false, 2>(); break;
-        case 1: nccsCore<false, true, 0>(); nccsCore<false, true, 1>(); nccsCore<false, true, 2>(); break;
-        case 2: nccsCore<true, false, 0>(); nccsCore<true, false, 1>(); nccsCore<true, false, 2>(); break;
-        case 3: nccsCore<true, true, 0>(); nccsCore<true, true, 1>(); nccsCore<true, true, 2>(); break;
+        case 0:
+            nccsCore<false, false, 0>();
+            nccsCore<false, false, 1>();
+            nccsCore<false, false, 2>();
+            break;
+        case 1:
+            nccsCore<false, true, 0>();
+            nccsCore<false, true, 1>();
+            nccsCore<false, true, 2>();
+            break;
+        case 2:
+            nccsCore<true, false, 0>();
+            nccsCore<true, false, 1>();
+            nccsCore<true, false, 2>();
+            break;
+        case 3:
+            nccsCore<true, true, 0>();
+            nccsCore<true, true, 1>();
+            nccsCore<true, true, 2>();
+            break;
     }
 }
 

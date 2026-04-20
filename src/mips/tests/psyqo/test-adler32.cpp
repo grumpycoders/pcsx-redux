@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/adler32.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;

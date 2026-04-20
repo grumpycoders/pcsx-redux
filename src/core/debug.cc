@@ -159,7 +159,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     // RAM logger: record execution
-    auto *ramLogger = g_emulator->m_ramLogger.get();
+    auto* ramLogger = g_emulator->m_ramLogger.get();
     const bool ramLoggerEnabled = ramLogger->isEnabled();
     const uint32_t cycle = static_cast<uint32_t>(regs.cycle);
     if (ramLoggerEnabled) {
@@ -319,7 +319,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
 }
 
 void PCSX::Debug::logDMAAccess(uint32_t address, uint32_t len, bool isWrite) {
-    auto *ramLogger = g_emulator->m_ramLogger.get();
+    auto* ramLogger = g_emulator->m_ramLogger.get();
     if (!ramLogger->isEnabled()) return;
     PSXAddress addr(normalizeAddress(address));
     if (addr.type != PSXAddress::Type::RAM) return;
