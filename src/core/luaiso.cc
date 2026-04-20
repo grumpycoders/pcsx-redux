@@ -19,6 +19,7 @@
 
 #include "core/luaiso.h"
 
+#include <algorithm>
 #include <memory>
 
 #include "cdrom/cdriso.h"
