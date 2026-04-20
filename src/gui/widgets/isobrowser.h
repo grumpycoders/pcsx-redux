@@ -92,12 +92,13 @@ class IsoBrowser {
     std::vector<FlatEntry> m_flatEntries;
     bool m_flatEntriesDirty = true;
     bool m_gapsScanned = false;
+    Coroutine<> m_gapScanCoroutine;
+    float m_gapScanProgress = 0.0f;
 
     void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
     void drawFilesystemFlat();
     void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
-    void scanGapSectors(std::vector<FlatEntry>& out, uint32_t startLBA, uint32_t sectorCount,
-                        std::shared_ptr<CDRIso> iso);
+    Coroutine<> scanAllGaps(std::shared_ptr<CDRIso> iso);
 
     FileDialog<> m_openIsoFileDialog;
     FileDialog<FileDialogMode::Save> m_saveFileDialog;

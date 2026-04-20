@@ -63,6 +63,7 @@ struct DirEntries {
 };
 
 DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
+    if (reader->failed()) return new DirEntries{};
     auto root = reader->getRootDirEntry();
     if (path == nullptr || path[0] == '\0') {
         return new DirEntries{reader->listAllEntriesFrom(root)};
@@ -176,6 +177,11 @@ GapList* readerFindGaps(PCSX::ISO9660Reader* reader) {
         }
         uint32_t end = lba + sectors;
         if (end > nextExpected) nextExpected = end;
+    }
+    // Trailing gap: anything between the last occupied extent and the disc end.
+    uint32_t volumeSpaceSize = pvd.get<PCSX::ISO9660LowLevel::PVD_VolumeSpaceSize>();
+    if (volumeSpaceSize > nextExpected) {
+        result->gaps.push_back({nextExpected, volumeSpaceSize - nextExpected});
     }
     return result;
 }

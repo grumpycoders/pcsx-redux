@@ -149,88 +149,127 @@ void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEnt
     }
 }
 
-void PCSX::Widgets::IsoBrowser::scanGapSectors(std::vector<FlatEntry>& out, uint32_t startLBA, uint32_t sectorCount,
-                                                std::shared_ptr<CDRIso> iso) {
-    uint32_t lba = startLBA;
-    uint32_t end = startLBA + sectorCount;
+PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso> iso) {
+    auto time = std::chrono::steady_clock::now();
+    std::vector<FlatEntry> scanned;
 
-    while (lba < end) {
-        uint8_t sector[2352];
-        if (iso->readSectors(lba, sector, 1) != 1) {
-            // Read failed, treat rest as gap
-            uint32_t remaining = end - lba;
-            auto label = fmt::format(f_("<gap {} sectors>"), remaining);
-            out.push_back({label, lba, remaining * 2352, remaining, FlatEntry::Gap, {}});
-            break;
-        }
-
-        uint8_t mode = sector[15];
-
-        if (mode == 0) {
-            // Mode 0: true gap. Accumulate consecutive mode 0 sectors.
-            uint32_t gapStart = lba;
-            while (lba < end) {
-                if (lba != gapStart) {
-                    if (iso->readSectors(lba, sector, 1) != 1) break;
-                    if (sector[15] != 0) break;
-                }
-                lba++;
-            }
-            uint32_t count = lba - gapStart;
-            auto label = fmt::format(f_("<gap {} sectors>"), count);
-            out.push_back({label, gapStart, count * 2352, count, FlatEntry::Gap, {}});
-            continue;
-        }
-
-        if (mode == 1) {
-            // Mode 1 hidden data. Accumulate until mode changes or gap ends.
-            uint32_t fileStart = lba;
-            lba++;
-            while (lba < end) {
-                if (iso->readSectors(lba, sector, 1) != 1) break;
-                if (sector[15] != 1) break;
-                lba++;
-            }
-            uint32_t count = lba - fileStart;
-            auto label = fmt::format(f_("<hidden M1 {} sectors>"), count);
-            out.push_back({label, fileStart, count * 2048, count, FlatEntry::HiddenM1, {}});
-            continue;
-        }
-
-        if (mode == 2) {
-            // Mode 2: parse subheader for form and file boundaries
-            uint8_t* sub = sector + 16;
-            uint8_t fileNum = sub[0];
-            uint8_t channelNum = sub[1];
-            uint8_t submode = sub[2];
-            bool isForm2 = (submode & 0x20) != 0;
-            auto type = isForm2 ? FlatEntry::HiddenM2F2 : FlatEntry::HiddenM2F1;
-
-            uint32_t fileStart = lba;
-            bool hitEof = (submode & 0x80) != 0;
-            lba++;
-
-            while (lba < end && !hitEof) {
-                if (iso->readSectors(lba, sector, 1) != 1) break;
-                if (sector[15] != 2) break;
-                sub = sector + 16;
-                // Different file/channel = new subfile
-                if (sub[0] != fileNum || sub[1] != channelNum) break;
-                hitEof = (sub[2] & 0x80) != 0;
-                lba++;
-            }
-
-            uint32_t count = lba - fileStart;
-            uint32_t dataSize = isForm2 ? count * 2324 : count * 2048;
-            auto label = fmt::format(f_("<hidden {} f={} ch={} {} sectors>"),
-                                     isForm2 ? "M2F2" : "M2F1", fileNum, channelNum, count);
-            out.push_back({label, fileStart, dataSize, count, type, {}});
-            continue;
-        }
-
-        // Unknown mode, skip sector
-        lba++;
+    // Count total gap sectors to scan for progress reporting.
+    uint32_t totalGapSectors = 0;
+    for (auto& entry : m_flatEntries) {
+        if (entry.isGap()) totalGapSectors += entry.sectors;
     }
+    uint32_t scannedSectors = 0;
+
+    for (auto& entry : m_flatEntries) {
+        if (!entry.isGap()) {
+            scanned.push_back(entry);
+            continue;
+        }
+
+        uint32_t lba = entry.lba;
+        uint32_t end = entry.lba + entry.sectors;
+
+        while (lba < end) {
+            uint8_t sector[2352];
+            if (iso->readSectors(lba, sector, 1) != 1) {
+                uint32_t remaining = end - lba;
+                auto label = fmt::format(f_("<gap {} sectors>"), remaining);
+                scanned.push_back({label, lba, remaining * 2352, remaining, FlatEntry::Gap, {}});
+                scannedSectors += remaining;
+                break;
+            }
+
+            uint8_t mode = sector[15];
+
+            if (mode == 0) {
+                uint32_t gapStart = lba;
+                while (lba < end) {
+                    if (lba != gapStart) {
+                        if (iso->readSectors(lba, sector, 1) != 1) break;
+                        if (sector[15] != 0) break;
+                    }
+                    lba++;
+                    scannedSectors++;
+                    if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                        m_gapScanProgress =
+                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        co_yield m_gapScanCoroutine.awaiter();
+                        time = std::chrono::steady_clock::now();
+                    }
+                }
+                uint32_t count = lba - gapStart;
+                auto label = fmt::format(f_("<gap {} sectors>"), count);
+                scanned.push_back({label, gapStart, count * 2352, count, FlatEntry::Gap, {}});
+                continue;
+            }
+
+            if (mode == 1) {
+                uint32_t fileStart = lba;
+                lba++;
+                scannedSectors++;
+                while (lba < end) {
+                    if (iso->readSectors(lba, sector, 1) != 1) break;
+                    if (sector[15] != 1) break;
+                    lba++;
+                    scannedSectors++;
+                    if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                        m_gapScanProgress =
+                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        co_yield m_gapScanCoroutine.awaiter();
+                        time = std::chrono::steady_clock::now();
+                    }
+                }
+                uint32_t count = lba - fileStart;
+                auto label = fmt::format(f_("<hidden M1 {} sectors>"), count);
+                scanned.push_back({label, fileStart, count * 2048, count, FlatEntry::HiddenM1, {}});
+                continue;
+            }
+
+            if (mode == 2) {
+                uint8_t* sub = sector + 16;
+                uint8_t fileNum = sub[0];
+                uint8_t channelNum = sub[1];
+                uint8_t submode = sub[2];
+                bool isForm2 = (submode & 0x20) != 0;
+                auto type = isForm2 ? FlatEntry::HiddenM2F2 : FlatEntry::HiddenM2F1;
+
+                uint32_t fileStart = lba;
+                bool hitEof = (submode & 0x80) != 0;
+                lba++;
+                scannedSectors++;
+
+                while (lba < end && !hitEof) {
+                    if (iso->readSectors(lba, sector, 1) != 1) break;
+                    if (sector[15] != 2) break;
+                    sub = sector + 16;
+                    if (sub[0] != fileNum || sub[1] != channelNum) break;
+                    hitEof = (sub[2] & 0x80) != 0;
+                    lba++;
+                    scannedSectors++;
+                    if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                        m_gapScanProgress =
+                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        co_yield m_gapScanCoroutine.awaiter();
+                        time = std::chrono::steady_clock::now();
+                    }
+                }
+
+                uint32_t count = lba - fileStart;
+                uint32_t dataSize = isForm2 ? count * 2324 : count * 2048;
+                auto label = fmt::format(f_("<hidden {} f={} ch={} {} sectors>"),
+                                         isForm2 ? "M2F2" : "M2F1", fileNum, channelNum, count);
+                scanned.push_back({label, fileStart, dataSize, count, type, {}});
+                continue;
+            }
+
+            lba++;
+            scannedSectors++;
+        }
+    }
+
+    m_flatEntries = std::move(scanned);
+    m_gapsScanned = true;
+    m_gapScanProgress = 1.0f;
 }
 
 void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
@@ -287,32 +326,35 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
             uint32_t end = entry.lba + entry.sectors;
             if (end > nextExpected) nextExpected = end;
         }
+        // Trailing gap: append any unreferenced sectors at the end of the image.
+        uint32_t discEnd = pvd.get<ISO9660LowLevel::PVD_VolumeSpaceSize>();
+        if (discEnd > nextExpected) {
+            uint32_t gapSectors = discEnd - nextExpected;
+            auto label = fmt::format(f_("<gap {} sectors>"), gapSectors);
+            withGaps.push_back({label, nextExpected, gapSectors * 2352, gapSectors, FlatEntry::Gap, {}});
+        }
         m_flatEntries = std::move(withGaps);
         m_flatEntriesDirty = false;
         m_gapsScanned = false;
     }
 
     if (!m_gapsScanned) {
-        if (ImGui::Button(_("Scan gaps for hidden files"))) {
-            auto iso = m_cachedIso.lock();
-            if (iso) {
-                std::vector<FlatEntry> scanned;
-                for (auto& entry : m_flatEntries) {
-                    if (entry.isGap()) {
-                        uint32_t sectorCount = entry.size / 2352;
-                        scanGapSectors(scanned, entry.lba, sectorCount, iso);
-                    } else {
-                        scanned.push_back(entry);
-                    }
+        if (m_gapScanCoroutine.done()) {
+            if (ImGui::Button(_("Scan gaps for hidden files"))) {
+                auto iso = m_cachedIso.lock();
+                if (iso) {
+                    m_gapScanProgress = 0.0f;
+                    m_gapScanCoroutine = scanAllGaps(iso);
                 }
-                m_flatEntries = std::move(scanned);
-                m_gapsScanned = true;
             }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(Reads sector headers in gap regions to detect
+            ImGuiHelpers::ShowHelpMarker(_(R"(Reads sector headers in gap regions to detect
 hidden files that were removed from the ISO9660
 directory but still have intact Mode 1/2 sector
 headers and subheader file boundary markers.)"));
+        } else {
+            ImGui::ProgressBar(m_gapScanProgress);
+            m_gapScanCoroutine.resume();
+        }
     }
 
     if (ImGui::BeginTable("FilesystemFlat", 4,
@@ -329,7 +371,7 @@ headers and subheader file boundary markers.)"));
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             bool selected = m_hasSelection && m_selectedLBA == entry.lba &&
-                            m_selectedIsGap == entry.isGap();
+                            m_selectedIsGap == (entry.isGap() || entry.isHidden());
             auto id = fmt::format("{}##{}", entry.path, i);
             if (ImGui::Selectable(id.c_str(), selected,
                                   ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
@@ -520,6 +562,7 @@ significantly by caching the files beforehand.)"));
         m_hasSelection = false;
         m_selectedPath.clear();
         m_flatEntriesDirty = true;
+        m_gapScanCoroutine = {};
         if (currentIso && !currentIso->failed()) {
             m_reader = std::make_unique<ISO9660Reader>(currentIso);
             if (m_reader->failed()) m_reader.reset();

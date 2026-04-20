@@ -39,7 +39,9 @@ PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRIso> iso) : m_iso(iso) {
         uint8_t vd[7];
         pvdFile->readAt(vd, 7, 0);
         if ((vd[1] != 'C') || (vd[2] != 'D') || (vd[3] != '0') || (vd[4] != '0') || (vd[5] != '1') || (vd[6] != 1)) {
-            if (!foundPVD) m_failed = true;
+            // Malformed descriptor set: even if we already have the PVD, the
+            // set is broken so we can't trust m_vdEnd.
+            m_failed = true;
             return;
         }
 
