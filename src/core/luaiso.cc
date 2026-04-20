@@ -67,14 +67,9 @@ DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
     if (path == nullptr || path[0] == '\0') {
         return new DirEntries{reader->listAllEntriesFrom(root)};
     }
-    auto* file = reader->open(path);
-    if (file->failed()) {
-        delete file;
-        return new DirEntries{};
-    }
-    delete file;
-    // Need to find the directory entry for the given path to list its contents.
-    // Walk the path manually using listAllEntriesFrom.
+    // Walk the path using listAllEntriesFrom. ISO9660 directory entries
+    // don't carry version suffixes (only files do), so exact match on each
+    // path component is correct for directory listing.
     auto parts = PCSX::StringsHelpers::split(std::string_view(path), "/");
     PCSX::ISO9660LowLevel::DirEntry current = root;
     for (auto& part : parts) {
@@ -88,6 +83,10 @@ DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
             }
         }
         if (!found) return new DirEntries{};
+    }
+    // Only return children if the target is actually a directory.
+    if ((current.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) == 0) {
+        return new DirEntries{};
     }
     return new DirEntries{reader->listAllEntriesFrom(current)};
 }
@@ -120,6 +119,11 @@ struct GapList {
     std::vector<GapEntry> gaps;
 };
 
+// XA attribute bits (CD-XA spec, stored big-endian in directory record).
+// Bit 11 (0x0800): Mode 2 Form 1 data file
+// Bit 12 (0x1000): Mode 2 Form 2 interleaved audio/video
+static constexpr uint16_t XA_ATTR_FORM2 = 0x1000;
+
 static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660LowLevel::DirEntry& dir,
                               std::vector<std::pair<uint32_t, uint32_t>>& out) {
     auto entries = reader->listAllEntriesFrom(dir);
@@ -128,7 +132,9 @@ static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660Lo
         if (name.size() == 1 && (name[0] == '\0' || name[0] == '\1')) continue;
         uint32_t lba = entry.get<PCSX::ISO9660LowLevel::DirEntry_LBA>();
         uint32_t size = entry.get<PCSX::ISO9660LowLevel::DirEntry_Size>();
-        uint32_t sectors = (size + 2047) / 2048;
+        uint16_t attribs = xa.get<PCSX::ISO9660LowLevel::DirEntry_XA_Attribs>();
+        uint32_t sectorSize = (attribs & XA_ATTR_FORM2) ? 2324 : 2048;
+        uint32_t sectors = (size + sectorSize - 1) / sectorSize;
         out.push_back({lba, sectors});
         bool isDir = (entry.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
         if (isDir) collectAllEntries(reader, entry, out);
@@ -142,8 +148,9 @@ GapList* readerFindGaps(PCSX::ISO9660Reader* reader) {
     // Account for ISO9660 system structures
     allFiles.push_back({0, 16});  // License/system area
     auto& pvd = reader->getPVD();
+    uint32_t vdEnd = reader->getVDEnd();
+    allFiles.push_back({16, vdEnd > 16 ? vdEnd - 16 : 1});  // Volume descriptors including terminator
     uint32_t lPathLoc = pvd.get<PCSX::ISO9660LowLevel::PVD_LPathTableLocation>();
-    allFiles.push_back({16, lPathLoc > 16 ? lPathLoc - 16 : 1});  // Volume descriptors
     uint32_t pathTableSize = pvd.get<PCSX::ISO9660LowLevel::PVD_PathTableSize>();
     uint32_t pathTableSectors = (pathTableSize + 2047) / 2048;
     allFiles.push_back({lPathLoc, pathTableSectors});

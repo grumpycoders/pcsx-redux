@@ -80,6 +80,7 @@ class IsoBrowser {
         std::string path;
         uint32_t lba;
         uint32_t size;
+        uint32_t sectors;  // Actual sector span on disc, derived from XA form for Form 2 files.
         Type type;
         ISO9660LowLevel::DirEntry dirEntry;
 
