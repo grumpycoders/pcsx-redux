@@ -8,16 +8,21 @@
 //
 // Usage:
 //   // Create a window and draw memory editor inside it:
-//   static MemoryEditor mem_edit_1;
-//   static char data[0x10000];
-//   size_t data_size = 0x10000;
-//   mem_edit_1.DrawWindow("Memory Editor", data, data_size);
+//   static bool show = true;
+//   static size_t goto_addr = 0;
+//   static MemoryEditor mem_edit_1(show, 0, goto_addr);
+//   mem_edit_1.ReadFn = [](size_t off) -> ImU8 { return my_data[off]; };
+//   mem_edit_1.WriteFn = [](size_t off, ImU8 d) { my_data[off] = d; };
+//   mem_edit_1.DrawWindow("Memory Editor", data_size);
 //
 // Usage:
 //   // If you already have a window, use DrawContents() instead:
-//   static MemoryEditor mem_edit_2;
+//   static bool show = true;
+//   static size_t goto_addr = 0;
+//   static MemoryEditor mem_edit_2(show, 0, goto_addr);
+//   mem_edit_2.ReadFn = [](size_t off) -> ImU8 { return ((uint8_t*)ptr)[off]; };
 //   ImGui::Begin("MyWindow")
-//   mem_edit_2.DrawContents(this, sizeof(*this), (size_t)this);
+//   mem_edit_2.DrawContents(mem_size);
 //   ImGui::End();
 //
 // Changelog:
@@ -99,7 +104,7 @@ struct MemoryEditor
         std::function<void(void* dest, size_t off, size_t len)> BulkReadFn = nullptr;
 
         ImU8 read(size_t off) {
-            if (!BulkReadFn) return 0;
+            if (!BulkReadFn || off >= m_totalSize) return 0;
             if (off < m_base || off >= m_base + m_len) fill(off);
             return m_buf[off - m_base];
         }
@@ -111,6 +116,11 @@ struct MemoryEditor
     private:
         void fill(size_t off) {
             m_base = off & ~(kPageSize - 1);
+            if (m_base >= m_totalSize) {
+                m_len = 0;
+                m_buf.clear();
+                return;
+            }
             m_len = std::min(kPageSize, m_totalSize - m_base);
             m_buf.resize(m_len);
             BulkReadFn(m_buf.data(), m_base, m_len);
@@ -122,7 +132,7 @@ struct MemoryEditor
         size_t m_totalSize = 0;
     };
 
-    ReadCache Cache;
+    mutable ReadCache Cache;
 
 private:
     // [Internal State]
@@ -181,6 +191,6 @@ public:
 
 private:
     // [Internal]
-    ImU8 ReadByte(size_t addr);
+    ImU8 ReadByte(size_t addr) const;
     void DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const;
 };

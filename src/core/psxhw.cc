@@ -831,6 +831,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             g_emulator->m_mem->msanFree(value);
             break;
         }
+        case 0x1f8020a0: {
+            g_emulator->m_mem->m_psyqoHeapMetadata = value;
+            break;
+        }
         case 0x1f802094: {
             PSXAddress headerAddrInfo(value);
             switch (headerAddrInfo.type) {

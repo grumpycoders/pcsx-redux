@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'windows-2025-vs2026'
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
@@ -77,7 +77,7 @@ steps:
       vsprojects/x64/ReleaseCLI/*.pdb
     TargetFolder: '$(build.artifactStagingDirectory)/pdbs'
 
-- task: VSTest@2
+- task: VSTest@3
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
