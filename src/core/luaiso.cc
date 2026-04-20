@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <unordered_set>
 
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
@@ -63,11 +64,24 @@ struct DirEntries {
     std::vector<PCSX::ISO9660Reader::FullDirEntry> entries;
 };
 
+// Drop ISO9660 "." (\0) and ".." (\1) sentinel entries from a listing.
+static std::vector<PCSX::ISO9660Reader::FullDirEntry> stripSelfParent(
+    std::vector<PCSX::ISO9660Reader::FullDirEntry>&& entries) {
+    std::vector<PCSX::ISO9660Reader::FullDirEntry> out;
+    out.reserve(entries.size());
+    for (auto& e : entries) {
+        const auto& name = e.first.get<PCSX::ISO9660LowLevel::DirEntry_Filename>().value;
+        if (name.size() == 1 && (name[0] == '\0' || name[0] == '\1')) continue;
+        out.push_back(std::move(e));
+    }
+    return out;
+}
+
 DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
     if (reader->failed()) return new DirEntries{};
     auto root = reader->getRootDirEntry();
     if (path == nullptr || path[0] == '\0') {
-        return new DirEntries{reader->listAllEntriesFrom(root)};
+        return new DirEntries{stripSelfParent(reader->listAllEntriesFrom(root))};
     }
     // Walk the path using listAllEntriesFrom. ISO9660 directory entries
     // don't carry version suffixes (only files do), so exact match on each
@@ -90,7 +104,7 @@ DirEntries* readerListDir(PCSX::ISO9660Reader* reader, const char* path) {
     if ((current.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) == 0) {
         return new DirEntries{};
     }
-    return new DirEntries{reader->listAllEntriesFrom(current)};
+    return new DirEntries{stripSelfParent(reader->listAllEntriesFrom(current))};
 }
 
 void deleteDirEntries(DirEntries* entries) { delete entries; }
@@ -127,7 +141,8 @@ struct GapList {
 static constexpr uint16_t XA_ATTR_FORM2 = 0x1000;
 
 static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660LowLevel::DirEntry& dir,
-                              std::vector<std::pair<uint32_t, uint32_t>>& out) {
+                              std::vector<std::pair<uint32_t, uint32_t>>& out,
+                              std::unordered_set<uint32_t>& visitedDirs) {
     auto entries = reader->listAllEntriesFrom(dir);
     for (auto& [entry, xa] : entries) {
         const auto& name = entry.get<PCSX::ISO9660LowLevel::DirEntry_Filename>().value;
@@ -137,9 +152,14 @@ static void collectAllEntries(PCSX::ISO9660Reader* reader, const PCSX::ISO9660Lo
         uint16_t attribs = xa.get<PCSX::ISO9660LowLevel::DirEntry_XA_Attribs>();
         uint32_t sectorSize = (attribs & XA_ATTR_FORM2) ? 2324 : 2048;
         uint32_t sectors = (size + sectorSize - 1) / sectorSize;
-        out.push_back({lba, sectors});
+        // Skip zero-length extents: they don't consume sectors, and emitting
+        // them would confuse the gap aggregation pass.
+        if (sectors != 0) out.push_back({lba, sectors});
         bool isDir = (entry.get<PCSX::ISO9660LowLevel::DirEntry_Flags>().value & 2) != 0;
-        if (isDir) collectAllEntries(reader, entry, out);
+        // Guard against malformed ISOs with directory cycles.
+        if (isDir && visitedDirs.insert(lba).second) {
+            collectAllEntries(reader, entry, out, visitedDirs);
+        }
     }
 }
 
@@ -167,7 +187,9 @@ GapList* readerFindGaps(PCSX::ISO9660Reader* reader) {
     uint32_t rootSize = rootDir.get<PCSX::ISO9660LowLevel::DirEntry_Size>();
     allFiles.push_back({rootLBA, (rootSize + 2047) / 2048});
 
-    collectAllEntries(reader, reader->getRootDirEntry(), allFiles);
+    std::unordered_set<uint32_t> visitedDirs;
+    visitedDirs.insert(rootLBA);
+    collectAllEntries(reader, reader->getRootDirEntry(), allFiles, visitedDirs);
     std::sort(allFiles.begin(), allFiles.end());
 
     auto* result = new GapList{};

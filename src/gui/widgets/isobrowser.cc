@@ -92,6 +92,7 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                 m_selectedEntry = dirEntry;
                 m_selectedLBA = lba;
                 m_selectedSize = size;
+                m_selectedMode = IEC60908b::SectorMode::GUESS;
                 m_hasSelection = true;
                 m_selectedIsDir = false;
                 m_selectedIsGap = false;
@@ -101,6 +102,7 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                     m_selectedPath = fullPath;
                     m_selectedLBA = lba;
                     m_selectedSize = size;
+                    m_selectedMode = IEC60908b::SectorMode::GUESS;
                     m_hasSelection = true;
                     m_saveFileDialog.openDialog();
                 }
@@ -108,6 +110,7 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                     m_selectedPath = fullPath;
                     m_selectedLBA = lba;
                     m_selectedSize = size;
+                    m_selectedMode = IEC60908b::SectorMode::GUESS;
                     m_hasSelection = true;
                     m_openReplaceFileDialog.openDialog();
                 }
@@ -128,7 +131,8 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
     }
 }
 
-void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path) {
+void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
+                                                     std::unordered_set<uint32_t>& visitedDirs) {
     auto entries = m_reader->listAllEntriesFrom(entry);
     for (auto& [dirEntry, xa] : entries) {
         const auto& filename = dirEntry.get<ISO9660LowLevel::DirEntry_Filename>().value;
@@ -145,7 +149,10 @@ void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEnt
         uint32_t sectors = (size + sectorSize - 1) / sectorSize;
         m_flatEntries.push_back(
             {fullPath, lba, size, sectors, isDir ? FlatEntry::Directory : FlatEntry::File, dirEntry});
-        if (isDir) collectFlatEntries(dirEntry, fullPath);
+        // Guard against malformed ISOs with directory cycles.
+        if (isDir && visitedDirs.insert(lba).second) {
+            collectFlatEntries(dirEntry, fullPath, visitedDirs);
+        }
     }
 }
 
@@ -262,8 +269,26 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
                 continue;
             }
 
-            lba++;
-            scannedSectors++;
+            // Unknown sector mode. Accumulate consecutive unknown-mode sectors
+            // and emit a single gap entry so the bytes stay visible in the flat
+            // view instead of silently disappearing.
+            uint32_t unknownStart = lba;
+            while (lba < end) {
+                if (iso->readSectors(lba, sector, 1) != 1) break;
+                uint8_t m = sector[15];
+                if (m == 0 || m == 1 || m == 2) break;
+                lba++;
+                scannedSectors++;
+                if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
+                    m_gapScanProgress =
+                        totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                    co_yield m_gapScanCoroutine.awaiter();
+                    time = std::chrono::steady_clock::now();
+                }
+            }
+            uint32_t unknownCount = lba - unknownStart;
+            auto unknownLabel = fmt::format(f_("<gap {} sectors>"), unknownCount);
+            scanned.push_back({unknownLabel, unknownStart, unknownCount * 2352, unknownCount, FlatEntry::Gap, {}});
         }
     }
 
@@ -309,7 +334,9 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
         uint32_t rootSectors = (rootSize + 2047) / 2048;
         m_flatEntries.push_back({_("<Root Directory>"), rootLBA, rootSize, rootSectors, FlatEntry::System, {}});
 
-        collectFlatEntries(m_reader->getRootDirEntry(), "");
+        std::unordered_set<uint32_t> visitedDirs;
+        visitedDirs.insert(rootLBA);
+        collectFlatEntries(m_reader->getRootDirEntry(), "", visitedDirs);
         std::sort(m_flatEntries.begin(), m_flatEntries.end(),
                   [](const FlatEntry& a, const FlatEntry& b) { return a.lba < b.lba; });
 
@@ -326,8 +353,13 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
             uint32_t end = entry.lba + entry.sectors;
             if (end > nextExpected) nextExpected = end;
         }
-        // Trailing gap: append any unreferenced sectors at the end of the image.
+        // Trailing gap: append any unreferenced sectors at the end of the loaded image.
+        // Prefer the actual loaded disc length over PVD_VolumeSpaceSize (which is the
+        // logical volume length and can differ from what's actually on disc).
         uint32_t discEnd = pvd.get<ISO9660LowLevel::PVD_VolumeSpaceSize>();
+        if (auto iso = m_cachedIso.lock()) {
+            discEnd = iso->getTD(0).toLBA();
+        }
         if (discEnd > nextExpected) {
             uint32_t gapSectors = discEnd - nextExpected;
             auto label = fmt::format(f_("<gap {} sectors>"), gapSectors);
@@ -379,15 +411,33 @@ headers and subheader file boundary markers.)"));
                 m_selectedLBA = entry.lba;
                 m_selectedSize = entry.size;
                 m_selectedEntry = entry.dirEntry;
+                switch (entry.type) {
+                    case FlatEntry::Gap:
+                    case FlatEntry::System: m_selectedMode = IEC60908b::SectorMode::RAW; break;
+                    case FlatEntry::HiddenM1: m_selectedMode = IEC60908b::SectorMode::M1; break;
+                    case FlatEntry::HiddenM2F1: m_selectedMode = IEC60908b::SectorMode::M2_FORM1; break;
+                    case FlatEntry::HiddenM2F2: m_selectedMode = IEC60908b::SectorMode::M2_FORM2; break;
+                    default: m_selectedMode = IEC60908b::SectorMode::GUESS; break;
+                }
                 m_hasSelection = true;
                 m_selectedIsDir = entry.isDir();
                 m_selectedIsGap = entry.isGap() || entry.isHidden();
             }
             if (!entry.isDir() && ImGui::BeginPopupContextItem()) {
+                IEC60908b::SectorMode entryMode = IEC60908b::SectorMode::GUESS;
+                switch (entry.type) {
+                    case FlatEntry::Gap:
+                    case FlatEntry::System: entryMode = IEC60908b::SectorMode::RAW; break;
+                    case FlatEntry::HiddenM1: entryMode = IEC60908b::SectorMode::M1; break;
+                    case FlatEntry::HiddenM2F1: entryMode = IEC60908b::SectorMode::M2_FORM1; break;
+                    case FlatEntry::HiddenM2F2: entryMode = IEC60908b::SectorMode::M2_FORM2; break;
+                    default: break;
+                }
                 if (ImGui::MenuItem(_("Extract"))) {
                     m_selectedPath = entry.path;
                     m_selectedLBA = entry.lba;
                     m_selectedSize = entry.size;
+                    m_selectedMode = entryMode;
                     m_hasSelection = true;
                     m_saveFileDialog.openDialog();
                 }
@@ -395,22 +445,15 @@ headers and subheader file boundary markers.)"));
                     m_selectedPath = entry.path;
                     m_selectedLBA = entry.lba;
                     m_selectedSize = entry.size;
+                    m_selectedMode = entryMode;
                     m_hasSelection = true;
                     m_openReplaceFileDialog.openDialog();
                 }
                 if (ImGui::MenuItem(_("Hex Edit"))) {
                     auto isoPtr = m_cachedIso.lock();
                     if (isoPtr) {
-                        IEC60908b::SectorMode mode = IEC60908b::SectorMode::GUESS;
-                        switch (entry.type) {
-                            case FlatEntry::Gap:
-                            case FlatEntry::System: mode = IEC60908b::SectorMode::RAW; break;
-                            case FlatEntry::HiddenM1: mode = IEC60908b::SectorMode::M1; break;
-                            case FlatEntry::HiddenM2F1: mode = IEC60908b::SectorMode::M2_FORM1; break;
-                            case FlatEntry::HiddenM2F2: mode = IEC60908b::SectorMode::M2_FORM2; break;
-                            default: break;
-                        }
-                        openHexEditor(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, mode)));
+                        openHexEditor(entry.path,
+                                      IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
                     }
                 }
                 ImGui::EndPopup();
@@ -584,14 +627,15 @@ significantly by caching the files beforehand.)"));
                 auto destPath = reinterpret_cast<const char*>(selected[0].c_str());
                 uint32_t lba = m_selectedLBA;
                 uint32_t size = m_selectedSize;
+                IEC60908b::SectorMode mode = m_selectedMode;
                 auto isoPtr = m_cachedIso.lock();
                 if (isoPtr) {
                     m_extractionProgress = 0.0f;
                     m_extractionCoroutine = [](IsoBrowser* self, std::shared_ptr<CDRIso> iso, uint32_t lba,
-                                               uint32_t size,
+                                               uint32_t size, IEC60908b::SectorMode mode,
                                                std::string dest) -> Coroutine<> {
                         auto time = std::chrono::steady_clock::now();
-                        IO<File> src(new CDRIsoFile(iso, lba, size));
+                        IO<File> src(new CDRIsoFile(iso, lba, size, mode));
                         IO<File> out(new UvFile(dest, FileOps::TRUNCATE));
                         if (out->failed()) co_return;
                         uint8_t buffer[2048];
@@ -611,7 +655,7 @@ significantly by caching the files beforehand.)"));
                             }
                         }
                         self->m_extractionProgress = 1.0f;
-                    }(this, isoPtr, lba, size, destPath);
+                    }(this, isoPtr, lba, size, mode, destPath);
                 }
             }
         }
@@ -623,21 +667,28 @@ significantly by caching the files beforehand.)"));
                 auto srcPath = reinterpret_cast<const char*>(selected[0].c_str());
                 uint32_t lba = m_selectedLBA;
                 uint32_t originalSize = m_selectedSize;
+                IEC60908b::SectorMode mode = m_selectedMode;
                 auto isoPtr = m_cachedIso.lock();
                 if (isoPtr) {
                     m_extractionProgress = 0.0f;
                     m_extractionCoroutine = [](IsoBrowser* self, std::shared_ptr<CDRIso> iso, uint32_t lba,
-                                               uint32_t originalSize, std::string src) -> Coroutine<> {
+                                               uint32_t originalSize, IEC60908b::SectorMode mode,
+                                               std::string src) -> Coroutine<> {
                         auto time = std::chrono::steady_clock::now();
                         IO<File> replacement(new UvFile(src));
-                        if (replacement->failed()) co_return;
-                        IO<File> isoFile(new CDRIsoFile(iso, lba, originalSize));
-                        uint32_t replaceSize = std::min((uint32_t)replacement->size(), originalSize);
-                        if (replacement->size() > originalSize) {
-                            // Replacement too large; truncated to original size.
+                        if (replacement->failed()) {
+                            g_system->printf(_("ISO replace: failed to open replacement file.\n"));
+                            co_return;
+                        }
+                        IO<File> isoFile(new CDRIsoFile(iso, lba, originalSize, mode));
+                        size_t replacementSize = replacement->size();
+                        uint32_t replaceSize = replacementSize > originalSize
+                                                   ? originalSize
+                                                   : static_cast<uint32_t>(replacementSize);
+                        if (replacementSize > originalSize) {
                             g_system->printf(
                                 _("ISO replace: replacement file is larger than target (%zu > %u). Truncating.\n"),
-                                replacement->size(), originalSize);
+                                replacementSize, originalSize);
                         }
                         uint8_t buffer[2048];
                         uint32_t remaining = replaceSize;
@@ -645,10 +696,17 @@ significantly by caching the files beforehand.)"));
                         while (remaining > 0) {
                             uint32_t chunk = std::min(remaining, (uint32_t)sizeof(buffer));
                             auto read = replacement->read(buffer, chunk);
-                            if (read <= 0) break;
-                            isoFile->write(buffer, read);
-                            remaining -= read;
-                            written += read;
+                            if (read <= 0) {
+                                g_system->printf(_("ISO replace: failed while reading replacement file.\n"));
+                                co_return;
+                            }
+                            auto wrote = isoFile->write(buffer, read);
+                            if (wrote != read) {
+                                g_system->printf(_("ISO replace: failed while writing to ISO.\n"));
+                                co_return;
+                            }
+                            remaining -= static_cast<uint32_t>(read);
+                            written += static_cast<uint32_t>(read);
                             if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
                                 self->m_extractionProgress = (float)written / (float)originalSize;
                                 co_yield self->m_extractionCoroutine.awaiter();
@@ -662,9 +720,13 @@ significantly by caching the files beforehand.)"));
                             uint32_t padRemaining = originalSize - written;
                             while (padRemaining > 0) {
                                 uint32_t chunk = std::min(padRemaining, (uint32_t)sizeof(zeros));
-                                isoFile->write(zeros, chunk);
-                                padRemaining -= chunk;
-                                written += chunk;
+                                auto wrote = isoFile->write(zeros, chunk);
+                                if (wrote != static_cast<ssize_t>(chunk)) {
+                                    g_system->printf(_("ISO replace: failed while zero-padding ISO.\n"));
+                                    co_return;
+                                }
+                                padRemaining -= static_cast<uint32_t>(wrote);
+                                written += static_cast<uint32_t>(wrote);
                                 if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
                                     self->m_extractionProgress = (float)written / (float)originalSize;
                                     co_yield self->m_extractionCoroutine.awaiter();
@@ -673,7 +735,7 @@ significantly by caching the files beforehand.)"));
                             }
                         }
                         self->m_extractionProgress = 1.0f;
-                    }(this, isoPtr, lba, originalSize, srcPath);
+                    }(this, isoPtr, lba, originalSize, mode, srcPath);
                 }
             }
         }

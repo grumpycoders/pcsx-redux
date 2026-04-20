@@ -93,14 +93,12 @@ local function createIsoReaderWrapper(isoReader)
             local result = {}
             for i = 0, count - 1 do
                 local name = ffi.string(C.dirEntryName(entries, i))
-                if name ~= '' and name ~= '\0' and name ~= '\1' then
-                    table.insert(result, {
-                        name = name,
-                        lba = C.dirEntryLBA(entries, i),
-                        size = C.dirEntrySize(entries, i),
-                        isDir = C.dirEntryIsDir(entries, i),
-                    })
-                end
+                table.insert(result, {
+                    name = name,
+                    lba = C.dirEntryLBA(entries, i),
+                    size = C.dirEntrySize(entries, i),
+                    isDir = C.dirEntryIsDir(entries, i),
+                })
             end
             return result
         end,

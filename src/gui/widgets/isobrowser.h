@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "cdrom/iso9660-reader.h"
@@ -32,6 +33,7 @@
 #include "support/coroutine.h"
 #include "support/file.h"
 #include "support/list.h"
+#include "supportpsx/iec-60908b.h"
 #include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
@@ -67,6 +69,7 @@ class IsoBrowser {
     ISO9660LowLevel::DirEntry m_selectedEntry;
     uint32_t m_selectedLBA = 0;
     uint32_t m_selectedSize = 0;
+    IEC60908b::SectorMode m_selectedMode = IEC60908b::SectorMode::GUESS;
     bool m_hasSelection = false;
     bool m_selectedIsDir = false;
     bool m_selectedIsGap = false;
@@ -97,7 +100,8 @@ class IsoBrowser {
 
     void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
     void drawFilesystemFlat();
-    void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
+    void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
+                            std::unordered_set<uint32_t>& visitedDirs);
     Coroutine<> scanAllGaps(std::shared_ptr<CDRIso> iso);
 
     FileDialog<> m_openIsoFileDialog;
