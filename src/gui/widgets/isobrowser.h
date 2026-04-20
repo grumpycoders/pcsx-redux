@@ -98,7 +98,8 @@ class IsoBrowser {
     Coroutine<> m_gapScanCoroutine;
     float m_gapScanProgress = 0.0f;
 
-    void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path);
+    void drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
+                            std::unordered_set<uint32_t>& visitedDirs);
     void drawFilesystemFlat();
     void collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
                             std::unordered_set<uint32_t>& visitedDirs);

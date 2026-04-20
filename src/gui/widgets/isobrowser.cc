@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 
 #include "cdrom/cdriso.h"
 #include "cdrom/ppf.h"
@@ -57,7 +58,8 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
     m_fullCRC = fullCRC;
 };
 
-void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path) {
+void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
+                                                     std::unordered_set<uint32_t>& visitedDirs) {
     auto entries = m_reader->listAllEntriesFrom(entry);
 
     for (auto& [dirEntry, xa] : entries) {
@@ -79,7 +81,10 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
             ImGui::TableSetColumnIndex(2);
             ImGui::TextUnformatted(_("<DIR>"));
             if (open) {
-                drawFilesystemTree(dirEntry, fullPath);
+                // Guard against malformed ISOs with directory cycles pointing back to an ancestor.
+                if (visitedDirs.insert(lba).second) {
+                    drawFilesystemTree(dirEntry, fullPath, visitedDirs);
+                }
                 ImGui::TreePop();
             }
         } else {
@@ -636,18 +641,32 @@ significantly by caching the files beforehand.)"));
                                                std::string dest) -> Coroutine<> {
                         auto time = std::chrono::steady_clock::now();
                         IO<File> src(new CDRIsoFile(iso, lba, size, mode));
+                        if (src->failed()) {
+                            g_system->printf(_("ISO extract: failed to open source region.\n"));
+                            co_return;
+                        }
                         IO<File> out(new UvFile(dest, FileOps::TRUNCATE));
-                        if (out->failed()) co_return;
+                        if (out->failed()) {
+                            g_system->printf(_("ISO extract: failed to open destination file.\n"));
+                            co_return;
+                        }
                         uint8_t buffer[2048];
                         uint32_t remaining = size;
                         uint32_t written = 0;
                         while (remaining > 0) {
                             uint32_t chunk = std::min(remaining, (uint32_t)sizeof(buffer));
                             auto read = src->read(buffer, chunk);
-                            if (read <= 0) break;
-                            out->write(buffer, read);
-                            remaining -= read;
-                            written += read;
+                            if (read <= 0) {
+                                g_system->printf(_("ISO extract: failed while reading ISO data.\n"));
+                                co_return;
+                            }
+                            auto wrote = out->write(buffer, read);
+                            if (wrote != read) {
+                                g_system->printf(_("ISO extract: failed while writing destination file.\n"));
+                                co_return;
+                            }
+                            remaining -= static_cast<uint32_t>(read);
+                            written += static_cast<uint32_t>(read);
                             if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
                                 self->m_extractionProgress = (float)written / (float)size;
                                 co_yield self->m_extractionCoroutine.awaiter();
@@ -752,7 +771,9 @@ significantly by caching the files beforehand.)"));
                 ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
                 ImGui::TableHeadersRow();
-                drawFilesystemTree(m_reader->getRootDirEntry(), "");
+                std::unordered_set<uint32_t> visitedDirs;
+                visitedDirs.insert(m_reader->getRootDirEntry().get<ISO9660LowLevel::DirEntry_LBA>());
+                drawFilesystemTree(m_reader->getRootDirEntry(), "", visitedDirs);
                 ImGui::EndTable();
             }
         }
@@ -780,13 +801,20 @@ significantly by caching the files beforehand.)"));
         }
         auto size = inst.m_file->size();
         inst.m_editor.ReadFn = [&inst](size_t off) -> ImU8 {
-            ImU8 b;
-            inst.m_file->readAt(&b, 1, off);
+            ImU8 b = 0;
+            auto r = inst.m_file->readAt(&b, 1, off);
+            if (r != 1) b = 0;
             return b;
         };
         inst.m_editor.WriteFn = [&inst](size_t off, ImU8 d) { inst.m_file->writeAt(&d, 1, off); };
         inst.m_editor.Cache.BulkReadFn = [&inst](void* dest, size_t off, size_t len) {
-            inst.m_file->readAt(dest, len, off);
+            auto r = inst.m_file->readAt(dest, len, off);
+            // Zero-fill anything we didn't read so stale buffer contents
+            // never leak into the hex view on short reads or errors.
+            if (r < 0) r = 0;
+            if (static_cast<size_t>(r) < len) {
+                std::memset(static_cast<uint8_t*>(dest) + r, 0, len - static_cast<size_t>(r));
+            }
         };
         inst.m_editor.DrawWindow(inst.m_title.c_str(), size);
         ++it;
