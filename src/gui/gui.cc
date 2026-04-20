@@ -54,11 +54,11 @@ extern "C" {
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
-#include "core/ramlogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/ramlogger.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
@@ -787,7 +787,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = l_("BIOS");
     m_vramEditor.title = l_("VRAM");
-    auto makeExportFn = [this](MemoryEditorWrapper &wrapper, std::string postfixName) {
+    auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
             std::filesystem::path writeFilepath =
                 g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
@@ -1571,13 +1571,13 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_ramViewer.m_show) {
-        auto *ramLogger = g_emulator->m_ramLogger.get();
+        auto* ramLogger = g_emulator->m_ramLogger.get();
         if (!ramLogger->isEnabled()) ramLogger->enable();
         ramLogger->uploadRAM();
         ramLogger->uploadHeatmaps();
         m_ramViewer.draw(this);
     } else {
-        auto *ramLogger = g_emulator->m_ramLogger.get();
+        auto* ramLogger = g_emulator->m_ramLogger.get();
         if (ramLogger->isEnabled()) ramLogger->disable();
     }
 

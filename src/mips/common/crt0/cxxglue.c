@@ -231,6 +231,4 @@ __attribute__((weak)) void __cxa_guard_release(uint32_t* guardObject) {
     atomic_signal_fence(memory_order_release);
 }
 
-__attribute__((weak)) void _ZSt24__throw_out_of_range_fmtPKcz(const char* format, ...) {
-    abort();
-}
+__attribute__((weak)) void _ZSt24__throw_out_of_range_fmtPKcz(const char* format, ...) { abort(); }

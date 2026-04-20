@@ -19,41 +19,46 @@
 
 // GTE COP2 data transfer operations: MFC2, MTC2, CFC2, CTC2, LWC2, SWC2.
 
-#include "core/gte.h"
 #include "core/gte-internal.h"
+#include "core/gte.h"
 #include "core/psxmem.h"
 
 using namespace PCSX::GTEImpl;
 
-uint32_t PCSX::GTE::MFC2(uint32_t code) {
-    return MFC2(static_cast<int>(_Rd_));
-}
+uint32_t PCSX::GTE::MFC2(uint32_t code) { return MFC2(static_cast<int>(_Rd_)); }
 
 uint32_t PCSX::GTE::MFC2(int reg) {
     auto* d = dataRegs();
     switch (reg) {
-        case 1: case 3: case 5:
-        case 8: case 9: case 10: case 11:
+        case 1:
+        case 3:
+        case 5:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
             d[reg].d = static_cast<int32_t>(d[reg].sw.l);
             break;
-        case 7: case 16: case 17: case 18: case 19:
+        case 7:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
             d[reg].d = static_cast<uint32_t>(d[reg].w.l);
             break;
         case 15:
             d[reg].d = sxy2();
             break;
-        case 28: case 29:
-            d[reg].d = lim(ir1() >> 7, 0x1f, 0, 0) |
-                       (lim(ir2() >> 7, 0x1f, 0, 0) << 5) |
-                       (lim(ir3() >> 7, 0x1f, 0, 0) << 10);
+        case 28:
+        case 29:
+            d[reg].d =
+                lim(ir1() >> 7, 0x1f, 0, 0) | (lim(ir2() >> 7, 0x1f, 0, 0) << 5) | (lim(ir3() >> 7, 0x1f, 0, 0) << 10);
             break;
     }
     return d[reg].d;
 }
 
-uint32_t PCSX::GTE::CFC2(uint32_t code) {
-    return ctrlRegs()[_Rd_].d;
-}
+uint32_t PCSX::GTE::CFC2(uint32_t code) { return ctrlRegs()[_Rd_].d; }
 
 void PCSX::GTE::MTC2(uint32_t value, int reg) {
     auto* d = dataRegs();
@@ -77,14 +82,17 @@ void PCSX::GTE::MTC2(uint32_t value, int reg) {
     d[reg].d = value;
 }
 
-void PCSX::GTE::MTC2(uint32_t code) {
-    MTC2(g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_);
-}
+void PCSX::GTE::MTC2(uint32_t code) { MTC2(g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_); }
 
 void PCSX::GTE::CTC2(uint32_t value, int reg) {
     switch (reg) {
-        case 4: case 12: case 20:
-        case 26: case 27: case 29: case 30:
+        case 4:
+        case 12:
+        case 20:
+        case 26:
+        case 27:
+        case 29:
+        case 30:
             value = static_cast<int32_t>(static_cast<int16_t>(value));
             break;
         case 31:
@@ -95,9 +103,7 @@ void PCSX::GTE::CTC2(uint32_t value, int reg) {
     ctrlRegs()[reg].d = value;
 }
 
-void PCSX::GTE::CTC2(uint32_t code) {
-    CTC2(g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_);
-}
+void PCSX::GTE::CTC2(uint32_t code) { CTC2(g_emulator->m_cpu->m_regs.GPR.r[_Rt_], _Rd_); }
 
 void PCSX::GTE::LWC2(uint32_t code) {
     uint32_t addr = g_emulator->m_cpu->m_regs.GPR.r[_Rs_] + _Imm_;

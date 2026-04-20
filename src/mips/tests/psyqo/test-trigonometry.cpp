@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/trigonometry.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;

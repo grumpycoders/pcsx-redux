@@ -79,10 +79,7 @@ local function createIsoReaderWrapper(isoReader)
             local count = C.gapListCount(gapList)
             local result = {}
             for i = 0, count - 1 do
-                table.insert(result, {
-                    lba = C.gapEntryLBA(gapList, i),
-                    sectors = C.gapEntrySectors(gapList, i),
-                })
+                table.insert(result, { lba = C.gapEntryLBA(gapList, i), sectors = C.gapEntrySectors(gapList, i) })
             end
             return result
         end,
