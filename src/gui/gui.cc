@@ -1310,15 +1310,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
-                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
-                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
-                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
+                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                    setFullscreen(m_fullscreen);
+                    m_setupScreenSize = true;
                 }
-                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
-                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
-                ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
-                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
+                if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
+                    m_setupScreenSize = true;
+                    // full window render mode can't have anything docked in the dockspace
+                    ImGui::DockContextClearNodes(context, dockspaceId, true);
+                }
+                ImGui::Separator();
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
                         setDefaultShaders();
@@ -1354,7 +1355,19 @@ void PCSX::GUI::endFrame() {
                     m_offscreenShaderEditor.setConfigure();
                     m_outputShaderEditor.setConfigure();
                 }
+                ImGui::Separator();
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
+                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
+                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
+                }
+                ImGui::Separator();
+                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
+                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
+                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
+                ImGui::Separator();
+                ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1453,15 +1466,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Rendering"))) {
-                    if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
-                        m_setupScreenSize = true;
-                        // full window render mode can't have anything docked in the dockspace
-                        ImGui::DockContextClearNodes(context, dockspaceId, true);
-                    }
-                    if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
-                        setFullscreen(m_fullscreen);
-                        m_setupScreenSize = true;
-                    }
                     ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                     ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                     if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
