@@ -21,6 +21,7 @@
 
 #include "core/cdrom.h"
 #include "core/debug.h"
+#include "core/system.h"
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -143,18 +144,19 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
 
     // Get the filename prefix to use, which follows the typical save state format, with a separator between gameID and
     // name
-    std::string prefix = gui->getSaveStatePrefix(true);
+    std::string prefix = gui->getSaveStatePrefix(false);
     std::string postfix = gui->getSaveStatePostfix();
 
     // Loop the root directory
     std::error_code ec;
-    if (std::filesystem::exists(std::filesystem::current_path(), ec)) {
-        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path(), ec)) {
+    std::filesystem::path save_path = g_system->getPersistentDir() / prefix;
+    if (std::filesystem::exists(save_path, ec)) {
+        for (const auto& entry : std::filesystem::directory_iterator(save_path, ec)) {
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().filename().string();
-                if (filename.find(prefix) == 0 && filename.rfind(postfix) == filename.length() - postfix.length()) {
+                if (filename.rfind(postfix) == filename.length() - postfix.length()) {
                     std::string niceName =
-                        filename.substr(prefix.length(), filename.length() - (prefix.length() + postfix.length()));
+                        filename.substr(0, filename.length() - (postfix.length()));
                     // Only support names that fit within the character limit
                     if (niceName.length() < NAMED_SAVE_STATE_LENGTH_MAX) {
                         names.emplace_back(entry.path(), niceName);
@@ -183,8 +185,21 @@ bool PCSX::Widgets::NamedSaveStates::deleteSaveState(GUI* gui, std::filesystem::
 }
 
 std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* gui, std::string saveStateName) {
-    std::string pathStr =
-        fmt::format("{}{}{}", gui->getSaveStatePrefix(true), saveStateName, gui->getSaveStatePostfix());
+
+    // Check sub-folder for active game exists.
+    std::error_code ec;
+    std::string sub_folder = gui->getSaveStatePrefix(false);
+    std::filesystem::path base_path = g_system->getPersistentDir() / sub_folder;
+    if (!std::filesystem::exists(base_path, ec)) {
+        std::filesystem::create_directory(base_path);
+        g_system->log(LogClass::UI, "Created save state folder: %s\n", sub_folder.c_str());
+    }
+
+    // Merge base_path with the potential save-state name.
+    base_path = base_path / saveStateName;
+
+    // Append file format.
+    std::string pathStr = fmt::format("{}{}", base_path.string(), gui->getSaveStatePostfix());
     return std::filesystem::path(pathStr);
 }
 
