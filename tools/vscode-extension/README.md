@@ -18,6 +18,11 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.4.0
+  - Fixed installation issues with MacOS Sequoia.
+  - Bumping gcc to 15.2.0
+  - Bumping binutils to 2.45
+  - Fixed installation issues with Windows MIPS toolchain when PowerShell is the default shell.
 - 0.3.9
   - Fixed cube psyqo template's null pointer exception.
   - Improved MacOS mips toolchain installation process.
