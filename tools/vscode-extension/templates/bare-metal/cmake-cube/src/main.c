@@ -311,10 +311,10 @@ int main(int argc, const char **argv) {
             &font,
             16,
             24,
-            0,
+             0,
             "PSX.Dev / ps1-bare-metal CMake example\n"
             "PCSX-Redux project\n"
-            "https://bit.ly/pcsx-redux\n"
+            "https://github.com/grumpycoders/pcsx-redux\n"
             "https://github.com/spicyjpeg/ps1-bare-metal"
         );
 

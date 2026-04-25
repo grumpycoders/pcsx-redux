@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include "ps1/gpucmd.h"
 
-// In order for Z averaging to work properly, ORDERING_TABLE_SIZE should be set
-// to either a relatively high value (1024 or more) or a multiple of 12; see
+// In order for Z averaging to work properly, GPU_ORDERING_TABLE_SIZE should be
+// set to either a relatively high value (1024 or more) or a multiple of 12; see
 // setupGTE() for more details. Higher values will take up more memory but are
 // required to render more complex scenes with wide depth ranges correctly.
 #define GPU_CHAIN_BUFFER_SIZE   1024
