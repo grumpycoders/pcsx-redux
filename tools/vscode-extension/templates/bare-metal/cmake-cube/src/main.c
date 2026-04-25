@@ -24,7 +24,7 @@
 // that fractional values will be stored as integers by multiplying them by a
 // fixed unit, in this case 4096 or 1 << 12 (hence making the fractional part 12
 // bits long). We'll define this unit value to make their handling easier.
-#define ONE (1 << 12)
+#define GTE_UNIT (1 << 12)
 
 static void setupGTE(int width, int height) {
     // Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
@@ -50,8 +50,8 @@ static void setupGTE(int width, int height) {
     // be sorted into. This will work best if the ordering table length is a
     // multiple of 12 (i.e. both 3 and 4) or high enough to make any rounding
     // error negligible.
-    gte_setControlReg(GTE_ZSF3, ORDERING_TABLE_SIZE / 3);
-    gte_setControlReg(GTE_ZSF4, ORDERING_TABLE_SIZE / 4);
+    gte_setControlReg(GTE_ZSF3, GPU_ORDERING_TABLE_SIZE / 3);
+    gte_setControlReg(GTE_ZSF4, GPU_ORDERING_TABLE_SIZE / 4);
 }
 
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
@@ -64,24 +64,24 @@ static void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
     // done one column at a time, as the GTE only supports multiplying a matrix
     // by a vector using the MVMVA command.
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V0 | GTE_CV_NONE);
-    output->values[0][0] = gte_getDataReg(GTE_IR1);
-    output->values[1][0] = gte_getDataReg(GTE_IR2);
-    output->values[2][0] = gte_getDataReg(GTE_IR3);
+    output->values[0][0] = (int16_t) gte_getDataReg(GTE_IR1);
+    output->values[1][0] = (int16_t) gte_getDataReg(GTE_IR2);
+    output->values[2][0] = (int16_t) gte_getDataReg(GTE_IR3);
 
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V1 | GTE_CV_NONE);
-    output->values[0][1] = gte_getDataReg(GTE_IR1);
-    output->values[1][1] = gte_getDataReg(GTE_IR2);
-    output->values[2][1] = gte_getDataReg(GTE_IR3);
+    output->values[0][1] = (int16_t) gte_getDataReg(GTE_IR1);
+    output->values[1][1] = (int16_t) gte_getDataReg(GTE_IR2);
+    output->values[2][1] = (int16_t) gte_getDataReg(GTE_IR3);
 
     gte_command(GTE_CMD_MVMVA | GTE_SF | GTE_MX_RT | GTE_V_V2 | GTE_CV_NONE);
-    output->values[0][2] = gte_getDataReg(GTE_IR1);
-    output->values[1][2] = gte_getDataReg(GTE_IR2);
-    output->values[2][2] = gte_getDataReg(GTE_IR3);
+    output->values[0][2] = (int16_t) gte_getDataReg(GTE_IR1);
+    output->values[1][2] = (int16_t) gte_getDataReg(GTE_IR2);
+    output->values[2][2] = (int16_t) gte_getDataReg(GTE_IR3);
 }
 
 static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
     static GTEMatrix multiplied;
-    int              s, c;
+    int s, c;
 
     // For each axis, compute the rotation matrix then "combine" it with the
     // GTE's current matrix by multiplying the two and writing the result back
@@ -91,9 +91,9 @@ static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
         c = icos(yaw);
 
         gte_setColumnVectors(
-            c, -s,   0,
-            s,  c,   0,
-            0,  0, ONE
+            c, -s,        0,
+            s,  c,        0,
+            0,  0, GTE_UNIT
         );
         multiplyCurrentMatrixByVectors(&multiplied);
         gte_loadRotationMatrix(&multiplied);
@@ -103,9 +103,9 @@ static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
         c = icos(pitch);
 
         gte_setColumnVectors(
-             c,   0, s,
-             0, ONE, 0,
-            -s,   0, c
+             c,        0, s,
+             0, GTE_UNIT, 0,
+            -s,        0, c
         );
         multiplyCurrentMatrixByVectors(&multiplied);
         gte_loadRotationMatrix(&multiplied);
@@ -115,9 +115,9 @@ static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
         c = icos(roll);
 
         gte_setColumnVectors(
-            ONE, 0,  0,
-              0, c, -s,
-              0, s,  c
+            GTE_UNIT, 0,  0,
+                   0, c, -s,
+                   0, s,  c
         );
         multiplyCurrentMatrixByVectors(&multiplied);
         gte_loadRotationMatrix(&multiplied);
@@ -173,8 +173,8 @@ static const Face cubeFaces[NUM_CUBE_FACES] = {
 
 #define SCREEN_WIDTH     320
 #define SCREEN_HEIGHT    240
-#define FONT_WIDTH       96
-#define FONT_HEIGHT      56
+#define FONT_WIDTH        96
+#define FONT_HEIGHT       56
 #define FONT_COLOR_DEPTH GP0_COLOR_4BPP
 
 extern const uint8_t fontTexture[], fontPalette[];
@@ -192,37 +192,38 @@ int main(int argc, const char **argv) {
 
     setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    DMA_DPCR |= 0
-        | DMA_DPCR_CH_ENABLE(DMA_GPU)
-        | DMA_DPCR_CH_ENABLE(DMA_OTC);
-
-    GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
-    GPU_GP1 = gp1_dispBlank(false);
-
     // Upload the font texture to VRAM.
     TextureInfo font;
 
     uploadIndexedTexture(
-        &font, fontTexture, fontPalette, SCREEN_WIDTH * 2, 0, SCREEN_WIDTH * 2,
-        FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, FONT_COLOR_DEPTH
+        &font,
+        fontTexture,
+        fontPalette,
+        SCREEN_WIDTH * 2,
+        0,
+        SCREEN_WIDTH * 2,
+        FONT_HEIGHT,
+        FONT_WIDTH,
+        FONT_HEIGHT,
+        FONT_COLOR_DEPTH
     );
 
-    DMAChain dmaChains[2];
-    bool     usingSecondFrame = false;
-    int      frameCounter     = 0;
+    GPUDMAChain dmaChains[2];
+    bool        usingSecondFrame = false;
+    int         frameCounter     = 0;
 
     for (;;) {
         int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
         int bufferY = 0;
 
-        DMAChain *chain  = &dmaChains[usingSecondFrame];
-        usingSecondFrame = !usingSecondFrame;
+        GPUDMAChain *chain = &dmaChains[usingSecondFrame];
+        usingSecondFrame   = !usingSecondFrame;
 
         uint32_t *ptr;
 
         GPU_GP1 = gp1_fbOffset(bufferX, bufferY);
 
-        clearOrderingTable(chain->orderingTable, ORDERING_TABLE_SIZE);
+        clearOrderingTable(chain->orderingTable, GPU_ORDERING_TABLE_SIZE);
         chain->nextPacket = chain->data;
 
         // Reset the GTE's translation vector (added to each vertex) and
@@ -233,9 +234,9 @@ int main(int argc, const char **argv) {
         gte_setControlReg(GTE_TRY,   0);
         gte_setControlReg(GTE_TRZ, 128);
         gte_setRotationMatrix(
-            ONE,   0,   0,
-              0, ONE,   0,
-              0,   0, ONE
+            GTE_UNIT,        0,        0,
+                   0, GTE_UNIT,        0,
+                   0,        0, GTE_UNIT
         );
 
         rotateCurrentMatrix(0, frameCounter * 16, frameCounter * 12);
@@ -255,10 +256,12 @@ int main(int argc, const char **argv) {
 
             // Determine the winding order of the vertices on screen. If they
             // are ordered clockwise then the face is visible, otherwise it can
-            // be skipped as it is not facing the camera.
+            // be culled as it is not facing the camera. Note that
+            // gte_getDataReg() always returns a 32-bit unsigned value, but most
+            // GTE registers should be interpreted as signed.
             gte_command(GTE_CMD_NCLIP);
 
-            if (gte_getDataReg(GTE_MAC0) <= 0)
+            if (((int) gte_getDataReg(GTE_MAC0)) <= 0)
                 continue;
 
             // Save the first transformed vertex (the GTE only keeps the X/Y
@@ -273,14 +276,14 @@ int main(int argc, const char **argv) {
             // Calculate the average Z coordinate of all vertices and use it to
             // determine the ordering table bucket index for this face.
             gte_command(GTE_CMD_AVSZ4 | GTE_SF);
-            int zIndex = gte_getDataReg(GTE_OTZ);
+            int zIndex = (int) gte_getDataReg(GTE_OTZ);
 
-            if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
+            if ((zIndex < 0) || (zIndex >= GPU_ORDERING_TABLE_SIZE))
                 continue;
 
             // Create a new quad and give its vertices the X/Y coordinates
             // calculated by the GTE.
-            ptr    = allocatePacket(chain, zIndex, 5);
+            ptr    = allocateGP0Packet(chain, zIndex, 5);
             ptr[0] = face->color | gp0_shadedQuad(false, false, false);
             ptr[1] = xy0;
             gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
@@ -288,30 +291,36 @@ int main(int argc, const char **argv) {
             gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
         }
 
-        ptr    = allocatePacket(chain, ORDERING_TABLE_SIZE - 1, 3);
+        ptr    = allocateGP0Packet(chain, GPU_ORDERING_TABLE_SIZE - 1, 3);
         ptr[0] = gp0_rgb(64, 64, 64) | gp0_vramFill();
         ptr[1] = gp0_xy(bufferX, bufferY);
         ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        ptr    = allocatePacket(chain, ORDERING_TABLE_SIZE - 1, 4);
-        ptr[0] = gp0_texpage(0, true, false);
+        ptr    = allocateGP0Packet(chain, GPU_ORDERING_TABLE_SIZE - 1, 4);
+        ptr[0] = gp0_setPage(0, true, false);
         ptr[1] = gp0_fbOffset1(bufferX, bufferY);
         ptr[2] = gp0_fbOffset2(
-            bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+            bufferX + SCREEN_WIDTH  - 1,
+            bufferY + SCREEN_HEIGHT - 1
         );
         ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 
         // Draw some text in front of the cube.
         printString(
-            chain, &font, 16, 32, 0,
-            "PSX.Dev bare-metal CMake example\n"
+            chain,
+            &font,
+            16,
+            24,
+            0,
+            "PSX.Dev / ps1-bare-metal CMake example\n"
             "PCSX-Redux project\n"
-            "https://bit.ly/pcsx-redux"
+            "https://bit.ly/pcsx-redux\n"
+            "https://github.com/spicyjpeg/ps1-bare-metal"
         );
 
         waitForGP0Ready();
         waitForVSync();
-        sendLinkedList(&(chain->orderingTable)[ORDERING_TABLE_SIZE - 1]);
+        sendGPULinkedList(&(chain->orderingTable)[GPU_ORDERING_TABLE_SIZE - 1]);
     }
 
     return 0;
