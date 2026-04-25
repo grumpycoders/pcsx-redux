@@ -34,9 +34,19 @@ SOFTWARE.
 // this inconsistency, we are going to always use an inline function for this
 // purpose. This additionally lets us easily stub out all watchdog calls for
 // non-573 builds in a single place.
-static inline void clearWatchdog() {
+static __inline__ void clearWatchdog() {
 #ifdef OPENBIOS_BOARD_SYS573
     SYS573_WATCHDOG = 0;
+#endif
+}
+
+// Similar to the case above. The ZN kernel clears these registers in a few
+// different places but they are all gathered here for simplicity's sake.
+static __inline__ void clearZNRegisters() {
+#ifdef OPENBIOS_BOARD_ZN
+    ZN_SIO0_MUX = 0;
+    ZN_COIN_CTRL = 0;
+    ZN_IRQ10_MUX = 0;
 #endif
 }
 

@@ -32,7 +32,8 @@ The Makefile features several toggles to mutate the way the compilation works. D
 
 - `BUILD=SmallDebug` will produce a working, yet somewhat debuggable version of the code.
 - `BOOT=cart` will build the kernel as an expansion port ROM, bootable from an Action Replay or similar cheat carts. This will disable support for booting from a cart in order to prevent bootlooping.
-- `BOARD=system573` will build a kernel that can run on the Konami System 573 arcade board. Note that this option is only useful alongside `EMBED_PSEXE`, as it will force `BOOT=rom` and `BOOT_MODE=psexe` due to the 573's different CD-ROM hardware.
+- `BOARD=system573` will build a kernel that can run on the Konami System 573 arcade board. This option is only useful alongside `EMBED_PSEXE`, as it will force `BOOT=rom` and `BOOT_MODE=psexe`; as with Konami's BIOS, game booting is not implemented in the kernel and must be handled by a custom shell.
+- `BOARD=zn` will build a kernel that can run on the Sony ZN-1 arcade board (ZN-2 support is currently broken and needs further testing). This option is only useful alongside `EMBED_PSEXE`, as it will force `BOOT=rom` and `BOOT_MODE=psexe`; unlike the official ZN BIOSes, OpenBIOS does *not* implement game decryption and booting in the kernel.
 - `EMBED_PSEXE=binary.ps-exe` will embed the specified executable into the kernel and run it before the shell.
 - `BOOT_MODE=fast` will skip running the shell and try booting from the CD-ROM after the embedded executable returns, or immediately on boot if `EMBED_PSEXE` is not used. Note that the code will *not* wait for a disc to be inserted after the executable returns. The old `FASTBOOT=true` option is kept for compatibility and is equivalent to `BOOT_MODE=fast`.
 - `BOOT_MODE=psexe` will remove the shell and CD-ROM boot code altogether. This is meant to be used alongside `EMBED_PSEXE` to build ROMs for arcade systems and such, which typically use non-standard storage devices and require a custom shell.
@@ -53,7 +54,7 @@ While the first part is the main one that's being targeted here, the second one 
 
 The original code was most likely chunked into several sub-projects, that were all linked together like a giant patchwork. This approach is less readable, and for this reason, we're not going to do this. However this will result in the ROM/RAM split to be less obvious, and slower at times than the original. Tuning of the hot functions is eventually required.
 
-The startup point for the ROM version is the function `_reset` located in [`boot/psx.s`](boot/psx.s) (or [`boot/system573.s`](boot/system573.s) depending on which board the kernel is compiled for). The rom cart version is the function `_cartBoot` in the same file.
+The startup point for the ROM version is the function `_reset` located in [`boot/psx.s`](boot/psx.s) (or [`system573.s`](boot/system573.s) or [`zn.s`](boot/zn.s) depending on which board the kernel is compiled for). The rom cart version is the function `_cartBoot` in the same file.
 
 ## Direction
 

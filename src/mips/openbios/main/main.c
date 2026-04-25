@@ -70,11 +70,10 @@ void bootThunk() {
 }
 
 int main() {
-    // RAM size
-    __globals60.ramsize = 0x02;
-    // ??
+    // __globals60.ramsize would be set here in the retail BIOS, however we have
+    // already done so in the startup code (it's easier to do it there for
+    // arcade boards - the ZN kernel does the same).
     __globals60.unk1 = 0x00;
-    // ??
     __globals60.unk2 = 0xff;
 
     POST = 0x0f;
@@ -84,14 +83,14 @@ int main() {
     // separate functions for each hook, one in charge of validating the
     // signature and the other actually jumping to the vector. For simplicity's
     // sake, both steps are combined into a call to a single function here. The
-    // 573 kernel lacks these calls completely (rather than stubbing out the
-    // function's body as done here).
+    // 573 and ZN kernels lack these calls completely (rather than stubbing out
+    // the function's body as done here).
     runExp1PreHook();
     POST = 0x0e;
 
     // Same as above, the retail BIOS lacks the drawSplashScreen() call
     // completely instead of merely stubbing out the function. Note that this
-    // functionality is in no way 573-specific, so it makes sense to allow
+    // functionality is in no way arcade-specific, so it makes sense to allow
     // enabling it regardless of the target platform.
     drawSplashScreen();
     g_installTTY = 0;
@@ -296,15 +295,30 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
 
 extern struct BuildId __build_id, __build_id_end;
 
+// This function is specific to the ZN kernel and prints some basic information
+// about the amount of memory installed on the board, complete with typos and a
+// hint at the fact there may have been a version of the SPU with support for
+// more than 512 KB of RAM.
+static void printBoardConfiguration() {
+#ifdef OPENBIOS_BOARD_ZN
+    uint8_t config = ZN_BOARD_CONFIG;
+    int is2MBSPURAM = (config >> 2) & 1;
+    int is2MBVRAM = (config >> 3) & 1;
+    int revision = (config >> 5) & 7;
+    psxprintf("Borad Configuration: %02x (rev=%d,mem=%dM,smem=%cM,vmem=%dM)\n", config, revision - 2,
+              __globals60.ramsize, is2MBSPURAM ? '2' : 'h', is2MBVRAM + 1);
+#endif
+}
+
 static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 1;
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
+    clearZNRegisters();
     POST = 2;
     // The 573 kernel kicks the watchdog before, after and in the middle of
     // copyDataAndInitializeBSS(), as it is by far the slowest part of the
-    // initialization sequence. clearWatchdog() is an inline function that does
-    // nothing in non-573 builds (see main.h).
+    // initialization sequence.
     clearWatchdog();
     copyDataAndInitializeBSS();
     POST = 3;
@@ -339,9 +353,10 @@ static void boot(char *systemCnfPath, char *binaryPath) {
             }
             buildIDstring[count * 2] = 0;
         }
-        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2025 PCSX-Redux authors.\n",
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2026 PCSX-Redux authors.\n",
                   buildIDstring);
     }
+    printBoardConfiguration();
     POST = 6;
     muteSpu();
     s_configuration = g_defaultConfiguration;

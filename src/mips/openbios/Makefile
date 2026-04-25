@@ -88,19 +88,23 @@ uC-sdk-glue/init.c \
 
 # Ensure all files are always cleaned up.
 ifeq ($(MAKECMDGOALS),clean)
-SRCS += boot/psx.s boot/system573.s font1.o font2.o ./psexe_data.o
+SRCS += boot/psx.s boot/system573.s boot/zn.s font1.o font2.o ./psexe_data.o
 endif
 ifeq ($(MAKECMDGOALS),deepclean)
-SRCS += boot/psx.s boot/system573.s font1.o font2.o ./psexe_data.o
+SRCS += boot/psx.s boot/system573.s boot/zn.s font1.o font2.o ./psexe_data.o
 endif
 
 CPPFLAGS =
 
-ifeq ($(BOARD),system573)
-CPPFLAGS += -DOPENBIOS_BOARD_SYS573
-# The 573 does not support CD-ROM or cheat cart booting.
+ifneq ($(BOARD),psx)
+# Disable cheat cart builds and CD-ROM/shell support for arcade boards.
 BOOT = rom
 BOOT_MODE = psexe
+ifeq ($(BOARD),system573)
+CPPFLAGS += -DOPENBIOS_BOARD_SYS573
+else ifeq ($(BOARD),zn)
+CPPFLAGS += -DOPENBIOS_BOARD_ZN
+endif
 endif
 
 ifeq ($(BOOT),rom)

@@ -212,6 +212,10 @@ bss_init_skip:
     li    $t0, 0xb88
     sw    $t0, RAM_SIZE
 
+    /* set __globals60.ramsize to 2 MB */
+    li    $t0, 2
+    sw    $t0, 0x60($0)
+
     jal   _ucsdk_start
 
     li    $t0, 0x1f802080
