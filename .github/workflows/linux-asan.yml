@@ -5,6 +5,11 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   asan:
@@ -15,13 +20,10 @@ jobs:
         TEST_RESULTS: /tmp/test-results
         BUILD: asan
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           set-safe-directory: true
-      - uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/openbios -j 2 BUILD=Release

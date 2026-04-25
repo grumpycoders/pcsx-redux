@@ -54,6 +54,7 @@ extern "C" {
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
+#include "core/ramlogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -178,7 +179,7 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_openArchiveDialog(l_("Open Archive"), favorites),
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
-      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites),
+      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
@@ -553,6 +554,8 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
+        m_enableSplashScreen = false;
+
         glfwSwapInterval(0);
         setRawMouseMotion();
     });
@@ -784,47 +787,32 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = l_("BIOS");
     m_vramEditor.title = l_("VRAM");
-    m_vramEditor.editor.WriteFn = [](uint8_t* data, size_t offset, uint8_t writtenByte) {
-        constexpr size_t vramWidth = 1024;
-        constexpr size_t stride = vramWidth * sizeof(uint16_t);  // Number of bytes per line of VRAM
-
-        // x and y coordinates of pixel
-        const auto x = (offset % stride) / sizeof(uint16_t);
-        const auto y = offset / stride;
-        const bool offsetIsOdd = (offset & 1) == 1;
-        const auto maskedOffset = offset & ~1;
-        uint16_t newPixel;
-
-        if (offsetIsOdd) {
-            newPixel = (writtenByte << 8) | data[maskedOffset];
-        } else {
-            newPixel = writtenByte | (data[maskedOffset] << 8);
-        }
-
-        g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
+    auto makeExportFn = [this](MemoryEditorWrapper &wrapper, std::string postfixName) {
+        return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
+            std::filesystem::path writeFilepath =
+                g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
+            IO<File> out(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
+            if (!out->failed()) {
+                std::vector<uint8_t> buf(len);
+                if (wrapper.editor.Cache.BulkReadFn) {
+                    wrapper.editor.Cache.BulkReadFn(buf.data(), 0, len);
+                }
+                out->write(buf.data(), len);
+                out->close();
+                g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
+            } else {
+                g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
+            }
+        };
     };
-
-    auto exportFn = [this](ImU8* data, size_t len, size_t base_addr, std::string postfixName) {
-        std::filesystem::path writeFilepath =
-            g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
-        IO<File> f(new PosixFile(writeFilepath.string(), FileOps::TRUNCATE));
-        if (!f->failed()) {
-            f->write(data, len);
-            f->close();
-            g_system->log(LogClass::UI, "Memory exported to: %s\n", writeFilepath.string().c_str());
-        } else {
-            g_system->log(LogClass::UI, "Failed to export memory to: %s\n", writeFilepath.string().c_str());
-        }
-    };
-#define EXPORT_FUNC(name) [=](ImU8* data, size_t len, size_t base_addr) { exportFn(data, len, base_addr, name); }
     for (auto& editor : m_mainMemEditors) {
-        editor.editor.ExportFn = EXPORT_FUNC("wram");
+        editor.editor.ExportFn = makeExportFn(editor, "wram");
     }
-    m_parallelPortEditor.editor.ExportFn = EXPORT_FUNC("parallel");
-    m_scratchPadEditor.editor.ExportFn = EXPORT_FUNC("scratch");
-    m_hwrEditor.editor.ExportFn = EXPORT_FUNC("hwr");
-    m_biosEditor.editor.ExportFn = EXPORT_FUNC("bios");
-    m_vramEditor.editor.ExportFn = EXPORT_FUNC("vram");
+    m_parallelPortEditor.editor.ExportFn = makeExportFn(m_parallelPortEditor, "parallel");
+    m_scratchPadEditor.editor.ExportFn = makeExportFn(m_scratchPadEditor, "scratch");
+    m_hwrEditor.editor.ExportFn = makeExportFn(m_hwrEditor, "hwr");
+    m_biosEditor.editor.ExportFn = makeExportFn(m_biosEditor, "bios");
+    m_vramEditor.editor.ExportFn = makeExportFn(m_vramEditor, "vram");
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -951,16 +939,19 @@ void PCSX::GUI::startFrame() {
         glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[1]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_renderSize.x, m_renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-        if (m_clearTextures) {
-            const auto allocSize = static_cast<size_t>(std::ceil(m_renderSize.x * m_renderSize.y * sizeof(uint32_t)));
-            GLubyte* data = new GLubyte[allocSize]();
+        if (m_clearTextures || m_enableSplashScreen) {
+            m_clearTextures = false;
+            std::unique_ptr<uint32_t[]> splashImageData = getSplashScreen(m_renderSize.x, m_renderSize.y);
+
+            // Upload to both textures
             for (int i = 0; i < 2; i++) {
                 glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[i]);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_renderSize.x, m_renderSize.y, GL_RGBA, GL_UNSIGNED_BYTE,
-                                data);
+                                splashImageData.get());
             }
-            m_clearTextures = false;
-            delete[] data;
         }
 
         glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
@@ -1066,9 +1057,6 @@ void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y)
 void PCSX::GUI::flip() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_offscreenFrameBuffer);
     glBindTexture(GL_TEXTURE_2D, m_offscreenTextures[m_currentTexture]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_offscreenDepthBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_offscreenDepthBuffer);
@@ -1404,6 +1392,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
+                    ImGui::MenuItem(_("Show RAM viewer"), nullptr, &m_ramViewer.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
@@ -1455,6 +1444,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem(_("Show PSYQo heap viewer"), nullptr, &m_heapViewer.m_show);
                 ImGui::Separator();
                 if (ImGui::BeginMenu(_("Kernel"))) {
                     ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
@@ -1580,6 +1570,17 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         }
     }
 
+    if (m_ramViewer.m_show) {
+        auto *ramLogger = g_emulator->m_ramLogger.get();
+        if (!ramLogger->isEnabled()) ramLogger->enable();
+        ramLogger->uploadRAM();
+        ramLogger->uploadHeatmaps();
+        m_ramViewer.draw(this);
+    } else {
+        auto *ramLogger = g_emulator->m_ramLogger.get();
+        if (ramLogger->isEnabled()) ramLogger->disable();
+    }
+
     if (m_log.m_show) {
         ImGui::SetNextWindowPos(ImVec2(10, 540), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(1200, 250), ImGuiCond_FirstUseEver);
@@ -1614,47 +1615,70 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     {
+        IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
         unsigned counter = 0;
         for (auto& editor : m_mainMemEditors) {
             if (editor.m_show) {
                 ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-                editor.draw(g_emulator->m_mem->m_wram, 8 * 1024 * 1024);
+                editor.draw(memFile, 8 * 1024 * 1024);
             }
             counter++;
         }
         if (m_parallelPortEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_parallelPortEditor.draw(g_emulator->m_mem->m_exp1, 512 * 1024);
+            m_parallelPortEditor.draw(memFile, 512 * 1024);
         }
         counter++;
         if (m_scratchPadEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_scratchPadEditor.draw(g_emulator->m_mem->m_hard, 1024);
+            m_scratchPadEditor.draw(memFile, 1024);
         }
         counter++;
         if (m_hwrEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_hwrEditor.draw(g_emulator->m_mem->m_hard + 4 * 1024, 8 * 1024);
+            m_hwrEditor.draw(memFile, 8 * 1024);
         }
         counter++;
         if (m_biosEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_biosEditor.draw(g_emulator->m_mem->m_bios, 512 * 1024);
+            m_biosEditor.draw(memFile, 512 * 1024);
         }
         counter++;
         if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
 
-            // This const_cast is disgusting but we only use it to satisfy the type system
-            // The slice data is indeed treated as read-only
             const Slice vram = g_emulator->m_gpu->getVRAM();
-            m_vramEditor.draw(const_cast<void*>(vram.data()), vram.size());
+            auto* vramData = (const ImU8*)vram.data();
+            size_t vramSize = vram.size();
+            m_vramEditor.editor.ReadFn = [vramData](size_t off) -> ImU8 { return vramData[off]; };
+            m_vramEditor.editor.WriteFn = [vramData](size_t off, ImU8 writtenByte) {
+                constexpr size_t vramWidth = 1024;
+                constexpr size_t stride = vramWidth * sizeof(uint16_t);
+
+                const auto x = (off % stride) / sizeof(uint16_t);
+                const auto y = off / stride;
+                const bool offsetIsOdd = (off & 1) == 1;
+                const auto maskedOffset = off & ~(size_t)1;
+                uint16_t newPixel;
+
+                if (offsetIsOdd) {
+                    newPixel = (writtenByte << 8) | vramData[maskedOffset];
+                } else {
+                    newPixel = writtenByte | (vramData[maskedOffset + 1] << 8);
+                }
+
+                g_emulator->m_gpu->partialUpdateVRAM(x, y, 1, 1, &newPixel);
+            };
+            m_vramEditor.editor.Cache.BulkReadFn = [vramData](void* dest, size_t off, size_t len) {
+                memcpy(dest, vramData + off, len);
+            };
+            m_vramEditor.editor.DrawWindow(m_vramEditor.title(), vramSize);
         }
     }
 
@@ -1727,6 +1751,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
+    if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -2418,11 +2443,11 @@ bool PCSX::GUI::about() {
                             clip::set_text(
                                 fmt::format("Version: {}\nBuild: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
                                             version.version, version.buildId.value(), version.changeset,
-                                            fmt::localtime(version.timestamp)));
+                                            *std::localtime(&version.timestamp)));
                         } else {
                             clip::set_text(fmt::format("Version: {}\nChangeset: {}\nDate & time: {:%Y-%m-%d %H:%M:%S}",
                                                        version.version, version.changeset,
-                                                       fmt::localtime(version.timestamp)));
+                                                       *std::localtime(&version.timestamp)));
                         }
                     }
                     ImGui::Text(_("Version: %s"), version.version.c_str());
@@ -2434,7 +2459,7 @@ bool PCSX::GUI::about() {
                     if (ImGui::SmallButton(version.changeset.c_str())) {
                         openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
                     }
-                    std::tm tm = fmt::localtime(version.timestamp);
+                    std::tm tm = *std::localtime(&version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
                     ImGui::Text(_("Date & time: %s"), timestamp.c_str());
                 }

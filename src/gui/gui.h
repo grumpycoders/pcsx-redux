@@ -25,6 +25,7 @@
 #include <functional>
 #include <magic_enum_all.hpp>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <string_view>
@@ -43,6 +44,7 @@
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpulogger.h"
+#include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
@@ -56,6 +58,7 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
+#include "gui/widgets/ram-viewer.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
@@ -112,6 +115,8 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
+    typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
     typedef Setting<int, TYPESTRING("WindowPosY"), 0> WindowPosY;
     typedef Setting<int, TYPESTRING("WindowSizeX"), 1280> WindowSizeX;
@@ -156,7 +161,8 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowHeapViewer, MainFontSize, MonoFontSize, GUITheme,
+             AllowMouseCaptureToggle,
              EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
@@ -339,7 +345,27 @@ class GUI final : public UI {
         std::function<const char *()> title;
 
         void MenuItem() { ImGui::MenuItem(title(), nullptr, &m_show); }
-        void draw(void *mem, size_t size) { editor.DrawWindow(title(), mem, size); }
+        void draw(void *mem, size_t size) {
+            editor.ReadFn = [mem](size_t off) -> ImU8 { return ((ImU8 *)mem)[off]; };
+            editor.WriteFn = [mem](size_t off, ImU8 d) { ((ImU8 *)mem)[off] = d; };
+            editor.Cache.BulkReadFn = [mem](void *dest, size_t off, size_t len) {
+                memcpy(dest, (ImU8 *)mem + off, len);
+            };
+            editor.DrawWindow(title(), size);
+        }
+        void draw(IO<File> file, size_t size) {
+            IO<File> sub(new SubFile(file, m_baseAddr, size, FileOps::READWRITE));
+            editor.ReadFn = [sub](size_t off) mutable -> ImU8 {
+                ImU8 b;
+                sub->readAt(&b, 1, off);
+                return b;
+            };
+            editor.WriteFn = [sub](size_t off, ImU8 d) mutable { sub->writeAt(&d, 1, off); };
+            editor.Cache.BulkReadFn = [sub](void *dest, size_t off, size_t len) mutable {
+                sub->readAt(dest, len, off);
+            };
+            editor.DrawWindow(title(), size);
+        }
     };
     std::string m_stringHolder;
     const size_t wramBaseAddr = 0x80000000;
@@ -390,6 +416,7 @@ class GUI final : public UI {
                                             {settings.get<ShowVRAMViewer3>().value},
                                             {settings.get<ShowVRAMViewer4>().value}};
 
+    Widgets::RAMViewer m_ramViewer = {settings.get<ShowRAMViewer>().value};
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events = {settings.get<ShowEvents>().value};
@@ -402,6 +429,7 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
+    Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
 
     EventBus::Listener m_listener;
 
@@ -454,8 +482,10 @@ class GUI final : public UI {
     bool m_updateAvailable = false;
     bool m_updateDownloading = false;
     bool m_aboutSelectAuthors = false;
+    bool m_enableSplashScreen = true;
 
     void setDefaultShaders();
+    std::unique_ptr<uint32_t[]> getSplashScreen(uint32_t destWidth, uint32_t destHeight);
 
   public:
     bool hasJapanese() { return m_hasJapanese; }

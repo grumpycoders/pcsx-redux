@@ -22,9 +22,6 @@
     <ClCompile Include="..\..\src\core\gpu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\gte.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\kernel.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -143,6 +140,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\patchmanager.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\gte-instructions.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\gte-transfer.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\ramlogger.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -295,6 +301,12 @@
       <Filter>Header Files\Dynarec Aarch64</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\patchmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\gte-internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\ramlogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
