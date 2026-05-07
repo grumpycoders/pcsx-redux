@@ -40,6 +40,7 @@ CPPFLAGS_pkg_libluv += -Ithird_party/luv/deps/lua-compat-5.3/c-api
 CPPFLAGS += -Ithird_party/magic_enum/include/magic_enum
 CPPFLAGS_pkg_md4c += -Ithird_party/md4c/src
 CPPFLAGS_lib_multipart += -Ithird_party/multipart-parser-c
+CPPFLAGS += -Ithird_party/PEGTL/include
 CPPFLAGS += -Ithird_party/tracy/public
 CPPFLAGS_lib_ucl += -Ithird_party/ucl -Ithird_party/ucl/include
 CPPFLAGS_pkg_liburiparser += -Ithird_party/uriparser/include
