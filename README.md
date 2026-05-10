@@ -179,3 +179,4 @@ The codebase still requires a lot of cleanup, and while the product is usable in
 - see [TODO](TODO.md) for more
 
 [![Redux definition](https://pbs.twimg.com/media/ENJhNwGWwAEbrGb?format=jpg)](https://twitter.com/MerriamWebster/status/1212357808026341376)
+
