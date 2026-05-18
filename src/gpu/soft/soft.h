@@ -187,17 +187,10 @@ struct SoftRenderer {
                                     int16_t ty3, int16_t tx4, int16_t ty4);
     template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
-    void getTextureTransColShade(uint16_t *pdest, uint16_t color);
-    void getTextureTransColShadeSolid(uint16_t *pdest, uint16_t color);
     void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
-    void getTextureTransColShade32(uint32_t *pdest, uint32_t color);
-    void getTextureTransColShade32Solid(uint32_t *pdest, uint32_t color);
     void getTextureTransColG32Semi(uint32_t *pdest, uint32_t color);
     template <bool useCachedDither>
     void getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
-    void getTextureTransColShadeX(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void getTextureTransColShadeXSolid(uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2, int16_t m3);
-    void getTextureTransColShadeX32Solid(uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2, int16_t m3);
     void drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
     template <TexMode Tex>
     void drawPoly3T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
