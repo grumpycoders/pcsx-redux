@@ -182,9 +182,6 @@ struct SoftRenderer {
     int16_t m_yMin;
     int16_t m_yMax;
 
-    bool setupSectionsFlatTextured4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4,
-                                    int16_t y4, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                    int16_t ty3, int16_t tx4, int16_t ty4);
     template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
     void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
@@ -199,16 +196,6 @@ struct SoftRenderer {
     void drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                      int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
                      int32_t col2, int32_t col3);
-    // Unified 4-vertex flat-textured rasterizer. SlowMode is Default
-    // (poly path: honours m_checkMask and the full abr blend ladder)
-    // or Semi (sprite path: ignores m_checkMask, semi-trans only).
-    // The fast path (`!m_checkMask && !m_drawSemiTrans`) is shared
-    // and uses PixelWriter<true, Flat, Solid>. See soft.cc for the
-    // body comment.
-    template <TexMode Tex, WriteMode SlowMode>
-    void drawPoly4T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
-                    int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                    int16_t ty4, int16_t clX, int16_t clY);
     // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
     // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
     // edges. The dedicated implementation drops the edge-walker entirely
@@ -368,9 +355,6 @@ struct SoftRenderer {
     template <bool HasUV, bool HasRGB>
     bool nextRow3();
 
-    int rightSectionFlatTextured4();
-    int leftSectionFlatTextured4();
-    bool nextRowFlatTextured4();
     struct SoftVertex {
         int x, y;
         int u, v;
@@ -398,15 +382,9 @@ struct SoftRenderer {
     int m_leftG, m_leftStartG, m_leftDiffG;
     int m_leftB, m_leftStartB, m_leftDiffB;
     int m_rightX, m_rightStartX, m_rightDiffX;
-    // 4-vert flat-textured carries U/V per-row on the right edge too; 3-vert
-    // bodies use the m_deltaRight{U,V} X-direction span gradients below
-    // instead.
-    int m_rightU, m_rightStartU, m_rightDiffU;
-    int m_rightV, m_rightStartV, m_rightDiffV;
     // 3-vert X-direction span gradients: set once by setupSections3 via
     // shl10idiv, read by drawPoly3{T,Gi,TG} as the per-pixel-X stride for
-    // texture coordinates and gouraud channels. Distinct from the per-row
-    // Y-axis deltas above and not touched by 4-vert paths.
+    // texture coordinates and gouraud channels.
     int m_deltaRightU, m_deltaRightV;
     int m_deltaRightR, m_deltaRightG, m_deltaRightB;
 
