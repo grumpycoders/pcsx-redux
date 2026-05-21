@@ -28,11 +28,6 @@ namespace PCSX {
 
 namespace SoftGPU {
 
-// Forward declaration: WriteMode's full definition lives in pixel-writer.h.
-// The 4-vert texture-poly template below uses it as a template parameter
-// type but doesn't need the enumerator values at declaration time.
-enum class WriteMode;
-
 // Bresenham line-octant axes for the soft GPU line rasterizer.
 //
 // MajorAxis  - which axis advances every iteration. X for shallow lines
@@ -79,8 +74,9 @@ struct SoftRenderer {
     bool m_disableTexturesInPolygons = false;
     bool m_disableTexturesInRectangles = false;
 
-    bool checkCoord4();
-    bool checkCoord3();
+    bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
+                     int16_t &y3);
+    bool checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2);
 
     void texturePage(GPU::TPage *prim);
     void twindow(GPU::TWindow *prim);
@@ -126,10 +122,10 @@ struct SoftRenderer {
 
     SoftRect m_textureWindow;
     // Bit-substitution form of the GP0(E2) texture window, computed in
-    // twindow() and consumed by Sampler<TexMode> alongside the legacy
-    // .x0/.x1 fields above. mask = mask_field * 8 (the bits of u/v the
-    // window overwrites); off = (off_field * 8) & mask (pre-masked bits
-    // that get OR'd back in). See twindow() for the hardware citation.
+    // twindow() and consumed by Sampler<TexMode>. mask = mask_field * 8
+    // (the bits of u/v the window overwrites); off = (off_field * 8) &
+    // mask (pre-masked bits that get OR'd back in). See twindow() for the
+    // hardware citation.
     uint8_t m_textureWindowMaskU = 0;
     uint8_t m_textureWindowMaskV = 0;
     uint8_t m_textureWindowOffU = 0;
@@ -139,7 +135,6 @@ struct SoftRenderer {
 
     bool m_drawSemiTrans = false;
     int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
-    int16_t m_y0, m_x0, m_y1, m_x1, m_y2, m_x2, m_y3, m_x3;  // global psx vertex coords
 
     int32_t m_globalTextAddrX;
     int32_t m_globalTextAddrY;
@@ -154,30 +149,43 @@ struct SoftRenderer {
     uint8_t *m_vram;
     uint16_t *m_vram16;
 
-    template <unsigned NumVerts>
-    void applyOffset() {
-        m_x0 += m_softDisplay.DrawOffset.x;
-        m_y0 += m_softDisplay.DrawOffset.y;
-        m_x1 += m_softDisplay.DrawOffset.x;
-        m_y1 += m_softDisplay.DrawOffset.y;
-        if constexpr (NumVerts > 2) {
-            m_x2 += m_softDisplay.DrawOffset.x;
-            m_y2 += m_softDisplay.DrawOffset.y;
-        }
-        if constexpr (NumVerts > 3) {
-            m_x3 += m_softDisplay.DrawOffset.x;
-            m_y3 += m_softDisplay.DrawOffset.y;
-        }
+    void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+    }
+    void applyOffset3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+        x2 += m_softDisplay.DrawOffset.x;
+        y2 += m_softDisplay.DrawOffset.y;
+    }
+    void applyOffset4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
+                      int16_t &y3) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+        x2 += m_softDisplay.DrawOffset.x;
+        y2 += m_softDisplay.DrawOffset.y;
+        x3 += m_softDisplay.DrawOffset.x;
+        y3 += m_softDisplay.DrawOffset.y;
     }
 
     void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
     void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3);
-    void drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
-    void drawPolyFlat3(int32_t rgb);
-    void drawPolyFlat4(int32_t rgb);
-    void drawSoftwareLineShade(int32_t rgb0, int32_t rgb1);
-    void drawSoftwareLineFlat(int32_t rgb);
+    template <bool useCachedDither>
+    void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
+                     int32_t rgb3);
+    void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1,
+                        int32_t rgb2, int32_t rgb3);
+    void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                        int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+    template <PCSX::GPU::Shading Shading>
+    void drawSoftwareLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
 
     int16_t m_yMin;
     int16_t m_yMax;
@@ -185,49 +193,28 @@ struct SoftRenderer {
     template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
     void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
-    void getTextureTransColG32Semi(uint32_t *pdest, uint32_t color);
+    void getTextureTransColShadeSemi32(uint32_t *pdest, uint32_t color);
     template <bool useCachedDither>
-    void getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
-    void drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
+    void getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
+    void drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
     template <TexMode Tex>
     void drawPoly3T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                     int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
     template <TexMode Tex, bool useCachedDither>
+    void drawPoly3TGi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                      int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
+                      int32_t col2, int32_t col3);
+    template <TexMode Tex>
     void drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                      int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
                      int32_t col2, int32_t col3);
     // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
     // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
     // edges. The dedicated implementation drops the edge-walker entirely
-    // and walks an integer-aligned blit rectangle. SlowMode is Default
-    // (poly-style writer) or Semi (sprite-only semi-trans helpers,
-    // m_checkMask ignored). Replaces the previous drawPoly4T<Semi> dispatch
-    // from the textured-rect path.
-    template <TexMode Tex, WriteMode SlowMode>
+    // and walks an integer-aligned blit rectangle. Replaces the previous
+    // drawPoly4T<Semi> dispatch from the textured-rect path.
+    template <TexMode Tex>
     void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
-    template <bool useCachedDither>
-    void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
-                     int32_t rgb3);
-    template <bool useCachedDither>
-    void drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                         int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                        int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                        int32_t col1, int32_t col2, int32_t col3);
-    template <bool useCachedDither>
-    void drawPoly3TGEx8i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                         int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                         int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
-                        int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
-                        int32_t col1, int32_t col2, int32_t col3);
-    template <bool useCachedDither>
-    void drawPoly3TGDi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
-                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
-    void drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
-                      int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int32_t col1, int32_t col2, int32_t col3);
-
     // Unified 4-vertex gouraud-textured wrapper. Picks the cached-dither
     // template parameter once based on s_ditherLUT and emits the two
     // PSX-ordered triangles. clX/clY are unused for Direct15 (callers pass
@@ -241,24 +228,16 @@ struct SoftRenderer {
     // parameters select major axis, major-axis sign (Y-major only), minor
     // step direction, and the hardware-load-bearing initial-d bias. See
     // the Line namespace block above for the bias-vs-axis contract.
-    // Unified Bresenham line-octant rasterizers. One body handles all four
-    // canonical post-dispatch octants per shading mode; the template
-    // parameters select major axis, major-axis sign (Y-major only), minor
-    // step direction, and the hardware-load-bearing initial-d bias. See
-    // the Line namespace block above for the bias-vs-axis contract.
-    template <Line::Axis MajorAxis, Line::MajorSign MaSign, Line::MinorSign MiSign, Line::Bias B>
-    void drawLineOctantShade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1);
-    template <Line::Axis MajorAxis, Line::MajorSign MaSign, Line::MinorSign MiSign, Line::Bias B>
-    void drawLineOctantFlat(int x0, int y0, int x1, int y1, uint16_t color);
+    template <Line::Axis MajorAxis, Line::MajorSign MaSign, Line::MinorSign MiSign, Line::Bias B,
+              PCSX::GPU::Shading Shading>
+    void drawLineOctant(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1 = 0);
     // Axis-aligned line variants. Iter selects the iteration axis: X for
     // horizontal lines (y is fixed, x walks varStart..varEnd), Y for
     // vertical lines (x is fixed, y walks varStart..varEnd). Callers must
     // pass the range so that varStart <= varEnd; the dispatcher already
     // performs that swap on dispatch.
-    template <Line::Axis Iter>
-    void drawAxisLineShade(int constCoord, int varStart, int varEnd, uint32_t rgb0, uint32_t rgb1);
-    template <Line::Axis Iter>
-    void drawAxisLineFlat(int constCoord, int varStart, int varEnd, uint16_t color);
+    template <Line::Axis Iter, PCSX::GPU::Shading Shading>
+    void drawAxisLine(int constCoord, int varStart, int varEnd, uint32_t rgb0, uint32_t rgb1 = 0);
 
     void enableCachedDithering();
     void disableCachedDithering();
@@ -342,10 +321,9 @@ struct SoftRenderer {
     }
 
     // Unified 3-vertex edge walkers. Four (HasUV, HasRGB) instantiations cover
-    // the legacy Flat3 / Shade3 / FlatTextured3 / ShadeTextured3 family. See
-    // soft.cc for the body comment that explains why 3-vert and 4-vert stay
-    // as separate template families (m_deltaRight{U,V,R,G,B} fields carry
-    // different semantics between them).
+    // the legacy Flat3 / Shade3 / FlatTextured3 / ShadeTextured3 family. The
+    // m_deltaRight{U,V,R,G,B} members below are the X-direction span gradients
+    // shared by those triangle walkers.
     template <bool HasUV, bool HasRGB>
     bool setupSections3(const TriInput &in);
     template <bool HasUV, bool HasRGB>

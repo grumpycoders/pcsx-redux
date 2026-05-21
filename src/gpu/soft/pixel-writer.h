@@ -546,7 +546,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
 //
 // Matches the legacy `getShadeTransCol` (scalar) and `getShadeTransCol32`
 // (pair) member helpers bit for bit. Used by the untextured paths -
-// drawPoly3Fi (flat triangle, slow path) and the line / fill / sprite
+// drawPoly3F (flat triangle, slow path) and the line / fill / sprite
 // helpers - where there is no texture sampler and `color` is the
 // primitive's solid color, optionally blended with the destination on
 // drawSemiTrans.

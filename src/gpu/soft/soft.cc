@@ -42,22 +42,24 @@ static inline bool edgeOverLimit(int x0, int y0, int x1, int y1) {
     return dx >= CHKMAX_X || dy >= CHKMAX_Y;
 }
 
-bool PCSX::SoftGPU::SoftRenderer::checkCoord4() {
+bool PCSX::SoftGPU::SoftRenderer::checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2,
+                                              int16_t &y2, int16_t &x3, int16_t &y3) {
     // Per-perimeter-edge over-limit cull. Quad perimeter (PSX vertex order)
     // is v0->v1, v1->v3, v3->v2, v2->v0.
-    if (edgeOverLimit(m_x0, m_y0, m_x1, m_y1)) return true;
-    if (edgeOverLimit(m_x1, m_y1, m_x3, m_y3)) return true;
-    if (edgeOverLimit(m_x3, m_y3, m_x2, m_y2)) return true;
-    if (edgeOverLimit(m_x2, m_y2, m_x0, m_y0)) return true;
+    if (edgeOverLimit(x0, y0, x1, y1)) return true;
+    if (edgeOverLimit(x1, y1, x3, y3)) return true;
+    if (edgeOverLimit(x3, y3, x2, y2)) return true;
+    if (edgeOverLimit(x2, y2, x0, y0)) return true;
 
     return false;
 }
 
-bool PCSX::SoftGPU::SoftRenderer::checkCoord3() {
+bool PCSX::SoftGPU::SoftRenderer::checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2,
+                                              int16_t &y2) {
     // Per-edge over-limit cull.
-    if (edgeOverLimit(m_x0, m_y0, m_x1, m_y1)) return true;
-    if (edgeOverLimit(m_x1, m_y1, m_x2, m_y2)) return true;
-    if (edgeOverLimit(m_x2, m_y2, m_x0, m_y0)) return true;
+    if (edgeOverLimit(x0, y0, x1, y1)) return true;
+    if (edgeOverLimit(x1, y1, x2, y2)) return true;
+    if (edgeOverLimit(x2, y2, x0, y0)) return true;
 
     return false;
 }
@@ -125,8 +127,7 @@ void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
     m_textureWindow.x0 = (int16_t)((prim->w & XAlign) << 3);
 
     // Bit-substitution form consumed by the templated Sampler<TexMode>
-    // paths (the legacy 4-vert paths still use the .x0/.x1 fields above).
-    // Hardware applies the window as
+    // paths. Hardware applies the window as
     //   filtered = (raw & ~(mask * 8)) | ((offset * 8) & (mask * 8))
     // not as "wrap raw within a power-of-2 region", so the mask field's
     // full 5-bit value participates and offset bits outside the mask
@@ -387,7 +388,7 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSemi(uint16_t *pdest, u
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uint32_t color) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeSemi32(uint32_t *pdest, uint32_t color) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -491,8 +492,8 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColG32Semi(uint32_t *pdest, uin
 ////////////////////////////////////////////////////////////////////////
 
 template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeXDither(uint16_t *pdest, uint16_t color, int32_t m1,
-                                                                 int32_t m2, int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2,
+                                                                int32_t m3) {
     int32_t r, g, b;
 
     if (color == 0) return;
@@ -679,9 +680,9 @@ void PCSX::SoftGPU::SoftRenderer::fillSoftwareArea(int16_t x0, int16_t y0, int16
 // the legacy Flat3 / Shade3 / FlatTextured3 / ShadeTextured3 family:
 //
 //   <false, false> : drawPolyFlat3              (flat untextured triangle)
-//   <false, true>  : drawPolyShade3             (gouraud untextured triangle)
+//   <false, true>  : drawPoly3G             (gouraud untextured triangle)
 //   <true,  false> : drawPoly3T<TexMode>        (flat textured triangle)
-//   <true,  true>  : drawPoly3TG<TexMode, Dith> (gouraud textured triangle)
+//   <true,  true>  : drawPoly3TGi<TexMode, Dith> (gouraud textured triangle)
 //
 // 3-vert convention worth knowing before reading the body: the
 // m_deltaRight{U,V,R,G,B} members are the *X-direction span gradients*
@@ -915,8 +916,8 @@ bool PCSX::SoftGPU::SoftRenderer::setupSections3(const TriInput &in) {
 // POLY 3/4 FLAT SHADED
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                              int32_t rgb) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                             int32_t rgb) {
     int i, j, xmin, xmax, ymin, ymax;
     uint16_t color;
     uint32_t lcolor;
@@ -980,15 +981,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Fi(int16_t x1, int16_t y1, int16_t x2
 
         if (nextRow3<false, false>()) return;
     }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPolyFlat3(int32_t rgb) { drawPoly3Fi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb); }
-
-void PCSX::SoftGPU::SoftRenderer::drawPolyFlat4(int32_t rgb) {
-    drawPoly3Fi(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb);
-    drawPoly3Fi(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1134,20 +1126,9 @@ template void PCSX::SoftGPU::SoftRenderer::drawPoly3T<PCSX::SoftGPU::TexMode::Di
 // workload. Walk a clipped integer rectangle, sample the texture per
 // scanline at integer (u, v), write through the texture-mode-specific
 // path.
-//
-// SlowMode mirrors drawPoly4T's contract: Default = poly-style writer
-// (honours m_checkMask and the abr ladder via PixelWriter), Semi =
-// sprite-only semi-trans helpers (getTextureTransColG32Semi /
-// getTextureTransColShadeSemi) that ignore m_checkMask. The actual
-// sprite dispatch only ever instantiates Semi, but the Default form
-// stays available for callers that want poly-style behaviour against
-// the axis-aligned rectangle shape.
-template <PCSX::SoftGPU::TexMode Tex, PCSX::SoftGPU::WriteMode SlowMode>
+template <PCSX::SoftGPU::TexMode Tex>
 void PCSX::SoftGPU::SoftRenderer::drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v,
                                              int16_t clX, int16_t clY) {
-    static_assert(SlowMode == WriteMode::Default || SlowMode == WriteMode::Semi,
-                  "drawSprite SlowMode must be Default (poly) or Semi (sprite)");
-
     if (w <= 0 || h <= 0) return;
 
     int32_t x0 = x;
@@ -1176,7 +1157,8 @@ void PCSX::SoftGPU::SoftRenderer::drawSprite(int16_t x, int16_t y, int16_t w, in
 
     if (!m_checkMask && !m_drawSemiTrans) {
         // Solid fast path: direct VRAM write, packed pairs where the row
-        // length permits. Shared between Default and Semi SlowModes.
+        // length permits. This is shared by non-blended rectangles regardless
+        // of whether the GP0 command was a semi-transparent variant.
         for (int32_t row = y0; row < y1; row++) {
             int32_t posX = (uStart) << 16;
             const int32_t posY = (vStart + (row - y0)) << 16;
@@ -1196,8 +1178,8 @@ void PCSX::SoftGPU::SoftRenderer::drawSprite(int16_t x, int16_t y, int16_t w, in
         return;
     }
 
-    // Slow path. Default = poly path with full checkMask/abr blend;
-    // Semi = sprite path with the dedicated semi-trans helpers.
+    // Blended or mask-checked path. Textured rectangles keep the historical
+    // sprite semi-trans helpers for the per-pixel write.
     for (int32_t row = y0; row < y1; row++) {
         int32_t posX = (uStart) << 16;
         const int32_t posY = (vStart + (row - y0)) << 16;
@@ -1205,37 +1187,26 @@ void PCSX::SoftGPU::SoftRenderer::drawSprite(int16_t x, int16_t y, int16_t w, in
         for (; col + 1 < x1; col += 2) {
             uint32_t *pdest = (uint32_t *)&vram16[(row << 10) + col];
             const uint32_t color = Sampler<Tex>::packed(rs, yAdj, posX, posY, 0x10000, 0);
-            if constexpr (SlowMode == WriteMode::Default) {
-                PixelWriter<true, GPU::Shading::Flat, WriteMode::Default>::packed(rs, pdest, color);
-            } else {
-                getTextureTransColG32Semi(pdest, color);
-            }
+            getTextureTransColShadeSemi32(pdest, color);
             posX += 0x20000;
         }
         if (col < x1) {
             const uint16_t color = Sampler<Tex>::scalar(rs, yAdj, posX, posY);
-            if constexpr (SlowMode == WriteMode::Default) {
-                PixelWriter<true, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, &vram16[(row << 10) + col], color);
-            } else {
-                getTextureTransColShadeSemi(&vram16[(row << 10) + col], color);
-            }
+            getTextureTransColShadeSemi(&vram16[(row << 10) + col], color);
         }
     }
 }
 
-// Explicit instantiations: 3 TexModes x 2 SlowModes = 6 forms.
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut4, PCSX::SoftGPU::WriteMode::Default>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut4, PCSX::SoftGPU::WriteMode::Semi>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut8, PCSX::SoftGPU::WriteMode::Default>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut8, PCSX::SoftGPU::WriteMode::Semi>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Direct15, PCSX::SoftGPU::WriteMode::Default>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
-template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Direct15, PCSX::SoftGPU::WriteMode::Semi>(
-    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+// Explicit instantiations: one rectangle blitter per texture mode.
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut4>(int16_t, int16_t, int16_t, int16_t,
+                                                                                     int16_t, int16_t, int16_t,
+                                                                                     int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut8>(int16_t, int16_t, int16_t, int16_t,
+                                                                                     int16_t, int16_t, int16_t,
+                                                                                     int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Direct15>(int16_t, int16_t, int16_t,
+                                                                                        int16_t, int16_t, int16_t,
+                                                                                        int16_t, int16_t);
 
 ////////////////////////////////////////////////////////////////////////
 // POLY 3/4 G-SHADED
@@ -1390,23 +1361,26 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SoftGPU::SoftRenderer::drawPolyShade3(int32_t rgb1, int32_t rgb2, int32_t rgb3) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                             int32_t rgb1, int32_t rgb2, int32_t rgb3) {
     if (s_ditherLUT) {
-        drawPoly3Gi<true>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+        drawPoly3Gi<true>(x0, y0, x1, y1, x2, y2, rgb1, rgb2, rgb3);
     } else {
-        drawPoly3Gi<false>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+        drawPoly3Gi<false>(x0, y0, x1, y1, x2, y2, rgb1, rgb2, rgb3);
     }
 }
 
 // draw two g-shaded tris for right psx shading emulation
 
-void PCSX::SoftGPU::SoftRenderer::drawPolyShade4(int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2,
+                                             int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2, int32_t rgb3,
+                                             int32_t rgb4) {
     if (s_ditherLUT) {
-        drawPoly3Gi<true>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
-        drawPoly3Gi<true>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+        drawPoly3Gi<true>(x1, y1, x3, y3, x2, y2, rgb2, rgb4, rgb3);
+        drawPoly3Gi<true>(x0, y0, x1, y1, x2, y2, rgb1, rgb2, rgb3);
     } else {
-        drawPoly3Gi<false>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, rgb2, rgb4, rgb3);
-        drawPoly3Gi<false>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, rgb1, rgb2, rgb3);
+        drawPoly3Gi<false>(x1, y1, x3, y3, x2, y2, rgb2, rgb4, rgb3);
+        drawPoly3Gi<false>(x0, y0, x1, y1, x2, y2, rgb1, rgb2, rgb3);
     }
 }
 
@@ -1423,7 +1397,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPolyShade4(int32_t rgb1, int32_t rgb2, int
 //     gouraud-interpolated modulation
 //   - slow path iterates one pixel at a time (color changes per pixel,
 //     packed pair unavailable); dither branch calls the legacy
-//     getTextureTransColShadeXDither<useCachedDither>, non-dither branch
+//     getTextureTransColShadeDither<useCachedDither>, non-dither branch
 //     calls PixelWriter<true, Gouraud, Default>
 //
 // xmax handling matches the rest of the 3-vert family: inclusive-left
@@ -1431,10 +1405,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPolyShade4(int32_t rgb1, int32_t rgb2, int
 // above the edge walker templates for the derivation. HW_VERIFIED via
 // gpu-raster-phase3 SF2/LE/QS cases on SCPH-5501.
 template <PCSX::SoftGPU::TexMode Tex, bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                              int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                              int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                                              int32_t col3) {
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TGi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                               int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                               int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
+                                               int32_t col3) {
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1, cG1, cB1;
     int32_t difR, difB, difG, difR2, difB2, difG2;
@@ -1546,8 +1520,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TG(int16_t x1, int16_t y1, int16_t x2
             for (j = xmin; j <= xmax; j++) {
                 const uint16_t color = Sampler<Tex>::scalar(rs, yAdj, posX, posY);
                 if (m_ditherMode) {
-                    getTextureTransColShadeXDither<useCachedDither>(&vram16[(i << 10) + j], color, (cB1 >> 16),
-                                                                    (cG1 >> 16), (cR1 >> 16));
+                    getTextureTransColShadeDither<useCachedDither>(&vram16[(i << 10) + j], color, (cB1 >> 16),
+                                                                   (cG1 >> 16), (cR1 >> 16));
                 } else {
                     PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default>::scalar(
                         rs, &vram16[(i << 10) + j], color, (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
@@ -1565,27 +1539,27 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TG(int16_t x1, int16_t y1, int16_t x2
 
 ////////////////////////////////////////////////////////////////////////
 
-template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                  int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
-                                                  int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
-                                                  int32_t col2, int32_t col3) {
-    drawPoly3TG<TexMode::Clut4, useCachedDither>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1,
-                                                 col2, col3);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                                                 int32_t col3) {
+template <PCSX::SoftGPU::TexMode Tex>
+void PCSX::SoftGPU::SoftRenderer::drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                                              int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
+                                              int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
+                                              int32_t col3) {
     if (s_ditherLUT) {
-        drawPoly3TGEx4i<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+        drawPoly3TGi<Tex, true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
     } else {
-        drawPoly3TGEx4i<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
+        drawPoly3TGi<Tex, false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
     }
 }
+
+template void PCSX::SoftGPU::SoftRenderer::drawPoly3TG<PCSX::SoftGPU::TexMode::Clut4>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t,
+    int16_t, int32_t, int32_t, int32_t);
+template void PCSX::SoftGPU::SoftRenderer::drawPoly3TG<PCSX::SoftGPU::TexMode::Clut8>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t,
+    int16_t, int32_t, int32_t, int32_t);
+template void PCSX::SoftGPU::SoftRenderer::drawPoly3TG<PCSX::SoftGPU::TexMode::Direct15>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t,
+    int16_t, int32_t, int32_t, int32_t);
 
 // Unified 4-vertex gouraud-textured wrapper. Picks the cached-dither
 // template parameter once and emits the two PSX-ordered triangles
@@ -1593,7 +1567,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx4(int16_t x1, int16_t y1, int16_t
 // and drawPoly4TGD, which were three near-identical bodies parameterised
 // only by which TexMode they routed to via the legacy i-suffix
 // intermediate (drawPoly3TGEx4i / drawPoly3TGEx8i / drawPoly3TGDi).
-// The new template calls drawPoly3TG<Tex, useCachedDither> directly;
+// The new template calls drawPoly3TGi<Tex, useCachedDither> directly;
 // the i-suffix intermediates stay for the matching 3-vert wrappers.
 template <PCSX::SoftGPU::TexMode Tex>
 void PCSX::SoftGPU::SoftRenderer::drawPoly4TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
@@ -1602,11 +1576,11 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly4TG(int16_t x1, int16_t y1, int16_t x2
                                               int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3,
                                               int32_t col4) {
     if (s_ditherLUT) {
-        drawPoly3TG<Tex, true>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
-        drawPoly3TG<Tex, true>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+        drawPoly3TGi<Tex, true>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGi<Tex, true>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
     } else {
-        drawPoly3TG<Tex, false>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
-        drawPoly3TG<Tex, false>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
+        drawPoly3TGi<Tex, false>(x2, y2, x3, y3, x4, y4, tx2, ty2, tx3, ty3, tx4, ty4, clX, clY, col2, col4, col3);
+        drawPoly3TGi<Tex, false>(x1, y1, x2, y2, x4, y4, tx1, ty1, tx2, ty2, tx4, ty4, clX, clY, col1, col2, col3);
     }
 }
 
@@ -1619,52 +1593,6 @@ template void PCSX::SoftGPU::SoftRenderer::drawPoly4TG<PCSX::SoftGPU::TexMode::C
 template void PCSX::SoftGPU::SoftRenderer::drawPoly4TG<PCSX::SoftGPU::TexMode::Direct15>(
     int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t,
     int16_t, int16_t, int16_t, int16_t, int16_t, int32_t, int32_t, int32_t, int32_t);
-
-////////////////////////////////////////////////////////////////////////
-
-template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3,
-                                                  int16_t y3, int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2,
-                                                  int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
-                                                  int32_t col2, int32_t col3) {
-    drawPoly3TG<TexMode::Clut8, useCachedDither>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1,
-                                                 col2, col3);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGEx8(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                                 int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                                 int16_t ty3, int16_t clX, int16_t clY, int32_t col1, int32_t col2,
-                                                 int32_t col3) {
-    if (s_ditherLUT) {
-        drawPoly3TGEx8i<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
-    } else {
-        drawPoly3TGEx8i<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, clX, clY, col1, col2, col3);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGDi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                                int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                                int16_t ty3, int32_t col1, int32_t col2, int32_t col3) {
-    drawPoly3TG<TexMode::Direct15, useCachedDither>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, 0, 0, col1,
-                                                    col2, col3);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawPoly3TGD(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                                               int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3,
-                                               int16_t ty3, int32_t col1, int32_t col2, int32_t col3) {
-    if (s_ditherLUT) {
-        drawPoly3TGDi<true>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3);
-    } else {
-        drawPoly3TGDi<false>(x1, y1, x2, y2, x3, y3, tx1, ty1, tx2, ty2, tx3, ty3, col1, col2, col3);
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -1813,11 +1741,21 @@ class GouraudWalker {
     int m_steps;
 };
 
+struct FlatColor {
+    FlatColor(uint16_t color_, uint16_t dummy, int dummy2) : color(color_) {}
+    uint16_t current555() { return color; }
+    void advanceTo(int) {}
+    uint16_t color;
+};
+
+template <PCSX::GPU::Shading Shading>
+using LineColorWalker = std::conditional_t<Shading == PCSX::GPU::Shading::Gouraud, GouraudWalker, FlatColor>;
+
 }  // namespace
 
 template <PCSX::SoftGPU::Line::Axis MajorAxis, PCSX::SoftGPU::Line::MajorSign MaSign,
-          PCSX::SoftGPU::Line::MinorSign MiSign, PCSX::SoftGPU::Line::Bias B>
-void PCSX::SoftGPU::SoftRenderer::drawLineOctantShade(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
+          PCSX::SoftGPU::Line::MinorSign MiSign, PCSX::SoftGPU::Line::Bias B, PCSX::GPU::Shading Shading>
+void PCSX::SoftGPU::SoftRenderer::drawLineOctant(int x0, int y0, int x1, int y1, uint32_t rgb0, uint32_t rgb1) {
     const auto drawX = m_drawX;
     const auto drawY = m_drawY;
     const auto drawH = m_drawH;
@@ -1835,7 +1773,7 @@ void PCSX::SoftGPU::SoftRenderer::drawLineOctantShade(int x0, int y0, int x1, in
     }
 
     LineStepper<MajorAxis, MaSign, MiSign, B> stepper(x0, y0, x1, y1);
-    GouraudWalker walker(rgb0, rgb1, steps);
+    LineColorWalker<Shading> walker(rgb0, rgb1, steps);
     RasterState rs = makeBaseRasterState();
 
     auto plot = [&](int x, int y) {
@@ -1857,14 +1795,13 @@ void PCSX::SoftGPU::SoftRenderer::drawLineOctantShade(int x0, int y0, int x1, in
 
 ///////////////////////////////////////////////////////////////////////
 
-template <PCSX::SoftGPU::Line::Axis Iter>
-void PCSX::SoftGPU::SoftRenderer::drawAxisLineShade(int constCoord, int varStart, int varEnd, uint32_t rgb0,
-                                                    uint32_t rgb1) {
+template <PCSX::SoftGPU::Line::Axis Iter, PCSX::GPU::Shading Shading>
+void PCSX::SoftGPU::SoftRenderer::drawAxisLine(int constCoord, int varStart, int varEnd, uint32_t rgb0, uint32_t rgb1) {
     const auto vram16 = m_vram16;
     const int steps = varEnd - varStart;
     const int varStartOrig = varStart;
 
-    GouraudWalker walker(rgb0, rgb1, steps);
+    LineColorWalker<Shading> walker(rgb0, rgb1, steps);
 
     if constexpr (Iter == Line::Axis::X) {
         if (varStart < m_drawX) varStart = m_drawX;
@@ -1890,147 +1827,21 @@ void PCSX::SoftGPU::SoftRenderer::drawAxisLineShade(int constCoord, int varStart
 
 ///////////////////////////////////////////////////////////////////////
 
-template <PCSX::SoftGPU::Line::Axis MajorAxis, PCSX::SoftGPU::Line::MajorSign MaSign,
-          PCSX::SoftGPU::Line::MinorSign MiSign, PCSX::SoftGPU::Line::Bias B>
-void PCSX::SoftGPU::SoftRenderer::drawLineOctantFlat(int x0, int y0, int x1, int y1, uint16_t color) {
-    const auto drawX = m_drawX;
-    const auto drawY = m_drawY;
-    const auto drawH = m_drawH;
-    const auto drawW = m_drawW;
-    const auto vram16 = m_vram16;
-
-    LineStepper<MajorAxis, MaSign, MiSign, B> stepper(x0, y0, x1, y1);
-    RasterState rs = makeBaseRasterState();
-
-    auto plot = [&](int x, int y) {
-        if ((x >= drawX) && (x < drawW) && (y >= drawY) && (y < drawH)) {
-            PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, &vram16[(y << 10) + x], color);
-        }
-    };
-
-    plot(stepper.x(), stepper.y());
-    while (stepper.more()) {
-        stepper.advance();
-        plot(stepper.x(), stepper.y());
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-
-template <PCSX::SoftGPU::Line::Axis Iter>
-void PCSX::SoftGPU::SoftRenderer::drawAxisLineFlat(int constCoord, int varStart, int varEnd, uint16_t color) {
-    const auto vram16 = m_vram16;
-
-    if constexpr (Iter == Line::Axis::X) {
-        if (varStart < m_drawX) varStart = m_drawX;
-        if (varEnd > m_drawW) varEnd = m_drawW;
-    } else {
-        if (varStart < m_drawY) varStart = m_drawY;
-        if (varEnd > m_drawH) varEnd = m_drawH;
-    }
-
-    RasterState rs = makeBaseRasterState();
-
-    for (int v = varStart; v <= varEnd; ++v) {
-        uint16_t *dst;
-        if constexpr (Iter == Line::Axis::X) {
-            dst = &vram16[(constCoord << 10) + v];
-        } else {
-            dst = &vram16[(v << 10) + constCoord];
-        }
-        PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, dst, color);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-
 /* Bresenham Line drawing function */
-void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineShade(int32_t rgb0, int32_t rgb1) {
-    int16_t x0, y0, x1, y1, xt, yt;
-    double m, dy, dx;
-
-    x0 = m_x0;
-    y0 = m_y0;
-    x1 = m_x1;
-    y1 = m_y1;
-
-    if (x0 > m_drawW && x1 > m_drawW) return;
-    if (y0 > m_drawH && y1 > m_drawH) return;
-    if (x0 < m_drawX && x1 < m_drawX) return;
-    if (y0 < m_drawY && y1 < m_drawY) return;
-    if (m_drawY >= m_drawH) return;
-    if (m_drawX >= m_drawW) return;
-
-    dx = x1 - x0;
-    dy = y1 - y0;
-
-    if (dx == 0) {
-        if (dy > 0) {
-            drawAxisLineShade<Line::Axis::Y>(x0, y0, y1, rgb0, rgb1);
-        } else {
-            drawAxisLineShade<Line::Axis::Y>(x0, y1, y0, rgb1, rgb0);
-        }
-    } else if (dy == 0) {
-        if (dx > 0) {
-            drawAxisLineShade<Line::Axis::X>(y0, x0, x1, rgb0, rgb1);
-        } else {
-            drawAxisLineShade<Line::Axis::X>(y0, x1, x0, rgb1, rgb0);
-        }
-    } else {
-        if (dx < 0) {
-            xt = x0;
-            yt = y0;
-            x0 = x1;
-            y0 = y1;
-            rgb0 = rgb1;
-            x1 = xt;
-            y1 = yt;
-            rgb1 = rgb0;
-
-            dx = x1 - x0;
-            dy = y1 - y0;
-        }
-
-        m = dy / dx;
-
-        if (m >= 0) {
-            if (m > 1) {
-                drawLineOctantShade<Line::Axis::Y, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Steep>(
-                    x0, y0, x1, y1, rgb0, rgb1);
-            } else {
-                drawLineOctantShade<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Shallow>(
-                    x0, y0, x1, y1, rgb0, rgb1);
-            }
-        } else if (m < -1) {
-            drawLineOctantShade<Line::Axis::Y, Line::MajorSign::Minus, Line::MinorSign::Plus, Line::Bias::Steep>(
-                x0, y0, x1, y1, rgb0, rgb1);
-        } else {
-            drawLineOctantShade<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Minus, Line::Bias::Shallow>(
-                x0, y0, x1, y1, rgb0, rgb1);
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-
-void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineFlat(int32_t rgb) {
-    int16_t x0, y0, x1, y1, xt, yt;
+/* Bresenham Line drawing function */
+template <PCSX::GPU::Shading Shading>
+void PCSX::SoftGPU::SoftRenderer::drawSoftwareLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0,
+                                                   int32_t rgb1) {
+    int16_t xt, yt;
     double m, dy, dx;
     uint16_t color = 0;
 
-    x0 = m_x0;
-    y0 = m_y0;
-    x1 = m_x1;
-    y1 = m_y1;
-
     if (x0 > m_drawW && x1 > m_drawW) return;
     if (y0 > m_drawH && y1 > m_drawH) return;
     if (x0 < m_drawX && x1 < m_drawX) return;
     if (y0 < m_drawY && y1 < m_drawY) return;
     if (m_drawY >= m_drawH) return;
     if (m_drawX >= m_drawW) return;
-
-    color = ((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3);
 
     dx = x1 - x0;
     dy = y1 - y0;
@@ -2041,19 +1852,19 @@ void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineFlat(int32_t rgb) {
             if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
                 RasterState rs = makeBaseRasterState();
                 PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, &m_vram16[(y0 << 10) + x0],
-                                                                                   color);
+                                                                                   rgb0);
             }
             return;
         } else if (dy > 0) {
-            drawAxisLineFlat<Line::Axis::Y>(x0, y0, y1, color);
+            drawAxisLine<Line::Axis::Y, Shading>(x0, y0, y1, rgb0, rgb1);
         } else {
-            drawAxisLineFlat<Line::Axis::Y>(x0, y1, y0, color);
+            drawAxisLine<Line::Axis::Y, Shading>(x0, y1, y0, rgb0, rgb1);
         }
     } else if (dy == 0) {
         if (dx > 0) {
-            drawAxisLineFlat<Line::Axis::X>(y0, x0, x1, color);
+            drawAxisLine<Line::Axis::X, Shading>(y0, x0, x1, rgb0, rgb1);
         } else {
-            drawAxisLineFlat<Line::Axis::X>(y0, x1, x0, color);
+            drawAxisLine<Line::Axis::X, Shading>(y0, x1, x0, rgb0, rgb1);
         }
     } else {
         if (dx < 0) {
@@ -2072,20 +1883,27 @@ void PCSX::SoftGPU::SoftRenderer::drawSoftwareLineFlat(int32_t rgb) {
 
         if (m >= 0) {
             if (m > 1) {
-                drawLineOctantFlat<Line::Axis::Y, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Steep>(
-                    x0, y0, x1, y1, color);
+                drawLineOctant<Line::Axis::Y, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Steep, Shading>(
+                    x0, y0, x1, y1, rgb0, rgb1);
             } else {
-                drawLineOctantFlat<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Shallow>(
-                    x0, y0, x1, y1, color);
+                drawLineOctant<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Plus, Line::Bias::Shallow,
+                               Shading>(x0, y0, x1, y1, rgb0, rgb1);
             }
         } else if (m < -1) {
-            drawLineOctantFlat<Line::Axis::Y, Line::MajorSign::Minus, Line::MinorSign::Plus, Line::Bias::Steep>(
-                x0, y0, x1, y1, color);
+            drawLineOctant<Line::Axis::Y, Line::MajorSign::Minus, Line::MinorSign::Plus, Line::Bias::Steep, Shading>(
+                x0, y0, x1, y1, rgb0, rgb1);
         } else {
-            drawLineOctantFlat<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Minus, Line::Bias::Shallow>(
-                x0, y0, x1, y1, color);
+            drawLineOctant<Line::Axis::X, Line::MajorSign::Plus, Line::MinorSign::Minus, Line::Bias::Shallow, Shading>(
+                x0, y0, x1, y1, rgb0, rgb1);
         }
     }
 }
+
+template void PCSX::SoftGPU::SoftRenderer::drawSoftwareLine<PCSX::GPU::Shading::Flat>(int16_t x0, int16_t y0,
+                                                                                      int16_t x1, int16_t y1,
+                                                                                      int32_t rgb0, int32_t rgb1);
+template void PCSX::SoftGPU::SoftRenderer::drawSoftwareLine<PCSX::GPU::Shading::Gouraud>(int16_t x0, int16_t y0,
+                                                                                         int16_t x1, int16_t y1,
+                                                                                         int32_t rgb0, int32_t rgb1);
 
 ///////////////////////////////////////////////////////////////////////
