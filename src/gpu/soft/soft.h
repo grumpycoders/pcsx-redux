@@ -177,9 +177,9 @@ struct SoftRenderer {
 
     void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
     void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    template <bool useCachedDither>
-    void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
-                     int32_t rgb3);
+    template <PCSX::GPU::Shading Shading, bool useCachedDither>
+    void drawPoly3i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
+                    int32_t rgb3);
     void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1,
                         int32_t rgb2, int32_t rgb3);
     void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,

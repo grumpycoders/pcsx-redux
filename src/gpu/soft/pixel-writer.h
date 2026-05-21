@@ -542,6 +542,19 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
     }
 };
 
+// Untextured, Solid (!checkMask && !drawSemiTrans).
+//
+// The untextured fast paths already compute final BGR555 colors before
+// calling the writer: flat primitives pass the primitive color, and gouraud
+// primitives pass the interpolated color. Solid mode only ORs in the mask
+// write bit and stores the scalar or packed pair.
+template <GPU::Shading Shading>
+struct PixelWriter<false, Shading, WriteMode::Solid> {
+    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color) { *pdest = color | rs.setMask16; }
+
+    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) { *pdest = color | rs.setMask32; }
+};
+
 // Untextured, flat-shaded, Default (runtime checkMask + drawSemiTrans).
 //
 // Matches the legacy `getShadeTransCol` (scalar) and `getShadeTransCol32`
