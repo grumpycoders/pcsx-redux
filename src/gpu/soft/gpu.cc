@@ -356,23 +356,35 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
                 }
                 texturePage(&prim->tpage);
                 if constexpr (shape == Shape::Quad) {
+                    // Decompose into two triangles using the (1,3,2)+(0,1,2)
+                    // PSX vertex split that drawPolyFlat4 and drawPoly4TG
+                    // already use. With drawPoly3T now carrying the same
+                    // pixel-centre bias drawPoly4T applies, decomposition is
+                    // bit-equivalent to the 4-vertex sweep for QFD-class
+                    // geometry and a structural step toward retiring the
+                    // dedicated 4-vertex flat-textured walker.
                     switch (m_globalTextTP) {
                         case GPU::TexDepth::Tex4Bits:
-                            drawPoly4T<TexMode::Clut4, WriteMode::Default>(
-                                m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
-                                prim->clutY());
+                            drawPoly3T<TexMode::Clut4>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[1], prim->v[1],
+                                                       prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
+                            drawPoly3T<TexMode::Clut4>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0],
+                                                       prim->u[1], prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex8Bits:
-                            drawPoly4T<TexMode::Clut8, WriteMode::Default>(
-                                m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
-                                prim->clutY());
+                            drawPoly3T<TexMode::Clut8>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[1], prim->v[1],
+                                                       prim->u[3], prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
+                            drawPoly3T<TexMode::Clut8>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0],
+                                                       prim->u[1], prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex16Bits:
-                            drawPoly4T<TexMode::Direct15, WriteMode::Default>(
-                                m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2], 0, 0);
+                            drawPoly3T<TexMode::Direct15>(m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[1], prim->v[1],
+                                                          prim->u[3], prim->v[3], prim->u[2], prim->v[2], 0, 0);
+                            drawPoly3T<TexMode::Direct15>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0],
+                                                          prim->u[1], prim->v[1], prim->u[2], prim->v[2], 0, 0);
                             break;
                     }
                 } else {
