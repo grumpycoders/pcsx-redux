@@ -559,26 +559,17 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
 
     if ((textured == Textured::Yes) && !m_disableTexturesInRectangles) {
         if constexpr (textured == Textured::Yes) {
-            int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
-            tx0 = tx3 = prim->u;
-            tx1 = tx2 = tx0 + w;
-            ty0 = ty1 = prim->v;
-            ty2 = ty3 = ty0 + h;
-
             switch (m_globalTextTP) {
                 case GPU::TexDepth::Tex4Bits:
-                    drawPoly4T<TexMode::Clut4, WriteMode::Semi>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0,
-                                                                ty0, tx1, ty1, tx2, ty2, tx3, ty3, prim->clutX(),
+                    drawSprite<TexMode::Clut4, WriteMode::Semi>(m_x0, m_y0, w, h, prim->u, prim->v, prim->clutX(),
                                                                 prim->clutY());
                     break;
                 case GPU::TexDepth::Tex8Bits:
-                    drawPoly4T<TexMode::Clut8, WriteMode::Semi>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0,
-                                                                ty0, tx1, ty1, tx2, ty2, tx3, ty3, prim->clutX(),
+                    drawSprite<TexMode::Clut8, WriteMode::Semi>(m_x0, m_y0, w, h, prim->u, prim->v, prim->clutX(),
                                                                 prim->clutY());
                     break;
                 case GPU::TexDepth::Tex16Bits:
-                    drawPoly4T<TexMode::Direct15, WriteMode::Semi>(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0,
-                                                                   ty0, tx1, ty1, tx2, ty2, tx3, ty3, 0, 0);
+                    drawSprite<TexMode::Direct15, WriteMode::Semi>(m_x0, m_y0, w, h, prim->u, prim->v, 0, 0);
                     break;
             }
         }

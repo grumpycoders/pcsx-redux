@@ -209,6 +209,15 @@ struct SoftRenderer {
     void drawPoly4T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                     int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                     int16_t ty4, int16_t clX, int16_t clY);
+    // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
+    // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
+    // edges. The dedicated implementation drops the edge-walker entirely
+    // and walks an integer-aligned blit rectangle. SlowMode is Default
+    // (poly-style writer) or Semi (sprite-only semi-trans helpers,
+    // m_checkMask ignored). Replaces the previous drawPoly4T<Semi> dispatch
+    // from the textured-rect path.
+    template <TexMode Tex, WriteMode SlowMode>
+    void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
     template <bool useCachedDither>
     void drawPoly3Gi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
                      int32_t rgb3);

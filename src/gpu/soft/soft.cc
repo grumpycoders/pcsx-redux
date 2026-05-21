@@ -1556,6 +1556,121 @@ template void PCSX::SoftGPU::SoftRenderer::drawPoly4T<PCSX::SoftGPU::TexMode::Di
     int16_t, int16_t, int16_t, int16_t, int16_t);
 
 ////////////////////////////////////////////////////////////////////////
+// SPRITE / TEXTURED RECTANGLE
+////////////////////////////////////////////////////////////////////////
+
+// Dedicated sprite/textured-rect rasterizer. The GP0 0x64-0x67 and
+// 0x74-0x77 families always emit axis-aligned rectangles with 1:1 UV
+// stepping, so there is no fractional edge or interpolation to track -
+// the entire edge-walker family that drawPoly4T<Semi> previously called
+// into (setupSectionsFlatTextured4 et al.) is overkill for this
+// workload. Walk a clipped integer rectangle, sample the texture per
+// scanline at integer (u, v), write through the texture-mode-specific
+// path.
+//
+// SlowMode mirrors drawPoly4T's contract: Default = poly-style writer
+// (honours m_checkMask and the abr ladder via PixelWriter), Semi =
+// sprite-only semi-trans helpers (getTextureTransColG32Semi /
+// getTextureTransColShadeSemi) that ignore m_checkMask. The actual
+// sprite dispatch only ever instantiates Semi, but the Default form
+// stays available for callers that want poly-style behaviour against
+// the axis-aligned rectangle shape.
+template <PCSX::SoftGPU::TexMode Tex, PCSX::SoftGPU::WriteMode SlowMode>
+void PCSX::SoftGPU::SoftRenderer::drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v,
+                                             int16_t clX, int16_t clY) {
+    static_assert(SlowMode == WriteMode::Default || SlowMode == WriteMode::Semi,
+                  "drawSprite SlowMode must be Default (poly) or Semi (sprite)");
+
+    if (w <= 0 || h <= 0) return;
+
+    int32_t x0 = x;
+    int32_t y0 = y;
+    int32_t x1 = x + w;
+    int32_t y1 = y + h;
+
+    // Clip to draw area (m_drawW / m_drawH are inclusive bottom-right).
+    int32_t uStart = u;
+    int32_t vStart = v;
+    if (x0 < m_drawX) {
+        uStart += m_drawX - x0;
+        x0 = m_drawX;
+    }
+    if (y0 < m_drawY) {
+        vStart += m_drawY - y0;
+        y0 = m_drawY;
+    }
+    if (x1 > m_drawW + 1) x1 = m_drawW + 1;
+    if (y1 > m_drawH + 1) y1 = m_drawH + 1;
+    if (x0 >= x1 || y0 >= y1) return;
+
+    RasterState rs = makeTexturedRasterState<Tex>(m_drawX, m_drawY, m_drawW, m_drawH, clX, clY);
+    const int32_t yAdj = Sampler<Tex>::yAdjust(rs);
+    const auto vram16 = rs.vram16;
+
+    if (!m_checkMask && !m_drawSemiTrans) {
+        // Solid fast path: direct VRAM write, packed pairs where the row
+        // length permits. Shared between Default and Semi SlowModes.
+        for (int32_t row = y0; row < y1; row++) {
+            int32_t posX = (uStart) << 16;
+            const int32_t posY = (vStart + (row - y0)) << 16;
+            int32_t col = x0;
+            // Packed pairs of texels while at least two columns remain.
+            for (; col + 1 < x1; col += 2) {
+                uint32_t *pdest = (uint32_t *)&vram16[(row << 10) + col];
+                const uint32_t color = Sampler<Tex>::packed(rs, yAdj, posX, posY, 0x10000, 0);
+                PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid>::packed(rs, pdest, color);
+                posX += 0x20000;
+            }
+            if (col < x1) {
+                PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid>::scalar(
+                    rs, &vram16[(row << 10) + col], Sampler<Tex>::scalar(rs, yAdj, posX, posY));
+            }
+        }
+        return;
+    }
+
+    // Slow path. Default = poly path with full checkMask/abr blend;
+    // Semi = sprite path with the dedicated semi-trans helpers.
+    for (int32_t row = y0; row < y1; row++) {
+        int32_t posX = (uStart) << 16;
+        const int32_t posY = (vStart + (row - y0)) << 16;
+        int32_t col = x0;
+        for (; col + 1 < x1; col += 2) {
+            uint32_t *pdest = (uint32_t *)&vram16[(row << 10) + col];
+            const uint32_t color = Sampler<Tex>::packed(rs, yAdj, posX, posY, 0x10000, 0);
+            if constexpr (SlowMode == WriteMode::Default) {
+                PixelWriter<true, GPU::Shading::Flat, WriteMode::Default>::packed(rs, pdest, color);
+            } else {
+                getTextureTransColG32Semi(pdest, color);
+            }
+            posX += 0x20000;
+        }
+        if (col < x1) {
+            const uint16_t color = Sampler<Tex>::scalar(rs, yAdj, posX, posY);
+            if constexpr (SlowMode == WriteMode::Default) {
+                PixelWriter<true, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, &vram16[(row << 10) + col], color);
+            } else {
+                getTextureTransColShadeSemi(&vram16[(row << 10) + col], color);
+            }
+        }
+    }
+}
+
+// Explicit instantiations: 3 TexModes x 2 SlowModes = 6 forms.
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut4, PCSX::SoftGPU::WriteMode::Default>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut4, PCSX::SoftGPU::WriteMode::Semi>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut8, PCSX::SoftGPU::WriteMode::Default>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Clut8, PCSX::SoftGPU::WriteMode::Semi>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Direct15, PCSX::SoftGPU::WriteMode::Default>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+template void PCSX::SoftGPU::SoftRenderer::drawSprite<PCSX::SoftGPU::TexMode::Direct15, PCSX::SoftGPU::WriteMode::Semi>(
+    int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t, int16_t);
+
+////////////////////////////////////////////////////////////////////////
 // POLY 3/4 G-SHADED
 ////////////////////////////////////////////////////////////////////////
 
