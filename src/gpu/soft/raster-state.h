@@ -83,14 +83,14 @@ struct TriInput {
 //
 // clutP is only meaningful when the texture mode is Clut4 or Clut8.
 struct RasterState {
-    uint8_t *vram;          // byte-addressed view of VRAM
-    uint16_t *vram16;       // halfword-addressed view of VRAM
-    int16_t texWindowX0;    // pre-masked offset bits, `(off_x * 8) & maskX`
-    int16_t texWindowY0;    // pre-masked offset bits, `(off_y * 8) & maskY`
-    uint16_t maskX;         // mask_x * 8 (which bits of U the window overwrites)
-    uint16_t maskY;         // mask_y * 8 (which bits of V the window overwrites)
-    int32_t texBaseX;       // m_globalTextAddrX after texturePage()
-    int32_t texBaseY;       // m_globalTextAddrY after texturePage()
+    uint8_t *vram;        // byte-addressed view of VRAM
+    uint16_t *vram16;     // halfword-addressed view of VRAM
+    int16_t texWindowX0;  // pre-masked offset bits, `(off_x * 8) & maskX`
+    int16_t texWindowY0;  // pre-masked offset bits, `(off_y * 8) & maskY`
+    uint16_t maskX;       // mask_x * 8 (which bits of U the window overwrites)
+    uint16_t maskY;       // mask_y * 8 (which bits of V the window overwrites)
+    int32_t texBaseX;     // m_globalTextAddrX after texturePage()
+    int32_t texBaseY;     // m_globalTextAddrY after texturePage()
     GPU::BlendFunction abr;
     int drawX, drawY, drawW, drawH;
     bool checkMask;
@@ -98,7 +98,10 @@ struct RasterState {
     uint32_t setMask32;
     bool drawSemiTrans;
     int16_t m1, m2, m3;
-    int32_t clutP;          // (clutY << 10) + clutX; valid for Clut4/Clut8 only
+    int32_t clutP;  // (clutY << 10) + clutX; valid for Clut4/Clut8 only
+
+    inline uint16_t *pixel16(int x, int y) const { return &vram16[(y << VRAM_WIDTH_SHIFT) + x]; }
+    inline uint32_t *pixelPair32(int x, int y) const { return reinterpret_cast<uint32_t *>(pixel16(x, y)); }
 };
 
 // Texture sampler policies, keyed by TexMode. Each specialization exposes
@@ -121,9 +124,7 @@ struct Sampler;
 // only contribution to the per-primitive yAdjust hoist.
 template <>
 struct Sampler<TexMode::Clut4> {
-    static inline int32_t yAdjust(const RasterState &rs) {
-        return (rs.texBaseY << 11) + (rs.texBaseX << 1);
-    }
+    static inline int32_t yAdjust(const RasterState &rs) { return (rs.texBaseY << 11) + (rs.texBaseX << 1); }
     static inline uint16_t scalar(const RasterState &rs, int32_t yAdj, int32_t posX, int32_t posY) {
         const int32_t filteredX = ((posX >> 16) & ~static_cast<int32_t>(rs.maskX)) | rs.texWindowX0;
         const int32_t filteredY = ((posY >> 16) & ~static_cast<int32_t>(rs.maskY)) | rs.texWindowY0;
@@ -141,9 +142,7 @@ struct Sampler<TexMode::Clut4> {
 
 template <>
 struct Sampler<TexMode::Clut8> {
-    static inline int32_t yAdjust(const RasterState &rs) {
-        return (rs.texBaseY << 11) + (rs.texBaseX << 1);
-    }
+    static inline int32_t yAdjust(const RasterState &rs) { return (rs.texBaseY << 11) + (rs.texBaseX << 1); }
     static inline uint16_t scalar(const RasterState &rs, int32_t yAdj, int32_t posX, int32_t posY) {
         const int32_t filteredX = ((posX >> 16) & ~static_cast<int32_t>(rs.maskX)) | rs.texWindowX0;
         const int32_t filteredY = ((posY >> 16) & ~static_cast<int32_t>(rs.maskY)) | rs.texWindowY0;

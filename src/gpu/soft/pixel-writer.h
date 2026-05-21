@@ -68,9 +68,7 @@ struct PackedPair555 {
     // channels. Each input is a 32-bit value carrying one 5-bit channel
     // value in each halfword (bits 0..4). The output is two consecutive
     // BGR555 pixels: R in bits 0..4, B in bits 5..9, G in bits 10..14.
-    static inline uint32_t packBGR(uint32_t r, uint32_t b, uint32_t g) {
-        return (g << 10) | (b << 5) | r;
-    }
+    static inline uint32_t packBGR(uint32_t r, uint32_t b, uint32_t g) { return (g << 10) | (b << 5) | r; }
 
     // Lane preservation: "preserveLowHalf(dest, val)" returns the
     // composition that keeps `dest`'s low halfword and takes `val`'s
@@ -78,9 +76,7 @@ struct PackedPair555 {
     // the packed pixel writers, where a zero source halfword (transparent
     // texel) or a set destination mask bit means the corresponding
     // destination halfword survives unchanged.
-    static inline uint32_t preserveLowHalf(uint32_t dest, uint32_t val) {
-        return (dest & 0xffff) | (val & 0xffff0000);
-    }
+    static inline uint32_t preserveLowHalf(uint32_t dest, uint32_t val) { return (dest & 0xffff) | (val & 0xffff0000); }
     static inline uint32_t preserveHighHalf(uint32_t dest, uint32_t val) {
         return (val & 0xffff) | (dest & 0xffff0000);
     }
@@ -278,8 +274,9 @@ struct PixelWriter;
 // RasterState.m1/m2/m3 (same multiply path as Modulation::On).
 template <>
 struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color) {
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
         if (color == 0) return;
+        uint16_t *pdest = rs.pixel16(x, y);
         const uint16_t l = rs.setMask16 | (color & 0x8000);
         int32_t r = ((color & 0x1f) * rs.m1) >> 7;
         int32_t b = ((color & 0x3e0) * rs.m2) >> 7;
@@ -290,8 +287,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
         *pdest = Channel555::packBGRMasked(r, b, g) | l;
     }
 
-    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) {
+    static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
         if (color == 0) return;
+        uint32_t *pdest = rs.pixelPair32(x, y);
         // Channels are extracted in packed-pair form: bits 0..4 of each
         // halfword for red, 5..9 for blue, 10..14 for green. Multiplying
         // by m1/m2/m3 (0..255) keeps both halves of the int32 valid as
@@ -339,8 +337,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
 //     or the corresponding source halfword is zero
 template <>
 struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color) {
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
         if (color == 0) return;
+        uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
         const uint16_t l = rs.setMask16 | (color & 0x8000);
         int32_t r, g, b;
@@ -379,8 +378,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
         *pdest = Channel555::packBGRMasked(r, b, g) | l;
     }
 
-    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) {
+    static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
         if (color == 0) return;
+        uint32_t *pdest = rs.pixelPair32(x, y);
         const uint32_t l = rs.setMask32 | (color & 0x80008000);
         int32_t r, g, b;
         if (rs.drawSemiTrans && (color & 0x80008000)) {
@@ -389,19 +389,23 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
                 // bits 7..11 of each halfword via alignXForHalfBlend so the
                 // modulated source's bit-7 carry survives the post-mask.
                 r = ((PackedPair555::alignRForHalfBlend(*pdest) + ((color & 0x001f001f) * rs.m1)) & 0xff00ff00) >> 8;
-                b = ((PackedPair555::alignBForHalfBlend(*pdest) + (((color >> 5) & 0x001f001f) * rs.m2)) & 0xff00ff00) >> 8;
-                g = ((PackedPair555::alignGForHalfBlend(*pdest) + (((color >> 10) & 0x001f001f) * rs.m3)) & 0xff00ff00) >> 8;
+                b = ((PackedPair555::alignBForHalfBlend(*pdest) + (((color >> 5) & 0x001f001f) * rs.m2)) &
+                     0xff00ff00) >>
+                    8;
+                g = ((PackedPair555::alignGForHalfBlend(*pdest) + (((color >> 10) & 0x001f001f) * rs.m3)) &
+                     0xff00ff00) >>
+                    8;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
                 r = (*pdest & 0x001f001f) + ((((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7);
                 b = ((*pdest >> 5) & 0x001f001f) + (((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7);
                 g = ((*pdest >> 10) & 0x001f001f) + (((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7);
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::packedFullBackSubFullFront(
-                    *pdest & 0x001f001f, (((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7);
-                b = BlendOp::packedFullBackSubFullFront(
-                    (*pdest >> 5) & 0x001f001f, ((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7);
-                g = BlendOp::packedFullBackSubFullFront(
-                    (*pdest >> 10) & 0x001f001f, ((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7);
+                r = BlendOp::packedFullBackSubFullFront(*pdest & 0x001f001f,
+                                                        (((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7);
+                b = BlendOp::packedFullBackSubFullFront((*pdest >> 5) & 0x001f001f,
+                                                        ((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7);
+                g = BlendOp::packedFullBackSubFullFront((*pdest >> 10) & 0x001f001f,
+                                                        ((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7);
             } else {
                 // HalfBackAndQuarter: X32BCOL1(color) is color & 0x001c001c
                 // (drops bits 0-1 so >> 2 stays lossless).
@@ -471,9 +475,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
 // approximation also present in the legacy helpers.
 template <>
 struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
-                              int16_t m3) {
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (color == 0) return;
+        uint16_t *pdest = rs.pixel16(x, y);
         int32_t r = ((color & 0x1f) * m1) >> 7;
         int32_t b = ((color & 0x3e0) * m2) >> 7;
         int32_t g = ((color & 0x7c00) * m3) >> 7;
@@ -483,9 +487,9 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
         *pdest = Channel555::packBGRMasked(r, b, g) | rs.setMask16 | (color & 0x8000);
     }
 
-    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2,
-                              int16_t m3) {
+    static inline void packed(const RasterState &rs, int x, int y, uint32_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (color == 0) return;
+        uint32_t *pdest = rs.pixelPair32(x, y);
         int32_t r = (((color & 0x001f001f) * m1) & 0xff80ff80) >> 7;
         int32_t b = ((((color >> 5) & 0x001f001f) * m2) & 0xff80ff80) >> 7;
         int32_t g = ((((color >> 10) & 0x001f001f) * m3) & 0xff80ff80) >> 7;
@@ -519,9 +523,9 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
 // applyDither/applyDitherCached for the final write.
 template <>
 struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color, int16_t m1, int16_t m2,
-                              int16_t m3) {
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (color == 0) return;
+        uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
         const uint16_t l = rs.setMask16 | (color & 0x8000);
         int32_t r, g, b;
@@ -569,9 +573,13 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
 // write bit and stores the scalar or packed pair.
 template <GPU::Shading Shading>
 struct PixelWriter<false, Shading, WriteMode::Solid> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color) { *pdest = color | rs.setMask16; }
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        *rs.pixel16(x, y) = color | rs.setMask16;
+    }
 
-    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) { *pdest = color | rs.setMask32; }
+    static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        *rs.pixelPair32(x, y) = color | rs.setMask32;
+    }
 };
 
 // Untextured, flat-shaded, Default (runtime checkMask + drawSemiTrans).
@@ -590,7 +598,8 @@ struct PixelWriter<false, Shading, WriteMode::Solid> {
 // textured writers do are absent.
 template <>
 struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
-    static inline void scalar(const RasterState &rs, uint16_t *pdest, uint16_t color) {
+    static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
         if (rs.drawSemiTrans) {
             int32_t r, g, b;
@@ -626,7 +635,8 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
         }
     }
 
-    static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) {
+    static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        uint32_t *pdest = rs.pixelPair32(x, y);
         if (rs.drawSemiTrans) {
             int32_t r, g, b;
             if (rs.abr == GPU::BlendFunction::HalfBackAndHalfFront) {

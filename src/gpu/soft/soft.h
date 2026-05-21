@@ -180,10 +180,10 @@ struct SoftRenderer {
     template <PCSX::GPU::Shading Shading, bool useCachedDither>
     void drawPoly3i(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb1, int32_t rgb2,
                     int32_t rgb3);
-    void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1,
-                        int32_t rgb2, int32_t rgb3);
+    void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1, int32_t rgb2,
+                    int32_t rgb3);
     void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                        int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+                    int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
     template <PCSX::GPU::Shading Shading>
     void drawSoftwareLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
 
@@ -269,18 +269,20 @@ struct SoftRenderer {
     // into a value type so the inner loops read from a single struct instead
     // of repeatedly dereferencing renderer members.
     //
-    // makeBaseRasterState() fills the fields every primitive needs: ABR, the
-    // mask-write policy (checkMask + setMask16/32), and the drawSemiTrans
-    // toggle. Untextured paths (fills, lines, flat triangles, gouraud
-    // triangles without sampling) need nothing more.
+    // makeBaseRasterState() fills the fields every primitive needs: VRAM
+    // pointers, ABR, the mask-write policy (checkMask + setMask16/32), and
+    // the drawSemiTrans toggle. Untextured paths (fills, lines, flat
+    // triangles, gouraud triangles without sampling) need nothing more.
     //
     // makeTexturedRasterState<Tex>(drawX, drawY, drawW, drawH, clX, clY)
-    // adds the VRAM pointers, the texture window, the texture page base,
+    // adds the texture window, the texture page base,
     // the draw rect, the per-call modulation factors, and the CLUT pointer.
     // clutP is set to zero for Direct15 (the field is unused), and to
     // `(clY << 10) + clX` for the CLUT4 / CLUT8 modes.
     inline RasterState makeBaseRasterState() const {
         RasterState rs{};
+        rs.vram = m_vram;
+        rs.vram16 = m_vram16;
         rs.abr = m_globalTextABR;
         rs.checkMask = m_checkMask;
         rs.setMask16 = m_setMask16;
