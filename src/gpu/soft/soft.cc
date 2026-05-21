@@ -947,7 +947,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3i(int16_t x1, int16_t y1, int16_t x2,
     int32_t difR = 0, difG = 0, difB = 0, difR2 = 0, difG2 = 0, difB2 = 0;
 
     if constexpr (Shading == GPU::Shading::Flat) {
-        color = ((rgb1 & 0x00f80000) >> 9) | ((rgb1 & 0x0000f800) >> 6) | ((rgb1 & 0x000000f8) >> 3);
+        color = PCSX::SoftGPU::Channel555::fromCommandColor(rgb1);
         lcolor = m_setMask32 | (((uint32_t)(color)) << 16) | color;
     } else {
         difR = m_deltaRightR;
@@ -989,9 +989,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3i(int16_t x1, int16_t y1, int16_t x2,
                                                                                lcolor);
                     } else {
                         const uint32_t packedColor =
-                            ((((cR1 + difR) << 7) & 0x7c000000) | (((cG1 + difG) << 2) & 0x03e00000) |
-                             (((cB1 + difB) >> 3) & 0x001f0000) | (((cR1) >> 9) & 0x7c00) |
-                             (((cG1) >> 14) & 0x03e0) | (((cB1) >> 19) & 0x001f));
+                            PCSX::SoftGPU::Channel555::fromHighAlignedRGBPair(cR1, cG1, cB1, difR, difG, difB);
                         PixelWriter<false, Shading, WriteMode::Solid>::packed(rs, (uint32_t *)&vram16[(i << 10) + j],
                                                                                packedColor);
                         cR1 += difR2;
@@ -1004,7 +1002,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3i(int16_t x1, int16_t y1, int16_t x2,
                         PixelWriter<false, Shading, WriteMode::Solid>::scalar(rs, &vram16[(i << 10) + j], color);
                     } else {
                         const uint16_t scalarColor =
-                            ((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f);
+                            PCSX::SoftGPU::Channel555::fromHighAlignedRGB(cR1, cG1, cB1);
                         PixelWriter<false, Shading, WriteMode::Solid>::scalar(rs, &vram16[(i << 10) + j], scalarColor);
                     }
                 }
@@ -1052,7 +1050,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3i(int16_t x1, int16_t y1, int16_t x2,
                     } else {
                         PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(
                             rs, &vram16[(i << 10) + j],
-                            ((cR1 >> 9) & 0x7c00) | ((cG1 >> 14) & 0x03e0) | ((cB1 >> 19) & 0x001f));
+                            PCSX::SoftGPU::Channel555::fromHighAlignedRGB(cR1, cG1, cB1));
                     }
                     cR1 += difR;
                     cG1 += difG;
@@ -1660,7 +1658,7 @@ class GouraudWalker {
     }
 
     uint16_t current555() const {
-        return (uint16_t)(((m_r >> 9) & 0x7c00) | ((m_g >> 14) & 0x03e0) | ((m_b >> 19) & 0x001f));
+        return (uint16_t)(PCSX::SoftGPU::Channel555::fromHighAlignedRGB(m_r, m_g, m_b));
     }
 
   private:

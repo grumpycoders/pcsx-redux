@@ -159,6 +159,25 @@ inline uint16_t packBGRMasked(int32_t r, int32_t b, int32_t g) {
     return static_cast<uint16_t>((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f));
 }
 
+// Convert a GP0 command color word to the software renderer's 15-bit pixel
+// layout. The high/middle/low command bytes land in the high/middle/low 5-bit
+// pixel fields, matching the legacy soft GPU packing convention.
+inline constexpr uint16_t fromCommandColor(uint32_t rgb) {
+    return static_cast<uint16_t>(((rgb & 0x00f80000) >> 9) | ((rgb & 0x0000f800) >> 6) | ((rgb & 0x000000f8) >> 3));
+}
+
+// Pack high-aligned interpolated channels used by the polygon/line edge
+// walkers. R/G/B are kept in the historical 8.16-ish positions so the shifts
+// below are part of the rasterizer's bit-exact contract.
+inline constexpr uint16_t fromHighAlignedRGB(int32_t r, int32_t g, int32_t b) {
+    return static_cast<uint16_t>(((r >> 9) & 0x7c00) | ((g >> 14) & 0x03e0) | ((b >> 19) & 0x001f));
+}
+
+inline constexpr uint32_t fromHighAlignedRGBPair(int32_t r, int32_t g, int32_t b, int32_t dr, int32_t dg, int32_t db) {
+    return static_cast<uint32_t>(fromHighAlignedRGB(r, g, b)) |
+           (static_cast<uint32_t>(fromHighAlignedRGB(r + dr, g + dg, b + db)) << 16);
+}
+
 }  // namespace Channel555
 
 // Per-channel hardware blend operations for the four PSX ABR modes.
@@ -268,7 +287,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
-        *pdest = ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f)) | l;
+        *pdest = Channel555::packBGRMasked(r, b, g) | l;
     }
 
     static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) {
@@ -357,7 +376,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
-        *pdest = ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f)) | l;
+        *pdest = Channel555::packBGRMasked(r, b, g) | l;
     }
 
     static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color) {
@@ -461,7 +480,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
-        *pdest = ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f)) | rs.setMask16 | (color & 0x8000);
+        *pdest = Channel555::packBGRMasked(r, b, g) | rs.setMask16 | (color & 0x8000);
     }
 
     static inline void packed(const RasterState &rs, uint32_t *pdest, uint32_t color, int16_t m1, int16_t m2,
@@ -538,7 +557,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
-        *pdest = ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f)) | l;
+        *pdest = Channel555::packBGRMasked(r, b, g) | l;
     }
 };
 
@@ -601,7 +620,7 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
             r = Channel555::R::saturateNative(r);
             b = Channel555::B::saturateNative(b);
             g = Channel555::G::saturateNative(g);
-            *pdest = ((g & 0x7c00) | (b & 0x3e0) | (r & 0x1f)) | rs.setMask16;
+            *pdest = Channel555::packBGRMasked(r, b, g) | rs.setMask16;
         } else {
             *pdest = color | rs.setMask16;
         }
