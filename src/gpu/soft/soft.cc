@@ -1303,8 +1303,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3T(int16_t x1, int16_t y1, int16_t x2,
             if (drawW < xmax) xmax = drawW;
 
             if (xmax >= xmin) {
-                posX = m_leftU;
-                posY = m_leftV;
+                posX = m_leftU + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difX) >> 16);
+                posY = m_leftV + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difY) >> 16);
 
                 if (xmin < drawX) {
                     j = drawX - xmin;
@@ -1337,8 +1337,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3T(int16_t x1, int16_t y1, int16_t x2,
         if (drawW < xmax) xmax = drawW;
 
         if (xmax >= xmin) {
-            posX = m_leftU;
-            posY = m_leftV;
+            posX = m_leftU + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difX) >> 16);
+            posY = m_leftV + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difY) >> 16);
 
             if (xmin < drawX) {
                 j = drawX - xmin;
