@@ -193,8 +193,6 @@ struct SoftRenderer {
 
     template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
-    void getTextureTransColShadeSemi(uint16_t *pdest, uint16_t color);
-    void getTextureTransColShadeSemi32(uint32_t *pdest, uint32_t color);
     template <bool useCachedDither>
     void getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
     void drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);

@@ -39,9 +39,7 @@ namespace SoftGPU {
 //  - Default: handles checkMask and drawSemiTrans at runtime by reading
 //             RasterState. Matches the legacy `getTextureTransCol*`
 //             helpers without the Solid suffix.
-//  - Semi:    drawSemiTrans known true at compile time. Matches
-//             `getTextureTransColShadeSemi` / `getTextureTransColG32Semi`.
-enum class WriteMode { Solid, Default, Semi };
+enum class WriteMode { Solid, Default };
 
 // Saturating helper for packed-pair 5-bit channels.
 //
@@ -105,6 +103,50 @@ struct PackedPair555 {
     static inline uint32_t alignRForHalfBlend(uint32_t c) { return (c & 0x001f001f) << 7; }
     static inline uint32_t alignBForHalfBlend(uint32_t c) { return (c & 0x03e003e0) << 2; }
     static inline uint32_t alignGForHalfBlend(uint32_t c) { return (c & 0x7c007c00) >> 3; }
+
+    // Texture modulation for packed-pair channels. The post-multiply mask is
+    // part of the lane contract: it prevents overflow from one halfword from
+    // bleeding into the other before the divide-by-128 shift.
+    static inline int32_t modulateExtracted(uint32_t extracted, int32_t factor) {
+        return static_cast<int32_t>(((extracted * factor) & 0xff80ff80) >> 7);
+    }
+    static inline int32_t modulateR(uint32_t c, int32_t factor) { return modulateExtracted(extractR(c), factor); }
+    static inline int32_t modulateB(uint32_t c, int32_t factor) { return modulateExtracted(extractB(c), factor); }
+    static inline int32_t modulateG(uint32_t c, int32_t factor) { return modulateExtracted(extractG(c), factor); }
+
+    static inline uint32_t scaledRForHalfBlend(uint32_t c, int32_t factor) { return extractR(c) * factor; }
+    static inline uint32_t scaledBForHalfBlend(uint32_t c, int32_t factor) { return extractB(c) * factor; }
+    static inline uint32_t scaledGForHalfBlend(uint32_t c, int32_t factor) { return extractG(c) * factor; }
+
+    static inline int32_t modulateRForQuarter(uint32_t c, int32_t factor) {
+        return modulateExtracted(extractRForQuarter(c) >> 2, factor);
+    }
+    static inline int32_t modulateBForQuarter(uint32_t c, int32_t factor) {
+        return modulateExtracted(extractBForQuarter(c) >> 2, factor);
+    }
+    static inline int32_t modulateGForQuarter(uint32_t c, int32_t factor) {
+        return modulateExtracted(extractGForQuarter(c) >> 2, factor);
+    }
+
+    static inline int32_t modulateRLowHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractR(c) * factor) & 0x0000ff80) >> 7);
+    }
+    static inline int32_t modulateBLowHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractB(c) * factor) & 0x0000ff80) >> 7);
+    }
+    static inline int32_t modulateGLowHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractG(c) * factor) & 0x0000ff80) >> 7);
+    }
+
+    static inline int32_t modulateRHighHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractR(c) * factor) & 0xff800000) >> 7);
+    }
+    static inline int32_t modulateBHighHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractB(c) * factor) & 0xff800000) >> 7);
+    }
+    static inline int32_t modulateGHighHalf(uint32_t c, int32_t factor) {
+        return static_cast<int32_t>(((extractG(c) * factor) & 0xff800000) >> 7);
+    }
 };
 
 // Native-position channel traits for the BGR555 layout.
@@ -141,6 +183,13 @@ struct Trait {
     // the result is in 0..0x1f regardless of which channel. Replaces
     // legacy XCOL1D/2D/3D.
     static inline int32_t extractRightAligned(uint32_t c) { return (c >> Shift) & 0x1f; }
+    static inline int32_t modulateNative(uint32_t c, int32_t factor) { return (extractNative(c) * factor) >> 7; }
+    static inline int32_t modulateRightAligned(uint32_t c, int32_t factor) {
+        return (extractRightAligned(c) * factor) >> 7;
+    }
+    static inline int32_t modulateQuarterNative(uint32_t c, int32_t factor) {
+        return ((extractNative(c) >> 2) * factor) >> 7;
+    }
 };
 
 using R = Trait<0x1f, 0x7fffffe0, 0>;
@@ -278,9 +327,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
         const uint16_t l = rs.setMask16 | (color & 0x8000);
-        int32_t r = ((color & 0x1f) * rs.m1) >> 7;
-        int32_t b = ((color & 0x3e0) * rs.m2) >> 7;
-        int32_t g = ((color & 0x7c00) * rs.m3) >> 7;
+        int32_t r = Channel555::R::modulateNative(color, rs.m1);
+        int32_t b = Channel555::B::modulateNative(color, rs.m2);
+        int32_t g = Channel555::G::modulateNative(color, rs.m3);
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
@@ -296,9 +345,9 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
         // long as we mask post-multiply with 0xff80ff80 before the >> 7
         // (otherwise the high half's overflow would bleed into the low
         // half's saturation check).
-        int32_t r = (((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7;
-        int32_t b = ((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7;
-        int32_t g = ((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7;
+        int32_t r = PackedPair555::modulateR(color, rs.m1);
+        int32_t b = PackedPair555::modulateB(color, rs.m2);
+        int32_t g = PackedPair555::modulateG(color, rs.m3);
         r = PackedPair555::saturate5Pair(r);
         b = PackedPair555::saturate5Pair(b);
         g = PackedPair555::saturate5Pair(g);
@@ -345,32 +394,32 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
         int32_t r, g, b;
         if (rs.drawSemiTrans && (color & 0x8000)) {
             if (rs.abr == GPU::BlendFunction::HalfBackAndHalfFront) {
-                const int32_t Br = *pdest & 0x1f;
+                const int32_t Br = Channel555::R::extractNative(*pdest);
                 const int32_t Bb = (*pdest >> 5) & 0x1f;
                 const int32_t Bg = (*pdest >> 10) & 0x1f;
-                const int32_t Fr = ((color & 0x1f) * rs.m1) >> 7;
-                const int32_t Fb = (((color >> 5) & 0x1f) * rs.m2) >> 7;
-                const int32_t Fg = (((color >> 10) & 0x1f) * rs.m3) >> 7;
+                const int32_t Fr = Channel555::R::modulateNative(color, rs.m1);
+                const int32_t Fb = Channel555::B::modulateRightAligned(color, rs.m2);
+                const int32_t Fg = Channel555::G::modulateRightAligned(color, rs.m3);
                 r = BlendOp::halfBackHalfFront(Br, Fr);
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(*pdest & 0x1f, ((color & 0x1f) * rs.m1) >> 7);
-                b = BlendOp::fullBackFullFront(*pdest & 0x3e0, ((color & 0x3e0) * rs.m2) >> 7);
-                g = BlendOp::fullBackFullFront(*pdest & 0x7c00, ((color & 0x7c00) * rs.m3) >> 7);
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, rs.m1));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, rs.m2));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, rs.m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(*pdest & 0x1f, ((color & 0x1f) * rs.m1) >> 7);
-                b = BlendOp::fullBackSubFullFront(*pdest & 0x3e0, ((color & 0x3e0) * rs.m2) >> 7);
-                g = BlendOp::fullBackSubFullFront(*pdest & 0x7c00, ((color & 0x7c00) * rs.m3) >> 7);
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, rs.m1));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, rs.m2));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, rs.m3));
             } else {
-                r = BlendOp::halfBackQuarter(*pdest & 0x1f, (((color & 0x1f) >> 2) * rs.m1) >> 7);
-                b = BlendOp::halfBackQuarter(*pdest & 0x3e0, (((color & 0x3e0) >> 2) * rs.m2) >> 7);
-                g = BlendOp::halfBackQuarter(*pdest & 0x7c00, (((color & 0x7c00) >> 2) * rs.m3) >> 7);
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), Channel555::R::modulateQuarterNative(color, rs.m1));
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), Channel555::B::modulateQuarterNative(color, rs.m2));
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), Channel555::G::modulateQuarterNative(color, rs.m3));
             }
         } else {
-            r = ((color & 0x1f) * rs.m1) >> 7;
-            b = ((color & 0x3e0) * rs.m2) >> 7;
-            g = ((color & 0x7c00) * rs.m3) >> 7;
+            r = Channel555::R::modulateNative(color, rs.m1);
+            b = Channel555::B::modulateNative(color, rs.m2);
+            g = Channel555::G::modulateNative(color, rs.m3);
         }
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
@@ -388,49 +437,51 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
                 // Each channel's destination contribution gets shifted to
                 // bits 7..11 of each halfword via alignXForHalfBlend so the
                 // modulated source's bit-7 carry survives the post-mask.
-                r = ((PackedPair555::alignRForHalfBlend(*pdest) + ((color & 0x001f001f) * rs.m1)) & 0xff00ff00) >> 8;
-                b = ((PackedPair555::alignBForHalfBlend(*pdest) + (((color >> 5) & 0x001f001f) * rs.m2)) &
+                r = ((PackedPair555::alignRForHalfBlend(*pdest) + PackedPair555::scaledRForHalfBlend(color, rs.m1)) &
                      0xff00ff00) >>
                     8;
-                g = ((PackedPair555::alignGForHalfBlend(*pdest) + (((color >> 10) & 0x001f001f) * rs.m3)) &
+                b = ((PackedPair555::alignBForHalfBlend(*pdest) + PackedPair555::scaledBForHalfBlend(color, rs.m2)) &
+                     0xff00ff00) >>
+                    8;
+                g = ((PackedPair555::alignGForHalfBlend(*pdest) + PackedPair555::scaledGForHalfBlend(color, rs.m3)) &
                      0xff00ff00) >>
                     8;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = (*pdest & 0x001f001f) + ((((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7);
-                b = ((*pdest >> 5) & 0x001f001f) + (((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7);
-                g = ((*pdest >> 10) & 0x001f001f) + (((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7);
+                r = (*pdest & 0x001f001f) + (PackedPair555::modulateR(color, rs.m1));
+                b = ((*pdest >> 5) & 0x001f001f) + (PackedPair555::modulateB(color, rs.m2));
+                g = ((*pdest >> 10) & 0x001f001f) + (PackedPair555::modulateG(color, rs.m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
                 r = BlendOp::packedFullBackSubFullFront(*pdest & 0x001f001f,
-                                                        (((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7);
+                                                        PackedPair555::modulateR(color, rs.m1));
                 b = BlendOp::packedFullBackSubFullFront((*pdest >> 5) & 0x001f001f,
-                                                        ((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7);
+                                                        PackedPair555::modulateB(color, rs.m2));
                 g = BlendOp::packedFullBackSubFullFront((*pdest >> 10) & 0x001f001f,
-                                                        ((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7);
+                                                        PackedPair555::modulateG(color, rs.m3));
             } else {
                 // HalfBackAndQuarter: X32BCOL1(color) is color & 0x001c001c
                 // (drops bits 0-1 so >> 2 stays lossless).
-                r = (*pdest & 0x001f001f) + (((((color & 0x001c001c) >> 2) * rs.m1) & 0xff80ff80) >> 7);
-                b = ((*pdest >> 5) & 0x001f001f) + (((((color >> 5) & 0x001c001c) >> 2) * rs.m2) & 0xff80ff80) >> 7;
-                g = ((*pdest >> 10) & 0x001f001f) + (((((color >> 10) & 0x001c001c) >> 2) * rs.m3) & 0xff80ff80) >> 7;
+                r = (*pdest & 0x001f001f) + PackedPair555::modulateRForQuarter(color, rs.m1);
+                b = ((*pdest >> 5) & 0x001f001f) + PackedPair555::modulateBForQuarter(color, rs.m2);
+                g = ((*pdest >> 10) & 0x001f001f) + PackedPair555::modulateGForQuarter(color, rs.m3);
             }
 
             // If only one half of the source has its mask bit set, the other
             // half still needs to be multiplied as if it were a non-blended
             // texel. Patch the corresponding halfword of r/b/g afterwards.
             if (!(color & 0x8000)) {
-                r = (r & 0xffff0000) | ((((color & 0x001f001f) * rs.m1) & 0x0000ff80) >> 7);
-                b = (b & 0xffff0000) | (((((color >> 5) & 0x001f001f) * rs.m2) & 0x0000ff80) >> 7);
-                g = (g & 0xffff0000) | (((((color >> 10) & 0x001f001f) * rs.m3) & 0x0000ff80) >> 7);
+                r = PackedPair555::preserveHighHalf(r, PackedPair555::modulateRLowHalf(color, rs.m1));
+                b = PackedPair555::preserveHighHalf(b, PackedPair555::modulateBLowHalf(color, rs.m2));
+                g = PackedPair555::preserveHighHalf(g, PackedPair555::modulateGLowHalf(color, rs.m3));
             }
             if (!(color & 0x80000000)) {
-                r = (r & 0xffff) | ((((color & 0x001f001f) * rs.m1) & 0xFF800000) >> 7);
-                b = (b & 0xffff) | (((((color >> 5) & 0x001f001f) * rs.m2) & 0xFF800000) >> 7);
-                g = (g & 0xffff) | (((((color >> 10) & 0x001f001f) * rs.m3) & 0xFF800000) >> 7);
+                r = PackedPair555::preserveLowHalf(r, PackedPair555::modulateRHighHalf(color, rs.m1));
+                b = PackedPair555::preserveLowHalf(b, PackedPair555::modulateBHighHalf(color, rs.m2));
+                g = PackedPair555::preserveLowHalf(g, PackedPair555::modulateGHighHalf(color, rs.m3));
             }
         } else {
-            r = (((color & 0x001f001f) * rs.m1) & 0xff80ff80) >> 7;
-            b = ((((color >> 5) & 0x001f001f) * rs.m2) & 0xff80ff80) >> 7;
-            g = ((((color >> 10) & 0x001f001f) * rs.m3) & 0xff80ff80) >> 7;
+            r = PackedPair555::modulateR(color, rs.m1);
+            b = PackedPair555::modulateB(color, rs.m2);
+            g = PackedPair555::modulateG(color, rs.m3);
         }
 
         r = PackedPair555::saturate5Pair(r);
@@ -478,9 +529,9 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
-        int32_t r = ((color & 0x1f) * m1) >> 7;
-        int32_t b = ((color & 0x3e0) * m2) >> 7;
-        int32_t g = ((color & 0x7c00) * m3) >> 7;
+        int32_t r = Channel555::R::modulateNative(color, m1);
+        int32_t b = Channel555::B::modulateNative(color, m2);
+        int32_t g = Channel555::G::modulateNative(color, m3);
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
         g = Channel555::G::saturateNative(g);
@@ -490,9 +541,9 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (color == 0) return;
         uint32_t *pdest = rs.pixelPair32(x, y);
-        int32_t r = (((color & 0x001f001f) * m1) & 0xff80ff80) >> 7;
-        int32_t b = ((((color >> 5) & 0x001f001f) * m2) & 0xff80ff80) >> 7;
-        int32_t g = ((((color >> 10) & 0x001f001f) * m3) & 0xff80ff80) >> 7;
+        int32_t r = PackedPair555::modulateR(color, m1);
+        int32_t b = PackedPair555::modulateB(color, m2);
+        int32_t g = PackedPair555::modulateG(color, m3);
         r = PackedPair555::saturate5Pair(r);
         b = PackedPair555::saturate5Pair(b);
         g = PackedPair555::saturate5Pair(g);
@@ -531,32 +582,32 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
         int32_t r, g, b;
         if (rs.drawSemiTrans && (color & 0x8000)) {
             if (rs.abr == GPU::BlendFunction::HalfBackAndHalfFront) {
-                const int32_t Br = *pdest & 0x1f;
+                const int32_t Br = Channel555::R::extractNative(*pdest);
                 const int32_t Bb = (*pdest >> 5) & 0x1f;
                 const int32_t Bg = (*pdest >> 10) & 0x1f;
-                const int32_t Fr = ((color & 0x1f) * m1) >> 7;
-                const int32_t Fb = (((color >> 5) & 0x1f) * m2) >> 7;
-                const int32_t Fg = (((color >> 10) & 0x1f) * m3) >> 7;
+                const int32_t Fr = Channel555::R::modulateNative(color, m1);
+                const int32_t Fb = Channel555::B::modulateRightAligned(color, m2);
+                const int32_t Fg = Channel555::G::modulateRightAligned(color, m3);
                 r = BlendOp::halfBackHalfFront(Br, Fr);
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(*pdest & 0x1f, ((color & 0x1f) * m1) >> 7);
-                b = BlendOp::fullBackFullFront(*pdest & 0x3e0, ((color & 0x3e0) * m2) >> 7);
-                g = BlendOp::fullBackFullFront(*pdest & 0x7c00, ((color & 0x7c00) * m3) >> 7);
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, m1));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, m2));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(*pdest & 0x1f, ((color & 0x1f) * m1) >> 7);
-                b = BlendOp::fullBackSubFullFront(*pdest & 0x3e0, ((color & 0x3e0) * m2) >> 7);
-                g = BlendOp::fullBackSubFullFront(*pdest & 0x7c00, ((color & 0x7c00) * m3) >> 7);
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, m1));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, m2));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, m3));
             } else {
-                r = BlendOp::halfBackQuarter(*pdest & 0x1f, (((color & 0x1f) >> 2) * m1) >> 7);
-                b = BlendOp::halfBackQuarter(*pdest & 0x3e0, (((color & 0x3e0) >> 2) * m2) >> 7);
-                g = BlendOp::halfBackQuarter(*pdest & 0x7c00, (((color & 0x7c00) >> 2) * m3) >> 7);
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), Channel555::R::modulateQuarterNative(color, m1));
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), Channel555::B::modulateQuarterNative(color, m2));
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), Channel555::G::modulateQuarterNative(color, m3));
             }
         } else {
-            r = ((color & 0x1f) * m1) >> 7;
-            b = ((color & 0x3e0) * m2) >> 7;
-            g = ((color & 0x7c00) * m3) >> 7;
+            r = Channel555::R::modulateNative(color, m1);
+            b = Channel555::B::modulateNative(color, m2);
+            g = Channel555::G::modulateNative(color, m3);
         }
         r = Channel555::R::saturateNative(r);
         b = Channel555::B::saturateNative(b);
@@ -604,27 +655,27 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
         if (rs.drawSemiTrans) {
             int32_t r, g, b;
             if (rs.abr == GPU::BlendFunction::HalfBackAndHalfFront) {
-                const int32_t Br = *pdest & 0x1f;
+                const int32_t Br = Channel555::R::extractNative(*pdest);
                 const int32_t Bb = (*pdest >> 5) & 0x1f;
                 const int32_t Bg = (*pdest >> 10) & 0x1f;
-                const int32_t Fr = color & 0x1f;
+                const int32_t Fr = Channel555::R::extractNative(color);
                 const int32_t Fb = (color >> 5) & 0x1f;
                 const int32_t Fg = (color >> 10) & 0x1f;
                 r = BlendOp::halfBackHalfFront(Br, Fr);
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(*pdest & 0x1f, color & 0x1f);
-                b = BlendOp::fullBackFullFront(*pdest & 0x3e0, color & 0x3e0);
-                g = BlendOp::fullBackFullFront(*pdest & 0x7c00, color & 0x7c00);
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::extractNative(color));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::extractNative(color));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::extractNative(color));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(*pdest & 0x1f, color & 0x1f);
-                b = BlendOp::fullBackSubFullFront(*pdest & 0x3e0, color & 0x3e0);
-                g = BlendOp::fullBackSubFullFront(*pdest & 0x7c00, color & 0x7c00);
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::extractNative(color));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::extractNative(color));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::extractNative(color));
             } else {
-                r = BlendOp::halfBackQuarter(*pdest & 0x1f, (color & 0x1f) >> 2);
-                b = BlendOp::halfBackQuarter(*pdest & 0x3e0, (color & 0x3e0) >> 2);
-                g = BlendOp::halfBackQuarter(*pdest & 0x7c00, (color & 0x7c00) >> 2);
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), (Channel555::R::extractNative(color)) >> 2);
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), (Channel555::B::extractNative(color)) >> 2);
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), (Channel555::G::extractNative(color)) >> 2);
             }
             r = Channel555::R::saturateNative(r);
             b = Channel555::B::saturateNative(b);
@@ -644,56 +695,56 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
                 // Replaces the legacy `((p|color) & 0x7bde7bde) >> 1`
                 // shortcut, which dropped each channel's bit-0 carry.
                 // Hardware preserves it (phase-12 abr0_tri_b31_f31).
-                const uint32_t Br = *pdest & 0x001f001f;
-                const uint32_t Bb = (*pdest >> 5) & 0x001f001f;
-                const uint32_t Bg = (*pdest >> 10) & 0x001f001f;
-                const uint32_t Fr = color & 0x001f001f;
-                const uint32_t Fb = (color >> 5) & 0x001f001f;
-                const uint32_t Fg = (color >> 10) & 0x001f001f;
+                const uint32_t Br = PackedPair555::extractR(*pdest);
+                const uint32_t Bb = PackedPair555::extractB(*pdest);
+                const uint32_t Bg = PackedPair555::extractG(*pdest);
+                const uint32_t Fr = PackedPair555::extractR(color);
+                const uint32_t Fb = PackedPair555::extractB(color);
+                const uint32_t Fg = PackedPair555::extractG(color);
                 if (!rs.checkMask) {
                     const uint32_t hr = ((Br + Fr) >> 1) & 0x001f001f;
                     const uint32_t hb = ((Bb + Fb) >> 1) & 0x001f001f;
                     const uint32_t hg = ((Bg + Fg) >> 1) & 0x001f001f;
-                    *pdest = (hg << 10) | (hb << 5) | hr | rs.setMask32;
+                    *pdest = PackedPair555::packBGR(hr, hb, hg) | rs.setMask32;
                     return;
                 }
                 r = ((Br + Fr) >> 1) & 0x001f001f;
                 b = ((Bb + Fb) >> 1) & 0x001f001f;
                 g = ((Bg + Fg) >> 1) & 0x001f001f;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = (*pdest & 0x001f001f) + (color & 0x001f001f);
-                b = ((*pdest >> 5) & 0x001f001f) + ((color >> 5) & 0x001f001f);
-                g = ((*pdest >> 10) & 0x001f001f) + ((color >> 10) & 0x001f001f);
+                r = PackedPair555::extractR(*pdest) + PackedPair555::extractR(color);
+                b = PackedPair555::extractB(*pdest) + PackedPair555::extractB(color);
+                g = PackedPair555::extractG(*pdest) + PackedPair555::extractG(color);
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
                 int32_t sr, sb, sg, src, sbc, sgc, c;
-                src = color & 0x1f;
-                sbc = color & 0x3e0;
-                sgc = color & 0x7c00;
+                src = Channel555::R::extractNative(color);
+                sbc = Channel555::B::extractNative(color);
+                sgc = Channel555::G::extractNative(color);
                 c = (*pdest) >> 16;
-                sr = (c & 0x1f) - src;
+                sr = (Channel555::R::extractNative(c)) - src;
                 if (sr & 0x8000) sr = 0;
-                sb = (c & 0x3e0) - sbc;
+                sb = (Channel555::B::extractNative(c)) - sbc;
                 if (sb & 0x8000) sb = 0;
-                sg = (c & 0x7c00) - sgc;
+                sg = (Channel555::G::extractNative(c)) - sgc;
                 if (sg & 0x8000) sg = 0;
                 r = ((int32_t)sr) << 16;
                 b = ((int32_t)sb) << 11;
                 g = ((int32_t)sg) << 6;
                 c = (*pdest) & 0xffff;
-                sr = (c & 0x1f) - src;
+                sr = (Channel555::R::extractNative(c)) - src;
                 if (sr & 0x8000) sr = 0;
-                sb = (c & 0x3e0) - sbc;
+                sb = (Channel555::B::extractNative(c)) - sbc;
                 if (sb & 0x8000) sb = 0;
-                sg = (c & 0x7c00) - sgc;
+                sg = (Channel555::G::extractNative(c)) - sgc;
                 if (sg & 0x8000) sg = 0;
                 r |= sr;
                 b |= sb >> 5;
                 g |= sg >> 10;
             } else {
                 // HalfBackAndQuarter: X32BCOL1 = (x & 0x001c001c). Drops bits 0-1 so >> 2 stays lossless.
-                r = (*pdest & 0x001f001f) + ((color & 0x001c001c) >> 2);
-                b = ((*pdest >> 5) & 0x001f001f) + (((color >> 5) & 0x001c001c) >> 2);
-                g = ((*pdest >> 10) & 0x001f001f) + (((color >> 10) & 0x001c001c) >> 2);
+                r = PackedPair555::extractR(*pdest) + (PackedPair555::extractRForQuarter(color) >> 2);
+                b = PackedPair555::extractB(*pdest) + (PackedPair555::extractBForQuarter(color) >> 2);
+                g = PackedPair555::extractG(*pdest) + (PackedPair555::extractGForQuarter(color) >> 2);
             }
             r = PackedPair555::saturate5Pair(r);
             b = PackedPair555::saturate5Pair(b);
