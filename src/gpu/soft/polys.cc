@@ -287,8 +287,17 @@ bool PCSX::SoftGPU::SoftRenderer::nextRow3() {
         const int height = m_leftSectionFullHeight;
         m_leftX = m_leftStartX + (int64_t)m_leftDiffX * row / height;
         if constexpr (HasUV) {
-            m_leftU = m_leftStartU + (int64_t)m_leftDiffU * row / height;
-            m_leftV = m_leftStartV + (int64_t)m_leftDiffV * row / height;
+            // Hardware's edge walker accumulates a TRUNCATED 16.16 per-row
+            // step (phase-20 verified): m_leftV(row) = m_leftStartV + row *
+            // floor(m_leftDiffV / height), not floor(m_leftDiffV * row /
+            // height). The two agree when m_leftDiffV/height divides
+            // cleanly, but diverge by up to one LSB-per-row otherwise.
+            // For strides like 0.1 / 0.3 / 0.8 / 1.6 (none exactly
+            // representable in 16.16), the truncation under-estimates the
+            // accumulator at deep rows by enough to round v_sampled DOWN
+            // where the exact-arithmetic version rounds it up.
+            m_leftU = m_leftStartU + (int64_t)row * (m_leftDiffU / height);
+            m_leftV = m_leftStartV + (int64_t)row * (m_leftDiffV / height);
         }
         if constexpr (HasRGB) {
             m_leftR = m_leftStartR + (int64_t)m_leftDiffR * row / height;
@@ -497,13 +506,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
 
     const auto beginSpan = [&]() {
         if constexpr (HasUV) {
-            if constexpr (Shading == GPU::Shading::Flat) {
-                posX = m_leftU + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difX) >> 16);
-                posY = m_leftV + (int32_t)(((int64_t)(((int32_t)xmin << 16) + 0x8000 - m_leftX) * difY) >> 16);
-            } else {
-                posX = m_leftU;
-                posY = m_leftV;
-            }
+            // Hardware affine UV sampler model (phase-17/18/19/20 verified
+            // on SCPH-5501): at integer pixel x, the sampled texel is
+            //   floor((accum_16_16 + 0x8000) >> 16)
+            // where accum_16_16 is the truncated 16.16 fixed-point walker
+            // output. Two corrections vs raw m_leftU/m_leftV are needed:
+            //   1. Step the walker from m_leftX (the row's left-edge X in
+            //      16.16, possibly fractional) up to the integer xmin: add
+            //      ((xmin << 16) - m_leftX) * difX / 0x10000.
+            //   2. Apply the constant +0x8000 half-LSB bias in UV space
+            //      (NOT scaled by difX - the bias is invariant under
+            //      stride magnitude; phase-18 closed that question).
+            // The same formula applies to flat and gouraud shading; the
+            // walker state (m_leftU, m_leftX, difX) is identical.
+            posX = m_leftU + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difX) >> 16) + 0x8000;
+            posY = m_leftV + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difY) >> 16) + 0x8000;
         }
         if constexpr (Shading == GPU::Shading::Gouraud) {
             cR1 = m_leftR;
