@@ -197,9 +197,17 @@ class GouraudWalker {
     int m_steps;
 };
 
+// Flat counterpart to GouraudWalker. The line dispatcher hands both
+// walkers the raw GP0 command-color words; the gouraud walker needs the
+// full 24-bit BGR888 to interpolate per channel, while the flat walker
+// only needs the converted BGR555. Doing the BGR888 -> BGR555 conversion
+// here keeps `LineColorWalker<Shading> walker(rgb0, rgb1, steps)` a
+// single uniform entry point for both shading modes; rgb1 / steps are
+// unused on the flat path.
 struct FlatColor {
-    FlatColor(uint16_t color_, uint16_t dummy, int dummy2) : color(color_) {}
-    uint16_t current555() { return color; }
+    FlatColor(uint32_t rgb0, uint32_t /*rgb1*/, int /*steps*/)
+        : color(PCSX::SoftGPU::Channel555::fromCommandColor(rgb0)) {}
+    uint16_t current555() const { return color; }
     void advanceTo(int) {}
     uint16_t color;
 };

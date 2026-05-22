@@ -88,7 +88,6 @@ template <PCSX::GPU::Shading Shading>
 void PCSX::SoftGPU::SoftRenderer::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1) {
     int16_t xt, yt;
     double m, dy, dx;
-    uint16_t color = 0;
 
     if (x0 > m_drawW && x1 > m_drawW) return;
     if (y0 > m_drawH && y1 > m_drawH) return;
@@ -103,9 +102,12 @@ void PCSX::SoftGPU::SoftRenderer::drawLine(int16_t x0, int16_t y0, int16_t x1, i
     if (dx == 0) {
         if (dy == 0) {
             // Zero-length line: hardware draws exactly one pixel at the vertex.
+            // The GP0 command color arrives as a 24-bit BGR888 word; convert
+            // to the BGR555 layout the writer expects before storing.
             if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
                 RasterState rs = makeBaseRasterState();
-                PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, x0, y0, rgb0);
+                PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(
+                    rs, x0, y0, Channel555::fromCommandColor(rgb0));
             }
             return;
         } else if (dy > 0) {
