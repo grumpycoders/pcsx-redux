@@ -289,9 +289,7 @@ void PCSX::SoftGPU::impl::debug() {
     ImGui::End();
 }
 
-static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
-    return PCSX::SoftGPU::Channel555::fromCommandColor(BGR);
-}
+static constexpr inline uint16_t BGR24to16(uint32_t BGR) { return PCSX::SoftGPU::Channel555::fromCommandColor(BGR); }
 
 static constexpr inline uint16_t BGR24to16(PCSX::GPU::EmptyColor) { return 0; }
 
@@ -313,7 +311,7 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
     sW += sX;
     sH += sY;
 
-    fillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
+    fillArea(sX, sY, sW, sH, BGR24to16(prim->color));
 
     m_doVSyncUpdate = true;
 }
@@ -509,7 +507,7 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
         if (CheckCoordL(x0, y0, x1, y1)) continue;
 
         applyOffset2(x0, y0, x1, y1);
-        drawSoftwareLine<shading>(x0, y0, x1, y1, c0, c1);
+        drawLine<shading>(x0, y0, x1, y1, c0, c1);
     }
     m_doVSyncUpdate = true;
 }
@@ -570,7 +568,7 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
             }
         }
     } else {
-        fillSoftwareAreaTrans(x0, y0, x2, y2, BGR24to16(prim->color));
+        drawRect(x0, y0, x2, y2, BGR24to16(prim->color));
     }
 
     m_doVSyncUpdate = true;

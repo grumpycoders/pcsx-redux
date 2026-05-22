@@ -23,38 +23,11 @@
 
 #include "core/gpu.h"
 #include "gpu/soft/raster-state.h"
+#include "gpu/soft/walker.h"
 
 namespace PCSX {
 
 namespace SoftGPU {
-
-// Bresenham line-octant axes for the soft GPU line rasterizer.
-//
-// MajorAxis  - which axis advances every iteration. X for shallow lines
-//              (|slope| <= 1), Y for steep lines (|slope| > 1).
-// MajorSign  - direction of the major-axis step. X-major lines always
-//              advance left-to-right after the dispatcher's swap, so
-//              MajorSign::Plus there is structural. Y-major lines run
-//              either downward (Plus) or upward (Minus) depending on
-//              whether the original slope was positive or negative.
-// MinorSign  - direction the minor axis takes on the Bresenham diagonal
-//              decision. Pairs with MajorAxis: for X-major it nudges Y,
-//              for Y-major it nudges X.
-// Bias       - the initial value of the Bresenham error term. Shallow
-//              uses the pixel-centre-biased 3*dy - dx that matches the
-//              PlayStation GPU's minor-axis tie-break at half-pixel
-//              crossings (phase-2 / phase-10 hardware-verified, see
-//              learnings/pcsx-redux/gpu.md). Steep uses the standard
-//              midpoint 2*dx - dy which already matches hardware for
-//              Y-major lines. The bias is hardware-load-bearing and
-//              MUST track MajorAxis explicitly; do not unify the two
-//              policies without re-running phase-2 and phase-10.
-namespace Line {
-enum class Axis { X, Y };
-enum class MajorSign { Plus, Minus };
-enum class MinorSign { Plus, Minus };
-enum class Bias { Shallow, Steep };
-}  // namespace Line
 
 struct SoftRenderer {
     ~SoftRenderer();
@@ -149,6 +122,9 @@ struct SoftRenderer {
     uint8_t *m_vram;
     uint16_t *m_vram16;
 
+    int16_t m_yMin;
+    int16_t m_yMax;
+
     void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
         x0 += m_softDisplay.DrawOffset.x;
         y0 += m_softDisplay.DrawOffset.y;
@@ -175,8 +151,21 @@ struct SoftRenderer {
         y3 += m_softDisplay.DrawOffset.y;
     }
 
-    void fillSoftwareAreaTrans(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    void fillSoftwareArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    void drawRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
+    // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
+    // edges. The dedicated implementation drops the edge-walker entirely
+    // and walks an integer-aligned blit rectangle. Replaces the previous
+    // drawPoly4T<Semi> dispatch from the textured-rect path.
+    template <TexMode Tex>
+    void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
+    void fillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+
+    template <bool useCachedDither>
+    void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
+    template <bool useCachedDither>
+    void getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
+
     template <bool HasUV, PCSX::GPU::Shading Shading, TexMode Tex, bool useCachedDither>
     void drawPoly3Raster(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
@@ -185,16 +174,7 @@ struct SoftRenderer {
                     int32_t rgb3);
     void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
                     int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
-    template <PCSX::GPU::Shading Shading>
-    void drawSoftwareLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
 
-    int16_t m_yMin;
-    int16_t m_yMax;
-
-    template <bool useCachedDither>
-    void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
-    template <bool useCachedDither>
-    void getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);
     void drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
     template <TexMode Tex>
     void drawPoly3T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
@@ -207,13 +187,6 @@ struct SoftRenderer {
     void drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                      int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
                      int32_t col2, int32_t col3);
-    // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
-    // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
-    // edges. The dedicated implementation drops the edge-walker entirely
-    // and walks an integer-aligned blit rectangle. Replaces the previous
-    // drawPoly4T<Semi> dispatch from the textured-rect path.
-    template <TexMode Tex>
-    void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
     // Unified 4-vertex gouraud-textured wrapper. Picks the cached-dither
     // template parameter once based on s_ditherLUT and emits the two
     // PSX-ordered triangles. clX/clY are unused for Direct15 (callers pass
@@ -222,6 +195,9 @@ struct SoftRenderer {
     void drawPoly4TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
                      int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
                      int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+
+    template <PCSX::GPU::Shading Shading>
+    void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
     // Unified Bresenham line-octant rasterizers. One body handles all four
     // canonical post-dispatch octants per shading mode; the template
     // parameters select major axis, major-axis sign (Y-major only), minor

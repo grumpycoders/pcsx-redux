@@ -404,17 +404,26 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, rs.m1));
-                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, rs.m2));
-                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, rs.m3));
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest),
+                                               Channel555::R::modulateNative(color, rs.m1));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest),
+                                               Channel555::B::modulateNative(color, rs.m2));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest),
+                                               Channel555::G::modulateNative(color, rs.m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, rs.m1));
-                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, rs.m2));
-                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, rs.m3));
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest),
+                                                  Channel555::R::modulateNative(color, rs.m1));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest),
+                                                  Channel555::B::modulateNative(color, rs.m2));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest),
+                                                  Channel555::G::modulateNative(color, rs.m3));
             } else {
-                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), Channel555::R::modulateQuarterNative(color, rs.m1));
-                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), Channel555::B::modulateQuarterNative(color, rs.m2));
-                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), Channel555::G::modulateQuarterNative(color, rs.m3));
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest),
+                                             Channel555::R::modulateQuarterNative(color, rs.m1));
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest),
+                                             Channel555::B::modulateQuarterNative(color, rs.m2));
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest),
+                                             Channel555::G::modulateQuarterNative(color, rs.m3));
             }
         } else {
             r = Channel555::R::modulateNative(color, rs.m1);
@@ -451,8 +460,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
                 b = ((*pdest >> 5) & 0x001f001f) + (PackedPair555::modulateB(color, rs.m2));
                 g = ((*pdest >> 10) & 0x001f001f) + (PackedPair555::modulateG(color, rs.m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::packedFullBackSubFullFront(*pdest & 0x001f001f,
-                                                        PackedPair555::modulateR(color, rs.m1));
+                r = BlendOp::packedFullBackSubFullFront(*pdest & 0x001f001f, PackedPair555::modulateR(color, rs.m1));
                 b = BlendOp::packedFullBackSubFullFront((*pdest >> 5) & 0x001f001f,
                                                         PackedPair555::modulateB(color, rs.m2));
                 g = BlendOp::packedFullBackSubFullFront((*pdest >> 10) & 0x001f001f,
@@ -592,17 +600,26 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, m1));
-                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, m2));
-                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, m3));
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest),
+                                               Channel555::R::modulateNative(color, m1));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest),
+                                               Channel555::B::modulateNative(color, m2));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest),
+                                               Channel555::G::modulateNative(color, m3));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::modulateNative(color, m1));
-                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::modulateNative(color, m2));
-                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::modulateNative(color, m3));
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest),
+                                                  Channel555::R::modulateNative(color, m1));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest),
+                                                  Channel555::B::modulateNative(color, m2));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest),
+                                                  Channel555::G::modulateNative(color, m3));
             } else {
-                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), Channel555::R::modulateQuarterNative(color, m1));
-                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), Channel555::B::modulateQuarterNative(color, m2));
-                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), Channel555::G::modulateQuarterNative(color, m3));
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest),
+                                             Channel555::R::modulateQuarterNative(color, m1));
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest),
+                                             Channel555::B::modulateQuarterNative(color, m2));
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest),
+                                             Channel555::G::modulateQuarterNative(color, m3));
             }
         } else {
             r = Channel555::R::modulateNative(color, m1);
@@ -665,17 +682,26 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
                 b = BlendOp::halfBackHalfFront(Bb, Fb) << 5;
                 g = BlendOp::halfBackHalfFront(Bg, Fg) << 10;
             } else if (rs.abr == GPU::BlendFunction::FullBackAndFullFront) {
-                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest), Channel555::R::extractNative(color));
-                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest), Channel555::B::extractNative(color));
-                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest), Channel555::G::extractNative(color));
+                r = BlendOp::fullBackFullFront(Channel555::R::extractNative(*pdest),
+                                               Channel555::R::extractNative(color));
+                b = BlendOp::fullBackFullFront(Channel555::B::extractNative(*pdest),
+                                               Channel555::B::extractNative(color));
+                g = BlendOp::fullBackFullFront(Channel555::G::extractNative(*pdest),
+                                               Channel555::G::extractNative(color));
             } else if (rs.abr == GPU::BlendFunction::FullBackSubFullFront) {
-                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest), Channel555::R::extractNative(color));
-                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest), Channel555::B::extractNative(color));
-                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest), Channel555::G::extractNative(color));
+                r = BlendOp::fullBackSubFullFront(Channel555::R::extractNative(*pdest),
+                                                  Channel555::R::extractNative(color));
+                b = BlendOp::fullBackSubFullFront(Channel555::B::extractNative(*pdest),
+                                                  Channel555::B::extractNative(color));
+                g = BlendOp::fullBackSubFullFront(Channel555::G::extractNative(*pdest),
+                                                  Channel555::G::extractNative(color));
             } else {
-                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest), (Channel555::R::extractNative(color)) >> 2);
-                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest), (Channel555::B::extractNative(color)) >> 2);
-                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest), (Channel555::G::extractNative(color)) >> 2);
+                r = BlendOp::halfBackQuarter(Channel555::R::extractNative(*pdest),
+                                             (Channel555::R::extractNative(color)) >> 2);
+                b = BlendOp::halfBackQuarter(Channel555::B::extractNative(*pdest),
+                                             (Channel555::B::extractNative(color)) >> 2);
+                g = BlendOp::halfBackQuarter(Channel555::G::extractNative(*pdest),
+                                             (Channel555::G::extractNative(color)) >> 2);
             }
             r = Channel555::R::saturateNative(r);
             b = Channel555::B::saturateNative(b);
