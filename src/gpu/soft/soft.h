@@ -162,6 +162,8 @@ struct SoftRenderer {
     void fillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
 
     template <bool useCachedDither>
+    void applyShadeDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3, bool semiTrans, uint16_t sM);
+    template <bool useCachedDither>
     void getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3);
     template <bool useCachedDither>
     void getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2, int32_t m3);

@@ -126,12 +126,11 @@ static void applyDither(uint16_t *pdest, uint16_t *base, uint32_t r, uint32_t g,
 }
 
 template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
+void PCSX::SoftGPU::SoftRenderer::applyShadeDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3,
+                                                   bool semiTrans, uint16_t sM) {
     int32_t r, g, b;
 
-    if (m_checkMask && *pdest & 0x8000) return;
-
-    if (m_drawSemiTrans) {
+    if (semiTrans) {
         r = ((Channel555::R::extractRightAligned(*pdest)) << 3);
         b = ((Channel555::B::extractRightAligned(*pdest)) << 3);
         g = ((Channel555::G::extractRightAligned(*pdest)) << 3);
@@ -169,17 +168,22 @@ void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_
     if (g & 0x7fffff00) g = 0xff;
 
     if constexpr (useCachedDither) {
-        applyDitherCached(pdest, m_vram16, r, b, g, m_setMask16);
+        applyDitherCached(pdest, m_vram16, r, b, g, sM);
     } else {
-        applyDither(pdest, m_vram16, r, b, g, m_setMask16);
+        applyDither(pdest, m_vram16, r, b, g, sM);
     }
+}
+
+template <bool useCachedDither>
+void PCSX::SoftGPU::SoftRenderer::getShadeTransColDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3) {
+    if (m_checkMask && *pdest & 0x8000) return;
+
+    applyShadeDither<useCachedDither>(pdest, m1, m2, m3, m_drawSemiTrans, m_setMask16);
 }
 
 template <bool useCachedDither>
 void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeDither(uint16_t *pdest, uint16_t color, int32_t m1, int32_t m2,
                                                                 int32_t m3) {
-    int32_t r, g, b;
-
     if (color == 0) return;
 
     if (m_checkMask && *pdest & 0x8000) return;
@@ -188,48 +192,8 @@ void PCSX::SoftGPU::SoftRenderer::getTextureTransColShadeDither(uint16_t *pdest,
     m2 = (((Channel555::B::extractRightAligned(color))) * m2) >> 4;
     m3 = (((Channel555::G::extractRightAligned(color))) * m3) >> 4;
 
-    if (m_drawSemiTrans && (color & 0x8000)) {
-        r = ((Channel555::R::extractRightAligned(*pdest)) << 3);
-        b = ((Channel555::B::extractRightAligned(*pdest)) << 3);
-        g = ((Channel555::G::extractRightAligned(*pdest)) << 3);
-
-        if (m_globalTextABR == GPU::BlendFunction::HalfBackAndHalfFront) {
-            // (B + F) / 2 preserving each channel's bit-0 carry
-            // (phase-12 abr0_tri_b31_f31). 8-bit per channel here.
-            r = (r + m1) >> 1;
-            b = (b + m2) >> 1;
-            g = (g + m3) >> 1;
-        } else if (m_globalTextABR == GPU::BlendFunction::FullBackAndFullFront) {
-            r += m1;
-            b += m2;
-            g += m3;
-        } else if (m_globalTextABR == GPU::BlendFunction::FullBackSubFullFront) {
-            r -= m1;
-            b -= m2;
-            g -= m3;
-            if (r & 0x80000000) r = 0;
-            if (b & 0x80000000) b = 0;
-            if (g & 0x80000000) g = 0;
-        } else {
-            r += (m1 >> 2);
-            b += (m2 >> 2);
-            g += (m3 >> 2);
-        }
-    } else {
-        r = m1;
-        b = m2;
-        g = m3;
-    }
-
-    if (r & 0x7fffff00) r = 0xff;
-    if (b & 0x7fffff00) b = 0xff;
-    if (g & 0x7fffff00) g = 0xff;
-
-    if constexpr (useCachedDither) {
-        applyDitherCached(pdest, m_vram16, r, b, g, m_setMask16 | (color & 0x8000));
-    } else {
-        applyDither(pdest, m_vram16, r, b, g, m_setMask16 | (color & 0x8000));
-    }
+    applyShadeDither<useCachedDither>(pdest, m1, m2, m3, m_drawSemiTrans && (color & 0x8000),
+                                      m_setMask16 | (color & 0x8000));
 }
 
 // Unified 3-vertex edge walkers.
