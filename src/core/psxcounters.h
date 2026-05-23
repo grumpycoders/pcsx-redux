@@ -36,25 +36,30 @@ class Counters {
     void set();
     void reset(uint32_t index);
     void calculateHsync();
+    void recalculateRate(uint32_t index);
 
     struct Rcnt {
         uint16_t mode, target;
         uint32_t rate, irq, counterState, irqState;
         uint64_t cycle, cycleStart;
+        uint32_t gateStarted;   // Gate mode 3: first blank has occurred, counter is free running
     };
 
+    // Gate mode helpers - derived from mode register, not stored
+    static bool isGateEnabled(uint32_t index, uint16_t mode) { return (index <= 1) && (mode & RcSyncEnable); }
+    static uint8_t gateSyncMode(uint16_t mode) { return (mode >> 1) & 3; }
+
     enum {
-        Rc0Gate = 0x0001,            // 0    not implemented
-        Rc1Gate = 0x0001,            // 0    not implemented
-        Rc2Disable = 0x0001,         // 0    partially implemented
-        RcUnknown1 = 0x0002,         // 1    ?
-        RcUnknown2 = 0x0004,         // 2    ?
+        RcSyncEnable = 0x0001,       // 0    Sync/gate enable
+        Rc2Disable = 0x0001,         // 0    Timer 2: modes 0,3 = stop counter
+        RcSyncMode0 = 0x0002,        // 1    Sync mode bit 0
+        RcSyncMode1 = 0x0004,        // 2    Sync mode bit 1
         RcCountToTarget = 0x0008,    // 3
         RcIrqOnTarget = 0x0010,      // 4
         RcIrqOnOverflow = 0x0020,    // 5
         RcIrqRegenerate = 0x0040,    // 6
-        RcUnknown7 = 0x0080,         // 7    ?
-        Rc0PixelClock = 0x0100,      // 8    fake implementation
+        RcIrqToggle = 0x0080,        // 7    IRQ toggle mode (0=pulse, 1=toggle bit10)
+        Rc0PixelClock = 0x0100,      // 8    dotclock (varies with GPU hres)
         Rc1HSyncClock = 0x0100,      // 8
         Rc2Unknown8 = 0x0100,        // 8    ?
         Rc0Unknown9 = 0x0200,        // 9    ?
