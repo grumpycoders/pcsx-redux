@@ -71,7 +71,7 @@ async function installToolchain() {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -306,7 +306,7 @@ async function installCMake() {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await execFile('start', [filename])
+      await terminal.run('msiexec', ['/i', filename])
       requiresReboot = true
       break
     case 'linux':
