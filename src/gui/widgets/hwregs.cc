@@ -194,20 +194,44 @@ void PCSX::Widgets::HWRegs::draw(PCSX::GUI* gui, PCSX::Memory* memory, const cha
         if (ImGui::CollapsingHeader(dicrStr.c_str())) {
             ImGui::Indent();
             bool busError = (dicr >> 15) & 1;
-            ImGui::Checkbox(_("Bus Error###dicr_buserr"), &busError);
+            if (ImGui::Checkbox(_("Bus Error###dicr_buserr"), &busError)) {
+                uint32_t bit = 1 << 15;
+                dicr = busError ? (dicr | bit) : (dicr & ~bit);
+                memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+            }
             bool masterEnable = (dicr >> 23) & 1;
-            ImGui::Checkbox(_("Master IRQ Enable###dicr_master_en"), &masterEnable);
+            if (ImGui::Checkbox(_("Master IRQ Enable###dicr_master_en"), &masterEnable)) {
+                uint32_t bit = 1 << 23;
+                dicr = masterEnable ? (dicr | bit) : (dicr & ~bit);
+                memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+            }
             bool masterFlag = (dicr >> 31) & 1;
-            ImGui::Checkbox(_("Master IRQ Flag###dicr_master_flag"), &masterFlag);
+            if (ImGui::Checkbox(_("Master IRQ Flag###dicr_master_flag"), &masterFlag)) {
+                uint32_t bit = 1 << 31;
+                dicr = masterFlag ? (dicr | bit) : (dicr & ~bit);
+                memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+            }
             for (unsigned i = 0; i < 7; i++) {
                 std::string nodeStr = fmt::format("{}###dicr_ch{}", dmaName(i), i);
                 if (ImGui::TreeNode(nodeStr.c_str())) {
                     bool completion = (dicr >> i) & 1;
-                    ImGui::Checkbox(_("Completion###dicr_comp"), &completion);
+                    if (ImGui::Checkbox(_("Completion###dicr_comp"), &completion)) {
+                        uint32_t bit = 1 << i;
+                        dicr = completion ? (dicr | bit) : (dicr & ~bit);
+                        memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+                    }
                     bool mask = (dicr >> (i + 16)) & 1;
-                    ImGui::Checkbox(_("IRQ Enable###dicr_irq_en"), &mask);
+                    if (ImGui::Checkbox(_("IRQ Enable###dicr_irq_en"), &mask)) {
+                        uint32_t bit = 1 << (i + 16);
+                        dicr = mask ? (dicr | bit) : (dicr & ~bit);
+                        memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+                    }
                     bool triggered = (dicr >> (i + 24)) & 1;
-                    ImGui::Checkbox(_("Triggered###dicr_trig"), &triggered);
+                    if (ImGui::Checkbox(_("Triggered###dicr_trig"), &triggered)) {
+                        uint32_t bit = 1 << (i + 24);
+                        dicr = triggered ? (dicr | bit) : (dicr & ~bit);
+                        memory->writeHardwareRegister<Memory::DMA_ICR>(dicr);
+                    }
                     ImGui::TreePop();
                 }
             }
@@ -221,8 +245,8 @@ void PCSX::Widgets::HWRegs::draw(PCSX::GUI* gui, PCSX::Memory* memory, const cha
             uint32_t bcr = readHWReg32(memory, base + Memory::DMA_BCR);
             uint32_t chcr = readHWReg32(memory, base + Memory::DMA_CHCR);
 
-            std::string chStr =
-                fmt::format("DMA{} {:8}: MADR={:06x} BCR={:08x} CHCR={:08x}###dma_ch{}", ch, dmaName(ch), madr & 0xffffff, bcr, chcr, ch);
+            std::string chStr = fmt::format("DMA{} {:8}: MADR={:06x} BCR={:08x} CHCR={:08x}###dma_ch{}", ch,
+                                            dmaName(ch), madr & 0xffffff, bcr, chcr, ch);
             if (ImGui::CollapsingHeader(chStr.c_str())) {
                 ImGui::Indent();
                 ImGui::Text("MADR: %08x (addr=%06x)", madr, madr & 0x1ffffc);
@@ -256,8 +280,8 @@ void PCSX::Widgets::HWRegs::draw(PCSX::GUI* gui, PCSX::Memory* memory, const cha
             uint32_t mode = readHWReg32(memory, base + 4);
             uint32_t target = readHWReg32(memory, base + 8);
 
-            std::string timerStr =
-                fmt::format("Timer {}: count={:04x} mode={:04x} target={:04x}###timer{}", t, count & 0xffff, mode & 0xffff, target & 0xffff, t);
+            std::string timerStr = fmt::format("Timer {}: count={:04x} mode={:04x} target={:04x}###timer{}", t,
+                                               count & 0xffff, mode & 0xffff, target & 0xffff, t);
             if (ImGui::CollapsingHeader(timerStr.c_str())) {
                 ImGui::Indent();
                 ImGui::Text("Count : %04x (%u)", count & 0xffff, count & 0xffff);
