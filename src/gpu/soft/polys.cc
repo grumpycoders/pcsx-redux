@@ -82,6 +82,8 @@ void PCSX::SoftGPU::SoftRenderer::disableCachedDithering() {
     s_ditherLUT = nullptr;
 }
 
+PCSX::SoftGPU::SoftRenderer::SoftRenderer() { resetRenderer(); }
+
 PCSX::SoftGPU::SoftRenderer::~SoftRenderer() {
     if (s_ditherLUT) delete[] s_ditherLUT;
     s_ditherLUT = nullptr;
@@ -126,8 +128,8 @@ static void applyDither(uint16_t *pdest, uint16_t *base, uint32_t r, uint32_t g,
 }
 
 template <bool useCachedDither>
-void PCSX::SoftGPU::SoftRenderer::applyShadeDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3,
-                                                   bool semiTrans, uint16_t sM) {
+void PCSX::SoftGPU::SoftRenderer::applyShadeDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3, bool semiTrans,
+                                                   uint16_t sM) {
     int32_t r, g, b;
 
     if (semiTrans) {

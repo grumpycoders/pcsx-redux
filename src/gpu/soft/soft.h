@@ -30,7 +30,12 @@ namespace PCSX {
 namespace SoftGPU {
 
 struct SoftRenderer {
+    SoftRenderer();
     ~SoftRenderer();
+
+    void enableCachedDithering();
+    void disableCachedDithering();
+
     inline void resetRenderer() {
         m_globalTextAddrX = 0;
         m_globalTextAddrY = 0;
@@ -43,20 +48,75 @@ struct SoftRenderer {
         m_setMask32 = 0;
     }
 
-    int m_useDither = 0;
-    bool m_disableTexturesInPolygons = false;
-    bool m_disableTexturesInRectangles = false;
-
-    bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
-                     int16_t &y3);
-    bool checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2);
-
     void texturePage(GPU::TPage *prim);
     void twindow(GPU::TWindow *prim);
     void drawingAreaStart(GPU::DrawingAreaStart *prim);
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
+
+    bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
+                     int16_t &y3);
+    bool checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2);
+
+    void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+    }
+
+    void applyOffset3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+        x2 += m_softDisplay.DrawOffset.x;
+        y2 += m_softDisplay.DrawOffset.y;
+    }
+
+    void applyOffset4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
+                      int16_t &y3) {
+        x0 += m_softDisplay.DrawOffset.x;
+        y0 += m_softDisplay.DrawOffset.y;
+        x1 += m_softDisplay.DrawOffset.x;
+        y1 += m_softDisplay.DrawOffset.y;
+        x2 += m_softDisplay.DrawOffset.x;
+        y2 += m_softDisplay.DrawOffset.y;
+        x3 += m_softDisplay.DrawOffset.x;
+        y3 += m_softDisplay.DrawOffset.y;
+    }
+
+    void fillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+
+    void drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
+    void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1, int32_t rgb2,
+                    int32_t rgb3);
+    template <TexMode Tex>
+    void drawPoly3T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
+    template <TexMode Tex>
+    void drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
+                     int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
+                     int32_t col2, int32_t col3);
+
+    void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
+                    int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
+    template <TexMode Tex>
+    void drawPoly4TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
+                     int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
+                     int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
+
+    template <PCSX::GPU::Shading Shading>
+    void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
+    void drawRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
+    // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
+    // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
+    // edges. The dedicated implementation drops the edge-walker entirely
+    // and walks an integer-aligned blit rectangle. Replaces the previous
+    // drawPoly4T<Semi> dispatch from the textured-rect path.
+    template <TexMode Tex>
+    void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
 
     struct Point {
         int32_t x;
@@ -93,6 +153,20 @@ struct SoftRenderer {
         SoftRect Range;
     };
 
+    int m_useDither = 0;
+    uint16_t *m_vram16;
+    uint8_t *m_vram;
+    SoftDisplay m_softDisplay;
+    int32_t m_statusRet;
+    bool m_disableTexturesInPolygons = false;
+    bool m_disableTexturesInRectangles = false;
+
+    bool m_drawSemiTrans = false;
+    bool m_ditherMode = false;
+    int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
+    GPU::TexDepth m_globalTextTP;
+
+  private:
     SoftRect m_textureWindow;
     // Bit-substitution form of the GP0(E2) texture window, computed in
     // twindow() and consumed by Sampler<TexMode>. mask = mask_field * 8
@@ -103,63 +177,18 @@ struct SoftRenderer {
     uint8_t m_textureWindowMaskV = 0;
     uint8_t m_textureWindowOffU = 0;
     uint8_t m_textureWindowOffV = 0;
-    bool m_ditherMode = false;
     int m_drawX, m_drawY, m_drawW, m_drawH;
-
-    bool m_drawSemiTrans = false;
-    int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
 
     int32_t m_globalTextAddrX;
     int32_t m_globalTextAddrY;
-    GPU::TexDepth m_globalTextTP;
     GPU::BlendFunction m_globalTextABR;
 
     bool m_checkMask = false;
     uint16_t m_setMask16 = 0;
     uint32_t m_setMask32 = 0;
-    int32_t m_statusRet;
-    SoftDisplay m_softDisplay;
-    uint8_t *m_vram;
-    uint16_t *m_vram16;
 
     int16_t m_yMin;
     int16_t m_yMax;
-
-    void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
-    }
-    void applyOffset3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
-        x2 += m_softDisplay.DrawOffset.x;
-        y2 += m_softDisplay.DrawOffset.y;
-    }
-    void applyOffset4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
-                      int16_t &y3) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
-        x2 += m_softDisplay.DrawOffset.x;
-        y2 += m_softDisplay.DrawOffset.y;
-        x3 += m_softDisplay.DrawOffset.x;
-        y3 += m_softDisplay.DrawOffset.y;
-    }
-
-    void drawRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
-    // Sprite/textured-rectangle rasterizer. Axis-aligned by definition
-    // (GP0 0x64-0x67, 0x74-0x77 etc.); 1:1 UV-to-screen step, no fractional
-    // edges. The dedicated implementation drops the edge-walker entirely
-    // and walks an integer-aligned blit rectangle. Replaces the previous
-    // drawPoly4T<Semi> dispatch from the textured-rect path.
-    template <TexMode Tex>
-    void drawSprite(int16_t x, int16_t y, int16_t w, int16_t h, int16_t u, int16_t v, int16_t clX, int16_t clY);
-    void fillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);
 
     template <bool useCachedDither>
     void applyShadeDither(uint16_t *pdest, int32_t m1, int32_t m2, int32_t m3, bool semiTrans, uint16_t sM);
@@ -172,34 +201,12 @@ struct SoftRenderer {
     void drawPoly3Raster(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1,
                          int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY,
                          int32_t rgb1, int32_t rgb2, int32_t rgb3);
-    void drawPoly3G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int32_t rgb1, int32_t rgb2,
-                    int32_t rgb3);
-    void drawPoly4G(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3,
-                    int32_t rgb1, int32_t rgb2, int32_t rgb3, int32_t rgb4);
 
-    void drawPoly3F(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int32_t rgb);
-    template <TexMode Tex>
-    void drawPoly3T(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
-                    int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY);
     template <TexMode Tex, bool useCachedDither>
     void drawPoly3TGi(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
                       int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
                       int32_t col2, int32_t col3);
-    template <TexMode Tex>
-    void drawPoly3TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t tx1, int16_t ty1,
-                     int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t clX, int16_t clY, int32_t col1,
-                     int32_t col2, int32_t col3);
-    // Unified 4-vertex gouraud-textured wrapper. Picks the cached-dither
-    // template parameter once based on s_ditherLUT and emits the two
-    // PSX-ordered triangles. clX/clY are unused for Direct15 (callers pass
-    // 0, 0). See soft.cc.
-    template <TexMode Tex>
-    void drawPoly4TG(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, int16_t x4, int16_t y4,
-                     int16_t tx1, int16_t ty1, int16_t tx2, int16_t ty2, int16_t tx3, int16_t ty3, int16_t tx4,
-                     int16_t ty4, int16_t clX, int16_t clY, int32_t col1, int32_t col2, int32_t col3, int32_t col4);
 
-    template <PCSX::GPU::Shading Shading>
-    void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int32_t rgb0, int32_t rgb1 = 0);
     // Unified Bresenham line-octant rasterizers. One body handles all four
     // canonical post-dispatch octants per shading mode; the template
     // parameters select major axis, major-axis sign (Y-major only), minor
@@ -215,9 +222,6 @@ struct SoftRenderer {
     // performs that swap on dispatch.
     template <Line::Axis Iter, PCSX::GPU::Shading Shading>
     void drawAxisLine(int constCoord, int varStart, int varEnd, uint32_t rgb0, uint32_t rgb1 = 0);
-
-    void enableCachedDithering();
-    void disableCachedDithering();
 
   private:
     // Primitive draw-area rejection. Returns true when the primitive should
