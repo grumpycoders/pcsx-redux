@@ -34,6 +34,7 @@ jobs:
           node-version: '22.6.0'
       - name: Install jq
         run: |
+          apt update
           apt install -y jq
       - name: Packaging
         env:
