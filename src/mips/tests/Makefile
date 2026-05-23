@@ -1,4 +1,5 @@
 all:
+	$(MAKE) -C 2mb-vram all
 	$(MAKE) -C basic all
 	$(MAKE) -C cpu all
 	$(MAKE) -C cop0 all
@@ -42,6 +43,7 @@ all:
 	$(MAKE) -C timers all
 
 clean:
+	$(MAKE) -C 2mb-vram clean
 	$(MAKE) -C basic clean
 	$(MAKE) -C cpu clean
 	$(MAKE) -C cop0 clean
