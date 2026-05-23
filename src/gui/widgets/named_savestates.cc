@@ -142,7 +142,7 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
     GUI* gui) {
     std::vector<std::pair<std::filesystem::path, std::string>> names;
 
-    // Get the filename prefix to use, which follows the typical save state format, with a separator between gameID and
+    // Get the filename prefix to use, which follows the typical save state format, excluding the separator between gameID and
     // name
     std::string prefix = gui->getSaveStatePrefix(false);
     std::string postfix = gui->getSaveStatePostfix();
