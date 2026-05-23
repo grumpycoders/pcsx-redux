@@ -128,11 +128,16 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\gpu\soft\draw.cc" />
     <ClCompile Include="..\..\src\gpu\soft\gpu.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\lines.cc" />
+    <ClCompile Include="..\..\src\gpu\soft\polys.cc" />
     <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gpu\soft\interface.h" />
+    <ClInclude Include="..\..\src\gpu\soft\pixel-writer.h" />
+    <ClInclude Include="..\..\src\gpu\soft\raster-state.h" />
     <ClInclude Include="..\..\src\gpu\soft\soft.h" />
+    <ClInclude Include="..\..\src\gpu\soft\walker.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
