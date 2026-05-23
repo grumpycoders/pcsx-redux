@@ -222,7 +222,7 @@ void PCSX::Widgets::HWRegs::draw(PCSX::GUI* gui, PCSX::Memory* memory, const cha
             uint32_t chcr = readHWReg32(memory, base + Memory::DMA_CHCR);
 
             std::string chStr =
-                fmt::format("DMA{} {}: MADR={:06x} BCR={:08x} CHCR={:08x}###dma_ch{}", ch, dmaName(ch), madr & 0xffffff, bcr, chcr, ch);
+                fmt::format("DMA{} {:8}: MADR={:06x} BCR={:08x} CHCR={:08x}###dma_ch{}", ch, dmaName(ch), madr & 0xffffff, bcr, chcr, ch);
             if (ImGui::CollapsingHeader(chStr.c_str())) {
                 ImGui::Indent();
                 ImGui::Text("MADR: %08x (addr=%06x)", madr, madr & 0x1ffffc);
