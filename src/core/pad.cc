@@ -579,6 +579,7 @@ void PadsImpl::Pad::getButtons() {
     const auto& inputType = m_settings.get<SettingInputType>();
 
     auto getKeyboardButtons = [this]() -> uint16_t {
+        if (!ImGui::GetCurrentContext()) return 0xffff;
         uint16_t result = 0;
         for (unsigned i = 0; i < 16; i++) {
             auto key = GlfwKeyToImGuiKey(m_scancodes[i]);

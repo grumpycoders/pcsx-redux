@@ -272,6 +272,7 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
         counters.get<Rcnts>().value[i].get<RcntIRQState>().value = m_rcnts[i].irqState;
         counters.get<Rcnts>().value[i].get<RcntCycle>().value = m_rcnts[i].cycle;
         counters.get<Rcnts>().value[i].get<RcntCycleStart>().value = m_rcnts[i].cycleStart;
+        counters.get<Rcnts>().value[i].get<RcntGateStarted>().value = m_rcnts[i].gateStarted;
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
     counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
@@ -433,20 +434,20 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
         m_rcnts[i].irqState = counters.get<Rcnts>().value[i].get<RcntIRQState>().value;
         m_rcnts[i].cycle = counters.get<Rcnts>().value[i].get<RcntCycle>().value;
         m_rcnts[i].cycleStart = counters.get<Rcnts>().value[i].get<RcntCycleStart>().value;
+        m_rcnts[i].gateStarted = counters.get<Rcnts>().value[i].get<RcntGateStarted>().value;
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
     m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
 
     calculateHsync();
-    // iCB: recalculate target count in case overclock is changed
+    // Recalculate rates from mode registers (handles overclock changes and dotclock)
     m_rcnts[3].target =
         (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
                                         m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
-    if (m_rcnts[1].rate != 1)
-        m_rcnts[1].rate =
-            (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
-                                            m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
+    for (unsigned i = 0; i < 3; i++) {
+        recalculateRate(i);
+    }
 
     m_audioFrames = g_emulator->m_spu->getCurrentFrames();
 }
