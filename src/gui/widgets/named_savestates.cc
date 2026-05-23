@@ -191,8 +191,12 @@ std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* g
     std::string sub_folder = gui->getSaveStatePrefix(false);
     std::filesystem::path base_path = g_system->getPersistentDir() / sub_folder;
     if (!std::filesystem::exists(base_path, ec)) {
-        std::filesystem::create_directory(base_path);
-        g_system->log(LogClass::UI, "Created save state folder: %s\n", sub_folder.c_str());
+        if (!std::filesystem::create_directory(base_path, ec)) {
+            g_system->log(LogClass::UI, +"Failed to create save state folder '%s': %s\n", +base_path.string().c_str(),
+                          ec.message().c_str());
+        } else {
+            g_system->log(LogClass::UI, "Created save state folder: %s\n", sub_folder.c_str());
+        }
     }
 
     // Merge base_path with the potential save-state name.
