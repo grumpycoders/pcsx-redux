@@ -27,16 +27,20 @@ async function checkInstalled(name) {
   return tools[name].installed
 }
 
-async function checkCommands(commands, args) {
+async function findCommand(commands, args) {
   for (const command of commands) {
     try {
       await execFile(command, args)
     } catch (error) {
       continue
     }
-    return true
+    return command
   }
-  return false
+  return null
+}
+
+async function checkCommands(commands, args) {
+  return (await findCommand(commands, args)) !== null
 }
 
 let mipsInstalling = false
@@ -306,7 +310,7 @@ async function installCMake() {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await execFile('start', [filename])
+      await execFile('msiexec', ['/i', filename])
       requiresReboot = true
       break
     case 'linux':
@@ -457,7 +461,7 @@ async function installPython() {
   }
 }
 
-async function checkPython() {
+async function findPython() {
   switch (process.platform) {
     case 'win32':
       /*
@@ -501,12 +505,12 @@ async function checkPython() {
           } catch (error) {
             continue
           }
-          return true
+          return fullPath
         }
       }
-      return false
+      return null
     default:
-      return checkCommands(['python3', 'python'], ['--version'])
+      return await findCommand(['python3', 'python'], ['--version'])
   }
 }
 
@@ -606,7 +610,7 @@ const tools = {
       'Python language runtime, required to run some project templates\' scripts',
     homepage: 'https://python.org/',
     install: installPython,
-    check: checkPython
+    check: async () => (await findPython()) !== null
   },
   clangd: {
     type: 'extension',
@@ -701,6 +705,8 @@ exports.setExtensionUri = (uri) => {
 exports.setGlobalStorageUri = (uri) => {
   globalStorageUri = uri
 }
+
+exports.findPython = findPython
 
 exports.install = async (toInstall, force) => {
   if (requiresReboot) {
