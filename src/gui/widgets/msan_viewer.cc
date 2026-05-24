@@ -373,7 +373,10 @@ void PCSX::Widgets::MsanViewer::drawHexEditor(GUI* gui, Memory* memory) {
         bool initialized = s_highlightMemory->m_msanInitializedBitmap[bitmapIndex] & bitmask;
         return !usable || !initialized;
     };
-    m_hexEditor.ReadFn = [memory](size_t off) -> ImU8 { return ((uint8_t*)memory->m_msanRAM)[off]; };
+    m_hexEditor.ReadFn = [memory](size_t off) -> ImU8 {
+        if (off >= Memory::c_msanSize) return 0;
+        return memory->m_msanRAM[off];
+    };
     // Orange highlight for problematic bytes
     m_hexEditor.HighlightColor = IM_COL32(255, 150, 0, 80);
 
