@@ -70,6 +70,9 @@
     <ClCompile Include="..\..\src\gui\widgets\memory_observer.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\msan_viewer.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\sio1.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -187,6 +190,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\memory_observer.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\msan_viewer.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\sio1.h">
