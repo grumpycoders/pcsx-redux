@@ -6,17 +6,18 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   toolchain:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           set-safe-directory: true
-      - uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update packages registry
         run: sudo apt-get update
       - name: Install pre-reqs

@@ -17,8 +17,11 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <commctrl.h>
+#include <commoncontrols.h>
 #include <shellapi.h>
 #include <lmcons.h>
+#pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Shell32.lib")
 #else
 #include <unistd.h>
@@ -33,6 +36,74 @@
 static std::string u8StringToString(const std::u8string& str) {
 	return reinterpret_cast<const char*>(str.c_str());
 }
+
+namespace
+{
+	struct Image
+	{
+		std::vector<uint8_t> Pixels;
+		int Width, Height;
+	};
+
+#ifdef _WIN32
+	std::optional<Image> GetFileIconWin32(const SHFILEINFOW& sfi)
+	{
+		auto list = static_cast<HIMAGELIST>(nullptr);
+
+		if (FAILED(SHGetImageList(SHIL_LARGE, IID_IImageList, reinterpret_cast<void**>(&list))))
+		{
+			return std::nullopt;
+		}
+
+		const auto icon = ImageList_GetIcon(list, sfi.iIcon, ILD_NORMAL);
+
+		if (icon == nullptr)
+		{
+			return std::nullopt;
+		}
+
+		std::optional<Image> image;
+
+		ICONINFO info = {};
+
+		if (GetIconInfo(icon, &info))
+		{
+			if (info.hbmColor != nullptr)
+			{
+				DIBSECTION ds = {};
+
+				if (GetObject(info.hbmColor, sizeof(ds), &ds))
+				{
+					const auto bm = ds.dsBm;
+					const auto bw = bm.bmWidth;
+					const auto bh = bm.bmHeight;
+
+					if (const auto size = bw * bh * (bm.bmBitsPixel / 8); size > 0)
+					{
+						auto bits = std::vector<uint8_t>();
+
+						bits.resize(size);
+
+						if (GetBitmapBits(info.hbmColor, size, bits.data()))
+						{
+							image = Image{.Pixels = bits, .Width = bw, .Height = bh};
+						}
+					}
+				}
+			}
+
+			DeleteObject(info.hbmColor);
+
+			DeleteObject(info.hbmMask);
+		}
+
+		DestroyIcon(icon);
+
+		return image;
+	}
+#endif
+}
+
 namespace ifd {
 	static const char* GetDefaultFolderIcon();
 	static const char* GetDefaultFileIcon();
@@ -409,7 +480,7 @@ namespace ifd {
 		DWORD d = GetLogicalDrives();
 		for (int i = 0; i < 26; i++)
 			if (d & (1 << i))
-				thisPC->Children.push_back(new FileTreeNode(std::string(1, 'A' + i) + ":"));
+				thisPC->Children.push_back(new FileTreeNode(std::string(1, 'A' + i) + ":\\"));
 		m_treeCache.push_back(thisPC);
 #else
 		std::error_code ec;
@@ -748,27 +819,12 @@ namespace ifd {
 		m_iconIndices.push_back(fileInfo.iIcon);
 		m_iconFilepaths.push_back(pathU8);
 
-		ICONINFO iconInfo = { 0 };
-		GetIconInfo(fileInfo.hIcon, &iconInfo);
+		if (auto image = GetFileIconWin32(fileInfo); image.has_value())
+		{
+			return m_icons[pathU8] = this->CreateTexture(image->Pixels.data(), image->Width, image->Height, 0);
+		}
 
-		if (iconInfo.hbmColor == nullptr)
-			return nullptr;
-
-		DIBSECTION ds;
-		GetObject(iconInfo.hbmColor, sizeof(ds), &ds);
-		int byteSize = ds.dsBm.bmWidth * ds.dsBm.bmHeight * (ds.dsBm.bmBitsPixel / 8);
-
-		if (byteSize == 0)
-			return nullptr;
-
-		uint8_t* data = (uint8_t*)malloc(byteSize);
-		GetBitmapBits(iconInfo.hbmColor, byteSize, data);
-
-		m_icons[pathU8] = this->CreateTexture(data, ds.dsBm.bmWidth, ds.dsBm.bmHeight, 0);
-
-		free(data);
-
-		return m_icons[pathU8];
+		return nullptr;
 #else
 		if (m_icons.count(u8StringToString(path.u8string())) > 0)
 			return m_icons[u8StringToString(path.u8string())];
@@ -1072,7 +1128,7 @@ namespace ifd {
 		std::error_code ec;
 		ImGui::PushID(node);
 		bool isClicked = false;
-		std::string displayName = u8StringToString(node->Path.stem().u8string());
+		std::string displayName = u8StringToString(node->Path.filename().u8string());
 		if (displayName.size() == 0)
 			displayName = u8StringToString(node->Path.u8string());
 		if (FolderNode(displayName.c_str(), (ImTextureID)m_getIcon(node->Path), isClicked)) {

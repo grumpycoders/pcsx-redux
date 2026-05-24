@@ -312,6 +312,43 @@ ssize_t PCSX::SubFile::readAt(void *dest, size_t size, size_t ptr) {
     return m_file->readAt(dest, size, ptr + m_start);
 }
 
+ssize_t PCSX::SubFile::wSeek(ssize_t pos, int wheel) {
+    switch (wheel) {
+        case SEEK_SET:
+            m_ptrW = pos;
+            break;
+        case SEEK_END:
+            m_ptrW = m_size - pos;
+            break;
+        case SEEK_CUR:
+            m_ptrW += pos;
+            break;
+    }
+    m_ptrW = std::max(std::min(m_ptrW, m_size), size_t(0));
+    return m_ptrW;
+}
+
+ssize_t PCSX::SubFile::write(const void *src, size_t size) {
+    ssize_t ret = writeAt(src, size, m_ptrW);
+    if (ret < 0) return ret;
+    m_ptrW += ret;
+    if ((m_ptrW < 0) || (m_ptrW > m_size)) {
+        throw std::runtime_error("SubFile write pointer got out of bound - shouldn't happen");
+    }
+    return ret;
+}
+
+ssize_t PCSX::SubFile::writeAt(const void *src, size_t size, size_t ptr) {
+    ssize_t excess = size + ptr - m_size;
+    if (excess > 0) {
+        if (excess > size) {
+            return -1;
+        }
+        size -= excess;
+    }
+    return m_file->writeAt(src, size, ptr + m_start);
+}
+
 ssize_t PCSX::Fifo::read(void *dest_, size_t size) {
     if (size == 0) return 0;
     uint8_t *dest = static_cast<uint8_t *>(dest_);

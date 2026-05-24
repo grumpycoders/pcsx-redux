@@ -29,6 +29,7 @@
 #include <iostream>
 
 #include "core/debug.h"
+#include "support/gnu-c++-demangler.h"
 #include "core/disr3000a.h"
 #include "core/patchmanager.h"
 #include "core/psxmem.h"
@@ -42,6 +43,14 @@
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
 static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
+
+static std::string displaySymbol(const std::string& symbol) {
+    auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    if (debugSettings.get<PCSX::Emulator::DebugSettings::DemangledSymbols>()) {
+        return PCSX::GNUDemangler::demangle(symbol);
+    }
+    return symbol;
+}
 static ImVec4 s_bpColor = ImColor(0xba, 0x00, 0x0d);
 static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
 static ImVec4 s_arrowColor = ImColor(0x61, 0x61, 0x61);
@@ -303,7 +312,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     std::string longLabel = label;
     std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
-    if (symbol) longLabel = *symbol + " ;" + label;
+    if (symbol) longLabel = displaySymbol(*symbol) + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
         m_jumpToPC = value;
@@ -372,7 +381,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
 
     std::string longLabel;
     std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
-    if (symbol) longLabel = *symbol + " ; ";
+    if (symbol) longLabel = displaySymbol(*symbol) + " ; ";
 
     const auto& io = ImGui::GetIO();
     unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
@@ -412,7 +421,7 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
     if (symbol) {
-        std::string longLabel = *symbol + " ;" + label;
+        std::string longLabel = displaySymbol(*symbol) + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = value;
@@ -433,7 +442,7 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
     std::string longLabel = label;
     std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
-    if (symbol) longLabel = *symbol + " ;" + label;
+    if (symbol) longLabel = displaySymbol(*symbol) + " ;" + label;
 
     const auto& io = ImGui::GetIO();
     unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
@@ -558,6 +567,9 @@ settings, otherwise debugging features may not work.)");
     ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Demangle C++"),
+                    &debugSettings.get<Emulator::DebugSettings::DemangledSymbols>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
@@ -689,13 +701,14 @@ settings, otherwise debugging features may not work.)");
                 if (symbol) {
                     if (symbol->first == dispAddr) {
                         ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                        ImGui::Text("%s:", symbol->second.c_str());
+                        std::string displayName = displaySymbol(symbol->second);
+                        ImGui::Text("%s:", displayName.c_str());
                         ImGui::PopStyleColor();
                     } else {
                         // if this is the first visible line and it's not a label itself, store the previous symbol
                         float y = ImGui::GetCursorScreenPos().y;
                         if (y + lineHeight >= topleft.y && y <= topleft.y + lineHeight) {
-                            previousSymbol = symbol->second;
+                            previousSymbol = displaySymbol(symbol->second);
                             // if the second visible line is a symbol, push the previous symbol display up
                             if (cpu->getSymbolAt(dispAddr + 4) && y < previousSymbolY) {
                                 previousSymbolY = y;
@@ -1118,10 +1131,12 @@ if not success then return msg else return nil end
             std::string filter = up(m_symbolFilter);
             bool empty = filter.empty();
             for (auto& symbol : m_symbolsCache) {
-                int pos = up(symbol.first).find(filter);
+                std::string display = displaySymbol(symbol.first);
+                int pos = up(display).find(filter);
+                if (pos < 0) pos = up(symbol.first).find(filter);
                 bool found = pos >= 0;
                 if (empty || found) {
-                    std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
+                    std::string label = fmt::format("{} - {:08x}", display, symbol.second);
                     std::string codeLabel = fmt::format(f_("Code##{}{:08x}"), symbol.first, symbol.second);
                     std::string dataLabel = fmt::format(f_("Data##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {

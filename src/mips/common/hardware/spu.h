@@ -55,6 +55,7 @@ struct SPUVoice {
 #define SPU_NOISE_EN_HIGH HW_U16(0x1f801d96)
 #define SPU_REVERB_EN_LOW HW_U16(0x1f801d98)
 #define SPU_REVERB_EN_HIGH HW_U16(0x1f801d9a)
+#define SPU_REVERB_ADDR HW_U16(0x1f801da2)
 
 #define SPU_RAM_DTA HW_U16(0x1f801da6)
 #define SPU_CTRL HW_U16(0x1f801daa)

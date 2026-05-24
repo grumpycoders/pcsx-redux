@@ -1,19 +1,87 @@
 all:
+	$(MAKE) -C 2mb-vram all
 	$(MAKE) -C basic all
 	$(MAKE) -C cpu all
 	$(MAKE) -C cop0 all
+	$(MAKE) -C dcache all
 	$(MAKE) -C dma all
+	$(MAKE) -C gpu-raster-phase1 all
+	$(MAKE) -C gpu-raster-phase2 all
+	$(MAKE) -C gpu-raster-phase3 all
+	$(MAKE) -C gpu-raster-phase4 all
+	$(MAKE) -C gpu-raster-phase5 all
+	$(MAKE) -C gpu-raster-phase6 all
+	$(MAKE) -C gpu-raster-phase7 all
+	$(MAKE) -C gpu-raster-phase8 all
+	$(MAKE) -C gpu-raster-phase9 all
+	$(MAKE) -C gpu-raster-phase10 all
+	$(MAKE) -C gpu-raster-phase11 all
+	$(MAKE) -C gpu-raster-phase12 all
+	$(MAKE) -C gpu-raster-phase13 all
+	$(MAKE) -C gpu-raster-phase14 all
+	$(MAKE) -C gpu-raster-phase15 all
+	$(MAKE) -C gpu-raster-phase16 all
+	$(MAKE) -C gpu-raster-phase17 all
+	$(MAKE) -C gpu-raster-phase18 all
+	$(MAKE) -C gpu-raster-phase19 all
+	$(MAKE) -C gpu-raster-phase20 all
+	$(MAKE) -C gte all
+	$(MAKE) -C gte-latency all
+	$(MAKE) -C gte-latency-color all
+	$(MAKE) -C gte-latency-dpc all
+	$(MAKE) -C gte-latency-math all
+	$(MAKE) -C gte-latency-misc all
+	$(MAKE) -C gte-latency-mvmva all
+	$(MAKE) -C gte-latency-perspective all
+	$(MAKE) -C gte-latency-singles all
 	$(MAKE) -C libc all
 	$(MAKE) -C memcpy all
 	$(MAKE) -C memset all
 	$(MAKE) -C pcdrv all
+	$(MAKE) -C psyqo all
+	$(MAKE) -C regwrites all
+	$(MAKE) -C timers all
 
 clean:
+	$(MAKE) -C 2mb-vram clean
 	$(MAKE) -C basic clean
 	$(MAKE) -C cpu clean
 	$(MAKE) -C cop0 clean
+	$(MAKE) -C dcache clean
 	$(MAKE) -C dma clean
+	$(MAKE) -C gpu-raster-phase1 clean
+	$(MAKE) -C gpu-raster-phase2 clean
+	$(MAKE) -C gpu-raster-phase3 clean
+	$(MAKE) -C gpu-raster-phase4 clean
+	$(MAKE) -C gpu-raster-phase5 clean
+	$(MAKE) -C gpu-raster-phase6 clean
+	$(MAKE) -C gpu-raster-phase7 clean
+	$(MAKE) -C gpu-raster-phase8 clean
+	$(MAKE) -C gpu-raster-phase9 clean
+	$(MAKE) -C gpu-raster-phase10 clean
+	$(MAKE) -C gpu-raster-phase11 clean
+	$(MAKE) -C gpu-raster-phase12 clean
+	$(MAKE) -C gpu-raster-phase13 clean
+	$(MAKE) -C gpu-raster-phase14 clean
+	$(MAKE) -C gpu-raster-phase15 clean
+	$(MAKE) -C gpu-raster-phase16 clean
+	$(MAKE) -C gpu-raster-phase17 clean
+	$(MAKE) -C gpu-raster-phase18 clean
+	$(MAKE) -C gpu-raster-phase19 clean
+	$(MAKE) -C gpu-raster-phase20 clean
+	$(MAKE) -C gte clean
+	$(MAKE) -C gte-latency clean
+	$(MAKE) -C gte-latency-color clean
+	$(MAKE) -C gte-latency-dpc clean
+	$(MAKE) -C gte-latency-math clean
+	$(MAKE) -C gte-latency-misc clean
+	$(MAKE) -C gte-latency-mvmva clean
+	$(MAKE) -C gte-latency-perspective clean
+	$(MAKE) -C gte-latency-singles clean
 	$(MAKE) -C libc clean
 	$(MAKE) -C memcpy clean
 	$(MAKE) -C memset clean
 	$(MAKE) -C pcdrv clean
+	$(MAKE) -C psyqo clean
+	$(MAKE) -C regwrites clean
+	$(MAKE) -C timers clean

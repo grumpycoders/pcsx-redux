@@ -6,7 +6,7 @@
 |--------|------------|--------|
 |Windows x64 build|[![Windows x64 CI](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|[Windows Intel 64-bits](https://distrib.app/pub/org/pcsx-redux/project/dev-win-x64)|
 |Linux x64 build|[![Linux x64 CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
-|MacOS x64 build|[![MacOS x64 CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[MacOS Intel](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-x64)|
+|macOS build|[![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[macOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
 
 To discuss this emulator specifically, please join our Discord server:
 
@@ -37,7 +37,6 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 |[Windows Intel 64-bits](https://distrib.app/pub/org/pcsx-redux/project/dev-win-x64)|
 |[Windows Intel 64-bits CLI](https://distrib.app/pub/org/pcsx-redux/project/dev-win-cli-x64)|
 |[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
-|[MacOS Intel](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-x64)|
 |[MacOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
 
 ### Note:
