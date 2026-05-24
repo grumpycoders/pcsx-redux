@@ -193,8 +193,8 @@ void PCSX::Widgets::MsanViewer::drawAllocationTable(GUI* gui, Memory* memory) {
                 ImGui::TableNextColumn();
                 ImGui::PushID(i);
                 ImVec4 barColor = alloc.initializedPercent >= 100.0f ? ImVec4(0.0f, 0.8f, 0.0f, 1.0f)
-                                  : alloc.initializedPercent > 0.0f ? ImVec4(0.8f, 0.8f, 0.0f, 1.0f)
-                                                                    : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
+                                  : alloc.initializedPercent > 0.0f  ? ImVec4(0.8f, 0.8f, 0.0f, 1.0f)
+                                                                     : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
                 ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
                 ImGui::ProgressBar(alloc.initializedPercent / 100.0f, ImVec2(-1, ImGui::GetTextLineHeight()));
                 ImGui::PopStyleColor();
@@ -216,8 +216,7 @@ void PCSX::Widgets::MsanViewer::drawAllocationTable(GUI* gui, Memory* memory) {
 }
 
 void PCSX::Widgets::MsanViewer::drawBitmapVisualization(GUI* gui, Memory* memory) {
-    ImGui::SliderInt("Bytes per pixel", (int*)&m_bitmapBytesPerPixel, 1, 1024, "%d",
-                     ImGuiSliderFlags_Logarithmic);
+    ImGui::SliderInt("Bytes per pixel", (int*)&m_bitmapBytesPerPixel, 1, 1024, "%d", ImGuiSliderFlags_Logarithmic);
 
     // Only visualize up to the watermark, not the full 1.5GB
     uint32_t visibleBytes = memory->m_msanPtr;
@@ -268,12 +267,12 @@ void PCSX::Widgets::MsanViewer::drawBitmapVisualization(GUI* gui, Memory* memory
             ImU32 color;
             if (memory->m_msanUsableBitmap[bitmapIndex] & bitmask) {
                 if (memory->m_msanInitializedBitmap[bitmapIndex] & bitmask) {
-                    color = IM_COL32(0, 200, 0, 255);      // OK - green
+                    color = IM_COL32(0, 200, 0, 255);  // OK - green
                 } else {
-                    color = IM_COL32(255, 150, 0, 255);     // Uninitialized - orange
+                    color = IM_COL32(255, 150, 0, 255);  // Uninitialized - orange
                 }
             } else {
-                color = IM_COL32(50, 50, 50, 255);          // Unusable - dark
+                color = IM_COL32(50, 50, 50, 255);  // Unusable - dark
             }
 
             ImVec2 p0(canvasPos.x + col * 2.0f, canvasPos.y + row * 2.0f);
@@ -323,13 +322,13 @@ void PCSX::Widgets::MsanViewer::drawChainRegistry(GUI* gui, Memory* memory) {
     ImGui::Text("%zu chain entries", memory->m_msanChainRegistry.size());
 
     if (memory->m_msanChainRegistry.empty()) {
-        ImGui::TextWrapped("No GPU DMA chain entries registered. Chain entries are created when PSX software "
-                           "sets up ordering tables with MSAN-allocated memory.");
+        ImGui::TextWrapped(
+            "No GPU DMA chain entries registered. Chain entries are created when PSX software "
+            "sets up ordering tables with MSAN-allocated memory.");
         return;
     }
 
-    if (ImGui::BeginTable("ChainTable", 2,
-                          ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY,
+    if (ImGui::BeginTable("ChainTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY,
                           ImVec2(0, -1))) {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("Header Address");
@@ -365,7 +364,7 @@ void PCSX::Widgets::MsanViewer::drawHexEditor(GUI* gui, Memory* memory) {
     // HighlightFn is a raw function pointer so we use a static to pass context.
     static Memory* s_highlightMemory = nullptr;
     s_highlightMemory = memory;
-    m_hexEditor.HighlightFn = [](const ImU8* data, size_t off) -> bool {
+    m_hexEditor.HighlightFn = [](size_t off) -> bool {
         if (!s_highlightMemory || off >= Memory::c_msanSize) return false;
         uint32_t bitmapIndex = (uint32_t)off / 8;
         uint8_t bitmask = 1 << ((uint32_t)off % 8);
@@ -374,10 +373,11 @@ void PCSX::Widgets::MsanViewer::drawHexEditor(GUI* gui, Memory* memory) {
         bool initialized = s_highlightMemory->m_msanInitializedBitmap[bitmapIndex] & bitmask;
         return !usable || !initialized;
     };
+    m_hexEditor.ReadFn = [memory](size_t off) -> ImU8 { return ((uint8_t*)memory->m_msanRAM)[off]; };
     // Orange highlight for problematic bytes
     m_hexEditor.HighlightColor = IM_COL32(255, 150, 0, 80);
 
     ImGui::SetNextWindowPos(ImVec2(500, 200), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-    m_hexEditor.DrawWindow("MSAN Memory Editor", memory->m_msanRAM, memory->m_msanPtr);
+    m_hexEditor.DrawWindow("MSAN Memory Editor", memory->m_msanPtr);
 }
