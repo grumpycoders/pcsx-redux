@@ -129,8 +129,8 @@ void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress
     SPU_VOICES[channelId].volumeRight = config.volumeRight;
     SPU_VOICES[channelId].sampleRate = config.sampleRate.value;
     SPU_VOICES[channelId].sampleStartAddr = spuRamAddress / 8;
-    SPU_VOICES[channelId].ad = config.adsr & 0xffff;
-    SPU_VOICES[channelId].sr = (config.adsr >> 16) & 0xffff;
+    SPU_VOICES[channelId].adsrLo = config.adsr & 0xffff;
+    SPU_VOICES[channelId].adsrHi = (config.adsr >> 16) & 0xffff;
 
     if (channelId > 15) {
         SPU_KEY_ON_HIGH = 1 << (channelId - 16);
