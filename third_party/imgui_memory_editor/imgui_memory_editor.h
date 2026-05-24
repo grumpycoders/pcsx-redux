@@ -8,16 +8,21 @@
 //
 // Usage:
 //   // Create a window and draw memory editor inside it:
-//   static MemoryEditor mem_edit_1;
-//   static char data[0x10000];
-//   size_t data_size = 0x10000;
-//   mem_edit_1.DrawWindow("Memory Editor", data, data_size);
+//   static bool show = true;
+//   static size_t goto_addr = 0;
+//   static MemoryEditor mem_edit_1(show, 0, goto_addr);
+//   mem_edit_1.ReadFn = [](size_t off) -> ImU8 { return my_data[off]; };
+//   mem_edit_1.WriteFn = [](size_t off, ImU8 d) { my_data[off] = d; };
+//   mem_edit_1.DrawWindow("Memory Editor", data_size);
 //
 // Usage:
 //   // If you already have a window, use DrawContents() instead:
-//   static MemoryEditor mem_edit_2;
+//   static bool show = true;
+//   static size_t goto_addr = 0;
+//   static MemoryEditor mem_edit_2(show, 0, goto_addr);
+//   mem_edit_2.ReadFn = [](size_t off) -> ImU8 { return ((uint8_t*)ptr)[off]; };
 //   ImGui::Begin("MyWindow")
-//   mem_edit_2.DrawContents(this, sizeof(*this), (size_t)this);
+//   mem_edit_2.DrawContents(mem_size);
 //   ImGui::End();
 //
 // Changelog:
@@ -51,8 +56,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <algorithm>
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "imgui.h"
 
@@ -80,12 +87,52 @@ struct MemoryEditor
     int             OptAddrDigitsCount;                         // = 0      // number of addr digits to display (default calculated based on maximum displayed addr).
     float           OptFooterExtraHeight;                       // = 0      // space to reserve at the bottom of the widget to add custom widgets
     ImU32           HighlightColor;                             //          // background color of highlighted bytes.
-    ImU8            (*ReadFn)(const ImU8* data, size_t off);    // = 0      // optional handler to read bytes.
-    void            (*WriteFn)(ImU8* data, size_t off, ImU8 d); // = 0      // optional handler to write bytes.
-    bool            (*HighlightFn)(const ImU8* data, size_t off);//= 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
+    bool            (*HighlightFn)(size_t off);                 // = 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
     std::function<void()> PushMonoFont = nullptr;
     size_t&          OffsetAddr; // referenced from PCSX-Redux Settings
-    std::function<void(ImU8* data, size_t len, size_t base)> ExportFn = nullptr; // optional handler to export all memory data.
+
+    // Data source callbacks - these replace the old void* data pointer approach.
+    // ReadFn is required; WriteFn is optional (if null, editor is read-only for writes).
+    // ExportFn is optional, provides an "Export Memory" button.
+    std::function<ImU8(size_t off)> ReadFn = nullptr;
+    std::function<void(size_t off, ImU8 d)> WriteFn = nullptr;
+    std::function<void(size_t len, size_t base)> ExportFn = nullptr;
+
+    // Read-ahead cache for performance. Batches individual byte reads into bulk reads.
+    struct ReadCache {
+        static constexpr size_t kPageSize = 4096;
+        std::function<void(void* dest, size_t off, size_t len)> BulkReadFn = nullptr;
+
+        ImU8 read(size_t off) {
+            if (!BulkReadFn || off >= m_totalSize) return 0;
+            if (off < m_base || off >= m_base + m_len) fill(off);
+            return m_buf[off - m_base];
+        }
+
+        void invalidate() { m_base = SIZE_MAX; m_len = 0; }
+
+        void setSize(size_t total) { m_totalSize = total; }
+
+    private:
+        void fill(size_t off) {
+            m_base = off & ~(kPageSize - 1);
+            if (m_base >= m_totalSize) {
+                m_len = 0;
+                m_buf.clear();
+                return;
+            }
+            m_len = std::min(kPageSize, m_totalSize - m_base);
+            m_buf.resize(m_len);
+            BulkReadFn(m_buf.data(), m_base, m_len);
+        }
+
+        std::vector<ImU8> m_buf;
+        size_t m_base = SIZE_MAX;
+        size_t m_len = 0;
+        size_t m_totalSize = 0;
+    };
+
+    mutable ReadCache Cache;
 
 private:
     // [Internal State]
@@ -103,7 +150,7 @@ private:
 
 public:
     ImGuiDataType   PreviewDataType;
-    
+
     MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr);
     void GotoAddrAndHighlight(size_t addr_min, size_t addr_max);
 
@@ -127,11 +174,11 @@ public:
 
     void CalcSizes(Sizes& s, size_t mem_size);
     // Standalone Memory Editor window
-    void DrawWindow(const char* title, void* mem_data, size_t mem_size);
+    void DrawWindow(const char* title, size_t mem_size);
     // Memory Editor contents only
-    void DrawContents(void* mem_data_void, size_t mem_size);
-    void DrawOptionsLine(const Sizes& s, void* mem_data_void, size_t mem_size);
-    void DrawPreviewLine(const Sizes& s, void* mem_data_void, size_t mem_size);
+    void DrawContents(size_t mem_size);
+    void DrawOptionsLine(const Sizes& s, size_t mem_size);
+    void DrawPreviewLine(const Sizes& s, size_t mem_size);
     // Utilities for Data Preview
     const char* DataTypeGetDesc(ImGuiDataType data_type) const;
     size_t DataTypeGetSize(ImGuiDataType data_type) const;
@@ -144,5 +191,6 @@ public:
 
 private:
     // [Internal]
-    void DrawPreviewData(size_t addr, const ImU8* mem_data, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const;
+    ImU8 ReadByte(size_t addr) const;
+    void DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const;
 };

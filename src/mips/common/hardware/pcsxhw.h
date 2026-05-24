@@ -63,4 +63,8 @@ static __inline__ void* pcsx_msanGetChainPtr(void* headerAddr) {
     return ret;
 }
 
+static __inline__ void pcsx_registerHeapMetadata(const void* metadata) {
+    *((void* volatile* const)0x1f8020a0) = (void*)metadata;
+}
+
 static __inline__ int pcsx_present() { return *((volatile uint32_t* const)0x1f802080) == 0x58534350; }

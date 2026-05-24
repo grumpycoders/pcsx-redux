@@ -27,6 +27,7 @@
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/gte.h"
+#include "core/ramlogger.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
@@ -62,6 +63,7 @@ PCSX::Emulator::Emulator()
       m_gdbServer(new PCSX::GdbServer()),
       m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
+      m_ramLogger(new PCSX::RAMLogger()),
       m_hw(new PCSX::HW()),
       m_lua(new PCSX::Lua()),
       m_mdec(new PCSX::MDEC()),

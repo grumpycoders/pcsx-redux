@@ -38,3 +38,19 @@ struct Counter {
 };
 
 #define COUNTERS ((volatile struct Counter *)0xbf801100)
+
+enum {
+    TM_SYNC_EN      = 0x0001,
+    TM_RESET_TARGET = 0x0008,
+    TM_IRQ_TARGET   = 0x0010,
+    TM_IRQ_OVERFLOW = 0x0020,
+    TM_IRQ_REPEAT   = 0x0040,
+    TM_IRQ_TOGGLE   = 0x0080,
+    TM_CLK_EXTERNAL = 0x0100,
+    TM_CLK_DIV8     = 0x0200,
+    TM_IRQ_REQUEST  = 0x0400,
+    TM_HIT_TARGET   = 0x0800,
+    TM_HIT_OVERFLOW = 0x1000,
+};
+
+#define TM_SYNC_MODE(n) (((n) & 3) << 1)
