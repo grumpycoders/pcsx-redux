@@ -53,16 +53,9 @@ spu.c \
 
 include ../../common.mk
 
-SERIAL ?= /dev/ttyUSB0
-NOPS ?= mono nops.exe
-
-run: all
-	$(NOPS) /fast /exe $(TARGET).ps-exe /m $(SERIAL)
-
-# Build a "dump" variant that writes captures via PCDrv instead of asserting,
-# refresh the *.test.pcm files on the host
+# generate .test.pcm samples instead of running assertion
+.PHONY: spu_dump
 spu_dump:
 	$(MAKE) clean
 	$(MAKE) SPU_DUMP=true
 
-.PHONY: run spu_dump
