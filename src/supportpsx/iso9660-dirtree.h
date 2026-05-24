@@ -34,9 +34,9 @@ SOFTWARE.
 #include "supportpsx/iso9660-lowlevel.h"
 
 namespace PCSX {
-namespace ISO9660 {
+class ISO9660Builder;
 
-class IsoBuilder;
+namespace ISO9660 {
 
 class DirTree {
   public:
@@ -76,7 +76,7 @@ class DirTree {
     DirTree() = default;
 
   private:
-    friend class IsoBuilder;
+    friend class ISO9660Builder;
 
     // Identity
     std::string m_name;

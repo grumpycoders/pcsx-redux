@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\src\supportpsx\binlua.h" />
     <ClInclude Include="..\..\src\supportpsx\iec-60908b.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h" />
+    <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\supportpsx\memory.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />

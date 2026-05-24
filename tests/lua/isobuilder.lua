@@ -36,7 +36,7 @@ end
 function TestIsoBuilder:test_minimalIso()
     -- Create a minimal ISO with one file in the root directory.
     local out = Support.File.buffer()
-    local builder = PCSX.createIsoBuilder(out)
+    local builder = PCSX.isoBuilder(out)
     lu.assertNotNil(builder)
     lu.assertFalse(builder:failed())
 
@@ -92,7 +92,7 @@ end
 function TestIsoBuilder:test_subdirectory()
     -- Create an ISO with a subdirectory containing a file.
     local out = Support.File.buffer()
-    local builder = PCSX.createIsoBuilder(out)
+    local builder = PCSX.isoBuilder(out)
 
     builder:writeLicense()
     builder:setVolumeIdent('SUBDIR_TEST')
@@ -115,13 +115,14 @@ function TestIsoBuilder:test_subdirectory()
     -- Open file through subdirectory path.
     local readBack = reader:open('DATA/INFO.BIN;1')
     lu.assertNotNil(readBack)
+    lu.assertFalse(readBack:failed())
     lu.assertEquals(readBack:size(), 2048)
 end
 
 function TestIsoBuilder:test_pvdFields()
     -- Verify PVD string fields round-trip correctly.
     local out = Support.File.buffer()
-    local builder = PCSX.createIsoBuilder(out)
+    local builder = PCSX.isoBuilder(out)
 
     builder:setSystemIdent('PLAYSTATION')
     builder:setVolumeIdent('MY_VOL')
@@ -137,7 +138,7 @@ end
 function TestIsoBuilder:test_multipleFiles()
     -- Create an ISO with multiple files.
     local out = Support.File.buffer()
-    local builder = PCSX.createIsoBuilder(out)
+    local builder = PCSX.isoBuilder(out)
 
     builder:writeLicense()
     builder:setVolumeIdent('MULTI_FILE')
@@ -161,13 +162,16 @@ function TestIsoBuilder:test_multipleFiles()
 
     local f1 = reader:open('FILE1.DAT;1')
     lu.assertNotNil(f1)
+    lu.assertFalse(f1:failed())
     lu.assertEquals(f1:size(), 512)
 
     local f2 = reader:open('FILE2.DAT;1')
     lu.assertNotNil(f2)
+    lu.assertFalse(f2:failed())
     lu.assertEquals(f2:size(), 1024)
 
     local f3 = reader:open('FILE3.DAT;1')
     lu.assertNotNil(f3)
+    lu.assertFalse(f3:failed())
     lu.assertEquals(f3:size(), 3000)
 end

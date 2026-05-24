@@ -62,46 +62,40 @@ uint32_t gapEntrySectors(GapList* list, uint32_t index);
 typedef struct { char opaque[?]; } ISO9660Builder;
 ISO9660Builder* createIsoBuilder(LuaFile* out);
 void deleteIsoBuilder(ISO9660Builder* builder);
+bool isoBuilderFailed(ISO9660Builder* builder);
 void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
 void isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, enum SectorMode mode);
-void isoBuilderClose(ISO9660Builder* builder);
+void isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
 
 // High-level filesystem-aware ISO builder
-typedef struct { char opaque[?]; } HLIsoBuilder;
 typedef struct { char opaque[?]; } IsoDirTree;
 
-HLIsoBuilder* createHLIsoBuilder(LuaFile* out);
-void deleteHLIsoBuilder(HLIsoBuilder* builder);
-bool hlIsoBuilderFailed(HLIsoBuilder* builder);
-void hlIsoBuilderWriteLicense(HLIsoBuilder* builder, LuaFile* license);
-void hlIsoBuilderClose(HLIsoBuilder* builder, uint32_t threadCount);
-
 // PVD field getters (copy trimmed string to caller buffer)
-void hlPvdGetSystemIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetVolumeIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetVolSetIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetPublisherIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetDataPreparerIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetApplicationIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetCopyrightFileIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetAbstractFileIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
-void hlPvdGetBibliographicFileIdent(HLIsoBuilder* b, char* buf, uint32_t bufSize);
+void hlPvdGetSystemIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetVolumeIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetVolSetIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetPublisherIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetDataPreparerIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetApplicationIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetCopyrightFileIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetAbstractFileIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
+void hlPvdGetBibliographicFileIdent(ISO9660Builder* b, char* buf, uint32_t bufSize);
 
 // PVD field setters (pad with spaces)
-void hlPvdSetSystemIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetVolumeIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetVolSetIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetPublisherIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetDataPreparerIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetApplicationIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetCopyrightFileIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetAbstractFileIdent(HLIsoBuilder* b, const char* val);
-void hlPvdSetBibliographicFileIdent(HLIsoBuilder* b, const char* val);
+void hlPvdSetSystemIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetVolumeIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetVolSetIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetPublisherIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetDataPreparerIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetApplicationIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetCopyrightFileIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetAbstractFileIdent(ISO9660Builder* b, const char* val);
+void hlPvdSetBibliographicFileIdent(ISO9660Builder* b, const char* val);
 
 // DirTree creation
-IsoDirTree* hlCreateRoot(HLIsoBuilder* b, uint32_t sectorCount);
-IsoDirTree* hlCreateDir(HLIsoBuilder* b, IsoDirTree* parent, const char* name, uint32_t sectorCount);
-IsoDirTree* hlCreateFile(HLIsoBuilder* b, IsoDirTree* parent, const char* name, LuaFile* content);
+IsoDirTree* hlCreateRoot(ISO9660Builder* b, uint32_t sectorCount);
+IsoDirTree* hlCreateDir(ISO9660Builder* b, IsoDirTree* parent, const char* name, uint32_t sectorCount);
+IsoDirTree* hlCreateFile(ISO9660Builder* b, IsoDirTree* parent, const char* name, LuaFile* content);
 
 // DirTree property access
 const char* dirTreeGetName(IsoDirTree* node);
@@ -190,26 +184,6 @@ local function createIsoWrapper(wrapper)
     return iso
 end
 
-local function createIsoBuilderWrapper(wrapper)
-    local iso = {
-        _wrapper = ffi.gc(wrapper, function(self)
-            C.isoBuilderClose(self)
-            C.deleteIsoBuilder(self)
-        end),
-        writeLicense = function(self, file)
-            if not file then file = Support.File.failedFile() end
-            C.isoBuilderWriteLicense(self._wrapper, file._wrapper)
-        end,
-        writeSector = function(self, sectorData, mode)
-            if not mode then mode = 'M2_FORM1' end
-            if Support.isLuaBuffer(sectorData) then sectorData = sectorData.data end
-            C.isoBuilderWriteSector(self._wrapper, sectorData, mode)
-        end,
-        close = function(self) C.isoBuilderClose(self._wrapper) end,
-    }
-    return iso
-end
-
 -- High-level ISO builder (filesystem-aware)
 local pvdBuf = ffi.new('char[?]', 513)  -- max CString size (512 for ApplicationUse) + 1
 
@@ -241,7 +215,7 @@ local function createDirTreeWrapper(node)
     return wrapper
 end
 
-local function createHLIsoBuilderWrapper(wrapper)
+local function createIsoBuilderWrapper(wrapper)
     local function pvdGetter(getter)
         return function(self)
             getter(self._wrapper, pvdBuf, 513)
@@ -249,13 +223,13 @@ local function createHLIsoBuilderWrapper(wrapper)
         end
     end
     local builder = {
-        _wrapper = ffi.gc(wrapper, C.deleteHLIsoBuilder),
-        failed = function(self) return C.hlIsoBuilderFailed(self._wrapper) end,
+        _wrapper = ffi.gc(wrapper, C.deleteIsoBuilder),
+        failed = function(self) return C.isoBuilderFailed(self._wrapper) end,
         writeLicense = function(self, file)
             if file then
-                C.hlIsoBuilderWriteLicense(self._wrapper, file._wrapper)
+                C.isoBuilderWriteLicense(self._wrapper, file._wrapper)
             else
-                C.hlIsoBuilderWriteLicense(self._wrapper, nil)
+                C.isoBuilderWriteLicense(self._wrapper, nil)
             end
         end,
         -- PVD getters
@@ -289,7 +263,7 @@ local function createHLIsoBuilderWrapper(wrapper)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
         close = function(self, threadCount)
-            C.hlIsoBuilderClose(self._wrapper, threadCount or 0)
+            C.isoBuilderClose(self._wrapper, threadCount or 0)
         end,
     }
     return builder
@@ -304,7 +278,6 @@ PCSX.openIso = function(arg)
     end
 end
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
-PCSX.createIsoBuilder = function(file) return createHLIsoBuilderWrapper(C.createHLIsoBuilder(file._wrapper)) end
 PCSX.isoTools = {
     fromBCD = function(bcd)
         local dec = 0

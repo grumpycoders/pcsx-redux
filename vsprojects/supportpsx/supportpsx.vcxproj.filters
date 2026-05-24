@@ -128,5 +128,8 @@
     <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
