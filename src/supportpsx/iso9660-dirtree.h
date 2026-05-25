@@ -55,6 +55,10 @@ class DirTree {
     bool isHidden() const { return m_hidden; }
     void setHidden(bool hidden) { m_hidden = hidden; }
 
+    // Don't write this entry to the parent directory, but still write its content
+    bool shouldSkip() const { return m_skip; }
+    void setSkip(bool skip) { m_skip = skip; }
+
     // XA extensions
     bool hasXA() const { return m_hasXA; }
     void setHasXA(bool xa) { m_hasXA = xa; }
@@ -92,6 +96,7 @@ class DirTree {
     ISO9660LowLevel::DirEntry_XA m_xa;
     bool m_hasXA = false;
     bool m_hidden = false;
+    bool m_skip = false;
 
     // Sector mode for writing this entry's content
     IEC60908b::SectorMode m_sectorMode = IEC60908b::SectorMode::M2_FORM1;

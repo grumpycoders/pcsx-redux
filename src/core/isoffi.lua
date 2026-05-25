@@ -104,6 +104,8 @@ uint32_t dirTreeGetLBA(IsoDirTree* node);
 bool dirTreeIsDir(IsoDirTree* node);
 bool dirTreeIsHidden(IsoDirTree* node);
 void dirTreeSetHidden(IsoDirTree* node, bool val);
+bool dirTreeShouldSkip(IsoDirTree* node);
+void dirTreeSetSkip(IsoDirTree* node, bool val);
 bool dirTreeHasXA(IsoDirTree* node);
 void dirTreeSetHasXA(IsoDirTree* node, bool val);
 void dirTreeSetSectorMode(IsoDirTree* node, enum SectorMode mode);
@@ -197,6 +199,8 @@ local function createDirTreeWrapper(node)
         isDir = function(self) return C.dirTreeIsDir(self._node) end,
         isHidden = function(self) return C.dirTreeIsHidden(self._node) end,
         setHidden = function(self, val) C.dirTreeSetHidden(self._node, val) end,
+        shouldSkip = function(self) return C.dirTreeShouldSkip(self._node) end,
+        setSkip = function(self, val) C.dirTreeSetSkip(self._node, val) end,
         hasXA = function(self) return C.dirTreeHasXA(self._node) end,
         setXA = function(self, val) C.dirTreeSetHasXA(self._node, val) end,
         setSectorMode = function(self, mode) C.dirTreeSetSectorMode(self._node, mode) end,

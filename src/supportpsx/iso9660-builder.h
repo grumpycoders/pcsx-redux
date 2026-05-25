@@ -45,12 +45,6 @@ class ISO9660Builder {
         return writeSectorAt(sectorData, m_location++, mode);
     }
     IEC60908b::MSF writeSectorAt(const uint8_t* sectorData, IEC60908b::MSF msf, IEC60908b::SectorMode mode);
-    // Write a fully-formed 2352-byte raw frame at the given LBA.
-    // Used by IsoBuilder for parallel EDC/ECC: the frame already has sync, header, data, and ECC computed.
-    void writeRawFrame(const uint8_t* frame, uint32_t lba) {
-        if (failed()) return;
-        m_out->writeAt(frame, IEC60908b::FRAMESIZE_RAW, static_cast<size_t>(lba) * IEC60908b::FRAMESIZE_RAW);
-    }
 
     // Access the PVD for setting volume descriptor fields.
     // User-settable: SystemIdent, VolumeIdent, VolSetIdent, PublisherIdent,

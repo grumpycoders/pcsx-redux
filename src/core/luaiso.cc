@@ -320,6 +320,8 @@ uint32_t dirTreeGetLBA(PCSX::ISO9660::DirTree* node) { return node->getLBA(); }
 bool dirTreeIsDir(PCSX::ISO9660::DirTree* node) { return node->isDir(); }
 bool dirTreeIsHidden(PCSX::ISO9660::DirTree* node) { return node->isHidden(); }
 void dirTreeSetHidden(PCSX::ISO9660::DirTree* node, bool val) { node->setHidden(val); }
+bool dirTreeShouldSkip(PCSX::ISO9660::DirTree* node) { return node->shouldSkip(); }
+void dirTreeSetSkip(PCSX::ISO9660::DirTree* node, bool val) { node->setSkip(val); }
 bool dirTreeHasXA(PCSX::ISO9660::DirTree* node) { return node->hasXA(); }
 void dirTreeSetHasXA(PCSX::ISO9660::DirTree* node, bool val) { node->setHasXA(val); }
 void dirTreeSetSectorMode(PCSX::ISO9660::DirTree* node, PCSX::IEC60908b::SectorMode mode) { node->setSectorMode(mode); }
@@ -445,6 +447,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dirTreeIsDir);
     REGISTER(L, dirTreeIsHidden);
     REGISTER(L, dirTreeSetHidden);
+    REGISTER(L, dirTreeShouldSkip);
+    REGISTER(L, dirTreeSetSkip);
     REGISTER(L, dirTreeHasXA);
     REGISTER(L, dirTreeSetHasXA);
     REGISTER(L, dirTreeSetSectorMode);

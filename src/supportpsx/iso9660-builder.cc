@@ -553,6 +553,7 @@ void PCSX::ISO9660Builder::serializeDirectory(const ISO9660::DirTree* dir, uint8
 
     // Child entries
     for (ISO9660::DirTree* child = dir->m_firstChild; child; child = child->m_nextSibling) {
+        if (child->m_skip) continue;
         // ISO9660 filename: directories use plain name, files add ";1" suffix
         std::string isoName = child->m_name;
         if (!child->m_isDir) isoName += ";1";
@@ -913,7 +914,7 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
     // Phase 3: Write frames sequentially as they complete.
     for (uint32_t i = 0; i < totalFileSectors; i++) {
         workItems[i].done.acquire();
-        writeRawFrame(workItems[i].frame, workItems[i].lba);
+        writeSectorAt(workItems[i].frame, IEC60908b::MSF(workItems[i].lba + 150), IEC60908b::SectorMode::RAW);
     }
 
     for (auto& w : workers) w.join();
