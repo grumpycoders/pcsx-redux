@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <numbers>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -247,12 +248,12 @@ struct MidiFile {
 // ============================================================================
 
 struct SpuSample {
-    uint32_t spuAddr;       // SPU RAM address in bytes
-    uint32_t adpcmSize;     // size in bytes
-    uint32_t sampleRate;    // original sample rate
-    uint32_t rootKey;       // MIDI note of natural pitch (pitch_keycenter)
-    int32_t transpose;      // semitone offset (SF2 coarseTune)
-    int32_t tune;           // fine tuning in cents (SF2 fineTune + pitchCorrection)
+    uint32_t spuAddr;     // SPU RAM address in bytes
+    uint32_t adpcmSize;   // size in bytes
+    uint32_t sampleRate;  // original sample rate
+    uint32_t rootKey;     // MIDI note of natural pitch (pitch_keycenter)
+    int32_t transpose;    // semitone offset (SF2 coarseTune)
+    int32_t tune;         // fine tuning in cents (SF2 fineTune + pitchCorrection)
     bool hasLoop;
     uint32_t loopStartByte;  // byte offset within ADPCM data where loop starts
     std::vector<uint8_t> adpcmData;
@@ -321,20 +322,20 @@ static bool encodeSample(const int16_t* pcm, size_t sampleCount, bool loop, size
 
 struct VoiceSlot {
     bool active;
-    bool sustainHeld;     // note-off received but sustain pedal is down
+    bool sustainHeld;  // note-off received but sustain pedal is down
     uint8_t midiChannel;
     uint8_t midiNote;
     uint8_t velocity;
     uint32_t startTick;
-    int exclusiveGroup;   // SF2 exclusive group (0 = none)
+    int exclusiveGroup;  // SF2 exclusive group (0 = none)
     // Per-voice pitch state for pitch bend
-    int baseMidiNote;     // the MIDI note being played
-    uint32_t sampleRate;  // sample rate of the assigned sample
-    int rootKey;          // root key of the assigned sample
-    int transpose;        // SF2 transpose
-    int tuneCents;        // SF2 fine tune
-    float sf2Pan;         // SF2 region pan (-0.5 to +0.5)
-    float sf2Attenuation; // SF2 initial attenuation (centibels)
+    int baseMidiNote;      // the MIDI note being played
+    uint32_t sampleRate;   // sample rate of the assigned sample
+    int rootKey;           // root key of the assigned sample
+    int transpose;         // SF2 transpose
+    int tuneCents;         // SF2 fine tune
+    float sf2Pan;          // SF2 region pan (-0.5 to +0.5)
+    float sf2Attenuation;  // SF2 initial attenuation (centibels)
 };
 
 struct VoiceAllocator {
@@ -376,9 +377,9 @@ struct VoiceAllocator {
         int bestScore = -1;  // higher = better candidate for stealing
         for (unsigned i = 0; i < maxVoices; i++) {
             int score = 0;
-            if (voices[i].sustainHeld) score += 10000;  // strongly prefer sustain-held
-            score += (127 - voices[i].velocity) * 10;   // prefer low velocity
-            score += (tick - voices[i].startTick) / 100; // slight preference for older
+            if (voices[i].sustainHeld) score += 10000;    // strongly prefer sustain-held
+            score += (127 - voices[i].velocity) * 10;     // prefer low velocity
+            score += (tick - voices[i].startTick) / 100;  // slight preference for older
             if (score > bestScore) {
                 bestScore = score;
                 bestVoice = (int)i;
@@ -471,9 +472,9 @@ struct VoiceAllocator {
 #define SPU_REVERB_HI 0x19A
 #define SPU_REVERB_OUT_L 0x184
 #define SPU_REVERB_OUT_R 0x186
-#define SPU_REVERB_BASE 0x1A2    // mBASE: reverb work area start address (in 8-byte units)
-#define SPU_SPUCNT 0x1AA         // SPU control register (bit 7 = reverb master enable)
-#define SPU_REVERB_CFG 0x1C0     // Start of 32 reverb configuration registers (0x1C0-0x1FE)
+#define SPU_REVERB_BASE 0x1A2  // mBASE: reverb work area start address (in 8-byte units)
+#define SPU_SPUCNT 0x1AA       // SPU control register (bit 7 = reverb master enable)
+#define SPU_REVERB_CFG 0x1C0   // Start of 32 reverb configuration registers (0x1C0-0x1FE)
 
 // ============================================================================
 // SPU Reverb Presets
@@ -483,44 +484,53 @@ struct VoiceAllocator {
 // The reverb buffer occupies the top of SPU RAM: mBASE*8 through 0x7FFFE.
 struct ReverbPreset {
     const char* name;
-    uint32_t bufferSize;       // bytes needed at top of SPU RAM
-    uint16_t regs[32];         // dAPF1 through vRIN
-    uint16_t outVolL;          // reverb output volume left
-    uint16_t outVolR;          // reverb output volume right
+    uint32_t bufferSize;  // bytes needed at top of SPU RAM
+    uint16_t regs[32];    // dAPF1 through vRIN
+    uint16_t outVolL;     // reverb output volume left
+    uint16_t outVolR;     // reverb output volume right
 };
 
 // Presets from PS1 BIOS / psx-spx documentation
 static const ReverbPreset REVERB_PRESETS[] = {
-    {"off", 0x10, {
-        0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000
-    }, 0x0000, 0x0000},
-    {"room", 0x1F40, {  // Studio Small
-        0x0033, 0x0025, 0x70F0, 0x4FA8, 0xBCE0, 0x4410, 0xC0F0, 0x9C00,
-        0x5280, 0x4EC0, 0x03E4, 0x031B, 0x03A4, 0x02AF, 0x0372, 0x0266,
-        0x031C, 0x025D, 0x025C, 0x018E, 0x022F, 0x0135, 0x01D2, 0x00B7,
-        0x018F, 0x00B5, 0x00B4, 0x0080, 0x004C, 0x0026, 0x8000, 0x8000
-    }, 0x3800, 0x3800},
-    {"studio", 0x4840, {  // Studio Medium
-        0x00B1, 0x007F, 0x70F0, 0x4FA8, 0xBCE0, 0x4510, 0xBEF0, 0xB4C0,
-        0x5280, 0x4EC0, 0x0904, 0x076B, 0x0824, 0x065F, 0x07A2, 0x0616,
-        0x076C, 0x05ED, 0x05EC, 0x042E, 0x050F, 0x0305, 0x0462, 0x02B7,
-        0x042F, 0x0265, 0x0264, 0x01B2, 0x0100, 0x0080, 0x8000, 0x8000
-    }, 0x3800, 0x3800},
-    {"hall", 0xADE0, {  // Hall
-        0x01A5, 0x0139, 0x6000, 0x5000, 0x4C00, 0xB800, 0xBC00, 0xC000,
-        0x6000, 0x5C00, 0x15BA, 0x11BB, 0x14C2, 0x10BD, 0x11BC, 0x0DC1,
-        0x11C0, 0x0DC3, 0x0DC0, 0x09C1, 0x0BC4, 0x07C1, 0x0A00, 0x06CD,
-        0x09C2, 0x05C1, 0x05C0, 0x041A, 0x0274, 0x013A, 0x8000, 0x8000
-    }, 0x3000, 0x3000},
-    {"space", 0xF6C0, {  // Space Echo
-        0x033D, 0x0231, 0x7E00, 0x5000, 0xB400, 0xB000, 0x4C00, 0xB000,
-        0x6000, 0x5400, 0x1ED6, 0x1A31, 0x1D14, 0x183B, 0x1BC2, 0x16B2,
-        0x1A32, 0x15EF, 0x15EE, 0x1055, 0x1334, 0x0F2D, 0x11F6, 0x0C5D,
-        0x1056, 0x0AE1, 0x0AE0, 0x07A2, 0x0464, 0x0232, 0x8000, 0x8000
-    }, 0x2800, 0x2800},
+    {"off",
+     0x10,
+     {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001,
+      0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001,
+      0x0001, 0x0001, 0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000},
+     0x0000,
+     0x0000},
+    {"room",
+     0x1F40,
+     {// Studio Small
+      0x0033, 0x0025, 0x70F0, 0x4FA8, 0xBCE0, 0x4410, 0xC0F0, 0x9C00, 0x5280, 0x4EC0, 0x03E4,
+      0x031B, 0x03A4, 0x02AF, 0x0372, 0x0266, 0x031C, 0x025D, 0x025C, 0x018E, 0x022F, 0x0135,
+      0x01D2, 0x00B7, 0x018F, 0x00B5, 0x00B4, 0x0080, 0x004C, 0x0026, 0x8000, 0x8000},
+     0x3800,
+     0x3800},
+    {"studio",
+     0x4840,
+     {// Studio Medium
+      0x00B1, 0x007F, 0x70F0, 0x4FA8, 0xBCE0, 0x4510, 0xBEF0, 0xB4C0, 0x5280, 0x4EC0, 0x0904,
+      0x076B, 0x0824, 0x065F, 0x07A2, 0x0616, 0x076C, 0x05ED, 0x05EC, 0x042E, 0x050F, 0x0305,
+      0x0462, 0x02B7, 0x042F, 0x0265, 0x0264, 0x01B2, 0x0100, 0x0080, 0x8000, 0x8000},
+     0x3800,
+     0x3800},
+    {"hall",
+     0xADE0,
+     {// Hall
+      0x01A5, 0x0139, 0x6000, 0x5000, 0x4C00, 0xB800, 0xBC00, 0xC000, 0x6000, 0x5C00, 0x15BA,
+      0x11BB, 0x14C2, 0x10BD, 0x11BC, 0x0DC1, 0x11C0, 0x0DC3, 0x0DC0, 0x09C1, 0x0BC4, 0x07C1,
+      0x0A00, 0x06CD, 0x09C2, 0x05C1, 0x05C0, 0x041A, 0x0274, 0x013A, 0x8000, 0x8000},
+     0x3000,
+     0x3000},
+    {"space",
+     0xF6C0,
+     {// Space Echo
+      0x033D, 0x0231, 0x7E00, 0x5000, 0xB400, 0xB000, 0x4C00, 0xB000, 0x6000, 0x5400, 0x1ED6,
+      0x1A31, 0x1D14, 0x183B, 0x1BC2, 0x16B2, 0x1A32, 0x15EF, 0x15EE, 0x1055, 0x1334, 0x0F2D,
+      0x11F6, 0x0C5D, 0x1056, 0x0AE1, 0x0AE0, 0x07A2, 0x0464, 0x0232, 0x8000, 0x8000},
+     0x2800,
+     0x2800},
 };
 static constexpr int REVERB_PRESET_COUNT = sizeof(REVERB_PRESETS) / sizeof(REVERB_PRESETS[0]);
 static constexpr int REVERB_DEFAULT_PRESET = 3;  // hall
@@ -544,7 +554,7 @@ enum SpdPacket : uint8_t {
 };
 
 // SPU RAM layout
-static constexpr uint32_t SPU_RAM_BASE = 0x1010;  // first usable address (after capture buffers)
+static constexpr uint32_t SPU_RAM_BASE = 0x1010;   // first usable address (after capture buffers)
 static constexpr uint32_t SPU_RAM_SIZE = 0x80000;  // 512KB
 
 struct RegWrite {
@@ -651,9 +661,8 @@ static int combinePan(int midiPan, float sf2Pan) {
 
 // Compute left and right volume from velocity, channel state, and optional SF2 region pan.
 // sf2Pan is the region's pan value (-0.5 to +0.5), sf2Attenuation is in centibels (0 = none).
-static void computeVolumes(int velocity, uint8_t chanVolume, uint8_t chanExpression, int pan,
-                           float sf2Pan, float sf2Attenuation,
-                           uint16_t& volL, uint16_t& volR) {
+static void computeVolumes(int velocity, uint8_t chanVolume, uint8_t chanExpression, int pan, float sf2Pan,
+                           float sf2Attenuation, uint16_t& volL, uint16_t& volR) {
     // Apply GM velocity curve
     int vel = velocityCurve(velocity);
 
@@ -753,8 +762,8 @@ static uint16_t computeSpuPitch(int midiNote, uint32_t sampleRate, int rootKey, 
 //   time_seconds ~= K * 2^((127 - rate) / 4) where K is a small constant.
 // Inverting: rate = 127 - 4 * log2(time / K)
 static uint8_t sf2AttackToSpu(float seconds) {
-    if (seconds <= 0.0f) return 0x7F;       // instant
-    if (seconds >= 10.0f) return 0x00;       // slowest
+    if (seconds <= 0.0f) return 0x7F;   // instant
+    if (seconds >= 10.0f) return 0x00;  // slowest
 
     // Calibrated against pcsx-redux ADSR tables:
     // rate 127 -> ~0ms, rate 80 -> ~2890 frames (~48s at 60fps)
@@ -841,23 +850,19 @@ static void sf2RegionToSpuADSR(struct tsf_region* region, bool isDrum, uint16_t&
     // For most instruments, sustain should hold (rate = 0, direction = increase for hold effect).
     // For drums, sustain should decrease to fade out.
     uint8_t sustainRate = isDrum ? 0x1F : 0x00;
-    uint8_t sustainDir = isDrum ? 1 : 0;     // 1 = decrease
-    uint8_t sustainMode = isDrum ? 0 : 0;    // 0 = linear
+    uint8_t sustainDir = isDrum ? 1 : 0;   // 1 = decrease
+    uint8_t sustainMode = isDrum ? 0 : 0;  // 0 = linear
 
     // Build register values
     // ADSR upper: attack mode (bit 15) | attack rate (bits 8-14) | decay rate (bits 4-7) | sustain level (bits 0-3)
-    adsrHi = (uint16_t)((1 << 15) |                  // exponential attack for smoother sound
-                         ((attackRate & 0x7F) << 8) |
-                         ((decayRate & 0x0F) << 4) |
-                         (sustainLevel & 0x0F));
+    adsrHi = (uint16_t)((1 << 15) |  // exponential attack for smoother sound
+                        ((attackRate & 0x7F) << 8) | ((decayRate & 0x0F) << 4) | (sustainLevel & 0x0F));
 
     // ADSR lower: sustain mode (bit 14) | sustain dir (bit 13) | sustain rate (bits 6-10) |
     //             release mode (bit 5) | release rate (bits 0-4)
-    adsrLo = (uint16_t)(((sustainMode & 1) << 14) |
-                         ((sustainDir & 1) << 13) |
-                         ((sustainRate & 0x1F) << 6) |
-                         (1 << 5) |                    // exponential release for natural decay
-                         (releaseRate & 0x1F));
+    adsrLo = (uint16_t)(((sustainMode & 1) << 14) | ((sustainDir & 1) << 13) | ((sustainRate & 0x1F) << 6) |
+                        (1 << 5) |  // exponential release for natural decay
+                        (releaseRate & 0x1F));
 }
 
 // ============================================================================
@@ -869,21 +874,31 @@ struct ChannelState {
     uint8_t volume;
     uint8_t pan;
     uint8_t expression;
-    int16_t pitchBend;     // -8192 to 8191
-    bool sustainOn;        // CC#64 state
-    uint8_t bankMSB;       // CC#0
-    uint8_t bankLSB;       // CC#32
-    uint8_t modulation;    // CC#1 modulation wheel (0-127)
-    uint8_t reverbSend;    // CC#91 reverb send (0-127, default 40 per GM)
+    int16_t pitchBend;        // -8192 to 8191
+    bool sustainOn;           // CC#64 state
+    uint8_t bankMSB;          // CC#0
+    uint8_t bankLSB;          // CC#32
+    uint8_t modulation;       // CC#1 modulation wheel (0-127)
+    uint8_t reverbSend;       // CC#91 reverb send (0-127, default 40 per GM)
     uint16_t pitchBendRange;  // in semitones * 100 + cents (default 200 = 2 semitones)
     // RPN state machine
     uint8_t rpnMSB;
     uint8_t rpnLSB;
 
     ChannelState()
-        : program(0), volume(100), pan(64), expression(127), pitchBend(0),
-          sustainOn(false), bankMSB(0), bankLSB(0), modulation(0),
-          reverbSend(40), pitchBendRange(200), rpnMSB(0x7F), rpnLSB(0x7F) {}
+        : program(0),
+          volume(100),
+          pan(64),
+          expression(127),
+          pitchBend(0),
+          sustainOn(false),
+          bankMSB(0),
+          bankLSB(0),
+          modulation(0),
+          reverbSend(40),
+          pitchBendRange(200),
+          rpnMSB(0x7F),
+          rpnLSB(0x7F) {}
 
     void reset() {
         volume = 100;
@@ -964,10 +979,10 @@ static size_t extractAndEncode(tsf* sf2, struct tsf_region* region, std::vector<
         double rootFreq = 440.0 * pow(2.0, ((int)region->pitch_keycenter - 69) / 12.0);
         double maxPitch = (noteFreq / rootFreq) * ((double)region->sample_rate / 44100.0) * 0x1000;
         if (maxPitch > 0x3FFF) {
-            fmt::print(stderr, "  Warning: sample {} (root={}, rate={}Hz) hits pitch ceiling at note {} "
+            fmt::print(stderr,
+                       "  Warning: sample {} (root={}, rate={}Hz) hits pitch ceiling at note {} "
                        "(pitch {:.0f} > 16383). High notes will play flat.\n",
-                       samples.size(), region->pitch_keycenter, region->sample_rate,
-                       region->hikey, maxPitch);
+                       samples.size(), region->pitch_keycenter, region->sample_rate, region->hikey, maxPitch);
         }
     }
 
@@ -992,8 +1007,8 @@ struct ConvertContext {
     unsigned maxLayers;  // max overlapping regions per note (0 = unlimited)
 
     // SPU RAM tracking
-    uint32_t nextSpuAddr;   // next free SPU RAM address in bytes
-    uint32_t maxSpuAddr;    // max usable address (SPU_RAM_SIZE minus reverb buffer)
+    uint32_t nextSpuAddr;  // next free SPU RAM address in bytes
+    uint32_t maxSpuAddr;   // max usable address (SPU_RAM_SIZE minus reverb buffer)
 
     // Macro system
     std::vector<MacroDef> macroDefs;
@@ -1027,8 +1042,8 @@ struct ConvertContext {
     // KEY_ON and KEY_OFF are never cached (they're edge-triggered).
     void cachedWrite(StreamEvent& ev, uint16_t offset, uint16_t value) {
         // Never cache key-on/key-off - they're triggers, not state
-        if (offset == SPU_KEY_ON_LO || offset == SPU_KEY_ON_HI ||
-            offset == SPU_KEY_OFF_LO || offset == SPU_KEY_OFF_HI) {
+        if (offset == SPU_KEY_ON_LO || offset == SPU_KEY_ON_HI || offset == SPU_KEY_OFF_LO ||
+            offset == SPU_KEY_OFF_HI) {
             ev.writes.push_back({offset, value});
             return;
         }
@@ -1107,7 +1122,7 @@ void ConvertContext::generateStream() {
     // This is a typical GM default; some implementations use more or less.
     static constexpr double VIBRATO_RATE_HZ = 6.0;
     static constexpr double VIBRATO_MAX_CENTS = 50.0;  // max depth at CC#1 = 127
-    uint32_t globalTick = 0;  // absolute tick counter for LFO phase
+    uint32_t globalTick = 0;                           // absolute tick counter for LFO phase
 
     auto computeTickRate = [&]() -> uint32_t {
         double ticksPerSec = (double)midi.tpqn * 1000000.0 / (double)currentTempo;
@@ -1179,10 +1194,8 @@ void ConvertContext::generateStream() {
 
         // Key-off first
         if (tickKeyOff) {
-            if (tickKeyOff & 0xFFFF)
-                ev.writes.push_back({SPU_KEY_OFF_LO, (uint16_t)(tickKeyOff & 0xFFFF)});
-            if (tickKeyOff >> 16)
-                ev.writes.push_back({SPU_KEY_OFF_HI, (uint16_t)(tickKeyOff >> 16)});
+            if (tickKeyOff & 0xFFFF) ev.writes.push_back({SPU_KEY_OFF_LO, (uint16_t)(tickKeyOff & 0xFFFF)});
+            if (tickKeyOff >> 16) ev.writes.push_back({SPU_KEY_OFF_HI, (uint16_t)(tickKeyOff >> 16)});
             tickKeyOff = 0;
         }
 
@@ -1194,10 +1207,8 @@ void ConvertContext::generateStream() {
 
         // Key-on after setup
         if (tickKeyOn) {
-            if (tickKeyOn & 0xFFFF)
-                ev.writes.push_back({SPU_KEY_ON_LO, (uint16_t)(tickKeyOn & 0xFFFF)});
-            if (tickKeyOn >> 16)
-                ev.writes.push_back({SPU_KEY_ON_HI, (uint16_t)(tickKeyOn >> 16)});
+            if (tickKeyOn & 0xFFFF) ev.writes.push_back({SPU_KEY_ON_LO, (uint16_t)(tickKeyOn & 0xFFFF)});
+            if (tickKeyOn >> 16) ev.writes.push_back({SPU_KEY_ON_HI, (uint16_t)(tickKeyOn >> 16)});
             tickKeyOn = 0;
         }
 
@@ -1220,8 +1231,8 @@ void ConvertContext::generateStream() {
             auto& slot = allocator.voices[v];
             if (slot.active && slot.midiChannel == ch) {
                 uint16_t volL, volR;
-                computeVolumes(slot.velocity, chanState.volume, chanState.expression, chanState.pan,
-                               slot.sf2Pan, slot.sf2Attenuation, volL, volR);
+                computeVolumes(slot.velocity, chanState.volume, chanState.expression, chanState.pan, slot.sf2Pan,
+                               slot.sf2Attenuation, volL, volR);
                 cachedWrite(tickRegs, (uint16_t)SPU_VOL_LEFT(v), volL);
                 cachedWrite(tickRegs, (uint16_t)SPU_VOL_RIGHT(v), volR);
             }
@@ -1236,7 +1247,7 @@ void ConvertContext::generateStream() {
         double ticksPerSec = (double)midi.tpqn * 1000000.0 / (double)currentTempo;
         double timeSec = globalTick / ticksPerSec;
         // LFO phase at VIBRATO_RATE_HZ
-        double phase = timeSec * VIBRATO_RATE_HZ * 2.0 * M_PI;
+        double phase = timeSec * VIBRATO_RATE_HZ * 2.0 * std::numbers::pi_v<double>;
         double depth = (chanState.modulation / 127.0) * VIBRATO_MAX_CENTS;
         return sin(phase) * depth;
     };
@@ -1248,9 +1259,9 @@ void ConvertContext::generateStream() {
         for (unsigned v = 0; v < maxVoices; v++) {
             auto& slot = allocator.voices[v];
             if (slot.active && slot.midiChannel == ch) {
-                uint16_t pitch = computeSpuPitch(slot.baseMidiNote, slot.sampleRate, slot.rootKey,
-                                                 slot.transpose, slot.tuneCents,
-                                                 chanState.pitchBend, chanState.pitchBendRange, modCents);
+                uint16_t pitch =
+                    computeSpuPitch(slot.baseMidiNote, slot.sampleRate, slot.rootKey, slot.transpose, slot.tuneCents,
+                                    chanState.pitchBend, chanState.pitchBendRange, modCents);
                 cachedWrite(tickRegs, (uint16_t)SPU_PITCH(v), pitch);
             }
         }
@@ -1279,7 +1290,10 @@ void ConvertContext::generateStream() {
             // Update rate: ~100 Hz (every ~10ms) for smooth vibrato.
             bool hasModulation = false;
             for (int ch = 0; ch < 16; ch++) {
-                if (channels[ch].modulation > 0) { hasModulation = true; break; }
+                if (channels[ch].modulation > 0) {
+                    hasModulation = true;
+                    break;
+                }
             }
 
             if (hasModulation) {
@@ -1484,8 +1498,8 @@ void ConvertContext::generateStream() {
                 slot.sf2Attenuation = region->attenuation;
 
                 uint16_t volL, volR;
-                computeVolumes(velocity, chanState.volume, chanState.expression, chanState.pan,
-                               region->pan, region->attenuation, volL, volR);
+                computeVolumes(velocity, chanState.volume, chanState.expression, chanState.pan, region->pan,
+                               region->attenuation, volL, volR);
 
                 // Apply pitch keytrack: default is 100 (cents per key), meaning standard tuning.
                 // Non-100 values scale the pitch deviation from the root key.
@@ -1522,9 +1536,18 @@ void ConvertContext::generateStream() {
                 if (needMacro) {
                     uint16_t macroIdx = getOrCreateMacro(adsrLo, adsrHi, sampleStart8);
                     tickRegs.writes.push_back({(uint16_t)(MACRO_INVOKE_BASE | macroIdx), (uint16_t)voice});
-                    if (ssIdx < 0x100) { regCache[ssIdx] = sampleStart8; regCacheValid[ssIdx] = true; }
-                    if (alIdx < 0x100) { regCache[alIdx] = adsrLo; regCacheValid[alIdx] = true; }
-                    if (ahIdx < 0x100) { regCache[ahIdx] = adsrHi; regCacheValid[ahIdx] = true; }
+                    if (ssIdx < 0x100) {
+                        regCache[ssIdx] = sampleStart8;
+                        regCacheValid[ssIdx] = true;
+                    }
+                    if (alIdx < 0x100) {
+                        regCache[alIdx] = adsrLo;
+                        regCacheValid[alIdx] = true;
+                    }
+                    if (ahIdx < 0x100) {
+                        regCache[ahIdx] = adsrHi;
+                        regCacheValid[ahIdx] = true;
+                    }
                 }
 
                 cachedWrite(tickRegs, (uint16_t)SPU_VOL_LEFT(voice), volL);
@@ -1555,8 +1578,7 @@ void ConvertContext::generateStream() {
             // Release ALL voices matching this channel+note (there may be multiple from layers)
             for (unsigned v = 0; v < maxVoices; v++) {
                 auto& slot = allocator.voices[v];
-                if (slot.active && !slot.sustainHeld &&
-                    slot.midiChannel == mev.channel && slot.midiNote == mev.data1) {
+                if (slot.active && !slot.sustainHeld && slot.midiChannel == mev.channel && slot.midiNote == mev.data1) {
                     if (channels[mev.channel].sustainOn) {
                         allocator.holdSustain((int)v);
                     } else {
@@ -1922,8 +1944,7 @@ Usage: {} input.mid -s soundfont.sf2 -o output.spd [-i output.smp] [-v maxvoices
     if (ctx.reverbPreset > 0 && ctx.reverbPreset < REVERB_PRESET_COUNT) {
         ctx.maxSpuAddr = SPU_RAM_SIZE - REVERB_PRESETS[ctx.reverbPreset].bufferSize;
         fmt::print("Reverb: {} (buffer: {} bytes, usable sample RAM: {} bytes)\n",
-                   REVERB_PRESETS[ctx.reverbPreset].name,
-                   REVERB_PRESETS[ctx.reverbPreset].bufferSize,
+                   REVERB_PRESETS[ctx.reverbPreset].name, REVERB_PRESETS[ctx.reverbPreset].bufferSize,
                    ctx.maxSpuAddr - SPU_RAM_BASE);
     } else {
         ctx.maxSpuAddr = SPU_RAM_SIZE;
