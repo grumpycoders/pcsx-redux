@@ -80,7 +80,7 @@ class DirTree {
     DirTree() = default;
 
   private:
-    friend class ISO9660Builder;
+    friend class ::PCSX::ISO9660Builder;
 
     // Identity
     std::string m_name;
