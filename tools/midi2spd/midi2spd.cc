@@ -30,291 +30,48 @@
 #include "flags.h"
 #include "fmt/format.h"
 #include "support/file.h"
-#include "supportpsx/adpcm.h"
+#include "supportpsx/midi-converter.h"
 
-#define TSF_IMPLEMENTATION
-#define TSF_NO_STDIO
-#include "tsf.h"
 
-// ============================================================================
-// MIDI Parser
-// ============================================================================
-
-// MIDI status byte types (upper nibble of status byte)
-enum MidiStatus : uint8_t {
-    MIDI_NOTE_OFF = 0x80,
-    MIDI_NOTE_ON = 0x90,
-    MIDI_POLY_PRESSURE = 0xA0,
-    MIDI_CONTROL_CHANGE = 0xB0,
-    MIDI_PROGRAM_CHANGE = 0xC0,
-    MIDI_CHANNEL_PRESSURE = 0xD0,
-    MIDI_PITCH_BEND = 0xE0,
-    MIDI_SYSTEM = 0xF0,
-    MIDI_META = 0xFF,
-};
-
-// MIDI meta event types
-enum MidiMeta : uint8_t {
-    MIDI_META_TEXT = 0x01,
-    MIDI_META_COPYRIGHT = 0x02,
-    MIDI_META_TRACK_NAME = 0x03,
-    MIDI_META_MARKER = 0x06,
-    MIDI_META_END_OF_TRACK = 0x2F,
-    MIDI_META_TEMPO = 0x51,
-};
-
-// MIDI control change numbers
-enum MidiCC : uint8_t {
-    MIDI_CC_BANK_MSB = 0,
-    MIDI_CC_MODULATION = 1,
-    MIDI_CC_VOLUME = 7,
-    MIDI_CC_PAN = 10,
-    MIDI_CC_EXPRESSION = 11,
-    MIDI_CC_BANK_LSB = 32,
-    MIDI_CC_SUSTAIN = 64,
-    MIDI_CC_RPN_LSB = 100,
-    MIDI_CC_RPN_MSB = 101,
-    MIDI_CC_DATA_ENTRY_MSB = 6,
-    MIDI_CC_DATA_ENTRY_LSB = 38,
-    MIDI_CC_REVERB_SEND = 91,
-    MIDI_CC_ALL_SOUND_OFF = 120,
-    MIDI_CC_RESET_ALL = 121,
-    MIDI_CC_ALL_NOTES_OFF = 123,
-    MIDI_CC_LOOP_POINT = 111,
-};
-
-// MIDI drum channel (0-indexed)
-static constexpr uint8_t MIDI_DRUM_CHANNEL = 9;
-
-struct MidiEvent {
-    uint32_t absoluteTick;
-    uint8_t type;     // MidiStatus value (upper nibble) or MIDI_META
-    uint8_t channel;  // 0-15
-    uint8_t data1;
-    uint8_t data2;
-    uint32_t tempo;        // microseconds per quarter note (for tempo meta events)
-    std::string textData;  // for marker/text meta events
-};
-
-static uint32_t readVLQ(const uint8_t*& p, const uint8_t* end) {
-    uint32_t value = 0;
-    while (p < end) {
-        uint8_t b = *p++;
-        value = (value << 7) | (b & 0x7F);
-        if ((b & 0x80) == 0) break;
-    }
-    return value;
-}
-
-static uint32_t readBE16(const uint8_t* p) { return (p[0] << 8) | p[1]; }
-static uint32_t readBE32(const uint8_t* p) { return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]; }
-
-struct MidiFile {
-    uint16_t format;
-    uint16_t trackCount;
-    uint16_t tpqn;  // ticks per quarter note
-    std::vector<MidiEvent> events;
-
-    bool parse(const uint8_t* data, size_t size) {
-        const uint8_t* p = data;
-        const uint8_t* end = data + size;
-
-        // Check for RIFF/RMID wrapper (RMI files)
-        if (size >= 20 && memcmp(p, "RIFF", 4) == 0 && memcmp(p + 8, "RMID", 4) == 0) {
-            // Skip RIFF header, find "data" chunk containing the MIDI
-            p += 12;
-            while (p + 8 <= end) {
-                uint32_t chunkSize = p[4] | (p[5] << 8) | (p[6] << 16) | (p[7] << 24);
-                if (memcmp(p, "data", 4) == 0) {
-                    p += 8;
-                    end = p + chunkSize;
-                    break;
-                }
-                p += 8 + ((chunkSize + 1) & ~1);  // RIFF chunks are 2-byte aligned
-            }
-        }
-
-        // MThd header
-        if (p + 14 > end || memcmp(p, "MThd", 4) != 0) return false;
-        uint32_t headerLen = readBE32(p + 4);
-        format = readBE16(p + 8);
-        trackCount = readBE16(p + 10);
-        tpqn = readBE16(p + 12);
-        p += 8 + headerLen;
-
-        // Parse all tracks
-        for (uint16_t t = 0; t < trackCount && p + 8 <= end; t++) {
-            if (memcmp(p, "MTrk", 4) != 0) return false;
-            uint32_t trackLen = readBE32(p + 4);
-            const uint8_t* trackStart = p + 8;
-            const uint8_t* trackEnd = trackStart + trackLen;
-            if (trackEnd > end) return false;
-            parseTrack(trackStart, trackEnd);
-            p = trackEnd;
-        }
-
-        // Sort all events by absolute tick (stable sort preserves order within same tick)
-        std::stable_sort(events.begin(), events.end(),
-                         [](const MidiEvent& a, const MidiEvent& b) { return a.absoluteTick < b.absoluteTick; });
-        return true;
-    }
-
-  private:
-    void parseTrack(const uint8_t* p, const uint8_t* end) {
-        uint32_t absTick = 0;
-        uint8_t runningStatus = 0;
-
-        while (p < end) {
-            uint32_t delta = readVLQ(p, end);
-            absTick += delta;
-            if (p >= end) break;
-
-            uint8_t status = *p;
-            if (status & 0x80) {
-                p++;
-                if (status < MIDI_SYSTEM) runningStatus = status;
-            } else {
-                status = runningStatus;
-            }
-
-            uint8_t type = status & 0xF0;
-            uint8_t channel = status & 0x0F;
-
-            if (status == MIDI_META) {
-                // Meta event
-                if (p + 1 >= end) break;
-                uint8_t metaType = *p++;
-                uint32_t metaLen = readVLQ(p, end);
-                if (p + metaLen > end) break;
-                if (metaType == MIDI_META_TEMPO && metaLen == 3) {
-                    // Tempo change
-                    MidiEvent ev = {};
-                    ev.absoluteTick = absTick;
-                    ev.type = MIDI_META;
-                    ev.data1 = MIDI_META_TEMPO;
-                    ev.tempo = (p[0] << 16) | (p[1] << 8) | p[2];
-                    events.push_back(ev);
-                } else if (metaType == MIDI_META_MARKER || metaType == MIDI_META_TEXT ||
-                           metaType == MIDI_META_TRACK_NAME || metaType == MIDI_META_COPYRIGHT) {
-                    // Text-based meta events
-                    MidiEvent ev = {};
-                    ev.absoluteTick = absTick;
-                    ev.type = MIDI_META;
-                    ev.data1 = metaType;
-                    ev.textData = std::string((const char*)p, metaLen);
-                    events.push_back(ev);
-                } else if (metaType == MIDI_META_END_OF_TRACK) {
-                    // End of track
-                    p += metaLen;
-                    break;
-                }
-                p += metaLen;
-            } else if (status >= MIDI_SYSTEM) {
-                // SysEx - skip
-                uint32_t sysLen = readVLQ(p, end);
-                p += sysLen;
-            } else if (type == MIDI_NOTE_OFF || type == MIDI_NOTE_ON || type == MIDI_POLY_PRESSURE ||
-                       type == MIDI_CONTROL_CHANGE || type == MIDI_PITCH_BEND) {
-                // Two data bytes
-                if (p + 2 > end) break;
-                MidiEvent ev = {};
-                ev.absoluteTick = absTick;
-                ev.type = type;
-                ev.channel = channel;
-                ev.data1 = p[0];
-                ev.data2 = p[1];
-                // Note on with velocity 0 is actually note off
-                if (type == MIDI_NOTE_ON && ev.data2 == 0) {
-                    ev.type = MIDI_NOTE_OFF;
-                }
-                events.push_back(ev);
-                p += 2;
-            } else if (type == MIDI_PROGRAM_CHANGE || type == MIDI_CHANNEL_PRESSURE) {
-                // One data byte
-                if (p + 1 > end) break;
-                MidiEvent ev = {};
-                ev.absoluteTick = absTick;
-                ev.type = type;
-                ev.channel = channel;
-                ev.data1 = *p++;
-                events.push_back(ev);
-            }
-        }
-    }
-};
-
-// ============================================================================
-// SPU ADPCM Sample Management
-// ============================================================================
-
-struct SpuSample {
-    uint32_t spuAddr;     // SPU RAM address in bytes
-    uint32_t adpcmSize;   // size in bytes
-    uint32_t sampleRate;  // original sample rate
-    uint32_t rootKey;     // MIDI note of natural pitch (pitch_keycenter)
-    int32_t transpose;    // semitone offset (SF2 coarseTune)
-    int32_t tune;         // fine tuning in cents (SF2 fineTune + pitchCorrection)
-    bool hasLoop;
-    uint32_t loopStartByte;  // byte offset within ADPCM data where loop starts
-    std::vector<uint8_t> adpcmData;
-};
-
-// Key for deduplicating SF2 samples: based on actual sample data identity
-// Two regions referencing the same range in fontSamples share one SPU sample
-struct SampleKey {
-    unsigned int offset;  // start index in fontSamples
-    unsigned int end;     // end index in fontSamples
-    bool operator<(const SampleKey& o) const {
-        if (offset != o.offset) return offset < o.offset;
-        return end < o.end;
-    }
-};
-
-static bool encodeSample(const int16_t* pcm, size_t sampleCount, bool loop, size_t loopStart, SpuSample& out) {
-    PCSX::ADPCM::Encoder encoder;
-    encoder.reset();
-
-    // Pad to multiple of 28 samples
-    size_t paddedCount = ((sampleCount + 27) / 28) * 28;
-    std::vector<int16_t> padded(paddedCount, 0);
-    memcpy(padded.data(), pcm, sampleCount * sizeof(int16_t));
-
-    size_t totalBlocks = paddedCount / 28;
-    out.adpcmData.resize(totalBlocks * 16 + 16);  // +16 for end block
-
-    size_t loopStartBlock = loop ? (loopStart / 28) : 0;
-
-    for (size_t b = 0; b < totalBlocks; b++) {
-        PCSX::ADPCM::Encoder::BlockAttribute attr;
-        if (loop) {
-            if (b == loopStartBlock) {
-                attr = PCSX::ADPCM::Encoder::BlockAttribute::LoopStart;
-            } else if (b == totalBlocks - 1) {
-                attr = PCSX::ADPCM::Encoder::BlockAttribute::LoopEnd;
-            } else if (b > loopStartBlock) {
-                attr = PCSX::ADPCM::Encoder::BlockAttribute::LoopBody;
-            } else {
-                attr = PCSX::ADPCM::Encoder::BlockAttribute::OneShot;
-            }
-        } else {
-            attr = (b == totalBlocks - 1) ? PCSX::ADPCM::Encoder::BlockAttribute::OneShotEnd
-                                          : PCSX::ADPCM::Encoder::BlockAttribute::OneShot;
-        }
-        encoder.processSPUBlock(&padded[b * 28], &out.adpcmData[b * 16], attr);
-    }
-
-    if (!loop) {
-        encoder.finishSPU(&out.adpcmData[totalBlocks * 16]);
-        out.adpcmData.resize((totalBlocks + 1) * 16);
-    } else {
-        out.adpcmData.resize(totalBlocks * 16);
-    }
-
-    out.loopStartByte = loopStartBlock * 16;
-    out.hasLoop = loop;
-    out.adpcmSize = out.adpcmData.size();
-    return true;
-}
+using PCSX::MidiConverter::MIDI_CHANNEL_PRESSURE;
+using PCSX::MidiConverter::MIDI_CONTROL_CHANGE;
+using PCSX::MidiConverter::MIDI_CC_ALL_NOTES_OFF;
+using PCSX::MidiConverter::MIDI_CC_ALL_SOUND_OFF;
+using PCSX::MidiConverter::MIDI_CC_BANK_LSB;
+using PCSX::MidiConverter::MIDI_CC_BANK_MSB;
+using PCSX::MidiConverter::MIDI_CC_DATA_ENTRY_LSB;
+using PCSX::MidiConverter::MIDI_CC_DATA_ENTRY_MSB;
+using PCSX::MidiConverter::MIDI_CC_EXPRESSION;
+using PCSX::MidiConverter::MIDI_CC_LOOP_POINT;
+using PCSX::MidiConverter::MIDI_CC_MODULATION;
+using PCSX::MidiConverter::MIDI_CC_PAN;
+using PCSX::MidiConverter::MIDI_CC_RESET_ALL;
+using PCSX::MidiConverter::MIDI_CC_REVERB_SEND;
+using PCSX::MidiConverter::MIDI_CC_RPN_LSB;
+using PCSX::MidiConverter::MIDI_CC_RPN_MSB;
+using PCSX::MidiConverter::MIDI_CC_SUSTAIN;
+using PCSX::MidiConverter::MIDI_CC_VOLUME;
+using PCSX::MidiConverter::MIDI_DRUM_CHANNEL;
+using PCSX::MidiConverter::MIDI_META;
+using PCSX::MidiConverter::MIDI_META_COPYRIGHT;
+using PCSX::MidiConverter::MIDI_META_MARKER;
+using PCSX::MidiConverter::MIDI_META_TRACK_NAME;
+using PCSX::MidiConverter::MIDI_META_TEMPO;
+using PCSX::MidiConverter::MIDI_NOTE_OFF;
+using PCSX::MidiConverter::MIDI_NOTE_ON;
+using PCSX::MidiConverter::MIDI_PITCH_BEND;
+using PCSX::MidiConverter::MIDI_PROGRAM_CHANGE;
+using PCSX::MidiConverter::MidiFile;
+using PCSX::MidiConverter::SampleKey;
+using PCSX::MidiConverter::SPU_RAM_BASE;
+using PCSX::MidiConverter::SPU_RAM_SIZE;
+using PCSX::MidiConverter::SpuSample;
+using PCSX::MidiConverter::extractAndEncode;
+using PCSX::MidiConverter::extractMidiMetadata;
+using PCSX::MidiConverter::findLoopPointTick;
+using PCSX::MidiConverter::findRegions;
+using PCSX::MidiConverter::midiNoteToFreq;
+using PCSX::MidiConverter::sf2RegionToSpuADSR;
 
 // ============================================================================
 // Voice Allocator
@@ -553,10 +310,6 @@ enum SpdPacket : uint8_t {
     SPD_PKT_VOICE_COUNT = 0x45,
 };
 
-// SPU RAM layout
-static constexpr uint32_t SPU_RAM_BASE = 0x1010;   // first usable address (after capture buffers)
-static constexpr uint32_t SPU_RAM_SIZE = 0x80000;  // 512KB
-
 struct RegWrite {
     uint16_t offset;
     uint16_t value;
@@ -628,12 +381,6 @@ static void writePacketString(FilePtr& f, uint8_t type, const char* str) {
     memcpy(buf.data(), str, len);
     f->write(buf.data(), padded);
 }
-
-// ============================================================================
-// MIDI Note -> Frequency
-// ============================================================================
-
-static double midiNoteToFreq(int note) { return 440.0 * pow(2.0, (note - 69) / 12.0); }
 
 // GM-standard velocity curve: attempt to approximate the roughly quadratic
 // relationship between velocity and perceived loudness. The MIDI spec doesn't
@@ -713,159 +460,6 @@ static uint16_t computeSpuPitch(int midiNote, uint32_t sampleRate, int rootKey, 
 }
 
 // ============================================================================
-// SF2 ADSR -> SPU ADSR
-// ============================================================================
-
-// SPU ADSR register layout:
-//   ADSR upper (offset +0x0A):
-//     bits 0-3:   sustain level (0-15, where 15 = max)
-//     bits 4-7:   decay rate (0-15)
-//     bits 8-14:  attack rate (0-127)
-//     bit  15:    attack mode (0 = linear, 1 = exponential)
-//   ADSR lower (offset +0x08):
-//     bits 0-4:   release rate (0-31)
-//     bit  5:     release mode (0 = linear, 1 = exponential)
-//     bits 6-10:  sustain rate (0-31) [note: shifted by 6 in the register]
-//     bit  13:    sustain direction (0 = increase, 1 = decrease)
-//     bit  14:    sustain mode (0 = linear, 1 = exponential)
-//
-// SF2 envelope times are in "timecents" where the time in seconds = 2^(tc/1200).
-// A value of 0 tc = 1 second. -12000 tc = essentially instant.
-// The SPU rates are exponential step counters, not direct time values.
-// We map SF2 times to SPU rates using lookup tables derived from psx-spx documentation.
-
-// SPU ADSR timing formulas (from psx-spx documentation and pcsx-redux/src/spu/adsr.cc):
-//
-// Attack (rate 0-127, exponential mode):
-//   At 44100 Hz sample rate, the number of samples to reach full volume is:
-//   samples = (1 << (rate >> 2)) * step, where step depends on (rate & 3).
-//   Approximate time in seconds: t = 0.000257 * 2^(rate/4) for lower rates,
-//   but the relationship inverts (higher rate = faster attack).
-//   Empirically from the James Higgs data in adsr.cc:
-//     rate 48 -> ~11 frames, rate 80 -> ~2890 frames (at ~60fps -> 0.18s to 48s)
-//   The formula: frames ~= 0.00257 * 2^(rate/4), so rate ~= 4 * log2(frames/0.00257)
-//   But attack rate is INVERTED: higher value = faster. So we need:
-//   rate = 127 - 4 * log2(seconds * samplerate / constant)
-//
-// Decay (rate 0-15, always exponential decrease):
-//   Internal rate = value * 4 before table lookup.
-//   time ~= 0.000292 * 2^value seconds (to reach sustain level from peak)
-//   So: value = log2(seconds / 0.000292)
-//
-// Release (rate 0-31, exponential decrease):
-//   Internal rate = value * 4 before table lookup.
-//   time ~= 0.000446 * 2^value seconds (to reach silence from sustain)
-//   So: value = log2(seconds / 0.000446)
-
-// Convert SF2 attack time (seconds) to SPU attack rate (0-127).
-// Higher SPU rate = faster attack. The SPU timing approximately follows:
-//   time_seconds ~= K * 2^((127 - rate) / 4) where K is a small constant.
-// Inverting: rate = 127 - 4 * log2(time / K)
-static uint8_t sf2AttackToSpu(float seconds) {
-    if (seconds <= 0.0f) return 0x7F;   // instant
-    if (seconds >= 10.0f) return 0x00;  // slowest
-
-    // Calibrated against pcsx-redux ADSR tables:
-    // rate 127 -> ~0ms, rate 80 -> ~2890 frames (~48s at 60fps)
-    // Using K = 0.0005 gives a reasonable fit
-    float rate = 127.0f - 4.0f * log2f(seconds / 0.0005f);
-    if (rate < 0.0f) rate = 0.0f;
-    if (rate > 127.0f) rate = 127.0f;
-    return (uint8_t)(rate + 0.5f);
-}
-
-// Convert SF2 decay time (seconds) to SPU decay rate (0-15).
-// Higher SPU rate = faster decay.
-// SPU decay time ~= 0.000292 * 2^(15-value) seconds
-static uint8_t sf2DecayToSpu(float seconds) {
-    if (seconds <= 0.0f) return 0x0F;
-    if (seconds >= 30.0f) return 0x00;
-
-    // value = 15 - log2(seconds / 0.000292)
-    float value = 15.0f - log2f(seconds / 0.000292f);
-    if (value < 0.0f) value = 0.0f;
-    if (value > 15.0f) value = 15.0f;
-    return (uint8_t)(value + 0.5f);
-}
-
-// Convert SF2 sustain level to SPU sustain level (0-15, where 15 = max volume).
-// TSF converts ampenv sustain to a gain value: 1.0 = full volume, 0.0 = silence.
-// SPU sustain level: actual volume threshold = (N+1) * 0x800, max is 0x7FFF at N=15(ish).
-static uint8_t sf2SustainToSpu(float sustainGain) {
-    if (sustainGain >= 1.0f) return 0x0F;
-    if (sustainGain <= 0.0f) return 0x00;
-    // The SPU sustain levels are roughly linear, so a linear mapping works.
-    int level = (int)(sustainGain * 15.0f + 0.5f);
-    if (level < 0) level = 0;
-    if (level > 0x0F) level = 0x0F;
-    return (uint8_t)level;
-}
-
-// Convert SF2 release time (seconds) to SPU release rate (0-31).
-// Higher SPU rate = faster release.
-// SPU release time ~= 0.000446 * 2^(31-value) seconds
-static uint8_t sf2ReleaseToSpu(float seconds) {
-    if (seconds <= 0.0f) return 0x1F;
-    if (seconds >= 30.0f) return 0x00;
-
-    // value = 31 - log2(seconds / 0.000446)
-    float value = 31.0f - log2f(seconds / 0.000446f);
-    if (value < 0.0f) value = 0.0f;
-    if (value > 31.0f) value = 31.0f;
-    return (uint8_t)(value + 0.5f);
-}
-
-// Extract ADSR from an SF2 region using the amplitude envelope generators.
-// Falls back to sensible defaults if the region has no envelope data.
-static void sf2RegionToSpuADSR(struct tsf_region* region, bool isDrum, uint16_t& adsrLo, uint16_t& adsrHi) {
-    // TSF pre-converts timecents to seconds for attack, hold, decay, release.
-    // For ampenv, sustain is converted to a gain value (1.0 = full, 0.0 = silence)
-    // via tsf_decibelsToGain(-sustain/10).
-    // Hold and decay may still be in timecents if keynumToHold/keynumToDecay are set.
-
-    float attackSec = region->ampenv.attack;
-    float decaySec = region->ampenv.decay;
-    // If keynumToDecay is set, decay is still in timecents
-    if (region->ampenv.keynumToDecay != 0.0f) {
-        decaySec = (decaySec < -11950.0f) ? 0.0f : powf(2.0f, decaySec / 1200.0f);
-    }
-    float sustainGain = region->ampenv.sustain;  // gain: 1.0 = full, 0.0 = silence
-    float releaseSec = region->ampenv.release;
-
-    // Clamp to reasonable ranges
-    if (attackSec < 0.0f) attackSec = 0.0f;
-    if (decaySec < 0.0f) decaySec = 0.0f;
-    if (releaseSec < 0.0f) releaseSec = 0.0f;
-    if (sustainGain < 0.0f) sustainGain = 0.0f;
-
-    // For drums, force fast release if SF2 doesn't specify one
-    if (isDrum && releaseSec > 0.3f) releaseSec = 0.1f;
-
-    uint8_t attackRate = sf2AttackToSpu(attackSec);
-    uint8_t decayRate = sf2DecayToSpu(decaySec);
-    uint8_t sustainLevel = sf2SustainToSpu(sustainGain);
-    uint8_t releaseRate = sf2ReleaseToSpu(releaseSec);
-
-    // SPU sustain rate: controls what happens at sustain level.
-    // For most instruments, sustain should hold (rate = 0, direction = increase for hold effect).
-    // For drums, sustain should decrease to fade out.
-    uint8_t sustainRate = isDrum ? 0x1F : 0x00;
-    uint8_t sustainDir = isDrum ? 1 : 0;   // 1 = decrease
-    uint8_t sustainMode = isDrum ? 0 : 0;  // 0 = linear
-
-    // Build register values
-    // ADSR upper: attack mode (bit 15) | attack rate (bits 8-14) | decay rate (bits 4-7) | sustain level (bits 0-3)
-    adsrHi = (uint16_t)((1 << 15) |  // exponential attack for smoother sound
-                        ((attackRate & 0x7F) << 8) | ((decayRate & 0x0F) << 4) | (sustainLevel & 0x0F));
-
-    // ADSR lower: sustain mode (bit 14) | sustain dir (bit 13) | sustain rate (bits 6-10) |
-    //             release mode (bit 5) | release rate (bits 0-4)
-    adsrLo = (uint16_t)(((sustainMode & 1) << 14) | ((sustainDir & 1) << 13) | ((sustainRate & 0x1F) << 6) |
-                        (1 << 5) |  // exponential release for natural decay
-                        (releaseRate & 0x1F));
-}
-
-// ============================================================================
 // Conversion Pipeline
 // ============================================================================
 
@@ -913,87 +507,6 @@ struct ChannelState {
         // Note: program and bank are NOT reset by CC#121
     }
 };
-
-// Find all matching regions for a given preset, note, and velocity.
-// SF2 can have overlapping regions for layered sounds (e.g., piano body + hammer).
-static std::vector<struct tsf_region*> findRegions(tsf* sf2, int presetIndex, int note, int velocity) {
-    std::vector<struct tsf_region*> result;
-    if (presetIndex < 0 || presetIndex >= sf2->presetNum) return result;
-    struct tsf_preset* preset = &sf2->presets[presetIndex];
-    for (int i = 0; i < preset->regionNum; i++) {
-        struct tsf_region* r = &preset->regions[i];
-        if (note >= r->lokey && note <= r->hikey && velocity >= r->lovel && velocity <= r->hivel) {
-            result.push_back(r);
-        }
-    }
-    return result;
-}
-
-// Extract a raw sample from TSF's fontSamples and encode to SPU ADPCM
-static size_t extractAndEncode(tsf* sf2, struct tsf_region* region, std::vector<SpuSample>& samples,
-                               std::map<SampleKey, size_t>& sampleMap, uint32_t& nextSpuAddr,
-                               uint32_t maxSpuAddr = SPU_RAM_SIZE) {
-    SampleKey key = {region->offset, region->end};
-    auto it = sampleMap.find(key);
-    if (it != sampleMap.end()) return it->second;
-
-    // Extract raw PCM from fontSamples
-    unsigned int sampleCount = region->end - region->offset;
-    if (sampleCount == 0) return (size_t)-1;
-
-    std::vector<int16_t> pcm(sampleCount);
-    for (unsigned int i = 0; i < sampleCount; i++) {
-        float v = sf2->fontSamples[region->offset + i] * 32767.0f;
-        if (v > 32767.0f) v = 32767.0f;
-        if (v < -32768.0f) v = -32768.0f;
-        pcm[i] = (int16_t)v;
-    }
-
-    // Handle loop points
-    bool hasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
-    size_t loopStart = 0;
-    if (hasLoop && region->loop_start >= region->offset && region->loop_end > region->loop_start) {
-        loopStart = region->loop_start - region->offset;
-    }
-
-    SpuSample sample;
-    sample.sampleRate = region->sample_rate;
-    sample.rootKey = region->pitch_keycenter;
-    sample.transpose = region->transpose;
-    sample.tune = region->tune;
-    encodeSample(pcm.data(), pcm.size(), hasLoop, loopStart, sample);
-
-    sample.spuAddr = nextSpuAddr;
-    nextSpuAddr += sample.adpcmSize;
-
-    if (nextSpuAddr > maxSpuAddr) {
-        fmt::print(stderr, "Warning: SPU RAM overflow at {} bytes (max {})\n", nextSpuAddr, maxSpuAddr);
-    }
-
-    // Check for pitch ceiling: if this sample would need pitch > 0x3FFF for notes
-    // at the top of its key range, warn the user
-    {
-        int highNote = region->hikey + region->transpose;
-        double effectiveNote = highNote + region->tune / 100.0;
-        double noteFreq = 440.0 * pow(2.0, (effectiveNote - 69) / 12.0);
-        double rootFreq = 440.0 * pow(2.0, ((int)region->pitch_keycenter - 69) / 12.0);
-        double maxPitch = (noteFreq / rootFreq) * ((double)region->sample_rate / 44100.0) * 0x1000;
-        if (maxPitch > 0x3FFF) {
-            fmt::print(stderr,
-                       "  Warning: sample {} (root={}, rate={}Hz) hits pitch ceiling at note {} "
-                       "(pitch {:.0f} > 16383). High notes will play flat.\n",
-                       samples.size(), region->pitch_keycenter, region->sample_rate, region->hikey, maxPitch);
-        }
-    }
-
-    size_t idx = samples.size();
-    fmt::print("  Sample {}: offset={} end={} rate={}Hz rootKey={} transpose={} tune={} cents loop={} size={} bytes\n",
-               idx, region->offset, region->end, sample.sampleRate, sample.rootKey, sample.transpose, sample.tune,
-               sample.hasLoop ? "yes" : "no", sample.adpcmSize);
-    samples.push_back(std::move(sample));
-    sampleMap[key] = idx;
-    return idx;
-}
 
 struct ConvertContext {
     MidiFile midi;
@@ -1480,7 +993,7 @@ void ConvertContext::generateStream() {
 
             // Trigger a voice for each matching region (layered sounds)
             for (auto* region : regions) {
-                size_t sampleIdx = extractAndEncode(sf2, region, samples, sampleMap, nextSpuAddr, maxSpuAddr);
+                size_t sampleIdx = extractAndEncode(sf2, region, samples, sampleMap, nextSpuAddr, maxSpuAddr, true);
                 if (sampleIdx == (size_t)-1) continue;
 
                 auto& sample = samples[sampleIdx];
