@@ -224,13 +224,146 @@ PCSX::ISO9660Builder* createIsoBuilder(PCSX::LuaFFI::LuaFile* wrapper) {
     return new PCSX::ISO9660Builder(wrapper->file);
 }
 void deleteIsoBuilder(PCSX::ISO9660Builder* builder) { delete builder; }
+bool isoBuilderFailed(PCSX::ISO9660Builder* builder) { return builder->failed(); }
 void isoBuilderWriteLicense(PCSX::ISO9660Builder* builder, PCSX::LuaFFI::LuaFile* licenseWrapper) {
-    builder->writeLicense(licenseWrapper->file);
+    builder->writeLicense(licenseWrapper ? licenseWrapper->file : nullptr);
 }
 void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::IEC60908b::SectorMode mode) {
     builder->writeSector(sectorData, mode);
 }
-void isoBuilderClose(PCSX::ISO9660Builder* builder) { builder->close(); }
+void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
+
+// PVD string field helpers
+static void trimCStringTo(const char* src, size_t maxLen, char* dst, uint32_t dstSize) {
+    size_t len = strnlen(src, maxLen);
+    // Trim trailing spaces and nulls.
+    while (len > 0 && (src[len - 1] == ' ' || src[len - 1] == '\0')) len--;
+    size_t toCopy = len < dstSize - 1 ? len : dstSize - 1;
+    memcpy(dst, src, toCopy);
+    dst[toCopy] = '\0';
+}
+
+// PVD getters
+void hlPvdGetSystemIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_SystemIdent>().value, 32, buf, bufSize);
+}
+void hlPvdGetVolumeIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_VolumeIdent>().value, 32, buf, bufSize);
+}
+void hlPvdGetVolSetIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_VolSetIdent>().value, 128, buf, bufSize);
+}
+void hlPvdGetPublisherIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_PublisherIdent>().value, 128, buf, bufSize);
+}
+void hlPvdGetDataPreparerIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_DataPreparerIdent>().value, 128, buf, bufSize);
+}
+void hlPvdGetApplicationIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_ApplicationIdent>().value, 128, buf, bufSize);
+}
+void hlPvdGetCopyrightFileIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_CopyrightFileIdent>().value, 37, buf, bufSize);
+}
+void hlPvdGetAbstractFileIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_AbstractFileIdent>().value, 37, buf, bufSize);
+}
+void hlPvdGetBibliographicFileIdent(PCSX::ISO9660Builder* b, char* buf, uint32_t bufSize) {
+    trimCStringTo(b->getPVD().get<PCSX::ISO9660LowLevel::PVD_BibliographicFileIdent>().value, 37, buf, bufSize);
+}
+
+// PVD setters
+void hlPvdSetSystemIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_SystemIdent>().set(val, ' ');
+}
+void hlPvdSetVolumeIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_VolumeIdent>().set(val, ' ');
+}
+void hlPvdSetVolSetIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_VolSetIdent>().set(val, ' ');
+}
+void hlPvdSetPublisherIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_PublisherIdent>().set(val, ' ');
+}
+void hlPvdSetDataPreparerIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_DataPreparerIdent>().set(val, ' ');
+}
+void hlPvdSetApplicationIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_ApplicationIdent>().set(val, ' ');
+}
+void hlPvdSetCopyrightFileIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_CopyrightFileIdent>().set(val, ' ');
+}
+void hlPvdSetAbstractFileIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_AbstractFileIdent>().set(val, ' ');
+}
+void hlPvdSetBibliographicFileIdent(PCSX::ISO9660Builder* b, const char* val) {
+    b->getPVD().get<PCSX::ISO9660LowLevel::PVD_BibliographicFileIdent>().set(val, ' ');
+}
+
+// DirTree wrappers
+PCSX::ISO9660::DirTree* hlCreateRoot(PCSX::ISO9660Builder* b, uint32_t sectorCount) {
+    return b->createRoot(sectorCount);
+}
+PCSX::ISO9660::DirTree* hlCreateDir(PCSX::ISO9660Builder* b, PCSX::ISO9660::DirTree* parent, const char* name,
+                                    uint32_t sectorCount) {
+    return b->createDir(parent, name, sectorCount);
+}
+PCSX::ISO9660::DirTree* hlCreateFile(PCSX::ISO9660Builder* b, PCSX::ISO9660::DirTree* parent, const char* name,
+                                     PCSX::LuaFFI::LuaFile* content) {
+    return b->createFile(parent, name, content->file);
+}
+
+const char* dirTreeGetName(PCSX::ISO9660::DirTree* node) { return node->getName().data(); }
+uint32_t dirTreeGetSize(PCSX::ISO9660::DirTree* node) { return node->getSize(); }
+uint32_t dirTreeGetLBA(PCSX::ISO9660::DirTree* node) { return node->getLBA(); }
+bool dirTreeIsDir(PCSX::ISO9660::DirTree* node) { return node->isDir(); }
+bool dirTreeIsHidden(PCSX::ISO9660::DirTree* node) { return node->isHidden(); }
+void dirTreeSetHidden(PCSX::ISO9660::DirTree* node, bool val) { node->setHidden(val); }
+bool dirTreeShouldSkip(PCSX::ISO9660::DirTree* node) { return node->shouldSkip(); }
+void dirTreeSetSkip(PCSX::ISO9660::DirTree* node, bool val) { node->setSkip(val); }
+bool dirTreeHasXA(PCSX::ISO9660::DirTree* node) { return node->hasXA(); }
+void dirTreeSetHasXA(PCSX::ISO9660::DirTree* node, bool val) { node->setHasXA(val); }
+void dirTreeSetSectorMode(PCSX::ISO9660::DirTree* node, PCSX::IEC60908b::SectorMode mode) { node->setSectorMode(mode); }
+uint16_t dirTreeGetXAAttribs(PCSX::ISO9660::DirTree* node) {
+    return node->getXA().get<PCSX::ISO9660LowLevel::DirEntry_XA_Attribs>().value;
+}
+void dirTreeSetXAAttribs(PCSX::ISO9660::DirTree* node, uint16_t val) {
+    node->getXA().get<PCSX::ISO9660LowLevel::DirEntry_XA_Attribs>().value = val;
+}
+uint8_t dirTreeGetXAFileNum(PCSX::ISO9660::DirTree* node) {
+    return node->getXA().get<PCSX::ISO9660LowLevel::DirEntry_XA_FileNum>().value;
+}
+void dirTreeSetXAFileNum(PCSX::ISO9660::DirTree* node, uint8_t val) {
+    node->getXA().get<PCSX::ISO9660LowLevel::DirEntry_XA_FileNum>().value = val;
+}
+
+// DirTree navigation
+PCSX::ISO9660::DirTree* dirTreeParent(PCSX::ISO9660::DirTree* node) { return node->parent(); }
+PCSX::ISO9660::DirTree* dirTreeFirstChild(PCSX::ISO9660::DirTree* node) { return node->firstChild(); }
+PCSX::ISO9660::DirTree* dirTreeNextSibling(PCSX::ISO9660::DirTree* node) { return node->nextSibling(); }
+
+// DirTree date access
+void dirTreeSetDate(PCSX::ISO9660::DirTree* node, uint8_t year, uint8_t month, uint8_t day, uint8_t hour,
+                    uint8_t minute, uint8_t second, uint8_t offset) {
+    auto& date = node->getDate();
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Year>().value = year;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Month>().value = month;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Day>().value = day;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Hour>().value = hour;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Minute>().value = minute;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Second>().value = second;
+    date.get<PCSX::ISO9660LowLevel::ShortDate_Offset>().value = offset;
+}
+uint8_t dirTreeGetDateYear(PCSX::ISO9660::DirTree* node) {
+    return node->getDate().get<PCSX::ISO9660LowLevel::ShortDate_Year>().value;
+}
+uint8_t dirTreeGetDateMonth(PCSX::ISO9660::DirTree* node) {
+    return node->getDate().get<PCSX::ISO9660LowLevel::ShortDate_Month>().value;
+}
+uint8_t dirTreeGetDateDay(PCSX::ISO9660::DirTree* node) {
+    return node->getDate().get<PCSX::ISO9660LowLevel::ShortDate_Day>().value;
+}
 
 }  // namespace
 
@@ -277,9 +410,59 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, createIsoBuilder);
     REGISTER(L, deleteIsoBuilder);
+    REGISTER(L, isoBuilderFailed);
     REGISTER(L, isoBuilderWriteLicense);
     REGISTER(L, isoBuilderWriteSector);
     REGISTER(L, isoBuilderClose);
+
+    // PVD getters
+    REGISTER(L, hlPvdGetSystemIdent);
+    REGISTER(L, hlPvdGetVolumeIdent);
+    REGISTER(L, hlPvdGetVolSetIdent);
+    REGISTER(L, hlPvdGetPublisherIdent);
+    REGISTER(L, hlPvdGetDataPreparerIdent);
+    REGISTER(L, hlPvdGetApplicationIdent);
+    REGISTER(L, hlPvdGetCopyrightFileIdent);
+    REGISTER(L, hlPvdGetAbstractFileIdent);
+    REGISTER(L, hlPvdGetBibliographicFileIdent);
+
+    // PVD setters
+    REGISTER(L, hlPvdSetSystemIdent);
+    REGISTER(L, hlPvdSetVolumeIdent);
+    REGISTER(L, hlPvdSetVolSetIdent);
+    REGISTER(L, hlPvdSetPublisherIdent);
+    REGISTER(L, hlPvdSetDataPreparerIdent);
+    REGISTER(L, hlPvdSetApplicationIdent);
+    REGISTER(L, hlPvdSetCopyrightFileIdent);
+    REGISTER(L, hlPvdSetAbstractFileIdent);
+    REGISTER(L, hlPvdSetBibliographicFileIdent);
+
+    // DirTree
+    REGISTER(L, hlCreateRoot);
+    REGISTER(L, hlCreateDir);
+    REGISTER(L, hlCreateFile);
+    REGISTER(L, dirTreeGetName);
+    REGISTER(L, dirTreeGetSize);
+    REGISTER(L, dirTreeGetLBA);
+    REGISTER(L, dirTreeIsDir);
+    REGISTER(L, dirTreeIsHidden);
+    REGISTER(L, dirTreeSetHidden);
+    REGISTER(L, dirTreeShouldSkip);
+    REGISTER(L, dirTreeSetSkip);
+    REGISTER(L, dirTreeHasXA);
+    REGISTER(L, dirTreeSetHasXA);
+    REGISTER(L, dirTreeSetSectorMode);
+    REGISTER(L, dirTreeGetXAAttribs);
+    REGISTER(L, dirTreeSetXAAttribs);
+    REGISTER(L, dirTreeGetXAFileNum);
+    REGISTER(L, dirTreeSetXAFileNum);
+    REGISTER(L, dirTreeParent);
+    REGISTER(L, dirTreeFirstChild);
+    REGISTER(L, dirTreeNextSibling);
+    REGISTER(L, dirTreeSetDate);
+    REGISTER(L, dirTreeGetDateYear);
+    REGISTER(L, dirTreeGetDateMonth);
+    REGISTER(L, dirTreeGetDateDay);
 
     L.settable();
     L.pop();

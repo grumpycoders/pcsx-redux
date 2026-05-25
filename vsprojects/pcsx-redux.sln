@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32126.317
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11819.183 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "main", "main\main.vcxproj", "{36D6F879-F4CB-477E-BB87-33D867EDDB0A}"
 EndProject
@@ -99,8 +99,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lpeg", "lpeg\lpeg.vcxproj",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lua", "Lua", "{394627A0-57EB-46B1-B768-E02ACFC798A8}"
 	ProjectSection(SolutionItems) = preProject
+		..\tests\lua\adpcm.lua = ..\tests\lua\adpcm.lua
 		..\tests\lua\basic.lua = ..\tests\lua\basic.lua
 		..\tests\lua\file.lua = ..\tests\lua\file.lua
+		..\tests\lua\isobuilder.lua = ..\tests\lua\isobuilder.lua
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "modconv", "modconv\modconv.vcxproj", "{74F6A549-AB14-4369-A382-C31C0ED97A92}"
@@ -110,6 +112,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uriparser", "uriparser\uriparser.vcxproj", "{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "authoring", "authoring\authoring.vcxproj", "{74766710-2FA8-4400-B035-321B4A7ACD9C}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PEGTL", "PEGTL", "{EC169519-2509-4F22-9AAF-0BD6BD85BBE0}"
 	ProjectSection(SolutionItems) = preProject
 		..\third_party\PEGTL\include\tao\pegtl.hpp = ..\third_party\PEGTL\include\tao\pegtl.hpp
@@ -799,7 +802,7 @@ Global
 		{ACCFF71D-6BB0-4B55-9ADA-476E2A7F071F} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal
