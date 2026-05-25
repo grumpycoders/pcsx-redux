@@ -8,6 +8,8 @@ UNAME_M := $(shell uname -m)
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
+MACOS_MIN_VERSION := 11
+
 PACKAGES := capstone freetype2 libavcodec libavformat libavutil libswresample libcurl libuv sdl3 zlib
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
@@ -72,7 +74,7 @@ ifeq ($(CC_IS_CLANG),true)
 endif
 
 ifeq ($(UNAME_S),Darwin)
-    CPPFLAGS += -mmacosx-version-min=10.15
+    CPPFLAGS += -mmacosx-version-min=$(MACOS_MIN_VERSION)
     CPPFLAGS += -stdlib=libc++
 endif
 
@@ -80,7 +82,7 @@ LUAJIT_LDFLAGS := $(LDFLAGS)
 
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation -framework Cocoa
-    LDFLAGS += -mmacosx-version-min=10.15
+    LDFLAGS += -mmacosx-version-min=$(MACOS_MIN_VERSION)
 else
     LDFLAGS += -lstdc++fs
     LDFLAGS += -lGL -lX11 -lxcb
@@ -277,10 +279,10 @@ appimage:
 
 ifeq ($(CROSS),arm64)
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 else
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 endif
 
 bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
@@ -328,11 +330,11 @@ objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
 
 clean:
 	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
-	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 cleanall:
 	rm -rf bins objs deps $(TOOLS) $(TARGET)
-	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 gitclean:
 	git clean -f -d -x
