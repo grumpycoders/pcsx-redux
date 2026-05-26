@@ -293,6 +293,41 @@ function TestIsoBuilder:test_vpStyleShadowFile()
     lu.assertTrue(foundShadow)
 end
 
+function TestIsoBuilder:test_m2RawRoundTrip()
+    -- Write a multi-sector M2_RAW payload with a deterministic pattern and verify
+    -- the rebuilt disc returns identical bytes when read back in M2_RAW. Regression
+    -- guard for the multi-threaded writeFiles path treating M2_RAW as M2_FORM1.
+    local payload = Support.File.buffer()
+    local data = ffi.new('uint8_t[?]', 4672)
+    for i = 0, 4671 do data[i] = i % 251 end  -- deterministic, non-zero pattern
+    payload:write(ffi.cast('const char*', data), 4672)
+    payload:rSeek(0)
+
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('M2RAW_RT')
+    local root = builder:createRoot(1)
+    local file = builder:createFile(root, 'PATTERN.BIN', payload)
+    file:setSectorMode('M2_RAW')
+    builder:close()
+
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local reader = iso:createReader()
+    local lba
+    for _, e in ipairs(reader:listDir('')) do
+        if e.name == 'PATTERN.BIN;1' then lba = e.lba end
+    end
+    lu.assertNotNil(lba)
+
+    local rb = iso:open(lba, 4672, 'M2_RAW')
+    for i = 0, 4671 do
+        lu.assertEquals(rb:readU8At(i), i % 251,
+            string.format('M2_RAW round-trip mismatch at byte %d', i))
+    end
+end
+
 function TestIsoBuilder:test_anchorErrorOnBackwardLBA()
     -- Anchoring to an LBA that's already passed must raise an error at close time.
     local out = Support.File.buffer()

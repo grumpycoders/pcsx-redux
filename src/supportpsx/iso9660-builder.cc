@@ -211,6 +211,18 @@ void prepareM2F2FrameNoECC(uint8_t* frame, uint32_t lba, const uint8_t* data2324
     memcpy(frame + 24, data2324, 2324);
 }
 
+// Prepare a raw M2_RAW frame from 2336 bytes of caller-supplied data. The caller's
+// payload already contains the subheader (8), user data, and EDC/ECC tail, so this
+// helper only stamps sync, MSF, and the mode byte.
+void prepareM2RawFrame(uint8_t* frame, uint32_t lba, const uint8_t* data2336) {
+    memset(frame, 0, 2352);
+    memcpy(frame, c_sync, 12);
+    PCSX::IEC60908b::MSF msf(lba + 150);
+    msf.toBCD(frame + 12);
+    frame[15] = 2;
+    memcpy(frame + 16, data2336, 2336);
+}
+
 }  // namespace
 
 PCSX::ISO9660::DirTree* PCSX::ISO9660Builder::createRoot(unsigned sectorCount) {
@@ -902,6 +914,10 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
                 case IEC60908b::SectorMode::M2_FORM2:
                     prepareM2F2FrameNoECC(work.frame, lba, data);
                     work.needsECC = true;
+                    break;
+                case IEC60908b::SectorMode::M2_RAW:
+                    prepareM2RawFrame(work.frame, lba, data);
+                    work.needsECC = false;
                     break;
                 case IEC60908b::SectorMode::RAW:
                     memcpy(work.frame, data, 2352);
