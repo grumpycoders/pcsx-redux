@@ -106,6 +106,14 @@ bool dirTreeIsHidden(IsoDirTree* node);
 void dirTreeSetHidden(IsoDirTree* node, bool val);
 bool dirTreeShouldSkip(IsoDirTree* node);
 void dirTreeSetSkip(IsoDirTree* node, bool val);
+bool dirTreeHasAnchorLBA(IsoDirTree* node);
+uint32_t dirTreeGetAnchorLBA(IsoDirTree* node);
+void dirTreeSetAnchorLBA(IsoDirTree* node, uint32_t lba);
+void dirTreeClearAnchorLBA(IsoDirTree* node);
+bool dirTreeHasDeclaredSize(IsoDirTree* node);
+uint32_t dirTreeGetDeclaredSize(IsoDirTree* node);
+void dirTreeSetDeclaredSize(IsoDirTree* node, uint32_t size);
+void dirTreeClearDeclaredSize(IsoDirTree* node);
 bool dirTreeHasXA(IsoDirTree* node);
 void dirTreeSetHasXA(IsoDirTree* node, bool val);
 void dirTreeSetSectorMode(IsoDirTree* node, enum SectorMode mode);
@@ -201,6 +209,14 @@ local function createDirTreeWrapper(node)
         setHidden = function(self, val) C.dirTreeSetHidden(self._node, val) end,
         shouldSkip = function(self) return C.dirTreeShouldSkip(self._node) end,
         setSkip = function(self, val) C.dirTreeSetSkip(self._node, val) end,
+        hasAnchorLBA = function(self) return C.dirTreeHasAnchorLBA(self._node) end,
+        getAnchorLBA = function(self) return C.dirTreeGetAnchorLBA(self._node) end,
+        setAnchorLBA = function(self, lba) C.dirTreeSetAnchorLBA(self._node, lba) end,
+        clearAnchorLBA = function(self) C.dirTreeClearAnchorLBA(self._node) end,
+        hasDeclaredSize = function(self) return C.dirTreeHasDeclaredSize(self._node) end,
+        getDeclaredSize = function(self) return C.dirTreeGetDeclaredSize(self._node) end,
+        setDeclaredSize = function(self, size) C.dirTreeSetDeclaredSize(self._node, size) end,
+        clearDeclaredSize = function(self) C.dirTreeClearDeclaredSize(self._node) end,
         hasXA = function(self) return C.dirTreeHasXA(self._node) end,
         setXA = function(self, val) C.dirTreeSetHasXA(self._node, val) end,
         setSectorMode = function(self, mode) C.dirTreeSetSectorMode(self._node, mode) end,
