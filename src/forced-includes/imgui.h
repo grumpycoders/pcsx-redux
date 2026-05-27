@@ -30,7 +30,31 @@ void pcsxStaticImguiAssert(int exp, const char* expression);
 }
 #endif
 
-#define IM_ASSERT_USER_ERROR(EXP, MSG) \
-    if (!(EXP)) pcsxStaticImguiUserError((MSG))
+// imgui_internal.h gates IM_ASSERT_USER_ERROR_RET and IM_ASSERT_USER_ERROR_RETV
+// behind the same #ifndef IM_ASSERT_USER_ERROR guard, so once we redirect the
+// base macro we have to provide the recoverable-error variants as well.
+// pcsxStaticImguiUserError throws by default, so the return statements after
+// it are unreachable in normal operation but required for syntactic
+// correctness when the user handler is replaced with a non-throwing one.
+#define IM_ASSERT_USER_ERROR(EXP, MSG)               \
+    do {                                             \
+        if (!(EXP)) pcsxStaticImguiUserError((MSG)); \
+    } while (0)
+
+#define IM_ASSERT_USER_ERROR_RET(EXP, MSG)     \
+    do {                                       \
+        if (!(EXP)) {                          \
+            pcsxStaticImguiUserError((MSG));   \
+            return;                            \
+        }                                      \
+    } while (0)
+
+#define IM_ASSERT_USER_ERROR_RETV(EXP, RETV, MSG) \
+    do {                                          \
+        if (!(EXP)) {                             \
+            pcsxStaticImguiUserError((MSG));      \
+            return (RETV);                        \
+        }                                         \
+    } while (0)
 
 #define IM_ASSERT(EXP) pcsxStaticImguiAssert(!!(EXP), "ImGui assert: " #EXP " is false")

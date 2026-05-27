@@ -553,10 +553,10 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform1i(m_attribLocationTex, 0);
     glEnableVertexAttribArray(m_attribLocationVtxPos);
     glVertexAttribPointer(m_attribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
+                          (GLvoid *)offsetof(ImDrawVert, pos));
     glEnableVertexAttribArray(m_attribLocationVtxUV);
     glVertexAttribPointer(m_attribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+                          (GLvoid *)offsetof(ImDrawVert, uv));
     glUniform4f(m_attribLocationWrittenColor, m_writtenColor.x, m_writtenColor.y, m_writtenColor.z, m_writtenColor.w);
     glUniform1i(m_attribLocationWrittenHeatmap, 1);
     glUniform1i(m_attribLocationWrittenHighlight, 3);

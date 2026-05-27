@@ -17,11 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
 #include "gui/widgets/assembly.h"
 
 #include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <fstream>

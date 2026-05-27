@@ -17,11 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
 #define _USE_MATH_DEFINES
 #include "core/pad.h"
 
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 #include <memory.h>
 
 #include <algorithm>
@@ -69,52 +68,61 @@ class PadsImpl : public PCSX::Pads {
 
   private:
     PCSX::EventBus::Listener m_listener;
-    // This is a list of all of the valid GLFW gamepad IDs that we have found querying GLFW.
-    // A value of -1 means that there is no gamepad at that index.
-    int m_gamepadsMap[16] = {0};
+    // Open SDL gamepad handles, one per slot we've discovered. nullptr means the
+    // slot is unused. The slot index doubles as the user-visible "controller ID"
+    // saved in SettingControllerID.
+    SDL_Gamepad* m_gamepads[16] = {nullptr};
 
-    static constexpr int GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 1;
-    static constexpr int GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER = GLFW_GAMEPAD_BUTTON_LAST + 2;
-    static constexpr int GLFW_GAMEPAD_BUTTON_INVALID = GLFW_GAMEPAD_BUTTON_LAST + 3;
+    // Triggers are reported as axes by SDL but pad bindings treat them as
+    // virtual buttons. INVALID is encoded as SDL_GAMEPAD_BUTTON_INVALID (-1) so
+    // raw SDL queries naturally short-circuit. The trigger sentinels live above
+    // SDL_GAMEPAD_BUTTON_COUNT to avoid collisions with future enum entries.
+    static constexpr int PCSX_GAMEPAD_BUTTON_LEFT_TRIGGER = 100;
+    static constexpr int PCSX_GAMEPAD_BUTTON_RIGHT_TRIGGER = 101;
+    static constexpr int PCSX_GAMEPAD_BUTTON_INVALID = SDL_GAMEPAD_BUTTON_INVALID;
 
     // settings block
     // Pad keyboard bindings
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadUp"), GLFW_KEY_UP> Keyboard_PadUp;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadRight"), GLFW_KEY_RIGHT> Keyboard_PadRight;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadDown"), GLFW_KEY_DOWN> Keyboard_PadDown;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadLeft"), GLFW_KEY_LEFT> Keyboard_PadLeft;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCross"), GLFW_KEY_X> Keyboard_PadCross;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadTriangle"), GLFW_KEY_S> Keyboard_PadTriangle;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSquare"), GLFW_KEY_Z> Keyboard_PadSquare;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCircle"), GLFW_KEY_D> Keyboard_PadCircle;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSelect"), GLFW_KEY_BACKSPACE> Keyboard_PadSelect;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSstart"), GLFW_KEY_ENTER> Keyboard_PadStart;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL1"), GLFW_KEY_Q> Keyboard_PadL1;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL2"), GLFW_KEY_A> Keyboard_PadL2;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL3"), GLFW_KEY_W> Keyboard_PadL3;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR1"), GLFW_KEY_R> Keyboard_PadR1;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR2"), GLFW_KEY_F> Keyboard_PadR2;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR3"), GLFW_KEY_T> Keyboard_PadR3;
-    typedef PCSX::Setting<int, TYPESTRING("Keyboard_AnalogMode"), GLFW_KEY_UNKNOWN> Keyboard_AnalogMode;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadUp"), SDL_SCANCODE_UP> Keyboard_PadUp;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadRight"), SDL_SCANCODE_RIGHT> Keyboard_PadRight;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadDown"), SDL_SCANCODE_DOWN> Keyboard_PadDown;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadLeft"), SDL_SCANCODE_LEFT> Keyboard_PadLeft;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCross"), SDL_SCANCODE_X> Keyboard_PadCross;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadTriangle"), SDL_SCANCODE_S> Keyboard_PadTriangle;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSquare"), SDL_SCANCODE_Z> Keyboard_PadSquare;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadCircle"), SDL_SCANCODE_D> Keyboard_PadCircle;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSelect"), SDL_SCANCODE_BACKSPACE> Keyboard_PadSelect;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadSstart"), SDL_SCANCODE_RETURN> Keyboard_PadStart;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL1"), SDL_SCANCODE_Q> Keyboard_PadL1;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL2"), SDL_SCANCODE_A> Keyboard_PadL2;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadL3"), SDL_SCANCODE_W> Keyboard_PadL3;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR1"), SDL_SCANCODE_R> Keyboard_PadR1;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR2"), SDL_SCANCODE_F> Keyboard_PadR2;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_PadR3"), SDL_SCANCODE_T> Keyboard_PadR3;
+    typedef PCSX::Setting<int, TYPESTRING("Keyboard_AnalogMode"), SDL_SCANCODE_UNKNOWN> Keyboard_AnalogMode;
 
-    // Pad controller bindings
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadUp"), GLFW_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadRight"), GLFW_GAMEPAD_BUTTON_DPAD_RIGHT> Controller_PadRight;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadDown"), GLFW_GAMEPAD_BUTTON_DPAD_DOWN> Controller_PadDown;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadLeft"), GLFW_GAMEPAD_BUTTON_DPAD_LEFT> Controller_PadLeft;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCross"), GLFW_GAMEPAD_BUTTON_CROSS> Controller_PadCross;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadTriangle"), GLFW_GAMEPAD_BUTTON_TRIANGLE>
+    // Pad controller bindings. Defaults reference SDL gamepad button enums
+    // (PS-style face buttons via SDL_GAMEPAD_BUTTON_SOUTH/EAST/WEST/NORTH).
+    // Existing user configs that hand-edited these values to GLFW button enums
+    // will not round-trip; the in-tree UI does not expose per-button rebinding,
+    // so the impact is limited to hand-rolled JSON.
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadUp"), SDL_GAMEPAD_BUTTON_DPAD_UP> Controller_PadUp;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadRight"), SDL_GAMEPAD_BUTTON_DPAD_RIGHT> Controller_PadRight;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadDown"), SDL_GAMEPAD_BUTTON_DPAD_DOWN> Controller_PadDown;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadLeft"), SDL_GAMEPAD_BUTTON_DPAD_LEFT> Controller_PadLeft;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCross"), SDL_GAMEPAD_BUTTON_SOUTH> Controller_PadCross;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadTriangle"), SDL_GAMEPAD_BUTTON_NORTH>
         Controller_PadTriangle;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSquare"), GLFW_GAMEPAD_BUTTON_SQUARE> Controller_PadSquare;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCircle"), GLFW_GAMEPAD_BUTTON_CIRCLE> Controller_PadCircle;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSelect"), GLFW_GAMEPAD_BUTTON_BACK> Controller_PadSelect;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSstart"), GLFW_GAMEPAD_BUTTON_START> Controller_PadStart;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL1"), GLFW_GAMEPAD_BUTTON_LEFT_BUMPER> Controller_PadL1;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL2"), GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER> Controller_PadL2;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL3"), GLFW_GAMEPAD_BUTTON_LEFT_THUMB> Controller_PadL3;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR1"), GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER> Controller_PadR1;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR2"), GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR3"), GLFW_GAMEPAD_BUTTON_RIGHT_THUMB> Controller_PadR3;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSquare"), SDL_GAMEPAD_BUTTON_WEST> Controller_PadSquare;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadCircle"), SDL_GAMEPAD_BUTTON_EAST> Controller_PadCircle;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSelect"), SDL_GAMEPAD_BUTTON_BACK> Controller_PadSelect;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadSstart"), SDL_GAMEPAD_BUTTON_START> Controller_PadStart;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL1"), SDL_GAMEPAD_BUTTON_LEFT_SHOULDER> Controller_PadL1;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL2"), PCSX_GAMEPAD_BUTTON_LEFT_TRIGGER> Controller_PadL2;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadL3"), SDL_GAMEPAD_BUTTON_LEFT_STICK> Controller_PadL3;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR1"), SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER> Controller_PadR1;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR2"), PCSX_GAMEPAD_BUTTON_RIGHT_TRIGGER> Controller_PadR2;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadR3"), SDL_GAMEPAD_BUTTON_RIGHT_STICK> Controller_PadR3;
 
     typedef PCSX::Setting<InputType, TYPESTRING("PadType"), InputType::Auto> SettingInputType;
     // These typestrings are kind of odd, but it's best not to change so as not to break old config files
@@ -165,7 +173,11 @@ class PadsImpl : public PCSX::Pads {
         uint8_t poll(uint8_t value, uint32_t& padState);
         uint8_t doDualshockCommand(uint32_t& padState);
         void getButtons();
-        bool isControllerButtonPressed(int button, GLFWgamepadstate* state);
+        struct GamepadState {
+            bool buttons[SDL_GAMEPAD_BUTTON_COUNT];
+            float axes[SDL_GAMEPAD_AXIS_COUNT];  // normalized to [-1, 1] like GLFW reported
+        };
+        bool isControllerButtonPressed(int button, const GamepadState& state);
         bool isControllerConnected() { return m_settings.get<SettingConnected>(); }
 
         json getCfg();
@@ -183,7 +195,7 @@ class PadsImpl : public PCSX::Pads {
         PadType m_type;
         PadData m_data;
 
-        int m_padID = -1;
+        SDL_Gamepad* m_gamepad = nullptr;
         int m_buttonToWait = -1;
         bool m_changed = false;
 
@@ -207,230 +219,122 @@ class PadsImpl : public PCSX::Pads {
 
 static PadsImpl* s_pads = nullptr;
 
-static ImGuiKey GlfwKeyToImGuiKey(int key) {
-    switch (key) {
-        case GLFW_KEY_TAB:
-            return ImGuiKey_Tab;
-        case GLFW_KEY_LEFT:
-            return ImGuiKey_LeftArrow;
-        case GLFW_KEY_RIGHT:
-            return ImGuiKey_RightArrow;
-        case GLFW_KEY_UP:
-            return ImGuiKey_UpArrow;
-        case GLFW_KEY_DOWN:
-            return ImGuiKey_DownArrow;
-        case GLFW_KEY_PAGE_UP:
-            return ImGuiKey_PageUp;
-        case GLFW_KEY_PAGE_DOWN:
-            return ImGuiKey_PageDown;
-        case GLFW_KEY_HOME:
-            return ImGuiKey_Home;
-        case GLFW_KEY_END:
-            return ImGuiKey_End;
-        case GLFW_KEY_INSERT:
-            return ImGuiKey_Insert;
-        case GLFW_KEY_DELETE:
-            return ImGuiKey_Delete;
-        case GLFW_KEY_BACKSPACE:
-            return ImGuiKey_Backspace;
-        case GLFW_KEY_SPACE:
-            return ImGuiKey_Space;
-        case GLFW_KEY_ENTER:
-            return ImGuiKey_Enter;
-        case GLFW_KEY_ESCAPE:
-            return ImGuiKey_Escape;
-        case GLFW_KEY_APOSTROPHE:
-            return ImGuiKey_Apostrophe;
-        case GLFW_KEY_COMMA:
-            return ImGuiKey_Comma;
-        case GLFW_KEY_MINUS:
-            return ImGuiKey_Minus;
-        case GLFW_KEY_PERIOD:
-            return ImGuiKey_Period;
-        case GLFW_KEY_SLASH:
-            return ImGuiKey_Slash;
-        case GLFW_KEY_SEMICOLON:
-            return ImGuiKey_Semicolon;
-        case GLFW_KEY_EQUAL:
-            return ImGuiKey_Equal;
-        case GLFW_KEY_LEFT_BRACKET:
-            return ImGuiKey_LeftBracket;
-        case GLFW_KEY_BACKSLASH:
-            return ImGuiKey_Backslash;
-        case GLFW_KEY_RIGHT_BRACKET:
-            return ImGuiKey_RightBracket;
-        case GLFW_KEY_GRAVE_ACCENT:
-            return ImGuiKey_GraveAccent;
-        case GLFW_KEY_CAPS_LOCK:
-            return ImGuiKey_CapsLock;
-        case GLFW_KEY_SCROLL_LOCK:
-            return ImGuiKey_ScrollLock;
-        case GLFW_KEY_NUM_LOCK:
-            return ImGuiKey_NumLock;
-        case GLFW_KEY_PRINT_SCREEN:
-            return ImGuiKey_PrintScreen;
-        case GLFW_KEY_PAUSE:
-            return ImGuiKey_Pause;
-        case GLFW_KEY_KP_0:
-            return ImGuiKey_Keypad0;
-        case GLFW_KEY_KP_1:
-            return ImGuiKey_Keypad1;
-        case GLFW_KEY_KP_2:
-            return ImGuiKey_Keypad2;
-        case GLFW_KEY_KP_3:
-            return ImGuiKey_Keypad3;
-        case GLFW_KEY_KP_4:
-            return ImGuiKey_Keypad4;
-        case GLFW_KEY_KP_5:
-            return ImGuiKey_Keypad5;
-        case GLFW_KEY_KP_6:
-            return ImGuiKey_Keypad6;
-        case GLFW_KEY_KP_7:
-            return ImGuiKey_Keypad7;
-        case GLFW_KEY_KP_8:
-            return ImGuiKey_Keypad8;
-        case GLFW_KEY_KP_9:
-            return ImGuiKey_Keypad9;
-        case GLFW_KEY_KP_DECIMAL:
-            return ImGuiKey_KeypadDecimal;
-        case GLFW_KEY_KP_DIVIDE:
-            return ImGuiKey_KeypadDivide;
-        case GLFW_KEY_KP_MULTIPLY:
-            return ImGuiKey_KeypadMultiply;
-        case GLFW_KEY_KP_SUBTRACT:
-            return ImGuiKey_KeypadSubtract;
-        case GLFW_KEY_KP_ADD:
-            return ImGuiKey_KeypadAdd;
-        case GLFW_KEY_KP_ENTER:
-            return ImGuiKey_KeypadEnter;
-        case GLFW_KEY_KP_EQUAL:
-            return ImGuiKey_KeypadEqual;
-        case GLFW_KEY_LEFT_SHIFT:
-            return ImGuiKey_LeftShift;
-        case GLFW_KEY_LEFT_CONTROL:
-            return ImGuiKey_LeftCtrl;
-        case GLFW_KEY_LEFT_ALT:
-            return ImGuiKey_LeftAlt;
-        case GLFW_KEY_LEFT_SUPER:
-            return ImGuiKey_LeftSuper;
-        case GLFW_KEY_RIGHT_SHIFT:
-            return ImGuiKey_RightShift;
-        case GLFW_KEY_RIGHT_CONTROL:
-            return ImGuiKey_RightCtrl;
-        case GLFW_KEY_RIGHT_ALT:
-            return ImGuiKey_RightAlt;
-        case GLFW_KEY_RIGHT_SUPER:
-            return ImGuiKey_RightSuper;
-        case GLFW_KEY_MENU:
-            return ImGuiKey_Menu;
-        case GLFW_KEY_0:
-            return ImGuiKey_0;
-        case GLFW_KEY_1:
-            return ImGuiKey_1;
-        case GLFW_KEY_2:
-            return ImGuiKey_2;
-        case GLFW_KEY_3:
-            return ImGuiKey_3;
-        case GLFW_KEY_4:
-            return ImGuiKey_4;
-        case GLFW_KEY_5:
-            return ImGuiKey_5;
-        case GLFW_KEY_6:
-            return ImGuiKey_6;
-        case GLFW_KEY_7:
-            return ImGuiKey_7;
-        case GLFW_KEY_8:
-            return ImGuiKey_8;
-        case GLFW_KEY_9:
-            return ImGuiKey_9;
-        case GLFW_KEY_A:
-            return ImGuiKey_A;
-        case GLFW_KEY_B:
-            return ImGuiKey_B;
-        case GLFW_KEY_C:
-            return ImGuiKey_C;
-        case GLFW_KEY_D:
-            return ImGuiKey_D;
-        case GLFW_KEY_E:
-            return ImGuiKey_E;
-        case GLFW_KEY_F:
-            return ImGuiKey_F;
-        case GLFW_KEY_G:
-            return ImGuiKey_G;
-        case GLFW_KEY_H:
-            return ImGuiKey_H;
-        case GLFW_KEY_I:
-            return ImGuiKey_I;
-        case GLFW_KEY_J:
-            return ImGuiKey_J;
-        case GLFW_KEY_K:
-            return ImGuiKey_K;
-        case GLFW_KEY_L:
-            return ImGuiKey_L;
-        case GLFW_KEY_M:
-            return ImGuiKey_M;
-        case GLFW_KEY_N:
-            return ImGuiKey_N;
-        case GLFW_KEY_O:
-            return ImGuiKey_O;
-        case GLFW_KEY_P:
-            return ImGuiKey_P;
-        case GLFW_KEY_Q:
-            return ImGuiKey_Q;
-        case GLFW_KEY_R:
-            return ImGuiKey_R;
-        case GLFW_KEY_S:
-            return ImGuiKey_S;
-        case GLFW_KEY_T:
-            return ImGuiKey_T;
-        case GLFW_KEY_U:
-            return ImGuiKey_U;
-        case GLFW_KEY_V:
-            return ImGuiKey_V;
-        case GLFW_KEY_W:
-            return ImGuiKey_W;
-        case GLFW_KEY_X:
-            return ImGuiKey_X;
-        case GLFW_KEY_Y:
-            return ImGuiKey_Y;
-        case GLFW_KEY_Z:
-            return ImGuiKey_Z;
-        case GLFW_KEY_F1:
-            return ImGuiKey_F1;
-        case GLFW_KEY_F2:
-            return ImGuiKey_F2;
-        case GLFW_KEY_F3:
-            return ImGuiKey_F3;
-        case GLFW_KEY_F4:
-            return ImGuiKey_F4;
-        case GLFW_KEY_F5:
-            return ImGuiKey_F5;
-        case GLFW_KEY_F6:
-            return ImGuiKey_F6;
-        case GLFW_KEY_F7:
-            return ImGuiKey_F7;
-        case GLFW_KEY_F8:
-            return ImGuiKey_F8;
-        case GLFW_KEY_F9:
-            return ImGuiKey_F9;
-        case GLFW_KEY_F10:
-            return ImGuiKey_F10;
-        case GLFW_KEY_F11:
-            return ImGuiKey_F11;
-        case GLFW_KEY_F12:
-            return ImGuiKey_F12;
-        default:
-            return ImGuiKey_None;
+static ImGuiKey SdlScancodeToImGuiKey(int scancode) {
+    switch (scancode) {
+        case SDL_SCANCODE_TAB: return ImGuiKey_Tab;
+        case SDL_SCANCODE_LEFT: return ImGuiKey_LeftArrow;
+        case SDL_SCANCODE_RIGHT: return ImGuiKey_RightArrow;
+        case SDL_SCANCODE_UP: return ImGuiKey_UpArrow;
+        case SDL_SCANCODE_DOWN: return ImGuiKey_DownArrow;
+        case SDL_SCANCODE_PAGEUP: return ImGuiKey_PageUp;
+        case SDL_SCANCODE_PAGEDOWN: return ImGuiKey_PageDown;
+        case SDL_SCANCODE_HOME: return ImGuiKey_Home;
+        case SDL_SCANCODE_END: return ImGuiKey_End;
+        case SDL_SCANCODE_INSERT: return ImGuiKey_Insert;
+        case SDL_SCANCODE_DELETE: return ImGuiKey_Delete;
+        case SDL_SCANCODE_BACKSPACE: return ImGuiKey_Backspace;
+        case SDL_SCANCODE_SPACE: return ImGuiKey_Space;
+        case SDL_SCANCODE_RETURN: return ImGuiKey_Enter;
+        case SDL_SCANCODE_ESCAPE: return ImGuiKey_Escape;
+        case SDL_SCANCODE_APOSTROPHE: return ImGuiKey_Apostrophe;
+        case SDL_SCANCODE_COMMA: return ImGuiKey_Comma;
+        case SDL_SCANCODE_MINUS: return ImGuiKey_Minus;
+        case SDL_SCANCODE_PERIOD: return ImGuiKey_Period;
+        case SDL_SCANCODE_SLASH: return ImGuiKey_Slash;
+        case SDL_SCANCODE_SEMICOLON: return ImGuiKey_Semicolon;
+        case SDL_SCANCODE_EQUALS: return ImGuiKey_Equal;
+        case SDL_SCANCODE_LEFTBRACKET: return ImGuiKey_LeftBracket;
+        case SDL_SCANCODE_BACKSLASH: return ImGuiKey_Backslash;
+        case SDL_SCANCODE_RIGHTBRACKET: return ImGuiKey_RightBracket;
+        case SDL_SCANCODE_GRAVE: return ImGuiKey_GraveAccent;
+        case SDL_SCANCODE_CAPSLOCK: return ImGuiKey_CapsLock;
+        case SDL_SCANCODE_SCROLLLOCK: return ImGuiKey_ScrollLock;
+        case SDL_SCANCODE_NUMLOCKCLEAR: return ImGuiKey_NumLock;
+        case SDL_SCANCODE_PRINTSCREEN: return ImGuiKey_PrintScreen;
+        case SDL_SCANCODE_PAUSE: return ImGuiKey_Pause;
+        case SDL_SCANCODE_KP_0: return ImGuiKey_Keypad0;
+        case SDL_SCANCODE_KP_1: return ImGuiKey_Keypad1;
+        case SDL_SCANCODE_KP_2: return ImGuiKey_Keypad2;
+        case SDL_SCANCODE_KP_3: return ImGuiKey_Keypad3;
+        case SDL_SCANCODE_KP_4: return ImGuiKey_Keypad4;
+        case SDL_SCANCODE_KP_5: return ImGuiKey_Keypad5;
+        case SDL_SCANCODE_KP_6: return ImGuiKey_Keypad6;
+        case SDL_SCANCODE_KP_7: return ImGuiKey_Keypad7;
+        case SDL_SCANCODE_KP_8: return ImGuiKey_Keypad8;
+        case SDL_SCANCODE_KP_9: return ImGuiKey_Keypad9;
+        case SDL_SCANCODE_KP_PERIOD: return ImGuiKey_KeypadDecimal;
+        case SDL_SCANCODE_KP_DIVIDE: return ImGuiKey_KeypadDivide;
+        case SDL_SCANCODE_KP_MULTIPLY: return ImGuiKey_KeypadMultiply;
+        case SDL_SCANCODE_KP_MINUS: return ImGuiKey_KeypadSubtract;
+        case SDL_SCANCODE_KP_PLUS: return ImGuiKey_KeypadAdd;
+        case SDL_SCANCODE_KP_ENTER: return ImGuiKey_KeypadEnter;
+        case SDL_SCANCODE_KP_EQUALS: return ImGuiKey_KeypadEqual;
+        case SDL_SCANCODE_LSHIFT: return ImGuiKey_LeftShift;
+        case SDL_SCANCODE_LCTRL: return ImGuiKey_LeftCtrl;
+        case SDL_SCANCODE_LALT: return ImGuiKey_LeftAlt;
+        case SDL_SCANCODE_LGUI: return ImGuiKey_LeftSuper;
+        case SDL_SCANCODE_RSHIFT: return ImGuiKey_RightShift;
+        case SDL_SCANCODE_RCTRL: return ImGuiKey_RightCtrl;
+        case SDL_SCANCODE_RALT: return ImGuiKey_RightAlt;
+        case SDL_SCANCODE_RGUI: return ImGuiKey_RightSuper;
+        case SDL_SCANCODE_MENU: return ImGuiKey_Menu;
+        case SDL_SCANCODE_0: return ImGuiKey_0;
+        case SDL_SCANCODE_1: return ImGuiKey_1;
+        case SDL_SCANCODE_2: return ImGuiKey_2;
+        case SDL_SCANCODE_3: return ImGuiKey_3;
+        case SDL_SCANCODE_4: return ImGuiKey_4;
+        case SDL_SCANCODE_5: return ImGuiKey_5;
+        case SDL_SCANCODE_6: return ImGuiKey_6;
+        case SDL_SCANCODE_7: return ImGuiKey_7;
+        case SDL_SCANCODE_8: return ImGuiKey_8;
+        case SDL_SCANCODE_9: return ImGuiKey_9;
+        case SDL_SCANCODE_A: return ImGuiKey_A;
+        case SDL_SCANCODE_B: return ImGuiKey_B;
+        case SDL_SCANCODE_C: return ImGuiKey_C;
+        case SDL_SCANCODE_D: return ImGuiKey_D;
+        case SDL_SCANCODE_E: return ImGuiKey_E;
+        case SDL_SCANCODE_F: return ImGuiKey_F;
+        case SDL_SCANCODE_G: return ImGuiKey_G;
+        case SDL_SCANCODE_H: return ImGuiKey_H;
+        case SDL_SCANCODE_I: return ImGuiKey_I;
+        case SDL_SCANCODE_J: return ImGuiKey_J;
+        case SDL_SCANCODE_K: return ImGuiKey_K;
+        case SDL_SCANCODE_L: return ImGuiKey_L;
+        case SDL_SCANCODE_M: return ImGuiKey_M;
+        case SDL_SCANCODE_N: return ImGuiKey_N;
+        case SDL_SCANCODE_O: return ImGuiKey_O;
+        case SDL_SCANCODE_P: return ImGuiKey_P;
+        case SDL_SCANCODE_Q: return ImGuiKey_Q;
+        case SDL_SCANCODE_R: return ImGuiKey_R;
+        case SDL_SCANCODE_S: return ImGuiKey_S;
+        case SDL_SCANCODE_T: return ImGuiKey_T;
+        case SDL_SCANCODE_U: return ImGuiKey_U;
+        case SDL_SCANCODE_V: return ImGuiKey_V;
+        case SDL_SCANCODE_W: return ImGuiKey_W;
+        case SDL_SCANCODE_X: return ImGuiKey_X;
+        case SDL_SCANCODE_Y: return ImGuiKey_Y;
+        case SDL_SCANCODE_Z: return ImGuiKey_Z;
+        case SDL_SCANCODE_F1: return ImGuiKey_F1;
+        case SDL_SCANCODE_F2: return ImGuiKey_F2;
+        case SDL_SCANCODE_F3: return ImGuiKey_F3;
+        case SDL_SCANCODE_F4: return ImGuiKey_F4;
+        case SDL_SCANCODE_F5: return ImGuiKey_F5;
+        case SDL_SCANCODE_F6: return ImGuiKey_F6;
+        case SDL_SCANCODE_F7: return ImGuiKey_F7;
+        case SDL_SCANCODE_F8: return ImGuiKey_F8;
+        case SDL_SCANCODE_F9: return ImGuiKey_F9;
+        case SDL_SCANCODE_F10: return ImGuiKey_F10;
+        case SDL_SCANCODE_F11: return ImGuiKey_F11;
+        case SDL_SCANCODE_F12: return ImGuiKey_F12;
+        default: return ImGuiKey_None;
     }
 }
 
 void PadsImpl::init() {
     s_pads = this;
-    scanGamepads();
-    glfwSetJoystickCallback([](int jid, int event) {
-        s_pads->scanGamepads();
-        s_pads->map();
-    });
+    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+        PCSX::g_system->log(PCSX::LogClass::UI, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s\n", SDL_GetError());
+    }
     PCSX::g_system->findResource(
         [](const std::filesystem::path& filename) -> bool {
             PCSX::IO<PCSX::File> database(new PCSX::PosixFile(filename));
@@ -441,17 +345,27 @@ void PadsImpl::init() {
             size_t dbsize = database->size();
             auto dbStr = database->readString(dbsize);
 
-            int ret = glfwUpdateGamepadMappings(dbStr.c_str());
-
-            return ret;
+            // Wrap the in-memory buffer as an SDL_IOStream so SDL parses the
+            // mapping DB using the same routine it uses for files.
+            SDL_IOStream* io = SDL_IOFromConstMem(dbStr.data(), dbStr.size());
+            if (!io) return false;
+            int ret = SDL_AddGamepadMappingsFromIO(io, true /* closeio */);
+            return ret > 0;
         },
         "gamecontrollerdb.txt", "resources", std::filesystem::path("third_party") / "SDL_GameControllerDB");
+    scanGamepads();
     reset();
     map();
 }
 
 void PadsImpl::shutdown() {
-    glfwSetJoystickCallback(nullptr);
+    for (auto& g : m_gamepads) {
+        if (g) {
+            SDL_CloseGamepad(g);
+            g = nullptr;
+        }
+    }
+    SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
     s_pads = nullptr;
 }
 
@@ -464,16 +378,23 @@ PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
 }
 
 void PadsImpl::scanGamepads() {
-    static_assert((1 + GLFW_JOYSTICK_LAST - GLFW_JOYSTICK_1) <= sizeof(m_gamepadsMap) / sizeof(m_gamepadsMap[0]));
-    for (auto& m : m_gamepadsMap) {
-        m = -1;
-    }
-    unsigned index = 0;
-    for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; i++) {
-        if (glfwJoystickPresent(i) && glfwJoystickIsGamepad(i)) {
-            m_gamepadsMap[index++] = i;
+    // Close any currently-open handles so re-scans (e.g. after hotplug) don't
+    // leak. m_gamepad pointers in each Pad become stale here; the caller is
+    // expected to follow up with map() to re-resolve them.
+    for (auto& g : m_gamepads) {
+        if (g) {
+            SDL_CloseGamepad(g);
+            g = nullptr;
         }
     }
+    int count = 0;
+    SDL_JoystickID* ids = SDL_GetGamepads(&count);
+    if (!ids) return;
+    const unsigned slots = sizeof(m_gamepads) / sizeof(m_gamepads[0]);
+    for (int i = 0; i < count && static_cast<unsigned>(i) < slots; i++) {
+        m_gamepads[i] = SDL_OpenGamepad(ids[i]);
+    }
+    SDL_free(ids);
 }
 
 void PadsImpl::reset() {
@@ -497,7 +418,9 @@ void PadsImpl::map() {
 }
 
 void PadsImpl::Pad::map() {
-    m_padID = s_pads->m_gamepadsMap[m_settings.get<SettingControllerID>()];
+    int id = m_settings.get<SettingControllerID>();
+    const unsigned slots = sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]);
+    m_gamepad = (id >= 0 && static_cast<unsigned>(id) < slots) ? s_pads->m_gamepads[id] : nullptr;
     m_type = m_settings.get<SettingDeviceType>();
 
     // L3/R3 are only avalable on analog controllers
@@ -509,8 +432,8 @@ void PadsImpl::Pad::map() {
     } else {
         m_scancodes[1] = 255;
         m_scancodes[2] = 255;
-        m_padMapping[1] = GLFW_GAMEPAD_BUTTON_INVALID;
-        m_padMapping[2] = GLFW_GAMEPAD_BUTTON_INVALID;
+        m_padMapping[1] = PCSX_GAMEPAD_BUTTON_INVALID;
+        m_padMapping[2] = PCSX_GAMEPAD_BUTTON_INVALID;
     }
 
     // keyboard mappings
@@ -549,18 +472,18 @@ void PadsImpl::Pad::map() {
 static constexpr float THRESHOLD = 0.85f;
 
 // Certain buttons on controllers are actually axis that can be pressed, half-pressed, etc.
-bool PadsImpl::Pad::isControllerButtonPressed(int button, GLFWgamepadstate* state) {
+bool PadsImpl::Pad::isControllerButtonPressed(int button, const GamepadState& state) {
     int mapped = m_padMapping[button];
     switch (mapped) {
-        case GLFW_GAMEPAD_BUTTON_LEFT_TRIGGER:
-            return state->axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] >= THRESHOLD;
-        case GLFW_GAMEPAD_BUTTON_RIGHT_TRIGGER:
-            return state->axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] >= THRESHOLD;
-        case GLFW_GAMEPAD_BUTTON_INVALID:
+        case PCSX_GAMEPAD_BUTTON_LEFT_TRIGGER:
+            return state.axes[SDL_GAMEPAD_AXIS_LEFT_TRIGGER] >= THRESHOLD;
+        case PCSX_GAMEPAD_BUTTON_RIGHT_TRIGGER:
+            return state.axes[SDL_GAMEPAD_AXIS_RIGHT_TRIGGER] >= THRESHOLD;
+        case PCSX_GAMEPAD_BUTTON_INVALID:
             return false;
         default:
-            return state->buttons[mapped];
-            break;
+            if (mapped < 0 || mapped >= SDL_GAMEPAD_BUTTON_COUNT) return false;
+            return state.buttons[mapped];
     }
 }
 
@@ -574,15 +497,15 @@ void PadsImpl::Pad::getButtons() {
         return;
     }
 
-    GLFWgamepadstate state;
-    int hasPad = GLFW_FALSE;
+    GamepadState state{};
+    bool hasPad = false;
     const auto& inputType = m_settings.get<SettingInputType>();
 
     auto getKeyboardButtons = [this]() -> uint16_t {
         if (!ImGui::GetCurrentContext()) return 0xffff;
         uint16_t result = 0;
         for (unsigned i = 0; i < 16; i++) {
-            auto key = GlfwKeyToImGuiKey(m_scancodes[i]);
+            auto key = SdlScancodeToImGuiKey(m_scancodes[i]);
             if (key == ImGuiKey_None) continue;
             result |= (ImGui::IsKeyDown(key)) << i;
         }
@@ -595,12 +518,37 @@ void PadsImpl::Pad::getButtons() {
         return;
     }
 
-    if ((m_padID >= GLFW_JOYSTICK_1) && (m_padID <= GLFW_JOYSTICK_LAST)) {
-        hasPad = glfwGetGamepadState(m_padID, &state);
-        if (!hasPad) {
-            const char* guid = glfwGetJoystickGUID(m_padID);
-            PCSX::g_system->printf("Gamepad error: GUID %s likely has no database mapping, disabling pad\n", guid);
-            m_padID = -1;
+    // Drive SDL's internal gamepad state and pluck out hotplug events. Other
+    // SDL events stay in the queue (gui.cc still owns the rest of the input
+    // surface today). Move this to the central event pump when Phase 3 lands.
+    SDL_PumpEvents();
+    {
+        SDL_Event scratch[16];
+        int drained = SDL_PeepEvents(scratch, 16, SDL_GETEVENT, SDL_EVENT_GAMEPAD_ADDED, SDL_EVENT_GAMEPAD_REMOVED);
+        if (drained > 0) {
+            s_pads->scanGamepads();
+            s_pads->map();
+        }
+    }
+
+    if (m_gamepad) {
+        if (!SDL_GamepadConnected(m_gamepad)) {
+            const SDL_JoystickID jid = SDL_GetGamepadID(m_gamepad);
+            PCSX::g_system->printf("Gamepad error: joystick id %u disconnected, disabling pad\n",
+                                   static_cast<unsigned>(jid));
+            m_gamepad = nullptr;
+        } else {
+            for (int i = 0; i < SDL_GAMEPAD_BUTTON_COUNT; i++) {
+                state.buttons[i] = SDL_GetGamepadButton(m_gamepad, static_cast<SDL_GamepadButton>(i));
+            }
+            // SDL reports axes as int16_t [-32768, 32767]. Triggers are signed but
+            // only ever positive in practice. Normalize to [-1, 1] to match the
+            // shape the rest of this code was built around.
+            for (int i = 0; i < SDL_GAMEPAD_AXIS_COUNT; i++) {
+                int16_t raw = SDL_GetGamepadAxis(m_gamepad, static_cast<SDL_GamepadAxis>(i));
+                state.axes[i] = raw < 0 ? raw / 32768.0f : raw / 32767.0f;
+            }
+            hasPad = true;
         }
     }
 
@@ -617,13 +565,13 @@ void PadsImpl::Pad::getButtons() {
 
     bool buttons[16];
     for (unsigned i = 0; i < 16; i++) {
-        buttons[i] = isControllerButtonPressed(i, &state);
+        buttons[i] = isControllerButtonPressed(i, state);
     }
 
     // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick
     if (m_type == PadType::Digital) {
-        float x = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
-        float y = -state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y];
+        float x = state.axes[SDL_GAMEPAD_AXIS_LEFTX];
+        float y = -state.axes[SDL_GAMEPAD_AXIS_LEFTY];
         float ds = x * x + y * y;
         if (ds >= THRESHOLD * THRESHOLD) {
             float d = std::sqrt(ds);
@@ -667,10 +615,10 @@ void PadsImpl::Pad::getButtons() {
             const float scaledValue = std::clamp<float>(axis * scale, -1.0f, 1.0f);
             return (uint8_t)(std::clamp<float>(std::round(((scaledValue + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
         };
-        pad.leftJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
-        pad.leftJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
-        pad.rightJoyX = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
-        pad.rightJoyY = axisToUint8(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
+        pad.leftJoyX = axisToUint8(state.axes[SDL_GAMEPAD_AXIS_LEFTX]);
+        pad.leftJoyY = axisToUint8(state.axes[SDL_GAMEPAD_AXIS_LEFTY]);
+        pad.rightJoyX = axisToUint8(state.axes[SDL_GAMEPAD_AXIS_RIGHTX]);
+        pad.rightJoyY = axisToUint8(state.axes[SDL_GAMEPAD_AXIS_RIGHTY]);
     }
 
     uint16_t result = 0;
@@ -880,10 +828,10 @@ uint8_t PadsImpl::Pad::read() {
 bool PadsImpl::configure(PCSX::GUI* gui) {
     // Check for analog mode toggle key
     for (auto& pad : m_pads) {
-        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != GLFW_KEY_UNKNOWN) {
+        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != SDL_SCANCODE_UNKNOWN) {
             const int key = pad.m_settings.get<Keyboard_AnalogMode>();
 
-            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(GlfwKeyToImGuiKey(key))) {
+            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(SdlScancodeToImGuiKey(key))) {
                 pad.m_analogMode = !pad.m_analogMode;
             }
         }
@@ -938,33 +886,34 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     return changed;
 }
 
-// GLFW doesn't support converting some of the most common keys to strings
-static std::string glfwKeyToString(int key) {
-    // define strings for some common keys that are not supported by glfwGetKeyName
-    switch (key) {
-        case GLFW_KEY_UP:
+// SDL_GetScancodeName covers ASCII letters/digits but not the common navigation
+// keys; we provide friendlier localized labels for those, and fall back to
+// SDL_GetScancodeName for the rest.
+static std::string sdlScancodeToString(int scancode) {
+    switch (scancode) {
+        case SDL_SCANCODE_UP:
             return _("Keyboard Up");
-        case GLFW_KEY_RIGHT:
+        case SDL_SCANCODE_RIGHT:
             return _("Keyboard Right");
-        case GLFW_KEY_DOWN:
+        case SDL_SCANCODE_DOWN:
             return _("Keyboard Down");
-        case GLFW_KEY_LEFT:
+        case SDL_SCANCODE_LEFT:
             return _("Keyboard Left");
-        case GLFW_KEY_BACKSPACE:
+        case SDL_SCANCODE_BACKSPACE:
             return _("Keyboard Backspace");
-        case GLFW_KEY_ENTER:
+        case SDL_SCANCODE_RETURN:
             return _("Keyboard Enter");
-        case GLFW_KEY_SPACE:
+        case SDL_SCANCODE_SPACE:
             return _("Keyboard Space");
-        case GLFW_KEY_ESCAPE:
+        case SDL_SCANCODE_ESCAPE:
             return _("Keyboard Escape");
-        case GLFW_KEY_UNKNOWN:
+        case SDL_SCANCODE_UNKNOWN:
             return _("Unbound");
     };
 
-    auto keyName = glfwGetKeyName(key, 0);
-    if (keyName == nullptr) {
-        return fmt::format(f_("Unknown keyboard key {}"), key);
+    const char* keyName = SDL_GetScancodeName(static_cast<SDL_Scancode>(scancode));
+    if (!keyName || keyName[0] == '\0') {
+        return fmt::format(f_("Unknown keyboard key {}"), scancode);
     }
 
     auto str = std::string(keyName);
@@ -976,7 +925,11 @@ void PadsImpl::Pad::keyboardEvent(const PCSX::Events::Keyboard& event) {
     if (m_buttonToWait == -1) {
         return;
     }
-    getButtonFromGUIIndex(m_buttonToWait) = event.key;
+    // Bindings are stored as SDL_Scancode values to match the runtime lookup
+    // path (SdlScancodeToImGuiKey) and the SDL_SCANCODE_* setting defaults.
+    // event.key is an SDL_Keycode (layout-aware codepoint); event.scancode is
+    // the layout-independent physical-key id we actually want.
+    getButtonFromGUIIndex(m_buttonToWait) = event.scancode;
     m_buttonToWait = -1;
     m_changed = true;
     map();
@@ -1075,7 +1028,7 @@ bool PadsImpl::Pad::configure() {
             }
 
             // The name of the mapped key
-            const auto keyName = fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(i)), i);
+            const auto keyName = fmt::format("{}##{}", sdlScancodeToString(getButtonFromGUIIndex(i)), i);
             if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
                 m_buttonToWait = i;
             }
@@ -1098,7 +1051,7 @@ bool PadsImpl::Pad::configure() {
             }
 
             // The name of the mapped key
-            const auto keyName = fmt::format("{}##{}", glfwKeyToString(getButtonFromGUIIndex(absI)), absI);
+            const auto keyName = fmt::format("{}##{}", sdlScancodeToString(getButtonFromGUIIndex(absI)), absI);
             if (ImGui::Button(keyName.c_str(), ImVec2{-1, 0})) {
                 m_buttonToWait = absI;
             }
@@ -1111,27 +1064,34 @@ bool PadsImpl::Pad::configure() {
 
     const char* preview = _("No gamepad selected or connected");
     auto& id = m_settings.get<SettingControllerID>().value;
-    int glfwjid = id >= 0 ? s_pads->m_gamepadsMap[id] : -1;
+    SDL_Gamepad* selected = (id >= 0 && static_cast<unsigned>(id) <
+                                            sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]))
+                                ? s_pads->m_gamepads[id]
+                                : nullptr;
 
-    std::vector<const char*> gamepadsNames;
-
-    for (auto& m : s_pads->m_gamepadsMap) {
-        if (m == -1) {
-            continue;
-        }
-        const char* name = glfwGetGamepadName(m);
-        gamepadsNames.push_back(name);
-        if (m == glfwjid) {
-            preview = name;
-        }
+    // Slot index -> displayable name. Empty slots are skipped during render but
+    // we keep the slot index so the user's saved SettingControllerID continues
+    // to refer to the same physical position.
+    struct Entry {
+        int slot;
+        const char* name;
+    };
+    std::vector<Entry> gamepads;
+    for (unsigned i = 0; i < sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]); i++) {
+        SDL_Gamepad* g = s_pads->m_gamepads[i];
+        if (!g) continue;
+        const char* name = SDL_GetGamepadName(g);
+        if (!name) name = "<unnamed gamepad>";
+        gamepads.push_back({static_cast<int>(i), name});
+        if (g == selected) preview = name;
     }
 
     if (ImGui::BeginCombo(_("Gamepad"), preview)) {
-        for (int i = 0; i < gamepadsNames.size(); i++) {
-            const auto gamepadName = fmt::format("{}##{}", gamepadsNames[i], i);
+        for (const auto& entry : gamepads) {
+            const auto gamepadName = fmt::format("{}##{}", entry.name, entry.slot);
             if (ImGui::Selectable(gamepadName.c_str())) {
                 changed = true;
-                id = i;
+                id = entry.slot;
                 map();
             }
         }

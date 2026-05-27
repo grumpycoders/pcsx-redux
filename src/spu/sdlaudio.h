@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2021 PCSX-Redux authors                                 *
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,18 +23,15 @@
 
 #include <array>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
-#define MA_NO_CUSTOM
-#define MA_NO_DECODING
-#define MA_NO_ENCODING
-#define MA_NO_FLAC
-#define MA_NO_GENERATION
-#define MA_NO_MP3
-#define MA_NO_WAV
+#include <SDL3/SDL.h>
 
-#include "miniaudio/miniaudio.h"
 #include "spu/settings.h"
 #include "support/circular.h"
 #include "support/eventbus.h"
@@ -48,14 +45,14 @@
 namespace PCSX {
 namespace SPU {
 
-class MiniAudio {
+class SDLAudio {
   public:
     struct Frame {
         int16_t L = 0, R = 0;
     };
-    MiniAudio(SettingsType& settings);
-    ~MiniAudio() { uninit(); }
-    ma_uint32 getFrameCount() { return m_frameCount.load(); }
+    SDLAudio(SettingsType& settings);
+    ~SDLAudio() { uninit(); }
+    uint32_t getFrameCount() { return m_frameCount.load(); }
     void reinit() {
         uninit();
         init();
@@ -108,25 +105,40 @@ class MiniAudio {
 
   private:
     static constexpr unsigned STREAMS = 2;
+    static constexpr int kSampleRate = 44100;
+    static constexpr int kChannels = 2;
+    static constexpr int kPeriodFrames = 64;
+
     SettingsType& m_settings;
-    void callback(ma_device* device, float* output, ma_uint32 frameCount);
-    void callbackNull(ma_device* device, float* output, ma_uint32 frameCount);
+
+    void streamCallback(SDL_AudioStream* stream, int additionalBytes);
+    void advanceFrames(uint32_t frameCount);
     void init(bool safe = false);
     void uninit();
     void maybeRestart();
+    void startNullThread();
+    void stopNullThread();
+    void nullThreadLoop();
 
-    ma_context m_context;
-    ma_device_config m_config;
-    ma_device m_device;
-    ma_context m_contextNull;
-    ma_device_config m_configNull;
-    ma_device m_deviceNull;
+    SDL_AudioDeviceID m_device = 0;
+    SDL_AudioStream* m_stream = nullptr;
+    bool m_audioInitialized = false;
+
+    std::thread m_nullThread;
+    std::atomic<bool> m_nullThreadStop{false};
+    bool m_nullThreadActive = false;
+
     EventBus::Listener m_listener;
 
     typedef Circular<Frame, 2 * 1024> VoiceStream;
     VoiceStream m_voicesStream;
     Circular<Frame, 16 * 1024> m_audioStream;
     typedef std::array<Frame, VoiceStream::BUFFER_SIZE> Buffer;
+
+    // Mixing scratch space, only ever touched from the SDL audio thread.
+    std::array<Buffer, STREAMS> m_mixBuffers;
+    std::array<float, VoiceStream::BUFFER_SIZE * kChannels> m_outputBuffer;
+
     std::atomic<uint32_t> m_frames = 0;
 #if HAS_ATOMIC_WAIT
     std::atomic<uint32_t> m_goalpost = 0;
@@ -142,7 +154,7 @@ class MiniAudio {
     std::vector<std::string> m_backends;
     std::vector<std::string> m_devices;
 
-    std::atomic<ma_uint32> m_frameCount;
+    std::atomic<uint32_t> m_frameCount{0};
 };
 
 }  // namespace SPU

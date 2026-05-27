@@ -752,7 +752,10 @@ void PCSX::Widgets::ShaderEditor::renderWithImgui(GUI *gui, ImTextureID textureI
 }
 
 void PCSX::Widgets::ShaderEditor::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
-    GLuint textureID = static_cast<GLuint>(cmd->TextureId);
+    // ImGui v1.92 renamed ImDrawCmd::TextureId to ImDrawCmd::TexRef (an
+    // ImTextureRef). GetTexID() returns the underlying ImTextureID we
+    // previously read directly.
+    GLuint textureID = static_cast<GLuint>(cmd->TexRef.GetTexID());
 
     GLfloat projMtx[4][4];
     if (m_imguiProjMtxLoc == -1) {

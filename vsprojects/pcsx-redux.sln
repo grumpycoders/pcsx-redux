@@ -25,7 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GPU", "GPU", "{60F01E36-B838-4AA0-8057-8324E0E39526}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui-glfw-ogl3", "imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj", "{B86F9380-6228-4B11-87AD-29FDABF95ABB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui-sdl3-ogl3", "imgui-sdl3-ogl3\imgui-sdl3-ogl3.vcxproj", "{B86F9380-6228-4B11-87AD-29FDABF95ABB}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gui", "gui\gui.vcxproj", "{6EC7FDF3-1418-40BD-8584-1EEA34AC3E3E}"
 EndProject
@@ -326,6 +326,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "icu", "icu", "{ACCFF71D-6BB
 		..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf32.hpp = ..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf32.hpp
 		..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf8.hpp = ..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf8.hpp
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL", "SDL\SDL.vcxproj", "{13621B3D-871A-46A0-935F-D92A585AE034}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -746,6 +748,16 @@ Global
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.Debug|x64.ActiveCfg = Debug|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.Debug|x64.Build.0 = Debug|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.Release|x64.ActiveCfg = Release|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.Release|x64.Build.0 = Release|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseWithTracy|x64.ActiveCfg = ReleaseWithTracy|x64
+		{13621B3D-871A-46A0-935F-D92A585AE034}.ReleaseWithTracy|x64.Build.0 = ReleaseWithTracy|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -800,6 +812,7 @@ Global
 		{F3837DDD-BF8B-497F-B876-9934BF472AB3} = {AF31872E-C7A9-4320-A974-649B7A6D20AB}
 		{59A85D5E-C5BB-4402-BDFE-DDE140CADC27} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
 		{ACCFF71D-6BB0-4B55-9ADA-476E2A7F071F} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
+		{13621B3D-871A-46A0-935F-D92A585AE034} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}

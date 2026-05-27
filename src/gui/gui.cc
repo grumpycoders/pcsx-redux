@@ -24,11 +24,10 @@
 #endif
 
 // And only then we can load the rest
-#define GLFW_INCLUDE_NONE
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define NANOVG_GLES3_IMPLEMENTATION
 #include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
 #include <assert.h>
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -71,8 +70,8 @@ extern "C" {
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "json.hpp"
@@ -201,10 +200,9 @@ extern "C" void pcsxStaticImguiAssert(int exp, const char* msg) {
     if (!exp) thrower(msg);
 }
 
-static GLFWwindow* getGLFWwindowFromImGuiViewport(ImGuiViewport* viewport) {
-    // absolutely horrendous hack, but the only way we have to grab the
-    // GLFWwindow pointer from an ImGuiViewport without changing the backend...
-    return *reinterpret_cast<GLFWwindow**>(viewport->PlatformUserData);
+static SDL_Window* getSDLWindowFromImGuiViewport(ImGuiViewport* viewport) {
+    // imgui_impl_sdl3 stores the SDL_Window* directly in PlatformHandle.
+    return static_cast<SDL_Window*>(viewport->PlatformHandle);
 }
 
 PCSX::GUI* PCSX::g_gui = nullptr;
@@ -212,31 +210,24 @@ PCSX::GUI* PCSX::g_gui = nullptr;
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
-        glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
-        glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
-        const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-        glfwSetWindowMonitor(m_window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, GLFW_DONT_CARE);
+        // Snapshot windowed pos/size before the transition so we can restore them.
+        SDL_GetWindowPosition(m_window, &m_windowPosX, &m_windowPosY);
+        SDL_GetWindowSize(m_window, &m_windowSizeX, &m_windowSizeY);
+        // No fullscreen mode set -> SDL gives us borderless desktop fullscreen,
+        // which is the shape glfwSetWindowMonitor(..., GLFW_DONT_CARE) produced.
+        SDL_SetWindowFullscreenMode(m_window, nullptr);
+        SDL_SetWindowFullscreen(m_window, true);
     } else {
-        glfwSetWindowMonitor(m_window, nullptr, m_glfwPosX, m_glfwPosY, m_glfwSizeX, m_glfwSizeY, GLFW_DONT_CARE);
+        SDL_SetWindowFullscreen(m_window, false);
+        SDL_SetWindowPosition(m_window, m_windowPosX, m_windowPosY);
+        SDL_SetWindowSize(m_window, m_windowSizeX, m_windowSizeY);
     }
 }
 
 void PCSX::GUI::setRawMouseMotion() {
-    if (isRawMouseMotionEnabled()) {
-        if (glfwRawMouseMotionSupported()) {
-            glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        }
-    } else {
-        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-}
-
-static PCSX::GUI* s_this = nullptr;
-
-static void drop_callback(GLFWwindow* window, int count, const char** paths) {
-    if (count != 1) return;
-    s_this->magicOpen(paths[0]);
+    // SDL3 relative-mouse-mode covers cursor-hide + raw motion in one call,
+    // collapsing GLFW's two-step (CURSOR_DISABLED + RAW_MOUSE_MOTION) flow.
+    SDL_SetWindowRelativeMouseMode(m_window, isRawMouseMotionEnabled());
 }
 
 void LoadImguiBindings(lua_State* lState);
@@ -541,66 +532,91 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         }
     });
 
-    glfwSetErrorCallback([](int error, const char* description) {
-        g_system->log(LogClass::UI, "Glfw Error %d: %s\n", error, description);
-    });
-    if (!glfwInit()) {
-        throw std::runtime_error("Failed to initialize GLFW");
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+        throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
     }
 
     m_listener.listen<Events::Quitting>([this](const auto& event) { saveCfg(); });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
-        glfwSwapInterval(m_idleSwapInterval);
-        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        SDL_GL_SetSwapInterval(m_idleSwapInterval);
+        SDL_SetWindowRelativeMouseMode(m_window, false);
     });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         m_enableSplashScreen = false;
 
-        glfwSwapInterval(0);
+        SDL_GL_SetSwapInterval(0);
         setRawMouseMotion();
     });
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     m_hasCoreProfile = true;
 
-    m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+    // SDL_WINDOW_HIGH_PIXEL_DENSITY makes window-coords vs pixel-coords meaningful
+    // on macOS Retina + Windows per-monitor DPI; required for the changeScale path.
+    const SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    m_window = SDL_CreateWindow("PCSX-Redux", 1280, 800, windowFlags);
+    if (m_window) {
+        m_glContext = SDL_GL_CreateContext(m_window);
+    }
 
-    if (!m_window) {
+    // SDL splits window and GL context creation, so the 3.0 fallback has to
+    // cover both: a 3.2-core context can fail to materialize even after the
+    // window itself succeeded. On platforms where the pixel format binds at
+    // window creation (Win32 WGL is the strict case) a clean retry needs a
+    // fresh window too, so we destroy and recreate both.
+    if (!m_window || !m_glContext) {
         g_system->log(LogClass::UI,
-                      "GLFW failed to create window with OpenGL core profile 3.2, retrying with any 3.0 profile\n");
-        glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+                      "SDL failed to create OpenGL 3.2 core context, retrying with any 3.0 profile\n");
+        if (m_glContext) {
+            SDL_GL_DestroyContext(m_glContext);
+            m_glContext = nullptr;
+        }
+        if (m_window) {
+            SDL_DestroyWindow(m_window);
+            m_window = nullptr;
+        }
+
+        SDL_GL_ResetAttributes();
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        // No profile mask -> any profile.
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
         m_hasCoreProfile = false;
 
-        m_window = glfwCreateWindow(1280, 800, "PCSX-Redux", nullptr, nullptr);
+        m_window = SDL_CreateWindow("PCSX-Redux", 1280, 800, windowFlags);
+        if (m_window) {
+            m_glContext = SDL_GL_CreateContext(m_window);
+        }
     }
 
     if (!m_window) {
-        throw std::runtime_error("Unable to create main window. Check OpenGL drivers.");
+        throw std::runtime_error(std::string("Unable to create main window: ") + SDL_GetError());
     }
-    glfwMakeContextCurrent(m_window);
-    glfwSwapInterval(0);
+    if (!m_glContext) {
+        throw std::runtime_error(std::string("Unable to create GL context: ") + SDL_GetError());
+    }
+    SDL_GL_MakeCurrent(m_window, m_glContext);
+    SDL_GL_SetSwapInterval(0);
 
-    s_this = this;
-    glfwSetDropCallback(m_window, drop_callback);
-    glfwSetWindowSizeCallback(m_window, [](GLFWwindow*, int, int) { s_this->m_setupScreenSize = true; });
+    // Drop and resize events flow through SDL_PollEvent in startFrame() now.
+    // ImGui_ImplSDL3_ProcessEvent gets first crack at every event for
+    // mouse/keyboard/text dispatch.
 
     Resources::loadIcon([this](const uint8_t* data, uint32_t size) {
         clip::image img;
         if (!img.import_from_png(data, size)) return;
         int x = img.spec().width;
         int y = img.spec().height;
-        GLFWimage image;
-        image.width = x;
-        image.height = y;
-        image.pixels = reinterpret_cast<unsigned char*>(img.data());
-        glfwSetWindowIcon(m_window, 1, &image);
+        // SDL_CreateSurfaceFrom needs a non-const pixel pointer; clip::image::data()
+        // is non-const, so the cast below is benign.
+        SDL_Surface* iconSurface = SDL_CreateSurfaceFrom(x, y, SDL_PIXELFORMAT_RGBA32, img.data(), x * 4);
+        if (iconSurface) {
+            SDL_SetWindowIcon(m_window, iconSurface);
+            SDL_DestroySurface(iconSurface);
+        }
     });
 
     result = gl3wInit();
@@ -657,12 +673,12 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
             }
 
             if ((settings.get<WindowPosX>().value > 0) && (settings.get<WindowPosY>().value > 0)) {
-                glfwSetWindowPos(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
+                SDL_SetWindowPosition(m_window, settings.get<WindowPosX>(), settings.get<WindowPosY>());
             }
             if (settings.get<WindowMaximized>().value) {
-                glfwMaximizeWindow(m_window);
+                SDL_MaximizeWindow(m_window);
             } else {
-                glfwSetWindowSize(m_window, windowSizeX, windowSizeY);
+                SDL_SetWindowSize(m_window, windowSizeX, windowSizeY);
             }
         } else {
             saveCfg();
@@ -687,7 +703,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         const auto currentTheme = emuSettings.get<Emulator::SettingGUITheme>().value;  // On boot: reload GUI theme
         applyTheme(currentTheme);
     }
-    if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+    if (!g_system->running()) SDL_GL_SetSwapInterval(m_idleSwapInterval);
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -698,7 +714,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
     // io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 
-    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGui_ImplSDL3_InitForOpenGL(m_window, m_glContext);
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     io.SetClipboardTextFn = [](void*, const char* text) -> void { clip::set_text(text); };
     io.GetClipboardTextFn = [](void*) -> const char* {
@@ -709,8 +725,9 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_createWindowOldCallback = platform_io.Platform_CreateWindow;
     platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
         if (g_gui->m_createWindowOldCallback) g_gui->m_createWindowOldCallback(viewport);
-        auto window = getGLFWwindowFromImGuiViewport(viewport);
-        glfwSetKeyCallback(window, glfwKeyCallbackTrampoline);
+        // imgui_impl_sdl3 dispatches keyboard/mouse via ImGui_ImplSDL3_ProcessEvent
+        // applied to every polled event in startFrame(), so we don't need a
+        // per-window key callback the way the GLFW backend did.
         auto id = viewport->ID;
         g_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(g_gui->m_nvgContext);
     };
@@ -730,7 +747,6 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         }
         if (g_gui->m_destroyWindowOldCallback) g_gui->m_destroyWindowOldCallback(viewport);
     };
-    glfwSetKeyCallback(m_window, glfwKeyCallbackTrampoline);
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
     // and will silently fail to execute them.
     // This is just a bad heuristic to try and keep it the same version.
@@ -866,15 +882,28 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
 
 void PCSX::GUI::close() {
     ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
-    glfwDestroyWindow(m_window);
-    glfwTerminate();
+    // Tear down all GL-backed resources (NanoVG sub/main contexts) BEFORE
+    // dropping the GL context they live in. The previous (GLFW-era) ordering
+    // freed NanoVG after glfwDestroyWindow, which technically leaked GPU
+    // resources because their owning context was already gone; SDL's explicit
+    // context handle makes the correct ordering easy to enforce.
     for (auto& subContext : m_nvgSubContextes) {
         nvgDeleteSubContextGL(subContext.second);
     }
     m_nvgSubContextes.clear();
     nvgDeleteGLES3(m_nvgContext);
+    m_nvgContext = nullptr;
+    if (m_glContext) {
+        SDL_GL_DestroyContext(m_glContext);
+        m_glContext = nullptr;
+    }
+    if (m_window) {
+        SDL_DestroyWindow(m_window);
+        m_window = nullptr;
+    }
+    SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 }
 
 void PCSX::GUI::saveCfg() {
@@ -885,16 +914,17 @@ void PCSX::GUI::saveCfg() {
         std::ofstream cfg(cfgTmpPath);
         json j;
 
-        if (m_fullscreen || glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) > 0) {
-            m_glfwPosX = settings.get<WindowPosX>();
-            m_glfwPosY = settings.get<WindowPosY>();
-            m_glfwSizeX = settings.get<WindowSizeX>();
-            m_glfwSizeY = settings.get<WindowSizeY>();
-            m_glfwMaximized = settings.get<WindowMaximized>();
+        const SDL_WindowFlags flags = SDL_GetWindowFlags(m_window);
+        if (m_fullscreen || (flags & SDL_WINDOW_MINIMIZED)) {
+            m_windowPosX = settings.get<WindowPosX>();
+            m_windowPosY = settings.get<WindowPosY>();
+            m_windowSizeX = settings.get<WindowSizeX>();
+            m_windowSizeY = settings.get<WindowSizeY>();
+            m_windowMaximized = settings.get<WindowMaximized>();
         } else {
-            glfwGetWindowPos(m_window, &m_glfwPosX, &m_glfwPosY);
-            glfwGetWindowSize(m_window, &m_glfwSizeX, &m_glfwSizeY);
-            m_glfwMaximized = glfwGetWindowAttrib(m_window, GLFW_MAXIMIZED) != 0;
+            SDL_GetWindowPosition(m_window, &m_windowPosX, &m_windowPosY);
+            SDL_GetWindowSize(m_window, &m_windowSizeX, &m_windowSizeY);
+            m_windowMaximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         }
 
         j["imgui"] = ImGui::SaveIniSettingsToMemory(nullptr);
@@ -910,22 +940,55 @@ void PCSX::GUI::saveCfg() {
     }
 }
 
-void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
-    g_system->m_eventBus->signal(Events::Keyboard{key, scancode, action, mods});
-}
-
 void PCSX::GUI::startFrame() {
     ZoneScoped;
     tick();
-    if (glfwWindowShouldClose(m_window)) g_system->quit();
-    glfwPollEvents();
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
+        switch (event.type) {
+            case SDL_EVENT_QUIT:
+                g_system->quit();
+                break;
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                if (event.window.windowID == SDL_GetWindowID(m_window)) g_system->quit();
+                break;
+            case SDL_EVENT_WINDOW_RESIZED:
+            case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                if (event.window.windowID == SDL_GetWindowID(m_window)) m_setupScreenSize = true;
+                break;
+            case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+                // Force a font/scale rebuild when the window crosses to a display
+                // with different DPI. This is the case GLFW didn't fire and is the
+                // recurring high-DPI bug we're fixing in this phase.
+                if (event.window.windowID == SDL_GetWindowID(m_window)) {
+                    changeScale(SDL_GetWindowDisplayScale(m_window));
+                    m_setupScreenSize = true;
+                }
+                break;
+            case SDL_EVENT_DROP_FILE:
+                // SDL hands us a UTF-8 path that's owned by SDL and freed when
+                // the event is consumed; magicOpen copies what it needs.
+                if (event.drop.data) magicOpen(event.drop.data);
+                break;
+            case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_KEY_UP: {
+                const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
+                g_system->m_eventBus->signal(Events::Keyboard{
+                    static_cast<int>(event.key.key), static_cast<int>(event.key.scancode), action,
+                    static_cast<int>(event.key.mod)});
+                break;
+            }
+            default:
+                break;
+        }
+    }
 
     if (m_setupScreenSize) {
         const float renderRatio = settings.get<WidescreenRatio>() ? 9.0f / 16.0f : 3.0f / 4.0f;
         int w, h;
 
-        glfwGetFramebufferSize(m_window, &w, &h);
+        SDL_GetWindowSizeInPixels(m_window, &w, &h);
         // Make width/height be 1 at minimum
         w = std::max<int>(w, 1);
         h = std::max<int>(h, 1);
@@ -967,7 +1030,13 @@ void PCSX::GUI::startFrame() {
         auto scales = m_allScales;
         if (scales.empty()) scales.emplace(1.0f);
 
-        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        // ImGui v1.92 retired ImGui_ImplOpenGL3_{Destroy,Create}FontsTexture and
+        // ImFontAtlas::Build() in favour of the dynamic-texture protocol; the
+        // backend pulls fresh glyphs from the atlas as it grows. We still
+        // rebuild the per-scale font map below so each pinned scale has a
+        // matching ImFont with the right LegacySize ready for PushFont; actual
+        // per-size glyph data is allocated lazily inside ImFontBaked when those
+        // fonts are first rendered.
         m_mainFonts.clear();
         m_monoFonts.clear();
 
@@ -985,13 +1054,17 @@ void PCSX::GUI::startFrame() {
             m_monoFonts[scale] = loadFont(MAKEU8("NotoMono-Regular.ttf"), settings.get<MonoFontSize>().value * scale,
                                           io, nullptr, false, false);
         }
-        io.Fonts->Build();
-        io.FontDefault = m_mainFonts.begin()->second;
-        ImGui_ImplOpenGL3_CreateFontsTexture();
+        // Pick the font matching the current DPI scale as the default; in
+        // v1.92 ImGui draws frames at Style.FontSizeBase unless overridden by
+        // PushFont, so we have to push that size up to match or the default
+        // frame text would render at the smallest pinned scale.
+        ImFont* mainFont = getMainFont();
+        io.FontDefault = mainFont;
+        if (mainFont) ImGui::GetStyle().FontSizeBase = mainFont->LegacySize;
     }
 
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     MarkDown::newFrame();
     if (io.WantSaveIniSettings) {
@@ -2004,8 +2077,8 @@ the update and manually apply it.)")));
     float pxRatio;
     auto vg = m_nvgContext;
     if (vg) {
-        glfwGetWindowSize(m_window, &winWidth, &winHeight);
-        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        SDL_GetWindowSize(m_window, &winWidth, &winHeight);
+        SDL_GetWindowSizeInPixels(m_window, &fbWidth, &fbHeight);
         pxRatio = (float)fbWidth / (float)winWidth;
         nvgSwitchMainContextGL(vg);
         nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
@@ -2048,11 +2121,11 @@ the update and manually apply it.)")));
             if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
             if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
             if (vg) {
-                auto window = getGLFWwindowFromImGuiViewport(viewport);
+                auto window = getSDLWindowFromImGuiViewport(viewport);
                 auto nvgSubContext = m_nvgSubContextes.find(viewport->ID);
                 if (nvgSubContext != m_nvgSubContextes.end()) {
-                    glfwGetWindowSize(window, &winWidth, &winHeight);
-                    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+                    SDL_GetWindowSize(window, &winWidth, &winHeight);
+                    SDL_GetWindowSizeInPixels(window, &fbWidth, &fbHeight);
                     pxRatio = (float)fbWidth / (float)winWidth;
                     nvgSwitchSubContextGL(vg, nvgSubContext->second);
                     nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
@@ -2082,9 +2155,9 @@ the update and manually apply it.)")));
             if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
             if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
         }
-        glfwMakeContextCurrent(m_window);
+        SDL_GL_MakeCurrent(m_window, m_glContext);
     }
-    glfwSwapBuffers(m_window);
+    SDL_GL_SwapWindow(m_window);
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");
@@ -2120,7 +2193,7 @@ bool PCSX::GUI::configure() {
     if (ImGui::Begin(_("Emulation Configuration"), &m_showCfg)) {
         if (ImGui::SliderInt(_("Idle Swap Interval"), &m_idleSwapInterval, 0, 10)) {
             changed = true;
-            if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
+            if (!g_system->running()) SDL_GL_SetSwapInterval(m_idleSwapInterval);
         }
         ImGui::Separator();
         if (ImGui::Button(_("Reset Scaler"))) {
@@ -2923,6 +2996,25 @@ ImFont* PCSX::GUI::findClosestFont(const std::map<float, ImFont*>& fonts) {
 void PCSX::GUI::changeScale(float scale) {
     if (scale <= 0.0f) return;
     m_currentScale = scale;
-    m_allScales.emplace(scale);
-    ImGui::SetCurrentFont(getMainFont());
+    // Track this scale so the font reload pass bakes glyphs pre-sized for it;
+    // if it's a previously-unseen scale, request a reload so the per-scale font
+    // map gets a matching entry. v1.92's dynamic font system also handles
+    // unbaked sizes lazily via PushFont(font, size), but the pre-baked path
+    // still avoids a same-frame atlas grow on viewport DPI flips.
+    if (m_allScales.insert(scale).second) {
+        m_reloadFonts = true;
+        return;
+    }
+    // Already-pinned scale: no font reload needed, but the default frame font
+    // and base size still have to track the new closest-scale match. v1.92
+    // draws default-context frames at Style.FontSizeBase, so we have to keep
+    // it in sync with the active main font's LegacySize on every DPI flip,
+    // not only the first one.
+    if (ImGui::GetCurrentContext()) {
+        ImFont* mainFont = getMainFont();
+        if (mainFont) {
+            ImGui::GetIO().FontDefault = mainFont;
+            ImGui::GetStyle().FontSizeBase = mainFont->LegacySize;
+        }
+    }
 }

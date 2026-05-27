@@ -72,7 +72,7 @@
 	url = https://github.com/mity/md4c.git
 [submodule "third_party/imgui_md"]
 	path = third_party/imgui_md
-	url = https://github.com/mekhontsev/imgui_md.git
+	url = https://github.com/grumpycoders/imgui_md.git
 [submodule "third_party/multipart-parser-c"]
 	path = third_party/multipart-parser-c
 	url = https://github.com/iafonov/multipart-parser-c
@@ -100,3 +100,6 @@
 [submodule "third_party/psxlua"]
 	path = third_party/psxlua
 	url = https://github.com/grumpycoders/psxlua.git
+[submodule "third_party/SDL"]
+	path = third_party/SDL
+	url = https://github.com/libsdl-org/SDL.git

@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|x64">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithTracy|x64">
+      <Configuration>ReleaseWithTracy</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{13621b3d-871a-46a0-935f-d92a585ae034}</ProjectGuid>
+    <RootNamespace>SDL</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+    <Import Project="..\tracy.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\SDL\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\SDL\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\SDL\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\SDL\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\SDL\src\SDL.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_assert.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_error.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_guid.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_hashtable.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_hints.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_list.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_log.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_properties.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\SDL_utils.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\atomic\SDL_atomic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\atomic\SDL_spinlock.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audio.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audiocvt.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audiodev.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audioqueue.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audioresample.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_audiotypecvt.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_mixer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\SDL_wave.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\camera\SDL_camera.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\SDL_core_unsupported.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\cpuinfo\SDL_cpuinfo.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\dynapi\SDL_dynapi.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_categories.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_clipboardevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_displayevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_dropevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_events.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_eventwatch.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_keyboard.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_keymap.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_keysym_to_keycode.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_keysym_to_scancode.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_mouse.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_pen.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_quit.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_scancode_tables.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_touch.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\SDL_windowevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\events\imKStoUCS.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\filesystem\SDL_filesystem.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\gpu\SDL_gpu.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\SDL_haptic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\hidapi\SDL_hidapi.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\io\SDL_asyncio.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\io\SDL_iostream.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\io\generic\SDL_asyncio_generic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\SDL_gamepad.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\SDL_joystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\SDL_steam_virtual_gamepad.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\controller_type.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\locale\SDL_locale.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\main\SDL_main_callbacks.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\main\SDL_runapp.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\misc\SDL_libusb.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\misc\SDL_url.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\power\SDL_power.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\SDL_render.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\SDL_render_unsupported.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\SDL_yuv_sw.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d\SDL_render_d3d.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d\SDL_shaders_d3d.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d11\SDL_render_d3d11.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d11\SDL_shaders_d3d11.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d12\SDL_render_d3d12.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\direct3d12\SDL_shaders_d3d12.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\gpu\SDL_pipeline_gpu.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\gpu\SDL_render_gpu.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\gpu\SDL_shaders_gpu.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\ngage\SDL_render_ngage.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\opengl\SDL_render_gl.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\opengl\SDL_shaders_gl.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\opengles2\SDL_render_gles2.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\opengles2\SDL_shaders_gles2.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\ps2\SDL_render_ps2.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\psp\SDL_render_psp.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_blendfillrect.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_blendline.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_blendpoint.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_drawline.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_drawpoint.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_render_sw.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\software\SDL_triangle.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\vitagxm\SDL_render_vita_gxm.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\vitagxm\SDL_render_vita_gxm_memory.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\vitagxm\SDL_render_vita_gxm_tools.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\vulkan\SDL_render_vulkan.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\render\vulkan\SDL_shaders_vulkan.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\sensor\SDL_sensor.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_crc16.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_crc32.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_getenv.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_iconv.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_malloc.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_memcpy.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_memmove.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_memset.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_mslibc.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_murmur3.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_qsort.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_random.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_stdlib.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_string.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\stdlib\SDL_strtokr.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\storage\SDL_storage.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\SDL_thread.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\time\SDL_time.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\timer\SDL_timer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_RLEaccel.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_0.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_1.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_A.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_N.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_auto.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_copy.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_blit_slow.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_bmp.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_clipboard.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_egl.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_fillrect.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_pixels.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_rect.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_rotate.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_stb.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_stretch.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_surface.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_video.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_video_unsupported.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_vulkan_utils.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\SDL_yuv.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\yuv2rgb\yuv_rgb_lsx.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\yuv2rgb\yuv_rgb_sse.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\yuv2rgb\yuv_rgb_std.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\dummy\SDL_dummyaudio.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\disk\SDL_diskaudio.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\camera\dummy\SDL_camera_dummy.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\virtual\SDL_virtualjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\dummy\SDL_nullevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\dummy\SDL_nullframebuffer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\dummy\SDL_nullvideo.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_gameinput.cpp" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_hid.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_immdevice.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_windows.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\core\windows\SDL_xinput.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\main\windows\SDL_sysmain_runapp.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\io\windows\SDL_asyncio_windows_ioring.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\misc\windows\SDL_sysurl.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\directsound\SDL_directsound.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\audio\wasapi\SDL_wasapi.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsclipboard.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsframebuffer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsgameinput.cpp" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowskeyboard.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsmessagebox.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsmodes.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsmouse.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsopengl.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsopengles.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsrawinput.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsshape.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsvideo.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowsvulkan.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\windows\SDL_windowswindow.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\generic\SDL_syscond.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\generic\SDL_sysrwlock.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_syscond_cv.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_sysmutex.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_sysrwlock_srw.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_syssem.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_systhread.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\thread\windows\SDL_systls.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\sensor\windows\SDL_windowssensor.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\power\windows\SDL_syspower.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\locale\windows\SDL_syslocale.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\filesystem\windows\SDL_sysfilesystem.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\filesystem\windows\SDL_sysfsops.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\storage\generic\SDL_genericstorage.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\storage\steam\SDL_steamstorage.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\time\windows\SDL_systime.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\timer\windows\SDL_systimer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\loadso\windows\SDL_sysloadso.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\tray\windows\SDL_tray.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_8bitdo.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_combined.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_flydigi.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_gamecube.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_gip.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_lg4ff.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_luna.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_ps3.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_ps4.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_ps5.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_rumble.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_shield.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_sinput.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_stadia.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_steam.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_steam_hori.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_steam_triton.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_steamdeck.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_switch.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_switch2.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_wii.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xbox360.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xbox360w.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_xboxone.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapi_zuiki.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_hidapijoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\hidapi\SDL_report_descriptor.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\hidapi\SDL_hidapihaptic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\hidapi\SDL_hidapihaptic_lg4ff.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_dinputjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_rawinputjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_windows_gaming_input.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_windowsjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\windows\SDL_xinputjoystick.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\joystick\gdk\SDL_gameinputjoystick.cpp" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\windows\SDL_dinputhaptic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\haptic\windows\SDL_windowshaptic.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\camera\mediafoundation\SDL_camera_mediafoundation.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\dialog\SDL_dialog.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\dialog\SDL_dialog_utils.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\dialog\windows\SDL_windowsdialog.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\process\SDL_process.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\process\windows\SDL_windowsprocess.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenevents.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenframebuffer.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenopengles.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenvideo.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenvulkan.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\video\offscreen\SDL_offscreenwindow.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\tray\SDL_tray_utils.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\gpu\d3d12\SDL_gpu_d3d12.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\gpu\vulkan\SDL_gpu_vulkan.c" />
+    <ClCompile Include="..\..\third_party\SDL\src\main\generic\SDL_sysmain_callbacks.c" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_assert.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_asyncio.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_atomic.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_audio.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_begin_code.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_bits.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_blendmode.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_camera.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_clipboard.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_close_code.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_copying.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_cpuinfo.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_dialog.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_dlopennote.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_egl.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_endian.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_error.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_events.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_filesystem.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_gamepad.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_gpu.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_guid.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_haptic.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_hidapi.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_hints.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_init.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_intrin.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_iostream.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_joystick.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_keyboard.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_keycode.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_loadso.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_locale.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_log.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_main.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_main_impl.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_messagebox.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_metal.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_misc.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_mouse.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_mutex.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_oldnames.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengl.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengl_glext.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles2.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles2_gl2.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles2_gl2ext.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles2_gl2platform.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_opengles2_khrplatform.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_pen.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_pixels.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_platform.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_platform_defines.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_power.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_process.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_properties.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_rect.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_render.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_scancode.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_sensor.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_stdinc.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_storage.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_surface.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_system.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_thread.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_time.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_timer.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_touch.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_tray.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_version.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_video.h" />
+    <ClInclude Include="..\..\third_party\SDL\include\SDL3\SDL_vulkan.h" />
+    <ClInclude Include="..\..\third_party\SDL_build_config.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
