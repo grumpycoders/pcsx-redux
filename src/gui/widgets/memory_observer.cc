@@ -208,50 +208,108 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
         if (ImGui::BeginTabItem(_("Delta-over-time search"))) {
             const auto stride = getStrideFromValueType(m_scanValueType);
 
-            if (m_addressValuePairs.empty() && ImGui::Button(_("First scan"))) {
-                int64_t memValue = 0;
+            if (ImGui::Button(_("New scan"))) {
+                if (m_addressValuePairs.empty()) {
+                    int64_t memValue = 0;
 
-                for (uint32_t i = 0; i < memSize; ++i) {
-                    if (i != 0 && i % stride == 0) {
-                        switch (m_scanType) {
-                            case ScanType::ExactValue:
-                                if (memValue == m_value) {
+                    for (uint32_t i = 0; i < memSize; ++i) {
+                        if (i != 0 && i % stride == 0) {
+                            switch (m_scanType) {
+                                case ScanType::ExactValue:
+                                    if (memValue == m_value) {
+                                        m_addressValuePairs.push_back({memBase + i - stride, memValue});
+                                    }
+                                    break;
+                                case ScanType::GreaterThan:
+                                    if (memValue > m_value) {
+                                        m_addressValuePairs.push_back({memBase + i - stride, memValue});
+                                    }
+                                    break;
+                                case ScanType::LessThan:
+                                    if (memValue < m_value) {
+                                        m_addressValuePairs.push_back({memBase + i - stride, memValue});
+                                    }
+                                    break;
+                                case ScanType::Changed:
+                                case ScanType::Unchanged:
+                                case ScanType::Increased:
+                                case ScanType::Decreased:
+                                    break;
+                                case ScanType::UnknownInitialValue:
                                     m_addressValuePairs.push_back({memBase + i - stride, memValue});
-                                }
-                                break;
-                            case ScanType::GreaterThan:
-                                if (memValue > m_value) {
-                                    m_addressValuePairs.push_back({memBase + i - stride, memValue});
-                                }
-                                break;
-                            case ScanType::LessThan:
-                                if (memValue < m_value) {
-                                    m_addressValuePairs.push_back({memBase + i - stride, memValue});
-                                }
-                                break;
-                            case ScanType::Changed:
-                            case ScanType::Unchanged:
-                            case ScanType::Increased:
-                            case ScanType::Decreased:
-                                break;
-                            case ScanType::UnknownInitialValue:
-                                m_addressValuePairs.push_back({memBase + i - stride, memValue});
-                                break;
+                                    break;
+                            }
+
+                            memValue = 0;
                         }
 
-                        memValue = 0;
+                        const uint8_t currentByte = memData[i];
+                        const uint8_t leftShift = 8 * (i % stride);
+                        const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
+                        const int byteToWrite = currentByte << leftShift;
+                        memValue = (memValue & mask) | byteToWrite;
+                        memValue = getValueAsSelectedType(memValue);
                     }
-
-                    const uint8_t currentByte = memData[i];
-                    const uint8_t leftShift = 8 * (i % stride);
-                    const uint32_t mask = 0xffffffff ^ (0xff << leftShift);
-                    const int byteToWrite = currentByte << leftShift;
-                    memValue = (memValue & mask) | byteToWrite;
-                    memValue = getValueAsSelectedType(memValue);
+                } else {
+                    m_addressValuePairs.clear();
+                    m_scanType = ScanType::ExactValue;
                 }
             }
 
-            if (!m_addressValuePairs.empty() && ImGui::Button(_("Next scan"))) {
+            ImGui::Checkbox(_("Hex"), &m_hex);
+
+            if (!m_hex && stride > 1) {
+                ImGui::SameLine();
+                ImGui::Checkbox(_("Display as fixed-point values"), &m_fixedPoint);
+            }
+
+            const auto currentScanValueType = magic_enum::enum_name(m_scanValueType);
+            if (ImGui::BeginCombo(_("Value type"), currentScanValueType.data())) {
+                for (auto v : magic_enum::enum_values<ScanValueType>()) {
+                    bool selected = (v == m_scanValueType);
+                    auto name = magic_enum::enum_name(v);
+                    if (ImGui::Selectable(name.data(), selected)) {
+                        m_scanValueType = v;
+                    }
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            const auto currentScanType = magic_enum::enum_name(m_scanType);
+            if (ImGui::BeginCombo(_("Scan type"), currentScanType.data())) {
+                for (auto v : magic_enum::enum_values<ScanType>()) {
+                    bool selected = (v == m_scanType);
+                    auto name = magic_enum::enum_name(v);
+                    if (ImGui::Selectable(name.data(), selected)) {
+                        m_scanType = v;
+                    }
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            bool InputDisabled = (m_scanType != ScanType::ExactValue && m_scanType != ScanType::GreaterThan &&
+                                  m_scanType != ScanType::LessThan);
+
+            if (InputDisabled) {
+                ImGui::BeginDisabled();
+            }
+
+            ImGui::InputScalar(_("Value"), ImGuiDataType_S64, &m_value, NULL, NULL, m_hex ? "%x" : "%i",
+                               m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
+            m_value = getValueAsSelectedType(m_value);
+
+            if (InputDisabled) {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::Separator();
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("Next"))) {
                 auto doesntMatchCriterion = [this, memData, memSize, stride](const AddressValuePair& addressValuePair) {
                     const uint32_t address = addressValuePair.address;
                     const int64_t memValue =
@@ -291,54 +349,8 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
 
-            if (!m_addressValuePairs.empty() && ImGui::Button(_("New scan"))) {
-                m_addressValuePairs.clear();
-                m_scanType = ScanType::ExactValue;
-            }
-
-            ImGui::Checkbox(_("Hex"), &m_hex);
-
-            if (!m_hex && stride > 1) {
-                ImGui::SameLine();
-                ImGui::Checkbox(_("Display as fixed-point values"), &m_fixedPoint);
-            }
-
-            ImGui::InputScalar(_("Value"), ImGuiDataType_S64, &m_value, NULL, NULL, m_hex ? "%x" : "%i",
-                               m_hex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal);
-            m_value = getValueAsSelectedType(m_value);
-
-            const auto currentScanValueType = magic_enum::enum_name(m_scanValueType);
-            if (ImGui::BeginCombo(_("Value type"), currentScanValueType.data())) {
-                for (auto v : magic_enum::enum_values<ScanValueType>()) {
-                    bool selected = (v == m_scanValueType);
-                    auto name = magic_enum::enum_name(v);
-                    if (ImGui::Selectable(name.data(), selected)) {
-                        m_scanValueType = v;
-                    }
-                    if (selected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-
-            const auto currentScanType = magic_enum::enum_name(m_scanType);
-            if (ImGui::BeginCombo(_("Scan type"), currentScanType.data())) {
-                for (auto v : magic_enum::enum_values<ScanType>()) {
-                    bool selected = (v == m_scanType);
-                    auto name = magic_enum::enum_name(v);
-                    if (ImGui::Selectable(name.data(), selected)) {
-                        m_scanType = v;
-                    }
-                    if (selected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-
             ImGui::Separator();
-            if (ImGui::Button(_("Freeze all"))) {
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("Freeze all"))) {
                 for (auto& addressValuePair : m_addressValuePairs) {
                     addressValuePair.frozen = true;
                     addressValuePair.frozenValue = getValueAsSelectedType(getMemValue(
@@ -346,22 +358,21 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                 }
             }
             ImGui::SameLine();
-            if (ImGui::Button(_("Unfreeze all"))) {
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("Unfreeze all"))) {
                 for (auto& addressValuePair : m_addressValuePairs) {
                     addressValuePair.frozen = false;
                 }
             }
             ImGui::SameLine();
-            if (ImGui::Button(_("Remove all frozen addresses"))) {
-                m_addressValuePairs.erase(std::remove_if(m_addressValuePairs.begin(), m_addressValuePairs.end(),
-                                                         [](const AddressValuePair& pair) { return pair.frozen; }),
-                                          m_addressValuePairs.end());
+            if (!m_addressValuePairs.empty() && ImGui::Button(_("Remove frozen addresses"))) {
+                std::erase_if(m_addressValuePairs, [](const AddressValuePair& pair) { return pair.frozen; });
             }
 
-            if (ImGui::BeginTable(_("Found values"), 6, tableFlags)) {
+            if (ImGui::BeginTable(_("Found values"), 7, tableFlags)) {
                 ImGui::TableSetupColumn(_("Address"));
-                ImGui::TableSetupColumn(_("Current value"));
-                ImGui::TableSetupColumn(_("Scanned value"));
+                ImGui::TableSetupColumn(_("Current"));
+                ImGui::TableSetupColumn(_("Previous"));
+                ImGui::TableSetupColumn(_("Freeze"));
                 ImGui::TableSetupColumn(_("Access"));
                 ImGui::TableSetupColumn(_("Add breakpoint"));
                 ImGui::TableSetupColumn(_("Remove"));
@@ -392,11 +403,6 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         } else {
                             ImGui::Text(valueDisplayFormat, memValue);
                         }
-                        ImGui::SameLine();
-                        auto CheckboxName = fmt::format(f_("Freeze##{}"), row);
-                        if (ImGui::Checkbox(CheckboxName.c_str(), &addressValuePair.frozen)) {
-                            addressValuePair.frozenValue = memValue;
-                        }
                         ImGui::TableSetColumnIndex(2);
                         if (displayAsFixedPoint) {
                             ImGui::Text(valueDisplayFormat, scannedValue >> 12, scannedValue & 0xfff);
@@ -404,12 +410,17 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                             ImGui::Text(valueDisplayFormat, scannedValue);
                         }
                         ImGui::TableSetColumnIndex(3);
+                        auto CheckboxName = fmt::format(f_("##{}"), row);
+                        if (ImGui::Checkbox(CheckboxName.c_str(), &addressValuePair.frozen)) {
+                            addressValuePair.frozenValue = memValue;
+                        }
+                        ImGui::TableSetColumnIndex(4);
                         auto showInMemEditorButtonName = fmt::format(f_("Show in memory editor##{}"), row);
                         if (ImGui::Button(showInMemEditorButtonName.c_str())) {
                             const uint32_t editorAddress = currentAddress - memBase;
                             g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{editorAddress, stride});
                         }
-                        ImGui::TableSetColumnIndex(4);
+                        ImGui::TableSetColumnIndex(5);
                         auto addReadBreakpointButtonName = fmt::format(f_("Read##{}"), row);
                         if (ImGui::Button(addReadBreakpointButtonName.c_str())) {
                             g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Read, stride,
@@ -421,7 +432,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                             g_emulator->m_debug->addBreakpoint(currentAddress, Debug::BreakpointType::Write, stride,
                                                                _("Memory Observer"));
                         }
-                        ImGui::TableSetColumnIndex(5);
+                        ImGui::TableSetColumnIndex(6);
                         auto removeButtonName = fmt::format(f_("╳##{}"), row);
                         if (ImGui::Button(removeButtonName.c_str())) {
                             m_addressValuePairs.erase(m_addressValuePairs.begin() + row);
