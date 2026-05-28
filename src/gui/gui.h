@@ -28,6 +28,8 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <sstream>
+#include <ctime>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -453,6 +455,7 @@ class GUI final : public UI {
     std::string buildSaveStateFilename(int i);
     std::string buildSaveStateFilename(std::string name);
     bool saveStateExists(std::filesystem::path filename);
+    bool saveScreenShot();
 
   private:
     void applyTheme(int theme);
@@ -460,6 +463,9 @@ class GUI final : public UI {
     void monoTheme();
     void draculaTheme();
     void oliveTheme();
+    std::string getDateString();
+    clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot);
+    bool writeImagePNG(std::string filename, clip::image&& img);
 
     Notifier m_notifier = {l_("Notification")};
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
