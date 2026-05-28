@@ -26,8 +26,9 @@ trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 Using [Homebrew](https://brew.sh/), you can install the mips toolchain after downloading [these two scripts](https://github.com/grumpycoders/pcsx-redux/tree/main/tools/macos-mips) (or cloning the whole PCSX-Redux repository).
 
 ```bash
-brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install nikitabobko/tap/brew-install-path
+brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
 ## Windows

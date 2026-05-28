@@ -58,7 +58,7 @@ fb.bat
 
 # macos files
 .DS_store
-
+PCSX-Redux.app
 
 # Savestate files
 *.sstate

@@ -307,6 +307,7 @@ class Memory {
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
+    friend class GdbClient;
     SharedMem m_wramShared;
 
     uint32_t m_BIU = 0;
@@ -329,6 +330,10 @@ class Memory {
     uint8_t *m_msanInitializedBitmap = nullptr;
     uint32_t m_msanPtr = 1024;
     EventBus::Listener m_listener;
+
+    // Address of the psyqo heap metadata struct in guest memory,
+    // registered by the MIPS allocator via pcsxhw write to 0x1f8020a0.
+    uint32_t m_psyqoHeapMetadata = 0;
 
     std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
     static constexpr uint32_t c_msanChainMarker = 0x7ffffd;

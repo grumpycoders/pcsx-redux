@@ -40,6 +40,9 @@ cp pcsx-redux.icns ${APPROOT}/Contents/Resources/AppIcon.icns
 # Remove source images that were used to create the app icon.
 rm -rfv ${APPROOT}/Contents/Resources/share/icons
 
+# Remove temporary image files
+rm -rfv pcsx-redux.iconset pcsx-redux.icns
+
 # Create the required Info.plist and version.plist files
 # with the minimum information.
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleDisplayName string ${APP}"
@@ -54,6 +57,8 @@ PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleInfoDictionaryVersion 
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundleName string ${APP}"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add CFBundlePackageType string APPL"
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add NSHumanReadableCopyright string Copyright PCSX-Redux Authors"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSApplicationCategoryType string public.app-category.games"
+PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSSupportsGameMode bool true"
 
 PlistBuddy ${APPROOT}/Contents/Info.plist -c "add LSMinimumSystemVersion string 10.15"
 

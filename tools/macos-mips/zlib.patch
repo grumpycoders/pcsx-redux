@@ -1,0 +1,52 @@
+From 4bd9a71f3539b5ce47f0c67ab5e01f3196dc8ef9 Mon Sep 17 00:00:00 2001
+From: Mark Adler <madler@alumni.caltech.edu>
+Date: Tue, 12 Dec 2023 22:19:05 -0600
+Subject: [PATCH] Remove fdopen #defines in zutil.h.
+
+fdopen() is not used by zlib anymore. The #defines are vestigial.
+---
+ zutil.h | 23 +----------------------
+ 1 file changed, 1 insertion(+), 22 deletions(-)
+
+diff --git a/zutil.h b/zutil.h
+index 0bd2dbcba..bb513cb4b 100644
+--- a/zutil.h
++++ b/zutil.h
+@@ -137,17 +137,8 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
+ #  endif
+ #endif
+ 
+-#if defined(MACOS) || defined(TARGET_OS_MAC)
++#if defined(MACOS)
+ #  define OS_CODE  7
+-#  ifndef Z_SOLO
+-#    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+-#      include <unix.h> /* for fdopen */
+-#    else
+-#      ifndef fdopen
+-#        define fdopen(fd,mode) NULL /* No fdopen() */
+-#      endif
+-#    endif
+-#  endif
+ #endif
+ 
+ #ifdef __acorn
+@@ -170,18 +161,6 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
+ #  define OS_CODE 19
+ #endif
+ 
+-#if defined(_BEOS_) || defined(RISCOS)
+-#  define fdopen(fd,mode) NULL /* No fdopen() */
+-#endif
+-
+-#if (defined(_MSC_VER) && (_MSC_VER > 600)) && !defined __INTERIX
+-#  if defined(_WIN32_WCE)
+-#    define fdopen(fd,mode) NULL /* No fdopen() */
+-#  else
+-#    define fdopen(fd,type)  _fdopen(fd,type)
+-#  endif
+-#endif
+-
+ #if defined(__BORLANDC__) && !defined(MSDOS)
+   #pragma warn -8004
+   #pragma warn -8008

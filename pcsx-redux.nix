@@ -22,7 +22,6 @@
   elfio,
   tracy,
   md4c,
-  stb,
   uriparser,
   ucl,
   llhttp,
@@ -91,6 +90,18 @@ let
       rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
       hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
     })
+    ({
+      owner = "taocpp";
+      repo = "PEGTL";
+      rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
+      hash = "sha256-1hTwoTCkfOX7e0unAlZ8TnYva3enkCgfrfriZfx2AoE=";
+    })
+    ({
+      owner = "nothings";
+      repo = "stb";
+      rev = "ae721c50eaf761660b4f90cc590453cdb0c2acd0";
+      hash = "sha256-BIhbhXV7q5vodJ3N14vN9mEVwqrP6z9zqEEQrfLPzvI=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
@@ -104,7 +115,7 @@ let
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ru --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";
@@ -112,8 +123,8 @@ in stdenv.mkDerivation {
   inherit src;
 
   postUnpack = ''
-    cp -ru --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
-    cp -ru --no-preserve=all ${tracy.src} source/third_party/tracy
+    cp -ruT --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
+    cp -ruT --no-preserve=all ${tracy.src} source/third_party/tracy
   '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
   nativeBuildInputs = [
@@ -127,7 +138,6 @@ in stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    stb
     ucl
     md4c
     luajitPackages.libluv
@@ -165,9 +175,8 @@ in stdenv.mkDerivation {
   # TODO: learn how to use separate debug info
   dontStrip = debugBuild;
   enableDebugging = debugBuild;
-  
+
   enableParallelBuilding = true;
-  NIX_BUILD_CORES = 4;
 
   meta = {
     homepage = "https://pcsx-redux.consoledev.net";

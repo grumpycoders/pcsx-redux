@@ -165,6 +165,7 @@ struct TPageLoc {
     }
 
   private:
+    TPageLoc(uint8_t i) : info(i) {}
     uint8_t info = 0;
     friend struct TPageAttr;
 };
@@ -246,7 +247,7 @@ struct TPageAttr {
     }
     uint8_t getPageX() const { return info & 0x000f; }
     uint8_t getPageY() const { return (info >> 4) & 0x0001; }
-    uint8_t getPageLoc() const { return info & 0x001f; }
+    TPageLoc getPageLoc() const { return TPageLoc(info & 0x001f); }
     Prim::TPageAttr::SemiTrans getSemiTrans() const {
         return static_cast<Prim::TPageAttr::SemiTrans>((info >> 5) & 0x0003);
     }

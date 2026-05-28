@@ -383,7 +383,7 @@ Usage: {} input.json [-h] -o output.bin
     }
 
     uint8_t empty[2048] = {0};
-    for (unsigned i = 0; i < 150; i++) {
+    for (unsigned i = 0; i < 9000; i++) {
         builder.writeSectorAt(empty, PCSX::IEC60908b::MSF{150 + currentSector++},
                               PCSX::IEC60908b::SectorMode::M2_FORM1);
     }

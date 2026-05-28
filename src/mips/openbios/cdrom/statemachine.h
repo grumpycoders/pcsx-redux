@@ -34,8 +34,8 @@ int cdromRead(int count, void *buffer, uint32_t mode);
 int cdromSetMode(uint32_t mode);
 int cdromIOVerifier();
 int cdromDMAVerifier();
-void cdromIOHandler();
-void cdromDMAHandler();
+void cdromIOHandler(int v);
+void cdromDMAHandler(int v);
 void getLastCDRomError(uint8_t *err1, uint8_t *err2);
 int cdromInnerInit();
 enum AutoAckType {
