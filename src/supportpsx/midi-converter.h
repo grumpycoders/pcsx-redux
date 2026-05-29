@@ -29,6 +29,9 @@
 #include <vector>
 
 #include "fmt/format.h"
+#include "support/binstruct.h"
+#include "support/file.h"
+#include "support/typestring-wrapper.h"
 #include "supportpsx/adpcm.h"
 
 #define TSF_IMPLEMENTATION
@@ -103,10 +106,10 @@ struct MidiFile {
     uint16_t tpqn;  // ticks per quarter note
     std::vector<MidiEvent> events;
 
-    bool parse(const uint8_t* data, size_t size);
+    bool parse(PCSX::IO<PCSX::File> file);
 
   private:
-    void parseTrack(const uint8_t* p, const uint8_t* end);
+    void parseTrack(PCSX::IO<PCSX::File> track);
 };
 
 struct SpuSample {
@@ -132,9 +135,7 @@ struct SampleKey {
     }
 };
 
-uint32_t readVLQ(const uint8_t*& p, const uint8_t* end);
-uint32_t readBE16(const uint8_t* p);
-uint32_t readBE32(const uint8_t* p);
+uint32_t readVLQ(PCSX::IO<PCSX::File> f);
 
 bool encodeSample(const int16_t* pcm, size_t sampleCount, bool loop, size_t loopStart, SpuSample& out);
 double midiNoteToFreq(int note);
@@ -150,55 +151,93 @@ size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSample>& sa
 int32_t findLoopPointTick(const MidiFile& midi);
 void extractMidiMetadata(const MidiFile& midi, std::string& trackName, std::string& copyright);
 
-inline uint32_t readVLQ(const uint8_t*& p, const uint8_t* end) {
+inline uint32_t readVLQ(PCSX::IO<PCSX::File> f) {
     uint32_t value = 0;
-    while (p < end) {
-        uint8_t b = *p++;
+    while (!f->eof()) {
+        uint8_t b = f->byte();
         value = (value << 7) | (b & 0x7F);
         if ((b & 0x80) == 0) break;
     }
     return value;
 }
 
-inline uint32_t readBE16(const uint8_t* p) { return (p[0] << 8) | p[1]; }
-inline uint32_t readBE32(const uint8_t* p) { return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]; }
+// Standard MIDI file chunk headers, as binstructs. The length/word fields are big-endian (SMF is a
+// big-endian format), so the BE field types do the swap on read. Track/header bodies are variable and
+// stay as SubFile walks; only the fixed-size chunk headers are modeled here.
+typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mthdMagic")> MThdMagic;       // "MThd"
+typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mthdLength")> MThdLength;       // header byte count (6)
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdFormat")> MThdFormat;       // 0/1/2
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdTracks")> MThdTracks;       // number of MTrk chunks
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdDivision")> MThdDivision;   // ticks per quarter note
+typedef BinStruct::Struct<TYPESTRING("MThd"), MThdMagic, MThdLength, MThdFormat, MThdTracks, MThdDivision> MThd;
 
-inline bool MidiFile::parse(const uint8_t* data, size_t size) {
-    const uint8_t* p = data;
-    const uint8_t* end = data + size;
+typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mtrkMagic")> MTrkMagic;       // "MTrk"
+typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mtrkLength")> MTrkLength;       // track byte count
+typedef BinStruct::Struct<TYPESTRING("MTrk"), MTrkMagic, MTrkLength> MTrk;
+
+inline bool MidiFile::parse(PCSX::IO<PCSX::File> file) {
+    // The stream we actually parse the MThd/MTrk chunks from. For a plain SMF this is the file
+    // itself; for an RMID (RIFF-wrapped MIDI) it's a SubFile windowed over the "data" chunk so the
+    // rest of the parse is naturally bounded to the embedded MIDI payload.
+    PCSX::IO<PCSX::File> in = file;
 
     // Check for RIFF/RMID wrapper (RMI files)
-    if (size >= 20 && memcmp(p, "RIFF", 4) == 0 && memcmp(p + 8, "RMID", 4) == 0) {
-        // Skip RIFF header, find "data" chunk containing the MIDI
-        p += 12;
-        while (p + 8 <= end) {
-            uint32_t chunkSize = p[4] | (p[5] << 8) | (p[6] << 16) | (p[7] << 24);
-            if (memcmp(p, "data", 4) == 0) {
-                p += 8;
-                end = p + chunkSize;
-                break;
+    file->rSeek(0, SEEK_SET);
+    if (file->size() >= 20) {
+        char riff[12];
+        file->read(riff, 12);
+        if (memcmp(riff, "RIFF", 4) == 0 && memcmp(riff + 8, "RMID", 4) == 0) {
+            // Walk the RIFF chunks (from offset 12) for the "data" chunk holding the MIDI. All bounds
+            // are checked explicitly: the File layer clamps reads silently and PosixFile::rSeek can land
+            // past EOF, so the unsigned (size() - rTell()) gap must never be allowed to underflow.
+            const size_t sz = file->size();
+            while (true) {
+                ssize_t pos = file->rTell();
+                if (pos < 0 || (size_t)pos + 8 > sz) break;  // no room for another chunk header
+                char chunkId[4];
+                file->read(chunkId, 4);
+                uint32_t chunkSize = file->read<uint32_t>();  // RIFF sizes are little-endian
+                size_t avail = sz - (size_t)file->rTell();
+                if (memcmp(chunkId, "data", 4) == 0) {
+                    // Window the MIDI payload, clamped to what the file actually holds.
+                    size_t dataSize = std::min((size_t)chunkSize, avail);
+                    in = PCSX::IO<PCSX::File>(new PCSX::SubFile(file, file->rTell(), dataSize));
+                    break;
+                }
+                size_t padded = ((size_t)chunkSize + 1) & ~size_t(1);  // RIFF chunks are 2-byte aligned
+                if (padded > avail) break;                             // declared chunk overruns the file
+                file->rSeek((ssize_t)padded, SEEK_CUR);
             }
-            p += 8 + ((chunkSize + 1) & ~1);  // RIFF chunks are 2-byte aligned
         }
     }
 
     // MThd header
-    if (p + 14 > end || memcmp(p, "MThd", 4) != 0) return false;
-    uint32_t headerLen = readBE32(p + 4);
-    format = readBE16(p + 8);
-    trackCount = readBE16(p + 10);
-    tpqn = readBE16(p + 12);
-    p += 8 + headerLen;
+    in->rSeek(0, SEEK_SET);
+    if (in->size() < 14) return false;
+    MThd mthd;
+    mthd.deserialize(in);
+    if (memcmp(mthd.get<MThdMagic>().value, "MThd", 4) != 0) return false;
+    uint32_t headerLen = mthd.get<MThdLength>().value;
+    format = mthd.get<MThdFormat>().value;
+    trackCount = mthd.get<MThdTracks>().value;
+    tpqn = mthd.get<MThdDivision>().value;
+    // The MThd body is at least the 6 bytes already consumed, and any extra must fit in the stream;
+    // otherwise the skip would seek backwards or past EOF (the latter underflows the track-loop gap).
+    if (headerLen < 6) return false;
+    if (headerLen - 6 > in->size() - (size_t)in->rTell()) return false;
+    in->rSeek((ssize_t)(headerLen - 6), SEEK_CUR);  // skip any remaining MThd body past the 6 bytes read
 
-    // Parse all tracks
-    for (uint16_t t = 0; t < trackCount && p + 8 <= end; t++) {
-        if (memcmp(p, "MTrk", 4) != 0) return false;
-        uint32_t trackLen = readBE32(p + 4);
-        const uint8_t* trackStart = p + 8;
-        const uint8_t* trackEnd = trackStart + trackLen;
-        if (trackEnd > end) return false;
-        parseTrack(trackStart, trackEnd);
-        p = trackEnd;
+    // Parse all tracks. Each MTrk is wrapped in a SubFile so the per-track bound is enforced by the
+    // file layer (the track parser literally cannot read past its chunk into the next one).
+    for (uint16_t t = 0; t < trackCount && (in->size() - in->rTell()) >= 8; t++) {
+        MTrk mtrk;
+        mtrk.deserialize(in);
+        if (memcmp(mtrk.get<MTrkMagic>().value, "MTrk", 4) != 0) return false;
+        uint32_t trackLen = mtrk.get<MTrkLength>().value;
+        if (in->rTell() + trackLen > in->size()) return false;
+        PCSX::IO<PCSX::File> track(new PCSX::SubFile(in, in->rTell(), trackLen));
+        parseTrack(track);
+        in->rSeek(trackLen, SEEK_CUR);
     }
 
     // Sort all events by absolute tick (stable sort preserves order within same tick)
@@ -207,18 +246,21 @@ inline bool MidiFile::parse(const uint8_t* data, size_t size) {
     return true;
 }
 
-inline void MidiFile::parseTrack(const uint8_t* p, const uint8_t* end) {
+inline void MidiFile::parseTrack(PCSX::IO<PCSX::File> track) {
     uint32_t absTick = 0;
     uint8_t runningStatus = 0;
 
-    while (p < end) {
-        uint32_t delta = readVLQ(p, end);
-        absTick += delta;
-        if (p >= end) break;
+    // Bytes left to read in this track's window.
+    auto remaining = [&]() -> size_t { return track->size() - track->rTell(); };
 
-        uint8_t status = *p;
+    while (!track->eof()) {
+        uint32_t delta = readVLQ(track);
+        absTick += delta;
+        if (track->eof()) break;
+
+        uint8_t status = track->peek<uint8_t>();
         if (status & 0x80) {
-            p++;
+            track->byte();
             if (status < MIDI_SYSTEM) runningStatus = status;
         } else {
             status = runningStatus;
@@ -229,17 +271,20 @@ inline void MidiFile::parseTrack(const uint8_t* p, const uint8_t* end) {
 
         if (status == MIDI_META) {
             // Meta event
-            if (p + 1 >= end) break;
-            uint8_t metaType = *p++;
-            uint32_t metaLen = readVLQ(p, end);
-            if (p + metaLen > end) break;
+            if (remaining() < 2) break;
+            uint8_t metaType = track->byte();
+            uint32_t metaLen = readVLQ(track);
+            if (remaining() < metaLen) break;
             if (metaType == MIDI_META_TEMPO && metaLen == 3) {
                 // Tempo change
                 MidiEvent ev = {};
                 ev.absoluteTick = absTick;
                 ev.type = MIDI_META;
                 ev.data1 = MIDI_META_TEMPO;
-                ev.tempo = (p[0] << 16) | (p[1] << 8) | p[2];
+                uint8_t b0 = track->byte();
+                uint8_t b1 = track->byte();
+                uint8_t b2 = track->byte();
+                ev.tempo = (b0 << 16) | (b1 << 8) | b2;
                 events.push_back(ev);
             } else if (metaType == MIDI_META_MARKER || metaType == MIDI_META_TEXT || metaType == MIDI_META_TRACK_NAME ||
                        metaType == MIDI_META_COPYRIGHT) {
@@ -248,42 +293,41 @@ inline void MidiFile::parseTrack(const uint8_t* p, const uint8_t* end) {
                 ev.absoluteTick = absTick;
                 ev.type = MIDI_META;
                 ev.data1 = metaType;
-                ev.textData = std::string((const char*)p, metaLen);
+                ev.textData = track->readString(metaLen);
                 events.push_back(ev);
             } else if (metaType == MIDI_META_END_OF_TRACK) {
                 // End of track
-                p += metaLen;
                 break;
+            } else {
+                track->skip(metaLen);
             }
-            p += metaLen;
         } else if (status >= MIDI_SYSTEM) {
             // SysEx - skip
-            uint32_t sysLen = readVLQ(p, end);
-            p += sysLen;
+            uint32_t sysLen = readVLQ(track);
+            track->skip(sysLen);
         } else if (type == MIDI_NOTE_OFF || type == MIDI_NOTE_ON || type == MIDI_POLY_PRESSURE ||
                    type == MIDI_CONTROL_CHANGE || type == MIDI_PITCH_BEND) {
             // Two data bytes
-            if (p + 2 > end) break;
+            if (remaining() < 2) break;
             MidiEvent ev = {};
             ev.absoluteTick = absTick;
             ev.type = type;
             ev.channel = channel;
-            ev.data1 = p[0];
-            ev.data2 = p[1];
+            ev.data1 = track->byte();
+            ev.data2 = track->byte();
             // Note on with velocity 0 is actually note off
             if (type == MIDI_NOTE_ON && ev.data2 == 0) {
                 ev.type = MIDI_NOTE_OFF;
             }
             events.push_back(ev);
-            p += 2;
         } else if (type == MIDI_PROGRAM_CHANGE || type == MIDI_CHANNEL_PRESSURE) {
             // One data byte
-            if (p + 1 > end) break;
+            if (remaining() < 1) break;
             MidiEvent ev = {};
             ev.absoluteTick = absTick;
             ev.type = type;
             ev.channel = channel;
-            ev.data1 = *p++;
+            ev.data1 = track->byte();
             events.push_back(ev);
         }
     }

@@ -28,7 +28,9 @@
 
 #include "flags.h"
 #include "fmt/format.h"
+#include "support/binstruct.h"
 #include "support/file.h"
+#include "support/typestring-wrapper.h"
 #include "supportpsx/midi-converter.h"
 
 
@@ -93,76 +95,93 @@ enum PsmEventType : uint8_t {
     PSM_LONG_WAIT = 0xFF,
 };
 
-struct PsmEvent {
-    uint16_t deltaTick;
-    uint8_t type;
-    uint8_t channel;
-    uint32_t data;
-};
+namespace bs = PCSX::BinStruct;
+
+// PSM event stream record: a fixed 8-byte entry. The PSM file is a PsmHeader followed by N of these.
+typedef bs::Field<bs::UInt16, TYPESTRING("psmDeltaTick")> PsmDeltaTick;
+typedef bs::Field<bs::UInt8, TYPESTRING("psmType")> PsmType;
+typedef bs::Field<bs::UInt8, TYPESTRING("psmChannel")> PsmChannel;
+typedef bs::Field<bs::UInt32, TYPESTRING("psmData")> PsmData;
+typedef bs::Struct<TYPESTRING("PsmEvent"), PsmDeltaTick, PsmType, PsmChannel, PsmData> PsmEvent;
+
+// PSM file header (16 bytes): "PSM\0" magic, version, initial tick rate, event count.
+typedef bs::Field<bs::CString<4>, TYPESTRING("psmMagic")> PsmMagic;
+typedef bs::Field<bs::UInt32, TYPESTRING("psmVersion")> PsmVersion;
+typedef bs::Field<bs::UInt32, TYPESTRING("psmTickRate")> PsmTickRate;
+typedef bs::Field<bs::UInt32, TYPESTRING("psmEventCount")> PsmEventCount;
+typedef bs::Struct<TYPESTRING("PsmHeader"), PsmMagic, PsmVersion, PsmTickRate, PsmEventCount> PsmHeader;
 
 // ============================================================================
-// VAB Format Structures (Sony SDK compatible)
+// VAB Format Structures (Sony SDK compatible), modeled as binstructs so the wire layout is described
+// once and (de)serialized through the typed, little-endian IO<File> API - no packed structs, no
+// host-endianness or padding assumptions.
 // ============================================================================
 
-#pragma pack(push, 1)
+// VabHdr (32 bytes)
+typedef bs::Field<bs::CString<4>, TYPESTRING("vabMagic")> VabMagic;        // "pBAV"
+typedef bs::Field<bs::UInt32, TYPESTRING("vabVersion")> VabVersion;        // format version
+typedef bs::Field<bs::UInt32, TYPESTRING("vabId")> VabId;                  // bank ID
+typedef bs::Field<bs::UInt32, TYPESTRING("vabFileSize")> VabFileSize;      // total file size in bytes
+typedef bs::Field<bs::UInt16, TYPESTRING("vabReserved0")> VabReserved0;    // system reserved
+typedef bs::Field<bs::UInt16, TYPESTRING("vabNumPrograms")> VabNumPrograms;  // number of programs (max 128)
+typedef bs::Field<bs::UInt16, TYPESTRING("vabNumTones")> VabNumTones;      // total number of tones
+typedef bs::Field<bs::UInt16, TYPESTRING("vabNumVags")> VabNumVags;        // number of VAG samples (max 254)
+typedef bs::Field<bs::UInt8, TYPESTRING("vabMasterVol")> VabMasterVol;     // master volume (0-127)
+typedef bs::Field<bs::UInt8, TYPESTRING("vabMasterPan")> VabMasterPan;     // master pan (0-127, 64 = center)
+typedef bs::Field<bs::UInt8, TYPESTRING("vabAttr1")> VabAttr1;             // user-defined
+typedef bs::Field<bs::UInt8, TYPESTRING("vabAttr2")> VabAttr2;             // user-defined
+typedef bs::Field<bs::UInt32, TYPESTRING("vabReserved1")> VabReserved1;    // system reserved
+typedef bs::Struct<TYPESTRING("VabHdr"), VabMagic, VabVersion, VabId, VabFileSize, VabReserved0, VabNumPrograms,
+                   VabNumTones, VabNumVags, VabMasterVol, VabMasterPan, VabAttr1, VabAttr2, VabReserved1>
+    VabHdr;
 
-struct VabHdr {
-    char magic[4];         // "pBAV"
-    uint32_t version;      // format version
-    uint32_t id;           // bank ID
-    uint32_t fileSize;     // total file size in bytes
-    uint16_t reserved0;    // system reserved
-    uint16_t numPrograms;  // number of programs (max 128)
-    uint16_t numTones;     // total number of tones
-    uint16_t numVags;      // number of VAG samples (max 254)
-    uint8_t masterVol;     // master volume (0-127)
-    uint8_t masterPan;     // master pan (0-127, 64 = center)
-    uint8_t attr1;         // user-defined
-    uint8_t attr2;         // user-defined
-    uint32_t reserved1;    // system reserved
-};
+// ProgAtr (16 bytes)
+typedef bs::Field<bs::UInt8, TYPESTRING("progTones")> ProgTones;        // number of tones in this program (0-16)
+typedef bs::Field<bs::UInt8, TYPESTRING("progMvol")> ProgMvol;          // program volume (0-127)
+typedef bs::Field<bs::UInt8, TYPESTRING("progPrior")> ProgPrior;        // priority (0-127)
+typedef bs::Field<bs::UInt8, TYPESTRING("progMode")> ProgMode;          // mode flags
+typedef bs::Field<bs::UInt8, TYPESTRING("progMpan")> ProgMpan;          // program pan (0-127, 64 = center)
+typedef bs::Field<bs::UInt8, TYPESTRING("progReserved0")> ProgReserved0;
+typedef bs::Field<bs::Int16, TYPESTRING("progAttr")> ProgAttr;          // user-defined attribute
+typedef bs::Field<bs::UInt32, TYPESTRING("progReserved1")> ProgReserved1;
+typedef bs::Field<bs::UInt32, TYPESTRING("progReserved2")> ProgReserved2;
+typedef bs::Struct<TYPESTRING("ProgAtr"), ProgTones, ProgMvol, ProgPrior, ProgMode, ProgMpan, ProgReserved0,
+                   ProgAttr, ProgReserved1, ProgReserved2>
+    ProgAtr;
 
-struct ProgAtr {
-    uint8_t tones;         // number of tones in this program (0-16)
-    uint8_t mvol;          // program volume (0-127)
-    uint8_t prior;         // priority (0-127)
-    uint8_t mode;          // mode flags
-    uint8_t mpan;          // program pan (0-127, 64 = center)
-    uint8_t reserved0;
-    int16_t attr;          // user-defined attribute
-    uint32_t reserved1;
-    uint32_t reserved2;
-};
+// VagAtr (32 bytes)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPrior")> VagPrior;          // priority (0-127)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagMode")> VagMode;            // mode flags
+typedef bs::Field<bs::UInt8, TYPESTRING("vagVol")> VagVol;              // tone volume (0-127)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPan")> VagPan;              // tone pan (0-127, 64 = center)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagCenter")> VagCenter;        // center note (root key, MIDI note number)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagShift")> VagShift;          // pitch fine tune (signed cents, as uint8)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagMin")> VagMin;              // minimum key range
+typedef bs::Field<bs::UInt8, TYPESTRING("vagMax")> VagMax;              // maximum key range
+typedef bs::Field<bs::UInt8, TYPESTRING("vagVibW")> VagVibW;            // vibrato width
+typedef bs::Field<bs::UInt8, TYPESTRING("vagVibT")> VagVibT;            // vibrato time/frequency
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPorW")> VagPorW;            // portamento width
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPorT")> VagPorT;            // portamento time
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPbmin")> VagPbmin;          // pitch bend min (semitones)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagPbmax")> VagPbmax;          // pitch bend max (semitones)
+typedef bs::Field<bs::UInt8, TYPESTRING("vagReserved0")> VagReserved0;
+typedef bs::Field<bs::UInt8, TYPESTRING("vagReserved1")> VagReserved1;
+typedef bs::Field<bs::UInt16, TYPESTRING("vagAdsr1")> VagAdsr1;         // SPU ADSR register (voice +0x08)
+typedef bs::Field<bs::UInt16, TYPESTRING("vagAdsr2")> VagAdsr2;         // SPU ADSR register (voice +0x0A)
+typedef bs::Field<bs::Int16, TYPESTRING("vagProg")> VagProg;            // program index this tone belongs to
+typedef bs::Field<bs::Int16, TYPESTRING("vagVag")> VagVag;              // VAG index (0-based, -1 = unused)
+// reserved (reserved2[0] = sampleRate >> 4 for player)
+typedef bs::RepeatedField<bs::Int16, TYPESTRING("vagReserved2"), 4> VagReserved2;
+typedef bs::Struct<TYPESTRING("VagAtr"), VagPrior, VagMode, VagVol, VagPan, VagCenter, VagShift, VagMin, VagMax,
+                   VagVibW, VagVibT, VagPorW, VagPorT, VagPbmin, VagPbmax, VagReserved0, VagReserved1, VagAdsr1,
+                   VagAdsr2, VagProg, VagVag, VagReserved2>
+    VagAtr;
 
-struct VagAtr {
-    uint8_t prior;         // priority (0-127)
-    uint8_t mode;          // mode flags
-    uint8_t vol;           // tone volume (0-127)
-    uint8_t pan;           // tone pan (0-127, 64 = center)
-    uint8_t center;        // center note (root key, MIDI note number)
-    uint8_t shift;         // pitch fine tune (signed cents, as two's complement uint8)
-    uint8_t min;           // minimum key range
-    uint8_t max;           // maximum key range
-    uint8_t vibW;          // vibrato width
-    uint8_t vibT;          // vibrato time/frequency
-    uint8_t porW;          // portamento width
-    uint8_t porT;          // portamento time
-    uint8_t pbmin;         // pitch bend min (semitones)
-    uint8_t pbmax;         // pitch bend max (semitones)
-    uint8_t reserved0;
-    uint8_t reserved1;
-    uint16_t adsr1;        // SPU ADSR register (voice +0x08)
-    uint16_t adsr2;        // SPU ADSR register (voice +0x0A)
-    int16_t prog;          // program index this tone belongs to
-    int16_t vag;           // VAG index (0-based, -1 = unused)
-    int16_t reserved2[4];  // reserved (reserved2[0] = sampleRate >> 4 for player)
-};
-
-#pragma pack(pop)
-
-static_assert(sizeof(VabHdr) == 32, "VabHdr must be 32 bytes");
-static_assert(sizeof(ProgAtr) == 16, "ProgAtr must be 16 bytes");
-static_assert(sizeof(VagAtr) == 32, "VagAtr must be 32 bytes");
+// On-disk (wire) sizes of the VAB structures, needed for the VabHdr.fileSize total. binstruct describes
+// the layout but doesn't expose it as a sizeof, so these are stated explicitly.
+static constexpr uint32_t kVabHdrBytes = 32;
+static constexpr uint32_t kProgAtrBytes = 16;
+static constexpr uint32_t kVagAtrBytes = 32;
 
 // ============================================================================
 // Channel State (minimal - player handles volumes/pitch/sustain)
@@ -225,8 +244,10 @@ struct ConvertContext {
 
     // ---- Methods ----
     void generate();
-    bool writeVab(const char* filename);
-    bool writeVabSplit(const char* vhFile, const char* vbFile);
+    // Writes the VAB instrument bank. When vbFile is null the sample body trails the header in vhFile
+    // (combined .vab); when non-null, vhFile gets the header only and vbFile gets the raw sample body
+    // (split VH/VB), the latter disposable after upload to SPU RAM.
+    bool writeVab(const char* vhFile, const char* vbFile);
     bool writePsm(const char* filename);
 
     void emitEvent(uint8_t type, uint8_t channel, uint32_t data, uint32_t absTick);
@@ -242,20 +263,20 @@ void ConvertContext::emitEvent(uint8_t type, uint8_t channel, uint32_t data, uin
     while (delta > 65535) {
         uint32_t consume = delta - 65535;  // leave up to 65535 for the final event
         if (consume > 0xFFFFFFFF) consume = 0xFFFFFFFF;
-        PsmEvent wait = {};
-        wait.deltaTick = 0;
-        wait.type = PSM_LONG_WAIT;
-        wait.channel = 0;
-        wait.data = consume;
+        PsmEvent wait;
+        wait.get<PsmDeltaTick>().value = 0;
+        wait.get<PsmType>().value = PSM_LONG_WAIT;
+        wait.get<PsmChannel>().value = 0;
+        wait.get<PsmData>().value = consume;
         psmEvents.push_back(wait);
         delta -= consume;
     }
 
-    PsmEvent ev = {};
-    ev.deltaTick = (uint16_t)delta;
-    ev.type = type;
-    ev.channel = channel;
-    ev.data = data;
+    PsmEvent ev;
+    ev.get<PsmDeltaTick>().value = (uint16_t)delta;
+    ev.get<PsmType>().value = type;
+    ev.get<PsmChannel>().value = channel;
+    ev.get<PsmData>().value = data;
     psmEvents.push_back(ev);
 }
 
@@ -273,12 +294,12 @@ uint8_t ConvertContext::getOrAssignProgram(int presetIndex) {
 
     // Initialize ProgAtr with sensible defaults
     ProgAtr& pa = progAtrs[idx];
-    memset(&pa, 0, sizeof(ProgAtr));
-    pa.tones = 0;
-    pa.mvol = 127;
-    pa.prior = 127;
-    pa.mode = 0;
-    pa.mpan = 64;
+    pa.reset();
+    pa.get<ProgTones>().value = 0;
+    pa.get<ProgMvol>().value = 127;
+    pa.get<ProgPrior>().value = 127;
+    pa.get<ProgMode>().value = 0;
+    pa.get<ProgMpan>().value = 64;
 
     return idx;
 }
@@ -301,17 +322,17 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
     build.regionToTone[regionIdx] = toneIdx;
 
     // Update ProgAtr tone count
-    progAtrs[programIdx].tones = build.toneCount;
+    progAtrs[programIdx].get<ProgTones>().value = build.toneCount;
 
     // Extract and encode the sample
     size_t sampleIdx = extractAndEncode(sf2, region, samples, sampleMap, nextSpuAddr);
 
     // Fill in the VagAtr entry
     VagAtr& va = vagAtrs[programIdx * 16 + toneIdx];
-    memset(&va, 0, sizeof(VagAtr));
+    va.reset();
 
-    va.prior = 127;
-    va.mode = 0;
+    va.get<VagPrior>().value = 127;
+    va.get<VagMode>().value = 0;
 
     // Apply SF2 attenuation to tone volume
     float attnGain = 1.0f;
@@ -320,13 +341,13 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
         if (attnGain < 0.0f) attnGain = 0.0f;
         if (attnGain > 1.0f) attnGain = 1.0f;
     }
-    va.vol = (uint8_t)(attnGain * 127.0f + 0.5f);
+    va.get<VagVol>().value = (uint8_t)(attnGain * 127.0f + 0.5f);
 
     // Map SF2 pan (-0.5 to +0.5) to VAB pan (0-127, 64 = center)
     int pan = (int)(64.0f + region->pan * 128.0f);
     if (pan < 0) pan = 0;
     if (pan > 127) pan = 127;
-    va.pan = (uint8_t)pan;
+    va.get<VagPan>().value = (uint8_t)pan;
 
     // Compute adjusted center note: fold sample rate and transpose into center
     // so the player can assume 44100 Hz and just compute freq(note)/freq(center)*0x1000
@@ -346,22 +367,22 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
     if (fineTuneCents < -128) fineTuneCents = -128;
     if (fineTuneCents > 127) fineTuneCents = 127;
 
-    va.center = (uint8_t)centerNote;
-    va.shift = (uint8_t)(int8_t)fineTuneCents;
+    va.get<VagCenter>().value = (uint8_t)centerNote;
+    va.get<VagShift>().value = (uint8_t)(int8_t)fineTuneCents;
 
     // Key range from SF2 region
-    va.min = (uint8_t)region->lokey;
-    va.max = (uint8_t)region->hikey;
+    va.get<VagMin>().value = (uint8_t)region->lokey;
+    va.get<VagMax>().value = (uint8_t)region->hikey;
 
     // Vibrato/portamento: zero (player handles CC#1 modulation)
-    va.vibW = 0;
-    va.vibT = 0;
-    va.porW = 0;
-    va.porT = 0;
+    va.get<VagVibW>().value = 0;
+    va.get<VagVibT>().value = 0;
+    va.get<VagPorW>().value = 0;
+    va.get<VagPorT>().value = 0;
 
     // Pitch bend range: default 2 semitones
-    va.pbmin = 2;
-    va.pbmax = 2;
+    va.get<VagPbmin>().value = 2;
+    va.get<VagPbmax>().value = 2;
 
     // ADSR
     bool isDrum = false;
@@ -372,14 +393,14 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
     // Also check for drum channel assignment (program >= 128 convention not applicable here,
     // so we rely on the drum bank check)
 
-    sf2RegionToSpuADSR(region, isDrum, va.adsr1, va.adsr2);
+    sf2RegionToSpuADSR(region, isDrum, va.get<VagAdsr1>().value, va.get<VagAdsr2>().value);
 
-    va.prog = (int16_t)programIdx;
-    va.vag = (sampleIdx != (size_t)-1) ? (int16_t)sampleIdx : -1;
+    va.get<VagProg>().value = (int16_t)programIdx;
+    va.get<VagVag>().value = (sampleIdx != (size_t)-1) ? (int16_t)sampleIdx : -1;
 
     // Store sample rate in reserved field for player reference
     // Player can use this for pitch computation if it needs the actual rate
-    va.reserved2[0] = (int16_t)(sample.sampleRate >> 4);  // fits in 16 bits for rates up to ~500 kHz
+    va.get<VagReserved2>()[0].value = (int16_t)(sample.sampleRate >> 4);  // fits in 16 bits up to ~500 kHz
 
     return toneIdx;
 }
@@ -392,8 +413,8 @@ void ConvertContext::generate() {
     numPrograms = 0;
     nextSpuAddr = SPU_RAM_BASE;
 
-    memset(progAtrs, 0, sizeof(progAtrs));
-    memset(vagAtrs, 0, sizeof(vagAtrs));
+    for (auto& pa : progAtrs) pa.reset();
+    for (auto& va : vagAtrs) va.reset();
 
     for (int i = 0; i < 16; i++) {
         channels[i] = ChannelState();
@@ -631,139 +652,59 @@ void ConvertContext::generate() {
     }
 }
 
-bool ConvertContext::writeVab(const char* filename) {
-    FilePtr f(new PCSX::PosixFile(filename, PCSX::FileOps::TRUNCATE));
-    if (f->failed()) return false;
+bool ConvertContext::writeVab(const char* vhFile, const char* vbFile) {
+    const bool split = vbFile != nullptr;
+
+    // Sample body sink: a real file in split mode (the disposable VB), or an in-memory buffer in
+    // combined mode whose bytes get appended after the header. Same modconv idiom either way.
+    FilePtr body = split ? FilePtr(new PCSX::PosixFile(vbFile, PCSX::FileOps::TRUNCATE))
+                         : FilePtr(new PCSX::BufferFile(PCSX::FileOps::READWRITE));
+    if (body->failed()) return false;
+    for (auto& s : samples) body->write(s.adpcmData.data(), s.adpcmData.size());
+
+    FilePtr out(new PCSX::PosixFile(vhFile, PCSX::FileOps::TRUNCATE));
+    if (out->failed()) return false;
 
     // Compute sizes
     uint16_t totalTones = 0;
     for (int i = 0; i < numPrograms; i++) {
-        totalTones += progAtrs[i].tones;
+        totalTones += progAtrs[i].get<ProgTones>().value;
     }
-    uint16_t numVags = (uint16_t)samples.size();
-
-    uint32_t headerSize = sizeof(VabHdr);
-    uint32_t progTableSize = 128 * sizeof(ProgAtr);
-    uint32_t toneTableSize = (uint32_t)numPrograms * 16 * sizeof(VagAtr);
-    uint32_t vagOffsetTableSize = 256 * sizeof(uint16_t);
+    uint32_t headerOnlySize =
+        kVabHdrBytes + 128 * kProgAtrBytes + (uint32_t)numPrograms * 16 * kVagAtrBytes + 256 * sizeof(uint16_t);
     uint32_t vagBodySize = 0;
     for (auto& s : samples) vagBodySize += s.adpcmSize;
 
-    uint32_t totalSize = headerSize + progTableSize + toneTableSize + vagOffsetTableSize + vagBodySize;
+    // Header (fileSize is the total logical size, identical for combined and split layouts)
+    VabHdr hdr;
+    hdr.reset();
+    hdr.get<VabMagic>().set("pBAV");
+    hdr.get<VabVersion>().value = 7;  // standard VAB version
+    hdr.get<VabFileSize>().value = headerOnlySize + vagBodySize;
+    hdr.get<VabNumPrograms>().value = (uint16_t)numPrograms;
+    hdr.get<VabNumTones>().value = totalTones;
+    hdr.get<VabNumVags>().value = (uint16_t)samples.size();
+    hdr.get<VabMasterVol>().value = 127;
+    hdr.get<VabMasterPan>().value = 64;
+    hdr.serialize(out);
 
-    // Write header
-    VabHdr hdr = {};
-    hdr.magic[0] = 'p';
-    hdr.magic[1] = 'B';
-    hdr.magic[2] = 'A';
-    hdr.magic[3] = 'V';
-    hdr.version = 7;  // standard VAB version
-    hdr.id = 0;
-    hdr.fileSize = totalSize;
-    hdr.reserved0 = 0;
-    hdr.numPrograms = (uint16_t)numPrograms;
-    hdr.numTones = totalTones;
-    hdr.numVags = numVags;
-    hdr.masterVol = 127;
-    hdr.masterPan = 64;
-    hdr.attr1 = 0;
-    hdr.attr2 = 0;
-    hdr.reserved1 = 0;
-    f->write(&hdr, sizeof(VabHdr));
+    // ProgAtr table (always 128 entries)
+    for (int i = 0; i < 128; i++) progAtrs[i].serialize(out);
 
-    // Write ProgAtr table (always 128 entries)
-    for (int i = 0; i < 128; i++) {
-        f->write(&progAtrs[i], sizeof(ProgAtr));
-    }
+    // VagAtr table (numPrograms * 16 entries)
+    for (int i = 0; i < numPrograms * 16; i++) vagAtrs[i].serialize(out);
 
-    // Write VagAtr table (numPrograms * 16 entries)
-    for (int i = 0; i < numPrograms * 16; i++) {
-        f->write(&vagAtrs[i], sizeof(VagAtr));
-    }
-
-    // Write VAG offset table (256 entries, each is size >> 3)
+    // VAG offset table (256 entries, each is size >> 3)
     for (int i = 0; i < 256; i++) {
         uint16_t entry = 0;
         if (i < (int)samples.size()) {
             entry = (uint16_t)(samples[i].adpcmSize >> 3);
         }
-        f->write<uint16_t>(entry);
+        out->write<uint16_t>(entry);
     }
 
-    // Write concatenated VAG body (headerless ADPCM data)
-    for (auto& s : samples) {
-        f->write(s.adpcmData.data(), s.adpcmData.size());
-    }
-
-    f->close();
-    return true;
-}
-
-bool ConvertContext::writeVabSplit(const char* vhFile, const char* vbFile) {
-    // Write VB file: raw concatenated VAG ADPCM body (disposable after DMA)
-    {
-        FilePtr f(new PCSX::PosixFile(vbFile, PCSX::FileOps::TRUNCATE));
-        if (f->failed()) return false;
-        for (auto& s : samples) {
-            f->write(s.adpcmData.data(), s.adpcmData.size());
-        }
-        f->close();
-    }
-
-    // Write VH file: header + ProgAtr + VagAtr + VAG offset table (no body)
-    {
-        FilePtr f(new PCSX::PosixFile(vhFile, PCSX::FileOps::TRUNCATE));
-        if (f->failed()) return false;
-
-        uint16_t totalTones = 0;
-        for (int i = 0; i < numPrograms; i++) {
-            totalTones += progAtrs[i].tones;
-        }
-        uint16_t numVagsCount = (uint16_t)samples.size();
-
-        uint32_t vhSize = sizeof(VabHdr) + 128 * sizeof(ProgAtr) +
-                          (uint32_t)numPrograms * 16 * sizeof(VagAtr) +
-                          256 * sizeof(uint16_t);
-        uint32_t vbSize = 0;
-        for (auto& s : samples) vbSize += s.adpcmSize;
-
-        VabHdr hdr = {};
-        hdr.magic[0] = 'p';
-        hdr.magic[1] = 'B';
-        hdr.magic[2] = 'A';
-        hdr.magic[3] = 'V';
-        hdr.version = 7;
-        hdr.id = 0;
-        hdr.fileSize = vhSize + vbSize;  // total logical size
-        hdr.reserved0 = 0;
-        hdr.numPrograms = (uint16_t)numPrograms;
-        hdr.numTones = totalTones;
-        hdr.numVags = numVagsCount;
-        hdr.masterVol = 127;
-        hdr.masterPan = 64;
-        hdr.attr1 = 0;
-        hdr.attr2 = 0;
-        hdr.reserved1 = 0;
-        f->write(&hdr, sizeof(VabHdr));
-
-        for (int i = 0; i < 128; i++) {
-            f->write(&progAtrs[i], sizeof(ProgAtr));
-        }
-
-        for (int i = 0; i < numPrograms * 16; i++) {
-            f->write(&vagAtrs[i], sizeof(VagAtr));
-        }
-
-        for (int i = 0; i < 256; i++) {
-            uint16_t entry = 0;
-            if (i < (int)samples.size()) {
-                entry = (uint16_t)(samples[i].adpcmSize >> 3);
-            }
-            f->write<uint16_t>(entry);
-        }
-
-        f->close();
-    }
+    // Combined mode: the sample body trails the header. Split mode: it already lives in vbFile.
+    if (!split) out->write(std::move(body.asA<PCSX::BufferFile>()->borrow()));
 
     return true;
 }
@@ -775,28 +716,23 @@ bool ConvertContext::writePsm(const char* filename) {
     // Find the initial tick rate from the first TEMPO_CHANGE event
     uint32_t initialTickRate = 0;
     for (auto& ev : psmEvents) {
-        if (ev.type == PSM_TEMPO_CHANGE) {
-            initialTickRate = ev.data;
+        if (ev.get<PsmType>().value == PSM_TEMPO_CHANGE) {
+            initialTickRate = ev.get<PsmData>().value;
             break;
         }
     }
 
     // Write PSM header (16 bytes)
-    f->write<uint8_t>('P');
-    f->write<uint8_t>('S');
-    f->write<uint8_t>('M');
-    f->write<uint8_t>(0);
-    f->write<uint32_t>(1);  // version
-    f->write<uint32_t>(initialTickRate);
-    f->write<uint32_t>((uint32_t)psmEvents.size());
+    PsmHeader hdr;
+    hdr.reset();
+    hdr.get<PsmMagic>().set("PSM");  // "PSM\0"
+    hdr.get<PsmVersion>().value = 1;
+    hdr.get<PsmTickRate>().value = initialTickRate;
+    hdr.get<PsmEventCount>().value = (uint32_t)psmEvents.size();
+    hdr.serialize(f);
 
     // Write events (8 bytes each)
-    for (auto& ev : psmEvents) {
-        f->write<uint16_t>(ev.deltaTick);
-        f->write<uint8_t>(ev.type);
-        f->write<uint8_t>(ev.channel);
-        f->write<uint32_t>(ev.data);
-    }
+    for (auto& ev : psmEvents) ev.serialize(f);
 
     f->close();
     return true;
@@ -853,11 +789,6 @@ Usage: {} input.mid -s soundfont.sf2 -o output.psm -b output.vab [-i output.vb] 
         fmt::print(stderr, "Error: unable to open MIDI file: {}\n", inputs[0]);
         return -1;
     }
-    midiFile->rSeek(0, SEEK_END);
-    size_t midiSize = midiFile->rSeek(0, SEEK_CUR);
-    midiFile->rSeek(0, SEEK_SET);
-    auto midiSlice = midiFile->read(midiSize);
-    const uint8_t* midiData = (const uint8_t*)midiSlice.data();
 
     // Read SoundFont file
     FilePtr sf2File(new PCSX::PosixFile(soundfont.value().c_str()));
@@ -873,7 +804,7 @@ Usage: {} input.mid -s soundfont.sf2 -o output.psm -b output.vab [-i output.vb] 
 
     // Parse MIDI
     ConvertContext ctx;
-    if (!ctx.midi.parse(midiData, midiSize)) {
+    if (!ctx.midi.parse(midiFile)) {
         fmt::print(stderr, "Error: failed to parse MIDI file\n");
         return -1;
     }
@@ -897,7 +828,7 @@ Usage: {} input.mid -s soundfont.sf2 -o output.psm -b output.vab [-i output.vb] 
     // Compute total tone count
     uint16_t totalTones = 0;
     for (int i = 0; i < ctx.numPrograms; i++) {
-        totalTones += ctx.progAtrs[i].tones;
+        totalTones += ctx.progAtrs[i].get<ProgTones>().value;
     }
 
     fmt::print("Programs: {}\n", ctx.numPrograms);
@@ -913,7 +844,7 @@ Usage: {} input.mid -s soundfont.sf2 -o output.psm -b output.vab [-i output.vb] 
     // Write VAB file (combined or split)
     if (sampleOutput.has_value()) {
         // Split mode: VH (header only) + VB (sample body, disposable)
-        if (!ctx.writeVabSplit(bankOutput.value().c_str(), sampleOutput.value().c_str())) {
+        if (!ctx.writeVab(bankOutput.value().c_str(), sampleOutput.value().c_str())) {
             fmt::print(stderr, "Error: failed to write split VAB files\n");
             tsf_close(ctx.sf2);
             return -1;
@@ -922,7 +853,7 @@ Usage: {} input.mid -s soundfont.sf2 -o output.psm -b output.vab [-i output.vb] 
                    bankOutput.value(), sampleOutput.value());
     } else {
         // Combined mode: single VAB file
-        if (!ctx.writeVab(bankOutput.value().c_str())) {
+        if (!ctx.writeVab(bankOutput.value().c_str(), nullptr)) {
             fmt::print(stderr, "Error: failed to write VAB file\n");
             tsf_close(ctx.sf2);
             return -1;
