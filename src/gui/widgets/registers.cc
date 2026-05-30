@@ -55,19 +55,22 @@ void PCSX::Widgets::Registers::contextMenu(const char* name, uint32_t reg, uint3
 
 void PCSX::Widgets::Registers::updateRegisterValue(PCSX::psxRegisters* registers, const std::string& val, int reg,
                                                    int radix) {
+    if (val.empty()) return;
+    char* endPtr = nullptr;
     uint32_t newReg;
-    char* endPtr;
     if (radix == 16) {
-        newReg = strtoul(val.c_str(), &endPtr, 16);
+        uint64_t parsed = strtoull(val.c_str(), &endPtr, 16);
+        if (*endPtr || parsed > UINT32_MAX) return;
+        newReg = (uint32_t)parsed;
     } else {
-        newReg = strtoll(val.c_str(), &endPtr, 10);
+        int64_t parsed = strtoll(val.c_str(), &endPtr, 10);
+        if (*endPtr || parsed < INT32_MIN || parsed > UINT32_MAX) return;
+        newReg = (uint32_t)parsed;
     }
-    if (!*endPtr) {
-        if (reg == 34) {
-            registers->pc = newReg;
-        } else {
-            registers->GPR.r[reg] = newReg;
-        }
+    if (reg == 34) {
+        registers->pc = newReg;
+    } else {
+        registers->GPR.r[reg] = newReg;
     }
 }
 
