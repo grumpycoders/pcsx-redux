@@ -146,10 +146,8 @@ static void spu_pcm_analyze(const uint8_t *data, uint32_t L,
     *out_warmup = best_w;
     *out_period = best_p;
 }
-static int is_pcdrv_init = 0;
 static void spu_dump_pcm(const char *name, const void *capture, uint32_t len) {
     static PcmTestHeader hdr = {0x544d4350u, sizeof(PcmTestHeader), 0, 0};
-    uint32_t warmup, period;
     spu_pcm_analyze((const uint8_t *)capture, len, &hdr.warmup, &hdr.period);
     if (!is_pcdrv_init) {
         PCinit();
@@ -158,7 +156,7 @@ static void spu_dump_pcm(const char *name, const void *capture, uint32_t len) {
     int fd = PCcreat(name, 0);
     if (fd < 0) return;
     PCwrite(fd, &hdr, sizeof(hdr));
-    PCwrite(fd, capture, warmup + period);
+    PCwrite(fd, capture, hdr.warmup + hdr.period);
     PCclose(fd);
 }
 #endif
