@@ -44,8 +44,8 @@
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpulogger.h"
-#include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/handlers.h"
+#include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
 #include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
@@ -53,14 +53,14 @@
 #include "gui/widgets/luaeditor.h"
 #include "gui/widgets/luainspector.h"
 #include "gui/widgets/memcard_manager.h"
+#include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/named_savestates.h"
 #include "gui/widgets/patches.h"
-#include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/pio-cart.h"
+#include "gui/widgets/ram-viewer.h"
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
-#include "gui/widgets/ram-viewer.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
@@ -165,14 +165,14 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme,
-             AllowMouseCaptureToggle,
-             EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
-             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
+             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize,
+             GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
+             ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
+             ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
+             ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr,
+             MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr,
+             ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
+             ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...

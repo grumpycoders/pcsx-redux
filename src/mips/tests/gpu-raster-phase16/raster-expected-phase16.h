@@ -51,21 +51,21 @@ SOFTWARE.
 // psx-spx note worth filing: the "wrap within the page" claim
 // doesn't match hardware. The behaviour is "read whatever VRAM
 // byte the linear U offset addresses."
-#define UV8_U128_V0  0x03e0u  /* reads beyond 128-texel page */
-#define UV8_U200_V0  0x0364u
-#define UV8_U255_V0  0x0c7cu
-#define UV8_U0_V255  0x1c1fu  /* beyond TEX8 v-extent */
+#define UV8_U128_V0 0x03e0u /* reads beyond 128-texel page */
+#define UV8_U200_V0 0x0364u
+#define UV8_U255_V0 0x0c7cu
+#define UV8_U0_V255 0x1c1fu /* beyond TEX8 v-extent */
 
 // 15-bit: page width = 64. Off-page samples land in uninitialised
 // VRAM beyond the fixture upload. Hardware returns whatever value
 // happens to be there (which in our tests coincidentally matches
 // the test-region sentinel pre-fill 0xDEAD).
-#define UV15_U64_V0  RASTER_SENTINEL  /* beyond TEX15 upload */
-#define UV15_U128_V0 RASTER_SENTINEL  /* deep off-page */
-#define UV15_U255_V0 RASTER_SENTINEL  /* deep off-page */
+#define UV15_U64_V0 RASTER_SENTINEL  /* beyond TEX15 upload */
+#define UV15_U128_V0 RASTER_SENTINEL /* deep off-page */
+#define UV15_U255_V0 RASTER_SENTINEL /* deep off-page */
 
 // 4-bit: page width = 256. Outside the 16-texel fixture pattern
 // (u > 15) but still within page. Hardware samples VRAM with
 // whatever it finds there.
-#define UV4_U16_V0   0x0364u
-#define UV4_U255_V0  0x03e0u
+#define UV4_U16_V0 0x0364u
+#define UV4_U255_V0 0x03e0u

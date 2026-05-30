@@ -69,8 +69,8 @@ SOFTWARE.
 
 #include "raster-helpers.h"
 
-#define DT_NOMINAL_MID  0x4210u
-#define DT_DITHER_MID   0x3defu  /* R=15, G=15, B=15 = mid-gray with -1 LSB */
+#define DT_NOMINAL_MID 0x4210u
+#define DT_DITHER_MID 0x3defu /* R=15, G=15, B=15 = mid-gray with -1 LSB */
 
 // ============================================================================
 // DT_BAYER_MID: 16 cells at (sx, sy) = (8..11, 8..11). cx = sx mod 4,
@@ -79,22 +79,22 @@ SOFTWARE.
 // with non-negative offset).
 // ============================================================================
 
-#define DT_BAYER_MID_8_8     DT_DITHER_MID    /* cell(0,0) -4  -> 15 */
-#define DT_BAYER_MID_9_8     DT_NOMINAL_MID   /* cell(1,0) +0  -> 16 */
-#define DT_BAYER_MID_10_8    DT_DITHER_MID    /* cell(2,0) -3  -> 15 */
-#define DT_BAYER_MID_11_8    DT_NOMINAL_MID   /* cell(3,0) +1  -> 16 */
-#define DT_BAYER_MID_8_9     DT_NOMINAL_MID   /* cell(0,1) +2  -> 16 */
-#define DT_BAYER_MID_9_9     DT_DITHER_MID    /* cell(1,1) -2  -> 15 */
-#define DT_BAYER_MID_10_9    DT_NOMINAL_MID   /* cell(2,1) +3  -> 16 */
-#define DT_BAYER_MID_11_9    DT_DITHER_MID    /* cell(3,1) -1  -> 15 */
-#define DT_BAYER_MID_8_10    DT_DITHER_MID    /* cell(0,2) -3  -> 15 */
-#define DT_BAYER_MID_9_10    DT_NOMINAL_MID   /* cell(1,2) +1  -> 16 */
-#define DT_BAYER_MID_10_10   DT_DITHER_MID    /* cell(2,2) -4  -> 15 */
-#define DT_BAYER_MID_11_10   DT_NOMINAL_MID   /* cell(3,2) +0  -> 16 */
-#define DT_BAYER_MID_8_11    DT_NOMINAL_MID   /* cell(0,3) +3  -> 16 */
-#define DT_BAYER_MID_9_11    DT_DITHER_MID    /* cell(1,3) -1  -> 15 */
-#define DT_BAYER_MID_10_11   DT_NOMINAL_MID   /* cell(2,3) +2  -> 16 */
-#define DT_BAYER_MID_11_11   DT_DITHER_MID    /* cell(3,3) -2  -> 15 */
+#define DT_BAYER_MID_8_8 DT_DITHER_MID    /* cell(0,0) -4  -> 15 */
+#define DT_BAYER_MID_9_8 DT_NOMINAL_MID   /* cell(1,0) +0  -> 16 */
+#define DT_BAYER_MID_10_8 DT_DITHER_MID   /* cell(2,0) -3  -> 15 */
+#define DT_BAYER_MID_11_8 DT_NOMINAL_MID  /* cell(3,0) +1  -> 16 */
+#define DT_BAYER_MID_8_9 DT_NOMINAL_MID   /* cell(0,1) +2  -> 16 */
+#define DT_BAYER_MID_9_9 DT_DITHER_MID    /* cell(1,1) -2  -> 15 */
+#define DT_BAYER_MID_10_9 DT_NOMINAL_MID  /* cell(2,1) +3  -> 16 */
+#define DT_BAYER_MID_11_9 DT_DITHER_MID   /* cell(3,1) -1  -> 15 */
+#define DT_BAYER_MID_8_10 DT_DITHER_MID   /* cell(0,2) -3  -> 15 */
+#define DT_BAYER_MID_9_10 DT_NOMINAL_MID  /* cell(1,2) +1  -> 16 */
+#define DT_BAYER_MID_10_10 DT_DITHER_MID  /* cell(2,2) -4  -> 15 */
+#define DT_BAYER_MID_11_10 DT_NOMINAL_MID /* cell(3,2) +0  -> 16 */
+#define DT_BAYER_MID_8_11 DT_NOMINAL_MID  /* cell(0,3) +3  -> 16 */
+#define DT_BAYER_MID_9_11 DT_DITHER_MID   /* cell(1,3) -1  -> 15 */
+#define DT_BAYER_MID_10_11 DT_NOMINAL_MID /* cell(2,3) +2  -> 16 */
+#define DT_BAYER_MID_11_11 DT_DITHER_MID  /* cell(3,3) -2  -> 15 */
 
 // ============================================================================
 // DT_BASE_R: R-only base sweep at R=0x40, 0x80, 0xC0. All three are
@@ -103,56 +103,56 @@ SOFTWARE.
 // Confirms dither offsets are ADDITIVE (independent of base).
 // ============================================================================
 
-#define DT_BASE_R40_8_8      0x0007u  /* R5=7  at -ve cells */
-#define DT_BASE_R40_9_8      0x0008u  /* R5=8  at non-neg cells */
-#define DT_BASE_R40_10_8     0x0007u
-#define DT_BASE_R40_11_8     0x0008u
-#define DT_BASE_R40_8_9      0x0008u
-#define DT_BASE_R40_9_9      0x0007u
-#define DT_BASE_R40_10_9     0x0008u
-#define DT_BASE_R40_11_9     0x0007u
-#define DT_BASE_R40_8_10     0x0007u
-#define DT_BASE_R40_9_10     0x0008u
-#define DT_BASE_R40_10_10    0x0007u
-#define DT_BASE_R40_11_10    0x0008u
-#define DT_BASE_R40_8_11     0x0008u
-#define DT_BASE_R40_9_11     0x0007u
-#define DT_BASE_R40_10_11    0x0008u
-#define DT_BASE_R40_11_11    0x0007u
+#define DT_BASE_R40_8_8 0x0007u /* R5=7  at -ve cells */
+#define DT_BASE_R40_9_8 0x0008u /* R5=8  at non-neg cells */
+#define DT_BASE_R40_10_8 0x0007u
+#define DT_BASE_R40_11_8 0x0008u
+#define DT_BASE_R40_8_9 0x0008u
+#define DT_BASE_R40_9_9 0x0007u
+#define DT_BASE_R40_10_9 0x0008u
+#define DT_BASE_R40_11_9 0x0007u
+#define DT_BASE_R40_8_10 0x0007u
+#define DT_BASE_R40_9_10 0x0008u
+#define DT_BASE_R40_10_10 0x0007u
+#define DT_BASE_R40_11_10 0x0008u
+#define DT_BASE_R40_8_11 0x0008u
+#define DT_BASE_R40_9_11 0x0007u
+#define DT_BASE_R40_10_11 0x0008u
+#define DT_BASE_R40_11_11 0x0007u
 
-#define DT_BASE_R80_8_8      0x000fu  /* R5=15 at -ve cells */
-#define DT_BASE_R80_9_8      0x0010u  /* R5=16 at non-neg cells */
-#define DT_BASE_R80_10_8     0x000fu
-#define DT_BASE_R80_11_8     0x0010u
-#define DT_BASE_R80_8_9      0x0010u
-#define DT_BASE_R80_9_9      0x000fu
-#define DT_BASE_R80_10_9     0x0010u
-#define DT_BASE_R80_11_9     0x000fu
-#define DT_BASE_R80_8_10     0x000fu
-#define DT_BASE_R80_9_10     0x0010u
-#define DT_BASE_R80_10_10    0x000fu
-#define DT_BASE_R80_11_10    0x0010u
-#define DT_BASE_R80_8_11     0x0010u
-#define DT_BASE_R80_9_11     0x000fu
-#define DT_BASE_R80_10_11    0x0010u
-#define DT_BASE_R80_11_11    0x000fu
+#define DT_BASE_R80_8_8 0x000fu /* R5=15 at -ve cells */
+#define DT_BASE_R80_9_8 0x0010u /* R5=16 at non-neg cells */
+#define DT_BASE_R80_10_8 0x000fu
+#define DT_BASE_R80_11_8 0x0010u
+#define DT_BASE_R80_8_9 0x0010u
+#define DT_BASE_R80_9_9 0x000fu
+#define DT_BASE_R80_10_9 0x0010u
+#define DT_BASE_R80_11_9 0x000fu
+#define DT_BASE_R80_8_10 0x000fu
+#define DT_BASE_R80_9_10 0x0010u
+#define DT_BASE_R80_10_10 0x000fu
+#define DT_BASE_R80_11_10 0x0010u
+#define DT_BASE_R80_8_11 0x0010u
+#define DT_BASE_R80_9_11 0x000fu
+#define DT_BASE_R80_10_11 0x0010u
+#define DT_BASE_R80_11_11 0x000fu
 
-#define DT_BASE_RC0_8_8      0x0017u  /* R5=23 at -ve cells */
-#define DT_BASE_RC0_9_8      0x0018u  /* R5=24 at non-neg cells */
-#define DT_BASE_RC0_10_8     0x0017u
-#define DT_BASE_RC0_11_8     0x0018u
-#define DT_BASE_RC0_8_9      0x0018u
-#define DT_BASE_RC0_9_9      0x0017u
-#define DT_BASE_RC0_10_9     0x0018u
-#define DT_BASE_RC0_11_9     0x0017u
-#define DT_BASE_RC0_8_10     0x0017u
-#define DT_BASE_RC0_9_10     0x0018u
-#define DT_BASE_RC0_10_10    0x0017u
-#define DT_BASE_RC0_11_10    0x0018u
-#define DT_BASE_RC0_8_11     0x0018u
-#define DT_BASE_RC0_9_11     0x0017u
-#define DT_BASE_RC0_10_11    0x0018u
-#define DT_BASE_RC0_11_11    0x0017u
+#define DT_BASE_RC0_8_8 0x0017u /* R5=23 at -ve cells */
+#define DT_BASE_RC0_9_8 0x0018u /* R5=24 at non-neg cells */
+#define DT_BASE_RC0_10_8 0x0017u
+#define DT_BASE_RC0_11_8 0x0018u
+#define DT_BASE_RC0_8_9 0x0018u
+#define DT_BASE_RC0_9_9 0x0017u
+#define DT_BASE_RC0_10_9 0x0018u
+#define DT_BASE_RC0_11_9 0x0017u
+#define DT_BASE_RC0_8_10 0x0017u
+#define DT_BASE_RC0_9_10 0x0018u
+#define DT_BASE_RC0_10_10 0x0017u
+#define DT_BASE_RC0_11_10 0x0018u
+#define DT_BASE_RC0_8_11 0x0018u
+#define DT_BASE_RC0_9_11 0x0017u
+#define DT_BASE_RC0_10_11 0x0018u
+#define DT_BASE_RC0_11_11 0x0017u
 
 // ============================================================================
 // DT_CHAN_G / DT_CHAN_B: channel-independence verification.
@@ -160,15 +160,15 @@ SOFTWARE.
 // B nominal: 0x0010<<10 = 0x4000, dithered: 0x000f<<10 = 0x3c00.
 // ============================================================================
 
-#define DT_CHAN_G80_8_8      0x01e0u  /* -ve cell */
-#define DT_CHAN_G80_9_8      0x0200u  /* non-neg cell */
-#define DT_CHAN_G80_10_8     0x01e0u
-#define DT_CHAN_G80_11_8     0x0200u
+#define DT_CHAN_G80_8_8 0x01e0u /* -ve cell */
+#define DT_CHAN_G80_9_8 0x0200u /* non-neg cell */
+#define DT_CHAN_G80_10_8 0x01e0u
+#define DT_CHAN_G80_11_8 0x0200u
 
-#define DT_CHAN_B80_8_8      0x3c00u  /* -ve cell */
-#define DT_CHAN_B80_9_8      0x4000u  /* non-neg cell */
-#define DT_CHAN_B80_10_8     0x3c00u
-#define DT_CHAN_B80_11_8     0x4000u
+#define DT_CHAN_B80_8_8 0x3c00u /* -ve cell */
+#define DT_CHAN_B80_9_8 0x4000u /* non-neg cell */
+#define DT_CHAN_B80_10_8 0x3c00u
+#define DT_CHAN_B80_11_8 0x4000u
 
 // ============================================================================
 // DT_POS: position sweep. Probe screen-space (16, 16) across four
@@ -187,10 +187,10 @@ SOFTWARE.
 // not depend on which triangle covers it.
 // ============================================================================
 
-#define DT_POS_00_AT_16_16   RASTER_SENTINEL  /* outside triangle bound */
-#define DT_POS_04_AT_16_16   DT_DITHER_MID
-#define DT_POS_40_AT_16_16   DT_DITHER_MID
-#define DT_POS_44_AT_16_16   DT_DITHER_MID
+#define DT_POS_00_AT_16_16 RASTER_SENTINEL /* outside triangle bound */
+#define DT_POS_04_AT_16_16 DT_DITHER_MID
+#define DT_POS_40_AT_16_16 DT_DITHER_MID
+#define DT_POS_44_AT_16_16 DT_DITHER_MID
 
 // ============================================================================
 // DT_SAT_LOW: R=4 input. Bayer offsets at probed cells are {-4, +0,
@@ -202,16 +202,16 @@ SOFTWARE.
 // follow-up phase can revisit if the refactor needs that case.
 // ============================================================================
 
-#define DT_SAT_LOW_R04_8_8   0x0000u
-#define DT_SAT_LOW_R04_9_8   0x0000u
-#define DT_SAT_LOW_R04_10_8  0x0000u
-#define DT_SAT_LOW_R04_11_8  0x0000u
+#define DT_SAT_LOW_R04_8_8 0x0000u
+#define DT_SAT_LOW_R04_9_8 0x0000u
+#define DT_SAT_LOW_R04_10_8 0x0000u
+#define DT_SAT_LOW_R04_11_8 0x0000u
 
 // DT_SAT_HIGH: R=0xFC. Bayer offsets {-4, +0, -3, +1}. 252-4=248,
 // 252+0=252, 252-3=249, 252+1=253 - all truncate to R5=31. Same
 // caveat: real saturation behavior unprobed here.
-#define DT_SAT_HIGH_RFC_8_8  0x001fu
-#define DT_SAT_HIGH_RFC_9_8  0x001fu
+#define DT_SAT_HIGH_RFC_8_8 0x001fu
+#define DT_SAT_HIGH_RFC_9_8 0x001fu
 #define DT_SAT_HIGH_RFC_10_8 0x001fu
 #define DT_SAT_HIGH_RFC_11_8 0x001fu
 
@@ -232,9 +232,9 @@ SOFTWARE.
 // -> 255) confirm the boundary itself doesn't shift.
 // ============================================================================
 
-#define DT_SAT_CROSS_UNDER_R3_8_8     0x0000u  /* offset -4 underflow, predict clamp */
-#define DT_SAT_CROSS_UNDER_R3_10_10   0x0000u  /* offset -4 underflow, predict clamp */
-#define DT_SAT_CROSS_LAND_R4_8_8      0x0000u  /* offset -4 lands at 0 exactly */
-#define DT_SAT_CROSS_OVER_R255_10_9   0x001fu  /* offset +3 overflow, predict clamp */
-#define DT_SAT_CROSS_OVER_R255_8_11   0x001fu  /* offset +3 overflow, predict clamp */
-#define DT_SAT_CROSS_LAND_R252_10_9   0x001fu  /* offset +3 lands at 255 exactly */
+#define DT_SAT_CROSS_UNDER_R3_8_8 0x0000u   /* offset -4 underflow, predict clamp */
+#define DT_SAT_CROSS_UNDER_R3_10_10 0x0000u /* offset -4 underflow, predict clamp */
+#define DT_SAT_CROSS_LAND_R4_8_8 0x0000u    /* offset -4 lands at 0 exactly */
+#define DT_SAT_CROSS_OVER_R255_10_9 0x001fu /* offset +3 overflow, predict clamp */
+#define DT_SAT_CROSS_OVER_R255_8_11 0x001fu /* offset +3 overflow, predict clamp */
+#define DT_SAT_CROSS_LAND_R252_10_9 0x001fu /* offset +3 lands at 255 exactly */
