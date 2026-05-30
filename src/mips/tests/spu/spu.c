@@ -242,28 +242,50 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
     SPU_KEY_ON_LOW = 1u << 1;
 }
 
-// Compare a 1024-byte captured waveform against a golden file. The golden
-// covers bytes [0 .. warmup+period); for the remaining bytes we verify
-// periodicity (capture[i] must repeat from the body of the golden).
+// Compare a captured waveform against a golden, tolerating the SPU's capture-
+// start jitter. The bit-11 sync pins the start to within ~1 sample, landing on
+// one of two adjacent boundaries (deterministic per power-on, and the boundary
+// differs across PS1 revisions). The captured signal is otherwise bit-identical
+// to the golden, so find the best-aligning integer-sample shift in a tiny window
+// and then require an exact match at that shift. Samples are 16-bit.
+#define SPU_GOLDEN_MAXSHIFT 2  // samples; observed jitter only ever lands in {-1,0,+1}
 static int spu_compare_golden(const char *name, const void *cap,
                               const uint8_t *golden_file) {
     const PcmTestHeader *h = (const PcmTestHeader *)golden_file;
-    const uint8_t *golden = golden_file + h->length;
-    const uint8_t *a = (const uint8_t *)cap;
-    const uint32_t kept = h->warmup + h->period;
-    for (uint32_t i = 0; i < kept; i++) {
-        if (a[i] != golden[i]) {
-            ramsyscall_printf("%s mismatch at byte %lu: got 0x%02x, want 0x%02x\n",
-                              name, (unsigned long)i, a[i], golden[i]);
-            return (int)(i + 1);
+    const int16_t *golden = (const int16_t *)(golden_file + h->length);
+    const int16_t *a = (const int16_t *)cap;
+    const int warmupS = (int)(h->warmup / 2);
+    const int periodS = (int)(h->period / 2);
+    const int keptS = warmupS + periodS;
+
+    int bestShift = 0, bestBad = 0x7fffffff;
+    for (int s = -SPU_GOLDEN_MAXSHIFT; s <= SPU_GOLDEN_MAXSHIFT; s++) {
+        int bad = 0;
+        for (int i = 0; i < keptS; i++) {
+            int j = i + s;
+            if (j < 0 || j >= 512) continue;
+            if (a[j] != golden[i]) bad++;
+        }
+        if (bad < bestBad) {
+            bestBad = bad;
+            bestShift = s;
         }
     }
-    for (uint32_t i = kept; i < 1024; i++) {
-        uint8_t expected = a[h->warmup + ((i - h->warmup) % h->period)];
-        if (a[i] != expected) {
-            ramsyscall_printf("%s periodicity broken at byte %lu: got 0x%02x, want 0x%02x\n",
-                              name, (unsigned long)i, a[i], expected);
-            return (int)(i + 1);
+
+    for (int i = 0; i < keptS; i++) {
+        int j = i + bestShift;
+        if (j < 0 || j >= 512) continue;
+        if (a[j] != golden[i]) {
+            ramsyscall_printf("%s mismatch at sample %d (shift %d): got 0x%04x, want 0x%04x\n",
+                              name, i, bestShift, (uint16_t)a[j], (uint16_t)golden[i]);
+            return i + 1;
+        }
+    }
+    for (int i = keptS + SPU_GOLDEN_MAXSHIFT; i < 512; i++) {
+        if (a[i] != a[i - periodS]) {
+            ramsyscall_printf("%s periodicity broken at sample %d: got 0x%04x, want 0x%04x\n",
+                              name, i, (uint16_t)a[i], (uint16_t)a[i - periodS]);
+            return i + 1;
         }
     }
     return 0;
