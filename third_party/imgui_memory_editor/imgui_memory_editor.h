@@ -100,7 +100,7 @@ struct MemoryEditor
 
     // Read-ahead cache for performance. Batches individual byte reads into bulk reads.
     struct ReadCache {
-        static constexpr size_t kPageSize = 4096;
+        static constexpr size_t c_pageSize = 4096;
         std::function<void(void* dest, size_t off, size_t len)> BulkReadFn = nullptr;
 
         ImU8 read(size_t off) {
@@ -115,13 +115,13 @@ struct MemoryEditor
 
     private:
         void fill(size_t off) {
-            m_base = off & ~(kPageSize - 1);
+            m_base = off & ~(c_pageSize - 1);
             if (m_base >= m_totalSize) {
                 m_len = 0;
                 m_buf.clear();
                 return;
             }
-            m_len = std::min(kPageSize, m_totalSize - m_base);
+            m_len = std::min(c_pageSize, m_totalSize - m_base);
             m_buf.resize(m_len);
             BulkReadFn(m_buf.data(), m_base, m_len);
         }

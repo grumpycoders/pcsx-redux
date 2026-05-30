@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\ucl\src\n2e_ds.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -126,6 +129,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

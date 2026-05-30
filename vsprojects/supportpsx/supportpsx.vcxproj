@@ -154,6 +154,7 @@
     <ClCompile Include="..\..\third_party\iec-60908b\tables.c" />
     <ClCompile Include="..\..\third_party\ucl\src\alloc.c" />
     <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c" />
+    <ClCompile Include="..\..\third_party\ucl\src\n2e_ds.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\adpcmffi.lua" />
@@ -176,6 +177,7 @@
     <ClInclude Include="..\..\src\supportpsx\binlua.h" />
     <ClInclude Include="..\..\src\supportpsx\iec-60908b.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h" />
+    <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\supportpsx\memory.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />
