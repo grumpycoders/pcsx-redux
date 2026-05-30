@@ -340,6 +340,25 @@ static void run_voice1_with_sample(const uint8_t *sample64, uint16_t pitch) {
 }
 )
 
+CESTER_BODY(
+static int s_interruptsWereEnabled;
+)
+
+// The bit-11 capture sync and the busy-wait-timed envelope reads are both
+// jitter-sensitive: an interrupt (Unirom's SIO/timer/vblank handlers) firing
+// mid-measurement perturbs the timing, mis-syncing a capture or pushing an
+// envx read past its tolerance. Disable interrupts for the suite, as the
+// cop0/cpu/timer tests do.
+CESTER_BEFORE_ALL(spu_tests,
+    s_interruptsWereEnabled = enterCriticalSection();
+    IMASK = 0;
+    IREG = 0;
+)
+
+CESTER_AFTER_ALL(spu_tests,
+    if (s_interruptsWereEnabled) leaveCriticalSection();
+)
+
 #include "spu-transfer.c"
 #include "spu-adpcm.c"
 #include "spu-capture.c"
