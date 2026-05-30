@@ -238,8 +238,8 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
     SPU_VOICES[1].sampleRate = pitch;
     SPU_VOICES[1].sampleStartAddr = spuAddr >> 3;
     SPU_VOICES[1].sampleRepeatAddr = spuAddr >> 3;
-    SPU_VOICES[1].ad = 0x000f;   // instant attack, sustain level=0xF
-    SPU_VOICES[1].sr = 0x1fc0;   // sustain rate=0x7F, increase, linear
+    SPU_VOICES[1].adsrLo = 0x000f;   // instant attack, sustain level=0xF
+    SPU_VOICES[1].adsrHi = 0x1fc0;   // sustain rate=0x7F, increase, linear
     SPU_KEY_OFF_LOW = 0; SPU_KEY_OFF_HIGH = 0;
     SPU_KEY_ON_LOW = 1u << 1;
 }

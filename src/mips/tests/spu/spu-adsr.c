@@ -44,8 +44,8 @@ static void spu_adsr_capture(
     SPU_VOICES[1].volumeLeft = 0;
     SPU_VOICES[1].volumeRight = 0;
     spu_wait_status_bit11_flip();
-    SPU_VOICES[1].ad = (uint16_t)(adsr & 0xFFFF);
-    SPU_VOICES[1].sr = (uint16_t)(adsr >> 16);
+    SPU_VOICES[1].adsrLo = (uint16_t)(adsr & 0xFFFF);
+    SPU_VOICES[1].adsrHi = (uint16_t)(adsr >> 16);
     SPU_KEY_OFF_LOW = 0; SPU_KEY_OFF_HIGH = 0;
     SPU_KEY_ON_LOW = 1u << 1;
 
