@@ -89,7 +89,7 @@ void psyqo::SPU::initialize() {
 
     SPU_CTRL = 0;
 
-    SPU_VOL_MAIN_LEFT  = 0x3fff;
+    SPU_VOL_MAIN_LEFT = 0x3fff;
     SPU_VOL_MAIN_RIGHT = 0x3fff;
     SPU_REVERB_LEFT = 0;
     SPU_REVERB_RIGHT = 0;

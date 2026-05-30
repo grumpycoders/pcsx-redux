@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <stdint.h>
+
 #include "common/hardware/irq.h"
 
 struct SIOPort {

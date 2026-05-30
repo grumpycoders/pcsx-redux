@@ -29,7 +29,6 @@
 #include <iostream>
 
 #include "core/debug.h"
-#include "support/gnu-c++-demangler.h"
 #include "core/disr3000a.h"
 #include "core/patchmanager.h"
 #include "core/psxmem.h"
@@ -39,6 +38,7 @@
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include "support/gnu-c++-demangler.h"
 
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
@@ -568,8 +568,7 @@ settings, otherwise debugging features may not work.)");
     ImGui::SameLine();
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
-    ImGui::Checkbox(_("Demangle C++"),
-                    &debugSettings.get<Emulator::DebugSettings::DemangledSymbols>().value);
+    ImGui::Checkbox(_("Demangle C++"), &debugSettings.get<Emulator::DebugSettings::DemangledSymbols>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
