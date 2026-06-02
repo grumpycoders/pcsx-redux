@@ -27,6 +27,7 @@
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/gte.h"
+#include "core/cdromlogger.h"
 #include "core/ramlogger.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -58,6 +59,7 @@ extern "C" int luaopen_lpeg(lua_State* L);
 PCSX::Emulator::Emulator()
     : m_callStacks(new PCSX::CallStacks),
       m_cdrom(PCSX::CDRom::factory()),
+      m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),

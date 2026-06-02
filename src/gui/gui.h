@@ -60,6 +60,7 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
+#include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/ram-viewer.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
@@ -118,6 +119,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
+    typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
     typedef Setting<bool, TYPESTRING("ShowHWRegs")> ShowHWRegs;
     typedef Setting<bool, TYPESTRING("ShowMsanViewer")> ShowMsanViewer;
@@ -165,7 +167,8 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme,
+             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize,
+             MonoFontSize, GUITheme,
              AllowMouseCaptureToggle,
              EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
@@ -421,6 +424,7 @@ class GUI final : public UI {
                                             {settings.get<ShowVRAMViewer4>().value}};
 
     Widgets::RAMViewer m_ramViewer = {settings.get<ShowRAMViewer>().value};
+    Widgets::CDRomViewer m_cdromViewer = {settings.get<ShowCDRomViewer>().value};
     Widgets::LuaEditor m_luaEditor = {settings.get<ShowLuaEditor>().value};
 
     Widgets::Events m_events = {settings.get<ShowEvents>().value};

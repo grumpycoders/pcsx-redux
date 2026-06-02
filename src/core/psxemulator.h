@@ -68,6 +68,7 @@ namespace PCSX {
 
 class CallStacks;
 class CDRom;
+class CDRomLogger;
 class Counters;
 class Debug;
 class GdbServer;
@@ -256,6 +257,7 @@ class Emulator {
 
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
+    std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;

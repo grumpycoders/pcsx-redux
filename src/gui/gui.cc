@@ -54,6 +54,7 @@ extern "C" {
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
+#include "core/cdromlogger.h"
 #include "core/ramlogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
@@ -1439,6 +1440,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 if (ImGui::BeginMenu(_("CD-Rom"))) {
                     ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
+                    ImGui::MenuItem(_("Show CD-ROM viewer"), nullptr, &m_cdromViewer.m_show);
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Misc hardware"))) {
@@ -1581,6 +1583,16 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     } else {
         auto *ramLogger = g_emulator->m_ramLogger.get();
         if (ramLogger->isEnabled()) ramLogger->disable();
+    }
+
+    if (m_cdromViewer.m_show) {
+        auto *cdromLogger = g_emulator->m_cdromLogger.get();
+        if (!cdromLogger->isEnabled()) cdromLogger->enable();
+        cdromLogger->uploadHeatmaps();
+        m_cdromViewer.draw(this);
+    } else {
+        auto *cdromLogger = g_emulator->m_cdromLogger.get();
+        if (cdromLogger->isEnabled()) cdromLogger->disable();
     }
 
     if (m_log.m_show) {
