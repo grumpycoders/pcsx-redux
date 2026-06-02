@@ -69,6 +69,7 @@ class CDRomViewer : public ZoomableImage {
     int m_locDecayHalfLife;
     int m_locPolarMode;
     int m_locInnerHole;
+    int m_locSpiralC;
     int m_locDiscSectors;
     int m_locSide;
 

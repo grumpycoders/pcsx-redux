@@ -57,7 +57,11 @@ class CDRomLogger {
 
     // Total sector count of the mounted disc (lead-out LBA), for the backdrop
     // that shades the valid disc extent. 0 = unknown / no disc.
-    void setDiscSectors(uint32_t n) { m_discSectors = n; }
+    // Ignore 0: getTD(0) returns 0 during the reset transient (before tracks are
+    // re-parsed), and we don't want a hard reset to wipe the known disc extent.
+    void setDiscSectors(uint32_t n) {
+        if (n != 0) m_discSectors = n;
+    }
     uint32_t getDiscSectors() const { return m_discSectors; }
 
     void bindDataHeatmap() { m_dataHeatmapTex.bind(); }

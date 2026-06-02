@@ -21,7 +21,9 @@
 
 #include "gui/widgets/cdrom-viewer.h"
 
+#include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #include "GL/gl3w.h"
 #include "core/cdromlogger.h"
@@ -32,19 +34,33 @@
 #include "imgui_internal.h"
 #include "supportpsx/iec-60908b.h"
 
-// Physical CD geometry (IEC 60908 / Red Book), used only to size the polar
-// mode's inner hole so it matches a real disc.
-//   r_in   = 25 mm   program-area inner radius
-//   pitch  = 1.6 um  track pitch
-//   v      = 1.2 m/s CLV scanning velocity
-//   75 sectors/s
-// At constant linear velocity, equal sectors = equal track arc length = equal
-// annular area, giving r(N) = sqrt(r_in^2 + N * v*pitch/(75*pi)). The inner
-// hole as a fraction of the disc radius is r_in / r(N_total).
-static constexpr double c_rIn = 0.025;
-static constexpr double c_pitch = 1.6e-6;
-static constexpr double c_velocity = 1.2;
-static constexpr double c_sectorsPerSec = 75.0;
+// Polar-mode inner-hole radius as a fraction of the disc radius. Physically the
+// CD program area runs from r_in = 25 mm to r_out ~= 58 mm on a full disc
+// (IEC 60908 / Red Book), so the data band starts at r_in / r_out ~= 0.43 of the
+// outer radius. This is deliberately a fixed geometric constant: deriving it
+// from the live disc sector count made the polar shape change on a hard reset,
+// because getTD(0) momentarily reads 0 mid-reset before the tracks are
+// re-parsed. Disc length still shows through where the data lands in the annulus
+// and via the extent backdrop - not through the hole size.
+static constexpr float c_innerHole = 0.43f;
+
+// Sectors per revolution at the rim, from CLV geometry: 2*pi*r_out / arc, with
+// r_out ~= 58 mm and arc = v/75 = 16 mm per sector at 1x (v = 1.2 m/s). Sectors
+// per revolution scales linearly with radius (S(rho) = c_sectorsPerRevAtRim *
+// rho), so it runs from ~9.8 at the hub to ~22.8 at the rim. The read position
+// therefore sweeps at the physical CLV rate - fast at the center (~458 rpm),
+// slow at the rim (~198 rpm) - because rotation rate = read_rate / S(rho).
+static constexpr float c_sectorsPerRevAtRim = 22.8f;
+
+// Spiral constant C such that total revolutions at radius rho is C*(rho - hole),
+// derived from the area law r(N)=sqrt(h^2 + (N/Nmax)(1-h^2)) integrated against
+// dN/S(rho): C = 2*Nmax / ((1 - h^2) * sectorsPerRevAtRim). Single source of
+// truth shared by the GLSL uniform and the CPU-side hover readout.
+static float spiralConstant() {
+    const float h = c_innerHole;
+    const float nmax = float(PCSX::CDRomLogger::c_side) * float(PCSX::CDRomLogger::c_side);
+    return 2.0f * nmax / ((1.0f - h * h) * c_sectorsPerRevAtRim);
+}
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
@@ -82,6 +98,7 @@ uniform float u_decayHalfLife;
 
 uniform bool u_polarMode;
 uniform float u_innerHole;   // polar inner hole radius, fraction of disc radius
+uniform float u_spiralC;     // spiral constant: revolutions at radius rho = u_spiralC*(rho-innerHole)
 uniform uint u_discSectors;  // lead-out LBA; 0 = unknown
 uniform float u_side;        // grid side (640)
 
@@ -117,10 +134,15 @@ void main() {
         lba = row * uint(u_side) + col;
         inDisc = (u_discSectors == 0u) || (lba < u_discSectors);
     } else {
-        // Polar disc: radius encodes LBA by the CLV area law (equal area = equal
-        // sectors), angle spreads the within-ring sectors around the platter.
-        // A seek shows as a radial jump - the head physically flying across the
-        // disc. Reads inside-out: low LBA near the hub, high LBA at the rim.
+        // Polar disc: an approximation of "where on the disc the head is."
+        // Radius follows the CLV area law (equal area = equal sectors); angle
+        // follows the true spiral winding, so the read position sweeps at the
+        // physical rotation rate - sectors per revolution = sprAtRim * rho, ~10
+        // at the hub and ~23 at the rim, giving the CLV spin (fast at center,
+        // slow at rim). There are ~25000 windings, far below pixel resolution;
+        // we snap each fragment to the nearest winding. Overlap is expected and
+        // fine - this is a positional approximation, not a sector-exact grid.
+        // A seek shows as a radial jump (the head flying across the disc).
         vec2 p = uv - vec2(0.5);
         float rho = length(p) / 0.5;          // 0 at center, 1 at inscribed rim
         if (rho < u_innerHole || rho > 1.0) {
@@ -128,13 +150,22 @@ void main() {
             outColor = vec4(0.04, 0.04, 0.05, 1.0);
             return;
         }
-        float angFrac = (atan(p.y, p.x) + PI) / (2.0 * PI);       // 0..1
-        float fRadial = (rho * rho - u_innerHole * u_innerHole) /
-                        (1.0 - u_innerHole * u_innerHole);         // 0..1, area-proportional
-        heatUV = vec2(angFrac, fRadial);
-        uint col = uint(clamp(floor(angFrac * u_side), 0.0, u_side - 1.0));
-        uint row = uint(clamp(floor(fRadial * u_side), 0.0, u_side - 1.0));
-        lba = row * uint(u_side) + col;
+        float angFrac = (atan(p.y, p.x) + PI) / (2.0 * PI);     // 0..1 of a revolution
+        float thetaTotal = u_spiralC * (rho - u_innerHole);     // revolutions at this radius
+        float winding = floor(thetaTotal - angFrac + 0.5);      // nearest winding
+        float theta = winding + angFrac;                        // snapped total revolutions
+        float rhoN = u_innerHole + theta / u_spiralC;           // radius of the snapped sector
+        if (theta < 0.0 || rhoN > 1.0) {
+            outColor = vec4(0.04, 0.04, 0.05, 1.0);
+            return;
+        }
+        float fN = (rhoN * rhoN - u_innerHole * u_innerHole) /
+                   (1.0 - u_innerHole * u_innerHole);            // 0..1 = N / Nmax
+        float nmax = u_side * u_side;
+        lba = uint(clamp(fN * nmax, 0.0, nmax - 1.0));
+        uint col = lba % uint(u_side);
+        uint row = lba / uint(u_side);
+        heatUV = (vec2(float(col), float(row)) + 0.5) / u_side;
         inDisc = (u_discSectors == 0u) || (lba < u_discSectors);
     }
 
@@ -177,21 +208,22 @@ bool PCSX::Widgets::CDRomViewer::uvToLBA(ImVec2 uv, uint32_t &lba) const {
         lba = row * CDRomLogger::c_side + col;
         return true;
     }
-    // Mirror the polar GLSL mapping for the hover readout.
-    float innerHole = 0.35f;
-    uint32_t discSectors = g_emulator->m_cdromLogger->getDiscSectors();
-    if (discSectors > 0) {
-        double rOut = std::sqrt(c_rIn * c_rIn + discSectors * c_velocity * c_pitch / (c_sectorsPerSec * M_PI));
-        innerHole = float(std::clamp(c_rIn / rOut, 0.2, 0.5));
-    }
+    // Mirror the polar GLSL spiral mapping for the hover readout.
+    constexpr float pi = std::numbers::pi_v<float>;
+    const float h = c_innerHole;
+    const float spiralC = spiralConstant();
     float px = uv.x - 0.5f, py = uv.y - 0.5f;
     float rho = std::sqrt(px * px + py * py) / 0.5f;
-    if (rho < innerHole || rho > 1.0f) return false;
-    float angFrac = (std::atan2(py, px) + float(M_PI)) / (2.0f * float(M_PI));
-    float fRadial = (rho * rho - innerHole * innerHole) / (1.0f - innerHole * innerHole);
-    uint32_t col = uint32_t(std::clamp(std::floor(angFrac * side), 0.0f, side - 1.0f));
-    uint32_t row = uint32_t(std::clamp(std::floor(fRadial * side), 0.0f, side - 1.0f));
-    lba = row * CDRomLogger::c_side + col;
+    if (rho < h || rho > 1.0f) return false;
+    float angFrac = (std::atan2(py, px) + pi) / (2.0f * pi);
+    float thetaTotal = spiralC * (rho - h);
+    float winding = std::floor(thetaTotal - angFrac + 0.5f);
+    float theta = winding + angFrac;
+    float rhoN = h + theta / spiralC;
+    if (theta < 0.0f || rhoN > 1.0f) return false;
+    float fN = (rhoN * rhoN - h * h) / (1.0f - h * h);
+    float nmax = side * side;
+    lba = uint32_t(std::clamp(fN * nmax, 0.0f, nmax - 1.0f));
     return true;
 }
 
@@ -217,6 +249,7 @@ void PCSX::Widgets::CDRomViewer::compileShader(GUI *gui) {
     m_locDecayHalfLife = glGetUniformLocation(m_shaderProgram, "u_decayHalfLife");
     m_locPolarMode = glGetUniformLocation(m_shaderProgram, "u_polarMode");
     m_locInnerHole = glGetUniformLocation(m_shaderProgram, "u_innerHole");
+    m_locSpiralC = glGetUniformLocation(m_shaderProgram, "u_spiralC");
     m_locDiscSectors = glGetUniformLocation(m_shaderProgram, "u_discSectors");
     m_locSide = glGetUniformLocation(m_shaderProgram, "u_side");
 }
@@ -237,12 +270,7 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     uint32_t currentCycle = static_cast<uint32_t>(g_emulator->m_cpu->m_regs.cycle);
     uint32_t discSectors = logger->getDiscSectors();
 
-    // Inner hole sized from the physical area law (see top-of-file constants).
-    float innerHole = 0.35f;
-    if (discSectors > 0) {
-        double rOut = std::sqrt(c_rIn * c_rIn + discSectors * c_velocity * c_pitch / (c_sectorsPerSec * M_PI));
-        innerHole = float(std::clamp(c_rIn / rOut, 0.2, 0.5));
-    }
+    float innerHole = c_innerHole;
 
     glUniformMatrix4fv(m_locProjMtx, 1, GL_FALSE, &currentProjection[0][0]);
     glUniform1ui(m_locCurrentCycle, currentCycle);
@@ -255,6 +283,7 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     glUniform4f(m_locSeekColor, m_seekColor.x, m_seekColor.y, m_seekColor.z, m_seekColor.w);
     glUniform1i(m_locPolarMode, m_polarMode);
     glUniform1f(m_locInnerHole, innerHole);
+    glUniform1f(m_locSpiralC, spiralConstant());
     glUniform1ui(m_locDiscSectors, discSectors);
     glUniform1f(m_locSide, float(CDRomLogger::c_side));
 
@@ -274,8 +303,7 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
-    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
 }
 
 void PCSX::Widgets::CDRomViewer::drawDisc(GUI *gui) {
@@ -376,25 +404,25 @@ void PCSX::Widgets::CDRomViewer::draw(GUI *gui) {
 
     if (openDataColorPicker) ImGui::OpenPopup(_("Data Color Picker"));
     if (ImGui::BeginPopupModal(_("Data Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##DataColorPicker", (float *)&m_dataColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##DataColorPicker", (float *)&m_dataColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     if (openAudioColorPicker) ImGui::OpenPopup(_("Audio Color Picker"));
     if (ImGui::BeginPopupModal(_("Audio Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##AudioColorPicker", (float *)&m_audioColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##AudioColorPicker", (float *)&m_audioColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     if (openSeekColorPicker) ImGui::OpenPopup(_("Seek Color Picker"));
     if (ImGui::BeginPopupModal(_("Seek Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##SeekColorPicker", (float *)&m_seekColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##SeekColorPicker", (float *)&m_seekColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
