@@ -514,7 +514,11 @@ void SPD_Poll() {
     }
 }
 
-void SPD_SetMasterVolume(uint32_t volume) { s_masterVolume = volume; }
+void SPD_SetMasterVolume(uint32_t volume) {
+    s_masterVolume = volume;
+    SPU_VOL_MAIN_LEFT = (int16_t)volume;
+    SPU_VOL_MAIN_RIGHT = (int16_t)volume;
+}
 
 void SPD_PlaySoundEffect(unsigned voice, unsigned sampleID, uint16_t pitch, int16_t volume) {
     if (voice >= 24) return;

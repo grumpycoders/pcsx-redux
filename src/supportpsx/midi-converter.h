@@ -124,14 +124,28 @@ struct SpuSample {
     std::vector<uint8_t> adpcmData;
 };
 
-// Key for deduplicating SF2 samples: based on actual sample data identity.
-// Two regions referencing the same range in fontSamples share one SPU sample.
+// Key for deduplicating SF2 samples. Two regions share one SPU sample only when the
+// produced sample is genuinely identical: same PCM range AND same parameters that change
+// the output. The encoded ADPCM bytes depend on the loop flag and loop start; the tone's
+// center note/fine tune are computed from rootKey/transpose/tune (which callers read back
+// off the cached SpuSample). A region that shares PCM bytes but overrides any of these is a
+// distinct sample, so it must not collapse onto the first one's parameters.
 struct SampleKey {
-    unsigned int offset;  // start index in fontSamples
-    unsigned int end;     // end index in fontSamples
+    unsigned int offset;     // start index in fontSamples
+    unsigned int end;        // end index in fontSamples
+    int hasLoop;             // loop flag (baked into the ADPCM block flags)
+    unsigned int loopStart;  // loop start index when looping (affects the encoded loop point)
+    int rootKey;             // region pitch_keycenter (read back for the tone center note)
+    int transpose;           // region coarse tune
+    int tune;                // region fine tune (cents)
     bool operator<(const SampleKey& o) const {
         if (offset != o.offset) return offset < o.offset;
-        return end < o.end;
+        if (end != o.end) return end < o.end;
+        if (hasLoop != o.hasLoop) return hasLoop < o.hasLoop;
+        if (loopStart != o.loopStart) return loopStart < o.loopStart;
+        if (rootKey != o.rootKey) return rootKey < o.rootKey;
+        if (transpose != o.transpose) return transpose < o.transpose;
+        return tune < o.tune;
     }
 };
 
@@ -490,7 +504,14 @@ inline std::vector<tsf_region*> findRegions(tsf* sf2, int presetIndex, int note,
 inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSample>& samples,
                                std::map<SampleKey, size_t>& sampleMap, uint32_t& nextSpuAddr, uint32_t maxSpuAddr,
                                bool warnPitchCeiling) {
-    SampleKey key = {region->offset, region->end};
+    bool keyHasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
+    SampleKey key = {region->offset,
+                     region->end,
+                     keyHasLoop ? 1 : 0,
+                     keyHasLoop ? region->loop_start : 0u,
+                     (int)region->pitch_keycenter,
+                     region->transpose,
+                     region->tune};
     auto it = sampleMap.find(key);
     if (it != sampleMap.end()) return it->second;
 

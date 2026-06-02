@@ -419,7 +419,8 @@ void ConvertContext::generate() {
     for (int i = 0; i < 16; i++) {
         channels[i] = ChannelState();
     }
-    channels[MIDI_DRUM_CHANNEL].program = 128;
+    // The drum channel's program selects the GM drum kit (preset number under SF2 bank 128);
+    // it defaults to 0 (Standard kit) and is updated by program changes like any other channel.
 
     // Pre-scan for loop markers
     for (auto& mev : midi.events) {
@@ -494,7 +495,6 @@ void ConvertContext::generate() {
 
         if (mev.type == MIDI_PROGRAM_CHANGE) {
             channels[mev.channel].program = mev.data1;
-            if (mev.channel == MIDI_DRUM_CHANNEL) channels[mev.channel].program = 128;
 
             // Emit program change (the program index will be resolved at NOTE_ON time,
             // but emit the event for the player's state tracking)
@@ -583,11 +583,14 @@ void ConvertContext::generate() {
             bool isDrum = (ch == MIDI_DRUM_CHANNEL);
 
             // Find the SF2 preset
+            // Drums live in SF2 bank 128 with the preset number selecting the kit; melodic
+            // channels use bank MSB (SF2/GM fonts don't use bank LSB, so it is ignored here).
             int bank = isDrum ? 128 : (int)chanState.bankMSB;
-            int prog = isDrum ? 0 : chanState.program;
+            int prog = chanState.program;
             int presetIndex = tsf_get_presetindex(sf2, bank, prog);
             if (presetIndex < 0) {
-                if (!isDrum) presetIndex = tsf_get_presetindex(sf2, 0, prog);
+                // Fall back to the default bank/kit when the requested one is absent.
+                presetIndex = tsf_get_presetindex(sf2, isDrum ? 128 : 0, isDrum ? 0 : prog);
                 if (presetIndex < 0) continue;
             }
 

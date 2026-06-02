@@ -294,6 +294,7 @@ int PSM_playing = 0;
 static const struct PsmEvent* s_events = NULL;
 static uint32_t s_loopEventIndex = 0;
 static uint32_t s_waitRemaining = 0;
+static int s_deltaConsumed = 0;  // armed the wait for the current event's deltaTick already
 static uint32_t s_tickRateFP = 0;
 
 // VAB data pointers (kept after load for tone lookups during playback)
@@ -586,6 +587,7 @@ uint32_t PSM_LoadSong(const void* psmData, uint32_t psmSize) {
     PSM_currentEvent = 0;
     s_loopEventIndex = 0;
     s_waitRemaining = 0;
+    s_deltaConsumed = 0;
     s_globalTick = 0;
     s_reverbMask = 0;
     PSM_playing = 1;
@@ -848,21 +850,18 @@ void PSM_Poll(void) {
     while (PSM_currentEvent < PSM_eventCount) {
         const struct PsmEvent* ev = &s_events[PSM_currentEvent];
 
-        // Check delta tick - do we need to wait?
-        if (ev->deltaTick > 0) {
-            // Consume the delta by setting wait and decrementing
-            s_waitRemaining = ev->deltaTick - 1;  // -1 because this tick counts
-            // Process the event, then return
-            PSM_currentEvent++;
-            processEvent(ev);
-
-            // If the event was END and we looped, don't return - continue processing
-            if (ev->type == PSM_END && PSM_playing) continue;
-
+        // Wait out this event's delta BEFORE firing it. deltaTick is the gap since the
+        // previous event (PSM.md:43), so the event must not fire until that many ticks
+        // have elapsed. s_deltaConsumed records that the wait for this event is already
+        // armed, so we don't re-arm it when the wait expires and we revisit the event.
+        if (ev->deltaTick > 0 && !s_deltaConsumed) {
+            s_waitRemaining = ev->deltaTick - 1;  // -1 because this tick counts as the first
+            s_deltaConsumed = 1;
             return;
         }
+        s_deltaConsumed = 0;
 
-        // Delta is 0 - process immediately and continue
+        // Delta elapsed (or zero) - fire the event now.
         PSM_currentEvent++;
         processEvent(ev);
 

@@ -600,8 +600,9 @@ void ConvertContext::generateStream() {
     for (int i = 0; i < 16; i++) {
         channels[i] = ChannelState();
     }
-    // Channel 10 is drums (0-indexed as channel 9)
-    channels[MIDI_DRUM_CHANNEL].program = 128;
+    // Channel 10 is drums (0-indexed as channel 9). Its program selects the GM drum kit
+    // (preset number under SF2 bank 128), defaulting to 0 (Standard) and updated by program
+    // changes like any other channel.
 
     // Pre-scan for loop markers (CC#111 and text markers)
     for (auto& mev : midi.events) {
@@ -643,6 +644,11 @@ void ConvertContext::generateStream() {
     static constexpr double VIBRATO_RATE_HZ = 6.0;
     static constexpr double VIBRATO_MAX_CENTS = 50.0;  // max depth at CC#1 = 127
     uint32_t globalTick = 0;                           // absolute tick counter for LFO phase
+    // Real-time accumulator for the vibrato LFO phase. Converting an absolute tick position to
+    // seconds with only the current tempo would make the phase jump at every tempo change, so we
+    // bank the seconds elapsed up to the last tempo change and add the current segment on top.
+    double accumulatedSeconds = 0.0;
+    uint32_t lastTempoTick = 0;
 
     auto computeTickRate = [&]() -> uint32_t {
         double ticksPerSec = (double)midi.tpqn * 1000000.0 / (double)currentTempo;
@@ -763,9 +769,10 @@ void ConvertContext::generateStream() {
     auto vibratoOffset = [&](uint8_t ch) -> double {
         auto& chanState = channels[ch];
         if (chanState.modulation == 0) return 0.0;
-        // Convert tick to seconds using current tempo
+        // Elapsed real time at the current LFO position: seconds banked under prior tempos plus
+        // the current segment converted at the current tempo. Continuous across tempo changes.
         double ticksPerSec = (double)midi.tpqn * 1000000.0 / (double)currentTempo;
-        double timeSec = globalTick / ticksPerSec;
+        double timeSec = accumulatedSeconds + (double)(globalTick - lastTempoTick) / ticksPerSec;
         // LFO phase at VIBRATO_RATE_HZ
         double phase = timeSec * VIBRATO_RATE_HZ * 2.0 * std::numbers::pi_v<double>;
         double depth = (chanState.modulation / 127.0) * VIBRATO_MAX_CENTS;
@@ -845,6 +852,11 @@ void ConvertContext::generateStream() {
         }
 
         if (mev.type == MIDI_META && mev.data1 == MIDI_META_TEMPO) {
+            // Bank the seconds elapsed under the old tempo before switching, so the vibrato LFO
+            // phase stays continuous (see accumulatedSeconds / lastTempoTick).
+            double oldTicksPerSec = (double)midi.tpqn * 1000000.0 / (double)currentTempo;
+            accumulatedSeconds += (double)(mev.absoluteTick - lastTempoTick) / oldTicksPerSec;
+            lastTempoTick = mev.absoluteTick;
             currentTempo = mev.tempo;
             StreamEvent ev;
             ev.type = StreamEvent::TICK_RATE;
@@ -858,7 +870,6 @@ void ConvertContext::generateStream() {
 
         if (mev.type == MIDI_PROGRAM_CHANGE) {
             channels[mev.channel].program = mev.data1;
-            if (mev.channel == MIDI_DRUM_CHANNEL) channels[mev.channel].program = 128;
             continue;
         }
 
@@ -971,11 +982,14 @@ void ConvertContext::generateStream() {
             bool isDrum = (ch == MIDI_DRUM_CHANNEL);
 
             // Find the SF2 preset and all matching regions for this note
+            // Drums live in SF2 bank 128 with the preset number selecting the kit; melodic
+            // channels use bank MSB (SF2/GM fonts don't use bank LSB, so it is ignored here).
             int bank = isDrum ? 128 : (int)chanState.bankMSB;
-            int prog = isDrum ? 0 : chanState.program;
+            int prog = chanState.program;
             int presetIndex = tsf_get_presetindex(sf2, bank, prog);
             if (presetIndex < 0) {
-                if (!isDrum) presetIndex = tsf_get_presetindex(sf2, 0, prog);
+                // Fall back to the default bank/kit when the requested one is absent.
+                presetIndex = tsf_get_presetindex(sf2, isDrum ? 128 : 0, isDrum ? 0 : prog);
                 if (presetIndex < 0) continue;
             }
 
