@@ -310,15 +310,15 @@ objs/$(BUILD)/%.o: %.mm
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.c
 	@$(MKDIRP) $(dir $@)
-	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.c
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cc
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cc
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cpp
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cpp
 
 objs/$(BUILD)/gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	@$(MKDIRP) $(dir $@)
