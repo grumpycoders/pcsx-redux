@@ -891,6 +891,10 @@ void ConvertContext::generateStream() {
 
                 case MIDI_CC_MODULATION:
                     chanState.modulation = mev.data2;
+                    // Reapply pitch now so the change lands immediately. In particular, when
+                    // modulation returns to 0 the per-tick LFO stops running, so without this
+                    // active voices would keep their last vibrato offset until the next event.
+                    updateChannelPitch(mev.channel);
                     break;
 
                 case MIDI_CC_REVERB_SEND:
@@ -1426,6 +1430,13 @@ Usage: {} input.mid -s soundfont.sf2 -o output.spd [-i output.smp] [-v maxvoices
 
     fmt::print("Samples: {}, SPU RAM used: {} / {} bytes ({:.1f}%)\n", ctx.samples.size(), ctx.nextSpuAddr,
                ctx.maxSpuAddr, ctx.nextSpuAddr * 100.0 / ctx.maxSpuAddr);
+    // The spdplayer reference player caps its sample directory at 128 entries (MAX_SAMPLES) and
+    // silently truncates beyond that, so any tone referencing a later sample would go silent.
+    if (ctx.samples.size() > 128) {
+        fmt::print(stderr, "Warning: {} samples exceeds the player's 128-sample limit; samples past "
+                           "128 will not load. Reduce layering (-l) or simplify the SoundFont.\n",
+                   ctx.samples.size());
+    }
     fmt::print("Macros: {}\n", ctx.macroDefs.size());
     fmt::print("Peak voices: {} / {}\n", ctx.allocator.peakVoices, maxVoices);
     fmt::print("Voice steals: {}\n", ctx.allocator.voiceSteals);

@@ -87,7 +87,7 @@ static const uint8_t* s_fileBase = NULL;
 static const uint32_t* s_stream = NULL;
 static const uint32_t* s_loopPoint = NULL;
 static uint32_t s_waitRemaining = 0;
-static uint32_t s_masterVolume = 16384;
+static uint32_t s_masterVolume = 0x3800;  // SPU main volume, reapplied on every SPUInit
 
 // Order table: each entry is a pattern index
 static uint16_t s_orderTable[MAX_ORDERS];
@@ -119,8 +119,10 @@ static uint32_t s_tickRateFP = 50 << 16;  // default 50 Hz
 
 static void SPUInit() {
     DPCR |= 0x000b0000;
-    SPU_VOL_MAIN_LEFT = 0x3800;
-    SPU_VOL_MAIN_RIGHT = 0x3800;
+    // Reapply the current master volume so it survives load/silence cycles (SPUInit is called
+    // by both loadInternal() and SPD_Silence()); SPD_SetMasterVolume persists through these.
+    SPU_VOL_MAIN_LEFT = (int16_t)s_masterVolume;
+    SPU_VOL_MAIN_RIGHT = (int16_t)s_masterVolume;
     SPU_CTRL = 0;
     SPU_KEY_ON_LOW = 0;
     SPU_KEY_ON_HIGH = 0;
