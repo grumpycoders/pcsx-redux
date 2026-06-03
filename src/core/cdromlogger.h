@@ -67,6 +67,9 @@ class CDRomLogger {
     void bindDataHeatmap() { m_dataHeatmapTex.bind(); }
     void bindAudioHeatmap() { m_audioHeatmapTex.bind(); }
     void bindSeekHeatmap() { m_seekHeatmapTex.bind(); }
+    void bindDataRing() { m_dataRingTex.bind(); }
+    void bindAudioRing() { m_audioRingTex.bind(); }
+    void bindSeekRing() { m_seekRingTex.bind(); }
     GLuint getDataHeatmapID() { return m_dataHeatmapTex.handle(); }
 
     // Configurable decay half-life in cycles (how many cycles until intensity halves).
@@ -85,6 +88,12 @@ class CDRomLogger {
 
     // Heatmap textures (GL_R32UI, 640 x 640).
     OpenGL::Texture m_dataHeatmapTex, m_audioHeatmapTex, m_seekHeatmapTex;
+
+    // Per-radius ring-max textures (GL_R32UI, 640 x 1): each texel is the most
+    // recent timestamp across the whole row (one radial band = one ring). Polar
+    // mode samples these so the entire ring at a read radius lights up, instead
+    // of a thin arc that is invisible at the physical rotation speed.
+    OpenGL::Texture m_dataRingTex, m_audioRingTex, m_seekRingTex;
 
     friend class Widgets::CDRomViewer;
 };

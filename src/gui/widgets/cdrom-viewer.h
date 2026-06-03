@@ -69,9 +69,11 @@ class CDRomViewer : public ZoomableImage {
     int m_locDecayHalfLife;
     int m_locPolarMode;
     int m_locInnerHole;
-    int m_locSpiralC;
     int m_locDiscSectors;
     int m_locSide;
+    int m_locDataRing;
+    int m_locAudioRing;
+    int m_locSeekRing;
 
     // Channel colors: data=green, audio=amber, seek=blue
     ImVec4 m_dataColor = ImVec4{0.0f, 1.0f, 0.3f, 0.85f};

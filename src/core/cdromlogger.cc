@@ -52,6 +52,15 @@ void PCSX::CDRomLogger::enable() {
     setupTex(m_audioHeatmapTex);
     setupTex(m_seekHeatmapTex);
 
+    // Per-radius ring-max textures (640 x 1)
+    m_dataRingTex.create(c_side, 1, GL_R32UI);
+    m_audioRingTex.create(c_side, 1, GL_R32UI);
+    m_seekRingTex.create(c_side, 1, GL_R32UI);
+    if (!m_dataRingTex.exists() || !m_audioRingTex.exists() || !m_seekRingTex.exists()) return;
+    setupTex(m_dataRingTex);
+    setupTex(m_audioRingTex);
+    setupTex(m_seekRingTex);
+
     // Clear timestamp arrays
     memset(m_dataTimestamps, 0, sizeof(m_dataTimestamps));
     memset(m_audioTimestamps, 0, sizeof(m_audioTimestamps));
@@ -76,4 +85,26 @@ void PCSX::CDRomLogger::uploadHeatmaps() {
 
     m_seekHeatmapTex.bind();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, c_side, c_side, GL_RED_INTEGER, GL_UNSIGNED_INT, m_seekTimestamps);
+
+    // Reduce each row (= one radial band / ring) to its most recent timestamp,
+    // and upload the 640 x 1 ring-max textures the polar whole-ring view samples.
+    // Raw max (not decay-aware) is fine: the ~127s wrap window dwarfs the decay
+    // half-life, so the largest raw timestamp is the most recent except for a
+    // single-frame glitch every ~127s.
+    auto uploadRing = [](const uint32_t* ts, OpenGL::Texture& tex) {
+        uint32_t ring[c_side];
+        for (int r = 0; r < c_side; r++) {
+            const uint32_t* row = ts + static_cast<size_t>(r) * c_side;
+            uint32_t m = 0;
+            for (int c = 0; c < c_side; c++) {
+                if (row[c] > m) m = row[c];
+            }
+            ring[r] = m;
+        }
+        tex.bind();
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, c_side, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, ring);
+    };
+    uploadRing(m_dataTimestamps, m_dataRingTex);
+    uploadRing(m_audioTimestamps, m_audioRingTex);
+    uploadRing(m_seekTimestamps, m_seekRingTex);
 }

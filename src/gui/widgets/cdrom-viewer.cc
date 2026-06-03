@@ -23,7 +23,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 
 #include "GL/gl3w.h"
 #include "core/cdromlogger.h"
@@ -43,24 +42,6 @@
 // re-parsed. Disc length still shows through where the data lands in the annulus
 // and via the extent backdrop - not through the hole size.
 static constexpr float c_innerHole = 0.43f;
-
-// Sectors per revolution at the rim, from CLV geometry: 2*pi*r_out / arc, with
-// r_out ~= 58 mm and arc = v/75 = 16 mm per sector at 1x (v = 1.2 m/s). Sectors
-// per revolution scales linearly with radius (S(rho) = c_sectorsPerRevAtRim *
-// rho), so it runs from ~9.8 at the hub to ~22.8 at the rim. The read position
-// therefore sweeps at the physical CLV rate - fast at the center (~458 rpm),
-// slow at the rim (~198 rpm) - because rotation rate = read_rate / S(rho).
-static constexpr float c_sectorsPerRevAtRim = 22.8f;
-
-// Spiral constant C such that total revolutions at radius rho is C*(rho - hole),
-// derived from the area law r(N)=sqrt(h^2 + (N/Nmax)(1-h^2)) integrated against
-// dN/S(rho): C = 2*Nmax / ((1 - h^2) * sectorsPerRevAtRim). Single source of
-// truth shared by the GLSL uniform and the CPU-side hover readout.
-static float spiralConstant() {
-    const float h = c_innerHole;
-    const float nmax = float(PCSX::CDRomLogger::c_side) * float(PCSX::CDRomLogger::c_side);
-    return 2.0f * nmax / ((1.0f - h * h) * c_sectorsPerRevAtRim);
-}
 
 static const GLchar *s_defaultVertexShader = GL_SHADER_VERSION R"(
 precision highp float;
@@ -85,6 +66,11 @@ uniform usampler2D u_dataHeatmap;
 uniform usampler2D u_audioHeatmap;
 uniform usampler2D u_seekHeatmap;
 
+// Per-radius ring-max textures (640x1), sampled in polar mode for the whole-ring highlight.
+uniform usampler2D u_dataRing;
+uniform usampler2D u_audioRing;
+uniform usampler2D u_seekRing;
+
 uniform vec4 u_dataColor;
 uniform vec4 u_audioColor;
 uniform vec4 u_seekColor;
@@ -98,7 +84,6 @@ uniform float u_decayHalfLife;
 
 uniform bool u_polarMode;
 uniform float u_innerHole;   // polar inner hole radius, fraction of disc radius
-uniform float u_spiralC;     // spiral constant: revolutions at radius rho = u_spiralC*(rho-innerHole)
 uniform uint u_discSectors;  // lead-out LBA; 0 = unknown
 uniform float u_side;        // grid side (640)
 
@@ -134,15 +119,13 @@ void main() {
         lba = row * uint(u_side) + col;
         inDisc = (u_discSectors == 0u) || (lba < u_discSectors);
     } else {
-        // Polar disc: an approximation of "where on the disc the head is."
-        // Radius follows the CLV area law (equal area = equal sectors); angle
-        // follows the true spiral winding, so the read position sweeps at the
-        // physical rotation rate - sectors per revolution = sprAtRim * rho, ~10
-        // at the hub and ~23 at the rim, giving the CLV spin (fast at center,
-        // slow at rim). There are ~25000 windings, far below pixel resolution;
-        // we snap each fragment to the nearest winding. Overlap is expected and
-        // fine - this is a positional approximation, not a sector-exact grid.
-        // A seek shows as a radial jump (the head flying across the disc).
+        // Polar disc: a laser-position view. Radius follows the CLV area law
+        // (reads inside-out: low LBA at the hub, high at the rim). We light the
+        // WHOLE ring at each radius - the per-radius most-recent read, from the
+        // ring-max textures sampled below - rather than a thin rotating arc,
+        // because at the physical rotation rate (~200-460 rpm) the arc is an
+        // untrackable blur. Angle is purely decorative. A seek lights the ring
+        // at its target radius (the head flying across the disc).
         vec2 p = uv - vec2(0.5);
         float rho = length(p) / 0.5;          // 0 at center, 1 at inscribed rim
         if (rho < u_innerHole || rho > 1.0) {
@@ -150,38 +133,41 @@ void main() {
             outColor = vec4(0.04, 0.04, 0.05, 1.0);
             return;
         }
-        float angFrac = (atan(p.y, p.x) + PI) / (2.0 * PI);     // 0..1 of a revolution
-        float thetaTotal = u_spiralC * (rho - u_innerHole);     // revolutions at this radius
-        float winding = floor(thetaTotal - angFrac + 0.5);      // nearest winding
-        float theta = winding + angFrac;                        // snapped total revolutions
-        float rhoN = u_innerHole + theta / u_spiralC;           // radius of the snapped sector
-        if (theta < 0.0 || rhoN > 1.0) {
-            outColor = vec4(0.04, 0.04, 0.05, 1.0);
-            return;
-        }
-        float fN = (rhoN * rhoN - u_innerHole * u_innerHole) /
-                   (1.0 - u_innerHole * u_innerHole);            // 0..1 = N / Nmax
+        float fRadial = (rho * rho - u_innerHole * u_innerHole) /
+                        (1.0 - u_innerHole * u_innerHole);       // 0..1 = radius -> ring
+        heatUV = vec2(fRadial, 0.5);
         float nmax = u_side * u_side;
-        lba = uint(clamp(fN * nmax, 0.0, nmax - 1.0));
-        uint col = lba % uint(u_side);
-        uint row = lba / uint(u_side);
-        heatUV = (vec2(float(col), float(row)) + 0.5) / u_side;
+        lba = uint(clamp(fRadial * nmax, 0.0, nmax - 1.0));
         inDisc = (u_discSectors == 0u) || (lba < u_discSectors);
     }
 
     // Faint backdrop so the disc extent is visible even with no recent activity.
     vec3 baseColor = inDisc ? vec3(0.11, 0.11, 0.13) : vec3(0.045, 0.045, 0.05);
 
-    uint dataStamp = texture(u_dataHeatmap, heatUV).r;
-    uint audioStamp = texture(u_audioHeatmap, heatUV).r;
-    uint seekStamp = texture(u_seekHeatmap, heatUV).r;
+    // Raster samples the full 2D heatmap; polar samples the per-radius ring-max
+    // textures so the whole ring at a read radius lights up.
+    uint dataStamp, audioStamp, seekStamp;
+    if (u_polarMode) {
+        dataStamp = texture(u_dataRing, heatUV).r;
+        audioStamp = texture(u_audioRing, heatUV).r;
+        seekStamp = texture(u_seekRing, heatUV).r;
+    } else {
+        dataStamp = texture(u_dataHeatmap, heatUV).r;
+        audioStamp = texture(u_audioHeatmap, heatUV).r;
+        seekStamp = texture(u_seekHeatmap, heatUV).r;
+    }
 
-    float dataHeat = (u_showData && dataStamp != 0u) ? heatFromAge(dataStamp) : 0.0;
-    float audioHeat = (u_showAudio && audioStamp != 0u) ? heatFromAge(audioStamp) : 0.0;
-    float seekHeat = (u_showSeek && seekStamp != 0u) ? heatFromAge(seekStamp) : 0.0;
+    // In polar mode the data channel is laser-red (it is the reading laser), and
+    // intensity is boosted since the rings read fainter than the raster grid.
+    vec3 dataRGB = u_polarMode ? vec3(1.0, 0.08, 0.03) : u_dataColor.rgb;
+    float gain = u_polarMode ? 2.0 : 1.0;
+
+    float dataHeat = (u_showData && dataStamp != 0u) ? min(heatFromAge(dataStamp) * gain, 1.0) : 0.0;
+    float audioHeat = (u_showAudio && audioStamp != 0u) ? min(heatFromAge(audioStamp) * gain, 1.0) : 0.0;
+    float seekHeat = (u_showSeek && seekStamp != 0u) ? min(heatFromAge(seekStamp) * gain, 1.0) : 0.0;
 
     float totalHeat = dataHeat * u_dataColor.a + audioHeat * u_audioColor.a + seekHeat * u_seekColor.a;
-    vec3 heatColor = dataHeat * u_dataColor.rgb * u_dataColor.a
+    vec3 heatColor = dataHeat * dataRGB * u_dataColor.a
                    + audioHeat * u_audioColor.rgb * u_audioColor.a
                    + seekHeat * u_seekColor.rgb * u_seekColor.a;
 
@@ -208,22 +194,15 @@ bool PCSX::Widgets::CDRomViewer::uvToLBA(ImVec2 uv, uint32_t &lba) const {
         lba = row * CDRomLogger::c_side + col;
         return true;
     }
-    // Mirror the polar GLSL spiral mapping for the hover readout.
-    constexpr float pi = std::numbers::pi_v<float>;
+    // Mirror the polar GLSL mapping (radius -> ring) for the hover readout. The
+    // reported LBA is the first sector of the ring at the cursor's radius.
     const float h = c_innerHole;
-    const float spiralC = spiralConstant();
     float px = uv.x - 0.5f, py = uv.y - 0.5f;
     float rho = std::sqrt(px * px + py * py) / 0.5f;
     if (rho < h || rho > 1.0f) return false;
-    float angFrac = (std::atan2(py, px) + pi) / (2.0f * pi);
-    float thetaTotal = spiralC * (rho - h);
-    float winding = std::floor(thetaTotal - angFrac + 0.5f);
-    float theta = winding + angFrac;
-    float rhoN = h + theta / spiralC;
-    if (theta < 0.0f || rhoN > 1.0f) return false;
-    float fN = (rhoN * rhoN - h * h) / (1.0f - h * h);
+    float fRadial = (rho * rho - h * h) / (1.0f - h * h);
     float nmax = side * side;
-    lba = uint32_t(std::clamp(fN * nmax, 0.0f, nmax - 1.0f));
+    lba = uint32_t(std::clamp(fRadial * nmax, 0.0f, nmax - 1.0f));
     return true;
 }
 
@@ -249,9 +228,11 @@ void PCSX::Widgets::CDRomViewer::compileShader(GUI *gui) {
     m_locDecayHalfLife = glGetUniformLocation(m_shaderProgram, "u_decayHalfLife");
     m_locPolarMode = glGetUniformLocation(m_shaderProgram, "u_polarMode");
     m_locInnerHole = glGetUniformLocation(m_shaderProgram, "u_innerHole");
-    m_locSpiralC = glGetUniformLocation(m_shaderProgram, "u_spiralC");
     m_locDiscSectors = glGetUniformLocation(m_shaderProgram, "u_discSectors");
     m_locSide = glGetUniformLocation(m_shaderProgram, "u_side");
+    m_locDataRing = glGetUniformLocation(m_shaderProgram, "u_dataRing");
+    m_locAudioRing = glGetUniformLocation(m_shaderProgram, "u_audioRing");
+    m_locSeekRing = glGetUniformLocation(m_shaderProgram, "u_seekRing");
 }
 
 void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImDrawCmd *cmd) {
@@ -283,13 +264,15 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     glUniform4f(m_locSeekColor, m_seekColor.x, m_seekColor.y, m_seekColor.z, m_seekColor.w);
     glUniform1i(m_locPolarMode, m_polarMode);
     glUniform1f(m_locInnerHole, innerHole);
-    glUniform1f(m_locSpiralC, spiralConstant());
     glUniform1ui(m_locDiscSectors, discSectors);
     glUniform1f(m_locSide, float(CDRomLogger::c_side));
 
     glUniform1i(m_locDataHeatmap, 0);
     glUniform1i(m_locAudioHeatmap, 1);
     glUniform1i(m_locSeekHeatmap, 2);
+    glUniform1i(m_locDataRing, 3);
+    glUniform1i(m_locAudioRing, 4);
+    glUniform1i(m_locSeekRing, 5);
 
     glActiveTexture(GL_TEXTURE0);
     logger->bindDataHeatmap();
@@ -297,6 +280,12 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     logger->bindAudioHeatmap();
     glActiveTexture(GL_TEXTURE2);
     logger->bindSeekHeatmap();
+    glActiveTexture(GL_TEXTURE3);
+    logger->bindDataRing();
+    glActiveTexture(GL_TEXTURE4);
+    logger->bindAudioRing();
+    glActiveTexture(GL_TEXTURE5);
+    logger->bindSeekRing();
     glActiveTexture(GL_TEXTURE0);
 
     glEnableVertexAttribArray(m_locVtxPos);
