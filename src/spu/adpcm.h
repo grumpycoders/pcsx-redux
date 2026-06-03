@@ -43,6 +43,15 @@ class AdpcmDecoder {
         m_s2 = 0;
     }
 
+    // EXPERIMENTAL: hardware emits a few samples of silence after KEY_ON before
+    // the first decoded sample appears. Seed a per-voice countdown at key-on;
+    // while it is active the synthesis loop emits silence and freezes decode.
+    void setStartupDelay(int samples) { m_startupDelay = samples; }
+    bool startupDelayActive() const { return m_startupDelay > 0; }
+    void tickStartupDelay() {
+        if (m_startupDelay > 0) m_startupDelay--;
+    }
+
     // Clear all decode state (voice wipe).
     void reset() {
         m_start = nullptr;
@@ -104,6 +113,7 @@ class AdpcmDecoder {
     uint8_t *m_loop = nullptr;   // loop ptr in sound mem
     int32_t m_s1 = 0;            // last decoded sample  (IIR history)
     int32_t m_s2 = 0;            // next-to-last decoded sample (IIR history)
+    int m_startupDelay = 0;      // EXPERIMENTAL: post-key-on silence countdown (samples)
 };
 
 }  // namespace SPU

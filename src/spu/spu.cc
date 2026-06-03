@@ -58,6 +58,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     StartREVERB(pChannel);
 
     pChannel->adpcm.keyOn();  // rewind decode cursor to sample start, clear IIR history
+    pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);  // EXPERIMENTAL keyon startup latency
 
     pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = kSamplesPerAdpcmBlock;  // force a block decode on first sample
 
@@ -173,6 +174,15 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
     {
         int rawSample;
         m_noise.step();
+
+        // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
+        // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
+        if (pChannel->adpcm.startupDelayActive()) {
+            pChannel->adpcm.tickStartupDelay();
+            pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;
+            captureVoiceSample(ch, capVoice1Index, capVoice3Index, 0);
+            continue;
+        }
 
         if (pChannel->data.get<PCSX::SPU::Chan::FMod>().value == 1 && iFMod[ns])  // fmod freq channel
             FModChangeFrequency(pChannel, ns);

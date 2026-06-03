@@ -41,8 +41,12 @@ typedef Setting<bool, TYPESTRING("Mute")> Mute;
 // This replaces the old cycle-derived Emulator::SettingScaler: because both audio sources (SPU voices
 // and CD-ROM XA) converge at the sink, speeding up here also speeds up XA, which the cycle scaler missed.
 typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
+// Voice key-on -> first-output startup latency, in 44.1kHz samples. Real hardware emits a few samples of
+// silence after KEY_ON before the voice's first decoded sample appears in the capture mirror; Redux emits
+// immediately. EXPERIMENTAL/diagnostic default 0 (no change); set via Lua to characterize/model the offset.
+typedef Setting<int, TYPESTRING("KeyOnDelay"), 0> KeyOnDelay;
 typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute,
-                 Speed>
+                 Speed, KeyOnDelay>
     SettingsType;
 
 }  // namespace SPU
