@@ -128,6 +128,7 @@
     <ClCompile Include="..\..\src\core\arguments.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
+    <ClCompile Include="..\..\src\core\cdromlogger.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\display.cc" />
@@ -180,6 +181,7 @@
     <ClInclude Include="..\..\src\core\arguments.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
+    <ClInclude Include="..\..\src\core\cdromlogger.h" />
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
