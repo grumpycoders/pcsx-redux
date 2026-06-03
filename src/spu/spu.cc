@@ -118,12 +118,16 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample) {
     if (pMixIrq && ch == 1) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        for (int c = fromSample; c < NSSIZE; c++) spuMem[capVoice1Index + c + kCaptureVoice1Offset] = 0;
-        capVoice1Index = (capVoice1Index + (NSSIZE - fromSample)) % kCaptureRegionSamples;
+        for (int c = fromSample; c < NSSIZE; c++) {
+            spuMem[capVoice1Index + kCaptureVoice1Offset] = 0;
+            capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
+        }
     } else if (pMixIrq && ch == 3) {
         std::unique_lock<std::mutex> lock(cbMtx);
-        for (int c = fromSample; c < NSSIZE; c++) spuMem[capVoice3Index + c + kCaptureVoice3Offset] = 0;
-        capVoice3Index = (capVoice3Index + (NSSIZE - fromSample)) % kCaptureRegionSamples;
+        for (int c = fromSample; c < NSSIZE; c++) {
+            spuMem[capVoice3Index + kCaptureVoice3Offset] = 0;
+            capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
+        }
     }
 }
 
