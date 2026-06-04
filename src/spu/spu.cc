@@ -31,8 +31,10 @@ constexpr int kSamplesPerAdpcmBlock = 28;
 // The voice pitch counter (Chan::spos) is 16.16 fixed point: 0x10000 == one
 // whole source sample consumed.
 constexpr int32_t kPitchCounterUnity = 0x10000;
-// The ADSR step returns a 0..1023 gain; the enveloped sample is sample*gain/1023.
-constexpr int kAdsrMixDivisor = 1023;
+// The ADSR step returns the full 15-bit (0..0x7fff) envelope volume; the
+// enveloped sample is `sample * envelope >> 15`, exactly as the hardware applies
+// it (a signed arithmetic shift, SAR 15).
+constexpr int kAdsrEnvelopeShift = 15;
 // Per-voice volume is a 0..0x3fff level with 0x4000 as unity.
 constexpr int kVoiceVolumeUnity = 0x4000;
 // The capture area mirrors are 0x200 samples each; voice 1 lands at +0x400 and
@@ -289,8 +291,8 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 
         int32_t mixedSample = (pChannel->adsr.step(pChannel->data.get<PCSX::SPU::Chan::Stop>().value,
                                                    pChannel->data.get<PCSX::SPU::Chan::On>().value) *
-                               rawSample) /
-                              kAdsrMixDivisor;  // apply the ADSR envelope
+                               rawSample) >>
+                              kAdsrEnvelopeShift;  // apply the ADSR envelope (hardware: sample*env>>15)
         pChannel->data.get<PCSX::SPU::Chan::sval>().value = mixedSample;
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.

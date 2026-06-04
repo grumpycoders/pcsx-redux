@@ -67,13 +67,18 @@ constexpr int kSustainLevelShift = 11;         // top four bits of the level...
 constexpr int32_t kSustainLevelMask = 0xf;     // ...compared against the 0..15 sustain level
 }  // namespace
 
-// Write the freshly computed envelope state back and return the 0..0x400 factor.
+// Write the freshly computed envelope state back and return the full 15-bit
+// (0..0x7fff) envelope volume. The mixer applies it as `sample * envelope >> 15`,
+// matching the hardware SPU. The 0..0x400 `exVolume` mirror (envelope >> 5) is
+// still maintained for the voice register / debugger, but it is no longer the
+// value handed to the mixer (that lossy 10-bit gain + /1023 divide ran enveloped
+// samples ~0.1% high and discarded the envelope's low 5 bits).
 int PCSX::SPU::AdsrEnvelope::commit(int32_t envelopeVol, int32_t envelopeVolFraction) {
     const int level = envelopeVol >> kEnvelopeToLevelShift;
     m_adsrx.get<exEnvelopeVol>().value = envelopeVol;
     m_adsrx.get<exEnvelopeVolF>().value = envelopeVolFraction;
     m_adsrx.get<exVolume>().value = level;
-    return level;
+    return envelopeVol;
 }
 
 int PCSX::SPU::AdsrEnvelope::Attack() {

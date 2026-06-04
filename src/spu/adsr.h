@@ -75,13 +75,15 @@ class AdsrEnvelope {
     // Key-on: reset the live envelope to the start of the Attack phase.
     void keyOn();
 
-    // Advance the envelope by one sample and return the 0..0x400 volume factor.
-    // stopRequested mirrors the voice's key-off/Stop flag and forces the Release
-    // phase; channelOn is cleared once Release runs the envelope down to zero
-    // (i.e. the voice has finished playing).
+    // Advance the envelope by one sample and return the full 15-bit (0..0x7fff)
+    // envelope volume, which the mixer applies as `sample * envelope >> 15`
+    // (hardware-accurate). stopRequested mirrors the voice's key-off/Stop flag and
+    // forces the Release phase; channelOn is cleared once Release runs the envelope
+    // down to zero (i.e. the voice has finished playing).
     int step(bool stopRequested, bool& channelOn);
 
-    // Current volume factor (envelope_vol >> 5), as last produced by step().
+    // Current 0..0x400 volume factor (envelope_vol >> 5) mirror, as last produced
+    // by step(). Reported by the voice register / debugger, not used by the mixer.
     int currentLevel() const { return m_adsrx.get<exVolume>().value; }
 
     // Clear all envelope state (voice wipe).
