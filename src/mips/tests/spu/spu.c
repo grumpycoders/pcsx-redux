@@ -251,13 +251,16 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
     SPU_KEY_ON_LOW = 1u << 1;
 }
 
-// Compare a captured waveform against a golden, tolerating the SPU's capture-
-// start jitter. The bit-11 sync pins the start to within ~1 sample, landing on
-// one of two adjacent boundaries (deterministic per power-on, and the boundary
-// differs across PS1 revisions). The captured signal is otherwise bit-identical
-// to the golden, so find the best-aligning integer-sample shift in a tiny window
-// and then require an exact match at that shift. Samples are 16-bit.
-#define SPU_GOLDEN_MAXSHIFT 2  // samples; observed jitter only ever lands in {-1,0,+1}
+// Compare a captured waveform against a golden, tolerating the capture-start
+// timing jitter. There are two sources. The bit-11 sync pins the start to a
+// boundary that differs across PS1 revisions. On top of that there is a key-on
+// onset latency of ~9 samples between arming the voice and its first output -
+// at 44.1kHz that is ~200us of SPU/CPU thread-scheduling slop, well below
+// anything audible, and not something an emulator should be held to sample-for-
+// sample. So we find the best-aligning integer-sample shift in a window wide
+// enough to absorb that onset, then require an EXACT match at that shift. The
+// timing is tolerated; the sample values are not. Samples are 16-bit.
+#define SPU_GOLDEN_MAXSHIFT 15  // samples; absorbs the ~9-sample key-on onset latency + bit-11 sync
 static int spu_compare_golden(const char *name, const void *cap,
                               const uint8_t *golden_file) {
     const PcmTestHeader *h = (const PcmTestHeader *)golden_file;
@@ -267,12 +270,18 @@ static int spu_compare_golden(const char *name, const void *cap,
     const int periodS = (int)(h->period / 2);
     const int keptS = warmupS + periodS;
 
+    // Search a FIXED slice [SPU_GOLDEN_MAXSHIFT, keptS) for every candidate shift.
+    // Comparing the same i-range for all shifts is essential: if we let j<0 samples
+    // be skipped (as a naive loop over i in [0,keptS) does), a larger-magnitude shift
+    // simply compares fewer samples and wins the min-bad race regardless of fit, so
+    // the search saturates at the window edge instead of locking onto the real onset
+    // alignment. Penalize any out-of-range overlap so it can never be preferred.
     int bestShift = 0, bestBad = 0x7fffffff;
     for (int s = -SPU_GOLDEN_MAXSHIFT; s <= SPU_GOLDEN_MAXSHIFT; s++) {
         int bad = 0;
-        for (int i = 0; i < keptS; i++) {
+        for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
             int j = i + s;
-            if (j < 0 || j >= 512) continue;
+            if (j < 0 || j >= 512) { bad = 0x7fffffff; break; }
             if (a[j] != golden[i]) bad++;
         }
         if (bad < bestBad) {
@@ -281,7 +290,7 @@ static int spu_compare_golden(const char *name, const void *cap,
         }
     }
 
-    for (int i = 0; i < keptS; i++) {
+    for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
         int j = i + bestShift;
         if (j < 0 || j >= 512) continue;
         if (a[j] != golden[i]) {
