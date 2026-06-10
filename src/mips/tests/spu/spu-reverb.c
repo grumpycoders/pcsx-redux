@@ -123,18 +123,27 @@ static void run_reverb_room_work_area(const uint8_t *sample64, uint32_t inputKin
 }
 
 #ifdef SPU_DUMP
+// File-scope (main-RAM .bss) header buffer: PCwrite must read its source from a
+// stable RAM address. A stack local got captured as live stack contents (saved
+// registers) rather than the initialized struct on real hardware, so the header
+// is built into this static instead.
+static struct SPUReverbCaptureHeader s_reverb_hdr;
 static void spu_dump_reverb(const char *name, uint32_t inputKind, unsigned syncWindows) {
-    struct SPUReverbCaptureHeader hdr = {
-        0x52564552u, sizeof(struct SPUReverbCaptureHeader), SPU_REVERB_PRESET_ROOM, inputKind,
-        SPU_REVERB_ROOM_BASE, SPU_REVERB_ROOM_SIZE, syncWindows, 0,
-    };
+    s_reverb_hdr.magic = 0x52564552u;
+    s_reverb_hdr.length = sizeof(struct SPUReverbCaptureHeader);
+    s_reverb_hdr.preset = SPU_REVERB_PRESET_ROOM;
+    s_reverb_hdr.input = inputKind;
+    s_reverb_hdr.workBase = SPU_REVERB_ROOM_BASE;
+    s_reverb_hdr.workBytes = SPU_REVERB_ROOM_SIZE;
+    s_reverb_hdr.syncWindows = syncWindows;
+    s_reverb_hdr.reserved = 0;
     if (!is_pcdrv_init) {
         PCinit();
         is_pcdrv_init = 1;
     }
     int fd = PCcreat(name, 0);
     if (fd < 0) return;
-    PCwrite(fd, &hdr, sizeof(hdr));
+    PCwrite(fd, &s_reverb_hdr, sizeof(s_reverb_hdr));
     PCwrite(fd, s_reverb_work, SPU_REVERB_ROOM_SIZE);
     PCclose(fd);
 }

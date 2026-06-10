@@ -57,7 +57,7 @@ constexpr int kMixSampleClamp = 32767;
 inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
     pChannel->adsr.keyOn();
-    StartREVERB(pChannel);
+    m_reverb.start(pChannel, spuCtrl, settings.get<Reverb>());
 
     pChannel->adpcm.keyOn();  // rewind decode cursor to sample start, clear IIR history
     pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);  // EXPERIMENTAL keyon startup latency
@@ -314,7 +314,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
                     (pChannel->data.get<PCSX::SPU::Chan::sval>().value * pChannel->volume.right()) / kVoiceVolumeUnity;
             }
 
-            if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) StoreREVERB(pChannel, ns);  // store for reverb
+            if (pChannel->data.get<PCSX::SPU::Chan::RVBActive>().value) m_reverb.store(pChannel, ns, settings.get<Reverb>());  // store for reverb
         }
 
         pChannel->data.get<PCSX::SPU::Chan::spos>().value += pChannel->data.get<PCSX::SPU::Chan::sinc>().value;
@@ -395,11 +395,11 @@ void PCSX::SPU::impl::MainThread() {
         // mix all channels (including reverb) into one buffer
 
         for (ns = 0; ns < NSSIZE; ns++) {
-            SSumL[ns] += MixREVERBLeft(ns);
+            SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl, settings.get<Reverb>());
             *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumL[ns] = 0;
 
-            SSumR[ns] += MixREVERBRight();
+            SSumR[ns] += m_reverb.mixRight(settings.get<Reverb>());
             *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumR[ns] = 0;
         }
@@ -440,7 +440,7 @@ void PCSX::SPU::impl::MainThread() {
             }
         }
 
-        InitREVERB();
+        m_reverb.init(settings.get<Reverb>(), NSSIZE);
 
         //////////////////////////////////////////////////////
         // feed the sound
@@ -544,7 +544,7 @@ void PCSX::SPU::impl::wipeChannels() {
         s_chan[i].volume.reset();
         s_chan[i].data.reset();
     }
-    memset((void *)&rvb, 0, sizeof(REVERBInfo));
+    m_reverb.reset();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -598,10 +598,10 @@ void PCSX::SPU::impl::SetupStreams() {
     else
         i = NSSIZE * 2;
 
-    sRVBStart = (int *)malloc(i * 4);  // alloc reverb buffer
-    memset(sRVBStart, 0, i * 4);
-    sRVBEnd = sRVBStart + i;
-    sRVBPlay = sRVBStart;
+    m_reverb.sRVBStart = (int *)malloc(i * 4);  // alloc reverb buffer
+    memset(m_reverb.sRVBStart, 0, i * 4);
+    m_reverb.sRVBEnd = m_reverb.sRVBStart + i;
+    m_reverb.sRVBPlay = m_reverb.sRVBStart;
 
     for (i = 0; i < MAXCHAN; i++)  // loop sound channels
     {
@@ -625,8 +625,8 @@ void PCSX::SPU::impl::SetupStreams() {
 void PCSX::SPU::impl::RemoveStreams(void) {
     free(pSpuBuffer);  // free mixing buffer
     pSpuBuffer = NULL;
-    free(sRVBStart);  // free reverb buffer
-    sRVBStart = 0;
+    free(m_reverb.sRVBStart);  // free reverb buffer
+    m_reverb.sRVBStart = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -636,7 +636,7 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 bool PCSX::SPU::impl::open() {
     if (bSPUIsOpen) return true;  // security for some stupid main emus
 
-    iReverbOff = -1;
+    m_reverb.iReverbOff = -1;
     spuIrq = 0;
     spuAddr = 0xffffffff;
     bEndThread = 0;

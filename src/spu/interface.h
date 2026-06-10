@@ -30,6 +30,7 @@
 #include "spu/adsr.h"
 #include "spu/miniaudio.h"
 #include "spu/noise.h"
+#include "spu/reverb.h"
 #include "spu/types.h"
 #include "support/settings.h"
 
@@ -165,17 +166,6 @@ class impl final : public SPUInterface {
     void SetPitch(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
-    // reverb
-    int g_buffer(int iOff);              // get_buffer content helper: takes care about wraps
-    void s_buffer(int iOff, int iVal);   // set_buffer content helper: takes care about wraps and clipping
-    void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
-    void InitREVERB();
-    void SetREVERB(uint16_t val);
-    void StartREVERB(SPUCHAN *pChannel);
-    void StoreREVERB(SPUCHAN *pChannel, int ns);
-    int MixREVERBLeft(int ns);
-    int MixREVERBRight();
-
     // xa
     void FeedXA(xa_decode_t *xap);
 
@@ -215,7 +205,7 @@ class impl final : public SPUInterface {
     // MAIN infos struct for each channel
 
     SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
-    REVERBInfo rvb;
+    ReverbUnit m_reverb;          // global reverb unit: work state + Pete/Neill reverb DSP
 
     NoiseGenerator m_noise;  // global noise generator: LFSR + shift/step clock
 
@@ -242,15 +232,6 @@ class impl final : public SPUInterface {
 
     int iSecureStart = 0;  // secure start counter
     int iSpuAsyncWait = 0;
-
-    // REVERB info and timing vars...
-
-    int *sRVBPlay = 0;
-    int *sRVBEnd = 0;
-    int *sRVBStart = 0;
-    int iReverbOff = -1;  // some delay factor for reverb
-    int iReverbRepeat = 0;
-    int iReverbNum = 1;
 
     // XA
     xa_decode_t *xapGlobal = 0;
