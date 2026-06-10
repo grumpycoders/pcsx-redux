@@ -322,6 +322,14 @@ bool dirTreeIsHidden(PCSX::ISO9660::DirTree* node) { return node->isHidden(); }
 void dirTreeSetHidden(PCSX::ISO9660::DirTree* node, bool val) { node->setHidden(val); }
 bool dirTreeShouldSkip(PCSX::ISO9660::DirTree* node) { return node->shouldSkip(); }
 void dirTreeSetSkip(PCSX::ISO9660::DirTree* node, bool val) { node->setSkip(val); }
+bool dirTreeHasAnchorLBA(PCSX::ISO9660::DirTree* node) { return node->hasAnchorLBA(); }
+uint32_t dirTreeGetAnchorLBA(PCSX::ISO9660::DirTree* node) { return node->getAnchorLBA(); }
+void dirTreeSetAnchorLBA(PCSX::ISO9660::DirTree* node, uint32_t lba) { node->setAnchorLBA(lba); }
+void dirTreeClearAnchorLBA(PCSX::ISO9660::DirTree* node) { node->clearAnchorLBA(); }
+bool dirTreeHasDeclaredSize(PCSX::ISO9660::DirTree* node) { return node->hasDeclaredSize(); }
+uint32_t dirTreeGetDeclaredSize(PCSX::ISO9660::DirTree* node) { return node->getDeclaredSize(); }
+void dirTreeSetDeclaredSize(PCSX::ISO9660::DirTree* node, uint32_t size) { node->setDeclaredSize(size); }
+void dirTreeClearDeclaredSize(PCSX::ISO9660::DirTree* node) { node->clearDeclaredSize(); }
 bool dirTreeHasXA(PCSX::ISO9660::DirTree* node) { return node->hasXA(); }
 void dirTreeSetHasXA(PCSX::ISO9660::DirTree* node, bool val) { node->setHasXA(val); }
 void dirTreeSetSectorMode(PCSX::ISO9660::DirTree* node, PCSX::IEC60908b::SectorMode mode) { node->setSectorMode(mode); }
@@ -449,6 +457,14 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dirTreeSetHidden);
     REGISTER(L, dirTreeShouldSkip);
     REGISTER(L, dirTreeSetSkip);
+    REGISTER(L, dirTreeHasAnchorLBA);
+    REGISTER(L, dirTreeGetAnchorLBA);
+    REGISTER(L, dirTreeSetAnchorLBA);
+    REGISTER(L, dirTreeClearAnchorLBA);
+    REGISTER(L, dirTreeHasDeclaredSize);
+    REGISTER(L, dirTreeGetDeclaredSize);
+    REGISTER(L, dirTreeSetDeclaredSize);
+    REGISTER(L, dirTreeClearDeclaredSize);
     REGISTER(L, dirTreeHasXA);
     REGISTER(L, dirTreeSetHasXA);
     REGISTER(L, dirTreeSetSectorMode);

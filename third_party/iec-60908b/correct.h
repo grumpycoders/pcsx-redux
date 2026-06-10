@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2024 PCSX-Redux authors
+Copyright (c) 2026 Nicolas "Pixel" Noble
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,32 +26,26 @@ SOFTWARE.
 
 #pragma once
 
-#include "fixed-point.hh"
+#include <stdint.h>
 
-namespace psyqo {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class SPU {
-  public:
-    static void initialize();
-    static void silenceChannels(uint32_t channelMask);
-    static void dmaWrite(uint32_t spuAddress, const void *ramAddress, uint16_t dataSize, uint8_t blockSize);
+// Recompute the sector's EDC and compare it to the stored value. Returns 1 if
+// the EDC matches (the user data is intact), 0 otherwise. Works for Mode 2
+// Form 1 and Form 2; any other sector type returns 1.
+int check_edc(const uint8_t* sector);
 
-    struct ChannelPlaybackConfig {
-        FixedPoint<12, uint16_t> sampleRate;
-        uint16_t volumeLeft, volumeRight;
-        uint32_t adsr;
-    };
+// Attempt to repair a Mode 2 Form 1 sector in place using its P and Q ECC,
+// iterating the two channels until the EDC validates or no further progress is
+// possible. Returns:
+//    1  the sector is valid (was already clean, or was corrected)
+//    0  the sector could not be brought to a valid EDC (too much damage)
+// Form 2 sectors carry no ECC, so this returns whatever check_edc reports.
+// Non-Mode-2 sectors are left untouched and report 1.
+int correct_sector(uint8_t* sector);
 
-    static void playADPCM(uint8_t channelId, uint16_t spuRamAddress, const ChannelPlaybackConfig &config, bool hardCut);
-    static uint32_t getNextFreeChannel();
-
-    static constexpr uint32_t NO_FREE_CHANNEL = 0xffffffff;
-    static constexpr uint32_t BASE_SAMPLE_RATE = 44100;
-    static constexpr uint16_t BASE_ALLOC_ADDR = 0x1010;
-
-  private:
-    template <typename T>
-    static bool waitForStatus(T mask, T expected, const volatile T *value);
-};
-
-}  // namespace psyqo
+#ifdef __cplusplus
+}
+#endif

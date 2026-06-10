@@ -49,6 +49,7 @@ bool binaryLoaderLoad(LuaFile* src, LuaFile* dest, struct BinaryLoaderInfo* info
 void ps1PackerPack(LuaFile* src, LuaFile* dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp,
           struct PS1PackerOptions options);
 uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out);
+uint32_t uclUnpackWrapper(const uint8_t* in, uint32_t inSize, uint8_t* out, uint32_t expectedOutSize);
 uint32_t writeUclDecomp(LuaFile* dest);
 
 ]]
@@ -208,6 +209,74 @@ end
 PCSX.Misc.writeUclDecomp = function(dest)
     if type(dest) ~= 'table' or dest._type ~= 'File' then error('Expected a File object as first argument') end
     return C.writeUclDecomp(dest._wrapper)
+end
+
+-- Decompress an NRV2E-compressed payload. `decompressedSize` is the known final size
+-- and must be supplied; the caller almost always has it from a container header.
+-- `src` accepts File / string / LuaBuffer / Slice (same shapes as uclPack); `dest` is
+-- optional and accepts File / LuaBuffer / Slice. If omitted, a fresh Slice is created
+-- and returned; otherwise the destination is filled and the byte count is returned.
+PCSX.Misc.uclUnpack = function(src, decompressedSize, dest)
+    if type(decompressedSize) ~= 'number' then
+        error('Expected the decompressed size as the second argument')
+    end
+
+    local srcPtr
+    local srcSize
+    if type(src) == 'table' and src._type == 'File' then
+        src = src:read(src:size())
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'string' then
+        srcPtr = ffi.cast('uint8_t*', src)
+        srcSize = #src
+    elseif Support.isLuaBuffer(src) then
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'table' and src._type == 'Slice' then
+        srcPtr = src.data
+        srcSize = src.size
+    else
+        error('Expected a File object, string, LuaBuffer, or Slice as first argument')
+    end
+
+    local retIsDest = false
+    local destPtr
+    local destSlice
+    if not dest then
+        dest = Support.File.createEmptySlice()
+        dest:resize(decompressedSize)
+        destPtr = dest.mutable
+        retIsDest = true
+    elseif type(dest) == 'table' and dest._type == 'File' then
+        destSlice = Support.File.createEmptySlice()
+        destSlice:resize(decompressedSize)
+        destPtr = destSlice.mutable
+    elseif Support.isLuaBuffer(dest) then
+        dest:resize(decompressedSize)
+        destPtr = ffi.cast('uint8_t*', dest.data)
+    elseif type(dest) == 'table' and dest._type == 'Slice' then
+        dest:resize(decompressedSize)
+        destPtr = dest.mutable
+    else
+        error('Expected a File object, LuaBuffer, or Slice as third argument')
+    end
+
+    local outSize = C.uclUnpackWrapper(srcPtr, srcSize, destPtr, decompressedSize)
+
+    if outSize == 0 then
+        error('UCL decompression failed (bad data or wrong expected size).')
+    end
+    if outSize ~= decompressedSize then
+        error(string.format(
+            'UCL decompression produced %d bytes but %d were expected.', outSize, decompressedSize))
+    end
+
+    if type(dest) == 'table' and dest._type == 'File' then
+        dest:writeMoveSlice(destSlice)
+    end
+
+    return retIsDest and dest or outSize
 end
 
 -- )EOF"
