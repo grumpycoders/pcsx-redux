@@ -1,6 +1,16 @@
 // ==========================================================================
 // Characterize SPU IRQs from the voice ADPCM read pointer
 // ==========================================================================
+//
+// Hardware goldens captured on real silicon. Only the deterministic latch-
+// semantics values are pinned: where the IRQ-gated data lands in the capture
+// buffer (firstNonzero, nonzeroCount, sum), that an ack re-arms immediately
+// (rearm.secondPolls), and the mid-block re-fire count (midblock.hits). The
+// poll counts (aligned.polls, rearm.firstPolls, midblock.firstPolls) and the
+// capture tail index (aligned.lastNonzero) are left UNSET on purpose: they are
+// CPU-vs-SPU timing / capture-window-edge quantities that vary run-to-run even
+// on the same console (measured across repeat hardware runs), so pinning them
+// would assert a value neither hardware nor an emulator reproduces.
 
 #ifndef SPU_IRQ_EXPECTED_UNSET
 #define SPU_IRQ_EXPECTED_UNSET 0xffffffffu
@@ -10,27 +20,27 @@
 #define SPU_IRQ_EXPECTED_ALIGNED_POLLS SPU_IRQ_EXPECTED_UNSET
 #endif
 #ifndef SPU_IRQ_EXPECTED_ALIGNED_FIRST_NONZERO
-#define SPU_IRQ_EXPECTED_ALIGNED_FIRST_NONZERO SPU_IRQ_EXPECTED_UNSET
+#define SPU_IRQ_EXPECTED_ALIGNED_FIRST_NONZERO 0u
 #endif
 #ifndef SPU_IRQ_EXPECTED_ALIGNED_LAST_NONZERO
 #define SPU_IRQ_EXPECTED_ALIGNED_LAST_NONZERO SPU_IRQ_EXPECTED_UNSET
 #endif
 #ifndef SPU_IRQ_EXPECTED_ALIGNED_NONZERO_COUNT
-#define SPU_IRQ_EXPECTED_ALIGNED_NONZERO_COUNT SPU_IRQ_EXPECTED_UNSET
+#define SPU_IRQ_EXPECTED_ALIGNED_NONZERO_COUNT 345u
 #endif
 #ifndef SPU_IRQ_EXPECTED_ALIGNED_SUM
-#define SPU_IRQ_EXPECTED_ALIGNED_SUM SPU_IRQ_EXPECTED_UNSET
+#define SPU_IRQ_EXPECTED_ALIGNED_SUM 18806188u
 #endif
 
 #ifndef SPU_IRQ_EXPECTED_REARM_FIRST_POLLS
 #define SPU_IRQ_EXPECTED_REARM_FIRST_POLLS SPU_IRQ_EXPECTED_UNSET
 #endif
 #ifndef SPU_IRQ_EXPECTED_REARM_SECOND_POLLS
-#define SPU_IRQ_EXPECTED_REARM_SECOND_POLLS SPU_IRQ_EXPECTED_UNSET
+#define SPU_IRQ_EXPECTED_REARM_SECOND_POLLS 1u
 #endif
 
 #ifndef SPU_IRQ_EXPECTED_MIDBLOCK_HITS
-#define SPU_IRQ_EXPECTED_MIDBLOCK_HITS SPU_IRQ_EXPECTED_UNSET
+#define SPU_IRQ_EXPECTED_MIDBLOCK_HITS 2u
 #endif
 #ifndef SPU_IRQ_EXPECTED_MIDBLOCK_FIRST_POLLS
 #define SPU_IRQ_EXPECTED_MIDBLOCK_FIRST_POLLS SPU_IRQ_EXPECTED_UNSET
