@@ -188,13 +188,21 @@ int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int32_t spos, int32_t s
         //--------------------------------------------------//
         case 2:  // gauss interpolation
         {
+            // Hardware-canonical PSX SPU gaussian (no$psx): four taps from the
+            // 512-entry gauss512 table indexed by the 8-bit fractional position
+            // i = bits 8..15 of the 16.16 pitch counter, each product summed after
+            // an individual SAR 15. The window holds oldest..newest at gpos..gpos+3.
+            // This replaces Pete Bernert's approximation (per-tap `& ~2047` quantize
+            // then `>> 11` over the over-unity SNES-logged table), which ran ~0.4%
+            // hot; gauss512's four coefficients sum to ~0x7F80, matching hardware's
+            // slight attenuation.
             const int gpos = sb[28].value;
-            const int vl = (spos >> 6) & ~3;
-            int vr = (Gauss::gauss[vl] * gaussWindow(sb, gpos)) & ~2047;
-            vr += (Gauss::gauss[vl + 1] * gaussWindow(sb, gpos + 1)) & ~2047;
-            vr += (Gauss::gauss[vl + 2] * gaussWindow(sb, gpos + 2)) & ~2047;
-            vr += (Gauss::gauss[vl + 3] * gaussWindow(sb, gpos + 3)) & ~2047;
-            fa = vr >> 11;
+            const int i = (spos >> 8) & 0xFF;
+            int vr = (Gauss::gauss512[0x0FF - i] * gaussWindow(sb, gpos)) >> 15;
+            vr += (Gauss::gauss512[0x1FF - i] * gaussWindow(sb, gpos + 1)) >> 15;
+            vr += (Gauss::gauss512[0x100 + i] * gaussWindow(sb, gpos + 2)) >> 15;
+            vr += (Gauss::gauss512[0x000 + i] * gaussWindow(sb, gpos + 3)) >> 15;
+            fa = vr;
         } break;
         //--------------------------------------------------//
         case 1:  // simple interpolation
