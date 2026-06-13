@@ -26,45 +26,76 @@ SOFTWARE.
 
 #pragma once
 
-#if defined(__APPLE__) && (__clang_major__ < 15)
-// Why has Apple become the Microsoft of Software Engineering?
-#include <experimental/coroutine>
-#else
 #include <coroutine>
-#endif
 #include <type_traits>
+#include <utility>
 
 namespace PCSX {
 
 template <typename T = void>
 struct Coroutine {
-#if defined(__APPLE__) && (__clang_major__ < 15)
-    template <typename U>
-    using CoroutineHandle = std::experimental::coroutine_handle<U>;
-    using CoroutineHandleVoid = std::experimental::coroutine_handle<void>;
-#else
-    template <typename U>
-    using CoroutineHandle = std::coroutine_handle<U>;
-    using CoroutineHandleVoid = std::coroutine_handle<void>;
-#endif
     struct Empty {};
     typedef typename std::conditional<std::is_void<T>::value, Empty, T>::type SafeT;
 
     Coroutine() = default;
-    Coroutine(Coroutine &&other) = default;
-    Coroutine &operator=(Coroutine &&other) = default;
+
+    Coroutine(Coroutine &&other)
+        : m_handle(std::exchange(other.m_handle, nullptr)),
+          m_value(std::move(other.m_value)),
+          m_suspended(other.m_suspended),
+          m_earlyResume(other.m_earlyResume) {
+        other.m_suspended = true;
+        other.m_earlyResume = false;
+    }
+
+    Coroutine &operator=(Coroutine &&other) {
+        if (this != &other) {
+            if (m_handle) m_handle.destroy();
+            m_handle = std::exchange(other.m_handle, nullptr);
+            m_value = std::move(other.m_value);
+            m_suspended = other.m_suspended;
+            m_earlyResume = other.m_earlyResume;
+            other.m_suspended = true;
+            other.m_earlyResume = false;
+        }
+        return *this;
+    }
+
     Coroutine(Coroutine const &) = delete;
     Coroutine &operator=(Coroutine const &) = delete;
+    ~Coroutine() {
+        if (m_handle) m_handle.destroy();
+        m_handle = nullptr;
+    }
 
     struct Awaiter {
-        constexpr bool await_ready() const noexcept { return false; }
-        constexpr void await_suspend(CoroutineHandleVoid) const noexcept {}
+        Awaiter(Awaiter &&other) = default;
+        Awaiter &operator=(Awaiter &&other) = default;
+        Awaiter(Awaiter const &) = default;
+        Awaiter &operator=(Awaiter const &) = default;
+        constexpr bool await_ready() const noexcept {
+            bool ret = m_coroutine->m_earlyResume;
+            m_coroutine->m_earlyResume = false;
+            return ret;
+        }
+        constexpr void await_suspend(std::coroutine_handle<> h) { m_coroutine->m_suspended = true; }
         constexpr void await_resume() const noexcept {}
+
+      private:
+        Awaiter(Coroutine *coroutine) : m_coroutine(coroutine) {}
+        Coroutine *m_coroutine;
+        friend struct Coroutine;
     };
 
-    Awaiter awaiter() { return {}; }
+    Awaiter awaiter() & { return Awaiter(this); }
+
     void resume() {
         if (!m_handle) return;
+        if (!m_suspended) {
+            m_earlyResume = true;
+            return;
+        }
+        m_suspended = false;
         m_handle.resume();
     }
 
@@ -72,6 +103,9 @@ struct Coroutine {
         if (!m_handle) return true;
         bool isDone = m_handle.done();
         if (isDone) {
+            if constexpr (!std::is_void<T>::value) {
+                m_value = std::move(m_handle.promise().m_value);
+            }
             m_handle.destroy();
             m_handle = nullptr;
         }
@@ -82,38 +116,106 @@ struct Coroutine {
 
   private:
     struct PromiseVoid {
-        Coroutine<T> get_return_object() { return Coroutine{std::move(CoroutineHandle<Promise>::from_promise(*this))}; }
-        Awaiter initial_suspend() { return {}; }
-        Awaiter final_suspend() noexcept { return {}; }
+        struct FinalAwaiter {
+            bool await_ready() const noexcept { return false; }
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<PromiseVoid> h) const noexcept {
+                auto next = h.promise().m_awaitingCoroutine;
+                return next ? next : std::noop_coroutine();
+            }
+            void await_resume() const noexcept {}
+        };
+        Coroutine<> get_return_object() {
+            return Coroutine<>{std::move(std::coroutine_handle<Promise>::from_promise(*this))};
+        }
+        std::suspend_always initial_suspend() { return {}; }
+        FinalAwaiter final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
         template <typename From>
-        Awaiter yield_value(From &&from) {
-            return {};
+        From yield_value(From &&from) {
+            return std::forward<From>(from);
         }
         void return_void() {}
+        [[no_unique_address]] Empty m_value;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     struct PromiseValue {
-        PromiseValue(Coroutine<T> *c) : coroutine(c) {}
-        Coroutine<T> get_return_object() { return Coroutine{std::move(CoroutineHandle<Promise>::from_promise(*this))}; }
-        Awaiter initial_suspend() { return {}; }
-        Awaiter final_suspend() noexcept { return {}; }
-        void unhandled_exception() {}
-        // This should be an std::convertible_to<T>, but Apple still doesn't have a fully C++-20 conformant library.
-        template <typename From>
-        Awaiter yield_value(From &&from) {
-            coroutine->m_value = std::forward<From>(from);
-            return {};
+        struct FinalAwaiter {
+            bool await_ready() const noexcept { return false; }
+            std::coroutine_handle<> await_suspend(std::coroutine_handle<PromiseValue> h) const noexcept {
+                auto next = h.promise().m_awaitingCoroutine;
+                return next ? next : std::noop_coroutine();
+            }
+            void await_resume() const noexcept {}
+        };
+        Coroutine<T> get_return_object() {
+            return Coroutine{std::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
-        void return_value(T &&value) { coroutine->m_value = std::forward(value); }
-        Coroutine<T> *coroutine = nullptr;
+        std::suspend_always initial_suspend() { return {}; }
+        FinalAwaiter final_suspend() noexcept { return {}; }
+        void unhandled_exception() {}
+        template <typename From>
+        From yield_value(From &&from) {
+            return std::forward<From>(from);
+        }
+        void return_value(T &&value) {
+            m_value = std::move(value);
+        }
+        T m_value;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
-    Coroutine(CoroutineHandle<Promise> &&handle) : m_handle(std::move(handle)) {}
-    CoroutineHandle<Promise> m_handle;
+
+    Coroutine(std::coroutine_handle<Promise> &&handle) : m_handle(std::move(handle)) {}
+
+    std::coroutine_handle<Promise> m_handle;
     [[no_unique_address]] SafeT m_value;
+    bool m_suspended = true;
+    bool m_earlyResume = false;
 
   public:
     using promise_type = Promise;
+
+    struct ChainAwaiter {
+        std::coroutine_handle<Promise> handle;
+
+        explicit ChainAwaiter(std::coroutine_handle<Promise> h) : handle(h) {}
+        ~ChainAwaiter() {
+            if (handle) handle.destroy();
+        }
+
+        ChainAwaiter(ChainAwaiter &&other) : handle(other.handle) { other.handle = nullptr; }
+        ChainAwaiter &operator=(ChainAwaiter &&) = delete;
+        ChainAwaiter(const ChainAwaiter &) = delete;
+        ChainAwaiter &operator=(const ChainAwaiter &) = delete;
+
+        constexpr bool await_ready() { return handle.done(); }
+
+        void await_suspend(std::coroutine_handle<> h) {
+            handle.promise().m_awaitingCoroutine = h;
+            if (!handle.done()) handle.resume();
+        }
+
+        constexpr T await_resume() {
+            if constexpr (std::is_void<T>::value) {
+                handle.destroy();
+                handle = nullptr;
+                return;
+            } else {
+                auto val = std::move(handle.promise().m_value);
+                handle.destroy();
+                handle = nullptr;
+                return val;
+            }
+        }
+    };
+
+    ChainAwaiter operator co_await() && {
+        auto h = m_handle;
+        m_handle = nullptr;
+        return ChainAwaiter{h};
+    }
 };
 
 }  // namespace PCSX
