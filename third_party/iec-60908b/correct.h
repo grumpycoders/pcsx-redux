@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2019 PCSX-Redux authors
+Copyright (c) 2026 Nicolas "Pixel" Noble
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,28 @@ SOFTWARE.
 
 */
 
-.set SBUS_DEV0_ADDR,      0x1f801000
-.set SBUS_DEV8_ADDR,      0x1f801004
+#pragma once
 
-.set SBUS_DEV0_CTRL,      0x1f801008
-.set SBUS_DEV1_CTRL,      0x1f80100C
-.set SBUS_DEV2_CTRL,      0x1f801010
-.set SBUS_DEV4_CTRL,      0x1f801014
-.set SBUS_DEV5_CTRL,      0x1f801018
-.set SBUS_DEV8_CTRL,      0x1f80101C
+#include <stdint.h>
 
-.set SBUS_COM_CTRL,       0x1f801020
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-.set RAM_SIZE,            0x1f801060
+// Recompute the sector's EDC and compare it to the stored value. Returns 1 if
+// the EDC matches (the user data is intact), 0 otherwise. Works for Mode 2
+// Form 1 and Form 2; any other sector type returns 1.
+int check_edc(const uint8_t* sector);
 
-.set BIU_CONFIG,          0xfffe0130
+// Attempt to repair a Mode 2 Form 1 sector in place using its P and Q ECC,
+// iterating the two channels until the EDC validates or no further progress is
+// possible. Returns:
+//    1  the sector is valid (was already clean, or was corrected)
+//    0  the sector could not be brought to a valid EDC (too much damage)
+// Form 2 sectors carry no ECC, so this returns whatever check_edc reports.
+// Non-Mode-2 sectors are left untouched and report 1.
+int correct_sector(uint8_t* sector);
 
-.set SYS573_JAMMA_P2_EXT, 0x1f40000e
-.set SYS573_WATCHDOG,     0x1f5c0000
-.set SYS573_7SEG_POST,    0x1f640010
-
-.set ZN_BOARD_CONFIG,     0x1fa10200
+#ifdef __cplusplus
+}
+#endif
