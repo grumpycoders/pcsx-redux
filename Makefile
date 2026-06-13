@@ -8,6 +8,8 @@ UNAME_M := $(shell uname -m)
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo false)
 
+MACOS_MIN_VERSION := 11
+
 PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libcurl libuv zlib
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
@@ -72,7 +74,7 @@ ifeq ($(CC_IS_CLANG),true)
 endif
 
 ifeq ($(UNAME_S),Darwin)
-    CPPFLAGS += -mmacosx-version-min=10.15
+    CPPFLAGS += -mmacosx-version-min=$(MACOS_MIN_VERSION)
     CPPFLAGS += -stdlib=libc++
 endif
 
@@ -80,7 +82,7 @@ LUAJIT_LDFLAGS := $(LDFLAGS)
 
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS += -lc++ -framework GLUT -framework OpenGL -framework CoreFoundation -framework Cocoa
-    LDFLAGS += -mmacosx-version-min=10.15
+    LDFLAGS += -mmacosx-version-min=$(MACOS_MIN_VERSION)
 else
     LDFLAGS += -lstdc++fs
     LDFLAGS += -lGL -lX11 -lxcb
@@ -139,7 +141,7 @@ SRCS_pkg_md4c += third_party/md4c/src/md4c.c
 SRCS_lib_multipart += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
-SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -169,11 +171,11 @@ endif
 SUPPORT_SRCS := src/support/container-file.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
 SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
-SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = authoring exe2elf exe2iso modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 
@@ -277,10 +279,10 @@ appimage:
 
 ifeq ($(CROSS),arm64)
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 else
 third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 endif
 
 bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
@@ -308,15 +310,15 @@ objs/$(BUILD)/%.o: %.mm
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.c
 	@$(MKDIRP) $(dir $@)
-	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.c
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cc
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cc
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cpp
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cpp
 
 objs/$(BUILD)/gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	@$(MKDIRP) $(dir $@)
@@ -328,11 +330,11 @@ objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
 
 clean:
 	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
-	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 cleanall:
 	rm -rf bins objs deps $(TOOLS) $(TARGET)
-	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=10.15
+	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 gitclean:
 	git clean -f -d -x

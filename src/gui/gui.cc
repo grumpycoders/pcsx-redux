@@ -1393,6 +1393,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
                     ImGui::MenuItem(_("Show RAM viewer"), nullptr, &m_ramViewer.m_show);
+                    ImGui::MenuItem(_("Show MSAN Viewer"), nullptr, &m_msanViewer.m_show);
                     ImGui::MenuItem(_("Show Typed Debugger"), nullptr, &m_typedDebugger.m_show);
                     ImGui::MenuItem(_("Show Patches"), nullptr, &m_patches.m_show);
                     ImGui::MenuItem(_("Show Interrupts Scaler"), nullptr, &m_showInterruptsScaler);
@@ -1441,6 +1442,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Misc hardware"))) {
+                    ImGui::MenuItem(_("Show HW Registers"), nullptr, &m_hwRegs.m_show);
                     ImGui::MenuItem(_("Show SIO1 debug"), nullptr, &m_sio1.m_show);
                     ImGui::EndMenu();
                 }
@@ -1687,7 +1689,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_registers.m_show) {
-        m_registers.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Registers"));
+        m_registers.draw(this, &g_emulator->m_cpu->m_regs, _("Registers"));
     }
 
     if (m_assembly.m_show) {
@@ -1714,6 +1716,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_memoryObserver.draw(_("Memory Observer"));
     }
 
+    if (m_msanViewer.m_show) {
+        m_msanViewer.draw(this, g_emulator->m_mem.get(), _("MSAN Viewer"));
+    }
+
     if (m_typedDebugger.m_show) {
         m_typedDebugger.draw(_("Typed Debugger"), this);
     }
@@ -1733,6 +1739,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_pioCart.m_show) {
         changed |= m_pioCart.draw(_("PIO Cartridge Configuration"));
+    }
+
+    if (m_hwRegs.m_show) {
+        m_hwRegs.draw(this, g_emulator->m_mem.get(), _("HW Registers"));
     }
 
     if (m_sio1.m_show) {

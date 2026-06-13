@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32126.317
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11819.183
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "main", "main\main.vcxproj", "{36D6F879-F4CB-477E-BB87-33D867EDDB0A}"
 EndProject
@@ -99,8 +99,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lpeg", "lpeg\lpeg.vcxproj",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lua", "Lua", "{394627A0-57EB-46B1-B768-E02ACFC798A8}"
 	ProjectSection(SolutionItems) = preProject
+		..\tests\lua\adpcm.lua = ..\tests\lua\adpcm.lua
 		..\tests\lua\basic.lua = ..\tests\lua\basic.lua
 		..\tests\lua\file.lua = ..\tests\lua\file.lua
+		..\tests\lua\isobuilder.lua = ..\tests\lua\isobuilder.lua
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "modconv", "modconv\modconv.vcxproj", "{74F6A549-AB14-4369-A382-C31C0ED97A92}"
@@ -110,6 +112,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uriparser", "uriparser\uriparser.vcxproj", "{6ACDC81A-F4D8-4C2D-8CCD-DB72A88FEBED}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "authoring", "authoring\authoring.vcxproj", "{74766710-2FA8-4400-B035-321B4A7ACD9C}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PEGTL", "PEGTL", "{EC169519-2509-4F22-9AAF-0BD6BD85BBE0}"
 	ProjectSection(SolutionItems) = preProject
 		..\third_party\PEGTL\include\tao\pegtl.hpp = ..\third_party\PEGTL\include\tao\pegtl.hpp
@@ -323,6 +326,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "icu", "icu", "{ACCFF71D-6BB
 		..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf32.hpp = ..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf32.hpp
 		..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf8.hpp = ..\third_party\PEGTL\include\tao\pegtl\contrib\icu\utf8.hpp
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2spd", "midi2spd\midi2spd.vcxproj", "{FC0BCB98-8E1A-4304-BFF0-B22970853019}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2psm", "midi2psm\midi2psm.vcxproj", "{E1D23582-C66F-40D3-A163-B1B4470B3F15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -743,6 +750,26 @@ Global
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
 		{74766710-2FA8-4400-B035-321B4A7ACD9C}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.Debug|x64.ActiveCfg = Debug|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.Debug|x64.Build.0 = Debug|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.Release|x64.ActiveCfg = Release|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.Release|x64.Build.0 = Release|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.Debug|x64.ActiveCfg = Debug|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.Debug|x64.Build.0 = Debug|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.Release|x64.ActiveCfg = Release|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.Release|x64.Build.0 = Release|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithTracy|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -797,9 +824,11 @@ Global
 		{F3837DDD-BF8B-497F-B876-9934BF472AB3} = {AF31872E-C7A9-4320-A974-649B7A6D20AB}
 		{59A85D5E-C5BB-4402-BDFE-DDE140CADC27} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
 		{ACCFF71D-6BB0-4B55-9ADA-476E2A7F071F} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
+		{FC0BCB98-8E1A-4304-BFF0-B22970853019} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
+		{E1D23582-C66F-40D3-A163-B1B4470B3F15} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
+		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
 	EndGlobalSection
 EndGlobal
