@@ -109,9 +109,10 @@ int PCSX::Memory::init() {
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
+    m_sram = (uint8_t *)calloc(0x00200000, 1);
 
     if (m_readLUT == NULL || m_writeLUT == NULL || m_wram == NULL || m_exp1 == NULL || m_bios == NULL ||
-        m_hard == NULL) {
+        m_sram == NULL || m_hard == NULL) {
         g_system->message("%s", _("Error allocating memory!"));
         return -1;
     }
@@ -128,6 +129,18 @@ int PCSX::Memory::init() {
 
     memcpy(m_readLUT + 0x9fc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
     memcpy(m_readLUT + 0xbfc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
+
+    // DTL-H2000 dev board BIOS SRAM: 2MB of writable static RAM at 0x1fa00000,
+    // mirrored across kuser/kseg0/kseg1. setLuts() only touches the main-RAM pages,
+    // so these entries are safe to set once here.
+    for (int i = 0; i < 0x20; i++) {
+        m_readLUT[i + 0x1fa0] = (uint8_t *)&m_sram[i << 16];
+        m_writeLUT[i + 0x1fa0] = (uint8_t *)&m_sram[i << 16];
+    }
+    memcpy(m_readLUT + 0x9fa0, m_readLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_readLUT + 0xbfa0, m_readLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_writeLUT + 0x9fa0, m_writeLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_writeLUT + 0xbfa0, m_writeLUT + 0x1fa0, 0x20 * sizeof(void *));
 
     setLuts();
 
@@ -174,6 +187,7 @@ void PCSX::Memory::reset() {
     memset(m_wram, 0, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
+    memset(m_sram, 0, 0x00200000);
     m_psyqoHeapMetadata = 0;
     static const uint32_t nobios[6] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
@@ -260,6 +274,7 @@ void PCSX::Memory::shutdown() {
     free(m_exp1);
     free(m_hard);
     free(m_bios);
+    free(m_sram);
 
     free(m_readLUT);
     free(m_writeLUT);
