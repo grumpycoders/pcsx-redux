@@ -5,6 +5,11 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -15,13 +20,10 @@ jobs:
       env:
         TEST_RESULTS: /tmp/test-results
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           set-safe-directory: true
-      - uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           make -j 2 all pcsx-redux-tests tools
           make -C src/mips/tests -j 2 PCSX_TESTS=true
@@ -32,6 +34,7 @@ jobs:
           node-version: '22.6.0'
       - name: Install jq
         run: |
+          apt update
           apt install -y jq
       - name: Packaging
         env:

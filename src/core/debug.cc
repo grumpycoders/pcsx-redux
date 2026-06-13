@@ -28,6 +28,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/ramlogger.h"
 #include "supportpsx/memory.h"
 
 enum {
@@ -157,6 +158,17 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
         if (isJALR) markMap(regs.GPR.r[rd], MAP_EXEC_JAL);
     }
 
+    // RAM logger: record execution
+    auto *ramLogger = g_emulator->m_ramLogger.get();
+    const bool ramLoggerEnabled = ramLogger->isEnabled();
+    const uint32_t cycle = static_cast<uint32_t>(regs.cycle);
+    if (ramLoggerEnabled) {
+        PSXAddress pcAddr(normalizeAddress(newPC));
+        if (pcAddr.type == PSXAddress::Type::RAM) {
+            ramLogger->recordAccess(pcAddr.physical, 4, RAMLogger::AccessType::Execute, cycle);
+        }
+    }
+
     // Are we jumping from a non-kernel address to a kernel address which:
     // - is not a jr to $ra (aka a return from a callback)
     // - is not a jump to 0xa0 / 0xb0 / 0xc0 (aka the syscall gates)
@@ -212,6 +224,20 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
                 triggerBP(nullptr, offset, 4, _("Write 32 map"));
             }
             if (m_mapping_w32) markMap(offset, MAP_W32);
+        }
+        // RAM logger: record loads and stores
+        if (ramLoggerEnabled) {
+            PSXAddress loadStoreAddr(normalizeAddress(offset));
+            if (loadStoreAddr.type == PSXAddress::Type::RAM) {
+                if (isLoad) {
+                    unsigned width = (isLB || isLBU) ? 1 : (isLH || isLHU) ? 2 : 4;
+                    ramLogger->recordAccess(loadStoreAddr.physical, width, RAMLogger::AccessType::Read, cycle);
+                }
+                if (isStore) {
+                    unsigned width = isSB ? 1 : isSH ? 2 : 4;
+                    ramLogger->recordAccess(loadStoreAddr.physical, width, RAMLogger::AccessType::Write, cycle);
+                }
+            }
         }
         // Are we accessing a kernel address from a non-kernel address, while not in IRQ?
         if (!g_emulator->m_cpu->m_inISR && offsetIsInKernel && !wasInKernel) {
@@ -290,6 +316,16 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
     g_system->printf(_("Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"), pc, name, cause);
     g_system->m_eventBus->signal(Events::GUI::JumpToPC{pc});
     return keepBP;
+}
+
+void PCSX::Debug::logDMAAccess(uint32_t address, uint32_t len, bool isWrite) {
+    auto *ramLogger = g_emulator->m_ramLogger.get();
+    if (!ramLogger->isEnabled()) return;
+    PSXAddress addr(normalizeAddress(address));
+    if (addr.type != PSXAddress::Type::RAM) return;
+    uint32_t cycle = static_cast<uint32_t>(g_emulator->m_cpu->m_regs.cycle);
+    auto type = isWrite ? RAMLogger::AccessType::Write : RAMLogger::AccessType::Read;
+    ramLogger->recordAccess(addr.physical, len, type, cycle);
 }
 
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {

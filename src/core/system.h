@@ -112,6 +112,10 @@ struct VRAMClick {
     float x, y;
     VRAMMode vramMode;
 };
+struct RAMFocus {
+    uint32_t address;
+    uint32_t size;
+};
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;
