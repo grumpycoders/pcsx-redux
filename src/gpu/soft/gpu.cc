@@ -23,20 +23,24 @@
 #include "core/debug.h"
 #include "core/psxemulator.h"
 #include "gpu/soft/interface.h"
+#include "gpu/soft/pixel-writer.h"
 #include "gpu/soft/soft.h"
+#include "gui/gui.h"
 #include "imgui.h"
 #include "support/imgui-helpers.h"
 #include "tracy/Tracy.hpp"
 
-#define GPUSTATUS_DMABITS 0x60000000
-#define GPUSTATUS_READYFORCOMMANDS 0x10000000
-#define GPUSTATUS_IDLE 0x04000000
-#define GPUSTATUS_DISPLAYDISABLED 0x00800000
-#define GPUSTATUS_INTERLACED 0x00400000
-#define GPUSTATUS_RGB24 0x00200000
-#define GPUSTATUS_PAL 0x00100000
-#define GPUSTATUS_DOUBLEHEIGHT 0x00080000
-#define GPUSTATUS_WIDTHBITS 0x00070000
+// GP1 status-register bit definitions. Names are protocol-visible and
+// must stay stable - logs and debugger expressions read them out.
+static constexpr uint32_t GPUSTATUS_DMABITS = 0x60000000;
+static constexpr uint32_t GPUSTATUS_READYFORCOMMANDS = 0x10000000;
+static constexpr uint32_t GPUSTATUS_IDLE = 0x04000000;
+static constexpr uint32_t GPUSTATUS_DISPLAYDISABLED = 0x00800000;
+static constexpr uint32_t GPUSTATUS_INTERLACED = 0x00400000;
+static constexpr uint32_t GPUSTATUS_RGB24 = 0x00200000;
+static constexpr uint32_t GPUSTATUS_PAL = 0x00100000;
+static constexpr uint32_t GPUSTATUS_DOUBLEHEIGHT = 0x00080000;
+static constexpr uint32_t GPUSTATUS_WIDTHBITS = 0x00070000;
 
 int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_ui = ui;
@@ -44,7 +48,7 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     initDisplay();
 
     // always alloc one extra MB for soft drawing funcs security
-    m_allocatedVRAM = new uint8_t[(GPU_HEIGHT * 2) * 1024 + (1024 * 1024)]();
+    m_allocatedVRAM = new uint8_t[(VRAM_HEIGHT * 2) * 1024 + (1024 * 1024)]();
     if (!m_allocatedVRAM) return -1;
 
     //!!! ATTENTION !!!
@@ -83,6 +87,8 @@ int32_t PCSX::SoftGPU::impl::shutdown() {
 std::unique_ptr<PCSX::GPU> PCSX::GPU::getSoft() { return std::unique_ptr<PCSX::GPU>(new PCSX::SoftGPU::impl()); }
 
 void PCSX::SoftGPU::impl::updateDisplay(bool fromGui) {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     if (m_softDisplay.Disabled) {
         glClearColor(1, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -125,8 +131,11 @@ void PCSX::SoftGPU::impl::changeDispOffsetsX() {
 
             m_previousDisplay.Range.x1 += (int16_t)(lx - l);
         }
-        glClearColor(1, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        GUI *gui = dynamic_cast<GUI *>(m_ui);
+        if (gui) {
+            glClearColor(1, 0, 0, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
     }
 
     m_doVSyncUpdate = true;
@@ -136,9 +145,9 @@ void PCSX::SoftGPU::impl::changeDispOffsetsY() {
     int iT, iO = m_previousDisplay.Range.y0;
     int iOldYOffset = m_previousDisplay.DisplayModeNew.y;
 
-    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > GPU_HEIGHT) {
-        int dy1 = GPU_HEIGHT - m_previousDisplay.DisplayModeNew.x;
-        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - GPU_HEIGHT;
+    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > VRAM_HEIGHT) {
+        int dy1 = VRAM_HEIGHT - m_previousDisplay.DisplayModeNew.x;
+        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - VRAM_HEIGHT;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;
@@ -171,8 +180,11 @@ void PCSX::SoftGPU::impl::changeDispOffsetsY() {
     }
 
     if (iO != m_previousDisplay.Range.y0) {
-        glClearColor(1, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        GUI *gui = dynamic_cast<GUI *>(m_ui);
+        if (gui) {
+            glClearColor(1, 0, 0, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
     }
 }
 
@@ -277,9 +289,7 @@ void PCSX::SoftGPU::impl::debug() {
     ImGui::End();
 }
 
-static constexpr inline uint16_t BGR24to16(uint32_t BGR) {
-    return (uint16_t)(((BGR >> 3) & 0x1f) | ((BGR & 0xf80000) >> 9) | ((BGR & 0xf800) >> 6));
-}
+static constexpr inline uint16_t BGR24to16(uint32_t BGR) { return PCSX::SoftGPU::Channel555::fromCommandColor(BGR); }
 
 static constexpr inline uint16_t BGR24to16(PCSX::GPU::EmptyColor) { return 0; }
 
@@ -301,7 +311,7 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
     sW += sX;
     sH += sY;
 
-    fillSoftwareArea(sX, sY, sW, sH, BGR24to16(prim->color));
+    fillArea(sX, sY, sW, sH, BGR24to16(prim->color));
 
     m_doVSyncUpdate = true;
 }
@@ -309,20 +319,22 @@ void PCSX::SoftGPU::impl::write0(FastFill *prim) {
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulation> *prim) {
-    m_x0 = prim->x[0];
-    m_y0 = prim->y[0];
-    m_x1 = prim->x[1];
-    m_y1 = prim->y[1];
-    m_x2 = prim->x[2];
-    m_y2 = prim->y[2];
+    int16_t x0 = prim->x[0];
+    int16_t y0 = prim->y[0];
+    int16_t x1 = prim->x[1];
+    int16_t y1 = prim->y[1];
+    int16_t x2 = prim->x[2];
+    int16_t y2 = prim->y[2];
+    int16_t x3 = 0;
+    int16_t y3 = 0;
     if constexpr (shape == Shape::Quad) {
-        m_x3 = prim->x[3];
-        m_y3 = prim->y[3];
-        if (checkCoord4()) return;
-        applyOffset4();
+        x3 = prim->x[3];
+        y3 = prim->y[3];
+        if (checkCoord4(x0, y0, x1, y1, x2, y2, x3, y3)) return;
+        applyOffset4(x0, y0, x1, y1, x2, y2, x3, y3);
     } else {
-        if (checkCoord3()) return;
-        applyOffset3();
+        if (checkCoord3(x0, y0, x1, y1, x2, y2)) return;
+        applyOffset3(x0, y0, x1, y1, x2, y2);
     }
 
     m_drawSemiTrans = blend == Blend::Semi;
@@ -344,44 +356,61 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
                 }
                 texturePage(&prim->tpage);
                 if constexpr (shape == Shape::Quad) {
+                    // Decompose into two triangles using the (1,3,2)+(0,1,2)
+                    // PSX vertex split that drawPolyFlat4 and drawPoly4TG
+                    // already use. drawPoly3T carries the same pixel-centre
+                    // bias as the retired 4-vertex flat-textured walker, so
+                    // this split is bit-equivalent to the old sweep for
+                    // QFD-class geometry.
                     switch (m_globalTextTP) {
                         case GPU::TexDepth::Tex4Bits:
-                            drawPoly4TEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                          prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                          prim->clutX(), prim->clutY());
+                            drawPoly3T<TexMode::Clut4>(x1, y1, x3, y3, x2, y2, prim->u[1], prim->v[1], prim->u[3],
+                                                       prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
+                            drawPoly3T<TexMode::Clut4>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex8Bits:
-                            drawPoly4TEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                          prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                          prim->clutX(), prim->clutY());
+                            drawPoly3T<TexMode::Clut8>(x1, y1, x3, y3, x2, y2, prim->u[1], prim->v[1], prim->u[3],
+                                                       prim->v[3], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
+                            drawPoly3T<TexMode::Clut8>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex16Bits:
-                            drawPoly4TD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                        prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2]);
+                            drawPoly3T<TexMode::Direct15>(x1, y1, x3, y3, x2, y2, prim->u[1], prim->v[1], prim->u[3],
+                                                          prim->v[3], prim->u[2], prim->v[2], 0, 0);
+                            drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                          prim->v[1], prim->u[2], prim->v[2], 0, 0);
                             break;
                     }
                 } else {
                     switch (m_globalTextTP) {
                         case GPU::TexDepth::Tex4Bits:
-                            drawPoly3TEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                          prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
+                            drawPoly3T<TexMode::Clut4>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex8Bits:
-                            drawPoly3TEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                          prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY());
+                            drawPoly3T<TexMode::Clut8>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                       prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                       prim->clutY());
                             break;
                         case GPU::TexDepth::Tex16Bits:
-                            drawPoly3TD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                        prim->v[1], prim->u[2], prim->v[2]);
+                            drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                          prim->v[1], prim->u[2], prim->v[2], 0, 0);
                             break;
                     }
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                drawPolyFlat4(prim->colors[0]);
+                drawPoly3F(x1, y1, x3, y3, x2, y2, prim->colors[0]);
+                drawPoly3F(x0, y0, x1, y1, x2, y2, prim->colors[0]);
             } else {
-                drawPolyFlat3(prim->colors[0]);
+                drawPoly3F(x0, y0, x1, y1, x2, y2, prim->colors[0]);
             }
         }
     } else {
@@ -395,48 +424,52 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
                 if constexpr (shape == Shape::Quad) {
                     switch (m_globalTextTP) {
                         case GPU::TexDepth::Tex4Bits:
-                            drawPoly4TGEx4(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                           prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                           prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1],
-                                           prim->colors[2], prim->colors[3]);
+                            drawPoly4TG<TexMode::Clut4>(x0, y0, x1, y1, x3, y3, x2, y2, prim->u[0], prim->v[0],
+                                                        prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                        prim->v[2], prim->clutX(), prim->clutY(), prim->colors[0],
+                                                        prim->colors[1], prim->colors[2], prim->colors[3]);
                             break;
                         case GPU::TexDepth::Tex8Bits:
-                            drawPoly4TGEx8(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                           prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                           prim->clutX(), prim->clutY(), prim->colors[0], prim->colors[1],
-                                           prim->colors[2], prim->colors[3]);
+                            drawPoly4TG<TexMode::Clut8>(x0, y0, x1, y1, x3, y3, x2, y2, prim->u[0], prim->v[0],
+                                                        prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                        prim->v[2], prim->clutX(), prim->clutY(), prim->colors[0],
+                                                        prim->colors[1], prim->colors[2], prim->colors[3]);
                             break;
                         case GPU::TexDepth::Tex16Bits:
-                            drawPoly4TGD(m_x0, m_y0, m_x1, m_y1, m_x3, m_y3, m_x2, m_y2, prim->u[0], prim->v[0],
-                                         prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2], prim->v[2],
-                                         prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                            drawPoly4TG<TexMode::Direct15>(x0, y0, x1, y1, x3, y3, x2, y2, prim->u[0], prim->v[0],
+                                                           prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
+                                                           prim->v[2], 0, 0, prim->colors[0], prim->colors[1],
+                                                           prim->colors[2], prim->colors[3]);
                             break;
                     }
                 } else {
                     switch (m_globalTextTP) {
                         case GPU::TexDepth::Tex4Bits:
-                            drawPoly3TGEx4(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                           prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
-                                           prim->colors[0], prim->colors[1], prim->colors[2]);
+                            drawPoly3TG<TexMode::Clut4>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                        prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                        prim->clutY(), prim->colors[0], prim->colors[1],
+                                                        prim->colors[2]);
                             break;
                         case GPU::TexDepth::Tex8Bits:
-                            drawPoly3TGEx8(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                           prim->v[1], prim->u[2], prim->v[2], prim->clutX(), prim->clutY(),
-                                           prim->colors[0], prim->colors[1], prim->colors[2]);
+                            drawPoly3TG<TexMode::Clut8>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                        prim->v[1], prim->u[2], prim->v[2], prim->clutX(),
+                                                        prim->clutY(), prim->colors[0], prim->colors[1],
+                                                        prim->colors[2]);
                             break;
                         case GPU::TexDepth::Tex16Bits:
-                            drawPoly3TGD(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, prim->u[0], prim->v[0], prim->u[1],
-                                         prim->v[1], prim->u[2], prim->v[2], prim->colors[0], prim->colors[1],
-                                         prim->colors[2]);
+                            drawPoly3TG<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
+                                                           prim->v[1], prim->u[2], prim->v[2], 0, 0, prim->colors[0],
+                                                           prim->colors[1], prim->colors[2]);
                             break;
                     }
                 }
             }
         } else {
             if constexpr (shape == Shape::Quad) {
-                drawPolyShade4(prim->colors[0], prim->colors[1], prim->colors[2], prim->colors[3]);
+                drawPoly4G(x0, y0, x1, y1, x2, y2, x3, y3, prim->colors[0], prim->colors[1], prim->colors[2],
+                           prim->colors[3]);
             } else {
-                drawPolyShade3(prim->colors[0], prim->colors[1], prim->colors[2]);
+                drawPoly3G(x0, y0, x1, y1, x2, y2, prim->colors[0], prim->colors[1], prim->colors[2]);
             }
         }
     }
@@ -446,21 +479,15 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
 static constexpr int CHKMAX_X = 1024;
 static constexpr int CHKMAX_Y = 512;
 
+// Hardware drops lines whose endpoint delta exceeds the same per-edge bounds
+// that gate polygons: |dx| <= 1023, |dy| <= 511 (verified on SCPH-5501 via
+// gpu-raster-phase14 ct_line_dx_1024_drop / ct_line_dx_2047_drop).
 static constexpr inline bool CheckCoordL(int16_t slx0, int16_t sly0, int16_t slx1, int16_t sly1) {
-    if (slx0 < 0) {
-        if ((slx1 - slx0) > CHKMAX_X) return true;
-    }
-    if (slx1 < 0) {
-        if ((slx0 - slx1) > CHKMAX_X) return true;
-    }
-    if (sly0 < 0) {
-        if ((sly1 - sly0) > CHKMAX_Y) return true;
-    }
-    if (sly1 < 0) {
-        if ((sly0 - sly1) > CHKMAX_Y) return true;
-    }
-
-    return false;
+    int dx = slx1 - slx0;
+    int dy = sly1 - sly0;
+    if (dx < 0) dx = -dx;
+    if (dy < 0) dy = -dy;
+    return dx >= CHKMAX_X || dy >= CHKMAX_Y;
 }
 
 template <PCSX::GPU::Shading shading, PCSX::GPU::LineType lineType, PCSX::GPU::Blend blend>
@@ -470,25 +497,17 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
     m_drawSemiTrans = blend == Blend::Semi;
 
     for (unsigned i = 1; i < count; i++) {
-        auto x0 = prim->x[i - 1];
-        auto x1 = prim->x[i];
-        auto y0 = prim->y[i - 1];
-        auto y1 = prim->y[i];
+        int16_t x0 = prim->x[i - 1];
+        int16_t x1 = prim->x[i];
+        int16_t y0 = prim->y[i - 1];
+        int16_t y1 = prim->y[i];
         auto c0 = prim->colors[i - 1];
         auto c1 = prim->colors[i];
 
         if (CheckCoordL(x0, y0, x1, y1)) continue;
-        m_y0 = y0;
-        m_x0 = x0;
-        m_y1 = y1;
-        m_x1 = x1;
 
-        applyOffset2();
-        if constexpr (shading == Shading::Gouraud) {
-            drawSoftwareLineShade(c0, c1);
-        } else {
-            drawSoftwareLineFlat(c0);
-        }
+        applyOffset2(x0, y0, x1, y1);
+        drawLine<shading>(x0, y0, x1, y1, c0, c1);
     }
     m_doVSyncUpdate = true;
 }
@@ -497,12 +516,20 @@ template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend b
 void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim) {
     int16_t w, h;
 
-    m_x0 = prim->x;
-    m_y0 = prim->y;
+    int16_t x0 = prim->x;
+    int16_t y0 = prim->y;
+    int16_t x1, y1, x2, y2, x3, y3;
 
     if constexpr (size == Size::Variable) {
-        w = prim->w;
-        h = prim->h;
+        // Hardware masks the variable-rect dimensions to 10 bits (width) and
+        // 9 bits (height); the effective extents are `w & 0x3FF` / `h & 0x1FF`,
+        // not the documented `((w-1) & mask) + 1` shape. A width of 1024 maps
+        // to 0 and silently drops the primitive on real silicon (verified via
+        // gpu-raster-phase14 ct_rect_w1024 / ct_rect_h512 against SCPH-5501),
+        // while 1025/513 fall through as 1-pixel wide/tall.
+        w = static_cast<int16_t>(prim->w & 0x3FF);
+        h = static_cast<int16_t>(prim->h & 0x1FF);
+        if (w == 0 || h == 0) return;
     } else if constexpr (size == Size::S1) {
         w = h = 1;
     } else if constexpr (size == Size::S8) {
@@ -521,36 +548,27 @@ void PCSX::SoftGPU::impl::rectExec(Rect<size, textured, blend, modulation> *prim
         m_m1 = m_m2 = m_m3 = 128;
     }
 
-    m_x1 = m_x2 = m_x0 + w + m_softDisplay.DrawOffset.x;
-    m_x0 = m_x3 = m_x0 + m_softDisplay.DrawOffset.x;
-    m_y2 = m_y3 = m_y0 + h + m_softDisplay.DrawOffset.y;
-    m_y0 = m_y1 = m_y0 + m_softDisplay.DrawOffset.y;
+    x1 = x2 = x0 + w + m_softDisplay.DrawOffset.x;
+    x0 = x3 = x0 + m_softDisplay.DrawOffset.x;
+    y2 = y3 = y0 + h + m_softDisplay.DrawOffset.y;
+    y0 = y1 = y0 + m_softDisplay.DrawOffset.y;
 
     if ((textured == Textured::Yes) && !m_disableTexturesInRectangles) {
         if constexpr (textured == Textured::Yes) {
-            int16_t tx0, ty0, tx1, ty1, tx2, ty2, tx3, ty3;
-            tx0 = tx3 = prim->u;
-            tx1 = tx2 = tx0 + w;
-            ty0 = ty1 = prim->v;
-            ty2 = ty3 = ty0 + h;
-
             switch (m_globalTextTP) {
                 case GPU::TexDepth::Tex4Bits:
-                    drawPoly4TEx4_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
-                                    ty3, prim->clutX(), prim->clutY());
+                    drawSprite<TexMode::Clut4>(x0, y0, w, h, prim->u, prim->v, prim->clutX(), prim->clutY());
                     break;
                 case GPU::TexDepth::Tex8Bits:
-                    drawPoly4TEx8_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
-                                    ty3, prim->clutX(), prim->clutY());
+                    drawSprite<TexMode::Clut8>(x0, y0, w, h, prim->u, prim->v, prim->clutX(), prim->clutY());
                     break;
                 case GPU::TexDepth::Tex16Bits:
-                    drawPoly4TD_S(m_x0, m_y0, m_x1, m_y1, m_x2, m_y2, m_x3, m_y3, tx0, ty0, tx1, ty1, tx2, ty2, tx3,
-                                  ty3);
+                    drawSprite<TexMode::Direct15>(x0, y0, w, h, prim->u, prim->v, 0, 0);
                     break;
             }
         }
     } else {
-        fillSoftwareAreaTrans(m_x0, m_y0, m_x2, m_y2, BGR24to16(prim->color));
+        drawRect(x0, y0, x2, y2, BGR24to16(prim->color));
     }
 
     m_doVSyncUpdate = true;
@@ -570,13 +588,13 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
-    if ((imageY0 + imageSY) > GPU_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > GPU_HEIGHT ||
+    if ((imageY0 + imageSY) > VRAM_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > VRAM_HEIGHT ||
         (imageX1 + imageSX) > 1024) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
             for (i = 0; i < imageSX; i++) {
-                m_vram16[(1024 * ((imageY1 + j) & GPU_HEIGHT_MASK)) + ((imageX1 + i) & 0x3ff)] =
-                    m_vram16[(1024 * ((imageY0 + j) & GPU_HEIGHT_MASK)) + ((imageX0 + i) & 0x3ff)];
+                m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)] =
+                    m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)];
             }
         }
 
@@ -705,9 +723,9 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
     // store the same val in some helper var, we need it on later compares
     m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
 
-    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > GPU_HEIGHT) {
-        int dy1 = GPU_HEIGHT - m_softDisplay.DisplayPosition.y;
-        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - GPU_HEIGHT;
+    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > VRAM_HEIGHT) {
+        int dy1 = VRAM_HEIGHT - m_softDisplay.DisplayPosition.y;
+        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - VRAM_HEIGHT;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;

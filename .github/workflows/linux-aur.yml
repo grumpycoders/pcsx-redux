@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   aur-build:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed capstone curl ffmpeg freetype2 glfw libuv sdl2 zlib git make pkg-config sudo base-devel pacman-contrib
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           set-safe-directory: true
       - name: Create builduser

@@ -33,8 +33,8 @@ struct SPUVoice {
     uint16_t volumeRight;
     uint16_t sampleRate;
     uint16_t sampleStartAddr;
-    uint16_t ad;
-    uint16_t sr;
+    uint16_t adsrLo;  // +0x08: release rate/mode, sustain rate/dir/mode
+    uint16_t adsrHi;  // +0x0A: attack mode/rate, decay rate, sustain level
     uint16_t currentVolume;
     uint16_t sampleRepeatAddr;
 };
@@ -55,6 +55,7 @@ struct SPUVoice {
 #define SPU_NOISE_EN_HIGH HW_U16(0x1f801d96)
 #define SPU_REVERB_EN_LOW HW_U16(0x1f801d98)
 #define SPU_REVERB_EN_HIGH HW_U16(0x1f801d9a)
+#define SPU_REVERB_ADDR HW_U16(0x1f801da2)
 
 #define SPU_RAM_DTA HW_U16(0x1f801da6)
 #define SPU_CTRL HW_U16(0x1f801daa)
