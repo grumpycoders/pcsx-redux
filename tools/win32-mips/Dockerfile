@@ -1,6 +1,6 @@
 # escape=`
 
-# Dockerfile to generate the Windows g++-mipsel-none-elf-14.2.0.zip package.
+# Dockerfile to generate the Windows g++-mipsel-none-elf-15.2.0.zip package.
 
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 WORKDIR C:\windows\temp
@@ -80,6 +80,6 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'for t in cat cp echo mkdir rm touch which 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cp /mingw64/bin/mingw32-make.exe /DIST/bin/make.exe'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && find . -name *.exe | while read bin ; do ldd $bin | cut -f2 -d\> | cut -f2 -d\  | grep -v /c/Windows/S | while read f ; do cp $f $(dirname $bin) ; done ; done || true'
 
-RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && zip /c/g++-mipsel-none-elf-14.2.0.zip . -r'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /DIST && zip /c/g++-mipsel-none-elf-15.2.0.zip . -r'
 
 CMD C:\msys64\usr\bin\bash.exe -l
