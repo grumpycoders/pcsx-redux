@@ -315,8 +315,9 @@ class Memory {
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
     uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
-    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (512K)
+    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (8 Meg buffer; up to 256K loaded)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)
+    uint8_t *m_sram = nullptr;  // DTL-H2000 dev board BIOS SRAM (2 Meg) @ 0x1fa00000
     uint8_t *m_hard = nullptr;  // Scratch Pad (1K) & Hardware Registers (8K)
 
     uint8_t **m_writeLUT = nullptr;

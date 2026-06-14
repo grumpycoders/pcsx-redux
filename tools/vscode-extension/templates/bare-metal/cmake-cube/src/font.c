@@ -103,8 +103,12 @@ static const SpriteInfo fontSprites[] = {
 };
 
 void printString(
-    DMAChain *chain, const TextureInfo *font, int x, int y, int zIndex,
-    const char *str
+    GPUDMAChain       *chain,
+    const TextureInfo *font,
+    int               x,
+    int               y,
+    int               zIndex,
+    const char        *str
 ) {
     int currentX = x, currentY = y;
 
@@ -145,7 +149,7 @@ void printString(
         // VRAM to those of the sprite itself within the sheet. Enable blending
         // to make sure any semitransparent pixels in the font get rendered
         // correctly.
-        ptr    = allocatePacket(chain, zIndex, 4);
+        ptr    = allocateGP0Packet(chain, zIndex, 4);
         ptr[0] = gp0_rectangle(true, true, true);
         ptr[1] = gp0_xy(currentX, currentY);
         ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
@@ -155,11 +159,10 @@ void printString(
         currentX += sprite->width;
     }
 
-    // Finish by sending a texpage command to tell the GPU to use the font's
-    // spritesheet (keep in mind that DMA sends ordering table packets in
-    // last-to-first order). Note that the texpage command before a drawing
-    // command can be omitted when reusing the same texture, so sending it here
-    // just once is enough.
-    ptr    = allocatePacket(chain, zIndex, 1);
-    ptr[0] = gp0_texpage(font->page, false, false);
+    // Finish by sending a texture page command to tell the GPU to use the
+    // font's spritesheet (keep in mind that DMA sends ordering table packets in
+    // last-to-first order). The page setting persists when drawing rectangles,
+    // so sending it here just once is enough.
+    ptr    = allocateGP0Packet(chain, zIndex, 1);
+    ptr[0] = gp0_setPage(font->page, false, false);
 }
