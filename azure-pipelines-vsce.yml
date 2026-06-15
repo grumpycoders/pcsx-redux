@@ -12,7 +12,7 @@ steps:
 
 - script: |
     npm install -g @vscode/vsce
-    npm i
+    npm i --prefix ./tools/vscode-extension
   displayName: 'Install vsce and dependencies'
 
 - task: AzureCLI@2
