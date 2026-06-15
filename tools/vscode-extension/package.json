@@ -4,7 +4,7 @@
   "description": "PlayStation 1 development made easy",
   "version": "0.4.0",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.82.0"
   },
   "extensionKind": [
     "workspace",
