@@ -98,16 +98,16 @@ def p32(v):
 
 
 def enable_debug_mode(ser):
-    """Send "DEBG" so Unirom installs its kdebug handler. That handler is what
-    catches the binary's `break 0,0x10x` and bridges PCDRV over SIO1; without
-    it the break is never serviced and the PS1 hangs at the first file op.
+    """Send "DEBG" so Unirom installs its kdebug handler. That handler catches
+    every `break`: it bridges PCDRV's `break 0,0x10x` over SIO1, and it halts
+    (HLTD) on the runtime's exit break so the host can detect end-of-binary.
     Unirom echoes the command byte-by-byte, then responds OKAY."""
-    log("[*] Enabling Unirom debug mode (DEBG) for PCDRV...")
+    log("[*] Enabling Unirom debug mode (DEBG)...")
     ser.write(b'DEBG')
     ser.flush()
     tok, pre, _ = read_until_token(ser, [b'OKAY'], timeout=5)
     if tok != b'OKAY':
-        log(f"[!] DEBG: no OKAY (got {pre!r}); PCDRV will not work.")
+        log(f"[!] DEBG: no OKAY (got {pre!r}); kdebug not armed.")
         return False
     log("[*] Debug mode enabled.")
     return True
@@ -326,8 +326,9 @@ def handle_pcdrv_op(ser, reader, pcdrv):
 
 
 def serve_output(ser, reader, pcdrv=None, idle_timeout=30):
-    """Stream TTY output to stdout, servicing PCDRV ops inline. Ends after
-    idle_timeout seconds of silence or on a recognized done marker."""
+    """Stream TTY output to stdout, servicing PCDRV ops inline. Ends on Unirom's
+    HLTD halt token (the program trapping into the debugger, e.g. the exit break)
+    or after idle_timeout seconds of silence."""
     output = bytearray()
     pending_zero = False
     last = time.time()
@@ -354,7 +355,12 @@ def serve_output(ser, reader, pcdrv=None, idle_timeout=30):
         output += b
         sys.stdout.buffer.write(b)
         sys.stdout.buffer.flush()
-        if b'=== Done ===' in output[-16:] or b'Synthesis:' in output[-16:]:
+        # HLTD is Unirom's halt token, emitted whenever a program traps into the
+        # debugger via break - including the deliberate exit break the test
+        # runtime fires on shutdown. It's a protocol-level signal independent of
+        # program output, so it's the only end-of-binary marker we rely on; tests
+        # route their exit through the break rather than printing a sentinel.
+        if b'HLTD' in output[-16:]:
             time.sleep(0.5)
             tail = ser.read(ser.in_waiting or 0)
             if tail:
@@ -383,11 +389,12 @@ def upload_exe(port, filepath, baud=115200, pcdrv_base=None):
     # Drain any pending boot output
     drain(ser, quiet_seconds=2.0)
 
-    # Arm Unirom's kdebug handler before upload so the binary's PCDRV breaks
-    # get bridged over serial.
-    if pcdrv_base is not None:
-        enable_debug_mode(ser)
-        drain(ser, quiet_seconds=0.5)
+    # Always arm Unirom's kdebug handler before upload. It bridges PCDRV ops
+    # over serial when those are in use, and regardless of PCDRV it's what
+    # catches the runtime's exit break and halts (HLTD) - the deterministic
+    # end-of-binary signal serve_output waits on. Harmless to arm when unused.
+    enable_debug_mode(ser)
+    drain(ser, quiet_seconds=0.5)
 
     # === Handshake phase ===
     log("[*] Sending SEXE...")
