@@ -2,7 +2,7 @@ steps:
 - task: AzureCLI@2
   displayName: 'Fetch profile for Service Principal'
   inputs:
-    azureSubscription: 'azure-devops-marketplace'
+    azureSubscription: 'azure-vsce-publish'
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
