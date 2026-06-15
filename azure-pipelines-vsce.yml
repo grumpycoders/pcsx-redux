@@ -2,7 +2,7 @@ steps:
 - task: AzureCLI@2
   displayName: 'Show managed identity details'
   inputs:
-    azureSubscription: 'vscode-extension-publish-mi'
+    azureSubscription: 'azure-vsce-publish'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
