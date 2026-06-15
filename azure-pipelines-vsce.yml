@@ -1,9 +1,11 @@
-steps:
 - task: AzureCLI@2
-  displayName: 'Show managed identity details'
+  displayName: 'Get DevOps identity id'
   inputs:
     azureSubscription: 'azure-vsce-publish'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      az account show --output json
+      az rest \
+        --method get \
+        --uri https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.1-preview.3 \
+        --output json
