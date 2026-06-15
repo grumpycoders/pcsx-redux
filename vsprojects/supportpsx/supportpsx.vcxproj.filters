@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\third_party\ucl\src\n2e_99.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\third_party\ucl\src\n2e_ds.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

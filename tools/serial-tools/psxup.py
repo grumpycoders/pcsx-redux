@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Upload a PS-EXE to a PS1 running Unirom via serial, then read output.
 
-Protocol (from Unirom sio.c and nops NOTPSXSERIAL.CS):
+Protocol (from Unirom sio.c / kdebug.c and nops NOTPSXSERIAL.CS):
 
 Handshake phase (ReadSIO echoes every byte):
   1. Send "SEXE" -> receive echo "SEXE" + "OKV2"
@@ -17,14 +17,38 @@ Transfer phase (inside SEXE handler, no echo):
 After transfer: Unirom calls UnloadMe() and jumps to jumpAddr.
 
 TTY output: Unirom's ttyredirect patches BIOS printf to send over SIO1.
-PCDRV framing: PS1-to-PC direction uses \\x00 to distinguish file ops from TTY output.
+
+PCDRV: on real hardware Unirom catches the PS1's `break 0, 0x101..0x107` and
+bridges the file op over SIO1. We act as the "PC" side (the role nops plays),
+serving file ops out of a base directory. The PS1->PC direction prefixes a file
+op with the escape bytes 0x00 'p'; everything else is TTY. See HandlePCDrv in
+unirom kdebug.c for the reference implementation. All 32-bit values are
+little-endian; OKAY/NOPE/CHEK/MORE/ERR! are literal ASCII words.
 """
-import serial
+import argparse
+import os
 import struct
 import sys
 import time
 
+import serial
+
 CHUNK_SIZE = 2048
+
+OKAY = b'OKAY'
+NOPE = b'NOPE'
+CHEK = b'CHEK'
+MORE = b'MORE'
+ERR = b'ERR!'
+
+# PCDRV op codes (operand of `break 0, 0x10x`).
+PC_INIT = 0x101
+PC_CREATE = 0x102
+PC_OPEN = 0x103
+PC_CLOSE = 0x104
+PC_READ = 0x105
+PC_WRITE = 0x106
+PC_SEEK = 0x107
 
 
 def drain(ser, quiet_seconds=2.0):
@@ -69,7 +93,277 @@ def log(msg):
     print(msg, file=sys.stderr, flush=True)
 
 
-def upload_exe(port, filepath, baud=115200):
+def p32(v):
+    return struct.pack('<I', v & 0xFFFFFFFF)
+
+
+def enable_debug_mode(ser):
+    """Send "DEBG" so Unirom installs its kdebug handler. That handler is what
+    catches the binary's `break 0,0x10x` and bridges PCDRV over SIO1; without
+    it the break is never serviced and the PS1 hangs at the first file op.
+    Unirom echoes the command byte-by-byte, then responds OKAY."""
+    log("[*] Enabling Unirom debug mode (DEBG) for PCDRV...")
+    ser.write(b'DEBG')
+    ser.flush()
+    tok, pre, _ = read_until_token(ser, [b'OKAY'], timeout=5)
+    if tok != b'OKAY':
+        log(f"[!] DEBG: no OKAY (got {pre!r}); PCDRV will not work.")
+        return False
+    log("[*] Debug mode enabled.")
+    return True
+
+
+class SerialReader:
+    """Buffered byte reader over a pyserial port. Lets the TTY loop and the
+    PCDRV protocol handler share one stream without losing bytes."""
+
+    def __init__(self, ser, prime=b''):
+        self.ser = ser
+        self.buf = bytearray(prime)
+
+    def _fill(self, timeout):
+        deadline = time.time() + timeout
+        while not self.buf and time.time() < deadline:
+            n = self.ser.in_waiting
+            if n:
+                self.buf += self.ser.read(n)
+            else:
+                time.sleep(0.005)
+
+    def read1(self, timeout):
+        """Return one byte (as bytes), or None on timeout."""
+        if not self.buf:
+            self._fill(timeout)
+        if not self.buf:
+            return None
+        b = bytes(self.buf[:1])
+        del self.buf[:1]
+        return b
+
+    def read_exact(self, n, timeout=10):
+        out = bytearray()
+        deadline = time.time() + timeout
+        while len(out) < n:
+            if not self.buf:
+                self._fill(max(0.0, deadline - time.time()))
+                if not self.buf:
+                    raise TimeoutError(f'PCDRV: needed {n} bytes, got {len(out)}')
+            take = min(n - len(out), len(self.buf))
+            out += self.buf[:take]
+            del self.buf[:take]
+        return bytes(out)
+
+    def read_u32(self, timeout=10):
+        return struct.unpack('<I', self.read_exact(4, timeout))[0]
+
+    def read_cstr(self, timeout=10):
+        out = bytearray()
+        while True:
+            b = self.read_exact(1, timeout)
+            if b == b'\x00':
+                break
+            out += b
+        return bytes(out)
+
+
+class PCDrv:
+    """Host-side PCDRV file server, serving ops out of base_dir."""
+
+    def __init__(self, base_dir):
+        self.base = os.path.abspath(base_dir)
+        self.files = {}  # fd -> python file object
+        self.next_fd = 3  # 0/1/2 reserved by convention
+
+    def _resolve(self, name):
+        # PS1 names use libsn conventions; flatten to a safe path under base.
+        name = name.decode('latin-1', 'replace').replace('\\', '/').lstrip('/')
+        path = os.path.abspath(os.path.join(self.base, name))
+        if not (path == self.base or path.startswith(self.base + os.sep)):
+            raise ValueError(f'path escapes base: {name}')
+        return path
+
+    def _alloc(self, fobj):
+        fd = self.next_fd
+        self.next_fd += 1
+        self.files[fd] = fobj
+        return fd
+
+    def create(self, name, mode):
+        path = self._resolve(name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fobj = open(path, 'w+b')
+        fd = self._alloc(fobj)
+        log(f'[pcdrv] create {name!r} -> fd {fd}')
+        return fd
+
+    def open(self, name, flags):
+        path = self._resolve(name)
+        fobj = open(path, 'r+b' if (flags & 1) else 'rb')
+        fd = self._alloc(fobj)
+        log(f'[pcdrv] open {name!r} flags 0x{flags:x} -> fd {fd}')
+        return fd
+
+    def close(self, fd):
+        fobj = self.files.pop(fd, None)
+        if fobj:
+            fobj.close()
+        log(f'[pcdrv] close fd {fd}')
+        return 0
+
+    def read(self, fd, length):
+        """Return (actual_bytes_read, padded_to_length_buffer)."""
+        fobj = self.files[fd]
+        data = fobj.read(length)
+        n = len(data)
+        if n < length:
+            data = data + b'\x00' * (length - n)
+        log(f'[pcdrv] read fd {fd} len {length} -> {n} bytes')
+        return n, data
+
+    def write(self, fd, data):
+        fobj = self.files[fd]
+        fobj.write(data)
+        log(f'[pcdrv] write fd {fd} -> {len(data)} bytes')
+        return len(data)
+
+    def seek(self, fd, offset, wheel):
+        fobj = self.files[fd]
+        fobj.seek(offset, wheel)
+        pos = fobj.tell()
+        log(f'[pcdrv] seek fd {fd} off {offset} wheel {wheel} -> {pos}')
+        return pos
+
+
+def _pcdrv_recv_write_stream(ser, reader, length):
+    """Receive a KDWriteStreamV2 payload: `length` raw bytes, with a 4-byte
+    host->PS1 dummy at each 2048 boundary, then a trailing 4-byte checksum."""
+    data = bytearray()
+    received = 0
+    while received < length:
+        boundary = min(((received // CHUNK_SIZE) + 1) * CHUNK_SIZE, length)
+        want = boundary - received
+        data += reader.read_exact(want)
+        received += want
+        if received % CHUNK_SIZE == 0:
+            ser.write(b'\x00\x00\x00\x00')  # dummy KDRead32 on the PS1 side
+            ser.flush()
+    reader.read_u32()  # trailing total checksum (PS1 trusts the host, ignore)
+    return bytes(data)
+
+
+def _pcdrv_send_read_stream(ser, reader, data):
+    """Send a KDReadStreamV2 payload with per-chunk CHEK/MORE handshaking."""
+    sent = 0
+    total = len(data)
+    while sent < total:
+        boundary = min(((sent // CHUNK_SIZE) + 1) * CHUNK_SIZE, total)
+        chunk = data[sent:boundary]
+        while True:
+            ser.write(chunk)
+            ser.flush()
+            tok = reader.read_exact(4)
+            if tok != CHEK:
+                raise IOError(f'PCDRV read stream: expected CHEK, got {tok!r}')
+            ser.write(p32(calculate_checksum(chunk)))
+            ser.flush()
+            resp = reader.read_exact(4)
+            if resp == MORE:
+                break
+            if resp == ERR:
+                continue  # PS1 rewound; resend this chunk
+            raise IOError(f'PCDRV read stream: expected MORE/ERR!, got {resp!r}')
+        sent = boundary
+
+
+def handle_pcdrv_op(ser, reader, pcdrv):
+    """Service one PCDRV op. The escape (0x00 'p') has already been consumed."""
+    operand = reader.read_u32()
+    ser.write(OKAY)  # presence ack
+    ser.flush()
+
+    try:
+        if operand in (PC_CREATE, PC_OPEN):
+            name = reader.read_cstr()
+            mode = reader.read_u32()
+            fd = pcdrv.create(name, mode) if operand == PC_CREATE else pcdrv.open(name, mode)
+            ser.write(OKAY + p32(fd))
+            ser.flush()
+            return
+
+        a1 = reader.read_u32()  # handle
+        a2 = reader.read_u32()  # length / offset
+        a3 = reader.read_u32()  # memaddr / wheel
+
+        if operand == PC_WRITE:
+            ser.write(OKAY)  # allow the write
+            ser.flush()
+            data = _pcdrv_recv_write_stream(ser, reader, a2)
+            n = pcdrv.write(a1, data)
+            ser.write(OKAY + p32(n))
+            ser.flush()
+        elif operand == PC_READ:
+            n, data = pcdrv.read(a1, a2)
+            ser.write(OKAY + p32(n))
+            ser.write(p32(calculate_checksum(data)))
+            ser.flush()
+            _pcdrv_send_read_stream(ser, reader, data)
+        elif operand == PC_CLOSE:
+            r = pcdrv.close(a1)
+            ser.write(OKAY + p32(r))
+            ser.flush()
+        elif operand == PC_SEEK:
+            pos = pcdrv.seek(a1, a2, a3)
+            ser.write(OKAY + p32(pos))
+            ser.flush()
+        else:
+            log(f'[pcdrv] unsupported operand 0x{operand:x}')
+            ser.write(NOPE)
+            ser.flush()
+    except (OSError, ValueError, KeyError) as e:
+        log(f'[pcdrv] op 0x{operand:x} failed: {e}')
+        ser.write(NOPE)
+        ser.flush()
+
+
+def serve_output(ser, reader, pcdrv=None, idle_timeout=30):
+    """Stream TTY output to stdout, servicing PCDRV ops inline. Ends after
+    idle_timeout seconds of silence or on a recognized done marker."""
+    output = bytearray()
+    pending_zero = False
+    last = time.time()
+    while time.time() - last < idle_timeout:
+        b = reader.read1(timeout=0.2)
+        if b is None:
+            continue
+        last = time.time()
+
+        if pending_zero:
+            pending_zero = False
+            if b == b'p' and pcdrv is not None:
+                handle_pcdrv_op(ser, reader, pcdrv)
+                continue
+            if b == b'\x00':
+                pending_zero = True
+                continue
+            # stray escape: drop the 0x00, emit this byte
+
+        elif b == b'\x00':
+            pending_zero = True
+            continue
+
+        output += b
+        sys.stdout.buffer.write(b)
+        sys.stdout.buffer.flush()
+        if b'=== Done ===' in output[-16:] or b'Synthesis:' in output[-16:]:
+            time.sleep(0.5)
+            tail = ser.read(ser.in_waiting or 0)
+            if tail:
+                sys.stdout.buffer.write(tail.replace(b'\x00', b''))
+                sys.stdout.buffer.flush()
+            break
+
+
+def upload_exe(port, filepath, baud=115200, pcdrv_base=None):
     with open(filepath, 'rb') as f:
         data = bytearray(f.read())
 
@@ -88,6 +382,12 @@ def upload_exe(port, filepath, baud=115200):
 
     # Drain any pending boot output
     drain(ser, quiet_seconds=2.0)
+
+    # Arm Unirom's kdebug handler before upload so the binary's PCDRV breaks
+    # get bridged over serial.
+    if pcdrv_base is not None:
+        enable_debug_mode(ser)
+        drain(ser, quiet_seconds=0.5)
 
     # === Handshake phase ===
     log("[*] Sending SEXE...")
@@ -183,43 +483,29 @@ def upload_exe(port, filepath, baud=115200):
 
     log(f"[*] Uploaded {chunk_num} chunks, {errors} errors. Executing.")
 
-    # === Read program output ===
-    # All program output goes to stdout, all status to stderr.
-    deadline = time.time() + 30
-    output = b''
-    if early_output:
-        # Surface any binary output bytes that arrived during the upload
-        # phase before the read loop took over.
-        display = early_output.replace(b'\x00', b'')
-        output += display
-        if display:
-            sys.stdout.buffer.write(display)
-            sys.stdout.buffer.flush()
-    while time.time() < deadline:
-        if ser.in_waiting:
-            chunk = ser.read(ser.in_waiting)
-            display = chunk.replace(b'\x00', b'')
-            output += display
-            if display:
-                sys.stdout.buffer.write(display)
-                sys.stdout.buffer.flush()
-            if b'=== Done ===' in output or b'Synthesis:' in output:
-                time.sleep(0.5)
-                if ser.in_waiting:
-                    final = ser.read(ser.in_waiting).replace(b'\x00', b'')
-                    sys.stdout.buffer.write(final)
-                    sys.stdout.buffer.flush()
-                break
-        else:
-            time.sleep(0.05)
+    # === Read program output (serving PCDRV if enabled) ===
+    pcdrv = None
+    if pcdrv_base is not None:
+        pcdrv = PCDrv(pcdrv_base)
+        log(f"[*] PCDRV enabled, base dir: {pcdrv.base}")
+    reader = SerialReader(ser, prime=early_output)
+    serve_output(ser, reader, pcdrv=pcdrv)
 
     ser.close()
     return True
 
 
+def main():
+    ap = argparse.ArgumentParser(description="Upload a PS-EXE to a PS1 via Unirom serial.")
+    ap.add_argument('file', help='PS-EXE file to upload')
+    ap.add_argument('port', nargs='?', default='/dev/ttyUSB0', help='serial port (default /dev/ttyUSB0)')
+    ap.add_argument('--baud', type=int, default=115200, help='baud rate (default 115200)')
+    ap.add_argument('--pcdrv-base', metavar='DIR',
+                    help='serve PCDRV file ops out of DIR (enables PCDRV)')
+    args = ap.parse_args()
+    ok = upload_exe(args.port, args.file, baud=args.baud, pcdrv_base=args.pcdrv_base)
+    sys.exit(0 if ok else 1)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        log(f"Usage: {sys.argv[0]} <file.ps-exe> [port]")
-        sys.exit(1)
-    port = sys.argv[2] if len(sys.argv) > 2 else '/dev/ttyUSB0'
-    upload_exe(port, sys.argv[1])
+    main()

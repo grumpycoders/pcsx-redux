@@ -141,7 +141,7 @@ SRCS_pkg_md4c += third_party/md4c/src/md4c.c
 SRCS_lib_multipart += third_party/multipart-parser-c/multipart_parser.c
 SRCS += third_party/nanovg/src/nanovg.c
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
-SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
 SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
@@ -171,11 +171,11 @@ endif
 SUPPORT_SRCS := src/support/container-file.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
 SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
-SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
+SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = authoring exe2elf exe2iso modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 
@@ -310,15 +310,15 @@ objs/$(BUILD)/%.o: %.mm
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.c
 	@$(MKDIRP) $(dir $@)
-	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CC) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.c
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cc
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cc
 
 deps/$(BUILD)/%.dep: third_party/luajit/src/luajit.h %.cpp
 	@$(MKDIRP) $(dir $@)
-	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT $(addprefix objs/$(BUILD)/,$(addsuffix .o,$(basename $@))) -MF $@ $<
+	$(CXX) $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(CXXFLAGS) -M -MT objs/$(BUILD)/$*.o -MF $@ $*.cpp
 
 objs/$(BUILD)/gtest-all.o: $(wildcard third_party/googletest/googletest/src/*.cc)
 	@$(MKDIRP) $(dir $@)

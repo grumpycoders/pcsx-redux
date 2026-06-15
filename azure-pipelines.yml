@@ -95,6 +95,8 @@ steps:
       !**\exe2elf.exe
       !**\exe2iso.exe
       !**\modconv.exe
+      !**\midi2psm.exe
+      !**\midi2spd.exe
       !**\pcsx-redux.main
       !**\pcsx-redux.exe
       !**\pcsxrunner.exe
