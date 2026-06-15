@@ -809,7 +809,7 @@ void DynaRecCPU::recLWL(uint32_t code) {
             gen.and_(arg2, ~3);                                      // Force align it
         }
 
-        callMemoryFunc(&PCSX::Memory::read32<>);  // Read from the aligned address
+        callMemoryFunc(&PCSX::Memory::read32);  // Read from the aligned address
         return;
     }
 
@@ -902,7 +902,7 @@ void DynaRecCPU::recLWR(uint32_t code) {
             gen.and_(arg2, ~3);                                      // Force align it
         }
 
-        callMemoryFunc(&PCSX::Memory::read32<>);  // Read from the aligned address
+        callMemoryFunc(&PCSX::Memory::read32);  // Read from the aligned address
         return;
     }
 
