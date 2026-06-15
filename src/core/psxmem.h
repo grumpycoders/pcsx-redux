@@ -67,8 +67,8 @@ class Memory {
 
     uint8_t read8(uint32_t address);
     uint16_t read16(uint32_t address);
-    template<uint32_t msan_sub_bitmask = UINT32_MAX>
-    uint32_t read32(uint32_t address, ReadType = ReadType::Data);
+    uint32_t read32Masked(uint32_t address, const uint32_t msan_sub_bitmask, ReadType = ReadType::Data);
+    inline uint32_t read32(uint32_t address, ReadType = ReadType::Data) { return read32Masked(address, UINT32_MAX); };
     void write8(uint32_t address, uint32_t value);
     void write16(uint32_t address, uint32_t value);
     void write32(uint32_t address, uint32_t value);
@@ -93,8 +93,8 @@ class Memory {
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
-    template <uint32_t length, uint32_t sub_bitmask = UINT32_MAX>
-    MsanStatus msanGetStatus(uint32_t addr) const {
+    template <uint32_t length>
+    MsanStatus msanGetStatus(uint32_t addr, const uint32_t sub_bitmask) const {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
         MsanStatus bestCase = MsanStatus::OK;
@@ -115,6 +115,9 @@ class Memory {
         }
         return bestCase;
     }
+
+    template <uint32_t length, const uint32_t sub_bitmask = UINT32_MAX>
+    inline MsanStatus msanGetStatus(uint32_t addr) const { return msanGetStatus<length>(addr, sub_bitmask); };
 
     // if the write is valid, marks the address as initialized, otherwise returns false
     template <uint32_t length>

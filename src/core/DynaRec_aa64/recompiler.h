@@ -83,8 +83,9 @@
 
 static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
 static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
-template<uint32_t msan_sub_bitmask = UINT32_MAX>
-static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32<msan_sub_bitmask>(address); }
+static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+template<const uint32_t msan_sub_bitmask>
+static uint32_t read32MaskedWrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32Masked(address, msan_sub_bitmask); }
 
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);

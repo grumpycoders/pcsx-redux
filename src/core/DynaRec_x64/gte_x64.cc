@@ -316,7 +316,7 @@ void DynaRecCPU::recLWC2(uint32_t code) {
         gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    callMemoryFunc(&PCSX::Memory::read32<>);
+    callMemoryFunc(&PCSX::Memory::read32);
     switch (_Rt_) {
         case 15:                                                         // SXYP
             gen.mov(rcx, qword[contextPointer + COP2_DATA_OFFSET(13)]);  // SXY0 = SXY1 and SXY1 = SXY2
