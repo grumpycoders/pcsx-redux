@@ -257,7 +257,7 @@ void DynaRecCPU::recLWC2(uint32_t code) {
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
     }
 
-    call(read32Wrapper);
+    call(read32Wrapper<>);
     switch (_Rt_) {
         case 15:
         case 30:

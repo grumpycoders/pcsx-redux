@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -66,6 +67,7 @@ class Memory {
 
     uint8_t read8(uint32_t address);
     uint16_t read16(uint32_t address);
+    template<uint32_t msan_sub_bitmask = UINT32_MAX>
     uint32_t read32(uint32_t address, ReadType = ReadType::Data);
     void write8(uint32_t address, uint32_t value);
     void write16(uint32_t address, uint32_t value);
@@ -91,10 +93,10 @@ class Memory {
     uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
-    template <uint32_t length>
+    template <uint32_t length, uint32_t sub_bitmask = UINT32_MAX>
     MsanStatus msanGetStatus(uint32_t addr) const {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
-        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {

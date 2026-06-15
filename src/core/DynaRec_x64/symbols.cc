@@ -97,7 +97,7 @@ void DynaRecCPU::makeSymbols() {
 
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read8, "read8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read16, "read16");
-    REGISTER_CLASS_FUNCTION(PCSX::Memory::read32, "read32");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::read32<>, "read32");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write8, "write8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write16, "write16");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write32, "write32");

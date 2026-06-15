@@ -83,7 +83,8 @@
 #define _ImmU_ _fImmU_(code)
 #define _ImmLU_ _fImmLU_(code)
 
-static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+template<uint32_t msan_sub_bitmask = UINT32_MAX>
+static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32<msan_sub_bitmask>(address); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
