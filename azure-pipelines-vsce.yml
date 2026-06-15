@@ -1,3 +1,4 @@
+steps:
 - task: AzureCLI@2
   displayName: 'Get DevOps identity id'
   inputs:
@@ -6,3 +7,4 @@
     scriptLocation: 'inlineScript'
     inlineScript: |
       az rest --method get --uri https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.1-preview.3 --output json
+  
