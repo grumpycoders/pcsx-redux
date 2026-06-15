@@ -101,6 +101,7 @@
     "@vscode/vsce": "^3.9.2",
     "eslint": "^10.5.0",
     "glob": "^13.0.6",
+    "globals": "^17.6.0",
     "mocha": "^11.7.6",
     "prettier-config-standard": "^7.0.0",
     "standard": "*"
