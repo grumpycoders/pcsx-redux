@@ -6,9 +6,9 @@ pool:
 
 steps:
 - task: NodeTool@0
-  displayName: 'Use Node.js 18'
+  displayName: 'Use Node.js 24'
   inputs:
-    versionSpec: '18.x'
+    versionSpec: '24.x'
 
 - script: |
     npm install -g @vscode/vsce
