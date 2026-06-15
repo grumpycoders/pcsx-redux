@@ -1,9 +1,26 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
 steps:
+- task: NodeTool@0
+  displayName: 'Use Node.js 18'
+  inputs:
+    versionSpec: '18.x'
+
+- script: |
+    npm install -g @vscode/vsce
+    npm ci
+  displayName: 'Install vsce and dependencies'
+
 - task: AzureCLI@2
-  displayName: 'Fetch profile for Service Principal'
+  displayName: 'Publish VS Code extension'
   inputs:
     azureSubscription: 'azure-vsce-publish'
-    scriptType: pscore
-    scriptLocation: inlineScript
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    cwd: '$(Build.SourcesDirectory)/tools/vscode-extension'
     inlineScript: |
-      az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798
+      vsce publish --azure-credential
