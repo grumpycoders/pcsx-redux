@@ -1,0 +1,9 @@
+steps:
+- task: AzureCLI@2
+  displayName: 'Show managed identity details'
+  inputs:
+    azureSubscription: 'vscode-extension-publish-mi'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az account show --output json
