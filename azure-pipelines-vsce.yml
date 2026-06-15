@@ -5,10 +5,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- task: NodeTool@0
+- task: NodeTool@1
   displayName: 'Use Node.js 24'
   inputs:
-    versionSpec: '24.x'
+    version: '24.x'
 
 - script: |
     npm install -g @vscode/vsce
