@@ -26,6 +26,7 @@
 #include <magic_enum_all.hpp>
 
 #include "cdrom/iso9660-reader.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
@@ -413,6 +414,8 @@ class CDRomImpl : public PCSX::CDRom {
         } else {
             m_suceeded = m_iso->readTrack(time);
             if (m_suceeded) m_prev = time;
+            PCSX::g_emulator->m_cdromLogger->recordAccess(time.toLBA(), PCSX::CDRomLogger::AccessType::Data,
+                                                          PCSX::g_emulator->m_cpu->m_regs.cycle);
         }
 
         const PCSX::IEC60908b::Sub *sub = m_iso->getBufferSub();
@@ -537,6 +540,8 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_iso->readCDDA(m_setSectorPlay, m_transfer);
+        PCSX::g_emulator->m_cdromLogger->recordAccess(m_setSectorPlay.toLBA(), PCSX::CDRomLogger::AccessType::Audio,
+                                                      PCSX::g_emulator->m_cpu->m_regs.cycle);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
@@ -1292,6 +1297,8 @@ class CDRomImpl : public PCSX::CDRom {
                     CDROM_LOG("Invalid/out of range seek to %02x:%02x:%02x\n", m_param[0], m_param[1], m_param[2]);
                 } else {
                     set_loc.fromBCD(m_param);
+                    PCSX::g_emulator->m_cdromLogger->recordAccess(set_loc.toLBA(), PCSX::CDRomLogger::AccessType::Seek,
+                                                                  PCSX::g_emulator->m_cpu->m_regs.cycle);
 
                     i = m_setSectorPlay.toLBA();
                     i = abs(i - int(set_loc.toLBA()));
@@ -1497,7 +1504,10 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void getCdInfo(void) { m_setSectorEnd = m_iso->getTD(0); }
+    void getCdInfo(void) {
+        m_setSectorEnd = m_iso->getTD(0);
+        PCSX::g_emulator->m_cdromLogger->setDiscSectors(m_setSectorEnd.toLBA());
+    }
 
     void reset() final {
         m_reg1Mode = 0;
