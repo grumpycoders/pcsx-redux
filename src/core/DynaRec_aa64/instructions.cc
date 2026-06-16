@@ -1453,7 +1453,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(read32MaskedWrapper<0x0000FFFF>);
+        gen.Mov(arg2, mask); // Mask in arg2 (??)
+        call(read32MaskedWrapper);
         gen.andImm(arg2, w0, mask);  // Mask read value
         gen.Mov(w2, m_gprs[_Rt_].val << shift);
         gen.Orr(arg2, arg2, w2);  // Shift $rt and or with read value
@@ -1467,6 +1468,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
+        gen.Mov(arg2, mask); // Mask in arg2 (??)
         call(read32MaskedWrapper<0x0000FFFF>);
         gen.andImm(w0, w0, mask);  // Mask read value
 
@@ -1479,7 +1481,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(read32MaskedWrapper<0x0000FFFF>);            // Read from the aligned address, result in w0
+        // TODO: Emit assebly for mask in arg2
+        call(read32MaskedWrapper);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1502,7 +1505,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(read32MaskedWrapper<0x0000FFFF>);            // Read from the aligned address, result in w0
+        // TODO: Emit assebly for mask in arg2
+        call(read32MaskedWrapper);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);

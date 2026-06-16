@@ -1267,7 +1267,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32MaskedWrapper<0x0000FFFF>);
+        gen.mov(arg2, mask); // Mask in arg2
+        call(read32MaskedWrapper);
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val << shift);  // Shift $rt and or with read value
 
@@ -1281,7 +1282,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32MaskedWrapper<0x0000FFFF>);
+        gen.mov(arg2, mask); // Mask in arg2
+        call(read32MaskedWrapper);
         gen.andImm(eax, eax, mask);  // Mask read value
 
         gen.mov(arg1, alignedAddress);                           // Aligned address in arg1 again
@@ -1294,7 +1296,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32MaskedWrapper<0x0000FFFF>);                   // Read from the aligned address, result in eax
+        // TODO: Emit assebly for mask in arg2
+        call(read32MaskedWrapper);                   // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1328,7 +1331,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32MaskedWrapper<0x0000FFFF>);                   // Read from the aligned address, result in eax
+        // TODO: Emit assebly for mask in arg2
+        call(read32MaskedWrapper);                   // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
