@@ -1469,7 +1469,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         gen.Mov(arg2, mask); // Mask in arg2 (??)
-        call(read32MaskedWrapper<0x0000FFFF>);
+        call(read32MaskedWrapper);
         gen.andImm(w0, w0, mask);  // Mask read value
 
         allocateReg(_Rt_);                                       // Allocate $rt
