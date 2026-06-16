@@ -1145,7 +1145,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32MaskedWrapper<0xFFFF0000>);
+        gen.mov(arg2, mask); // Mask in arg2
+        call(read32MaskedWrapper);
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val >> shift);  // Shift $rt and or with read value
 
@@ -1159,7 +1160,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32MaskedWrapper<0xFFFF0000>);
+        gen.mov(arg2, mask); // Mask in arg2
+        call(read32MaskedWrapper);
         gen.andImm(eax, eax, mask);  // Mask read value
 
         gen.mov(arg1, alignedAddress);                           // Aligned address in arg1 again
@@ -1171,8 +1173,15 @@ void DynaRecCPU::recSWL(uint32_t code) {
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.mov(edx, arg1);
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32MaskedWrapper<0xFFFF0000>);                   // Read from the aligned address, result in eax
+        gen.and_(edx, 3);                             // edx = low 2 bits of address
+        gen.lea(rcx, qword[rip + MASKS_AND_SHIFTS]);  // Base to mask and shift lookup table in rcx
+        gen.mov(rcx, qword[rcx + rdx * 8]);  // Load the mask and shift from LUT by indexing using the bottom 2 bits of
+                                             // the unaligned addr.
+        gen.shr(rcx, 32);                 // rcx = mask now
+        gen.mov(arg2, rcx); // Mask in arg2
+        call(read32MaskedWrapper);                   // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1205,8 +1214,15 @@ void DynaRecCPU::recSWL(uint32_t code) {
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.mov(edx, arg1);
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32MaskedWrapper<0xFFFF0000>);                   // Read from the aligned address, result in eax
+        gen.and_(edx, 3);                             // edx = low 2 bits of address
+        gen.lea(rcx, qword[rip + MASKS_AND_SHIFTS]);  // Base to mask and shift lookup table in rcx
+        gen.mov(rcx, qword[rcx + rdx * 8]);  // Load the mask and shift from LUT by indexing using the bottom 2 bits of
+                                             // the unaligned addr.
+        gen.shr(rcx, 32);                 // rcx = mask now
+        gen.mov(arg2, rcx); // Mask in arg2
+        call(read32MaskedWrapper);                   // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);

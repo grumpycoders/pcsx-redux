@@ -1360,7 +1360,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(read32MaskedWrapper<0xFFFF0000>);
+        gen.Mov(arg2, mask); // Mask in arg2 (??)
+        call(read32MaskedWrapper);
         gen.andImm(arg2, w0, mask);  // Mask read value
         gen.Mov(w2, m_gprs[_Rt_].val >> shift);
         gen.Orr(arg2, arg2, w2);  // Shift $rt and or with read value
@@ -1374,7 +1375,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
-        call(read32MaskedWrapper<0xFFFF0000>);
+        gen.Mov(arg2, mask); // Mask in arg2 (??)
+        call(read32MaskedWrapper);
         gen.andImm(w0, w0, mask);  // Mask read value
 
         allocateReg(_Rt_);  // Allocate $rt
@@ -1386,7 +1388,12 @@ void DynaRecCPU::recSWL(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        call(read32MaskedWrapper<0xFFFF0000>);            // Read from the aligned address, result in w0
+        gen.And(w2, arg1, 3);                         // edx = low 2 bits of address
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Base to mask and shift lookup table in x3
+        gen.Ldr(x3, MemOperand(x3, x2, LSL, 3));    // Load the mask and shift from LUT by indexing using the bottom 2
+                                                    // bits of the unaligned addr.
+        gen.Ldr(arg2, Operand(x3, LSR, 32));      // Load mask value
+        call(read32MaskedWrapper);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1408,6 +1415,11 @@ void DynaRecCPU::recSWL(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
+        gen.And(w2, arg1, 3);                         // edx = low 2 bits of address
+        gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Base to mask and shift lookup table in x3
+        gen.Ldr(x3, MemOperand(x3, x2, LSL, 3));    // Load the mask and shift from LUT by indexing using the bottom 2
+                                                    // bits of the unaligned addr.
+        gen.Ldr(arg2, Operand(x3, LSR, 32));      // Load mask value
         call(read32MaskedWrapper<0xFFFF0000>);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
