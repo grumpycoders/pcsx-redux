@@ -1481,7 +1481,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        // TODO: Emit assebly for mask in arg2
+        // TODO: Emit assembly for mask in arg2
         call(read32MaskedWrapper);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
@@ -1505,7 +1505,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.And(arg1, arg1, ~3);                                 // Force align it
-        // TODO: Emit assebly for mask in arg2
+        // TODO: Emit assembly for mask in arg2
         call(read32MaskedWrapper);            // Read from the aligned address, result in w0
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
