@@ -511,7 +511,7 @@ void DynaRecCPU::recLWL(uint32_t code) {
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
-        const uint32_t shift = LWL_SHIFT[address & 3];
+        const auto shift = LWL_SHIFT[address & 3];
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
         gen.Mov(arg2, msan_mask); // Mask in arg2
