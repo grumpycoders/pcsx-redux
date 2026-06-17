@@ -104,12 +104,12 @@ class Memory {
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             std::cout << "Next bitmask "
-                << std::bitset<24>(nextBitmask)
+                << std::bitset<32>(nextBitmask)
                 << " Init bitmap entry "
-                << std::bitset<24>(m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) << std::endl;
+                << std::bitset<32>(m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) << std::endl;
             if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                 std::cout << "Usable bitmap entry "
-                    << std::bitset<24>(m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) << std::endl;
+                    << std::bitset<32>(m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) << std::endl;
                 if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                     return MsanStatus::UNUSABLE;
                 }
@@ -138,6 +138,8 @@ class Memory {
     bool msanValidateWrite(uint32_t addr) {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        std::cout << "Bitmask " << std::bitset<32>(bitmask)
+            << " Next bitmask " << std::bitset<32>(bitmask >> 8) << std::endl;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                 return false;
