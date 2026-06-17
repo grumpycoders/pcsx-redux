@@ -102,6 +102,7 @@ void DynaRecCPU::makeSymbols() {
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write8, "write8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write16, "write16");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write32, "write32");
+    REGISTER_CLASS_FUNCTION(PCSX::Memory::write32Masked, "write32");
     REGISTER_CLASS_FUNCTION(PCSX::R3000Acpu::branchTest, "branch_test");
 
     REGISTER_FUNCTION(exceptionWrapper, "fire_exception");
