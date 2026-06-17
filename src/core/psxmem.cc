@@ -21,7 +21,6 @@
 
 #include <zlib.h>
 
-#include <cstdint>
 #include <map>
 #include <string_view>
 
