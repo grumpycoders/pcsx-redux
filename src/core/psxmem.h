@@ -23,6 +23,8 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+#include <iostream>
+#include <bitset>
 
 #include "core/psxemulator.h"
 #include "support/eventbus.h"
@@ -96,8 +98,10 @@ class Memory {
 
     template <uint32_t length>
     MsanStatus msanGetStatus(uint32_t addr, const uint32_t sub_bitmask) const {
+        std::cout << "[READ] Sub bitmask " << std::bitset<32>(sub_bitmask) << std::endl;
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
+        std::cout << "[READ] Bitmask " << std::bitset<32>(bitmask) << std::endl;
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
@@ -123,8 +127,10 @@ class Memory {
     // if the write is valid, marks the address as initialized, otherwise returns false
     template <uint32_t length>
     bool msanValidateWrite(uint32_t addr, const uint32_t sub_bitmask) {
+        std::cout << "[WRITE] Sub bitmask " << std::bitset<32>(sub_bitmask) << std::endl;
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
         uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
+        std::cout << "[WRITE] Bitmask " << std::bitset<32>(bitmask) << std::endl;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                 return false;
