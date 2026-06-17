@@ -1184,9 +1184,10 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val >> shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, alignedAddress);  // Address in arg2 again
+        gen.mov(arg1, alignedAddress);  // Address in arg1 again
         gen.mov(arg2, eax);             // Address to write to in arg2
-        call(write32Wrapper);
+        gen.mov(arg3, mask);            // Mask in arg3
+        call(write32MaskedWrapper);     // Write back
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1203,7 +1204,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shr(arg2, shift);                                    // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                                    // Write back
+        gen.mov(arg3, mask);                                     // Mask in arg3
+        call(write32MaskedWrapper);                              // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
@@ -1239,7 +1241,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        gen.mov(arg3, eax);
+        call(write32MaskedWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
@@ -1275,7 +1278,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        gen.mov(arg3, eax);
+        call(write32MaskedWrapper);
     }
 }
 
@@ -1296,9 +1300,10 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val << shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, alignedAddress);  // Address in arg2 again
+        gen.mov(arg1, alignedAddress);  // Address in arg1 again
         gen.mov(arg2, eax);             // Address to write to in arg2
-        call(write32Wrapper);
+        gen.mov(arg3, mask);            /// Mask in arg3
+        call(write32MaskedWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1315,7 +1320,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shlImm(arg2, shift);                                 // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                                    // Write back
+        gen.mov(arg3, mask);                                     /// Mask in arg3
+        call(write32MaskedWrapper);                              // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
@@ -1350,7 +1356,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        gen.mov(arg3, eax);
+        call(write32MaskedWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
@@ -1385,7 +1392,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        gen.mov(arg3, eax);
+        call(write32MaskedWrapper);
     }
 }
 

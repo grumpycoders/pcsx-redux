@@ -586,7 +586,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     }
 }
 
-void PCSX::Memory::write32(uint32_t address, uint32_t value) {
+void PCSX::Memory::write32Masked(uint32_t address, uint32_t value, const uint32_t msan_sub_bitmask) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
@@ -594,7 +594,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite<4>(address)) {
+            if (msanValidateWrite<4>(address, msan_sub_bitmask)) {
                 *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
             } else {
                 g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);

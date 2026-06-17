@@ -93,6 +93,7 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
 static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
 static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+static void write32MaskedWrapper(uint32_t address, uint32_t value, uint32_t msan_sub_bitmask) { PCSX::g_emulator->m_mem->write32Masked(address, value, msan_sub_bitmask); }
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 
