@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "recompiler.h"
-#include "vixl/src/aarch64/operands-aarch64.h"
 #if defined(DYNAREC_AA64)
 #define BAILZERO(x) \
     if (!(x)) {     \
