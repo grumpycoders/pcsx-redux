@@ -4,7 +4,7 @@
   "description": "PlayStation 1 development made easy",
   "version": "0.4.0",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.82.0"
   },
   "extensionKind": [
     "workspace",
@@ -97,25 +97,26 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "@vscode/test-electron": "^2.2.2",
-    "@vscode/vsce": "^2.17.0",
-    "eslint": "^8.33.0",
-    "glob": "^8.1.0",
-    "mocha": "^10.1.0",
-    "prettier-config-standard": "^5.0.0",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "^10.5.0",
+    "glob": "^13.0.6",
+    "globals": "^17.6.0",
+    "mocha": "^11.7.6",
+    "prettier-config-standard": "^7.0.0",
     "standard": "*"
   },
   "dependencies": {
-    "@octokit/rest": "^19.0.7",
-    "@vscode/webview-ui-toolkit": "^1.2.1",
-    "axios": "^1.3.3",
+    "@octokit/rest": "^22.0.1",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "axios": "^1.18.0",
     "dmg": "^0.1.0",
-    "fs-extra": "^11.1.0",
+    "fs-extra": "^11.3.5",
     "JSONStream": "^1.3.5",
     "mustache": "^4.2.0",
     "open-file-explorer": "^1.0.2",
-    "simple-git": "^3.16.1",
-    "unzipper": "^0.10.11",
-    "which": "^5.0.0"
+    "simple-git": "^3.36.0",
+    "unzipper": "^0.12.3",
+    "which": "^7.0.0"
   }
 }

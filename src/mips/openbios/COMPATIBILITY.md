@@ -3,13 +3,15 @@
 ## Emulators shipping with OpenBIOS
 * PCSX-Redux
 
+Libretro cores:
+* Beetle PSX
+* Beetle PSX HW
+* SwanStation
+
 ## Other emulators compatible with OpenBIOS
 
-RetroArch libretro cores:
-* Beetle PSX HW
-* Beetle PSX
+Libretro cores:
 * PCSX ReARMed
-* SwanStation
 
 # Incompatible games
 * [Azure Dreams (NTSC)](https://github.com/grumpycoders/pcsx-redux/issues/1249)
