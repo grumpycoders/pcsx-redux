@@ -897,7 +897,7 @@ void DynaRecCPU::recLWL(uint32_t code) {
 }
 
 void DynaRecCPU::recLWR(uint32_t code) {
-    const uint32_t msan_mask = 0b1111 >> _Imm_;
+    const uint32_t msan_mask = (0b1111 << _Imm_) & 0b1111;
     if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
         if (m_gprs[_Rs_].isConst()) {
             const uint32_t address = m_gprs[_Rs_].val + _Imm_;
