@@ -525,9 +525,26 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
             posY = m_leftV + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difY) >> 16) + 0x8000;
         }
         if constexpr (Shading == GPU::Shading::Gouraud) {
-            cR1 = m_leftR;
-            cG1 = m_leftG;
-            cB1 = m_leftB;
+            // The gouraud color seed needs the same two corrections the
+            // affine-UV seed above applies (HW_VERIFIED, gpu-raster
+            // phase-22 slanted gouraud):
+            //   1. Step the color walker from m_leftX (the row's left-edge
+            //      X in 16.16, possibly fractional on a slanted edge) up to
+            //      the integer pixel xmin. Without this the span seeds the
+            //      color at the fractional edge but writes the first pixel
+            //      at xmin, dropping the (xmin - leftEdgeX) * dColor/dx
+            //      step - ~0 on an axis-aligned (vertical) left edge, hence
+            //      invisible to phase-7, but a 1-LSB deficit on a slanted
+            //      one.
+            //   2. The constant +0x8000 half-LSB bias, rounding the 8-bit
+            //      color accumulator to nearest. phase-7 does not constrain
+            //      this: its readback truncates the 8-bit channel to 5-bit
+            //      (>>3), which absorbs the 8-bit +/-1 except right at a
+            //      multiple of 8 - so phase-7 passes with or without it,
+            //      while the dense slanted phase-22 probes pin it on.
+            cR1 = m_leftR + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difR) >> 16) + 0x8000;
+            cG1 = m_leftG + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difG) >> 16) + 0x8000;
+            cB1 = m_leftB + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difB) >> 16) + 0x8000;
         }
     };
 
