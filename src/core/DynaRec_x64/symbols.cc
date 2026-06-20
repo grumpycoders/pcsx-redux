@@ -26,9 +26,10 @@
 #include "fmt/format.h"
 
 #define REGISTER_VARIABLE(variable, name, size) \
-    m_symbols += fmt::format("{} {} {}\n", (void*)&(variable), (name), (size))
+    m_symbols += fmt::format("{} {} {}\n", static_cast<const void*>(&(variable)), (name), (size))
 
-#define REGISTER_FUNCTION(function, name) m_symbols += fmt::format("{} {}\n", (void*)&(function), (name));
+#define REGISTER_FUNCTION(function, name) \
+    m_symbols += fmt::format("{} {}\n", static_cast<const void*>(&(function)), (name));
 
 #define REGISTER_CLASS_FUNCTION(function, name)            \
     {                                                      \

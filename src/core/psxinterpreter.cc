@@ -17,7 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "core/DynaRec_aa64/recompiler.h"
 #include "core/callstacks.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
@@ -938,7 +937,11 @@ void InterpretedCPU::psxLWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     const uint32_t msanReadMask = 0b1111 >> (3 - _Imm_);
-    uint32_t mem = read32MaskedWrapper(addr & ~3, msanReadMask);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr & ~3,
+        PCSX::Memory::ReadType::Data,
+        msanReadMask
+    );
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -957,7 +960,11 @@ void InterpretedCPU::psxLWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     const uint32_t msanReadMask = (0b1111 << _Imm_) & 0b1111;
-    uint32_t mem = read32MaskedWrapper(addr & ~3, msanReadMask);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr & ~3,
+        PCSX::Memory::ReadType::Data,
+        msanReadMask
+    );
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -1003,9 +1010,13 @@ void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t shift = addr & 3;
     addr ^= shift;
     // 0x0 mask avoids msan interpreting this as a read
-    uint32_t mem = read32MaskedWrapper(addr, 0x0);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr,
+        PCSX::Memory::ReadType::Data,
+        0x0 
+    );
     const uint32_t msanWriteMask = 0b1111 >> (3 - _Imm_);
-    write32MaskedWrapper(
+    PCSX::g_emulator->m_mem->write32(
         addr,
         (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]),
         msanWriteMask
@@ -1024,9 +1035,13 @@ void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t shift = addr & 3;
     addr ^= shift;
     // 0x0 mask avoids msan interpreting this as a read
-    uint32_t mem = read32MaskedWrapper(addr, 0x0);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr,
+        PCSX::Memory::ReadType::Data,
+        0x0 
+    );
     const uint32_t msanWriteMask = (0b1111 << _Imm_) & 0b1111;
-    write32MaskedWrapper(
+    PCSX::g_emulator->m_mem->write32(
         addr,
         (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]),
         msanWriteMask

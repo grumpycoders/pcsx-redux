@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
