@@ -50,8 +50,8 @@ namespace PCSX {
 enum class MsanStatus {
     UNUSABLE,               // memory that hasn't been allocated or has been freed
     UNINITIALIZED,          // allocated memory that has never been written to, has undefined contents
-    PARTIALLY_INITIALIZED,  // allocated memory that has had 1-3 bytes written to via SWR/SWL and
-                            // an read to the address load at least one ofthe unwritten bytes
+    PARTIALLY_INITIALIZED,  // allocated memory that has had some subset of bytes being read initialised
+                            // but not all of them
     OK                      // free to use
 };
 
