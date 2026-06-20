@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -66,12 +67,10 @@ class Memory {
 
     uint8_t read8(uint32_t address);
     uint16_t read16(uint32_t address);
-    uint32_t read32Masked(uint32_t address, const uint32_t msan_sub_bitmask, ReadType = ReadType::Data);
-    inline uint32_t read32(uint32_t address, ReadType = ReadType::Data) { return read32Masked(address, UINT32_MAX); };
+    uint32_t read32(uint32_t address, ReadType = ReadType::Data, const uint32_t msanSubBitmask = UINT32_MAX);
     void write8(uint32_t address, uint32_t value);
     void write16(uint32_t address, uint32_t value);
-    void write32Masked(uint32_t address, uint32_t value, const uint32_t msan_sub_bitmask);
-    inline void write32(uint32_t address, uint32_t value) { return write32Masked(address, value, UINT32_MAX); };
+    void write32(uint32_t address, uint32_t value, const uint32_t msanSubBitmask = UINT32_MAX);
     const void *pointerRead(uint32_t address);
     const void *pointerWrite(uint32_t address, int size);
 
@@ -94,9 +93,9 @@ class Memory {
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
     template <uint32_t length>
-    MsanStatus msanGetStatus(uint32_t addr, const uint32_t sub_bitmask) const {
+    MsanStatus msanGetStatus(uint32_t addr, const uint32_t subBitmask = UINT32_MAX) const {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
-        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
+        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & subBitmask;
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
@@ -116,14 +115,11 @@ class Memory {
         return bestCase;
     }
 
-    template <uint32_t length, const uint32_t sub_bitmask = UINT32_MAX>
-    inline MsanStatus msanGetStatus(uint32_t addr) const { return msanGetStatus<length>(addr, sub_bitmask); };
-
     // if the write is valid, marks the address as initialized, otherwise returns false
     template <uint32_t length>
-    bool msanValidateWrite(uint32_t addr, const uint32_t sub_bitmask) {
+    bool msanValidateWrite(uint32_t addr, const uint32_t subBitmask = UINT32_MAX) {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
-        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & sub_bitmask;
+        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & subBitmask;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                 return false;
@@ -137,9 +133,6 @@ class Memory {
         m_msanInitializedBitmap[bitmapIndex] |= bitmask;
         return true;
     }
-
-    template <uint32_t length, const uint32_t sub_bitmask = UINT32_MAX>
-    inline bool msanValidateWrite(uint32_t addr) { return msanValidateWrite<length>(addr, sub_bitmask); };
 
     void msanDmaWrite(uint32_t addr, uint32_t size) {
         if (!msanInitialized() || !inMsanRange(addr)) return;

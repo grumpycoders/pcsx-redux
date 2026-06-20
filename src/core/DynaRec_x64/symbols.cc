@@ -93,16 +93,16 @@ void DynaRecCPU::makeSymbols() {
     }
 
     REGISTER_FUNCTION(read32Wrapper, "read32_wrapper");
+    REGISTER_FUNCTION(read32MaskedWrapper, "read32_masked_wrapper");
     REGISTER_FUNCTION(write32Wrapper, "write32_wrapper");
+    REGISTER_FUNCTION(write32MaskedWrapper, "write32_masked_wrapper");
 
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read8, "read8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read16, "read16");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read32, "read32");
-    REGISTER_CLASS_FUNCTION(PCSX::Memory::read32Masked, "read32");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write8, "write8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write16, "write16");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::write32, "write32");
-    REGISTER_CLASS_FUNCTION(PCSX::Memory::write32Masked, "write32");
     REGISTER_CLASS_FUNCTION(PCSX::R3000Acpu::branchTest, "branch_test");
 
     REGISTER_FUNCTION(exceptionWrapper, "fire_exception");

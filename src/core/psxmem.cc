@@ -387,7 +387,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     return 0xffff;
 }
 
-uint32_t PCSX::Memory::read32Masked(uint32_t address, const uint32_t msan_sub_bitmask, ReadType readType) {
+uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType, const uint32_t msanSubBitmask) {
     if (readType == ReadType::Data) g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
@@ -395,7 +395,7 @@ uint32_t PCSX::Memory::read32Masked(uint32_t address, const uint32_t msan_sub_bi
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            switch (msanGetStatus<4>(address, msan_sub_bitmask)) {
+            switch (msanGetStatus<4>(address, msanSubBitmask)) {
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -586,7 +586,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     }
 }
 
-void PCSX::Memory::write32Masked(uint32_t address, uint32_t value, const uint32_t msan_sub_bitmask) {
+void PCSX::Memory::write32(uint32_t address, uint32_t value, const uint32_t msanSubBitmask) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
@@ -594,7 +594,7 @@ void PCSX::Memory::write32Masked(uint32_t address, uint32_t value, const uint32_
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite<4>(address, msan_sub_bitmask)) {
+            if (msanValidateWrite<4>(address, msanSubBitmask)) {
                 *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
             } else {
                 g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
