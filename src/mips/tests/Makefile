@@ -26,6 +26,7 @@ all:
 	$(MAKE) -C gpu-raster-phase19 all
 	$(MAKE) -C gpu-raster-phase20 all
 	$(MAKE) -C gpu-raster-phase21 all
+	$(MAKE) -C gpu-raster-phase22 all
 	$(MAKE) -C gte all
 	$(MAKE) -C gte-latency all
 	$(MAKE) -C gte-latency-color all
@@ -71,6 +72,7 @@ clean:
 	$(MAKE) -C gpu-raster-phase19 clean
 	$(MAKE) -C gpu-raster-phase20 clean
 	$(MAKE) -C gpu-raster-phase21 clean
+	$(MAKE) -C gpu-raster-phase22 clean
 	$(MAKE) -C gte clean
 	$(MAKE) -C gte-latency clean
 	$(MAKE) -C gte-latency-color clean
