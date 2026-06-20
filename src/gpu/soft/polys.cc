@@ -506,45 +506,44 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
         difY2 = difY << 1;
     }
 
+    // One scanline-span seed shared by every linearly-interpolated channel:
+    // the affine-UV coordinates and, when gouraud, the R/G/B color channels.
+    // At the integer pixel xmin the value is the channel at the row's
+    // (possibly fractional) left-edge X, stepped up to xmin and rounded with
+    // the constant +0x8000 half-LSB bias:
+    //
+    //   seed = leftVal + (((xmin << 16) - m_leftX) * dif >> 16) + 0x8000
+    //
+    // Both corrections are hardware-verified and identical for UV and color:
+    //   - The ((xmin << 16) - m_leftX) step covers the sub-pixel gap between
+    //     the row's fractional left edge and the first integer pixel. It is
+    //     ~0 on an axis-aligned (vertical) left edge - hence invisible to the
+    //     axis-aligned phase-1/7 suites - but a 1-LSB deficit on a slanted
+    //     edge if dropped (HW_VERIFIED: affine UV phase-17..20, slanted
+    //     gouraud phase-22).
+    //   - The +0x8000 rounds to nearest: the texture-center bias for UV, the
+    //     8-bit-accumulator round for color. phase-7 cannot constrain the
+    //     color case because its readback truncates 8-bit -> 5-bit (>>3),
+    //     absorbing the 8-bit +/-1 except at a multiple of 8; the dense
+    //     slanted phase-22 probes pin it on.
+    //
+    // Coalescing UV and color through this one seed is deliberate: the
+    // slanted-gouraud 1-LSB bug fixed just before this refactor was the color
+    // seed having lost this exact correction while the UV seed kept it.
+    // Sharing the seed makes that divergence impossible.
+    const auto seedSpan = [&](int32_t leftVal, int32_t dif) -> int32_t {
+        return leftVal + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * dif) >> 16) + 0x8000;
+    };
+
     const auto beginSpan = [&]() {
         if constexpr (HasUV) {
-            // Hardware affine UV sampler model (phase-17/18/19/20 verified
-            // on SCPH-5501): at integer pixel x, the sampled texel is
-            //   floor((accum_16_16 + 0x8000) >> 16)
-            // where accum_16_16 is the truncated 16.16 fixed-point walker
-            // output. Two corrections vs raw m_leftU/m_leftV are needed:
-            //   1. Step the walker from m_leftX (the row's left-edge X in
-            //      16.16, possibly fractional) up to the integer xmin: add
-            //      ((xmin << 16) - m_leftX) * difX / 0x10000.
-            //   2. Apply the constant +0x8000 half-LSB bias in UV space
-            //      (NOT scaled by difX - the bias is invariant under
-            //      stride magnitude; phase-18 closed that question).
-            // The same formula applies to flat and gouraud shading; the
-            // walker state (m_leftU, m_leftX, difX) is identical.
-            posX = m_leftU + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difX) >> 16) + 0x8000;
-            posY = m_leftV + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difY) >> 16) + 0x8000;
+            posX = seedSpan(m_leftU, difX);
+            posY = seedSpan(m_leftV, difY);
         }
         if constexpr (Shading == GPU::Shading::Gouraud) {
-            // The gouraud color seed needs the same two corrections the
-            // affine-UV seed above applies (HW_VERIFIED, gpu-raster
-            // phase-22 slanted gouraud):
-            //   1. Step the color walker from m_leftX (the row's left-edge
-            //      X in 16.16, possibly fractional on a slanted edge) up to
-            //      the integer pixel xmin. Without this the span seeds the
-            //      color at the fractional edge but writes the first pixel
-            //      at xmin, dropping the (xmin - leftEdgeX) * dColor/dx
-            //      step - ~0 on an axis-aligned (vertical) left edge, hence
-            //      invisible to phase-7, but a 1-LSB deficit on a slanted
-            //      one.
-            //   2. The constant +0x8000 half-LSB bias, rounding the 8-bit
-            //      color accumulator to nearest. phase-7 does not constrain
-            //      this: its readback truncates the 8-bit channel to 5-bit
-            //      (>>3), which absorbs the 8-bit +/-1 except right at a
-            //      multiple of 8 - so phase-7 passes with or without it,
-            //      while the dense slanted phase-22 probes pin it on.
-            cR1 = m_leftR + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difR) >> 16) + 0x8000;
-            cG1 = m_leftG + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difG) >> 16) + 0x8000;
-            cB1 = m_leftB + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difB) >> 16) + 0x8000;
+            cR1 = seedSpan(m_leftR, difR);
+            cG1 = seedSpan(m_leftG, difG);
+            cB1 = seedSpan(m_leftB, difB);
         }
     };
 
