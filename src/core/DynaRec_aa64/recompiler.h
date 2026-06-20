@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #pragma once
-#include <cstdint>
 #include "core/r3000a.h"
 
 #if defined(DYNAREC_AA64)
