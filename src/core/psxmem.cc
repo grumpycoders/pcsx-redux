@@ -297,6 +297,11 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
             switch (msanGetStatus<1>(address)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("8-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -348,6 +353,11 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
             switch (msanGetStatus<2>(address)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("16-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -396,6 +406,11 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType, const uint32_
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
             switch (msanGetStatus<4>(address, msanSubBitmask)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("32-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);

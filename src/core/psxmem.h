@@ -50,6 +50,8 @@ namespace PCSX {
 enum class MsanStatus {
     UNUSABLE,       // memory that hasn't been allocated or has been freed
     UNINITIALIZED,  // allocated memory that has never been written to, has undefined contents
+    PARTIALLY_INITIALIZED, // allocated memory that has had 1-3 bytes written to via SWR/SWL and
+                           // an read to the address load at least one ofthe unwritten bytes
     OK              // free to use
 };
 
@@ -97,19 +99,21 @@ class Memory {
         uint32_t bitmask = (((1 << length) - 1) << addr % 8) & subBitmask;
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
-            if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+            const uint8_t nextInitEntry = m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask;
+            if (nextInitEntry != nextBitmask) {
                 if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                     return MsanStatus::UNUSABLE;
                 }
-                bestCase = MsanStatus::UNINITIALIZED;
+                bestCase = nextInitEntry ? MsanStatus::PARTIALLY_INITIALIZED : MsanStatus::UNINITIALIZED;
             }
             bitmask &= 0xff;
         }
-        if ((m_msanInitializedBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
+            const uint8_t initEntry = m_msanInitializedBitmap[bitmapIndex] & bitmask;
+        if (initEntry != bitmask) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) {
                 return MsanStatus::UNUSABLE;
             }
-            return MsanStatus::UNINITIALIZED;
+            return initEntry ? MsanStatus::PARTIALLY_INITIALIZED : MsanStatus::UNINITIALIZED;
         }
         return bestCase;
     }

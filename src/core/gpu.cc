@@ -327,6 +327,11 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
         if (usingMsan && PCSX::Memory::inMsanRange(addr)) {
             addr &= 0xfffffffc;
             switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::GPU,
+                                  _("GPU DMA went into uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  addr);
+                    break;
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
@@ -596,6 +601,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
             addr &= 0xfffffffc;
             const uint32_t *headerPtr = (uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
             switch (g_emulator->m_mem->msanGetStatus<4>(addr)) {
+                case PCSX::MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::GPU,
+                                  _("GPU DMA went into uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  addr);
+                    break;
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
