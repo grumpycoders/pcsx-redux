@@ -85,11 +85,11 @@
 
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
 static uint32_t read32MaskedWrapper(uint32_t address, const uint32_t msanSubBitmask) {
-    return PCSX::g_emulator->m_mem->read32Masked(address, PCSX::Memory::ReadType::Data, msanSubBitmask);
+    return PCSX::g_emulator->m_mem->read32(address, PCSX::Memory::ReadType::Data, msanSubBitmask);
 }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 static void write32MaskedWrapper(uint32_t address, uint32_t value, const uint32_t msanSubBitmask) {
-    PCSX::g_emulator->m_mem->write32Masked(address, value, msanSubBitmask);
+    PCSX::g_emulator->m_mem->write32(address, value, msanSubBitmask);
 }
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
