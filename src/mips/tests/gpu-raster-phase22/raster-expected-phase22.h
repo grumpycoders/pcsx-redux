@@ -93,7 +93,6 @@ SOFTWARE.
 // --------------------------------------------------------------------------
 // SG1 - medium slanted RGB triangle.
 //   v0=(8,4) R=31, v1=(58,22) G=31, v2=(22,52) B=31. Interior probes.
-//   (PLACEHOLDER 0x0000 until captured from farm.)
 // --------------------------------------------------------------------------
 #define SG1_29_26 0x294a
 #define SG1_24_24 0x28ed
@@ -105,7 +104,7 @@ SOFTWARE.
 // --------------------------------------------------------------------------
 // SG2 - flatter slanted RGB triangle, apex-low.
 //   v0=(40,6) R=31, v1=(70,48) G=31, v2=(6,40) B=31. v2 is a covered
-//   (left) vertex - vertex-exactness probe. (PLACEHOLDER until farm.)
+//   (left) vertex - vertex-exactness probe.
 // --------------------------------------------------------------------------
 #define SG2_V2_6_40 0x7c00
 #define SG2_39_31   0x294a
@@ -117,7 +116,7 @@ SOFTWARE.
 // --------------------------------------------------------------------------
 // SG_R - R-only slanted gradient. Apex R=31, base verts R=0. Isolates a
 //   single channel's accumulator on a slanted shape.
-//   v0=(6,6) R=31, v1=(54,18) R=0, v2=(18,50) R=0. (PLACEHOLDER until farm.)
+//   v0=(6,6) R=31, v1=(54,18) R=0, v2=(18,50) R=0.
 // --------------------------------------------------------------------------
 #define SGR_8_8   0x001c
 #define SGR_26_25 0x000a
@@ -129,7 +128,7 @@ SOFTWARE.
 // --------------------------------------------------------------------------
 // SG3 - narrow / steep slanted triangle.
 //   v0=(30,4) R=31, v1=(40,50) G=31, v2=(20,46) B=31. v2 is a covered
-//   (left) vertex - vertex-exactness probe. (PLACEHOLDER until farm.)
+//   (left) vertex - vertex-exactness probe.
 // --------------------------------------------------------------------------
 #define SG3_V2_20_46 0x7c00
 #define SG3_30_33    0x294a
