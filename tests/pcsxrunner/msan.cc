@@ -44,9 +44,8 @@ TEST(CPU, InterpreterValid) {
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS
-        && ret.load() != INT_MIN 
-        && !PCSX::g_system->quitting()) {
-        if (!PCSX::g_system->running()) {
+        && ret.load() != INT_MIN) {
+        if (!PCSX::g_system->quitting() || !PCSX::g_system->running()) {
             FAIL() << "Emulator should never pause in valid MSAN cases";
         }
         std::this_thread::sleep_for(200ms);
@@ -68,9 +67,8 @@ TEST(CPU, DynarecValid) {
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS
-        && ret.load() != INT_MIN 
-        && !PCSX::g_system->quitting()) {
-        if (!PCSX::g_system->running()) {
+        && ret.load() != INT_MIN) {
+        if (!PCSX::g_system->quitting() || !PCSX::g_system->running()) {
             FAIL() << "Emulator should never pause in valid MSAN cases";
         }
         std::this_thread::sleep_for(200ms);
@@ -196,8 +194,7 @@ TEST(CPU, InterpreterInvalid) {
     });
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
-        && ret.load() != INT_MIN 
-        && !PCSX::g_system->quitting()) {
+        && ret.load() != INT_MIN) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
@@ -235,8 +232,7 @@ TEST(CPU, DynarecInvalid) {
     });
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
-        && ret.load() != INT_MIN 
-        && !PCSX::g_system->quitting()) {
+        && ret.load() != INT_MIN) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
