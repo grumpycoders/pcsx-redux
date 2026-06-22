@@ -46,6 +46,30 @@ struct CriticalSection {
     ~CriticalSection() { psyqo::Kernel::fastLeaveCriticalSection(); }
 };
 
+// SIO0 memory card protocol bytes. The host sends a command and the card
+// answers with a fixed sequence of identifier and acknowledge bytes; naming
+// them keeps the transfer readable (no hanging hex literals).
+enum Command : uint8_t {
+    kAccess = 0x81,  // memory card bus address
+    kRead = 0x52,    // 'R'
+    kWrite = 0x57,   // 'W'
+};
+enum Reply : uint8_t {
+    kId1 = 0x5a,             // first card identifier byte
+    kId2 = 0x5d,             // second card identifier byte
+    kCommandAck1 = 0x5c,     // command acknowledge, byte 1
+    kCommandAck2 = 0x5d,     // command acknowledge, byte 2
+    kEndGood = 0x47,         // 'G': transfer succeeded
+    kEndBadChecksum = 0x4e,  // 'N': checksum mismatch
+    kEndBadSector = 0xff,    // addressed sector was out of range
+};
+
+// Pacing for one byte exchange, in busyLoop iterations, from the reference
+// inner loop. These are timing sensitive; do not tune without a real card.
+static constexpr int kPaceLead = 200;    // before re-asserting select for the byte
+static constexpr int kPaceSettle = 2000;  // after re-asserting select, before clocking
+static constexpr int kPaceClock = 20;     // around the data-register write
+
 }  // namespace
 
 const char *psyqo::MemoryCard::errorMessage(Error error) {
@@ -122,30 +146,36 @@ void psyqo::MemoryCard::flushRxBuffer() {
     }
 }
 
-uint8_t psyqo::MemoryCard::transceive(uint8_t dataOut) {
-    SIO::Ctrl |= SIO::Control::CTRL_ERRRES;  // clear error
-    CPU::IReg.clear(CPU::IRQ::Controller);   // clear the latched acknowledge
-
-    SIO::Data = dataOut;
-
-    // Wait for the byte to be clocked in and out of the FIFO.
-    while (!(SIO::Stat & SIO::Status::STAT_RXRDY));
-
-    return SIO::Data;
+bool psyqo::MemoryCard::waitCardIRQ(uint32_t timeout) {
+    // Wait for the card's acknowledge interrupt latch, then clear it. Bounded so
+    // a missing card (which never acknowledges) reports a timeout instead of
+    // hanging; the reference inner loop omits the bound because it assumes a
+    // present card, but a driver has to detect absence.
+    uint32_t cycles = 0;
+    while (!CPU::IReg.isSet(CPU::IRQ::Controller)) {
+        if (++cycles >= timeout) return false;
+    }
+    CPU::IReg.clear(CPU::IRQ::Controller);
+    return true;
 }
 
-bool psyqo::MemoryCard::waitAck(uint32_t timeout) {
-    uint32_t cycles = 0;
-    while (!CPU::IReg.isSet(CPU::IRQ::Controller) && ++cycles < timeout);
-    if (cycles >= timeout) return false;
+bool psyqo::MemoryCard::advance(uint8_t outByte, uint32_t timeout) {
+    busyLoop(kPaceLead);
+    SIO::Ctrl |= (SIO::Control::CTRL_DTR | SIO::Control::CTRL_ERRRES);
+    busyLoop(kPaceSettle);
+    busyLoop(kPaceClock);
+    SIO::Data = outByte;
+    busyLoop(kPaceClock);
+    SIO::Ctrl |= SIO::Control::CTRL_ERRRES;
+    CPU::IReg.clear(CPU::IRQ::Controller);
+    return waitCardIRQ(timeout);
+}
 
-    // Wait for the acknowledge line to return high before clocking the next
-    // byte; bounded so a stuck line cannot hang the transfer forever. No extra
-    // delay is inserted here: a card expects the bytes of a transaction to keep
-    // flowing, and adding gaps can make it abort mid-transfer.
-    uint32_t high = 0;
-    while ((SIO::Stat & SIO::Status::STAT_ACK) && ++high < c_ackHighTimeout);
-    return true;
+bool psyqo::MemoryCard::expect(uint8_t want) {
+    for (uint32_t i = 0; i < c_ackTimeoutLong; i++) {
+        if (SIO::Data == want) return true;
+    }
+    return false;
 }
 
 psyqo::MemoryCard::Error psyqo::MemoryCard::doReadSector(Port port, uint16_t sector, uint8_t *out) {
@@ -157,91 +187,46 @@ psyqo::MemoryCard::Error psyqo::MemoryCard::doReadSector(Port port, uint16_t sec
     const uint8_t msb = sector >> 8;
     const uint8_t lsb = sector & 0xff;
 
-    // Byte 1: card address. A missing card never acknowledges this byte.
-    transceive(0x81);
-    if (!waitAck(c_ackTimeoutShort)) {
-        deselect();
-        return Error::NoCard;
-    }
-    // Byte 2: 'R' read command -> FLAG byte (ignored here).
-    transceive(0x52);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 3-4: memory card ID (0x5A, 0x5D).
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 5-6: sector address (MSB then LSB).
-    transceive(msb);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(lsb);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 7-8: command acknowledge (0x5C, 0x5D). The acknowledge that follows
-    // byte 7 is the late one, hence the long timeout above and below.
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 9-10: confirmed address. 0xFFFF means the sector was rejected.
-    uint8_t confMSB = transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    uint8_t confLSB = transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    if (confMSB == 0xff && confLSB == 0xff) {
-        deselect();
-        return Error::BadSector;
-    }
+    // Address the card. A missing card never acknowledges this first byte.
+    if (!advance(kAccess, c_ackTimeoutShort)) return deselect(), Error::NoCard;
+    // Read command; the card answers with its two identifier bytes.
+    if (!advance(kRead, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kId1)) return deselect(), Error::ProtocolError;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kId2)) return deselect(), Error::ProtocolError;
+    // Acknowledge slot, then the sector address. After the address the card
+    // reads the sector internally: a slow state, covered by the long timeout and
+    // the poll on the command-acknowledge bytes below.
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!advance(msb, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!advance(lsb, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kCommandAck1)) return deselect(), Error::ProtocolError;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kCommandAck2)) return deselect(), Error::ProtocolError;
+    // Confirmed address: 0xffff means the card rejected the sector.
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    uint8_t confMSB = SIO::Data;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    uint8_t confLSB = SIO::Data;
+    if (confMSB == 0xff && confLSB == 0xff) return deselect(), Error::BadSector;
 
-    // Bytes 11..138: 128 data bytes.
+    // 128 data bytes (regular, acknowledge-paced), then the checksum and the end
+    // byte. The checksum covers the address and the data.
     uint8_t checksum = msb ^ lsb;
     for (uint32_t i = 0; i < c_sectorSize; i++) {
-        uint8_t value = transceive(0x00);
-        out[i] = value;
-        checksum ^= value;
-        if (!waitAck(c_ackTimeoutLong)) {
-            deselect();
-            return Error::Timeout;
-        }
+        if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+        out[i] = SIO::Data;
+        checksum ^= out[i];
     }
-    // Byte 139: checksum.
-    uint8_t cardChecksum = transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Byte 140: end byte (0x47 = 'G' = good). No acknowledge follows.
-    uint8_t endByte = transceive(0x00);
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    uint8_t cardChecksum = SIO::Data;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    uint8_t endByte = SIO::Data;
     deselect();
 
     if (cardChecksum != checksum) return Error::BadChecksum;
-    if (endByte != 0x47) return Error::ProtocolError;
+    if (endByte != kEndGood) return Error::ProtocolError;
     return Error::OK;
 }
 
@@ -257,75 +242,40 @@ psyqo::MemoryCard::Error psyqo::MemoryCard::doWriteSector(Port port, uint16_t se
     uint8_t checksum = msb ^ lsb;
     for (uint32_t i = 0; i < c_sectorSize; i++) checksum ^= in[i];
 
-    // Byte 1: card address.
-    transceive(0x81);
-    if (!waitAck(c_ackTimeoutShort)) {
-        deselect();
-        return Error::NoCard;
-    }
-    // Byte 2: 'W' write command -> FLAG.
-    transceive(0x57);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 3-4: memory card ID.
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 5-6: sector address.
-    transceive(msb);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(lsb);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 7..134: 128 data bytes.
+    // NOTE: the write path mirrors doReadSector's structure (the proven read
+    // loop's model); the reference only covered reads, so the write sequence is
+    // the standard protocol and needs validation on a real card.
+
+    // Address the card. A missing card never acknowledges this first byte.
+    if (!advance(kAccess, c_ackTimeoutShort)) return deselect(), Error::NoCard;
+    // Write command; the card answers with its two identifier bytes.
+    if (!advance(kWrite, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kId1)) return deselect(), Error::ProtocolError;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kId2)) return deselect(), Error::ProtocolError;
+    // Sector address, then the 128 data bytes and the checksum.
+    if (!advance(msb, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!advance(lsb, c_ackTimeoutLong)) return deselect(), Error::Timeout;
     for (uint32_t i = 0; i < c_sectorSize; i++) {
-        transceive(in[i]);
-        if (!waitAck(c_ackTimeoutLong)) {
-            deselect();
-            return Error::Timeout;
-        }
+        if (!advance(in[i], c_ackTimeoutLong)) return deselect(), Error::Timeout;
     }
-    // Byte 135: checksum.
-    transceive(checksum);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Bytes 136-137: command acknowledge (0x5C, 0x5D).
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    transceive(0x00);
-    if (!waitAck(c_ackTimeoutLong)) {
-        deselect();
-        return Error::Timeout;
-    }
-    // Byte 138: end byte. No acknowledge follows.
-    uint8_t endByte = transceive(0x00);
+    if (!advance(checksum, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    // The card commits the write (a slow state) then acknowledges and reports
+    // the outcome in its end byte.
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kCommandAck1)) return deselect(), Error::ProtocolError;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    if (!expect(kCommandAck2)) return deselect(), Error::ProtocolError;
+    if (!advance(0, c_ackTimeoutLong)) return deselect(), Error::Timeout;
+    uint8_t endByte = SIO::Data;
     deselect();
 
     switch (endByte) {
-        case 0x47:  // 'G' good
+        case kEndGood:
             return Error::OK;
-        case 0x4e:  // 'N' bad checksum
+        case kEndBadChecksum:
             return Error::BadChecksum;
-        case 0xff:
+        case kEndBadSector:
             return Error::BadSector;
         default:
             return Error::ProtocolError;

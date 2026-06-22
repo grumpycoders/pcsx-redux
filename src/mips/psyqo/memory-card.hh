@@ -169,12 +169,19 @@ class MemoryCard {
     void selectPort(Port port);
     void deselect();
     void flushRxBuffer();
-    uint8_t transceive(uint8_t dataOut);
-    bool waitAck(uint32_t timeout);
+    // Waits for the card's acknowledge interrupt latch and clears it. Returns
+    // false if it does not arrive within `timeout` iterations (a missing card).
+    bool waitCardIRQ(uint32_t timeout);
+    // Clocks one byte out and waits for the card to acknowledge that its state
+    // machine advanced. Returns false on acknowledge timeout (e.g. no card).
+    bool advance(uint8_t outByte, uint32_t timeout);
+    // Polls the card's output until its state machine reaches `want`. Reading
+    // the data register is a no-op until the chip advances, so this synchronizes
+    // to the card's per-state timing; bounded so a broken card cannot hang.
+    bool expect(uint8_t want);
 
-    static void busyLoop(unsigned delay) {
-        unsigned cycles = 0;
-        while (++cycles < delay) asm("");
+    static void busyLoop(int delay) {
+        for (; delay >= 0; delay--) asm("");
     }
 
     // The first (addressing) byte uses this timeout to detect a missing card.
@@ -188,7 +195,6 @@ class MemoryCard {
     // follows the seventh byte of a read; the long timeout covers it with a
     // comfortable margin and is also used as the general mid-transfer timeout.
     static constexpr uint32_t c_ackTimeoutLong = 0x40000;
-    static constexpr uint32_t c_ackHighTimeout = 0x4000;
     // Settle time after asserting the port select, before the first clock.
     static constexpr unsigned c_selectDelay = 100;
     // How many times a whole-sector transient failure is retried.
