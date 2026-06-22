@@ -26,10 +26,6 @@ SOFTWARE.
 
 #include "psyqo/memory-card.hh"
 
-#include <EASTL/atomic.h>
-
-#include "common/kernel/events.h"
-#include "common/syscalls/syscalls.h"
 #include "psyqo/hardware/cpu.hh"
 #include "psyqo/hardware/sio.hh"
 #include "psyqo/kernel.hh"
@@ -39,23 +35,15 @@ using namespace psyqo::Hardware;
 
 namespace {
 
-// RAII guard that masks the Controller (SIO0) interrupt for the duration of a
-// transfer and restores its previous mask state on destruction. We still poll
-// the latched I_STAT bit during the transfer; masking only prevents another
-// handler from being dispatched and consuming the acknowledge for us.
-struct MaskedControllerIRQ {
-    MaskedControllerIRQ() {
-        m_wasSet = CPU::IMask.isSet(CPU::IRQ::Controller);
-        CPU::IMask.clear(CPU::IRQ::Controller);
-        CPU::flushWriteQueue();
-    }
-    ~MaskedControllerIRQ() {
-        if (m_wasSet) CPU::IMask.set(CPU::IRQ::Controller);
-        CPU::flushWriteQueue();
-    }
-
-  private:
-    bool m_wasSet;
+// RAII guard that disables all interrupts for the duration of a single sector
+// transfer. The SIO0 card protocol is timing sensitive: the bytes of one
+// transfer must keep flowing without interruption or the card aborts, so the
+// inner transfer busy-polls the latched I_STAT acknowledge bit with interrupts
+// off. The outer, multi-transfer state machine runs with interrupts enabled,
+// advanced from the main loop by a timer.
+struct CriticalSection {
+    CriticalSection() { psyqo::Kernel::fastEnterCriticalSection(); }
+    ~CriticalSection() { psyqo::Kernel::fastLeaveCriticalSection(); }
 };
 
 }  // namespace
@@ -106,308 +94,15 @@ void psyqo::MemoryCard::prepare() {
     SIO::Baud = 0x88;  // 250kHz
     SIO::Mode = 0xd;   // MUL1, 8bit, no parity, normal polarity
     SIO::Ctrl = 0;
-    if (c_useIrq) installIrqHandler();
-}
-
-uint16_t psyqo::MemoryCard::portMask(Port port) {
-    return port == Port::Port1 ? SIO::Control::CTRL_PORTSEL : 0;
-}
-
-void psyqo::MemoryCard::installIrqHandler() {
-    // Start with the controller interrupt masked: it is only unmasked while a
-    // card operation is actually running, so it never fires during AdvancedPad's
-    // polled reads (which share SIO0 / IRQ7). This mirrors the BIOS, which
-    // toggles the controller mask around each card operation.
-    CPU::IMask.clear(CPU::IRQ::Controller);
-    CPU::flushWriteQueue();
-
-    eastl::function<void()> callback = [this]() {
-        CPU::IReg.clear(CPU::IRQ::Controller);
-        irq();
-    };
-    if (Kernel::isKernelTakenOver()) {
-        Kernel::queueIRQHandler(Kernel::IRQ::Controller, eastl::move(callback));
-    } else {
-        m_event = Kernel::openEvent(EVENT_CONTROLLER, 0x1000, EVENT_MODE_CALLBACK, eastl::move(callback));
-        syscall_enableEvent(m_event);
-    }
-}
-
-// openbios-style byte exchange: the value clocked in during the *previous*
-// transfer is already waiting in the FIFO, so read it, push the next byte, then
-// clear the error latch and acknowledge the controller interrupt.
-uint8_t psyqo::MemoryCard::exchangeByte(uint8_t out) {
-    uint8_t ret = SIO::Data;
-    SIO::Data = out;
-    SIO::Ctrl |= SIO::Control::CTRL_ERRRES;
-    CPU::IReg.clear(CPU::IRQ::Controller);
-    return ret;
-}
-
-void psyqo::MemoryCard::startTransfer(Action action, Port port, uint16_t sector, void *readBuf, const void *writeBuf) {
-    m_action = action;
-    m_port = port;
-    m_sector = sector;
-    m_readBuffer = reinterpret_cast<uint8_t *>(readBuf);
-    m_writeBuffer = reinterpret_cast<const uint8_t *>(writeBuf);
-    m_runningChecksum = 0;
-    m_cardChecksum = 0;
-    m_result = Error::OK;
-    m_done = false;
-    m_step = 1;
-
-    // Select the port and let the bus settle.
-    SIO::Ctrl = portMask(port) | SIO::Control::CTRL_DTR;
-    SIO::Baud = 0x88;
-    flushRxBuffer();
-    busyLoop(c_selectDelay);
-
-    // Fire the first byte (step 1) synchronously, then wait for its acknowledge
-    // with a bounded poll. A missing card never acknowledges, so this is where
-    // "no card" is detected quickly, before handing the rest off to interrupts.
-    CPU::IReg.clear(CPU::IRQ::Controller);
-    if (action == Action::Read) {
-        readStep();
-    } else {
-        writeStep();
-    }
-
-    uint32_t spins = 0;
-    while (!CPU::IReg.isSet(CPU::IRQ::Controller) && ++spins < c_ackTimeoutShort);
-    if (spins >= c_ackTimeoutShort) {
-        finishTransfer(Error::NoCard);
-        return;
-    }
-
-    // The first acknowledge is latched; unmasking now makes it (and every
-    // subsequent one) drive the state machine through `irq()`.
-    CPU::IMask.set(CPU::IRQ::Controller);
-    CPU::flushWriteQueue();
-}
-
-void psyqo::MemoryCard::finishTransfer(Error result) {
-    SIO::Ctrl = 0;  // deselect
-    CPU::IMask.clear(CPU::IRQ::Controller);
-    CPU::flushWriteQueue();
-    m_action = Action::None;
-    m_result = result;
-    if (!m_blocking && m_callback) {
-        auto cb = eastl::move(m_callback);
-        m_callback = nullptr;
-        Kernel::queueCallbackFromISR([cb = eastl::move(cb), result]() mutable { cb(result); });
-    }
-    eastl::atomic_signal_fence(eastl::memory_order_release);
-    m_done = true;
-}
-
-void psyqo::MemoryCard::irq() {
-    if (m_action == Action::None) return;  // not our interrupt
-    // Re-assert the select and clear the error latch, like the BIOS handler.
-    SIO::Ctrl |= portMask(m_port) | SIO::Control::CTRL_ERRRES | SIO::Control::CTRL_DTR;
-    m_step++;
-    StepResult result = (m_action == Action::Read) ? readStep() : writeStep();
-    if (result == StepResult::Done) finishTransfer(m_result);
-}
-
-psyqo::MemoryCard::StepResult psyqo::MemoryCard::readStep() {
-    const uint8_t msb = m_sector >> 8;
-    const uint8_t lsb = m_sector & 0xff;
-    switch (m_step) {
-        case 1:
-            SIO::Ctrl = portMask(m_port) | SIO::Control::CTRL_TXEN | SIO::Control::CTRL_ACKIRQEN | SIO::Control::CTRL_DTR;
-            exchangeByte(0x81);
-            return StepResult::Continue;
-        case 2:
-            exchangeByte(0x52);  // 'R'
-            return StepResult::Continue;
-        case 3:
-            exchangeByte(0x00);  // FLAG byte (ignored)
-            return StepResult::Continue;
-        case 4:
-            if (exchangeByte(0x00) != 0x5a) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        case 5:
-            if (exchangeByte(msb) != 0x5d) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        case 6:
-            exchangeByte(lsb);
-            return StepResult::Continue;
-        case 7:
-            exchangeByte(0x00);
-            return StepResult::Continue;
-        case 8:
-            if (exchangeByte(0x00) != 0x5c) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        case 9:
-            if (exchangeByte(0x00) != 0x5d) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        case 10:
-            if (exchangeByte(0x00) != msb) {
-                m_result = Error::BadSector;
-                return StepResult::Done;
-            }
-            m_runningChecksum = msb ^ lsb;
-            return StepResult::Continue;
-        case 11:
-            if (exchangeByte(0x00) != lsb) {
-                m_result = Error::BadSector;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        default: {
-            // Steps 12..139 read the 128 data bytes.
-            if (m_step >= 12 && m_step <= 139) {
-                uint8_t b = exchangeByte(0x00);
-                m_readBuffer[m_step - 12] = b;
-                m_runningChecksum ^= b;
-                return StepResult::Continue;
-            }
-            // Step 140: read the checksum, then the (un-acknowledged) end byte.
-            if (m_step == 140) {
-                m_cardChecksum = exchangeByte(0x00);
-                uint32_t spins = 0;
-                while (!(SIO::Stat & SIO::Status::STAT_RXRDY) && ++spins < c_ackTimeoutLong);
-                uint8_t endByte = SIO::Data;
-                if (m_cardChecksum != m_runningChecksum) {
-                    m_result = Error::BadChecksum;
-                } else if (endByte != 0x47) {
-                    m_result = Error::ProtocolError;
-                } else {
-                    m_result = Error::OK;
-                }
-                return StepResult::Done;
-            }
-            m_result = Error::ProtocolError;
-            return StepResult::Done;
-        }
-    }
-}
-
-psyqo::MemoryCard::StepResult psyqo::MemoryCard::writeStep() {
-    const uint8_t msb = m_sector >> 8;
-    const uint8_t lsb = m_sector & 0xff;
-    switch (m_step) {
-        case 1:
-            SIO::Ctrl = portMask(m_port) | SIO::Control::CTRL_TXEN | SIO::Control::CTRL_ACKIRQEN | SIO::Control::CTRL_DTR;
-            exchangeByte(0x81);
-            return StepResult::Continue;
-        case 2:
-            exchangeByte(0x57);  // 'W'
-            return StepResult::Continue;
-        case 3:
-            exchangeByte(0x00);  // FLAG byte (ignored)
-            return StepResult::Continue;
-        case 4:
-            if (exchangeByte(0x00) != 0x5a) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            return StepResult::Continue;
-        case 5:
-            if (exchangeByte(msb) != 0x5d) {
-                m_result = Error::ProtocolError;
-                return StepResult::Done;
-            }
-            m_runningChecksum = msb;
-            return StepResult::Continue;
-        case 6:
-            exchangeByte(lsb);
-            m_runningChecksum ^= lsb;
-            return StepResult::Continue;
-        default: {
-            // Steps 7..134 send the 128 data bytes.
-            if (m_step >= 7 && m_step <= 134) {
-                uint8_t d = m_writeBuffer[m_step - 7];
-                exchangeByte(d);
-                m_runningChecksum ^= d;
-                return StepResult::Continue;
-            }
-            if (m_step == 135) {
-                exchangeByte(m_runningChecksum);  // checksum
-                return StepResult::Continue;
-            }
-            if (m_step == 136) {
-                exchangeByte(0x00);
-                return StepResult::Continue;
-            }
-            if (m_step == 137) {
-                if (exchangeByte(0x00) != 0x5c) {
-                    m_result = Error::ProtocolError;
-                    return StepResult::Done;
-                }
-                return StepResult::Continue;
-            }
-            // Step 138: read the second ack, then the (un-acknowledged) end byte.
-            if (m_step == 138) {
-                if (exchangeByte(0x00) != 0x5d) {
-                    m_result = Error::ProtocolError;
-                    return StepResult::Done;
-                }
-                uint32_t spins = 0;
-                while (!(SIO::Stat & SIO::Status::STAT_RXRDY) && ++spins < c_ackTimeoutLong);
-                uint8_t endByte = SIO::Data;
-                switch (endByte) {
-                    case 0x47:
-                        m_result = Error::OK;
-                        break;
-                    case 0x4e:
-                        m_result = Error::BadChecksum;
-                        break;
-                    case 0xff:
-                        m_result = Error::BadSector;
-                        break;
-                    default:
-                        m_result = Error::ProtocolError;
-                        break;
-                }
-                return StepResult::Done;
-            }
-            m_result = Error::ProtocolError;
-            return StepResult::Done;
-        }
-    }
-}
-
-psyqo::MemoryCard::Error psyqo::MemoryCard::irqTransferBlocking(Action action, Port port, uint16_t sector,
-                                                                void *readBuf, const void *writeBuf) {
-    m_blocking = true;
-    m_callback = nullptr;
-    startTransfer(action, port, sector, readBuf, writeBuf);
-
-    uint32_t watchdog = 0;
-    while (!m_done) {
-        eastl::atomic_signal_fence(eastl::memory_order_acquire);
-        if (++watchdog >= c_irqWatchdog) {
-            // The interrupt stopped advancing us; abort rather than hang.
-            finishTransfer(m_step <= 1 ? Error::NoCard : Error::Timeout);
-            break;
-        }
-    }
-    m_blocking = false;
-    return m_result;
 }
 
 psyqo::MemoryCard::Error psyqo::MemoryCard::singleSectorRead(Port port, uint16_t sector, uint8_t *out) {
     if (sector >= c_sectorCount) return Error::BadSector;
-    if (c_useIrq) return irqTransferBlocking(Action::Read, port, sector, out, nullptr);
     return doReadSector(port, sector, out);
 }
 
 psyqo::MemoryCard::Error psyqo::MemoryCard::singleSectorWrite(Port port, uint16_t sector, const uint8_t *in) {
     if (sector >= c_sectorCount) return Error::BadSector;
-    if (c_useIrq) return irqTransferBlocking(Action::Write, port, sector, nullptr, in);
     return doWriteSector(port, sector, in);
 }
 
@@ -456,7 +151,7 @@ bool psyqo::MemoryCard::waitAck(uint32_t timeout) {
 psyqo::MemoryCard::Error psyqo::MemoryCard::doReadSector(Port port, uint16_t sector, uint8_t *out) {
     if (sector >= c_sectorCount) return Error::BadSector;
 
-    MaskedControllerIRQ guard;
+    CriticalSection guard;
     selectPort(port);
 
     const uint8_t msb = sector >> 8;
@@ -553,7 +248,7 @@ psyqo::MemoryCard::Error psyqo::MemoryCard::doReadSector(Port port, uint16_t sec
 psyqo::MemoryCard::Error psyqo::MemoryCard::doWriteSector(Port port, uint16_t sector, const uint8_t *in) {
     if (sector >= c_sectorCount) return Error::BadSector;
 
-    MaskedControllerIRQ guard;
+    CriticalSection guard;
     selectPort(port);
 
     const uint8_t msb = sector >> 8;
@@ -693,74 +388,3 @@ psyqo::MemoryCard::Error psyqo::MemoryCard::probeBlocking(Port port) {
     return error;
 }
 
-void psyqo::MemoryCard::readSector(Port port, uint16_t sector, void *buffer, eastl::function<void(Error)> &&callback) {
-    // Own the SIO0 bus for the whole asynchronous transfer; ownership is
-    // released when the completion callback fires (always on the main thread).
-    // AdvancedPad stands down for the duration. A higher level operation that
-    // chains several of these (a filesystem transaction) should additionally
-    // hold an SIO0Bus::Lock so the pad stays out across the whole chain, not
-    // just within each individual sector; the count is re-entrant.
-    SIO0Bus::acquire();
-    eastl::function<void(Error)> done = [callback = eastl::move(callback)](Error error) mutable {
-        SIO0Bus::release();
-        callback(error);
-    };
-    if (!c_useIrq) {
-        Kernel::queueCallback([this, port, sector, buffer, done = eastl::move(done)]() mutable {
-            done(readSectorRetried(port, sector, reinterpret_cast<uint8_t *>(buffer)));
-        });
-        return;
-    }
-    if (sector >= c_sectorCount) {
-        Kernel::queueCallback([done = eastl::move(done)]() mutable { done(Error::BadSector); });
-        return;
-    }
-    // Interrupt-driven, non-blocking transfer: returns immediately, the callback
-    // fires (from a queued main-thread callback) once the interrupt state
-    // machine completes.
-    m_blocking = false;
-    m_callback = eastl::move(done);
-    startTransfer(Action::Read, port, sector, buffer, nullptr);
-}
-
-void psyqo::MemoryCard::writeSector(Port port, uint16_t sector, const void *buffer,
-                                    eastl::function<void(Error)> &&callback) {
-    SIO0Bus::acquire();
-    eastl::function<void(Error)> done = [callback = eastl::move(callback)](Error error) mutable {
-        SIO0Bus::release();
-        callback(error);
-    };
-    if (!c_useIrq) {
-        Kernel::queueCallback([this, port, sector, buffer, done = eastl::move(done)]() mutable {
-            done(writeSectorRetried(port, sector, reinterpret_cast<const uint8_t *>(buffer)));
-        });
-        return;
-    }
-    if (sector >= c_sectorCount) {
-        Kernel::queueCallback([done = eastl::move(done)]() mutable { done(Error::BadSector); });
-        return;
-    }
-    m_blocking = false;
-    m_callback = eastl::move(done);
-    startTransfer(Action::Write, port, sector, nullptr, buffer);
-}
-
-psyqo::TaskQueue::Task psyqo::MemoryCard::scheduleReadSector(Port port, uint16_t sector, void *buffer,
-                                                             Error *resultOut) {
-    return TaskQueue::Task([this, port, sector, buffer, resultOut](auto task) {
-        readSector(port, sector, buffer, [task, resultOut](Error error) {
-            if (resultOut) *resultOut = error;
-            task->complete(error == Error::OK);
-        });
-    });
-}
-
-psyqo::TaskQueue::Task psyqo::MemoryCard::scheduleWriteSector(Port port, uint16_t sector, const void *buffer,
-                                                              Error *resultOut) {
-    return TaskQueue::Task([this, port, sector, buffer, resultOut](auto task) {
-        writeSector(port, sector, buffer, [task, resultOut](Error error) {
-            if (resultOut) *resultOut = error;
-            task->complete(error == Error::OK);
-        });
-    });
-}

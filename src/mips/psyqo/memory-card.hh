@@ -26,16 +26,9 @@ SOFTWARE.
 
 #pragma once
 
-#include <EASTL/functional.h>
 #include <stdint.h>
 
-#include <coroutine>
-
-#include "psyqo/task.hh"
-
 namespace psyqo {
-
-class GPU;
 
 /**
  * @brief A low level driver for the PlayStation memory cards.
@@ -60,18 +53,16 @@ class GPU;
  * outside this lock and will collide with card transfers. Use `AdvancedPad`,
  * or no pad at all, with this driver.
  *
- * Each sector transfer is a self-contained synchronous SIO0 exchange, the
- * same proven approach `AdvancedPad` uses to talk to the bus. The Controller
- * interrupt is masked for the duration of a transfer so that nothing else on
- * the bus (a BIOS pad handler, for instance) steals the bytes, and its prior
- * mask state is restored afterwards. As with the rest of psyqo, the class is
- * meant to be used as a singleton, typically held by the `Application`.
- *
- * Following the conventions of `CDRomDevice`, every operation comes in four
- * forms: a callback variant, a `*Blocking` variant, a coroutine-friendly
- * awaiter, and a `TaskQueue::Task` scheduler. A single sector transfer is
- * short (a few milliseconds), so the blocking variants do not need a `GPU`
- * to pump events.
+ * A single sector transfer is a self-contained, busy-polled SIO0 exchange run
+ * with all interrupts disabled: the bytes of one transfer are timing sensitive
+ * and must flow without interruption or the card aborts. A sector takes a few
+ * milliseconds, so these per-sector transfers are synchronous and blocking.
+ * The asynchronicity lives one level up: a whole card transaction spans many
+ * sectors across several frames, so `MemoryCardFileSystem` chains these
+ * per-sector transfers from a main-loop timer (never an interrupt), which is
+ * why this transport does not rely on an SIO0 acknowledge interrupt at all -
+ * it polls the latched acknowledge bit. As with the rest of psyqo, the class
+ * is meant to be used as a singleton, typically held by the `Application`.
  */
 class MemoryCard {
   public:
@@ -161,72 +152,7 @@ class MemoryCard {
      */
     Error probeBlocking(Port port);
 
-    // --- Callback variants -------------------------------------------------
-    void readSector(Port port, uint16_t sector, void *buffer, eastl::function<void(Error)> &&callback);
-    void writeSector(Port port, uint16_t sector, const void *buffer, eastl::function<void(Error)> &&callback);
-
-    // --- TaskQueue schedulers ---------------------------------------------
-    TaskQueue::Task scheduleReadSector(Port port, uint16_t sector, void *buffer, Error *resultOut);
-    TaskQueue::Task scheduleWriteSector(Port port, uint16_t sector, const void *buffer, Error *resultOut);
-
-    // --- Coroutine-friendly awaiters --------------------------------------
-    struct ReadSectorAwaiter {
-        ReadSectorAwaiter(MemoryCard &device, Port port, uint16_t sector, void *buffer)
-            : m_device(device), m_port(port), m_sector(sector), m_buffer(buffer) {}
-        bool await_ready() const { return false; }
-        template <typename U>
-        void await_suspend(std::coroutine_handle<U> handle) {
-            m_device.readSector(m_port, m_sector, m_buffer, [handle, this](Error result) {
-                m_result = result;
-                handle.resume();
-            });
-        }
-        Error await_resume() { return m_result; }
-
-      private:
-        MemoryCard &m_device;
-        Port m_port;
-        uint16_t m_sector;
-        void *m_buffer;
-        Error m_result = Error::OK;
-    };
-
-    struct WriteSectorAwaiter {
-        WriteSectorAwaiter(MemoryCard &device, Port port, uint16_t sector, const void *buffer)
-            : m_device(device), m_port(port), m_sector(sector), m_buffer(buffer) {}
-        bool await_ready() const { return false; }
-        template <typename U>
-        void await_suspend(std::coroutine_handle<U> handle) {
-            m_device.writeSector(m_port, m_sector, m_buffer, [handle, this](Error result) {
-                m_result = result;
-                handle.resume();
-            });
-        }
-        Error await_resume() { return m_result; }
-
-      private:
-        MemoryCard &m_device;
-        Port m_port;
-        uint16_t m_sector;
-        const void *m_buffer;
-        Error m_result = Error::OK;
-    };
-
-    ReadSectorAwaiter readSector(Port port, uint16_t sector, void *buffer) { return {*this, port, sector, buffer}; }
-    WriteSectorAwaiter writeSector(Port port, uint16_t sector, const void *buffer) {
-        return {*this, port, sector, buffer};
-    }
-
   private:
-    // ── Transport selection ───────────────────────────────────────────────
-    // The driver has two interchangeable transports for a single sector:
-    //   * an interrupt-driven state machine (the default, modelled on the
-    //     retail BIOS / openbios sio0 driver), and
-    //   * a synchronous busy-polled transport (kept as a proven fallback).
-    // If the IRQ transport ever misbehaves on a particular setup, flip this to
-    // false to fall back to polling without touching anything else.
-    static constexpr bool c_useIrq = true;
-
     // ── Retry / dispatch layer ────────────────────────────────────────────
     Error singleSectorRead(Port port, uint16_t sector, uint8_t *out);
     Error singleSectorWrite(Port port, uint16_t sector, const uint8_t *in);
@@ -234,21 +160,10 @@ class MemoryCard {
     Error writeSectorRetried(Port port, uint16_t sector, const uint8_t *in);
     static bool isTransient(Error error);
 
-    // ── Interrupt-driven transport ────────────────────────────────────────
-    enum class Action : uint8_t { None, Read, Write };
-    enum class StepResult { Continue, Done };
-
-    void installIrqHandler();
-    void irq();  // entered on each SIO0 (controller) acknowledge interrupt
-    void startTransfer(Action action, Port port, uint16_t sector, void *readBuf, const void *writeBuf);
-    void finishTransfer(Error result);
-    StepResult readStep();
-    StepResult writeStep();
-    uint8_t exchangeByte(uint8_t out);  // openbios-style: read previous, send next, ack
-    Error irqTransferBlocking(Action action, Port port, uint16_t sector, void *readBuf, const void *writeBuf);
-    static uint16_t portMask(Port port);
-
-    // ── Polled transport (fallback) ───────────────────────────────────────
+    // ── Sector transport ──────────────────────────────────────────────────
+    // A single sector is a self-contained, busy-polled SIO0 exchange run with
+    // interrupts disabled (the bytes must flow without interruption). It is the
+    // atomic unit the asynchronous, timer-driven filesystem layer chains.
     Error doReadSector(Port port, uint16_t sector, uint8_t *out);
     Error doWriteSector(Port port, uint16_t sector, const uint8_t *in);
     void selectPort(Port port);
@@ -261,21 +176,6 @@ class MemoryCard {
         unsigned cycles = 0;
         while (++cycles < delay) asm("");
     }
-
-    // ── Interrupt-driven state ────────────────────────────────────────────
-    volatile Action m_action = Action::None;
-    int m_step = 0;
-    Port m_port = Port::Port0;
-    uint16_t m_sector = 0;
-    uint8_t *m_readBuffer = nullptr;
-    const uint8_t *m_writeBuffer = nullptr;
-    uint8_t m_runningChecksum = 0;
-    uint8_t m_cardChecksum = 0;
-    volatile bool m_done = false;
-    volatile Error m_result = Error::OK;
-    bool m_blocking = false;
-    eastl::function<void(Error)> m_callback;
-    uint32_t m_event = 0;
 
     // The first (addressing) byte uses this timeout to detect a missing card.
     // It is the one value that is deliberately generous: a present-but-slow
@@ -293,9 +193,6 @@ class MemoryCard {
     static constexpr unsigned c_selectDelay = 100;
     // How many times a whole-sector transient failure is retried.
     static constexpr unsigned c_maxAttempts = 3;
-    // Spin-loop bound for the blocking IRQ path: large enough never to trip
-    // during a normal ~8ms transfer, small enough to bail on a dead bus.
-    static constexpr uint32_t c_irqWatchdog = 0x800000;
 };
 
 }  // namespace psyqo
