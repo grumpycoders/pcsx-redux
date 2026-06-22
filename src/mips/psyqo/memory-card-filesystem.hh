@@ -26,11 +26,14 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/functional.h>
 #include <stdint.h>
 
 #include "psyqo/memory-card.hh"
 
 namespace psyqo {
+
+class GPU;
 
 /**
  * @brief A Sony-compatible memory card filesystem.
@@ -48,11 +51,23 @@ namespace psyqo {
  * followed by 1..3 icon frames (16x16, 4bpp); the rest of the blocks hold the
  * caller's payload.
  *
- * All operations are blocking and return a `MemoryCard::Error` describing
- * exactly what went wrong; there are no silent failures. A single filesystem
- * instance can serve both ports (the port is passed per call). For non-trivial
- * payloads an operation can take a noticeable fraction of a second, so it is
- * best performed at a deliberate save point.
+ * @details A whole filesystem operation is a transaction that spans many
+ * individual sector transfers and therefore several frames. To avoid stalling
+ * the main loop for that whole time, operations are asynchronous, following the
+ * same contract as `CDRomDevice`: only ONE operation may be in flight at a
+ * time, and progress is driven by a main-loop timer (never an interrupt), so a
+ * single sector is transferred per tick and the game keeps running in between.
+ * Every operation comes in three forms:
+ *   - a callback variant, the basis: it takes a `GPU` (used to arm the timer)
+ *     and an `eastl::function` callback that is invoked, from the main loop
+ *     during GPU pumping, with the resulting `MemoryCard::Error`;
+ *   - a `*Blocking(GPU&)` variant that pumps the GPU until the operation
+ *     completes and returns the error directly; and
+ *   - the building blocks for `TaskQueue`/coroutine wrappers on top.
+ *
+ * The `SIO0Bus` is owned for the entire transaction, so `AdvancedPad` stands
+ * down for its full duration (see the `MemoryCard` warning: this filesystem is
+ * usable with `AdvancedPad` only, never `SimplePad`).
  */
 class MemoryCardFileSystem {
   public:
@@ -74,20 +89,32 @@ class MemoryCardFileSystem {
      * @brief A directory listing entry.
      */
     struct FileEntry {
-        char name[21];         // null-terminated Sony filename
+        char name[21];          // null-terminated Sony filename
         uint16_t sizeInBlocks;  // 1..15
-        uint8_t firstBlock;    // 1..15
+        uint8_t firstBlock;     // 1..15
     };
 
     explicit MemoryCardFileSystem(MemoryCard &card) : m_card(card) {}
 
     /**
-     * @brief Determines whether a usable, formatted card is present.
-     *
-     * @return Error::OK if formatted, Error::NoCard if absent,
-     * Error::NotFormatted if present but not a Sony card.
+     * @brief Whether the filesystem is ready to accept a new operation.
      */
-    MemoryCard::Error getCardState(MemoryCard::Port port);
+    [[nodiscard]] bool isIdle() const { return !m_busy; }
+
+    using Error = MemoryCard::Error;
+    using Port = MemoryCard::Port;
+
+    // ── Asynchronous operations (the callback basis) ───────────────────────
+    // Each starts a transaction and returns immediately; `callback` fires from
+    // the main loop, during GPU pumping, once the transaction completes. Only
+    // one may be in flight at a time (asserts idle).
+
+    /**
+     * @brief Determines whether a usable, formatted card is present.
+     * @return Via the callback: Error::OK if formatted, Error::NoCard if
+     * absent, Error::NotFormatted if present but not a Sony card.
+     */
+    void getCardState(GPU &gpu, Port port, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Writes a fresh, empty Sony filesystem to the card.
@@ -96,12 +123,12 @@ class MemoryCardFileSystem {
      * unreachable. The 15 file blocks themselves are not touched (they are
      * simply marked free), matching what the BIOS does.
      */
-    MemoryCard::Error format(MemoryCard::Port port);
+    void format(GPU &gpu, Port port, eastl::function<void(Error)> &&callback);
 
     /**
-     * @brief Returns the number of free 8KiB blocks (0..15).
+     * @brief Counts the free 8KiB blocks (0..15) into *outFreeBlocks.
      */
-    MemoryCard::Error getFreeBlockCount(MemoryCard::Port port, uint32_t *outFreeBlocks);
+    void getFreeBlockCount(GPU &gpu, Port port, uint32_t *outFreeBlocks, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Lists the files on the card.
@@ -110,12 +137,13 @@ class MemoryCardFileSystem {
      * @param outCount Receives the number of files found (may exceed
      * `maxEntries`, in which case only `maxEntries` were written).
      */
-    MemoryCard::Error listFiles(MemoryCard::Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount);
+    void listFiles(GPU &gpu, Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount,
+                   eastl::function<void(Error)> &&callback);
 
     /**
-     * @brief Reports whether a named file exists.
+     * @brief Reports whether a named file exists, into *outExists.
      */
-    MemoryCard::Error fileExists(MemoryCard::Port port, const char *name, bool *outExists);
+    void fileExists(GPU &gpu, Port port, const char *name, bool *outExists, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Reads the payload of a file.
@@ -129,8 +157,8 @@ class MemoryCardFileSystem {
      * @param outLen Receives the number of payload bytes available (capped at
      * `maxLen`).
      */
-    MemoryCard::Error readFile(MemoryCard::Port port, const char *name, void *buffer, uint32_t maxLen,
-                               uint32_t *outLen);
+    void readFile(GPU &gpu, Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen,
+                  eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Creates or overwrites a file.
@@ -141,22 +169,37 @@ class MemoryCardFileSystem {
      * and the directory committed last, so an interrupted write never leaves a
      * referenced but corrupt file.
      *
-     * @param name The Sony filename (up to 20 characters).
-     * @param title The save title, as a UTF-8 string. It is encoded to the
-     * 64-byte Shift-JIS field the BIOS manager displays, with printable ASCII
-     * promoted to its fullwidth form (the BIOS title convention) and any other
-     * codepoint (e.g. Japanese) encoded directly.
-     * @param icon The save icon.
-     * @param data The payload bytes.
+     * @param name The Sony filename (up to 20 characters). The pointer must
+     * stay valid until the callback fires.
+     * @param title The save title, as a UTF-8 string, encoded to the 64-byte
+     * Shift-JIS field the BIOS manager displays, with printable ASCII promoted
+     * to its fullwidth form. Must stay valid until the callback fires.
+     * @param icon The save icon. Copied, so it need not outlive the call.
+     * @param data The payload bytes. Must stay valid until the callback fires.
      * @param dataLen The number of payload bytes.
      */
-    MemoryCard::Error writeFile(MemoryCard::Port port, const char *name, const char *title, const Icon &icon,
-                                const void *data, uint32_t dataLen);
+    void writeFile(GPU &gpu, Port port, const char *name, const char *title, const Icon &icon, const void *data,
+                   uint32_t dataLen, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Deletes a file, freeing all of its blocks.
      */
-    MemoryCard::Error deleteFile(MemoryCard::Port port, const char *name);
+    void deleteFile(GPU &gpu, Port port, const char *name, eastl::function<void(Error)> &&callback);
+
+    // ── Blocking variants ──────────────────────────────────────────────────
+    // These run the same transaction but pump the GPU until it finishes and
+    // return the error directly. They still take a few hundred milliseconds for
+    // a non-trivial payload, so they are best used at a deliberate save point.
+
+    Error getCardStateBlocking(GPU &gpu, Port port);
+    Error formatBlocking(GPU &gpu, Port port);
+    Error getFreeBlockCountBlocking(GPU &gpu, Port port, uint32_t *outFreeBlocks);
+    Error listFilesBlocking(GPU &gpu, Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount);
+    Error fileExistsBlocking(GPU &gpu, Port port, const char *name, bool *outExists);
+    Error readFileBlocking(GPU &gpu, Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen);
+    Error writeFileBlocking(GPU &gpu, Port port, const char *name, const char *title, const Icon &icon,
+                            const void *data, uint32_t dataLen);
+    Error deleteFileBlocking(GPU &gpu, Port port, const char *name);
 
   private:
     // A 4-byte aligned 128-byte frame buffer.
@@ -182,11 +225,89 @@ class MemoryCardFileSystem {
     static void finishDirEntry(uint8_t *entry);
     static bool isFreeState(uint8_t state) { return (state & 0xf0) == 0xa0; }
     static bool nameMatches(const uint8_t *entry, const char *name);
+    static bool findFirstBlock(const Frame *dir15, const char *name, int *outBlock);
 
-    MemoryCard::Error readDirectory(MemoryCard::Port port, Frame *dir15);
-    MemoryCard::Error findFirstBlock(const Frame *dir15, const char *name, int *outBlock);
+    // ── Asynchronous transaction engine ───────────────────────────────────
+    // The operation in flight, and where in it we are. A single timer tick
+    // advances the machine by exactly one sector transfer.
+    enum class Op : uint8_t {
+        None,
+        GetCardState,
+        Format,
+        GetFreeBlockCount,
+        ListFiles,
+        FileExists,
+        ReadFile,
+        WriteFile,
+        DeleteFile,
+    };
+    enum class Phase : uint8_t {
+        Fail,       // m_result is set; finish on the next tick
+        Header,     // read sector 0, validate "MC"
+        ReadDir,    // read the 15 directory frames (m_idx = 0..14)
+        ReadTitle,  // read a file's first frame to size its header (readFile)
+        ReadData,   // read a file's payload frames (readFile)
+        WriteData,  // write title/icon/payload frames (writeFile)
+        WriteDir,   // commit the dirty directory frames (write/delete)
+        Format,     // write the format frames (m_idx = 0..63)
+    };
+    enum class StepResult : uint8_t { Continue, Done };
+
+    void begin(GPU &gpu, Op op, Port port, eastl::function<void(Error)> &&callback);
+    Error runBlocking(GPU &gpu);
+    void armTick();
+    void onTick();
+    StepResult pump();
+    StepResult afterReadDir();
+    void finish(Error error);
 
     MemoryCard &m_card;
+
+    // engine state
+    bool m_busy = false;
+    bool m_lockHeld = false;
+    GPU *m_gpu = nullptr;
+    uintptr_t m_timer = 0;
+    eastl::function<void(Error)> m_callback;
+    Error m_result = Error::OK;
+    Op m_op = Op::None;
+    Phase m_phase = Phase::Fail;
+    Port m_port = Port::Port0;
+    uint32_t m_idx = 0;  // step within the current phase
+
+    // working buffers / per-operation state
+    Frame m_dir[15];
+    Frame m_scratch;
+    uint8_t m_chain[16];
+    uint32_t m_chainLen = 0;
+    uint32_t m_headerFrames = 0;
+    uint32_t m_blocksNeeded = 0;
+    uint32_t m_iconFrames = 0;
+    bool m_dirty[15] = {};
+    uint32_t m_dataOffset = 0;
+    uint32_t m_written = 0;
+    uint32_t m_blockIdx = 0;     // current block within the chain
+    uint32_t m_frameInBlock = 0;  // current frame within the current block
+
+    // saved operation arguments
+    const char *m_name = nullptr;
+    const char *m_title = nullptr;
+    void *m_readBuffer = nullptr;
+    const void *m_writeData = nullptr;
+    uint32_t m_dataLen = 0;
+    uint32_t m_maxLen = 0;
+    uint32_t *m_outLen = nullptr;
+    uint32_t *m_outFreeBlocks = nullptr;
+    uint32_t *m_outCount = nullptr;
+    bool *m_outExists = nullptr;
+    FileEntry *m_outEntries = nullptr;
+    uint32_t m_maxEntries = 0;
+    Icon m_icon = {};
+
+    // The timer period, in microseconds: how long to wait between sector
+    // transfers, leaving the main loop time to run. A whole transfer is itself
+    // a few milliseconds of busy work; this only paces the gaps. Tunable.
+    static constexpr uint32_t c_tickPeriod = 1000;
 };
 
 }  // namespace psyqo

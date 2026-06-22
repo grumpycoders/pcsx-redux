@@ -146,15 +146,15 @@ bool runStep(int index) {
             return true;
 
         case 1:
-            checkOk("Format card", fs.format(port));
+            checkOk("Format card", fs.formatBlocking(app.gpu(), port));
             return true;
 
         case 2:
-            checkOk("Card formatted", fs.getCardState(port));
+            checkOk("Card formatted", fs.getCardStateBlocking(app.gpu(), port));
             return true;
 
         case 3:
-            e = fs.getFreeBlockCount(port, &freeBlocks);
+            e = fs.getFreeBlockCountBlocking(app.gpu(), port, &freeBlocks);
             check("Free blocks == 15", e == MC::Error::OK && freeBlocks == 15,
                   e != MC::Error::OK ? MC::errorMessage(e) : "unexpected free count");
             return true;
@@ -164,18 +164,18 @@ bool runStep(int index) {
             // Shift-JIS field the BIOS shows (printable ASCII becomes fullwidth).
             psyqo::MemoryCardFileSystem::Icon icon;
             buildIcon(icon);
-            checkOk("Write file", fs.writeFile(port, kFileName, "PSYQO MEMCARD TEST", icon, g_payload, kPayloadLen));
+            checkOk("Write file", fs.writeFileBlocking(app.gpu(), port, kFileName, "PSYQO MEMCARD TEST", icon, g_payload, kPayloadLen));
             return true;
         }
 
         case 5:
-            e = fs.fileExists(port, kFileName, &exists);
+            e = fs.fileExistsBlocking(app.gpu(), port, kFileName, &exists);
             check("File exists", e == MC::Error::OK && exists,
                   e != MC::Error::OK ? MC::errorMessage(e) : "not found");
             return true;
 
         case 6:
-            e = fs.readFile(port, kFileName, g_readback, sizeof(g_readback), &outLen);
+            e = fs.readFileBlocking(app.gpu(), port, kFileName, g_readback, sizeof(g_readback), &outLen);
             check("Read + verify payload",
                   e == MC::Error::OK && outLen >= kPayloadLen &&
                       __builtin_memcmp(g_readback, g_payload, kPayloadLen) == 0,
@@ -185,7 +185,7 @@ bool runStep(int index) {
         case 7: {
             psyqo::MemoryCardFileSystem::FileEntry entries[15];
             uint32_t count = 0;
-            e = fs.listFiles(port, entries, 15, &count);
+            e = fs.listFilesBlocking(app.gpu(), port, entries, 15, &count);
             bool listed = e == MC::Error::OK && count == 1;
             if (listed) {
                 const char* n = entries[0].name;
@@ -201,29 +201,29 @@ bool runStep(int index) {
         }
 
         case 8:
-            e = fs.getFreeBlockCount(port, &freeBlocks);
+            e = fs.getFreeBlockCountBlocking(app.gpu(), port, &freeBlocks);
             check("Free blocks == 14", e == MC::Error::OK && freeBlocks == 14,
                   e != MC::Error::OK ? MC::errorMessage(e) : "unexpected free count");
             return true;
 
         case 9:
-            checkOk("Delete file", fs.deleteFile(port, kFileName));
+            checkOk("Delete file", fs.deleteFileBlocking(app.gpu(), port, kFileName));
             return true;
 
         case 10:
-            e = fs.fileExists(port, kFileName, &exists);
+            e = fs.fileExistsBlocking(app.gpu(), port, kFileName, &exists);
             check("File removed", e == MC::Error::OK && !exists,
                   e != MC::Error::OK ? MC::errorMessage(e) : "still present");
             return true;
 
         case 11:
-            e = fs.getFreeBlockCount(port, &freeBlocks);
+            e = fs.getFreeBlockCountBlocking(app.gpu(), port, &freeBlocks);
             check("Free blocks == 15", e == MC::Error::OK && freeBlocks == 15,
                   e != MC::Error::OK ? MC::errorMessage(e) : "unexpected free count");
             return true;
 
         case 12:
-            e = fs.readFile(port, kFileName, g_readback, sizeof(g_readback), &outLen);
+            e = fs.readFileBlocking(app.gpu(), port, kFileName, g_readback, sizeof(g_readback), &outLen);
             check("Missing file -> FileNotFound", e == MC::Error::FileNotFound, MC::errorMessage(e));
             note("Done.");
             return false;
