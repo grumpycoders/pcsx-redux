@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <atomic>
+#include <bitset>
 #include <chrono>
 #include <climits>
 #include <cstdint>
@@ -80,14 +81,9 @@ TEST(CPU, DynarecValid) {
     EXPECT_EQ(ret.load(), 0);
 }
 
-inline uint16_t inspectMsanInitializedBitmap(const uint32_t address) {
+inline uint8_t inspectMsanInitializedBitmap(const uint32_t address) {
     const uint32_t bitmapIndex = (address - PCSX::g_emulator->m_mem->c_msanStart) / 8;
     return PCSX::g_emulator->m_mem->m_msanInitializedBitmap[bitmapIndex];
-}
-
-inline uint8_t inspectMsanUsableBitmap(const uint32_t address) {
-    const uint32_t bitmapIndex = (address - PCSX::g_emulator->m_mem->c_msanStart) / 8;
-    return PCSX::g_emulator->m_mem->m_msanUsableBitmap[bitmapIndex];
 }
 
 static unsigned int nextMsanCheckIndex = 0;
@@ -168,6 +164,15 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
         returnMsg << ", got :";
         returnMsg << msg;
         return returnMsg.str();
+    }
+    const uint8_t expectedInitBitmap = SWX_EXPECTED_BITMASKS[nextMsanCheckIndex];
+    const uint8_t actualInitBitmap = inspectMsanInitializedBitmap(alloc->first);
+    if (expectedInitBitmap != actualInitBitmap) {
+        std::stringstream ss;
+        ss << "Initialized bitmap for address 0x" << std::hex << alloc->first
+            << " mismatch: 0b" << std::bitset<8>(expectedInitBitmap)
+            <<  " != 0b " << std::bitset<8>(actualInitBitmap);
+        return ss.str();
     }
     PCSX::g_system->resume();
     return std::nullopt;
