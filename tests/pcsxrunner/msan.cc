@@ -212,7 +212,6 @@ TEST(CPU, InterpreterInvalid) {
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
-    std::chrono::milliseconds elapsed(0);
     std::optional<std::string> result = std::nullopt;
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
@@ -222,6 +221,7 @@ TEST(CPU, InterpreterInvalid) {
         }
         nextMsanTest(event.message);
     });
+    std::chrono::milliseconds elapsed(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
         && ret.load() == INT_MIN) {
@@ -253,7 +253,6 @@ TEST(CPU, DynarecInvalid) {
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
-    std::chrono::milliseconds elapsed(0);
     std::optional<std::string> result = std::nullopt;
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([](const PCSX::Events::LogMessage& event) {
@@ -263,6 +262,7 @@ TEST(CPU, DynarecInvalid) {
         }
         nextMsanTest(event.message);
     });
+    std::chrono::milliseconds elapsed(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
         && ret.load() == INT_MIN) {
