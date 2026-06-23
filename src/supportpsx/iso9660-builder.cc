@@ -412,9 +412,9 @@ void PCSX::ISO9660Builder::computeLayout() {
         if (!node->hasAnchorLBA()) return;
         uint32_t anchor = node->getAnchorLBA();
         if (anchor < currentSector) {
-            throw std::runtime_error(
-                "ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" + node->m_name +
-                "' is before current layout cursor " + std::to_string(currentSector));
+            throw std::runtime_error("ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" +
+                                     node->m_name + "' is before current layout cursor " +
+                                     std::to_string(currentSector));
         }
         if (anchor > currentSector) {
             m_anchorPaddingRanges.emplace_back(currentSector, anchor);

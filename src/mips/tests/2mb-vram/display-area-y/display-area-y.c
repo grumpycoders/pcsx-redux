@@ -35,12 +35,12 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define BAND_W      640
-#define BAND_H      256
+#define BAND_W 640
+#define BAND_H 256
 
-#define COLOR_RED    0x001fu  // 5:5:5 red
-#define COLOR_GREEN  0x03e0u
-#define COLOR_BLUE   0x7c00u
+#define COLOR_RED 0x001fu  // 5:5:5 red
+#define COLOR_GREEN 0x03e0u
+#define COLOR_BLUE 0x7c00u
 #define COLOR_YELLOW 0x03ffu
 
 static void paintBand(int y0, uint16_t color, int signature_row_offset) {
@@ -51,9 +51,7 @@ static void paintBand(int y0, uint16_t color, int signature_row_offset) {
     fillRectViaUpload(0, y0 + signature_row_offset, BAND_W, 4, 0xffffu);
 }
 
-static void setDisplayY(int16_t y) {
-    sendGPUStatus(0x05000000u | ((uint32_t)(uint16_t)y << 10) | 0u);
-}
+static void setDisplayY(int16_t y) { sendGPUStatus(0x05000000u | ((uint32_t)(uint16_t)y << 10) | 0u); }
 
 // Cheap busy-wait loop sized roughly for ~3 seconds at the R3000's
 // effective clock. Not precise, just enough that a human can take a
@@ -69,9 +67,9 @@ int main(void) {
     enableDisplay();
 
     // 320x240 NTSC, full VRAM accessible
-    paintBand(0,   COLOR_RED,    32);   // signature stripe at y=32
-    paintBand(256, COLOR_GREEN,  64);   // signature at y=320
-    paintBand(512, COLOR_BLUE,   96);   // signature at y=608
+    paintBand(0, COLOR_RED, 32);        // signature stripe at y=32
+    paintBand(256, COLOR_GREEN, 64);    // signature at y=320
+    paintBand(512, COLOR_BLUE, 96);     // signature at y=608
     paintBand(768, COLOR_YELLOW, 128);  // signature at y=896
 
     static const int16_t ys[] = {0, 256, 400, 511, 512, 600, 768, 1023};

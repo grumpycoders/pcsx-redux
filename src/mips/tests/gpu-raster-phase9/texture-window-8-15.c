@@ -39,50 +39,38 @@ SOFTWARE.
 
 CESTER_BODY(
 
-static void drawTexWindow8Tri(uint8_t mask_x, uint8_t off_x) {
-    rasterReset();
-    rasterClearTestRegion(0, 0, 64, 16);
-    setTexpage(TEX8_TX, TEX8_TY, 1);
-    setTextureWindow(mask_x, 0, off_x, 0);
-    /* Triangle (0,0)-(32,0)-(0,8). UV matches screen so pixel (x,y)
-       wants texel (x, y); window filtering rewrites the U bits. */
-    rasterTexTri(TEX_MOD_NEUTRAL,
-                 0,  0,  0,  0,
-                 32, 0,  32, 0,
-                 0,  8,  0,  8,
-                 CLUT8_FIELD, TEX8_TPAGE);
-    rasterFlushPrimitive();
-}
+    static void drawTexWindow8Tri(uint8_t mask_x, uint8_t off_x) {
+        rasterReset();
+        rasterClearTestRegion(0, 0, 64, 16);
+        setTexpage(TEX8_TX, TEX8_TY, 1);
+        setTextureWindow(mask_x, 0, off_x, 0);
+        /* Triangle (0,0)-(32,0)-(0,8). UV matches screen so pixel (x,y)
+           wants texel (x, y); window filtering rewrites the U bits. */
+        rasterTexTri(TEX_MOD_NEUTRAL, 0, 0, 0, 0, 32, 0, 32, 0, 0, 8, 0, 8, CLUT8_FIELD, TEX8_TPAGE);
+        rasterFlushPrimitive();
+    }
 
-static void drawTexWindow15Tri(uint8_t mask_x, uint8_t off_x) {
-    rasterReset();
-    rasterClearTestRegion(0, 0, 32, 16);
-    setTexpage(TEX15_TX, TEX15_TY, 2);
-    setTextureWindow(mask_x, 0, off_x, 0);
-    rasterTexTri(TEX_MOD_NEUTRAL,
-                 0,  0,  0,  0,
-                 16, 0,  16, 0,
-                 0,  8,  0,  8,
-                 CLUT15_FIELD, TEX15_TPAGE);
-    rasterFlushPrimitive();
-}
+    static void drawTexWindow15Tri(uint8_t mask_x, uint8_t off_x) {
+        rasterReset();
+        rasterClearTestRegion(0, 0, 32, 16);
+        setTexpage(TEX15_TX, TEX15_TY, 2);
+        setTextureWindow(mask_x, 0, off_x, 0);
+        rasterTexTri(TEX_MOD_NEUTRAL, 0, 0, 0, 0, 16, 0, 16, 0, 0, 8, 0, 8, CLUT15_FIELD, TEX15_TPAGE);
+        rasterFlushPrimitive();
+    }
 
-// Vertical-window variant: mask_y forces high bits of v from offset_y.
-// Useful for confirming V-axis windowing isn't subtly different from U.
-static void drawTexWindow8TriV(uint8_t mask_y, uint8_t off_y) {
-    rasterReset();
-    rasterClearTestRegion(0, 0, 64, 16);
-    setTexpage(TEX8_TX, TEX8_TY, 1);
-    setTextureWindow(0, mask_y, 0, off_y);
-    rasterTexTri(TEX_MOD_NEUTRAL,
-                 0,  0,  0,  0,
-                 32, 0,  32, 0,
-                 0,  8,  0,  8,
-                 CLUT8_FIELD, TEX8_TPAGE);
-    rasterFlushPrimitive();
-}
+    // Vertical-window variant: mask_y forces high bits of v from offset_y.
+    // Useful for confirming V-axis windowing isn't subtly different from U.
+    static void drawTexWindow8TriV(uint8_t mask_y, uint8_t off_y) {
+        rasterReset();
+        rasterClearTestRegion(0, 0, 64, 16);
+        setTexpage(TEX8_TX, TEX8_TY, 1);
+        setTextureWindow(0, mask_y, 0, off_y);
+        rasterTexTri(TEX_MOD_NEUTRAL, 0, 0, 0, 0, 32, 0, 32, 0, 0, 8, 0, 8, CLUT8_FIELD, TEX8_TPAGE);
+        rasterFlushPrimitive();
+    }
 
-)  // CESTER_BODY
+    )  // CESTER_BODY
 
 // ==========================================================================
 // 8-bit: mask_u=0x01, offset_u=0  -> bit 3 of u cleared
@@ -92,35 +80,23 @@ static void drawTexWindow8TriV(uint8_t mask_y, uint8_t off_y) {
 //                                  collapses 8-aligned 8-blocks)
 // ==========================================================================
 
-CESTER_TEST(texwin8_mask01_off00_u0, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    /* u=0, filtered=0, CLUT8[0]. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0), 0, 0);
-)
-CESTER_TEST(texwin8_mask01_off00_u7, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    ASSERT_PIXEL_EQ(expectedClut8Color(7), 7, 0);
-)
-CESTER_TEST(texwin8_mask01_off00_u8_wraps_to_0, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    /* u=8, bit 3 cleared -> texel 0. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0), 8, 0);
-)
-CESTER_TEST(texwin8_mask01_off00_u15_wraps_to_7, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    /* u=15=0x0F, bit 3 cleared -> texel 7. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(7), 15, 0);
-)
-CESTER_TEST(texwin8_mask01_off00_u16, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    /* u=16=0x10, bit 3 already cleared -> texel 16. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(16), 16, 0);
-)
-CESTER_TEST(texwin8_mask01_off00_u24_wraps_to_16, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x00);
-    /* u=24=0x18, bit 3 cleared -> texel 16. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(16), 24, 0);
-)
+CESTER_TEST(texwin8_mask01_off00_u0, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            /* u=0, filtered=0, CLUT8[0]. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0), 0, 0);)
+CESTER_TEST(texwin8_mask01_off00_u7, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            ASSERT_PIXEL_EQ(expectedClut8Color(7), 7, 0);)
+CESTER_TEST(texwin8_mask01_off00_u8_wraps_to_0, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            /* u=8, bit 3 cleared -> texel 0. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0), 8, 0);)
+CESTER_TEST(texwin8_mask01_off00_u15_wraps_to_7, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            /* u=15=0x0F, bit 3 cleared -> texel 7. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(7), 15, 0);)
+CESTER_TEST(texwin8_mask01_off00_u16, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            /* u=16=0x10, bit 3 already cleared -> texel 16. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(16), 16, 0);)
+CESTER_TEST(texwin8_mask01_off00_u24_wraps_to_16, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x00);
+            /* u=24=0x18, bit 3 cleared -> texel 16. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(16), 24, 0);)
 
 // ==========================================================================
 // 8-bit: mask_u=0x01, offset_u=0x01 -> bit 3 of u SET from offset
@@ -128,15 +104,11 @@ CESTER_TEST(texwin8_mask01_off00_u24_wraps_to_16, gpu_raster_phase9,
 //        u=8..15 -> texel 8..15 (already set)
 // ==========================================================================
 
-CESTER_TEST(texwin8_mask01_off01_u0_forced_to_8, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x01);
-    ASSERT_PIXEL_EQ(expectedClut8Color(8), 0, 0);
-)
-CESTER_TEST(texwin8_mask01_off01_u3_forced_to_b, gpu_raster_phase9,
-    drawTexWindow8Tri(0x01, 0x01);
-    /* u=3, bit 3 set -> texel 0xB. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0x0b), 3, 0);
-)
+CESTER_TEST(texwin8_mask01_off01_u0_forced_to_8, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x01);
+            ASSERT_PIXEL_EQ(expectedClut8Color(8), 0, 0);)
+CESTER_TEST(texwin8_mask01_off01_u3_forced_to_b, gpu_raster_phase9, drawTexWindow8Tri(0x01, 0x01);
+            /* u=3, bit 3 set -> texel 0xB. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0x0b), 3, 0);)
 
 // ==========================================================================
 // 8-bit: mask_u=0x03 (bits 3 and 4) -> collapse 16-texel window
@@ -145,32 +117,24 @@ CESTER_TEST(texwin8_mask01_off01_u3_forced_to_b, gpu_raster_phase9,
 //        u=8..23   -> texels 0..7 then 0..7 (16-byte wrap)
 // ==========================================================================
 
-CESTER_TEST(texwin8_mask03_off00_u20_wraps_to_4, gpu_raster_phase9,
-    drawTexWindow8Tri(0x03, 0x00);
-    /* u=20=0x14, &~0x18=0x04 -> texel 4. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(4), 20, 0);
-)
-CESTER_TEST(texwin8_mask03_off00_u31_wraps_to_7, gpu_raster_phase9,
-    drawTexWindow8Tri(0x03, 0x00);
-    /* u=31=0x1F, &~0x18=0x07 -> texel 7. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(7), 31, 0);
-)
+CESTER_TEST(texwin8_mask03_off00_u20_wraps_to_4, gpu_raster_phase9, drawTexWindow8Tri(0x03, 0x00);
+            /* u=20=0x14, &~0x18=0x04 -> texel 4. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(4), 20, 0);)
+CESTER_TEST(texwin8_mask03_off00_u31_wraps_to_7, gpu_raster_phase9, drawTexWindow8Tri(0x03, 0x00);
+            /* u=31=0x1F, &~0x18=0x07 -> texel 7. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(7), 31, 0);)
 
 // ==========================================================================
 // 8-bit: mask_u=0x07 -> collapse 24 high bits, 3-bit u window
 //        offset_u=0x03 (set bit 4 and bit 3 from offset_u*8 = 0x18)
 // ==========================================================================
 
-CESTER_TEST(texwin8_mask07_off03_u0_forced_to_18, gpu_raster_phase9,
-    drawTexWindow8Tri(0x07, 0x03);
-    /* u=0, &~0x38 = 0, | 0x18 = 0x18 -> texel 24. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0x18), 0, 0);
-)
-CESTER_TEST(texwin8_mask07_off03_u5_forced_to_1d, gpu_raster_phase9,
-    drawTexWindow8Tri(0x07, 0x03);
-    /* u=5, &~0x38=5, | 0x18 = 0x1D -> texel 29. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0x1d), 5, 0);
-)
+CESTER_TEST(texwin8_mask07_off03_u0_forced_to_18, gpu_raster_phase9, drawTexWindow8Tri(0x07, 0x03);
+            /* u=0, &~0x38 = 0, | 0x18 = 0x18 -> texel 24. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0x18), 0, 0);)
+CESTER_TEST(texwin8_mask07_off03_u5_forced_to_1d, gpu_raster_phase9, drawTexWindow8Tri(0x07, 0x03);
+            /* u=5, &~0x38=5, | 0x18 = 0x1D -> texel 29. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0x1d), 5, 0);)
 
 // ==========================================================================
 // 8-bit V-axis windowing: mask_v=0x01, off_v=0 -> bit 3 of v cleared
@@ -182,11 +146,9 @@ CESTER_TEST(texwin8_mask07_off03_u5_forced_to_1d, gpu_raster_phase9,
 //        invisible for U-only fixtures.
 // ==========================================================================
 
-CESTER_TEST(texwin8_maskV01_off00_v0, gpu_raster_phase9,
-    drawTexWindow8TriV(0x01, 0x00);
-    /* y=0, v=0, no wrap. */
-    ASSERT_PIXEL_EQ(expectedClut8Color(0), 0, 0);
-)
+CESTER_TEST(texwin8_maskV01_off00_v0, gpu_raster_phase9, drawTexWindow8TriV(0x01, 0x00);
+            /* y=0, v=0, no wrap. */
+            ASSERT_PIXEL_EQ(expectedClut8Color(0), 0, 0);)
 
 // ==========================================================================
 // 15-bit: mask_u=0x01, offset_u=0 -> bit 3 of u cleared
@@ -195,56 +157,40 @@ CESTER_TEST(texwin8_maskV01_off00_v0, gpu_raster_phase9,
 // channel, so the read-back pixel is a direct function of filtered_u.
 // ==========================================================================
 
-CESTER_TEST(texwin15_mask01_off00_u0, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x00);
-    /* (u=0, v=0): vram555(0, 0, 0) = 0. NOTE: this pixel might be
-       excluded by the top-left rule (apex of axis-aligned triangle).
-       If hardware draws it, value is 0x0000; if excluded, sentinel. */
-    ASSERT_PIXEL_EQ(TW15_M01_O00_U0_Y0, 0, 0);
-)
-CESTER_TEST(texwin15_mask01_off00_u7, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x00);
-    /* (u=7, v=0): vram555(7, 0, 7) = 7 | (7<<10) = 0x1c07. */
-    ASSERT_PIXEL_EQ(TW15_M01_O00_U7_Y0, 7, 0);
-)
-CESTER_TEST(texwin15_mask01_off00_u8_wraps_to_0, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x00);
-    /* (u=8, filtered=0, v=0): vram555(0, 0, 0) = 0x0000. */
-    ASSERT_PIXEL_EQ(TW15_M01_O00_U8_Y0, 8, 0);
-)
-CESTER_TEST(texwin15_mask01_off00_u15_wraps_to_7, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x00);
-    /* (u=15, filtered=7, v=0): vram555(7, 0, 7) = 0x1c07. */
-    ASSERT_PIXEL_EQ(TW15_M01_O00_U15_Y0, 15, 0);
-)
+CESTER_TEST(texwin15_mask01_off00_u0, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x00);
+            /* (u=0, v=0): vram555(0, 0, 0) = 0. NOTE: this pixel might be
+               excluded by the top-left rule (apex of axis-aligned triangle).
+               If hardware draws it, value is 0x0000; if excluded, sentinel. */
+            ASSERT_PIXEL_EQ(TW15_M01_O00_U0_Y0, 0, 0);)
+CESTER_TEST(texwin15_mask01_off00_u7, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x00);
+            /* (u=7, v=0): vram555(7, 0, 7) = 7 | (7<<10) = 0x1c07. */
+            ASSERT_PIXEL_EQ(TW15_M01_O00_U7_Y0, 7, 0);)
+CESTER_TEST(texwin15_mask01_off00_u8_wraps_to_0, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x00);
+            /* (u=8, filtered=0, v=0): vram555(0, 0, 0) = 0x0000. */
+            ASSERT_PIXEL_EQ(TW15_M01_O00_U8_Y0, 8, 0);)
+CESTER_TEST(texwin15_mask01_off00_u15_wraps_to_7, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x00);
+            /* (u=15, filtered=7, v=0): vram555(7, 0, 7) = 0x1c07. */
+            ASSERT_PIXEL_EQ(TW15_M01_O00_U15_Y0, 15, 0);)
 
 // ==========================================================================
 // 15-bit: mask_u=0x01, offset_u=0x01 -> bit 3 forced set
 //         u=0..7 -> texel 8..15 -> vram555(8..15, 0, 8..15)
 // ==========================================================================
 
-CESTER_TEST(texwin15_mask01_off01_u0_forced_to_8, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x01);
-    /* (filtered=8, v=0): vram555(8, 0, 8) = 8 | (8<<10) = 0x2008. */
-    ASSERT_PIXEL_EQ(TW15_M01_O01_U0_Y0, 0, 0);
-)
-CESTER_TEST(texwin15_mask01_off01_u3_forced_to_b, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x01);
-    /* (filtered=0xB=11, v=0): vram555(11, 0, 11) = 11 | (11<<10) = 0x2c0b. */
-    ASSERT_PIXEL_EQ(TW15_M01_O01_U3_Y0, 3, 0);
-)
-CESTER_TEST(texwin15_mask01_off01_u8_already_set, gpu_raster_phase9,
-    drawTexWindow15Tri(0x01, 0x01);
-    /* (filtered=8, v=0). */
-    ASSERT_PIXEL_EQ(TW15_M01_O01_U8_Y0, 8, 0);
-)
+CESTER_TEST(texwin15_mask01_off01_u0_forced_to_8, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x01);
+            /* (filtered=8, v=0): vram555(8, 0, 8) = 8 | (8<<10) = 0x2008. */
+            ASSERT_PIXEL_EQ(TW15_M01_O01_U0_Y0, 0, 0);)
+CESTER_TEST(texwin15_mask01_off01_u3_forced_to_b, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x01);
+            /* (filtered=0xB=11, v=0): vram555(11, 0, 11) = 11 | (11<<10) = 0x2c0b. */
+            ASSERT_PIXEL_EQ(TW15_M01_O01_U3_Y0, 3, 0);)
+CESTER_TEST(texwin15_mask01_off01_u8_already_set, gpu_raster_phase9, drawTexWindow15Tri(0x01, 0x01);
+            /* (filtered=8, v=0). */
+            ASSERT_PIXEL_EQ(TW15_M01_O01_U8_Y0, 8, 0);)
 
 // ==========================================================================
 // 15-bit: mask_u=0x03 (bits 3-4 collapse, 16-texel window)
 // ==========================================================================
 
-CESTER_TEST(texwin15_mask03_off00_u13, gpu_raster_phase9,
-    drawTexWindow15Tri(0x03, 0x00);
-    /* u=13=0xD, &~0x18=0x05 -> texel 5 at v=0 -> vram555(5, 0, 5). */
-    ASSERT_PIXEL_EQ(TW15_M03_O00_U13_Y0, 13, 0);
-)
+CESTER_TEST(texwin15_mask03_off00_u13, gpu_raster_phase9, drawTexWindow15Tri(0x03, 0x00);
+            /* u=13=0xD, &~0x18=0x05 -> texel 5 at v=0 -> vram555(5, 0, 5). */
+            ASSERT_PIXEL_EQ(TW15_M03_O00_U13_Y0, 13, 0);)

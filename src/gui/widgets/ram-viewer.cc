@@ -397,8 +397,7 @@ void PCSX::Widgets::RAMViewer::imguiCB(const ImDrawList *parentList, const ImDra
     glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
-    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
 }
 
 void PCSX::Widgets::RAMViewer::drawRAM(GUI *gui) {
@@ -526,33 +525,33 @@ void PCSX::Widgets::RAMViewer::draw(GUI *gui) {
     // Color pickers
     if (openReadColorPicker) ImGui::OpenPopup(_("Read Color Picker"));
     if (ImGui::BeginPopupModal(_("Read Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##ReadColorPicker", (float *)&m_readColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##ReadColorPicker", (float *)&m_readColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     if (openWriteColorPicker) ImGui::OpenPopup(_("Write Color Picker"));
     if (ImGui::BeginPopupModal(_("Write Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##WriteColorPicker", (float *)&m_writeColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##WriteColorPicker", (float *)&m_writeColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     if (openExecColorPicker) ImGui::OpenPopup(_("Exec Color Picker"));
     if (ImGui::BeginPopupModal(_("Exec Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##ExecColorPicker", (float *)&m_execColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##ExecColorPicker", (float *)&m_execColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     if (openGridColorPicker) ImGui::OpenPopup(_("Grid Color Picker"));
     if (ImGui::BeginPopupModal(_("Grid Color Picker"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::ColorPicker4("##GridColorPicker", (float *)&m_gridColor,
-                            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar |
-                                ImGuiColorEditFlags_AlphaPreview);
+        ImGui::ColorPicker4(
+            "##GridColorPicker", (float *)&m_gridColor,
+            ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
         if (ImGui::Button(_("OK"))) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }

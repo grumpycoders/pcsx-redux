@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/soft-math.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;
@@ -83,7 +82,9 @@ TEST_CASE("Matrix multiply with identity") {
 TEST_CASE("Identity matrix * vector = vector") {
     auto id = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::X, trig);
     Vec3 v;
-    v.x = 3.0; v.y = 4.0; v.z = 5.0;
+    v.x = 3.0;
+    v.y = 4.0;
+    v.z = 5.0;
     Vec3 out;
     SoftMath::matrixVecMul3(id, v, &out);
     REQUIRE(out.x.integer() == 3);
@@ -94,7 +95,9 @@ TEST_CASE("Identity matrix * vector = vector") {
 TEST_CASE("Matrix-vector XY extraction") {
     auto id = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::X, trig);
     Vec3 v;
-    v.x = 7.0; v.y = 11.0; v.z = 13.0;
+    v.x = 7.0;
+    v.y = 11.0;
+    v.z = 13.0;
     Vec2 out;
     SoftMath::matrixVecMul3xy(id, v, &out);
     REQUIRE(out.x.integer() == 7);
@@ -104,7 +107,9 @@ TEST_CASE("Matrix-vector XY extraction") {
 TEST_CASE("Matrix-vector Z extraction") {
     auto id = SoftMath::generateRotationMatrix33(0.0_pi, SoftMath::Axis::X, trig);
     Vec3 v;
-    v.x = 7.0; v.y = 11.0; v.z = 13.0;
+    v.x = 7.0;
+    v.y = 11.0;
+    v.z = 13.0;
     auto z = SoftMath::matrixVecMul3z(id, v);
     REQUIRE(z.integer() == 13);
 }
@@ -120,8 +125,14 @@ TEST_CASE("Cross product of basis vectors") {
 }
 
 TEST_CASE("Cross product anti-commutativity") {
-    Vec3 a; a.x = 1.0; a.y = 2.0; a.z = 3.0;
-    Vec3 b; b.x = 4.0; b.y = 5.0; b.z = 6.0;
+    Vec3 a;
+    a.x = 1.0;
+    a.y = 2.0;
+    a.z = 3.0;
+    Vec3 b;
+    b.x = 4.0;
+    b.y = 5.0;
+    b.z = 6.0;
     auto ab = SoftMath::crossProductVec3(a, b);
     auto ba = SoftMath::crossProductVec3(b, a);
     // a x b = -(b x a)
@@ -131,8 +142,14 @@ TEST_CASE("Cross product anti-commutativity") {
 }
 
 TEST_CASE("Cross product of parallel vectors is zero") {
-    Vec3 a; a.x = 1.0; a.y = 2.0; a.z = 3.0;
-    Vec3 b; b.x = 2.0; b.y = 4.0; b.z = 6.0;
+    Vec3 a;
+    a.x = 1.0;
+    a.y = 2.0;
+    a.z = 3.0;
+    Vec3 b;
+    b.x = 2.0;
+    b.y = 4.0;
+    b.z = 6.0;
     auto result = SoftMath::crossProductVec3(a, b);
     REQUIRE(result.x.raw() == 0);
     REQUIRE(result.y.raw() == 0);
@@ -192,7 +209,10 @@ TEST_CASE("Norm of unit vectors is 1") {
 }
 
 TEST_CASE("Norm of (3, 4, 0) is 5") {
-    Vec3 v; v.x = 3.0; v.y = 4.0; v.z = 0.0;
+    Vec3 v;
+    v.x = 3.0;
+    v.y = 4.0;
+    v.z = 0.0;
     auto n = SoftMath::normOfVec3(v);
     auto diff = n.raw() - FixedPoint<>(5.0).raw();
     REQUIRE(diff >= -10);
@@ -202,7 +222,10 @@ TEST_CASE("Norm of (3, 4, 0) is 5") {
 // --- Normalization ---
 
 TEST_CASE("Normalized vector has unit length") {
-    Vec3 v; v.x = 3.0; v.y = 4.0; v.z = 0.0;
+    Vec3 v;
+    v.x = 3.0;
+    v.y = 4.0;
+    v.z = 0.0;
     SoftMath::normalizeVec3(&v);
     auto n = SoftMath::normOfVec3(v);
     auto diff = n.raw() - (1 << 12);
@@ -223,7 +246,10 @@ TEST_CASE("Matrix scale") {
 // --- Projection ---
 
 TEST_CASE("Perspective projection") {
-    Vec3 v; v.x = 10.0; v.y = 20.0; v.z = 5.0;
+    Vec3 v;
+    v.x = 10.0;
+    v.y = 20.0;
+    v.z = 5.0;
     FixedPoint<> h = 1.0;
     Vec2 out;
     SoftMath::project(&v, h, &out);
