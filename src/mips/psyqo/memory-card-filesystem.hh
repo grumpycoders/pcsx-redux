@@ -55,15 +55,15 @@ class GPU;
  * individual sector transfers and therefore several frames. To avoid stalling
  * the main loop for that whole time, operations are asynchronous, following the
  * same contract as `CDRomDevice`: only ONE operation may be in flight at a
- * time, and progress is driven by a main-loop timer (never an interrupt), so a
- * single sector is transferred per tick and the game keeps running in between.
- * Every operation comes in three forms:
- *   - a callback variant, the basis: it takes a `GPU` (used to arm the timer)
- *     and an `eastl::function` callback that is invoked, from the main loop
- *     during GPU pumping, with the resulting `MemoryCard::Error`;
+ * time, and progress is driven by chaining the `MemoryCard` device's own
+ * interrupt-driven sector transfers - each transfer's completion callback
+ * issues the next - so the game keeps running between sectors, with no timer.
+ * Every operation comes in two forms:
+ *   - a callback variant, the basis: an `eastl::function` callback that is
+ *     invoked, from the main loop during callback pumping, with the resulting
+ *     `MemoryCard::Error`; and
  *   - a `*Blocking(GPU&)` variant that pumps the GPU until the operation
- *     completes and returns the error directly; and
- *   - the building blocks for `TaskQueue`/coroutine wrappers on top.
+ *     completes and returns the error directly.
  *
  * The `SIO0Bus` is owned for the entire transaction, so `AdvancedPad` stands
  * down for its full duration (see the `MemoryCard` warning: this filesystem is
@@ -104,7 +104,7 @@ class MemoryCardFileSystem {
     using Error = MemoryCard::Error;
     using Port = MemoryCard::Port;
 
-    // ── Asynchronous operations (the callback basis) ───────────────────────
+    // -- Asynchronous operations (the callback basis) -----------------------
     // Each starts a transaction and returns immediately; `callback` fires from
     // the main loop, during GPU pumping, once the transaction completes. Only
     // one may be in flight at a time (asserts idle).
@@ -114,7 +114,7 @@ class MemoryCardFileSystem {
      * @return Via the callback: Error::OK if formatted, Error::NoCard if
      * absent, Error::NotFormatted if present but not a Sony card.
      */
-    void getCardState(GPU &gpu, Port port, eastl::function<void(Error)> &&callback);
+    void getCardState(Port port, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Writes a fresh, empty Sony filesystem to the card.
@@ -123,12 +123,12 @@ class MemoryCardFileSystem {
      * unreachable. The 15 file blocks themselves are not touched (they are
      * simply marked free), matching what the BIOS does.
      */
-    void format(GPU &gpu, Port port, eastl::function<void(Error)> &&callback);
+    void format(Port port, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Counts the free 8KiB blocks (0..15) into *outFreeBlocks.
      */
-    void getFreeBlockCount(GPU &gpu, Port port, uint32_t *outFreeBlocks, eastl::function<void(Error)> &&callback);
+    void getFreeBlockCount(Port port, uint32_t *outFreeBlocks, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Lists the files on the card.
@@ -137,13 +137,13 @@ class MemoryCardFileSystem {
      * @param outCount Receives the number of files found (may exceed
      * `maxEntries`, in which case only `maxEntries` were written).
      */
-    void listFiles(GPU &gpu, Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount,
+    void listFiles(Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount,
                    eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Reports whether a named file exists, into *outExists.
      */
-    void fileExists(GPU &gpu, Port port, const char *name, bool *outExists, eastl::function<void(Error)> &&callback);
+    void fileExists(Port port, const char *name, bool *outExists, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Reads the payload of a file.
@@ -157,7 +157,7 @@ class MemoryCardFileSystem {
      * @param outLen Receives the number of payload bytes available (capped at
      * `maxLen`).
      */
-    void readFile(GPU &gpu, Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen,
+    void readFile(Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen,
                   eastl::function<void(Error)> &&callback);
 
     /**
@@ -178,15 +178,15 @@ class MemoryCardFileSystem {
      * @param data The payload bytes. Must stay valid until the callback fires.
      * @param dataLen The number of payload bytes.
      */
-    void writeFile(GPU &gpu, Port port, const char *name, const char *title, const Icon &icon, const void *data,
+    void writeFile(Port port, const char *name, const char *title, const Icon &icon, const void *data,
                    uint32_t dataLen, eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Deletes a file, freeing all of its blocks.
      */
-    void deleteFile(GPU &gpu, Port port, const char *name, eastl::function<void(Error)> &&callback);
+    void deleteFile(Port port, const char *name, eastl::function<void(Error)> &&callback);
 
-    // ── Blocking variants ──────────────────────────────────────────────────
+    // -- Blocking variants --------------------------------------------------
     // These run the same transaction but pump the GPU until it finishes and
     // return the error directly. They still take a few hundred milliseconds for
     // a non-trivial payload, so they are best used at a deliberate save point.
@@ -227,9 +227,9 @@ class MemoryCardFileSystem {
     static bool nameMatches(const uint8_t *entry, const char *name);
     static bool findFirstBlock(const Frame *dir15, const char *name, int *outBlock);
 
-    // ── Asynchronous transaction engine ───────────────────────────────────
-    // The operation in flight, and where in it we are. A single timer tick
-    // advances the machine by exactly one sector transfer.
+    // -- Asynchronous transaction engine -----------------------------------
+    // The operation in flight, and where in it we are. Each device sector
+    // completion advances the machine by exactly one sector transfer.
     enum class Op : uint8_t {
         None,
         GetCardState,
@@ -253,11 +253,16 @@ class MemoryCardFileSystem {
     };
     enum class StepResult : uint8_t { Continue, Done };
 
-    void begin(GPU &gpu, Op op, Port port, eastl::function<void(Error)> &&callback);
+    void begin(Op op, Port port, eastl::function<void(Error)> &&callback);
     Error runBlocking(GPU &gpu);
-    void armTick();
-    void onTick();
-    StepResult pump();
+    // Issues exactly one asynchronous device sector transfer for the current
+    // phase, or finishes the transaction if the current phase has no transfer
+    // left to do.
+    void issueOrFinish();
+    // The device's per-sector completion callback: consumes the transfer's
+    // result, advances the per-operation state machine, then chains the next
+    // transfer (or finishes).
+    void onSectorDone(Error error);
     StepResult afterReadDir();
     void finish(Error error);
 
@@ -266,8 +271,6 @@ class MemoryCardFileSystem {
     // engine state
     bool m_busy = false;
     bool m_lockHeld = false;
-    GPU *m_gpu = nullptr;
-    uintptr_t m_timer = 0;
     eastl::function<void(Error)> m_callback;
     Error m_result = Error::OK;
     Op m_op = Op::None;
@@ -303,11 +306,6 @@ class MemoryCardFileSystem {
     FileEntry *m_outEntries = nullptr;
     uint32_t m_maxEntries = 0;
     Icon m_icon = {};
-
-    // The timer period, in microseconds: how long to wait between sector
-    // transfers, leaving the main loop time to run. A whole transfer is itself
-    // a few milliseconds of busy work; this only paces the gaps. Tunable.
-    static constexpr uint32_t c_tickPeriod = 1000;
 };
 
 }  // namespace psyqo
