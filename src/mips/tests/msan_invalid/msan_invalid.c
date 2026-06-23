@@ -62,7 +62,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
     register uint32_t value = 0x11223344;
     register volatile uint32_t result = 0;
     __asm__ __volatile__(
-        "sw %1, 0(%2);",
+        "sw %1, 0(%2);"
         "lw %0, 0(%2);"
         : "=r"(result)
         : "r"(value), "r"(mem_32_bit)
@@ -84,7 +84,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
         ); \
         register volatile uint32_t result = 0xAABBCCDD; \
         __asm__ __volatile__( \
-            "lw" lw_suffix " %0 " #load_off "(%1);" \
+            "lw" #lw_suffix " %0 " #load_off "(%1);" \
             : "+r"(result) \
             : "r"(mem_32_bit) \
         ); \
