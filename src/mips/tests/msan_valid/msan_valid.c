@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-#include "mips/common/hardware/pcsxhw.h"
 #ifndef PCSX_TESTS
 #define PCSX_TESTS 0
 #endif
@@ -48,6 +47,16 @@ SOFTWARE.
 
 // clang-format off
 
+static uint32_t* mem_32_bit = NULL;
+
+CESTER_BEFORE_EACH(msan_valid_tests,
+    mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
+)
+
+CESTER_AFTER_EACH(msan_valid_tests,
+        pcsx_msanFree(mem_32_bit);
+)
+
 CESTER_BEFORE_ALL(msan_valid_tests,
     pcsx_initMsan();
 )
@@ -59,7 +68,6 @@ CESTER_AFTER_ALL(msan_valid_tests,
 // clang-format on
 
 CESTER_TEST(msan_32bit_sw_lw, msan_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     register volatile uint32_t result = 0;
     __asm__ __volatile__(
@@ -68,14 +76,12 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
         : "=r"(result)
         : "r"(value), "r"(mem_32_bit)
     );
-    pcsx_msanFree(mem_32_bit);
-    EXPECT_EQ(result, value);
+    cester_assert_equal(result, value);
 )
 
 // SWL -> LWL
 
 CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper byte 0x11
     __asm__ __volatile__(
@@ -89,13 +95,10 @@ CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x11BBCCDD);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0x11BBCCDD);
 )
 
 CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper 2 bytes 0x1122
     __asm__ __volatile__(
@@ -109,20 +112,17 @@ CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x22BBCCDD);
+    cester_assert_equal(result, 0x22BBCCDD);
     result = 0
     __asm__ __volatile__(
         "lwl %0 1(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x1122CCDD);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0x1122CCDD);
 )
 
 CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper 3 bytes 0x112233
     __asm__ __volatile__(
@@ -136,27 +136,24 @@ CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x33BBCCDD);
+    cester_assert_equal(result, 0x33BBCCDD);
     result = 0
     __asm__ __volatile__(
         "lwl %0 1(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x2233CCDD);
+    cester_assert_equal(result, 0x2233CCDD);
     result = 0
     __asm__ __volatile__(
         "lwl %0 2(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x112233DD);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0x112233DD);
 )
 
 CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store all 4 bytes 0x11223344
     __asm__ __volatile__(
@@ -170,43 +167,40 @@ CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x44BBCCDD);
+    cester_assert_equal(result, 0x44BBCCDD);
     result = 0xAABBCCDD; 
     __asm__ __volatile__(
         "lwl %0 1(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x3344CCDD);
+    cester_assert_equal(result, 0x3344CCDD);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 2(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x223344DD);
+    cester_assert_equal(result, 0x223344DD);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 3(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x11223344);
+    cester_assert_equal(result, 0x11223344);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lw %0 0(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x11223344);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0x11223344);
 )
 
 // SWR -> LWR
 
 CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower byte 0x44
     __asm__ __volatile__(
@@ -220,13 +214,10 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABBCC44);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0xAABBCC44);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 2 bytes 0x3344
     __asm__ __volatile__(
@@ -240,20 +231,17 @@ CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABBCC44);
+    cester_assert_equal(result, 0xAABBCC44);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 2(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABB3344);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0xAABB3344);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 3 bytes 0x223344
     __asm__ __volatile__(
@@ -267,27 +255,24 @@ CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABBCC44);
+    cester_assert_equal(result, 0xAABBCC44);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 2(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABB3344);
+    cester_assert_equal(result, 0xAABB3344);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 1(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAA223344);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0xAA223344);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 3 bytes 0x11223344
     __asm__ __volatile__(
@@ -301,36 +286,34 @@ CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests,
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABBCC44);
+    cester_assert_equal(result, 0xAABBCC44);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 2(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAABB3344);
+    cester_assert_equal(result, 0xAABB3344);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 1(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0xAA223344);
+    cester_assert_equal(result, 0xAA223344);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lwl %0 0(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x11223344);
+    cester_assert_equal(result, 0x11223344);
     result = 0xAABBCCDD;
     __asm__ __volatile__(
         "lw %0 0(%1)"
         : "+r"(result)
         : "r"(mem_32_bit)
     );
-    ASSERT_EQ(result, 0x11223344);
-    pcsx_msanFree(mem_32_bit);
-    SUCCESS();
+    cester_assert_equal(result, 0x11223344);
 )
 

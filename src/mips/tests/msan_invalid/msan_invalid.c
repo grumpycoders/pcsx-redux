@@ -47,6 +47,16 @@ SOFTWARE.
 
 // clang-format off
 
+static uint32_t* mem_32_bit = NULL;
+
+CESTER_BEFORE_EACH(msan_invalid_tests,
+    mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
+)
+
+CESTER_AFTER_EACH(msan_invalid_tests,
+        pcsx_msanFree(mem_32_bit);
+)
+
 CESTER_BEFORE_ALL(msan_invalid_tests,
     pcsx_initMsan();
 )
@@ -57,8 +67,7 @@ CESTER_AFTER_ALL(msan_invalid_tests,
 
 // clang-format on
 
-CESTER_TEST(msan_32bit_sw_lw, msan_tests,
-    register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
+CESTER_TEST(msan_32bit_sw_lw, msan_invalid_tests,
     register uint32_t value = 0x11223344;
     register volatile uint32_t result = 0;
     __asm__ __volatile__(
@@ -67,13 +76,11 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
         : "=r"(result)
         : "r"(value), "r"(mem_32_bit)
     );
-    pcsx_msanFree(mem_32_bit);
-    EXPECT_EQ(result, value);
+    cester_assert_equal(result, value);
 )
 
 #define INVALID_SWX_LWX(name, sw_suffix, lw_suffix, store_off, load_off) \
     CESTER_TEST(name, msan_invalid_tests, \
-        register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t)); \
         register uint32_t value = 0x11223344; \
         __asm__ __volatile__( \
             "sw" #sw_suffix " %0, " #store_off "(%1);" \
@@ -86,9 +93,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
             : "+r"(result) \
             : "r"(mem_32_bit) \
         ); \
-        ASSERT_EQ(result, 0xAABBCCDD); \
-        pcsx_msanFree(mem_32_bit); \
-        SUCCESS(); \
+        cester_assert_equal(result, 0xAABBCCDD); \
     )
 
 // SWL => LWL
