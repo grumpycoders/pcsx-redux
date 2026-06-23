@@ -158,7 +158,7 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    LWX(r, 3, 0xAABBCC44)
+    LWX(r, 3, 0xAABBCC44);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
