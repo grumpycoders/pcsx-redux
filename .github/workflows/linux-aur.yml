@@ -34,4 +34,5 @@ jobs:
           chown -R builduser:builduser /build
           cd /build/pcsx-redux-git
           sed -i s,git+https://github.com/grumpycoders/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g PKGBUILD
+          sed -i s,git+https://github.com/nicolasnoble/luafilesystem.git,git+https://github.com/lunarmodules/luafilesystem.git,g PKGBUILD
           sudo -u builduser bash -c 'makepkg --noconfirm --syncdeps'
