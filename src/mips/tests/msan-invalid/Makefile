@@ -1,4 +1,4 @@
-TARGET = msan-valid
+TARGET = msan-invalid
 USE_FUNCTION_SECTIONS = false
 TYPE = ps-exe
 
@@ -43,9 +43,7 @@ CPPFLAGS += -DPCSX_TESTS=1
 endif
 
 SRCS += \
-../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
-../cop0/exceptions.cpp \
-msan_valid.c \
+msan_invalid.c \
 
 include ../../common.mk

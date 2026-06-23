@@ -1,4 +1,4 @@
-TARGET = msan-invalid
+TARGET = msan-valid
 USE_FUNCTION_SECTIONS = false
 TYPE = ps-exe
 
@@ -44,7 +44,6 @@ endif
 
 SRCS += \
 ../../common/crt0/uC-sdk-crt0.s \
-../cop0/exceptions.cpp \
-msan_invalid.c \
+msan_valid.c \
 
 include ../../common.mk

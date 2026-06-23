@@ -39,7 +39,7 @@ TEST(CPU, InterpreterValid) {
     using namespace std::chrono_literals;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-luacov", "-loadexe", "src/mips/tests/cpu/msan-valid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
@@ -62,7 +62,7 @@ TEST(CPU, DynarecValid) {
     using namespace std::chrono_literals;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/cpu/msan-valid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
