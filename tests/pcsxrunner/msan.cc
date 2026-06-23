@@ -52,6 +52,9 @@ TEST(CPU, InterpreterValid) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
+    }
     if (thread.joinable()) {
         thread.join();
     }
@@ -74,6 +77,9 @@ TEST(CPU, DynarecValid) {
         }
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
+    }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
     }
     if (thread.joinable()) {
         thread.join();
@@ -203,6 +209,9 @@ TEST(CPU, InterpreterInvalid) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
+    }
     if (thread.joinable()) {
         thread.join();
     }
@@ -240,6 +249,9 @@ TEST(CPU, DynarecInvalid) {
         && ret.load() != INT_MIN) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
+    }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
     }
     if (thread.joinable()) {
         thread.join();
