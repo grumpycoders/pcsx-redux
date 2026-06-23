@@ -17,10 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "main/main.h"
+#include <atomic>
 #include <csignal>
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "core/arguments.h"
@@ -30,6 +33,7 @@
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 #include "core/sstate.h"
+#include "core/system.h"
 #include "core/ui.h"
 #include "flags.h"
 #include "fmt/chrono.h"
@@ -155,7 +159,7 @@ class SystemImpl final : public PCSX::System {
     void useLogfile(const PCSX::u8string &filename) {
         m_logfile.setFile(new PCSX::UvFile(filename, PCSX::FileOps::TRUNCATE));
     }
-    bool m_inStartup = true;
+    std::atomic_bool m_inStartup = true;
 };
 
 struct Cleaner {
@@ -483,4 +487,12 @@ runner.init({
     }
 
     return exitCode;
+}
+
+bool MainInvoker::isInStartup() {
+    if (PCSX::g_system == nullptr || PCSX::g_emulator == nullptr) {
+        return false;
+    }
+    SystemImpl* system = reinterpret_cast<SystemImpl*>(PCSX::g_system);
+    return system->m_inStartup;
 }

@@ -43,15 +43,20 @@ TEST(CPU, InterpreterValid) {
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
+    std::chrono::milliseconds elapsed(0);
+    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     std::atomic_bool logMessageRecieved = false;
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
         if (event.logClass == PCSX::LogClass::CPU
             && event.message.starts_with("32-bit read")) {
-            logMessageRecieved.store(true); 
+            logMessageRecieved = true; 
         }
     });
-    std::chrono::milliseconds elapsed(0);
+    elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
         std::this_thread::sleep_for(200ms);
@@ -62,6 +67,9 @@ TEST(CPU, InterpreterValid) {
     }
     if (thread.joinable()) {
         thread.join();
+    }
+    if (logMessageRecieved) {
+        FAIL() << "Unexpected MSAN log encountered";
     }
     const int exit_code = ret.load();
     if (exit_code == INT_MIN) {
@@ -78,15 +86,20 @@ TEST(CPU, DynarecValid) {
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
+    std::chrono::milliseconds elapsed(0);
+    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     std::atomic_bool logMessageRecieved = false;
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
         if (event.logClass == PCSX::LogClass::CPU
             && event.message.starts_with("32-bit read")) {
-            logMessageRecieved.store(true); 
+            logMessageRecieved = true; 
         }
     });
-    std::chrono::milliseconds elapsed(0);
+    elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
         std::this_thread::sleep_for(200ms);
@@ -97,6 +110,9 @@ TEST(CPU, DynarecValid) {
     }
     if (thread.joinable()) {
         thread.join();
+    }
+    if (logMessageRecieved) {
+        FAIL() << "Unexpected MSAN log encountered";
     }
     const int exit_code = ret.load();
     if (exit_code == INT_MIN) {
@@ -185,7 +201,7 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
         std::stringstream returnMsg;
         returnMsg << "Inavlid MSAN event logged, expected: ";
         returnMsg << expectedMsg;
-        returnMsg << ", got :";
+        returnMsg << ", got: ";
         returnMsg << msg;
         return returnMsg.str();
     }
@@ -208,10 +224,15 @@ TEST(CPU, InterpreterInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
+    std::chrono::milliseconds elapsed(0);
+    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
     std::optional<std::string> result = std::nullopt;
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
@@ -221,7 +242,7 @@ TEST(CPU, InterpreterInvalid) {
         }
         nextMsanTest(event.message);
     });
-    std::chrono::milliseconds elapsed(0);
+    elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
         && ret.load() == INT_MIN) {
@@ -249,10 +270,15 @@ TEST(CPU, DynarecInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
+    std::chrono::milliseconds elapsed(0);
+    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
     std::optional<std::string> result = std::nullopt;
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([](const PCSX::Events::LogMessage& event) {
@@ -262,7 +288,7 @@ TEST(CPU, DynarecInvalid) {
         }
         nextMsanTest(event.message);
     });
-    std::chrono::milliseconds elapsed(0);
+    elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
         && ret.load() == INT_MIN) {
