@@ -33,22 +33,77 @@
 #include "core/psxemulator.h"
 #include "support/eventbus.h"
 
+static constexpr std::chrono::milliseconds _30s_MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(30));
 
 TEST(CPU, InterpreterValid) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+    using namespace std::chrono_literals;
+    std::atomic_int ret(INT_MIN);
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
                         "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
-    const int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+    std::thread thread([&](){
+        ret.store(invoker.invoke());
+    });
+    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
+    std::atomic_bool logMessageRecieved = false;
+    listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
+        if (event.logClass == PCSX::LogClass::CPU
+            && event.message.starts_with("32-bit read")) {
+            logMessageRecieved.store(true); 
+        }
+    });
+    std::chrono::milliseconds elapsed(0);
+    PCSX::g_system->resume();
+    while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
+    }
+    if (thread.joinable()) {
+        thread.join();
+    }
+    const int exit_code = ret.load();
+    if (exit_code == INT_MIN) {
+        FAIL() << "Test timed out";
+    }
+    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
 }
 
 TEST(CPU, DynarecValid) {
-    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
+    using namespace std::chrono_literals;
+    std::atomic_int ret(INT_MIN);
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
                         "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
-    const int ret = invoker.invoke();
-    EXPECT_EQ(ret, 0);
+    std::thread thread([&](){
+        ret.store(invoker.invoke());
+    });
+    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
+    std::atomic_bool logMessageRecieved = false;
+    listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
+        if (event.logClass == PCSX::LogClass::CPU
+            && event.message.starts_with("32-bit read")) {
+            logMessageRecieved.store(true); 
+        }
+    });
+    std::chrono::milliseconds elapsed(0);
+    PCSX::g_system->resume();
+    while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
+        std::this_thread::sleep_for(200ms);
+        elapsed += std::chrono::milliseconds(200ms);
+    }
+    if (elapsed >= _30s_MILLIS) {
+        PCSX::g_system->quit();
+    }
+    if (thread.joinable()) {
+        thread.join();
+    }
+    const int exit_code = ret.load();
+    if (exit_code == INT_MIN) {
+        FAIL() << "Test timed out";
+    }
+    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
 }
-
-static constexpr std::chrono::milliseconds _30s_MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(30));
 
 inline uint8_t inspectMsanInitializedBitmap(const uint32_t address) {
     const uint32_t bitmapIndex = (address - PCSX::g_emulator->m_mem->c_msanStart) / 8;
@@ -144,6 +199,7 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
         return ss.str();
     }
     PCSX::g_system->resume();
+    nextMsanCheckIndex++;
     return std::nullopt;
 }
 
@@ -161,7 +217,7 @@ TEST(CPU, InterpreterInvalid) {
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
         if (event.logClass != PCSX::LogClass::CPU
-            || event.message.starts_with("32-bit read")) {
+            || !event.message.starts_with("32-bit read")) {
             return;
         }
         nextMsanTest(event.message);
@@ -202,7 +258,7 @@ TEST(CPU, DynarecInvalid) {
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([](const PCSX::Events::LogMessage& event) {
         if (event.logClass != PCSX::LogClass::CPU
-            || event.message.starts_with("32-bit read")) {
+            || !event.message.starts_with("32-bit read")) {
             return;
         }
         nextMsanTest(event.message);
