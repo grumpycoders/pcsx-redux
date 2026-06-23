@@ -171,7 +171,7 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
         returnMsg << "Expected 1 MSAN allocation, got";
         returnMsg << allocCount;
         return returnMsg.str();
-    } else if (nextMsanCheckIndex >= 36) {
+    } else if (nextMsanCheckIndex >= std::size(SWX_EXPECTED_BITMASKS)) {
         std::stringstream returnMsg;
         returnMsg << "Invalid MSAN check test index: ";
         returnMsg << nextMsanCheckIndex;
