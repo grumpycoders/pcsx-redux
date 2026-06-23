@@ -71,8 +71,6 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
     EXPECT_EQ(result, value);
 )
 
-// SWL -> LWL
-
 #define INVALID_SWX_LWX(name, sw_suffix, lw_suffix, store_off, load_off) \
     CESTER_TEST(name, msan_invalid_tests, \
         register uint32_t* mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t)); \
@@ -84,7 +82,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
         ); \
         register volatile uint32_t result = 0xAABBCCDD; \
         __asm__ __volatile__( \
-            "lw" #lw_suffix " %0 " #load_off "(%1);" \
+            "lw" #lw_suffix " %0, " #load_off "(%1);" \
             : "+r"(result) \
             : "r"(mem_32_bit) \
         ); \
