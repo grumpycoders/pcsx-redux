@@ -81,6 +81,15 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
     cester_assert_equal(result, value);
 )
 
+#define LWX(load_suffix, offset, expected_result) \
+    result = 0xAABBCCDD; \
+    __asm__ __volatile__( \
+        "lw" #load_suffix " %0, " #offset "(%1)" \
+        : "+r"(result) \
+        : "r"(mem_32_bit) \
+    ); \
+    cester_assert_equal(result, expected_result)
+
 // SWL -> LWL
 
 CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
@@ -92,12 +101,7 @@ CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x11BBCCDD);
+    LWX(l, 0, 0x11BBCCDD);
 )
 
 CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
@@ -109,19 +113,8 @@ CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x22BBCCDD);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 1(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x1122CCDD);
+    LWX(l, 0, 0x22BBCCDD);
+    LWX(l, 1, 0x1122CCDD);
 )
 
 CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
@@ -133,26 +126,9 @@ CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x33BBCCDD);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 1(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x2233CCDD);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 2(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x112233DD);
+    LWX(l, 0, 0x33BBCCDD);
+    LWX(l, 1, 0x2233CCDD);
+    LWX(l, 2, 0x112233DD);
 )
 
 CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests,
@@ -164,40 +140,11 @@ CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x44BBCCDD);
-    result = 0xAABBCCDD; 
-    __asm__ __volatile__(
-        "lwl %0 1(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x3344CCDD);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 2(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x223344DD);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 3(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x11223344);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lw %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x11223344);
+    LWX(l, 0, 0x44BBCCDD);
+    LWX(l, 1, 0x3344CCDD);
+    LWX(l, 2, 0x223344DD);
+    LWX(l, 3, 0x11223344);
+    LWX(, 0, 0x11223344);
 )
 
 // SWR -> LWR
@@ -211,12 +158,7 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 3(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABBCC44);
+    LWX(r, 3, 0xAABBCC44)
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
@@ -228,19 +170,8 @@ CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 3(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABBCC44);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 2(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABB3344);
+    LWX(r, 3, 0xAABBCC44);
+    LWX(r, 2, 0xAABB3344);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests,
@@ -252,26 +183,9 @@ CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 3(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABBCC44);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 2(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABB3344);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 1(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAA223344);
+    LWX(r, 3, 0xAABBCC44);
+    LWX(r, 2, 0xAABB3344);
+    LWX(r, 1, 0xAA223344);
 )
 
 CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests,
@@ -283,39 +197,10 @@ CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests,
         : "r"(value), "r"(mem_32_bit)
     );
     register volatile uint32_t result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 3(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABBCC44);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 2(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAABB3344);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 1(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0xAA223344);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lwl %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x11223344);
-    result = 0xAABBCCDD;
-    __asm__ __volatile__(
-        "lw %0 0(%1)"
-        : "+r"(result)
-        : "r"(mem_32_bit)
-    );
-    cester_assert_equal(result, 0x11223344);
+    LWX(r, 3, 0xAABBCC44);
+    LWX(r, 2, 0xAABB3344);
+    LWX(r, 1, 0xAA223344);
+    LWX(r, 0, 0x11223344);
+    LWX(, 0, 0x11223344);
 )
 
