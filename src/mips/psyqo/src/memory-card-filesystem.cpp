@@ -92,6 +92,27 @@ bool psyqo::MemoryCardFileSystem::findFirstBlock(const Frame *dir15, const char 
     return false;
 }
 
+uint16_t psyqo::MemoryCardFileSystem::reachableBlocks(const Frame *dir15) {
+    uint16_t inUse = 0;
+    for (unsigned i = 0; i < 15; i++) {
+        if (dir15[i].bytes[c_offAlloc] != c_stateFirst) continue;
+        // Walk this file's chain, marking each block in use; stop on a malformed
+        // loop so a corrupt card cannot hang the scan. A middle/last block that
+        // no head reaches is left unmarked, hence treated as free.
+        uint16_t visited = 0;
+        int block = static_cast<int>(i + 1);
+        while (block >= 1 && block <= 15) {
+            if (visited & (1 << block)) break;
+            visited |= 1 << block;
+            inUse |= 1 << block;
+            uint16_t next = get16(dir15[block - 1].bytes + c_offNext);
+            if (next == 0xffff) break;
+            block = next + 1;
+        }
+    }
+    return inUse;
+}
+
 // -- Asynchronous engine ----------------------------------------------------
 
 void psyqo::MemoryCardFileSystem::begin(Op op, Port port, eastl::function<void(Error)> &&callback) {
@@ -227,13 +248,14 @@ void psyqo::MemoryCardFileSystem::issueOrFinish() {
         }
 
         case Phase::WriteDir: {
-            // Write the next dirty directory entry; finish when none remain.
-            while (m_idx < 15 && !m_dirty[m_idx]) m_idx++;
-            if (m_idx >= 15) {
+            // Commit the directory entries in m_writeOrder (head last for a
+            // create, head first for a delete); finish when all are written.
+            if (m_idx >= m_writeOrderLen) {
                 finish(m_result);
                 return;
             }
-            m_card.writeSector(m_port, static_cast<uint16_t>(m_idx + 1), m_dir[m_idx].bytes,
+            uint8_t slot = m_writeOrder[m_idx];
+            m_card.writeSector(m_port, static_cast<uint16_t>(slot + 1), m_dir[slot].bytes,
                                [this](Error e) { onSectorDone(e); });
             return;
         }
@@ -344,11 +366,14 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
                 m_blockIdx++;
             }
             if (m_blockIdx >= m_blocksNeeded) {
-                // All data written. Build the directory chain in memory, then
-                // commit it (the directory is written last so an interrupted
-                // write never leaves a referenced but corrupt file).
+                // All data written. Build the new file's directory entries in
+                // memory, then commit them with the head (the 0x51 first block)
+                // written LAST, so a power loss can only orphan tail blocks and
+                // never publishes a half-formed file.
                 uint32_t nameLen = 0;
                 while (m_name[nameLen] != '\0') nameLen++;
+                uint16_t inNewChain = 0;
+                for (uint32_t bi = 0; bi < m_blocksNeeded; bi++) inNewChain |= 1 << m_chain[bi];
                 for (uint32_t bi = 0; bi < m_blocksNeeded; bi++) {
                     uint8_t *entry = m_dir[m_chain[bi] - 1].bytes;
                     __builtin_memset(entry, 0, sizeof(Frame));
@@ -371,7 +396,18 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
                         (bi == m_blocksNeeded - 1) ? 0xffff : static_cast<uint16_t>(m_chain[bi + 1] - 1);
                     put16(entry + c_offNext, next);
                     finishDirEntry(entry);
-                    m_dirty[m_chain[bi] - 1] = true;
+                }
+                // Commit order: any blocks of a replaced file that are not reused
+                // (now marked deleted) first, then the new chain from its tail up
+                // to its head, so the 0x51 head lands last.
+                m_writeOrderLen = 0;
+                for (unsigned s = 0; s < 15; s++) {
+                    if (m_dirty[s] && !(inNewChain & (1 << (s + 1)))) {
+                        m_writeOrder[m_writeOrderLen++] = static_cast<uint8_t>(s);
+                    }
+                }
+                for (uint32_t bi = m_blocksNeeded; bi-- > 0;) {
+                    m_writeOrder[m_writeOrderLen++] = static_cast<uint8_t>(m_chain[bi] - 1);
                 }
                 m_phase = Phase::WriteDir;
                 m_idx = 0;
@@ -380,7 +416,7 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
         }
 
         case Phase::WriteDir:
-            m_idx++;  // advance past the entry just written; issueOrFinish skips to the next dirty one
+            m_idx++;  // advance to the next entry in the write order
             break;
 
         case Phase::Format:
@@ -397,9 +433,10 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
 psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDir() {
     switch (m_op) {
         case Op::GetFreeBlockCount: {
+            uint16_t inUse = reachableBlocks(m_dir);
             uint32_t free = 0;
             for (unsigned i = 0; i < 15; i++) {
-                if (isFreeState(m_dir[i].bytes[c_offAlloc])) free++;
+                if (!(inUse & (1 << (i + 1)))) free++;
             }
             if (m_outFreeBlocks) *m_outFreeBlocks = free;
             return StepResult::Done;
@@ -458,8 +495,9 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
 
         case Op::WriteFile: {
             for (unsigned i = 0; i < 15; i++) m_dirty[i] = false;
-            // Free any existing file with the same name so its blocks can be
-            // reused and its old entry overwritten.
+            // Delete any existing file with the same name so its blocks can be
+            // reused. Mark the chain deleted in place (keep links and name), the
+            // same as deleteFile, rather than wiping it.
             int existing = -1;
             findFirstBlock(m_dir, m_name, &existing);
             if (existing != -1) {
@@ -470,19 +508,27 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
                     visited |= (1 << block);
                     uint8_t *entry = m_dir[block - 1].bytes;
                     uint16_t next = get16(entry + c_offNext);
-                    __builtin_memset(entry, 0, sizeof(Frame));
-                    put32(entry + c_offAlloc, c_stateFree);
-                    put16(entry + c_offNext, 0xffff);
+                    entry[c_offAlloc] = deletedState(entry[c_offAlloc]);
                     finishDirEntry(entry);
                     m_dirty[block - 1] = true;
                     if (next == 0xffff) break;
                     block = next + 1;
                 }
             }
-            // Collect the free blocks the new file will occupy.
+            // Collect the blocks the new file will occupy, preferring
+            // never-allocated blocks over deleted ones (so deletions stay
+            // recoverable) and ignoring blocks any valid file still references.
+            uint16_t inUse = reachableBlocks(m_dir);
             m_chainLen = 0;
             for (unsigned i = 0; i < 15 && m_chainLen < m_blocksNeeded; i++) {
-                if (isFreeState(m_dir[i].bytes[c_offAlloc])) m_chain[m_chainLen++] = static_cast<uint8_t>(i + 1);
+                if (!(inUse & (1 << (i + 1))) && m_dir[i].bytes[c_offAlloc] == c_stateFree) {
+                    m_chain[m_chainLen++] = static_cast<uint8_t>(i + 1);
+                }
+            }
+            for (unsigned i = 0; i < 15 && m_chainLen < m_blocksNeeded; i++) {
+                if (!(inUse & (1 << (i + 1))) && m_dir[i].bytes[c_offAlloc] != c_stateFree) {
+                    m_chain[m_chainLen++] = static_cast<uint8_t>(i + 1);
+                }
             }
             if (m_chainLen < m_blocksNeeded) {
                 m_result = Error::OutOfSpace;
@@ -496,13 +542,17 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
         }
 
         case Op::DeleteFile: {
-            for (unsigned i = 0; i < 15; i++) m_dirty[i] = false;
             int first = -1;
             findFirstBlock(m_dir, m_name, &first);
             if (first == -1) {
                 m_result = Error::FileNotFound;
                 return StepResult::Done;
             }
+            // Mark the chain deleted in place (keep links and name so it stays
+            // recoverable), recording the write order head-first: cutting the
+            // 0x51 head to 0xa1 is the first commit, so a power loss leaves only
+            // orphaned tail blocks, which read as free.
+            m_writeOrderLen = 0;
             uint16_t visited = 0;
             int block = first;
             while (block >= 1 && block <= 15) {
@@ -510,11 +560,9 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
                 visited |= (1 << block);
                 uint8_t *entry = m_dir[block - 1].bytes;
                 uint16_t next = get16(entry + c_offNext);
-                __builtin_memset(entry, 0, sizeof(Frame));
-                put32(entry + c_offAlloc, c_stateFree);
-                put16(entry + c_offNext, 0xffff);
+                entry[c_offAlloc] = deletedState(entry[c_offAlloc]);
                 finishDirEntry(entry);
-                m_dirty[block - 1] = true;
+                m_writeOrder[m_writeOrderLen++] = static_cast<uint8_t>(block - 1);
                 if (next == 0xffff) break;
                 block = next + 1;
             }

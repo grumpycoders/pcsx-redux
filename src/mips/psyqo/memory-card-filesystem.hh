@@ -207,11 +207,17 @@ class MemoryCardFileSystem {
         alignas(4) uint8_t bytes[128];
     };
 
-    // Directory allocation states (low byte of the 32-bit state word).
-    static constexpr uint8_t c_stateFirst = 0x51;   // first or only block
-    static constexpr uint8_t c_stateMiddle = 0x52;  // middle block
-    static constexpr uint8_t c_stateLast = 0x53;    // last block
-    static constexpr uint8_t c_stateFree = 0xa0;    // free (freshly formatted)
+    // Directory allocation states (low byte of the 32-bit state word). The high
+    // nibble separates in-use (0x5x) from available (0xax); the low nibble is
+    // the block's position in its chain, preserved across deletion so a deleted
+    // chain stays recoverable.
+    static constexpr uint8_t c_stateFirst = 0x51;          // in use: first or only block
+    static constexpr uint8_t c_stateMiddle = 0x52;         // in use: middle block
+    static constexpr uint8_t c_stateLast = 0x53;           // in use: last block
+    static constexpr uint8_t c_stateFree = 0xa0;           // available: never allocated
+    static constexpr uint8_t c_stateDeletedFirst = 0xa1;   // available: a deleted first block
+    static constexpr uint8_t c_stateDeletedMiddle = 0xa2;  // available: a deleted middle block
+    static constexpr uint8_t c_stateDeletedLast = 0xa3;    // available: a deleted last block
 
     // Directory entry field offsets.
     static constexpr uint32_t c_offAlloc = 0x00;
@@ -223,9 +229,15 @@ class MemoryCardFileSystem {
 
     static uint8_t frameChecksum(const uint8_t *frame);
     static void finishDirEntry(uint8_t *entry);
-    static bool isFreeState(uint8_t state) { return (state & 0xf0) == 0xa0; }
+    // Marks an in-use block (0x5x) deleted, keeping its chain position (0x5x ->
+    // 0xax) and so its links, so the deleted chain stays recoverable.
+    static uint8_t deletedState(uint8_t inUse) { return static_cast<uint8_t>((inUse & 0x0f) | 0xa0); }
     static bool nameMatches(const uint8_t *entry, const char *name);
     static bool findFirstBlock(const Frame *dir15, const char *name, int *outBlock);
+    // The set of blocks (bit (slot + 1)) reachable from a valid first-block
+    // head. Anything else - free, deleted, or an orphaned middle/last block with
+    // no head - is available for allocation.
+    static uint16_t reachableBlocks(const Frame *dir15);
 
     // -- Asynchronous transaction engine -----------------------------------
     // The operation in flight, and where in it we are. Each device sector
@@ -287,6 +299,13 @@ class MemoryCardFileSystem {
     uint32_t m_blocksNeeded = 0;
     uint32_t m_iconFrames = 0;
     bool m_dirty[15] = {};
+    // The directory slots to commit, in the order they must be written: for a
+    // create the file's head (the 0x51 first block) is written last; for a
+    // delete its head (cut to 0xa1) is written first. So a power loss mid-commit
+    // can only orphan tail blocks, never leave a referenced file pointing at a
+    // half-written chain.
+    uint8_t m_writeOrder[15] = {};
+    uint32_t m_writeOrderLen = 0;
     uint32_t m_dataOffset = 0;
     uint32_t m_written = 0;
     uint32_t m_blockIdx = 0;     // current block within the chain
