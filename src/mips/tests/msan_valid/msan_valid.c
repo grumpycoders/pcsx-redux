@@ -47,13 +47,15 @@ SOFTWARE.
 
 // clang-format off
 
-static uint32_t* mem_32_bit = NULL;
+CESTER_BODY(
+    static uint32_t* mem_32_bit = NULL;
+)
 
-CESTER_BEFORE_EACH(msan_valid_tests,
+CESTER_BEFORE_EACH(msan_valid_tests, testname, testindex,
     mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
 )
 
-CESTER_AFTER_EACH(msan_valid_tests,
+CESTER_AFTER_EACH(msan_valid_tests, testname, testindex,
         pcsx_msanFree(mem_32_bit);
 )
 
