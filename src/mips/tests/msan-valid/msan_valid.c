@@ -171,7 +171,7 @@ CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, msan_valid_tests,
     );
     register volatile uint32_t result = 0xAABBCCDD;
     LWX(r, 3, 0xAABBCC33);
-    LWX(r, 2, 0xAABB4433);
+    LWX(r, 2, 0xAABB3344);
 )
 
 CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, msan_valid_tests,
@@ -184,8 +184,8 @@ CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, msan_valid_tests,
     );
     register volatile uint32_t result = 0xAABBCCDD;
     LWX(r, 3, 0xAABBCC22);
-    LWX(r, 2, 0xAABB3322);
-    LWX(r, 1, 0xAA443322);
+    LWX(r, 2, 0xAABB2233);
+    LWX(r, 1, 0xAA223344);
 )
 
 CESTER_TEST(msan_32bit_swr_8_to_32_bit_lwr, msan_valid_tests,
@@ -198,9 +198,9 @@ CESTER_TEST(msan_32bit_swr_8_to_32_bit_lwr, msan_valid_tests,
     );
     register volatile uint32_t result = 0xAABBCCDD;
     LWX(r, 3, 0xAABBCC11);
-    LWX(r, 2, 0xAABB2211);
-    LWX(r, 1, 0xAA332211);
-    LWX(r, 0, 0x44332211);
-    LWX(, 0, 0x44332211);
+    LWX(r, 2, 0xAABB1122);
+    LWX(r, 1, 0xAA112233);
+    LWX(r, 0, 0x11223344);
+    LWX(, 0, 0x11223344);
 )
 
