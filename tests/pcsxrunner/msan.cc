@@ -183,7 +183,7 @@ TEST(CPU, InterpreterInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-luacov", "-loadexe", "src/mips/tests/cpu/msan-invalid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
@@ -221,7 +221,7 @@ TEST(CPU, DynarecInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/cpu/msan-invalid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
