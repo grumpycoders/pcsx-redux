@@ -33,59 +33,22 @@
 #include "core/psxemulator.h"
 #include "support/eventbus.h"
 
-static constexpr std::chrono::milliseconds _30s_MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(30));
 
 TEST(CPU, InterpreterValid) {
-    using namespace std::chrono_literals;
-    std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
                         "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
-    std::thread thread([&](){
-        ret.store(invoker.invoke());
-    });
-    std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS
-        && ret.load() == INT_MIN) {
-        if (!PCSX::g_system->quitting() || !PCSX::g_system->running()) {
-            FAIL() << "Emulator should never pause in valid MSAN cases";
-        }
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    if (elapsed >= _30s_MILLIS) {
-        PCSX::g_system->quit();
-    }
-    if (thread.joinable()) {
-        thread.join();
-    }
-    EXPECT_EQ(ret.load(), 0);
+    const int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
 }
 
 TEST(CPU, DynarecValid) {
-    using namespace std::chrono_literals;
-    std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
                         "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
-    std::thread thread([&](){
-        ret.store(invoker.invoke());
-    });
-    std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS
-        && ret.load() == INT_MIN) {
-        if (!PCSX::g_system->quitting() || !PCSX::g_system->running()) {
-            FAIL() << "Emulator should never pause in valid MSAN cases";
-        }
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    if (elapsed >= _30s_MILLIS) {
-        PCSX::g_system->quit();
-    }
-    if (thread.joinable()) {
-        thread.join();
-    }
-    EXPECT_EQ(ret.load(), 0);
+    const int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
 }
+
+static constexpr std::chrono::milliseconds _30s_MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(30));
 
 inline uint8_t inspectMsanInitializedBitmap(const uint32_t address) {
     const uint32_t bitmapIndex = (address - PCSX::g_emulator->m_mem->c_msanStart) / 8;
