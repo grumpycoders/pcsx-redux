@@ -43,7 +43,6 @@ CPPFLAGS += -DPCSX_TESTS=1
 endif
 
 SRCS += \
-../../common/syscalls/printf.s \
 ../../common/crt0/uC-sdk-crt0.s \
 ../cop0/exceptions.cpp \
 msan_invalid.c \

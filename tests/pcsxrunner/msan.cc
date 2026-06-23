@@ -171,7 +171,7 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
         std::stringstream ss;
         ss << "Initialized bitmap for address 0x" << std::hex << alloc->first
             << " mismatch: 0b" << std::bitset<8>(expectedInitBitmap)
-            <<  " != 0b " << std::bitset<8>(actualInitBitmap);
+            <<  " != 0b" << std::bitset<8>(actualInitBitmap);
         return ss.str();
     }
     PCSX::g_system->resume();

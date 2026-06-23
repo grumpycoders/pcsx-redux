@@ -37,7 +37,7 @@ SOFTWARE.
 
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
-#include "common/hardware/psxhw.h"
+#include "common/hardware/pcsxhw.h"
 
 #undef unix
 #define CESTER_NO_SIGNAL
