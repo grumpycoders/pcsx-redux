@@ -55,4 +55,4 @@ struct CDRomCommandBuffer {
         recursiveSet(pos + 1, args...);
     }
 };
-} // namespace psyqo::Hardware::CDRom
+}  // namespace psyqo::Hardware::CDRom

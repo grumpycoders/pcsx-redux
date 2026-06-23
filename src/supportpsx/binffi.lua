@@ -192,9 +192,7 @@ PCSX.Misc.uclPack = function(src, dest)
 
     local outSize = C.uclWrapper(srcPtr, srcSize, destPtr)
 
-    if outSize == 0 then
-        error('Fatal error during data compression.')
-    end
+    if outSize == 0 then error('Fatal error during data compression.') end
 
     if type(dest) == 'table' and dest._type == 'File' then
         destSlice:resize(outSize)
@@ -217,9 +215,7 @@ end
 -- optional and accepts File / LuaBuffer / Slice. If omitted, a fresh Slice is created
 -- and returned; otherwise the destination is filled and the byte count is returned.
 PCSX.Misc.uclUnpack = function(src, decompressedSize, dest)
-    if type(decompressedSize) ~= 'number' then
-        error('Expected the decompressed size as the second argument')
-    end
+    if type(decompressedSize) ~= 'number' then error('Expected the decompressed size as the second argument') end
 
     local srcPtr
     local srcSize
@@ -264,17 +260,12 @@ PCSX.Misc.uclUnpack = function(src, decompressedSize, dest)
 
     local outSize = C.uclUnpackWrapper(srcPtr, srcSize, destPtr, decompressedSize)
 
-    if outSize == 0 then
-        error('UCL decompression failed (bad data or wrong expected size).')
-    end
+    if outSize == 0 then error('UCL decompression failed (bad data or wrong expected size).') end
     if outSize ~= decompressedSize then
-        error(string.format(
-            'UCL decompression produced %d bytes but %d were expected.', outSize, decompressedSize))
+        error(string.format('UCL decompression produced %d bytes but %d were expected.', outSize, decompressedSize))
     end
 
-    if type(dest) == 'table' and dest._type == 'File' then
-        dest:writeMoveSlice(destSlice)
-    end
+    if type(dest) == 'table' and dest._type == 'File' then dest:writeMoveSlice(destSlice) end
 
     return retIsDest and dest or outSize
 end

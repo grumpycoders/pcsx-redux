@@ -573,9 +573,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glActiveTexture(GL_TEXTURE0);
 }
 
-ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const {
-    return {512.0f / RATIOS[m_vramMode], 512.0f};
-}
+ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 512.0f}; }
 
 void PCSX::Widgets::VRAMViewer::resetView() {
     ZoomableImage::resetView();
@@ -750,4 +748,3 @@ void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
     ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);
     zoom(0.9f, center);
 }
-

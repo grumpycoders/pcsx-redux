@@ -178,15 +178,15 @@ inline uint32_t readVLQ(PCSX::IO<PCSX::File> f) {
 // Standard MIDI file chunk headers, as binstructs. The length/word fields are big-endian (SMF is a
 // big-endian format), so the BE field types do the swap on read. Track/header bodies are variable and
 // stay as SubFile walks; only the fixed-size chunk headers are modeled here.
-typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mthdMagic")> MThdMagic;       // "MThd"
-typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mthdLength")> MThdLength;       // header byte count (6)
-typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdFormat")> MThdFormat;       // 0/1/2
-typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdTracks")> MThdTracks;       // number of MTrk chunks
-typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdDivision")> MThdDivision;   // ticks per quarter note
+typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mthdMagic")> MThdMagic;      // "MThd"
+typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mthdLength")> MThdLength;      // header byte count (6)
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdFormat")> MThdFormat;      // 0/1/2
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdTracks")> MThdTracks;      // number of MTrk chunks
+typedef BinStruct::Field<BinStruct::BEUInt16, TYPESTRING("mthdDivision")> MThdDivision;  // ticks per quarter note
 typedef BinStruct::Struct<TYPESTRING("MThd"), MThdMagic, MThdLength, MThdFormat, MThdTracks, MThdDivision> MThd;
 
-typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mtrkMagic")> MTrkMagic;       // "MTrk"
-typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mtrkLength")> MTrkLength;       // track byte count
+typedef BinStruct::Field<BinStruct::CString<4>, TYPESTRING("mtrkMagic")> MTrkMagic;  // "MTrk"
+typedef BinStruct::Field<BinStruct::BEUInt32, TYPESTRING("mtrkLength")> MTrkLength;  // track byte count
 typedef BinStruct::Struct<TYPESTRING("MTrk"), MTrkMagic, MTrkLength> MTrk;
 
 inline bool MidiFile::parse(PCSX::IO<PCSX::File> file) {

@@ -57,8 +57,7 @@ unsigned SPD_Load(const void* data, uint32_t size);
 // loading. If sampleData is NULL, the function assumes samples
 // are already loaded in SPU RAM (e.g. from a previous call).
 // Returns the voice count, or 0 if invalid.
-unsigned SPD_LoadEx(const void* data, uint32_t size,
-                    const void* sampleData, uint32_t sampleSize);
+unsigned SPD_LoadEx(const void* data, uint32_t size, const void* sampleData, uint32_t sampleSize);
 
 // Call this function periodically to play sound. The
 // frequency at which this is called is determined by the

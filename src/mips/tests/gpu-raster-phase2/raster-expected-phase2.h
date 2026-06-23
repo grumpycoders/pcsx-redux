@@ -45,47 +45,47 @@ SOFTWARE.
 
 // Horizontal 1-pixel line: vertices (5, 10), (10, 10). Expect pixels
 // (5,10), (6,10), (7,10), (8,10), (9,10), (10,10) drawn (6 pixels).
-#define EXPECT_LINE_H_PIXEL_4_10   RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 before start */
-#define EXPECT_LINE_H_PIXEL_5_10   RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 start point */
-#define EXPECT_LINE_H_PIXEL_7_10   RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 interior */
-#define EXPECT_LINE_H_PIXEL_10_10  RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 end point (inclusive?) */
-#define EXPECT_LINE_H_PIXEL_11_10  RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 past end */
-#define EXPECT_LINE_H_PIXEL_5_11   RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 below line */
+#define EXPECT_LINE_H_PIXEL_4_10 RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 before start */
+#define EXPECT_LINE_H_PIXEL_5_10 RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 start point */
+#define EXPECT_LINE_H_PIXEL_7_10 RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 interior */
+#define EXPECT_LINE_H_PIXEL_10_10 RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 end point (inclusive?) */
+#define EXPECT_LINE_H_PIXEL_11_10 RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 past end */
+#define EXPECT_LINE_H_PIXEL_5_11 RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 below line */
 
 // Vertical line: vertices (10, 5), (10, 10).
-#define EXPECT_LINE_V_PIXEL_10_4   RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 */
-#define EXPECT_LINE_V_PIXEL_10_5   RASTER_VRAM_RED   /* HW_VERIFIED 2026-05-15 start */
-#define EXPECT_LINE_V_PIXEL_10_7   RASTER_VRAM_RED   /* HW_VERIFIED 2026-05-15 interior */
-#define EXPECT_LINE_V_PIXEL_10_10  RASTER_VRAM_RED   /* HW_VERIFIED 2026-05-15 end (inclusive?) */
-#define EXPECT_LINE_V_PIXEL_10_11  RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 past end */
+#define EXPECT_LINE_V_PIXEL_10_4 RASTER_SENTINEL  /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_LINE_V_PIXEL_10_5 RASTER_VRAM_RED  /* HW_VERIFIED 2026-05-15 start */
+#define EXPECT_LINE_V_PIXEL_10_7 RASTER_VRAM_RED  /* HW_VERIFIED 2026-05-15 interior */
+#define EXPECT_LINE_V_PIXEL_10_10 RASTER_VRAM_RED /* HW_VERIFIED 2026-05-15 end (inclusive?) */
+#define EXPECT_LINE_V_PIXEL_10_11 RASTER_SENTINEL /* HW_VERIFIED 2026-05-15 past end */
 
 // Diagonal +45 deg (slope 1): (5, 5), (10, 10). Bresenham steps both
 // axes one per step; expect (5,5),(6,6),(7,7),(8,8),(9,9),(10,10).
-#define EXPECT_LINE_D45_PIXEL_5_5    RASTER_VRAM_BLUE  /* HW_VERIFIED 2026-05-15 start */
-#define EXPECT_LINE_D45_PIXEL_7_7    RASTER_VRAM_BLUE  /* HW_VERIFIED 2026-05-15 interior */
-#define EXPECT_LINE_D45_PIXEL_10_10  RASTER_VRAM_BLUE  /* HW_VERIFIED 2026-05-15 end */
-#define EXPECT_LINE_D45_PIXEL_5_6    RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 off-diagonal */
-#define EXPECT_LINE_D45_PIXEL_6_5    RASTER_SENTINEL   /* HW_VERIFIED 2026-05-15 off-diagonal */
+#define EXPECT_LINE_D45_PIXEL_5_5 RASTER_VRAM_BLUE   /* HW_VERIFIED 2026-05-15 start */
+#define EXPECT_LINE_D45_PIXEL_7_7 RASTER_VRAM_BLUE   /* HW_VERIFIED 2026-05-15 interior */
+#define EXPECT_LINE_D45_PIXEL_10_10 RASTER_VRAM_BLUE /* HW_VERIFIED 2026-05-15 end */
+#define EXPECT_LINE_D45_PIXEL_5_6 RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 off-diagonal */
+#define EXPECT_LINE_D45_PIXEL_6_5 RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 off-diagonal */
 
 // Diagonal -45 deg (slope -1): (5, 10), (10, 5).
-#define EXPECT_LINE_DN45_PIXEL_5_10  RASTER_VRAM_WHITE /* HW_VERIFIED 2026-05-15 start */
-#define EXPECT_LINE_DN45_PIXEL_7_8   RASTER_VRAM_WHITE /* HW_VERIFIED 2026-05-15 interior */
-#define EXPECT_LINE_DN45_PIXEL_10_5  RASTER_VRAM_WHITE /* HW_VERIFIED 2026-05-15 end */
+#define EXPECT_LINE_DN45_PIXEL_5_10 RASTER_VRAM_WHITE /* HW_VERIFIED 2026-05-15 start */
+#define EXPECT_LINE_DN45_PIXEL_7_8 RASTER_VRAM_WHITE  /* HW_VERIFIED 2026-05-15 interior */
+#define EXPECT_LINE_DN45_PIXEL_10_5 RASTER_VRAM_WHITE /* HW_VERIFIED 2026-05-15 end */
 
 // Zero-length line: start == end. Best-guess: hardware draws the single
 // start pixel.
-#define EXPECT_LINE_ZERO_PIXEL_20_20  RASTER_VRAM_RED  /* HW_VERIFIED 2026-05-15 */
-#define EXPECT_LINE_ZERO_PIXEL_21_20  RASTER_SENTINEL  /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_LINE_ZERO_PIXEL_20_20 RASTER_VRAM_RED /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_LINE_ZERO_PIXEL_21_20 RASTER_SENTINEL /* HW_VERIFIED 2026-05-15 */
 
 // Shallow line (more horizontal than vertical): (0, 0), (10, 3). Major
 // axis is X; Bresenham steps X each iter, Y on accumulator overflow.
 // Best-guess pixel set under standard Bresenham:
 //   (0,0)(1,0)(2,1)(3,1)(4,1)(5,2)(6,2)(7,2)(8,2)(9,3)(10,3)
 //   - 11 pixels (endpoint inclusive on both ends).
-#define EXPECT_LINE_SHALLOW_PIXEL_0_0    RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 start */
-#define EXPECT_LINE_SHALLOW_PIXEL_5_2    RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 midpoint */
-#define EXPECT_LINE_SHALLOW_PIXEL_10_3   RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 end */
-#define EXPECT_LINE_SHALLOW_PIXEL_2_0    RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 Bresenham picks y=1 here */
+#define EXPECT_LINE_SHALLOW_PIXEL_0_0 RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 start */
+#define EXPECT_LINE_SHALLOW_PIXEL_5_2 RASTER_VRAM_GREEN  /* HW_VERIFIED 2026-05-15 midpoint */
+#define EXPECT_LINE_SHALLOW_PIXEL_10_3 RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 end */
+#define EXPECT_LINE_SHALLOW_PIXEL_2_0 RASTER_SENTINEL    /* HW_VERIFIED 2026-05-15 Bresenham picks y=1 here */
 
 // --------------------------------------------------------------------------
 // Mask-bit suite
@@ -98,9 +98,9 @@ SOFTWARE.
 
 // Set-mask only: triangle drawn at (0,0)(4,0)(0,4) RED with E6 = 0x01.
 // Each drawn pixel should be 0x801F (RED with mask bit).
-#define EXPECT_MASK_SET_PIXEL_0_0  0x801fu  /* HW_VERIFIED 2026-05-15 RED OR mask bit */
-#define EXPECT_MASK_SET_PIXEL_2_1  0x801fu  /* HW_VERIFIED 2026-05-15 */
-#define EXPECT_MASK_SET_PIXEL_4_0  RASTER_SENTINEL  /* HW_VERIFIED 2026-05-15 right edge excluded */
+#define EXPECT_MASK_SET_PIXEL_0_0 0x801fu         /* HW_VERIFIED 2026-05-15 RED OR mask bit */
+#define EXPECT_MASK_SET_PIXEL_2_1 0x801fu         /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_MASK_SET_PIXEL_4_0 RASTER_SENTINEL /* HW_VERIFIED 2026-05-15 right edge excluded */
 
 // Check-mask after set-mask: overlay a second triangle with E6 = 0x02
 // (check only). Pixels already drawn (with bit 15 set) should be
@@ -111,8 +111,8 @@ SOFTWARE.
 // Pixel (1, 0) is in both triangles - was 0x801f (mask-set RED), should
 // stay 0x801f after the GREEN attempt is rejected. Pixel (5, 0) is only
 // in GREEN tri - was sentinel, should become VRAM_GREEN (0x03E0).
-#define EXPECT_MASK_CHECK_PIXEL_1_0_preserved  0x801fu      /* HW_VERIFIED 2026-05-15 */
-#define EXPECT_MASK_CHECK_PIXEL_5_0_filled     RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_MASK_CHECK_PIXEL_1_0_preserved 0x801fu        /* HW_VERIFIED 2026-05-15 */
+#define EXPECT_MASK_CHECK_PIXEL_5_0_filled RASTER_VRAM_GREEN /* HW_VERIFIED 2026-05-15 */
 
 // --------------------------------------------------------------------------
 // Texture window suite
