@@ -44,7 +44,7 @@ TEST(CPU, InterpreterValid) {
         ret.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
@@ -87,7 +87,7 @@ TEST(CPU, DynarecValid) {
         ret.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
@@ -224,12 +224,12 @@ TEST(CPU, InterpreterInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
@@ -270,12 +270,12 @@ TEST(CPU, DynarecInvalid) {
     nextMsanCheckIndex = 0;
     std::atomic_int ret(INT_MIN);
     MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
+                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
     std::thread thread([&](){
         ret.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && !invoker.isInStartup()) {
+    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }

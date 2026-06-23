@@ -24,18 +24,6 @@ SOFTWARE.
 
 */
 
-#ifndef PCSX_TESTS
-#define PCSX_TESTS 0
-#endif
-
-#if PCSX_TESTS
-#define CESTER_MAYBE_TEST CESTER_SKIP_TEST
-#else
-#define CESTER_MAYBE_TEST CESTER_TEST
-#endif
-
-#include "common/hardware/dma.h"
-#include "common/hardware/hwregs.h"
 #include "common/hardware/pcsxhw.h"
 
 #undef unix
