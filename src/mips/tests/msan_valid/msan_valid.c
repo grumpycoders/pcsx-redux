@@ -58,7 +58,7 @@ CESTER_AFTER_ALL(msan_valid_tests,
 
 // clang-format on
 
-CESTER_TEST(msan_32bit_sw_lw, msan_tests
+CESTER_TEST(msan_32bit_sw_lw, msan_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     register uint32_t result = 0;
@@ -74,7 +74,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests
 
 // SWL -> LWL
 
-CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests
+CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper byte 0x11
@@ -94,7 +94,7 @@ CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests
+CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper 2 bytes 0x1122
@@ -121,7 +121,7 @@ CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests
+CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store upper 3 bytes 0x112233
@@ -155,7 +155,7 @@ CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests
+CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store all 4 bytes 0x11223344
@@ -205,7 +205,7 @@ CESTER_TEST(msan_swl_8_to_lwl, msan_valid_tests
 
 // SWR -> LWR
 
-CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests
+CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower byte 0x44
@@ -225,7 +225,7 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests
+CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 2 bytes 0x3344
@@ -252,7 +252,7 @@ CESTER_TEST(msan_8bit_swr_8_to_16_bit_lwr, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests
+CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 3 bytes 0x223344
@@ -286,7 +286,7 @@ CESTER_TEST(msan_8bit_swr_8_to_24_bit_lwr, msan_valid_tests
     SUCCESS();
 )
 
-CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests
+CESTER_TEST(msan_8bit_swr_8_to_32_bit_lwr, msan_valid_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344
     // Store lower 3 bytes 0x11223344

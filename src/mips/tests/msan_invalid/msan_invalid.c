@@ -57,7 +57,7 @@ CESTER_AFTER_ALL(msan_invalid_tests,
 
 // clang-format on
 
-CESTER_TEST(msan_32bit_sw_lw, msan_tests
+CESTER_TEST(msan_32bit_sw_lw, msan_tests,
     register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
     register uint32_t value = 0x11223344;
     register uint32_t result = 0;
@@ -74,7 +74,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests
 // SWL -> LWL
 
 #define INVALID_SWX_LWX(name, sw_suffix, lw_suffix, store_off, load_off) \
-    CESTER_TEST(name, msan_invalid_tests \
+    CESTER_TEST(name, msan_invalid_tests, \
         register uint32_t mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t)); \
         register uint32_t value = 0x11223344; \
         __asm__ __volatile__( \
