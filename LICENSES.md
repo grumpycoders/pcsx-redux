@@ -1,19 +1,19 @@
 R"(
 
-PCSX-Redux, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)  
-PCSX-Redux comes with ABSOLUTELY NO WARRANTY.  
-This is free software, and you are welcome to redistribute it  
+PCSX-Redux, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)
+PCSX-Redux comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
 under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/LICENSE) for details.
 
-OpenBIOS, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)  
-OpenBIOS comes with ABSOLUTELY NO WARRANTY.  
-This is free software, and you are welcome to redistribute it  
+OpenBIOS, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)
+OpenBIOS comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
 under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/LICENSE) for details.
 
-PCSX-Redux uses many third party libraries to function,  
-each with its own license. The following is an alphabetical  
-list of the libraries used by PCSX-Redux. Some of them have been  
-vendored with modifications. If this is the case, you will also  
+PCSX-Redux uses many third party libraries to function,
+each with its own license. The following is an alphabetical
+list of the libraries used by PCSX-Redux. Some of them have been
+vendored with modifications. If this is the case, you will also
 find a link to the vendored version itself.
 
  - [arith64](https://github.com/glitchub/arith64) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/arith64))
@@ -43,7 +43,7 @@ find a link to the vendored version itself.
  - [llhttp](https://github.com/nodejs/llhttp) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/llhttp))
  - [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
  - [lua-protobuf](https://github.com/starwing/lua-protobuf) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/lua-protobuf))
- - [luafilesystem](https://github.com/lunarmodules/luafilesystem)
+ - [luafilesystem](https://github.com/lunarmodules/luafilesystem) ([vendored](https://github.com/nicolasnoble/luafilesystem))
  - [LuaJIT](https://github.com/LuaJIT/LuaJIT) ([vendored](https://github.com/grumpycoders/LuaJIT/tree/vendored-clib-virtual))
  - [luajit-opencl](https://github.com/malkia/luajit-opencl) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/glffi))
  - [luv](https://github.com/luvit/luv)
