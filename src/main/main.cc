@@ -491,7 +491,7 @@ runner.init({
 
 bool MainInvoker::isInStartup() {
     if (PCSX::g_system == nullptr || PCSX::g_emulator == nullptr) {
-        return false;
+        return true;
     }
     SystemImpl* system = reinterpret_cast<SystemImpl*>(PCSX::g_system);
     return system->m_inStartup;
