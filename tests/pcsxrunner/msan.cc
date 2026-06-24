@@ -49,8 +49,8 @@ void validTestLoop(const char* type) {
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
+        std::this_thread::sleep_for(10ms);
+        elapsed += std::chrono::milliseconds(10ms);
     }
     ASSERT_LT(elapsed, _30s_MILLIS) << "Test timed out waiting for system to start";
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
@@ -63,8 +63,8 @@ void validTestLoop(const char* type) {
     elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS && exitCode.load() == INT_MIN && !logMessageRecieved) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
+        std::this_thread::sleep_for(10ms);
+        elapsed += std::chrono::milliseconds(10ms);
     }
     if (elapsed >= _30s_MILLIS) {
         PCSX::g_system->quit();
@@ -77,11 +77,11 @@ void validTestLoop(const char* type) {
 }
 
 TEST(CPU, InterpreterValid) {
-    validTestLoop("-interpreter");
+    EXPECT_NO_FATAL_FAILURE(validTestLoop("-interpreter"));
 }
 
 TEST(CPU, DynarecValid) {
-    validTestLoop("-dynarec");
+    EXPECT_NO_FATAL_FAILURE(validTestLoop("-dynarec"));
 }
 
 // ==== INVALID ====
@@ -198,8 +198,8 @@ void invalidTestLoop(const char* type) {
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
+        std::this_thread::sleep_for(10ms);
+        elapsed += std::chrono::milliseconds(10ms);
     }
     ASSERT_LT(elapsed, _30s_MILLIS) << "Test timed out waiting for system to start";
     std::optional<std::string> result = std::nullopt;
@@ -228,8 +228,8 @@ void invalidTestLoop(const char* type) {
                 break;
             }
         }
-        std::this_thread::sleep_for(50ms);
-        elapsed += std::chrono::milliseconds(50ms);
+        std::this_thread::sleep_for(10ms);
+        elapsed += std::chrono::milliseconds(10ms);
     }
     if (elapsed >= _30s_MILLIS) {
         PCSX::g_system->quit();
@@ -244,9 +244,9 @@ void invalidTestLoop(const char* type) {
 }
 
 TEST(CPU, InterpreterInvalid) {
-    invalidTestLoop("-interpreter");
+    EXPECT_NO_FATAL_FAILURE(invalidTestLoop("-interpreter"));
 }
 
 TEST(CPU, DynarecInvalid) {
-    invalidTestLoop("-dynarec");
+    EXPECT_NO_FATAL_FAILURE(invalidTestLoop("-dynarec"));
 }
