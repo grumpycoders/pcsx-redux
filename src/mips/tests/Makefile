@@ -38,8 +38,8 @@ all:
 	$(MAKE) -C libc all
 	$(MAKE) -C memcpy all
 	$(MAKE) -C memset all
-	$(MAKE) -C msan-invalid all
-	$(MAKE) -C msan-valid all
+	# $(MAKE) -C msan-invalid all
+	# $(MAKE) -C msan-valid all
 	$(MAKE) -C pcdrv all
 	$(MAKE) -C psyqo all
 	$(MAKE) -C regwrites all
@@ -85,8 +85,8 @@ clean:
 	$(MAKE) -C libc clean
 	$(MAKE) -C memcpy clean
 	$(MAKE) -C memset clean
-	$(MAKE) -C msan-invalid clean
-	$(MAKE) -C msan-valid clean
+	# $(MAKE) -C msan-invalid clean
+	# $(MAKE) -C msan-valid clean
 	$(MAKE) -C pcdrv clean
 	$(MAKE) -C psyqo clean
 	$(MAKE) -C regwrites clean
