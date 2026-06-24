@@ -83,6 +83,7 @@ CESTER_TEST(msan_32bit_sw_lw, msan_invalid_tests,
             : "+r"(result) \
             : "r"(mem_32_bit) \
         ); \
+        /* Should leave our existing registered value untouched */ \
         cester_assert_equal(result, 0xAABBCCDD); \
     )
 

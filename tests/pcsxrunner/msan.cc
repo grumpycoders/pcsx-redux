@@ -17,12 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <sys/stat.h>
 #include <atomic>
 #include <bitset>
 #include <chrono>
 #include <climits>
 #include <cstdint>
 #include <ios>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <thread>
@@ -35,30 +37,32 @@
 
 static constexpr std::chrono::milliseconds _30s_MILLIS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(30));
 
-TEST(CPU, InterpreterValid) {
+// ==== VALID ====
+
+void validTestLoop(const char* type) {
     using namespace std::chrono_literals;
-    std::atomic_int ret(INT_MIN);
-    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+    std::atomic_int exitCode(INT_MIN);
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", type,
                         "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
     std::thread thread([&](){
-        ret.store(invoker.invoke());
+        exitCode.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
+    ASSERT_LT(elapsed, _30s_MILLIS) << "Test timed out waiting for system to start";
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     std::atomic_bool logMessageRecieved = false;
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
-        if (event.logClass == PCSX::LogClass::CPU
-            && event.message.starts_with("32-bit read")) {
+        if (event.logClass == PCSX::LogClass::CPU) {
             logMessageRecieved = true; 
         }
     });
     elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
-    while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
+    while (elapsed < _30s_MILLIS && exitCode.load() == INT_MIN && !logMessageRecieved) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
@@ -68,58 +72,19 @@ TEST(CPU, InterpreterValid) {
     if (thread.joinable()) {
         thread.join();
     }
-    if (logMessageRecieved) {
-        FAIL() << "Unexpected MSAN log encountered";
-    }
-    const int exit_code = ret.load();
-    if (exit_code == INT_MIN) {
-        FAIL() << "Test timed out";
-    }
-    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
+    ASSERT_FALSE(logMessageRecieved.load()) << "Unexpected MSAN log encountered";
+    EXPECT_EQ(exitCode.load(), 0);
+}
+
+TEST(CPU, InterpreterValid) {
+    validTestLoop("-interpreter");
 }
 
 TEST(CPU, DynarecValid) {
-    using namespace std::chrono_literals;
-    std::atomic_int ret(INT_MIN);
-    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-valid/msan-valid.ps-exe");
-    std::thread thread([&](){
-        ret.store(invoker.invoke());
-    });
-    std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
-    std::atomic_bool logMessageRecieved = false;
-    listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
-        if (event.logClass == PCSX::LogClass::CPU
-            && event.message.starts_with("32-bit read")) {
-            logMessageRecieved = true; 
-        }
-    });
-    elapsed = std::chrono::milliseconds(0);
-    PCSX::g_system->resume();
-    while (elapsed < _30s_MILLIS && ret.load() == INT_MIN && !logMessageRecieved) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    if (elapsed >= _30s_MILLIS) {
-        PCSX::g_system->quit();
-    }
-    if (thread.joinable()) {
-        thread.join();
-    }
-    if (logMessageRecieved) {
-        FAIL() << "Unexpected MSAN log encountered";
-    }
-    const int exit_code = ret.load();
-    if (exit_code == INT_MIN) {
-        FAIL() << "Test timed out";
-    }
-    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
+    validTestLoop("-dynarec");
 }
+
+// ==== INVALID ====
 
 inline uint8_t inspectMsanInitializedBitmap(const uint32_t address) {
     const uint32_t bitmapIndex = (address - PCSX::g_emulator->m_mem->c_msanStart) / 8;
@@ -207,6 +172,8 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
     }
     const uint8_t expectedInitBitmap = SWX_EXPECTED_BITMASKS[nextMsanCheckIndex];
     const uint8_t actualInitBitmap = inspectMsanInitializedBitmap(alloc->first);
+    std::cout << "Expected bitmap: " << std::bitset<8>(expectedInitBitmap)
+        << " Actual bitmap: " << std::bitset<8>(actualInitBitmap) << std::endl;
     if (expectedInitBitmap != actualInitBitmap) {
         std::stringstream ss;
         ss << "Initialized bitmap for address 0x" << std::hex << alloc->first
@@ -219,35 +186,50 @@ std::optional<std::string> nextMsanTest(const std::string& msg) {
     return std::nullopt;
 }
 
-TEST(CPU, InterpreterInvalid) {
+void invalidTestLoop(const char* type) {
     using namespace std::chrono_literals;
     nextMsanCheckIndex = 0;
-    std::atomic_int ret(INT_MIN);
-    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+    using namespace std::chrono_literals;
+    std::atomic_int exitCode(INT_MIN);
+    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", type,
                         "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
     std::thread thread([&](){
-        ret.store(invoker.invoke());
+        exitCode.store(invoker.invoke());
     });
     std::chrono::milliseconds elapsed(0);
     while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
         std::this_thread::sleep_for(200ms);
         elapsed += std::chrono::milliseconds(200ms);
     }
+    ASSERT_LT(elapsed, _30s_MILLIS) << "Test timed out waiting for system to start";
     std::optional<std::string> result = std::nullopt;
+    std::mutex resultMutex;
     PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
         if (event.logClass != PCSX::LogClass::CPU
             || !event.message.starts_with("32-bit read")) {
+            std::stringstream ss;
+            ss << "Unexpected log message encountered: " << event.message;
+            std::lock_guard<std::mutex> guard(resultMutex);
+            result = ss.str();
             return;
         }
-        nextMsanTest(event.message);
+        std::cout << "Event encountered: " << event.message << std::endl;
+        std::lock_guard<std::mutex> guard(resultMutex);
+        result = nextMsanTest(event.message);
     });
     elapsed = std::chrono::milliseconds(0);
     PCSX::g_system->resume();
     while (elapsed < _30s_MILLIS
-        && ret.load() == INT_MIN) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
+        && exitCode.load() == INT_MIN) {
+        {
+            std::lock_guard<std::mutex> guard(resultMutex);
+            if (result.has_value()) {
+                break;
+            }
+        }
+        std::this_thread::sleep_for(50ms);
+        elapsed += std::chrono::milliseconds(50ms);
     }
     if (elapsed >= _30s_MILLIS) {
         PCSX::g_system->quit();
@@ -258,55 +240,13 @@ TEST(CPU, InterpreterInvalid) {
     if (result.has_value()) {
         FAIL() << result.value();
     }
-    const int exit_code = ret.load();
-    if (exit_code == INT_MIN) {
-        FAIL() << "Test timed out";
-    }
-    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
+    EXPECT_EQ(exitCode.load(), 0);
+}
+
+TEST(CPU, InterpreterInvalid) {
+    invalidTestLoop("-interpreter");
 }
 
 TEST(CPU, DynarecInvalid) {
-    using namespace std::chrono_literals;
-    nextMsanCheckIndex = 0;
-    std::atomic_int ret(INT_MIN);
-    MainInvoker invoker("-no-ui", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
-                        "-luacov", "-loadexe", "src/mips/tests/msan-invalid/msan-invalid.ps-exe");
-    std::thread thread([&](){
-        ret.store(invoker.invoke());
-    });
-    std::chrono::milliseconds elapsed(0);
-    while (elapsed < _30s_MILLIS && invoker.isInStartup()) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    std::optional<std::string> result = std::nullopt;
-    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
-    listener.listen<PCSX::Events::LogMessage>([](const PCSX::Events::LogMessage& event) {
-        if (event.logClass != PCSX::LogClass::CPU
-            || !event.message.starts_with("32-bit read")) {
-            return;
-        }
-        nextMsanTest(event.message);
-    });
-    elapsed = std::chrono::milliseconds(0);
-    PCSX::g_system->resume();
-    while (elapsed < _30s_MILLIS
-        && ret.load() == INT_MIN) {
-        std::this_thread::sleep_for(200ms);
-        elapsed += std::chrono::milliseconds(200ms);
-    }
-    if (elapsed >= _30s_MILLIS) {
-        PCSX::g_system->quit();
-    }
-    if (thread.joinable()) {
-        thread.join();
-    }
-    if (result.has_value()) {
-        FAIL() << result.value();
-    }
-    const int exit_code = ret.load();
-    if (exit_code == INT_MIN) {
-        FAIL() << "Test timed out";
-    }
-    EXPECT_EQ(exit_code, 0) << "Mismatch in expected exit code";
+    invalidTestLoop("-dynarec");
 }
