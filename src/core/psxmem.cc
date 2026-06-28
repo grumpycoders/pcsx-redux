@@ -27,6 +27,7 @@
 #include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
 #include "supportpsx/binloader.h"
@@ -899,6 +900,7 @@ uint32_t PCSX::Memory::msanAlloc(uint32_t size) {
 
     // Check if we still have enough memory.
     if (m_msanPtr + actualSize > c_msanSize) {
+        g_system->printf(_("m_msanPtr: 0x%x actualSize: %zu, c_msanSize: %zu\n"), m_msanPtr, actualSize, c_msanSize);
         g_system->printf(_("Out of memory in MsanAlloc\n"));
         g_system->pause();
         return 0;

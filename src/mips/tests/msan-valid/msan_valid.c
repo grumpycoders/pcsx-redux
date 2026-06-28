@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-
+#include <stdint.h>
 #include "common/hardware/pcsxhw.h"
 
 #undef unix
@@ -34,30 +34,27 @@ SOFTWARE.
 #include "exotic/cester.h"
 
 // clang-format off
-
-CESTER_BODY(
-    static uint32_t* mem_32_bit = NULL;
+#if PCSX_TESTS
+CESTER_BEFORE_EACH(test_instance, testname, testindex,
+    test_instance->arg = pcsx_msanAlloc(sizeof(uint32_t));
 )
 
-CESTER_BEFORE_EACH(msan_valid_tests, testname, testindex,
-    mem_32_bit = (uint32_t*) pcsx_msanAlloc(sizeof(uint32_t));
+CESTER_AFTER_EACH(test_instance, testname, testindex,
+    pcsx_msanFree(test_instance->arg);
 )
 
-CESTER_AFTER_EACH(msan_valid_tests, testname, testindex,
-        pcsx_msanFree(mem_32_bit);
-)
-
-CESTER_BEFORE_ALL(msan_valid_tests,
+CESTER_BEFORE_ALL(test_instance,
     pcsx_initMsan();
 )
 
-CESTER_AFTER_ALL(msan_valid_tests,
+CESTER_AFTER_ALL(test_instance,
     pcsx_resetMsan();
 )
-
+#endif
 // clang-format on
 
-CESTER_TEST(msan_32bit_sw_lw, msan_tests,
+CESTER_TEST(msan_32bit_sw_lw, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     register volatile uint32_t result = 0;
     __asm__ __volatile__(
@@ -80,7 +77,8 @@ CESTER_TEST(msan_32bit_sw_lw, msan_tests,
 
 // SWL -> LWL
 
-CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
+CESTER_TEST(msan_8bit_swl_8bit_lwl, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper byte 0x11
     __asm__ __volatile__(
@@ -92,7 +90,8 @@ CESTER_TEST(msan_8bit_swl_8bit_lwl, msan_valid_tests,
     LWX(l, 0, 0x11BBCCDD);
 )
 
-CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
+CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper 2 bytes 0x1122
     __asm__ __volatile__(
@@ -105,7 +104,8 @@ CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, msan_valid_tests,
     LWX(l, 1, 0x1122CCDD);
 )
 
-CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
+CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper 3 bytes 0x112233
     __asm__ __volatile__(
@@ -119,7 +119,8 @@ CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, msan_valid_tests,
     LWX(l, 2, 0x112233DD);
 )
 
-CESTER_TEST(msan_32bit_swl_8_to_32bit_lwl, msan_valid_tests,
+CESTER_TEST(msan_32bit_swl_8_to_32bit_lwl, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store all 4 bytes 0x11223344
     __asm__ __volatile__(
@@ -137,7 +138,8 @@ CESTER_TEST(msan_32bit_swl_8_to_32bit_lwl, msan_valid_tests,
 
 // SWR -> LWR
 
-CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
+CESTER_TEST(msan_8bit_swr_8bit_lwr, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower byte 0x44
     __asm__ __volatile__(
@@ -149,7 +151,8 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, msan_valid_tests,
     LWX(r, 3, 0xAABBCC44);
 )
 
-CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, msan_valid_tests,
+CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 2 bytes 0x3344
     __asm__ __volatile__(
@@ -162,7 +165,8 @@ CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, msan_valid_tests,
     LWX(r, 2, 0xAABB3344);
 )
 
-CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, msan_valid_tests,
+CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 3 bytes 0x223344
     __asm__ __volatile__(
@@ -176,7 +180,8 @@ CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, msan_valid_tests,
     LWX(r, 1, 0xAA223344);
 )
 
-CESTER_TEST(msan_32bit_swr_8_to_32_bit_lwr, msan_valid_tests,
+CESTER_TEST(msan_32bit_swr_8_to_32_bit_lwr, test_instance,
+    register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 3 bytes 0x11223344
     __asm__ __volatile__(

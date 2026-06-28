@@ -1147,6 +1147,7 @@ void DynaRecCPU::recSWL(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0xFFFFFF0000000018, 0xFFFF000000000010, 0xFF00000000000008, 0};
+    // TODO: Port Aarch64 changes using address & 3 instead of _Imm_ to here.
     const uint32_t msanWriteMask = 0b1111 >> (3 - _Imm_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant

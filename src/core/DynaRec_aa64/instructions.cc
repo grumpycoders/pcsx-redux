@@ -487,13 +487,13 @@ void DynaRecCPU::recLWL(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0x00FFFFFF00000018, 0x0000FFFF00000010, 0x000000FF00000008, 0};
-    const uint32_t msanReadMask = 0b1111 >> (3 - _Imm_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
         const auto shift = LWL_SHIFT[address & 3];
+        const uint32_t msanReadMask = 0b1111 >> (3 - (address & 3));
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
@@ -512,6 +512,7 @@ void DynaRecCPU::recLWL(uint32_t code) {
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
         const auto shift = LWL_SHIFT[address & 3];
+        const uint32_t msanReadMask = 0b1111 >> (3 - (address & 3));
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
         gen.Mov(arg2, msanReadMask);    // Mask in arg2
@@ -528,9 +529,11 @@ void DynaRecCPU::recLWL(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                 // Force align it
-        gen.Mov(arg2, msanReadMask);                             // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, w3, ~3);                                 // Force align it
+        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.Sub(arg2, 3, arg2);
+        gen.Lsr(arg2, 0b1111, arg2);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
@@ -549,9 +552,11 @@ void DynaRecCPU::recLWL(uint32_t code) {
         }
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                 // Force align it
-        gen.Mov(arg2, msanReadMask);                             // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, w3, ~3);                                 // Force align it
+        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.Sub(arg2, 3, arg2);
+        gen.Lsr(arg2, 0b1111, arg2);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
@@ -574,13 +579,13 @@ void DynaRecCPU::recLWR(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0xFF00000000000008, 0xFFFF000000000010, 0xFFFFFF0000000018};
-    const uint32_t msanReadMask = (0b1111 << _Imm_) & 0b1111;
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWR_MASK[address & 3];
         const auto shift = LWR_SHIFT[address & 3];
+        const uint32_t msanReadMask = (0b1111 << (address & 3)) & 0b1111;
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
@@ -599,6 +604,7 @@ void DynaRecCPU::recLWR(uint32_t code) {
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWR_MASK[address & 3];
         const auto shift = LWR_SHIFT[address & 3];
+        const uint32_t msanReadMask = (0b1111 << (address & 3)) & 0b1111;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1
         gen.Mov(arg2, msanReadMask);    // Mask in arg2
@@ -615,9 +621,11 @@ void DynaRecCPU::recLWR(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                 // Force align it
-        gen.Mov(arg2, msanReadMask);                             // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, w3, ~3);                                 // Force align it
+        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.Lsl(arg2, 0b1111, arg2);
+        gen.And(arg2, arg2, 0b1111);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
 
         if (_Rt_) {
@@ -636,9 +644,11 @@ void DynaRecCPU::recLWR(uint32_t code) {
         }
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, arg1, ~3);                                 // Force align it
-        gen.Mov(arg2, msanReadMask);                             // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        gen.And(arg1, w3, ~3);                                 // Force align it
+        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.Lsl(arg2, 0b1111, arg2);
+        gen.And(arg2, arg2, 0b1111);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in eax
 
         if (_Rt_) {
@@ -1362,13 +1372,13 @@ void DynaRecCPU::recSWL(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0xFFFFFF0000000018, 0xFFFF000000000010, 0xFF00000000000008, 0};
-    const uint32_t msanWriteMask = 0b1111 >> (3 - _Imm_);
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = SWL_MASK[address & 3];
         const auto shift = SWL_SHIFT[address & 3];
+        const uint32_t msanWriteMask = 0b1111 >> (3 - (address & 3));
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         gen.Mov(arg2, 0x0);             // Mask in arg2
@@ -1385,6 +1395,7 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = SWL_MASK[address & 3];
         const auto shift = SWL_SHIFT[address & 3];
+        const uint32_t msanWriteMask = 0b1111 >> (3 - (address & 3));
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         gen.Mov(arg2, 0x0);             // Mask in arg2
@@ -1419,7 +1430,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.And(x0, x0, Operand(x3, LSR, 32));      // Mask read value
         gen.Orr(arg2, arg2, w0);
         gen.Mov(arg1, w5);
-        gen.Mov(arg3, msanWriteMask);               // Mask in arg3
+        gen.Sub(arg3, 3, w2);                       // Mask in arg3
+        gen.Lsr(arg3, 0b1111, arg3);
         call(write32MaskedWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
@@ -1443,7 +1455,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.And(x0, x0, Operand(x3, LSR, 32));         // Mask read value
         gen.Orr(arg2, arg2, w0);                       // arg2 = value to write to memory
         gen.Mov(arg1, w5);
-        gen.Mov(arg3, msanWriteMask);                  // Mask in arg3
+        gen.Sub(arg3, 3, w2);                          // Mask in arg3
+        gen.Lsr(arg3, 0b1111, arg3);
         call(write32MaskedWrapper);
     }
 }
@@ -1452,13 +1465,13 @@ void DynaRecCPU::recSWR(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0x000000FF00000008, 0x0000FFFF00000010, 0x00FFFFFF00000018};
-    const uint32_t msanWriteMask = (0b1111 << _Imm_) & 0b1111;
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = SWR_MASK[address & 3];
         const auto shift = SWR_SHIFT[address & 3];
+        const uint32_t msanWriteMask = (0b1111 << (address & 3)) & 0b1111;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         gen.Mov(arg2, 0x0);             // Mask in arg2
@@ -1475,6 +1488,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = SWR_MASK[address & 3];
         const auto shift = SWR_SHIFT[address & 3];
+        const uint32_t msanWriteMask = (0b1111 << (address & 3)) & 0b1111;
 
         gen.Mov(arg1, alignedAddress);  // Address in arg1 (w0)
         gen.Mov(arg2, 0x0);             // Mask in arg2
@@ -1510,7 +1524,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.And(x0, x0, Operand(x3, LSR, 32));  // Mask read value
         gen.Orr(arg2, arg2, w0);
         gen.Mov(arg1, w5);
-        gen.Mov(arg3, msanWriteMask);           // Mask in arg3
+        gen.Lsl(arg3, 0b1111, w2);              // Mask in arg3
+        gen.And(arg3, 0b1111);
         call(write32MaskedWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
@@ -1535,7 +1550,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.And(x0, x0, Operand(x3, LSR, 32));     // Mask read value
         gen.Orr(arg2, arg2, w0);                   // Or with read value
         gen.Mov(arg1, w5);
-        gen.Mov(arg3, msanWriteMask);              // Mask in arg3
+        gen.Lsl(arg3, 0b1111, w2);              // Mask in arg3
+        gen.And(arg3, 0b1111);
         call(write32MaskedWrapper);
     }
 }
