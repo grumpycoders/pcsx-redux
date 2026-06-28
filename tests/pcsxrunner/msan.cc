@@ -244,8 +244,8 @@ void execInvalidTest(const char* type) {
                     PCSX::g_system->quit(3);
                     break;
                 }
-                PCSX::g_system->resume();
                 resumeSystem = false;
+                PCSX::g_system->resume();
             }
         }
         std::this_thread::sleep_for(10ms);

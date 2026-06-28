@@ -26,6 +26,12 @@ SOFTWARE.
 #include <stdint.h>
 #include "common/hardware/pcsxhw.h"
 
+#if pcsx_tests
+#define cester_maybe_test cester_skip_test
+#else
+#define cester_maybe_test cester_test
+#endif
+
 #undef unix
 #define CESTER_NO_SIGNAL
 #define CESTER_NO_TIME
@@ -34,7 +40,7 @@ SOFTWARE.
 #include "exotic/cester.h"
 
 // clang-format off
-#if PCSX_TESTS
+
 CESTER_BEFORE_EACH(test_instance, testname, testindex,
     test_instance->arg = pcsx_msanAlloc(sizeof(uint32_t));
 )
@@ -50,10 +56,10 @@ CESTER_BEFORE_ALL(test_instance,
 CESTER_AFTER_ALL(test_instance,
     pcsx_resetMsan();
 )
-#endif
+
 // clang-format on
 
-CESTER_TEST(msan_32bit_sw_lw, test_instance,
+CESTER_MAYBE_TEST(msan_32bit_sw_lw, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     register volatile uint32_t result = 0;
@@ -77,7 +83,7 @@ CESTER_TEST(msan_32bit_sw_lw, test_instance,
 
 // SWL -> LWL
 
-CESTER_TEST(msan_8bit_swl_8bit_lwl, test_instance,
+CESTER_MAYBE_TEST(msan_8bit_swl_8bit_lwl, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper byte 0x11
@@ -90,7 +96,7 @@ CESTER_TEST(msan_8bit_swl_8bit_lwl, test_instance,
     LWX(l, 0, 0x11BBCCDD);
 )
 
-CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, test_instance,
+CESTER_MAYBE_TEST(msan_16bit_swl_8_to_16bit_lwl, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper 2 bytes 0x1122
@@ -104,7 +110,7 @@ CESTER_TEST(msan_16bit_swl_8_to_16bit_lwl, test_instance,
     LWX(l, 1, 0x1122CCDD);
 )
 
-CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, test_instance,
+CESTER_MAYBE_TEST(msan_24bit_swl_8_to_24bit_lwl, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store upper 3 bytes 0x112233
@@ -119,7 +125,7 @@ CESTER_TEST(msan_24bit_swl_8_to_24bit_lwl, test_instance,
     LWX(l, 2, 0x112233DD);
 )
 
-CESTER_TEST(msan_32bit_swl_8_to_32bit_lwl, test_instance,
+CESTER_MAYBE_TEST(msan_32bit_swl_8_to_32bit_lwl, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store all 4 bytes 0x11223344
@@ -138,7 +144,7 @@ CESTER_TEST(msan_32bit_swl_8_to_32bit_lwl, test_instance,
 
 // SWR -> LWR
 
-CESTER_TEST(msan_8bit_swr_8bit_lwr, test_instance,
+CESTER_MAYBE_TEST(msan_8bit_swr_8bit_lwr, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower byte 0x44
@@ -151,7 +157,7 @@ CESTER_TEST(msan_8bit_swr_8bit_lwr, test_instance,
     LWX(r, 3, 0xAABBCC44);
 )
 
-CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, test_instance,
+CESTER_MAYBE_TEST(msan_16bit_swr_8_to_16_bit_lwr, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 2 bytes 0x3344
@@ -165,7 +171,7 @@ CESTER_TEST(msan_16bit_swr_8_to_16_bit_lwr, test_instance,
     LWX(r, 2, 0xAABB3344);
 )
 
-CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, test_instance,
+CESTER_MAYBE_TEST(msan_24bit_swr_8_to_24_bit_lwr, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 3 bytes 0x223344
@@ -180,7 +186,7 @@ CESTER_TEST(msan_24bit_swr_8_to_24_bit_lwr, test_instance,
     LWX(r, 1, 0xAA223344);
 )
 
-CESTER_TEST(msan_32bit_swr_8_to_32_bit_lwr, test_instance,
+CESTER_MAYBE_TEST(msan_32bit_swr_8_to_32_bit_lwr, test_instance,
     register uint32_t* mem_32_bit = (uint32_t*) test_instance->arg;
     register uint32_t value = 0x11223344;
     // Store lower 3 bytes 0x11223344
