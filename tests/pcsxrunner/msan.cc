@@ -17,11 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <sys/stat.h>
 #include <atomic>
-#include <bitset>
 #include <chrono>
-#include <cstdint>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -51,9 +48,9 @@ void execValidTest(const char* type) {
         exitCode.store(invoker.invoke());
     });
     while (invoker.isInStartup());
-    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     std::atomic_bool shouldFail = false;
     std::atomic_bool msanTriggered = false;
+    PCSX::EventBus::Listener listener(PCSX::g_system->m_eventBus);
     listener.listen<PCSX::Events::LogMessage>([&](const PCSX::Events::LogMessage& event) {
         if (isMsanLog(event)) {
             msanTriggered = true; 

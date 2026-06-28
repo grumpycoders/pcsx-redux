@@ -26,10 +26,10 @@ SOFTWARE.
 #include <stdint.h>
 #include "common/hardware/pcsxhw.h"
 
-#if pcsx_tests
-#define cester_maybe_test cester_skip_test
+#if PCSX_TESTS
+#define CESTER_MAYBE_TEST CESTER_SKIP_TEST
 #else
-#define cester_maybe_test cester_test
+#define CESTER_MAYBE_TEST CESTER_TEST
 #endif
 
 #undef unix
