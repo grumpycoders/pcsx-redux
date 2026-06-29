@@ -936,7 +936,7 @@ void InterpretedCPU::psxLW(uint32_t code) {
 void InterpretedCPU::psxLWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    const uint32_t msanReadMask = 0b1111 >> (3 - _Imm_);
+    const uint32_t msanReadMask = 0b1111 >> (3 - shift);
     uint32_t mem = PCSX::g_emulator->m_mem->read32(
         addr & ~3,
         PCSX::Memory::ReadType::Data,
@@ -959,7 +959,7 @@ void InterpretedCPU::psxLWL(uint32_t code) {
 void InterpretedCPU::psxLWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    const uint32_t msanReadMask = (0b1111 << _Imm_) & 0b1111;
+    const uint32_t msanReadMask = (0b1111 << shift) & 0b1111;
     uint32_t mem = PCSX::g_emulator->m_mem->read32(
         addr & ~3,
         PCSX::Memory::ReadType::Data,
@@ -1015,7 +1015,7 @@ void InterpretedCPU::psxSWL(uint32_t code) {
         PCSX::Memory::ReadType::Data,
         0x0 
     );
-    const uint32_t msanWriteMask = 0b1111 >> (3 - _Imm_);
+    const uint32_t msanWriteMask = 0b1111 >> (3 - shift);
     PCSX::g_emulator->m_mem->write32(
         addr,
         (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]),
@@ -1040,7 +1040,7 @@ void InterpretedCPU::psxSWR(uint32_t code) {
         PCSX::Memory::ReadType::Data,
         0x0 
     );
-    const uint32_t msanWriteMask = (0b1111 << _Imm_) & 0b1111;
+    const uint32_t msanWriteMask = (0b1111 << shift) & 0b1111;
     PCSX::g_emulator->m_mem->write32(
         addr,
         (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]),

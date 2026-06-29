@@ -529,9 +529,9 @@ void DynaRecCPU::recLWL(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, w3, ~3);                                 // Force align it
-        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);    // Address in arg1
+        gen.And(arg1, w3, ~3);                                   // Force align it
+        gen.And(arg2, w3, 3);                                    // Mask in arg2
         gen.Sub(arg2, 3, arg2);
         gen.Lsr(arg2, 0b1111, arg2);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
@@ -552,9 +552,9 @@ void DynaRecCPU::recLWL(uint32_t code) {
         }
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, w3, ~3);                                 // Force align it
-        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);    // Address in arg1
+        gen.And(arg1, w3, ~3);                                   // Force align it
+        gen.And(arg2, w3, 3);                                    // Mask in arg2
         gen.Sub(arg2, 3, arg2);
         gen.Lsr(arg2, 0b1111, arg2);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
@@ -621,9 +621,9 @@ void DynaRecCPU::recLWR(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, w3, ~3);                                 // Force align it
-        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);    // Address in arg1
+        gen.And(arg1, w3, ~3);                                   // Force align it
+        gen.And(arg2, w3, 3);                                    // Mask in arg2
         gen.Lsl(arg2, 0b1111, arg2);
         gen.And(arg2, arg2, 0b1111);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in w0
@@ -644,9 +644,9 @@ void DynaRecCPU::recLWR(uint32_t code) {
         }
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
-        gen.And(arg1, w3, ~3);                                 // Force align it
-        gen.And(arg2, w3, 3);                                  // Mask in arg2
+        gen.moveAndAdd(x3, m_gprs[_Rs_].allocatedReg, _Imm_);    // Address in arg1
+        gen.And(arg1, w3, ~3);                                   // Force align it
+        gen.And(arg2, w3, 3);                                    // Mask in arg2
         gen.Lsl(arg2, 0b1111, arg2);
         gen.And(arg2, arg2, 0b1111);
         call(read32MaskedWrapper);                               // Read from the aligned address, result in eax
@@ -1550,7 +1550,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.And(x0, x0, Operand(x3, LSR, 32));     // Mask read value
         gen.Orr(arg2, arg2, w0);                   // Or with read value
         gen.Mov(arg1, w5);
-        gen.Lsl(arg3, 0b1111, w2);              // Mask in arg3
+        gen.Lsl(arg3, 0b1111, w2);                 // Mask in arg3
         gen.And(arg3, 0b1111);
         call(write32MaskedWrapper);
     }

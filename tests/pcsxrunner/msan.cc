@@ -23,6 +23,7 @@
 #include <mutex>
 #include <optional>
 #include <thread>
+#include <bitset>
 #include "fmt/printf.h"
 #include "gtest/gtest.h"
 #include "main/main.h"
