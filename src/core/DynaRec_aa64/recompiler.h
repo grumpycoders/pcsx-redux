@@ -83,6 +83,9 @@
 static uint8_t read8Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read8(address); }
 static uint16_t read16Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read16(address); }
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+static uint32_t read32MaskedWrapper(uint32_t address, const uint32_t msanSubBitmask) {
+    return PCSX::g_emulator->m_mem->read32(address, PCSX::Memory::ReadType::Data, msanSubBitmask);
+}
 
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
@@ -91,6 +94,9 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
 static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
 static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+static void write32MaskedWrapper(uint32_t address, uint32_t value, const uint32_t msanSubBitmask) {
+    PCSX::g_emulator->m_mem->write32(address, value, msanSubBitmask);
+}
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 

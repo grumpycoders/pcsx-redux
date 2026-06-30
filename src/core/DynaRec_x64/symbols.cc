@@ -26,9 +26,10 @@
 #include "fmt/format.h"
 
 #define REGISTER_VARIABLE(variable, name, size) \
-    m_symbols += fmt::format("{} {} {}\n", (void*)&(variable), (name), (size))
+    m_symbols += fmt::format("{} {} {}\n", reinterpret_cast<const void*>(&(variable)), (name), (size))
 
-#define REGISTER_FUNCTION(function, name) m_symbols += fmt::format("{} {}\n", (void*)&(function), (name));
+#define REGISTER_FUNCTION(function, name) \
+    m_symbols += fmt::format("{} {}\n", reinterpret_cast<const void*>(&(function)), (name));
 
 #define REGISTER_CLASS_FUNCTION(function, name)            \
     {                                                      \
@@ -93,7 +94,9 @@ void DynaRecCPU::makeSymbols() {
     }
 
     REGISTER_FUNCTION(read32Wrapper, "read32_wrapper");
+    REGISTER_FUNCTION(read32MaskedWrapper, "read32_masked_wrapper");
     REGISTER_FUNCTION(write32Wrapper, "write32_wrapper");
+    REGISTER_FUNCTION(write32MaskedWrapper, "write32_masked_wrapper");
 
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read8, "read8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read16, "read16");
