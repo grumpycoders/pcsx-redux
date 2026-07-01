@@ -94,6 +94,22 @@ class MemoryCardFileSystem {
         uint8_t firstBlock;     // 1..15
     };
 
+    /**
+     * @brief A file's on-card metadata: its title and icon.
+     *
+     * @details Returned by `readFileInfo`, this is the read counterpart to the
+     * title and icon that `writeFile` stores. `title` is the raw 64-byte
+     * Shift-JIS field exactly as it sits in the file's title frame (printable
+     * ASCII appears in its fullwidth form, the way `writeFile` promotes it),
+     * NUL-terminated at [64]. `icon` is the byte-for-byte inverse of what
+     * `writeFile` laid down: `frameCount` frames of a 16-colour palette and a
+     * 16x16 4bpp bitmap.
+     */
+    struct FileInfo {
+        uint8_t title[65];  // 64-byte Shift-JIS title field + NUL
+        Icon icon;          // palette + up to 3 animation frames
+    };
+
     explicit MemoryCardFileSystem(MemoryCard &card) : m_card(card) {}
 
     /**
@@ -161,6 +177,22 @@ class MemoryCardFileSystem {
                   eastl::function<void(Error)> &&callback);
 
     /**
+     * @brief Reads a file's title and icon.
+     *
+     * @details Fills `*out` with the file's title frame (the raw Shift-JIS
+     * title and the icon palette) and its icon bitmap frames, so a caller can
+     * display saved blocks the way the BIOS manager does. This is the read
+     * counterpart to `writeFile`'s title and icon; it reads only the file's
+     * first block, never the payload.
+     *
+     * @param name The Sony filename to look up. Must stay valid until the
+     * callback fires.
+     * @param out Receives the title and icon. Must stay valid until the
+     * callback fires.
+     */
+    void readFileInfo(Port port, const char *name, FileInfo *out, eastl::function<void(Error)> &&callback);
+
+    /**
      * @brief Creates or overwrites a file.
      *
      * @details The file is sized to hold the title frame, the icon frames and
@@ -197,6 +229,7 @@ class MemoryCardFileSystem {
     Error listFilesBlocking(GPU &gpu, Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount);
     Error fileExistsBlocking(GPU &gpu, Port port, const char *name, bool *outExists);
     Error readFileBlocking(GPU &gpu, Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen);
+    Error readFileInfoBlocking(GPU &gpu, Port port, const char *name, FileInfo *out);
     Error writeFileBlocking(GPU &gpu, Port port, const char *name, const char *title, const Icon &icon,
                             const void *data, uint32_t dataLen);
     Error deleteFileBlocking(GPU &gpu, Port port, const char *name);
@@ -250,6 +283,7 @@ class MemoryCardFileSystem {
         ListFiles,
         FileExists,
         ReadFile,
+        ReadInfo,
         WriteFile,
         DeleteFile,
     };
@@ -259,6 +293,7 @@ class MemoryCardFileSystem {
         ReadDir,    // read the 15 directory frames (m_idx = 0..14)
         ReadTitle,  // read a file's first frame to size its header (readFile)
         ReadData,   // read a file's payload frames (readFile)
+        ReadInfo,   // read a file's title + icon frames (readFileInfo)
         WriteData,  // write title/icon/payload frames (writeFile)
         WriteDir,   // commit the dirty directory frames (write/delete)
         Format,     // write the format frames (m_idx = 0..63)
@@ -323,6 +358,7 @@ class MemoryCardFileSystem {
     uint32_t *m_outCount = nullptr;
     bool *m_outExists = nullptr;
     FileEntry *m_outEntries = nullptr;
+    FileInfo *m_outInfo = nullptr;
     uint32_t m_maxEntries = 0;
     Icon m_icon = {};
 };

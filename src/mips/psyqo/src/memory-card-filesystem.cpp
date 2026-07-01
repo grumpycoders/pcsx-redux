@@ -217,6 +217,13 @@ void psyqo::MemoryCardFileSystem::issueOrFinish() {
             return;
         }
 
+        case Phase::ReadInfo:
+            // Read the file's first block: frame 0 is the title + palette,
+            // frames 1..N are the icon bitmaps.
+            m_card.readSector(m_port, static_cast<uint16_t>(blockToSector(m_chain[0]) + m_frameInBlock),
+                              m_scratch.bytes, [this](Error e) { onSectorDone(e); });
+            return;
+
         case Phase::WriteData: {
             unsigned base = m_chain[m_blockIdx] << 6;
             uint32_t frame = m_frameInBlock;
@@ -360,6 +367,36 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
             break;
         }
 
+        case Phase::ReadInfo: {
+            if (m_frameInBlock == 0) {
+                // Title frame: magic "SC", the icon frame count, the raw
+                // Shift-JIS title and the 16-colour palette.
+                uint32_t iconFrames = 1;
+                if (m_scratch.bytes[0] == 'S' && m_scratch.bytes[1] == 'C') {
+                    iconFrames = m_scratch.bytes[2] & 0x0f;
+                    if (iconFrames < 1 || iconFrames > 3) iconFrames = 1;
+                }
+                m_iconFrames = iconFrames;
+                if (m_outInfo) {
+                    __builtin_memcpy(m_outInfo->title, m_scratch.bytes + 0x04, 64);
+                    m_outInfo->title[64] = '\0';
+                    m_outInfo->icon.frameCount = static_cast<uint8_t>(iconFrames);
+                    for (uint32_t c = 0; c < 16; c++) {
+                        m_outInfo->icon.clut[c] = get16(m_scratch.bytes + 0x60 + c * 2);
+                    }
+                    __builtin_memset(m_outInfo->icon.pixels, 0, sizeof(m_outInfo->icon.pixels));
+                }
+            } else if (m_outInfo && m_frameInBlock <= m_iconFrames) {
+                // Icon frame.
+                __builtin_memcpy(m_outInfo->icon.pixels[m_frameInBlock - 1], m_scratch.bytes, 128);
+            }
+            if (++m_frameInBlock > m_iconFrames) {
+                finish(m_result);
+                return;
+            }
+            break;
+        }
+
         case Phase::WriteData: {
             if (++m_frameInBlock >= MemoryCard::c_sectorsPerBlock) {
                 m_frameInBlock = 0;
@@ -490,6 +527,22 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
                 block = next + 1;
             }
             m_phase = Phase::ReadTitle;
+            return StepResult::Continue;
+        }
+
+        case Op::ReadInfo: {
+            // The title and icon live in the file's first block; no need to walk
+            // the rest of the chain.
+            int first = -1;
+            findFirstBlock(m_dir, m_name, &first);
+            if (first == -1) {
+                m_result = Error::FileNotFound;
+                return StepResult::Done;
+            }
+            m_chain[0] = static_cast<uint8_t>(first);
+            m_frameInBlock = 0;
+            m_iconFrames = 1;
+            m_phase = Phase::ReadInfo;
             return StepResult::Continue;
         }
 
@@ -626,6 +679,14 @@ void psyqo::MemoryCardFileSystem::readFile(Port port, const char *name, void *bu
     issueOrFinish();
 }
 
+void psyqo::MemoryCardFileSystem::readFileInfo(Port port, const char *name, FileInfo *out,
+                                               eastl::function<void(Error)> &&callback) {
+    m_name = name;
+    m_outInfo = out;
+    begin(Op::ReadInfo, port, eastl::move(callback));
+    issueOrFinish();
+}
+
 void psyqo::MemoryCardFileSystem::writeFile(Port port, const char *name, const char *title,
                                             const Icon &icon, const void *data, uint32_t dataLen,
                                             eastl::function<void(Error)> &&callback) {
@@ -690,6 +751,13 @@ Error psyqo::MemoryCardFileSystem::readFileBlocking(GPU &gpu, Port port, const c
     m_outLen = outLen;
     if (outLen) *outLen = 0;
     begin(Op::ReadFile, port, {});
+    return runBlocking(gpu);
+}
+
+Error psyqo::MemoryCardFileSystem::readFileInfoBlocking(GPU &gpu, Port port, const char *name, FileInfo *out) {
+    m_name = name;
+    m_outInfo = out;
+    begin(Op::ReadInfo, port, {});
     return runBlocking(gpu);
 }
 
