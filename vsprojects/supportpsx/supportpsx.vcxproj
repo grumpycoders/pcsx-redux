@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\src\supportpsx\iso9660-builder.cc" />
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc" />
     <ClCompile Include="..\..\src\supportpsx\ucl-glue.c" />
+    <ClCompile Include="..\..\src\supportpsx\ucl-utils.cc" />
     <ClCompile Include="..\..\third_party\iec-60908b\edcecc.c" />
     <ClCompile Include="..\..\third_party\iec-60908b\tables.c" />
     <ClCompile Include="..\..\third_party\ucl\src\alloc.c" />
@@ -181,6 +182,7 @@
     <ClInclude Include="..\..\src\supportpsx\iso9660-lowlevel.h" />
     <ClInclude Include="..\..\src\supportpsx\memory.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />
+    <ClInclude Include="..\..\src\supportpsx\ucl-utils.h" />
     <ClInclude Include="..\..\third_party\iec-60908b\edcecc.h" />
     <ClInclude Include="..\..\third_party\iec-60908b\tables.h" />
   </ItemGroup>

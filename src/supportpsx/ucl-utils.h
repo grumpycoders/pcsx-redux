@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2026 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,20 +32,14 @@ SOFTWARE.
 
 #include "support/file.h"
 
-namespace PCSX::PS1Packer {
+namespace PCSX::UCLUtils {
 
-struct Options {
-    uint32_t tload = 0;
-    bool shell = false;
-    bool nokernel = false;
-    bool resetstack = false;
-    bool nopad = false;
-    bool booty = false;
-    bool raw = false;
-    bool rom = false;
-    bool cpe = false;
-};
+// Returns the exact number of bytes the compressed NRV2E stream must sit above
+// the decompression target for safe in-place (overlapping) decompression, i.e.
+// the smallest src_off for which decoding &buf[src_off] -> &buf[0] never lets
+// the write head overtake the read head. `src`/`srcLen` is the compressed
+// stream; `expectedDstLen` is the uncompressed size. Throws std::runtime_error
+// on a malformed stream.
+size_t inPlaceOverlapMargin(const uint8_t* src, size_t srcLen, size_t expectedDstLen);
 
-void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options&);
-
-}  // namespace PCSX::PS1Packer
+}  // namespace PCSX::UCLUtils
