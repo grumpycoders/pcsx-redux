@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\src\supportpsx\iso9660-builder.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\ucl-utils.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\binffi.lua">
@@ -132,6 +135,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\ucl-utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

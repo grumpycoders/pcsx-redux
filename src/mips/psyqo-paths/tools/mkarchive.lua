@@ -57,7 +57,8 @@ The index is a header, and a list of files.
 
 The archive header format is as follows:
 - 8 bytes: "PSX-ARC1" (ASCII) - This is the magic number for the archive
-- 4 bytes: number of files in the archive (32-bit unsigned integer)
+- 3 bytes: number of files in the archive (24-bit unsigned integer)
+- 1 byte: decompression margin in 16-bytes blocks + 1 (8-bit unsigned integer) - This is the number of 16-byte blocks that the decompressor will read past the end of the compressed data, to ensure that it has enough data to decompress the last block. This is only relevant for the UCL-NRV2E compression method, and is ignored for other methods.
 - 4 bytes: total size of the archive (in sectors, 32-bit unsigned integer)
 
 Then, there are the file entries, one for each file in the archive. Each entry is
@@ -298,6 +299,8 @@ function mkarchive(index, out)
 
     out:wSeek(indexSectors * 2048)
 
+    local maxMargin = 0
+
     for k, v in ipairs(index) do
         print('Packing', v.path)
         local path = v.path
@@ -307,6 +310,10 @@ function mkarchive(index, out)
         index[k].offset = out:wTell() / 2048
         local srcData = file:readToSlice(file:size())
         local compressedData = PCSX.Misc.uclPack(srcData)
+        local margin = PCSX.Misc.uclGetOverlapMargin(compressedData, file:size())
+        if margin > maxMargin then
+            maxMargin = margin
+        end
         local compressedSize = #compressedData
         local compressedSectors = math.ceil((compressedSize + 2047) / 2048)
         local decompressedSectors = math.ceil((index[k].decompressedSize + 2047) / 2048)
@@ -341,7 +348,9 @@ function mkarchive(index, out)
 
     out:wSeek(0)
     out:write('PSX-ARC1')
-    out:writeU32(fileCount)
+    local margin = math.floor(maxMargin / 16)
+    local field = bit.bor(bit.band(fileCount, 0xffffff), bit.lshift(margin, 24))
+    out:writeU32(field)
     out:writeU32(totalSize)
 
     table.sort(index, function(a, b)
