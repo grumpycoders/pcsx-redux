@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include "cdrom.hh"
 #include "common/kernel/pcdrv.h"
 
