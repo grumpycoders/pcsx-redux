@@ -28,7 +28,7 @@ SOFTWARE.
 
 void psyqo::CDRomPCDrv::readSectors(uint32_t sector, uint32_t count, void *buffer,
 									eastl::function<void(bool)> &&callback) {
-	auto b = ensureOpen();
+	ensureOpen();
 	if (m_isoHandle < 0) {
 		callback(false);
 		return;

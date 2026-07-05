@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "cdrom.hh"
 #include "common/kernel/pcdrv.h"
-
+#include <EASTL/fixed_string.h>
 
 namespace psyqo {
 class CDRomPCDrv final : public CDRom {
@@ -39,7 +39,7 @@ public:
     bool ensureOpen() {
         if (m_isoHandle < 0) {
             PCinit();
-            m_isoHandle = PCopen(m_isoName, 0, 0);
+            m_isoHandle = PCopen(m_isoName.c_str(), 0, 0);
         }
         return m_isoHandle >= 0;
     }
@@ -47,6 +47,7 @@ public:
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
 private:
     int m_isoHandle = -1;
-    const char* m_isoName;
+    eastl::fixed_string<char, 256> m_isoName;
 };
 }
+
