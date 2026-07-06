@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2026 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,26 +26,28 @@ SOFTWARE.
 
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <optional>
+#include "cdrom.hh"
+#include "common/kernel/pcdrv.h"
+#include <EASTL/fixed_string.h>
 
-#include "support/file.h"
+namespace psyqo {
+class CDRomPCDrv final : public CDRom {
+public:
+    // instead of eagerly opening in the constructor:
+    CDRomPCDrv(const char* isoName) : m_isoName(isoName) {}
 
-namespace PCSX::PS1Packer {
+    bool ensureOpen() {
+        if (m_isoHandle < 0) {
+            PCinit();
+            m_isoHandle = PCopen(m_isoName.c_str(), 0, 0);
+        }
+        return m_isoHandle >= 0;
+    }
 
-struct Options {
-    uint32_t tload = 0;
-    bool shell = false;
-    bool nokernel = false;
-    bool resetstack = false;
-    bool nopad = false;
-    bool booty = false;
-    bool raw = false;
-    bool rom = false;
-    bool cpe = false;
+    void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
+private:
+    int m_isoHandle = -1;
+    eastl::fixed_string<char, 256> m_isoName;
 };
+}
 
-void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options&);
-
-}  // namespace PCSX::PS1Packer

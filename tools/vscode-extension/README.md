@@ -18,6 +18,13 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.5.0
+  - Switching from the webfreak debugger to the official Microsoft debugger for VSCode.
+  - Added natvis support for psyqo and eastl.
+- 0.4.1
+  - Bumping gcc to 16.1.0
+  - Bumping binutils to 2.46.1
+  - Bumping gdb to 17.2
 - 0.4.0
   - Fixed installation issues with MacOS Sequoia.
   - Bumping gcc to 15.2.0

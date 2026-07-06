@@ -35,6 +35,7 @@ SOFTWARE.
 #include "mips/common/util/encoder.hh"
 #include "n2e-d.h"
 #include "support/polyfills.h"
+#include "supportpsx/ucl-utils.h"
 #include "ucl/ucl.h"
 
 using namespace Mips::Encoder;
@@ -113,12 +114,17 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         newPC = tload + dataOut.size();
         compLoad = tload;
     } else if (!options.raw) {
-        // If we don't have a tload, it means we're doing
-        // in-place decompression. We need to make sure
-        // we have enough space to decompress our binary
-        // in-place, and ucl-nrv2e requires 16 bytes to
-        // ensure this property.
-        newPC = addr + dataIn.size() + 16;
+        // If we don't have a tload, it means we're doing in-place
+        // decompression. The compressed data has to sit far enough above the
+        // decompression target `addr` that the decompressor's write head never
+        // overtakes its read head. That distance is data-dependent, not a
+        // constant, so measure it exactly for this stream. (It used to be a
+        // hardcoded 16, which silently corrupts any payload whose worst-case
+        // match lands late enough to need more.)
+        size_t margin = UCLUtils::inPlaceOverlapMargin(dataOut.data(), outSize, dataIn.size());
+        size_t relMargin = margin - dataIn.size() + outSize;
+        relMargin = (relMargin + 3) & ~3;
+        newPC = addr + dataIn.size() + relMargin;
         compLoad = newPC - dataOut.size();
         uint32_t rawCompLoad = compLoad & 0x1fffffff;
         if (rawCompLoad < 0x10000) {

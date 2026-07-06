@@ -41,6 +41,7 @@
 #include "supportpsx/iso9660-builder.h"
 #include "supportpsx/iso9660-lowlevel.h"
 #include "supportpsx/ps1-packer.h"
+#include "supportpsx/ucl-utils.h"
 #include "ucl/ucl.h"
 
 template <PCSX::PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
@@ -230,6 +231,7 @@ Usage: {} input.json [-h] -o output.bin
 
     const unsigned executableSectorsCount = compressedExecutable->size() / 2048;
     unsigned currentSector = 23 + indexSectorsCount;
+    std::atomic<uint32_t> maxMargin;
 
     for (unsigned i = 0; i < executableSectorsCount; i++) {
         auto sector = compressedExecutable.asA<PCSX::BufferFile>()->borrow(i * 2048);
@@ -246,6 +248,7 @@ Usage: {} input.json [-h] -o output.bin
         std::binary_semaphore semaphore;
         std::vector<uint8_t> sectorData;
         nlohmann::json fileInfo;
+        uint32_t margin;
         bool failed;
     };
     static WorkUnit work[c_maximumSectorCount];
@@ -305,6 +308,16 @@ Usage: {} input.json [-h] -o output.bin
                     workUnit.semaphore.release();
                     continue;
                 }
+
+                ssize_t margin = PCSX::UCLUtils::inPlaceOverlapMargin(dataOut.data() + 2048, outSize, size);
+                ssize_t relMargin = margin - size + outSize;
+                workUnit.margin =
+                    std::clamp<uint32_t>(relMargin, 0L, static_cast<long>(std::numeric_limits<uint32_t>::max()));
+                do {
+                    auto oldOverlap = maxMargin.load();
+                    if (workUnit.margin <= oldOverlap) break;
+                    if (maxMargin.compare_exchange_weak(oldOverlap, workUnit.margin)) break;
+                } while (1);
 
                 unsigned compressedSectorsCount = (outSize + 2047) / 2048;
 
@@ -368,6 +381,7 @@ Usage: {} input.json [-h] -o output.bin
             fmt::print("  Compressed size: {}\n", entry->getCompressedSize() * 2048);
             fmt::print("  Compression method: {}\n", static_cast<uint32_t>(entry->getCompressionMethod()));
             fmt::print("  Sector offset: {}\n", currentSector);
+            fmt::print("  Margin: {}\n", workUnit.margin);
         }
         entry->setSectorOffset(currentSector);
         unsigned sectorCount = entry->getCompressedSize();
@@ -380,6 +394,7 @@ Usage: {} input.json [-h] -o output.bin
 
     if (!quiet) {
         fmt::print("Processed {} files.\n", filesCount);
+        fmt::print("Maximum margin: {}\n", maxMargin.load());
     }
 
     uint8_t empty[2048] = {0};
@@ -398,7 +413,9 @@ Usage: {} input.json [-h] -o output.bin
     indexEntryDataBuffer[5] = 'R';
     indexEntryDataBuffer[6] = 'C';
     indexEntryDataBuffer[7] = '1';
+    uint32_t maxMarginValue = maxMargin.load() >> 4;
     writeToBuffer(indexEntryDataBuffer.get() + 8, filesCount);
+    writeToBuffer<uint8_t>(indexEntryDataBuffer.get() + 11, maxMarginValue);
     writeToBuffer(indexEntryDataBuffer.get() + 12, totalSectorCount);
     std::sort(indexEntryData.begin(), indexEntryData.end(),
               [](const IndexEntry& a, const IndexEntry& b) { return a.hash < b.hash; });

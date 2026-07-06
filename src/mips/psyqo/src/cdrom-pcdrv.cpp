@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 PCSX-Redux authors
+Copyright (c) 2026 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,31 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include "psyqo/cdrom-pcdrv.hh"
 
-#include <cstddef>
-#include <cstdint>
-#include <optional>
+void psyqo::CDRomPCDrv::readSectors(uint32_t sector, uint32_t count, void* buffer,
+                                    eastl::function<void(bool)>&& callback) {
+    ensureOpen();
+    if (m_isoHandle < 0) {
+        callback(false);
+        return;
+    }
 
-#include "support/file.h"
+    uint8_t* dst = reinterpret_cast<uint8_t*>(buffer);
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t offset = (i + sector) * 2352 + 24;
+        int pos = PClseek(m_isoHandle, offset, PCDRV_SEEK_SET);
+        if (pos < 0) {
+            callback(false);
+            return;
+        }
 
-namespace PCSX::PS1Packer {
+        int bytesRead = PCread(m_isoHandle, dst + i * 2048, 2048);
+        if (bytesRead != 2048) {
+            callback(false);
+            return;
+        }
+    }
 
-struct Options {
-    uint32_t tload = 0;
-    bool shell = false;
-    bool nokernel = false;
-    bool resetstack = false;
-    bool nopad = false;
-    bool booty = false;
-    bool raw = false;
-    bool rom = false;
-    bool cpe = false;
-};
-
-void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options&);
-
-}  // namespace PCSX::PS1Packer
+    callback(true);
+}
