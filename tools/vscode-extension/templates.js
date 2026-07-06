@@ -10,7 +10,7 @@ const progressNotification = require('./progressnotification.js')
 
 let extensionUri
 
-function combine (a, b) {
+function combine(a, b) {
   const arraysThatAreInFactObjects = {
     configurations: 'name',
     tasks: 'label',
@@ -18,7 +18,7 @@ function combine (a, b) {
     modules: 'name'
   }
 
-  function arrayToObject (array, subKeyName) {
+  function arrayToObject(array, subKeyName) {
     const result = {}
     for (const item of array) {
       if (typeof item !== 'object') throw new Error('Invalid array.')
@@ -33,7 +33,7 @@ function combine (a, b) {
     return result
   }
 
-  function objectToArray (object, subKeyName) {
+  function objectToArray(object, subKeyName) {
     const result = []
     for (const key in object) {
       if (typeof object[key] !== 'object') throw new Error('Invalid object.')
@@ -126,20 +126,35 @@ const baseTemplate = {
         configurations: [
           {
             name: 'Debug',
-            type: 'gdb',
-            request: 'attach',
-            target: 'localhost:3333',
-            remote: true,
-            cwd: '${workspaceRoot}',
-            valuesFormatting: 'parseText',
+            type: 'cppdbg',
+            request: 'launch',
+            cwd: '${workspaceFolder}',
+            MIMode: 'gdb',
+            targetArchitecture: 'mips',
+            miDebuggerPath: 'gdb-multiarch',
+            miDebuggerServerAddress: 'localhost:3333',
             stopAtConnect: true,
-            gdbpath: 'gdb-multiarch',
             windows: {
-              gdbpath: 'gdb-multiarch.exe'
+              miDebuggerPath: 'gdb-multiarch.exe'
             },
             osx: {
-              gdbpath: 'gdb'
-            }
+              miDebuggerPath: 'gdb'
+            },
+            setupCommands: [
+              {
+                text: '-enable-pretty-printing',
+                ignoreFailures: true
+              },
+              {
+                text: 'cd ${workspaceFolder}'
+              },
+              {
+                text: 'set substitute-path /project .'
+              }
+            ],
+            launchCompleteCommand: 'None',
+            visualizerFile: '${workspaceFolder}/src/mips/psyqo/psyqo.natvis',
+            showDisplayString: true
           }
         ]
       }
@@ -181,13 +196,15 @@ const baseNuggetTemplate = combine(baseTemplate, {
         configurations: [
           {
             name: 'Debug',
-            executable: '${workspaceRoot}/${workspaceRootFolderName}.elf',
-            autorun: [
-              'monitor reset shellhalt',
-              'load ${workspaceRootFolderName}.elf',
-              'tbreak main',
-              'continue'
-            ]
+            program: '${workspaceFolder}/${workspaceRootFolderName}.elf',
+            postRemoteConnectCommands: [
+              {
+                text: 'monitor reset shellhalt'
+              },
+              {
+                text: 'load ./${workspaceRootFolderName}.elf'
+              }
+            ],
           }
         ]
       }
@@ -267,13 +284,15 @@ const baseCMakeTemplate = combine(baseTemplate, {
         configurations: [
           {
             name: 'Debug',
-            executable: '${workspaceRoot}/build/${workspaceRootFolderName}.elf',
-            autorun: [
-              'monitor reset shellhalt',
-              'load build/${workspaceRootFolderName}.elf',
-              'tbreak main',
-              'continue'
-            ]
+            program: '${workspaceFolder}/build/${workspaceRootFolderName}.elf',
+            postRemoteConnectCommands: [
+              {
+                text: 'monitor reset shellhalt'
+              },
+              {
+                text: 'load ./build/${workspaceRootFolderName}.elf'
+              }
+            ],
           }
         ]
       }
@@ -493,7 +512,7 @@ const netyarozeTemplate = combine(psyqTemplate, {
 })
 /* eslint-enable no-template-curly-in-string */
 
-async function createGitRepository (fullPath, template, progressReporter) {
+async function createGitRepository(fullPath, template, progressReporter) {
   progressReporter.report({ message: 'Generating files...' })
   await fs.mkdirp(fullPath)
   const git = simpleGit(fullPath)
@@ -524,7 +543,7 @@ async function createGitRepository (fullPath, template, progressReporter) {
   return git
 }
 
-async function createPythonEnv (fullPath, name, packages, requirementsFiles) {
+async function createPythonEnv(fullPath, name, packages, requirementsFiles) {
   const pythonCommand = await tools.findPython()
   const pipCommand = path.join(
     fullPath,
@@ -549,7 +568,7 @@ async function createPythonEnv (fullPath, name, packages, requirementsFiles) {
   }
 }
 
-async function copyTemplateDirectory (git, fullPath, name, templates, data) {
+async function copyTemplateDirectory(git, fullPath, name, templates, data) {
   const binaryExtensions = ['.bin', '.dat', '.png', '.tim']
   const ignoredFiles = ['PSX.Dev-README.md']
 

@@ -636,8 +636,8 @@ const tools = {
     description:
       'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
     homepage:
-      'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
-    id: 'webfreak.debug'
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools',
+    id: 'ms-vscode.cpptools'
   },
   mipsassembly: {
     type: 'extension',
