@@ -37,7 +37,7 @@ void psyqo::CDRomPCDrv::readSectors(uint32_t sector, uint32_t count, void* buffe
     uint8_t* dst = reinterpret_cast<uint8_t*>(buffer);
     for (uint32_t i = 0; i < count; i++) {
         uint32_t offset = (i + sector) * 2352 + 24;
-        int pos = PClseek(m_isoHandle, offset, SEEK_SET);
+        int pos = PClseek(m_isoHandle, offset, PCDRV_SEEK_SET);
         if (pos < 0) {
             callback(false);
             return;

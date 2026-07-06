@@ -26,16 +26,16 @@ SOFTWARE.
 
 #pragma once
 
-#ifndef SEEK_SET
-#define SEEK_SET 0
+#ifndef PCDRV_SEEK_SET
+#define PCDRV_SEEK_SET 0
 #endif
 
-#ifndef SEEK_CUR
-#define SEEK_CUR 1
+#ifndef PCDRV_SEEK_CUR
+#define PCDRV_SEEK_CUR 1
 #endif
 
-#ifndef SEEK_END
-#define SEEK_END 2
+#ifndef PCDRV_SEEK_END
+#define PCDRV_SEEK_END 2
 #endif
 
 // This is a reverse of the libsn pcdrv API. It doesn't make a lot of sense.
