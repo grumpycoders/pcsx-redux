@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include "psyqo/memory-card-filesystem.hh"
 
-#include "common/util/sjis-encode.h"
+#include "common/util/sjis-title-encoder.h"
 #include "psyqo/gpu.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/sio0-bus.hh"
@@ -234,7 +234,7 @@ void psyqo::MemoryCardFileSystem::issueOrFinish() {
                 m_scratch.bytes[1] = 'C';
                 m_scratch.bytes[2] = static_cast<uint8_t>(0x10 + m_iconFrames);  // 0x11/0x12/0x13
                 m_scratch.bytes[3] = static_cast<uint8_t>(m_blocksNeeded);
-                Sjis::utf8ToSjisTitle(m_scratch.bytes + 0x04, 64, m_title);
+                Sjis::g_titleEncoder(m_scratch.bytes + 0x04, 64, m_title);
                 for (uint32_t c = 0; c < 16; c++) put16(m_scratch.bytes + 0x60 + c * 2, m_icon.clut[c]);
             } else if (m_blockIdx == 0 && frame >= 1 && frame <= m_iconFrames) {
                 // Icon frame.
