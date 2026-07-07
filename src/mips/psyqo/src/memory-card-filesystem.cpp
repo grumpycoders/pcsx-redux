@@ -515,8 +515,14 @@ psyqo::MemoryCardFileSystem::StepResult psyqo::MemoryCardFileSystem::afterReadDi
             m_chainLen = 0;
             uint16_t visited = 0;
             int block = first;
-            while (block >= 1 && block <= 15 && m_chainLen < 16) {
-                if (visited & (1 << block)) {
+            for (;;) {
+                // The only clean way out of a chain is the 0xffff terminator. A
+                // block index outside [1, 15], a link we have already visited
+                // (a loop), or an impossibly long chain all mean the on-card
+                // link table is corrupt: bail with BadData rather than silently
+                // returning the truncated prefix as a successful read. (The
+                // original BIOS truncates and reports success here; we don't.)
+                if (block < 1 || block > 15 || m_chainLen >= 16 || (visited & (1 << block))) {
                     m_result = Error::BadData;
                     return StepResult::Done;
                 }
