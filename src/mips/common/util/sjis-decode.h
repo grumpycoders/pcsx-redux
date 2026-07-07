@@ -1,0 +1,69 @@
+#pragma once
+
+#include <stdint.h>
+
+#include "common/util/sjis-table.h"
+
+// Shift-JIS -> UTF-8 decoding, the inverse of sjis-encode.h. It indexes the
+// forward conversion table (sjis-table.h) directly, so unlike the lightweight
+// encoders it pulls the whole table in. The host counterpart is
+// support/sjis_conv.cc, which shares the same table and algorithm. Usable from
+// both the host and the MIPS targets, so freestanding code (e.g. psyqo) can
+// display the Shift-JIS titles it reads back from a memory card.
+
+namespace Sjis {
+
+// Decodes up to srcLen bytes of Shift-JIS into UTF-8. Writes at most dstSize
+// bytes to dst (always NUL-terminating when dstSize > 0) and returns the number
+// of bytes written, not counting the terminator. A 0x00 byte ends the input
+// (it is never part of a Shift-JIS sequence, so this is safe and gives a
+// C-string terminator for the space/NUL-padded 64-byte card title field).
+// Bytes with no table mapping, and a lead byte with no trail byte, are skipped,
+// matching the host decoder. Decoding stops cleanly if the next codepoint would
+// not fit in the remaining buffer.
+static inline uint32_t sjisToUtf8(char* dst, uint32_t dstSize, const uint8_t* src, uint32_t srcLen) {
+    constexpr uint32_t tableSize = sizeof(c_sjisToUnicodeConvTable) / sizeof(c_sjisToUnicodeConvTable[0]);
+    if (dstSize == 0) return 0;
+    uint32_t out = 0;
+    for (uint32_t i = 0; i < srcLen; i++) {
+        uint8_t c = src[i];
+        if (c == 0) break;  // NUL terminates; 0x00 is never a Shift-JIS lead/trail byte.
+        uint32_t index = 0;
+        switch (c >> 4) {
+            case 8:
+                index = 0x100;
+                break;
+            case 9:
+                index = 0x1100;
+                break;
+            case 14:
+                index = 0x2100;
+                break;
+        }
+        if (index != 0) {
+            index += (c & 0x0f) << 8;
+            if (++i >= srcLen) break;  // truncated trailing lead byte: drop it.
+            c = src[i];
+        }
+        index += c;
+        if (index >= tableSize) continue;
+        uint16_t v = c_sjisToUnicodeConvTable[index];
+        if (v < 0x80) {
+            if (out + 1 >= dstSize) break;
+            dst[out++] = static_cast<char>(v);
+        } else if (v < 0x800) {
+            if (out + 2 >= dstSize) break;
+            dst[out++] = static_cast<char>(0xc0 | (v >> 6));
+            dst[out++] = static_cast<char>(0x80 | (v & 0x3f));
+        } else {
+            if (out + 3 >= dstSize) break;
+            dst[out++] = static_cast<char>(0xe0 | (v >> 12));
+            dst[out++] = static_cast<char>(0x80 | ((v & 0xfff) >> 6));
+            dst[out++] = static_cast<char>(0x80 | (v & 0x3f));
+        }
+    }
+    dst[out] = '\0';
+    return out;
+}
+
+}  // namespace Sjis

@@ -66,4 +66,45 @@ static inline uint32_t asciiToSjisTitle(uint8_t* dst, uint32_t dstSize, const ch
     return out;
 }
 
+// Decodes a Shift-JIS save title back to plain ASCII, the inverse of
+// asciiToSjisTitle: each fullwidth form in the compact table becomes its ASCII
+// character, and anything else (real Japanese, halfwidth kana, an unmapped
+// form) becomes '?'. It uses only the 190-byte fullwidth table, so an ASCII-only
+// program can read titles back without linking the full ~28kB conversion table;
+// Sjis::sjisToUtf8 (sjis-decode.h) is the full-Unicode counterpart. Writes at
+// most dstSize bytes, always NUL-terminating when dstSize > 0, and returns the
+// number written (not counting the terminator). A 0x00 byte ends the input
+// (0x00 is never a Shift-JIS lead or trail byte), giving a C string for the
+// padded 64-byte card title field.
+static inline uint32_t sjisTitleToAscii(char* dst, uint32_t dstSize, const uint8_t* src, uint32_t srcLen) {
+    if (dstSize == 0) return 0;
+    uint32_t out = 0;
+    for (uint32_t i = 0; i < srcLen; i++) {
+        uint8_t c = src[i];
+        if (c == 0) break;
+        char ch;
+        unsigned hi = c >> 4;
+        if (hi == 8 || hi == 9 || hi == 14) {
+            // Two-byte lead: reverse-lookup its fullwidth mapping.
+            if (++i >= srcLen) break;  // truncated trailing lead byte: drop it.
+            uint16_t sjis = (static_cast<uint16_t>(c) << 8) | src[i];
+            ch = '?';
+            for (unsigned k = 0; k < 95; k++) {
+                if (c_fullwidthAsciiToSjis[k] == sjis) {
+                    ch = static_cast<char>(0x20 + k);
+                    break;
+                }
+            }
+        } else if (c >= 0x20 && c <= 0x7e) {
+            ch = static_cast<char>(c);  // already plain ASCII: pass through.
+        } else {
+            ch = '?';
+        }
+        if (out + 1 >= dstSize) break;
+        dst[out++] = ch;
+    }
+    dst[out] = '\0';
+    return out;
+}
+
 }  // namespace Sjis
