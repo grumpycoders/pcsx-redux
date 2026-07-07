@@ -96,9 +96,7 @@ _boot:
     li    $t0, 0x1734ff
     sw    $t0, SBUS_DEV0_CTRL
 
-    /* Read/write waitstates increased to 15 cycles from the default value in
-       psx.s (for ZN-2, the ZN-1 BIOS uses the same configuration as psx.s) */
-    li    $t0, 0x200931ff
+    li    $t0, 0x200931e1
     sw    $t0, SBUS_DEV4_CTRL
 
     /* 1 byte with an 8-bit bus, different value from the default one in psx.s
@@ -112,17 +110,17 @@ _boot:
     sw    $t0, SBUS_DEV1_CTRL
 
     /* 256 bytes with a 16-bit bus, different value from the default one in psx.s
-       (the ZN-1/ZN-2 kernels actually use 0x71011/0x71077 respectively here, but
-       it needs to be extended from 128 to 256 bytes in order for the writes to
-       0x1f802080 not to crash on real hardware) */
-    li    $t0, 0x81077
+       (the ZN-1 kernel actually uses 0x71011 here, but it needs to be extended
+       from 128 to 256 bytes in order for the writes to 0x1f802080 not to crash
+       on real hardware) */
+    li    $t0, 0x81011
     sw    $t0, SBUS_DEV8_CTRL
 
     /* The ZN BIOS probes the board configuration register to determine the RAM
        layout and sets up both the DRAM controller and __globals60.ramsize
        accordingly. */
     lbu   $t1, ZN_BOARD_CONFIG
-    la    $t0, _zn_ram_configs
+    la    $t0, _zn1_ram_configs
     andi  $t1, 3
     sll   $t1, 1
     addu  $t0, $t1
@@ -232,7 +230,7 @@ bss_init_skip:
 
     /* set __globals60.ramsize */
     lbu   $t1, ZN_BOARD_CONFIG
-    la    $t0, _zn_ram_sizes
+    la    $t0, _zn1_ram_sizes
     andi  $t1, 3
     addu  $t0, $t1
 
@@ -248,21 +246,21 @@ bss_init_skip:
 stop:
     b     stop
 
-    .section .rodata._zn_ram_configs, "a", @progbits
+    .section .rodata._zn1_ram_configs, "a", @progbits
     .align 2
-    .type _zn_ram_configs, @object
+    .type _zn1_ram_configs, @object
 
-_zn_ram_configs:
+_zn1_ram_configs:
     .hword 0xcbc /* 00: two 2 MB banks, bit 3 set */
     .hword 0xcb4 /* 01: two 2 MB banks */
     .hword 0xbb4 /* 10: single 8 MB bank */
     .hword 0xfa4 /* 11: two 8 MB banks */
 
-    .section .rodata._zn_ram_sizes, "a", @progbits
+    .section .rodata._zn1_ram_sizes, "a", @progbits
     .align 1
-    .type _zn_ram_sizes, @object
+    .type _zn1_ram_sizes, @object
 
-_zn_ram_sizes:
+_zn1_ram_sizes:
     .byte 4  /* 00: two 2 MB banks, bit 3 set */
     .byte 4  /* 01: two 2 MB banks */
     .byte 8  /* 10: single 8 MB bank */
