@@ -30,9 +30,9 @@ SOFTWARE.
 // table. The full encoder lives in sjis-full-title-encoder.cpp and is reached
 // only through Sjis::registerFullTitleEncoder().
 
-#include "common/util/sjis-title-encoder.h"
+#include "common/util/sjis-title-encoder.hh"
 
-#include "common/util/sjis-fullwidth-ascii.h"
+#include "common/util/sjis-fullwidth-ascii.hh"
 
 namespace Sjis {
 

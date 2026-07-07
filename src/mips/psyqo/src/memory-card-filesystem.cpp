@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include "psyqo/memory-card-filesystem.hh"
 
-#include "common/util/sjis-title-encoder.h"
+#include "common/util/sjis-title-encoder.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/kernel.hh"
 #include "psyqo/sio0-bus.hh"
