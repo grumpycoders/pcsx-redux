@@ -39,4 +39,5 @@ git filter-branch -f --tree-filter "find . -name Makefile -exec sed 's|\.\./\.\.
 git filter-branch -f --tree-filter "find . -name '*.mk' -exec sed 's|\.\./\.\./\.\./third_party/psxlua/|../third_party/psxlua/|' -i {} \;" --tag-name-filter cat --prune-empty
 
 # Delete unwanted files
-git filter-branch -f --tree-filter 'find . -name compile_flags.txt -or -name Doxyfile -delete || true' --tag-name-filter cat --prune-empty
+git filter-branch -f --tree-filter 'find . -name compile_flags.txt -delete || true' --tag-name-filter cat --prune-empty
+git filter-branch -f --tree-filter 'find . -name Doxyfile -delete || true' --tag-name-filter cat --prune-empty
