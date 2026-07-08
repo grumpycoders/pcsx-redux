@@ -105,6 +105,17 @@ class GPU {
     enum class ColorMode { C15BITS, C24BITS };
     enum class Interlace { PROGRESSIVE, INTERLACED };
     enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
+    // Where the two display buffers sit in VRAM. Selected at compile time; Default is the
+    // classic vertically-stacked pair (0,0)/(0,256). VerticalSwitch offsets the first buffer
+    // down by 16 lines; Horizontal places the buffers side by side.
+    enum class Layout { Default, VerticalSwitch, Horizontal };
+#if defined(PSYQO_USE_VERTICAL_SWITCH_LAYOUT)
+    static constexpr Layout c_layout = Layout::VerticalSwitch;
+#elif defined(PSYQO_USE_HORIZONTAL_LAYOUT)
+    static constexpr Layout c_layout = Layout::Horizontal;
+#else
+    static constexpr Layout c_layout = Layout::Default;
+#endif
     void initialize(const Configuration &config);
     void reinitialize(const Configuration &config);
 
@@ -538,6 +549,7 @@ class GPU {
     void scheduleChainedDMA(uintptr_t head);
     void chain(uint32_t *first, uint32_t *last, size_t count);
     void scheduleOTC(uint32_t *start, uint32_t count);
+    void setDisplayArea(bool firstBuffer);
     void checkOTCAndTriggerCallback();
     void prepareForTakeover();
 
