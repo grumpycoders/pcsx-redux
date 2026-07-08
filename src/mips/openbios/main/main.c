@@ -300,7 +300,7 @@ extern struct BuildId __build_id, __build_id_end;
 // hint at the fact there may have been a version of the SPU with support for
 // more than 512 KB of RAM.
 static void printBoardConfiguration() {
-#ifdef OPENBIOS_BOARD_ZN
+#if defined(OPENBIOS_BOARD_ZN1) || defined(OPENBIOS_BOARD_ZN2)
     uint8_t config = ZN_BOARD_CONFIG;
     int is2MBSPURAM = (config >> 2) & 1;
     int is2MBVRAM = (config >> 3) & 1;

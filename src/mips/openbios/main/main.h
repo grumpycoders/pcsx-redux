@@ -43,7 +43,7 @@ static __inline__ void clearWatchdog() {
 // Similar to the case above. The ZN kernel clears these registers in a few
 // different places but they are all gathered here for simplicity's sake.
 static __inline__ void clearZNRegisters() {
-#ifdef OPENBIOS_BOARD_ZN
+#if defined(OPENBIOS_BOARD_ZN1) || defined(OPENBIOS_BOARD_ZN2)
     ZN_SIO0_MUX = 0;
     ZN_COIN_CTRL = 0;
     ZN_IRQ10_MUX = 0;
