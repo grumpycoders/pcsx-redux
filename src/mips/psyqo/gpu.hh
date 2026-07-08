@@ -106,6 +106,7 @@ class GPU {
     enum class Interlace { PROGRESSIVE, INTERLACED };
     enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
     void initialize(const Configuration &config);
+    void reinitialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
     static constexpr unsigned c_chainThreshold = 56;

@@ -51,7 +51,7 @@ void psyqo::GPU::waitFifo() {
     }
 }
 
-void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
+void psyqo::GPU::reinitialize(const psyqo::GPU::Configuration &config) {
     // Reset
     Hardware::GPU::Ctrl = 0;
     // FIFO polling mode
@@ -72,9 +72,6 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
 
     // Display Area
     Hardware::GPU::Ctrl = 0x05000000;
-
-    COUNTERS[1].mode = 0x100;
-    COUNTERS[1].value = 0;
 
     if (config.config.videoInterlace == Configuration::VI_ON) {
         m_interlaced = true;
@@ -108,6 +105,13 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     } else {
         m_refreshRate = 50;
     }
+}
+
+void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
+    COUNTERS[1].mode = 0x100;
+    COUNTERS[1].value = 0;
+
+    reinitialize(config);
 
     // Install VBlank interrupt handler
     if (Kernel::isKernelTakenOver()) {
