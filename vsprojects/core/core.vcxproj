@@ -176,6 +176,9 @@
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\ui.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\sjis-decode.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\sjis-fullwidth-ascii.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\utf8-decode.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\arguments.h" />
