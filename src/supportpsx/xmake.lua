@@ -4,11 +4,13 @@ add_rules("mode.debug", "mode.release")
 
 add_requires("fmt", "zlib")
 set_languages("c11", "c++26")
+includes(path.join(support_root, "src", "support"))
 
 target("pcsx.supportpsx")
     set_kind("static")
 
     add_packages("fmt", "zlib")
+    add_deps("pcsx.support")
     add_defines(
         "ACC_CONFIG_AUTO_NO_FUNCTIONS"
     )

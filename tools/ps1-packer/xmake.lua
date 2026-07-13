@@ -24,7 +24,7 @@ target("ps1-packer")
 
 rule("ps1-packer.psexe")
     set_extensions(".elf")
-    on_load(function(target)
+    on_config(function(target)
         local extension = target:values("psx.extension")
         if extension == nil then
             extension = ".psexe"
@@ -39,7 +39,7 @@ rule("ps1-packer.psexe")
     after_link(function(target)
         local ps1packer = target:dep("ps1-packer")
         local outfile = target:values("ps1-packer.psexe.postlink.outfile")
-        os.run("%s %s -o %s", ps1packer:targetfile(), target:targetfile(), outfile)
+        os.vrunv(ps1packer:targetfile(), {target:targetfile(), "-o", outfile})
     end)
     on_clean(function(target)
         local outfile = target:values("ps1-packer.psexe.postlink.outfile")
