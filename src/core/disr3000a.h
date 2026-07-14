@@ -36,6 +36,7 @@ class Disasm {
     static const char *s_disRNameCP2D[];
     static const char *s_disRNameCP2C[];
     static const char *s_disRNameCP0[];
+    static const char *getSyscallName(uint32_t index);
 
 #define declare(n) \
     void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool *delaySlotNext = nullptr)
@@ -72,6 +73,7 @@ class Disasm {
     virtual void OfB(int16_t offset, uint8_t reg, int size) = 0;
     virtual void BranchDest(uint32_t offset) = 0;
     virtual void Offset(uint32_t offset, int size) = 0;
+    virtual void SyscallName(const char *) = 0;
 
   private:
     // Type definition of our functions
@@ -188,6 +190,9 @@ class Disasm {
     declare(disGPL);
     declare(disNCCT);
 #undef declare
+
+    // li has a slightly different signature, being a pseudoinstruction
+    bool disLI(uint32_t reg, uint32_t imm, uint32_t nextCode, bool *skipNext = nullptr, bool *delaySlotNext = nullptr);
 };
 
 }  // namespace PCSX
