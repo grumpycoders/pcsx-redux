@@ -6,7 +6,7 @@ add_requires("fmt", "zlib")
 set_languages("c11", "c++26")
 includes(path.join(support_root, "src", "support"))
 
-target("pcsx.supportpsx")
+target("pcsx.supportpsx", function()
     set_kind("static")
 
     add_packages("fmt", "zlib")
@@ -26,5 +26,9 @@ target("pcsx.supportpsx")
 
     add_files(
         path.join(support_root, "third_party", "ucl", "src", "alloc.c"),
-        path.join(support_root, "third_party", "ucl", "src", "n2e_99.c")
+        path.join(support_root, "third_party", "ucl", "src", "n2e_99.c"),
+        path.join(support_root, "third_party", "iec-60908b", "*.c")
     )
+
+    remove_files("assembler.cc", "*lua.cc")
+end)

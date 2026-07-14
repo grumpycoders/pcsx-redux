@@ -100,3 +100,6 @@
 [submodule "third_party/psxlua"]
 	path = third_party/psxlua
 	url = https://github.com/grumpycoders/psxlua.git
+[submodule "third_party/xmake-psx"]
+	path = third_party/xmake-psx
+	url = https://codeberg.org/malucart/xmake-psx.git
