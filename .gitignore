@@ -130,3 +130,8 @@ luacov.stats.out
 /AppDir
 /*.AppImage
 /*.AppImage.zsync
+
+# xmake
+.xmake/
+build/
+

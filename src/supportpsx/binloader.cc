@@ -220,7 +220,7 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     if (!reader.load(stream)) return false;
     if (reader.get_class() != ELFCLASS32) return false;
 
-    info.pc = reader.get_entry();
+    info.pc = static_cast<uint32_t>(reader.get_entry());
 
     Elf_Half sec_num = reader.sections.size();
     for (unsigned i = 0; i < sec_num; i++) {
