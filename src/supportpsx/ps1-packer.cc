@@ -124,7 +124,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         size_t margin = UCLUtils::inPlaceOverlapMargin(dataOut.data(), outSize, dataIn.size());
         size_t relMargin = margin - dataIn.size() + outSize;
         relMargin = (relMargin + 3) & ~3;
-        newPC = addr + dataIn.size() + relMargin;
+        newPC = addr + dataIn.size() + relMargin + 8;
         compLoad = newPC - dataOut.size();
         uint32_t rawCompLoad = compLoad & 0x1fffffff;
         if (rawCompLoad < 0x10000) {
