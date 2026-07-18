@@ -223,6 +223,7 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     info.pc = reader.get_entry();
 
     Elf_Half sec_num = reader.sections.size();
+    Elf_Half seg_num = reader.segments.size();
     for (unsigned i = 0; i < sec_num; i++) {
         section* psec = reader.sections[i];
 
@@ -234,9 +235,19 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
 
         auto size = psec->get_size();
         auto data = psec->get_data();
-        auto addr = psec->get_address();
-        dest->writeAt(data, size, addr);
-        eraseSymbolsInSpan(addr, addr + size, symbols);
+        auto vaddr = psec->get_address();
+        auto loadAddr = vaddr;
+        for (unsigned j = 0; j < seg_num; j++) {
+            segment* pseg = reader.segments[j];
+            if (pseg->get_type() != PT_LOAD) continue;
+            auto segVaddr = pseg->get_virtual_address();
+            if (vaddr >= segVaddr && vaddr + size <= segVaddr + pseg->get_memory_size()) {
+                loadAddr = pseg->get_physical_address() + (vaddr - segVaddr);
+                break;
+            }
+        }
+        dest->writeAt(data, size, loadAddr);
+        eraseSymbolsInSpan(vaddr, vaddr + size, symbols);
     }
 
     for (unsigned i = 0; i < sec_num; i++) {
