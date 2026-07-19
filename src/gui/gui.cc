@@ -42,7 +42,7 @@ extern "C" {
 #include <exception>
 #include <fstream>
 #include <iomanip>
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <numbers>
 #include <type_traits>
 #include <unordered_set>

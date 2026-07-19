@@ -23,7 +23,7 @@
 #include <stdarg.h>
 
 #include <functional>
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <map>
 #include <memory>
 #include <set>
