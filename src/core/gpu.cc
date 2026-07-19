@@ -826,8 +826,8 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             [[fallthrough]];
         case READ_XY:
             value = buf.get();
-            x = signExtend<int, 11>(value & 0xffff);
-            y = signExtend<int, 11>(value >> 16);
+            x = value & 0xffff;
+            y = value >> 16;
             m_state = READ_HW;
             if (buf.isEmpty()) return;
             [[fallthrough]];
@@ -883,8 +883,8 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             [[fallthrough]];
         case READ_XY:
             value = buf.get();
-            x = signExtend<int, 11>(value & 0xffff);
-            y = signExtend<int, 11>(value >> 16);
+            x = value & 0xffff;
+            y = value >> 16;
             m_state = READ_HW;
             if (buf.isEmpty()) return;
             [[fallthrough]];
