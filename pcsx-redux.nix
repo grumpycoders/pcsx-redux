@@ -123,7 +123,7 @@ in stdenv.mkDerivation {
   version = "0.99test";
   inherit src;
 
-  postUnpack = ''
+  preConfigure = ''
     cp -ruT --no-preserve=all ${tracy.src} third_party/tracy
   '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
