@@ -286,7 +286,7 @@ class GPU {
     static bool clip(T &x, T &y, T &w, T &h) {
         bool clipped = false;
         x %= wMax;
-        h %= hMax;
+        y %= hMax;
 
         if (x + w > wMax) {
             x = 0;
