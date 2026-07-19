@@ -19,7 +19,7 @@
 
 #include "cdrom/file.h"
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 
 #include "cdrom/cdriso.h"
 #include "iec-60908b/edcecc.h"
