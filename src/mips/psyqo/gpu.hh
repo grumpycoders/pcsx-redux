@@ -240,7 +240,7 @@ class GPU {
      */
     template <Fragment Frag>
     void sendFragment(const Frag &fragment) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize());
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize());
     }
 
     /**
@@ -255,7 +255,8 @@ class GPU {
     template <Fragment Frag>
     void sendFragment(const Frag &fragment, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize(),
+                     eastl::move(callback), dmaCallback);
     }
 
     /**
@@ -366,8 +367,8 @@ class GPU {
      */
     template <size_t N, Safe safety = Safe::Yes>
     void chain(OrderingTable<N, safety> &table) {
-        chain(&table.m_table[N], &table.m_table[0], 0);
-        scheduleOTC(&table.m_table[N], N + 1);
+        chain(&table.m_table[N].head, &table.m_table[0].head, 0);
+        scheduleOTC(&table.m_table[N].head, N + 1);
     }
 
     /**
@@ -547,8 +548,8 @@ class GPU {
                       DMA::DmaCallback dmaCallback);
     void scheduleNormalDMA(uintptr_t data, size_t count);
     void scheduleChainedDMA(uintptr_t head);
-    void chain(uint32_t *first, uint32_t *last, size_t count);
-    void scheduleOTC(uint32_t *start, uint32_t count);
+    void chain(uintptr_t *first, uintptr_t *last, size_t count);
+    void scheduleOTC(uintptr_t *start, uint32_t count);
     void setDisplayArea(bool firstBuffer);
     void checkOTCAndTriggerCallback();
     void prepareForTakeover();
@@ -561,8 +562,8 @@ class GPU {
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
     unsigned m_parity = 0;
-    uint32_t *m_chainHead = nullptr;
-    uint32_t *m_chainTail = nullptr;
+    uintptr_t *m_chainHead = nullptr;
+    uintptr_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
     enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus = CHAIN_IDLE;
     struct Timer {
@@ -575,11 +576,11 @@ class GPU {
     };
     eastl::fixed_list<Timer, 32> m_timers;
     struct ScheduledOTC {
-        uint32_t *start;
+        uintptr_t *start;
         uint32_t count;
     };
     eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
-    uint32_t *m_chainNext = nullptr;
+    uintptr_t *m_chainNext = nullptr;
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
