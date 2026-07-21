@@ -215,8 +215,10 @@ class AdvancedPad {
     };
 
     void busyLoop(unsigned delay) {
+#ifndef PS1_PC_PORT
         unsigned cycles = 0;
         while (++cycles < delay) asm("");
+#endif
     };
 
     void configurePort(uint8_t port);
