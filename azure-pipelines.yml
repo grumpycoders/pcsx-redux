@@ -93,6 +93,7 @@ steps:
       !**\crashpad_handler.exe
       !**\authoring.exe
       !**\exe2elf.exe
+      !**\exe2exe.exe
       !**\exe2iso.exe
       !**\modconv.exe
       !**\midi2psm.exe

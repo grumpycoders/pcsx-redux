@@ -3,6 +3,7 @@
 This directory contains tools designed to help with the PCSX-Redux project somehow. The top level, directly usable tools are:
 
 * [exe2elf](exe2elf) - Converts a PS-EXE executable to an ELF file, which can be useful for loading and debugging through gdb.
+* [exe2exe](exe2exe) - Converts a PlayStation executable to a PS-EXE executable, normalizing the binary in the process.
 * [exe2iso](exe2iso) - Converts a PS-EXE executable to a bootable ISO file containing a single PSX.EXE, conformant to the ISO9660 standard and bootable on a retail PlayStation 1.
 * [ghidra_scripts](ghidra_scripts) - A collection of Ghidra scripts that can be used to integrate some parts of PCSX-Redux into Ghidra and vice versa.
 * [ps1-packer](ps1-packer) - A tool for compressing PlayStation 1 executables into a single self-decompressing binary in various formats.
