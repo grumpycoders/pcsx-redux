@@ -27,6 +27,7 @@
 #include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
+#include "core/system.h"
 #include "mips/common/util/encoder.hh"
 #include "support/file.h"
 #include "supportpsx/binloader.h"
@@ -297,6 +298,11 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
             switch (msanGetStatus<1>(address)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("8-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -348,6 +354,11 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
             switch (msanGetStatus<2>(address)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("16-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -387,7 +398,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     return 0xffff;
 }
 
-uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
+uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType, const uint32_t msanSubBitmask) {
     if (readType == ReadType::Data) g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
@@ -395,7 +406,12 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            switch (msanGetStatus<4>(address)) {
+            switch (msanGetStatus<4>(address, msanSubBitmask)) {
+                case MsanStatus::PARTIALLY_INITIALIZED:
+                    g_system->log(LogClass::CPU,
+                                  _("32-bit read from uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
                 case MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
                                   address);
@@ -586,7 +602,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     }
 }
 
-void PCSX::Memory::write32(uint32_t address, uint32_t value) {
+void PCSX::Memory::write32(uint32_t address, uint32_t value, const uint32_t msanSubBitmask) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
@@ -594,7 +610,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
 
     if (pointer != nullptr) {
         if (msanInitialized() && inMsanRange(address)) {
-            if (msanValidateWrite<4>(address)) {
+            if (msanValidateWrite<4>(address, msanSubBitmask)) {
                 *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
             } else {
                 g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
@@ -884,6 +900,7 @@ uint32_t PCSX::Memory::msanAlloc(uint32_t size) {
 
     // Check if we still have enough memory.
     if (m_msanPtr + actualSize > c_msanSize) {
+        g_system->printf(_("m_msanPtr: 0x%x actualSize: %zu, c_msanSize: %zu\n"), m_msanPtr, actualSize, c_msanSize);
         g_system->printf(_("Out of memory in MsanAlloc\n"));
         g_system->pause();
         return 0;

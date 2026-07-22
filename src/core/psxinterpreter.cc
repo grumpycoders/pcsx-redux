@@ -25,6 +25,7 @@
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
 #include "core/psxemulator.h"
+#include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "tracy/Tracy.hpp"
 
@@ -935,7 +936,12 @@ void InterpretedCPU::psxLW(uint32_t code) {
 void InterpretedCPU::psxLWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    const uint32_t msanReadMask = 0b1111 >> (3 - shift);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr & ~3,
+        PCSX::Memory::ReadType::Data,
+        msanReadMask
+    );
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -953,7 +959,12 @@ void InterpretedCPU::psxLWL(uint32_t code) {
 void InterpretedCPU::psxLWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    const uint32_t msanReadMask = (0b1111 << shift) & 0b1111;
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr & ~3,
+        PCSX::Memory::ReadType::Data,
+        msanReadMask
+    );
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -998,15 +1009,18 @@ void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
-
-    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    // 0x0 mask avoids msan interpreting this as a read
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr,
+        PCSX::Memory::ReadType::Data,
+        0x0 
+    );
+    const uint32_t msanWriteMask = 0b1111 >> (3 - shift);
+    PCSX::g_emulator->m_mem->write32(
+        addr,
+        (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]),
+        msanWriteMask
+    );
     /*
     Mem = 1234.  Reg = abcd
     0   123a   (reg >> 24) | (mem & 0xffffff00)
@@ -1020,15 +1034,18 @@ void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
-
-    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    // 0x0 mask avoids msan interpreting this as a read
+    uint32_t mem = PCSX::g_emulator->m_mem->read32(
+        addr,
+        PCSX::Memory::ReadType::Data,
+        0x0 
+    );
+    const uint32_t msanWriteMask = (0b1111 << shift) & 0b1111;
+    PCSX::g_emulator->m_mem->write32(
+        addr,
+        (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]),
+        msanWriteMask
+    );
 
     /*
     Mem = 1234.  Reg = abcd
