@@ -26,8 +26,7 @@ SOFTWARE.
 
 #include "psyqo/ordering-table.hh"
 
-void psyqo::OrderingTableBase::clear(psyqo::Fragments::ChainEntry* table, size_t size)
-{
+void psyqo::OrderingTableBase::clear(psyqo::Fragments::ChainEntry* table, size_t size) {
     table[0].setEndMarker();
     for (size_t i = 1; i <= size; i++) {
         table[i].set(&table[i - 1], 0);

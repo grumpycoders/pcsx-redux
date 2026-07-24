@@ -42,7 +42,7 @@ class Counters {
         uint16_t mode, target;
         uint32_t rate, irq, counterState, irqState;
         uint64_t cycle, cycleStart;
-        uint32_t gateStarted;   // Gate mode 3: first blank has occurred, counter is free running
+        uint32_t gateStarted;  // Gate mode 3: first blank has occurred, counter is free running
     };
 
     // Gate mode helpers - derived from mode register, not stored

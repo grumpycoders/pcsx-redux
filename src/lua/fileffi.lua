@@ -20,7 +20,7 @@ local C = ffi.load 'SUPPORT_FILE'
 local function validateBuffer(buffer)
     if buffer:maxsize() < buffer.size then
         error('Invalid or corrupted LuaBuffer: claims size of ' .. buffer.size .. ' but actual size is ' ..
-            buffer:maxsize())
+                  buffer:maxsize())
     end
     return buffer
 end
@@ -34,19 +34,19 @@ local function read(self, ptr, size)
         return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::read(C.readFileBuffer)', C.readFileBuffer, self._wrapper,
-            validateBuffer(ptr))
+                                     validateBuffer(ptr))
     elseif type(ptr) == 'userdata' and size == nil then
         return Support._internal.readFileUserData(self._wrapper, ptr)
     elseif type(ptr) == 'table' and ptr._type == 'Slice' then
         return Support.extra.safeFFI('File::read(C.readFileToExistingSlice)', C.readFileToExistingSlice, self._wrapper,
-            ptr._wrapper, size or ptr:size())
+                                     ptr._wrapper, size or ptr:size())
     end
     return Support.extra.safeFFI('File::read(C.readFileRawPtr)', C.readFileRawPtr, self._wrapper, ptr, size)
 end
 
 local function readToSlice(self, size)
     return Support.File._createSliceWrapper(Support.extra.safeFFI('File::read(C.readFileToSlice)', C.readFileToSlice,
-        self._wrapper, size))
+                                                                  self._wrapper, size))
 end
 
 local function readAt(self, ptr, size, pos)
@@ -59,25 +59,25 @@ local function readAt(self, ptr, size, pos)
         return validateBuffer(buf)
     elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == LuaBuffer then
         return Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper,
-            validateBuffer(ptr), size)
+                                     validateBuffer(ptr), size)
     elseif type(ptr) == 'userdata' and type(size) == 'number' and pos == nil then
         return Support._internal.readFileAtUserData(self._wrapper, ptr, size)
     elseif type(ptr) == 'table' and ptr._type == 'Slice' then
         return Support.extra.safeFFI('File::readAt(C.readFileAtToExistingSlice)', C.readFileAtToExistingSlice,
-            self._wrapper, ptr._wrapper, size or ptr:size(), pos)
+                                     self._wrapper, ptr._wrapper, size or ptr:size(), pos)
     end
     return Support.extra.safeFFI('File::readAt(C.readFileAtRawPtr)', C.readFileAtRawPtr, self._wrapper, ptr, size, pos)
 end
 
 local function readAtToSlice(self, size, pos)
     return Support.File._createSliceWrapper(Support.extra.safeFFI('File::readAt(C.readFileAtToSlice)',
-        C.readFileAtToSlice, self._wrapper, size, pos))
+                                                                  C.readFileAtToSlice, self._wrapper, size, pos))
 end
 
 local function write(self, data, size)
     if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
         return Support.extra.safeFFI('File::write(C.writeFileBuffer)', C.writeFileBuffer, self._wrapper,
-            validateBuffer(data))
+                                     validateBuffer(data))
     elseif type(data) == 'userdata' and size == nil then
         return Support._internal.writeFileUserData(self._wrapper, data)
     elseif type(size) == 'number' then
@@ -85,22 +85,22 @@ local function write(self, data, size)
     end
     if type(data) ~= 'string' then data = tostring(data) end
     return Support.extra.safeFFI('File::write(C.writeFileRawPtr)', C.writeFileRawPtr, self._wrapper, data,
-        string.len(data))
+                                 string.len(data))
 end
 
 local function writeAt(self, data, size, pos)
     if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
         return Support.extra.safeFFI('File::writeAt(C.writeFileAtBuffer)', C.writeFileAtBuffer, self._wrapper,
-            validateBuffer(data), size)
+                                     validateBuffer(data), size)
     elseif type(data) == 'userdata' and type(size) == 'number' and pos == nil then
         return Support._internal.writeFileAtUserData(self._wrapper, data, size)
     elseif type(size) == 'number' and type(pos) == 'number' then
         return Support.extra.safeFFI('File::writeAt(C.writeFileAtRawPtr)', C.writeFileAtRawPtr, self._wrapper, data,
-            size, pos)
+                                     size, pos)
     end
     if type(data) ~= 'string' then data = tostring(data) end
     return Support.extra.safeFFI('File::writeAt(C.writeFileAtRawPtr)', C.writeFileAtRawPtr, self._wrapper, data,
-        string.len(data), size)
+                                 string.len(data), size)
 end
 
 local function writeMoveSlice(self, slice) C.writeFileMoveSlice(self._wrapper, slice._wrapper) end
@@ -319,10 +319,10 @@ end
 local function ffmpegAudioFile(file, options)
     if type(options) ~= 'table' then options = {} end
     local channels, endianness, sampleFormat, frequency = options.channels, options.endianness, options.sampleFormat,
-        options.frequency
+                                                          options.frequency
     return createFileWrapper(Support.extra.safeFFI('Support.File.ffmpegAudioFile', C.ffmpegAudioFile, file._wrapper,
-        channels or 'Stereo', endianness or 'Little', sampleFormat or 'S16',
-        frequency or 44100))
+                                                   channels or 'Stereo', endianness or 'Little', sampleFormat or 'S16',
+                                                   frequency or 44100))
 end
 
 if (type(Support) ~= 'table') then Support = {} end

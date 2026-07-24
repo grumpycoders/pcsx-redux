@@ -67,8 +67,7 @@ unsigned PSM_LoadBank(const void* vabData, uint32_t vabSize);
 // loading. If vbData is NULL, samples are assumed to already be in SPU
 // RAM (e.g. from a previous call).
 // Returns the number of programs, or 0 on failure.
-unsigned PSM_LoadBankEx(const void* vhData, uint32_t vhSize,
-                        const void* vbData, uint32_t vbSize);
+unsigned PSM_LoadBankEx(const void* vhData, uint32_t vhSize, const void* vbData, uint32_t vbSize);
 
 // Load a PSM event stream for playback. Must be called after PSM_LoadBank.
 // Returns the event count, or 0 on failure.

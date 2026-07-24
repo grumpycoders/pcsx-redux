@@ -25,16 +25,13 @@ SOFTWARE.
 */
 
 #include "psyqo/primitives/common.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;
 
 // --- Vertex ---
 
-TEST_CASE("Vertex size is 32 bits") {
-    REQUIRE(sizeof(Vertex) == 4);
-}
+TEST_CASE("Vertex size is 32 bits") { REQUIRE(sizeof(Vertex) == 4); }
 
 TEST_CASE("Vertex field aliases share memory") {
     Vertex v;
@@ -58,9 +55,7 @@ TEST_CASE("Vertex packed representation") {
 
 // --- Rect ---
 
-TEST_CASE("Rect size is 64 bits") {
-    REQUIRE(sizeof(Rect) == 8);
-}
+TEST_CASE("Rect size is 64 bits") { REQUIRE(sizeof(Rect) == 8); }
 
 TEST_CASE("Rect isEmpty") {
     Rect r;
@@ -84,9 +79,7 @@ TEST_CASE("Rect alias accessors") {
 
 // --- Color ---
 
-TEST_CASE("Color size is 32 bits") {
-    REQUIRE(sizeof(Color) == 4);
-}
+TEST_CASE("Color size is 32 bits") { REQUIRE(sizeof(Color) == 4); }
 
 TEST_CASE("Color channel ordering") {
     Color c;
