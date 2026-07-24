@@ -161,6 +161,7 @@ __attribute__((section(".preinit_array"))) static fptr pi_heap[] = {
 
 // we're not going to care about exit cleanup
 __attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* dso_handle) {}
+__attribute__((weak)) void atexit(void (*func)(void)) {}
 
 // no, we're not going to have shared libraries
 __attribute__((weak)) void* __dso_handle = NULL;
