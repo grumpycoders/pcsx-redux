@@ -48,8 +48,8 @@ SOFTWARE.
  *       independent instructions follow.
  *
  * Cycle source: root counter 2 in system-clock mode (1 tick / CPU cycle,
- * 16-bit), via the COUNTERS macro. IRQs masked suite-wide; icache warmed (first
- * run discarded); minimum taken over several runs to reject stray stalls.
+ * 16-bit), via the COUNTERS macro. IRQs masked suite-wide; minimum taken over
+ * several runs to reject stray stalls and ensure warmed icache.
  *
  * These are hardware-timing tests: the emulator does not model these access
  * costs, so every check is a CESTER_MAYBE_TEST and is skipped under PCSX_TESTS.
@@ -145,6 +145,7 @@ CESTER_BODY(
     MAKE_SPACED(spaced6, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\n")
     MAKE_SPACED(spaced7, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n")
 
+    /* The load delay means the s0 version can't happen. */
     MAKE_SPACED(intlck1, "lw %0, 0(%1)\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\nnop\nnop\n")
     MAKE_SPACED(intlck2, "lw %0, 0(%1)\nnop\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\nnop\n")
     MAKE_SPACED(intlck3, "lw %0, 0(%1)\nnop\nnop\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\n")
@@ -153,10 +154,9 @@ CESTER_BODY(
     MAKE_SPACED(intlck6, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\naddiu %0, 1\nnop\n")
     MAKE_SPACED(intlck7, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\nnop\naddiu %0, 1\n")
 
-    /* Warm the icache (first call discarded), then take the min over 8 runs. */
+    /* Take the min over 8 runs, which should ensure warm icache and no stray stalls. */
 #define BENCH(ret, fn, p) uint32_t ret; do { \
         uint32_t best = 0xffffu;             \
-        fn(p);                               \
         for (int i = 0; i < 8; i++) {        \
             uint32_t d = fn(p);              \
             if (d < best) best = d;          \
