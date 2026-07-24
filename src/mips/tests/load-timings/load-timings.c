@@ -101,7 +101,7 @@ SOFTWARE.
    counter-2 reads. Defined as a macro so each spacing gets its own unrolled
    body; invoked inside CESTER_BODY below. */
 #define MAKE_SPACED(name, seq)                                             \
-    static uint32_t name(volatile void *p) {                              \
+    static __attribute__((always_inline)) uint32_t name(volatile void *p) {                              \
         register uint32_t sink;                                           \
         uint16_t before, after;                                           \
         before = COUNTERS[2].value;                                       \
@@ -115,7 +115,7 @@ CESTER_BODY(
     static int s_interruptsWereEnabled;
 
     /* N_READS back-to-back `lw` from an address, bracketed by counter-2 reads. */
-    static uint32_t timed_read(volatile void *p) {
+    static __attribute__((always_inline)) uint32_t timed_read(volatile void *p) {
         register uint32_t sink;
         uint16_t before, after;
         before = COUNTERS[2].value;
@@ -126,7 +126,7 @@ CESTER_BODY(
     }
 
     /* Structurally identical baseline: same bracket, N_READS nops. */
-    static uint32_t timed_nop(volatile void *p) {
+    static __attribute__((always_inline)) uint32_t timed_nop(volatile void *p) {
         register uint32_t sink;
         uint16_t before, after;
         before = COUNTERS[2].value;
@@ -145,16 +145,24 @@ CESTER_BODY(
     MAKE_SPACED(spaced6, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\n")
     MAKE_SPACED(spaced7, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n")
 
+    MAKE_SPACED(intlck1, "lw %0, 0(%1)\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\nnop\nnop\n")
+    MAKE_SPACED(intlck2, "lw %0, 0(%1)\nnop\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\nnop\n")
+    MAKE_SPACED(intlck3, "lw %0, 0(%1)\nnop\nnop\nnop\naddiu %0, 1\nnop\nnop\nnop\nnop\n")
+    MAKE_SPACED(intlck4, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\naddiu %0, 1\nnop\nnop\nnop\n")
+    MAKE_SPACED(intlck5, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\naddiu %0, 1\nnop\nnop\n")
+    MAKE_SPACED(intlck6, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\naddiu %0, 1\nnop\n")
+    MAKE_SPACED(intlck7, "lw %0, 0(%1)\nnop\nnop\nnop\nnop\nnop\nnop\nnop\naddiu %0, 1\n")
+
     /* Warm the icache (first call discarded), then take the min over 8 runs. */
-    static uint32_t bench(uint32_t (*fn)(volatile void *), volatile void *p) {
-        uint32_t best = 0xffffu;
-        fn(p);
-        for (int i = 0; i < 8; i++) {
-            uint32_t d = fn(p);
-            if (d < best) best = d;
-        }
-        return best;
-    }
+#define BENCH(ret, fn, p) uint32_t ret; do { \
+        uint32_t best = 0xffffu;             \
+        fn(p);                               \
+        for (int i = 0; i < 8; i++) {        \
+            uint32_t d = fn(p);              \
+            if (d < best) best = d;          \
+        }                                    \
+        ret = best;                          \
+    } while (0);
 
     static void report(const char *name, uint32_t raw, uint32_t base) {
         uint32_t abs_cc = (raw * 100u + N_READS / 2) / N_READS;
@@ -185,12 +193,12 @@ CESTER_AFTER_EACH(load_tests, testname, testindex,
 /* Back-to-back load cost per target: scratchpad ~1, MMIO ~5, RAM ~7, BIOS tens
    (model-dependent). Only the ordering and the on-die value are asserted. */
 CESTER_MAYBE_TEST(loadCostByTarget, load_tests,
-    uint32_t base    = bench(timed_nop,  (volatile void *)ADDR_ISTAT);
-    uint32_t scratch = bench(timed_read, (volatile void *)ADDR_SCRATCH);
-    uint32_t mmio    = bench(timed_read, (volatile void *)ADDR_ISTAT);
-    uint32_t ram_c   = bench(timed_read, (volatile void *)ADDR_RAM_C);
-    uint32_t ram_u   = bench(timed_read, (volatile void *)ADDR_RAM_U);
-    uint32_t bios    = bench(timed_read, (volatile void *)ADDR_BIOS);
+    BENCH(base, timed_nop,  (volatile void *)ADDR_ISTAT);
+    BENCH(scratch, timed_read, (volatile void *)ADDR_SCRATCH);
+    BENCH(mmio, timed_read, (volatile void *)ADDR_ISTAT);
+    BENCH(ram_c, timed_read, (volatile void *)ADDR_RAM_C);
+    BENCH(ram_u, timed_read, (volatile void *)ADDR_RAM_U);
+    BENCH(bios, timed_read, (volatile void *)ADDR_BIOS);
 
     ramsyscall_printf("=== load cost by target (N=%d back-to-back) ===\n", N_READS);
     ramsyscall_printf("  nop baseline raw256=%u\n", base);
@@ -216,10 +224,10 @@ CESTER_MAYBE_TEST(loadCostByTarget, load_tests,
 
 /* One on-die decoder, one latency: every on-die MMIO register reads the same. */
 CESTER_MAYBE_TEST(onDieUniformity, load_tests,
-    uint32_t istat = bench(timed_read, (volatile void *)ADDR_ISTAT);
-    uint32_t dma   = bench(timed_read, (volatile void *)ADDR_DMA);
-    uint32_t rcnt0 = bench(timed_read, (volatile void *)&COUNTERS[0].value);
-    uint32_t rcnt2 = bench(timed_read, (volatile void *)&COUNTERS[2].value);
+    BENCH(istat, timed_read, (volatile void *)ADDR_ISTAT);
+    BENCH(dma, timed_read, (volatile void *)ADDR_DMA);
+    BENCH(rcnt0, timed_read, (volatile void *)&COUNTERS[0].value);
+    BENCH(rcnt2, timed_read, (volatile void *)&COUNTERS[2].value);
 
     ramsyscall_printf("=== on-die uniformity ===\n");
     ramsyscall_printf("  I_STAT=%u DMA=%u RCNT0=%u RCNT2=%u\n", istat, dma, rcnt0, rcnt2);
@@ -233,30 +241,50 @@ CESTER_MAYBE_TEST(onDieUniformity, load_tests,
    instructions - neither a full stall nor fully hidden. */
 CESTER_MAYBE_TEST(loadShadow, load_tests,
     volatile void *M = (volatile void *)ADDR_ISTAT;
-    uint32_t s0 = bench(spaced0, M);
-    uint32_t s1 = bench(spaced1, M);
-    uint32_t s2 = bench(spaced2, M);
-    uint32_t s3 = bench(spaced3, M);
-    uint32_t s4 = bench(spaced4, M);
-    uint32_t s5 = bench(spaced5, M);
-    uint32_t s6 = bench(spaced6, M);
-    uint32_t s7 = bench(spaced7, M);
+    BENCH(s0, spaced0, M);
+    BENCH(s1, spaced1, M);
+    BENCH(s2, spaced2, M);
+    BENCH(s3, spaced3, M);
+    BENCH(s4, spaced4, M);
+    BENCH(s5, spaced5, M);
+    BENCH(s6, spaced6, M);
+    BENCH(s7, spaced7, M);
 
     ramsyscall_printf("=== load-shadow sweep (%d loads + s trailing nops on MMIO) ===\n", N_LOADS);
     ramsyscall_printf("  s0=%u s1=%u s2=%u s3=%u s4=%u s5=%u s6=%u s7=%u\n", s0, s1, s2, s3, s4, s5,
                       s6, s7);
 
-    /* Back-to-back: ~5 cyc/load (band 4..6). */
-    cester_assert_true(s0 >= (uint32_t)N_LOADS * 4u && s0 <= (uint32_t)N_LOADS * 6u);
-    /* Overlap is real - NOT a full stall (that would be N_LOADS*(5+7) = 384). */
-    cester_assert_true(s7 < (uint32_t)N_LOADS * 11u);
-    /* But NOT fully hidden either - clearly above the all-nop equivalent (N_LOADS*8 = 256). */
-    cester_assert_true(s7 > (uint32_t)N_LOADS * 9u);
-    /* Shadow saturated by s=4: each further nop adds exactly ~1 cyc/load, so the
-       s4->s7 delta is ~3 * N_LOADS (three added nops, no more load hiding). */
-    uint32_t step = s7 - s4;
-    cester_assert_true(step >= (uint32_t)N_LOADS * 3u - 20u &&
-                       step <= (uint32_t)N_LOADS * 3u + 20u);
+    cester_assert_uint_eq(164, s0);
+    cester_assert_uint_eq(196, s1);
+    cester_assert_uint_eq(228, s2);
+    cester_assert_uint_eq(228, s3);
+    cester_assert_uint_eq(228, s4);
+    cester_assert_uint_eq(260, s5);
+    cester_assert_uint_eq(292, s6);
+    cester_assert_uint_eq(324, s7);
+)
+
+CESTER_MAYBE_TEST(loadInterlocked, load_tests,
+    volatile void *M = (volatile void *)ADDR_ISTAT;
+    BENCH(s1, intlck1, M);
+    BENCH(s2, intlck2, M);
+    BENCH(s3, intlck3, M);
+    BENCH(s4, intlck4, M);
+    BENCH(s5, intlck5, M);
+    BENCH(s6, intlck6, M);
+    BENCH(s7, intlck7, M);
+
+    ramsyscall_printf("=== load-interlocked sweep (%d loads + 1 addiu after s trailing nops on MMIO) ===\n", N_LOADS);
+    ramsyscall_printf("  s1=%u s2=%u s3=%u s4=%u s5=%u s6=%u s7=%u\n", s1, s2, s3, s4, s5,
+                      s6, s7);
+
+    cester_assert_uint_eq(420, s1);
+    cester_assert_uint_eq(420, s2);
+    cester_assert_uint_eq(388, s3);
+    cester_assert_uint_eq(356, s4);
+    cester_assert_uint_eq(356, s5);
+    cester_assert_uint_eq(356, s6);
+    cester_assert_uint_eq(356, s7);
 )
 
 CESTER_OPTIONS(
