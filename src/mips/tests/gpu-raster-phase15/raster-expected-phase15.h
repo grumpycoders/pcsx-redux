@@ -38,7 +38,7 @@ SOFTWARE.
 // finding said bit-15=0 -> no blend; phase-13 confirmed same for rect.
 // Texel sampled = CLUT8[0] = vram555(0, 31, 0) = 0x03e0 (windowed
 // from u=8 via mask_u=0x01).
-#define WS_WINDOW_SEMI_NO_BLEND   0x03e0u
+#define WS_WINDOW_SEMI_NO_BLEND 0x03e0u
 
 // HARDWARE FINDING (verified 2026-05-16): the bit-15 transparency
 // gate fires on the WINDOWED texel value, NOT the unfiltered raw u
@@ -57,12 +57,12 @@ SOFTWARE.
 // that checks bit-15 on the raw u value would miss the gate firing
 // here (CLUT8[8] has bit-15=0, would skip blend) and produce wrong
 // output.
-#define WX_WINDOW_TRANS_ABR0      0x81efu  /* gate fires on windowed CLUT8[0] */
-#define WX_WINDOW_TRANS_X0        0x81efu  /* same value: x=0 windows to filtered=0 */
+#define WX_WINDOW_TRANS_ABR0 0x81efu /* gate fires on windowed CLUT8[0] */
+#define WX_WINDOW_TRANS_X0 0x81efu   /* same value: x=0 windows to filtered=0 */
 
 // Out-of-fixture-range window tests. Filtered_u lands beyond the
 // 64-byte uploaded TEX8 region; hardware samples whatever VRAM
 // contains there. Locking in for regression - not a window-formula
 // finding, an artefact of the fixture upload size.
-#define WT_MASK0F_OFF0F_X0_HW     0x03e0u  /* HW captured: reads 0 at u=120 */
-#define WT_MASK1F_OFF1F_X0_HW     0x007cu  /* HW captured: reads 124 at u=248 */
+#define WT_MASK0F_OFF0F_X0_HW 0x03e0u /* HW captured: reads 0 at u=120 */
+#define WT_MASK1F_OFF1F_X0_HW 0x007cu /* HW captured: reads 124 at u=248 */

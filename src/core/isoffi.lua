@@ -147,10 +147,7 @@ local function createIsoReaderWrapper(isoReader)
             local count = C.gapListCount(gapList)
             local result = {}
             for i = 0, count - 1 do
-                table.insert(result, {
-                    lba = C.gapEntryLBA(gapList, i),
-                    sectors = C.gapEntrySectors(gapList, i),
-                })
+                table.insert(result, { lba = C.gapEntryLBA(gapList, i), sectors = C.gapEntrySectors(gapList, i) })
             end
             return result
         end,
@@ -195,7 +192,7 @@ local function createIsoWrapper(wrapper)
 end
 
 -- High-level ISO builder (filesystem-aware)
-local pvdBuf = ffi.new('char[?]', 513)  -- max CString size (512 for ApplicationUse) + 1
+local pvdBuf = ffi.new('char[?]', 513) -- max CString size (512 for ApplicationUse) + 1
 
 local function createDirTreeWrapper(node)
     if node == nil then return nil end
@@ -228,8 +225,8 @@ local function createDirTreeWrapper(node)
         firstChild = function(self) return createDirTreeWrapper(C.dirTreeFirstChild(self._node)) end,
         nextSibling = function(self) return createDirTreeWrapper(C.dirTreeNextSibling(self._node)) end,
         setDate = function(self, year, month, day, hour, minute, second, offset)
-            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0,
-                           hour or 0, minute or 0, second or 0, offset or 0)
+            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0, hour or 0, minute or 0, second or 0,
+                             offset or 0)
         end,
     }
     return wrapper
@@ -282,9 +279,7 @@ local function createIsoBuilderWrapper(wrapper)
         createFile = function(self, parent, name, fileHandle)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
-        close = function(self, threadCount)
-            C.isoBuilderClose(self._wrapper, threadCount or 0)
-        end,
+        close = function(self, threadCount) C.isoBuilderClose(self._wrapper, threadCount or 0) end,
     }
     return builder
 end

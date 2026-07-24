@@ -24,8 +24,6 @@ SOFTWARE.
 
 */
 
-#include "support/gnu-c++-demangler.h"
-
 #include <cctype>
 #include <iostream>
 #include <string>
@@ -39,6 +37,7 @@ SOFTWARE.
 
 #include "support/gnu-c++-demangler-grammar.h"
 #include "support/gnu-c++-demangler-selector.h"
+#include "support/gnu-c++-demangler.h"
 
 namespace pegtl = TAO_PEGTL_NAMESPACE;
 
@@ -113,9 +112,7 @@ class TreeWalker {
                n.is_type<vendor_extended_builtin_type>();
     }
 
-    static bool isSubRef(const node_t& n) {
-        return n.is_type<substitution_simple>() || n.is_type<template_param>();
-    }
+    static bool isSubRef(const node_t& n) { return n.is_type<substitution_simple>() || n.is_type<template_param>(); }
 
     static std::string operatorSymbol(const node_t& n) {
         if (n.is_type<new_operator>()) return " new";
@@ -174,9 +171,8 @@ class TreeWalker {
                n.is_type<unary_minus_operator>() || n.is_type<unary_address_operator>() ||
                n.is_type<unary_deference_operator>() || n.is_type<bitwise_not_operator>() ||
                n.is_type<plus_operator>() || n.is_type<minus_operator>() || n.is_type<multiply_operator>() ||
-               n.is_type<divide_operator>() || n.is_type<remainder_operator>() ||
-               n.is_type<bitwise_and_operator>() || n.is_type<bitwise_or_operator>() ||
-               n.is_type<bitwise_xor_operator>() || n.is_type<assign_operator>() ||
+               n.is_type<divide_operator>() || n.is_type<remainder_operator>() || n.is_type<bitwise_and_operator>() ||
+               n.is_type<bitwise_or_operator>() || n.is_type<bitwise_xor_operator>() || n.is_type<assign_operator>() ||
                n.is_type<plus_assign_operator>() || n.is_type<minus_assign_operator>() ||
                n.is_type<multiply_assign_operator>() || n.is_type<divide_assign_operator>() ||
                n.is_type<remainder_assign_operator>() || n.is_type<bitwise_and_assign_operator>() ||
@@ -187,12 +183,11 @@ class TreeWalker {
                n.is_type<greater_operator>() || n.is_type<less_equal_operator>() ||
                n.is_type<greater_equal_operator>() || n.is_type<logical_not_operator>() ||
                n.is_type<logical_and_operator>() || n.is_type<logical_or_operator>() ||
-               n.is_type<increment_operator>() || n.is_type<decrement_operator>() ||
-               n.is_type<comma_operator>() || n.is_type<arrow_star_operator>() || n.is_type<arrow_operator>() ||
-               n.is_type<call_operator>() || n.is_type<index_operator>() || n.is_type<question_operator>() ||
-               n.is_type<sizeof_type_operator>() || n.is_type<sizeof_expr_operator>() ||
-               n.is_type<alignof_type_operator>() || n.is_type<alignof_expr_operator>() ||
-               n.is_type<cast_operator>();
+               n.is_type<increment_operator>() || n.is_type<decrement_operator>() || n.is_type<comma_operator>() ||
+               n.is_type<arrow_star_operator>() || n.is_type<arrow_operator>() || n.is_type<call_operator>() ||
+               n.is_type<index_operator>() || n.is_type<question_operator>() || n.is_type<sizeof_type_operator>() ||
+               n.is_type<sizeof_expr_operator>() || n.is_type<alignof_type_operator>() ||
+               n.is_type<alignof_expr_operator>() || n.is_type<cast_operator>();
     }
 
     static std::string builtinName(const node_t& n) {
@@ -416,8 +411,8 @@ class TreeWalker {
 
         if (n.is_type<binary_operator_expression>()) {
             if (n.children.size() >= 3) {
-                return "(" + walk(*n.children[1]) + ")" + operatorSymbol(*n.children[0]) + "(" +
-                       walk(*n.children[2]) + ")";
+                return "(" + walk(*n.children[1]) + ")" + operatorSymbol(*n.children[0]) + "(" + walk(*n.children[2]) +
+                       ")";
             }
             return "??";
         }
@@ -455,8 +450,8 @@ class TreeWalker {
         auto& nameNode = *n.children[0];
         auto& bft = *n.children[1];
 
-        bool isTemplate = nameNode.is_type<template_decl>() ||
-                          (nameNode.is_type<nested_name>() && nestedNameIsTemplate(nameNode));
+        bool isTemplate =
+            nameNode.is_type<template_decl>() || (nameNode.is_type<nested_name>() && nestedNameIsTemplate(nameNode));
 
         std::string funcName;
         std::string memberCV;
@@ -507,8 +502,7 @@ class TreeWalker {
         return walk(n);
     }
 
-    std::string walkNestedName(const node_t& n, bool populateTmplArgs = false,
-                               std::string* outMemberCV = nullptr) {
+    std::string walkNestedName(const node_t& n, bool populateTmplArgs = false, std::string* outMemberCV = nullptr) {
         std::string result;
         std::string lastSourceName;
         std::string cvSuffix;
@@ -531,8 +525,7 @@ class TreeWalker {
                         auto& targ = *child->children[i];
                         std::string argStr;
                         if (targ.is_type<expr_primary_integer>() || targ.is_type<template_arg_expression>() ||
-                            targ.is_type<binary_operator_expression>() ||
-                            targ.is_type<unary_operator_expression>()) {
+                            targ.is_type<binary_operator_expression>() || targ.is_type<unary_operator_expression>()) {
                             argStr = walk(targ);
                         } else {
                             argStr = walkAsType(targ);
@@ -558,15 +551,14 @@ class TreeWalker {
                 component = (child->string_view()[0] == 'C') ? lastSourceName : "~" + lastSourceName;
             } else if (child->is_type<substitution_simple>()) {
                 int idx = getSubIndex(*child);
-                component = (idx >= 0 && idx < (int)subs.size()) ? subs[idx]
-                                                                  : "{sub(" + std::to_string(idx) + ")}";
+                component = (idx >= 0 && idx < (int)subs.size()) ? subs[idx] : "{sub(" + std::to_string(idx) + ")}";
             } else if (isNamedSubstitution(*child)) {
                 component = namedSubstitution(*child);
                 addSub(component);
             } else if (child->is_type<template_param>()) {
                 int idx = getTmplIndex(*child);
-                component = (idx >= 0 && idx < (int)tmplArgs.size()) ? tmplArgs[idx]
-                                                                      : "{tmpl(" + std::to_string(idx) + ")}";
+                component =
+                    (idx >= 0 && idx < (int)tmplArgs.size()) ? tmplArgs[idx] : "{tmpl(" + std::to_string(idx) + ")}";
             } else if (child->is_type<template_prefix_with_args>()) {
                 component = walk(*child);
             } else if (child->is_type<source_name>() || child->is_type<local_source_name>()) {
@@ -658,12 +650,10 @@ std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
     // GCC global constructor/destructor wrappers
     static constexpr std::string_view globalCtorPrefix = "_GLOBAL__sub_I_";
     static constexpr std::string_view globalDtorPrefix = "_GLOBAL__sub_D_";
-    if (mangled.size() > globalCtorPrefix.size() &&
-        mangled.substr(0, globalCtorPrefix.size()) == globalCtorPrefix) {
+    if (mangled.size() > globalCtorPrefix.size() && mangled.substr(0, globalCtorPrefix.size()) == globalCtorPrefix) {
         return "global constructors keyed to " + demangle(mangled.substr(globalCtorPrefix.size()));
     }
-    if (mangled.size() > globalDtorPrefix.size() &&
-        mangled.substr(0, globalDtorPrefix.size()) == globalDtorPrefix) {
+    if (mangled.size() > globalDtorPrefix.size() && mangled.substr(0, globalDtorPrefix.size()) == globalDtorPrefix) {
         return "global destructors keyed to " + demangle(mangled.substr(globalDtorPrefix.size()));
     }
     // GCC thread-safe static cleanup functions

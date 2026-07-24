@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/fixed-point.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;

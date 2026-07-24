@@ -63,10 +63,10 @@ SOFTWARE.
 // Tests draw into the lower half of VRAM at known coordinates. The draw
 // area covers a full 1024x512 region so primitives can land at extreme
 // corners without bumping into clipping unless explicitly testing it.
-#define RASTER_DRAW_AREA_X1  0
-#define RASTER_DRAW_AREA_Y1  0
-#define RASTER_DRAW_AREA_X2  1024
-#define RASTER_DRAW_AREA_Y2  512
+#define RASTER_DRAW_AREA_X1 0
+#define RASTER_DRAW_AREA_Y1 0
+#define RASTER_DRAW_AREA_X2 1024
+#define RASTER_DRAW_AREA_Y2 512
 
 // Sentinel value VRAM is filled with before each test. Reading back a
 // sentinel pixel after drawing means the rasterizer chose NOT to write
@@ -91,7 +91,7 @@ SOFTWARE.
 //   3. The OBS log lines emitted by ASSERT_PIXEL_EQ always show actual
 //      values, so even a collision is recoverable by reading the log -
 //      it only fools the cester pass/fail count.
-#define RASTER_SENTINEL  0xDEADu
+#define RASTER_SENTINEL 0xDEADu
 
 // --------------------------------------------------------------------------
 // Color encoding (5:5:5 VRAM <-> 8:8:8 GP0 command field)
@@ -120,14 +120,14 @@ static inline uint16_t rasterVram555(uint8_t r5, uint8_t g5, uint8_t b5) {
 // chosen so that the VRAM value is recognizable and asymmetric (i.e. not
 // confused with the sentinel or with another primary if a single channel
 // gets dropped or scrambled).
-#define RASTER_CMD_RED    rasterCmdColor(0x1f, 0x00, 0x00)  // command 0x0000F8
-#define RASTER_VRAM_RED   rasterVram555(0x1f, 0x00, 0x00)   // VRAM 0x001F
-#define RASTER_CMD_GREEN  rasterCmdColor(0x00, 0x1f, 0x00)  // command 0x00F800
-#define RASTER_VRAM_GREEN rasterVram555(0x00, 0x1f, 0x00)   // VRAM 0x03E0
-#define RASTER_CMD_BLUE   rasterCmdColor(0x00, 0x00, 0x1f)  // command 0xF80000
-#define RASTER_VRAM_BLUE  rasterVram555(0x00, 0x00, 0x1f)   // VRAM 0x7C00
-#define RASTER_CMD_WHITE  rasterCmdColor(0x1f, 0x1f, 0x1f)  // command 0xF8F8F8
-#define RASTER_VRAM_WHITE rasterVram555(0x1f, 0x1f, 0x1f)   // VRAM 0x7FFF
+#define RASTER_CMD_RED rasterCmdColor(0x1f, 0x00, 0x00)    // command 0x0000F8
+#define RASTER_VRAM_RED rasterVram555(0x1f, 0x00, 0x00)    // VRAM 0x001F
+#define RASTER_CMD_GREEN rasterCmdColor(0x00, 0x1f, 0x00)  // command 0x00F800
+#define RASTER_VRAM_GREEN rasterVram555(0x00, 0x1f, 0x00)  // VRAM 0x03E0
+#define RASTER_CMD_BLUE rasterCmdColor(0x00, 0x00, 0x1f)   // command 0xF80000
+#define RASTER_VRAM_BLUE rasterVram555(0x00, 0x00, 0x1f)   // VRAM 0x7C00
+#define RASTER_CMD_WHITE rasterCmdColor(0x1f, 0x1f, 0x1f)  // command 0xF8F8F8
+#define RASTER_VRAM_WHITE rasterVram555(0x1f, 0x1f, 0x1f)  // VRAM 0x7FFF
 
 // --------------------------------------------------------------------------
 // GPU reset / setup
@@ -174,8 +174,7 @@ static inline void rasterFullReset(void) {
 
     // Drawing area + offset to a clean test default. Individual tests may
     // override these.
-    setDrawingArea(RASTER_DRAW_AREA_X1, RASTER_DRAW_AREA_Y1,
-                   RASTER_DRAW_AREA_X2, RASTER_DRAW_AREA_Y2);
+    setDrawingArea(RASTER_DRAW_AREA_X1, RASTER_DRAW_AREA_Y1, RASTER_DRAW_AREA_X2, RASTER_DRAW_AREA_Y2);
     setDrawingOffset(0, 0);
 
     // Texture window = full 256x256 page (offset 0, mask 0). E2 command.
@@ -194,8 +193,7 @@ static inline void rasterFullReset(void) {
 static inline void rasterReset(void) {
     sendGPUStatus(0x00000000u);  // GP1(0x00) full reset
     sendGPUStatus(0x04000001u);  // GP1(0x04, 1) FIFO mode
-    setDrawingArea(RASTER_DRAW_AREA_X1, RASTER_DRAW_AREA_Y1,
-                   RASTER_DRAW_AREA_X2, RASTER_DRAW_AREA_Y2);
+    setDrawingArea(RASTER_DRAW_AREA_X1, RASTER_DRAW_AREA_Y1, RASTER_DRAW_AREA_X2, RASTER_DRAW_AREA_Y2);
     setDrawingOffset(0, 0);
     sendGPUData(0xe2000000u);
     sendGPUData(0xe6000000u);
@@ -221,8 +219,7 @@ static inline void rasterStreamPace(int idx) {
 // Height up to 511 - for larger fills make multiple calls; H==512 is
 // clean per the ((H-1)&0x1FF)+1 formula but writing it that way keeps the
 // data-phase word count exact.
-static inline void rasterFillRect(int16_t x, int16_t y, int16_t w, int16_t h,
-                                  uint16_t value) {
+static inline void rasterFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t value) {
     waitGPU();
     GPU_DATA = 0xa0000000u;
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)x;
@@ -254,8 +251,7 @@ static inline uint16_t rasterReadPixel(int16_t x, int16_t y) {
 // Read a horizontal strip of |w| pixels starting at (x, y). |w| must be
 // even (round caller-side if odd). Output is written to |dst| as raw
 // 16-bit values in left-to-right order.
-static inline void rasterReadStrip(int16_t x, int16_t y, int16_t w,
-                                   uint16_t* dst) {
+static inline void rasterReadStrip(int16_t x, int16_t y, int16_t w, uint16_t* dst) {
     waitGPU();
     GPU_DATA = 0xc0000000u;
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)x;
@@ -273,8 +269,7 @@ static inline void rasterReadStrip(int16_t x, int16_t y, int16_t w,
 // Fill the working test rectangle with the sentinel before each draw. This
 // is just rasterFillRect with the named sentinel; kept as a separate name
 // so tests document intent.
-static inline void rasterClearTestRegion(int16_t x, int16_t y, int16_t w,
-                                         int16_t h) {
+static inline void rasterClearTestRegion(int16_t x, int16_t y, int16_t w, int16_t h) {
     rasterFillRect(x, y, w, h, RASTER_SENTINEL);
 }
 
@@ -284,8 +279,7 @@ static inline void rasterClearTestRegion(int16_t x, int16_t y, int16_t w,
 
 // GP0(0x20) flat untextured triangle. Verts are sign-extended 11-bit on the
 // silicon; we pass them as int16_t and let the GPU mask.
-static inline void rasterFlatTri(uint32_t cmdColor, int16_t x0, int16_t y0,
-                                 int16_t x1, int16_t y1, int16_t x2,
+static inline void rasterFlatTri(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
                                  int16_t y2) {
     waitGPU();
     GPU_DATA = 0x20000000u | (cmdColor & 0x00ffffffu);
@@ -296,8 +290,7 @@ static inline void rasterFlatTri(uint32_t cmdColor, int16_t x0, int16_t y0,
 
 // GP0(0x22) semi-trans flat untextured triangle. Same layout as 0x20.
 // Blend mode comes from the current E1 ABR field (bits 5-6).
-static inline void rasterFlatTriSemi(uint32_t cmdColor, int16_t x0, int16_t y0,
-                                     int16_t x1, int16_t y1, int16_t x2,
+static inline void rasterFlatTriSemi(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
                                      int16_t y2) {
     waitGPU();
     GPU_DATA = 0x22000000u | (cmdColor & 0x00ffffffu);
@@ -307,8 +300,7 @@ static inline void rasterFlatTriSemi(uint32_t cmdColor, int16_t x0, int16_t y0,
 }
 
 // GP0(0x2A) semi-trans flat untextured quad.
-static inline void rasterFlatQuadSemi(uint32_t cmdColor, int16_t x0, int16_t y0,
-                                      int16_t x1, int16_t y1, int16_t x2,
+static inline void rasterFlatQuadSemi(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
                                       int16_t y2, int16_t x3, int16_t y3) {
     waitGPU();
     GPU_DATA = 0x2a000000u | (cmdColor & 0x00ffffffu);
@@ -319,8 +311,7 @@ static inline void rasterFlatQuadSemi(uint32_t cmdColor, int16_t x0, int16_t y0,
 }
 
 // GP0(0x62) semi-trans variable-size rect.
-static inline void rasterFlatRectSemi(uint32_t cmdColor, int16_t x, int16_t y,
-                                      int16_t w, int16_t h) {
+static inline void rasterFlatRectSemi(uint32_t cmdColor, int16_t x, int16_t y, int16_t w, int16_t h) {
     waitGPU();
     GPU_DATA = 0x62000000u | (cmdColor & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)x;
@@ -343,17 +334,14 @@ static inline void rasterSetAbr(uint8_t abr) {
 //   check_mask = 1 -> pixels with bit 15 already set in VRAM are not
 //                     overwritten (semi-trans bypassed for those pixels)
 static inline void rasterSetMaskCtrl(int set_mask, int check_mask) {
-    uint32_t e6 = 0xe6000000u |
-                  ((uint32_t)(set_mask & 1)) |
-                  ((uint32_t)(check_mask & 1) << 1);
+    uint32_t e6 = 0xe6000000u | ((uint32_t)(set_mask & 1)) | ((uint32_t)(check_mask & 1) << 1);
     sendGPUData(e6);
 }
 
 // GP0(0x28) flat untextured quad. Vertex order matters - the GPU
 // decomposes 0,1,2 + 1,2,3 internally (or so the soft renderer believes;
 // hardware truth is among the things this suite characterizes).
-static inline void rasterFlatQuad(uint32_t cmdColor, int16_t x0, int16_t y0,
-                                  int16_t x1, int16_t y1, int16_t x2,
+static inline void rasterFlatQuad(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
                                   int16_t y2, int16_t x3, int16_t y3) {
     waitGPU();
     GPU_DATA = 0x28000000u | (cmdColor & 0x00ffffffu);
@@ -364,8 +352,7 @@ static inline void rasterFlatQuad(uint32_t cmdColor, int16_t x0, int16_t y0,
 }
 
 // GP0(0x40) flat untextured line.
-static inline void rasterFlatLine(uint32_t cmdColor, int16_t x0, int16_t y0,
-                                  int16_t x1, int16_t y1) {
+static inline void rasterFlatLine(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
     waitGPU();
     GPU_DATA = 0x40000000u | (cmdColor & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y0 << 16) | (uint32_t)(uint16_t)x0;
@@ -373,9 +360,7 @@ static inline void rasterFlatLine(uint32_t cmdColor, int16_t x0, int16_t y0,
 }
 
 // GP0(0x42) semi-trans flat line.
-static inline void rasterFlatLineSemi(uint32_t cmdColor,
-                                      int16_t x0, int16_t y0,
-                                      int16_t x1, int16_t y1) {
+static inline void rasterFlatLineSemi(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
     waitGPU();
     GPU_DATA = 0x42000000u | (cmdColor & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y0 << 16) | (uint32_t)(uint16_t)x0;
@@ -383,8 +368,7 @@ static inline void rasterFlatLineSemi(uint32_t cmdColor,
 }
 
 // GP0(0x50) gouraud line (per-vertex color).
-static inline void rasterGouraudLine(uint32_t c0, int16_t x0, int16_t y0,
-                                     uint32_t c1, int16_t x1, int16_t y1) {
+static inline void rasterGouraudLine(uint32_t c0, int16_t x0, int16_t y0, uint32_t c1, int16_t x1, int16_t y1) {
     waitGPU();
     GPU_DATA = 0x50000000u | (c0 & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y0 << 16) | (uint32_t)(uint16_t)x0;
@@ -395,21 +379,18 @@ static inline void rasterGouraudLine(uint32_t c0, int16_t x0, int16_t y0,
 // GP0(0x48) flat polyline. 3-vertex variant (single 0x55555555
 // terminator after the third vertex). Higher-vertex polylines follow
 // the same pattern; we expose a 3-vertex form for the tests.
-static inline void rasterFlatPolyline3(uint32_t cmdColor,
-                                       int16_t x0, int16_t y0,
-                                       int16_t x1, int16_t y1,
-                                       int16_t x2, int16_t y2) {
+static inline void rasterFlatPolyline3(uint32_t cmdColor, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
+                                       int16_t y2) {
     waitGPU();
     GPU_DATA = 0x48000000u | (cmdColor & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y0 << 16) | (uint32_t)(uint16_t)x0;
     GPU_DATA = ((uint32_t)(uint16_t)y1 << 16) | (uint32_t)(uint16_t)x1;
     GPU_DATA = ((uint32_t)(uint16_t)y2 << 16) | (uint32_t)(uint16_t)x2;
-    GPU_DATA = 0x55555555u;  /* polyline terminator */
+    GPU_DATA = 0x55555555u; /* polyline terminator */
 }
 
 // GP0(0x60) flat variable-size rectangle.
-static inline void rasterFlatRect(uint32_t cmdColor, int16_t x, int16_t y,
-                                  int16_t w, int16_t h) {
+static inline void rasterFlatRect(uint32_t cmdColor, int16_t x, int16_t y, int16_t w, int16_t h) {
     waitGPU();
     GPU_DATA = 0x60000000u | (cmdColor & 0x00ffffffu);
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)x;
@@ -429,8 +410,7 @@ static inline void rasterFlatRect(uint32_t cmdColor, int16_t x, int16_t y,
 //   3: y1 << 16 | x1
 //   4: 0x00 << 24 | c2_24bit
 //   5: y2 << 16 | x2
-static inline void rasterGouraudTri(uint32_t c0, int16_t x0, int16_t y0,
-                                    uint32_t c1, int16_t x1, int16_t y1,
+static inline void rasterGouraudTri(uint32_t c0, int16_t x0, int16_t y0, uint32_t c1, int16_t x1, int16_t y1,
                                     uint32_t c2, int16_t x2, int16_t y2) {
     waitGPU();
     GPU_DATA = 0x30000000u | (c0 & 0x00ffffffu);
@@ -469,18 +449,16 @@ static inline void rasterFlushPrimitive(void) { waitGPU(); }
 // a complete dump that can be greppped to patch raster-expected.h.
 //
 // Usage: ASSERT_PIXEL_EQ(EXPECT_FOO_x_y, x, y);
-#define ASSERT_PIXEL_EQ(expected, x_, y_)                                   \
-    do {                                                                    \
-        int16_t _ax = (int16_t)(x_);                                        \
-        int16_t _ay = (int16_t)(y_);                                        \
-        uint16_t _aval = rasterReadPixel(_ax, _ay);                         \
-        ramsyscall_printf("OBS x=%d y=%d val=0x%04x expect=0x%04x\n",       \
-                          (int)_ax, (int)_ay, (unsigned)_aval,              \
-                          (unsigned)(expected));                            \
-        cester_assert_uint_eq((unsigned)(expected), (unsigned)_aval);       \
+#define ASSERT_PIXEL_EQ(expected, x_, y_)                                                                  \
+    do {                                                                                                   \
+        int16_t _ax = (int16_t)(x_);                                                                       \
+        int16_t _ay = (int16_t)(y_);                                                                       \
+        uint16_t _aval = rasterReadPixel(_ax, _ay);                                                        \
+        ramsyscall_printf("OBS x=%d y=%d val=0x%04x expect=0x%04x\n", (int)_ax, (int)_ay, (unsigned)_aval, \
+                          (unsigned)(expected));                                                           \
+        cester_assert_uint_eq((unsigned)(expected), (unsigned)_aval);                                      \
     } while (0)
 
 // When the expected value is a sentinel (the test is asserting NOTHING
 // drew at that pixel), use this for clarity at the call site.
-#define ASSERT_PIXEL_UNTOUCHED(x_, y_) \
-    ASSERT_PIXEL_EQ(RASTER_SENTINEL, (x_), (y_))
+#define ASSERT_PIXEL_UNTOUCHED(x_, y_) ASSERT_PIXEL_EQ(RASTER_SENTINEL, (x_), (y_))

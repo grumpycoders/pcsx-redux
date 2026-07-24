@@ -35,7 +35,7 @@ class RAMLogger {
     enum class AccessType { Read, Write, Execute };
 
     static constexpr int c_width = 2048;
-    static constexpr int c_maxHeight = 4096;  // 8MB / 2048
+    static constexpr int c_maxHeight = 4096;                     // 8MB / 2048
     static constexpr size_t c_maxBytes = c_width * c_maxHeight;  // 8MB
 
     void recordAccess(uint32_t physAddr, unsigned width, AccessType type, uint32_t cycle);
