@@ -2227,10 +2227,10 @@ can slow down emulation to a noticeable extent.)"));
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
+                g_emulator->m_gdbServer->start(g_system->getLoop(),
+                                               debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
             } else {
-                g_emulator->m_gdbServer->stopServer();
+                g_emulator->m_gdbServer->stop();
             }
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
