@@ -291,6 +291,9 @@ class GUI final : public UI {
 
   private:
     void saveCfg();
+    void resetSettings();
+    bool m_settingsNuked = false;
+    bool m_showResetSettings = false;
 
     void startFrame();
     void endFrame();
