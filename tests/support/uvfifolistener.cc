@@ -21,6 +21,7 @@
 
 #include <chrono>
 #include <thread>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "support/uvfile.h"
@@ -35,6 +36,7 @@ constexpr unsigned c_squattedPort = 47821;
 constexpr unsigned c_freePort = 47823;
 constexpr unsigned c_notifyPort = 47825;
 constexpr unsigned c_deadPort = 47827;
+constexpr unsigned c_flushPort = 47829;
 
 // Pump the caller-side loop for a while, giving the uv worker thread time to
 // service the queued request() and hand anything back through the async.
@@ -218,4 +220,95 @@ TEST(UvFifo, FailedConnectIsActionable) {
     EXPECT_FALSE(fifo->isConnecting());
     EXPECT_EQ(fifo->connectErrorCode(), UV_ECONNREFUSED);
     EXPECT_STREQ(fifo->connectError(), uv_strerror(UV_ECONNREFUSED));
+}
+
+// Writes are queued to the worker thread, so "write() returned" and "the bytes
+// left the machine" are different moments. uv_close cancels pending uv_writes,
+// so closing between the two truncates the tail - for an HTTP response that is
+// a silently short reply, and it is why the web server carried its own
+// m_closeScheduled / m_requests.size() bookkeeping. close() is graceful now so
+// consumers do not each have to reinvent that.
+//
+// The peer here deliberately does NOT read while the write is in flight. An
+// earlier version of this test used two UvFifos, which share the worker thread,
+// so the receiver drained as fast as the sender wrote and nothing was ever
+// pending at close time - that version passed with the graceful close removed,
+// i.e. it measured nothing. A silent peer fills the socket buffers and forces
+// the writes to stay queued, which is the only state in which this is a test.
+TEST(UvFifo, CloseFlushesPendingWrites) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+
+    UvFifo* accepted = nullptr;
+    UvFifoListener listener;
+    uv_async_t listenerAsync = {};
+    listener.start(c_flushPort, &loop, &listenerAsync, [&accepted](UvFifo* fifo) {
+        if (fifo) accepted = fifo;
+    });
+    pump(&loop);
+    ASSERT_EQ(listener.status(), UvFifoListener::Status::Listening);
+
+    // A raw peer on the test loop, with no uv_read_start: it accepts the
+    // connection and then stays silent.
+    struct Peer {
+        uv_tcp_t m_tcp = {};
+        size_t m_received = 0;
+        bool m_eof = false;
+        bool m_reading = false;
+    } peer;
+    uv_tcp_init(&loop, &peer.m_tcp);
+    peer.m_tcp.data = &peer;
+    struct sockaddr_in target;
+    ASSERT_EQ(uv_ip4_addr("127.0.0.1", c_flushPort, &target), 0);
+    uv_connect_t connectReq;
+    ASSERT_EQ(uv_tcp_connect(&connectReq, &peer.m_tcp, reinterpret_cast<const sockaddr*>(&target),
+                             [](uv_connect_t*, int status) { EXPECT_EQ(status, 0); }),
+              0);
+    pump(&loop);
+    ASSERT_NE(accepted, nullptr);
+    IO<File> serverSide(accepted);
+
+    // Big enough that it cannot possibly fit in the socket buffers, so the tail
+    // is genuinely still queued when close() lands.
+    constexpr size_t c_payloadSize = 64 * 1024 * 1024;
+    std::string payload(c_payloadSize, 'x');
+    serverSide->write(payload.data(), payload.size());
+    ASSERT_GT(accepted->pendingWrites(), 0u);
+    // No drain wait: close straight away, the way a handler that has finished
+    // writing its response does.
+    serverSide.reset();
+
+    // Only now start reading.
+    peer.m_reading = true;
+    uv_read_start(
+        reinterpret_cast<uv_stream_t*>(&peer.m_tcp),
+        [](uv_handle_t*, size_t suggested, uv_buf_t* buf) {
+            buf->base = static_cast<char*>(malloc(suggested));
+            buf->len = suggested;
+        },
+        [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+            auto self = static_cast<Peer*>(stream->data);
+            if (nread > 0) {
+                self->m_received += nread;
+            } else if (nread < 0) {
+                self->m_eof = true;
+            }
+            free(buf->base);
+        });
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (!peer.m_eof && (std::chrono::steady_clock::now() < deadline)) {
+        pump(&loop, 50);
+    }
+
+    EXPECT_TRUE(peer.m_eof);
+    EXPECT_EQ(peer.m_received, c_payloadSize);
+
+    uv_close(reinterpret_cast<uv_handle_t*>(&peer.m_tcp), [](uv_handle_t*) {});
+    listener.stop();
+    pump(&loop);
+    uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
+    pump(&loop);
+    uv_loop_close(&loop);
 }

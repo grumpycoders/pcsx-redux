@@ -31,6 +31,7 @@ SOFTWARE.
 #include <atomic>
 #include <functional>
 #include <future>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -267,6 +268,15 @@ class UvFifo : public File, public UvThreadOp {
     void setNotifier(uv_loop_t* loop, uv_async_t* async, std::function<void()>&& cb);
     void clearNotifier() { m_notifyAsync.store(nullptr, std::memory_order_release); }
 
+    // Writes are queued to the uv worker thread, so "I called write()" and "the
+    // bytes left the machine" are different moments. Closing between the two
+    // cancels the pending uv_writes and truncates whatever was in flight, which
+    // for an HTTP response is a silently short reply. close() is therefore
+    // graceful: the socket is torn down by the last write to complete, not by
+    // the caller. Exposed for consumers that want to know, e.g. to hold a
+    // connection open until a response has drained.
+    size_t pendingWrites() const { return m_control->m_pending.load(std::memory_order_acquire); }
+
   private:
     virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
@@ -289,6 +299,19 @@ class UvFifo : public File, public UvThreadOp {
     Slice m_slice;
     size_t m_currentPtr = 0;
     std::atomic<uv_async_t*> m_notifyAsync = nullptr;
+
+    // The socket and the graceful-close bookkeeping outlive the UvFifo on
+    // purpose. An in-flight uv_write holds a reference, so a fifo destroyed
+    // while writes are still queued cannot pull the state out from under the
+    // worker thread - which is why the write path must never capture `this`.
+    struct Control {
+        std::atomic<size_t> m_pending = 0;
+        bool m_closeRequested = false;  // worker thread only
+        uv_tcp_t* m_tcp = nullptr;      // worker thread only, after construction
+        void closeNow();
+        void writeCompleted();
+    };
+    std::shared_ptr<Control> m_control = std::make_shared<Control>();
     std::function<void()> m_notifyCb;
     friend class UvFifoListener;
 };

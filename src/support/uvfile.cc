@@ -778,6 +778,7 @@ void PCSX::UvFile::cacheCallbackSetup(std::function<void()> &&callbackDone, uv_l
 PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
     tcp->data = this;
     m_tcp = tcp;
+    m_control->m_tcp = tcp;
     startRead(tcp);
 }
 
@@ -788,6 +789,7 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
     uv_tcp_t *tcp = new uv_tcp_t();
     tcp->data = this;
     m_tcp = tcp;
+    m_control->m_tcp = tcp;
     request([this, host = std::string(address), port](auto loop) {
         uv_tcp_init(loop, m_tcp);
         struct sockaddr_in connectAddr;
@@ -878,14 +880,31 @@ void PCSX::UvFifo::setNotifier(uv_loop_t *loop, uv_async_t *async, std::function
     if ((m_size.load() > 0) || m_closed.load()) notify();
 }
 
+void PCSX::UvFifo::Control::closeNow() {
+    auto tcp = m_tcp;
+    m_tcp = nullptr;
+    if (!tcp) return;
+    uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
+        auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
+        delete tcp;
+    });
+}
+
+void PCSX::UvFifo::Control::writeCompleted() {
+    auto remaining = m_pending.fetch_sub(1, std::memory_order_acq_rel) - 1;
+    if (m_closeRequested && (remaining == 0)) closeNow();
+}
+
 void PCSX::UvFifo::closeInternal() {
     m_closed.store(true);
-    request([tcp = m_tcp](uv_loop_t *loop) {
-        if (!tcp) return;
-        uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
-            auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
-            delete tcp;
-        });
+    request([control = m_control](uv_loop_t *loop) {
+        // Graceful: uv_close cancels pending uv_writes, so tearing down here
+        // while writes are still in flight truncates them - for an HTTP
+        // response that is a silently short reply. Hand the teardown to
+        // whichever write finishes last instead. m_closeRequested and m_tcp are
+        // touched only on the worker thread, so the two cannot race.
+        control->m_closeRequested = true;
+        if (control->m_pending.load(std::memory_order_acquire) == 0) control->closeNow();
     });
 }
 
@@ -919,18 +938,32 @@ ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<Control> control;
     };
     auto info = new Info();
     info->req.data = info;
     info->slice.copy(src, size);
     info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
     info->buf.len = size;
-    request([info, tcp = m_tcp](auto loop) {
-        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
-            auto info = reinterpret_cast<Info *>(req->data);
+    m_control->m_pending.fetch_add(1, std::memory_order_acq_rel);
+    // Capture the control block, never `this`: the fifo may be destroyed while
+    // this write is still queued, and the worker thread must still be able to
+    // finish and account for it.
+    request([control = m_control, info](auto loop) {
+        if (!control->m_tcp) {
             delete info;
-        });
+            control->writeCompleted();
+            return;
+        }
+        info->control = control;
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                 [](uv_write_t *req, int status) {
+                     auto info = reinterpret_cast<Info *>(req->data);
+                     auto control = info->control;
+                     delete info;
+                     control->writeCompleted();
+                 });
     });
     return size;
 }
@@ -940,18 +973,32 @@ void PCSX::UvFifo::write(Slice &&slice) {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<Control> control;
     };
     auto size = slice.size();
     auto info = new Info();
     info->req.data = info;
     info->buf.len = size;
     info->slice = std::move(slice);
-    request([info, tcp = m_tcp](auto loop) {
-        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
-            auto info = reinterpret_cast<Info *>(req->data);
+    m_control->m_pending.fetch_add(1, std::memory_order_acq_rel);
+    // Capture the control block, never `this`: the fifo may be destroyed while
+    // this write is still queued, and the worker thread must still be able to
+    // finish and account for it.
+    request([control = m_control, info](auto loop) {
+        if (!control->m_tcp) {
             delete info;
-        });
+            control->writeCompleted();
+            return;
+        }
+        info->control = control;
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                 [](uv_write_t *req, int status) {
+                     auto info = reinterpret_cast<Info *>(req->data);
+                     auto control = info->control;
+                     delete info;
+                     control->writeCompleted();
+                 });
     });
 }
 
