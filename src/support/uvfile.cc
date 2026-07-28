@@ -793,7 +793,10 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
         struct sockaddr_in connectAddr;
         int result = uv_ip4_addr(host.c_str(), port, &connectAddr);
         if (result != 0) {
+            m_connectErrorCode.store(result, std::memory_order_release);
+            m_connecting.clear();
             m_failed.test_and_set();
+            notify();
             return;
         }
         uv_connect_t *connect = new uv_connect_t();
@@ -802,16 +805,22 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
                                 [](uv_connect_t *connect, int status) {
                                     UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
                                     if (status < 0) {
+                                        fifo->m_connectErrorCode.store(status, std::memory_order_release);
+                                        fifo->m_connecting.clear();
                                         fifo->m_failed.test_and_set();
                                         delete connect;
+                                        fifo->notify();
                                         return;
                                     }
                                     fifo->m_connecting.clear();
                                     fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
                                 });
         if (result != 0) {
+            m_connectErrorCode.store(result, std::memory_order_release);
+            m_connecting.clear();
             m_failed.test_and_set();
             delete connect;
+            notify();
             return;
         }
     });

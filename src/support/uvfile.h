@@ -238,6 +238,14 @@ class UvFifo : public File, public UvThreadOp {
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
     virtual bool failed() final override { return m_failed.test(); }
     bool isConnecting() { return m_connecting.test(); }
+    // uv error code of a failed connect, or 0. Meaningful once failed() is set.
+    // Without this a failed outgoing connection is a bare bool, which is enough
+    // to colour a status bullet red and not enough to say why.
+    int connectErrorCode() const { return m_connectErrorCode.load(std::memory_order_acquire); }
+    const char* connectError() const {
+        int code = connectErrorCode();
+        return code == 0 ? "" : uv_strerror(code);
+    }
 
     // Opt-in readable notification.
     //
@@ -277,6 +285,7 @@ class UvFifo : public File, public UvThreadOp {
     std::atomic<size_t> m_size = 0;
     std::atomic_flag m_failed;
     std::atomic_flag m_connecting;
+    std::atomic<int> m_connectErrorCode = 0;
     Slice m_slice;
     size_t m_currentPtr = 0;
     std::atomic<uv_async_t*> m_notifyAsync = nullptr;

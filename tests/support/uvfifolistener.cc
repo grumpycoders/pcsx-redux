@@ -34,6 +34,7 @@ namespace {
 constexpr unsigned c_squattedPort = 47821;
 constexpr unsigned c_freePort = 47823;
 constexpr unsigned c_notifyPort = 47825;
+constexpr unsigned c_deadPort = 47827;
 
 // Pump the caller-side loop for a while, giving the uv worker thread time to
 // service the queued request() and hand anything back through the async.
@@ -192,4 +193,29 @@ TEST(UvFifo, ReadableNotifierFires) {
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
     uv_loop_close(&loop);
+}
+
+// A failed outgoing connection has to end up in a state the UI can act on.
+// Both halves of this matter and only one of them is about the error string:
+// m_connecting was set in the constructor and cleared ONLY on the success
+// path, so a fifo that failed to connect reported isConnecting() forever. The
+// SIO1 "Reconnect" button - the single piece of network error UI in the whole
+// emulator - is gated on `!connecting() && fifoError()`, so it could never
+// become clickable after exactly the failure it exists to recover from.
+TEST(UvFifo, FailedConnectIsActionable) {
+    UvThreadOp::UvThread uvThread;
+
+    // Nothing is listening here; c_deadPort is never bound by any test.
+    IO<File> client(new UvFifo("127.0.0.1", c_deadPort));
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    auto fifo = client.asA<UvFifo>();
+    while (fifo->isConnecting() && (std::chrono::steady_clock::now() < deadline)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    EXPECT_TRUE(fifo->failed());
+    EXPECT_FALSE(fifo->isConnecting());
+    EXPECT_EQ(fifo->connectErrorCode(), UV_ECONNREFUSED);
+    EXPECT_STREQ(fifo->connectError(), uv_strerror(UV_ECONNREFUSED));
 }
