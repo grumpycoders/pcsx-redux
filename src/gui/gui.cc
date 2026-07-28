@@ -2270,10 +2270,10 @@ the gdb server system itself.)"));
         if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::WebServerPort>());
+                g_emulator->m_webServer->start(g_system->getLoop(),
+                                               debugSettings.get<Emulator::DebugSettings::WebServerPort>());
             } else {
-                g_emulator->m_webServer->stopServer();
+                g_emulator->m_webServer->stop();
             }
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
