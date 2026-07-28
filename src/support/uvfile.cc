@@ -833,8 +833,12 @@ void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
             UvFifo *fifo = reinterpret_cast<UvFifo *>(client->data);
             if (nread <= 0) {
                 free(fifo->m_buffer);
+                fifo->m_buffer = nullptr;
                 if (nread < 0) {
                     fifo->m_closed = true;
+                    // A peer hanging up is a state change too; a consumer
+                    // waiting to be woken would otherwise wait forever.
+                    fifo->notify();
                 }
                 return;
             }
@@ -845,7 +849,24 @@ void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
             slice.acquire(b, nread);
             fifo->m_queue.Enqueue(std::move(slice));
             fifo->m_size.fetch_add(nread);
+            fifo->notify();
         });
+}
+
+void PCSX::UvFifo::setNotifier(uv_loop_t *loop, uv_async_t *async, std::function<void()> &&cb) {
+    m_notifyCb = std::move(cb);
+    async->data = this;
+    uv_async_init(loop, async, [](uv_async_t *async) {
+        UvFifo *fifo = reinterpret_cast<UvFifo *>(async->data);
+        if (fifo->m_notifyCb) fifo->m_notifyCb();
+    });
+    m_notifyAsync.store(async, std::memory_order_release);
+    // The fifo may have been readable since before we were installed - an
+    // accepted connection starts reading on the worker thread the instant it
+    // exists, well before the consumer gets it back through the listener's
+    // async. Fire once so that traffic isn't stranded waiting for the next
+    // packet to arrive.
+    if ((m_size.load() > 0) || m_closed.load()) notify();
 }
 
 void PCSX::UvFifo::closeInternal() {

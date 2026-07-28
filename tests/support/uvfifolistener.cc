@@ -33,6 +33,7 @@ namespace {
 // on a developer box or CI runner.
 constexpr unsigned c_squattedPort = 47821;
 constexpr unsigned c_freePort = 47823;
+constexpr unsigned c_notifyPort = 47825;
 
 // Pump the caller-side loop for a while, giving the uv worker thread time to
 // service the queued request() and hand anything back through the async.
@@ -127,5 +128,68 @@ TEST(UvFifoListener, StopAfterFailedBindIsSafe) {
     EXPECT_EQ(listener.status(), UvFifoListener::Status::Failed);
 
     uv_run(&loop, UV_RUN_NOWAIT);
+    uv_loop_close(&loop);
+}
+
+// UvFifo has no readable callback of its own - data lands in a lock-free queue
+// on the worker thread and the consumer is expected to poll size(). That is
+// what SIO1 and ATCons do off the counters, and it is why porting the GDB and
+// web servers onto this transport needs a wake-up first: frame-granularity
+// polling would put visible latency on every GDB packet.
+//
+// This test only passes if uv_async_send actually reached the caller's loop.
+// Nothing else runs the callback, so a notifier that never fires fails it.
+TEST(UvFifo, ReadableNotifierFires) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+
+    UvFifo* accepted = nullptr;
+    UvFifoListener listener;
+    uv_async_t listenerAsync = {};
+    listener.start(c_notifyPort, &loop, &listenerAsync, [&accepted](UvFifo* fifo) {
+        if (fifo) accepted = fifo;
+    });
+    pump(&loop);
+    ASSERT_EQ(listener.status(), UvFifoListener::Status::Listening);
+
+    IO<File> client(new UvFifo("127.0.0.1", c_notifyPort));
+    pump(&loop);
+    ASSERT_NE(accepted, nullptr);
+    IO<File> serverSide(accepted);
+
+    int notifications = 0;
+    uv_async_t notifyAsync = {};
+    accepted->setNotifier(&loop, &notifyAsync, [&notifications]() { notifications++; });
+    pump(&loop);
+    const int baseline = notifications;
+
+    static const char c_payload[] = "hello";
+    constexpr size_t c_payloadSize = sizeof(c_payload) - 1;
+    client->write(c_payload, c_payloadSize);
+    pump(&loop, 500);
+
+    EXPECT_GT(notifications, baseline);
+    EXPECT_EQ(serverSide->size(), c_payloadSize);
+
+    char buffer[16] = {};
+    EXPECT_EQ(serverSide->read(buffer, c_payloadSize), static_cast<ssize_t>(c_payloadSize));
+    EXPECT_STREQ(buffer, c_payload);
+
+    // A peer hanging up has to wake the consumer too, or anything waiting on
+    // the notifier instead of polling never learns the connection is gone.
+    const int beforeClose = notifications;
+    client.reset();
+    pump(&loop, 500);
+    EXPECT_GT(notifications, beforeClose);
+    EXPECT_TRUE(serverSide->isClosed());
+
+    accepted->clearNotifier();
+    serverSide.reset();
+    listener.stop();
+    pump(&loop);
+    uv_close(reinterpret_cast<uv_handle_t*>(&notifyAsync), [](uv_handle_t*) {});
+    uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
+    pump(&loop);
     uv_loop_close(&loop);
 }

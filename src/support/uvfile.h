@@ -239,10 +239,35 @@ class UvFifo : public File, public UvThreadOp {
     virtual bool failed() final override { return m_failed.test(); }
     bool isConnecting() { return m_connecting.test(); }
 
+    // Opt-in readable notification.
+    //
+    // Reads land in a lock-free queue on the uv worker thread, so without this
+    // the only way to notice traffic is to poll size() from somewhere - which
+    // is what SIO1 and ATCons do off the counters, and which is fine for them.
+    // It is not fine for anything latency-sensitive or idle-heavy, so a
+    // consumer can hand over an async living on ITS OWN loop and get woken
+    // instead. `cb` runs on that loop, never on the worker thread.
+    //
+    // Fires on data arrival and on EOF/error. Wake-ups are coalesced by libuv,
+    // so treat it as "something changed, go look", not as one call per chunk.
+    // Safe to install after data has already arrived: it fires once up front if
+    // the fifo is already readable or already closed, so no wake-up is lost in
+    // the gap between accept and setNotifier.
+    //
+    // The caller owns `async` and must keep it alive until it closes the fifo,
+    // then uv_close it, exactly like UvFifoListener's.
+    void setNotifier(uv_loop_t* loop, uv_async_t* async, std::function<void()>&& cb);
+    void clearNotifier() { m_notifyAsync.store(nullptr, std::memory_order_release); }
+
   private:
     virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
     void startRead(uv_tcp_t*);
+    // Worker-thread side of the notification. A no-op when nobody opted in.
+    void notify() {
+        auto async = m_notifyAsync.load(std::memory_order_acquire);
+        if (async) uv_async_send(async);
+    }
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
@@ -254,6 +279,8 @@ class UvFifo : public File, public UvThreadOp {
     std::atomic_flag m_connecting;
     Slice m_slice;
     size_t m_currentPtr = 0;
+    std::atomic<uv_async_t*> m_notifyAsync = nullptr;
+    std::function<void()> m_notifyCb;
     friend class UvFifoListener;
 };
 
