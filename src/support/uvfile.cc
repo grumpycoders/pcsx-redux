@@ -925,11 +925,25 @@ void PCSX::UvFifo::write(Slice &&slice) {
     });
 }
 
+void PCSX::UvFifoListener::failed(int code) {
+    m_lastErrorCode.store(code, std::memory_order_release);
+    uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
+        UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
+        listener->m_status.store(Status::Failed, std::memory_order_release);
+        // Same wake-up an orderly stop() produces, so the consumer's nullptr
+        // branch runs and closes its async instead of leaking it.
+        listener->m_pending.Enqueue(nullptr);
+        uv_async_send(listener->m_async);
+    });
+}
+
 void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *async,
                                  std::function<void(UvFifo *)> &&cb) {
     m_cb = std::move(cb);
     async->data = this;
     m_async = async;
+    m_lastErrorCode.store(0, std::memory_order_release);
+    m_status.store(Status::Starting, std::memory_order_release);
     uv_async_init(loop, async, [](uv_async_t *async) {
         UvFifoListener *self = reinterpret_cast<UvFifoListener *>(async->data);
         UvFifo *fifo = nullptr;
@@ -944,12 +958,12 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
         struct sockaddr_in bindAddr;
         int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
         result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr *>(&bindAddr), 0);
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
         result = uv_listen((uv_stream_t *)&m_server, 16, [](uv_stream_t *server, int status) {
@@ -968,16 +982,25 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             }
         });
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
+        m_status.store(Status::Listening, std::memory_order_release);
     });
 }
 
 void PCSX::UvFifoListener::stop() {
     request([this](auto loop) {
+        // Runs on the same worker thread as start()'s body and after it, so the
+        // status here is settled: a failed bind has already closed m_server and
+        // there is nothing left to tear down. Closing it again is what aborted
+        // inside uv_close (`!uv__is_closing(handle)`) whenever a server was
+        // enabled on a busy port and then switched off.
+        auto status = m_status.load(std::memory_order_acquire);
+        if ((status == Status::Failed) || (status == Status::Stopped)) return;
         uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
             UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
+            listener->m_status.store(Status::Stopped, std::memory_order_release);
             listener->m_pending.Enqueue(nullptr);
             uv_async_send(listener->m_async);
         });

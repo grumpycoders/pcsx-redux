@@ -259,16 +259,37 @@ class UvFifo : public File, public UvThreadOp {
 
 class UvFifoListener : public UvThreadOp {
   public:
+    // The bind and the listen both happen asynchronously on the uv worker
+    // thread, so a failure cannot be returned from start(). It lands here
+    // instead, and the callback is invoked with nullptr the same way an
+    // orderly shutdown does, so consumers have exactly one path for "this
+    // listener is finished, clean up".
+    enum class Status { Stopped, Starting, Listening, Failed };
+
     UvFifoListener() {}
     void start(unsigned port, uv_loop_t* loop, uv_async_t* async, std::function<void(UvFifo*)>&& cb);
     void stop();
 
+    Status status() const { return m_status.load(std::memory_order_acquire); }
+    bool isListening() const { return status() == Status::Listening; }
+    // uv error code of whichever step failed, or 0. Meaningful once status() is Failed.
+    int lastErrorCode() const { return m_lastErrorCode.load(std::memory_order_acquire); }
+    const char* lastError() const {
+        int code = lastErrorCode();
+        return code == 0 ? "" : uv_strerror(code);
+    }
+
   private:
     virtual bool canCache() const override { return false; }
+    // Worker-thread only. Records the error, tears down the half-built server
+    // handle, and wakes the consumer with a nullptr.
+    void failed(int code);
     uv_async_t* m_async = nullptr;
     uv_tcp_t m_server = {};
     std::function<void(UvFifo*)> m_cb;
     ConcurrentQueue<UvFifo*> m_pending;
+    std::atomic<Status> m_status = Status::Stopped;
+    std::atomic<int> m_lastErrorCode = 0;
 };
 
 }  // namespace PCSX
