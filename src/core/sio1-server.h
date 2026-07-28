@@ -23,46 +23,35 @@
 #include <string>
 
 #include "support/eventbus.h"
-#include "support/uvfile.h"
+#include "support/network.h"
 
 namespace PCSX {
-class SIO1Server {
+
+class SIO1Server : public Network::Server {
   public:
-    enum class SIO1ServerStatus {
-        SERVER_STOPPED,
-        SERVER_STOPPING,
-        SERVER_STARTED,
-    };
-
-    SIO1ServerStatus getServerStatus() { return m_serverStatus; }
-
     SIO1Server();
-    void startServer(uv_loop_t* loop, int port = 6699);
-    void stopServer();
+
+  protected:
+    void onStarting() override;
+    void onConnection(IO<File> connection) override;
+    void onStopped() override;
 
   private:
     EventBus::Listener m_listener;
-    uv_async_t m_async;
-    SIO1ServerStatus m_serverStatus = SIO1ServerStatus::SERVER_STOPPED;
-    UvFifoListener m_fifoListener;
 };
 
-class SIO1Client {
+class SIO1Client : public Network::Client {
   public:
-    enum class SIO1ClientStatus {
-        CLIENT_STOPPED,
-        CLIENT_STOPPING,
-        CLIENT_STARTED,
-    };
-    SIO1ClientStatus getClientStatus() { return m_clientStatus; }
     SIO1Client();
-    void startClient(std::string_view address, unsigned port);
-    void stopClient();
     void reconnect(std::string_view address, unsigned port);
+
+  protected:
+    void onStarting() override;
+    void onStarted(IO<File> connection) override;
+    void onStopped() override;
 
   private:
     EventBus::Listener m_listener;
-    SIO1ClientStatus m_clientStatus = SIO1ClientStatus::CLIENT_STOPPED;
 };
 
 }  // namespace PCSX

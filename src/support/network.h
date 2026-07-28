@@ -101,6 +101,10 @@ class Server : public Endpoint {
     const char* lastError() const override { return m_listener.lastError(); }
 
   protected:
+    // Called before the listener is armed, for whatever the endpoint needs to
+    // set up first - SIO1 and the ATCons bridge both flip an emulator poll flag
+    // here rather than reaching into start().
+    virtual void onStarting() {}
     // A client connected. The endpoint takes ownership.
     virtual void onConnection(IO<File> connection) = 0;
     // The listener is finished - either an orderly stop, or a bind/listen
@@ -146,6 +150,12 @@ class Client : public Endpoint {
     IO<File> connection() { return m_connection; }
 
   protected:
+    virtual void onStarting() {}
+    // The outgoing connection was created. It may still be connecting; check
+    // status() rather than assuming this means connected.
+    virtual void onStarted(IO<File> connection) {}
+    virtual void onStopped() {}
+
     void restartNow(uv_loop_t* loop, int port) override { start(loop, m_host, port); }
 
     IO<File> m_connection;

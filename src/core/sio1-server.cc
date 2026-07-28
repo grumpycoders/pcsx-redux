@@ -22,106 +22,78 @@
 #include "core/psxemulator.h"
 #include "core/sio1.h"
 
-PCSX::SIO1Server::SIO1Server() : m_listener(g_system->m_eventBus) {
-    m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1Server>() &&
-            (m_serverStatus != SIO1ServerStatus::SERVER_STARTED)) {
-            startServer(g_system->getLoop(), g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                                 .get<Emulator::DebugSettings::SIO1ServerPort>());
+namespace {
+
+// Both halves pick the wire format out of the same setting.
+PCSX::SIO1::SIO1Mode currentSIO1Mode() {
+    auto &debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    auto setting = debugSettings.get<PCSX::Emulator::DebugSettings::SIO1ModeSetting>().value;
+    return setting == PCSX::Emulator::DebugSettings::SIO1Mode::Raw ? PCSX::SIO1::SIO1Mode::Raw
+                                                                   : PCSX::SIO1::SIO1Mode::Protobuf;
+}
+
+}  // namespace
+
+PCSX::SIO1Server::SIO1Server() : Network::Server("SIO1 Server"), m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::SettingsLoaded>([this](const auto &event) {
+        auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+        if (debugSettings.get<Emulator::DebugSettings::SIO1Server>() && !isRunning()) {
+            start(g_system->getLoop(), debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
         }
     });
-    m_listener.listen<Events::Quitting>([this](const auto& event) {
-        if (m_serverStatus == SIO1ServerStatus::SERVER_STARTED) stopServer();
+    m_listener.listen<Events::Quitting>([this](const auto &event) {
+        if (isRunning()) stop();
     });
 }
 
-void PCSX::SIO1Server::startServer(uv_loop_t* loop, int port) {
-    if (m_serverStatus == SIO1ServerStatus::SERVER_STARTED) {
-        throw std::runtime_error("Server already started");
-    }
-    auto& emuSettings = PCSX::g_emulator->settings;
-    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
-    auto SIO1ModeSettings = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
-    if (SIO1ModeSettings == Emulator::DebugSettings::SIO1Mode::Raw) {
-        g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Raw;
-    } else {
-        g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Protobuf;
-    }
+void PCSX::SIO1Server::onStarting() {
+    g_emulator->m_sio1->m_sio1Mode = currentSIO1Mode();
     g_emulator->m_counters->m_pollSIO1 = true;
-
-    m_serverStatus = SIO1ServerStatus::SERVER_STARTED;
-    m_fifoListener.start(port, loop, &m_async, [this](auto fifo) {
-        if (fifo) {
-            g_emulator->m_sio1->setFifo(fifo);
-        } else {
-            m_async.data = this;
-            uv_close(reinterpret_cast<uv_handle_t*>(&m_async), [](uv_handle_t* handle) {
-                SIO1Server* server = reinterpret_cast<SIO1Server*>(handle->data);
-                server->m_serverStatus = SIO1ServerStatus::SERVER_STOPPED;
-            });
-        }
-    });
 }
 
-void PCSX::SIO1Server::stopServer() {
-    m_serverStatus = SIO1ServerStatus::SERVER_STOPPING;
+void PCSX::SIO1Server::onConnection(IO<File> connection) { g_emulator->m_sio1->setFifo(connection); }
+
+void PCSX::SIO1Server::onStopped() {
     g_emulator->m_counters->m_pollSIO1 = false;
-    m_fifoListener.stop();
     g_emulator->m_sio1->stopSIO1Connection();
 }
 
-PCSX::SIO1Client::SIO1Client() : m_listener(g_system->m_eventBus) {
-    m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1Client>() &&
-            (m_clientStatus != SIO1ClientStatus::CLIENT_STARTED)) {
-            startClient(std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                             .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                             .value),
-                        g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                            .get<Emulator::DebugSettings::SIO1ClientPort>());
+PCSX::SIO1Client::SIO1Client() : Network::Client("SIO1 Client"), m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::SettingsLoaded>([this](const auto &event) {
+        auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+        if (debugSettings.get<Emulator::DebugSettings::SIO1Client>() && (status() == Network::Status::Stopped)) {
+            start(g_system->getLoop(),
+                  std::string_view(debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value),
+                  debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>());
         }
     });
-    m_listener.listen<Events::Quitting>([this](const auto& event) {
-        if (m_clientStatus == SIO1ClientStatus::CLIENT_STARTED) stopClient();
+    m_listener.listen<Events::Quitting>([this](const auto &event) {
+        if (status() != Network::Status::Stopped) stop();
     });
 }
 
-void PCSX::SIO1Client::startClient(std::string_view address, unsigned port) {
-    if (m_clientStatus == SIO1ClientStatus::CLIENT_STARTED) {
-        throw std::runtime_error("Client already started");
+void PCSX::SIO1Client::onStarting() {
+    auto mode = currentSIO1Mode();
+    g_emulator->m_sio1->m_sio1Mode = mode;
+    if (mode == SIO1::SIO1Mode::Raw) {
+        // This used to throw std::runtime_error straight out of an ImGui
+        // checkbox callback. It is a configuration the client does not support,
+        // not an exceptional condition, so say so and leave the endpoint alone.
+        g_system->printf("%s", _("SIO1 client does not support raw mode\n"));
+        return;
     }
-
-    auto& emuSettings = PCSX::g_emulator->settings;
-    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
-    auto SIO1ModeSettings = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
-    if (SIO1ModeSettings == Emulator::DebugSettings::SIO1Mode::Raw) {
-        g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Raw;
-        throw std::runtime_error("Client doesn't currently support raw mode");
-    } else {
-        g_emulator->m_sio1->m_sio1Mode = SIO1::SIO1Mode::Protobuf;
-        g_emulator->m_counters->m_pollSIO1 = true;
-    }
-
-    m_clientStatus = SIO1ClientStatus::CLIENT_STARTED;
-    g_emulator->m_sio1->setFifo(new UvFifo(address, port));
-
-    if (g_emulator->m_sio1->fifoError()) {
-        m_clientStatus = SIO1ClientStatus::CLIENT_STOPPING;
-        g_emulator->m_counters->m_pollSIO1 = false;
-        stopClient();
-    }
+    g_emulator->m_counters->m_pollSIO1 = true;
 }
 
-void PCSX::SIO1Client::reconnect(std::string_view address, unsigned port) {
-    if (m_clientStatus == SIO1ClientStatus::CLIENT_STARTED) {
-        m_clientStatus = SIO1ClientStatus::CLIENT_STOPPED;
-        startClient(address, port);
-    }
-}
+void PCSX::SIO1Client::onStarted(IO<File> connection) { g_emulator->m_sio1->setFifo(connection); }
 
-void PCSX::SIO1Client::stopClient() {
-    m_clientStatus = SIO1ClientStatus::CLIENT_STOPPED;
+void PCSX::SIO1Client::onStopped() {
     g_emulator->m_counters->m_pollSIO1 = false;
     g_emulator->m_sio1->stopSIO1Connection();
     g_system->printf("%s", _("SIO1 client disconnected\n"));
+}
+
+void PCSX::SIO1Client::reconnect(std::string_view address, unsigned port) {
+    stop();
+    start(g_system->getLoop(), address, port);
 }

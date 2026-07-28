@@ -73,6 +73,7 @@ void Server::start(uv_loop_t* loop, int port) {
     if (status() == Status::Running) return;
     m_loop = loop;
     m_port = port;
+    onStarting();
     m_async = new uv_async_t();
     m_listener.start(port, loop, m_async, [this](UvFifo* fifo) { onListenerEvent(fifo); });
 }
@@ -132,14 +133,18 @@ void Client::start(uv_loop_t* loop, std::string_view host, int port) {
     m_loop = loop;
     m_host = host;
     m_port = port;
+    onStarting();
     auto fifo = new UvFifo(host, port);
     m_fifo = fifo;
     m_connection = IO<File>(fifo);
+    onStarted(m_connection);
 }
 
 void Client::stop() {
+    bool wasStarted = m_fifo != nullptr;
     m_connection.reset();
     m_fifo = nullptr;
+    if (wasStarted) onStopped();
     settled();
 }
 

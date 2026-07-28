@@ -2284,10 +2284,10 @@ The debugger might be required in some cases.)"));
         if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->startServer(g_system->getLoop(),
-                                                      debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
+                g_emulator->m_sio1Server->start(g_system->getLoop(),
+                                                debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
             } else {
-                g_emulator->m_sio1Server->stopServer();
+                g_emulator->m_sio1Server->stop();
             }
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
@@ -2298,14 +2298,15 @@ See the wiki for details.)"));
         if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
-                g_emulator->m_sio1Client->startClient(
+                g_emulator->m_sio1Client->start(
+                    g_system->getLoop(),
                     std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
                                          .get<Emulator::DebugSettings::SIO1ClientHost>()
                                          .value),
                     g_emulator->settings.get<Emulator::SettingDebugSettings>()
                         .get<Emulator::DebugSettings::SIO1ClientPort>());
             } else {
-                g_emulator->m_sio1Client->stopClient();
+                g_emulator->m_sio1Client->stop();
             }
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
