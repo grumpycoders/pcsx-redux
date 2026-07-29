@@ -45,6 +45,16 @@ void pump(uv_loop_t* loop, int milliseconds = 300) {
     }
 }
 
+// uv_loop_close returns EBUSY while any handle is still open or still closing,
+// and ignoring that return leaks the loop's internals. Close everything first,
+// then keep pumping until it actually takes.
+void closeLoop(uv_loop_t* loop) {
+    for (int i = 0; (i < 200) && (uv_loop_close(loop) == UV_EBUSY); i++) {
+        uv_run(loop, UV_RUN_NOWAIT);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
 // Holds a port so a Server's bind is guaranteed to fail. Releasable mid-test,
 // so the restart case can watch a Failed endpoint recover.
 struct Squatter {
@@ -122,8 +132,8 @@ TEST(NetworkServer, AcceptsAndReportsRunning) {
     EXPECT_EQ(server.status(), Network::Status::Stopped);
     EXPECT_EQ(server.m_stoppedCount, 1);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 TEST(NetworkServer, BindFailureIsVisible) {
@@ -143,8 +153,9 @@ TEST(NetworkServer, BindFailureIsVisible) {
     // A failure is a teardown, so subclasses get told once and only once.
     EXPECT_EQ(server.m_stoppedCount, 1);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    squatter.release(&loop);
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 // The restart button's actual job: recover an endpoint that is sitting in
@@ -176,8 +187,8 @@ TEST(NetworkServer, RestartRecoversFromFailure) {
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 TEST(NetworkClient, ConnectFailureIsVisible) {
@@ -200,8 +211,8 @@ TEST(NetworkClient, ConnectFailureIsVisible) {
     client.stop();
     EXPECT_EQ(client.status(), Network::Status::Stopped);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 // The UI iterates this instead of hard-coding a row per service, so an endpoint

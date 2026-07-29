@@ -86,6 +86,8 @@
     <ClCompile Include="..\..\..\tests\support\list.cc" />
     <ClCompile Include="..\..\..\tests\support\md5.cc" />
     <ClCompile Include="..\..\..\tests\support\mips.cc" />
+    <ClCompile Include="..\..\..\tests\support\network.cc" />
+    <ClCompile Include="..\..\..\tests\support\uvfifolistener.cc" />
     <ClCompile Include="..\..\..\tests\support\tree.cc" />
   </ItemGroup>
   <ItemGroup>

@@ -48,6 +48,16 @@ void pump(uv_loop_t* loop, int milliseconds = 250) {
     }
 }
 
+// uv_loop_close returns EBUSY while any handle is still open or still closing,
+// and ignoring that return leaks the loop's internals. Close everything first,
+// then keep pumping until it actually takes.
+void closeLoop(uv_loop_t* loop) {
+    for (int i = 0; (i < 200) && (uv_loop_close(loop) == UV_EBUSY); i++) {
+        uv_run(loop, UV_RUN_NOWAIT);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
 // Takes a port and holds it, so UvFifoListener's bind is guaranteed to fail.
 struct Squatter {
     explicit Squatter(uv_loop_t* loop, unsigned port) {
@@ -57,8 +67,16 @@ struct Squatter {
         EXPECT_EQ(uv_tcp_bind(&m_tcp, reinterpret_cast<const sockaddr*>(&addr), 0), 0);
         EXPECT_EQ(uv_listen(reinterpret_cast<uv_stream_t*>(&m_tcp), 16, [](uv_stream_t*, int) {}), 0);
     }
-    ~Squatter() { uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), [](uv_handle_t*) {}); }
+    void release(uv_loop_t* loop) {
+        if (m_released) return;
+        m_released = true;
+        uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), [](uv_handle_t*) {});
+    }
+    ~Squatter() {
+        if (!m_released) uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), [](uv_handle_t*) {});
+    }
     uv_tcp_t m_tcp = {};
+    bool m_released = false;
 };
 
 }  // namespace
@@ -89,8 +107,9 @@ TEST(UvFifoListener, StartStopOnFreePort) {
     EXPECT_EQ(listener.status(), UvFifoListener::Status::Stopped);
     EXPECT_EQ(nullptrCallbacks, 1);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    uv_close(reinterpret_cast<uv_handle_t*>(&async), [](uv_handle_t*) {});
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 // The bug: start() on an occupied port hits the uv_tcp_bind failure path, which
@@ -130,8 +149,10 @@ TEST(UvFifoListener, StopAfterFailedBindIsSafe) {
 
     EXPECT_EQ(listener.status(), UvFifoListener::Status::Failed);
 
-    uv_run(&loop, UV_RUN_NOWAIT);
-    uv_loop_close(&loop);
+    uv_close(reinterpret_cast<uv_handle_t*>(&async), [](uv_handle_t*) {});
+    squatter.release(&loop);
+    pump(&loop);
+    closeLoop(&loop);
 }
 
 // UvFifo has no readable callback of its own - data lands in a lock-free queue
@@ -194,7 +215,7 @@ TEST(UvFifo, ReadableNotifierFires) {
     uv_close(reinterpret_cast<uv_handle_t*>(&notifyAsync), [](uv_handle_t*) {});
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
-    uv_loop_close(&loop);
+    closeLoop(&loop);
 }
 
 // A failed outgoing connection has to end up in a state the UI can act on.
@@ -310,5 +331,5 @@ TEST(UvFifo, CloseFlushesPendingWrites) {
     pump(&loop);
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
-    uv_loop_close(&loop);
+    closeLoop(&loop);
 }

@@ -815,7 +815,9 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
                                         return;
                                     }
                                     fifo->m_connecting.clear();
-                                    fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
+                                    auto handle = reinterpret_cast<uv_tcp_t *>(connect->handle);
+                                    delete connect;
+                                    fifo->startRead(handle);
                                 });
         if (result != 0) {
             m_connectErrorCode.store(result, std::memory_order_release);
