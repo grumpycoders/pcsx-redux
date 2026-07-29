@@ -117,6 +117,9 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
@@ -134,6 +137,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -149,6 +153,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
@@ -166,6 +171,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
