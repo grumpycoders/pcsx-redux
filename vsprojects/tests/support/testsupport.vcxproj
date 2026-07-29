@@ -97,6 +97,12 @@
     <ProjectReference Include="..\..\supportpsx\supportpsx.vcxproj">
       <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libcurl\libcurl.vcxproj">
+      <Project>{25c13988-a8a8-4bfa-962f-0833020e4ee4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libuv\libuv.vcxproj">
+      <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
