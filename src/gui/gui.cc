@@ -1451,6 +1451,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem(_("Show Network"), nullptr, &m_network.m_show);
                 if (ImGui::BeginMenu(_("CD-Rom"))) {
                     ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
                     ImGui::MenuItem(_("Show CD-ROM viewer"), nullptr, &m_cdromViewer.m_show);
@@ -1768,6 +1769,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+
+    if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
@@ -2224,140 +2227,8 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-        if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->start(g_system->getLoop(),
-                                               debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
-            } else {
-                g_emulator->m_gdbServer->stop();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
-connect to with any gdb-remote compliant client.
-You also need to enable the debugger.)"));
-        changed |=
-            ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(Enables sending the processor's manifest
-from the gdb server. Keep this enabled, unless
-you want to connect IDA to this server, as it
-has a bug in its manifest parser.)"));
-        auto& currentGdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
-        auto currentName = magic_enum::enum_name(currentGdbLog);
-
-        if (ImGui::BeginCombo(_("PCSX Logs to GDB"), currentName.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::GdbLog>()) {
-                bool selected = (v == currentGdbLog);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentGdbLog = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        changed |=
-            ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
-        changed |=
-            ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(The GDB server will start tracing its
-protocol into the logs, which can be helpful to debug
-the gdb server system itself.)"));
-        if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->start(g_system->getLoop(),
-                                               debugSettings.get<Emulator::DebugSettings::WebServerPort>());
-            } else {
-                g_emulator->m_webServer->stop();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
-query using a REST api. See the wiki for details.
-The debugger might be required in some cases.)"));
-        changed |=
-            ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
-        if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->start(g_system->getLoop(),
-                                                debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
-            } else {
-                g_emulator->m_sio1Server->stop();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
-relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
-        if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
-                g_emulator->m_sio1Client->start(
-                    g_system->getLoop(),
-                    std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                         .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                         .value),
-                    g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                        .get<Emulator::DebugSettings::SIO1ClientPort>());
-            } else {
-                g_emulator->m_sio1Client->stop();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
-to another PCSX-Redux server to relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
-                             ImGuiInputTextFlags_CharsDecimal);
-        changed |=
-            ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
-
-        auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
-        auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
-        if (ImGui::Button(_("Reset SIO"))) {
-            g_emulator->m_sio1->reset();
-        }
-
-        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
-                                     !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
-
-        if (!enableReconnect) {
-            ImGui::BeginDisabled();
-        }
-
-        if (ImGui::Button(_("Reconnect"))) {
-            g_emulator->m_sio1Client->reconnect(
-                std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                     .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                     .value),
-                g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                    .get<Emulator::DebugSettings::SIO1ClientPort>());
-        }
-
-        if (!enableReconnect) {
-            ImGui::EndDisabled();
-        }
-
-        if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
-                bool selected = (v == currentSIO1Mode);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentSIO1Mode = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
+        ImGui::TextUnformatted(_("Network servers and clients now live in their own window."));
+        if (ImGui::Button(_("Open Network settings"))) m_network.m_show = true;
     }
     ImGui::End();
 
