@@ -1,0 +1,203 @@
+# Building ISO images
+
+## Introduction & Rationale
+
+The `Iso` object described in the [File API](file-api.md) page is a read-only view over an existing disc image. The builder API is the other direction: it creates a fresh ISO9660 image from scratch, with a real filesystem in it, and writes it out to any `File` object.
+
+The builder is filesystem-aware. You describe the directory tree you want, attach a `File` object as the content of each file, and the builder computes the whole layout at the end: the primary volume descriptor, both path tables, the directory extents, the LBA of every file, and the EDC/ECC of every sector. You never compute a sector address yourself unless you specifically want to.
+
+Everything is deferred. `createRoot`, `createDir` and `createFile` only build an in-memory tree, and no byte is written until `close()` is called. This means the order in which you declare files does not have to match the order they end up on the disc, and it means a file's LBA is not known until after `close()`.
+
+## Creating a builder
+
+```lua
+PCSX.isoBuilder(file) -- returns an ISOBuilder object
+```
+
+The `file` argument is a `File` object opened for writing, which will receive the image. It can be a normal file on disk, or an in-memory buffer created with `Support.File.buffer()` if you only want the image transiently.
+
+```lua
+:failed() -- returns true if the output file is unusable
+```
+
+## Writing the license sectors
+
+```lua
+:writeLicense(file) -- file is optional
+```
+
+The first 16 sectors of a PlayStation disc hold the license data, and the console's BIOS will refuse to boot a disc without it. This method takes a `File` object containing that data and handles the two shapes it comes in:
+
+- The official license file from the SDK, which is 2336 bytes per sector and usually mangled in a way that needs massaging on the way in.
+- A raw dump taken from an existing image, which is 2352 bytes per sector.
+
+The two are told apart by probing the byte where the letter `L` of the license string lands in each layout, so you don't have to declare which one you have.
+
+Calling `writeLicense()` with no argument, or with a file that failed to open, writes 16 sectors of zeroes instead. The resulting image will still be perfectly readable by PCSX-Redux and by most other tools, and is fine for development, but it will not boot on unmodified retail hardware. This is deliberate: no license data ships with PCSX-Redux.
+
+If you intend to write license sectors at all, do it before building the tree.
+
+## The volume descriptor
+
+The PVD fields that identify the volume are settable, and are padded with spaces to their fixed ISO9660 widths for you:
+
+```lua
+:setSystemIdent(str)          :getSystemIdent()
+:setVolumeIdent(str)          :getVolumeIdent()
+:setVolSetIdent(str)          :getVolSetIdent()
+:setPublisherIdent(str)       :getPublisherIdent()
+:setDataPreparerIdent(str)    :getDataPreparerIdent()
+:setApplicationIdent(str)     :getApplicationIdent()
+:setCopyrightFileIdent(str)   :getCopyrightFileIdent()
+:setAbstractFileIdent(str)    :getAbstractFileIdent()
+:setBibliographicFileIdent(str) :getBibliographicFileIdent()
+```
+
+The getters return the stored string with its padding trimmed off.
+
+For a disc meant to look like a retail PlayStation release, the system identifier is `PLAYSTATION`. The remaining fields are cosmetic as far as the console is concerned.
+
+Everything else in the PVD is computed during `close()` and cannot be set: the volume space size, the path table sizes and locations, the root directory entry, the type code, the standard identifier, and both version fields.
+
+## Building the tree
+
+```lua
+:createRoot(sectorCount)               -- sectorCount defaults to 1
+:createDir(parent, name, sectorCount)  -- sectorCount defaults to 1
+:createFile(parent, name, contentFile)
+```
+
+All three return a `DirTree` node. `createRoot` must be called before anything else can be parented, and the node it returns is the root directory.
+
+The `sectorCount` argument on the two directory functions is the number of sectors reserved for that directory's own extent. One sector holds roughly thirty entries depending on name lengths, so a directory with more children than that needs a larger count. It is not grown automatically.
+
+`name` is the bare name. For files, the `;1` version suffix that ISO9660 requires is appended when the directory entry is serialized, so pass `SYSTEM.CNF`, not `SYSTEM.CNF;1`. Names are not validated or case-folded for you; ISO9660 level 1 wants uppercase 8.3, and it is on you to respect that if you care about the image being maximally portable.
+
+`contentFile` is any `File` object. Its size at `close()` time is the size the file gets on the disc.
+
+`createRoot` marks the root as having XA attributes, which is what a PlayStation disc looks like, and both `createDir` and `createFile` inherit the XA flag and the date from their parent. So setting a date on the root propagates to everything created under it afterwards, but not to anything created before.
+
+## DirTree nodes
+
+The node returned by the three creation functions carries the per-entry knobs.
+
+Read-only properties, meaningful after `close()` for the ones that depend on layout:
+
+```lua
+:getName()   :getSize()   :getLBA()   :isDir()
+```
+
+Navigation, all returning a node or `nil`:
+
+```lua
+:parent()   :firstChild()   :nextSibling()
+```
+
+Flags:
+
+```lua
+:isHidden()     :setHidden(bool)
+:shouldSkip()   :setSkip(bool)
+:hasXA()        :setXA(bool)
+```
+
+`setHidden` sets the ISO9660 hidden bit on the directory entry. The file is still fully present and readable by anything that ignores the bit.
+
+`setSkip` is different and much stronger: the node still participates in the layout, so it is allocated an LBA and its content is written to the disc, but no directory entry is emitted for it. The file exists on the disc and is completely invisible to the filesystem. This is how you reproduce discs that address most of their data by hardcoded LBA and only expose a handful of real entries.
+
+Sector mode and XA:
+
+```lua
+:setSectorMode(mode)   -- 'RAW', 'M1', 'M2_RAW', 'M2_FORM1', 'M2_FORM2'
+:getXAAttribs()        :setXAAttribs(value)
+:getXAFileNum()        :setXAFileNum(value)
+```
+
+Files default to `M2_FORM1`, which is what ordinary data on a PlayStation disc uses. `M2_FORM2` is for streaming data such as XA audio and STR video, where the sector carries 2324 bytes and no error correction. `M2_RAW` hands the builder full 2336-byte sectors including the subheader, for content that has to be reproduced byte for byte.
+
+Dates:
+
+```lua
+:setDate(year, month, day, hour, minute, second, offset)
+```
+
+All seven arguments default to 0 if omitted. `year` is an offset from 1900 and `offset` is the timezone in 15-minute steps, matching the ISO9660 directory record format.
+
+Layout overrides:
+
+```lua
+:hasAnchorLBA()      :getAnchorLBA()      :setAnchorLBA(lba)      :clearAnchorLBA()
+:hasDeclaredSize()   :getDeclaredSize()   :setDeclaredSize(bytes) :clearDeclaredSize()
+```
+
+`setAnchorLBA` pins a node to a specific absolute LBA instead of letting the layout pass place it. Sectors between the previous end of the layout and the anchor are padded with empty M2_FORM1 data. `close()` throws if the layout cursor has already advanced past a requested anchor, since that cannot be satisfied.
+
+`setDeclaredSize` overrides the `DataLength` field of the directory entry independently of how much content is actually attached. The pair is what lets you reproduce a disc whose single directory entry declares an extent spanning hundreds of megabytes of data that is itself addressed by LBA. Attach a small piece of content, declare the real extent, and place the rest of the data with `setSkip` nodes.
+
+## Closing
+
+```lua
+:close(threadCount) -- threadCount defaults to 0
+```
+
+This is where the work happens: the layout is computed, then the PVD, the volume descriptor set terminator, both path tables, the directory extents, the anchor padding and finally the file contents are written in that order.
+
+EDC and ECC are computed for every sector, in parallel. `threadCount` is the number of worker threads to use for that; 0 means one per hardware thread. There is no way to turn the computation off, since an image with wrong EDC is not a useful image.
+
+The builder does not add trailing padding past the end of the volume. That is worth knowing if the image is destined for real hardware rather than for an emulator: the CD-ROM controller's seek-and-settle behaviour near the end of the disc can run off the back of the readable region, so a burnable image generally wants some zero-filled sectors after the last real data. PCSX-Redux itself is perfectly happy with a truncated tail.
+
+## A complete example
+
+```lua
+local out = Support.File.open('mydisc.bin', 'TRUNCATE')
+local builder = PCSX.isoBuilder(out)
+
+builder:writeLicense(Support.File.open('license.dat'))
+builder:setSystemIdent('PLAYSTATION')
+builder:setVolumeIdent('MYDISC')
+
+local root = builder:createRoot()
+
+local cnf = Support.File.buffer()
+cnf:write('BOOT=cdrom:\\PSX.EXE;1\r\nTCB=4\r\nEVENT=10\r\nSTACK=801FFFF0\r\n')
+cnf:rSeek(0)
+builder:createFile(root, 'SYSTEM.CNF', cnf)
+
+local exe = builder:createFile(root, 'PSX.EXE', Support.File.open('mygame.ps-exe'))
+
+local data = builder:createDir(root, 'DATA')
+builder:createFile(data, 'LEVEL1.BIN', Support.File.open('level1.bin'))
+
+local movie = builder:createFile(data, 'INTRO.STR', Support.File.open('intro.str'))
+movie:setSectorMode('M2_FORM2')
+
+builder:close()
+print('PSX.EXE landed at LBA ' .. exe:getLBA())
+out:close()
+```
+
+Note that `exe:getLBA()` is only meaningful after `close()`, since nothing is placed before then.
+
+## Reading the result back
+
+The builder writes an image that the reader side can open directly, which makes round-tripping easy to verify without leaving Lua:
+
+```lua
+local buffer = Support.File.buffer()
+local builder = PCSX.isoBuilder(buffer)
+-- ...build...
+builder:close()
+
+buffer:rSeek(0)
+local reader = PCSX.openIso(buffer):createReader()
+local f = reader:open('DATA/LEVEL1.BIN;1')
+print(f:size())
+```
+
+Note the `rSeek(0)` calls. A `File` object has separate read and write pointers, so a buffer you have just written content into still has its read pointer where you left it. Rewind before handing a buffer to `createFile`, and rewind the output before reopening it as an ISO.
+
+This is exactly what the test suite in `tests/lua/isobuilder.lua` does.
+
+## Note on low-level sector writing
+
+The underlying C++ `ISO9660Builder` class also has `writeSector` and `writeSectorAt` methods for writing individual raw sectors without any filesystem on top. These are not currently exposed as methods on the Lua builder object; the Lua API is the filesystem-aware one only.
