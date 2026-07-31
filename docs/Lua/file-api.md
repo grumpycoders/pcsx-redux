@@ -166,7 +166,7 @@ The `uvFifo` function will create a File object that will read from and write to
 The `zReader` function will create a read-only File object which decompresses the data from the specified File object. The `file` argument is a File object, and the `size` argument is an optional number that will be used to determine the size of the decompressed data. If not specified, the resulting file won't be seekable, and its `:size()` method won't work, but the file will be readable until `:eof()` returns true. The `raw` argument is an optional string that needs to be equal to `'RAW'`, and will determine whether the data is compressed using the raw deflate format, or the zlib format. Any other string means the zlib format will be used.
 
 ## Iso files
-There is some limited API for working with ISO files. Two related topics have their own pages: creating new images from scratch is covered in [Building ISO images](iso-builder.md), and the patch generation mechanism behind the `:savePPF()` method below is covered in [PPF patches](ppf.md).
+There is a fairly complete API for working with ISO files. Two related topics have their own pages: creating new images from scratch is covered in [Building ISO images](iso-builder.md), and the patch generation mechanism behind the `:savePPF()` method below is covered in [PPF patches](ppf.md).
 
 - `PCSX.getCurrentIso()` will return an `Iso` object representing the currently loaded ISO file by the emulator.
 - `PCSX.openIso(pathOrFile)` will return an `Iso` object opened from the specified argument, which can either be a filesystem path, or a `File` object.

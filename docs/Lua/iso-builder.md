@@ -2,7 +2,7 @@
 
 ## Introduction & Rationale
 
-The `Iso` object described in the [File API](file-api.md) page is a read-only view over an existing disc image. The builder API is the other direction: it creates a fresh ISO9660 image from scratch, with a real filesystem in it, and writes it out to any `File` object.
+The `Iso` object described in the [File API](file-api.md) page works on an existing disc image. It is not read-only, since writing to it is what drives the [PPF](ppf.md) patch system, but what it can do is patch what is already there. The builder API is the other direction: it creates a fresh ISO9660 image from scratch, with a real filesystem in it, and writes it out to any `File` object.
 
 The builder is filesystem-aware. You describe the directory tree you want, attach a `File` object as the content of each file, and the builder computes the whole layout at the end: the primary volume descriptor, both path tables, the directory extents, the LBA of every file, and the EDC/ECC of every sector. You never compute a sector address yourself unless you specifically want to.
 
@@ -26,14 +26,20 @@ The `file` argument is a `File` object opened for writing, which will receive th
 :writeLicense(file) -- file is optional
 ```
 
-The first 16 sectors of a PlayStation disc hold the license data, and the console's BIOS will refuse to boot a disc without it. This method takes a `File` object containing that data and handles the two shapes it comes in:
+The first 16 sectors of a PlayStation disc hold the license data. This is not a boot gate in the way it is often described: the license data *is* the boot logo, so what it mostly determines is what the console displays on the way in.
 
-- The official license file from the SDK, which is 2336 bytes per sector and usually mangled in a way that needs massaging on the way in.
-- A raw dump taken from an existing image, which is 2352 bytes per sector.
+The `file` argument is a `File` object holding that data. It can be the official license file from the SDK, or simply a disc image dumped from another game, in which case the license is extracted from it. The two are told apart automatically, so you don't have to declare which one you are handing over.
 
-The two are told apart by probing the byte where the letter `L` of the license string lands in each layout, so you don't have to declare which one you have.
+Whether the license matters for booting depends on the machine:
 
-Calling `writeLicense()` with no argument, or with a file that failed to open, writes 16 sectors of zeroes instead. The resulting image will still be perfectly readable by PCSX-Redux and by most other tools, and is fine for development, but it will not boot on unmodified retail hardware. This is deliberate: no license data ships with PCSX-Redux.
+- Japanese consoles refuse to boot a disc without a Japanese license.
+- Very late European models refuse to boot a disc without a European license.
+- Every other model boots regardless, though a missing or custom license changes the logo that comes up.
+- Some emulators, unlike the hardware, refuse to boot without one at all.
+
+A Japanese license is therefore the pragmatic choice, since it covers the widest range of consoles.
+
+Calling `writeLicense()` with no argument, or with a file that failed to open, writes 16 sectors of zeroes instead. That is fine for development and for PCSX-Redux itself. No license data ships with PCSX-Redux, so you have to supply your own.
 
 If you intend to write license sectors at all, do it before building the tree.
 
@@ -198,6 +204,71 @@ Note the `rSeek(0)` calls. A `File` object has separate read and write pointers,
 
 This is exactly what the test suite in `tests/lua/isobuilder.lua` does.
 
-## Note on low-level sector writing
+## Writing raw sectors
 
-The underlying C++ `ISO9660Builder` class also has `writeSector` and `writeSectorAt` methods for writing individual raw sectors without any filesystem on top. These are not currently exposed as methods on the Lua builder object; the Lua API is the filesystem-aware one only.
+Everything above builds a filesystem. The builder can also write individual sectors directly, with no ISO9660 structure involved at all, which is what you want for reproducing a disc that does not have a conventional filesystem, or for placing data at a fixed location alongside one that does.
+
+```lua
+:writeSector(data[, mode])            -- writes at the current cursor, returns the LBA used
+:writeSectorAt(data, lba[, mode])     -- writes at an explicit LBA, returns it
+:getCurrentLBA()                      -- where the cursor currently sits
+```
+
+`data` is a Lua string. A cdata pointer works too, but then the size has to be passed explicitly, since a pointer does not carry one:
+
+```lua
+:writeSector(ptr, size[, mode])
+:writeSectorAt(ptr, size, lba[, mode])
+```
+
+`mode` defaults to `M2_FORM1`. Each mode consumes a different amount of data, and passing less than it needs is an error rather than a truncated sector:
+
+| mode | bytes consumed | notes |
+| --- | --- | --- |
+| `M2_FORM1` | 2048 | ordinary data; sync, header, subheader and EDC/ECC are generated |
+| `M2_FORM2` | 2324 | streaming data; EDC is generated |
+| `M2_RAW` | 2336 | subheader onwards, supplied by you; sync and header are generated |
+| `RAW` | 2352 | the complete frame, written verbatim |
+
+`M1` and `GUESS` cannot be written and will raise an error.
+
+All LBAs here are relative to the start of the image, matching the rest of the ISO API, so sector 0 is the first sector of the file.
+
+`writeSector` advances the cursor by one. `writeSectorAt` moves the cursor to just past the sector it wrote, but only ever forwards: writing behind the cursor leaves it where it was, so you can go back and fill something in without losing your place.
+
+Note that raw sector writes and the filesystem API write to the same output file, and nothing arbitrates between them. `close()` always lays the filesystem out starting at sector 16, immediately after the system area, regardless of where the sector cursor happens to be, and will happily overwrite sectors you placed by hand. If you want to mix the two, use `setAnchorLBA` to push the filesystem past the region you are writing yourself.
+
+The most useful thing this buys you is patching the image after the layout exists. A common shape on real discs is a lookup table that maps some game-side index to the LBA of the data it needs, which is a chicken-and-egg problem while you are building: the table has to contain LBAs that nothing knows until the layout has been computed. Raw sector writes let you close that loop by going back afterwards.
+
+```lua
+local builder = PCSX.isoBuilder(out)
+builder:writeLicense(license)
+local root = builder:createRoot()
+
+-- Reserve a sector for the table itself, plus the files it will point at.
+local placeholder = Support.File.buffer()
+placeholder:write(string.rep('\0', 2048))
+placeholder:rSeek(0)
+local table_ = builder:createFile(root, 'LBATABLE.BIN', placeholder)
+
+local assets = {}
+for i, name in ipairs(assetNames) do
+    assets[i] = builder:createFile(root, name, Support.File.open(name))
+end
+
+-- Now the layout exists, and every node knows where it landed.
+builder:close()
+
+-- Build the real table from the computed LBAs and drop it over the placeholder.
+local bit = require 'bit'
+local sector = ''
+for i, node in ipairs(assets) do
+    local lba = node:getLBA()
+    sector = sector .. string.char(bit.band(lba, 0xff), bit.band(bit.rshift(lba, 8), 0xff),
+                                   bit.band(bit.rshift(lba, 16), 0xff), bit.band(bit.rshift(lba, 24), 0xff))
+end
+sector = sector .. string.rep('\0', 2048 - #sector)
+builder:writeSectorAt(sector, table_:getLBA(), 'M2_FORM1')
+```
+
+The EDC/ECC of the rewritten sector is recomputed as part of the write, so the patched image stays consistent.
