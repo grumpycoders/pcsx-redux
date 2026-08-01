@@ -209,6 +209,10 @@ class impl final : public SPUInterface {
 
     NoiseGenerator m_noise;  // global noise generator: LFSR + shift/step clock
 
+    // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
+    // ADPCM block carrying the end flag, cleared on key-on. Read-only.
+    uint32_t spuEndx = 0;
+
     uint16_t spuCtrl = 0;  // some vars to store psx reg infos
     uint16_t spuStat = 0;
     uint16_t spuIrq = 0;

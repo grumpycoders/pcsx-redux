@@ -240,6 +240,8 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 
                 if (blockFlags & 1)  // stop/loop flag: this is the last block of the sample
                 {
+                    spuEndx |= 1u << ch;  // ENDX latches on the end flag
+
                     // Only loop when the flag byte is exactly 3 (loop-end + repeat) and a loop
                     // address was latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4),
                     // and the null-loop guard avoids following an address that was never set.

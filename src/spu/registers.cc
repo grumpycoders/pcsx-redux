@@ -537,6 +537,12 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     }
 
     switch (r) {
+        case H_SPUMute1:  // ENDX low 16 voices (read-only)
+            return (uint16_t)(spuEndx & 0xffff);
+
+        case H_SPUMute2:  // ENDX high 8 voices (read-only)
+            return (uint16_t)((spuEndx >> 16) & 0xff);
+
         case H_SPUctrl:
             PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", spuCtrl);
             return spuCtrl;
@@ -576,6 +582,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
         if ((val & 1) && s_chan[ch].adpcm.start()) {  // mmm... start has to be set before key on !?!
             s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
             s_chan[ch].data.get<Chan::New>().value = true;
+            spuEndx &= ~(1u << ch);     // key-on clears this voice's ENDX bit
             dwNewChannel |= (1 << ch);  // bitfield for faster testing
             PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i ON\n", ch);
         }
