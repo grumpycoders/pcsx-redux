@@ -130,3 +130,5 @@ luacov.stats.out
 /AppDir
 /*.AppImage
 /*.AppImage.zsync
+# gtest objects are built next to their sources
+tests/**/*.o
