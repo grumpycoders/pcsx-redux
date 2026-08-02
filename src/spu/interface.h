@@ -147,6 +147,10 @@ class impl final : public SPUInterface {
     // spu
     void MainThread();
     void synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    // Decodes the next ADPCM block for a voice, together with the IRQ check and the
+    // loop/stop flag handling that hang off the block boundary. Returns false when the
+    // voice has run past the end of its sample and must stop being synthesized.
+    bool decodeNextBlock(int ch, SPUCHAN *pChannel);
     void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
