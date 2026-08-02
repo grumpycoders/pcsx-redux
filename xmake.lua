@@ -2,7 +2,7 @@ includes("third_party/luajit")
 
 add_rules("mode.debug", "mode.release")
 
-add_requires("capstone", "ffmpeg", "fmt", "freetype2", "glfw3", "libcurl", "libuv", "zlib")
+add_requires("capstone", "ffmpeg", "fmt", "freetype", "glfw", "libcurl", "libuv", "zlib")
 set_languages("c++26")
 
 target("pcsx-redux", function()
@@ -19,7 +19,7 @@ target("pcsx-redux", function()
         "third_party/luajit/src",
         "third_party/luv/src",
         "third_party/luv/deps/lua-compat-5.3/c-api",
-        "third_party/magic_enum/include/magic_enum",
+        "third_party/magic_enum/include",
         "third_party/md4c/src",
         "third_party/multipart-parser-c",
         "third_party/PEGTL/include",
@@ -33,8 +33,10 @@ target("pcsx-redux", function()
         nil
     )
 
+    add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
+
     add_deps("luajit")
-    add_packages("capstone", "ffmpeg", "fmt", "freetype2", "glfw3", "libcurl", "libuv", "zlib")
+    add_packages("capstone", "ffmpeg", "fmt", "freetype", "glfw", "libcurl", "libuv", "zlib")
     add_files(
         "src/**/*.cc",
         "third_party/cq/reclaimer.cc",
@@ -45,7 +47,6 @@ target("pcsx-redux", function()
         "third_party/gl3w/GL/gl3w-throwers.cc",
         "third_party/iec-60908b/*.c",
         "third_party/ImFileDialog/ImFileDialog.cpp",
-        "third_party/imgui/*.cpp",
         "third_party/imgui/backends/imgui_impl_opengl3.cpp",
         "third_party/imgui/backends/imgui_impl_glfw.cpp",
         "third_party/imgui/misc/cpp/imgui_stdlib.cpp",
@@ -73,7 +74,6 @@ target("pcsx-redux", function()
         nil
     )
 
-    add_cxxflags("-include src/forced-includes/imgui.h")
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
         "IMGUI_ENABLE_FREETYPE",

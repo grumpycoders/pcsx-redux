@@ -29,7 +29,15 @@ local function _bin2c_read(io, pathname)
     return data or ""
 end
 
-local function _bin2c_write(io, pathname, data)
+local function _bin2c_write(io, os, pathname, data)
+    if os.isfile(pathname) then
+        local existing = io.open(pathname, "rb")
+        local previous = existing:read("*all")
+        existing:close()
+        if previous == data then
+            return
+        end
+    end
     local f = io.open(pathname, "wb")
     if not f then
         raise("bin2c: unable to write output file '%s'", pathname)
@@ -38,7 +46,7 @@ local function _bin2c_write(io, pathname, data)
     f:close()
 end
 
-local function _bin2c_generate(io, input, output_c, output_h, symbol, compat_name)
+local function _bin2c_generate(io, os, input, output_c, output_h, symbol, compat_name)
     local blob = _bin2c_read(io, input)
     local size = #blob
 
@@ -94,8 +102,8 @@ local function _bin2c_generate(io, input, output_c, output_h, symbol, compat_nam
         "",
     }, "\n")
 
-    _bin2c_write(io, output_h, hfile)
-    _bin2c_write(io, output_c, cfile)
+    _bin2c_write(io, os, output_h, hfile)
+    _bin2c_write(io, os, output_c, cfile)
 end
 
 local function _bin2c_collect_inputs(target)
@@ -166,32 +174,24 @@ rule("nugget.bin2c", function()
             cfiles[#cfiles + 1] = output_c
         end
 
+        for _, entry in ipairs(generated) do
+            os.mkdir(path.directory(entry.output_h))
+            _bin2c_generate(io, os, entry.input, entry.output_c, entry.output_h, entry.symbol, entry.compat_name)
+        end
+
         target:data_set("nugget.bin2c.generated", generated)
         target:add("includedirs", output_dir)
-        target:add("files", cfiles)
-    end)
-
-    before_build(function(target)
-        import("core.project.depend")
-
-        local inputs = _bin2c_collect_inputs(target)
-        depend.on_changed(function()
-            local generated = target:data("nugget.bin2c.generated") or {}
-            for _, entry in ipairs(generated) do
-                os.mkdir(path.directory(entry.output_h))
-                _bin2c_generate(io, entry.input, entry.output_c, entry.output_h, entry.symbol, entry.compat_name)
-            end
-        end, { files = inputs })
+        target:add("files", cfiles, { always_added = true })
     end)
 end)
 
 includes(path.join(root, "third_party", "xmake-psx"))
 
 rule("ps-exe", function()
-    add_deps("psexe")
+    add_deps("psx.psexe")
     before_config(function(target)
         local extension = target:get("extension")
-        if not extension then
+        if not extension or extension == ".psexe" then
             target:set("extension", ".ps-exe")
         end
         if target:get("kind") ~= "binary" then
