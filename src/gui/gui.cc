@@ -880,6 +880,10 @@ void PCSX::GUI::close() {
 
 void PCSX::GUI::saveCfg() {
     if (g_system->getArgs().isTestModeEnabled()) return;
+    // The settings have been wiped, and we're on our way to a reboot. Writing them back out now would
+    // simply undo the wipe: this gets called on quit, on layout changes, and whenever a config widget
+    // reports a change, so all three would race the reset otherwise.
+    if (m_settingsNuked) return;
     std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
     std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
     {
@@ -909,6 +913,44 @@ void PCSX::GUI::saveCfg() {
     if (std::filesystem::copy_file(cfgTmpPath, cfgPath, std::filesystem::copy_options::overwrite_existing)) {
         std::filesystem::remove(cfgTmpPath);
     }
+}
+
+void PCSX::GUI::resetSettings() {
+    // Resetting the live settings objects in place isn't enough: the ImGui layout belongs to the current
+    // context, and a fair amount of the emulator settings are only ever acted upon during startup. So the
+    // wipe happens on disk, and the reboot below is what actually reloads everything from defaults, as it
+    // tears down and recreates both the emulator and the UI.
+    m_settingsNuked = true;
+    std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
+    std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
+    std::error_code ec;
+    std::filesystem::remove(cfgTmpPath, ec);
+    // An empty object rather than no file at all: every consumer already falls back to its defaults on a
+    // missing key, and keeping the file around preserves the portable mode detection, which keys off of
+    // the mere existence of pcsx.json in the current directory.
+    {
+        std::ofstream cfg(cfgPath);
+        cfg << "{}" << std::endl;
+    }
+    // The shader editors keep their sources next to the settings, one set of files per base name. Rather
+    // than hardcoding the list of editors, which would quietly go stale the moment another one is added,
+    // key off of the vertex shaders actually present: every base has one, and nothing else uses that
+    // extension, so the companion files can be derived from it.
+    auto persistentDir = g_system->getPersistentDir();
+    std::vector<std::filesystem::path> shaderBases;
+    for (const auto& entry : std::filesystem::directory_iterator(persistentDir, ec)) {
+        if (!entry.is_regular_file(ec)) continue;
+        if (entry.path().extension() == ".vert") shaderBases.push_back(entry.path());
+    }
+    for (auto& base : shaderBases) {
+        for (auto extension : {"vert", "frag", "lua", "json"}) {
+            auto toRemove = std::filesystem::path(base).replace_extension(extension);
+            // Guard against a stray pcsx.vert deriving the settings file we just wrote.
+            if (toRemove == cfgPath) continue;
+            std::filesystem::remove(toRemove, ec);
+        }
+    }
+    g_system->quit(0x12eb007);
 }
 
 void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -1283,6 +1325,10 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Open and close LID"))) {
                     PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem(_("Reset settings..."))) {
+                    m_showResetSettings = true;
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reboot"))) {
@@ -2002,6 +2048,28 @@ the update and manually apply it.)")));
         L.pop();
     }
     m_notifier.draw();
+
+    if (m_showResetSettings) {
+        ImGui::OpenPopup(_("Reset settings"));
+        m_showResetSettings = false;
+    }
+    if (ImGui::BeginPopupModal(_("Reset settings"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(
+            _("This will restore every setting to its default value, including the window layout, the input "
+              "bindings, the paths to the BIOS and the memory cards, and the contents of the shader "
+              "editors.\n\nSave states and memory card contents are left alone.\n\nThe emulator will reboot to "
+              "complete the operation."));
+        ImGui::Separator();
+        if (ImGui::Button(_("Reset and reboot"), ImVec2(160, 0))) {
+            ImGui::CloseCurrentPopup();
+            resetSettings();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Cancel"), ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 
     ImGui::Render();
     glViewport(0, 0, w, h);
