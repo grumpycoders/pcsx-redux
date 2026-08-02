@@ -58,32 +58,34 @@ static ImVec4 s_arrowOutlineColor = ImColor(0x37, 0x37, 0x37);
 
 namespace {
 
-uint32_t virtToReal(uint32_t virt) {
-    uint32_t base = (virt >> 20) & 0xffc;
-    uint32_t real = virt & 0x7fffff;
-    uint32_t pc = real;
-    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        // main memory first
-        if (real >= 0x00800000) pc = 0;
-    } else if (base == 0x1f0) {
-        // parallel port second
-        if (real >= 0x00010000) {
-            pc = 0;
-        } else {
-            pc += 0x00800000;
-        }
-    } else if (base == 0xbfc) {
-        // bios last
-        real &= 0x1fffff;
-        pc = real;
-        if (real >= 0x00080000) {
-            pc = 0;
-        } else {
-            pc += 0x00810000;
-        }
-    }
-    return pc;
+// The disassembly view shows one physical memory region at a time, picked from a
+// dropdown. Each region is a contiguous block backed by one of the Memory buffers;
+// the displayed CPU address is reconstructed as segmentBase (kuser/kseg0/kseg1) +
+// physBase + offset. This table is the single place the region layout is encoded -
+// no separate forward/reverse address maps to keep in sync.
+struct DisasmRegion {
+    const char* label;
+    uint32_t physBase;
+    uint32_t size;
+    uint8_t* PCSX::Memory::*buffer;
 };
+
+const DisasmRegion c_regions[] = {
+    {"RAM", 0x00000000, 0x00800000, &PCSX::Memory::m_wram},
+    {"EXP1", 0x1f000000, 0x00800000, &PCSX::Memory::m_exp1},
+    {"SRAM", 0x1fa00000, 0x00200000, &PCSX::Memory::m_sram},
+    {"BIOS", 0x1fc00000, 0x00080000, &PCSX::Memory::m_bios},
+};
+constexpr int c_regionCount = sizeof(c_regions) / sizeof(c_regions[0]);
+
+// Index of the region containing a physical address (the CPU address with its
+// segment bits masked off), or -1 if it lands outside every mapped region.
+int regionForPhys(uint32_t phys) {
+    for (int i = 0; i < c_regionCount; i++) {
+        if (phys >= c_regions[i].physBase && phys < c_regions[i].physBase + c_regions[i].size) return i;
+    }
+    return -1;
+}
 
 void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
     if (!enabled) {
@@ -553,7 +555,6 @@ bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
 
     DummyAsm dummy;
 
-    uint32_t pc = virtToReal(m_registers->pc);
     auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
     if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
         if (g_emulator->settings.get<Emulator::SettingDynarec>() &&
@@ -595,9 +596,14 @@ settings, otherwise debugging features may not work.)");
     float footerHeight = 0;
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
+    if (m_region < 0 || m_region >= c_regionCount) m_region = 0;
+    const DisasmRegion& region = c_regions[m_region];
+    uint8_t* const regionBuffer = m_memory->*region.buffer;
+    const uint32_t pcPhys = m_registers->pc & 0x1fffffff;
+
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper;
-    clipper.Begin(0x00890000 / 4);
+    clipper.Begin(region.size / 4);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -622,52 +628,31 @@ settings, otherwise debugging features may not work.)");
     while (clipper.Step()) {
         bool skipNext = false;
         bool delaySlotNext = false;
-        typedef std::function<void(uint32_t, const char*, uint32_t, uint32_t, uint32_t)> prependType;
-        auto process = [&](uint32_t addr, prependType prepend, PCSX::Disasm* disasm) {
+        typedef std::function<void(uint32_t, uint32_t)> prependType;
+        auto process = [&](uint32_t offset, prependType prepend, PCSX::Disasm* disasm) {
             uint32_t code = 0;
             uint32_t nextCode = 0;
-            uint32_t base = 0;
-            uint32_t absAddr = addr;
-            const char* section = "UNK";
-            if (addr < 0x00800000) {
-                section = "RAM";
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr);
-                if (addr <= 0x007ffff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr + 4);
+            if (offset + 4 <= region.size) {
+                code = *reinterpret_cast<uint32_t*>(regionBuffer + offset);
+                if (offset + 8 <= region.size) {
+                    nextCode = *reinterpret_cast<uint32_t*>(regionBuffer + offset + 4);
                 }
-                base = m_ramBase;
-            } else if (addr < 0x00810000) {
-                section = "PAR";
-                addr -= 0x00800000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr);
-                if (addr <= 0x0000fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr + 4);
-                }
-                base = 0x1f000000;
-            } else if (addr < 0x00890000) {
-                section = "ROM";
-                addr -= 0x00810000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr);
-                if (addr <= 0x0007fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr + 4);
-                }
-                base = 0xbfc00000;
             }
-            prepend(code, section, addr | base, absAddr, base);
-            disasm->process(code, nextCode, addr | base, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
+            uint32_t dispAddr = m_ramBase + region.physBase + offset;
+            prepend(code, dispAddr);
+            disasm->process(code, nextCode, dispAddr, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
             m_notch = delaySlotNext && m_delaySlotNotch;
             m_notchAfterSkip[1] = delaySlotNext && m_delaySlotNotch && m_pseudo && skipNext;
         };
         if (clipper.DisplayStart != 0) {
-            uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            uint32_t offset = clipper.DisplayStart * 4 - 4;
+            process(offset, [](uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
-            uint32_t addr = x * 4;
+            uint32_t offset = x * 4;
             const Debug::Breakpoint* currentBP = nullptr;
-            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr, uint32_t absAddr,
-                                uint32_t base) mutable {
+            prependType l = [&](uint32_t code, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
 
@@ -740,7 +725,7 @@ settings, otherwise debugging features may not work.)");
                         drawList->AddCircle(ImVec2(x, y), glyphWidth / 2, ImColor(s_bpColor), 20, 1.5f);
                     }
                 }
-                if (addr == pc) {
+                if (region.physBase + offset == pcPhys) {
                     /*
                        a
                     d  +
@@ -766,8 +751,8 @@ settings, otherwise debugging features may not work.)");
                     drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
                     drawList->AddRectFilled(d, e, ImColor(s_currentColor));
                 }
-                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]),
-                            code);
+                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", region.label, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
+                            tc(b[3]), code);
                 auto toggleBP = [&]() {
                     if (hasBP) {
                         if (currentBP->enabled()) {
@@ -799,7 +784,7 @@ settings, otherwise debugging features may not work.)");
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
                         ImGui::SetClipboardText(fmtAddr);
                     }
-                    addMemoryEditorSubMenu(addr, 4);
+                    addMemoryEditorSubMenu(dispAddr, 4);
                     if (ImGui::MenuItem(_("Run to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_debug->addBreakpoint(
                             dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
@@ -821,7 +806,7 @@ settings, otherwise debugging features may not work.)");
                         ImGui::TextUnformatted(_("Remove Breakpoint"));
                         ImGui::PopStyleColor();
                     }
-                    if (absAddr < 0x00800000) {
+                    if (region.physBase == 0) {
                         PatchManager& pm = *g_emulator->m_patchManager;
                         int patchIdx = pm.findPatch(dispAddr);
                         if (patchIdx == -1) {
@@ -864,7 +849,7 @@ settings, otherwise debugging features may not work.)");
                 }
             };
             m_notchAfterSkip[0] = m_notchAfterSkip[1];
-            process(addr, l, this);
+            process(offset, l, this);
         }
     }
     std::sort(m_arrows.begin(), m_arrows.end(), [](const auto& a, const auto& b) -> bool {
@@ -1008,28 +993,32 @@ settings, otherwise debugging features may not work.)");
         ImGui::EndCombo();
     }
     ImGui::SameLine();
+    if (ImGui::BeginCombo(_("Region"), c_regions[m_region].label)) {
+        for (int i = 0; i < c_regionCount; i++) {
+            if (ImGui::Selectable(c_regions[i].label, m_region == i)) {
+                m_region = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
     if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if ((m_followPC && (m_registers->pc != m_previousPC)) || m_jumpToPC.has_value()) {
         m_previousPC = m_registers->pc;
-        if (m_followPC) {
-            uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
-            switch (basePC) {
-                case 0x000:
-                    m_ramBase = 0x00000000;
-                    break;
-                case 0x800:
-                    m_ramBase = 0x80000000;
-                    break;
-                case 0xa00:
-                    m_ramBase = 0xa0000000;
-                    break;
-            }
+        uint32_t targetAddr = m_jumpToPC ? m_jumpToPC.value() : m_registers->pc;
+        uint32_t targetPhys = targetAddr & 0x1fffffff;
+        int targetRegion = regionForPhys(targetPhys);
+        if (targetRegion >= 0) {
+            uint32_t targetSeg = targetAddr & 0xe0000000;
+            if (targetSeg != 0x80000000 && targetSeg != 0xa0000000) targetSeg = 0x00000000;
+            m_region = targetRegion;
+            m_ramBase = targetSeg;
+            double row = (targetPhys - c_regions[targetRegion].physBase) / 4;
+            double scroll_to_px = row * clipper.ItemsHeight;
+            ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         }
-        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPC.value()) : pc) / 4;
-        double scroll_to_px = pctopx * clipper.ItemsHeight;
-        ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC.reset();
     }
     ImGui::EndChild();

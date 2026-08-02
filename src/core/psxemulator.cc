@@ -21,13 +21,13 @@
 
 #include "core/callstacks.h"
 #include "core/cdrom.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/gte.h"
-#include "core/ramlogger.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
@@ -35,6 +35,7 @@
 #include "core/pcsxlua.h"
 #include "core/pio-cart.h"
 #include "core/r3000a.h"
+#include "core/ramlogger.h"
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
@@ -58,6 +59,7 @@ extern "C" int luaopen_lpeg(lua_State* L);
 PCSX::Emulator::Emulator()
     : m_callStacks(new PCSX::CallStacks),
       m_cdrom(PCSX::CDRom::factory()),
+      m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),

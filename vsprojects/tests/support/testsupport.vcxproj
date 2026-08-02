@@ -78,6 +78,7 @@
     <Microsoft-googletest-v140-windesktop-msvcstl-static-rt-dyn-Disable-gtest_main>true</Microsoft-googletest-v140-windesktop-msvcstl-static-rt-dyn-Disable-gtest_main>
   </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\tests\supportpsx\ps1-packer-overlap.cc" />
     <ClCompile Include="..\..\..\tests\support\binstruct.cc" />
     <ClCompile Include="..\..\..\tests\support\circular.cc" />
     <ClCompile Include="..\..\..\tests\support\gnu-c++-demangler.cc" />
@@ -91,6 +92,9 @@
     <ProjectReference Include="..\..\gtest\gtest.vcxproj">
       <Project>{432d6160-7127-4005-bfa6-7c301c0cf3d3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\supportpsx\supportpsx.vcxproj">
+      <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
     </ProjectReference>
@@ -101,7 +105,11 @@
       <Project>{dd5acb0a-e326-4ea9-b5a8-c23d66c27650}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -113,6 +121,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName)-vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -127,6 +136,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName)-vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -143,6 +153,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName)-vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

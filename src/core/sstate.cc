@@ -43,6 +43,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             ROM { g_emulator->m_mem->m_bios },
             EXP1 { g_emulator->m_mem->m_exp1 },
             HardwareMemory { g_emulator->m_mem->m_hard },
+            SRAM { g_emulator->m_mem->m_sram },
         },
         Registers {
             GPR { g_emulator->m_cpu->m_regs.GPR.r },

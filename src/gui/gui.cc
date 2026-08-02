@@ -42,7 +42,7 @@ extern "C" {
 #include <exception>
 #include <fstream>
 #include <iomanip>
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <numbers>
 #include <type_traits>
 #include <unordered_set>
@@ -50,15 +50,16 @@ extern "C" {
 #include "clip/clip.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
-#include "core/ramlogger.h"
 #include "core/pad.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/ramlogger.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
@@ -787,7 +788,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = l_("BIOS");
     m_vramEditor.title = l_("VRAM");
-    auto makeExportFn = [this](MemoryEditorWrapper &wrapper, std::string postfixName) {
+    auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
             std::filesystem::path writeFilepath =
                 g_system->getPersistentDir() / (getSaveStatePrefix(true) + "mem_" + postfixName + ".bin");
@@ -879,6 +880,10 @@ void PCSX::GUI::close() {
 
 void PCSX::GUI::saveCfg() {
     if (g_system->getArgs().isTestModeEnabled()) return;
+    // The settings have been wiped, and we're on our way to a reboot. Writing them back out now would
+    // simply undo the wipe: this gets called on quit, on layout changes, and whenever a config widget
+    // reports a change, so all three would race the reset otherwise.
+    if (m_settingsNuked) return;
     std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
     std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
     {
@@ -908,6 +913,44 @@ void PCSX::GUI::saveCfg() {
     if (std::filesystem::copy_file(cfgTmpPath, cfgPath, std::filesystem::copy_options::overwrite_existing)) {
         std::filesystem::remove(cfgTmpPath);
     }
+}
+
+void PCSX::GUI::resetSettings() {
+    // Resetting the live settings objects in place isn't enough: the ImGui layout belongs to the current
+    // context, and a fair amount of the emulator settings are only ever acted upon during startup. So the
+    // wipe happens on disk, and the reboot below is what actually reloads everything from defaults, as it
+    // tears down and recreates both the emulator and the UI.
+    m_settingsNuked = true;
+    std::filesystem::path cfgTmpPath = g_system->getPersistentDir() / "pcsx.json.tmp";
+    std::filesystem::path cfgPath = g_system->getPersistentDir() / "pcsx.json";
+    std::error_code ec;
+    std::filesystem::remove(cfgTmpPath, ec);
+    // An empty object rather than no file at all: every consumer already falls back to its defaults on a
+    // missing key, and keeping the file around preserves the portable mode detection, which keys off of
+    // the mere existence of pcsx.json in the current directory.
+    {
+        std::ofstream cfg(cfgPath);
+        cfg << "{}" << std::endl;
+    }
+    // The shader editors keep their sources next to the settings, one set of files per base name. Rather
+    // than hardcoding the list of editors, which would quietly go stale the moment another one is added,
+    // key off of the vertex shaders actually present: every base has one, and nothing else uses that
+    // extension, so the companion files can be derived from it.
+    auto persistentDir = g_system->getPersistentDir();
+    std::vector<std::filesystem::path> shaderBases;
+    for (const auto& entry : std::filesystem::directory_iterator(persistentDir, ec)) {
+        if (!entry.is_regular_file(ec)) continue;
+        if (entry.path().extension() == ".vert") shaderBases.push_back(entry.path());
+    }
+    for (auto& base : shaderBases) {
+        for (auto extension : {"vert", "frag", "lua", "json"}) {
+            auto toRemove = std::filesystem::path(base).replace_extension(extension);
+            // Guard against a stray pcsx.vert deriving the settings file we just wrote.
+            if (toRemove == cfgPath) continue;
+            std::filesystem::remove(toRemove, ec);
+        }
+    }
+    g_system->quit(0x12eb007);
 }
 
 void PCSX::GUI::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -1284,6 +1327,10 @@ void PCSX::GUI::endFrame() {
                     PCSX::g_emulator->m_cdrom->lidInterrupt();
                 }
                 ImGui::Separator();
+                if (ImGui::MenuItem(_("Reset settings..."))) {
+                    m_showResetSettings = true;
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem(_("Reboot"))) {
                     g_system->quit(0x12eb007);
                 }
@@ -1310,15 +1357,16 @@ void PCSX::GUI::endFrame() {
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Configuration"))) {
-                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
-                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
-                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
+                if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
+                    setFullscreen(m_fullscreen);
+                    m_setupScreenSize = true;
                 }
-                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
-                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
-                ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
-                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
-                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
+                if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
+                    m_setupScreenSize = true;
+                    // full window render mode can't have anything docked in the dockspace
+                    ImGui::DockContextClearNodes(context, dockspaceId, true);
+                }
+                ImGui::Separator();
                 if (ImGui::BeginMenu(_("Shader presets"))) {
                     if (ImGui::MenuItem(_("Default shader"))) {
                         setDefaultShaders();
@@ -1354,7 +1402,19 @@ void PCSX::GUI::endFrame() {
                     m_offscreenShaderEditor.setConfigure();
                     m_outputShaderEditor.setConfigure();
                 }
+                ImGui::Separator();
+                ImGui::MenuItem(_("Controls"), nullptr, &g_emulator->m_pads->m_showCfg);
+                if (ImGui::MenuItem(_("Manage Memory Cards"), nullptr, &m_memcardManager.m_show)) {
+                    m_memcardManager.m_frameCount = 0;  // Reset frame count when memcard manager is toggled
+                }
+                ImGui::Separator();
+                ImGui::MenuItem(_("Emulation"), nullptr, &m_showCfg);
+                ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
+                ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
+                ImGui::Separator();
+                ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
+                ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
                 ImGui::EndMenu();
             }
             ImGui::Separator();
@@ -1439,6 +1499,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 if (ImGui::BeginMenu(_("CD-Rom"))) {
                     ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
+                    ImGui::MenuItem(_("Show CD-ROM viewer"), nullptr, &m_cdromViewer.m_show);
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Misc hardware"))) {
@@ -1455,15 +1516,6 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu(_("Rendering"))) {
-                    if (ImGui::MenuItem(_("Full window render"), nullptr, &m_fullWindowRender)) {
-                        m_setupScreenSize = true;
-                        // full window render mode can't have anything docked in the dockspace
-                        ImGui::DockContextClearNodes(context, dockspaceId, true);
-                    }
-                    if (ImGui::MenuItem(_("Fullscreen"), nullptr, &m_fullscreen)) {
-                        setFullscreen(m_fullscreen);
-                        m_setupScreenSize = true;
-                    }
                     ImGui::MenuItem(_("Show Output Shader Editor"), nullptr, &m_outputShaderEditor.m_show);
                     ImGui::MenuItem(_("Show Offscreen Shader Editor"), nullptr, &m_offscreenShaderEditor.m_show);
                     if (ImGui::MenuItem(_("Reset shaders"), nullptr)) {
@@ -1573,14 +1625,24 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_ramViewer.m_show) {
-        auto *ramLogger = g_emulator->m_ramLogger.get();
+        auto* ramLogger = g_emulator->m_ramLogger.get();
         if (!ramLogger->isEnabled()) ramLogger->enable();
         ramLogger->uploadRAM();
         ramLogger->uploadHeatmaps();
         m_ramViewer.draw(this);
     } else {
-        auto *ramLogger = g_emulator->m_ramLogger.get();
+        auto* ramLogger = g_emulator->m_ramLogger.get();
         if (ramLogger->isEnabled()) ramLogger->disable();
+    }
+
+    if (m_cdromViewer.m_show) {
+        auto* cdromLogger = g_emulator->m_cdromLogger.get();
+        if (!cdromLogger->isEnabled()) cdromLogger->enable();
+        cdromLogger->uploadHeatmaps();
+        m_cdromViewer.draw(this);
+    } else {
+        auto* cdromLogger = g_emulator->m_cdromLogger.get();
+        if (cdromLogger->isEnabled()) cdromLogger->disable();
     }
 
     if (m_log.m_show) {
@@ -1986,6 +2048,28 @@ the update and manually apply it.)")));
         L.pop();
     }
     m_notifier.draw();
+
+    if (m_showResetSettings) {
+        ImGui::OpenPopup(_("Reset settings"));
+        m_showResetSettings = false;
+    }
+    if (ImGui::BeginPopupModal(_("Reset settings"), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(
+            _("This will restore every setting to its default value, including the window layout, the input "
+              "bindings, the paths to the BIOS and the memory cards, and the contents of the shader "
+              "editors.\n\nSave states and memory card contents are left alone.\n\nThe emulator will reboot to "
+              "complete the operation."));
+        ImGui::Separator();
+        if (ImGui::Button(_("Reset and reboot"), ImVec2(160, 0))) {
+            ImGui::CloseCurrentPopup();
+            resetSettings();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Cancel"), ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 
     ImGui::Render();
     glViewport(0, 0, w, h);
