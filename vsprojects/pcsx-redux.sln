@@ -331,6 +331,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2spd", "midi2spd\midi2s
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2psm", "midi2psm\midi2psm.vcxproj", "{E1D23582-C66F-40D3-A163-B1B4470B3F15}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "exe2exe", "exe2exe\exe2exe.vcxproj", "{6A476694-C1F8-4BA6-AA33-07D70FB197F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -770,6 +772,16 @@ Global
 		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
 		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
 		{E1D23582-C66F-40D3-A163-B1B4470B3F15}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.Debug|x64.ActiveCfg = Debug|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.Debug|x64.Build.0 = Debug|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.Release|x64.ActiveCfg = Release|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.Release|x64.Build.0 = Release|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithTracy|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -826,6 +838,7 @@ Global
 		{ACCFF71D-6BB0-4B55-9ADA-476E2A7F071F} = {F3837DDD-BF8B-497F-B876-9934BF472AB3}
 		{FC0BCB98-8E1A-4304-BFF0-B22970853019} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 		{E1D23582-C66F-40D3-A163-B1B4470B3F15} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
+		{6A476694-C1F8-4BA6-AA33-07D70FB197F4} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}

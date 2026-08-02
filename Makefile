@@ -39,7 +39,7 @@ CPPFLAGS_pkg_libllhttp += -Ithird_party/llhttp
 CPPFLAGS += -Ithird_party/luajit/src
 CPPFLAGS_pkg_libluv += -Ithird_party/luv/src
 CPPFLAGS_pkg_libluv += -Ithird_party/luv/deps/lua-compat-5.3/c-api
-CPPFLAGS += -Ithird_party/magic_enum/include/magic_enum
+CPPFLAGS += -Ithird_party/magic_enum/include
 CPPFLAGS_pkg_md4c += -Ithird_party/md4c/src
 CPPFLAGS_lib_multipart += -Ithird_party/multipart-parser-c
 CPPFLAGS += -Ithird_party/PEGTL/include
@@ -175,7 +175,7 @@ SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_p
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = authoring exe2elf exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2exe exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 

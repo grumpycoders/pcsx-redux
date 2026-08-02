@@ -18,6 +18,8 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.5.1
+  - Trying a different method to install the mips tool on Powershell.
 - 0.5.0
   - Switching from the webfreak debugger to the official Microsoft debugger for VSCode.
   - Added natvis support for psyqo and eastl.

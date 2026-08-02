@@ -26,6 +26,7 @@
   ucl,
   llhttp,
   zip,
+  libxcb,
 
   src,
   debugBuild ? false,
@@ -115,16 +116,15 @@ let
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} third_party/${repo}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";
   version = "0.99test";
   inherit src;
 
-  postUnpack = ''
-    cp -ruT --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
-    cp -ruT --no-preserve=all ${tracy.src} source/third_party/tracy
+  preConfigure = ''
+    cp -ruT --no-preserve=all ${tracy.src} third_party/tracy
   '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
   nativeBuildInputs = [
@@ -141,6 +141,7 @@ in stdenv.mkDerivation {
     ucl
     md4c
     luajitPackages.libluv
+    miniaudio
     multipart-parser-c
     fmt
     magic-enum
@@ -157,6 +158,7 @@ in stdenv.mkDerivation {
     freetype.dev
     uriparser
     libX11
+    libxcb
     llhttp
   ];
 
