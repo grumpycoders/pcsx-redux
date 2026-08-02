@@ -69,6 +69,7 @@ local function _bin2c_generate(io, input, output_c, output_h, symbol, compat_nam
         "};",
         string.format("const size_t %s_len = %du;", symbol, size),
         string.format("__asm__(\".globl _binary_%s_start\\n_binary_%s_start = %s\");", compat_name, compat_name, symbol),
+        string.format("__asm__(\".globl _binary_%s_end\\n_binary_%s_end = %s + %d\");", compat_name, compat_name, symbol, size),
         string.format("const unsigned int _binary_%s_size = %du;", compat_name, size),
         "",
     }, "\n")
@@ -84,6 +85,7 @@ local function _bin2c_generate(io, input, output_c, output_h, symbol, compat_nam
         string.format("extern const unsigned char %s[];", symbol),
         string.format("extern const size_t %s_len;", symbol),
         string.format("extern const unsigned char _binary_%s_start[];", compat_name),
+        string.format("extern const unsigned char _binary_%s_end[];", compat_name),
         string.format("extern const unsigned int _binary_%s_size;", compat_name),
         "",
         "#ifdef __cplusplus",
