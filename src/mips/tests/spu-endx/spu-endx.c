@@ -16,6 +16,7 @@
 
 #include "common/hardware/dma.h"
 #include "common/hardware/hwregs.h"
+#include "common/hardware/pcsxhw.h"
 #include "common/hardware/spu.h"
 #include "common/syscalls/syscalls.h"
 
@@ -68,8 +69,9 @@ int main() {
     for (int i = 0; i < 64; i++) s_upload[i] = kAdpcmSine[i];
     for (int i = 64; i < 128; i++) s_upload[i] = 0xaa;
 #ifdef ENDX_ONESHOT
-    /* end WITHOUT repeat: the voice stops here instead of looping. Silicon
-       shows ENDX clear for a LOOPING voice, so the trigger may be stop-only. */
+    /* End WITHOUT repeat, so the voice stops here instead of looping. Both cases
+       latch ENDX on hardware; this variant exists to cover the stopping path,
+       where the voice also has to go silent. */
     s_upload[3 * 16 + 1] = 0x01;
 #endif
     spu_dma_write(SPU_UPLOAD_ADDR, s_upload, 128);
@@ -105,16 +107,15 @@ int main() {
        reads high here, so a later low reading is a real clear and not a dead
        instrument. */
     int spins = 0;
-    while (spins < 400 && (SPU_ENDX_LOW & 3) != 3) {
-        for (volatile int i = 0; i < 900000; i++);
+    while (spins < 20000 && (SPU_ENDX_LOW & 3) != 3) {
+        for (volatile int i = 0; i < 20000; i++);
         spins++;
     }
-    {
-        uint16_t v = SPU_ENDX_LOW & 0xffff;
-        ramsyscall_printf("SPUENDX: after-latch ENDX_LOW=%04x voice1=%s voice0=%s spins=%d\n", v,
-                          (v & 2) ? "SET" : "clear", (v & 1) ? "SET" : "clear", spins);
-        if ((v & 3) != 3) ramsyscall_printf("SPUENDX: NO LATCH - phase 2 proves nothing\n");
-    }
+    const uint16_t afterLatch = SPU_ENDX_LOW & 0xffff;
+    const int latched = (afterLatch & 3) == 3;
+    ramsyscall_printf("SPUENDX: after-latch ENDX_LOW=%04x voice1=%s voice0=%s spins=%d\n", afterLatch,
+                      (afterLatch & 2) ? "SET" : "clear", (afterLatch & 1) ? "SET" : "clear", spins);
+    if (!latched) ramsyscall_printf("SPUENDX: NO LATCH - phase 2 proves nothing\n");
 
     /* Phase 2: key the SAME voice on again from a known-SET state and sample the
        register. Starting from set is what makes this discriminating: on silicon
@@ -136,15 +137,56 @@ int main() {
                           (endxWindow[i] & 1) ? "SET" : "clear");
     }
 
-    /* Then let it run again: the voice reaches the end block and must re-latch. */
-    for (int t = 0; t < 4; t++) {
-        for (volatile int j = 0; j < 12; j++) for (volatile int i = 0; i < 900000; i++);
-        ramsyscall_printf("SPUENDX: t=%d ENDX=%04x%04x voice1=%s envx=%04x stat=%04x\n", t,
-                          SPU_ENDX_HIGH & 0xffff, SPU_ENDX_LOW & 0xffff,
-                          (SPU_ENDX_LOW & 2) ? "SET" : "clear",
-                          SPU_VOICES[1].currentVolume & 0xffff, SPU_STATUS & 0xffff);
+    /* Then let it run again: the voice reaches the end block and must re-latch.
+       Polled like phase 1, for the same reason. */
+    int relatchSpins = 0;
+    while (relatchSpins < 20000 && !(SPU_ENDX_LOW & 2)) {
+        for (volatile int i = 0; i < 20000; i++);
+        relatchSpins++;
     }
-    ramsyscall_printf("SPUENDX: done\n");
-    while (1) __asm__ volatile("");
-    return 0;
+    const int relatched = (SPU_ENDX_LOW & 2) != 0;
+    ramsyscall_printf("SPUENDX: re-latch ENDX=%04x%04x voice1=%s envx=%04x spins=%d\n",
+                      SPU_ENDX_HIGH & 0xffff, SPU_ENDX_LOW & 0xffff,
+                      relatched ? "SET" : "clear", SPU_VOICES[1].currentVolume & 0xffff,
+                      relatchSpins);
+
+    /* Verdict. Each check names what it would mean if it failed, because a bare
+       index number in a log is not a diagnosis. */
+    int failures = 0;
+
+    if (!latched) {
+        ramsyscall_printf("SPUENDX: FAIL - the bit never latched, so nothing below is meaningful\n");
+        failures++;
+    }
+
+    int clearedAt = -1;
+    for (int i = 0; i < 16; i++) {
+        if (!(endxWindow[i] & 2)) {
+            clearedAt = i;
+            break;
+        }
+    }
+    if (clearedAt < 0) {
+        ramsyscall_printf("SPUENDX: FAIL - key-on did not clear voice 1 within the sampled window\n");
+        failures++;
+    }
+
+    for (int i = 0; i < 16; i++) {
+        if (!(endxWindow[i] & 1)) {
+            ramsyscall_printf("SPUENDX: FAIL - voice 0 lost its bit at sample %d; key-on wiped more "
+                              "than the keyed voice\n", i);
+            failures++;
+            break;
+        }
+    }
+
+    if (!relatched) {
+        ramsyscall_printf("SPUENDX: FAIL - voice 1 never re-latched after the second key-on\n");
+        failures++;
+    }
+
+    ramsyscall_printf("SPUENDX: %s (latched=%d clearedAt=%d relatched=%d)\n",
+                      failures ? "FAILURE" : "PASS", latched, clearedAt, relatched);
+    pcsx_exit(failures ? 1 : 0);
+    return failures ? 1 : 0;
 }
