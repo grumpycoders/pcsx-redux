@@ -228,8 +228,47 @@ bool isoBuilderFailed(PCSX::ISO9660Builder* builder) { return builder->failed();
 void isoBuilderWriteLicense(PCSX::ISO9660Builder* builder, PCSX::LuaFFI::LuaFile* licenseWrapper) {
     builder->writeLicense(licenseWrapper ? licenseWrapper->file : nullptr);
 }
-void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::IEC60908b::SectorMode mode) {
-    builder->writeSector(sectorData, mode);
+// Sentinel returned to Lua when a sector write couldn't be performed.
+static constexpr uint32_t c_badLBA = 0xffffffff;
+
+// Amount of data writeSectorAt will read from the caller's buffer for a given mode. Modes that can't
+// be written to return 0.
+static uint32_t sectorDataSize(PCSX::IEC60908b::SectorMode mode) {
+    switch (mode) {
+        case PCSX::IEC60908b::SectorMode::RAW:
+            return PCSX::IEC60908b::FRAMESIZE_RAW;
+        case PCSX::IEC60908b::SectorMode::M2_RAW:
+            return 2336;
+        case PCSX::IEC60908b::SectorMode::M2_FORM1:
+            return 2048;
+        case PCSX::IEC60908b::SectorMode::M2_FORM2:
+            return 2324;
+        default:
+            return 0;
+    }
+}
+
+// The LBAs here are relative to the start of the image, matching the rest of the iso API, while the
+// builder works in MSF. Sector 0 of the image is MSF 00:02:00.
+static uint32_t msfToImageLBA(PCSX::IEC60908b::MSF msf) {
+    uint32_t lba = msf.toLBA();
+    return lba < 150 ? c_badLBA : lba - 150;
+}
+
+uint32_t isoBuilderWriteSectorAt(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize,
+                                 uint32_t lba, PCSX::IEC60908b::SectorMode mode) {
+    uint32_t needed = sectorDataSize(mode);
+    if ((needed == 0) || (dataSize < needed)) return c_badLBA;
+    return msfToImageLBA(builder->writeSectorAt(sectorData, PCSX::IEC60908b::MSF(lba + 150), mode));
+}
+uint32_t isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize,
+                               PCSX::IEC60908b::SectorMode mode) {
+    uint32_t needed = sectorDataSize(mode);
+    if ((needed == 0) || (dataSize < needed)) return c_badLBA;
+    return msfToImageLBA(builder->writeSector(sectorData, mode));
+}
+uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) {
+    return msfToImageLBA(builder->getCurrentLocation());
 }
 void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
 
@@ -421,6 +460,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isoBuilderFailed);
     REGISTER(L, isoBuilderWriteLicense);
     REGISTER(L, isoBuilderWriteSector);
+    REGISTER(L, isoBuilderWriteSectorAt);
+    REGISTER(L, isoBuilderGetCurrentLBA);
     REGISTER(L, isoBuilderClose);
 
     // PVD getters
