@@ -79,6 +79,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
                                data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase);
         s_chan[i].volume.saveTo(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                 data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
+        s_chan[i].interp.saveTo(data.get<Chan::SB>().value.data());
     }
 
     spu.get<SaveStates::SPUAddr>().value = spuAddr;
@@ -126,6 +127,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
                                  data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase);
         s_chan[i].volume.loadFrom(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                   data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
+        s_chan[i].interp.loadFrom(data.get<Chan::SB>().value.data());
         s_chan[i].data.get<Chan::Mute>().value = false;
         s_chan[i].data.get<Chan::Solo>().value = false;
         s_chan[i].data.get<Chan::IrqDone>().value = 0;
@@ -150,7 +152,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 
     // fix to prevent new interpolations from crashing
-    for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].data.get<Chan::SB>().value[28].value = 0;
+    for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].interp.resetAfterLoad();
 
     // repair LDChen's ADSR changes
     if (spuAddr < 0x7ffff) {

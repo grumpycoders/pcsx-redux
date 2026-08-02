@@ -55,7 +55,6 @@ constexpr int kMixSampleClamp = 32767;
 ////////////////////////////////////////////////////////////////////////
 
 inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
-    auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
     pChannel->adsr.keyOn();
     m_reverb.start(pChannel, spuCtrl, settings.get<Reverb>());
 
@@ -68,7 +67,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->data.get<Chan::Stop>().value = false;
     pChannel->data.get<Chan::On>().value = true;
 
-    pChannel->interp.keyOn(SB.data(), &pChannel->data.get<Chan::spos>().value, settings.get<Interpolation>());
+    pChannel->interp.keyOn(&pChannel->data.get<Chan::spos>().value, settings.get<Interpolation>());
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -80,8 +79,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
 // zero step never advances the pitch counter, so the voice would sit on one sample forever.
 inline void PCSX::SPU::impl::setPitchStep(SPUCHAN *pChannel, int32_t step) {
     pChannel->data.get<Chan::sinc>().value = step ? step : 1;
-    pChannel->interp.onFrequencyChanged(pChannel->data.get<Chan::SB>().value.data(),
-                                        settings.get<Interpolation>());
+    pChannel->interp.onFrequencyChanged(settings.get<Interpolation>());
 }
 
 inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
