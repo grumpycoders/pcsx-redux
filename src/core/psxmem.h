@@ -304,6 +304,20 @@ class Memory {
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
+    // The scratchpad and the hardware registers share a single 64kB page, and the guest path has
+    // to dispatch register accesses to the hardware itself for their side effects, so that page is
+    // deliberately absent from the read LUT. Both are shadowed by m_hard at the same offsets,
+    // which spans the whole page and is safe to read at any time, so debugger-style accesses -
+    // which want a faithful view of memory and none of the side effects - resolve through here
+    // instead of through the read LUT directly.
+    static constexpr uint32_t c_scratchpadSize = 0x400;
+    uint8_t *debugPointer(uint32_t page) const {
+        auto pointer = m_readLUT[page];
+        if (pointer != nullptr) return pointer;
+        if ((page == 0x1f80) || (page == 0x9f80) || (page == 0xbf80)) return m_hard;
+        return nullptr;
+    }
+
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
