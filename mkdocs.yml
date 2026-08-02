@@ -62,6 +62,8 @@ nav:
       - 'Lua/redux-basics.md'
       - 'Lua/rendering.md'
       - 'Lua/file-api.md'
+      - 'Lua/iso-builder.md'
+      - 'Lua/ppf.md'
       - 'Lua/web-server.md'
       - 'Lua/memory-and-registers.md'
       - 'Lua/events.md'
