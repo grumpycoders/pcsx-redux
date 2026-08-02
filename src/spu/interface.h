@@ -159,6 +159,8 @@ class impl final : public SPUInterface {
     void SetupThread();
     void RemoveThread();
     void StartSound(SPUCHAN *pChannel);
+    // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
+    void setPitchStep(SPUCHAN *pChannel, int32_t step);
     void VoiceChangeFrequency(SPUCHAN *pChannel);
     void FModChangeFrequency(SPUCHAN *pChannel, int ns);
 

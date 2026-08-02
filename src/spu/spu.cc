@@ -62,49 +62,46 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->adpcm.keyOn();  // rewind decode cursor to sample start, clear IIR history
     pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);  // EXPERIMENTAL keyon startup latency
 
-    pChannel->data.get<PCSX::SPU::Chan::SBPos>().value = kSamplesPerAdpcmBlock;  // force a block decode on first sample
+    pChannel->data.get<Chan::SBPos>().value = kSamplesPerAdpcmBlock;  // force a block decode on first sample
 
-    pChannel->data.get<PCSX::SPU::Chan::New>().value = false;  // init channel flags
-    pChannel->data.get<PCSX::SPU::Chan::Stop>().value = false;
-    pChannel->data.get<PCSX::SPU::Chan::On>().value = true;
+    pChannel->data.get<Chan::New>().value = false;  // init channel flags
+    pChannel->data.get<Chan::Stop>().value = false;
+    pChannel->data.get<Chan::On>().value = true;
 
-    pChannel->interp.keyOn(SB.data(), &pChannel->data.get<PCSX::SPU::Chan::spos>().value,
-                           settings.get<Interpolation>());
+    pChannel->interp.keyOn(SB.data(), &pChannel->data.get<Chan::spos>().value, settings.get<Interpolation>());
 }
 
 ////////////////////////////////////////////////////////////////////////
 // ALL KIND OF HELPERS
 ////////////////////////////////////////////////////////////////////////
 
+// Both frequency paths end the same way: install the new 16.16 pitch step, and tell the
+// interpolator the frequency moved so simple mode recomputes. The zero clamp matters - a
+// zero step never advances the pitch counter, so the voice would sit on one sample forever.
+inline void PCSX::SPU::impl::setPitchStep(SPUCHAN *pChannel, int32_t step) {
+    pChannel->data.get<Chan::sinc>().value = step ? step : 1;
+    pChannel->interp.onFrequencyChanged(pChannel->data.get<Chan::SB>().value.data(),
+                                        settings.get<Interpolation>());
+}
+
 inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
-    auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
-    pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value =
-        pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value;  // -> take it and calc steps
-    pChannel->data.get<PCSX::SPU::Chan::sinc>().value = pChannel->data.get<PCSX::SPU::Chan::RawPitch>().value << 4;
-    if (!pChannel->data.get<PCSX::SPU::Chan::sinc>().value) pChannel->data.get<PCSX::SPU::Chan::sinc>().value = 1;
-    // -> freq change in simple interpolation mode: set the recompute flag
-    pChannel->interp.onFrequencyChanged(SB.data(), settings.get<Interpolation>());
+    auto &actFreq = pChannel->data.get<Chan::ActFreq>().value;
+    pChannel->data.get<Chan::UsedFreq>().value = actFreq;  // -> take it and calc steps
+    setPitchStep(pChannel, pChannel->data.get<Chan::RawPitch>().value << 4);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
-    auto &SB = pChannel->data.get<PCSX::SPU::Chan::SB>().value;
-    int NP = pChannel->data.get<PCSX::SPU::Chan::RawPitch>().value;
+    int NP = pChannel->data.get<Chan::RawPitch>().value;
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
-
-    if (NP > 0x3fff) NP = 0x3fff;
-    if (NP < 0x1) NP = 0x1;
-
+    NP = std::clamp(NP, 0x1, 0x3fff);
     NP = (44100L * NP) / (4096L);  // calc frequency
 
-    pChannel->data.get<PCSX::SPU::Chan::ActFreq>().value = NP;
-    pChannel->data.get<PCSX::SPU::Chan::UsedFreq>().value = NP;
-    pChannel->data.get<PCSX::SPU::Chan::sinc>().value = (((NP / 10) << 16) / 4410);
-    if (!pChannel->data.get<PCSX::SPU::Chan::sinc>().value) pChannel->data.get<PCSX::SPU::Chan::sinc>().value = 1;
-    // freq change in simple interpolation mode: set the recompute flag
-    pChannel->interp.onFrequencyChanged(SB.data(), settings.get<Interpolation>());
+    pChannel->data.get<Chan::ActFreq>().value = NP;
+    pChannel->data.get<Chan::UsedFreq>().value = NP;
+    setPitchStep(pChannel, ((NP / 10) << 16) / 4410);
 
     iFMod[ns] = 0;
 }
