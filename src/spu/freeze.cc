@@ -76,7 +76,8 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
         // Each per-voice helper owns the conversion between its runtime state and
         // its savestate-mirror fields; we just hand it the fields.
         s_chan[i].adpcm.saveTo(data.get<Chan::s_1>(), data.get<Chan::s_2>(), data.get<Chan::StartPtr>(),
-                               data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase);
+                               data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase,
+                               data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
         s_chan[i].volume.saveTo(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                 data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
         s_chan[i].interp.saveTo(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(),
@@ -125,7 +126,8 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         s_chan[i].adsr.legacy() = channel.get<SaveStates::ADSRInfo>();
         s_chan[i].adsr.ex() = channel.get<SaveStates::ADSRInfoEx>();
         s_chan[i].adpcm.loadFrom(data.get<Chan::s_1>(), data.get<Chan::s_2>(), data.get<Chan::StartPtr>(),
-                                 data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase);
+                                 data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase,
+                                 data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
         s_chan[i].volume.loadFrom(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                   data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
         s_chan[i].interp.loadFrom(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(),

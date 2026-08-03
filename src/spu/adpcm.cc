@@ -19,18 +19,22 @@
 #include "spu/adpcm.h"
 
 void PCSX::SPU::AdpcmDecoder::saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
-                                    Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase) const {
+                                    Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
+                                    Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const {
     history1.value = m_s1;
     history2.value = m_s2;
     auto storeOffset = [ramBase](uint8_t *ptr, Protobuf::Int32 &offset) { offset.value = ptr ? ptr - ramBase : -1; };
     storeOffset(m_start, startOffset);
     storeOffset(m_curr, currOffset);
     storeOffset(m_loop, loopOffset);
+    for (int i = 0; i < kSamplesPerBlock; i++) sb[i].value = m_samples[i];
+    sbPos.value = m_pos;
 }
 
 void PCSX::SPU::AdpcmDecoder::loadFrom(const Protobuf::Int32 &history1, const Protobuf::Int32 &history2,
                                       const Protobuf::Int32 &startOffset, const Protobuf::Int32 &currOffset,
-                                      const Protobuf::Int32 &loopOffset, uint8_t *ramBase) {
+                                      const Protobuf::Int32 &loopOffset, uint8_t *ramBase,
+                                      const Protobuf::Int32 *sb, const Protobuf::Int32 &sbPos) {
     m_s1 = history1.value;
     m_s2 = history2.value;
     auto restore = [ramBase](const Protobuf::Int32 &offset) -> uint8_t * {
@@ -39,9 +43,11 @@ void PCSX::SPU::AdpcmDecoder::loadFrom(const Protobuf::Int32 &history1, const Pr
     m_start = restore(startOffset);
     m_curr = restore(currOffset);
     m_loop = restore(loopOffset);
+    for (int i = 0; i < kSamplesPerBlock; i++) m_samples[i] = sb[i].value;
+    m_pos = sbPos.value;
 }
 
-PCSX::SPU::AdpcmDecoder::DecodeResult PCSX::SPU::AdpcmDecoder::decodeBlock(uint8_t *block, Protobuf::Int32 *sb) {
+PCSX::SPU::AdpcmDecoder::DecodeResult PCSX::SPU::AdpcmDecoder::decodeBlock(uint8_t *block) {
     // Header byte 0: high nibble selects the IIR predictor, low nibble is the
     // per-sample right shift. Byte 1 holds the loop/repeat/end flags.
     const int predictor = *block >> 4;
@@ -64,11 +70,12 @@ PCSX::SPU::AdpcmDecoder::DecodeResult PCSX::SPU::AdpcmDecoder::decodeBlock(uint8
 
     for (unsigned n = 0; n < 28; block++) {
         const int nibbles = *block;
-        sb[n++].value = decodeSample(static_cast<int16_t>((nibbles & 0x0f) << 12));
-        sb[n++].value = decodeSample(static_cast<int16_t>((nibbles & 0xf0) << 8));
+        m_samples[n++] = decodeSample(static_cast<int16_t>((nibbles & 0x0f) << 12));
+        m_samples[n++] = decodeSample(static_cast<int16_t>((nibbles & 0xf0) << 8));
     }
 
     m_s1 = history1;
     m_s2 = history2;
+    m_pos = 0;  // the caller reads this block from the top
     return {block, flags};
 }

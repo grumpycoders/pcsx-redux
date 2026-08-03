@@ -25,9 +25,6 @@
 #include "spu/interface.h"
 
 namespace {
-// One 16-byte ADPCM block decodes to 28 PCM samples; SBPos walks 0..27 and a
-// value of 28 means "the decode buffer is exhausted, fetch the next block".
-constexpr int kSamplesPerAdpcmBlock = 28;
 // The ADSR step returns the full 15-bit (0..0x7fff) envelope volume; the
 // enveloped sample is `sample * envelope >> 15`, exactly as the hardware applies
 // it (a signed arithmetic shift, SAR 15).
@@ -58,7 +55,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->adpcm.keyOn();  // rewind decode cursor to sample start, clear IIR history
     pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);  // EXPERIMENTAL keyon startup latency
 
-    pChannel->data.get<Chan::SBPos>().value = kSamplesPerAdpcmBlock;  // force a block decode on first sample
+    pChannel->adpcm.emptyBuffer();  // force a block decode on the first sample
 
     pChannel->data.get<Chan::New>().value = false;  // init channel flags
     pChannel->data.get<Chan::Stop>().value = false;
@@ -157,15 +154,13 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *pChannel) {
     uint8_t *cursor = pChannel->adpcm.curr();  // current decode position
     if (cursor == AdpcmDecoder::kStopped) return false;
 
-    auto &sb = pChannel->data.get<Chan::SB>().value;
     auto &irqDone = pChannel->data.get<Chan::IrqDone>().value;
     auto &ignoreLoop = pChannel->data.get<Chan::IgnoreLoop>().value;
 
-    pChannel->data.get<Chan::SBPos>().value = 0;
 
     // The decoder owns the predictor/shift parse and the s_1/s_2 IIR history; it hands back
     // the address just past the block and the flag byte.
-    const auto decoded = pChannel->adpcm.decodeBlock(cursor, sb.data());
+    const auto decoded = pChannel->adpcm.decodeBlock(cursor);
     cursor = decoded.blockEnd;
     const int blockFlags = decoded.flags;
 
@@ -219,8 +214,6 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
     auto &on = pChannel->data.get<Chan::On>().value;
     auto &stop = pChannel->data.get<Chan::Stop>().value;
     auto &sval = pChannel->data.get<Chan::sval>().value;
-    auto &sb = pChannel->data.get<Chan::SB>().value;
-    auto &sbPos = pChannel->data.get<Chan::SBPos>().value;
     auto &fmod = pChannel->data.get<Chan::FMod>().value;
     auto &noise = pChannel->data.get<Chan::Noise>().value;
     auto &mute = pChannel->data.get<Chan::Mute>().value;
@@ -261,7 +254,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
         if (fmod == 1 && iFMod[ns]) FModChangeFrequency(pChannel, ns);  // fmod freq channel
 
         while (pChannel->interp.owesSample()) {
-            if (sbPos == kSamplesPerAdpcmBlock && !decodeNextBlock(ch, pChannel)) {
+            if (pChannel->adpcm.bufferExhausted() && !decodeNextBlock(ch, pChannel)) {
                 // The voice ran off the end of its sample on a previous pass. It is silent
                 // now, but its capture mirror still fills: ns samples are already done this
                 // batch, so write silence for the remaining NSSIZE-ns.
@@ -272,7 +265,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
                 return;  // done with this channel
             }
 
-            rawSample = sb[sbPos++].value;  // get sample data
+            rawSample = pChannel->adpcm.takeSample();
 
             pChannel->interp.storeVal(rawSample, settings.get<Interpolation>(), fmod,
                                       (spuCtrl & ControlFlags::Mute) != 0);  // store val for interpolation
@@ -280,10 +273,12 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
             pChannel->interp.tookSample();
         }
 
-        if (noise)
-            rawSample = m_noise.getVal(sb.data(), settings.get<Interpolation>());  // get noise val
-        else
+        if (noise) {
+            rawSample = m_noise.getVal();  // get noise val
+            pChannel->interp.parkExternalSample(rawSample, settings.get<Interpolation>());
+        } else {
             rawSample = pChannel->interp.getVal(settings.get<Interpolation>(), fmod);
+        }
 
         // apply the ADSR envelope (hardware: sample*env>>15)
         int32_t mixedSample = (pChannel->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;

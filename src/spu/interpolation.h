@@ -76,6 +76,15 @@ class Interpolator {
     void setStep(int32_t step) { m_sinc = step ? step : 1; }
     int32_t step() const { return m_sinc; }
 
+    // The noise generator substitutes its own level for the decoded sample. The
+    // no/simple modes read their input from the current-sample slot, so it has to
+    // land there rather than being returned; gauss/cubic weight their own window
+    // and want nothing parked. This used to be a write to SB[29] from inside the
+    // noise generator, which reached into state that is now ours.
+    void parkExternalSample(int32_t level, int interpolationType) {
+        if (interpolationType < 2) m_state[1] = level;
+    }
+
     // A psx-pitch change happened: in simple-interpolation mode, flag that the
     // step must be recomputed on the next pass.
     void onFrequencyChanged(int interpolationType) {

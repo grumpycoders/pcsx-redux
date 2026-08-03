@@ -35,9 +35,8 @@ namespace SPU {
 //
 // Unlike the per-voice ADPCM/ADSR/interpolation helpers this is a single
 // per-SPU instance, so it lives in the impl rather than in SPUCHAN. getVal()
-// takes a raw `Protobuf::Int32 *sb` (the consuming voice's sample buffer)
-// instead of the SPUCHAN type to avoid a types.h<->this-header include cycle,
-// exactly as the ADPCM decoder and interpolator do.
+// just reports the level; parking it where the simple interpolation modes look
+// for it is the interpolator's business, since that slot is its state.
 class NoiseGenerator {
   public:
     // The SPUCTRL noise shift+step selector (register bits 13..8, already
@@ -52,7 +51,7 @@ class NoiseGenerator {
     // impl::iGetNoiseVal()). In the no/simple interpolation modes the value is
     // also parked in the voice's "current sample" slot SB[29], exactly as
     // before, so the linear resampler sees it.
-    int getVal(Protobuf::Int32 *sb, int interpolationType) const;
+    int getVal() const;
 
     // Savestate bridge (freeze.cc only): mirror the LFSR state to/from the three
     // SPU-level savestate fields. The fields are passed in to keep the

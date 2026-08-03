@@ -26,12 +26,8 @@ constexpr uint32_t kSampleTick = 0x10000;
 constexpr uint32_t kFractionMask = 0xffff;
 }  // namespace
 
-int PCSX::SPU::NoiseGenerator::getVal(Protobuf::Int32 *sb, int interpolationType) const {
-    const int level = static_cast<int16_t>(m_val);  // noise level = low 16 bits of the LFSR, signed
-    // The no/simple interpolation modes read their input from the voice's
-    // "current sample" slot, so park the noise level there too.
-    if (interpolationType < 2) sb[29].value = level;
-    return level;
+int PCSX::SPU::NoiseGenerator::getVal() const {
+    return static_cast<int16_t>(m_val);  // noise level = low 16 bits of the LFSR, signed
 }
 
 void PCSX::SPU::NoiseGenerator::step() {

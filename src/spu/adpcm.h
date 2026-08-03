@@ -86,10 +86,12 @@ class AdpcmDecoder {
     // offset, with -1 standing in for a null pointer. The kStopped sentinel is
     // an all-ones (non-null) pointer, so it round-trips as raw offset arithmetic.
     void saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
-                Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase) const;
+                Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
+                Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const;
     void loadFrom(const Protobuf::Int32 &history1, const Protobuf::Int32 &history2,
                   const Protobuf::Int32 &startOffset, const Protobuf::Int32 &currOffset,
-                  const Protobuf::Int32 &loopOffset, uint8_t *ramBase);
+                  const Protobuf::Int32 &loopOffset, uint8_t *ramBase, const Protobuf::Int32 *sb,
+                  const Protobuf::Int32 &sbPos);
 
     struct DecodeResult {
         uint8_t *blockEnd;  // one past the 16-byte block just decoded
@@ -100,7 +102,16 @@ class AdpcmDecoder {
     // entries of `sb` (the per-voice sample buffer), advancing the IIR history.
     // Returns the address just past the block and the block's flag byte, which
     // the caller needs for its IRQ check and loop handling.
-    DecodeResult decodeBlock(uint8_t *block, Protobuf::Int32 *sb);
+    // Decodes the 16-byte block at `block` into our own 28-sample buffer and rewinds
+    // the read cursor to it. The buffer is ours because we are the only thing that
+    // fills it; the voice pulls samples back out one at a time.
+    DecodeResult decodeBlock(uint8_t *block);
+
+    static constexpr int kSamplesPerBlock = 28;
+    bool bufferExhausted() const { return m_pos >= kSamplesPerBlock; }
+    int32_t takeSample() { return m_samples[m_pos++]; }
+    // Key-on leaves the buffer empty so the first sample forces a decode.
+    void emptyBuffer() { m_pos = kSamplesPerBlock; }
 
   private:
     // ADPCM IIR filter coefficient pairs, indexed by the block's predictor. The
@@ -114,6 +125,8 @@ class AdpcmDecoder {
     int32_t m_s1 = 0;            // last decoded sample  (IIR history)
     int32_t m_s2 = 0;            // next-to-last decoded sample (IIR history)
     int m_startupDelay = 0;      // EXPERIMENTAL: post-key-on silence countdown (samples)
+    int32_t m_samples[kSamplesPerBlock] = {};  // the decoded block
+    int m_pos = kSamplesPerBlock;              // read cursor into it
 };
 
 }  // namespace SPU
