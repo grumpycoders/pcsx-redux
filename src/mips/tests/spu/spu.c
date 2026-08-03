@@ -67,6 +67,8 @@ INCLUDE_PCM(sine_high);
 INCLUDE_PCM(sine_pitch_0800);
 INCLUDE_PCM(sine_pitch_2000);
 INCLUDE_PCM(sine_pitch_3000);
+INCLUDE_PCM(sine_pitch_1500);
+INCLUDE_PCM(sine_pitch_1400);
 INCLUDE_PCM(triangle);
 INCLUDE_PCM(square);
 INCLUDE_PCM(loop_t0);
@@ -158,12 +160,30 @@ static void spu_pcm_analyze(const uint8_t *data, uint32_t L,
 static void spu_dump_pcm(const char *name, const void *capture, uint32_t len) {
     static PcmTestHeader hdr = {0x544d4350u, sizeof(PcmTestHeader), 0, 0};
     spu_pcm_analyze((const uint8_t *)capture, len, &hdr.warmup, &hdr.period);
+    // spu_pcm_analyze cannot report failure: it seeds best_w=0, best_p=L and returns
+    // those unchanged when no period exists inside the capture. The golden that comes
+    // out is perfectly well formed, so nothing downstream notices - but keptS then
+    // covers the whole ring, which makes the periodicity self-check in
+    // spu_compare_golden run zero iterations, and leaves the comparison unable to
+    // absorb a phase difference by rotation. The test silently starts demanding that
+    // the emulator reproduce hardware's absolute key-on phase. Refuse to mint one.
+    if (hdr.period >= len || hdr.warmup + hdr.period >= len) {
+        ramsyscall_printf("%s: NO PERIOD found in the capture (warmup=%d period=%d len=%d).\n",
+                          name, (int)hdr.warmup, (int)hdr.period, (int)len);
+        ramsyscall_printf("%s: REFUSING to write a golden - pick a rate whose period fits the ring.\n", name);
+        return;
+    }
     if (!is_pcdrv_init) {
         PCinit();
         is_pcdrv_init = 1;
     }
     int fd = PCcreat(name, 0);
-    if (fd < 0) return;
+    if (fd < 0) {
+        // PCcreat failing used to return silently, so a totally failed capture run
+        // looked identical to a successful one from the guest side.
+        ramsyscall_printf("%s: PCcreat failed (%d) - no golden written.\n", name, fd);
+        return;
+    }
     PCwrite(fd, &hdr, sizeof(hdr));
     PCwrite(fd, capture, hdr.warmup + hdr.period);
     PCclose(fd);
@@ -252,57 +272,97 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
 }
 
 // Compare a captured waveform against a golden, tolerating the capture-start
-// timing jitter. There are two sources. The bit-11 sync pins the start to a
-// boundary that differs across PS1 revisions. On top of that there is a key-on
-// onset latency of ~9 samples between arming the voice and its first output -
-// at 44.1kHz that is ~200us of SPU/CPU thread-scheduling slop, well below
-// anything audible, and not something an emulator should be held to sample-for-
-// sample. So we find the best-aligning integer-sample shift in a window wide
-// enough to absorb that onset, then require an EXACT match at that shift. The
-// timing is tolerated; the sample values are not. Samples are 16-bit.
-#define SPU_GOLDEN_MAXSHIFT 15  // samples; absorbs the ~9-sample key-on onset latency + bit-11 sync
-static int spu_compare_golden(const char *name, const void *cap,
-                              const uint8_t *golden_file) {
+// timing jitter. There are two sources: the bit-11 sync pins the start to a
+// boundary that differs across PS1 revisions, and a key-on onset latency of
+// ~9 samples between arming the voice and its first output. The capture region
+// is a 512-sample ring buffer that the SPU writes continuously, so the live
+// capture may start at any phase offset relative to the golden - including
+// offsets well beyond the key-on jitter if the bit-11 sync edge happened to
+// land at a very different position in the ring. A narrow ±N linear search
+// saturates at the window edge and produces garbage comparisons when the true
+// offset exceeds N. The correct model is circular: search all 512 candidate
+// start offsets with modular indexing. Every candidate compares the same keptS
+// samples (no compare-fewer-samples bias), and the full ring is always covered
+// regardless of phase difference magnitude. Timing alignment is tolerated;
+// sample values after alignment are not. Samples are 16-bit.
+// The capture area is a 512-sample ring the SPU writes continuously, so a capture
+// can start at any phase relative to the golden. Alignment is therefore CIRCULAR:
+// every one of the 512 start offsets is tried, and each compares the same sample
+// count, so the winner is the genuine best fit rather than whichever offset
+// compared fewest samples. A narrow linear window cannot do this - it saturates at
+// its edge whenever the true offset exceeds it and then compares noise.
+//
+// The onset skip is separate and does a different job: the first samples after
+// key-on are a transient the capture does not reproduce sample-for-sample, so they
+// are excluded from the comparison entirely. Timing is tolerated; sample values
+// after alignment are not.
+#define SPU_ONSET_SKIP 15
+static int spu_compare_golden(const char *name, const void *cap, const uint8_t *golden_file) {
     const PcmTestHeader *h = (const PcmTestHeader *)golden_file;
     const int16_t *golden = (const int16_t *)(golden_file + h->length);
     const int16_t *a = (const int16_t *)cap;
     const int warmupS = (int)(h->warmup / 2);
     const int periodS = (int)(h->period / 2);
     const int keptS = warmupS + periodS;
+    // The header declares the first warmupS samples to be decode artifacts carried
+    // in from whatever played before, so they are not reproducible across runs and
+    // never were: two captures of the same voice agree on the periodic tail and
+    // disagree here by construction. Comparing them made a capture assert against
+    // the state its predecessor happened to leave behind, which is why a golden
+    // could match silicon exactly on everything repeatable and still fail.
+    // SPU_ONSET_SKIP is a floor, not the start; the honest start is past the warmup.
+    const int startS = warmupS > SPU_ONSET_SKIP ? warmupS : SPU_ONSET_SKIP;
 
-    // Search a FIXED slice [SPU_GOLDEN_MAXSHIFT, keptS) for every candidate shift.
-    // Comparing the same i-range for all shifts is essential: if we let j<0 samples
-    // be skipped (as a naive loop over i in [0,keptS) does), a larger-magnitude shift
-    // simply compares fewer samples and wins the min-bad race regardless of fit, so
-    // the search saturates at the window edge instead of locking onto the real onset
-    // alignment. Penalize any out-of-range overlap so it can never be preferred.
-    int bestShift = 0, bestBad = 0x7fffffff;
-    for (int s = -SPU_GOLDEN_MAXSHIFT; s <= SPU_GOLDEN_MAXSHIFT; s++) {
-        int bad = 0;
-        for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
-            int j = i + s;
-            if (j < 0 || j >= 512) { bad = 0x7fffffff; break; }
-            if (a[j] != golden[i]) bad++;
-        }
-        if (bad < bestBad) {
-            bestBad = bad;
-            bestShift = s;
-        }
+    // A golden that carries no samples makes both loops below run zero iterations,
+    // so the test reports PASS having compared nothing - it cannot fail, which is
+    // strictly worse than having no test. That is exactly what a truncated capture,
+    // a zero-length placeholder, or a failed PCdrv write leaves behind, and none of
+    // them look wrong from here. Refuse to treat a degenerate oracle as an oracle.
+    if (h->magic != 0x544d4350u) {
+        ramsyscall_printf("%s: golden has bad magic 0x%08x, expected 'PCMT'\n", name, (unsigned)h->magic);
+        return 1;
+    }
+    if (keptS <= 0 || keptS > 512) {
+        ramsyscall_printf("%s: golden covers %d samples (warmup=%d period=%d); refusing it\n",
+                          name, keptS, (int)h->warmup, (int)h->period);
+        return 1;
+    }
+    if (keptS <= startS) {
+        // The golden is shorter than the number of leading samples the comparison
+        // throws away, so the loop below runs zero iterations. Note this is not
+        // "the golden is too short" on its own - it is an interaction between two
+        // constants, and a perfectly valid capture becomes unusable the moment
+        // SPU_ONSET_SKIP grows past it. The periodicity check still does real work,
+        // so this warns rather than fails, but it must not read as a test that
+        // verified its samples against hardware, because it did not.
+        ramsyscall_printf("%s: golden is %d samples but SPU_ONSET_SKIP is %d, so NO sample is "
+                          "compared against hardware - periodicity check only\n",
+                          name, keptS, SPU_ONSET_SKIP);
     }
 
-    for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
-        int j = i + bestShift;
-        if (j < 0 || j >= 512) continue;
+    int bestS = 0, bestBad = 0x7fffffff;
+    for (int s = 0; s < 512; s++) {
+        int bad = 0;
+        for (int i = startS; i < keptS; i++) {
+            if (a[(s + i) & 511] != golden[i]) bad++;
+        }
+        if (bad < bestBad) { bestBad = bad; bestS = s; }
+    }
+
+    for (int i = startS; i < keptS; i++) {
+        int j = (bestS + i) & 511;
         if (a[j] != golden[i]) {
-            ramsyscall_printf("%s mismatch at sample %d (shift %d): got 0x%04x, want 0x%04x\n",
-                              name, i, bestShift, (uint16_t)a[j], (uint16_t)golden[i]);
+            ramsyscall_printf("%s mismatch at sample %d (ring offset %d): got 0x%04x, want 0x%04x\n",
+                              name, i, bestS, (uint16_t)a[j], (uint16_t)golden[i]);
             return i + 1;
         }
     }
-    for (int i = keptS + SPU_GOLDEN_MAXSHIFT; i < 512; i++) {
-        if (a[i] != a[i - periodS]) {
+
+    for (int i = keptS; i < 512; i++) {
+        int ri = (bestS + i) & 511, rp = (bestS + i - periodS) & 511;
+        if (a[ri] != a[rp]) {
             ramsyscall_printf("%s periodicity broken at sample %d: got 0x%04x, want 0x%04x\n",
-                              name, i, (uint16_t)a[i], (uint16_t)a[i - periodS]);
+                              name, i, (uint16_t)a[ri], (uint16_t)a[rp]);
             return i + 1;
         }
     }
@@ -377,6 +437,15 @@ CESTER_AFTER_ALL(spu_tests,
 #include "spu-adpcm-edge.c"
 #include "spu-capture.c"
 #include "spu-adsr.c"
+// A dump build exists to write .test.pcm goldens, and these two write none.
+// spu-adsr-edge walks a full ENVX trace for every envelope shape, which costs
+// far more wall clock than any capture run is given - a dump build carrying it
+// spends its entire budget there and emits nothing, so the run looks like a
+// hang and dies on a timeout with the goldens it did produce still unsent.
+// Both are included after spu-capture.c, so dropping them here cannot change a
+// captured golden. Assertion builds are untouched and still run everything.
+#ifndef SPU_DUMP
 #include "spu-adsr-edge.c"
 #include "spu-irq.c"
+#endif
 #include "spu-reverb.c"
