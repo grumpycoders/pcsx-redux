@@ -240,6 +240,9 @@
     <ProjectReference Include="..\imgui_md\imgui_md.vcxproj">
       <Project>{9ba68b05-13a3-4d61-82a3-f6bc4f87c48e}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\implot\implot.vcxproj">
+      <Project>{c068ed1f-1341-42b1-a429-5d5f377fd63d}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libcurl\libcurl.vcxproj">
       <Project>{25c13988-a8a8-4bfa-962f-0833020e4ee4}</Project>
     </ProjectReference>
