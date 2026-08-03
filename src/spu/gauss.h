@@ -30,6 +30,26 @@ struct Gauss {
     // is the hardware's slight ~0.4% attenuation. Both voice interpolation and XA
     // use this table; the interleaved curve logged from an SPC-700 that XA used to
     // carry summed over unity and ran the steady state hot.
+    //
+    // On the shape of it, since 512 bare integers tell the next reader nothing. The
+    // table is the left half of a symmetric 1024-wide window centred at 511.5, and
+    // it is not a gaussian: it carries a small negative lobe (indices 0..15 are -1)
+    // and no gaussian fits better than ~14% of peak. It is a four-term cosine
+    // window of the Nuttall family. With x = (511.5 - n) / 256, a least-squares fit
+    // of c0 + c1*cos(pi*x/2) + c2*cos(pi*x) + c3*cos(3*pi*x/2) tracks it to a
+    // maximum error of 6 on a 22963 peak.
+    //
+    // That fit also explains the constant tap sum above. The four taps sit a
+    // quarter period apart, so every non-DC harmonic cancels between them and the
+    // sum collapses to 4*c0. The fitted c0 is 8160.0039, and 4*c0 = 32640.0155
+    // against 255/256 * 32768 = 32640 exactly - the attenuation is the window's DC
+    // term, and it is dyadic, which a least-squares fit had no way to know.
+    //
+    // The shape is not a generator, though. A search over cosine series in this
+    // basis found nothing below fifteen coefficients that reproduces all 512
+    // entries exactly, which is a correction table in disguise rather than a
+    // formula. The small structured deviations on top of the window are the part
+    // no closed form recovers, so the literal ROM table stays.
     static inline const int gauss512[512] = {
         -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,     -1,
         -1,     -1,     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0002,
