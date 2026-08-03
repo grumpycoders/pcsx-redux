@@ -298,6 +298,10 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
             }
 
             rawSample = voice->adpcm.takeSample();
+            // DIAGNOSTIC: count every source sample this voice actually consumes,
+            // so the dump carries the real cumulative figure rather than one
+            // inferred from the pitch step.
+            if (ch == 1) PCSX::SPU::gaussProbe().consumed++;
 
             // Store the value for interpolation.
             voice->interp.storeVal(rawSample, settings.get<Interpolation>(), kIsFModSource,
@@ -331,10 +335,17 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
         // DIAGNOSTIC: dump the exact voice-1 arithmetic so the golden can be solved offline.
         if ((probe_ & 128) && ch == 1) {
             static FILE *dump = std::fopen("/tmp/v1dump.txt", "w");
-            const auto &gp = PCSX::SPU::gaussProbe();
+            auto &gp = PCSX::SPU::gaussProbe();
+            gp.spos = voice->interp.pos();
+            gp.sinc = voice->interp.step();
+            gp.apos = voice->adpcm.readCursor();
+            gp.curroff = voice->adpcm.curr() && voice->adpcm.start() && !voice->adpcm.stopped()
+                             ? static_cast<int>(voice->adpcm.curr() - voice->adpcm.start())
+                             : -1;
             if (dump)
-                std::fprintf(dump, "%d %d %d %d %d %d %d %d %d %d\n", envValue, rawSample, envProduct, mixedSample,
-                             gp.idx, gp.w0, gp.w1, gp.w2, gp.w3, gp.seq);
+                std::fprintf(dump, "%d %d %d %d %d %d %d %d %d %d %lld %d %d %d %d\n", envValue, rawSample, envProduct,
+                             mixedSample, gp.idx, gp.w0, gp.w1, gp.w2, gp.w3, gp.seq, gp.consumed, gp.spos, gp.sinc,
+                             gp.apos, gp.curroff);
         }
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.
