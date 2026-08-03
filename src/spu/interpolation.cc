@@ -99,7 +99,7 @@ void PCSX::SPU::Interpolator::interpolateUp() {
                 m_state[0] = (id1 * m_sinc) / 0x20000L;
         }
     } else if (m_state[4] == 2) {
-        // Flag 1: calculate the step and set the flag, without changing the value in this pass.
+        // Flag 2: apply the step that the previous pass computed.
         m_state[4] = 0;
 
         m_state[0] = (m_state[0] * m_sinc) / 0x20000L;
