@@ -28,9 +28,6 @@ namespace {
 // One 16-byte ADPCM block decodes to 28 PCM samples; SBPos walks 0..27 and a
 // value of 28 means "the decode buffer is exhausted, fetch the next block".
 constexpr int kSamplesPerAdpcmBlock = 28;
-// The voice pitch counter (Chan::spos) is 16.16 fixed point: 0x10000 == one
-// whole source sample consumed.
-constexpr int32_t kPitchCounterUnity = 0x10000;
 // The ADSR step returns the full 15-bit (0..0x7fff) envelope volume; the
 // enveloped sample is `sample * envelope >> 15`, exactly as the hardware applies
 // it (a signed arithmetic shift, SAR 15).
@@ -67,7 +64,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->data.get<Chan::Stop>().value = false;
     pChannel->data.get<Chan::On>().value = true;
 
-    pChannel->interp.keyOn(&pChannel->data.get<Chan::spos>().value, settings.get<Interpolation>());
+    pChannel->interp.keyOn(settings.get<Interpolation>());
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -78,7 +75,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
 // interpolator the frequency moved so simple mode recomputes. The zero clamp matters - a
 // zero step never advances the pitch counter, so the voice would sit on one sample forever.
 inline void PCSX::SPU::impl::setPitchStep(SPUCHAN *pChannel, int32_t step) {
-    pChannel->data.get<Chan::sinc>().value = step ? step : 1;
+    pChannel->interp.setStep(step);
     pChannel->interp.onFrequencyChanged(settings.get<Interpolation>());
 }
 
@@ -221,8 +218,6 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
     auto &isNew = pChannel->data.get<Chan::New>().value;
     auto &on = pChannel->data.get<Chan::On>().value;
     auto &stop = pChannel->data.get<Chan::Stop>().value;
-    auto &spos = pChannel->data.get<Chan::spos>().value;
-    auto &sinc = pChannel->data.get<Chan::sinc>().value;
     auto &sval = pChannel->data.get<Chan::sval>().value;
     auto &sb = pChannel->data.get<Chan::SB>().value;
     auto &sbPos = pChannel->data.get<Chan::SBPos>().value;
@@ -265,7 +260,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 
         if (fmod == 1 && iFMod[ns]) FModChangeFrequency(pChannel, ns);  // fmod freq channel
 
-        while (spos >= kPitchCounterUnity) {
+        while (pChannel->interp.owesSample()) {
             if (sbPos == kSamplesPerAdpcmBlock && !decodeNextBlock(ch, pChannel)) {
                 // The voice ran off the end of its sample on a previous pass. It is silent
                 // now, but its capture mirror still fills: ns samples are already done this
@@ -282,13 +277,13 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
             pChannel->interp.storeVal(sb.data(), rawSample, settings.get<Interpolation>(), fmod,
                                       (spuCtrl & ControlFlags::Mute) != 0);  // store val for interpolation
 
-            spos -= kPitchCounterUnity;
+            pChannel->interp.tookSample();
         }
 
         if (noise)
             rawSample = m_noise.getVal(sb.data(), settings.get<Interpolation>());  // get noise val
         else
-            rawSample = pChannel->interp.getVal(sb.data(), spos, sinc, settings.get<Interpolation>(), fmod);
+            rawSample = pChannel->interp.getVal(sb.data(), settings.get<Interpolation>(), fmod);
 
         // apply the ADSR envelope (hardware: sample*env>>15)
         int32_t mixedSample = (pChannel->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;
@@ -312,7 +307,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
             if (rvbActive) m_reverb.store(pChannel, ns, settings.get<Reverb>());  // store for reverb
         }
 
-        spos += sinc;
+        pChannel->interp.advance();
     }
 }
 

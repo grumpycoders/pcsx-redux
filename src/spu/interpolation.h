@@ -26,8 +26,8 @@ namespace PCSX {
 
 namespace SPU {
 
-// Self-contained per-voice resampler. Takes the freshly decoded ADPCM samples
-// plus the fractional pitch position and produces one output sample at the
+// Self-contained per-voice resampler. Owns the fractional pitch position and
+// step, takes the freshly decoded ADPCM samples, and produces one output at the
 // emulator's 44.1kHz mixing rate, in one of four modes (none / "Pete's common
 // sense" linear / hardware-accurate gaussian / cubic). Extracted out of the
 // MainThread synthesis loop and the SPU impl; the math is unchanged.
@@ -48,23 +48,33 @@ namespace SPU {
 class Interpolator {
   public:
     // Key-on: clear the interpolation window and seed the fractional pitch
-    // position `spos` (which lives in the channel) for the active mode, exactly
-    // as StartSound used to do inline. Gauss/cubic start further ahead so the
-    // four-tap window is primed before the first output sample.
-    void keyOn(int32_t *spos, int interpolationType) {
+    // position for the active mode, exactly as StartSound used to do inline.
+    // Gauss/cubic start further ahead so the four-tap window is primed before
+    // the first output sample.
+    void keyOn(int interpolationType) {
         m_state[1] = 0;  // init our interpolation helpers
         m_state[2] = 0;
 
         if (interpolationType >= 2)  // gauss/cubic interpolation?
         {
-            *spos = 0x30000L;
+            m_spos = 0x30000L;
             m_state[0] = 0;
         }  // -> start with more decoding
         else {
-            *spos = 0x10000L;
+            m_spos = 0x10000L;
             m_state[3] = 0;
         }  // -> no/simple interpolation starts with one 44100 decoding
     }
+
+    // Pitch stepping. The counter is 16.16 fixed point, so kUnity == one whole
+    // source sample consumed; the voice pulls a new decoded sample for as long as
+    // it owes one, emits at the current fractional position, then advances.
+    static constexpr int32_t kUnity = 0x10000;
+    bool owesSample() const { return m_spos >= kUnity; }
+    void tookSample() { m_spos -= kUnity; }
+    void advance() { m_spos += m_sinc; }
+    void setStep(int32_t step) { m_sinc = step ? step : 1; }
+    int32_t step() const { return m_sinc; }
 
     // A psx-pitch change happened: in simple-interpolation mode, flag that the
     // step must be recomputed on the next pass.
@@ -78,17 +88,21 @@ class Interpolator {
     // control bit.
     void storeVal(Protobuf::Int32 *sb, int fa, int interpolationType, int fmod, bool unmuted);
 
-    // Produce one resampled output sample for the current fractional pitch
-    // position `spos` (gauss/cubic) / pitch increment `sinc` (linear).
-    int getVal(Protobuf::Int32 *sb, int32_t spos, int32_t sinc, int interpolationType, int fmod);
+    // Produce one resampled output sample at the current fractional pitch
+    // position (gauss/cubic) / pitch increment (linear).
+    int getVal(Protobuf::Int32 *sb, int interpolationType, int fmod);
 
     // Savestate mirrors: the slots ride in SB[28..32] on the wire, where they
     // used to live, so old states keep loading.
-    void saveTo(Protobuf::Int32 *sb) const {
+    void saveTo(Protobuf::Int32 *sb, Protobuf::Int32 &spos, Protobuf::Int32 &sinc) const {
         for (int i = 0; i < kStateSlots; i++) sb[28 + i].value = m_state[i];
+        spos.value = m_spos;
+        sinc.value = m_sinc;
     }
-    void loadFrom(const Protobuf::Int32 *sb) {
+    void loadFrom(const Protobuf::Int32 *sb, const Protobuf::Int32 &spos, const Protobuf::Int32 &sinc) {
         for (int i = 0; i < kStateSlots; i++) m_state[i] = sb[28 + i].value;
+        m_spos = spos.value;
+        m_sinc = sinc.value;
     }
 
     // Post-load fixup: clear the slot the two mode families disagree about, so a
@@ -100,10 +114,12 @@ class Interpolator {
     static constexpr int kStateSlots = 5;
 
     int16_t &gaussWindow(int index);
-    void interpolateUp(int32_t sinc);
-    void interpolateDown(int32_t sinc);
+    void interpolateUp();
+    void interpolateDown();
 
     int32_t m_state[kStateSlots] = {};
+    int32_t m_spos = 0;  // fractional pitch position, 16.16
+    int32_t m_sinc = 0;  // pitch step per output sample, 16.16
 };
 
 }  // namespace SPU

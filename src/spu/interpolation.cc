@@ -70,7 +70,7 @@ int16_t &PCSX::SPU::Interpolator::gaussWindow(int index) {
 //          /
 //
 
-void PCSX::SPU::Interpolator::interpolateUp(int32_t sinc) {
+void PCSX::SPU::Interpolator::interpolateUp() {
     if (m_state[4] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
     {
         const int id1 = m_state[2] - m_state[1];  // curr delta to next val
@@ -84,26 +84,26 @@ void PCSX::SPU::Interpolator::interpolateUp(int32_t sinc) {
                 m_state[0] = id1;
                 m_state[4] = 2;
             } else if (id2 < (id1 << 1))
-                m_state[0] = (id1 * sinc) / 0x10000L;
+                m_state[0] = (id1 * m_sinc) / 0x10000L;
             else
-                m_state[0] = (id1 * sinc) / 0x20000L;
+                m_state[0] = (id1 * m_sinc) / 0x20000L;
         } else  // curr delta negative
         {
             if (id2 > id1) {
                 m_state[0] = id1;
                 m_state[4] = 2;
             } else if (id2 > (id1 << 1))
-                m_state[0] = (id1 * sinc) / 0x10000L;
+                m_state[0] = (id1 * m_sinc) / 0x10000L;
             else
-                m_state[0] = (id1 * sinc) / 0x20000L;
+                m_state[0] = (id1 * m_sinc) / 0x20000L;
         }
     } else if (m_state[4] == 2)  // flag 1: calc step and set flag... and don't change the value in this pass
     {
         m_state[4] = 0;
 
-        m_state[0] = (m_state[0] * sinc) / 0x20000L;
-        if (sinc <= 0x8000)
-            m_state[1] = m_state[2] - (m_state[0] * ((0x10000 / sinc) - 1));
+        m_state[0] = (m_state[0] * m_sinc) / 0x20000L;
+        if (m_sinc <= 0x8000)
+            m_state[1] = m_state[2] - (m_state[0] * ((0x10000 / m_sinc) - 1));
         else
             m_state[1] += m_state[0];
     } else  // no flags? add bigger val (if possible), calc smaller step, set flag1
@@ -114,11 +114,11 @@ void PCSX::SPU::Interpolator::interpolateUp(int32_t sinc) {
 // even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
 //
 
-void PCSX::SPU::Interpolator::interpolateDown(int32_t sinc) {
-    if (sinc >= 0x20000L)  // we would skip at least one val?
+void PCSX::SPU::Interpolator::interpolateDown() {
+    if (m_sinc >= 0x20000L)  // we would skip at least one val?
     {
         m_state[1] += (m_state[2] - m_state[1]) / 2;      // add easy weight
-        if (sinc >= 0x30000L)                                   // we would skip even more vals?
+        if (m_sinc >= 0x30000L)                                   // we would skip even more vals?
             m_state[1] += (m_state[3] - m_state[2]) / 2;  // add additional next weight
     }
 }
@@ -158,7 +158,7 @@ void PCSX::SPU::Interpolator::storeVal(Protobuf::Int32 *sb, int fa, int interpol
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int32_t spos, int32_t sinc, int interpolationType, int fmod) {
+int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int interpolationType, int fmod) {
     int fa;
 
     if (fmod == 2) return m_state[1];
@@ -168,7 +168,7 @@ int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int32_t spos, int32_t s
         case 3:  // cubic interpolation
         {
             const int gpos = m_state[0];
-            const int64_t xd = (spos >> 1) + 1;
+            const int64_t xd = (m_spos >> 1) + 1;
 
             fa = gaussWindow(gpos + 3) - 3 * gaussWindow(gpos + 2) + 3 * gaussWindow(gpos + 1) -
                  gaussWindow(gpos);
@@ -195,7 +195,7 @@ int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int32_t spos, int32_t s
             // hot; gauss512's four coefficients sum to ~0x7F80, matching hardware's
             // slight attenuation.
             const int gpos = m_state[0];
-            const int i = (spos >> 8) & 0xFF;
+            const int i = (m_spos >> 8) & 0xFF;
             int vr = (Gauss::gauss512[0x0FF - i] * gaussWindow(gpos)) >> 15;
             vr += (Gauss::gauss512[0x1FF - i] * gaussWindow(gpos + 1)) >> 15;
             vr += (Gauss::gauss512[0x100 + i] * gaussWindow(gpos + 2)) >> 15;
@@ -205,10 +205,10 @@ int PCSX::SPU::Interpolator::getVal(Protobuf::Int32 *sb, int32_t spos, int32_t s
         //--------------------------------------------------//
         case 1:  // simple interpolation
         {
-            if (sinc < 0x10000L)            // -> upsampling?
-                interpolateUp(sinc);    // --> interpolate up
+            if (m_sinc < 0x10000L)            // -> upsampling?
+                interpolateUp();    // --> interpolate up
             else
-                interpolateDown(sinc);  // --> else down
+                interpolateDown();  // --> else down
             fa = m_state[1];
         } break;
         //--------------------------------------------------//
