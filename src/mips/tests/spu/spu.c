@@ -252,17 +252,32 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
 }
 
 // Compare a captured waveform against a golden, tolerating the capture-start
-// timing jitter. There are two sources. The bit-11 sync pins the start to a
-// boundary that differs across PS1 revisions. On top of that there is a key-on
-// onset latency of ~9 samples between arming the voice and its first output -
-// at 44.1kHz that is ~200us of SPU/CPU thread-scheduling slop, well below
-// anything audible, and not something an emulator should be held to sample-for-
-// sample. So we find the best-aligning integer-sample shift in a window wide
-// enough to absorb that onset, then require an EXACT match at that shift. The
-// timing is tolerated; the sample values are not. Samples are 16-bit.
-#define SPU_GOLDEN_MAXSHIFT 15  // samples; absorbs the ~9-sample key-on onset latency + bit-11 sync
-static int spu_compare_golden(const char *name, const void *cap,
-                              const uint8_t *golden_file) {
+// timing jitter. There are two sources: the bit-11 sync pins the start to a
+// boundary that differs across PS1 revisions, and a key-on onset latency of
+// ~9 samples between arming the voice and its first output. The capture region
+// is a 512-sample ring buffer that the SPU writes continuously, so the live
+// capture may start at any phase offset relative to the golden - including
+// offsets well beyond the key-on jitter if the bit-11 sync edge happened to
+// land at a very different position in the ring. A narrow ±N linear search
+// saturates at the window edge and produces garbage comparisons when the true
+// offset exceeds N. The correct model is circular: search all 512 candidate
+// start offsets with modular indexing. Every candidate compares the same keptS
+// samples (no compare-fewer-samples bias), and the full ring is always covered
+// regardless of phase difference magnitude. Timing alignment is tolerated;
+// sample values after alignment are not. Samples are 16-bit.
+// The capture area is a 512-sample ring the SPU writes continuously, so a capture
+// can start at any phase relative to the golden. Alignment is therefore CIRCULAR:
+// every one of the 512 start offsets is tried, and each compares the same sample
+// count, so the winner is the genuine best fit rather than whichever offset
+// compared fewest samples. A narrow linear window cannot do this - it saturates at
+// its edge whenever the true offset exceeds it and then compares noise.
+//
+// The onset skip is separate and does a different job: the first samples after
+// key-on are a transient the capture does not reproduce sample-for-sample, so they
+// are excluded from the comparison entirely. Timing is tolerated; sample values
+// after alignment are not.
+#define SPU_ONSET_SKIP 15
+static int spu_compare_golden(const char *name, const void *cap, const uint8_t *golden_file) {
     const PcmTestHeader *h = (const PcmTestHeader *)golden_file;
     const int16_t *golden = (const int16_t *)(golden_file + h->length);
     const int16_t *a = (const int16_t *)cap;
@@ -270,39 +285,29 @@ static int spu_compare_golden(const char *name, const void *cap,
     const int periodS = (int)(h->period / 2);
     const int keptS = warmupS + periodS;
 
-    // Search a FIXED slice [SPU_GOLDEN_MAXSHIFT, keptS) for every candidate shift.
-    // Comparing the same i-range for all shifts is essential: if we let j<0 samples
-    // be skipped (as a naive loop over i in [0,keptS) does), a larger-magnitude shift
-    // simply compares fewer samples and wins the min-bad race regardless of fit, so
-    // the search saturates at the window edge instead of locking onto the real onset
-    // alignment. Penalize any out-of-range overlap so it can never be preferred.
-    int bestShift = 0, bestBad = 0x7fffffff;
-    for (int s = -SPU_GOLDEN_MAXSHIFT; s <= SPU_GOLDEN_MAXSHIFT; s++) {
+    int bestS = 0, bestBad = 0x7fffffff;
+    for (int s = 0; s < 512; s++) {
         int bad = 0;
-        for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
-            int j = i + s;
-            if (j < 0 || j >= 512) { bad = 0x7fffffff; break; }
-            if (a[j] != golden[i]) bad++;
+        for (int i = SPU_ONSET_SKIP; i < keptS; i++) {
+            if (a[(s + i) & 511] != golden[i]) bad++;
         }
-        if (bad < bestBad) {
-            bestBad = bad;
-            bestShift = s;
-        }
+        if (bad < bestBad) { bestBad = bad; bestS = s; }
     }
 
-    for (int i = SPU_GOLDEN_MAXSHIFT; i < keptS; i++) {
-        int j = i + bestShift;
-        if (j < 0 || j >= 512) continue;
+    for (int i = SPU_ONSET_SKIP; i < keptS; i++) {
+        int j = (bestS + i) & 511;
         if (a[j] != golden[i]) {
-            ramsyscall_printf("%s mismatch at sample %d (shift %d): got 0x%04x, want 0x%04x\n",
-                              name, i, bestShift, (uint16_t)a[j], (uint16_t)golden[i]);
+            ramsyscall_printf("%s mismatch at sample %d (ring offset %d): got 0x%04x, want 0x%04x\n",
+                              name, i, bestS, (uint16_t)a[j], (uint16_t)golden[i]);
             return i + 1;
         }
     }
-    for (int i = keptS + SPU_GOLDEN_MAXSHIFT; i < 512; i++) {
-        if (a[i] != a[i - periodS]) {
+
+    for (int i = keptS; i < 512; i++) {
+        int ri = (bestS + i) & 511, rp = (bestS + i - periodS) & 511;
+        if (a[ri] != a[rp]) {
             ramsyscall_printf("%s periodicity broken at sample %d: got 0x%04x, want 0x%04x\n",
-                              name, i, (uint16_t)a[i], (uint16_t)a[i - periodS]);
+                              name, i, (uint16_t)a[ri], (uint16_t)a[rp]);
             return i + 1;
         }
     }
