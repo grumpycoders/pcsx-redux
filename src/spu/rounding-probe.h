@@ -19,6 +19,15 @@ namespace PCSX::SPU {
 // every candidate formulation without another emulator run.
 struct GaussProbe {
     int idx, w0, w1, w2, w3, type, seq;
+    // DIAGNOSTIC: resampler cursor state, dumped rather than inferred. `consumed`
+    // is the cumulative count of decoded source samples this voice has pulled
+    // (every takeSample()), so it can be differenced against the predicted
+    // seq*sinc/kUnity to find WHERE the two diverge instead of at what rate.
+    long long consumed;
+    int spos;     // fractional pitch position at emit time, 16.16
+    int sinc;     // pitch step per output sample, 16.16
+    int apos;     // ADPCM read cursor into the 28-sample block
+    int curroff;  // decode cursor as a byte offset from the sample start
 };
 inline GaussProbe &gaussProbe() {
     static GaussProbe g{};
