@@ -318,7 +318,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     auto& left = xa.get<SaveStates::XAADPCMLeft>();
     g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
-    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    auto& right = xa.get<SaveStates::XAADPCMRight>();
     g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));

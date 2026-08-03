@@ -43,7 +43,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
         auto &left = xa.get<SaveStates::XAADPCMLeft>();
         left.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->left.y0;
         left.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->left.y1;
-        auto &right = xa.get<SaveStates::XAADPCMLeft>();
+        auto &right = xa.get<SaveStates::XAADPCMRight>();
         right.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->right.y0;
         right.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->right.y1;
         xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t *>(xapGlobal->pcm));
@@ -78,7 +78,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
 }
 
 void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
-    // Processing is stopped while doing the save.
+    // Processing is stopped while the state is restored.
     RemoveThread();
 
     spu.get<SaveStates::CBCDLeft>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
