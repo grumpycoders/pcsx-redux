@@ -159,12 +159,30 @@ static void spu_pcm_analyze(const uint8_t *data, uint32_t L,
 static void spu_dump_pcm(const char *name, const void *capture, uint32_t len) {
     static PcmTestHeader hdr = {0x544d4350u, sizeof(PcmTestHeader), 0, 0};
     spu_pcm_analyze((const uint8_t *)capture, len, &hdr.warmup, &hdr.period);
+    // spu_pcm_analyze cannot report failure: it seeds best_w=0, best_p=L and returns
+    // those unchanged when no period exists inside the capture. The golden that comes
+    // out is perfectly well formed, so nothing downstream notices - but keptS then
+    // covers the whole ring, which makes the periodicity self-check in
+    // spu_compare_golden run zero iterations, and leaves the comparison unable to
+    // absorb a phase difference by rotation. The test silently starts demanding that
+    // the emulator reproduce hardware's absolute key-on phase. Refuse to mint one.
+    if (hdr.period >= len || hdr.warmup + hdr.period >= len) {
+        ramsyscall_printf("%s: NO PERIOD found in the capture (warmup=%d period=%d len=%d).\n",
+                          name, (int)hdr.warmup, (int)hdr.period, (int)len);
+        ramsyscall_printf("%s: REFUSING to write a golden - pick a rate whose period fits the ring.\n", name);
+        return;
+    }
     if (!is_pcdrv_init) {
         PCinit();
         is_pcdrv_init = 1;
     }
     int fd = PCcreat(name, 0);
-    if (fd < 0) return;
+    if (fd < 0) {
+        // PCcreat failing used to return silently, so a totally failed capture run
+        // looked identical to a successful one from the guest side.
+        ramsyscall_printf("%s: PCcreat failed (%d) - no golden written.\n", name, fd);
+        return;
+    }
     PCwrite(fd, &hdr, sizeof(hdr));
     PCwrite(fd, capture, hdr.warmup + hdr.period);
     PCclose(fd);
