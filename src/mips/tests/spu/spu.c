@@ -318,12 +318,16 @@ static int spu_compare_golden(const char *name, const void *cap, const uint8_t *
         return 1;
     }
     if (keptS <= SPU_ONSET_SKIP) {
-        // Shorter than the onset skip, so the golden comparison below compares
-        // nothing. The periodicity check still runs and is still worth something,
-        // so this is a warning rather than a failure - but it must not read as a
-        // test that verified its samples, because it did not.
-        ramsyscall_printf("%s: golden is %d samples, at or under the %d-sample onset skip - "
-                          "periodicity only, no sample comparison\n", name, keptS, SPU_ONSET_SKIP);
+        // The golden is shorter than the number of leading samples the comparison
+        // throws away, so the loop below runs zero iterations. Note this is not
+        // "the golden is too short" on its own - it is an interaction between two
+        // constants, and a perfectly valid capture becomes unusable the moment
+        // SPU_ONSET_SKIP grows past it. The periodicity check still does real work,
+        // so this warns rather than fails, but it must not read as a test that
+        // verified its samples against hardware, because it did not.
+        ramsyscall_printf("%s: golden is %d samples but SPU_ONSET_SKIP is %d, so NO sample is "
+                          "compared against hardware - periodicity check only\n",
+                          name, keptS, SPU_ONSET_SKIP);
     }
 
     int bestS = 0, bestBad = 0x7fffffff;
