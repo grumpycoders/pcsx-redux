@@ -9,7 +9,7 @@ d = np.loadtxt('/tmp/v1dump.txt', dtype=np.int64)
 env, raw, prod, out, idx, w0, w1, w2, w3, seq = [d[:, i] for i in range(10)]
 W = [w0, w1, w2, w3]
 TESTS = ['loop_t0', 'loop_t1', 'sine', 'sine_high', 'triangle', 'square',
-         'sine_low', 'sine_pitch_0800', 'sine_pitch_3000', 'sine_pitch_2000']
+         'sine_low', 'sine_pitch_0800', 'sine_pitch_3000', 'sine_pitch_2000', 'sine_pitch_1234']
 
 
 def golden(name):
