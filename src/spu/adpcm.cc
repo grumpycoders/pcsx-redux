@@ -20,8 +20,8 @@
 #include "spu/adpcm.h"
 
 void PCSX::SPU::AdpcmDecoder::saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
-                                    Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
-                                    Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const {
+                                     Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
+                                     Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const {
     history1.value = m_s1;
     history2.value = m_s2;
     auto storeOffset = [ramBase](uint8_t *ptr, Protobuf::Int32 &offset) { offset.value = ptr ? ptr - ramBase : -1; };
@@ -33,9 +33,9 @@ void PCSX::SPU::AdpcmDecoder::saveTo(Protobuf::Int32 &history1, Protobuf::Int32 
 }
 
 void PCSX::SPU::AdpcmDecoder::loadFrom(const Protobuf::Int32 &history1, const Protobuf::Int32 &history2,
-                                      const Protobuf::Int32 &startOffset, const Protobuf::Int32 &currOffset,
-                                      const Protobuf::Int32 &loopOffset, uint8_t *ramBase,
-                                      const Protobuf::Int32 *sb, const Protobuf::Int32 &sbPos) {
+                                       const Protobuf::Int32 &startOffset, const Protobuf::Int32 &currOffset,
+                                       const Protobuf::Int32 &loopOffset, uint8_t *ramBase, const Protobuf::Int32 *sb,
+                                       const Protobuf::Int32 &sbPos) {
     m_s1 = history1.value;
     m_s2 = history2.value;
     auto restore = [ramBase](const Protobuf::Int32 &offset) -> uint8_t * {

@@ -24,9 +24,7 @@
 namespace PCSX::SPU {
 // The four-tap gaussian/cubic window is four int16 samples packed into m_state[1]
 // and m_state[2], addressed as a ring by the index in m_state[0].
-int16_t &PCSX::SPU::Interpolator::gaussWindow(int index) {
-    return reinterpret_cast<int16_t *>(&m_state[1])[index & 3];
-}
+int16_t &PCSX::SPU::Interpolator::gaussWindow(int index) { return reinterpret_cast<int16_t *>(&m_state[1])[index & 3]; }
 }  // namespace PCSX::SPU
 
 ////////////////////////////////////////////////////////////////////////
@@ -72,8 +70,7 @@ int16_t &PCSX::SPU::Interpolator::gaussWindow(int index) {
 //
 
 void PCSX::SPU::Interpolator::interpolateUp() {
-    if (m_state[4] == 1)
-    {
+    if (m_state[4] == 1) {
         // Flag 1: calculate the step and set the flag, without changing the value in this pass.
         // Current delta, to the next value.
         const int id1 = m_state[2] - m_state[1];
@@ -83,8 +80,7 @@ void PCSX::SPU::Interpolator::interpolateUp() {
         m_state[4] = 0;
 
         // Current delta positive.
-        if (id1 > 0)
-        {
+        if (id1 > 0) {
             if (id2 < id1) {
                 m_state[0] = id1;
                 m_state[4] = 2;
@@ -92,8 +88,7 @@ void PCSX::SPU::Interpolator::interpolateUp() {
                 m_state[0] = (id1 * m_sinc) / 0x10000L;
             else
                 m_state[0] = (id1 * m_sinc) / 0x20000L;
-        } else
-        {
+        } else {
             // Current delta negative.
             if (id2 > id1) {
                 m_state[0] = id1;
@@ -103,8 +98,7 @@ void PCSX::SPU::Interpolator::interpolateUp() {
             else
                 m_state[0] = (id1 * m_sinc) / 0x20000L;
         }
-    } else if (m_state[4] == 2)
-    {
+    } else if (m_state[4] == 2) {
         // Flag 1: calculate the step and set the flag, without changing the value in this pass.
         m_state[4] = 0;
 
@@ -124,13 +118,11 @@ void PCSX::SPU::Interpolator::interpolateUp() {
 
 void PCSX::SPU::Interpolator::interpolateDown() {
     // Would we skip at least one value?
-    if (m_sinc >= 0x20000L)
-    {
+    if (m_sinc >= 0x20000L) {
         // Add the easy weight.
         m_state[1] += (m_state[2] - m_state[1]) / 2;
         // Would we skip even more values? Then add the next weight as well.
-        if (m_sinc >= 0x30000L)
-            m_state[1] += (m_state[3] - m_state[2]) / 2;
+        if (m_sinc >= 0x30000L) m_state[1] += (m_state[3] - m_state[2]) / 2;
     }
 }
 
@@ -144,21 +136,18 @@ void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, bool isFMo
         // A muted voice stores silence; otherwise the sample is clamped.
         if (!unmuted)
             fa = 0;
-        else
-        {
+        else {
             if (fa > 32767L) fa = 32767L;
             if (fa < -32767L) fa = -32767L;
         }
 
-        if (interpolationType >= 2)
-        {
+        if (interpolationType >= 2) {
             // Gauss/cubic interpolation.
             int gpos = m_state[0];
             gaussWindow(gpos) = fa;
             gpos = (gpos + 1) & 3;
             m_state[0] = gpos;
-        } else if (interpolationType == 1)
-        {
+        } else if (interpolationType == 1) {
             // Simple interpolation. Helpers for simple linear interpolation: delay the real value for two slots and
             // calculate the two deltas, for a look at the future behavior.
             m_state[0] = 0;
@@ -187,12 +176,10 @@ int PCSX::SPU::Interpolator::getVal(int interpolationType, bool isFModSource) {
             const int gpos = m_state[0];
             const int64_t xd = (m_spos >> 1) + 1;
 
-            fa = gaussWindow(gpos + 3) - 3 * gaussWindow(gpos + 2) + 3 * gaussWindow(gpos + 1) -
-                 gaussWindow(gpos);
+            fa = gaussWindow(gpos + 3) - 3 * gaussWindow(gpos + 2) + 3 * gaussWindow(gpos + 1) - gaussWindow(gpos);
             fa *= (xd - (2 << 15)) / 6;
             fa >>= 15;
-            fa += gaussWindow(gpos + 2) - gaussWindow(gpos + 1) - gaussWindow(gpos + 1) +
-                  gaussWindow(gpos);
+            fa += gaussWindow(gpos + 2) - gaussWindow(gpos + 1) - gaussWindow(gpos + 1) + gaussWindow(gpos);
             fa *= (xd - (1 << 15)) >> 1;
             fa >>= 15;
             fa += gaussWindow(gpos + 1) - gaussWindow(gpos);

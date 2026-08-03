@@ -87,12 +87,11 @@ class AdpcmDecoder {
     // offset, with -1 standing in for a null pointer. The kStopped sentinel is
     // an all-ones (non-null) pointer, so it round-trips as raw offset arithmetic.
     void saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
-                Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
-                Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const;
-    void loadFrom(const Protobuf::Int32 &history1, const Protobuf::Int32 &history2,
-                  const Protobuf::Int32 &startOffset, const Protobuf::Int32 &currOffset,
-                  const Protobuf::Int32 &loopOffset, uint8_t *ramBase, const Protobuf::Int32 *sb,
-                  const Protobuf::Int32 &sbPos);
+                Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase, Protobuf::Int32 *sb,
+                Protobuf::Int32 &sbPos) const;
+    void loadFrom(const Protobuf::Int32 &history1, const Protobuf::Int32 &history2, const Protobuf::Int32 &startOffset,
+                  const Protobuf::Int32 &currOffset, const Protobuf::Int32 &loopOffset, uint8_t *ramBase,
+                  const Protobuf::Int32 *sb, const Protobuf::Int32 &sbPos);
 
     struct DecodeResult {
         uint8_t *blockEnd;  // one past the 16-byte block just decoded
@@ -119,12 +118,12 @@ class AdpcmDecoder {
     static constexpr int kFilterCoeff[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
     static constexpr int kCoeffShift = 6;
 
-    uint8_t *m_start = nullptr;  // start pointer into sound RAM
-    uint8_t *m_curr = nullptr;   // current position in sound RAM
-    uint8_t *m_loop = nullptr;   // loop pointer into sound RAM
-    int32_t m_s1 = 0;            // last decoded sample (IIR history)
-    int32_t m_s2 = 0;            // next-to-last decoded sample (IIR history)
-    int m_startupDelay = 0;      // EXPERIMENTAL: post-key-on silence countdown (samples)
+    uint8_t *m_start = nullptr;                // start pointer into sound RAM
+    uint8_t *m_curr = nullptr;                 // current position in sound RAM
+    uint8_t *m_loop = nullptr;                 // loop pointer into sound RAM
+    int32_t m_s1 = 0;                          // last decoded sample (IIR history)
+    int32_t m_s2 = 0;                          // next-to-last decoded sample (IIR history)
+    int m_startupDelay = 0;                    // EXPERIMENTAL: post-key-on silence countdown (samples)
     int32_t m_samples[kSamplesPerBlock] = {};  // the decoded block
     int m_pos = kSamplesPerBlock;              // read cursor into it
 };

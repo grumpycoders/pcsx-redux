@@ -22,7 +22,7 @@
 
 // SPU RAM -> Main RAM DMA.
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    if (mixIrqAddress) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
         // Copy 2 bytes.
@@ -30,8 +30,8 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
         // Increment the SPU address and wrap around.
         spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
+    if (mixIrqAddress) cbMtx.unlock();
+    spuAsyncWait = 0;
 }
 
 // To investigate: do sound data updates by DMA writes affect SPU IRQs? Will an IRQ be triggered if new
@@ -42,7 +42,7 @@ void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
 void PCSX::SPU::impl::resetCaptureBuffer() {
     // Enable decoded buffer IRQs by setting the address.
-    if (settings.get<DBufIRQ>().value) pMixIrq = spuRamBase;
+    if (settings.get<DBufIRQ>().value) mixIrqAddress = spuRamBase;
     memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
     memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
     captureBuffer.currIndex = 0;
@@ -53,7 +53,7 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
 
 // Main RAM -> SPU RAM DMA.
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    if (mixIrqAddress) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
         // Copy 2 bytes.
@@ -62,6 +62,6 @@ void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
         spuAddr = (spuAddr + 2) & 0x7ffff;
     }
 
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
+    if (mixIrqAddress) cbMtx.unlock();
+    spuAsyncWait = 0;
 }

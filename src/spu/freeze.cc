@@ -49,7 +49,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
         xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t *>(xapGlobal->pcm));
     }
     spu.get<SaveStates::SPUIrq>().value = spuIrq;
-    if (pSpuIrq) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(pSpuIrq - spuRamBase);
+    if (irqAddress) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(irqAddress - spuRamBase);
 
     for (unsigned i = 0; i < MAXCHAN; i++) {
         auto &channel = spu.get<SaveStates::Channels>().value[i];
@@ -64,8 +64,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
                                data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
         s_chan[i].volume.saveTo(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                 data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
-        s_chan[i].interp.saveTo(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(),
-                                data.get<Chan::sinc>());
+        s_chan[i].interp.saveTo(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(), data.get<Chan::sinc>());
     }
 
     spu.get<SaveStates::SPUAddr>().value = spuAddr;
@@ -102,7 +101,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
 
     spuIrq = spu.get<SaveStates::SPUIrq>().value;
     const auto &pSpuIrqIn = spu.get<SaveStates::SPUIrqPtr>().value;
-    pSpuIrq = pSpuIrqIn ? pSpuIrqIn + spuRamBase : nullptr;
+    irqAddress = pSpuIrqIn ? pSpuIrqIn + spuRamBase : nullptr;
 
     for (unsigned i = 0; i < MAXCHAN; i++) {
         const auto &channel = spu.get<SaveStates::Channels>().value[i];
@@ -115,8 +114,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
                                  data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
         s_chan[i].volume.loadFrom(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
                                   data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
-        s_chan[i].interp.loadFrom(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(),
-                                  data.get<Chan::sinc>());
+        s_chan[i].interp.loadFrom(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(), data.get<Chan::sinc>());
         s_chan[i].data.get<Chan::Mute>().value = false;
         s_chan[i].data.get<Chan::Solo>().value = false;
         s_chan[i].data.get<Chan::IrqDone>().value = 0;

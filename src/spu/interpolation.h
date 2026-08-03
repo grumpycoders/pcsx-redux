@@ -57,13 +57,11 @@ class Interpolator {
         m_state[1] = 0;
         m_state[2] = 0;
 
-        if (interpolationType >= 2)
-        {
+        if (interpolationType >= 2) {
             // Gauss/cubic interpolation starts with more decoding.
             m_spos = 0x30000L;
             m_state[0] = 0;
-        }
-        else {
+        } else {
             // No/simple interpolation starts with one 44100Hz decode.
             m_spos = 0x10000L;
             m_state[3] = 0;

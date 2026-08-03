@@ -81,7 +81,7 @@ class AdsrEnvelope {
     // (hardware-accurate). stopRequested mirrors the voice's key-off/Stop flag and
     // forces the Release phase; channelOn is cleared once Release runs the envelope
     // down to zero (i.e. the voice has finished playing).
-    int step(bool stopRequested, bool& channelOn);
+    int step(bool stopRequested, bool &channelOn);
 
     // Current 0..0x400 volume factor (envelope_vol >> 5) mirror, as last produced
     // by step(). Reported by the voice register / debugger, not used by the mixer.

@@ -19,8 +19,9 @@
 
 #include "spu/adsr.h"
 
-#include <algorithm>
 #include <stdint.h>
+
+#include <algorithm>
 
 #include "support/table-generator.h"
 
@@ -112,10 +113,9 @@ int PCSX::SPU::AdsrEnvelope::Decay() {
 
     if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
         envelopeVolFraction = 0;
-        envelopeVol +=
-            exponential
-                ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >> kExponentialDecreaseShift
-                : EnvelopeTables::numerator_decrease.data[rateIndex];
+        envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                         kExponentialDecreaseShift
+                                   : EnvelopeTables::numerator_decrease.data[rateIndex];
     }
 
     envelopeVol = std::max(envelopeVol, 0);
@@ -147,10 +147,9 @@ int PCSX::SPU::AdsrEnvelope::Sustain() {
     } else {
         if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
             envelopeVolFraction = 0;
-            envelopeVol +=
-                exponential
-                    ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >> kExponentialDecreaseShift
-                    : EnvelopeTables::numerator_decrease.data[rateIndex];
+            envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                             kExponentialDecreaseShift
+                                       : EnvelopeTables::numerator_decrease.data[rateIndex];
         }
 
         envelopeVol = std::max(envelopeVol, 0);
@@ -167,10 +166,9 @@ int PCSX::SPU::AdsrEnvelope::Release(bool &channelOn) {
 
     if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
         envelopeVolFraction = 0;
-        envelopeVol +=
-            exponential
-                ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >> kExponentialDecreaseShift
-                : EnvelopeTables::numerator_decrease.data[rateIndex];
+        envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                         kExponentialDecreaseShift
+                                   : EnvelopeTables::numerator_decrease.data[rateIndex];
     }
 
     if (envelopeVol < 0) {

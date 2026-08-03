@@ -62,11 +62,11 @@ class ReverbUnit {
     // Reverb-mode register write (was impl::SetREVERB).
     void setPreset(uint16_t val);
     // Per-voice reverb arm on key-on (was impl::StartREVERB). mode = reverb setting.
-    void start(SPUCHAN *pChannel, uint16_t spuCtrl, int mode);
+    void start(SPUCHAN *voice, uint16_t spuCtrl, int mode);
     // Re-init the Neill mixing buffer each block (was impl::InitREVERB).
     void init(int mode, int nssize);
     // Mix one active reverb voice into the buffer (was impl::StoreREVERB).
-    void store(SPUCHAN *pChannel, int ns, int mode);
+    void store(SPUCHAN *voice, int ns, int mode);
     // Produce the left/right wet-out sample (was impl::MixREVERBLeft / MixREVERBRight).
     int mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, int mode);
     int mixRight(int mode);

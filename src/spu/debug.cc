@@ -501,7 +501,7 @@ void DrawSectionChannels(SPU_CHANNELS_INFO channels, SPU_CHANNELS_TAGS tags, SPU
 }
 
 void DrawSectionSpu(const uint16_t spuCtrl, const uint16_t spuStat, const uint32_t spuAddr, const uint8_t* spuRamBase,
-                    const uint8_t* pSpuIrq) {
+                    const uint8_t* irqAddress) {
     if (ImGui::CollapsingHeader("SPU", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::BeginTable("SpuBase", 4, BasicTableFlags)) {
             ImGui::TableSetupColumn("IRQ", 0, BasicTableColumnWidth);
@@ -511,8 +511,8 @@ void DrawSectionSpu(const uint16_t spuCtrl, const uint16_t spuStat, const uint32
             ImGui::TableHeadersRow();
             // @formatter:off
             ImGui::TableNextColumn();
-            if (pSpuIrq) {
-                ImGui::Text("%08X", static_cast<uint32_t>(pSpuIrq - spuRamBase));
+            if (irqAddress) {
+                ImGui::Text("%08X", static_cast<uint32_t>(irqAddress - spuRamBase));
             } else {
                 ImGui::TextUnformatted("-");
             }
@@ -599,7 +599,7 @@ void impl::debug() {
         return;
     }
 
-    DrawSectionSpu(spuCtrl, spuStat, spuAddr, spuRamBase, pSpuIrq);
+    DrawSectionSpu(spuCtrl, spuStat, spuAddr, spuRamBase, irqAddress);
     DrawSectionXa(xapGlobal, iLeftXAVol, iRightXAVol);
     DrawSectionChannels(s_chan, m_channelTag, m_channelDebugData, spuRamBase);
 

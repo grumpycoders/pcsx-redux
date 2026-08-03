@@ -106,8 +106,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 // Decay.
                 lx = (val & ADSRFlags::DecayShiftMask) >> 4;
                 // The constant decay value is the time it takes to run from 100% to 0% of volume.
-                if (lx)
-                {
+                if (lx) {
                     lx = ((1 << (lx)) * DECAY_MS) / 10000L;
                     if (!lx) {
                         lx = 1;
@@ -138,8 +137,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 // accounted for.
                 uint32_t lx = (val & ADSRFlags::SustainShiftMask) >> 8;
                 lx = std::min(31U, lx);
-                if (lx)
-                {
+                if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483) {
                         lx = (lx * SUSTAIN_MS) / 10000L;
@@ -156,8 +154,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].adsr.legacy().get<ReleaseVal>().value = lx;
                 // Release time from 100% to 0%. Note that the release time is adjusted when a stop is coming, so at
                 // that point the ADSR volume runs from the current volume to 0%.
-                if (lx)
-                {
+                if (lx) {
                     lx = (1 << lx);
                     if (lx < 2147483) {
                         lx = (lx * RELEASE_MS) / 10000L;
@@ -171,8 +168,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].adsr.legacy().get<ReleaseTime>().value = lx;
 
                 // Add/decrement flag.
-                if (val & 0x4000)
-                {
+                if (val & 0x4000) {
                     s_chan[ch].adsr.legacy().get<SustainModeDec>().value = -1;
                 } else {
                     s_chan[ch].adsr.legacy().get<SustainModeDec>().value = 1;
@@ -191,7 +187,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 break;
         }
 
-        iSpuAsyncWait = 0;
+        spuAsyncWait = 0;
         return;
     }
 
@@ -236,7 +232,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
         case H_SPUirqAddr:
             spuIrq = val;
-            pSpuIrq = spuRamBase + ((uint32_t)val << 3);
+            irqAddress = spuRamBase + ((uint32_t)val << 3);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, IRQ Address = %04x\n", val);
             break;
 
@@ -464,7 +460,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
     }
 
-    iSpuAsyncWait = 0;
+    spuAsyncWait = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -474,13 +470,12 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     const uint32_t r = reg & 0xfff;
 
-    iSpuAsyncWait = 0;
+    spuAsyncWait = 0;
 
     if (r >= 0x0c00 && r < 0x0d80) {
         switch (r & 0x0f) {
             // Get the ADSR volume.
-            case 12:
-            {
+            case 12: {
                 const int ch = (r >> 4) - 0xc0;
 
                 if (s_chan[ch].data.get<Chan::New>().value) {
@@ -489,8 +484,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
                     return 1;
                 }
                 // Same here: no sample has been decoded yet, so there is no envelope yet. Return 1 as well.
-                if (s_chan[ch].adsr.ex().get<exVolume>().value &&
-                    !s_chan[ch].adsr.ex().get<exEnvelopeVol>().value) {
+                if (s_chan[ch].adsr.ex().get<exVolume>().value && !s_chan[ch].adsr.ex().get<exEnvelopeVol>().value) {
                     PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = 00001\n", ch);
                     return 1;
                 }
@@ -500,8 +494,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             }
 
             // Get the loop address.
-            case 14:
-            {
+            case 14: {
                 const int ch = (r >> 4) - 0xc0;
                 if (s_chan[ch].adpcm.loop() == nullptr) {
                     PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] ADPCM Repeat Address = 00000\n", ch);
@@ -566,7 +559,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
             // Key-on clears this voice's ENDX bit.
             spuEndx &= ~(1u << ch);
             // Bitfield for faster testing.
-            dwNewChannel |= (1 << ch);
+            newChannelMask |= (1 << ch);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i ON\n", ch);
         }
     }
@@ -628,8 +621,7 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
 }
 
 // Set the pitch for voice ch.
-void PCSX::SPU::impl::SetPitch(int ch, uint16_t val)
-{
+void PCSX::SPU::impl::SetPitch(int ch, uint16_t val) {
     int NP;
     // Get the pitch value.
     if (val > 0x3fff) {

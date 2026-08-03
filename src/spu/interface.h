@@ -50,7 +50,7 @@ namespace SPU {
 // FModRole - this voice's part in frequency modulation. The values match the
 //   Chan::FMod encoding, which registers.cc writes in PAIRS: setting the
 //   pitch-mod bit for voice N makes N the Target and N-1 the Source. Hoisting
-//   this hoists the ROLE only; the modulation data itself (iFMod[ns]) stays
+//   this hoists the ROLE only; the modulation data itself (fmodInput[ns]) stays
 //   per-sample.
 enum class FModRole { None = 0, Target = 1, Source = 2 };
 
@@ -178,13 +178,13 @@ class impl final : public SPUInterface {
     // Reads the voice's two mode flags once and calls the matching
     // synthesizeVoice instantiation. This is the only place the runtime flags
     // are turned into compile-time axes.
-    void synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    void synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
     template <FModRole Role, SampleSource Src>
-    void synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    void synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
     // Decodes the next ADPCM block for a voice, together with the IRQ check and the
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.
-    bool decodeNextBlock(int ch, SPUCHAN *pChannel);
+    bool decodeNextBlock(int ch, SPUCHAN *voice);
     void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
@@ -192,11 +192,11 @@ class impl final : public SPUInterface {
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
-    void StartSound(SPUCHAN *pChannel);
+    void StartSound(SPUCHAN *voice);
     // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
-    void setPitchStep(SPUCHAN *pChannel, int32_t step);
-    void VoiceChangeFrequency(SPUCHAN *pChannel);
-    void FModChangeFrequency(SPUCHAN *pChannel, int ns);
+    void setPitchStep(SPUCHAN *voice, int32_t step);
+    void VoiceChangeFrequency(SPUCHAN *voice);
+    void FModChangeFrequency(SPUCHAN *voice, int ns);
 
     // Registers.
     void SoundOn(int start, int end, uint16_t val);
@@ -209,7 +209,7 @@ class impl final : public SPUInterface {
     // XA.
     void FeedXA(xa_decode_t *xap);
 
-    int bSPUIsOpen;
+    int spuIsOpen;
 
     // PSX buffer and addresses.
     uint16_t regArea[10000];
@@ -218,9 +218,9 @@ class impl final : public SPUInterface {
     // Byte-addressable view of spuMem; the base for every sound-RAM pointer and
     // for the offset math that stores/restores those pointers (e.g. savestates).
     uint8_t *spuRamBase;
-    uint8_t *pSpuIrq = 0;
-    uint8_t *pSpuBuffer;
-    uint8_t *pMixIrq = 0;
+    uint8_t *irqAddress = 0;
+    uint8_t *spuBuffer;
+    uint8_t *mixIrqAddress = 0;
 
     struct CaptureBuffer {
         static const int CB_SIZE = 1024 * 16;
@@ -260,13 +260,13 @@ class impl final : public SPUInterface {
     // Address into SPU memory.
     uint32_t spuAddr = 0xffffffff;
     // Thread handling.
-    int bEndThread = 0;
-    int bThreadEnded = 0;
+    int endThread = 0;
+    int threadEnded = 0;
     int bSpuInit = 0;
 
     std::thread hMainThread;
     // Flags for faster testing of whether a new channel starts.
-    uint32_t dwNewChannel = 0;
+    uint32_t newChannelMask = 0;
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
@@ -274,13 +274,13 @@ class impl final : public SPUInterface {
 
     int SSumR[NSSIZE];
     int SSumL[NSSIZE];
-    int iFMod[NSSIZE];
+    int fmodInput[NSSIZE];
     int iCycle = 0;
     int16_t *pS;
 
     // Secure start counter.
-    int iSecureStart = 0;
-    int iSpuAsyncWait = 0;
+    int secureStart = 0;
+    int spuAsyncWait = 0;
 
     // XA
     xa_decode_t *xapGlobal = 0;
