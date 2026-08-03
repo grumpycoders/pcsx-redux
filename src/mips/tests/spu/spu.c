@@ -274,17 +274,8 @@ static void spu_voice1_keyon(uint32_t spuAddr, uint16_t pitch) {
 // Compare a captured waveform against a golden, tolerating the capture-start
 // timing jitter. There are two sources: the bit-11 sync pins the start to a
 // boundary that differs across PS1 revisions, and a key-on onset latency of
-// ~9 samples between arming the voice and its first output. The capture region
-// is a 512-sample ring buffer that the SPU writes continuously, so the live
-// capture may start at any phase offset relative to the golden - including
-// offsets well beyond the key-on jitter if the bit-11 sync edge happened to
-// land at a very different position in the ring. A narrow ±N linear search
-// saturates at the window edge and produces garbage comparisons when the true
-// offset exceeds N. The correct model is circular: search all 512 candidate
-// start offsets with modular indexing. Every candidate compares the same keptS
-// samples (no compare-fewer-samples bias), and the full ring is always covered
-// regardless of phase difference magnitude. Timing alignment is tolerated;
-// sample values after alignment are not. Samples are 16-bit.
+// ~9 samples between arming the voice and its first output. Samples are 16-bit.
+//
 // The capture area is a 512-sample ring the SPU writes continuously, so a capture
 // can start at any phase relative to the golden. Alignment is therefore CIRCULAR:
 // every one of the 512 start offsets is tried, and each compares the same sample
