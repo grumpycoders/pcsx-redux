@@ -38,6 +38,36 @@ namespace PCSX {
 
 namespace SPU {
 
+// Compile-time mode axes for the per-voice synthesis loop. Both are per-voice
+// mode flags that the register thread can write while a batch is being mixed.
+// They are resolved into template arguments ONCE, at the top of the voice's
+// batch, so a mid-batch write now lands on the next batch instead of the next
+// sample. That is the one thing in this loop that is not behaviour-preserving
+// by construction: a batch is NSSIZE = 45 samples = 1.02ms, against the 16.7ms
+// (60Hz) or 33.3ms (30Hz) frame clock that already quantises whatever event -
+// player input, an on-screen hit - drove the driver to write the flag.
+//
+// FModRole - this voice's part in frequency modulation. The values match the
+//   Chan::FMod encoding, which registers.cc writes in PAIRS: setting the
+//   pitch-mod bit for voice N makes N the Target and N-1 the Source. Hoisting
+//   this hoists the ROLE only; the modulation data itself (iFMod[ns]) stays
+//   per-sample.
+enum class FModRole { None = 0, Target = 1, Source = 2 };
+
+// SampleSource - where the pre-envelope sample comes from. Note that a Noise
+//   voice still runs the ADPCM decode loop: the decoded samples are discarded,
+//   but the cursor advance, the IRQ address check and the ENDX latch all hang
+//   off it.
+enum class SampleSource { Adpcm, Noise };
+
+// Two further per-voice flags were considered as axes and deliberately left as
+// runtime branches. Chan::Mute/Chan::Solo are the debugger's mute, not
+// something a game drives, and Chan::RVBActive gates a single call; each guards
+// one statement, so templating them would double the instantiation matrix twice
+// over to remove a pair of well-predicted compares. Adding either is a code-size
+// decision, not a correctness one - the same call polys.cc records for its ABR
+// axis.
+
 class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
@@ -146,7 +176,12 @@ class impl final : public SPUInterface {
 
     // spu
     void MainThread();
+    // Reads the voice's two mode flags once and calls the matching
+    // synthesizeVoice instantiation. This is the only place the runtime flags
+    // are turned into compile-time axes.
     void synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    template <FModRole Role, SampleSource Src>
+    void synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index);
     // Decodes the next ADPCM block for a voice, together with the IRQ check and the
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.

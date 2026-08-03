@@ -92,14 +92,15 @@ class Interpolator {
     }
 
     // Store one freshly decoded sample `fa` into the interpolation window so a
-    // later getVal() can weight it. `fmod` is the channel's freq-mod mode (2 =
-    // frequency-modulator source channel), `unmuted` is the SPU-wide unmute
-    // control bit.
-    void storeVal(int fa, int interpolationType, int fmod, bool unmuted);
+    // later getVal() can weight it. A frequency-modulator source voice is not
+    // resampled at all - its sample is parked raw and handed straight back - so
+    // that mode is the only thing either method ever asked the channel's 3-state
+    // FMod flag about. `unmuted` is the SPU-wide unmute control bit.
+    void storeVal(int fa, int interpolationType, bool isFModSource, bool unmuted);
 
     // Produce one resampled output sample at the current fractional pitch
     // position (gauss/cubic) / pitch increment (linear).
-    int getVal(int interpolationType, int fmod);
+    int getVal(int interpolationType, bool isFModSource);
 
     // Savestate mirrors: the slots ride in SB[28..32] on the wire, where they
     // used to live, so old states keep loading.

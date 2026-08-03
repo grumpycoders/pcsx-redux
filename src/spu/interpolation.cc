@@ -125,8 +125,8 @@ void PCSX::SPU::Interpolator::interpolateDown() {
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, int fmod, bool unmuted) {
-    if (fmod == 2)  // fmod freq channel
+void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, bool isFModSource, bool unmuted) {
+    if (isFModSource)  // fmod freq channel
         m_state[1] = fa;
     else {
         if (!unmuted)
@@ -158,10 +158,10 @@ void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, int fmod, 
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::Interpolator::getVal(int interpolationType, int fmod) {
+int PCSX::SPU::Interpolator::getVal(int interpolationType, bool isFModSource) {
     int fa;
 
-    if (fmod == 2) return m_state[1];
+    if (isFModSource) return m_state[1];
 
     switch (interpolationType) {
         //--------------------------------------------------//

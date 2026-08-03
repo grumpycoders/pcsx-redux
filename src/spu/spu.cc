@@ -142,6 +142,11 @@ void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_
 // accumulate into the stereo mix or, for an FMod source, into iFMod. Returns
 // early when the voice is idle or stops mid-batch. The two capture write
 // cursors are shared across the batch, so they are passed by reference.
+//
+// The body is templated on the two mode axes declared in interface.h and
+// synthesizeChannel below is the dispatcher that resolves them. Both live in
+// this translation unit and MainThread only ever calls the dispatcher, so no
+// explicit instantiations are needed.
 ////////////////////////////////////////////////////////////////////////
 
 // Everything that happens at an ADPCM block boundary: decode the next 16-byte block into
@@ -205,22 +210,25 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *pChannel) {
     return true;
 }
 
-void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index) {
+template <PCSX::SPU::FModRole Role, PCSX::SPU::SampleSource Src>
+void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index) {
+    // Being the frequency-modulator SOURCE decides three things at once: the
+    // voice bypasses the resampler, it skips the volume and reverb stage, and
+    // its output goes to iFMod rather than the stereo mix.
+    constexpr bool kIsFModSource = Role == FModRole::Source;
+
     // The mixing state still lives in the savestate protobuf, so bind it once here
     // instead of spelling the accessor out at every use. These are all references:
     // the register path writes several of them from another thread while we mix, so
-    // copying would silently change when a mid-batch write takes effect.
+    // copying would silently change when a mid-batch write takes effect. FMod and
+    // Noise are no longer among them; they are the template arguments now.
     auto &isNew = pChannel->data.get<Chan::New>().value;
     auto &on = pChannel->data.get<Chan::On>().value;
     auto &stop = pChannel->data.get<Chan::Stop>().value;
     auto &sval = pChannel->data.get<Chan::sval>().value;
-    auto &fmod = pChannel->data.get<Chan::FMod>().value;
-    auto &noise = pChannel->data.get<Chan::Noise>().value;
     auto &mute = pChannel->data.get<Chan::Mute>().value;
     auto &solo = pChannel->data.get<Chan::Solo>().value;
     auto &rvbActive = pChannel->data.get<Chan::RVBActive>().value;
-    auto &ignoreLoop = pChannel->data.get<Chan::IgnoreLoop>().value;
-    auto &irqDone = pChannel->data.get<Chan::IrqDone>().value;
     auto &actFreq = pChannel->data.get<Chan::ActFreq>().value;
     auto &usedFreq = pChannel->data.get<Chan::UsedFreq>().value;
 
@@ -251,8 +259,13 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
             continue;
         }
 
-        if (fmod == 1 && iFMod[ns]) FModChangeFrequency(pChannel, ns);  // fmod freq channel
+        if constexpr (Role == FModRole::Target) {
+            if (iFMod[ns]) FModChangeFrequency(pChannel, ns);  // modulated by the voice below us
+        }
 
+        // A noise voice still walks its ADPCM stream. The decoded samples are
+        // thrown away below, but the cursor advance, the IRQ address check and
+        // the ENDX latch all hang off the block boundary.
         while (pChannel->interp.owesSample()) {
             if (pChannel->adpcm.bufferExhausted() && !decodeNextBlock(ch, pChannel)) {
                 // The voice ran off the end of its sample on a previous pass. It is silent
@@ -267,17 +280,17 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 
             rawSample = pChannel->adpcm.takeSample();
 
-            pChannel->interp.storeVal(rawSample, settings.get<Interpolation>(), fmod,
+            pChannel->interp.storeVal(rawSample, settings.get<Interpolation>(), kIsFModSource,
                                       (spuCtrl & ControlFlags::Mute) != 0);  // store val for interpolation
 
             pChannel->interp.tookSample();
         }
 
-        if (noise) {
+        if constexpr (Src == SampleSource::Noise) {
             rawSample = m_noise.getVal();  // get noise val
             pChannel->interp.parkExternalSample(rawSample, settings.get<Interpolation>());
         } else {
-            rawSample = pChannel->interp.getVal(settings.get<Interpolation>(), fmod);
+            rawSample = pChannel->interp.getVal(settings.get<Interpolation>(), kIsFModSource);
         }
 
         // apply the ADSR envelope (hardware: sample*env>>15)
@@ -288,8 +301,8 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
         mixedSample = std::clamp(mixedSample, -kCaptureSampleClamp, kCaptureSampleClamp);
         captureVoiceSample(ch, capVoice1Index, capVoice3Index, mixedSample);
 
-        if (fmod == 2) {
-            iFMod[ns] = sval;  // fmod freq channel: store the sample for the next channel's fmod
+        if constexpr (Role == FModRole::Source) {
+            iFMod[ns] = sval;  // hand the sample to the voice above us to modulate with
         } else {
             // left/right sound volume (psx volume goes from 0 ... 0x3fff)
             if (mute && !solo) {
@@ -303,6 +316,39 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
         }
 
         pChannel->interp.advance();
+    }
+}
+
+// Read the voice's two mode flags and pick the matching instantiation. This is
+// the only place the runtime flags become compile-time axes; everything below it
+// sees them as template arguments. Anything other than 1 or 2 in the FMod field
+// means the voice is not part of a modulation pair, which is exactly what the
+// per-sample equality tests this replaced did with it.
+void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capVoice1Index, int32_t &capVoice3Index) {
+    const bool noise = pChannel->data.get<Chan::Noise>().value;
+
+    switch (pChannel->data.get<Chan::FMod>().value) {
+        case static_cast<int>(FModRole::Target):
+            if (noise) {
+                synthesizeVoice<FModRole::Target, SampleSource::Noise>(ch, pChannel, capVoice1Index, capVoice3Index);
+            } else {
+                synthesizeVoice<FModRole::Target, SampleSource::Adpcm>(ch, pChannel, capVoice1Index, capVoice3Index);
+            }
+            break;
+        case static_cast<int>(FModRole::Source):
+            if (noise) {
+                synthesizeVoice<FModRole::Source, SampleSource::Noise>(ch, pChannel, capVoice1Index, capVoice3Index);
+            } else {
+                synthesizeVoice<FModRole::Source, SampleSource::Adpcm>(ch, pChannel, capVoice1Index, capVoice3Index);
+            }
+            break;
+        default:
+            if (noise) {
+                synthesizeVoice<FModRole::None, SampleSource::Noise>(ch, pChannel, capVoice1Index, capVoice3Index);
+            } else {
+                synthesizeVoice<FModRole::None, SampleSource::Adpcm>(ch, pChannel, capVoice1Index, capVoice3Index);
+            }
+            break;
     }
 }
 
