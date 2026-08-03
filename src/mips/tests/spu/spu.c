@@ -303,6 +303,14 @@ static int spu_compare_golden(const char *name, const void *cap, const uint8_t *
     const int warmupS = (int)(h->warmup / 2);
     const int periodS = (int)(h->period / 2);
     const int keptS = warmupS + periodS;
+    // The header declares the first warmupS samples to be decode artifacts carried
+    // in from whatever played before, so they are not reproducible across runs and
+    // never were: two captures of the same voice agree on the periodic tail and
+    // disagree here by construction. Comparing them made a capture assert against
+    // the state its predecessor happened to leave behind, which is why a golden
+    // could match silicon exactly on everything repeatable and still fail.
+    // SPU_ONSET_SKIP is a floor, not the start; the honest start is past the warmup.
+    const int startS = warmupS > SPU_ONSET_SKIP ? warmupS : SPU_ONSET_SKIP;
 
     // A golden that carries no samples makes both loops below run zero iterations,
     // so the test reports PASS having compared nothing - it cannot fail, which is
@@ -318,7 +326,7 @@ static int spu_compare_golden(const char *name, const void *cap, const uint8_t *
                           name, keptS, (int)h->warmup, (int)h->period);
         return 1;
     }
-    if (keptS <= SPU_ONSET_SKIP) {
+    if (keptS <= startS) {
         // The golden is shorter than the number of leading samples the comparison
         // throws away, so the loop below runs zero iterations. Note this is not
         // "the golden is too short" on its own - it is an interaction between two
@@ -334,13 +342,13 @@ static int spu_compare_golden(const char *name, const void *cap, const uint8_t *
     int bestS = 0, bestBad = 0x7fffffff;
     for (int s = 0; s < 512; s++) {
         int bad = 0;
-        for (int i = SPU_ONSET_SKIP; i < keptS; i++) {
+        for (int i = startS; i < keptS; i++) {
             if (a[(s + i) & 511] != golden[i]) bad++;
         }
         if (bad < bestBad) { bestBad = bad; bestS = s; }
     }
 
-    for (int i = SPU_ONSET_SKIP; i < keptS; i++) {
+    for (int i = startS; i < keptS; i++) {
         int j = (bestS + i) & 511;
         if (a[j] != golden[i]) {
             ramsyscall_printf("%s mismatch at sample %d (ring offset %d): got 0x%04x, want 0x%04x\n",
