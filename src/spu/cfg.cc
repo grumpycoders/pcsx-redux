@@ -71,7 +71,6 @@ XA audio and audio tracks.)"));
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
     ImGuiHelpers::ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
 in sync, by changing its pitch. Consumes more CPU.)"));
-    changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
@@ -82,7 +81,6 @@ with some games, but slows SPU processing.)"));
                             IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
     ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
-    changed |= ImGui::Checkbox(_("Capture/decode buffer IRQ"), &settings.get<DBufIRQ>().value);
     ImGuiHelpers::ShowHelpMarker(
         _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
     changed |= ImGui::InputInt(_("Speed multiplier"), &settings.get<Speed>().value);

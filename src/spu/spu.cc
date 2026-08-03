@@ -184,11 +184,15 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
             irqDone = 1;
             // Notify the main emulator.
             scheduleInterrupt();
-            // Option: wait after the IRQ for the main emulator.
-            if (settings.get<SPUIRQWait>()) {
-                spuAsyncWait = 1;
-                irqWait = true;
-            }
+            // Park the SPU thread until the CPU has acknowledged, so it cannot run
+            // ahead of an IRQ it has already raised. This is emulator thread
+            // synchronisation and NOT hardware behaviour - real silicon raises the
+            // IRQ and keeps producing samples - so it is unconditional rather than
+            // optional: nothing should be able to switch off a race guard. It wants
+            // replacing with real SPU/CPU sync; the wall-clock deadline below is a
+            // backstop, not a design.
+            spuAsyncWait = 1;
+            irqWait = true;
         }
     }
 

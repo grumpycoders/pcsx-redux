@@ -41,8 +41,10 @@ void PCSX::SPU::impl::lockSPURAM() { cbMtx.lock(); }
 void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
 void PCSX::SPU::impl::resetCaptureBuffer() {
-    // Enable decoded buffer IRQs by setting the address.
-    if (settings.get<DBufIRQ>().value) mixIrqAddress = spuRamBase;
+    // The capture buffers are always live: hardware writes them continuously and
+    // raises the IRQ whenever the write reaches SPU_IRQ_ADDR. Nothing about that is
+    // optional, so the cursor is always armed.
+    mixIrqAddress = spuRamBase;
     memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
     memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
     captureBuffer.currIndex = 0;
