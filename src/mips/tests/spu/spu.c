@@ -68,6 +68,7 @@ INCLUDE_PCM(sine_pitch_0800);
 INCLUDE_PCM(sine_pitch_2000);
 INCLUDE_PCM(sine_pitch_3000);
 INCLUDE_PCM(sine_pitch_1500);
+INCLUDE_PCM(sine_pitch_1400);
 INCLUDE_PCM(triangle);
 INCLUDE_PCM(square);
 INCLUDE_PCM(loop_t0);
