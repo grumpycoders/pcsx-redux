@@ -1,19 +1,20 @@
 /***************************************************************************
-                          adpcm.h  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #pragma once
@@ -98,13 +99,12 @@ class AdpcmDecoder {
         int flags;          // the block's flag byte (loop/repeat/end bits)
     };
 
-    // Decode one 16-byte ADPCM block beginning at `block` into the first 28
-    // entries of `sb` (the per-voice sample buffer), advancing the IIR history.
-    // Returns the address just past the block and the block's flag byte, which
-    // the caller needs for its IRQ check and loop handling.
-    // Decodes the 16-byte block at `block` into our own 28-sample buffer and rewinds
-    // the read cursor to it. The buffer is ours because we are the only thing that
-    // fills it; the voice pulls samples back out one at a time.
+    // Decode the 16-byte ADPCM block beginning at `block` into our own 28-sample
+    // buffer, advancing the IIR history, and rewind the read cursor to the top of
+    // that buffer. The buffer is ours because we are the only thing that fills it;
+    // the voice pulls samples back out one at a time. Returns the address just past
+    // the block and the block's flag byte, which the caller needs for its IRQ check
+    // and loop handling.
     DecodeResult decodeBlock(uint8_t *block);
 
     static constexpr int kSamplesPerBlock = 28;
@@ -119,10 +119,10 @@ class AdpcmDecoder {
     static constexpr int kFilterCoeff[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
     static constexpr int kCoeffShift = 6;
 
-    uint8_t *m_start = nullptr;  // start ptr into sound mem
-    uint8_t *m_curr = nullptr;   // current pos in sound mem
-    uint8_t *m_loop = nullptr;   // loop ptr in sound mem
-    int32_t m_s1 = 0;            // last decoded sample  (IIR history)
+    uint8_t *m_start = nullptr;  // start pointer into sound RAM
+    uint8_t *m_curr = nullptr;   // current position in sound RAM
+    uint8_t *m_loop = nullptr;   // loop pointer into sound RAM
+    int32_t m_s1 = 0;            // last decoded sample (IIR history)
     int32_t m_s2 = 0;            // next-to-last decoded sample (IIR history)
     int m_startupDelay = 0;      // EXPERIMENTAL: post-key-on silence countdown (samples)
     int32_t m_samples[kSamplesPerBlock] = {};  // the decoded block

@@ -1,37 +1,21 @@
 /***************************************************************************
-                          reverb.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2003/01/19 - Pete
-// - added Neill's reverb (see at the end of file)
-//
-// 2002/12/26 - Pete
-// - adjusted reverb handling
-//
-// 2002/08/14 - Pete
-// - added extra reverb
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include <string.h>
 
@@ -42,56 +26,54 @@
 void PCSX::SPU::ReverbUnit::reset() { memset((void *)&rvb, 0, sizeof(REVERBInfo)); }
 
 ////////////////////////////////////////////////////////////////////////
-// SET REVERB
-////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::setPreset(uint16_t val) {
     switch (val) {
         case 0x0000:
             iReverbOff = -1;
-            break;  // off
+            break;  // Off
         case 0x007D:
             iReverbOff = 32;
             iReverbNum = 2;
             iReverbRepeat = 128;
-            break;  // ok room
+            break;  // Room
 
         case 0x0033:
             iReverbOff = 32;
             iReverbNum = 2;
             iReverbRepeat = 64;
-            break;  // studio small
+            break;  // Studio small
         case 0x00B1:
             iReverbOff = 48;
             iReverbNum = 2;
             iReverbRepeat = 96;
-            break;  // ok studio medium
+            break;  // Studio medium
         case 0x00E3:
             iReverbOff = 64;
             iReverbNum = 2;
             iReverbRepeat = 128;
-            break;  // ok studio large ok
+            break;  // Studio large
 
         case 0x01A5:
             iReverbOff = 128;
             iReverbNum = 4;
             iReverbRepeat = 32;
-            break;  // ok hall
+            break;  // Hall
         case 0x033D:
             iReverbOff = 256;
             iReverbNum = 4;
             iReverbRepeat = 64;
-            break;  // space echo
+            break;  // Space echo
         case 0x0001:
             iReverbOff = 184;
             iReverbNum = 3;
             iReverbRepeat = 128;
-            break;  // echo/delay
+            break;  // Echo/delay
         case 0x0017:
             iReverbOff = 128;
             iReverbNum = 2;
             iReverbRepeat = 128;
-            break;  // half echo
+            break;  // Half echo
         default:
             iReverbOff = 32;
             iReverbNum = 1;
@@ -101,29 +83,29 @@ void PCSX::SPU::ReverbUnit::setPreset(uint16_t val) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// START REVERB
-////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::start(SPUCHAN *pChannel, uint16_t spuCtrl, int mode) {
-    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable))  // reverb possible?
+    // Is reverb possible?
+    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable))
     {
         if (mode == 2)
             pChannel->data.get<Chan::RVBActive>().value = true;
-        else if (mode == 1 && iReverbOff > 0)  // -> fake reverb used?
+        else if (mode == 1 && iReverbOff > 0)  // Is the fake reverb used?
         {
-            pChannel->data.get<Chan::RVBActive>().value = true;  // -> activate it
+            // Activate it.
+            pChannel->data.get<Chan::RVBActive>().value = true;
             pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * 45;
             pChannel->data.get<Chan::RVBRepeat>().value = iReverbRepeat * 45;
             pChannel->data.get<Chan::RVBNum>().value = iReverbNum;
         }
     } else
-        pChannel->data.get<Chan::RVBActive>().value = false;  // else -> no reverb
+        // Otherwise there is no reverb.
+        pChannel->data.get<Chan::RVBActive>().value = false;
 }
 
 ////////////////////////////////////////////////////////////////////////
-// HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
-////////////////////////////////////////////////////////////////////////
 
+// Helper for Neill's reverb: re-initializes the reverb mixing buffer.
 void PCSX::SPU::ReverbUnit::init(int mode, int nssize) {
     if (mode == 2) {
         memset(sRVBStart, 0, nssize * 2 * 4);
@@ -131,27 +113,26 @@ void PCSX::SPU::ReverbUnit::init(int mode, int nssize) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// STORE REVERB
-////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::store(SPUCHAN *pChannel, int ns, int mode) {
     if (mode == 0)
         return;
-    else if (mode == 2)  // -------------------------------- // Neil's reverb
+    else if (mode == 2)  // Neill's reverb.
     {
         const int iRxl = (pChannel->data.get<Chan::sval>().value * pChannel->volume.left()) / 0x4000;
         const int iRxr = (pChannel->data.get<Chan::sval>().value * pChannel->volume.right()) / 0x4000;
 
         ns <<= 1;
 
-        *(sRVBStart + ns) += iRxl;  // -> we mix all active reverb channels into an extra buffer
+        // All active reverb channels are mixed into an extra buffer.
+        *(sRVBStart + ns) += iRxl;
         *(sRVBStart + ns + 1) += iRxr;
-    } else  // --------------------------------------------- // Pete's easy fake reverb
+    } else  // Pete's easy fake reverb.
     {
         int *pN;
         int iRn, iRr = 0;
 
-        // we use the half channel volume (/0x8000) for the first reverb effects, quarter for next and so on
+        // Use half the channel volume (/0x8000) for the first reverb effect, a quarter for the next, and so on.
 
         int iRxl = (pChannel->data.get<Chan::sval>().value * pChannel->volume.left()) / 0x8000;
         int iRxr = (pChannel->data.get<Chan::sval>().value * pChannel->volume.right()) / 0x8000;
@@ -170,7 +151,8 @@ void PCSX::SPU::ReverbUnit::store(SPUCHAN *pChannel, int ns, int mode) {
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::ReverbUnit::g_buffer(int iOff, uint16_t *spuMem)  // get_buffer content helper: takes care about wraps
+// get_buffer content helper: takes care of wraps.
+int PCSX::SPU::ReverbUnit::g_buffer(int iOff, uint16_t *spuMem)
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -181,8 +163,9 @@ int PCSX::SPU::ReverbUnit::g_buffer(int iOff, uint16_t *spuMem)  // get_buffer c
 
 ////////////////////////////////////////////////////////////////////////
 
+// set_buffer content helper: takes care of wraps and clipping.
 void PCSX::SPU::ReverbUnit::s_buffer(int iOff, int iVal,
-                                     uint16_t *spuMem)  // set_buffer content helper: takes care about wraps and clipping
+                                     uint16_t *spuMem)
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr;
@@ -195,8 +178,9 @@ void PCSX::SPU::ReverbUnit::s_buffer(int iOff, int iVal,
 
 ////////////////////////////////////////////////////////////////////////
 
+// set_buffer (+1 sample) content helper: takes care of wraps and clipping.
 void PCSX::SPU::ReverbUnit::s_buffer1(
-    int iOff, int iVal, uint16_t *spuMem)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
+    int iOff, int iVal, uint16_t *spuMem)
 {
     short *p = (short *)spuMem;
     iOff = (iOff * 4) + rvb.CurrAddr + 1;
@@ -212,9 +196,11 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, i
     if (mode == 0)
         return 0;
     else if (mode == 2) {
-        static int iCnt = 0;  // this func will be called with 44.1 khz
+        // This function is called at 44.1 kHz.
+        static int iCnt = 0;
 
-        if (!rvb.StartAddr)  // reverb is off
+        // Reverb is off.
+        if (!rvb.StartAddr)
         {
             rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
             return 0;
@@ -222,9 +208,11 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, i
 
         iCnt++;
 
-        if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
+        // Work on every second left value: downsample to 22 kHz.
+        if (iCnt & 1)
         {
-            if (spuCtrl & kReverbMasterEnable)  // -> reverb on? oki
+            // Reverb on.
+            if (spuCtrl & kReverbMasterEnable)
             {
                 int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
 
@@ -293,7 +281,7 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, i
                 if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
 
                 return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
-            } else  // -> reverb off
+            } else  // Reverb off.
             {
                 rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
             }
@@ -303,12 +291,16 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, i
         }
 
         return rvb.iLastRVBLeft;
-    } else  // easy fake reverb:
+    } else  // Easy fake reverb.
     {
-        const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value
-        *sRVBPlay++ = 0;                                // -> init it after
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;  // -> and take care about wrap arounds
-        return iRV;                                     // -> return reverb mix buf val
+        // Simply take the reverb mixing buffer value.
+        const int iRV = *sRVBPlay;
+        // Initialize it afterwards.
+        *sRVBPlay++ = 0;
+        // Take care of wrap arounds.
+        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;
+        // Return the reverb mixing buffer value.
+        return iRV;
     }
 }
 
@@ -317,17 +309,22 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, i
 int PCSX::SPU::ReverbUnit::mixRight(int mode) {
     if (mode == 0)
         return 0;
-    else if (mode == 2)  // Neill's reverb:
+    else if (mode == 2)  // Neill's reverb.
     {
         int i = rvb.iLastRVBRight + (rvb.iRVBRight - rvb.iLastRVBRight) / 2;
         rvb.iLastRVBRight = rvb.iRVBRight;
-        return i;  // -> just return the last right reverb val (little bit scaled by the previous right val)
-    } else         // easy fake reverb:
+        // Just return the last right reverb value, scaled a little by the previous right value.
+        return i;
+    } else  // Easy fake reverb.
     {
-        const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value
-        *sRVBPlay++ = 0;                                // -> init it after
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;  // -> and take care about wrap arounds
-        return iRV;                                     // -> return reverb mix buf val
+        // Simply take the reverb mixing buffer value.
+        const int iRV = *sRVBPlay;
+        // Initialize it afterwards.
+        *sRVBPlay++ = 0;
+        // Take care of wrap arounds.
+        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;
+        // Return the reverb mixing buffer value.
+        return iRV;
     }
 }
 

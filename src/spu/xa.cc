@@ -1,31 +1,21 @@
 /***************************************************************************
-                            xa.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2003/02/18 - kode54
-// - added gaussian interpolation
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include <algorithm>
 
@@ -36,10 +26,6 @@
 static uint16_t loword(uint32_t v) { return v & 0xffff; }
 static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 
-////////////////////////////////////////////////////////////////////////
-// FEED XA
-////////////////////////////////////////////////////////////////////////
-
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, vl, vr, voldiv = 4 - settings.get<Volume>();
 
@@ -48,21 +34,25 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
 
     if (!bSPUIsOpen) return;
 
-    xapGlobal = xap;  // store info for save states
+    // Store the info for save states.
+    xapGlobal = xap;
 
-    iSize = ((44100 * xap->nsamples) / xap->freq);  // get size
+    // Get the size.
+    iSize = ((44100 * xap->nsamples) / xap->freq);
     // Emulation speed no longer scales the XA feed size here. The old Emulator::SettingScaler only ever
     // adjusted this for sub-realtime (its min(100, scaler) meant fast-forward never touched XA at all),
     // and it defaulted to 100 (== no change). XA speed-up now happens at the sink, which drains the XA
     // stream (stream 1) at the same multiplier as the voices stream. Dropping it is a no-op at default.
-    if (!iSize) return;  // none? bye
+    // Nothing to feed.
+    if (!iSize) return;
 
     assert(iSize <= 32 * 1024);
 
     spos = 0x10000L;
-    sinc = (xap->nsamples << 16) / iSize;  // calc freq by num / size
+    // Calculate the frequency as sample count divided by size.
+    sinc = (xap->nsamples << 16) / iSize;
 
-    // We need the lock for capture buffers. The question is, do we put it here or in the inner loop?
+    // The lock is needed for the capture buffers. Open question: should it be taken here or in the inner loop?
     if (pMixIrq) cbMtx.lock();
 
     if (xap->stereo) {

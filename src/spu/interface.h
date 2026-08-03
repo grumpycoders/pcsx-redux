@@ -72,12 +72,11 @@ class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open() final;
-    // SPU Functions
+    // SPU functions.
     long init(void) final;
     long shutdown(void) final;
     long close(void) final;
     void wipeChannels();
-    // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t) final;
     uint16_t readRegister(uint32_t) final;
     void lockSPURAM() final;
@@ -96,11 +95,11 @@ class impl final : public SPUInterface {
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
-    // num of channels
+    // Number of channels.
     static const size_t MAXCHAN = 24;
-    // number of characters for a channel tag
+    // Number of characters for a channel tag.
     static constexpr unsigned CHANNEL_TAG = 32;
-    // number of samples for debugger wave plot
+    // Number of samples for the debugger wave plot.
     static const unsigned DEBUG_SAMPLES = 1024;
 
     uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
@@ -126,7 +125,7 @@ class impl final : public SPUInterface {
             AttackStepMask = 0x300,    // 9-8 0..3 = "+7,+6,+5,+4"
             DecayShiftMask = 0xf0,     // 7-4 0..0Fh = Fast..Slow
             SustainLevelMask = 0xf,    // 3-0 0..0Fh  ;Level=(N+1)*800h
-            // Flags for upper 16-bits of reg, shifted right 16-bits
+            // Flags for the upper 16 bits of the register, shifted right by 16 bits.
             SustainMode = 1 << 15,       // 31 0=Linear, 1=Exponential
             SustainDirection = 1 << 14,  // 30  0=Increase, 1=Decrease (until Key OFF flag)
             SustainShiftMask = 0x1f00,   // 28-24 0..1Fh = Fast..Slow
@@ -165,16 +164,16 @@ class impl final : public SPUInterface {
         };
     };
 
-    // sound buffer sizes
-    // 400 ms complete sound buffer
+    // Sound buffer sizes.
+    // 400 ms complete sound buffer.
     static const size_t SOUNDSIZE = 70560;
-    // 137 ms test buffer... if less than that is buffered, a new upload will happen
+    // 137 ms test buffer. If less than this is buffered, a new upload happens.
     static const size_t TESTSIZE = 24192;
 
-    // ~ 1 ms of data
+    // Roughly 1 ms of data.
     static const size_t NSSIZE = 45;
 
-    // spu
+    // SPU.
     void MainThread();
     // Reads the voice's two mode flags once and calls the matching
     // synthesizeVoice instantiation. This is the only place the runtime flags
@@ -199,7 +198,7 @@ class impl final : public SPUInterface {
     void VoiceChangeFrequency(SPUCHAN *pChannel);
     void FModChangeFrequency(SPUCHAN *pChannel, int ns);
 
-    // registers
+    // Registers.
     void SoundOn(int start, int end, uint16_t val);
     void SoundOff(int start, int end, uint16_t val);
     void FModOn(int start, int end, uint16_t val);
@@ -207,12 +206,12 @@ class impl final : public SPUInterface {
     void SetPitch(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
-    // xa
+    // XA.
     void FeedXA(xa_decode_t *xap);
 
     int bSPUIsOpen;
 
-    // psx buffer / addresses
+    // PSX buffer and addresses.
     uint16_t regArea[10000];
     // Note that SPU ram is a uint16_t, so total size is 512KB.
     uint16_t spuMem[256 * 1024];
@@ -235,15 +234,15 @@ class impl final : public SPUInterface {
     };
     std::mutex cbMtx;
 
-    // The temporary cap buffer for CD Audio left/right.
+    // The temporary capture buffer for CD audio left/right.
     CaptureBuffer captureBuffer;
-    // The cap buffer index for voice 1 and voice 3.
+    // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
 
-    // user settings
+    // User settings.
     SettingsType settings;
 
-    // MAIN infos struct for each channel
+    // Main info struct for each channel.
 
     SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
     ReverbUnit m_reverb;          // global reverb unit: work state + Pete/Neill reverb DSP
@@ -254,20 +253,24 @@ class impl final : public SPUInterface {
     // ADPCM block carrying the end flag, cleared on key-on. Read-only.
     uint32_t spuEndx = 0;
 
-    uint16_t spuCtrl = 0;  // some vars to store psx reg infos
+    // Storage for the PSX register values.
+    uint16_t spuCtrl = 0;
     uint16_t spuStat = 0;
     uint16_t spuIrq = 0;
-    uint32_t spuAddr = 0xffffffff;  // address into spu mem
-    int bEndThread = 0;             // thread handlers
+    // Address into SPU memory.
+    uint32_t spuAddr = 0xffffffff;
+    // Thread handling.
+    int bEndThread = 0;
     int bThreadEnded = 0;
     int bSpuInit = 0;
 
     std::thread hMainThread;
-    uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
+    // Flags for faster testing of whether a new channel starts.
+    uint32_t dwNewChannel = 0;
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
-    // certain globals (were local before, but with the new timeproc I need em global)
+    // These were local variables before, but the timer procedure requires them to be global.
 
     int SSumR[NSSIZE];
     int SSumL[NSSIZE];
@@ -275,7 +278,8 @@ class impl final : public SPUInterface {
     int iCycle = 0;
     int16_t *pS;
 
-    int iSecureStart = 0;  // secure start counter
+    // Secure start counter.
+    int iSecureStart = 0;
     int iSpuAsyncWait = 0;
 
     // XA
@@ -295,7 +299,7 @@ class impl final : public SPUInterface {
     MiniAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
 
-    // debug window
+    // Debug window.
     unsigned m_selectedChannel = 0;
     std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];

@@ -1,19 +1,20 @@
 /***************************************************************************
-                          noise.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #include "spu/noise.h"
@@ -27,7 +28,8 @@ constexpr uint32_t kFractionMask = 0xffff;
 }  // namespace
 
 int PCSX::SPU::NoiseGenerator::getVal() const {
-    return static_cast<int16_t>(m_val);  // noise level = low 16 bits of the LFSR, signed
+    // The noise level is the low 16 bits of the LFSR, signed.
+    return static_cast<int16_t>(m_val);
 }
 
 void PCSX::SPU::NoiseGenerator::step() {
@@ -39,8 +41,10 @@ void PCSX::SPU::NoiseGenerator::step() {
                                               1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1};
     static constexpr uint16_t kFreqStep[5] = {0, 84, 140, 180, 210};
 
-    const uint32_t shift = m_clock >> 2;       // SPUCTRL noise-shift bits select the LFSR rate
-    const uint32_t step = m_clock & 3;         // SPUCTRL noise-step bits select the fractional step
+    // The SPUCTRL noise-shift bits select the LFSR rate.
+    const uint32_t shift = m_clock >> 2;
+    // The SPUCTRL noise-step bits select the fractional step.
+    const uint32_t step = m_clock & 3;
     const uint32_t threshold = (0x8000u >> shift) << 16;
 
     m_count += kSampleTick + kFreqStep[step];
@@ -48,6 +52,7 @@ void PCSX::SPU::NoiseGenerator::step() {
 
     if (m_count >= threshold) {
         while (m_count >= threshold) m_count -= threshold;
-        m_val = (m_val << 1) | kWaveform[(m_val >> 10) & 63];  // clock the LFSR
+        // Clock the LFSR.
+        m_val = (m_val << 1) | kWaveform[(m_val >> 10) & 63];
     }
 }

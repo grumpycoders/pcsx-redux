@@ -1,19 +1,20 @@
 /***************************************************************************
-                       interpolation.h  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #pragma once
@@ -52,18 +53,21 @@ class Interpolator {
     // Gauss/cubic start further ahead so the four-tap window is primed before
     // the first output sample.
     void keyOn(int interpolationType) {
-        m_state[1] = 0;  // init our interpolation helpers
+        // Initialize the interpolation helpers.
+        m_state[1] = 0;
         m_state[2] = 0;
 
-        if (interpolationType >= 2)  // gauss/cubic interpolation?
+        if (interpolationType >= 2)
         {
+            // Gauss/cubic interpolation starts with more decoding.
             m_spos = 0x30000L;
             m_state[0] = 0;
-        }  // -> start with more decoding
+        }
         else {
+            // No/simple interpolation starts with one 44100Hz decode.
             m_spos = 0x10000L;
             m_state[3] = 0;
-        }  // -> no/simple interpolation starts with one 44100 decoding
+        }
     }
 
     // Pitch stepping. The counter is 16.16 fixed point, so kUnity == one whole

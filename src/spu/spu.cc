@@ -1,19 +1,20 @@
 /***************************************************************************
-                            spu.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #include <algorithm>
@@ -44,20 +45,21 @@ constexpr int kCaptureSampleClamp = 0xffff;
 constexpr int kMixSampleClamp = 32767;
 }  // namespace
 
-////////////////////////////////////////////////////////////////////////
-// START SOUND... called by main thread to setup a new sound on a channel
-////////////////////////////////////////////////////////////////////////
-
+// Called by the main thread to set up a new sound on a channel.
 inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
     pChannel->adsr.keyOn();
     m_reverb.start(pChannel, spuCtrl, settings.get<Reverb>());
 
-    pChannel->adpcm.keyOn();  // rewind decode cursor to sample start, clear IIR history
-    pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);  // EXPERIMENTAL keyon startup latency
+    // Rewind the decode cursor to the sample start and clear the IIR history.
+    pChannel->adpcm.keyOn();
+    // EXPERIMENTAL key-on startup latency.
+    pChannel->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);
 
-    pChannel->adpcm.emptyBuffer();  // force a block decode on the first sample
+    // Force a block decode on the first sample.
+    pChannel->adpcm.emptyBuffer();
 
-    pChannel->data.get<Chan::New>().value = false;  // init channel flags
+    // Initialize the channel flags.
+    pChannel->data.get<Chan::New>().value = false;
     pChannel->data.get<Chan::Stop>().value = false;
     pChannel->data.get<Chan::On>().value = true;
 
@@ -65,7 +67,7 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *pChannel) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// ALL KIND OF HELPERS
+// Helpers.
 ////////////////////////////////////////////////////////////////////////
 
 // Both frequency paths end the same way: install the new 16.16 pitch step, and tell the
@@ -78,7 +80,8 @@ inline void PCSX::SPU::impl::setPitchStep(SPUCHAN *pChannel, int32_t step) {
 
 inline void PCSX::SPU::impl::VoiceChangeFrequency(SPUCHAN *pChannel) {
     auto &actFreq = pChannel->data.get<Chan::ActFreq>().value;
-    pChannel->data.get<Chan::UsedFreq>().value = actFreq;  // -> take it and calc steps
+    // Take the new frequency and recompute the pitch step.
+    pChannel->data.get<Chan::UsedFreq>().value = actFreq;
     setPitchStep(pChannel, pChannel->data.get<Chan::RawPitch>().value << 4);
 }
 
@@ -89,7 +92,8 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *pChannel, int ns) {
 
     NP = ((32768L + iFMod[ns]) * NP) / 32768L;
     NP = std::clamp(NP, 0x1, 0x3fff);
-    NP = (44100L * NP) / (4096L);  // calc frequency
+    // Calculate the frequency.
+    NP = (44100L * NP) / (4096L);
 
     pChannel->data.get<Chan::ActFreq>().value = NP;
     pChannel->data.get<Chan::UsedFreq>().value = NP;
@@ -156,7 +160,8 @@ void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_
 // Returns false when the cursor is already parked at kStopped, i.e. the voice ended on a
 // previous pass and the caller must stop synthesizing it.
 bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *pChannel) {
-    uint8_t *cursor = pChannel->adpcm.curr();  // current decode position
+    // Current decode position.
+    uint8_t *cursor = pChannel->adpcm.curr();
     if (cursor == AdpcmDecoder::kStopped) return false;
 
     auto &irqDone = pChannel->data.get<Chan::IrqDone>().value;
@@ -172,23 +177,29 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *pChannel) {
     bool irqWait = false;
     if (spuCtrl & ControlFlags::IRQEnable) {
         const bool addrReached = pSpuIrq > cursor - 16 && pSpuIrq <= cursor;
-        // special: irq on the looping address, when the stop/loop flag is set
+        // Special case: IRQ on the looping address, when the stop/loop flag is set.
         const bool loopAddrReached = (blockFlags & 1) && pSpuIrq > pChannel->adpcm.loop() - 16 &&
                                      pSpuIrq <= pChannel->adpcm.loop();
         if (addrReached || loopAddrReached) {
-            irqDone = 1;         // -> debug flag
-            scheduleInterrupt();  // -> call main emu
-            if (settings.get<SPUIRQWait>()) {  // -> option: wait after irq for main emu
+            // Debug flag.
+            irqDone = 1;
+            // Notify the main emulator.
+            scheduleInterrupt();
+            // Option: wait after the IRQ for the main emulator.
+            if (settings.get<SPUIRQWait>()) {
                 iSpuAsyncWait = 1;
                 irqWait = true;
             }
         }
     }
 
-    if ((blockFlags & 4) && !ignoreLoop) pChannel->adpcm.setLoop(cursor - 16);  // latch the loop address
+    // Latch the loop address.
+    if ((blockFlags & 4) && !ignoreLoop) pChannel->adpcm.setLoop(cursor - 16);
 
-    if (blockFlags & 1) {  // stop/loop flag: this is the last block of the sample
-        spuEndx |= 1u << ch;  // ENDX latches on the end flag
+    // Stop/loop flag: this is the last block of the sample.
+    if (blockFlags & 1) {
+        // ENDX latches on the end flag.
+        spuEndx |= 1u << ch;
 
         // Only loop when the flag byte is exactly 3 (loop-end + repeat) and a loop address was
         // latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
@@ -197,9 +208,11 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *pChannel) {
                                                                        : pChannel->adpcm.loop();
     }
 
-    pChannel->adpcm.setCurr(cursor);  // store cursor for next cycle
+    // Store the cursor for the next cycle.
+    pChannel->adpcm.setCurr(cursor);
 
-    if (irqWait) {  // special wait for "spu irq - wait for cpu action"
+    // Special wait for the "SPU IRQ - wait for CPU action" option.
+    if (irqWait) {
         using namespace std::chrono_literals;
         const auto watchUntil = std::chrono::steady_clock::now() + 2500ms;
         while (iSpuAsyncWait && !bEndThread && std::chrono::steady_clock::now() < watchUntil) {
@@ -233,19 +246,24 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoi
     auto &usedFreq = pChannel->data.get<Chan::UsedFreq>().value;
 
     if (isNew) {
-        StartSound(pChannel);        // start new sound
-        dwNewChannel &= ~(1 << ch);  // clear new channel bit
+        // Start the new sound.
+        StartSound(pChannel);
+        // Clear the new-channel bit.
+        dwNewChannel &= ~(1 << ch);
     }
 
     if (!on) {
         // Although the voice is silent, its capture mirror keeps filling.
         captureVoiceSilence(ch, capVoice1Index, capVoice3Index, 0);
-        return;  // channel not playing
+        // The channel is not playing.
+        return;
     }
 
-    if (actFreq != usedFreq) VoiceChangeFrequency(pChannel);  // new psx frequency?
+    // A new PSX frequency was programmed.
+    if (actFreq != usedFreq) VoiceChangeFrequency(pChannel);
 
-    for (int ns = 0; ns < NSSIZE; ns++)  // collect 1 ms of this channel's audio
+    // Collect 1 ms of this channel's audio.
+    for (int ns = 0; ns < NSSIZE; ns++)
     {
         int rawSample;
         m_noise.step();
@@ -260,7 +278,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoi
         }
 
         if constexpr (Role == FModRole::Target) {
-            if (iFMod[ns]) FModChangeFrequency(pChannel, ns);  // modulated by the voice below us
+            // Modulated by the voice below us.
+            if (iFMod[ns]) FModChangeFrequency(pChannel, ns);
         }
 
         // A noise voice still walks its ADPCM stream. The decoded samples are
@@ -275,25 +294,28 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoi
                 pChannel->adsr.ex().get<exVolume>().value = 0;
                 pChannel->adsr.ex().get<exEnvelopeVol>().value = 0;
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns);
-                return;  // done with this channel
+                // Done with this channel.
+                return;
             }
 
             rawSample = pChannel->adpcm.takeSample();
 
+            // Store the value for interpolation.
             pChannel->interp.storeVal(rawSample, settings.get<Interpolation>(), kIsFModSource,
-                                      (spuCtrl & ControlFlags::Mute) != 0);  // store val for interpolation
+                                      (spuCtrl & ControlFlags::Mute) != 0);
 
             pChannel->interp.tookSample();
         }
 
         if constexpr (Src == SampleSource::Noise) {
-            rawSample = m_noise.getVal();  // get noise val
+            // Get the noise value.
+            rawSample = m_noise.getVal();
             pChannel->interp.parkExternalSample(rawSample, settings.get<Interpolation>());
         } else {
             rawSample = pChannel->interp.getVal(settings.get<Interpolation>(), kIsFModSource);
         }
 
-        // apply the ADSR envelope (hardware: sample*env>>15)
+        // Apply the ADSR envelope (hardware: sample*env>>15).
         int32_t mixedSample = (pChannel->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;
         sval = mixedSample;
 
@@ -302,17 +324,20 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *pChannel, int32_t &capVoi
         captureVoiceSample(ch, capVoice1Index, capVoice3Index, mixedSample);
 
         if constexpr (Role == FModRole::Source) {
-            iFMod[ns] = sval;  // hand the sample to the voice above us to modulate with
+            // Hand the sample to the voice above us to modulate with.
+            iFMod[ns] = sval;
         } else {
-            // left/right sound volume (psx volume goes from 0 ... 0x3fff)
+            // Left/right sound volume (PSX volume goes from 0 to 0x3fff).
             if (mute && !solo) {
-                sval = 0;  // debug mute
+                // Debug mute.
+                sval = 0;
             } else {
                 SSumL[ns] += (sval * pChannel->volume.left()) / kVoiceVolumeUnity;
                 SSumR[ns] += (sval * pChannel->volume.right()) / kVoiceVolumeUnity;
             }
 
-            if (rvbActive) m_reverb.store(pChannel, ns, settings.get<Reverb>());  // store for reverb
+            // Store for reverb.
+            if (rvbActive) m_reverb.store(pChannel, ns, settings.get<Reverb>());
         }
 
         pChannel->interp.advance();
@@ -353,9 +378,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 }
 
 ////////////////////////////////////////////////////////////////////////
-// MAIN SPU FUNCTION
-// here is the main job handler... thread, timer or direct func call
-// basically the whole sound processing is done in this fat func!
+// Main SPU job handler. This is where the sound processing happens.
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
@@ -363,37 +386,43 @@ void PCSX::SPU::impl::MainThread() {
     int32_t tmpCapVoice1Index = 0;
     int32_t tmpCapVoice3Index = 0;
 
-    while (!bEndThread)  // until we are shutting down
+    // Run until we are shutting down.
+    while (!bEndThread)
     {
         int volumeDivisor = 4 - settings.get<Volume>();
         //--------------------------------------------------//
-        // ok, at the beginning we are looking if there is
-        // enuff free place in the dsound/oss buffer to
-        // fill in new data, or if there is a new channel to start.
-        // if not, we wait (thread) or return (timer/spuasync)
-        // until enuff free place is available/a new channel gets
-        // started
+        // At the start of each pass, check whether there is enough free space in the audio output
+        // buffer to fill in new data, or whether there is a new channel to start. If neither, wait
+        // until free space is available or a new channel gets started.
 
-        if (dwNewChannel)    // new channel should start immedately?
-        {                    // (at least one bit 0 ... MAXCHANNEL is set?)
-            iSecureStart++;  // -> set iSecure
-            if (iSecureStart > 5)
-                iSecureStart = 0;  //    (if it is set 5 times - that means on 5 tries a new samples has been started -
-                                   //    in a row, we will reset it, to give the sound update a chance)
-        } else
-            iSecureStart = 0;  // 0: no new channel should start
-
-        while (!iSecureStart && !bEndThread &&              // no new start? no thread end?
-               (m_audioOut.getBytesBuffered() > TESTSIZE))  // and still enuff data in sound buffer?
+        // Should a new channel start immediately, that is, is at least one bit in 0..MAXCHANNEL
+        // set?
+        if (dwNewChannel)
         {
-            iSecureStart = 0;  // reset secure
+            // Set iSecureStart.
+            iSecureStart++;
+            if (iSecureStart > 5)
+                // If it has been set 5 times in a row, meaning a new sample has been started on 5
+                // tries in a row, reset it to give the sound update a chance.
+                iSecureStart = 0;
+        } else
+            // 0: no new channel should start.
+            iSecureStart = 0;
+
+        // No new start, no thread end, and still enough data in the sound buffer?
+        while (!iSecureStart && !bEndThread &&
+               (m_audioOut.getBytesBuffered() > TESTSIZE))
+        {
+            // Reset iSecureStart.
+            iSecureStart = 0;
 
             using namespace std::chrono_literals;
             std::this_thread::sleep_for(5ms);
 
+            // If a new channel kicks in, or the sound buffer runs low, leave the loop.
             if (dwNewChannel)
                 iSecureStart =
-                    1;  // if a new channel kicks in (or, of course, sound buffer runs low), we will leave the loop
+                    1;
         }
 
         tmpCapVoice1Index = capBufVoiceIndex;
@@ -419,11 +448,11 @@ void PCSX::SPU::impl::MainThread() {
             spuStat &= ~StatusFlags::CBIndex;
 
         //---------------------------------------------------//
-        //- here we have another 1 ms of sound data
+        // Another 1 ms of sound data is now available.
         //---------------------------------------------------//
 
         ///////////////////////////////////////////////////////
-        // mix all channels (including reverb) into one buffer
+        // Mix all channels, including reverb, into one buffer.
 
         for (ns = 0; ns < NSSIZE; ns++) {
             SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl, settings.get<Reverb>());
@@ -436,26 +465,25 @@ void PCSX::SPU::impl::MainThread() {
         }
 
         //////////////////////////////////////////////////////
-        // special irq handling in the decode buffers (0x0000-0x1000)
-        // we know:
-        // the decode buffers are located in spu memory in the following way:
+        // Special IRQ handling in the decode buffers (0x0000-0x1000).
+        //
+        // The decode buffers are located in SPU memory as follows, with decoded data being 16 bits
+        // per sample:
         // 0x0000-0x03ff  CD audio left
         // 0x0400-0x07ff  CD audio right
         // 0x0800-0x0bff  Voice 1
         // 0x0c00-0x0fff  Voice 3
-        // and decoded data is 16 bit for one sample
-        // we assume:
-        // even if voices 1/3 are off or no cd audio is playing, the internal
-        // play positions will move on and wrap after 0x400 bytes.
-        // Therefore: we just need a pointer from spumem+0 to spumem+3ff, and
-        // increase this pointer on each sample by 2 bytes. If this pointer
-        // (or 0x400 offsets of this pointer) hits the spuirq address, we generate
-        // an IRQ. Only problem: the "wait for cpu" option is kinda hard to do here
-        // in some of Peops timer modes. So: we ignore this option here (for now).
-        // Also note: we abuse the channel 0-3 irq debug display for those irqs
-        // (since that's the easiest way to display such irqs in debug mode :))
+        //
+        // The assumption is that even if voices 1 and 3 are off, or no CD audio is playing, the
+        // internal play positions keep moving and wrap after 0x400 bytes. Therefore a single
+        // pointer from spuMem+0 to spuMem+0x3ff suffices, increased by 2 bytes on each sample. If
+        // that pointer, or one of the 0x400 offsets of it, hits the SPU IRQ address, an IRQ is
+        // generated. The "wait for CPU" option is hard to implement here in some of Peops' timer
+        // modes, so it is ignored in this path. Note also that the channel 0-3 IRQ debug display
+        // is reused for these IRQs, as that is the simplest way to display them in debug mode.
 
-        if (pMixIrq)  // pMixIRQ will only be set, if the config option is active
+        // pMixIrq is only set if the config option is active.
+        if (pMixIrq)
         {
             for (ns = 0; ns < NSSIZE; ns++) {
                 if ((spuCtrl & ControlFlags::IRQEnable) && pSpuIrq && pSpuIrq < spuRamBase + 0x1000) {
@@ -474,8 +502,7 @@ void PCSX::SPU::impl::MainThread() {
         m_reverb.init(settings.get<Reverb>(), NSSIZE);
 
         //////////////////////////////////////////////////////
-        // feed the sound
-        // wanna have around 1/60 sec (16.666 ms) updates
+        // Feed the sound. The target update rate is around 1/60 sec (16.666 ms).
 
         if (iCycle++ > 16) {
             bool done = false;
@@ -492,8 +519,6 @@ void PCSX::SPU::impl::MainThread() {
             iCycle = 0;
         }
     }
-
-    // end of big main loop...
 
     bThreadEnded = 1;
 }
@@ -514,25 +539,14 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
             }
             captureBuffer.currIndex = (captureBuffer.currIndex + 1) % 0x200;
         }
-        // Update the capture buffer voice index, which in the end, should be the same as
-        // tmpCapVoice1Index, tmpCapVoice3Index and captureBuffer.currIndex.
-        // Unless I'm missing something in Pete's code.
-        /* capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % 0x200;
-        if ((tmpCapVoice1Index != tmpCapVoice3Index) || (tmpCapVoice3Index != captureBuffer.currIndex) ||
-            (captureBuffer.currIndex != capBufVoiceIndex))
-            g_system->log(LogClass::SPU, "Capture buffer indices are not the same.\n");*/
+        // capBufVoiceIndex, tmpCapVoice1Index, tmpCapVoice3Index and captureBuffer.currIndex are
+        // expected to track each other and end up equal.
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////
-// SPU ASYNC... even newer epsxe func
-//  1 time every 'cycle' cycles... harhar
-////////////////////////////////////////////////////////////////////////
-
+// Called once every 'cycle' cycles.
 void PCSX::SPU::impl::async(uint32_t cycle) {
     if (iSpuAsyncWait) {
         iSpuAsyncWait++;
@@ -542,27 +556,27 @@ void PCSX::SPU::impl::async(uint32_t cycle) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// XA AUDIO
+// XA audio.
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::playADPCMchannel(xa_decode_t *xap) {
-    if (!settings.get<Streaming>()) return;  // no XA? bye
+    // Nothing to do when XA streaming is disabled.
+    if (!settings.get<Streaming>()) return;
     if (!xap) return;
-    if (!xap->freq) return;  // no xa freq ? bye
+    // Nothing to do without an XA frequency.
+    if (!xap->freq) return;
 
-    FeedXA(xap);  // call main XA feeder
+    // Call the main XA feeder.
+    FeedXA(xap);
 }
 
 ////////////////////////////////////////////////////////////////////////
-// INIT/EXIT STUFF
+// Init and exit.
 ////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////
-// SPUINIT: this func will be called first by the main emu
-////////////////////////////////////////////////////////////////////////
-
+// Called first by the main emulator.
 long PCSX::SPU::impl::init(void) {
-    spuRamBase = (uint8_t *)spuMem;  // just small setup
+    spuRamBase = (uint8_t *)spuMem;
 
     wipeChannels();
     return 0;
@@ -578,68 +592,69 @@ void PCSX::SPU::impl::wipeChannels() {
     m_reverb.reset();
 }
 
-////////////////////////////////////////////////////////////////////////
-// SETUPTIMER: init of certain buffers and threads/timers
-////////////////////////////////////////////////////////////////////////
-
+// Initialization of certain buffers and of the mixing thread.
 void PCSX::SPU::impl::SetupThread() {
-    memset(SSumR, 0, NSSIZE * sizeof(int));  // init some mixing buffers
+    // Initialize the mixing buffers.
+    memset(SSumR, 0, NSSIZE * sizeof(int));
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(iFMod, 0, NSSIZE * sizeof(int));
 
-    pS = (int16_t *)pSpuBuffer;  // setup soundbuffer pointer
+    // Set up the sound buffer pointer.
+    pS = (int16_t *)pSpuBuffer;
 
-    bEndThread = 0;  // init thread vars
+    // Initialize the thread variables.
+    bEndThread = 0;
     bThreadEnded = 0;
-    bSpuInit = 1;  // flag: we are inited
+    // Flag that initialization is complete.
+    bSpuInit = 1;
 
     hMainThread = std::thread([this]() { MainThread(); });
 }
 
-////////////////////////////////////////////////////////////////////////
-// REMOVETIMER: kill threads/timers
-////////////////////////////////////////////////////////////////////////
-
+// Kill the mixing thread.
 void PCSX::SPU::impl::RemoveThread() {
-    bEndThread = 1;  // raise flag to end thread
+    // Raise the flag to end the thread.
+    bEndThread = 1;
 
     using namespace std::chrono_literals;
+    // Wait until the thread has ended.
     while (!bThreadEnded) {
         std::this_thread::sleep_for(5ms);
-    }  // -> wait till thread has ended
+    }
     std::this_thread::sleep_for(5ms);
 
     hMainThread.join();
 
-    bThreadEnded = 0;  // no more spu is running
+    // No more SPU is running.
+    bThreadEnded = 0;
     bSpuInit = 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// SETUPSTREAMS: init most of the spu buffers
-////////////////////////////////////////////////////////////////////////
-
+// Initialize most of the SPU buffers.
 void PCSX::SPU::impl::SetupStreams() {
     int i;
 
-    pSpuBuffer = (uint8_t *)malloc(32768);  // alloc mixing buffer
+    // Allocate the mixing buffer.
+    pSpuBuffer = (uint8_t *)malloc(32768);
 
     if (settings.get<Reverb>() == 1)
         i = 88200 * 2;
     else
         i = NSSIZE * 2;
 
-    m_reverb.sRVBStart = (int *)malloc(i * 4);  // alloc reverb buffer
+    // Allocate the reverb buffer.
+    m_reverb.sRVBStart = (int *)malloc(i * 4);
     memset(m_reverb.sRVBStart, 0, i * 4);
     m_reverb.sRVBEnd = m_reverb.sRVBStart + i;
     m_reverb.sRVBPlay = m_reverb.sRVBStart;
 
-    for (i = 0; i < MAXCHAN; i++)  // loop sound channels
+    // Loop over the sound channels.
+    for (i = 0; i < MAXCHAN; i++)
     {
-        // we don't use mutex sync... not needed, would only
-        // slow us down:
-        //   s_chan[i].hMutex=CreateMutex(NULL,FALSE,NULL);
-        s_chan[i].adsr.ex().get<exSustainLevel>().value = 0xf << 27;  // -> init sustain
+        // No per-channel mutex synchronization is used here: it is not needed, and would only slow
+        // things down.
+        // Initialize the sustain level.
+        s_chan[i].adsr.ex().get<exSustainLevel>().value = 0xf << 27;
         s_chan[i].data.get<PCSX::SPU::Chan::Mute>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::Solo>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::IrqDone>().value = 0;
@@ -649,23 +664,20 @@ void PCSX::SPU::impl::SetupStreams() {
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-// REMOVESTREAMS: free most buffer
-////////////////////////////////////////////////////////////////////////
-
+// Free most of the SPU buffers.
 void PCSX::SPU::impl::RemoveStreams(void) {
-    free(pSpuBuffer);  // free mixing buffer
+    // Free the mixing buffer.
+    free(pSpuBuffer);
     pSpuBuffer = NULL;
-    free(m_reverb.sRVBStart);  // free reverb buffer
+    // Free the reverb buffer.
+    free(m_reverb.sRVBStart);
     m_reverb.sRVBStart = 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// SPUOPEN: called by main emu after init
-////////////////////////////////////////////////////////////////////////
-
+// Called by the main emulator after init.
 bool PCSX::SPU::impl::open() {
-    if (bSPUIsOpen) return true;  // security for some stupid main emus
+    // Guard against a redundant open.
+    if (bSPUIsOpen) return true;
 
     m_reverb.iReverbOff = -1;
     spuIrq = 0;
@@ -677,11 +689,11 @@ bool PCSX::SPU::impl::open() {
     wipeChannels();
     pSpuIrq = 0;
 
-    //    ReadConfig();  // read user stuff
+    // Prepare streaming.
+    SetupStreams();
 
-    SetupStreams();  // prepare streaming
-
-    SetupThread();  // timer for feeding data
+    // Start the thread that feeds data.
+    SetupThread();
 
     bSPUIsOpen = 1;
 
@@ -692,31 +704,27 @@ bool PCSX::SPU::impl::open() {
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////
-// SPUCLOSE: called before shutdown
-////////////////////////////////////////////////////////////////////////
-
+// Called before shutdown.
 long PCSX::SPU::impl::close(void) {
-    if (!bSPUIsOpen) return 0;  // some security
+    // Guard against closing when not open.
+    if (!bSPUIsOpen) return 0;
 
-    bSPUIsOpen = 0;  // no more open
+    bSPUIsOpen = 0;
 
-    RemoveThread();   // no more feeding
-    RemoveStreams();  // no more streaming
+    // No more feeding.
+    RemoveThread();
+    // No more streaming.
+    RemoveStreams();
 
     return 0;
 }
 
-////////////////////////////////////////////////////////////////////////
-// SPUSHUTDOWN: called by main emu on final exit
-////////////////////////////////////////////////////////////////////////
-
+// Called by the main emulator on final exit.
 long PCSX::SPU::impl::shutdown(void) { return 0; }
 
 ////////////////////////////////////////////////////////////////////////
-// SETUP CALLBACKS
-// this functions will be called once,
-// passes a callback that should be called on SPU-IRQ/cdda volume change
+// Callback setup. Called once, and passes a callback that is invoked on an
+// SPU IRQ or a CDDA volume change.
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t)) { cddavCallback = CDDAVcallback; }

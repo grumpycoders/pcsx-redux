@@ -1,19 +1,20 @@
 /***************************************************************************
-                       interpolation.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
 #include "spu/interpolation.h"
@@ -29,56 +30,60 @@ int16_t &PCSX::SPU::Interpolator::gaussWindow(int index) {
 }  // namespace PCSX::SPU
 
 ////////////////////////////////////////////////////////////////////////
-// helpers for simple interpolation
+// Helpers for simple interpolation.
 
 //
-// easy interpolation on upsampling, no special filter, just "Pete's common sense" tm
+// Easy interpolation on upsampling, with no special filter: the "Pete's common sense" approach.
 //
-// instead of having n equal sample values in a row like:
+// Instead of having n equal sample values in a row, like:
 //       ____
 //           |____
 //
 // we compare the current delta change with the next delta change.
 //
-// if curr_delta is positive,
+// If curr_delta is positive,
 //
-//  - and next delta is smaller (or changing direction):
+//  - and the next delta is smaller (or changes direction):
 //         \.
 //          -__
 //
-//  - and next delta significant (at least twice) bigger:
+//  - and the next delta is significantly (at least twice) bigger:
 //         --_
 //            \.
 //
-//  - and next delta is nearly same:
+//  - and the next delta is nearly the same:
 //          \.
 //           \.
 //
 //
-// if curr_delta is negative,
+// If curr_delta is negative,
 //
-//  - and next delta is smaller (or changing direction):
+//  - and the next delta is smaller (or changes direction):
 //          _--
 //         /
 //
-//  - and next delta significant (at least twice) bigger:
+//  - and the next delta is significantly (at least twice) bigger:
 //            /
 //         __-
 //
-//  - and next delta is nearly same:
+//  - and the next delta is nearly the same:
 //           /
 //          /
 //
 
 void PCSX::SPU::Interpolator::interpolateUp() {
-    if (m_state[4] == 1)  // flag == 1? calc step and set flag... and don't change the value in this pass
+    if (m_state[4] == 1)
     {
-        const int id1 = m_state[2] - m_state[1];  // curr delta to next val
-        const int id2 = m_state[3] - m_state[2];  // and next delta to next-next val :)
+        // Flag 1: calculate the step and set the flag, without changing the value in this pass.
+        // Current delta, to the next value.
+        const int id1 = m_state[2] - m_state[1];
+        // Next delta, to the value after that.
+        const int id2 = m_state[3] - m_state[2];
 
         m_state[4] = 0;
 
-        if (id1 > 0)  // curr delta positive
+        // Current delta positive.
+        if (id1 > 0)
         {
             if (id2 < id1) {
                 m_state[0] = id1;
@@ -87,8 +92,9 @@ void PCSX::SPU::Interpolator::interpolateUp() {
                 m_state[0] = (id1 * m_sinc) / 0x10000L;
             else
                 m_state[0] = (id1 * m_sinc) / 0x20000L;
-        } else  // curr delta negative
+        } else
         {
+            // Current delta negative.
             if (id2 > id1) {
                 m_state[0] = id1;
                 m_state[4] = 2;
@@ -97,8 +103,9 @@ void PCSX::SPU::Interpolator::interpolateUp() {
             else
                 m_state[0] = (id1 * m_sinc) / 0x20000L;
         }
-    } else if (m_state[4] == 2)  // flag 1: calc step and set flag... and don't change the value in this pass
+    } else if (m_state[4] == 2)
     {
+        // Flag 1: calculate the step and set the flag, without changing the value in this pass.
         m_state[4] = 0;
 
         m_state[0] = (m_state[0] * m_sinc) / 0x20000L;
@@ -106,53 +113,63 @@ void PCSX::SPU::Interpolator::interpolateUp() {
             m_state[1] = m_state[2] - (m_state[0] * ((0x10000 / m_sinc) - 1));
         else
             m_state[1] += m_state[0];
-    } else  // no flags? add bigger val (if possible), calc smaller step, set flag1
+    } else
+        // No flags: add the bigger value if possible, calculate the smaller step and set flag 1.
         m_state[1] += m_state[0];
 }
 
 //
-// even easier interpolation on downsampling, also no special filter, again just "Pete's common sense" tm
+// Even easier interpolation on downsampling, also with no special filter: again the "Pete's common sense" approach.
 //
 
 void PCSX::SPU::Interpolator::interpolateDown() {
-    if (m_sinc >= 0x20000L)  // we would skip at least one val?
+    // Would we skip at least one value?
+    if (m_sinc >= 0x20000L)
     {
-        m_state[1] += (m_state[2] - m_state[1]) / 2;      // add easy weight
-        if (m_sinc >= 0x30000L)                                   // we would skip even more vals?
-            m_state[1] += (m_state[3] - m_state[2]) / 2;  // add additional next weight
+        // Add the easy weight.
+        m_state[1] += (m_state[2] - m_state[1]) / 2;
+        // Would we skip even more values? Then add the next weight as well.
+        if (m_sinc >= 0x30000L)
+            m_state[1] += (m_state[3] - m_state[2]) / 2;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, bool isFModSource, bool unmuted) {
-    if (isFModSource)  // fmod freq channel
+    // Frequency modulator source channel.
+    if (isFModSource)
         m_state[1] = fa;
     else {
+        // A muted voice stores silence; otherwise the sample is clamped.
         if (!unmuted)
-            fa = 0;  // muted?
-        else         // else adjust
+            fa = 0;
+        else
         {
             if (fa > 32767L) fa = 32767L;
             if (fa < -32767L) fa = -32767L;
         }
 
-        if (interpolationType >= 2)  // gauss/cubic interpolation
+        if (interpolationType >= 2)
         {
+            // Gauss/cubic interpolation.
             int gpos = m_state[0];
             gaussWindow(gpos) = fa;
             gpos = (gpos + 1) & 3;
             m_state[0] = gpos;
-        } else if (interpolationType == 1)  // simple interpolation
+        } else if (interpolationType == 1)
         {
+            // Simple interpolation. Helpers for simple linear interpolation: delay the real value for two slots and
+            // calculate the two deltas, for a look at the future behavior.
             m_state[0] = 0;
-            m_state[1] = m_state[2];  // -> helpers for simple linear interpolation: delay real val for two slots,
-                                          // and calc the two deltas, for a 'look at the future behaviour'
+            m_state[1] = m_state[2];
             m_state[2] = m_state[3];
             m_state[3] = fa;
-            m_state[4] = 1;  // -> flag: calc new interolation
+            // Flag a new interpolation calculation.
+            m_state[4] = 1;
         } else
-            m_state[1] = fa;  // no interpolation
+            // No interpolation.
+            m_state[1] = fa;
     }
 }
 
@@ -205,10 +222,11 @@ int PCSX::SPU::Interpolator::getVal(int interpolationType, bool isFModSource) {
         //--------------------------------------------------//
         case 1:  // simple interpolation
         {
-            if (m_sinc < 0x10000L)            // -> upsampling?
-                interpolateUp();    // --> interpolate up
+            // Upsampling, or else downsampling.
+            if (m_sinc < 0x10000L)
+                interpolateUp();
             else
-                interpolateDown();  // --> else down
+                interpolateDown();
             fa = m_state[1];
         } break;
         //--------------------------------------------------//

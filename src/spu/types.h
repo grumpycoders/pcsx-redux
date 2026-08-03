@@ -30,69 +30,70 @@ namespace PCSX {
 
 namespace SPU {
 
-// MAIN CHANNEL STRUCT
+// Main channel struct.
 
 namespace Chan {
-// start flag
+// Start flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("new"), 1> New;
-// mixing stuff
+// Mixing state.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sb_pos"), 2> SBPos;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_pos"), 3> spos;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_inc"), 4> sinc;
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("sb"), 5> SB;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("sval"), 6> sval;
 
-// start ptr into sound mem
+// Start pointer into sound memory.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("start"), 7> StartPtr;
-// current pos in sound mem
+// Current position in sound memory.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("current"), 8> CurrPtr;
-// loop ptr in sound mem
+// Loop pointer in sound memory.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("loop"), 9> LoopPtr;
 
-// is channel active (sample playing?)
+// Is the channel active, that is, is a sample playing?
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("on"), 10> On;
-// is channel stopped (sample _can_ still be playing, ADSR Release phase)
+// Is the channel stopped? A sample can still be playing, in the ADSR release phase.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("stop"), 11> Stop;
-// can we do reverb on this channel? must have ctrl register bit, to get active
+// Can reverb be applied to this channel? The control register bit must be set for it to become
+// active.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("reverb"), 12> Reverb;
-// current psx pitch
+// Current PSX pitch.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("act_freq"), 13> ActFreq;
-// current pc pitch
+// Current PC pitch.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("used_freq"), 14> UsedFreq;
-// left volume (savestate mirror of VoiceVolume; runtime state lives in SPUCHAN::volume)
+// Left volume (savestate mirror of VoiceVolume; runtime state lives in SPUCHAN::volume).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left_volume"), 15> LeftVolume;
-// left psx volume value (savestate mirror of VoiceVolume)
+// Left PSX volume value (savestate mirror of VoiceVolume).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left_vol_raw"), 16> LeftVolRaw;
-// ignore loop bit, if an external loop address is used
+// Ignore the loop bit if an external loop address is used.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ignore_loop"), 17> IgnoreLoop;
-// mute mode
+// Mute mode.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("mute"), 18> Mute;
-// right volume (savestate mirror of VoiceVolume)
+// Right volume (savestate mirror of VoiceVolume).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("right_volume"), 19> RightVolume;
-// right psx volume value (savestate mirror of VoiceVolume)
+// Right PSX volume value (savestate mirror of VoiceVolume).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("right_vol_raw"), 20> RightVolRaw;
-// raw pitch (0...3fff)
+// Raw pitch (0...3fff).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("raw_pitch"), 21> RawPitch;
-// debug irq done flag
+// Debug IRQ-done flag.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("irq_done"), 22> IrqDone;
-// last decoding infos
+// Last decoding info.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_1"), 23> s_1;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_2"), 24> s_2;
-// reverb active flag
+// Reverb active flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("rvb_active"), 25> RVBActive;
-// reverb offset
+// Reverb offset.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_offset"), 26> RVBOffset;
-// reverb repeat
+// Reverb repeat.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_repeat"), 27> RVBRepeat;
-// noise active flag
+// Noise active flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("noise"), 28> Noise;
-// freq mod (0=off, 1=sound channel, 2=freq channel)
+// Frequency modulation (0=off, 1=sound channel, 2=freq channel).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
-// another reverb helper
+// Another reverb helper.
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
-// solo mode
+// Solo mode.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("solo"), 31> Solo;
-// skip id 32
+// Skip ID 32.
 typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
                           RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
@@ -109,8 +110,8 @@ struct SPUCHAN {
 };
 
 struct REVERBInfo {
-    int StartAddr;  // reverb area start addr in samples
-    int CurrAddr;   // reverb area curr addr in samples
+    int StartAddr;  // reverb area start address in samples
+    int CurrAddr;   // reverb area current address in samples
 
     int VolLeft;
     int VolRight;
