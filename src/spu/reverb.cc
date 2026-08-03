@@ -21,302 +21,164 @@
 
 #include <string.h>
 
+#include <algorithm>
+
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::reset() { memset((void *)&rvb, 0, sizeof(REVERBInfo)); }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::setPreset(uint16_t val) {
-    switch (val) {
-        case 0x0000:
-            iReverbOff = -1;
-            break;  // Off
-        case 0x007D:
-            iReverbOff = 32;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // Room
-
-        case 0x0033:
-            iReverbOff = 32;
-            iReverbNum = 2;
-            iReverbRepeat = 64;
-            break;  // Studio small
-        case 0x00B1:
-            iReverbOff = 48;
-            iReverbNum = 2;
-            iReverbRepeat = 96;
-            break;  // Studio medium
-        case 0x00E3:
-            iReverbOff = 64;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // Studio large
-
-        case 0x01A5:
-            iReverbOff = 128;
-            iReverbNum = 4;
-            iReverbRepeat = 32;
-            break;  // Hall
-        case 0x033D:
-            iReverbOff = 256;
-            iReverbNum = 4;
-            iReverbRepeat = 64;
-            break;  // Space echo
-        case 0x0001:
-            iReverbOff = 184;
-            iReverbNum = 3;
-            iReverbRepeat = 128;
-            break;  // Echo/delay
-        case 0x0017:
-            iReverbOff = 128;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // Half echo
-        default:
-            iReverbOff = 32;
-            iReverbNum = 1;
-            iReverbRepeat = 0;
-            break;
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl, int mode) {
-    // Is reverb possible?
-    if (voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable)) {
-        if (mode == 2)
-            voice->data.get<Chan::RVBActive>().value = true;
-        else if (mode == 1 && iReverbOff > 0)  // Is the fake reverb used?
-        {
-            // Activate it.
-            voice->data.get<Chan::RVBActive>().value = true;
-            voice->data.get<Chan::RVBOffset>().value = iReverbOff * 45;
-            voice->data.get<Chan::RVBRepeat>().value = iReverbRepeat * 45;
-            voice->data.get<Chan::RVBNum>().value = iReverbNum;
-        }
-    } else
-        // Otherwise there is no reverb.
-        voice->data.get<Chan::RVBActive>().value = false;
+void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl) {
+    voice->data.get<Chan::RVBActive>().value =
+        voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable);
 }
 
 ////////////////////////////////////////////////////////////////////////
 
 // Helper for Neill's reverb: re-initializes the reverb mixing buffer.
-void PCSX::SPU::ReverbUnit::init(int mode, int nssize) {
-    if (mode == 2) {
-        memset(sRVBStart, 0, nssize * 2 * 4);
-    }
+void PCSX::SPU::ReverbUnit::init(int nssize) { memset(mixStart, 0, nssize * 2 * 4); }
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::ReverbUnit::store(SPUCHAN *voice, int ns) {
+    const int sendLeft = (voice->data.get<Chan::sval>().value * voice->volume.left()) / 0x4000;
+    const int sendRight = (voice->data.get<Chan::sval>().value * voice->volume.right()) / 0x4000;
+
+    // Every active reverb voice is summed into the mixing buffer, interleaved.
+    ns <<= 1;
+    mixStart[ns] += sendLeft;
+    mixStart[ns + 1] += sendRight;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::store(SPUCHAN *voice, int ns, int mode) {
-    if (mode == 0)
-        return;
-    else if (mode == 2)  // Neill's reverb.
-    {
-        const int iRxl = (voice->data.get<Chan::sval>().value * voice->volume.left()) / 0x4000;
-        const int iRxr = (voice->data.get<Chan::sval>().value * voice->volume.right()) / 0x4000;
-
-        ns <<= 1;
-
-        // All active reverb channels are mixed into an extra buffer.
-        *(sRVBStart + ns) += iRxl;
-        *(sRVBStart + ns + 1) += iRxr;
-    } else  // Pete's easy fake reverb.
-    {
-        int *pN;
-        int iRn, iRr = 0;
-
-        // Use half the channel volume (/0x8000) for the first reverb effect, a quarter for the next, and so on.
-
-        int iRxl = (voice->data.get<Chan::sval>().value * voice->volume.left()) / 0x8000;
-        int iRxr = (voice->data.get<Chan::sval>().value * voice->volume.right()) / 0x8000;
-
-        for (iRn = 1; iRn <= voice->data.get<Chan::RVBNum>().value;
-             iRn++, iRr += voice->data.get<Chan::RVBRepeat>().value, iRxl /= 2, iRxr /= 2) {
-            pN = sRVBPlay + ((voice->data.get<Chan::RVBOffset>().value + iRr + ns) << 1);
-            if (pN >= sRVBEnd) pN = sRVBStart + (pN - sRVBEnd);
-
-            (*pN) += iRxl;
-            pN++;
-            (*pN) += iRxr;
-        }
-    }
+// Resolve a work-area offset to a sample index, wrapping at both ends. Offsets
+// arrive in 32-bit units, hence the * 4.
+int PCSX::SPU::ReverbUnit::wrapOffset(int offset, int extraSample) const {
+    offset = offset * 4 + rvb.CurrAddr + extraSample;
+    while (offset > 0x3ffff) offset = rvb.StartAddr + (offset - 0x40000);
+    while (offset < rvb.StartAddr) offset = 0x3ffff - (rvb.StartAddr - offset);
+    return offset;
 }
 
-////////////////////////////////////////////////////////////////////////
-
-// get_buffer content helper: takes care of wraps.
-int PCSX::SPU::ReverbUnit::g_buffer(int iOff, uint16_t *spuMem) {
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    return (int)*(p + iOff);
+int PCSX::SPU::ReverbUnit::getBuffer(int offset, uint16_t *spuMem) const {
+    return reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, 0)];
 }
 
-////////////////////////////////////////////////////////////////////////
-
-// set_buffer content helper: takes care of wraps and clipping.
-void PCSX::SPU::ReverbUnit::s_buffer(int iOff, int iVal, uint16_t *spuMem) {
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    if (iVal < -32768L) iVal = -32768L;
-    if (iVal > 32767L) iVal = 32767L;
-    *(p + iOff) = (short)iVal;
+template <int ExtraSample>
+void PCSX::SPU::ReverbUnit::setBuffer(int offset, int value, uint16_t *spuMem) {
+    reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, ExtraSample)] =
+        static_cast<int16_t>(std::clamp(value, -32768, 32767));
 }
 
-////////////////////////////////////////////////////////////////////////
-
-// set_buffer (+1 sample) content helper: takes care of wraps and clipping.
-void PCSX::SPU::ReverbUnit::s_buffer1(int iOff, int iVal, uint16_t *spuMem) {
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr + 1;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    if (iVal < -32768L) iVal = -32768L;
-    if (iVal > 32767L) iVal = 32767L;
-    *(p + iOff) = (short)iVal;
-}
 
 ////////////////////////////////////////////////////////////////////////
-int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, int mode) {
-    if (mode == 0)
+int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
+    // This function is called at 44.1 kHz.
+    static int callCount = 0;
+
+    // Reverb is off.
+    if (!rvb.StartAddr) {
+        rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;
         return 0;
-    else if (mode == 2) {
-        // This function is called at 44.1 kHz.
-        static int iCnt = 0;
+    }
 
-        // Reverb is off.
-        if (!rvb.StartAddr) {
-            rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
-            return 0;
-        }
+    callCount++;
 
-        iCnt++;
+    // Work on every second left value: downsample to 22 kHz.
+    if (callCount & 1) {
+        // Reverb on.
+        if (spuCtrl & kReverbMasterEnable) {
+            int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
 
-        // Work on every second left value: downsample to 22 kHz.
-        if (iCnt & 1) {
-            // Reverb on.
-            if (spuCtrl & kReverbMasterEnable) {
-                int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
+            const int INPUT_SAMPLE_L = *(mixStart + (ns << 1));
+            const int INPUT_SAMPLE_R = *(mixStart + (ns << 1) + 1);
 
-                const int INPUT_SAMPLE_L = *(sRVBStart + (ns << 1));
-                const int INPUT_SAMPLE_R = *(sRVBStart + (ns << 1) + 1);
+            const int IIR_INPUT_A0 = (getBuffer(rvb.IIR_SRC_A0, spuMem) * rvb.IIR_COEF) / 32768L +
+                                     (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
+            const int IIR_INPUT_A1 = (getBuffer(rvb.IIR_SRC_A1, spuMem) * rvb.IIR_COEF) / 32768L +
+                                     (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
+            const int IIR_INPUT_B0 = (getBuffer(rvb.IIR_SRC_B0, spuMem) * rvb.IIR_COEF) / 32768L +
+                                     (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
+            const int IIR_INPUT_B1 = (getBuffer(rvb.IIR_SRC_B1, spuMem) * rvb.IIR_COEF) / 32768L +
+                                     (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
 
-                const int IIR_INPUT_A0 = (g_buffer(rvb.IIR_SRC_A0, spuMem) * rvb.IIR_COEF) / 32768L +
-                                         (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
-                const int IIR_INPUT_A1 = (g_buffer(rvb.IIR_SRC_A1, spuMem) * rvb.IIR_COEF) / 32768L +
-                                         (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
-                const int IIR_INPUT_B0 = (g_buffer(rvb.IIR_SRC_B0, spuMem) * rvb.IIR_COEF) / 32768L +
-                                         (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
-                const int IIR_INPUT_B1 = (g_buffer(rvb.IIR_SRC_B1, spuMem) * rvb.IIR_COEF) / 32768L +
-                                         (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
+            const int IIR_A0 = (IIR_INPUT_A0 * rvb.IIR_ALPHA) / 32768L +
+                               (getBuffer(rvb.IIR_DEST_A0, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_A1 = (IIR_INPUT_A1 * rvb.IIR_ALPHA) / 32768L +
+                               (getBuffer(rvb.IIR_DEST_A1, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_B0 = (IIR_INPUT_B0 * rvb.IIR_ALPHA) / 32768L +
+                               (getBuffer(rvb.IIR_DEST_B0, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            const int IIR_B1 = (IIR_INPUT_B1 * rvb.IIR_ALPHA) / 32768L +
+                               (getBuffer(rvb.IIR_DEST_B1, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
 
-                const int IIR_A0 = (IIR_INPUT_A0 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_A0, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_A1 = (IIR_INPUT_A1 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_A1, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_B0 = (IIR_INPUT_B0 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_B0, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_B1 = (IIR_INPUT_B1 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_B1, spuMem) * (32768L - rvb.IIR_ALPHA)) / 32768L;
+            setBuffer<1>(rvb.IIR_DEST_A0, IIR_A0, spuMem);
+            setBuffer<1>(rvb.IIR_DEST_A1, IIR_A1, spuMem);
+            setBuffer<1>(rvb.IIR_DEST_B0, IIR_B0, spuMem);
+            setBuffer<1>(rvb.IIR_DEST_B1, IIR_B1, spuMem);
 
-                s_buffer1(rvb.IIR_DEST_A0, IIR_A0, spuMem);
-                s_buffer1(rvb.IIR_DEST_A1, IIR_A1, spuMem);
-                s_buffer1(rvb.IIR_DEST_B0, IIR_B0, spuMem);
-                s_buffer1(rvb.IIR_DEST_B1, IIR_B1, spuMem);
+            ACC0 = (getBuffer(rvb.ACC_SRC_A0, spuMem) * rvb.ACC_COEF_A) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_B0, spuMem) * rvb.ACC_COEF_B) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_C0, spuMem) * rvb.ACC_COEF_C) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_D0, spuMem) * rvb.ACC_COEF_D) / 32768L;
+            ACC1 = (getBuffer(rvb.ACC_SRC_A1, spuMem) * rvb.ACC_COEF_A) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_B1, spuMem) * rvb.ACC_COEF_B) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_C1, spuMem) * rvb.ACC_COEF_C) / 32768L +
+                   (getBuffer(rvb.ACC_SRC_D1, spuMem) * rvb.ACC_COEF_D) / 32768L;
 
-                ACC0 = (g_buffer(rvb.ACC_SRC_A0, spuMem) * rvb.ACC_COEF_A) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_B0, spuMem) * rvb.ACC_COEF_B) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_C0, spuMem) * rvb.ACC_COEF_C) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_D0, spuMem) * rvb.ACC_COEF_D) / 32768L;
-                ACC1 = (g_buffer(rvb.ACC_SRC_A1, spuMem) * rvb.ACC_COEF_A) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_B1, spuMem) * rvb.ACC_COEF_B) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_C1, spuMem) * rvb.ACC_COEF_C) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_D1, spuMem) * rvb.ACC_COEF_D) / 32768L;
+            FB_A0 = getBuffer(rvb.MIX_DEST_A0 - rvb.FB_SRC_A, spuMem);
+            FB_A1 = getBuffer(rvb.MIX_DEST_A1 - rvb.FB_SRC_A, spuMem);
+            FB_B0 = getBuffer(rvb.MIX_DEST_B0 - rvb.FB_SRC_B, spuMem);
+            FB_B1 = getBuffer(rvb.MIX_DEST_B1 - rvb.FB_SRC_B, spuMem);
 
-                FB_A0 = g_buffer(rvb.MIX_DEST_A0 - rvb.FB_SRC_A, spuMem);
-                FB_A1 = g_buffer(rvb.MIX_DEST_A1 - rvb.FB_SRC_A, spuMem);
-                FB_B0 = g_buffer(rvb.MIX_DEST_B0 - rvb.FB_SRC_B, spuMem);
-                FB_B1 = g_buffer(rvb.MIX_DEST_B1 - rvb.FB_SRC_B, spuMem);
+            setBuffer<0>(rvb.MIX_DEST_A0, ACC0 - (FB_A0 * rvb.FB_ALPHA) / 32768L, spuMem);
+            setBuffer<0>(rvb.MIX_DEST_A1, ACC1 - (FB_A1 * rvb.FB_ALPHA) / 32768L, spuMem);
 
-                s_buffer(rvb.MIX_DEST_A0, ACC0 - (FB_A0 * rvb.FB_ALPHA) / 32768L, spuMem);
-                s_buffer(rvb.MIX_DEST_A1, ACC1 - (FB_A1 * rvb.FB_ALPHA) / 32768L, spuMem);
+            setBuffer<0>(rvb.MIX_DEST_B0,
+                     (rvb.FB_ALPHA * ACC0) / 32768L - (FB_A0 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
+                         (FB_B0 * rvb.FB_X) / 32768L,
+                     spuMem);
+            setBuffer<0>(rvb.MIX_DEST_B1,
+                     (rvb.FB_ALPHA * ACC1) / 32768L - (FB_A1 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
+                         (FB_B1 * rvb.FB_X) / 32768L,
+                     spuMem);
 
-                s_buffer(rvb.MIX_DEST_B0,
-                         (rvb.FB_ALPHA * ACC0) / 32768L - (FB_A0 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
-                             (FB_B0 * rvb.FB_X) / 32768L,
-                         spuMem);
-                s_buffer(rvb.MIX_DEST_B1,
-                         (rvb.FB_ALPHA * ACC1) / 32768L - (FB_A1 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
-                             (FB_B1 * rvb.FB_X) / 32768L,
-                         spuMem);
+            rvb.lastWetLeft = rvb.wetLeft;
+            rvb.lastWetRight = rvb.wetRight;
 
-                rvb.iLastRVBLeft = rvb.iRVBLeft;
-                rvb.iLastRVBRight = rvb.iRVBRight;
+            rvb.wetLeft = (getBuffer(rvb.MIX_DEST_A0, spuMem) + getBuffer(rvb.MIX_DEST_B0, spuMem)) / 3;
+            rvb.wetRight = (getBuffer(rvb.MIX_DEST_A1, spuMem) + getBuffer(rvb.MIX_DEST_B1, spuMem)) / 3;
 
-                rvb.iRVBLeft = (g_buffer(rvb.MIX_DEST_A0, spuMem) + g_buffer(rvb.MIX_DEST_B0, spuMem)) / 3;
-                rvb.iRVBRight = (g_buffer(rvb.MIX_DEST_A1, spuMem) + g_buffer(rvb.MIX_DEST_B1, spuMem)) / 3;
-
-                rvb.iRVBLeft = (rvb.iRVBLeft * rvb.VolLeft) / 0x4000;
-                rvb.iRVBRight = (rvb.iRVBRight * rvb.VolRight) / 0x4000;
-
-                rvb.CurrAddr++;
-                if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
-
-                return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
-            } else  // Reverb off.
-            {
-                rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
-            }
+            rvb.wetLeft = (rvb.wetLeft * rvb.VolLeft) / 0x4000;
+            rvb.wetRight = (rvb.wetRight * rvb.VolRight) / 0x4000;
 
             rvb.CurrAddr++;
             if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+
+            return rvb.lastWetLeft + (rvb.wetLeft - rvb.lastWetLeft) / 2;
+        }
+        // Reverb off.
+        else {
+            rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;
         }
 
-        return rvb.iLastRVBLeft;
-    } else  // Easy fake reverb.
-    {
-        // Simply take the reverb mixing buffer value.
-        const int iRV = *sRVBPlay;
-        // Initialize it afterwards.
-        *sRVBPlay++ = 0;
-        // Take care of wrap arounds.
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;
-        // Return the reverb mixing buffer value.
-        return iRV;
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
     }
+
+return rvb.lastWetLeft;
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::ReverbUnit::mixRight(int mode) {
-    if (mode == 0)
-        return 0;
-    else if (mode == 2)  // Neill's reverb.
-    {
-        int i = rvb.iLastRVBRight + (rvb.iRVBRight - rvb.iLastRVBRight) / 2;
-        rvb.iLastRVBRight = rvb.iRVBRight;
-        // Just return the last right reverb value, scaled a little by the previous right value.
-        return i;
-    } else  // Easy fake reverb.
-    {
-        // Simply take the reverb mixing buffer value.
-        const int iRV = *sRVBPlay;
-        // Initialize it afterwards.
-        *sRVBPlay++ = 0;
-        // Take care of wrap arounds.
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;
-        // Return the reverb mixing buffer value.
-        return iRV;
-    }
+int PCSX::SPU::ReverbUnit::mixRight() {
+    // Return the last right wet value, halfway interpolated toward the current one.
+    const int sample = rvb.lastWetRight + (rvb.wetRight - rvb.lastWetRight) / 2;
+    rvb.lastWetRight = rvb.wetRight;
+    return sample;
 }
 
 ////////////////////////////////////////////////////////////////////////

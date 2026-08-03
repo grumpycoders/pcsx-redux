@@ -45,38 +45,34 @@ class ReverbUnit {
     // Reverb work state, written directly by the register handlers.
     REVERBInfo rvb;
 
-    // Neill/Pete reverb mixing buffer (allocated/freed by the impl, which stores
-    // the pointers here).
-    int *sRVBPlay = 0;
-    int *sRVBEnd = 0;
-    int *sRVBStart = 0;
-
-    // Fake-reverb preset timing, set by setPreset() from the reverb-mode register.
-    int iReverbOff = -1;
-    int iReverbRepeat = 0;
-    int iReverbNum = 1;
+    // Reverb mixing buffer (allocated/freed by the impl, which stores the pointer
+    // here). One interleaved stereo pair per sample of the batch.
+    int *mixStart = 0;
 
     // Zero the reverb work state (was memset(&rvb, 0, sizeof(REVERBInfo))).
     void reset();
 
-    // Reverb-mode register write (was impl::SetREVERB).
-    void setPreset(uint16_t val);
-    // Per-voice reverb arm on key-on (was impl::StartREVERB). mode = reverb setting.
-    void start(SPUCHAN *voice, uint16_t spuCtrl, int mode);
-    // Re-init the Neill mixing buffer each block (was impl::InitREVERB).
-    void init(int mode, int nssize);
+    // Per-voice reverb arm on key-on (was impl::StartREVERB).
+    void start(SPUCHAN *voice, uint16_t spuCtrl);
+    // Re-init the mixing buffer each block (was impl::InitREVERB).
+    void init(int nssize);
     // Mix one active reverb voice into the buffer (was impl::StoreREVERB).
-    void store(SPUCHAN *voice, int ns, int mode);
+    void store(SPUCHAN *voice, int ns);
     // Produce the left/right wet-out sample (was impl::MixREVERBLeft / MixREVERBRight).
-    int mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl, int mode);
-    int mixRight(int mode);
+    int mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl);
+    int mixRight();
 
   private:
-    // Reverb work-area access helpers (was impl::g_buffer / s_buffer / s_buffer1);
-    // spuMem is the SPU sound RAM base.
-    int g_buffer(int iOff, uint16_t *spuMem);
-    void s_buffer(int iOff, int iVal, uint16_t *spuMem);
-    void s_buffer1(int iOff, int iVal, uint16_t *spuMem);
+    // The reverb work area is a circular window in sound RAM. Offsets are counted
+    // in 32-bit units from CurrAddr, wrap at the top of RAM back to StartAddr, and
+    // are the one piece of arithmetic every work-area access shares. ExtraSample is
+    // the half-sample stagger the IIR destinations write at; it is a template
+    // parameter because it is only ever 0 or 1 and it selects the whole access.
+    int wrapOffset(int offset, int extraSample) const;
+    int getBuffer(int offset, uint16_t *spuMem) const;
+    template <int ExtraSample>
+    void setBuffer(int offset, int value, uint16_t *spuMem);
+
 };
 
 }  // namespace SPU

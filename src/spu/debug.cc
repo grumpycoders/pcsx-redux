@@ -446,11 +446,8 @@ void DrawTableReverb(SPU_CHANNELS_INFO channels, const float rowHeight) {
             ImGui::TableNextColumn();
             ImGui::Text("%i", data.get<Chan::RVBActive>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBNum>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBOffset>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBRepeat>().value);
             // @formatter:on
         }
         ImGui::EndTable();

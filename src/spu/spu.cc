@@ -48,7 +48,7 @@ constexpr int kMixSampleClamp = 32767;
 // Called by the main thread to set up a new sound on a channel.
 inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
     voice->adsr.keyOn();
-    m_reverb.start(voice, spuCtrl, settings.get<Reverb>());
+    m_reverb.start(voice, spuCtrl);
 
     // Rewind the decode cursor to the sample start and clear the IIR history.
     voice->adpcm.keyOn();
@@ -334,7 +334,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
             }
 
             // Store for reverb.
-            if (rvbActive) m_reverb.store(voice, ns, settings.get<Reverb>());
+            if (rvbActive) m_reverb.store(voice, ns);
         }
 
         voice->interp.advance();
@@ -446,11 +446,11 @@ void PCSX::SPU::impl::MainThread() {
         // Mix all channels, including reverb, into one buffer.
 
         for (ns = 0; ns < NSSIZE; ns++) {
-            SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl, settings.get<Reverb>());
+            SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
             *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumL[ns] = 0;
 
-            SSumR[ns] += m_reverb.mixRight(settings.get<Reverb>());
+            SSumR[ns] += m_reverb.mixRight();
             *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumR[ns] = 0;
         }
@@ -490,7 +490,7 @@ void PCSX::SPU::impl::MainThread() {
             }
         }
 
-        m_reverb.init(settings.get<Reverb>(), NSSIZE);
+        m_reverb.init(NSSIZE);
 
         //////////////////////////////////////////////////////
         // Feed the sound. The target update rate is around 1/60 sec (16.666 ms).
@@ -627,16 +627,10 @@ void PCSX::SPU::impl::SetupStreams() {
     // Allocate the mixing buffer.
     spuBuffer = (uint8_t *)malloc(32768);
 
-    if (settings.get<Reverb>() == 1)
-        i = 88200 * 2;
-    else
-        i = NSSIZE * 2;
-
-    // Allocate the reverb buffer.
-    m_reverb.sRVBStart = (int *)malloc(i * 4);
-    memset(m_reverb.sRVBStart, 0, i * 4);
-    m_reverb.sRVBEnd = m_reverb.sRVBStart + i;
-    m_reverb.sRVBPlay = m_reverb.sRVBStart;
+    // Allocate the reverb mixing buffer: one interleaved stereo pair per sample.
+    i = NSSIZE * 2;
+    m_reverb.mixStart = (int *)malloc(i * 4);
+    memset(m_reverb.mixStart, 0, i * 4);
 
     // Loop over the sound channels.
     for (i = 0; i < MAXCHAN; i++) {
@@ -659,8 +653,8 @@ void PCSX::SPU::impl::RemoveStreams(void) {
     free(spuBuffer);
     spuBuffer = NULL;
     // Free the reverb buffer.
-    free(m_reverb.sRVBStart);
-    m_reverb.sRVBStart = 0;
+    free(m_reverb.mixStart);
+    m_reverb.mixStart = 0;
 }
 
 // Called by the main emulator after init.
@@ -668,7 +662,6 @@ bool PCSX::SPU::impl::open() {
     // Guard against a redundant open.
     if (spuIsOpen) return true;
 
-    m_reverb.iReverbOff = -1;
     spuIrq = 0;
     spuAddr = 0xffffffff;
     endThread = 0;

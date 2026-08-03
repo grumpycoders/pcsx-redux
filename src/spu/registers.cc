@@ -330,7 +330,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             m_reverb.rvb.FB_SRC_A = val;
 
             // Fake reverb: depending on the effect, more or less delay and repeats are applied.
-            m_reverb.setPreset(val);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, dAPF1 = %04x\n", val);
             break;
 

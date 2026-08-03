@@ -33,6 +33,8 @@ namespace SPU {
 // Main channel struct.
 
 namespace Chan {
+// Field numbers 26 (rvb_offset), 27 (rvb_repeat) and 30 (rvb_num) were the
+// fake-reverb timing state. That mode is gone; do not reuse the numbers.
 // Start flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("new"), 1> New;
 // Mixing state.
@@ -82,22 +84,19 @@ typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("s_2"), 24> s_2;
 // Reverb active flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("rvb_active"), 25> RVBActive;
 // Reverb offset.
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_offset"), 26> RVBOffset;
 // Reverb repeat.
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_repeat"), 27> RVBRepeat;
 // Noise active flag.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("noise"), 28> Noise;
 // Frequency modulation (0=off, 1=sound channel, 2=freq channel).
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("fmod"), 29> FMod;
 // Another reverb helper.
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("rvb_num"), 30> RVBNum;
 // Solo mode.
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("solo"), 31> Solo;
 // Skip ID 32.
 typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
-                          RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, RVBOffset, RVBRepeat, Noise, FMod,
-                          RVBNum, Solo>
+                          RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, Noise, FMod,
+                          Solo>
     Data;
 }  // namespace Chan
 
@@ -115,10 +114,10 @@ struct REVERBInfo {
 
     int VolLeft;
     int VolRight;
-    int iLastRVBLeft;
-    int iLastRVBRight;
-    int iRVBLeft;
-    int iRVBRight;
+    int lastWetLeft;
+    int lastWetRight;
+    int wetLeft;
+    int wetRight;
 
     int FB_SRC_A;     // (offset)
     int FB_SRC_B;     // (offset)

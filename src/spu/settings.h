@@ -30,7 +30,6 @@ typedef Setting<bool, TYPESTRING("UseNullSync"), false> NullSync;
 typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
 typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
 typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
-typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
 typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
 typedef Setting<bool, TYPESTRING("Mono")> Mono;
 typedef Setting<bool, TYPESTRING("DBufIRQ"), true> DBufIRQ;
@@ -45,7 +44,7 @@ typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
 // silence after KEY_ON before the voice's first decoded sample appears in the capture mirror; Redux emits
 // immediately. EXPERIMENTAL/diagnostic default 0 (no change); set via Lua to characterize/model the offset.
 typedef Setting<int, TYPESTRING("KeyOnDelay"), 0> KeyOnDelay;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute,
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Interpolation, Mono, DBufIRQ, Mute,
                  Speed, KeyOnDelay>
     SettingsType;
 

@@ -75,9 +75,6 @@ in sync, by changing its pitch. Consumes more CPU.)"));
     ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
-    const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
-                                  _("Accurate - best quality, but slower")};
-    changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
     const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
                                          _("Gaussian interpolation - good quality"),
                                          _("Cubic interpolation - better treble")};
