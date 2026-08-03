@@ -303,6 +303,29 @@ static int spu_compare_golden(const char *name, const void *cap, const uint8_t *
     const int periodS = (int)(h->period / 2);
     const int keptS = warmupS + periodS;
 
+    // A golden that carries no samples makes both loops below run zero iterations,
+    // so the test reports PASS having compared nothing - it cannot fail, which is
+    // strictly worse than having no test. That is exactly what a truncated capture,
+    // a zero-length placeholder, or a failed PCdrv write leaves behind, and none of
+    // them look wrong from here. Refuse to treat a degenerate oracle as an oracle.
+    if (h->magic != 0x544d4350u) {
+        ramsyscall_printf("%s: golden has bad magic 0x%08x, expected 'PCMT'\n", name, (unsigned)h->magic);
+        return 1;
+    }
+    if (keptS <= 0 || keptS > 512) {
+        ramsyscall_printf("%s: golden covers %d samples (warmup=%d period=%d); refusing it\n",
+                          name, keptS, (int)h->warmup, (int)h->period);
+        return 1;
+    }
+    if (keptS <= SPU_ONSET_SKIP) {
+        // Shorter than the onset skip, so the golden comparison below compares
+        // nothing. The periodicity check still runs and is still worth something,
+        // so this is a warning rather than a failure - but it must not read as a
+        // test that verified its samples, because it did not.
+        ramsyscall_printf("%s: golden is %d samples, at or under the %d-sample onset skip - "
+                          "periodicity only, no sample comparison\n", name, keptS, SPU_ONSET_SKIP);
+    }
+
     int bestS = 0, bestBad = 0x7fffffff;
     for (int s = 0; s < 512; s++) {
         int bad = 0;
