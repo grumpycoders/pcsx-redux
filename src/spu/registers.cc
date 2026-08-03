@@ -477,16 +477,13 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             case 12: {
                 const int ch = (r >> 4) - 0xc0;
 
-                if (s_chan[ch].data.get<Chan::New>().value) {
-                    PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = 00001\n", ch);
-                    // The voice is started but not processed yet, so return 1.
-                    return 1;
-                }
-                // Same here: no sample has been decoded yet, so there is no envelope yet. Return 1 as well.
-                if (s_chan[ch].adsr.ex().get<exVolume>().value && !s_chan[ch].adsr.ex().get<exEnvelopeVol>().value) {
-                    PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = 00001\n", ch);
-                    return 1;
-                }
+                // ENVX is the live envelope level and nothing else (0..7FFFh). A voice that
+                // has been keyed on but has not stepped its envelope yet reads 0, exactly
+                // like an idle one - software keys on and then spins on ENVX until it goes
+                // nonzero to synchronise with the SPU's own sample clock. The old "started
+                // but not processed, return 1" fudge broke that: the spin exited at key-on
+                // instead of at the first envelope step, so every subsequent read landed one
+                // envelope period early.
                 PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current ADSR Volume = %04x\n", ch,
                                          (uint16_t)s_chan[ch].adsr.ex().get<exEnvelopeVol>().value);
                 return (uint16_t)s_chan[ch].adsr.ex().get<exEnvelopeVol>().value;

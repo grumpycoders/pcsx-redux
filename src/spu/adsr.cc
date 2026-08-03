@@ -181,8 +181,9 @@ int PCSX::SPU::AdsrEnvelope::Release(bool &channelOn) {
 }
 
 void PCSX::SPU::AdsrEnvelope::keyOn() {
-    // Reset the live envelope to the very start of the Attack phase.
-    m_adsrx.get<exVolume>().value = 1;
+    // Reset the live envelope to the very start of the Attack phase. The level is
+    // genuinely zero until the first Attack step lands; ENVX reads it as such.
+    m_adsrx.get<exVolume>().value = 0;
     m_adsrx.get<exState>().value = ADSRState::Attack;
     m_adsrx.get<exEnvelopeVol>().value = 0;
     m_adsrx.get<exEnvelopeVolF>().value = 0;
