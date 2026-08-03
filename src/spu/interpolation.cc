@@ -137,8 +137,12 @@ void PCSX::SPU::Interpolator::storeVal(int fa, int interpolationType, bool isFMo
         if (!unmuted)
             fa = 0;
         else {
+            // The floor is -32768, not -32767: an ADPCM block can decode to the
+            // bottom of the int16 range, and clamping one short of it shaves an
+            // LSB that then rides into every interpolation window the sample
+            // appears in.
             if (fa > 32767L) fa = 32767L;
-            if (fa < -32767L) fa = -32767L;
+            if (fa < -32768L) fa = -32768L;
         }
 
         if (interpolationType >= 2) {
@@ -192,19 +196,22 @@ int PCSX::SPU::Interpolator::getVal(int interpolationType, bool isFModSource) {
         {
             // Hardware-canonical PSX SPU gaussian (no$psx): four taps from the
             // 512-entry gauss512 table indexed by the 8-bit fractional position
-            // i = bits 8..15 of the 16.16 pitch counter, each product summed after
-            // an individual SAR 15. The window holds oldest..newest at gpos..gpos+3.
-            // This replaces Pete Bernert's approximation (per-tap `& ~2047` quantize
-            // then `>> 11` over the over-unity SNES-logged table), which ran ~0.4%
-            // hot; gauss512's four coefficients sum to ~0x7F80, matching hardware's
-            // slight attenuation.
+            // i = bits 8..15 of the 16.16 pitch counter. Each product is shifted
+            // down 14 rather than 15, so one bit below its LSB survives into the
+            // sum, and the accumulator drops that guard bit once all four taps are
+            // in. Shifting per tap instead discards it four times over and lands
+            // consistently one LSB low. The window holds oldest..newest at
+            // gpos..gpos+3. This replaces Pete Bernert's approximation (per-tap
+            // `& ~2047` quantize then `>> 11` over the over-unity SNES-logged
+            // table), which ran ~0.4% hot; gauss512's four coefficients sum to
+            // ~0x7F80, matching hardware's slight attenuation.
             const int gpos = m_state[0];
             const int i = (m_spos >> 8) & 0xFF;
-            int vr = (Gauss::gauss512[0x0FF - i] * gaussWindow(gpos)) >> 15;
-            vr += (Gauss::gauss512[0x1FF - i] * gaussWindow(gpos + 1)) >> 15;
-            vr += (Gauss::gauss512[0x100 + i] * gaussWindow(gpos + 2)) >> 15;
-            vr += (Gauss::gauss512[0x000 + i] * gaussWindow(gpos + 3)) >> 15;
-            fa = vr;
+            int vr = (Gauss::gauss512[0x0FF - i] * gaussWindow(gpos)) >> 14;
+            vr += (Gauss::gauss512[0x1FF - i] * gaussWindow(gpos + 1)) >> 14;
+            vr += (Gauss::gauss512[0x100 + i] * gaussWindow(gpos + 2)) >> 14;
+            vr += (Gauss::gauss512[0x000 + i] * gaussWindow(gpos + 3)) >> 14;
+            fa = vr >> 1;
         } break;
         //--------------------------------------------------//
         case 1:  // simple interpolation
