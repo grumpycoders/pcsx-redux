@@ -49,6 +49,16 @@ CESTER_TEST(voice_sample_rate_swept_index, spu_tests,
     SPU_ASSERT_GOLDEN(sine_pitch_1400);
 )
 
+// The same sweep at full resolution. kAdpcmSine7's decoded value period is 7
+// rather than 28, so 0x1300 (19/16) walks all sixteen gaussian indices for a
+// joint period of 16*7 = 112 - the same ring cost as the four-index capture
+// above, four times the coverage, and 400 samples of headroom for the warmup.
+// gcd(19, 7) = 1, so every source phase stays reachable by rotation.
+CESTER_TEST(voice_sample_rate_swept_index_full, spu_tests,
+    run_voice1_with_sample(kAdpcmSine7, 0x1300);
+    SPU_ASSERT_GOLDEN(sine7_pitch_1300);
+)
+
 CESTER_TEST(voice_volume_does_not_affect_capture, spu_tests,
     SPU_VOICES[1].volumeLeft = 0x3fff;
     SPU_VOICES[1].volumeRight = 0x3fff;
