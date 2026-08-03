@@ -20,7 +20,6 @@
 #include "spu/interpolation.h"
 
 #include "spu/gauss.h"
-#include "spu/rounding-probe.h"
 
 namespace PCSX::SPU {
 // The four-tap gaussian/cubic window is four int16 samples packed into m_state[1]
@@ -201,37 +200,11 @@ int PCSX::SPU::Interpolator::getVal(int interpolationType, bool isFModSource) {
             // slight attenuation.
             const int gpos = m_state[0];
             const int i = (m_spos >> 8) & 0xFF;
-            const int probe = PCSX::SPU::roundingProbe();
-            if (probe & 128) {
-                auto &gp = PCSX::SPU::gaussProbe();
-                gp.idx = i;
-                gp.w0 = gaussWindow(gpos);
-                gp.w1 = gaussWindow(gpos + 1);
-                gp.w2 = gaussWindow(gpos + 2);
-                gp.w3 = gaussWindow(gpos + 3);
-                gp.type = 2;
-                gp.seq++;
-            }
-            auto tap = [probe](int c, int smp) -> int {
-                const int p = c * smp;
-                if (probe & 4) return (p + (1 << 14)) >> 15;  // DIAGNOSTIC round-to-nearest
-                if (probe & 8) return p / 32768;              // DIAGNOSTIC truncate toward zero
-                return p >> 15;
-            };
-            if (probe & (16 | 32)) {
-                // DIAGNOSTIC: full-precision accumulate, one shift at the end.
-                const int64_t acc = int64_t(Gauss::gauss512[0x0FF - i]) * gaussWindow(gpos) +
-                                    int64_t(Gauss::gauss512[0x1FF - i]) * gaussWindow(gpos + 1) +
-                                    int64_t(Gauss::gauss512[0x100 + i]) * gaussWindow(gpos + 2) +
-                                    int64_t(Gauss::gauss512[0x000 + i]) * gaussWindow(gpos + 3);
-                fa = int((probe & 32) ? ((acc + (1 << 14)) >> 15) : (acc >> 15));
-            } else {
-                int vr = tap(Gauss::gauss512[0x0FF - i], gaussWindow(gpos));
-                vr += tap(Gauss::gauss512[0x1FF - i], gaussWindow(gpos + 1));
-                vr += tap(Gauss::gauss512[0x100 + i], gaussWindow(gpos + 2));
-                vr += tap(Gauss::gauss512[0x000 + i], gaussWindow(gpos + 3));
-                fa = vr;
-            }
+            int vr = (Gauss::gauss512[0x0FF - i] * gaussWindow(gpos)) >> 15;
+            vr += (Gauss::gauss512[0x1FF - i] * gaussWindow(gpos + 1)) >> 15;
+            vr += (Gauss::gauss512[0x100 + i] * gaussWindow(gpos + 2)) >> 15;
+            vr += (Gauss::gauss512[0x000 + i] * gaussWindow(gpos + 3)) >> 15;
+            fa = vr;
         } break;
         //--------------------------------------------------//
         case 1:  // simple interpolation

@@ -19,8 +19,6 @@
 
 #include "spu/adpcm.h"
 
-#include "spu/rounding-probe.h"
-
 void PCSX::SPU::AdpcmDecoder::saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
                                      Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase,
                                      Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const {
@@ -64,12 +62,8 @@ PCSX::SPU::AdpcmDecoder::DecodeResult PCSX::SPU::AdpcmDecoder::decodeBlock(uint8
     // Decode one 4-bit sample already positioned at bits 12..15 and sign-extended
     // to 16 bits: shift it down, then add the predictor's feedback.
     auto decodeSample = [&](int sample) {
-        const int filt = history1 * kFilterCoeff[predictor][0] + history2 * kFilterCoeff[predictor][1];
-        const int out = ((PCSX::SPU::roundingProbe() & 64))
-                            // DIAGNOSTIC: nocash single combined sum with +32 rounding.
-                            ? (sample >> shift) + ((filt + 32) >> kCoeffShift)
-                            : (sample >> shift) + ((history1 * kFilterCoeff[predictor][0]) >> kCoeffShift) +
-                                  ((history2 * kFilterCoeff[predictor][1]) >> kCoeffShift);
+        const int out = (sample >> shift) + ((history1 * kFilterCoeff[predictor][0]) >> kCoeffShift) +
+                        ((history2 * kFilterCoeff[predictor][1]) >> kCoeffShift);
         history2 = history1;
         history1 = out;
         return out;

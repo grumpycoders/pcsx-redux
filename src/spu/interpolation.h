@@ -77,8 +77,6 @@ class Interpolator {
     void advance() { m_spos += m_sinc; }
     void setStep(int32_t step) { m_sinc = step ? step : 1; }
     int32_t step() const { return m_sinc; }
-    // DIAGNOSTIC: fractional pitch position, for the probe dump.
-    int32_t pos() const { return m_spos; }
 
     // The noise generator substitutes its own level for the decoded sample. The
     // no/simple modes read their input from the current-sample slot, so it has to

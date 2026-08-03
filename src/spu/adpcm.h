@@ -109,8 +109,6 @@ class AdpcmDecoder {
     static constexpr int kSamplesPerBlock = 28;
     bool bufferExhausted() const { return m_pos >= kSamplesPerBlock; }
     int32_t takeSample() { return m_samples[m_pos++]; }
-    // DIAGNOSTIC: read cursor into the decoded block, for the probe dump.
-    int readCursor() const { return m_pos; }
     // Key-on leaves the buffer empty so the first sample forces a decode.
     void emptyBuffer() { m_pos = kSamplesPerBlock; }
 
