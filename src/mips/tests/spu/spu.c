@@ -427,6 +427,15 @@ CESTER_AFTER_ALL(spu_tests,
 #include "spu-adpcm-edge.c"
 #include "spu-capture.c"
 #include "spu-adsr.c"
+// A dump build exists to write .test.pcm goldens, and these two write none.
+// spu-adsr-edge walks a full ENVX trace for every envelope shape, which costs
+// far more wall clock than any capture run is given - a dump build carrying it
+// spends its entire budget there and emits nothing, so the run looks like a
+// hang and dies on a timeout with the goldens it did produce still unsent.
+// Both are included after spu-capture.c, so dropping them here cannot change a
+// captured golden. Assertion builds are untouched and still run everything.
+#ifndef SPU_DUMP
 #include "spu-adsr-edge.c"
 #include "spu-irq.c"
+#endif
 #include "spu-reverb.c"
