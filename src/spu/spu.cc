@@ -274,7 +274,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
 
             rawSample = sb[sbPos++].value;  // get sample data
 
-            pChannel->interp.storeVal(sb.data(), rawSample, settings.get<Interpolation>(), fmod,
+            pChannel->interp.storeVal(rawSample, settings.get<Interpolation>(), fmod,
                                       (spuCtrl & ControlFlags::Mute) != 0);  // store val for interpolation
 
             pChannel->interp.tookSample();
@@ -283,7 +283,7 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *pChannel, int32_t &capV
         if (noise)
             rawSample = m_noise.getVal(sb.data(), settings.get<Interpolation>());  // get noise val
         else
-            rawSample = pChannel->interp.getVal(sb.data(), settings.get<Interpolation>(), fmod);
+            rawSample = pChannel->interp.getVal(settings.get<Interpolation>(), fmod);
 
         // apply the ADSR envelope (hardware: sample*env>>15)
         int32_t mixedSample = (pChannel->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;

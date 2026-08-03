@@ -42,9 +42,9 @@ namespace SPU {
 // The slots used to live in the tail of the per-voice sample buffer, SB[28..32],
 // so that the whole thing serialized as one savestate field. They are members
 // now and saveTo()/loadFrom() mirror them back into those same SB indices, so
-// the savestate format is unchanged; storeVal()/getVal() still take the decoded
-// sample window as a raw `Protobuf::Int32 *sb` to avoid a types.h include cycle,
-// exactly as the ADPCM decoder does.
+// the savestate format is unchanged. Nothing else here touches the channel: the
+// four-tap window is our own, so storeVal()/getVal() need no buffer passed in
+// and this class only mentions Protobuf in the savestate mirrors.
 class Interpolator {
   public:
     // Key-on: clear the interpolation window and seed the fractional pitch
@@ -86,11 +86,11 @@ class Interpolator {
     // later getVal() can weight it. `fmod` is the channel's freq-mod mode (2 =
     // frequency-modulator source channel), `unmuted` is the SPU-wide unmute
     // control bit.
-    void storeVal(Protobuf::Int32 *sb, int fa, int interpolationType, int fmod, bool unmuted);
+    void storeVal(int fa, int interpolationType, int fmod, bool unmuted);
 
     // Produce one resampled output sample at the current fractional pitch
     // position (gauss/cubic) / pitch increment (linear).
-    int getVal(Protobuf::Int32 *sb, int interpolationType, int fmod);
+    int getVal(int interpolationType, int fmod);
 
     // Savestate mirrors: the slots ride in SB[28..32] on the wire, where they
     // used to live, so old states keep loading.
