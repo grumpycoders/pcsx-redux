@@ -68,17 +68,17 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                     gauss_ptr = (gauss_ptr + 1) & 3;
                     spos -= 0x10000L;
                 }
-                vl = (spos >> 6) & ~3;
-                vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                l = (vr >> 11) & 0xffff;
-                vr = (Gauss::gauss[vl] * gvalr0()) & ~2047;
-                vr += (Gauss::gauss[vl + 1] * gvalr(1)) & ~2047;
-                vr += (Gauss::gauss[vl + 2] * gvalr(2)) & ~2047;
-                vr += (Gauss::gauss[vl + 3] * gvalr(3)) & ~2047;
-                l |= vr << 5;
+                vl = (spos >> 8) & 0xff;
+                vr = (Gauss::gauss512[0x0ff - vl] * gvall0()) >> 15;
+                vr += (Gauss::gauss512[0x1ff - vl] * gvall(1)) >> 15;
+                vr += (Gauss::gauss512[0x100 + vl] * gvall(2)) >> 15;
+                vr += (Gauss::gauss512[0x000 + vl] * gvall(3)) >> 15;
+                l = vr & 0xffff;
+                vr = (Gauss::gauss512[0x0ff - vl] * gvalr0()) >> 15;
+                vr += (Gauss::gauss512[0x1ff - vl] * gvalr(1)) >> 15;
+                vr += (Gauss::gauss512[0x100 + vl] * gvalr(2)) >> 15;
+                vr += (Gauss::gauss512[0x000 + vl] * gvalr(3)) >> 15;
+                l |= vr << 16;
             } else {
                 while (spos >= 0x10000L) {
                     l = *pS++;
@@ -115,12 +115,12 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                     gauss_ptr = (gauss_ptr + 1) & 3;
                     spos -= 0x10000L;
                 }
-                vl = (spos >> 6) & ~3;
-                vr = (Gauss::gauss[vl] * gvall0()) & ~2047;
-                vr += (Gauss::gauss[vl + 1] * gvall(1)) & ~2047;
-                vr += (Gauss::gauss[vl + 2] * gvall(2)) & ~2047;
-                vr += (Gauss::gauss[vl + 3] * gvall(3)) & ~2047;
-                l = s = vr >> 11;
+                vl = (spos >> 8) & 0xff;
+                vr = (Gauss::gauss512[0x0ff - vl] * gvall0()) >> 15;
+                vr += (Gauss::gauss512[0x1ff - vl] * gvall(1)) >> 15;
+                vr += (Gauss::gauss512[0x100 + vl] * gvall(2)) >> 15;
+                vr += (Gauss::gauss512[0x000 + vl] * gvall(3)) >> 15;
+                l = s = vr;
                 l &= 0xffff;
             } else {
                 while (spos >= 0x10000L) {
