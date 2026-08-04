@@ -19,6 +19,15 @@
     (!!(exp) << 21))
 
 CESTER_BODY(
+// How long each bounded wait below is allowed to take before it gives up and
+// says so. Both numbers come from measuring ENVX on silicon rather than from
+// taste (src/mips/tests/spu-envx): a drain with the release rate forced to the
+// fastest setting completes in one bit-11 tick, and the envelope leaves zero
+// after key-on inside a single sub-tick sample. The caps are an order of
+// magnitude clear of both.
+#define ADSR_DRAIN_MAX_TICKS 16
+#define ADSR_ONSET_MAX_SPINS 2000000
+
 // Given the envelope settings, spit out a currentVolume trace.
 // To avoid jitter and interference, the captured output starts only when
 // the volume changes from 0. The sample rate of the ENVX is a sample every
@@ -29,13 +38,28 @@ static void spu_adsr_capture(
     uint16_t* envx_out,   // output buffer; must be of length n_samples
     unsigned n_samples    // sample count to capture per SPU status bit11 flip
 ) {
-    // drain volume from previous envelope key ON
+    // Drain the volume left by the previous key-on. The release rate that
+    // actually applies here is whatever the previous case left in the voice,
+    // and the capture helper leaves adsrHi=0x80ff - release shift 31,
+    // exponential - under which ENVX does not decrement at all within three
+    // seconds on silicon. Waiting on that is what hung the suite on hardware.
+    // A release rate can be overridden while it is already in progress, so
+    // force the fastest one before keying off and the drain is a tick.
     spu_reset_quiet();
     SPU_CTRL = 0x8000 | 0x4000;
     SPU_VOL_MAIN_LEFT = 0; SPU_VOL_MAIN_RIGHT = 0;
+    SPU_VOICES[1].adsrHi = (uint16_t)(RELEASE(0, 0) >> 16);
     SPU_KEY_OFF_LOW = 0xffff; SPU_KEY_OFF_HIGH = 0xffff;
     spu_wait_status_bit11_flip();
-    while (SPU_VOICES[1].currentVolume != 0) ;
+    unsigned drain = 0;
+    while (SPU_VOICES[1].currentVolume != 0) {
+        if (++drain > ADSR_DRAIN_MAX_TICKS) {
+            ramsyscall_printf("spu_adsr_capture: drain stalled at envx=%04x after %u ticks\n",
+                              SPU_VOICES[1].currentVolume & 0xffff, drain);
+            break;
+        }
+        spu_wait_status_bit11_flip();
+    }
 
     // prepare envelope, wait for bit11 flip, then fire voice!
     SPU_VOICES[1].sampleRate = 0x1000;
@@ -49,8 +73,16 @@ static void spu_adsr_capture(
     SPU_KEY_OFF_LOW = 0; SPU_KEY_OFF_HIGH = 0;
     SPU_KEY_ON_LOW = 1u << 1;
 
-    // synchronize SPU by waiting currentVolume to change
-    while (SPU_VOICES[1].currentVolume == 0) ;
+    // Synchronize the SPU by waiting for currentVolume to leave zero. Bounded:
+    // an envelope that never rises would otherwise spin here forever, and the
+    // one-shot end flag can zero ENVX before this ever observes a peak.
+    unsigned onset = 0;
+    while (SPU_VOICES[1].currentVolume == 0) {
+        if (++onset > ADSR_ONSET_MAX_SPINS) {
+            ramsyscall_printf("spu_adsr_capture: envelope never left zero for adsr=%08x\n", adsr);
+            break;
+        }
+    }
 
     // now capture one sample every bit11 flip
     envx_out[0] = SPU_VOICES[1].currentVolume;
