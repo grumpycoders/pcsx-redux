@@ -94,7 +94,19 @@ static void reset_quiet(void) {
 }
 
 /* spu_adsr_capture, replicated including the bounded drain and onset. */
-static void capture(uint32_t adsr) {
+__attribute__((noinline))
+static void busy(unsigned cycles) {
+    unsigned n = cycles / 3;
+    if (n == 0) return;
+    __asm__ volatile("1: addiu %0, %0, -1 \n bnez %0, 1b \n nop \n" : "+r"(n) : : "memory");
+}
+
+/* delayCycles is inserted between the bit-11 edge and the key-on write. Key-on
+   is otherwise pinned to that edge, and every later sample is pinned to a
+   subsequent edge, so this delay is the ONLY thing that can move the whole
+   trace - which makes it the direct measure of how many CPU cycles of drift
+   equal one LSB at a given ramp slope. */
+static void capture(uint32_t adsr, unsigned delayCycles) {
     reset_quiet();
     SPU_CTRL = 0x8000 | 0x4000;
     SPU_VOL_MAIN_LEFT = 0; SPU_VOL_MAIN_RIGHT = 0;
@@ -113,6 +125,7 @@ static void capture(uint32_t adsr) {
     SPU_VOICES[1].volumeLeft = 0;
     SPU_VOICES[1].volumeRight = 0;
     flip();
+    busy(delayCycles);
     SPU_VOICES[1].adsrLo = (uint16_t)(adsr & 0xffff);
     SPU_VOICES[1].adsrHi = (uint16_t)(adsr >> 16);
     SPU_KEY_OFF_LOW = 0; SPU_KEY_OFF_HIGH = 0;
@@ -131,8 +144,8 @@ static void capture(uint32_t adsr) {
     SPU_KEY_OFF_LOW = 0xffff; SPU_KEY_OFF_HIGH = 0xffff;
 }
 
-static void dump(const char *tag, uint32_t adsr) {
-    capture(adsr);
+static void dump(const char *tag, uint32_t adsr, unsigned d) {
+    capture(adsr, d);
     ramsyscall_printf("OBS adsrsus %s adsr=%08x", tag, adsr);
     for (int i = 0; i < NSAMP; i++) ramsyscall_printf(" %04x", s_envx[i]);
     ramsyscall_printf("\n");
@@ -166,7 +179,7 @@ int main() {
         static const int idx[] = { 0, 1, 2, 4, 8, 12, 16, 20, 24, 28, 31 };
         static const uint16_t exp[] = { 0x1c00, 0x41b8, 0x4378, 0x46f8, 0x4df8, 0x54f8,
                                         0x5bf8, 0x62f8, 0x69f8, 0x70f8, 0x7638 };
-        dump("ctrl_up_sh14  ", base | SUSTAIN(0, 14, 15, 0, 0));
+        dump("ctrl_up_sh14  ", base | SUSTAIN(0, 14, 15, 0, 0), 0);
         cmp("ctrl_up_sh14  ", idx, exp, 11, 2);
     }
 
@@ -175,7 +188,7 @@ int main() {
         static const int idx[] = { 0, 1, 2, 4, 8, 12, 16, 20, 24, 28, 31 };
         static const uint16_t exp[] = { 0x1c00, 0x3e05, 0x3c05, 0x3805, 0x3005, 0x2805,
                                         0x2005, 0x1805, 0x1005, 0x0805, 0x0205 };
-        dump("ctrl_down_sh14", base | SUSTAIN(0, 14, 15, 1, 0));
+        dump("ctrl_down_sh14", base | SUSTAIN(0, 14, 15, 1, 0), 0);
         cmp("ctrl_down_sh14", idx, exp, 11, 2);
     }
 
@@ -184,7 +197,7 @@ int main() {
         static const int idx[] = { 0, 1, 5, 10, 15, 20, 25, 31 };
         static const uint16_t exp[] = { 0x1c00, 0x4068, 0x4228, 0x4458, 0x4688, 0x48b8,
                                         0x4ae8, 0x4d88 };
-        dump("fail_up_sh16  ", base | SUSTAIN(0, 16, 15, 0, 0));
+        dump("fail_up_sh16  ", base | SUSTAIN(0, 16, 15, 0, 0), 0);
         cmp("fail_up_sh16  ", idx, exp, 8, 2);
     }
 
@@ -193,7 +206,7 @@ int main() {
         static const int idx[] = { 0, 1, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30 };
         static const uint16_t exp[] = { 0x1c00, 0x3f85, 0x3e85, 0x3d05, 0x3b85, 0x3a05,
                                         0x3885, 0x3705, 0x3585, 0x3405, 0x3285, 0x3105 };
-        dump("fail_down_sh16", base | SUSTAIN(0, 16, 15, 1, 0));
+        dump("fail_down_sh16", base | SUSTAIN(0, 16, 15, 1, 0), 0);
         cmp("fail_down_sh16", idx, exp, 12, 2);
     }
 
@@ -202,8 +215,22 @@ int main() {
         static const int idx[] = { 0, 1, 5, 10, 15, 20, 25, 31 };
         static const uint16_t exp[] = { 0x1c00, 0x4068, 0x4228, 0x4458, 0x4688, 0x48b8,
                                         0x4ae8, 0x4d88 };
-        dump("repeat_up_sh16", base | SUSTAIN(0, 16, 15, 0, 0));
+        dump("repeat_up_sh16", base | SUSTAIN(0, 16, 15, 0, 0), 0);
         cmp("repeat_up_sh16", idx, exp, 8, 2);
+    }
+
+    /* THE SWEEP. Shift-14 up has the steepest ramp (~448/tick) and is therefore
+       the most sensitive to drift, so it is the best ruler. Expected envx[1] is
+       0x41b8; the probe reads 0x41b1 at zero delay, 7 low. Find the delay that
+       accounts for 7. */
+    {
+        static const unsigned kD[8] = { 0, 100, 200, 400, 800, 1600, 3200, 6400 };
+        for (int i = 0; i < 8; i++) {
+            capture(base | SUSTAIN(0, 14, 15, 0, 0), kD[i]);
+            ramsyscall_printf("OBS adsrsus sweep d=%5u envx1=%04x envx2=%04x envx8=%04x envx31=%04x  d1=%d\n",
+                              kD[i], s_envx[1], s_envx[2], s_envx[8], s_envx[31],
+                              (int)s_envx[1] - 0x41b8);
+        }
     }
 
     ramsyscall_printf("OBS adsrsus done\n");
