@@ -33,7 +33,7 @@ RUN apt install -y g++-mipsel-linux-gnu
 RUN apt install -y libavcodec-dev
 RUN apt install -y libavformat-dev
 RUN apt install -y libavutil-dev
-RUN apt install -y libglfw3-dev
+RUN apt install -y libsdl3-dev
 RUN apt install -y libsdl2-dev
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev

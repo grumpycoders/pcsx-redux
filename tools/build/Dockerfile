@@ -1,6 +1,6 @@
 # Dockerfile for ghcr.io/grumpycoders/pcsx-redux-build
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -25,7 +25,7 @@ RUN apt install -y libavutil-dev
 RUN apt install -y libcapstone-dev
 RUN apt install -y libcurl4-openssl-dev
 RUN apt install -y libfreetype-dev
-RUN apt install -y libglfw3-dev
+RUN apt install -y libsdl3-dev
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev

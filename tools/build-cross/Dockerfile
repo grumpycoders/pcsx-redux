@@ -2,7 +2,7 @@
 # IMPORTANT: to build this file, the package qemu-user-static needs to be
 # installed on the host machine.
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -35,7 +35,7 @@ WORKDIR /
 # Create directory to hold aarch64 sysroot
 RUN mkdir -p /opt/cross/sysroot
 
-# Run debootstrap to pull down Debian bookworm aarch64 rootfs
+# Run debootstrap to pull down Debian trixie aarch64 rootfs
 RUN debootstrap --arch=arm64 --variant=minbase \
     --include=\
 build-essential,\
@@ -46,10 +46,10 @@ libavutil-dev,\
 libcapstone-dev,\
 libcurl4-openssl-dev,\
 libfreetype-dev,\
-libglfw3-dev,\
+libsdl3-dev,\
 libswresample-dev,\
 libuv1-dev,\
-zlib1g-dev --foreign bookworm /opt/cross/sysroot
+zlib1g-dev --foreign trixie /opt/cross/sysroot
 
 # Copy qemu-user-static over to sysroot so second stage can run
 RUN cp /usr/bin/qemu-aarch64-static /opt/cross/sysroot/usr/bin/

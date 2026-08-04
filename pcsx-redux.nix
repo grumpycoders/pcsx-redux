@@ -6,7 +6,7 @@
   zlib,
   curl,
   ffmpeg,
-  glfw3,
+  sdl3,
   capstone,
   freetype,
   libX11,
@@ -153,7 +153,7 @@ in stdenv.mkDerivation {
     curl.dev
     zlib
     ffmpeg.dev
-    glfw3
+    sdl3
     capstone
     freetype.dev
     uriparser

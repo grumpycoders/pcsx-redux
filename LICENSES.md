@@ -29,7 +29,7 @@ find a link to the vendored version itself.
  - [fmt](https://github.com/fmtlib/fmt)
  - [FreeType](https://gitlab.freedesktop.org/freetype/freetype.git)
  - [gl3w](https://github.com/skaslev/gl3w) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/gl3w/GL))
- - [glfw](https://www.glfw.org)
+ - [SDL](https://www.libsdl.org)
  - [googletest](https://github.com/google/googletest)
  - [GoogleTestAdapter](https://github.com/csoltenborn/GoogleTestAdapter) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/GoogleTestAdapter))
  - [ImFileDialog](https://github.com/dfranx/ImFileDialog) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/ImFileDialog))

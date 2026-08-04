@@ -2,7 +2,7 @@ includes("third_party/luajit")
 
 add_rules("mode.debug", "mode.release")
 
-add_requires("capstone", "ffmpeg", "fmt", "freetype", "glfw", "libcurl", "libuv", "zlib")
+add_requires("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
 set_languages("c++26")
 
 target("pcsx-redux", function()
@@ -36,7 +36,7 @@ target("pcsx-redux", function()
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
     add_deps("luajit")
-    add_packages("capstone", "ffmpeg", "fmt", "freetype", "glfw", "libcurl", "libuv", "zlib")
+    add_packages("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
     add_files(
         "src/**/*.cc",
         "third_party/cq/reclaimer.cc",
@@ -48,7 +48,7 @@ target("pcsx-redux", function()
         "third_party/iec-60908b/*.c",
         "third_party/ImFileDialog/ImFileDialog.cpp",
         "third_party/imgui/backends/imgui_impl_opengl3.cpp",
-        "third_party/imgui/backends/imgui_impl_glfw.cpp",
+        "third_party/imgui/backends/imgui_impl_sdl3.cpp",
         "third_party/imgui/misc/cpp/imgui_stdlib.cpp",
         "third_party/imgui/misc/freetype/imgui_freetype.cpp",
         "third_party/imgui_lua_bindings/imgui_lua_bindings.cpp",
