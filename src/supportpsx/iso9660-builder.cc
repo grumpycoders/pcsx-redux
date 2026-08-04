@@ -211,6 +211,18 @@ void prepareM2F2FrameNoECC(uint8_t* frame, uint32_t lba, const uint8_t* data2324
     memcpy(frame + 24, data2324, 2324);
 }
 
+// Prepare a raw M2_RAW frame from 2336 bytes of caller-supplied data. The caller's
+// payload already contains the subheader (8), user data, and EDC/ECC tail, so this
+// helper only stamps sync, MSF, and the mode byte.
+void prepareM2RawFrame(uint8_t* frame, uint32_t lba, const uint8_t* data2336) {
+    memset(frame, 0, 2352);
+    memcpy(frame, c_sync, 12);
+    PCSX::IEC60908b::MSF msf(lba + 150);
+    msf.toBCD(frame + 12);
+    frame[15] = 2;
+    memcpy(frame + 16, data2336, 2336);
+}
+
 }  // namespace
 
 PCSX::ISO9660::DirTree* PCSX::ISO9660Builder::createRoot(unsigned sectorCount) {
@@ -337,6 +349,7 @@ void PCSX::ISO9660Builder::computeLayout() {
     // Build BFS order list of directories.
     m_dirsInBFSOrder.clear();
     m_filesInOrder.clear();
+    m_anchorPaddingRanges.clear();
 
     if (!m_root) return;
 
@@ -392,8 +405,26 @@ void PCSX::ISO9660Builder::computeLayout() {
     m_pathTableSectorBEOpt = currentSector;
     currentSector += ptSectors;
 
+    // Helper: honor an anchor on the given node by advancing the layout cursor and
+    // recording the gap as a padding range that will be filled with empty M2F1 sectors
+    // at write time. Throws if the cursor is already past the requested anchor.
+    auto applyAnchor = [&](ISO9660::DirTree* node) {
+        if (!node->hasAnchorLBA()) return;
+        uint32_t anchor = node->getAnchorLBA();
+        if (anchor < currentSector) {
+            throw std::runtime_error(
+                "ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" + node->m_name +
+                "' is before current layout cursor " + std::to_string(currentSector));
+        }
+        if (anchor > currentSector) {
+            m_anchorPaddingRanges.emplace_back(currentSector, anchor);
+            currentSector = anchor;
+        }
+    };
+
     // Directory extents in BFS order.
     for (auto* dir : m_dirsInBFSOrder) {
+        applyAnchor(dir);
         dir->m_assignedLBA = currentSector;
         dir->m_computedSize = dir->m_dirSectorCount * 2048;
         currentSector += dir->m_dirSectorCount;
@@ -401,6 +432,7 @@ void PCSX::ISO9660Builder::computeLayout() {
 
     // File data.
     for (auto* file : m_filesInOrder) {
+        applyAnchor(file);
         file->m_assignedLBA = currentSector;
         uint32_t fileSize = 0;
         if (file->m_content && !file->m_content->failed()) {
@@ -445,12 +477,16 @@ void PCSX::ISO9660Builder::serializeDirEntry(uint8_t* buf, const ISO9660::DirTre
 
     memset(buf, 0, length);
 
-    buf[0] = length;                            // Length
-    buf[1] = 0;                                 // Extended Attribute Record Length
-    writeLE32(buf + 2, node->m_assignedLBA);    // LBA (LE)
-    writeBE32(buf + 6, node->m_assignedLBA);    // LBA (BE)
-    writeLE32(buf + 10, node->m_computedSize);  // Size (LE)
-    writeBE32(buf + 14, node->m_computedSize);  // Size (BE)
+    // Use the declared-size override for the directory-entry Length field when set,
+    // otherwise fall back to the actual content size computed at layout time.
+    uint32_t dirEntrySize = node->m_hasDeclaredSize ? node->m_declaredSize : node->m_computedSize;
+
+    buf[0] = length;                          // Length
+    buf[1] = 0;                               // Extended Attribute Record Length
+    writeLE32(buf + 2, node->m_assignedLBA);  // LBA (LE)
+    writeBE32(buf + 6, node->m_assignedLBA);  // LBA (BE)
+    writeLE32(buf + 10, dirEntrySize);        // Size (LE)
+    writeBE32(buf + 14, dirEntrySize);        // Size (BE)
 
     // Date (ShortDate: 7 bytes at offset 18)
     const auto& date = node->m_date;
@@ -879,6 +915,10 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
                     prepareM2F2FrameNoECC(work.frame, lba, data);
                     work.needsECC = true;
                     break;
+                case IEC60908b::SectorMode::M2_RAW:
+                    prepareM2RawFrame(work.frame, lba, data);
+                    work.needsECC = false;
+                    break;
                 case IEC60908b::SectorMode::RAW:
                     memcpy(work.frame, data, 2352);
                     work.needsECC = false;
@@ -920,6 +960,19 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
     for (auto& w : workers) w.join();
 }
 
+void PCSX::ISO9660Builder::writeAnchorPadding() {
+    if (m_anchorPaddingRanges.empty()) return;
+    uint8_t zeros[2048];
+    memset(zeros, 0, sizeof(zeros));
+    for (const auto& range : m_anchorPaddingRanges) {
+        uint32_t start = range.first;
+        uint32_t end = range.second;
+        for (uint32_t lba = start; lba < end; lba++) {
+            writeSectorAt(zeros, IEC60908b::MSF(lba + 150), IEC60908b::SectorMode::M2_FORM1);
+        }
+    }
+}
+
 void PCSX::ISO9660Builder::close(unsigned threadCount) {
     if (!m_out) return;
 
@@ -928,5 +981,6 @@ void PCSX::ISO9660Builder::close(unsigned threadCount) {
     writeVDSetTerminator();
     writePathTables();
     writeDirectories();
+    writeAnchorPadding();
     writeFiles(threadCount);
 }

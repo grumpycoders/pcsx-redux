@@ -15,7 +15,7 @@ const { Octokit } = require('@octokit/rest')
 const octokit = new Octokit()
 const os = require('node:os')
 
-const mipsVersion = '14.2.0'
+const mipsVersion = '16.1.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false
@@ -27,16 +27,20 @@ async function checkInstalled(name) {
   return tools[name].installed
 }
 
-async function checkCommands(commands, args) {
+async function findCommand(commands, args) {
   for (const command of commands) {
     try {
       await execFile(command, args)
     } catch (error) {
       continue
     }
-    return true
+    return command
   }
-  return false
+  return null
+}
+
+async function checkCommands(commands, args) {
+  return (await findCommand(commands, args)) !== null
 }
 
 let mipsInstalling = false
@@ -48,7 +52,8 @@ async function installMips() {
   try {
     await terminal.run('powershell', [
       '-c',
-      '& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
+      '"&"',
+      '{ iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -71,7 +76,7 @@ async function installToolchain() {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -179,7 +184,7 @@ async function installGDB() {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -249,7 +254,7 @@ async function installMake() {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -306,7 +311,7 @@ async function installCMake() {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await execFile('start', [filename])
+      await terminal.run('msiexec', ['/i', filename])
       requiresReboot = true
       break
     case 'linux':
@@ -457,7 +462,7 @@ async function installPython() {
   }
 }
 
-async function checkPython() {
+async function findPython() {
   switch (process.platform) {
     case 'win32':
       /*
@@ -501,12 +506,12 @@ async function checkPython() {
           } catch (error) {
             continue
           }
-          return true
+          return fullPath
         }
       }
-      return false
+      return null
     default:
-      return checkCommands(['python3', 'python'], ['--version'])
+      return await findCommand(['python3', 'python'], ['--version'])
   }
 }
 
@@ -606,7 +611,7 @@ const tools = {
       'Python language runtime, required to run some project templates\' scripts',
     homepage: 'https://python.org/',
     install: installPython,
-    check: checkPython
+    check: async () => (await findPython()) !== null
   },
   clangd: {
     type: 'extension',
@@ -632,8 +637,8 @@ const tools = {
     description:
       'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
     homepage:
-      'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
-    id: 'webfreak.debug'
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools',
+    id: 'ms-vscode.cpptools'
   },
   mipsassembly: {
     type: 'extension',
@@ -701,6 +706,8 @@ exports.setExtensionUri = (uri) => {
 exports.setGlobalStorageUri = (uri) => {
   globalStorageUri = uri
 }
+
+exports.findPython = findPython
 
 exports.install = async (toInstall, force) => {
   if (requiresReboot) {

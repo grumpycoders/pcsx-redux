@@ -228,8 +228,47 @@ bool isoBuilderFailed(PCSX::ISO9660Builder* builder) { return builder->failed();
 void isoBuilderWriteLicense(PCSX::ISO9660Builder* builder, PCSX::LuaFFI::LuaFile* licenseWrapper) {
     builder->writeLicense(licenseWrapper ? licenseWrapper->file : nullptr);
 }
-void isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, PCSX::IEC60908b::SectorMode mode) {
-    builder->writeSector(sectorData, mode);
+// Sentinel returned to Lua when a sector write couldn't be performed.
+static constexpr uint32_t c_badLBA = 0xffffffff;
+
+// Amount of data writeSectorAt will read from the caller's buffer for a given mode. Modes that can't
+// be written to return 0.
+static uint32_t sectorDataSize(PCSX::IEC60908b::SectorMode mode) {
+    switch (mode) {
+        case PCSX::IEC60908b::SectorMode::RAW:
+            return PCSX::IEC60908b::FRAMESIZE_RAW;
+        case PCSX::IEC60908b::SectorMode::M2_RAW:
+            return 2336;
+        case PCSX::IEC60908b::SectorMode::M2_FORM1:
+            return 2048;
+        case PCSX::IEC60908b::SectorMode::M2_FORM2:
+            return 2324;
+        default:
+            return 0;
+    }
+}
+
+// The LBAs here are relative to the start of the image, matching the rest of the iso API, while the
+// builder works in MSF. Sector 0 of the image is MSF 00:02:00.
+static uint32_t msfToImageLBA(PCSX::IEC60908b::MSF msf) {
+    uint32_t lba = msf.toLBA();
+    return lba < 150 ? c_badLBA : lba - 150;
+}
+
+uint32_t isoBuilderWriteSectorAt(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize,
+                                 uint32_t lba, PCSX::IEC60908b::SectorMode mode) {
+    uint32_t needed = sectorDataSize(mode);
+    if ((needed == 0) || (dataSize < needed)) return c_badLBA;
+    return msfToImageLBA(builder->writeSectorAt(sectorData, PCSX::IEC60908b::MSF(lba + 150), mode));
+}
+uint32_t isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize,
+                               PCSX::IEC60908b::SectorMode mode) {
+    uint32_t needed = sectorDataSize(mode);
+    if ((needed == 0) || (dataSize < needed)) return c_badLBA;
+    return msfToImageLBA(builder->writeSector(sectorData, mode));
+}
+uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) {
+    return msfToImageLBA(builder->getCurrentLocation());
 }
 void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
 
@@ -322,6 +361,14 @@ bool dirTreeIsHidden(PCSX::ISO9660::DirTree* node) { return node->isHidden(); }
 void dirTreeSetHidden(PCSX::ISO9660::DirTree* node, bool val) { node->setHidden(val); }
 bool dirTreeShouldSkip(PCSX::ISO9660::DirTree* node) { return node->shouldSkip(); }
 void dirTreeSetSkip(PCSX::ISO9660::DirTree* node, bool val) { node->setSkip(val); }
+bool dirTreeHasAnchorLBA(PCSX::ISO9660::DirTree* node) { return node->hasAnchorLBA(); }
+uint32_t dirTreeGetAnchorLBA(PCSX::ISO9660::DirTree* node) { return node->getAnchorLBA(); }
+void dirTreeSetAnchorLBA(PCSX::ISO9660::DirTree* node, uint32_t lba) { node->setAnchorLBA(lba); }
+void dirTreeClearAnchorLBA(PCSX::ISO9660::DirTree* node) { node->clearAnchorLBA(); }
+bool dirTreeHasDeclaredSize(PCSX::ISO9660::DirTree* node) { return node->hasDeclaredSize(); }
+uint32_t dirTreeGetDeclaredSize(PCSX::ISO9660::DirTree* node) { return node->getDeclaredSize(); }
+void dirTreeSetDeclaredSize(PCSX::ISO9660::DirTree* node, uint32_t size) { node->setDeclaredSize(size); }
+void dirTreeClearDeclaredSize(PCSX::ISO9660::DirTree* node) { node->clearDeclaredSize(); }
 bool dirTreeHasXA(PCSX::ISO9660::DirTree* node) { return node->hasXA(); }
 void dirTreeSetHasXA(PCSX::ISO9660::DirTree* node, bool val) { node->setHasXA(val); }
 void dirTreeSetSectorMode(PCSX::ISO9660::DirTree* node, PCSX::IEC60908b::SectorMode mode) { node->setSectorMode(mode); }
@@ -413,6 +460,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isoBuilderFailed);
     REGISTER(L, isoBuilderWriteLicense);
     REGISTER(L, isoBuilderWriteSector);
+    REGISTER(L, isoBuilderWriteSectorAt);
+    REGISTER(L, isoBuilderGetCurrentLBA);
     REGISTER(L, isoBuilderClose);
 
     // PVD getters
@@ -449,6 +498,14 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dirTreeSetHidden);
     REGISTER(L, dirTreeShouldSkip);
     REGISTER(L, dirTreeSetSkip);
+    REGISTER(L, dirTreeHasAnchorLBA);
+    REGISTER(L, dirTreeGetAnchorLBA);
+    REGISTER(L, dirTreeSetAnchorLBA);
+    REGISTER(L, dirTreeClearAnchorLBA);
+    REGISTER(L, dirTreeHasDeclaredSize);
+    REGISTER(L, dirTreeGetDeclaredSize);
+    REGISTER(L, dirTreeSetDeclaredSize);
+    REGISTER(L, dirTreeClearDeclaredSize);
     REGISTER(L, dirTreeHasXA);
     REGISTER(L, dirTreeSetHasXA);
     REGISTER(L, dirTreeSetSectorMode);

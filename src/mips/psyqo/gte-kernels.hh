@@ -55,49 +55,75 @@ enum LM : unsigned { Unlimited, Limited };
 // RTPS - Perspective Transformation (single)
 //   pers(([rt]·[v0]) >> 12 + [tr]) -> sxy2
 //     14 cycles
-static inline void rtps() { asm volatile("cop2 0x0180001"); }
+static inline void rtps() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0180001");
+#endif
+}
 
 // RTPT - Perspective Transformation (triple)
 //   pers(([rt]·[v0]) >> 12 + [tr]) -> sxy0
 //   pers(([rt]·[v1]) >> 12 + [tr]) -> sxy1
 //   pers(([rt]·[v2]) >> 12 + [tr]) -> sxy2
 //     22 cycles
-static inline void rtpt() { asm volatile("cop2 0x0280030"); }
+static inline void rtpt() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0280030");
+#endif
+}
 
 // Depth Queuing
 
 // DCPL - Depth Cue Color light
 //   (1 - dp)·[rgb·sv] + dp·[fc] -> rgb, lv, sv
 //     8 cycles
-static inline void dpcl() { asm volatile("cop2 0x0680029"); }
+static inline void dpcl() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0680029");
+#endif
+}
 
 // DPCS - Depth Cueing (single)
 //   (1 - dp)·[rgb] + dp·[fc] -> rgb, lv, sv
 //     8 cycles
-static inline void dpcs() { asm volatile("cop2 0x0780010"); }
+static inline void dpcs() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0780010");
+#endif
+}
 
 // DPCT - Depth Cueing (triple)
 //   (1 - dp)·[rgb0] + dp·[fc] -> rgb0, lv, sv
 //   (1 - dp)·[rgb1] + dp·[fc] -> rgb1, lv, sv
 //   (1 - dp)·[rgb2] + dp·[fc] -> rgb2, lv, sv
 //     17 cycles
-static inline void dpct() { asm volatile("cop2 0x0f8002a"); }
+static inline void dpct() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0f8002a");
+#endif
+}
 
 // INTPL - Interpolation of a vector and far color
 //   (1 - dp)·[sv] + dp·[fc] -> rgb2, lv, sv
 //     8 cycles
-static inline void intpl() { asm volatile("cop2 0x0980011"); }
+static inline void intpl() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0980011");
+#endif
+}
 
 // Termwise Vector Square
 //   [sv.x² >> 12, sv.y² >> 12, sv.z² >> 12] -> lv, sv
 //     5 cycles
 template <SF sf = Shifted>
 static inline void sqr() {
+#ifndef PS1_PC_PORT
     if constexpr (sf == Shifted) {
         asm volatile("cop2 0x0a80428");
     } else {
         asm volatile("cop2 0x0a00428");
     }
+#endif
 }
 
 // Light Source Calculations
@@ -106,7 +132,11 @@ static inline void sqr() {
 //   limit(([ll]·[v0]) >> 12) -> sv
 //   limit(([lc]·[sv]) >> 12) + [bk] -> rgb2
 //     14 cycles
-static inline void ncs() { asm volatile("cop2 0x0c8041e"); }
+static inline void ncs() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0c8041e");
+#endif
+}
 
 // NCT - Normal color (triple)
 //   limit(([ll]·[v0]) >> 12) -> sv
@@ -116,14 +146,22 @@ static inline void ncs() { asm volatile("cop2 0x0c8041e"); }
 //   limit(([ll]·[v2]) >> 12) -> sv
 //   limit(([lc]·[sv]) >> 12) + [bk] -> rgb2
 //     30 cycles
-static inline void nct() { asm volatile("cop2 0x0d80420"); }
+static inline void nct() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0d80420");
+#endif
+}
 
 // NCDS - Normal color depth cue (single vector)
 //   limit(([ll]·[v0]) >> 12) -> sv
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   (1 - dp)·[rgb·sv] + dp·[fc] -> rgb2
 //     19 cycles
-static inline void ncds() { asm volatile("cop2 0x0e80413"); }
+static inline void ncds() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0e80413");
+#endif
+}
 
 // NCDT - Normal color depth cue (triple vectors)
 //   limit(([ll]·[v0]) >> 12) -> sv
@@ -136,14 +174,22 @@ static inline void ncds() { asm volatile("cop2 0x0e80413"); }
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   (1 - dp)·[rgb·sv] + dp·[fc] -> rgb2
 //     44 cycles
-static inline void ncdt() { asm volatile("cop2 0x0f80416"); }
+static inline void ncdt() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0f80416");
+#endif
+}
 
 // NCCS - Normal Color Color (single vector)
 //   limit(([ll]·[v0]) >> 12) -> sv
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   [rgb·sv] -> rgb2
 //     17 cycles
-static inline void nccs() { asm volatile("cop2 0x0108041b"); }
+static inline void nccs() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0108041b");
+#endif
+}
 
 // NCCT - Normal Color Color (triple vector)
 //   limit(([ll]·[v0]) >> 12) -> sv
@@ -156,19 +202,31 @@ static inline void nccs() { asm volatile("cop2 0x0108041b"); }
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   [rgb·sv] -> rgb2
 //     39 cycles
-static inline void ncct() { asm volatile("cop2 0x0118043f"); }
+static inline void ncct() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0118043f");
+#endif
+}
 
 // Color Depth Que
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   (1 - dp)·[rgb·sv] + dp·[fc] -> rgb2
 //     13 cycles
-static inline void cdp() { asm volatile("cop2 0x01280414"); }
+static inline void cdp() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x01280414");
+#endif
+}
 
 // Color Color
 //   limit(([lc]·[sv]) >> 12) + [bk] -> sv
 //   [rgb·sv] -> rgb2
 //     11 cycles
-static inline void cc() { asm volatile("cop2 0x0138041c"); }
+static inline void cc() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0138041c");
+#endif
+}
 
 // NCLIP - Normal clipping
 //   sx0*sy1 + sx1*sy2 + sx2*sy0 - sx0*sy2 - sx1*sy0 - sx2*sy1 -> opz
@@ -176,19 +234,31 @@ static inline void cc() { asm volatile("cop2 0x0138041c"); }
 //     [sx1 - sx0, sy1 - sy0]
 //     [sx2 - sx0, sy2 - sy0]
 //     8 cycles
-static inline void nclip() { asm volatile("cop2 0x01400006"); }
+static inline void nclip() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x01400006");
+#endif
+}
 
 // Z Average
 
 // AVSZ3 - Average of three Z values (for Triangles)
 //   zsf3 * (sz0 + sz1 + sz2) -> otz
 //     5 cycles
-static inline void avsz3() { asm volatile("cop2 0x0158002d"); }
+static inline void avsz3() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0158002d");
+#endif
+}
 
 // AVSZ4 - Average of four Z values (for Quads)
 //   zsf4 * (sz0 + sz1 + sz2 + sz4) -> otz
 //     6 cycles
-static inline void avsz4() { asm volatile("cop2 0x0168002e"); }
+static inline void avsz4() {
+#ifndef PS1_PC_PORT
+    asm volatile("cop2 0x0168002e");
+#endif
+}
 
 // Cross Product (improperly named Outer Product in Sony's lingo)
 //   rt.22 * ir3 - rt.33 * ir2 -> ir1
@@ -197,11 +267,13 @@ static inline void avsz4() { asm volatile("cop2 0x0168002e"); }
 //     6 cycles
 template <SF sf = Shifted>
 static inline void cp() {
+#ifndef PS1_PC_PORT
     if constexpr (sf == Shifted) {
         asm volatile("cop2 0x0178000c");
     } else {
         asm volatile("cop2 0x0170000c");
     }
+#endif
 }
 
 // General Interpolation
@@ -211,11 +283,13 @@ static inline void cp() {
 //     5 cycles
 template <SF sf = Shifted>
 static inline void gpf() {
+#ifndef PS1_PC_PORT
     if constexpr (sf == Shifted) {
         asm volatile("cop2 0x0198003d");
     } else {
         asm volatile("cop2 0x0190003d");
     }
+#endif
 }
 
 // General purpose interpolation with base
@@ -223,11 +297,13 @@ static inline void gpf() {
 //     5 cycles
 template <SF sf = Shifted>
 static inline void gpl() {
+#ifndef PS1_PC_PORT
     if constexpr (sf == Shifted) {
         asm volatile("cop2 0x01a8003e");
     } else {
         asm volatile("cop2 0x01a0003e");
     }
+#endif
 }
 
 // All of the MVMVA operations take 8 cycles to complete.
@@ -247,9 +323,11 @@ enum class TV : unsigned { TR, BK, FC, Zero };
 // Multiply vector by matrix and add vector
 template <MX mx, MV v, TV cv = TV::Zero, SF sf = Shifted, LM lm = Unlimited>
 void mvmva() {
+#ifndef PS1_PC_PORT
     constexpr uint32_t op =
         (4 << 20) | (sf << 19) | (uint32_t(mx) << 17) | (uint32_t(v) << 15) | (uint32_t(cv) << 13) | (lm << 10) | 18;
     asm volatile("cop2 %0" : : "i"(op));
+#endif
 }
 
 // Coordinate Conversion, Light Source Calculations

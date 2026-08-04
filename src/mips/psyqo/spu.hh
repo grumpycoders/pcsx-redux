@@ -47,6 +47,7 @@ class SPU {
 
     static constexpr uint32_t NO_FREE_CHANNEL = 0xffffffff;
     static constexpr uint32_t BASE_SAMPLE_RATE = 44100;
+    static constexpr uint16_t BASE_ALLOC_ADDR = 0x1010;
 
   private:
     template <typename T>

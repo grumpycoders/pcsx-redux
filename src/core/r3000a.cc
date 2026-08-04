@@ -23,7 +23,7 @@
 
 #include "core/r3000a.h"
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 
 #include "core/cdrom.h"
 #include "core/debug.h"

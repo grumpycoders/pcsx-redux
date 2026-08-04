@@ -26,6 +26,7 @@ SOFTWARE.
 
 #pragma once
 
+#include <utility>
 #include <vector>
 
 #include "support/file.h"
@@ -87,6 +88,7 @@ class ISO9660Builder {
     void writeDirectories();
     void writeFiles(unsigned threadCount);
     void writeFileSectors(ISO9660::DirTree* file, unsigned threadCount);
+    void writeAnchorPadding();
 
     ISO9660LowLevel::PVD m_pvd;
     ISO9660::DirTree* m_root = nullptr;
@@ -109,6 +111,10 @@ class ISO9660Builder {
     uint32_t m_pathTableSectorBE = 0;
     uint32_t m_pathTableSectorBEOpt = 0;
     uint32_t m_totalSectors = 0;
+
+    // Padding spans introduced by setAnchorLBA. Each pair is [start, end) in LBA terms,
+    // filled with empty Mode 2 Form 1 zero sectors by writeAnchorPadding().
+    std::vector<std::pair<uint32_t, uint32_t>> m_anchorPaddingRanges;
 
     IO<File> m_out;
     IEC60908b::MSF m_location = {0, 2, 0};

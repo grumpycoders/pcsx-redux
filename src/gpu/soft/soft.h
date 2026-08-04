@@ -279,8 +279,11 @@ struct SoftRenderer {
         rs.vram16 = m_vram16;
         rs.texWindowX0 = m_textureWindowOffU;
         rs.texWindowY0 = m_textureWindowOffV;
-        rs.maskX = m_textureWindowMaskU;
-        rs.maskY = m_textureWindowMaskV;
+        // Store the 8-bit complement as the keep-mask: the uint8_t truncation
+        // yields 0xff & ~mask, folding the texture-window passthrough and the
+        // mod-256 texel-coordinate wrap into a single per-texel AND.
+        rs.texMaskX = (uint8_t)~m_textureWindowMaskU;
+        rs.texMaskY = (uint8_t)~m_textureWindowMaskV;
         rs.texBaseX = m_globalTextAddrX;
         rs.texBaseY = m_globalTextAddrY;
         rs.abr = m_globalTextABR;

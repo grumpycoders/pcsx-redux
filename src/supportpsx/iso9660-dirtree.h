@@ -59,6 +59,36 @@ class DirTree {
     bool shouldSkip() const { return m_skip; }
     void setSkip(bool skip) { m_skip = skip; }
 
+    // Layout anchor: force this entry's content to start at the specified LBA. At
+    // close() time, any prior gap sectors are filled with empty Mode 2 Form 1 zero
+    // sectors. ISO9660Builder::close() throws if layout has already advanced past the
+    // anchor LBA by the time this entry is reached.
+    bool hasAnchorLBA() const { return m_hasAnchor; }
+    uint32_t getAnchorLBA() const { return m_anchorLBA; }
+    void setAnchorLBA(uint32_t lba) {
+        m_anchorLBA = lba;
+        m_hasAnchor = true;
+    }
+    void clearAnchorLBA() {
+        m_anchorLBA = 0;
+        m_hasAnchor = false;
+    }
+
+    // Declared-size override: the ISO9660 directory-entry Length field uses this value
+    // instead of the actual content size when set. Allows a single entry to "shadow" a
+    // larger extent than what is written under it, which is useful when other entries
+    // are marked with setSkip and laid out at known LBAs inside the same extent.
+    bool hasDeclaredSize() const { return m_hasDeclaredSize; }
+    uint32_t getDeclaredSize() const { return m_declaredSize; }
+    void setDeclaredSize(uint32_t size) {
+        m_declaredSize = size;
+        m_hasDeclaredSize = true;
+    }
+    void clearDeclaredSize() {
+        m_declaredSize = 0;
+        m_hasDeclaredSize = false;
+    }
+
     // XA extensions
     bool hasXA() const { return m_hasXA; }
     void setHasXA(bool xa) { m_hasXA = xa; }
@@ -111,6 +141,12 @@ class DirTree {
     uint32_t m_assignedLBA = 0;
     uint32_t m_computedSize = 0;
     uint16_t m_pathTableIndex = 0;
+
+    // Optional layout overrides (see public setters above).
+    uint32_t m_anchorLBA = 0;
+    bool m_hasAnchor = false;
+    uint32_t m_declaredSize = 0;
+    bool m_hasDeclaredSize = false;
 };
 
 }  // namespace ISO9660

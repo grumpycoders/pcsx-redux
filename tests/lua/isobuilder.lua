@@ -175,3 +175,306 @@ function TestIsoBuilder:test_multipleFiles()
     lu.assertFalse(f3:failed())
     lu.assertEquals(f3:size(), 3000)
 end
+
+function TestIsoBuilder:test_anchorLBA()
+    -- Anchor a file to a specific LBA. The layout pass must pad prior sectors with
+    -- empty M2F1 zero sectors, and the file's actual LBA must match the anchor.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('ANCHOR_TEST')
+
+    local root = builder:createRoot(1)
+
+    -- First file is unanchored.
+    local first = builder:createFile(root, 'FIRST.DAT', generateTestContent(2048))
+
+    -- Second file is anchored well past where it would naturally land.
+    local anchored = builder:createFile(root, 'ANCHOR.DAT', generateTestContent(2048))
+    anchored:setAnchorLBA(150)
+    lu.assertTrue(anchored:hasAnchorLBA())
+    lu.assertEquals(anchored:getAnchorLBA(), 150)
+
+    builder:close()
+
+    -- After build, the anchored file's assigned LBA must be exactly 150.
+    lu.assertEquals(anchored:getLBA(), 150)
+    -- And the first file must come earlier.
+    lu.assertTrue(first:getLBA() < 150)
+
+    -- Read back via ISO9660 and verify the dir entry agrees.
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local reader = iso:createReader()
+    local entries = reader:listDir('')
+    local foundAnchor = false
+    for _, e in ipairs(entries) do
+        if e.name == 'ANCHOR.DAT;1' then
+            foundAnchor = true
+            lu.assertEquals(e.lba, 150)
+            lu.assertEquals(e.size, 2048)
+        end
+    end
+    lu.assertTrue(foundAnchor)
+
+    -- Read back the anchored file's actual content to confirm we can open it.
+    local f = reader:open('ANCHOR.DAT;1')
+    lu.assertNotNil(f)
+    lu.assertFalse(f:failed())
+    lu.assertEquals(f:size(), 2048)
+end
+
+function TestIsoBuilder:test_declaredSize()
+    -- Declare a size in the dir entry that's larger than the actual content.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('DECL_SIZE')
+
+    local root = builder:createRoot(1)
+    local shadow = builder:createFile(root, 'SHADOW.BIN', generateTestContent(2048))
+    shadow:setDeclaredSize(50 * 2048)  -- claim 50 sectors regardless of content
+    lu.assertTrue(shadow:hasDeclaredSize())
+    lu.assertEquals(shadow:getDeclaredSize(), 50 * 2048)
+
+    builder:close()
+
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local reader = iso:createReader()
+    local entries = reader:listDir('')
+    local found = false
+    for _, e in ipairs(entries) do
+        if e.name == 'SHADOW.BIN;1' then
+            found = true
+            -- Declared size must be reflected, not the 2048-byte actual content.
+            lu.assertEquals(e.size, 50 * 2048)
+        end
+    end
+    lu.assertTrue(found)
+end
+
+function TestIsoBuilder:test_vpStyleShadowFile()
+    -- VP-style layout: a small leading file, then a shadow file anchored to LBA 150
+    -- whose declared size covers a large extent beyond its actual content. This
+    -- emulates the Valkyrie Profile VALKYRIE.BIN pattern.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('VP_STYLE')
+
+    local root = builder:createRoot(1)
+
+    -- Small executable-like file.
+    builder:createFile(root, 'EXEC.BIN', generateTestContent(4096))
+
+    -- Shadow file anchored at LBA 150 with declared size 200 sectors.
+    local shadow = builder:createFile(root, 'BIG.BIN', generateTestContent(2048))
+    shadow:setAnchorLBA(150)
+    shadow:setDeclaredSize(200 * 2048)
+
+    builder:close()
+
+    -- Verify shadow file at exactly LBA 150 with the declared extent.
+    lu.assertEquals(shadow:getLBA(), 150)
+
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local reader = iso:createReader()
+    local entries = reader:listDir('')
+    local foundShadow = false
+    for _, e in ipairs(entries) do
+        if e.name == 'BIG.BIN;1' then
+            foundShadow = true
+            lu.assertEquals(e.lba, 150)
+            lu.assertEquals(e.size, 200 * 2048)
+        end
+    end
+    lu.assertTrue(foundShadow)
+end
+
+function TestIsoBuilder:test_m2RawRoundTrip()
+    -- Write a multi-sector M2_RAW payload with a deterministic pattern and verify
+    -- the rebuilt disc returns identical bytes when read back in M2_RAW. Regression
+    -- guard for the multi-threaded writeFiles path treating M2_RAW as M2_FORM1.
+    local payload = Support.File.buffer()
+    local data = ffi.new('uint8_t[?]', 4672)
+    for i = 0, 4671 do data[i] = i % 251 end  -- deterministic, non-zero pattern
+    payload:write(ffi.cast('const char*', data), 4672)
+    payload:rSeek(0)
+
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('M2RAW_RT')
+    local root = builder:createRoot(1)
+    local file = builder:createFile(root, 'PATTERN.BIN', payload)
+    file:setSectorMode('M2_RAW')
+    builder:close()
+
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local reader = iso:createReader()
+    local lba
+    for _, e in ipairs(reader:listDir('')) do
+        if e.name == 'PATTERN.BIN;1' then lba = e.lba end
+    end
+    lu.assertNotNil(lba)
+
+    local rb = iso:open(lba, 4672, 'M2_RAW')
+    for i = 0, 4671 do
+        lu.assertEquals(rb:readU8At(i), i % 251,
+            string.format('M2_RAW round-trip mismatch at byte %d', i))
+    end
+end
+
+function TestIsoBuilder:test_anchorErrorOnBackwardLBA()
+    -- Anchoring to an LBA that's already passed must raise an error at close time.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('ANCHOR_ERR')
+
+    local root = builder:createRoot(1)
+    -- A reasonably large first file so the cursor advances past LBA 25.
+    builder:createFile(root, 'PADDING.DAT', generateTestContent(64 * 2048))
+
+    -- Anchor a second file to an LBA that's been passed by the time we lay it out.
+    local bad = builder:createFile(root, 'BAD.DAT', generateTestContent(2048))
+    bad:setAnchorLBA(25)
+
+    local ok = pcall(function() builder:close() end)
+    lu.assertFalse(ok, 'expected close() to throw on backward anchor')
+end
+
+function TestIsoBuilder:test_writeSectorRaw()
+    -- Raw sector writes, without any filesystem on top.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+
+    -- The write cursor starts at the beginning of the image.
+    lu.assertEquals(builder:getCurrentLBA(), 0)
+
+    local sector = string.rep('A', 2048)
+    lu.assertEquals(builder:writeSector(sector, 'M2_FORM1'), 0)
+    lu.assertEquals(builder:getCurrentLBA(), 1)
+    lu.assertEquals(builder:writeSector(sector, 'M2_FORM1'), 1)
+    lu.assertEquals(builder:getCurrentLBA(), 2)
+
+    -- Two sectors written, so two raw frames on the output.
+    lu.assertEquals(out:size(), 2 * 2352)
+
+    -- The payload of the first sector lands after the 24-byte header.
+    out:rSeek(0)
+    for i = 0, 2047 do
+        lu.assertEquals(out:readU8At(24 + i), string.byte('A'),
+            string.format('M2_FORM1 payload mismatch at byte %d', i))
+    end
+end
+
+function TestIsoBuilder:test_writeSectorAtSkipsAhead()
+    -- writeSectorAt places a sector at an explicit LBA and drags the cursor along.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+
+    lu.assertEquals(builder:writeSectorAt(string.rep('B', 2048), 10, 'M2_FORM1'), 10)
+    lu.assertEquals(builder:getCurrentLBA(), 11)
+    lu.assertEquals(out:size(), 11 * 2352)
+
+    -- Writing behind the cursor is allowed, and must not rewind it.
+    lu.assertEquals(builder:writeSectorAt(string.rep('C', 2048), 3, 'M2_FORM1'), 3)
+    lu.assertEquals(builder:getCurrentLBA(), 11)
+
+    out:rSeek(0)
+    lu.assertEquals(out:readU8At(3 * 2352 + 24), string.byte('C'))
+    lu.assertEquals(out:readU8At(10 * 2352 + 24), string.byte('B'))
+end
+
+function TestIsoBuilder:test_writeSectorModeSizes()
+    -- Each writable mode consumes a different amount of data, and short buffers must be refused
+    -- rather than read past the end.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+
+    local sizes = { RAW = 2352, M2_RAW = 2336, M2_FORM1 = 2048, M2_FORM2 = 2324 }
+    local lba = 0
+    for mode, size in pairs(sizes) do
+        lu.assertEquals(builder:writeSectorAt(string.rep('D', size), lba, mode), lba,
+            'failed to write mode ' .. mode)
+        -- One byte short of what the mode needs must throw, not truncate or overread.
+        local ok = pcall(function() builder:writeSectorAt(string.rep('D', size - 1), lba, mode) end)
+        lu.assertFalse(ok, 'expected a short buffer to be refused for mode ' .. mode)
+        lba = lba + 1
+    end
+
+    -- Modes that can't carry a raw sector write must be refused too.
+    for _, mode in ipairs({ 'M1', 'GUESS' }) do
+        local ok = pcall(function() builder:writeSectorAt(string.rep('D', 2352), 0, mode) end)
+        lu.assertFalse(ok, 'expected mode ' .. mode .. ' to be refused')
+    end
+end
+
+function TestIsoBuilder:test_writeSectorFromPointer()
+    -- The raw writers also take a cdata pointer, in which case a size is mandatory.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+
+    local data = ffi.new('uint8_t[?]', 2048)
+    for i = 0, 2047 do data[i] = i % 256 end
+
+    lu.assertEquals(builder:writeSector(data, 2048, 'M2_FORM1'), 0)
+    out:rSeek(0)
+    lu.assertEquals(out:readU8At(24 + 100), 100)
+
+    -- No size means we can't know how much is safe to read.
+    local ok = pcall(function() builder:writeSector(data, 'M2_FORM1') end)
+    lu.assertFalse(ok, 'expected a pointer without a size to be refused')
+end
+
+function TestIsoBuilder:test_writeSectorPatchesAfterClose()
+    -- The lookup-table pattern: build the filesystem, let close() assign the LBAs, then go back and
+    -- write a sector containing them.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('LBATABLE')
+
+    local root = builder:createRoot(1)
+
+    -- A placeholder sector that will hold the table.
+    local placeholder = Support.File.buffer()
+    placeholder:write(string.rep('\0', 2048))
+    placeholder:rSeek(0)
+    local tableNode = builder:createFile(root, 'LBATABLE.BIN', placeholder)
+
+    local assets = {}
+    for i = 1, 3 do
+        assets[i] = builder:createFile(root, string.format('ASSET%d.DAT', i), generateTestContent(2048))
+    end
+
+    builder:close()
+
+    -- Every asset has a real LBA now, and none of them is the placeholder's.
+    local payload = ''
+    for i = 1, 3 do
+        local lba = assets[i]:getLBA()
+        lu.assertTrue(lba > 0)
+        payload = payload .. string.char(lba % 256, math.floor(lba / 256) % 256, 0, 0)
+    end
+    payload = payload .. string.rep('\0', 2048 - #payload)
+
+    local written = builder:writeSectorAt(payload, tableNode:getLBA(), 'M2_FORM1')
+    lu.assertEquals(written, tableNode:getLBA())
+
+    -- Read the table back through the filesystem, which also proves the rewritten sector still has
+    -- valid EDC/ECC and a correct header.
+    out:rSeek(0)
+    local reader = PCSX.openIso(out):createReader()
+    local back = reader:open('LBATABLE.BIN;1')
+    lu.assertNotNil(back)
+    for i = 1, 3 do
+        local lba = assets[i]:getLBA()
+        lu.assertEquals(back:readU8At((i - 1) * 4), lba % 256)
+        lu.assertEquals(back:readU8At((i - 1) * 4 + 1), math.floor(lba / 256) % 256)
+    end
+end

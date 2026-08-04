@@ -41,6 +41,7 @@ bins/
 /pcsx-redux
 /authoring
 /exe2elf
+/exe2exe
 /exe2iso
 /modconv
 /ps1-packer
@@ -130,3 +131,8 @@ luacov.stats.out
 /AppDir
 /*.AppImage
 /*.AppImage.zsync
+
+# xmake
+.xmake/
+build/
+

@@ -128,6 +128,7 @@
     <ClCompile Include="..\..\src\core\arguments.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
+    <ClCompile Include="..\..\src\core\cdromlogger.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\display.cc" />
@@ -175,11 +176,15 @@
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\ui.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\sjis-decode.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\sjis-fullwidth-ascii.cc" />
+    <ClCompile Include="..\..\src\mips\common\util\utf8-decode.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\arguments.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
+    <ClInclude Include="..\..\src\core\cdromlogger.h" />
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
@@ -237,12 +242,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
   </Target>
 </Project>
