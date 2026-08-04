@@ -290,9 +290,9 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
 
     glEnableVertexAttribArray(m_locVtxPos);
     glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
+                          (GLvoid *)offsetof(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
-    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+    glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)offsetof(ImDrawVert, uv));
 }
 
 void PCSX::Widgets::CDRomViewer::drawDisc(GUI *gui) {
