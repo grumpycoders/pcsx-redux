@@ -16,7 +16,6 @@
   multipart-parser-c,
   fmt,
   magic-enum,
-  miniaudio,
   gtest,
   tl-expected,
   elfio,
@@ -141,7 +140,6 @@ in stdenv.mkDerivation {
     ucl
     md4c
     luajitPackages.libluv
-    miniaudio
     multipart-parser-c
     fmt
     magic-enum

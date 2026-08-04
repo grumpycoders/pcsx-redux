@@ -49,7 +49,6 @@ find a link to the vendored version itself.
  - [luv](https://github.com/luvit/luv)
  - [magic_enum](https://github.com/Neargye/magic_enum)
  - [md4c](https://github.com/mity/md4c)
- - [miniaudio](https://github.com/mackron/miniaudio)
  - [multipart-parser-c](https://github.com/iafonov/multipart-parser-c)
  - [nanosvg](https://github.com/memononen/nanosvg) ([vendored](https://github.com/grumpycoders/nanosvg))
  - [nanovg](https://github.com/memononen/nanovg) ([vendored](https://github.com/grumpycoders/nanovg))
