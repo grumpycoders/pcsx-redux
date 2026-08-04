@@ -54,6 +54,7 @@ RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
     mv linuxdeploy-x86_64.AppImage /usr/bin/linuxdeploy
 
 RUN mkdir /project
+ENV HOME=/home/coder
 RUN mkdir -p /home/coder/dconf
 RUN chmod a+rwx /home/coder/dconf
 
