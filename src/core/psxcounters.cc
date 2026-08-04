@@ -198,7 +198,6 @@ void PCSX::Counters::update() {
         reset(3);
 
         m_hSyncCount++;
-        m_spuSyncCountdown--;
 
         // Counter 0 gate: triggered by Hblank
         if (isGateEnabled(0, m_rcnts[0].mode)) {
@@ -216,15 +215,6 @@ void PCSX::Counters::update() {
                     }
                     break;
             }
-        }
-
-        // Update spu.
-        if (m_spuSyncCountdown <= 0) {
-            // Scanlines until next sync
-            const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
-            m_spuSyncCountdown = scanlines;
-
-            PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
         // SIO1 callback on hsync to process data
@@ -445,7 +435,6 @@ void PCSX::Counters::init() {
     }
 
     m_hSyncCount = 0;
-    m_spuSyncCountdown = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
     set();
 }

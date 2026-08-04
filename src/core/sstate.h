@@ -264,9 +264,10 @@ typedef Protobuf::Message<TYPESTRING("Rcnt"), RcntMode, RcntTarget, RcntRate, Rc
     Rcnt;
 typedef Protobuf::RepeatedField<Rcnt, 4, TYPESTRING("rcnts"), 1> Rcnts;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCount;
-typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("spu_sync_countdown"), 3> SPUSyncCountdown;
+// Field 3 was spu_sync_countdown, dropped when the SPU stopped being pumped on the
+// CPU's scanline schedule. DO NOT REUSE FIELD NUMBER 3 in Counters.
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
-typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, SPUSyncCountdown, PSXNextCounter> Counters;
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter> Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("reg0"), 1> MDECReg0;

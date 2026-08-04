@@ -276,7 +276,6 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
         counters.get<Rcnts>().value[i].get<RcntGateStarted>().value = m_rcnts[i].gateStarted;
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
-    counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
 }
 
@@ -438,7 +437,6 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
         m_rcnts[i].gateStarted = counters.get<Rcnts>().value[i].get<RcntGateStarted>().value;
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
-    m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
 
     calculateHsync();

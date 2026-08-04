@@ -91,7 +91,6 @@ class impl final : public SPUInterface {
 
     virtual void setLua(Lua L) override;
 
-    void async(uint32_t) final;
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
@@ -280,7 +279,6 @@ class impl final : public SPUInterface {
 
     // Secure start counter.
     int secureStart = 0;
-    int spuAsyncWait = 0;
 
     // XA
     xa_decode_t *xapGlobal = 0;

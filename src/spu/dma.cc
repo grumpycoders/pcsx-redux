@@ -31,7 +31,6 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
         spuAddr = (spuAddr + 2) & 0x7ffff;
     }
     if (mixIrqAddress) cbMtx.unlock();
-    spuAsyncWait = 0;
 }
 
 // To investigate: do sound data updates by DMA writes affect SPU IRQs? Will an IRQ be triggered if new
@@ -65,5 +64,4 @@ void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
     }
 
     if (mixIrqAddress) cbMtx.unlock();
-    spuAsyncWait = 0;
 }

@@ -187,7 +187,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 break;
         }
 
-        spuAsyncWait = 0;
         return;
     }
 
@@ -459,7 +458,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
     }
 
-    spuAsyncWait = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -468,8 +466,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
 uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     const uint32_t r = reg & 0xfff;
-
-    spuAsyncWait = 0;
 
     if (r >= 0x0c00 && r < 0x0d80) {
         switch (r & 0x0f) {

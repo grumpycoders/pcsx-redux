@@ -173,7 +173,6 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
     cursor = decoded.blockEnd;
     const int blockFlags = decoded.flags;
 
-    bool irqWait = false;
     if (spuCtrl & ControlFlags::IRQEnable) {
         const bool addrReached = irqAddress > cursor - 16 && irqAddress <= cursor;
         // Special case: IRQ on the looping address, when the stop/loop flag is set.
@@ -184,15 +183,6 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
             irqDone = 1;
             // Notify the main emulator.
             scheduleInterrupt();
-            // Park the SPU thread until the CPU has acknowledged, so it cannot run
-            // ahead of an IRQ it has already raised. This is emulator thread
-            // synchronisation and NOT hardware behaviour - real silicon raises the
-            // IRQ and keeps producing samples - so it is unconditional rather than
-            // optional: nothing should be able to switch off a race guard. It wants
-            // replacing with real SPU/CPU sync; the wall-clock deadline below is a
-            // backstop, not a design.
-            spuAsyncWait = 1;
-            irqWait = true;
         }
     }
 
@@ -212,15 +202,6 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
 
     // Store the cursor for the next cycle.
     voice->adpcm.setCurr(cursor);
-
-    // Special wait for the "SPU IRQ - wait for CPU action" option.
-    if (irqWait) {
-        using namespace std::chrono_literals;
-        const auto watchUntil = std::chrono::steady_clock::now() + 2500ms;
-        while (spuAsyncWait && !endThread && std::chrono::steady_clock::now() < watchUntil) {
-            std::this_thread::sleep_for(1ms);
-        }
-    }
 
     return true;
 }
@@ -538,16 +519,6 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////
-
-// Called once every 'cycle' cycles.
-void PCSX::SPU::impl::async(uint32_t cycle) {
-    if (spuAsyncWait) {
-        spuAsyncWait++;
-        if (spuAsyncWait <= 64) return;
-        spuAsyncWait = 0;
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 // XA audio.
