@@ -64,7 +64,9 @@ ISO9660Builder* createIsoBuilder(LuaFile* out);
 void deleteIsoBuilder(ISO9660Builder* builder);
 bool isoBuilderFailed(ISO9660Builder* builder);
 void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
-void isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, enum SectorMode mode);
+uint32_t isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, enum SectorMode mode);
+uint32_t isoBuilderWriteSectorAt(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, uint32_t lba, enum SectorMode mode);
+uint32_t isoBuilderGetCurrentLBA(ISO9660Builder* builder);
 void isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
 
 // High-level filesystem-aware ISO builder
@@ -235,6 +237,29 @@ local function createDirTreeWrapper(node)
     return wrapper
 end
 
+-- Amount of data a raw sector write consumes, per mode. Modes absent from this table can't be written.
+local sectorDataSize = {
+    RAW = 2352,
+    M2_RAW = 2336,
+    M2_FORM1 = 2048,
+    M2_FORM2 = 2324,
+}
+
+-- Normalizes the (data[, size]) pair of the raw sector writers. Strings carry their own size; anything
+-- else is a pointer and needs one spelled out.
+local function sectorData(data, size, mode)
+    if size == nil then
+        if type(data) ~= 'string' then error('a size is required when writing a sector from a pointer') end
+        size = #data
+    end
+    local needed = sectorDataSize[mode]
+    if needed == nil then error('sector mode ' .. tostring(mode) .. ' cannot be written') end
+    if size < needed then
+        error('sector mode ' .. mode .. ' needs ' .. needed .. ' bytes of data, got ' .. size)
+    end
+    return ffi.cast('const uint8_t*', data), size
+end
+
 local function createIsoBuilderWrapper(wrapper)
     local function pvdGetter(getter)
         return function(self)
@@ -245,6 +270,21 @@ local function createIsoBuilderWrapper(wrapper)
     local builder = {
         _wrapper = ffi.gc(wrapper, C.deleteIsoBuilder),
         failed = function(self) return C.isoBuilderFailed(self._wrapper) end,
+        getCurrentLBA = function(self) return C.isoBuilderGetCurrentLBA(self._wrapper) end,
+        writeSector = function(self, data, a, b)
+            local size, mode
+            if type(a) == 'number' then size, mode = a, b else size, mode = nil, a end
+            if mode == nil then mode = 'M2_FORM1' end
+            local ptr, len = sectorData(data, size, mode)
+            return C.isoBuilderWriteSector(self._wrapper, ptr, len, mode)
+        end,
+        writeSectorAt = function(self, data, a, b, c)
+            local size, lba, mode
+            if type(b) == 'number' then size, lba, mode = a, b, c else size, lba, mode = nil, a, b end
+            if mode == nil then mode = 'M2_FORM1' end
+            local ptr, len = sectorData(data, size, mode)
+            return C.isoBuilderWriteSectorAt(self._wrapper, ptr, len, lba, mode)
+        end,
         writeLicense = function(self, file)
             if file then
                 C.isoBuilderWriteLicense(self._wrapper, file._wrapper)
