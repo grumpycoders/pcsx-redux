@@ -78,6 +78,11 @@ class HW {
                     if (usingMsan && PCSX::Memory::inMsanRange(madr)) {
                         madr &= 0xfffffffc;
                         switch (g_emulator->m_mem->msanGetStatus<4>(madr)) {
+                            case MsanStatus::PARTIALLY_INITIALIZED:
+                                g_system->log(LogClass::GPU,
+                                              _("GPU DMA went into uninitialized bytes in usable, partially initialized msan memory: %8.8lx\n"),
+                                              madr);
+                                break;
                             case PCSX::MsanStatus::UNINITIALIZED:
                                 g_system->log(LogClass::GPU,
                                               _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
