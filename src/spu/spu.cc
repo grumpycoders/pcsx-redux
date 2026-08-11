@@ -23,6 +23,9 @@
 
 #include "spu/adsr.h"
 #include "spu/externals.h"
+#include <cstdio>
+#include <cstdlib>
+
 #include "spu/interface.h"
 
 namespace {
@@ -431,11 +434,44 @@ void PCSX::SPU::impl::MainThread() {
         // Mix all channels, including reverb, into one buffer.
 
         for (ns = 0; ns < NSSIZE; ns++) {
-            SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
-            *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
+            // Reconciliation counters: dry (pre-reverb), wet (the reverb return) and the
+            // final clamped sample, all captured at the SAME mix point in the SAME run so
+            // the three can be checked against each other. Off unless PCSX_REVSTATS is set.
+            static const bool s_recOn = getenv("PCSX_REVSTATS") != nullptr;
+            static double s_dry[2], s_wet[2], s_fin[2];
+            static long s_recN, s_clip;
+            static double s_xcorr;
+            const int dryL = SSumL[ns], dryR = SSumR[ns];
+
+            const int wetL = m_reverb.mixLeft(ns, spuMem, spuCtrl);
+            SSumL[ns] += wetL;
+            const int preL = SSumL[ns] / volumeDivisor;
+            const int finL = std::clamp(preL, -kMixSampleClamp, kMixSampleClamp);
+            *pS++ = finL;
             SSumL[ns] = 0;
 
-            SSumR[ns] += m_reverb.mixRight();
+            const int wetR = m_reverb.mixRight();
+            if (s_recOn) {
+                s_dry[0] += (double)dryL * dryL; s_dry[1] += (double)dryR * dryR;
+                s_wet[0] += (double)wetL * wetL; s_wet[1] += (double)wetR * wetR;
+                s_fin[0] += (double)finL * finL;
+                if (preL != finL) s_clip++;
+                s_xcorr += (double)dryL * wetL;
+                if (++s_recN % (44100 * 4) == 0) {
+                    auto rms = [&](double a) { return sqrt(a / s_recN); };
+                    fprintf(stderr, "MIXREC n=%ld clipL=%ld\n", s_recN, s_clip);
+                    fprintf(stderr, "MIXREC dry   L=%10.2f R=%10.2f L/R=%7.4f\n", rms(s_dry[0]), rms(s_dry[1]), rms(s_dry[0])/rms(s_dry[1]));
+                    fprintf(stderr, "MIXREC wet   L=%10.2f R=%10.2f L/R=%7.4f\n", rms(s_wet[0]), rms(s_wet[1]), rms(s_wet[0])/rms(s_wet[1]));
+                    fprintf(stderr, "MIXREC finL =%10.2f  (divisor=%d, clamp=%d)\n", rms(s_fin[0]), volumeDivisor, kMixSampleClamp);
+                    {
+                        const double dl = rms(s_dry[0]), wl = rms(s_wet[0]), xc = s_xcorr / s_recN;
+                        fprintf(stderr, "MIXREC corr(dryL,wetL)=%+.4f   predicted finL if independent=%.2f  actual=%.2f\n",
+                                xc / (dl * wl), sqrt(dl*dl + wl*wl), rms(s_fin[0]));
+                    }
+                    fflush(stderr);
+                }
+            }
+            SSumR[ns] += wetR;
             *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumR[ns] = 0;
         }
@@ -481,6 +517,18 @@ void PCSX::SPU::impl::MainThread() {
         // Feed the sound. The target update rate is around 1/60 sec (16.666 ms).
 
         if (iCycle++ > 16) {
+            // Raw final-mix tap. Writes the interleaved 16-bit stereo stream exactly as
+            // it is handed to the audio backend, before any resampling or float
+            // conversion, so it can be compared sample-for-sample against a hardware
+            // capture. Off unless PCSX_MIXDUMP names a file.
+            static FILE *s_mixDump = [] {
+                const char *path = getenv("PCSX_MIXDUMP");
+                return path ? fopen(path, "wb") : nullptr;
+            }();
+            if (s_mixDump) {
+                fwrite(spuBuffer, 1, ((uint8_t *)pS) - ((uint8_t *)spuBuffer), s_mixDump);
+                fflush(s_mixDump);
+            }
             bool done = false;
             while (!done) {
                 done = m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(spuBuffer),
