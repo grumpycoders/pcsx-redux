@@ -5,6 +5,10 @@ ifeq ($(DRY),true)
 CPPFLAGS += -DREVSTREAM_DRY
 endif
 
+ifeq ($(BURST),true)
+CPPFLAGS += -DREVSTREAM_BURST
+endif
+
 SRCS = \
 ../../common/syscalls/printf.s \
 ../../common/crt0/crt0.s \
