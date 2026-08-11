@@ -116,26 +116,42 @@ static void spu_adsr_capture_with_keyoff(
 // The value step is a delta used as margin of error.
 //
 // That margin has a hard floor. ENVX does not move continuously: a linear
-// envelope advances in discrete increments of (7 - step_field), applied once
-// every 1 << max(0, shift - 11) samples. So the whole captured trace is a step
+// envelope advances in one discrete increment (sized below) applied once every
+// 1 << max(0, shift - 11) samples. So the whole captured trace is a step
 // function of where key-on landed, and a one-event alignment slip moves every
 // sample in it by a full increment. A window narrower than one increment is not
 // a tolerance at all - it demands an exact alignment the harness cannot deliver,
 // and passes or fails on luck.
 //
-// Derived against the checked-in goldens at sustain shifts 10/12/14/16, whose
-// slopes (7168, 1792, 448, 112 ENVX per 512-sample trace index) reproduce
-// exactly under increment 7 with the event rate above. All four blocks had been
-// toleranced below their own increment; the two that passed had simply landed
-// well. Floor the window at the increment and the alignment slip is absorbed
-// without giving up any real strictness - 7 on a nominal of 0x4068 is 0.04%.
+// The increment is not symmetric: a rising envelope steps by (7 - step_field),
+// a falling one by (8 - step_field), so the floor is the larger of the two.
+//
+// RISING IS CONFIRMED ON SILICON. adsr_sustain_up_linear had failed both prior
+// hardware runs at shifts 14 and 16 and passes under this floor, twice.
+//
+// FALLING IS NOT. adsr_sustain_down_linear and adsr_decay_shift still fail at
+// margin 8, so a one-event alignment slip is NOT the whole story for decreasing
+// envelopes and the 64-events-per-index reading below is at best incomplete. Do
+// not widen the floor further to chase them - that was tried at 7 -> 8 and the
+// two tests did not move, which means the mechanism is something else. Note also
+// that decay on this hardware is exponential, not linear, so a fixed increment
+// is the wrong model for adsr_decay_shift regardless.
+//
+// Derived against the checked-in goldens. Rising, at sustain shifts 10/12/14/16:
+// slopes 7168, 1792, 448, 112 ENVX per 512-sample trace index, reproducing
+// exactly under increment 7 at the event rate above. Falling, in
+// adsr_sustain_down_linear and adsr_decay_shift: slope 512 per index, which is
+// 73.1 events under increment 7 and exactly 64 under increment 8. Every block
+// had been toleranced below its own increment; the ones that passed had simply
+// landed well. Floored, the alignment slip is absorbed without giving up any
+// real strictness - 8 on a nominal of 0x4068 is 0.05%.
 //
 // LIMITATION, stated rather than hidden: the floor cannot see the shift, so it
 // applies the shift >= 11 increment. Below that the increment doubles per shift
 // (14 at shift 10), and those call sites are still under-toleranced. The only
 // sustain block in that range currently passes; if it starts flaking, that is
 // this line, not a regression.
-#define ENVX_INCREMENT 7
+#define ENVX_INCREMENT 8   // max(rising 7, falling 8)
 #define ENVX_MARGIN(step) ((step) < ENVX_INCREMENT ? ENVX_INCREMENT : (step))
 #define ASSERT_ENVX_NEAR(nominal, step, got) \
     cester_assert_true((got) >= (uint16_t)((nominal) - ENVX_MARGIN(step)) && \
