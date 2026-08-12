@@ -86,6 +86,8 @@
     <ClCompile Include="..\..\..\tests\support\list.cc" />
     <ClCompile Include="..\..\..\tests\support\md5.cc" />
     <ClCompile Include="..\..\..\tests\support\mips.cc" />
+    <ClCompile Include="..\..\..\tests\support\network.cc" />
+    <ClCompile Include="..\..\..\tests\support\uvfifolistener.cc" />
     <ClCompile Include="..\..\..\tests\support\tree.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -94,6 +96,12 @@
     </ProjectReference>
     <ProjectReference Include="..\..\supportpsx\supportpsx.vcxproj">
       <Project>{b2e2ad84-9d7f-4976-9572-e415819ffd7f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libcurl\libcurl.vcxproj">
+      <Project>{25c13988-a8a8-4bfa-962f-0833020e4ee4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libuv\libuv.vcxproj">
+      <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\support\support.vcxproj">
       <Project>{0e621321-093c-4d60-bd8b-027fdc2b0f63}</Project>
@@ -109,6 +117,9 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ucl;$(SolutionDir)..\third_party\ucl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
@@ -126,6 +137,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -141,6 +153,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
@@ -158,6 +171,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>

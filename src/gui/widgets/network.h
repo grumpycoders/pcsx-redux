@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -19,39 +19,34 @@
 
 #pragma once
 
-#include <queue>
-#include <string>
-
-#include "support/eventbus.h"
 #include "support/network.h"
 
 namespace PCSX {
 
-class SIO1Server : public Network::Server {
-  public:
-    SIO1Server();
+class GUI;
 
-  protected:
-    void onStarting() override;
-    void onConnection(IO<File> connection) override;
-    void onStopped() override;
+namespace Widgets {
+
+// The network services used to be a flat run of checkboxes buried in the
+// emulation configuration window, with no indication anywhere of whether a
+// server was actually listening or a client actually connected. A failed bind
+// left the checkbox ticked and said nothing at all.
+class Network {
+  public:
+    Network(bool& show) : m_show(show) {}
+    bool draw(GUI* gui, const char* title);
+
+    bool& m_show;
 
   private:
-    EventBus::Listener m_listener;
+    // Grey stopped, amber connecting, green up, red failed. Returns the width
+    // consumed so the rows line up.
+    void drawStatus(const PCSX::Network::Endpoint* endpoint);
+    // Shared row furniture: bullet, name, state, and a restart button that is
+    // only live when there is something to restart.
+    bool drawEndpointHeader(PCSX::Network::Endpoint* endpoint, bool enabled);
 };
 
-class SIO1Client : public Network::Client {
-  public:
-    SIO1Client();
-    void reconnect(std::string_view address, unsigned port);
-
-  protected:
-    void onStarting() override;
-    void onStarted(IO<File> connection) override;
-    void onStopped() override;
-
-  private:
-    EventBus::Listener m_listener;
-};
+}  // namespace Widgets
 
 }  // namespace PCSX

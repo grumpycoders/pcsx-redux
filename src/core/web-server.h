@@ -30,6 +30,7 @@
 #include "json.hpp"
 #include "support/eventbus.h"
 #include "support/list.h"
+#include "support/network.h"
 #include "support/slice.h"
 
 namespace PCSX {
@@ -100,10 +101,9 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
 
 class WebClient : public Intrusive::List<WebClient>::Node {
   public:
-    WebClient(WebServer* server);
+    WebClient(WebServer* server, IO<File> connection, uv_loop_t* loop);
     typedef Intrusive::List<WebClient> ListType;
     void close();
-    bool accept(uv_tcp_t* srv);
     void write(Slice&& slice);
     template <size_t L>
     void write(const char (&str)[L]) {
@@ -121,31 +121,19 @@ class WebClient : public Intrusive::List<WebClient>::Node {
     friend WebServer;
 };
 
-class WebServer {
+class WebServer : public Network::Server {
   public:
     WebServer();
     ~WebServer() { m_executors.destroyAll(); }
-    enum WebServerStatus {
-        SERVER_STOPPED,
-        SERVER_STOPPING,
-        SERVER_STARTED,
-    };
-    WebServerStatus getServerStatus() { return m_serverStatus; }
 
-    void startServer(uv_loop_t* loop, int port = 8080);
-    void stopServer();
+  protected:
+    void onConnection(IO<File> connection) override;
+    void onStopped() override;
 
   private:
-    void onNewConnection(int status);
-    static void closeCB(uv_handle_t* handle);
-    WebServerStatus m_serverStatus = SERVER_STOPPED;
-    uv_tcp_t m_server;
-    uv_loop_t* m_loop;
     WebClient::ListType m_clients;
     EventBus::Listener m_listener;
     Intrusive::List<WebExecutor> m_executors;
-
-    std::string m_gotError;
 
     friend struct WebClient::WebClientImpl;
 };

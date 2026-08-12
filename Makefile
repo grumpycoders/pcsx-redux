@@ -222,11 +222,12 @@ VIXL_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(V
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
-TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
+TESTS_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(TESTS_SRC)))
 
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.c,%.dep,$(filter %.c,$(SRCS))))
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS))))
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(TESTS_SRC)))
 
 CP ?= cp
 MKDIRP ?= mkdir -p
@@ -329,7 +330,7 @@ objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc -o objs/$(BUILD)/gtest_main.o
 
 clean:
-	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+	rm -f $(OBJECTS) $(TESTS_OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 cleanall:
@@ -354,9 +355,9 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-bins/$(BUILD)/pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+bins/$(BUILD)/pcsx-redux-tests: $(TESTS_OBJECTS) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	@$(MKDIRP) $(dir $@)
-	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(TESTS_OBJECTS) -Ithird_party/googletest/googletest/include $(LDFLAGS)
 
 pcsx-redux-tests: check_submodules bins/$(BUILD)/pcsx-redux-tests
 	$(CP) bins/$(BUILD)/pcsx-redux-tests pcsx-redux-tests
