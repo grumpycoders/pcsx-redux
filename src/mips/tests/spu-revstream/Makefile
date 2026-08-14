@@ -1,6 +1,18 @@
 TARGET = revstream
 TYPE = ps-exe
 
+ifeq ($(PN),true)
+CPPFLAGS += -DREVSTREAM_PN
+endif
+
+ifeq ($(PROBE),true)
+CPPFLAGS += -DREVSTREAM_PROBE
+endif
+
+ifeq ($(HALL),true)
+CPPFLAGS += -DREVSTREAM_HALL
+endif
+
 ifeq ($(DRY),true)
 CPPFLAGS += -DREVSTREAM_DRY
 endif
