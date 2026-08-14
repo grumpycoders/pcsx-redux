@@ -28,15 +28,15 @@ namespace PCSX {
 namespace SPU {
 
 // The SPU's single global reverb unit. Holds the register-mapped reverb work
-// state (REVERBInfo), the reverb mixing buffer pointers, and the Pete/Neill
-// reverb DSP. Extracted out of the SPU impl; the arithmetic is unchanged - the
-// method bodies are the former impl::*REVERB* members moved verbatim, with the
+// state (REVERBInfo) and the reverb mixing buffer pointers. The unit was
+// extracted from the Pete/Neill implementation in the SPU impl, but the DSP is
+// no longer that code: it implements the reverb formula psx-spx documents. The
 // formerly-implicit impl state (the reverb mode setting, SPUCTRL, sound RAM,
-// NSSIZE) now passed in as parameters so the unit owns only reverb state.
+// NSSIZE) is passed in as parameters so the unit owns only reverb state.
 //
 // Like the noise generator this is a single per-SPU instance and lives in the
 // impl rather than in SPUCHAN. The `rvb`, `sRVB*` and `iReverb*` members keep
-// their original names so the moved bodies reference them unchanged.
+// their original names.
 class ReverbUnit {
   public:
     // SPUCTRL bit 7: reverb master enable (was impl::ControlFlags::ReverbMasterEnable).
@@ -67,7 +67,7 @@ class ReverbUnit {
     // in 32-bit units from CurrAddr, wrap at the top of RAM back to StartAddr, and
     // are the one piece of arithmetic every work-area access shares. ExtraSample is
     // the half-sample stagger the IIR destinations write at; it is a template
-    // parameter because it is only ever 0 or 1 and it selects the whole access.
+    // parameter because it is always 0 since the reverb moved to the psx-spx IIR offsets and it selects the whole access.
     int wrapOffset(int offset, int extraSample) const;
     int getBuffer(int offset, uint16_t *spuMem) const;
     template <int ExtraSample>
