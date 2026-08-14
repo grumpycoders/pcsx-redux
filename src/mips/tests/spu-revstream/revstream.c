@@ -32,6 +32,24 @@
 #ifdef REVSTREAM_PROBE
 #define SPU_REVERB_SIZE 0x26c0u
 #define SPU_REVERB_PRESET kReverbProbePreset
+#elif defined(REVSTREAM_PROBE_DIFF)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbProbeDiffPreset
+#elif defined(REVSTREAM_PROBE_IIR)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbProbeIirPreset
+#elif defined(REVSTREAM_ROOM_NOAPF)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbRoomNoApfPreset
+#elif defined(REVSTREAM_ROOM_APF1)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbRoomApf1Preset
+#elif defined(REVSTREAM_ROOM_APF2)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbRoomApf2Preset
+#elif defined(REVSTREAM_PROBE_APF1)
+#define SPU_REVERB_SIZE 0x26c0u
+#define SPU_REVERB_PRESET kReverbProbeApf1Preset
 #elif defined(REVSTREAM_HALL)
 #define SPU_REVERB_SIZE 0xade0u
 #define SPU_REVERB_PRESET kReverbHallPreset
@@ -126,11 +144,137 @@ static const uint16_t kReverbProbePreset[32] = {
     0x0460, 0x0260, 0x0100, 0x00c0, 0x0080, 0x0060, 0x7fff, 0x7fff,
 };
 
+static const uint16_t kReverbProbeDiffPreset[32] = {
+    // RUNG 1 of the degenerate ladder. Identical to kReverbProbePreset EXCEPT
+    // that the different-side reflection addresses take ROOM's actual values,
+    // which are ZERO: mLDIFF = mRDIFF = dLDIFF = dRDIFF = 0x0000.
+    //
+    // That is not an omission in the psx-spx table, it is what the Room preset
+    // really contains - and it means BOTH the left and the right different-side
+    // paths write to, and read from, reverb work-area offset 0. They collide.
+    // Which one wins depends on the order L and R are processed in, and hardware
+    // alternates them on successive 44.1kHz cycles. Hall's diff addresses are
+    // distinct (0x0dc0/0x09c1, 0x09c2/0x05c1) and Hall scores 1.6; the plain
+    // probe's are distinct (0x0470/0x0270) and it scores 2.3; Room's collide and
+    // it scores 24.1 on L alone. This rung is the single-variable test of that.
+    //
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x0020, 0x0010, 0x7fff, 0x4000, 0x0000, 0x0000, 0x0000, 0x0000,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x0000, 0x0000, 0x0400, 0x0200, 0x0380, 0x0180, 0x0300, 0x0140,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x03f0, 0x01f0, 0x0000, 0x0000, 0x02c0, 0x0120, 0x0280, 0x0100,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0000, 0x0000, 0x0100, 0x00c0, 0x0080, 0x0060, 0x7fff, 0x7fff,
+};
+
+static const uint16_t kReverbProbeIirPreset[32] = {
+    // RUNG 2. Probe, but the SAME-SIDE stage takes Room's real recursion
+    // coefficients: vIIR = 0x6d80 and vWALL = 0xba80 (NEGATIVE, -17792 signed).
+    // Everything downstream stays collapsed - one comb tap, both all-passes at
+    // zero - so the only thing that changed is that the same-side line now feeds
+    // back through the work area instead of being a straight copy of the input.
+    //
+    // ⚠ RUNG 1 (kReverbProbeDiffPreset) WAS A NULL BY CONSTRUCTION and this rung
+    // exists partly to not repeat it: changing the different-side ADDRESSES
+    // produced BIT-IDENTICAL output on silicon AND on Redux, because with
+    // vCOMB2..4 = 0 the single live comb tap never reads what the diff stage
+    // wrote. The fixture is more degenerate than its own comment claimed - it
+    // isolates the SAME-side path only. Run a Redux-only capture of any new rung
+    // and confirm it DIFFERS from the plain probe before spending a farm ticket.
+    //
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x0020, 0x0010, 0x6d80, 0x4000, 0x0000, 0x0000, 0x0000, 0xba80,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x0000, 0x0000, 0x0400, 0x0200, 0x0380, 0x0180, 0x0300, 0x0140,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x03f0, 0x01f0, 0x0470, 0x0270, 0x02c0, 0x0120, 0x0280, 0x0100,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0460, 0x0260, 0x0100, 0x00c0, 0x0080, 0x0060, 0x7fff, 0x7fff,
+};
+
 static const uint16_t kReverbHallPreset[32] = {
     0x01a5, 0x0139, 0x6000, 0x5000, 0x4c00, 0xb800, 0xbc00, 0xc000,
     0x6000, 0x5c00, 0x15ba, 0x11bb, 0x14c2, 0x10bd, 0x11bc, 0x0dc1,
     0x11c0, 0x0dc3, 0x0dc0, 0x09c1, 0x0bc4, 0x07c1, 0x0a00, 0x06cd,
     0x09c2, 0x05c1, 0x05c0, 0x041a, 0x0274, 0x013a, 0x8000, 0x8000,
+};
+
+static const uint16_t kReverbProbeApf1Preset[32] = {
+    // MINIMAL APF1 FIXTURE. The fully degenerate probe with ONE stage restored:
+    // the first all-pass at Room's real vAPF1 = 0x5800 and dAPF1 = 0x007d, and
+    // Room's mLAPF1/mRAPF1 addresses so the tap geometry is Room's too.
+    // Same-side stays a straight copy (vIIR=7fff, vWALL=0), one comb tap, APF2
+    // collapsed.
+    //
+    // Built because ROOM_APF1 - Room with only vAPF2 zeroed - reproduces the
+    // ENTIRE L residual: 24.2 mean, 83 max, 1/28 exact, against plain Room's
+    // 24.1 / 83 / 1/28. If that survives into this fixture the whole defect sits
+    // in a network small enough to have a closed form, and the arithmetic can be
+    // checked term by term instead of scored as one folded scalar.
+    //
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x007d, 0x0010, 0x7fff, 0x4000, 0x0000, 0x0000, 0x0000, 0x0000,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x5800, 0x0000, 0x0400, 0x0200, 0x0380, 0x0180, 0x0300, 0x0140,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x03f0, 0x01f0, 0x0470, 0x0270, 0x02c0, 0x0120, 0x0280, 0x0100,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0460, 0x0260, 0x01b4, 0x0136, 0x0080, 0x0060, 0x7fff, 0x7fff,
+};
+
+static const uint16_t kReverbRoomApf1Preset[32] = {
+    // Room verbatim with ONLY the SECOND all-pass collapsed (vAPF2 = 0), so
+    // APF1 runs at Room's real vAPF1 = 0x5800 / dAPF1 = 0x007d and nothing else
+    // downstream survives. Splits the all-pass stage, which the ROOM_NOAPF arm
+    // localised the whole L residual to: Room 24.1, Room-with-both-APFs-off 1.3.
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x007d, 0x005b, 0x6d80, 0x54b8, 0xbed0, 0x0000, 0x0000, 0xba80,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x5800, 0x0000, 0x04d6, 0x0333, 0x03f0, 0x0227, 0x0374, 0x01ef,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x0334, 0x01b5, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0000, 0x0000, 0x01b4, 0x0136, 0x00b8, 0x005c, 0x8000, 0x8000,
+};
+
+static const uint16_t kReverbRoomApf2Preset[32] = {
+    // Mirror of the above: ONLY the FIRST all-pass collapsed (vAPF1 = 0), so
+    // APF2 runs alone at Room's vAPF2 = 0x5300 / dAPF2 = 0x005b. Run BOTH arms -
+    // one dirty and one clean names the stage; both dirty means the defect is in
+    // the shared all-pass code and not in either instance's coefficients.
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x007d, 0x005b, 0x6d80, 0x54b8, 0xbed0, 0x0000, 0x0000, 0xba80,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x0000, 0x5300, 0x04d6, 0x0333, 0x03f0, 0x0227, 0x0374, 0x01ef,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x0334, 0x01b5, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0000, 0x0000, 0x01b4, 0x0136, 0x00b8, 0x005c, 0x8000, 0x8000,
+};
+
+static const uint16_t kReverbRoomNoApfPreset[32] = {
+    // BISECTING FROM THE DIRTY END. This is the Room preset verbatim with ONE
+    // change: vAPF1 = vAPF2 = 0, which collapses both all-pass stages to pure
+    // delays. Every address stays Room's.
+    //
+    // Approaching from the degenerate end stopped discriminating: probe 2.3,
+    // probe + Room's same-side recursion 1.9, Hall 1.6 - all clean, while Room
+    // is 24.1 on L. Adding stages to a clean fixture keeps returning clean, and
+    // it also cannot reproduce anything that depends on Room's ADDRESSES rather
+    // than its coefficients, because the ladder holds the probe's addresses
+    // fixed. Removing one stage from the configuration that HAS the defect is
+    // the sharper cut: if the 24 vanishes it is the all-pass, and if it survives
+    // the all-pass is exonerated and the comb is next.
+    //
+    // dAPF1  dAPF2  vIIR   vCOMB1 vCOMB2 vCOMB3 vCOMB4 vWALL
+    0x007d, 0x005b, 0x6d80, 0x54b8, 0xbed0, 0x0000, 0x0000, 0xba80,
+    // vAPF1  vAPF2  mLSAME mRSAME mLCOMB1 mRCOMB1 mLCOMB2 mRCOMB2
+    0x0000, 0x0000, 0x04d6, 0x0333, 0x03f0, 0x0227, 0x0374, 0x01ef,
+    // dLSAME dRSAME mLDIFF mRDIFF mLCOMB3 mRCOMB3 mLCOMB4 mRCOMB4
+    0x0334, 0x01b5, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    // dLDIFF dRDIFF mLAPF1 mRAPF1 mLAPF2 mRAPF2 vLIN   vRIN
+    0x0000, 0x0000, 0x01b4, 0x0136, 0x00b8, 0x005c, 0x8000, 0x8000,
 };
 
 static const uint16_t kReverbRoomPreset[32] = {
@@ -301,8 +445,19 @@ int main(void) {
         for (unsigned i = 0; i < 32; i++) regs[i] = SPU_REVERB_PRESET[i];
     }
 
+#ifdef REVSTREAM_PANNED
+    /* Hard-left voice, so Lin != Rin. EVERY capture in this arc until 2026-08-14
+       used a symmetric stimulus - dry L and dry R came back byte-identical - and
+       with L == R the different-side reflection produces the same thing as the
+       same-side one. So a symmetric fixture structurally CANNOT distinguish them,
+       and no amount of Room/Hall/probe agreement is evidence about cross-coupling.
+       This is the only fixture in the set where the diff stage is observable. */
+    SPU_VOICES[1].volumeLeft = 0x3fff;
+    SPU_VOICES[1].volumeRight = 0x0000;
+#else
     SPU_VOICES[1].volumeLeft = 0x3fff;
     SPU_VOICES[1].volumeRight = 0x3fff;
+#endif
 #ifdef REVSTREAM_DRY
     /* Negative control: identical in every respect except that the voice never
        reaches the reverb unit. If a capture of this is indistinguishable from
@@ -317,8 +472,21 @@ int main(void) {
        so main and reverb output volumes come up. */
     SPU_VOL_MAIN_LEFT = 0x3fff;
     SPU_VOL_MAIN_RIGHT = 0x3fff;
+#ifdef REVSTREAM_NEGOUT
+    /* vLOUT NEGATIVE. Every capture in this arc pinned vLOUT/vROUT at 0x3fff, so
+       the reverb output volume has only ever been exercised at one positive value
+       - while reverb.cc carries a note that registers.cc assigns VolLeft/VolRight
+       from a uint16_t with NO cast, unlike every other reverb coefficient, and
+       sign-extends at the point of use to compensate. That compensation has never
+       been tested against silicon because nothing has ever made vLOUT negative.
+       0xc000 = -16384: same magnitude as 0x4000, opposite sign, asymmetric across
+       the channels so an L/R swap cannot hide in it either. */
+    SPU_REVERB_LEFT = 0xc000;
+    SPU_REVERB_RIGHT = 0x3fff;
+#else
     SPU_REVERB_LEFT = 0x3fff;
     SPU_REVERB_RIGHT = 0x3fff;
+#endif
 
 #ifdef REVSTREAM_DRY
     SPU_CTRL = 0x8000 | 0x4000;
@@ -326,7 +494,16 @@ int main(void) {
     SPU_CTRL = 0x8000 | 0x4000 | 0x0080;
 #endif
 
+#ifdef REVSTREAM_PITCH
+    /* Non-native pitch. 0x1000 is 1.0x, the ONLY rate any capture in this arc has
+       used, which means the voice-side ADPCM interpolator has never been exercised
+       here at all - and the group-delay fix that this whole arc turned on lives in
+       a resampler. 0x0AAA ~= 0.666x forces genuine fractional stepping rather than
+       an exact power-of-two ratio that could alias to a clean phase pattern. */
+    SPU_VOICES[1].sampleRate = 0x0aaa;
+#else
     SPU_VOICES[1].sampleRate = 0x1000;
+#endif
     SPU_VOICES[1].sampleStartAddr = SPU_UPLOAD_ADDR >> 3;
     SPU_VOICES[1].sampleRepeatAddr = SPU_UPLOAD_ADDR >> 3;
     SPU_VOICES[1].adsrLo = 0x000f;
