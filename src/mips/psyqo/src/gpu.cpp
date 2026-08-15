@@ -217,6 +217,19 @@ void psyqo::GPU::checkOTCAndTriggerCallback() {
     }
 }
 
+void psyqo::GPU::setDisplayArea(bool firstBuffer) {
+    uint32_t x = 0;
+    uint32_t y = 0;
+    if constexpr (c_layout == Layout::Horizontal) {
+        x = firstBuffer ? 0 : m_width;
+    } else if constexpr (c_layout == Layout::VerticalSwitch) {
+        y = firstBuffer ? 256 : 16;
+    } else {
+        y = firstBuffer ? 256 : 0;
+    }
+    Hardware::GPU::Ctrl = 0x05000000 | (x << 0) | (y << 10);
+}
+
 void psyqo::GPU::flip() {
     do {
         pumpCallbacks();
@@ -227,12 +240,7 @@ void psyqo::GPU::flip() {
     parity ^= 1;
     if (!m_interlaced) {
         bool firstBuffer = !parity;
-        // Set Display Area
-        if (firstBuffer) {
-            Hardware::GPU::Ctrl = 0x05000000 | (256 << 10);
-        } else {
-            Hardware::GPU::Ctrl = 0x05000000;
-        }
+        setDisplayArea(firstBuffer);
     } else if (!pcsx_present()) {
         while (1) {
             uint32_t stat = Hardware::GPU::Ctrl;
@@ -280,9 +288,22 @@ void psyqo::GPU::getScissor(Prim::Scissor &scissor) {
     int16_t height = m_height;
     bool firstBuffer = !parity || m_interlaced;
 
-    scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = firstBuffer ? int16_t(0) : int16_t(256)}});
-    scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = firstBuffer ? height : int16_t(256 + height)}});
-    scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = firstBuffer ? int16_t(0) : int16_t(256)}});
+    if constexpr (c_layout == Layout::Horizontal) {
+        int16_t x = firstBuffer ? int16_t(0) : width;
+        scissor.start = Prim::DrawingAreaStart(Vertex{{.x = x, .y = 0}});
+        scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = int16_t(x + width), .y = height}});
+        scissor.offset = Prim::DrawingOffset(Vertex{{.x = x, .y = 0}});
+    } else {
+        int16_t y;
+        if constexpr (c_layout == Layout::VerticalSwitch) {
+            y = firstBuffer ? int16_t(16) : int16_t(256);
+        } else {
+            y = firstBuffer ? int16_t(0) : int16_t(256);
+        }
+        scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = y}});
+        scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = int16_t(y + height)}});
+        scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = y}});
+    }
 }
 
 void psyqo::GPU::getNextScissor(Prim::Scissor &scissor) {
@@ -291,9 +312,22 @@ void psyqo::GPU::getNextScissor(Prim::Scissor &scissor) {
     int16_t height = m_height;
     bool firstBuffer = !parity || m_interlaced;
 
-    scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = firstBuffer ? int16_t(256) : int16_t(0)}});
-    scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = firstBuffer ? int16_t(256 + height) : height}});
-    scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = firstBuffer ? int16_t(256) : int16_t(0)}});
+    if constexpr (c_layout == Layout::Horizontal) {
+        int16_t x = firstBuffer ? width : int16_t(0);
+        scissor.start = Prim::DrawingAreaStart(Vertex{{.x = x, .y = 0}});
+        scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = int16_t(x + width), .y = height}});
+        scissor.offset = Prim::DrawingOffset(Vertex{{.x = x, .y = 0}});
+    } else {
+        int16_t y;
+        if constexpr (c_layout == Layout::VerticalSwitch) {
+            y = firstBuffer ? int16_t(256) : int16_t(16);
+        } else {
+            y = firstBuffer ? int16_t(256) : int16_t(0);
+        }
+        scissor.start = Prim::DrawingAreaStart(Vertex{{.x = 0, .y = y}});
+        scissor.end = Prim::DrawingAreaEnd(Vertex{{.x = width, .y = int16_t(y + height)}});
+        scissor.offset = Prim::DrawingOffset(Vertex{{.x = int16_t(0), .y = y}});
+    }
 }
 
 void psyqo::GPU::clear(Color bg) {
@@ -307,7 +341,17 @@ void psyqo::GPU::getClear(Prim::FastFill &ff, Color bg) const {
     int16_t height = m_height;
     bool firstBuffer = !m_parity || m_interlaced;
     ff.setColor(bg);
-    ff.rect = Rect{0, firstBuffer ? int16_t(0) : int16_t(256), width, height};
+    if constexpr (c_layout == Layout::Horizontal) {
+        ff.rect = Rect{firstBuffer ? int16_t(0) : width, 0, width, height};
+    } else {
+        int16_t y;
+        if constexpr (c_layout == Layout::VerticalSwitch) {
+            y = firstBuffer ? int16_t(16) : int16_t(256);
+        } else {
+            y = firstBuffer ? int16_t(0) : int16_t(256);
+        }
+        ff.rect = Rect{0, y, width, height};
+    }
 }
 
 void psyqo::GPU::getNextClear(Prim::FastFill &ff, Color bg) const {
@@ -315,7 +359,17 @@ void psyqo::GPU::getNextClear(Prim::FastFill &ff, Color bg) const {
     int16_t height = m_height;
     bool firstBuffer = !m_parity || m_interlaced;
     ff.setColor(bg);
-    ff.rect = Rect{0, firstBuffer ? int16_t(256) : int16_t(0), width, height};
+    if constexpr (c_layout == Layout::Horizontal) {
+        ff.rect = Rect{firstBuffer ? width : int16_t(0), 0, width, height};
+    } else {
+        int16_t y;
+        if constexpr (c_layout == Layout::VerticalSwitch) {
+            y = firstBuffer ? int16_t(256) : int16_t(16);
+        } else {
+            y = firstBuffer ? int16_t(256) : int16_t(0);
+        }
+        ff.rect = Rect{0, y, width, height};
+    }
 }
 
 void psyqo::GPU::uploadToVRAM(const uint16_t *data, Rect rect) {
