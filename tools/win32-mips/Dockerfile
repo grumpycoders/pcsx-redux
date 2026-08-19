@@ -1,6 +1,6 @@
 # escape=`
 
-# Dockerfile to generate the Windows g++-mipsel-none-elf-16.1.0.zip package.
+# Dockerfile to generate the Windows g++-mipsel-none-elf-16.2.0.zip package.
 
 FROM mcr.microsoft.com/windows/servercore:ltsc2025
 WORKDIR C:\windows\temp
@@ -39,7 +39,7 @@ RUN C:\msys64\usr\bin\bash.exe -l -c 'exit 0'; `
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-toolchain'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm automake autoconf make intltool libtool zip unzip'
-RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm bison diffutils texinfo'
+RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm bison diffutils patch texinfo'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-expat mingw-w64-x86_64-ncurses'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-xxhash mingw-w64-x86_64-pdcurses'
 RUN C:\msys64\usr\bin\bash.exe -l -c 'pacman -S --needed --noconfirm mingw-w64-x86_64-python mingw-w64-x86_64-readline'
@@ -61,6 +61,10 @@ RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tl
     Remove-Item @('C:\Windows\Temp\*', 'C:\Users\*\Appdata\Local\Temp\*') -Force -Recurse;
 
 ENV MSYSTEM MINGW64
+
+COPY same-inode.patch C:/same-inode.patch
+
+RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.47 && patch -p1 --batch --forward -i /c/same-inode.patch'
 
 RUN C:\msys64\usr\bin\bash.exe -l -c 'cd /c/binutils-2.47 && /c/binutils-2.47/configure --target=mipsel-none-elf --disable-multilib --disable-nls --disable-werror --prefix=/DIST || (cat /BUILD/config.log && exit 1)'
 
