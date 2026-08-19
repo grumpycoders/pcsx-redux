@@ -69,13 +69,15 @@ RUN apt install -y squashfs-tools zip zsync
 # mipsel cross compilers, so there's no distribution package to install here.
 COPY --from=toolchain /usr/local /usr/local
 
+# Both projects name their releases after uname's spelling of the architecture,
+# which is also the one the AppImage ends up carrying.
 WORKDIR /tmp
-RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage && \
-    chmod +x appimagetool-x86_64.AppImage && \
-    mv appimagetool-x86_64.AppImage /usr/bin/appimagetool
-RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && \
-    chmod +x linuxdeploy-x86_64.AppImage && \
-    mv linuxdeploy-x86_64.AppImage /usr/bin/linuxdeploy
+RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-`uname -m`.AppImage && \
+    chmod +x appimagetool-`uname -m`.AppImage && \
+    mv appimagetool-`uname -m`.AppImage /usr/bin/appimagetool
+RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-`uname -m`.AppImage && \
+    chmod +x linuxdeploy-`uname -m`.AppImage && \
+    mv linuxdeploy-`uname -m`.AppImage /usr/bin/linuxdeploy
 
 RUN mkdir /project
 ENV HOME=/home/coder
