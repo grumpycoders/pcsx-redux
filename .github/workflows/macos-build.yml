@@ -13,15 +13,13 @@ concurrency:
 jobs:
   build-openbios:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
         set-safe-directory: true
-    - name: Update packages
-      run: sudo apt-get update
-    - name: Install dependencies
-      run: sudo apt-get install -y g++-mipsel-linux-gnu
     - name: Build OpenBIOS
       run: make -C src/mips/openbios -j2
     - name: Upload results for MacOS build job

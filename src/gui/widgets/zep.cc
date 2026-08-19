@@ -20,7 +20,6 @@
 #include "gui/widgets/zep.h"
 
 #include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
 
 #include "gui/gui.h"
 #include "zep/regress.h"

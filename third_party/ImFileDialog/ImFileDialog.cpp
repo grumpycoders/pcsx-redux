@@ -28,7 +28,10 @@
 #include <pwd.h>
 #endif
 
-#define ICON_SIZE ImGui::GetFont()->FontSize + 3
+#define ICON_SIZE ImGui::GetFont()->LegacySize + 3
+// GImGui->FontSize is the current rendering size on the global ImGui context;
+// it survived ImGui v1.92 (only ImFont::FontSize was removed in favor of
+// LegacySize). The original macro queried the live size, not the loaded one.
 #define GUI_ELEMENT_SIZE std::max(GImGui->FontSize + 10.f, 24.f)
 #define DEFAULT_ICON_SIZE 32
 #define PI 3.141592f

@@ -6,7 +6,7 @@
   zlib,
   curl,
   ffmpeg,
-  glfw3,
+  sdl3,
   capstone,
   freetype,
   libX11,
@@ -16,7 +16,6 @@
   multipart-parser-c,
   fmt,
   magic-enum,
-  miniaudio,
   gtest,
   tl-expected,
   elfio,
@@ -141,7 +140,6 @@ in stdenv.mkDerivation {
     ucl
     md4c
     luajitPackages.libluv
-    miniaudio
     multipart-parser-c
     fmt
     magic-enum
@@ -153,7 +151,7 @@ in stdenv.mkDerivation {
     curl.dev
     zlib
     ffmpeg.dev
-    glfw3
+    sdl3
     capstone
     freetype.dev
     uriparser
