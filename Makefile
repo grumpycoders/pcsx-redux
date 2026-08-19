@@ -1,7 +1,6 @@
 TARGET := pcsx-redux
 BUILD ?= Release
 DESTDIR ?= /usr/local
-CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -104,10 +103,6 @@ LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
-ifeq ($(CROSS),arm64)
-    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-endif
 
 LD := $(CXX)
 
@@ -159,11 +154,6 @@ ifeq ($(UNAME_M),aarch64)
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
 ifeq ($(UNAME_M),arm64)
-        SRCS += $(VIXL_SRCS)
-        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
-        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
-endif
-ifeq ($(CROSS),arm64)
         SRCS += $(VIXL_SRCS)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
@@ -280,15 +270,10 @@ appimage:
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
 	sed -i s:/usr/bin/:: AppDir/usr/share/applications/pcsx-redux.desktop
 	linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
-	mv PCSX-Redux-x86_64.AppImage PCSX-Redux-HEAD-x86_64.AppImage
+	mv PCSX-Redux-`uname -m`.AppImage PCSX-Redux-HEAD-`uname -m`.AppImage
 
-ifeq ($(CROSS),arm64)
-third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
-else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
-endif
 
 bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
 	@$(MKDIRP) $(dir $@)
