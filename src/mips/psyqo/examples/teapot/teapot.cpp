@@ -110,6 +110,10 @@ class TeapotScene final : public psyqo::Scene {
     // Per-frame scratch, recomputed every frame.
     psyqo::Vertex m_projected[kVertexCount];
     uint32_t m_sz[kVertexCount];
+    // Finished GP0 first-words: the primitive's command byte fused with the lit
+    // colour by the GTE. Color already models this - its `user` byte IS the top
+    // byte the GP0 command lives in - so there is no reason to drop to a raw
+    // word here.
     psyqo::Color m_shade[kVertexCount];
 
     psyqo::OrderingTable<ORDERING_TABLE_SIZE> m_ots[2];
@@ -117,6 +121,7 @@ class TeapotScene final : public psyqo::Scene {
     eastl::array<psyqo::Fragments::SimpleFragment<psyqo::Prim::GouraudQuad>, kQuadCount> m_frags[2];
 
     static constexpr psyqo::Color c_bg = {{.r = 20, .g = 22, .b = 28}};
+
 
     // A cubic Bezier the camera drifts along, in the same raw units the GTE
     // reads the packed vectors in. Evaluated once per frame with gteCubic.
@@ -288,9 +293,10 @@ void TeapotScene::start(StartReason reason) {
     psyqo::GTE::write<psyqo::GTE::Register::RBK, psyqo::GTE::Unsafe>(0x180);
     psyqo::GTE::write<psyqo::GTE::Register::GBK, psyqo::GTE::Unsafe>(0x180);
     psyqo::GTE::write<psyqo::GTE::Register::BBK, psyqo::GTE::Unsafe>(0x180);
-    // On an UNTEXTURED primitive full brightness is 0xff; 0x80 is the neutral
-    // point for texture blending, and using it here halves the whole image.
-    psyqo::GTE::write<psyqo::GTE::Register::RGB, psyqo::GTE::Unsafe>(0x00ffffff);
+    // RGBC is written per frame in frame(), because its top byte carries the
+    // primitive command the GTE fuses into each colour. On an UNTEXTURED
+    // primitive full brightness is 0xff; 0x80 is the neutral point for texture
+    // blending and using it here would halve the whole image.
 }
 
 void TeapotScene::frame() {
@@ -380,12 +386,33 @@ void TeapotScene::frame() {
         if (!m_lightOn[2]) lcm.vs[row].z = 0.0_fp;
     }
     psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::Color>(lcm);
-    for (i = 0; i < kVertexCount; i++) {
-        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_normals[i]);
+
+    // RGBC's top byte is CODE, and the GTE fuses it into every colour it
+    // produces. A GP0 polygon's first word is the command in bits 31-24 and
+    // vertex A's colour in 23-0, so loading CODE with the primitive's own
+    // command byte means the colour FIFO hands back finished command words: no
+    // masking, and the assembly below is a word store rather than a
+    // read-modify-write. The material stays 0xff - full brightness on an
+    // untextured primitive.
+    psyqo::GTE::write<psyqo::GTE::Register::RGB, psyqo::GTE::Unsafe>(
+        m_frags[parity][0].primitive.getCommandWord() | 0x00ffffff);
+
+    // Three normals at a time, exactly like rtpt above. NCCT is 39 cycles
+    // against 51 for three NCCS, and it costs one kernel issue instead of
+    // three.
+    for (i = 0; i + 3 <= kVertexCount; i += 3) {
+        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V0>(m_normals[i + 0]);
+        psyqo::GTE::writeUnsafe<psyqo::GTE::PseudoRegister::V1>(m_normals[i + 1]);
+        psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V2>(m_normals[i + 2]);
+        psyqo::GTE::Kernels::ncct();
+        m_shade[i + 0].packed = psyqo::GTE::readRaw<psyqo::GTE::Register::RGB0>();
+        m_shade[i + 1].packed = psyqo::GTE::readRaw<psyqo::GTE::Register::RGB1>();
+        m_shade[i + 2].packed = psyqo::GTE::readRaw<psyqo::GTE::Register::RGB2>();
+    }
+    for (; i < kVertexCount; i++) {
+        psyqo::GTE::writeSafe<psyqo::GTE::PseudoRegister::V0>(m_normals[i]);
         psyqo::GTE::Kernels::nccs();
-        // RGB2's top byte is the CODE field, not colour; it must not reach the
-        // primitive's colour words.
-        m_shade[i].packed = psyqo::GTE::readRaw<psyqo::GTE::Register::RGB2>() & 0x00ffffff;
+        m_shade[i].packed = psyqo::GTE::readRaw<psyqo::GTE::Register::RGB2>();
     }
 
     // ---- Pass 3: cull, depth-sort, assemble. ----
@@ -419,11 +446,14 @@ void TeapotScene::frame() {
         prim.setPointB(pb);
         prim.setPointC(pc);
         prim.setPointD(pd);
-        prim.setColorA(m_shade[quad.v[0]]);
-        prim.setColorB(m_shade[quad.v[1]]);
-        prim.setColorC(m_shade[quad.v[2]]);
-        prim.setColorD(m_shade[quad.v[3]]);
-        prim.setOpaque();
+        // Each of these is already a finished word: the command byte fused with
+        // the colour by the GTE. Vertex A's lands in the command slot, which is
+        // where a GP0 polygon keeps it. The other three are colour-only words
+        // whose top byte the GPU ignores.
+        prim.setColorAPacked(m_shade[quad.v[0]].packed);
+        prim.colorB = m_shade[quad.v[1]];
+        prim.colorC = m_shade[quad.v[2]];
+        prim.colorD = m_shade[quad.v[3]];
         ot.insert(frag, z);
         drawn++;
     }
