@@ -11,6 +11,7 @@ test-msf.cpp \
 test-adler32.cpp \
 test-bezier.cpp \
 test-primitives.cpp \
+test-gte-math.cpp \
 
 CXXFLAGS = -std=c++20
 
