@@ -87,6 +87,7 @@ SOFTWARE.
 #define REP16(x)  REP4(x)  REP4(x)  REP4(x)  REP4(x)
 #define REP32(x)  REP16(x) REP16(x)
 #define REP64(x)  REP16(x) REP16(x) REP16(x) REP16(x)
+#define REP128(x) REP64(x) REP64(x)
 #define REP256(x) REP64(x) REP64(x) REP64(x) REP64(x)
 
 /* Load targets, spanning the access-cost hierarchy. */
@@ -131,6 +132,21 @@ CESTER_BODY(
         uint16_t before, after;
         before = COUNTERS[2].value;
         __asm__ volatile(REP256("nop\n") : "=&r"(sink) : "r"(p) : "memory");
+        after = COUNTERS[2].value;
+        (void)sink;
+        return (uint16_t)(after - before);
+    }
+
+    /* 128 pairs of `lw`, alternating between two addresses = 256 loads, so the
+       result is directly comparable to the N_READS blocks above. With both
+       pointers equal this degenerates to timed_read and must reproduce its
+       figure - that equality is the instrument check for the stride sweep. */
+    static __attribute__((always_inline)) uint32_t timed_pair(volatile void *a, volatile void *b) {
+        register uint32_t sink;
+        uint16_t before, after;
+        before = COUNTERS[2].value;
+        __asm__ volatile(REP128("lw %0, 0(%1)\nlw %0, 0(%2)\n")
+                         : "=&r"(sink) : "r"(a), "r"(b) : "memory");
         after = COUNTERS[2].value;
         (void)sink;
         return (uint16_t)(after - before);
@@ -220,6 +236,52 @@ CESTER_MAYBE_TEST(loadCostByTarget, load_tests,
     /* On-die MMIO read ~5 cyc (4 marginal); band 3..5. */
     cester_assert_true((mmio - base) >= (uint32_t)N_READS * 3u &&
                        (mmio - base) <= (uint32_t)N_READS * 5u);
+)
+
+/* Main RAM sits behind a page-mode DRAM controller: two loads landing in the
+   same row are a page hit, two in different rows force a precharge and a fresh
+   activate. Sweeping the distance between two alternating load addresses should
+   therefore step at the row size, which is the only way to get the array
+   geometry out of software - the CPU-to-DRAM address lines are permuted (psx-spx
+   records RAM.A11 wired to the chips' A8, with RAM.A8 and RAM.A10 unconnected on
+   at least some retail consoles), so it cannot be read off the address map.
+   Print-only: a pass threshold authored before the first hardware run is an
+   assumption wearing a measurement's clothes. The single assertion below is an
+   instrument check, not a claim about the phenomenon. */
+CESTER_MAYBE_TEST(loadCostByStride, load_tests,
+    volatile char *base = (volatile char *)ADDR_RAM_U;
+    BENCH(ref, timed_read, (volatile void *)ADDR_RAM_U);
+
+    ramsyscall_printf("=== load cost by stride (128 alternating pairs, uncached main RAM) ===\n");
+    ramsyscall_printf("  Format: STRIDE <bytes> min=<ticks per 256 loads> max=<ticks> abs=<cyc/read>\n");
+    ramsyscall_printf("  ref256=%u (single address, same block size)\n", ref);
+
+    uint32_t stride0 = 0;
+    for (int k = -1; k < 20; k++) {
+        /* k < 0 is the stride-0 control. Strides must stay 4-byte aligned: an
+           unaligned lw raises an address error, which is exactly how the first
+           run of this test died one line in. */
+        if (k >= 0 && k < 2) continue;
+        uint32_t stride = (k < 0) ? 0u : (1u << k);
+        volatile void *a = (volatile void *)base;
+        volatile void *b = (volatile void *)(base + stride);
+        uint32_t best = 0xffffu, worst = 0u;
+        for (int i = 0; i < 8; i++) {
+            uint32_t d = timed_pair(a, b);
+            if (d < best) best = d;
+            if (d > worst) worst = d;
+        }
+        if (k < 0) stride0 = best;
+        uint32_t cc = (best * 100u + N_READS / 2) / N_READS;
+        ramsyscall_printf("  STRIDE %u min=%u max=%u abs=%u.%02u\n", stride, best, worst, cc / 100u,
+                          cc % 100u);
+    }
+
+    /* Alternating an address with itself must cost the same as 256 back-to-back
+       reads of it. If this fails, the sweep is measuring something other than
+       what it claims and none of the numbers above mean anything. */
+    uint32_t d0 = stride0 > ref ? stride0 - ref : ref - stride0;
+    cester_assert_true(d0 <= (uint32_t)N_READS / 8u);
 )
 
 /* One on-die decoder, one latency: every on-die MMIO register reads the same. */
