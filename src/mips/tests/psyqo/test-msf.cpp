@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/msf.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;

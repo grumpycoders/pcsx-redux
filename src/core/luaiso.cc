@@ -267,9 +267,7 @@ uint32_t isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sec
     if ((needed == 0) || (dataSize < needed)) return c_badLBA;
     return msfToImageLBA(builder->writeSector(sectorData, mode));
 }
-uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) {
-    return msfToImageLBA(builder->getCurrentLocation());
-}
+uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) { return msfToImageLBA(builder->getCurrentLocation()); }
 void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
 
 // PVD string field helpers

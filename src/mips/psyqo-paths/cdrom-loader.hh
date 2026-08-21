@@ -106,9 +106,7 @@ class CDRomLoader {
         setupQueue(path, parser, {});
         return m_queue.schedule();
     }
-    ReadFileAwaiter readFile(eastl::string_view path, ISO9660Parser &parser) {
-        return {path, parser, *this};
-    }
+    ReadFileAwaiter readFile(eastl::string_view path, ISO9660Parser &parser) { return {path, parser, *this}; }
 
   private:
     void setupQueue(eastl::string_view path, ISO9660Parser &parser,

@@ -107,18 +107,18 @@ SOFTWARE.
 //   (left) vertex - vertex-exactness probe.
 // --------------------------------------------------------------------------
 #define SG2_V2_6_40 0x7c00
-#define SG2_39_31   0x294a
-#define SG2_30_30   0x38ca
-#define SG2_48_32   0x15ca
-#define SG2_40_20   0x14d3
-#define SG2_20_34   0x5466
+#define SG2_39_31 0x294a
+#define SG2_30_30 0x38ca
+#define SG2_48_32 0x15ca
+#define SG2_40_20 0x14d3
+#define SG2_20_34 0x5466
 
 // --------------------------------------------------------------------------
 // SG_R - R-only slanted gradient. Apex R=31, base verts R=0. Isolates a
 //   single channel's accumulator on a slanted shape.
 //   v0=(6,6) R=31, v1=(54,18) R=0, v2=(18,50) R=0.
 // --------------------------------------------------------------------------
-#define SGR_8_8   0x001c
+#define SGR_8_8 0x001c
 #define SGR_26_25 0x000a
 #define SGR_16_16 0x0014
 #define SGR_22_28 0x000a
@@ -131,8 +131,8 @@ SOFTWARE.
 //   (left) vertex - vertex-exactness probe.
 // --------------------------------------------------------------------------
 #define SG3_V2_20_46 0x7c00
-#define SG3_30_33    0x294a
-#define SG3_30_22    0x18d2
-#define SG3_31_40    0x2dc5
-#define SG3_28_30    0x30cc
-#define SG3_33_38    0x1e07
+#define SG3_30_33 0x294a
+#define SG3_30_22 0x18d2
+#define SG3_31_40 0x2dc5
+#define SG3_28_30 0x30cc
+#define SG3_33_38 0x1e07

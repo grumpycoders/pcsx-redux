@@ -106,18 +106,24 @@ inline PAIR* ctrlRegs() { return g_emulator->m_cpu->m_regs.CP2C.p; }
 // Vertex vectors: compile-time v selection
 template <int v>
 inline int16_t vertexX() {
-    if constexpr (v < 3) return dataRegs()[v * 2].sw.l;
-    else return dataRegs()[9].sw.l;
+    if constexpr (v < 3)
+        return dataRegs()[v * 2].sw.l;
+    else
+        return dataRegs()[9].sw.l;
 }
 template <int v>
 inline int16_t vertexY() {
-    if constexpr (v < 3) return dataRegs()[v * 2].sw.h;
-    else return dataRegs()[10].sw.l;
+    if constexpr (v < 3)
+        return dataRegs()[v * 2].sw.h;
+    else
+        return dataRegs()[10].sw.l;
 }
 template <int v>
 inline int16_t vertexZ() {
-    if constexpr (v < 3) return dataRegs()[v * 2 + 1].sw.l;
-    else return dataRegs()[11].sw.l;
+    if constexpr (v < 3)
+        return dataRegs()[v * 2 + 1].sw.l;
+    else
+        return dataRegs()[11].sw.l;
 }
 
 // RGBC
@@ -201,24 +207,35 @@ inline int32_t matrixElement() {
     if constexpr (mx < 3) {
         constexpr int linear = row * 3 + col;
         constexpr int regIdx = mx * 8 + linear / 2;
-        if constexpr (linear & 1) return ctrlRegs()[regIdx].sw.h;
-        else return ctrlRegs()[regIdx].sw.l;
+        if constexpr (linear & 1)
+            return ctrlRegs()[regIdx].sw.h;
+        else
+            return ctrlRegs()[regIdx].sw.l;
     } else {
         // Garbage matrix: {-R<<4, R<<4, IR0, R13, R13, R13, R22, R22, R22}
         constexpr int linear = row * 3 + col;
-        if constexpr (linear == 0) { return (-static_cast<int32_t>(dataRegs()[6].b.l)) << 4; }
-        else if constexpr (linear == 1) { return static_cast<int32_t>(dataRegs()[6].b.l) << 4; }
-        else if constexpr (linear == 2) { return ir0(); }
-        else if constexpr (linear <= 5) { return ctrlRegs()[1].sw.l; }  // R13
-        else { return ctrlRegs()[2].sw.l; }                              // R22
+        if constexpr (linear == 0) {
+            return (-static_cast<int32_t>(dataRegs()[6].b.l)) << 4;
+        } else if constexpr (linear == 1) {
+            return static_cast<int32_t>(dataRegs()[6].b.l) << 4;
+        } else if constexpr (linear == 2) {
+            return ir0();
+        } else if constexpr (linear <= 5) {
+            return ctrlRegs()[1].sw.l;
+        }  // R13
+        else {
+            return ctrlRegs()[2].sw.l;
+        }  // R22
     }
 }
 
 // Control vector component - compile-time (cv, component)
 template <int cv, int component>
 inline int64_t controlVector() {
-    if constexpr (cv == 3) return 0;
-    else return ctrlRegs()[cv * 8 + 5 + component].sd;
+    if constexpr (cv == 3)
+        return 0;
+    else
+        return ctrlRegs()[cv * 8 + 5 + component].sd;
 }
 
 // ============================================================================
@@ -256,15 +273,23 @@ inline uint32_t gteDivide(uint16_t numerator, uint16_t denominator) {
 // ============================================================================
 
 inline int32_t lim(int32_t value, int32_t max, int32_t min, uint32_t flag) {
-    if (value > max) { gteFlag() |= flag; return max; }
-    if (value < min) { gteFlag() |= flag; return min; }
+    if (value > max) {
+        gteFlag() |= flag;
+        return max;
+    }
+    if (value < min) {
+        gteFlag() |= flag;
+        return min;
+    }
     return value;
 }
 
 template <bool sf>
 inline int64_t gteShift(int64_t a) {
-    if constexpr (sf) return a >> 12;
-    else return a;
+    if constexpr (sf)
+        return a >> 12;
+    else
+        return a;
 }
 
 template <bool sf>
@@ -275,10 +300,14 @@ inline int32_t bounds(int44 value, uint32_t posFlag, uint32_t negFlag) {
 }
 
 template <bool sf>
-inline int32_t A1(int44 a) { return bounds<sf>(a, Flag::MAC1_POS, Flag::MAC1_NEG); }
+inline int32_t A1(int44 a) {
+    return bounds<sf>(a, Flag::MAC1_POS, Flag::MAC1_NEG);
+}
 
 template <bool sf>
-inline int32_t A2(int44 a) { return bounds<sf>(a, Flag::MAC2_POS, Flag::MAC2_NEG); }
+inline int32_t A2(int44 a) {
+    return bounds<sf>(a, Flag::MAC2_POS, Flag::MAC2_NEG);
+}
 
 template <bool sf>
 inline int32_t A3(int44 a, int64_t& rawOut) {
@@ -287,7 +316,9 @@ inline int32_t A3(int44 a, int64_t& rawOut) {
 }
 
 template <bool sf>
-inline int32_t A3(int44 a) { return bounds<sf>(a, Flag::MAC3_POS, Flag::MAC3_NEG); }
+inline int32_t A3(int44 a) {
+    return bounds<sf>(a, Flag::MAC3_POS, Flag::MAC3_NEG);
+}
 
 inline int64_t F(int64_t a, int64_t& rawOut) {
     rawOut = a;
@@ -302,9 +333,18 @@ inline int64_t F(int64_t a) {
     return a;
 }
 
-template <bool lm> inline int32_t limB1(int32_t a) { return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR1_SAT); }
-template <bool lm> inline int32_t limB2(int32_t a) { return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR2_SAT); }
-template <bool lm> inline int32_t limB3(int32_t a) { return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR3_SAT); }
+template <bool lm>
+inline int32_t limB1(int32_t a) {
+    return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR1_SAT);
+}
+template <bool lm>
+inline int32_t limB2(int32_t a) {
+    return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR2_SAT);
+}
+template <bool lm>
+inline int32_t limB3(int32_t a) {
+    return lim(a, 0x7fff, lm ? 0 : -0x8000, Flag::IR3_SAT);
+}
 
 template <bool sf, bool lm>
 inline int32_t limB3sf(int64_t rawMac3) {
@@ -320,17 +360,31 @@ inline int32_t limC2(int32_t a) { return lim(a, 0xff, 0, Flag::COLOR_G_SAT); }
 inline int32_t limC3(int32_t a) { return lim(a, 0xff, 0, Flag::COLOR_B_SAT); }
 
 template <bool sf>
-inline int32_t limD(int64_t a) { return lim(static_cast<int32_t>(gteShift<sf>(a)), 0xffff, 0, Flag::SZ_SAT); }
+inline int32_t limD(int64_t a) {
+    return lim(static_cast<int32_t>(gteShift<sf>(a)), 0xffff, 0, Flag::SZ_SAT);
+}
 
 inline int32_t limG1(int64_t a) {
-    if (a > 0x3ff) { gteFlag() |= Flag::SX_SAT; return 0x3ff; }
-    if (a < -0x400) { gteFlag() |= Flag::SX_SAT; return -0x400; }
+    if (a > 0x3ff) {
+        gteFlag() |= Flag::SX_SAT;
+        return 0x3ff;
+    }
+    if (a < -0x400) {
+        gteFlag() |= Flag::SX_SAT;
+        return -0x400;
+    }
     return static_cast<int32_t>(a);
 }
 
 inline int32_t limG2(int64_t a) {
-    if (a > 0x3ff) { gteFlag() |= Flag::SY_SAT; return 0x3ff; }
-    if (a < -0x400) { gteFlag() |= Flag::SY_SAT; return -0x400; }
+    if (a > 0x3ff) {
+        gteFlag() |= Flag::SY_SAT;
+        return 0x3ff;
+    }
+    if (a < -0x400) {
+        gteFlag() |= Flag::SY_SAT;
+        return -0x400;
+    }
     return static_cast<int32_t>(a);
 }
 
@@ -349,11 +403,15 @@ inline int32_t limH(int64_t rawMac0) {
 // ============================================================================
 
 inline void pushZ(uint16_t z) {
-    sz0() = sz1(); sz1() = sz2(); sz2() = sz3(); sz3() = z;
+    sz0() = sz1();
+    sz1() = sz2();
+    sz2() = sz3();
+    sz3() = z;
 }
 
 inline void pushColor() {
-    rgb0() = rgb1(); rgb1() = rgb2();
+    rgb0() = rgb1();
+    rgb1() = rgb2();
     rgb2Cd() = rgbCode();
     rgb2R() = limC1(mac1() >> 4);
     rgb2G() = limC2(mac2() >> 4);
@@ -368,32 +426,22 @@ template <bool sf, bool lm, int mx, int v, int cv>
 inline void matrixVectorMultiply(int64_t& rawMac3) {
     if constexpr (cv == 2) {
         // FC bug path: columns 1-2 first, then column 0 for FLAG only
-        mac1() = A1<sf>(int44(matrixElement<mx, 0, 1>() * vertexY<v>()) +
-                        matrixElement<mx, 0, 2>() * vertexZ<v>());
-        mac2() = A2<sf>(int44(matrixElement<mx, 1, 1>() * vertexY<v>()) +
-                        matrixElement<mx, 1, 2>() * vertexZ<v>());
-        mac3() = A3<sf>(int44(matrixElement<mx, 2, 1>() * vertexY<v>()) +
-                        matrixElement<mx, 2, 2>() * vertexZ<v>(), rawMac3);
+        mac1() = A1<sf>(int44(matrixElement<mx, 0, 1>() * vertexY<v>()) + matrixElement<mx, 0, 2>() * vertexZ<v>());
+        mac2() = A2<sf>(int44(matrixElement<mx, 1, 1>() * vertexY<v>()) + matrixElement<mx, 1, 2>() * vertexZ<v>());
+        mac3() =
+            A3<sf>(int44(matrixElement<mx, 2, 1>() * vertexY<v>()) + matrixElement<mx, 2, 2>() * vertexZ<v>(), rawMac3);
         // Column 0: FLAG side effects only, results discarded
-        limB1<false>(A1<sf>(int44(controlVector<cv, 0>() << 12) +
-                            matrixElement<mx, 0, 0>() * vertexX<v>()));
-        limB2<false>(A2<sf>(int44(controlVector<cv, 1>() << 12) +
-                            matrixElement<mx, 1, 0>() * vertexX<v>()));
-        limB3<false>(A3<sf>(int44(controlVector<cv, 2>() << 12) +
-                            matrixElement<mx, 2, 0>() * vertexX<v>()));
+        limB1<false>(A1<sf>(int44(controlVector<cv, 0>() << 12) + matrixElement<mx, 0, 0>() * vertexX<v>()));
+        limB2<false>(A2<sf>(int44(controlVector<cv, 1>() << 12) + matrixElement<mx, 1, 0>() * vertexX<v>()));
+        limB3<false>(A3<sf>(int44(controlVector<cv, 2>() << 12) + matrixElement<mx, 2, 0>() * vertexX<v>()));
     } else {
-        mac1() = A1<sf>(int44(controlVector<cv, 0>() << 12) +
-                        matrixElement<mx, 0, 0>() * vertexX<v>() +
-                        matrixElement<mx, 0, 1>() * vertexY<v>() +
-                        matrixElement<mx, 0, 2>() * vertexZ<v>());
-        mac2() = A2<sf>(int44(controlVector<cv, 1>() << 12) +
-                        matrixElement<mx, 1, 0>() * vertexX<v>() +
-                        matrixElement<mx, 1, 1>() * vertexY<v>() +
-                        matrixElement<mx, 1, 2>() * vertexZ<v>());
-        mac3() = A3<sf>(int44(controlVector<cv, 2>() << 12) +
-                        matrixElement<mx, 2, 0>() * vertexX<v>() +
-                        matrixElement<mx, 2, 1>() * vertexY<v>() +
-                        matrixElement<mx, 2, 2>() * vertexZ<v>(), rawMac3);
+        mac1() = A1<sf>(int44(controlVector<cv, 0>() << 12) + matrixElement<mx, 0, 0>() * vertexX<v>() +
+                        matrixElement<mx, 0, 1>() * vertexY<v>() + matrixElement<mx, 0, 2>() * vertexZ<v>());
+        mac2() = A2<sf>(int44(controlVector<cv, 1>() << 12) + matrixElement<mx, 1, 0>() * vertexX<v>() +
+                        matrixElement<mx, 1, 1>() * vertexY<v>() + matrixElement<mx, 1, 2>() * vertexZ<v>());
+        mac3() = A3<sf>(int44(controlVector<cv, 2>() << 12) + matrixElement<mx, 2, 0>() * vertexX<v>() +
+                            matrixElement<mx, 2, 1>() * vertexY<v>() + matrixElement<mx, 2, 2>() * vertexZ<v>(),
+                        rawMac3);
     }
     ir1() = limB1<lm>(mac1());
     ir2() = limB2<lm>(mac2());
@@ -441,9 +489,7 @@ inline void depthCue(int64_t inR, int64_t inG, int64_t inB) {
 
 template <bool sf, bool lm>
 inline void depthCueColor() {
-    depthCue<sf, lm>((int64_t)(rgbR() << 4) * ir1(),
-                      (int64_t)(rgbG() << 4) * ir2(),
-                      (int64_t)(rgbB() << 4) * ir3());
+    depthCue<sf, lm>((int64_t)(rgbR() << 4) * ir1(), (int64_t)(rgbG() << 4) * ir2(), (int64_t)(rgbB() << 4) * ir3());
 }
 
 // ============================================================================
@@ -464,9 +510,7 @@ inline void colorApply() {
 // Dispatch helpers
 // ============================================================================
 
-inline unsigned sfLmIndex(uint32_t op) {
-    return ((op >> 18) & 2) | ((op >> 10) & 1);
-}
+inline unsigned sfLmIndex(uint32_t op) { return ((op >> 18) & 2) | ((op >> 10) & 1); }
 
 // Generate a 256-entry dispatch table for MVMVA (sf * lm * mx * v * cv).
 // Index layout: [sf:1][lm:1][mx:2][v:2][cv:2]

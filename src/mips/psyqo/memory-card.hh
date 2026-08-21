@@ -98,11 +98,11 @@ class MemoryCard {
     enum class Port : unsigned { Port0 = 0, Port1 = 1 };
 
     // Geometry constants.
-    static constexpr uint32_t c_sectorSize = 128;       // bytes per sector / frame
-    static constexpr uint32_t c_sectorCount = 1024;     // sectors per card
-    static constexpr uint32_t c_blockSize = 8192;       // bytes per block
-    static constexpr uint32_t c_blockCount = 16;        // blocks per card
-    static constexpr uint32_t c_sectorsPerBlock = 64;   // sectors per block
+    static constexpr uint32_t c_sectorSize = 128;      // bytes per sector / frame
+    static constexpr uint32_t c_sectorCount = 1024;    // sectors per card
+    static constexpr uint32_t c_blockSize = 8192;      // bytes per block
+    static constexpr uint32_t c_blockCount = 16;       // blocks per card
+    static constexpr uint32_t c_sectorsPerBlock = 64;  // sectors per block
 
     static constexpr uint32_t sectorSize() { return c_sectorSize; }
     static constexpr uint32_t sectorCount() { return c_sectorCount; }

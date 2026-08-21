@@ -74,9 +74,7 @@ void PCSX::RAMLogger::enable() {
     m_enabled = true;
 }
 
-void PCSX::RAMLogger::disable() {
-    m_enabled = false;
-}
+void PCSX::RAMLogger::disable() { m_enabled = false; }
 
 void PCSX::RAMLogger::uploadRAM() {
     if (!m_hasResources) return;

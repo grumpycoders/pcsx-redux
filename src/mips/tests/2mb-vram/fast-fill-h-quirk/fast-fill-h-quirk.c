@@ -40,11 +40,11 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X    0
-#define COL_W    32
-#define FILL_R   0x80
-#define FILL_G   0x40
-#define FILL_B   0xc0
+#define COL_X 0
+#define COL_W 32
+#define FILL_R 0x80
+#define FILL_G 0x40
+#define FILL_B 0xc0
 #define BG_COLOR 0x7fffu
 
 // Run one fast-fill at (y, h) and report exactly which rows became
@@ -54,8 +54,7 @@ static void onePass(int16_t y, int16_t h) {
     fillColumn(COL_X, COL_W, BG_COLOR);
 
     waitGPU();
-    GPU_DATA = 0x02000000u | (uint32_t)FILL_R | ((uint32_t)FILL_G << 8) |
-               ((uint32_t)FILL_B << 16);
+    GPU_DATA = 0x02000000u | (uint32_t)FILL_R | ((uint32_t)FILL_G << 8) | ((uint32_t)FILL_B << 16);
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)COL_X;
     GPU_DATA = ((uint32_t)(uint16_t)h << 16) | (uint32_t)(uint16_t)COL_W;
 
@@ -69,8 +68,7 @@ static void onePass(int16_t y, int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("fast-fill-h-quirk y=%d h=%d filled_y_min=%d filled_y_max=%d filled_count=%d",
-                 y, h, top, bot, count);
+    PROBE_RESULT("fast-fill-h-quirk y=%d h=%d filled_y_min=%d filled_y_max=%d filled_count=%d", y, h, top, bot, count);
 }
 
 int main(void) {

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "gui/widgets/heap_viewer.h"
+
 #include <optional>
 
 #include "core/psxmem.h"
@@ -115,7 +116,8 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
 
         // Size must be at least 8 (sizeof empty_block) and aligned to 8.
         if (!size || *size < 8 || (*size & 7) != 0) {
-            result.error = fmt::format("Free block at {:08x} has invalid size {} (must be >= 8 and 8-aligned).", curr, size ? *size : 0);
+            result.error = fmt::format("Free block at {:08x} has invalid size {} (must be >= 8 and 8-aligned).", curr,
+                                       size ? *size : 0);
             break;
         }
 
@@ -158,8 +160,8 @@ PCSX::Widgets::HeapViewer::WalkResult PCSX::Widgets::HeapViewer::walkHeap(Memory
             if (!size || *size < 8 || (*size & 7) != 0 || *size > (*topPtr - pos)) {
                 // Corrupted allocated block. Emit remainder as unknown.
                 if (result.error.empty()) {
-                    result.error = fmt::format(
-                        "Allocated block at {:08x} has invalid size {} (remaining space: {}).", pos, size ? *size : 0, *topPtr - pos);
+                    result.error = fmt::format("Allocated block at {:08x} has invalid size {} (remaining space: {}).",
+                                               pos, size ? *size : 0, *topPtr - pos);
                 }
                 result.blocks.push_back({pos, *topPtr - pos, false});
                 break;
@@ -196,8 +198,9 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
     uint32_t metaAddr = memory->m_psyqoHeapMetadata;
     if (metaAddr == 0) {
         ImGui::TextUnformatted("No PSYQo heap registered.");
-        ImGui::TextWrapped("The running program has not registered its heap metadata with the emulator. "
-                           "This requires a PSYQo build with heap registration support.");
+        ImGui::TextWrapped(
+            "The running program has not registered its heap metadata with the emulator. "
+            "This requires a PSYQo build with heap registration support.");
         ImGui::End();
         return;
     }
@@ -214,7 +217,8 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
         return;
     }
 
-    ImGui::Text("Heap range: %08x - %08x (%u bytes)", bottomPtr ? *bottomPtr : 0, topPtr ? *topPtr : 0, bottomPtr && topPtr ? *topPtr - *bottomPtr : 0);
+    ImGui::Text("Heap range: %08x - %08x (%u bytes)", bottomPtr ? *bottomPtr : 0, topPtr ? *topPtr : 0,
+                bottomPtr && topPtr ? *topPtr - *bottomPtr : 0);
     ImGui::Text("High-water mark: %08x", maxEnd ? *maxEnd : 0);
     ImGui::Text("Free list head: %08x  Marker: %08x", headPtr ? *headPtr : 0, markerPtr);
     ImGui::Separator();
@@ -263,8 +267,8 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
     // Flag if accounting doesn't add up.
     if (heapSize > 0 && totalAccountedFor != heapSize) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
-        ImGui::Text("Accounting mismatch: blocks sum to %u bytes, heap is %u bytes (%d unaccounted)",
-                     totalAccountedFor, heapSize, (int)heapSize - (int)totalAccountedFor);
+        ImGui::Text("Accounting mismatch: blocks sum to %u bytes, heap is %u bytes (%d unaccounted)", totalAccountedFor,
+                    heapSize, (int)heapSize - (int)totalAccountedFor);
         ImGui::PopStyleColor();
     }
 
@@ -286,8 +290,8 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
             if (x0 < 0) x0 = 0;
             if (x1 > barWidth) x1 = barWidth;
             ImU32 color = b.free ? IM_COL32(60, 120, 60, 255) : IM_COL32(180, 60, 60, 255);
-            drawList->AddRectFilled(ImVec2(barPos.x + x0, barPos.y),
-                                    ImVec2(barPos.x + x1, barPos.y + barHeight), color);
+            drawList->AddRectFilled(ImVec2(barPos.x + x0, barPos.y), ImVec2(barPos.x + x1, barPos.y + barHeight),
+                                    color);
         }
 
         drawList->AddRect(ImVec2(barPos.x, barPos.y), ImVec2(barPos.x + barWidth, barPos.y + barHeight),
@@ -313,8 +317,7 @@ void PCSX::Widgets::HeapViewer::draw(Memory* memory, const char* title) {
                         // For free blocks, jump to the block start.
                         uint32_t jumpAddr = b.free ? b.address : b.address + 8;
                         uint32_t jumpSize = b.free ? b.size : (b.size > 8 ? b.size - 8 : b.size);
-                        g_system->m_eventBus->signal(
-                            Events::GUI::JumpToMemory{jumpAddr | 0x80000000, jumpSize});
+                        g_system->m_eventBus->signal(Events::GUI::JumpToMemory{jumpAddr | 0x80000000, jumpSize});
                     }
                     break;
                 }

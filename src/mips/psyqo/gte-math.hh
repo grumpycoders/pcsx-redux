@@ -300,8 +300,7 @@ PSYQO_GTE_MATH_INLINE Vec3 cubic(const Vec3 &a, const Vec3 &b, const Vec3 &c, co
  *
  * CLOBBERS: the rotation matrix (RT), V0, IR1-3, MAC1-3. Not TR.
  */
-PSYQO_GTE_MATH_INLINE Vec3 cubicDerivative(const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d,
-                                           FixedPoint<> t) {
+PSYQO_GTE_MATH_INLINE Vec3 cubicDerivative(const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d, FixedPoint<> t) {
     using namespace psyqo::fixed_point_literals;
     FixedPoint<> mt = 1.0_fp - t;
     Vec3 ab = {b.x - a.x, b.y - a.y, b.z - a.z};
