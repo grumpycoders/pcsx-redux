@@ -35,7 +35,7 @@ constexpr uint8_t DUMMY_SAMPLE_SIZE = 16;
 alignas(4) constexpr uint8_t DUMMY_SAMPLE[] = {0x00, 0b101, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                                0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void *ramAddress, const uint16_t dataSize,
+void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void *ramAddress, const size_t dataSize,
                           const uint8_t blockSize) {
     Kernel::assert(blockSize % sizeof(uint32_t) == 0 && blockSize != 0 && blockSize <= 16, "Invalid DMA block size");
     SPU_CTRL &= ~(0b11 << 4);
@@ -114,7 +114,7 @@ void psyqo::SPU::initialize() {
     silenceChannels(0xffffffff);
 }
 
-void psyqo::SPU::playADPCM(const uint8_t channelId, const uint16_t spuRamAddress, const ChannelPlaybackConfig &config,
+void psyqo::SPU::playADPCM(const uint8_t channelId, const uint32_t spuRamAddress, const ChannelPlaybackConfig &config,
                            const bool hardCut) {
     Kernel::assert(channelId < 24, "Invalid SPU channel ID");
     if (hardCut) {
