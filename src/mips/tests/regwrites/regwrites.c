@@ -66,11 +66,16 @@ typedef enum { OP_SB, OP_SH, OP_SW, OP_SWL, OP_SWR } op_t;
 
 static const char *opname(op_t op) {
     switch (op) {
-        case OP_SB: return "sb ";
-        case OP_SH: return "sh ";
-        case OP_SW: return "sw ";
-        case OP_SWL: return "swl";
-        case OP_SWR: return "swr";
+        case OP_SB:
+            return "sb ";
+        case OP_SH:
+            return "sh ";
+        case OP_SW:
+            return "sw ";
+        case OP_SWL:
+            return "swl";
+        case OP_SWR:
+            return "swr";
     }
     return "???";
 }
@@ -78,8 +83,8 @@ static const char *opname(op_t op) {
 typedef struct {
     const char *name;
     uint32_t addr;
-    int width;   /* register width in bits: 16 or 32 */
-    int onSbus;  /* 1 = behind SBUS (control group), 0 = on-die MMIO */
+    int width;  /* register width in bits: 16 or 32 */
+    int onSbus; /* 1 = behind SBUS (control group), 0 = on-die MMIO */
 } target_t;
 
 /* R/W targets with no destructive side effects:
@@ -87,10 +92,10 @@ typedef struct {
  *   SPU_MAINVOL_L - 16-bit, SBUS, R/W after muteSpu().
  *   SPU_V0_VOL_L  - 16-bit, SBUS, voice volume in the voice struct. */
 static const target_t targets[] = {
-    {"IMASK",          0xbf801074, 32, 0},
-    {"DPCR",           0xbf8010f0, 32, 0},
-    {"SPU_MAINVOL_L",  0xbf801d80, 16, 1},
-    {"SPU_V0_VOL_L",   0xbf801c00, 16, 1},
+    {"IMASK", 0xbf801074, 32, 0},
+    {"DPCR", 0xbf8010f0, 32, 0},
+    {"SPU_MAINVOL_L", 0xbf801d80, 16, 1},
+    {"SPU_V0_VOL_L", 0xbf801c00, 16, 1},
 };
 #define NUM_TARGETS (sizeof(targets) / sizeof(targets[0]))
 
@@ -150,11 +155,21 @@ static uint32_t readback_neighbor(const target_t *t) {
 
 static void do_op(op_t op, uint32_t addr, uint32_t off, uint32_t value) {
     switch (op) {
-        case OP_SB:  rw_sb(addr, off, value); break;
-        case OP_SH:  rw_sh(addr, off, value); break;
-        case OP_SW:  rw_sw(addr, off, value); break;
-        case OP_SWL: rw_swl(addr, off, value); break;
-        case OP_SWR: rw_swr(addr, off, value); break;
+        case OP_SB:
+            rw_sb(addr, off, value);
+            break;
+        case OP_SH:
+            rw_sh(addr, off, value);
+            break;
+        case OP_SW:
+            rw_sw(addr, off, value);
+            break;
+        case OP_SWL:
+            rw_swl(addr, off, value);
+            break;
+        case OP_SWR:
+            rw_swr(addr, off, value);
+            break;
     }
 }
 
@@ -170,9 +185,8 @@ static void probe(const target_t *t, op_t op, uint32_t off, uint32_t baseline, u
     do_op(op, t->addr, off, src);
 
     if (g_exc_fired) {
-        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x AdES cause=0x%08x epc=0x%08x badvaddr=0x%08x\n",
-                          t->name, opname(op), (int)off, baseline, src,
-                          g_exc_cause, g_exc_epc, g_exc_badvaddr);
+        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x AdES cause=0x%08x epc=0x%08x badvaddr=0x%08x\n", t->name,
+                          opname(op), (int)off, baseline, src, g_exc_cause, g_exc_epc, g_exc_badvaddr);
         return;
     }
 
@@ -180,11 +194,11 @@ static void probe(const target_t *t, op_t op, uint32_t off, uint32_t baseline, u
     uint32_t neigh = readback_neighbor(t);
 
     if (neigh != 0xFFFFFFFFu) {
-        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x got=0x%04x neigh=0x%04x\n",
-                          t->name, opname(op), (int)off, baseline, src, got, neigh);
+        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x got=0x%04x neigh=0x%04x\n", t->name, opname(op),
+                          (int)off, baseline, src, got, neigh);
     } else {
-        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x got=0x%08x\n",
-                          t->name, opname(op), (int)off, baseline, src, got);
+        ramsyscall_printf("%-15s %s +%d base=0x%08x src=0x%08x got=0x%08x\n", t->name, opname(op), (int)off, baseline,
+                          src, got);
     }
 }
 
@@ -217,8 +231,8 @@ int main() {
 
     for (unsigned ti = 0; ti < NUM_TARGETS; ti++) {
         const target_t *t = &targets[ti];
-        ramsyscall_printf("--- %s @ 0x%08x (%s, %d-bit) ---\n",
-                          t->name, t->addr, t->onSbus ? "SBUS" : "on-die", t->width);
+        ramsyscall_printf("--- %s @ 0x%08x (%s, %d-bit) ---\n", t->name, t->addr, t->onSbus ? "SBUS" : "on-die",
+                          t->width);
 
         for (unsigned bi = 0; bi < NUM_BASELINES; bi++) {
             uint32_t base = baselines[bi];
@@ -286,7 +300,6 @@ int main() {
     if (wasOn) leaveCriticalSection();
 
     ramsyscall_printf("=== Done ===\n");
-    while (1)
-        ;
+    while (1);
     return 0;
 }

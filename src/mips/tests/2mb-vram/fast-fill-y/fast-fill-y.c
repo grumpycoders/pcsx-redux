@@ -33,20 +33,19 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X      0
-#define COL_W      32
-#define FILL_R     0x80
-#define FILL_G     0x80
-#define FILL_B     0x00     // yellow when packed via fast-fill
-#define BG_COLOR   0x7fffu  // distinguishable from any fast-fill color
+#define COL_X 0
+#define COL_W 32
+#define FILL_R 0x80
+#define FILL_G 0x80
+#define FILL_B 0x00       // yellow when packed via fast-fill
+#define BG_COLOR 0x7fffu  // distinguishable from any fast-fill color
 
 static void onePass(int16_t y, int16_t h) {
     fillColumn(COL_X, COL_W, BG_COLOR);
 
     // GP0(0x02) fast-fill ignores drawing area, so we just issue it directly.
     waitGPU();
-    GPU_DATA = 0x02000000u | (uint32_t)FILL_R | ((uint32_t)FILL_G << 8) |
-               ((uint32_t)FILL_B << 16);
+    GPU_DATA = 0x02000000u | (uint32_t)FILL_R | ((uint32_t)FILL_G << 8) | ((uint32_t)FILL_B << 16);
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)COL_X;
     GPU_DATA = ((uint32_t)(uint16_t)h << 16) | (uint32_t)(uint16_t)COL_W;
 
@@ -65,8 +64,7 @@ static void onePass(int16_t y, int16_t h) {
     }
 
     int filled_count = (top < 0) ? 0 : (bot - top + 1);
-    PROBE_RESULT("fast-fill-y y=%d h=%d filled_y_min=%d filled_y_max=%d filled_count=%d",
-                 y, h, top, bot, filled_count);
+    PROBE_RESULT("fast-fill-y y=%d h=%d filled_y_min=%d filled_y_max=%d filled_count=%d", y, h, top, bot, filled_count);
 }
 
 int main(void) {
@@ -80,17 +78,17 @@ int main(void) {
     onePass(400, 100);  // 400..499, no crossing
     onePass(400, 200);  // 400..599, crosses Y=512
     // Edge cases for the 511-row limit
-    onePass(0, 511);    // exactly 511 rows
-    onePass(0, 512);    // h=512: does it accept or truncate?
-    onePass(0, 513);    // h>511: see what comes through
-    onePass(510, 4);    // small fill at the boundary
+    onePass(0, 511);  // exactly 511 rows
+    onePass(0, 512);  // h=512: does it accept or truncate?
+    onePass(0, 513);  // h>511: see what comes through
+    onePass(510, 4);  // small fill at the boundary
     // Upper-bank
     onePass(512, 100);  // entirely upper bank
     onePass(768, 256);
     onePass(900, 200);  // would extend past 1023 if not clipped
     // Stress tests for masking
-    onePass(0, 1024);   // h>1023
-    onePass(1023, 2);   // y at end-of-VRAM, small h
+    onePass(0, 1024);  // h>1023
+    onePass(1023, 2);  // y at end-of-VRAM, small h
 
     PROBE_INFO(&stats, "fast-fill-y sweep complete");
     probeStatsSummary(&stats, "fast-fill-y");

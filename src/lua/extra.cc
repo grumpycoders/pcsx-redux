@@ -26,9 +26,9 @@
 #include "lua-protobuf/pb.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
+#include "support/djbhash.h"
 #include "support/file.h"
 #include "support/strings-helpers.h"
-#include "support/djbhash.h"
 #include "support/zip.h"
 
 namespace {
@@ -82,9 +82,7 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
     return new PCSX::PosixFile(absolutePath);
 }
 
-uint64_t djbHash(const char* str, size_t len) {
-    return PCSX::djb::hash(str, len);
-}
+uint64_t djbHash(const char* str, size_t len) { return PCSX::djb::hash(str, len); }
 
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {

@@ -30,9 +30,8 @@ SOFTWARE.
 // program that never calls that function links neither this code nor the table
 // (--gc-sections drops both).
 
-#include "common/util/sjis-title-encoder.hh"
-
 #include "common/util/sjis-encode.hh"
+#include "common/util/sjis-title-encoder.hh"
 
 namespace Sjis {
 

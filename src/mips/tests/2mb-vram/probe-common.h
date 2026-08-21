@@ -106,8 +106,8 @@ static inline void resetCommandBuffer(void) { sendGPUStatus(0x01000000); }
 // This is faster than full probeReset() and avoids re-touching display
 // timing registers that don't matter for the test outcome.
 static inline void gpuFullResetWithGate(uint32_t gate_value) {
-    sendGPUStatus(0x00000000);                  // GP1(0x00): full reset
-    sendGPUStatus(0x04000001);                  // GP1(0x04): FIFO mode
+    sendGPUStatus(0x00000000);  // GP1(0x00): full reset
+    sendGPUStatus(0x04000001);  // GP1(0x04): FIFO mode
     sendGPUStatus(0x09000000 | (gate_value & 0xff));
 }
 
@@ -199,8 +199,7 @@ static inline void streamPace(int idx) {
 // use GP0(0x02) fast-fill here because that command's behavior is itself
 // what other tests are characterizing, and we need a known-good fill in
 // our test setup. Width must be even.
-static inline void fillRectViaUpload(int16_t x, int16_t y, int16_t w, int16_t h,
-                                     uint16_t value) {
+static inline void fillRectViaUpload(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t value) {
     waitGPU();
     GPU_DATA = 0xa0000000;
     GPU_DATA = ((uint32_t)(uint16_t)y << 16) | (uint32_t)(uint16_t)x;
@@ -251,32 +250,31 @@ static inline void probeStatsInit(ProbeStats* s) {
     s->info = 0;
 }
 
-#define PROBE_PASS(stats, fmt, ...)                            \
-    do {                                                       \
-        (stats)->passed++;                                     \
-        ramsyscall_printf("PASS " fmt "\n", ##__VA_ARGS__);    \
+#define PROBE_PASS(stats, fmt, ...)                         \
+    do {                                                    \
+        (stats)->passed++;                                  \
+        ramsyscall_printf("PASS " fmt "\n", ##__VA_ARGS__); \
     } while (0)
 
-#define PROBE_FAIL(stats, fmt, ...)                            \
-    do {                                                       \
-        (stats)->failed++;                                     \
-        ramsyscall_printf("FAIL " fmt "\n", ##__VA_ARGS__);    \
+#define PROBE_FAIL(stats, fmt, ...)                         \
+    do {                                                    \
+        (stats)->failed++;                                  \
+        ramsyscall_printf("FAIL " fmt "\n", ##__VA_ARGS__); \
     } while (0)
 
-#define PROBE_INFO(stats, fmt, ...)                            \
-    do {                                                       \
-        (stats)->info++;                                       \
-        ramsyscall_printf("INFO " fmt "\n", ##__VA_ARGS__);    \
+#define PROBE_INFO(stats, fmt, ...)                         \
+    do {                                                    \
+        (stats)->info++;                                    \
+        ramsyscall_printf("INFO " fmt "\n", ##__VA_ARGS__); \
     } while (0)
 
-#define PROBE_RESULT(fmt, ...)                                 \
-    do {                                                       \
-        ramsyscall_printf("RESULT " fmt "\n", ##__VA_ARGS__);  \
+#define PROBE_RESULT(fmt, ...)                                \
+    do {                                                      \
+        ramsyscall_printf("RESULT " fmt "\n", ##__VA_ARGS__); \
     } while (0)
 
 static inline void probeStatsSummary(const ProbeStats* s, const char* name) {
-    ramsyscall_printf("SUMMARY name=%s passed=%d failed=%d info=%d\n", name, s->passed,
-                      s->failed, s->info);
+    ramsyscall_printf("SUMMARY name=%s passed=%d failed=%d info=%d\n", name, s->passed, s->failed, s->info);
     // Marker line for log-capture tools (psxup.py looks for this exact string
     // to terminate its read loop).
     ramsyscall_printf("=== Done ===\n");

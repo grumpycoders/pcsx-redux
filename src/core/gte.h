@@ -82,16 +82,26 @@ class GTE {
   private:
     // Template instruction implementations, parameterized on sf (shift factor) and lm (limit mode).
     // Defined in gte-instructions.cc. The public methods dispatch to these based on the encoding.
-    template <bool sf, bool lm> void op(uint32_t op);
-    template <bool sf, bool lm> void dpcs(uint32_t op);
-    template <bool sf, bool lm> void intpl(uint32_t op);
-    template <bool sf, bool lm> void cdp(uint32_t op);
-    template <bool sf, bool lm> void cc(uint32_t op);
-    template <bool sf, bool lm> void sqr(uint32_t op);
-    template <bool sf, bool lm> void dcpl(uint32_t op);
-    template <bool sf, bool lm> void dpct(uint32_t op);
-    template <bool sf, bool lm> void gpf(uint32_t op);
-    template <bool sf, bool lm> void gpl(uint32_t op);
+    template <bool sf, bool lm>
+    void op(uint32_t op);
+    template <bool sf, bool lm>
+    void dpcs(uint32_t op);
+    template <bool sf, bool lm>
+    void intpl(uint32_t op);
+    template <bool sf, bool lm>
+    void cdp(uint32_t op);
+    template <bool sf, bool lm>
+    void cc(uint32_t op);
+    template <bool sf, bool lm>
+    void sqr(uint32_t op);
+    template <bool sf, bool lm>
+    void dcpl(uint32_t op);
+    template <bool sf, bool lm>
+    void dpct(uint32_t op);
+    template <bool sf, bool lm>
+    void gpf(uint32_t op);
+    template <bool sf, bool lm>
+    void gpl(uint32_t op);
 };
 
 }  // namespace PCSX
