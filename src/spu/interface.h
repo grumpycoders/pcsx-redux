@@ -29,6 +29,8 @@
 #include "json.hpp"
 #include "spu/adsr.h"
 #include "spu/miniaudio.h"
+#include "spu/noise.h"
+#include "spu/reverb.h"
 #include "spu/types.h"
 #include "support/settings.h"
 
@@ -36,16 +38,45 @@ namespace PCSX {
 
 namespace SPU {
 
+// Compile-time mode axes for the per-voice synthesis loop. Both are per-voice
+// mode flags that the register thread can write while a batch is being mixed.
+// They are resolved into template arguments ONCE, at the top of the voice's
+// batch, so a mid-batch write now lands on the next batch instead of the next
+// sample. That is the one thing in this loop that is not behaviour-preserving
+// by construction: a batch is NSSIZE = 45 samples = 1.02ms, against the 16.7ms
+// (60Hz) or 33.3ms (30Hz) frame clock that already quantises whatever event -
+// player input, an on-screen hit - drove the driver to write the flag.
+//
+// FModRole - this voice's part in frequency modulation. The values match the
+//   Chan::FMod encoding, which registers.cc writes in PAIRS: setting the
+//   pitch-mod bit for voice N makes N the Target and N-1 the Source. Hoisting
+//   this hoists the ROLE only; the modulation data itself (fmodInput[ns]) stays
+//   per-sample.
+enum class FModRole { None = 0, Target = 1, Source = 2 };
+
+// SampleSource - where the pre-envelope sample comes from. Note that a Noise
+//   voice still runs the ADPCM decode loop: the decoded samples are discarded,
+//   but the cursor advance, the IRQ address check and the ENDX latch all hang
+//   off it.
+enum class SampleSource { Adpcm, Noise };
+
+// Two further per-voice flags were considered as axes and deliberately left as
+// runtime branches. Chan::Mute/Chan::Solo are the debugger's mute, not
+// something a game drives, and Chan::RVBActive gates a single call; each guards
+// one statement, so templating them would double the instantiation matrix twice
+// over to remove a pair of well-predicted compares. Adding either is a code-size
+// decision, not a correctness one - the same call polys.cc records for its ABR
+// axis.
+
 class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open() final;
-    // SPU Functions
+    // SPU functions.
     long init(void) final;
     long shutdown(void) final;
     long close(void) final;
     void wipeChannels();
-    // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t) final;
     uint16_t readRegister(uint32_t) final;
     void lockSPURAM() final;
@@ -60,15 +91,14 @@ class impl final : public SPUInterface {
 
     virtual void setLua(Lua L) override;
 
-    void async(uint32_t) final;
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
-    // num of channels
+    // Number of channels.
     static const size_t MAXCHAN = 24;
-    // number of characters for a channel tag
+    // Number of characters for a channel tag.
     static constexpr unsigned CHANNEL_TAG = 32;
-    // number of samples for debugger wave plot
+    // Number of samples for the debugger wave plot.
     static const unsigned DEBUG_SAMPLES = 1024;
 
     uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
@@ -94,7 +124,7 @@ class impl final : public SPUInterface {
             AttackStepMask = 0x300,    // 9-8 0..3 = "+7,+6,+5,+4"
             DecayShiftMask = 0xf0,     // 7-4 0..0Fh = Fast..Slow
             SustainLevelMask = 0xf,    // 3-0 0..0Fh  ;Level=(N+1)*800h
-            // Flags for upper 16-bits of reg, shifted right 16-bits
+            // Flags for the upper 16 bits of the register, shifted right by 16 bits.
             SustainMode = 1 << 15,       // 31 0=Linear, 1=Exponential
             SustainDirection = 1 << 14,  // 30  0=Increase, 1=Decrease (until Key OFF flag)
             SustainShiftMask = 0x1f00,   // 28-24 0..1Fh = Fast..Slow
@@ -128,82 +158,68 @@ class impl final : public SPUInterface {
             DMAWriteRequest = 1 << 8,  // 8 Data Transfer DMA Write Request (0=No, 1=Yes)
             DMAReadRequest = 1 << 9,   // 9 Data Transfer DMA Read Request (0=No, 1=Yes)
             DMABusy = 1 << 10,         // 10 Data Transfer Busy Flag (0=Ready, 1=Busy)
-            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
+            CBIndex = 1 << 11,         // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
             // 15-12 Unknown/Unused (seems to be usually zero)
         };
     };
 
-    struct VolumeFlags {
-        enum : uint16_t {
-            VolumeMode = 1 << 15,      // 15 1=Sweep Mode
-            SweepMode = 1 << 14,       // 14 0=Linear, 1=Exponential
-            SweepDirection = 1 << 13,  // 13 0=Increase, 1=Decrease
-            SweepPhase = 1 << 12,      // 12 0=Positive, 1=Negative
-            Unknown = 0xf80,           // 7-11 Not used? (should be zero)
-            SweepShiftMask = 0x7c,     // 6-2 0..1Fh = Fast..Slow
-            SweepStepMask = 0x3        // 1-0 0..3 = "+7,+6,+5,+4" or "-8,-7,-6,-5") (inc/dec)
-
-        };
-    };
-
-    // sound buffer sizes
-    // 400 ms complete sound buffer
+    // Sound buffer sizes.
+    // 400 ms complete sound buffer.
     static const size_t SOUNDSIZE = 70560;
-    // 137 ms test buffer... if less than that is buffered, a new upload will happen
+    // 137 ms test buffer. If less than this is buffered, a new upload happens.
     static const size_t TESTSIZE = 24192;
 
-    // ~ 1 ms of data
+    // Roughly 1 ms of data.
     static const size_t NSSIZE = 45;
 
-    // spu
+    // SPU.
     void MainThread();
+    // Reads the voice's two mode flags once and calls the matching
+    // synthesizeVoice instantiation. This is the only place the runtime flags
+    // are turned into compile-time axes.
+    void synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    template <FModRole Role, SampleSource Src>
+    void synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    // Decodes the next ADPCM block for a voice, together with the IRQ check and the
+    // loop/stop flag handling that hang off the block boundary. Returns false when the
+    // voice has run past the end of its sample and must stop being synthesized.
+    bool decodeNextBlock(int ch, SPUCHAN *voice);
+    void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample);
+    void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
-    void StartSound(SPUCHAN *pChannel);
-    void VoiceChangeFrequency(SPUCHAN *pChannel);
-    void FModChangeFrequency(SPUCHAN *pChannel, int ns);
-    int iGetNoiseVal(SPUCHAN *pChannel);
-    void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
-    int iGetInterpolationVal(SPUCHAN *pChannel);
-    void NoiseClock();
+    void StartSound(SPUCHAN *voice);
+    // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
+    void setPitchStep(SPUCHAN *voice, int32_t step);
+    void VoiceChangeFrequency(SPUCHAN *voice);
+    void FModChangeFrequency(SPUCHAN *voice, int ns);
 
-    // registers
+    // Registers.
     void SoundOn(int start, int end, uint16_t val);
     void SoundOff(int start, int end, uint16_t val);
     void FModOn(int start, int end, uint16_t val);
     void NoiseOn(int start, int end, uint16_t val);
-    void SetVolumeL(uint8_t ch, int16_t vol);
-    void SetVolumeR(uint8_t ch, int16_t vol);
     void SetPitch(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
-    // reverb
-    int g_buffer(int iOff);              // get_buffer content helper: takes care about wraps
-    void s_buffer(int iOff, int iVal);   // set_buffer content helper: takes care about wraps and clipping
-    void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
-    void InitREVERB();
-    void SetREVERB(uint16_t val);
-    void StartREVERB(SPUCHAN *pChannel);
-    void StoreREVERB(SPUCHAN *pChannel, int ns);
-    int MixREVERBLeft(int ns);
-    int MixREVERBRight();
-
-    // xa
+    // XA.
     void FeedXA(xa_decode_t *xap);
 
-    int bSPUIsOpen;
+    int spuIsOpen;
 
-    // psx buffer / addresses
+    // PSX buffer and addresses.
     uint16_t regArea[10000];
     // Note that SPU ram is a uint16_t, so total size is 512KB.
     uint16_t spuMem[256 * 1024];
-    uint8_t *spuMemC;
-    uint8_t *pSpuIrq = 0;
-    uint8_t *pSpuBuffer;
-    uint8_t *pMixIrq = 0;
+    // Byte-addressable view of spuMem; the base for every sound-RAM pointer and
+    // for the offset math that stores/restores those pointers (e.g. savestates).
+    uint8_t *spuRamBase;
+    uint8_t *irqAddress = 0;
+    uint8_t *spuBuffer;
+    uint8_t *mixIrqAddress = 0;
 
     struct CaptureBuffer {
         static const int CB_SIZE = 1024 * 16;
@@ -217,58 +233,52 @@ class impl final : public SPUInterface {
     };
     std::mutex cbMtx;
 
-    // The temporary cap buffer for CD Audio left/right.
+    // The temporary capture buffer for CD audio left/right.
     CaptureBuffer captureBuffer;
-    // The cap buffer index for voice 1 and voice 3.
+    // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
 
-    // user settings
+    // User settings.
     SettingsType settings;
 
-    // MAIN infos struct for each channel
+    // Main info struct for each channel.
 
     SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
-    REVERBInfo rvb;
+    ReverbUnit m_reverb;          // global reverb unit: work state + Pete/Neill reverb DSP
 
-    uint32_t m_noiseClock = 0;  // global noise generator
-    uint32_t m_noiseCount = 0;  // global noise generator
-    uint32_t m_noiseVal = 1;    // global noise generator
+    NoiseGenerator m_noise;  // global noise generator: LFSR + shift/step clock
 
-    uint16_t spuCtrl = 0;  // some vars to store psx reg infos
+    // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
+    // ADPCM block carrying the end flag, cleared on key-on. Read-only.
+    uint32_t spuEndx = 0;
+
+    // Storage for the PSX register values.
+    uint16_t spuCtrl = 0;
     uint16_t spuStat = 0;
     uint16_t spuIrq = 0;
-    uint32_t spuAddr = 0xffffffff;  // address into spu mem
-    int bEndThread = 0;             // thread handlers
-    int bThreadEnded = 0;
+    // Address into SPU memory.
+    uint32_t spuAddr = 0xffffffff;
+    // Thread handling.
+    int endThread = 0;
+    int threadEnded = 0;
     int bSpuInit = 0;
 
     std::thread hMainThread;
-    uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
+    // Flags for faster testing of whether a new channel starts.
+    uint32_t newChannelMask = 0;
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
-    // certain globals (were local before, but with the new timeproc I need em global)
+    // These were local variables before, but the timer procedure requires them to be global.
 
-    const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
     int SSumR[NSSIZE];
     int SSumL[NSSIZE];
-    int iFMod[NSSIZE];
+    int fmodInput[NSSIZE];
     int iCycle = 0;
     int16_t *pS;
 
-    int lastch = -1;       // last channel processed on spu irq in timer mode
-    int lastns = 0;        // last ns pos
-    int iSecureStart = 0;  // secure start counter
-    int iSpuAsyncWait = 0;
-
-    // REVERB info and timing vars...
-
-    int *sRVBPlay = 0;
-    int *sRVBEnd = 0;
-    int *sRVBStart = 0;
-    int iReverbOff = -1;  // some delay factor for reverb
-    int iReverbRepeat = 0;
-    int iReverbNum = 1;
+    // Secure start counter.
+    int secureStart = 0;
 
     // XA
     xa_decode_t *xapGlobal = 0;
@@ -284,11 +294,10 @@ class impl final : public SPUInterface {
     int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
-    ADSR m_adsr;
     MiniAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
 
-    // debug window
+    // Debug window.
     unsigned m_selectedChannel = 0;
     std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];

@@ -114,26 +114,36 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\spu\adpcm.cc" />
     <ClCompile Include="..\..\src\spu\adsr.cc" />
     <ClCompile Include="..\..\src\spu\cfg.cc" />
     <ClCompile Include="..\..\src\spu\debug.cc" />
     <ClCompile Include="..\..\src\spu\dma.cc" />
     <ClCompile Include="..\..\src\spu\freeze.cc" />
+    <ClCompile Include="..\..\src\spu\interpolation.cc" />
     <ClCompile Include="..\..\src\spu\miniaudio.cc" />
+    <ClCompile Include="..\..\src\spu\noise.cc" />
     <ClCompile Include="..\..\src\spu\registers.cc" />
     <ClCompile Include="..\..\src\spu\reverb.cc" />
     <ClCompile Include="..\..\src\spu\spu.cc" />
+    <ClCompile Include="..\..\src\spu\volume.cc" />
     <ClCompile Include="..\..\src\spu\xa.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\spu\adpcm.h" />
     <ClInclude Include="..\..\src\spu\adsr.h" />
     <ClInclude Include="..\..\src\spu\gauss.h" />
     <ClInclude Include="..\..\src\spu\interface.h" />
     <ClInclude Include="..\..\src\spu\externals.h" />
+    <ClInclude Include="..\..\src\spu\interpolation.h" />
     <ClInclude Include="..\..\src\spu\miniaudio.h" />
+    <ClInclude Include="..\..\src\spu\noise.h" />
     <ClInclude Include="..\..\src\spu\registers.h" />
+    <ClInclude Include="..\..\src\spu\reverb.h" />
+    <ClInclude Include="..\..\src\spu\rounding-probe.h" />
     <ClInclude Include="..\..\src\spu\settings.h" />
     <ClInclude Include="..\..\src\spu\types.h" />
+    <ClInclude Include="..\..\src\spu\volume.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

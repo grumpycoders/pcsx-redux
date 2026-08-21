@@ -76,6 +76,7 @@ extern "C" {
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
+#include "implot/implot.h"
 #include "json.hpp"
 #include "lua/extra.h"
 #include "lua/glffi.h"
@@ -628,6 +629,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     // Setup ImGui binding
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     auto& io = ImGui::GetIO();
     {
         io.IniFilename = nullptr;
@@ -868,6 +870,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
 void PCSX::GUI::close() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
@@ -1528,6 +1531,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
+                ImGui::MenuItem(_("Show ImPlot Demo"), nullptr, &m_showImPlotDemo);
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show UvFile information"), nullptr, &m_showHandles);
                 ImGui::Separator();
@@ -1613,6 +1617,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_showDemo) ImGui::ShowDemoWindow();
+    if (m_showImPlotDemo) ImPlot::ShowDemoWindow();
 
     ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1024, 512), ImGuiCond_FirstUseEver);
@@ -2207,14 +2212,7 @@ bool PCSX::GUI::configure() {
             if (!g_system->running()) glfwSwapInterval(m_idleSwapInterval);
         }
         ImGui::Separator();
-        if (ImGui::Button(_("Reset Scaler"))) {
-            changed = true;
-            settings.get<Emulator::SettingScaler>() = 100;
-        }
-        float scale = settings.get<Emulator::SettingScaler>();
-        scale /= 100.0f;
-        changed |= ImGui::SliderFloat(_("Speed Scaler"), &scale, 0.1f, 25.0f);
-        settings.get<Emulator::SettingScaler>() = scale * 100.0f;
+        // Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
         changed |= ImGui::Checkbox(_("Enable XA decoder"), &settings.get<Emulator::SettingXa>().value);
         changed |= ImGui::Checkbox(_("Always enable SPU IRQ"), &settings.get<Emulator::SettingSpuIrq>().value);
         changed |= ImGui::Checkbox(_("Decode MDEC videos in B&W"), &settings.get<Emulator::SettingBnWMdec>().value);

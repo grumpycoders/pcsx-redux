@@ -28,6 +28,16 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio/miniaudio.h"
 
+// Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
+// at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
+// producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
+static constexpr int kMaxSpeed = 1024;
+
+static int effectiveSpeed(int configured) {
+    if (configured <= 0 || configured > kMaxSpeed) return kMaxSpeed;
+    return configured;
+}
+
 PCSX::SPU::MiniAudio::MiniAudio(PCSX::SPU::SettingsType& settings)
     : m_settings(settings), m_listener(g_system->m_eventBus) {
     for (unsigned i = 0; i <= ma_backend_null; i++) {
@@ -214,6 +224,18 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
         }
     }
 
+    // Fast-forward lives at the sink (the master clock). We have already kept the first frameCount
+    // frames of each stream for playback at native 44.1kHz -- pitch is preserved. To run the whole
+    // emulator `speed` times faster we drain the producer rings `speed` times faster: discard the
+    // additional (speed - 1) frame-runs from BOTH streams (SPU voices and CD-ROM XA). Draining the
+    // rings faster paces the SPU thread faster, which through waitForGoal paces the CPU thread faster.
+    // dequeue() naturally caps at what is available, so this is safe (and self-limits) at any speed.
+    const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+    for (int rep = 1; rep < speed; rep++) {
+        m_voicesStream.dequeue(buffers[0].data(), frameCount);
+        m_audioStream.dequeue(buffers[1].data(), frameCount);
+    }
+
     if (m_settings.get<NullSync>()) return;
 
     callbackNull(device, output, frameCount);
@@ -222,7 +244,12 @@ void PCSX::SPU::MiniAudio::callback(ma_device* device, float* output, ma_uint32 
 void PCSX::SPU::MiniAudio::callbackNull(ma_device* device, float* output, ma_uint32 frameCount) {
     m_frameCount.store(frameCount);
 
-    auto total = m_frames.fetch_add(frameCount);
+    // Advance the master clock `speed` times faster than realtime. m_frames is the frame counter the
+    // CPU thread waits on in waitForGoal(); the CPU's goalpost grows at the realtime rate per emulated
+    // cycle, so advancing m_frames `speed` times faster makes the CPU reach its goalpost (and thus run)
+    // `speed` times faster. At speed == 1 this is byte-identical to the previous fetch_add(frameCount).
+    const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+    auto total = m_frames.fetch_add(frameCount * static_cast<uint32_t>(speed));
 
 #if HAS_ATOMIC_WAIT
     auto goalpost = m_goalpost.load();

@@ -79,7 +79,6 @@ class Counters {
 
     static inline const uint32_t FrameRate[] = {60, 50};
     static inline const uint32_t VBlankStart[] = {243, 256};
-    static inline const uint32_t SpuUpdInterval[] = {23, 22};
 
     static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
@@ -87,7 +86,6 @@ class Counters {
 
     uint32_t m_hSyncCount = 0;
     uint32_t m_audioFrames = 0;
-    int32_t m_spuSyncCountdown = 0;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
   public:
