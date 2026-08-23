@@ -33,6 +33,15 @@ SOFTWARE.
 
 namespace psyqo {
 
+namespace DMA {
+
+enum DmaCallback {
+    FROM_ISR,
+    FROM_MAIN_LOOP,
+};
+
+}
+
 class Application;
 
 /**
@@ -96,6 +105,18 @@ static inline void fastLeaveCriticalSection() {
     asm volatile("mtc0 %0, $12" : : "r"(0x40000401));
 #endif
 }
+
+/**
+ * @brief Waits for a specific status to be set in a register.
+ *
+ * @tparam T The type of the register to wait for.
+ * @param mask The mask to apply to the register.
+ * @param expected The expected value of the register after applying the mask.
+ * @param value The address of the register to wait for.
+ */
+template <typename T>
+static void waitForStatus(T mask, T expected, const volatile T *value);
+
 
 enum class DMA : unsigned {
     MDECin,

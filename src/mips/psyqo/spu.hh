@@ -26,15 +26,21 @@ SOFTWARE.
 
 #pragma once
 
-#include "fixed-point.hh"
+#include <EASTL/functional.h>
+
+#include "psyqo/fixed-point.hh"
+#include "psyqo/kernel.hh"
 
 namespace psyqo {
 
 class SPU {
   public:
     static void initialize();
+    void initAsync();
     static void silenceChannels(uint32_t channelMask);
-    static void dmaWrite(uint32_t spuAddress, const void *ramAddress, size_t dataSize, uint8_t blockSize);
+    static void dmaWrite(uint32_t spuAddress, const void* ramAddress, size_t dataSize, uint8_t blockSize = 0);
+    void dmaWrite(uint32_t spuAddress, const void* ramAddress, size_t dataSize, eastl::function<void()>&& callback,
+                  DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP);
 
     struct ChannelPlaybackConfig {
         FixedPoint<12, uint16_t> sampleRate;
@@ -42,7 +48,7 @@ class SPU {
         uint32_t adsr;
     };
 
-    static void playADPCM(uint8_t channelId, uint32_t spuRamAddress, const ChannelPlaybackConfig &config, bool hardCut);
+    static void playADPCM(uint8_t channelId, uint32_t spuRamAddress, const ChannelPlaybackConfig& config, bool hardCut);
     static uint32_t getNextFreeChannel();
 
     static constexpr uint32_t NO_FREE_CHANNEL = 0xffffffff;
@@ -50,8 +56,8 @@ class SPU {
     static constexpr uint16_t BASE_ALLOC_ADDR = 0x1010;
 
   private:
-    template <typename T>
-    static bool waitForStatus(T mask, T expected, const volatile T *value);
+    eastl::function<void(void)> m_dmaCallback = nullptr;
+    bool m_fromISR = false;
 };
 
 }  // namespace psyqo

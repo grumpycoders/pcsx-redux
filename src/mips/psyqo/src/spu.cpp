@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include <EASTL/atomic.h>
+
 #include "psyqo/spu.hh"
 
 #include "common/hardware/dma.h"
@@ -35,14 +37,19 @@ constexpr uint8_t DUMMY_SAMPLE_SIZE = 16;
 alignas(4) constexpr uint8_t DUMMY_SAMPLE[] = {0x00, 0b101, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                                0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void *ramAddress, const size_t dataSize,
-                          const uint8_t blockSize) {
-    Kernel::assert(blockSize % sizeof(uint32_t) == 0 && blockSize != 0 && blockSize <= 16, "Invalid DMA block size");
+void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void* ramAddress, const size_t dataSize, uint8_t blockSize) {
+    if (blockSize == 0) {
+        blockSize = 1;
+        while (((dataSize / blockSize) & 1) == 0 && (blockSize < 8)) {
+            blockSize <<= 1;
+        }
+    }
+    Kernel::assert(blockSize % sizeof(uint32_t) == 0 && blockSize <= 16, "Invalid DMA block size");
     SPU_CTRL &= ~(0b11 << 4);
-    waitForStatus<uint16_t>(0b11 << 4, 0b00 << 4, &SPU_STATUS);
+    Kernel::waitForStatus<uint16_t>(0b11 << 4, 0b00 << 4, &SPU_STATUS);
     SPU_CTRL |= 1 << 5;
     SPU_RAM_DTA = spuAddress / 8;
-    waitForStatus<uint16_t>(1 << 5, 1 << 5, &SPU_STATUS);
+    Kernel::waitForStatus<uint16_t>(1 << 5, 1 << 5, &SPU_STATUS);
 
     DPCR |= 1 << 19;
     DPCR &= ~(0b111 << 16);
@@ -51,7 +58,33 @@ void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void *ramAddress, con
     DMA_CTRL[DMA_SPU].BCR = blockSize | ((dataSize / blockSize) << 16);
     DMA_CTRL[DMA_SPU].CHCR = 1 | 1 << 9 | 1 << 24;
 
-    waitForStatus<uint32_t>(1 << 24, 0 << 24, &DMA_CTRL[DMA_SPU].CHCR);
+    Kernel::waitForStatus<uint32_t>(1 << 24, 0 << 24, &DMA_CTRL[DMA_SPU].CHCR);
+}
+
+void psyqo::SPU::dmaWrite(const uint32_t spuAddress, const void* ramAddress, const size_t dataSize,
+                          eastl::function<void()>&& callback, const DMA::DmaCallback dmaCallback) {
+    Kernel::assert(!m_dmaCallback, "Only one SPU DMA transfer at a time is permitted");
+    Kernel::assert((reinterpret_cast<uintptr_t>(ramAddress) & 3) == 0, "Unaligned DMA transfer");
+    m_dmaCallback = eastl::move(callback);
+    m_fromISR = dmaCallback == DMA::FROM_ISR;
+    uint32_t blockSize = 1;
+    while (((dataSize / blockSize) & 1) == 0 && (blockSize < 8)) {
+        blockSize <<= 1;
+    }
+    Kernel::assert(blockSize % sizeof(uint32_t) == 0 && blockSize <= 16, "Invalid DMA block size");
+    SPU_CTRL &= ~(0b11 << 4);
+    Kernel::waitForStatus<uint16_t>(0b11 << 4, 0b00 << 4, &SPU_STATUS);
+    SPU_CTRL |= 1 << 5;
+    SPU_RAM_DTA = spuAddress / 8;
+    Kernel::waitForStatus<uint16_t>(1 << 5, 1 << 5, &SPU_STATUS);
+
+    DPCR |= 1 << 19;
+    DPCR &= ~(0b111 << 16);
+    DPCR |= 0b100 << 16;
+    DMA_CTRL[DMA_SPU].MADR = reinterpret_cast<uint32_t>(ramAddress);
+    DMA_CTRL[DMA_SPU].BCR = blockSize | ((dataSize / blockSize) << 16);
+    eastl::atomic_signal_fence(eastl::memory_order_release);
+    DMA_CTRL[DMA_SPU].CHCR = 1 | 1 << 9 | 1 << 24;
 }
 
 void psyqo::SPU::silenceChannels(const uint32_t channelMask) {
@@ -73,23 +106,13 @@ void psyqo::SPU::silenceChannels(const uint32_t channelMask) {
     SPU_KEY_ON_HIGH = (channelMask >> 16) & 0xffff;
 }
 
-template <typename T>
-bool psyqo::SPU::waitForStatus(const T mask, const T expected, const volatile T *value) {
-    for (int timeout = 10000; timeout >= 0; timeout--) {
-        if ((*value & mask) == expected) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void psyqo::SPU::initialize() {
     SBUS_DEV4_CTRL = 1 | 0b1110 << 4 | 1 << 8 | 1 << 12 | 1 << 13 | 0b1001 << 16 | 0 << 24 | 1 << 29;
     DPCR |= 1 << 19;
 
     SPU_CTRL = 0;
 
-    SPU_VOL_MAIN_LEFT  = 0x3fff;
+    SPU_VOL_MAIN_LEFT = 0x3fff;
     SPU_VOL_MAIN_RIGHT = 0x3fff;
     SPU_REVERB_LEFT = 0;
     SPU_REVERB_RIGHT = 0;
@@ -114,7 +137,21 @@ void psyqo::SPU::initialize() {
     silenceChannels(0xffffffff);
 }
 
-void psyqo::SPU::playADPCM(const uint8_t channelId, const uint32_t spuRamAddress, const ChannelPlaybackConfig &config,
+void psyqo::SPU::initAsync() {
+    initialize();
+    Kernel::registerDmaEvent(Kernel::DMA::SPU, [this]() {
+        if (m_fromISR) {
+            m_dmaCallback();
+            m_dmaCallback = nullptr;
+        } else {
+            Kernel::queueCallbackFromISR(eastl::move(m_dmaCallback));
+        }
+        eastl::atomic_signal_fence(eastl::memory_order_release);
+    });
+}
+
+
+void psyqo::SPU::playADPCM(const uint8_t channelId, const uint32_t spuRamAddress, const ChannelPlaybackConfig& config,
                            const bool hardCut) {
     Kernel::assert(channelId < 24, "Invalid SPU channel ID");
     if (hardCut) {
