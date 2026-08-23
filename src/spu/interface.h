@@ -184,6 +184,7 @@ class impl final : public SPUInterface {
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.
     bool decodeNextBlock(int ch, SPUCHAN *voice);
+    void triggerIrq();
     void walkSilentVoice(int ch, SPUCHAN *voice);
     void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);

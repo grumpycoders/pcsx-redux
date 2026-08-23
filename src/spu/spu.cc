@@ -155,6 +155,18 @@ void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_
 // explicit instantiations are needed.
 ////////////////////////////////////////////////////////////////////////
 
+// Raise SPU IRQ9. The SPU disables its own interrupt when it fires: SPUCNT bit 6 is
+// documented "IRQ9 Enable (0=Disabled/Acknowledge, 1=Enabled)", so the enable drops and
+// the SPUSTAT bit 6 flag latches, and it is software writing the enable back that
+// re-arms it. Without that, one armed address keeps re-firing every time any voice reads
+// it, which a streaming driver re-pointing IRQA per chunk sees as extra interrupts.
+void PCSX::SPU::impl::triggerIrq() {
+    spuCtrl &= ~ControlFlags::IRQEnable;
+    spuStat |= StatusFlags::IRQFlag;
+    // Notify the main emulator.
+    scheduleInterrupt();
+}
+
 // Everything that happens at an ADPCM block boundary: decode the next 16-byte block into
 // the voice's 28-sample buffer, then the two things that hang off that boundary - the IRQ
 // address check, and the loop/stop flag that decides where the cursor goes next. Split out
@@ -183,8 +195,7 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         if (addrReached || loopAddrReached) {
             // Debug flag.
             irqDone = 1;
-            // Notify the main emulator.
-            scheduleInterrupt();
+            triggerIrq();
         }
     }
 
@@ -495,7 +506,7 @@ void PCSX::SPU::impl::MainThread() {
                     for (ch = 0; ch < 4; ch++) {
                         if (irqAddress >= mixIrqAddress + (ch * 0x400) &&
                             irqAddress < mixIrqAddress + (ch * 0x400) + 2) {
-                            scheduleInterrupt();
+                            triggerIrq();
                             s_chan[ch].data.get<PCSX::SPU::Chan::IrqDone>().value = 1;
                         }
                     }
@@ -675,6 +686,7 @@ bool PCSX::SPU::impl::open() {
     mixIrqAddress = 0;
     wipeChannels();
     irqAddress = 0;
+    spuStat &= ~StatusFlags::IRQFlag;
 
     // Prepare streaming.
     SetupStreams();

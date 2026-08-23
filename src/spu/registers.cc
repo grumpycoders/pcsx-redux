@@ -206,6 +206,9 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
 
         case H_SPUctrl:
+            // Writing IRQ9 Enable = 0 is the acknowledge: it is the only thing that clears
+            // the SPUSTAT flag, and writing it back to 1 is what re-arms the interrupt.
+            if (!(val & ControlFlags::IRQEnable)) spuStat &= ~StatusFlags::IRQFlag;
             spuCtrl = val;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
