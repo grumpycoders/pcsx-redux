@@ -208,6 +208,29 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
     return true;
 }
 
+// The readout half of a voice that is not being synthesized. Advance the pitch counter
+// over the batch and decode blocks as it consumes them, throwing the samples away: what
+// is wanted is the block boundary, where the IRQ address check and the ENDX latch live.
+// A voice with no pitch programmed never advances, which is the one way psx-spx suggests
+// the readout can actually be stopped ("except, probably they CAN be stopped, by setting
+// the sample rate to zero?").
+//
+// Known remaining divergence: a cursor parked at kStopped stays parked and reads nothing.
+// Hardware has no parked state - a voice that consumed an end block without a repeat flag
+// keeps re-reading from its loop address forever - but modelling that means picking an
+// address psx-spx does not pin down, so it is left alone rather than guessed at.
+void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN *voice) {
+    for (int ns = 0; ns < NSSIZE; ns++) {
+        while (voice->interp.owesSample()) {
+            if (voice->adpcm.bufferExhausted() && !decodeNextBlock(ch, voice)) return;
+            // Read and discard: only the cursor motion matters here.
+            voice->adpcm.takeSample();
+            voice->interp.tookSample();
+        }
+        voice->interp.advance();
+    }
+}
+
 template <PCSX::SPU::FModRole Role, PCSX::SPU::SampleSource Src>
 void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index) {
     // Being the frequency-modulator SOURCE decides three things at once: the
@@ -238,9 +261,14 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     }
 
     if (!on) {
-        // Although the voice is silent, its capture mirror keeps filling.
+        // Silent is not stopped. "All voices are permanently reading data from SPU RAM -
+        // even in Noise mode, even if the Voice Volume is zero, and even if the ADSR
+        // pattern has finished the Release period - so even inaudible voices can trigger
+        // IRQs" (psx-spx, SPU Interrupt / Voice Interrupt). The noise path below says the
+        // same thing about a voice whose samples are discarded, and this is the same case.
+        walkSilentVoice(ch, voice);
+        // Nothing reaches the mix, but the capture mirror keeps filling.
         captureVoiceSilence(ch, capVoice1Index, capVoice3Index, 0);
-        // The channel is not playing.
         return;
     }
 
