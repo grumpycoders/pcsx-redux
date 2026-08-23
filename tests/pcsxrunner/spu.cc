@@ -31,3 +31,15 @@ TEST(SPU, Endx) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// Two things psx-spx documents about SPU IRQ9: the SPU disables its own interrupt when
+// the address matches, and a voice keeps reading SPU RAM after it has been keyed off and
+// its envelope has fallen to zero. The guest asserts both against a playing voice first,
+// so a dead status flag cannot be mistaken for a silent voice that stopped reading.
+TEST(SPU, OffVoiceIrq) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe",
+                        "src/mips/tests/spu-offvoice/spu-offvoice.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
