@@ -46,12 +46,17 @@ RUN apt install -y imagemagick-6.q16 gtk-update-icon-cache appstream
 RUN apt install -y squashfs-tools zip zsync
 
 WORKDIR /tmp
-RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage && \
-    chmod +x appimagetool-x86_64.AppImage && \
-    mv appimagetool-x86_64.AppImage /usr/bin/appimagetool
-RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && \
-    chmod +x linuxdeploy-x86_64.AppImage && \
-    mv linuxdeploy-x86_64.AppImage /usr/bin/linuxdeploy
+# Both projects name their releases after uname's spelling of the architecture.
+RUN wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-`uname -m`.AppImage && \
+    chmod +x appimagetool-`uname -m`.AppImage && \
+    mv appimagetool-`uname -m`.AppImage /usr/bin/appimagetool
+RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-`uname -m`.AppImage && \
+    chmod +x linuxdeploy-`uname -m`.AppImage && \
+    mv linuxdeploy-`uname -m`.AppImage /usr/bin/linuxdeploy
+
+# Links the package to the repository, so its permissions follow from there
+# rather than from a settings page somebody has to remember.
+LABEL org.opencontainers.image.source=https://github.com/grumpycoders/pcsx-redux
 
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf
