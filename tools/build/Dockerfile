@@ -54,6 +54,10 @@ RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
     chmod +x linuxdeploy-`uname -m`.AppImage && \
     mv linuxdeploy-`uname -m`.AppImage /usr/bin/linuxdeploy
 
+# Links the package to the repository, so its permissions follow from there
+# rather than from a settings page somebody has to remember.
+LABEL org.opencontainers.image.source=https://github.com/grumpycoders/pcsx-redux
+
 RUN mkdir /project
 RUN mkdir -p /home/coder/dconf
 RUN chmod a+rwx /home/coder/dconf
