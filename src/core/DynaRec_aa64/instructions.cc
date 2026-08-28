@@ -488,6 +488,12 @@ void DynaRecCPU::recLWL(uint32_t code) {
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0x00FFFFFF00000018, 0x0000FFFF00000010, 0x000000FF00000008, 0};
 
+    // LWL writes $rt straight away rather than going through the delay machinery, so a load still pending on $rt
+    // would trample the merged value one instruction later.
+    if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
+    }
+
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -571,6 +577,11 @@ void DynaRecCPU::recLWR(uint32_t code) {
     // The mask to be applied to $rt (top 32 bits) and the shift to be applied to the read memory value (low 32 bits)
     // Depending on the low 3 bits of the unaligned address
     static const uint64_t MASKS_AND_SHIFTS[4] = {0, 0xFF00000000000008, 0xFFFF000000000010, 0xFFFFFF0000000018};
+
+    // Same as LWL: cancel a pending load on $rt, since this writes $rt immediately
+    if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
+    }
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
@@ -680,8 +691,57 @@ void DynaRecCPU::recMFHI(uint32_t code) {
     gen.Ldr(m_gprs[_Rd_].allocatedReg, MemOperand(contextPointer, HI_OFFSET));
 }
 
+// Recompile a load whose result the next instruction actually reads, so the write to $rt has to be held back by
+// one instruction. The value goes to memory and either processDelayedLoad or the load delay handler picks it up.
+template <int size, bool signExtend>
+void DynaRecCPU::recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType type) {
+    if (m_gprs[_Rs_].isConst()) {  // Store the address in first argument register
+        gen.Mov(arg1, m_gprs[_Rs_].val + _Imm_);
+    } else {
+        allocateReg(_Rs_);
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);
+    }
+
+    switch (size) {
+        case 8:
+            call(read8Wrapper);
+            break;
+        case 16:
+            call(read16Wrapper);
+            break;
+        case 32:
+            call(read32Wrapper);
+            break;
+        default:
+            PCSX::g_system->message("Invalid size for memory load in dynarec. Instruction %08x\n", m_regs.code);
+            break;
+    }
+
+    if (_Rt_) {
+        switch (size) {  // The read result is in w0. 32-bit loads need no extension.
+            case 8:
+                signExtend ? gen.Sxtb(w0, w0) : gen.Uxtb(w0, w0);
+                break;
+            case 16:
+                signExtend ? gen.Sxth(w0, w0) : gen.Uxth(w0, w0);
+                break;
+        }
+
+        storeDelayedLoad(_Rt_, type);
+    }
+}
+
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoad(uint32_t code) {
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        recompileLoadWithDelay<size, signExtend>(code, loadDelayDependency);
+        return;
+    }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
+
     if (m_gprs[_Rs_].isConst()) {  // Store the address in first argument register
         const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
         const auto pointer = PCSX::g_emulator->m_mem->pointerRead(addr);
