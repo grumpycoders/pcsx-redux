@@ -551,7 +551,9 @@ void DynaRecCPU::recLWL(uint32_t code) {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt(code);
+            // $rt is read-modify-write here, so it has to be loaded, not just reserved for writeback
+            alloc_rt_rs(code);
+            m_gprs[_Rt_].setWriteback(true);
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
             gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);             // Base to mask and shift lookup table in x3
@@ -633,7 +635,9 @@ void DynaRecCPU::recLWR(uint32_t code) {
 
         if (_Rt_) {
             // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
-            alloc_rs_wb_rt(code);
+            // $rt is read-modify-write here, so it has to be loaded, not just reserved for writeback
+            alloc_rt_rs(code);
+            m_gprs[_Rt_].setWriteback(true);
             gen.moveAndAdd(w1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in w1 again
             gen.And(w1, w1, 3);                                    // Get the low 2 bits
             gen.Mov(x3, (uintptr_t)&MASKS_AND_SHIFTS);  // Form PC-relative address to mask and shift lookup table
