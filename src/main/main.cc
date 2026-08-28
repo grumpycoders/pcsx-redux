@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <SDL3/SDL.h>
+
 #include <csignal>
 #include <filesystem>
 #include <iostream>
@@ -481,6 +483,10 @@ runner.init({
             throw;
         }
     }
+
+    // The subsystems are shut down by their own owners, but SDL keeps global state of
+    // its own - the D-Bus connection among it - that only SDL_Quit releases.
+    SDL_Quit();
 
     return exitCode;
 }

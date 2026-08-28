@@ -288,7 +288,7 @@ void DynaRecCPU::recDIV(uint32_t code) {
                 // LO = 1 or -1 depending on the sign of $rs. HI = $rs
                 gen.Mov(w0, m_gprs[_Rs_].val & 0x80000000 ? 1 : -1);
                 gen.Mov(w1, m_gprs[_Rs_].val);
-                gen.Stp(w0, w1, MemOperand(contextPointer, HI_OFFSET));
+                gen.Stp(w0, w1, MemOperand(contextPointer, LO_OFFSET));
             }
 
             else {
