@@ -796,7 +796,7 @@ void PCSX::WebExecutor::write200(PCSX::WebClient* client, const nlohmann::json& 
     client->write(std::move(message));
 }
 
-PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
+PCSX::WebServer::WebServer() : Network::Server("Web Server"), m_listener(g_system->m_eventBus) {
     m_executors.push_back(new VramExecutor());
     m_executors.push_back(new RamExecutor());
     m_executors.push_back(new AssemblyExecutor());
@@ -808,84 +808,38 @@ PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {
     m_executors.push_back(new ScreenExecutor());
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        if (debugSettings.get<Emulator::DebugSettings::WebServer>() && (m_serverStatus != SERVER_STARTED)) {
-            startServer(g_system->getLoop(), debugSettings.get<Emulator::DebugSettings::WebServerPort>());
+        if (debugSettings.get<Emulator::DebugSettings::WebServer>() && !isRunning()) {
+            start(g_system->getLoop(), debugSettings.get<Emulator::DebugSettings::WebServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
-        if (m_serverStatus == SERVER_STARTED) stopServer();
+        if (isRunning()) stop();
     });
 }
 
-void PCSX::WebServer::stopServer() {
-    assert(m_serverStatus == SERVER_STARTED);
-    m_serverStatus = SERVER_STOPPING;
-    for (auto& client : m_clients) client.close();
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-}
-
-void PCSX::WebServer::startServer(uv_loop_t* loop, int port) {
-    assert(m_serverStatus == SERVER_STOPPED);
-    m_loop = loop;
-    uv_tcp_init(loop, &m_server);
-    m_server.data = this;
-
-    struct sockaddr_in bindAddr;
-    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-        return;
+void PCSX::WebServer::onStopped() {
+    // Covers an orderly stop and a failed bind alike. Closing a client
+    // eventually deletes it, which unlinks it from this list.
+    while (!m_clients.empty()) {
+        auto client = m_clients.begin();
+        client->close();
+        if (!m_clients.empty() && (m_clients.begin() == client)) m_clients.erase(client);
     }
-    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-        return;
-    }
-    result = uv_listen((uv_stream_t*)&m_server, 16, [](uv_stream_t* handle, int status) {
-        WebServer* self = static_cast<WebServer*>(handle->data);
-        self->onNewConnection(status);
-    });
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-        return;
-    }
-    m_serverStatus = SERVER_STARTED;
-}
-
-void PCSX::WebServer::closeCB(uv_handle_t* handle) {
-    WebServer* self = static_cast<WebServer*>(handle->data);
-    self->m_serverStatus = SERVER_STOPPED;
 }
 
 struct PCSX::WebClient::WebClientImpl {
-    struct WriteRequest : public Intrusive::HashTable<uintptr_t, WriteRequest>::Node {
-        WriteRequest() {}
-        WriteRequest(Slice&& slice) : m_slice(std::move(slice)) {}
-        void enqueue(WebClientImpl* client) {
-            if (client->m_closeScheduled) {
-                delete this;
-                return;
-            }
-            m_buf.base = static_cast<char*>(const_cast<void*>(m_slice.data()));
-            m_buf.len = m_slice.size();
-            client->m_requests.insert(reinterpret_cast<uintptr_t>(&m_req), this);
-            uv_write(&m_req, reinterpret_cast<uv_stream_t*>(&client->m_tcp), &m_buf, 1, writeCB);
-        }
-        static void writeCB(uv_write_t* request, int status) {
-            WebClientImpl* client = static_cast<WebClientImpl*>(request->handle->data);
-            auto self = client->m_requests.find(reinterpret_cast<uintptr_t>(request));
-            delete &*self;
-            if ((status != 0) || (client->m_closeScheduled && (client->m_requests.size() == 0))) client->close();
-        }
-        uv_buf_t m_buf;
-        uv_write_t m_req;
-        Slice m_slice;
+    // The async lives here rather than in the client so the close callback can
+    // find its way back after uv is done with the handle - UvFifo::setNotifier
+    // owns the handle's data pointer.
+    struct AsyncContext {
+        uv_async_t m_async;
+        WebClientImpl* m_impl;
     };
-    Intrusive::HashTable<uintptr_t, WriteRequest> m_requests;
 
-    WebClientImpl(WebServer* server, WebClient* parent) : m_server(server), m_parent(parent) {
-        uv_tcp_init(server->m_loop, &m_tcp);
-        m_tcp.data = this;
+    WebClientImpl(WebServer* server, WebClient* parent, IO<File> connection, uv_loop_t* loop)
+        : m_server(server), m_parent(parent), m_connection(connection) {
+        m_asyncContext = new AsyncContext{{}, this};
+        m_connection.asA<UvFifo>()->setNotifier(loop, &m_asyncContext->m_async, [this]() { onReadable(); });
         llhttp_settings_init(&m_httpParserSettings);
         m_httpParserSettings.on_message_begin = [](auto* parser) {
             return static_cast<WebClientImpl*>(parser->data)->onMessageBegin();
@@ -933,24 +887,27 @@ struct PCSX::WebClient::WebClientImpl {
     void close() {
         if (m_status != OPEN) return;
         m_status = CLOSING;
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_tcp), closeCB);
-    }
-    bool accept(uv_tcp_t* srv) {
-        assert(m_status == CLOSED);
-        if (uv_accept(reinterpret_cast<uv_stream_t*>(srv), reinterpret_cast<uv_stream_t*>(&m_tcp)) == 0) {
-            uv_read_start(
-                reinterpret_cast<uv_stream_t*>(&m_tcp),
-                [](uv_handle_t* handle, size_t suggestedSize, uv_buf_t* buf) {
-                    WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
-                    client->alloc(suggestedSize, buf);
-                },
-                [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-                    WebClientImpl* client = static_cast<WebClientImpl*>(stream->data);
-                    client->read(nread, buf);
-                });
-            m_status = OPEN;
+        // Dropping the connection is enough: UvFifo::close() flushes whatever
+        // is still queued before tearing the socket down, so a response cannot
+        // be truncated. That guarantee is what retired the m_closeScheduled and
+        // m_requests.size() bookkeeping this class used to carry.
+        if (m_connection) {
+            m_connection.asA<UvFifo>()->clearNotifier();
+            m_connection.reset();
         }
-        return m_status == OPEN;
+        auto context = m_asyncContext;
+        m_asyncContext = nullptr;
+        if (!context) {
+            delete m_parent;
+            return;
+        }
+        // Deleting from here would free the object whose callback we are inside
+        // of; let the async's own close callback do it.
+        uv_close(reinterpret_cast<uv_handle_t*>(&context->m_async), [](uv_handle_t* handle) {
+            auto context = reinterpret_cast<AsyncContext*>(handle);
+            delete context->m_impl->m_parent;
+            delete context;
+        });
     }
 
     void onEOF() {
@@ -1100,25 +1057,18 @@ struct PCSX::WebClient::WebClientImpl {
     }
     int onChunkHeader() { return 0; }
     int onChunkComplete() { return 0; }
-    void alloc(size_t suggestedSize, uv_buf_t* buf) {
-        assert(!m_allocated);
-        m_allocated = true;
-        buf->base = m_buffer;
-        buf->len = sizeof(m_buffer);
-    }
-    void read(ssize_t nread, const uv_buf_t* buf) {
-        m_allocated = false;
-        if (nread <= 0) {
-            onEOF();
-            return;
+    void onReadable() {
+        uint8_t buffer[BUFFER_SIZE];
+        while (m_connection && (m_status == OPEN) && (m_connection->size() > 0)) {
+            auto got = m_connection->read(buffer, std::min(sizeof(buffer), m_connection->size()));
+            if (got <= 0) break;
+            Slice slice;
+            slice.borrow(buffer, got);
+            processData(slice);
         }
-        Slice slice;
-        slice.borrow(m_buffer, nread);
-        processData(slice);
-    }
-    static void closeCB(uv_handle_t* handle) {
-        WebClientImpl* client = static_cast<WebClientImpl*>(handle->data);
-        delete client->m_parent;
+        // eof() is closed-and-drained, so a request that arrived alongside the
+        // peer hanging up still gets parsed before the connection is finished.
+        if (m_connection && (m_status == OPEN) && m_connection->eof()) onEOF();
     }
     void processData(const Slice& slice) {
         const char* ptr = reinterpret_cast<const char*>(slice.data());
@@ -1142,8 +1092,8 @@ struct PCSX::WebClient::WebClientImpl {
     }
 
     void write(Slice&& slice) {
-        auto* req = new WriteRequest(std::move(slice));
-        req->enqueue(this);
+        if (!m_connection || (m_status != OPEN)) return;
+        m_connection->write(std::move(slice));
     }
 
     void write(std::string&& str) {
@@ -1182,20 +1132,14 @@ struct PCSX::WebClient::WebClientImpl {
         scheduleClose();
         return 0;
     }
-    void scheduleClose() {
-        if (m_requests.size() == 0) {
-            close();
-        } else {
-            m_closeScheduled = true;
-        }
-    }
+    // The transport flushes on close now, so there is nothing left to wait for.
+    void scheduleClose() { close(); }
 
     WebServer* m_server;
-    uv_tcp_t m_tcp;
+    IO<File> m_connection;
+    AsyncContext* m_asyncContext = nullptr;
     static constexpr size_t BUFFER_SIZE = 256;
-    char m_buffer[BUFFER_SIZE];
-    bool m_allocated = false;
-    enum { CLOSED, OPEN, CLOSING } m_status = CLOSED;
+    enum { OPEN, CLOSING } m_status = OPEN;
     llhttp_settings_t m_httpParserSettings;
     llhttp_t m_httpParser;
     Intrusive::List<WebExecutor>::iterator m_currentExecutor;
@@ -1217,22 +1161,15 @@ struct PCSX::WebClient::WebClientImpl {
     multipart_parser* m_multipartParser;
     multipart_parser_settings m_multipartParserCallbacks;
 
-    bool m_closeScheduled = false;
 };
 
-PCSX::WebClient::WebClient(WebServer* server) : m_impl(std::make_unique<WebClientImpl>(server, this)) {}
+PCSX::WebClient::WebClient(WebServer* server, IO<File> connection, uv_loop_t* loop)
+    : m_impl(std::make_unique<WebClientImpl>(server, this, connection, loop)) {}
 void PCSX::WebClient::close() { m_impl->close(); }
-bool PCSX::WebClient::accept(uv_tcp_t* srv) { return m_impl->accept(srv); }
 void PCSX::WebClient::write(Slice&& slice) { m_impl->write(std::move(slice)); }
 void PCSX::WebClient::write(std::string&& str) { m_impl->write(std::move(str)); }
 void PCSX::WebClient::write(const std::string& str) { m_impl->write(str); }
 
-void PCSX::WebServer::onNewConnection(int status) {
-    if (status < 0) return;
-    WebClient* client = new WebClient(this);
-    if (client->accept(&m_server)) {
-        m_clients.push_back(client);
-    } else {
-        delete client;
-    }
+void PCSX::WebServer::onConnection(IO<File> connection) {
+    m_clients.push_back(new WebClient(this, connection, g_system->getLoop()));
 }

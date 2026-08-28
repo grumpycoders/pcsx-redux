@@ -34,75 +34,108 @@
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
-PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
+PCSX::GdbServer::GdbServer() : Network::Server("GDB Server"), m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        auto& args = g_system->getArgs();
         auto& settings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        if (settings.get<Emulator::DebugSettings::GdbServer>() && (m_serverStatus != SERVER_STARTED)) {
-            startServer(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
+        if (settings.get<Emulator::DebugSettings::GdbServer>() && !isRunning()) {
+            start(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
-        if (m_serverStatus == SERVER_STARTED) stopServer();
+        if (isRunning()) stop();
     });
 }
 
-void PCSX::GdbServer::stopServer() {
-    assert(m_serverStatus == SERVER_STARTED);
-    m_serverStatus = SERVER_STOPPING;
-    for (auto& client : m_clients) client.close();
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+void PCSX::GdbServer::onConnection(IO<File> connection) {
+    m_clients.push_back(new GdbClient(connection, g_system->getLoop()));
 }
 
-void PCSX::GdbServer::startServer(uv_loop_t* loop, int port) {
-    assert(m_serverStatus == SERVER_STOPPED);
+void PCSX::GdbServer::onStopped() {
+    // Covers an orderly stop and a failed bind alike. Iterate defensively:
+    // closing a client eventually deletes it, which unlinks it from this list.
+    while (!m_clients.empty()) {
+        auto client = m_clients.begin();
+        client->close();
+        if (!m_clients.empty() && (m_clients.begin() == client)) m_clients.erase(client);
+    }
+}
 
-    uv_tcp_init(loop, &m_server);
-    m_server.data = this;
-
-    struct sockaddr_in bindAddr;
-    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+void PCSX::GdbClient::logOutgoing(const Slice& slice) {
+    if (!g_emulator->settings.get<Emulator::SettingDebugSettings>()
+             .get<Emulator::DebugSettings::GdbServerTrace>()) {
         return;
     }
-    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+    std::string msg(static_cast<const char*>(slice.data()), slice.size());
+    g_system->log(LogClass::GDB, "GDB <-- PCSX %s\n", msg.c_str());
+}
+
+void PCSX::GdbClient::sendRaw(Slice&& raw) {
+    if (!m_connection || m_connection->isClosed()) return;
+    logOutgoing(raw);
+    m_connection->write(std::move(raw));
+}
+
+void PCSX::GdbClient::sendPacket(Slice&& payload) {
+    if (!m_connection || m_connection->isClosed()) return;
+    logOutgoing(payload);
+    uint8_t chksum = 0;
+    auto data = static_cast<const uint8_t*>(payload.data());
+    for (size_t i = 0; i < payload.size(); i++) chksum += data[i];
+    std::string framed;
+    framed.reserve(payload.size() + 4);
+    framed += '$';
+    framed.append(static_cast<const char*>(payload.data()), payload.size());
+    framed += '#';
+    framed += toHex[chksum >> 4];
+    framed += toHex[chksum & 0x0f];
+    Slice out;
+    out.acquire(std::move(framed));
+    m_connection->write(std::move(out));
+}
+
+void PCSX::GdbClient::onReadable() {
+    uint8_t buffer[BUFFER_SIZE];
+    while (m_connection && (m_status == OPEN) && (m_connection->size() > 0)) {
+        auto toRead = std::min(sizeof(buffer), m_connection->size());
+        auto got = m_connection->read(buffer, toRead);
+        if (got <= 0) break;
+        Slice slice;
+        slice.borrow(buffer, got);
+        processData(slice);
+    }
+    // eof() is closed-and-drained, so a peer that hung up mid-packet still gets
+    // everything it managed to send processed before we tear the client down.
+    if (m_connection && m_connection->eof()) close();
+}
+
+void PCSX::GdbClient::close() {
+    if (m_status != OPEN) return;
+    m_status = CLOSING;
+    if (m_connection) {
+        m_connection.asA<UvFifo>()->clearNotifier();
+        m_connection.reset();
+    }
+    // Deleting the client here would free the object the async callback is
+    // running inside of. Hand that off to the async's own close callback, which
+    // uv only runs once the handle is genuinely done.
+    auto context = m_asyncContext;
+    m_asyncContext = nullptr;
+    if (!context) {
+        delete this;
         return;
     }
-    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-        return;
-    }
-    m_serverStatus = SERVER_STARTED;
+    uv_close(reinterpret_cast<uv_handle_t*>(&context->m_async), [](uv_handle_t* handle) {
+        auto context = reinterpret_cast<AsyncContext*>(handle);
+        delete context->m_client;
+        delete context;
+    });
 }
 
-void PCSX::GdbServer::closeCB(uv_handle_t* handle) {
-    GdbServer* self = static_cast<GdbServer*>(handle->data);
-    self->m_serverStatus = SERVER_STOPPED;
-}
-
-void PCSX::GdbServer::onNewConnectionTrampoline(uv_stream_t* handle, int status) {
-    GdbServer* self = static_cast<GdbServer*>(handle->data);
-    self->onNewConnection(status);
-}
-
-void PCSX::GdbServer::onNewConnection(int status) {
-    if (status < 0) return;
-    GdbClient* client = new GdbClient(&m_server);
-    if (client->accept(&m_server)) {
-        m_clients.push_back(client);
-    } else {
-        delete client;
-    }
-}
-
-PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
-    m_loop = srv->loop;
-    uv_tcp_init(m_loop, &m_tcp);
-    m_tcp.data = this;
+PCSX::GdbClient::GdbClient(IO<File> connection, uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
+    m_loop = loop;
+    m_connection = connection;
+    m_asyncContext = new AsyncContext{{}, this};
+    m_connection.asA<UvFifo>()->setNotifier(loop, &m_asyncContext->m_async, [this]() { onReadable(); });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { m_exception = false; });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         m_exception = event.exception;
