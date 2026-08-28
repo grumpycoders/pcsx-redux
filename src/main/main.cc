@@ -485,7 +485,10 @@ runner.init({
     }
 
     // The subsystems are shut down by their own owners, but SDL keeps global state of
-    // its own - the D-Bus connection among it - that only SDL_Quit releases.
+    // its own - the D-Bus connection among it - that only SDL_Quit releases. The hint is
+    // what makes it call dbus_shutdown() as well, without which libdbus holds onto its
+    // internal buffers and leak detection has a point.
+    SDL_SetHint(SDL_HINT_SHUTDOWN_DBUS_ON_QUIT, "1");
     SDL_Quit();
 
     return exitCode;
