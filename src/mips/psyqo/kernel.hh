@@ -115,8 +115,9 @@ static inline void fastLeaveCriticalSection() {
  * @param value The address of the register to wait for.
  */
 template <typename T>
-static void waitForStatus(T mask, T expected, const volatile T *value);
-
+static void waitForStatus(T mask, T expected, const volatile T *value) {
+    while ((*value & mask) != expected);
+}
 
 enum class DMA : unsigned {
     MDECin,
