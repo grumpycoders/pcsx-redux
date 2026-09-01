@@ -343,32 +343,11 @@ void PCSX::Widgets::RAMViewer::imguiCB(const ImDrawList *parentList, const ImDra
     glUniform1i(m_locShowHex, m_showHex);
     glUniform1i(m_locShowGreyscale, m_showGreyscale);
 
-    // Extract glyph UV rects for hex digits from ImGui font atlas
-    ImFont *font = ImGui::GetFont();
-    float glyphUVs[16 * 4];
-    float glyphAspect = 0.5f;  // default fallback
-    static const char hexChars[] = "0123456789ABCDEF";
-    for (int i = 0; i < 16; i++) {
-        const ImFontGlyph *g = font->FindGlyph(hexChars[i]);
-        if (g) {
-            glyphUVs[i * 4 + 0] = g->U0;
-            glyphUVs[i * 4 + 1] = g->V0;
-            glyphUVs[i * 4 + 2] = g->U1;
-            glyphUVs[i * 4 + 3] = g->V1;
-            if (i == 0) {
-                float gw = g->X1 - g->X0;
-                float gh = g->Y1 - g->Y0;
-                if (gh > 0.0f) glyphAspect = gw / gh;
-            }
-        } else {
-            glyphUVs[i * 4 + 0] = 0.0f;
-            glyphUVs[i * 4 + 1] = 0.0f;
-            glyphUVs[i * 4 + 2] = 0.0f;
-            glyphUVs[i * 4 + 3] = 0.0f;
-        }
-    }
-    glUniform4fv(m_locGlyphUVs, 16, glyphUVs);
-    glUniform1f(m_locGlyphAspect, glyphAspect);
+    // Glyph UV rects + aspect are now pre-fetched in drawRAM() before the
+    // ImGui render pass; consume the cached snapshot here so we don't grow
+    // the font atlas mid-render and end up sampling with stale UVs.
+    glUniform4fv(m_locGlyphUVs, 16, m_glyphUVs);
+    glUniform1f(m_locGlyphAspect, m_glyphAspect);
 
     // Bind textures
     glUniform1i(m_locRAMTexture, 0);
@@ -388,17 +367,17 @@ void PCSX::Widgets::RAMViewer::imguiCB(const ImDrawList *parentList, const ImDra
     glActiveTexture(GL_TEXTURE3);
     logger->bindExecHeatmap();
     glActiveTexture(GL_TEXTURE4);
-    GLuint fontTexID = (GLuint)(intptr_t)font->ContainerAtlas->TexID;
-    glBindTexture(GL_TEXTURE_2D, fontTexID);
+    // Pre-fetched in drawRAM(); see m_fontTexID notes in ram-viewer.h.
+    glBindTexture(GL_TEXTURE_2D, m_fontTexID);
     glActiveTexture(GL_TEXTURE0);
 
     // Set vertex attributes to match ImGui vertex layout
     glEnableVertexAttribArray(m_locVtxPos);
     glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, pos));
+                          (GLvoid *)offsetof(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
     glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)IM_OFFSETOF(ImDrawVert, uv));
+                          (GLvoid *)offsetof(ImDrawVert, uv));
 }
 
 void PCSX::Widgets::RAMViewer::drawRAM(GUI *gui) {
@@ -409,6 +388,38 @@ void PCSX::Widgets::RAMViewer::drawRAM(GUI *gui) {
     m_resolution = ImGui::GetContentRegionAvail();
     m_origin = ImGui::GetCursorScreenPos();
     m_mousePos = ImGui::GetIO().MousePos;
+
+    // Pre-fetch hex-glyph UVs from ImFontBaked at the current font size BEFORE
+    // ImGui renders. Doing this from inside the AddCallback render closure
+    // could grow the atlas after the backend has already staged its texture
+    // upload for the frame, leading the custom shader to sample with stale
+    // UVs. The render callback only consumes the cached snapshot.
+    {
+        ImFont *font = ImGui::GetFont();
+        ImFontBaked *baked = font ? font->GetFontBaked(ImGui::GetFontSize()) : nullptr;
+        m_glyphAspect = 0.5f;  // default fallback if FindGlyph misses
+        static const char hexChars[] = "0123456789ABCDEF";
+        for (int i = 0; i < 16; i++) {
+            const ImFontGlyph *g = baked ? baked->FindGlyph(hexChars[i]) : nullptr;
+            if (g) {
+                m_glyphUVs[i * 4 + 0] = g->U0;
+                m_glyphUVs[i * 4 + 1] = g->V0;
+                m_glyphUVs[i * 4 + 2] = g->U1;
+                m_glyphUVs[i * 4 + 3] = g->V1;
+                if (i == 0) {
+                    float gw = g->X1 - g->X0;
+                    float gh = g->Y1 - g->Y0;
+                    if (gh > 0.0f) m_glyphAspect = gw / gh;
+                }
+            } else {
+                m_glyphUVs[i * 4 + 0] = 0.0f;
+                m_glyphUVs[i * 4 + 1] = 0.0f;
+                m_glyphUVs[i * 4 + 2] = 0.0f;
+                m_glyphUVs[i * 4 + 3] = 0.0f;
+            }
+        }
+        m_fontTexID = (GLuint)(intptr_t)ImGui::GetIO().Fonts->TexRef.GetTexID();
+    }
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
     drawList->AddCallback(

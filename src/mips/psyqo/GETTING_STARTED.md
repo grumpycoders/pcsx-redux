@@ -6,16 +6,18 @@ In order to develop for the PlayStation1 using the PSYQo library, a modern C++ t
 
 ## Linux
 ### Debian derivatives:
+There's no distribution package for the toolchain, so build it from source:
 
 ```bash
-sudo apt-get install -y make g++-mipsel-linux-gnu
+sudo apt-get install -y make wget bzip2 xz-utils bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev
+sudo bash tools/linux-mips/spawn-compiler.sh
 ```
 
 ### Arch derivatives:
-The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [mipsel-none-elf-binutils](https://aur.archlinux.org/packages/mipsel-none-elf-binutils/) and [mipsel-none-elf-gcc](https://aur.archlinux.org/packages/mipsel-none-elf-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
+trizen -S mipsel-none-elf-binutils mipsel-none-elf-gcc
 ```
 
 ### All other flavors of Unix environments:

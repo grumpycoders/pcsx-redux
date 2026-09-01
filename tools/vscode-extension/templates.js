@@ -101,13 +101,11 @@ const baseTemplate = {
             name: 'Win32'
           },
           {
-            compilerPath: 'mipsel-linux-gnu-gcc',
+            compilerPath: 'mipsel-none-elf-gcc',
             cStandard: 'c17',
             cppStandard: 'c++20',
             defines: ['__STDC_HOSTED__ = 0'],
             includePath: [
-              '/usr/mipsel-linux-gnu/include',
-              '/usr/local/mipsel-linux-gnu/include',
               '/usr/mipsel-none-elf/include',
               '/usr/local/mipsel-none-elf/include'
             ],
