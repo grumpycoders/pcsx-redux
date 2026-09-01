@@ -23,8 +23,13 @@ const updateInfo = {
       'https://distrib.app/storage/manifests/pcsx-redux/dev-win-cli-x64/',
     fileType: 'zip'
   },
-  linux: {
+  linux_x64: {
     infoBase: 'https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/',
+    fileType: 'zip'
+  },
+  linux_arm64: {
+    infoBase:
+      'https://distrib.app/storage/manifests/pcsx-redux/dev-linux-arm64/',
     fileType: 'zip'
   },
   darwin_Intel: {
@@ -39,11 +44,18 @@ const updateInfo = {
 
 let globalStorageUri
 
+// The AppImage carries uname's spelling of the architecture, not node's.
+const appImageArch = { x64: 'x86_64', arm64: 'aarch64' }[process.arch]
+
+function appImageName () {
+  return 'PCSX-Redux-HEAD-' + appImageArch + '.AppImage'
+}
+
 function isSupported () {
   let supported = false
   if (process.arch === 'x64') supported = true
-  if (process.platform === 'darwin' && process.arch === 'arm64') {
-    supported = true
+  if (process.arch === 'arm64') {
+    supported = process.platform === 'darwin' || process.platform === 'linux'
   }
   return supported
 }
@@ -57,10 +69,7 @@ function binaryPath () {
         'pcsx-redux.exe'
       ).fsPath
     case 'linux':
-      return vscode.Uri.joinPath(
-        globalStorageUri,
-        'PCSX-Redux-HEAD-x86_64.AppImage'
-      ).fsPath
+      return vscode.Uri.joinPath(globalStorageUri, appImageName()).fsPath
     case 'darwin':
       return vscode.Uri.joinPath(
         globalStorageUri,
@@ -106,7 +115,12 @@ exports.install = async () => {
   }
 
   const darwinArch = process.arch === 'arm64' ? 'Arm' : 'Intel'
-  const platform = process.platform === 'darwin' ? 'darwin_' + darwinArch : process.platform
+  const platform =
+    process.platform === 'darwin'
+      ? 'darwin_' + darwinArch
+      : process.platform === 'linux'
+        ? 'linux_' + process.arch
+        : process.platform
   const updateInfoForPlatform = updateInfo[platform]
   const outputDir =
     process.platform === 'win32'
@@ -161,10 +175,7 @@ exports.install = async () => {
   )
   switch (process.platform) {
     case 'linux':
-      return fs.chmod(
-        path.join(outputDir, 'PCSX-Redux-HEAD-x86_64.AppImage'),
-        0o775
-      )
+      return fs.chmod(path.join(outputDir, appImageName()), 0o775)
     case 'darwin':
       const mountPoint = await dmgMount(path.join(outputDir, 'PCSX-Redux.dmg'))
       await copy(

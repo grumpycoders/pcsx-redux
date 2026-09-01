@@ -78,6 +78,16 @@ class RAMViewer : public ZoomableImage {
     int m_locFontAtlas;
     int m_locGlyphUVs;
     int m_locGlyphAspect;
+
+    // Cached hex-glyph atlas state, populated during drawRAM() (which runs
+    // before the ImGui render pass), then consumed inside imguiCB() during
+    // the actual draw. Pulling glyphs out of ImFontBaked from inside the
+    // render callback could grow the atlas after the backend has already
+    // staged its texture upload for the frame, leaving us sampling with
+    // stale UVs; pre-fetching avoids that race.
+    float m_glyphUVs[16 * 4] = {0};
+    float m_glyphAspect = 0.5f;
+    GLuint m_fontTexID = 0;
     int m_locShowHex;
     int m_locShowGreyscale;
 

@@ -87,19 +87,11 @@ async function installToolchain() {
       break
     case 'linux':
       try {
-        if (await checkInstalled('apt')) {
-          await terminal.run(
-            'sudo',
-            ['apt', 'install', 'g++-mipsel-linux-gnu'],
-            {
-              message: 'Installing the MIPS toolchain requires root privileges.'
-            }
-          )
-        } else if (await checkInstalled('trizen')) {
+        if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
-            'cross-mipsel-linux-gnu-binutils',
-            'cross-mipsel-linux-gnu-gcc'
+            'mipsel-none-elf-binutils',
+            'mipsel-none-elf-gcc'
           ])
         } else if (await checkInstalled('brew')) {
           const binutilsScriptPath = vscode.Uri.joinPath(
@@ -120,7 +112,7 @@ async function installToolchain() {
           ])
         } else {
           vscode.window.showErrorMessage(
-            'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
+            'Your Linux distribution is not supported. You can build the MIPS toolchain from source using tools/linux-mips/spawn-compiler.sh in the pcsx-redux repository.'
           )
           throw new Error('Unsupported platform')
         }
@@ -564,7 +556,7 @@ const tools = {
     homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
     check: () => checkCommands(
-      ['mipsel-none-elf-g++', 'mipsel-linux-gnu-g++'],
+      ['mipsel-none-elf-g++'],
       ['--version']
     )
   },
