@@ -21,7 +21,7 @@
 
 #include <assert.h>
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -270,6 +270,9 @@ static const std::string memoryMap = R"(<?xml version="1.0"?>
   <memory type="ram" start="0xffffffff9fc00000" length="0x80000"/>
   <memory type="ram" start="0xffffffffbfc00000" length="0x80000"/>
 
+  <!-- MSAN -->
+  <memory type="ram" start="0x0000000020000000" length="0x60000000"/>
+
   <!-- This really is only for 0xfffe0130 -->
   <memory type="ram" start="0xfffffffffffe0000" length="0x200"/>
 </memory-map>
@@ -517,7 +520,7 @@ void PCSX::GdbClient::processCommand() {
         uint8_t n = fromHexChar(m_cmd[1]);
         n <<= 4;
         n |= fromHexChar(m_cmd[2]);
-        dumpOneRegister(n);
+        write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
         if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
             write("E00");
@@ -756,6 +759,25 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             auto pathView = StringsHelpers::trim(pathCmd);
             g_emulator->m_cdrom->setIso(new CDRIso(pathView));
             g_emulator->m_cdrom->check();
+        }
+    } else if (words[0] == "sharedmem") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: sharedmem <type>");
+        } else {
+            if (words[1] == "wram") {
+                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName());
+            } else {
+                writeEscaped("Unknown type. Valid types: wram");
+            }
+        }
+    } else if (words[0] == "cache") {
+        // Writing memory over gdb won't invalidate anything by itself: most of what goes through
+        // there is data, and there's no d-cache to worry about. Patching code needs this after.
+        if ((words.size() != 2) || (words[1] != "flush")) {
+            writeEscaped("Usage: cache flush\n");
+        } else {
+            writeEscaped("Flushing i-cache\n");
+            g_emulator->m_cpu->invalidateCache();
         }
     }
     write("OK");

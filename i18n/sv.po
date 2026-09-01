@@ -1,0 +1,3975 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Daniel Nylander <po@danielnylander.se>, 2026
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2021-03-27 04:53+0000\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
+"Language-Team: Swedish (https://app.transifex.com/grumpycoders/teams/99251/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/cdrom/cdriso-ecm.cc:282
+#, c-format
+msgid ""
+"\n"
+"Detected ECM file with proper header and filename suffix.\n"
+msgstr ""
+"\n"
+"ECM-fil med korrekt rubrik och filnamnsändelse har upptäckts.\n"
+
+#: src/cdrom/cdriso-sbi.cc:41
+#, c-format
+msgid "Loaded SBI file: %s.\n"
+msgstr "Läste in SBI-fil: %s.\n"
+
+#: src/cdrom/cdriso.cc:251
+#, c-format
+msgid "Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"
+msgstr "Spår %.2d (%s) – Start %.2d:%.2d:%.2d, Längd %.2d:%.2d:%.2d\n"
+
+#: src/cdrom/cdriso.cc:270
+#, c-format
+msgid "Loaded CD Image: %s"
+msgstr "Läste in CD-avbildning: %s"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:463
+msgid "OpenGL GPU configuration"
+msgstr "OpenGL GPU-konfiguration"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:464
+msgid "Fill polygons"
+msgstr "Fyll polygoner"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:464
+msgid "Wireframe"
+msgstr "Trådramar"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:465
+msgid "Vertices only"
+msgstr "Endast hörnpunkter"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:468
+msgid "Polygon rendering mode"
+msgstr "Polygonrenderingläge"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:479 src/core/OpenGL_GPU/gpu_opengl.cc:484
+msgid "No MSAA"
+msgstr "Ingen MSAA"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:479
+msgid "{}x MSAA"
+msgstr "{}x MSAA"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:481
+msgid "MSAA"
+msgstr "MSAA"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:499 src/gpu/soft/gpu.cc:255
+msgid "Use linear filtering"
+msgstr "Använd linjär filtrering"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:504
+msgid "Edit OpenGL GPU shaders"
+msgstr "Redigera OpenGL GPU-shaders"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:512
+msgid "OpenGL GPU Debugger"
+msgstr "OpenGL GPU-felsökare"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:518
+#, c-format
+msgid "Display horizontal range: %d-%d"
+msgstr "Visa horisontellt intervall: %d-%d"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:519
+#, c-format
+msgid "Display vertical range: %d-%d"
+msgstr "Vertikalt visningsområde: %d-%d"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:520
+#, c-format
+msgid "Drawing area offset: (%d, %d)"
+msgstr "Ritningsområdets förskjutning: (%d, %d)"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:521
+#, c-format
+msgid "Resolution: %dx%d"
+msgstr "Upplösning: %dx%d"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:523
+msgid "Clear colour"
+msgstr "Klar färg"
+
+#: src/core/OpenGL_GPU/gpu_opengl.cc:524
+msgid "Clear VRAM"
+msgstr "Rensa VRAM"
+
+#: src/core/cdrom.cc:1715
+#, c-format
+msgid "CD-ROM Label: %.32s\n"
+msgstr "CD-ROM-etikett: %.32s\n"
+
+#: src/core/cdrom.cc:1716
+#, c-format
+msgid "CD-ROM ID: %.9s\n"
+msgstr "CD-ROM-ID: %.9s\n"
+
+#: src/core/cdrom.cc:1717
+#, c-format
+msgid "CD-ROM EXE Name: %.255s\n"
+msgstr "CD-ROM EXE-namn: %.255s\n"
+
+#: src/core/debug.cc:152
+msgid "Execution map"
+msgstr "Exekveringskarta"
+
+#: src/core/debug.cc:167
+#, c-format
+msgid "Kernel checker: Jump from 0x%08x to 0x%08x\n"
+msgstr "Kärnkontroll: Hoppa från 0x%08x till 0x%08x\n"
+
+#: src/core/debug.cc:177
+msgid "Read 8 map"
+msgstr "Läs 8 karta"
+
+#: src/core/debug.cc:184
+msgid "Read 16 map"
+msgstr "Läs 16 karta"
+
+#: src/core/debug.cc:191
+msgid "Read 32 map"
+msgstr "Läs 32 karta"
+
+#: src/core/debug.cc:198
+msgid "Write 8 map"
+msgstr "Skriv 8 karta"
+
+#: src/core/debug.cc:205
+msgid "Write 16 map"
+msgstr "Skriv 16 karta"
+
+#: src/core/debug.cc:212
+msgid "Write 32 map"
+msgstr "Skriv 32 karta"
+
+#: src/core/debug.cc:220
+#, c-format
+msgid "Kernel checker: Reading %08x from %08x\n"
+msgstr "Kärnkontroll: Läser %08x från %08x\n"
+
+#: src/core/debug.cc:223
+#, c-format
+msgid "Kernel checker: Writing to %08x from %08x\n"
+msgstr "Kärnkontroll: Skriver till %08x från %08x\n"
+
+#: src/core/debug.cc:241
+msgid "Step in"
+msgstr "Kliv in"
+
+#: src/core/debug.cc:249 src/gui/widgets/assembly.cc:497
+#: src/gui/widgets/assembly.cc:574
+msgid "Step Over"
+msgstr "Stega över"
+
+#: src/core/debug.cc:257
+msgid "Step over"
+msgstr "Stega över"
+
+#: src/core/debug.cc:263
+msgid "Step out (no callstack)"
+msgstr "Steg ut (ingen callstack)"
+
+#: src/core/debug.cc:290
+#, c-format
+msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
+msgstr "Brytpunkt utlöst: PC=0x%08x - Orsak: %s %s\n"
+
+#: src/core/debug.cc:391 src/gui/widgets/assembly.cc:498
+#: src/gui/widgets/assembly.cc:576
+msgid "Step Out"
+msgstr "Stega ut"
+
+#: src/core/debug.h:38
+msgid "Exec"
+msgstr "Exec"
+
+#: src/core/debug.h:38 src/gui/widgets/typed_debugger.cc:264
+msgid "Read"
+msgstr "Läs"
+
+#: src/core/debug.h:38 src/gui/widgets/typed_debugger.cc:266
+msgid "Write"
+msgstr "Skriv"
+
+#: src/core/gdb-server.cc:605
+msgid "GDB client"
+msgstr "GDB-klient"
+
+#: src/core/gpu.cc:453 src/core/gpu.cc:720 src/core/psxhw.h:83
+#, c-format
+msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
+msgstr "GPU DMA gick in i användbart men oinitierat msan-minne: %8.8lx\n"
+
+#: src/core/gpu.cc:458 src/core/gpu.cc:725 src/core/psxhw.h:88
+#, c-format
+msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
+msgstr "GPU DMA gick in i oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/gpu.cc:1158 src/core/gpu.cc:1242
+msgid "Shading: Flat"
+msgstr "Skuggning: Platt"
+
+#: src/core/gpu.cc:1161 src/core/gpu.cc:1245
+msgid "Shading: Gouraud"
+msgstr "Skuggning: Gouraud"
+
+#: src/core/gpu.cc:1165
+msgid "Textured"
+msgstr "Strukturerad"
+
+#: src/core/gpu.cc:1168 src/core/gpu.cc:1248 src/core/gpu.cc:1290
+msgid "Semi-transparency blending"
+msgstr "Halvtransparent blandning"
+
+#: src/core/gpu.cc:1185
+#, c-format
+msgid "Vertex %i"
+msgstr "Vertex %i"
+
+#: src/core/gpu.cc:1209 src/core/gpu.cc:1273 src/core/gpu.cc:1303
+msgid "Go to primitive##{}"
+msgstr "Gå till primitiv##{}"
+
+#: src/core/gpu.cc:1217 src/core/gpu.cc:1313
+msgid "Go to texture##{}"
+msgstr "Gå till textur##{}"
+
+#: src/core/gpu.cc:1228 src/core/gpu.cc:1324
+msgid "Go to CLUT##{}"
+msgstr "Gå till CLUT##{}"
+
+#: src/core/gpu.cc:1254
+#, c-format
+msgid "Line %i"
+msgstr "Rad %i"
+
+#: src/core/gpulogger.cc:289
+#, c-format
+msgid "Texture Page X: %i, Texture Page Y: %i"
+msgstr "Textursida X: %i, Textursida Y: %i"
+
+#: src/core/gpulogger.cc:290
+msgid "Blending:"
+msgstr "Blandning:"
+
+#: src/core/gpulogger.cc:294
+msgid "50% Back + 50% Front"
+msgstr "50% tillbaka + 50% framåt"
+
+#: src/core/gpulogger.cc:297
+msgid "100% Back + 100% Front"
+msgstr "100% bakåt + 100% framåt"
+
+#: src/core/gpulogger.cc:300
+msgid "100% Back - 100% Front"
+msgstr "100% bakåt – 100% framåt"
+
+#: src/core/gpulogger.cc:303
+msgid "100% Back + 25% Front"
+msgstr "100% bakåt + 25% framåt"
+
+#: src/core/gpulogger.cc:306
+msgid "Texture depth:"
+msgstr "Texturens djup:"
+
+#: src/core/gpulogger.cc:310
+msgid "4 bits"
+msgstr "4 bitar"
+
+#: src/core/gpulogger.cc:313
+msgid "8 bits"
+msgstr "8 bitar"
+
+#: src/core/gpulogger.cc:316
+msgid "16 bits"
+msgstr "16 bitar"
+
+#: src/core/gpulogger.cc:323
+#, c-format
+msgid "Dithering: %s"
+msgstr "Dithering: %s"
+
+#: src/core/gpulogger.cc:323 src/core/gpulogger.cc:338
+#: src/core/gpulogger.cc:401 src/core/gpulogger.cc:414
+msgid "No"
+msgstr "Nej"
+
+#: src/core/gpulogger.cc:323 src/core/gpulogger.cc:338
+#: src/core/gpulogger.cc:401 src/core/gpulogger.cc:414
+msgid "Yes"
+msgstr "Ja"
+
+#: src/core/gpulogger.cc:338
+#, c-format
+msgid "  Set: %s, Check: %s"
+msgstr "  Ställ in: %s, Kontrollera: %s"
+
+#: src/core/gpulogger.cc:347
+msgid "Display Enabled"
+msgstr "Skärm aktiverad"
+
+#: src/core/gpulogger.cc:349
+msgid "Display Disabled"
+msgstr "Skärm inaktiverad"
+
+#: src/core/gpulogger.cc:356
+msgid "DMA Off"
+msgstr "DMA av"
+
+#: src/core/gpulogger.cc:359
+msgid "FIFO Query"
+msgstr "FIFO-fråga"
+
+#: src/core/gpulogger.cc:362
+msgid "DMA Read"
+msgstr "DMA-läsning"
+
+#: src/core/gpulogger.cc:365
+msgid "DMA Write"
+msgstr "DMA-skrivning"
+
+#: src/core/gpulogger.cc:379
+msgid "Horizontal resolution:"
+msgstr "Horisontell upplösning:"
+
+#: src/core/gpulogger.cc:401
+#, c-format
+msgid "Extended width mode: %s"
+msgstr "Utökad breddläge: %s"
+
+#: src/core/gpulogger.cc:402
+msgid "Vertical resolution:"
+msgstr "Vertikal upplösning:"
+
+#: src/core/gpulogger.cc:412
+#, c-format
+msgid "Output mode: %s"
+msgstr "Utdata-läge: %s"
+
+#: src/core/gpulogger.cc:413
+msgid "15 bits"
+msgstr "15 bitar"
+
+#: src/core/gpulogger.cc:413
+msgid "24 bits"
+msgstr "24 bitar"
+
+#: src/core/gpulogger.cc:413
+#, c-format
+msgid "Display depth: %s"
+msgstr "Visningsdjup: %s"
+
+#: src/core/gpulogger.cc:414
+#, c-format
+msgid "Interlaced: %s"
+msgstr "Interlaced: %s"
+
+#: src/core/gpulogger.cc:420
+msgid "Texture Window"
+msgstr "Texturfönster"
+
+#: src/core/gpulogger.cc:423
+msgid "Draw Area Start"
+msgstr "Rita område Start"
+
+#: src/core/gpulogger.cc:426
+msgid "Draw Area End"
+msgstr "Rita område Slut"
+
+#: src/core/gpulogger.cc:429
+msgid "Draw Offset"
+msgstr "Rita förskjutning"
+
+#: src/core/gpulogger.cc:432 src/gui/widgets/breakpoints.cc:50
+msgid "Unknown"
+msgstr "Okänd"
+
+#: src/core/gte.h:57
+#, c-format
+msgid "Unaligned address 0x%08x in LWC2 from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i LWC2 från 0x%08x\n"
+
+#: src/core/gte.h:69
+#, c-format
+msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i SWC2 från 0x%08x\n"
+
+#: src/core/memorycard.cc:348
+#, c-format
+msgid "The memory card %s doesn't exist - creating it\n"
+msgstr "Minneskortet %s finns inte – skapar det\n"
+
+#: src/core/memorycard.cc:367 src/core/memorycard.cc:385
+msgid "Error reading memory card."
+msgstr "Fel vid läsning av minneskort."
+
+#: src/core/memorycard.cc:370
+#, c-format
+msgid "Memory card %s failed to load!\n"
+msgstr "Minneskortet %s kunde inte läsas in!\n"
+
+#: src/core/memorycard.cc:374
+#, c-format
+msgid "Loading memory card %s\n"
+msgstr "Läser in minneskortet %s\n"
+
+#: src/core/memorycard.cc:417
+#, c-format
+msgid "Saving memory card %s\n"
+msgstr "Sparar minneskortet %s\n"
+
+#: src/core/pad.cc:702 src/core/pad.cc:795
+#, c-format
+msgid "Unknown command for pad: %02X\n"
+msgstr "Okänd kommando för pad: %02X\n"
+
+#: src/core/pad.cc:897
+msgid "Pad configuration"
+msgstr "Pad-konfiguration"
+
+#: src/core/pad.cc:903
+msgid "Pad 1"
+msgstr "Pad 1"
+
+#: src/core/pad.cc:904
+msgid "Pad 2"
+msgstr "Pad 2"
+
+#: src/core/pad.cc:907
+msgid "Rescan gamepads and re-read game controllers database"
+msgstr "Skanna om spelkontroller och läs om databasen för spelkontroller"
+
+#: src/core/pad.cc:913
+msgid "Use raw input for mouse"
+msgstr "Använd rå inmatning för musen"
+
+#: src/core/pad.cc:915
+msgid ""
+"When enabled, the cursor will be hidden and captured when the emulator is "
+"running. This is useful for games that require mouse input."
+msgstr ""
+"När denna funktion är aktiverad döljs markören och fångas upp när emulatorn "
+"körs. Detta är användbart för spel som kräver musinmatning."
+
+#: src/core/pad.cc:917
+msgid "Allow mouse capture toggle"
+msgstr "Tillåt musfångst"
+
+#: src/core/pad.cc:919
+msgid ""
+"When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
+msgstr ""
+"När funktionen är aktiverad växlar du mellan inställningarna ovan genom att "
+"trycka på CTRL och ALT. rå inmatning"
+
+#: src/core/pad.cc:921
+msgid "Pad"
+msgstr "Pad"
+
+#: src/core/pad.cc:930
+msgid "Set defaults"
+msgstr "Ställ in standardvärden"
+
+#: src/core/pad.cc:945
+msgid "Keyboard Up"
+msgstr "Tangentbord upp"
+
+#: src/core/pad.cc:947
+msgid "Keyboard Right"
+msgstr "Tangentbord höger"
+
+#: src/core/pad.cc:949
+msgid "Keyboard Down"
+msgstr "Tangentbord ned"
+
+#: src/core/pad.cc:951
+msgid "Keyboard Left"
+msgstr "Tangentbord vänster"
+
+#: src/core/pad.cc:953
+msgid "Keyboard Backspace"
+msgstr "Tangentbordets bakåtknapp"
+
+#: src/core/pad.cc:955
+msgid "Keyboard Enter"
+msgstr "Tangentbord Enter"
+
+#: src/core/pad.cc:957
+msgid "Keyboard Space"
+msgstr "Tangentbordets mellanslagstangent"
+
+#: src/core/pad.cc:959
+msgid "Keyboard Escape"
+msgstr "Tangentbord Escape"
+
+#: src/core/pad.cc:961
+msgid "Unbound"
+msgstr "Obundet"
+
+#: src/core/pad.cc:966
+msgid "Unknown keyboard key {}"
+msgstr "Okänd tangent {}"
+
+#: src/core/pad.cc:971
+msgid "Keyboard {}"
+msgstr "Tangentbord {}"
+
+#: src/core/pad.cc:986 src/gui/gui.cc:2128
+msgid "Auto"
+msgstr "Auto"
+
+#: src/core/pad.cc:987
+msgid "Controller"
+msgstr "Kontroller"
+
+#: src/core/pad.cc:988
+msgid "Keyboard"
+msgstr "Tangentbord"
+
+#: src/core/pad.cc:991
+msgid "L1"
+msgstr "L1"
+
+#: src/core/pad.cc:991
+msgid "Select"
+msgstr "Välj"
+
+#: src/core/pad.cc:991 src/gui/widgets/isobrowser.cc:149
+msgid "Start"
+msgstr "Start"
+
+#: src/core/pad.cc:991
+msgid "╳"
+msgstr "╳"
+
+#: src/core/pad.cc:991
+msgid "□"
+msgstr "□"
+
+#: src/core/pad.cc:991
+msgid "△"
+msgstr "△"
+
+#: src/core/pad.cc:991
+msgid "◯"
+msgstr "◯"
+
+#: src/core/pad.cc:992
+msgid "Analog Mode"
+msgstr "Analogt läge"
+
+#: src/core/pad.cc:992
+msgid "L2"
+msgstr "L2"
+
+#: src/core/pad.cc:992
+msgid "L3"
+msgstr "L3"
+
+#: src/core/pad.cc:992
+msgid "R1"
+msgstr "R1"
+
+#: src/core/pad.cc:992
+msgid "R2"
+msgstr "R2"
+
+#: src/core/pad.cc:992
+msgid "R3"
+msgstr "R3"
+
+#: src/core/pad.cc:995
+msgid "↑"
+msgstr "↑"
+
+#: src/core/pad.cc:996
+msgid "→"
+msgstr "→"
+
+#: src/core/pad.cc:997
+msgid "↓"
+msgstr "↓"
+
+#: src/core/pad.cc:998
+msgid "←"
+msgstr "←"
+
+#: src/core/pad.cc:1001
+msgid "Digital"
+msgstr "Digital"
+
+#: src/core/pad.cc:1002
+msgid "Analog"
+msgstr "Analog"
+
+#: src/core/pad.cc:1003
+msgid "Mouse"
+msgstr "Mus"
+
+#: src/core/pad.cc:1004
+msgid "Negcon (Unimplemented)"
+msgstr "Negcon (inte implementerat)"
+
+#: src/core/pad.cc:1005
+msgid "Gun (Unimplemented)"
+msgstr "Pistol (inte implementerad)"
+
+#: src/core/pad.cc:1006
+msgid "Guncon (Unimplemented)"
+msgstr "Guncon (inte implementerat)"
+
+#: src/core/pad.cc:1010 src/gui/widgets/pio-cart.cc:55
+msgid "Connected"
+msgstr "Ansluten"
+
+#: src/core/pad.cc:1019
+msgid "Analog mode"
+msgstr "Analogt läge"
+
+#: src/core/pad.cc:1027
+msgid "Controller Type"
+msgstr "Typ av kontroll"
+
+#: src/core/pad.cc:1043
+msgid "Device type"
+msgstr "Enhetstyp"
+
+#: src/core/pad.cc:1054
+msgid "Mouse sensitivity X"
+msgstr "Musens känslighet X"
+
+#: src/core/pad.cc:1056
+msgid "Mouse sensitivity Y"
+msgstr "Musens känslighet Y"
+
+#: src/core/pad.cc:1058
+msgid "Keyboard mapping"
+msgstr "Tangentbordskartläggning"
+
+#: src/core/pad.cc:1060
+msgid "Computer button mapping"
+msgstr "Mappning av datorknappar"
+
+#: src/core/pad.cc:1061
+msgid "Gamepad button"
+msgstr "Gamepad-knapp"
+
+#: src/core/pad.cc:1111
+msgid "No gamepad selected or connected"
+msgstr "Ingen gamepad vald eller ansluten"
+
+#: src/core/pad.cc:1128
+msgid "Gamepad"
+msgstr "Handkontroll"
+
+#: src/core/pio-cart.cc:214
+#, c-format
+msgid "Unknown 8-bit read in EXP1/PIO: %8.8lx\n"
+msgstr "Okänd 8-bitars läsning i EXP1/PIO: %8.8lx\n"
+
+#: src/core/pio-cart.cc:228
+#, c-format
+msgid "Unknown 8-bit write in EXP1/PIO: %8.8lx\n"
+msgstr "Okänd 8-bitars skrivning i EXP1/PIO: %8.8lx\n"
+
+#: src/core/psxhw.cc:389
+#, c-format
+msgid "Called msanGetChainPtr with invalid header pointer %8.8lx\n"
+msgstr "Anropade msanGetChainPtr med ogiltig rubrikpekare %8.8lx\n"
+
+#: src/core/psxhw.cc:841
+#, c-format
+msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
+msgstr "Anropade msanSetChainPtr med ogiltig rubrikpekare %8.8lx\n"
+
+#: src/core/psxinterpreter.cc:359
+#, c-format
+msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
+msgstr "Signerat överflöde i ADDI-instruktion från 0x%08x!\n"
+
+#: src/core/psxinterpreter.cc:453
+#, c-format
+msgid "Signed overflow in ADD instruction from 0x%08x!\n"
+msgstr "Signerat överflöde i ADD-instruktion från 0x%08x!\n"
+
+#: src/core/psxinterpreter.cc:495
+#, c-format
+msgid "Signed overflow in SUB instruction from 0x%08x!\n"
+msgstr "Signerat överflöde i SUB-instruktion från 0x%08x!\n"
+
+#: src/core/psxinterpreter.cc:815
+#, c-format
+msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
+msgstr "Försök till ojusterad JR till 0x%08x från 0x%08x, utlöser undantag!\n"
+
+#: src/core/psxinterpreter.cc:841
+#, c-format
+msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
+msgstr "Försök till ojusterad JALR till 0x%08x från 0x%08x, utlöser undantag!\n"
+
+#: src/core/psxinterpreter.cc:879
+#, c-format
+msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i LH från 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:896
+#, c-format
+msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i LHU från 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:913
+#, c-format
+msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i LW från 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:975
+#, c-format
+msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i SH från 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:986
+#, c-format
+msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
+msgstr "Ojusterad adress 0x%08x i SW från 0x%08x\n"
+
+#: src/core/psxinterpreter.cc:1107
+#, c-format
+msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
+msgstr "Stötte på reserverad opkod från 0x%08x, utlöser ett undantag\n"
+
+#: src/core/psxinterpreter.cc:1122
+#, c-format
+msgid ""
+"Attempted to use an invalid floating point instruction from 0x%08x. "
+"Ignored.\n"
+msgstr ""
+"Försökte använda en ogiltig flyttalsinstruktion från 0x%08x. Ignorerades.\n"
+
+#: src/core/psxinterpreter.cc:1133
+#, c-format
+msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
+msgstr "Försökte komma åt COP3 från 0x%08x. Ignorerades.\n"
+
+#: src/core/psxmem.cc:106
+msgid ""
+"SharedMem failed to share memory for wram, falling back to memory alloc\n"
+msgstr ""
+"SharedMem kunde inte dela minne för wram, återgick till minnesallokering\n"
+
+#: src/core/psxmem.cc:115
+msgid "Error allocating memory!"
+msgstr "Fel vid allokering av minne!"
+
+#: src/core/psxmem.cc:147
+#, c-format
+msgid "Could not open EXP1:\"%s\".\n"
+msgstr "Kunde inte öppna EXP1: “%s”.\n"
+
+#: src/core/psxmem.cc:155
+#, c-format
+msgid "Loaded %i bytes to EXP1 from file: %s\n"
+msgstr "Läste in %i byte till EXP1 från filen: %s\n"
+
+#: src/core/psxmem.cc:197
+msgid ""
+"\n"
+"                   No BIOS loaded, emulation halted.\n"
+"\n"
+"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
+msgstr ""
+"\n"
+"                   Inget BIOS inläst, emulering avbruten.\n"
+"\n"
+"Ange en BIOS-fil i konfigurationen och gör en hård omstart av emulatorn.\n"
+"Den distribuerade filen OpenBIOS.bin kan vara en lämplig ersättning för BIOS.\n"
+
+#: src/core/psxmem.cc:212
+#, c-format
+msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
+msgstr "Kunde inte öppna BIOS: \"%s\". Försöker igen med OpenBIOS.\n"
+
+#: src/core/psxmem.cc:222
+#, c-format
+msgid ""
+"Could not open OpenBIOS fallback. Things won't work properly.\n"
+"Add a valid BIOS in the configuration and hard reset.\n"
+msgstr ""
+"Det gick inte att öppna OpenBIOS-fallback. Det kommer inte att fungera som det ska.\n"
+"Lägg till ett giltigt BIOS i konfigurationen och gör en hård omstart.\n"
+
+#: src/core/psxmem.cc:237
+#, c-format
+msgid "Loaded BIOS: %s\n"
+msgstr "Läste in BIOS: %s\n"
+
+#: src/core/psxmem.cc:249
+#, c-format
+msgid "Known BIOS detected: %s (%08x)\n"
+msgstr "Känt BIOS upptäckt: %s (%08x)\n"
+
+#: src/core/psxmem.cc:251
+#, c-format
+msgid "OpenBIOS detected (%08x)\n"
+msgstr "OpenBIOS upptäckt (%08x)\n"
+
+#: src/core/psxmem.cc:253
+#, c-format
+msgid "Unknown bios loaded (%08x)\n"
+msgstr "Okänt bios inläst (%08x)\n"
+
+#: src/core/psxmem.cc:285
+#, c-format
+msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
+msgstr "8-bitars läsning från användbart men oinitierat msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:289
+#, c-format
+msgid "8-bit read from unusable msan memory: %8.8lx\n"
+msgstr "8-bitars läsning från oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:318
+#, c-format
+msgid "8-bit read from unknown address: %8.8lx\n"
+msgstr "8-bitars läsning från okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:336
+#, c-format
+msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
+msgstr "16-bitars läsning från användbart men oinitierat msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:340
+#, c-format
+msgid "16-bit read from unusable msan memory: %8.8lx\n"
+msgstr "16-bitars läsning från oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:366
+#, c-format
+msgid "16-bit read from unknown address: %8.8lx\n"
+msgstr "16-bitars läsning från okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:384
+#, c-format
+msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
+msgstr "32-bitars läsning från användbart men oinitierat msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:388
+#, c-format
+msgid "32-bit read from unusable msan memory: %8.8lx\n"
+msgstr "32-bitars läsning från oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:416
+#, c-format
+msgid "32-bit read from unknown address: %8.8lx\n"
+msgstr "32-bitars läsning från okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:509
+#, c-format
+msgid "8-bit write to unusable msan memory: %8.8lx\n"
+msgstr "8-bitars skrivning till oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:528
+#, c-format
+msgid "8-bit write to unknown address: %8.8lx\n"
+msgstr "8-bitars skrivning till okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:546
+#, c-format
+msgid "16-bit write to unusable msan memory: %8.8lx\n"
+msgstr "16-bitars skrivning till oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:566
+#, c-format
+msgid "16-bit write to unknown address: %8.8lx\n"
+msgstr "16-bitars skrivning till okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:584
+#, c-format
+msgid "32-bit write to unusable msan memory: %8.8lx\n"
+msgstr "32-bitars skrivning till oanvändbart msan-minne: %8.8lx\n"
+
+#: src/core/psxmem.cc:613
+#, c-format
+msgid "Unknown BIU value: %8.8lx\n"
+msgstr "Okänt BIU-värde: %8.8lx\n"
+
+#: src/core/psxmem.cc:622
+#, c-format
+msgid "32-bit write to unknown address: %8.8lx\n"
+msgstr "32-bitars skrivning till okänd adress: %8.8lx\n"
+
+#: src/core/psxmem.cc:828
+#, c-format
+msgid "MSAN system was already initialized.\n"
+msgstr "MSAN-systemet var redan initialiserat.\n"
+
+#: src/core/psxmem.cc:853
+#, c-format
+msgid "Out of memory in MsanAlloc\n"
+msgstr "Minnet är slut i MsanAlloc\n"
+
+#: src/core/psxmem.cc:877 src/core/psxmem.cc:884
+#, c-format
+msgid "Invalid pointer passed to MsanFree: %08x\n"
+msgstr "Ogiltig pekare överförd till MsanFree: %08x\n"
+
+#: src/core/psxmem.cc:906 src/core/psxmem.cc:913
+#, c-format
+msgid "Invalid pointer passed to MsanRealloc: %08x\n"
+msgstr "Ogiltig pekare överförd till MsanRealloc: %08x\n"
+
+#: src/core/psxmem.cc:956
+#, c-format
+msgid "Unregistered msan chain header at %08x\n"
+msgstr "Oregistrerad msan-kedjerubrik vid %08x\n"
+
+#: src/core/r3000a.cc:41
+#, c-format
+msgid "PCSX-Redux booting\n"
+msgstr "PCSX-Redux startar upp\n"
+
+#: src/core/r3000a.cc:42
+#, c-format
+msgid "Copyright (C) 2019-%i PCSX-Redux authors\n"
+msgstr "Copyright © 2019-%i PCSX-Redux upphovspersoner\n"
+
+#: src/core/r3000a.cc:52
+#, c-format
+msgid "CPU type: %s\n"
+msgstr "CPU-typ: %s\n"
+
+#: src/core/sio.cc:367
+msgid "Wrong block number"
+msgstr "Fel blocknummer"
+
+#: src/core/sio1-server.cc:126
+msgid "SIO1 client disconnected\n"
+msgstr "SIO1-klient frånkopplad\n"
+
+#: src/core/sio1.cc:74
+msgid "SIO1 client connected\n"
+msgstr "SIO1-klient ansluten\n"
+
+#: src/core/sio1.cc:90
+msgid ""
+"SIO1 TCP session closing due to unreliable connection.\n"
+"Restart SIO1 server/client and try again."
+msgstr ""
+"SIO1 TCP-sessionen stängs på grund av opålitlig anslutning. Starta om "
+"SIO1-servern/klienten och försök igen."
+
+#: src/gpu/soft/gpu.cc:237
+msgid "Game-dependent dithering (slow)"
+msgstr "Spelberoende dithering (långsam)"
+
+#: src/gpu/soft/gpu.cc:237
+msgid "No dithering (fastest)"
+msgstr "Ingen dithering (snabbaste)"
+
+#: src/gpu/soft/gpu.cc:238
+msgid "Always dither g-shaded polygons (slowest)"
+msgstr "Dither alltid g-skuggade polygoner (långsammast)"
+
+#: src/gpu/soft/gpu.cc:240
+msgid "Soft GPU configuration"
+msgstr "Mjuk GPU-konfiguration"
+
+#: src/gpu/soft/gpu.cc:241
+msgid "Dithering"
+msgstr "Dithering"
+
+#: src/gpu/soft/gpu.cc:246
+msgid "Use cached dithering tables"
+msgstr "Använd cachade ditheringtabeller"
+
+#: src/gpu/soft/gpu.cc:252
+msgid ""
+"Dithering tables are cached in memory for faster processing. Dithering will "
+"be done much faster, at the cost of a 512MB cache."
+msgstr ""
+"Ditheringtabeller cachas i minnet för snabbare bearbetning. Dithering kommer"
+" att utföras mycket snabbare, till priset av 512 MB cache."
+
+#: src/gpu/soft/gpu.cc:261
+msgid "Disable textures for polygons"
+msgstr "Inaktivera texturer för polygoner"
+
+#: src/gpu/soft/gpu.cc:262
+msgid "Disable textures for sprites"
+msgstr "Inaktivera texturer för sprites"
+
+#: src/gpu/soft/gpu.cc:271
+msgid "Soft GPU debugger"
+msgstr "Mjuk GPU-felsökare"
+
+#: src/gpu/soft/gpu.cc:273
+msgid ""
+"Debugging features are not supported when using the software renderer yet\n"
+"Consider enabling the OpenGL GPU option instead."
+msgstr ""
+"Felsökningsfunktioner stöds ännu inte när du använder programvarurenderaren.\n"
+"Överväg istället att aktivera alternativet OpenGL GPU."
+
+#: src/gui/gui.cc:176 src/gui/gui.cc:1209 src/gui/widgets/isobrowser.cc:67
+#: src/gui/widgets/isobrowser.h:41
+msgid "Open Disk Image"
+msgstr "Öppna diskavbildning"
+
+#: src/gui/gui.cc:177
+msgid "Open Binary"
+msgstr "Öppna binär"
+
+#: src/gui/gui.cc:178
+msgid "Open Archive"
+msgstr "Öppet arkiv"
+
+#: src/gui/gui.cc:179
+msgid "Select BIOS"
+msgstr "Välj BIOS"
+
+#: src/gui/gui.cc:180 src/gui/widgets/pio-cart.h:33
+msgid "Select EXP1"
+msgstr "Välj EXP1"
+
+#: src/gui/gui.cc:400
+msgid "One argument needed to the setText* functions"
+msgstr "Ett argument krävs för setText*-funktionerna"
+
+#: src/gui/gui.cc:418
+msgid ""
+"The argument to the setText* functions need to be convertible to a string, "
+"or be a File object"
+msgstr ""
+"Argumentet till setText*-funktionerna måste kunna konverteras till en sträng"
+" eller vara ett File-objekt"
+
+#: src/gui/gui.cc:423
+msgid "Error compiling new shader code: {}"
+msgstr "Fel vid kompilering av ny shader-kod: {}"
+
+#: src/gui/gui.cc:749
+msgid ""
+"Warning: OpenGL error reporting disabled. See About dialog for more "
+"information.\n"
+msgstr ""
+"Varning: OpenGL-felrapportering inaktiverad. Se dialogrutan Om för mer "
+"information.\n"
+
+#: src/gui/gui.cc:762
+msgid "Main VRAM Viewer"
+msgstr "Huvudsaklig VRAM-visare"
+
+#: src/gui/gui.cc:763
+msgid "CLUT VRAM selector"
+msgstr "CLUT VRAM-väljare"
+
+#: src/gui/gui.cc:768
+msgid "Vram Viewer #"
+msgstr "Vram Viewer #"
+
+#: src/gui/gui.cc:777
+msgid "Memory Editor #"
+msgstr "Minnesredigerare #"
+
+#: src/gui/gui.cc:782
+msgid "Parallel Port"
+msgstr "Parallellport"
+
+#: src/gui/gui.cc:783
+msgid "Scratch Pad"
+msgstr "Anteckningsblock"
+
+#: src/gui/gui.cc:784
+msgid "Hardware Registers"
+msgstr "Hårdvaruregister"
+
+#: src/gui/gui.cc:785
+msgid "BIOS"
+msgstr "BIOS"
+
+#: src/gui/gui.cc:786
+msgid "VRAM"
+msgstr "VRAM"
+
+#: src/gui/gui.cc:1171
+msgid "Output"
+msgstr "Utmatning"
+
+#: src/gui/gui.cc:1208 src/gui/widgets/assembly.cc:485
+#: src/gui/widgets/isobrowser.cc:66 src/gui/widgets/memcard_manager.cc:63
+#: src/gui/widgets/vram-viewer.cc:597
+msgid "File"
+msgstr "Arkiv"
+
+#: src/gui/gui.cc:1210 src/gui/widgets/isobrowser.cc:68
+msgid "Close Disk Image"
+msgstr "Stäng diskavbildning"
+
+#: src/gui/gui.cc:1214
+msgid "Load binary"
+msgstr "Läs in binärfil"
+
+#: src/gui/gui.cc:1217
+msgid "Add Lua archive"
+msgstr "Lägg till Lua-arkiv"
+
+#: src/gui/gui.cc:1221
+msgid "Dump save state proto schema"
+msgstr "Dumpa proto-schema för sparat tillstånd"
+
+#: src/gui/gui.cc:1226
+msgid "global{}"
+msgstr "global{}"
+
+#: src/gui/gui.cc:1228
+msgid "Save state slots"
+msgstr "Platser för sparade tillstånd"
+
+#: src/gui/gui.cc:1229
+msgid "Quick-save slot"
+msgstr "Snabbsparplats"
+
+#: src/gui/gui.cc:1234 src/gui/gui.cc:1255
+msgid "Slot {}"
+msgstr "Plats {}"
+
+#: src/gui/gui.cc:1241
+msgid "Show named save states"
+msgstr "Visa namngivna sparningslägen"
+
+#: src/gui/gui.cc:1246
+msgid "Save global state"
+msgstr "Spara globalt tillstånd"
+
+#: src/gui/gui.cc:1248
+msgid "Load state slots"
+msgstr "Läs in tillståndsplatser"
+
+#: src/gui/gui.cc:1251
+msgid "Quick-load slot"
+msgstr "Snabbmatningsfack"
+
+#: src/gui/gui.cc:1276
+msgid "Load global state"
+msgstr "Läs in globalt tillstånd"
+
+#: src/gui/gui.cc:1280
+msgid "Open LID"
+msgstr "Öppna locket"
+
+#: src/gui/gui.cc:1284
+msgid "Close LID"
+msgstr "Stäng locket"
+
+#: src/gui/gui.cc:1288
+msgid "Open and close LID"
+msgstr "Öppna och stäng locket"
+
+#: src/gui/gui.cc:1293
+msgid "Reboot"
+msgstr "Starta om"
+
+#: src/gui/gui.cc:1296
+msgid "Quit"
+msgstr "Avsluta"
+
+#: src/gui/gui.cc:1302 src/gui/gui.cc:1319
+msgid "Emulation"
+msgstr "Emulering"
+
+#: src/gui/gui.cc:1303
+msgid "Start emulation"
+msgstr "Starta emulering"
+
+#: src/gui/gui.cc:1306
+msgid "Pause emulation"
+msgstr "Pausa emulering"
+
+#: src/gui/gui.cc:1309
+msgid "Soft Reset"
+msgstr "Mjuk omstart"
+
+#: src/gui/gui.cc:1312
+msgid "Hard Reset"
+msgstr "Hård omstart"
+
+#: src/gui/gui.cc:1318 src/gui/widgets/vram-viewer.cc:639
+msgid "Configuration"
+msgstr "Konfiguration"
+
+#: src/gui/gui.cc:1320
+msgid "Manage Memory Cards"
+msgstr "Hantera minneskort"
+
+#: src/gui/gui.cc:1323 src/gui/gui.cc:1424
+msgid "GPU"
+msgstr "GPU"
+
+#: src/gui/gui.cc:1324 src/gui/gui.cc:1440
+msgid "SPU"
+msgstr "SPU"
+
+#: src/gui/gui.cc:1325
+msgid "UI"
+msgstr "Användargränssnitt"
+
+#: src/gui/gui.cc:1326
+msgid "System"
+msgstr "System"
+
+#: src/gui/gui.cc:1327
+msgid "Controls"
+msgstr "Kontroller"
+
+#: src/gui/gui.cc:1328
+msgid "Shader presets"
+msgstr "Förinställda shaders"
+
+#: src/gui/gui.cc:1329
+msgid "Default shader"
+msgstr "Standardshader"
+
+#: src/gui/gui.cc:1332
+msgid "CRT-lottes shader"
+msgstr "CRT-lottes shader"
+
+#: src/gui/gui.cc:1359
+msgid "Configure Shaders"
+msgstr "Konfigurera shaders"
+
+#: src/gui/gui.cc:1363
+msgid "PIO Cartridge"
+msgstr "PIO-kassett"
+
+#: src/gui/gui.cc:1367 src/gui/widgets/assembly.cc:492
+msgid "Debug"
+msgstr "Felsök"
+
+#: src/gui/gui.cc:1368
+msgid "Show Logs"
+msgstr "Visa loggar"
+
+#: src/gui/gui.cc:1369
+msgid "Lua"
+msgstr "Lua"
+
+#: src/gui/gui.cc:1370
+msgid "Show Lua Console"
+msgstr "Visa Lua-konsolen"
+
+#: src/gui/gui.cc:1371
+msgid "Show Lua Inspector"
+msgstr "Visa Lua Inspector"
+
+#: src/gui/gui.cc:1372
+msgid "Show Lua editor"
+msgstr "Visa Lua-redigeraren"
+
+#: src/gui/gui.cc:1376
+msgid "CPU"
+msgstr "CPU"
+
+#: src/gui/gui.cc:1377
+msgid "Show Registers"
+msgstr "Visa register"
+
+#: src/gui/gui.cc:1378
+msgid "Show Assembly"
+msgstr "Visa Assembly"
+
+#: src/gui/gui.cc:1380 src/gui/gui.cc:1382
+msgid "Show DynaRec Disassembly"
+msgstr "Visa DynaRec Disassembly"
+
+#: src/gui/gui.cc:1384
+msgid ""
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"in Configuration->Emulation, restart PCSX-Redux, then try again."
+msgstr ""
+"DynaRec Disassembler är inte tillgängligt i tolkat CPU-läge. Försök att aktivera [Dynarec CPU]\n"
+"i Konfiguration->Emulering, starta om PCSX-Redux och försök igen."
+
+#: src/gui/gui.cc:1387
+msgid "Show Breakpoints"
+msgstr "Visa brytpunkter"
+
+#: src/gui/gui.cc:1388
+msgid "Show Callstacks"
+msgstr "Visa anropsstackar"
+
+#: src/gui/gui.cc:1389
+msgid "Memory Editors"
+msgstr "Minnesredigerare"
+
+#: src/gui/gui.cc:1400
+msgid "Show Memory Observer"
+msgstr "Visa minnesobservatör"
+
+#: src/gui/gui.cc:1401
+msgid "Show Typed Debugger"
+msgstr "Visa typad felsökare"
+
+#: src/gui/gui.cc:1402
+msgid "Show Patches"
+msgstr "Visa patchar"
+
+#: src/gui/gui.cc:1403
+msgid "Show Interrupts Scaler"
+msgstr "Visa avbrottsskalare"
+
+#: src/gui/gui.cc:1404
+msgid "First Chance Exceptions"
+msgstr "Första chans-undantag"
+
+#: src/gui/gui.cc:1425
+msgid "VRAM viewers"
+msgstr "VRAM-visare"
+
+#: src/gui/gui.cc:1426
+msgid "Show main VRAM viewer"
+msgstr "Visa huvudsaklig VRAM-visare"
+
+#: src/gui/gui.cc:1427
+msgid "Show CLUT VRAM viewer"
+msgstr "Visa CLUT VRAM-visare"
+
+#: src/gui/gui.cc:1430
+msgid "Show VRAM viewer #"
+msgstr "Visa VRAM-visare #"
+
+#: src/gui/gui.cc:1436
+msgid "Show GPU logger"
+msgstr "Visa GPU-loggar"
+
+#: src/gui/gui.cc:1437
+msgid "Show GPU debug"
+msgstr "Visa GPU-felsökning"
+
+#: src/gui/gui.cc:1441
+msgid "Show SPU debug"
+msgstr "Visa SPU-felsökning"
+
+#: src/gui/gui.cc:1444
+msgid "CD-Rom"
+msgstr "CD-ROM"
+
+#: src/gui/gui.cc:1445
+msgid "Show Iso Browser"
+msgstr "Visa Iso-webbläsare"
+
+#: src/gui/gui.cc:1448
+msgid "Misc hardware"
+msgstr "Övrigt hårdvara"
+
+#: src/gui/gui.cc:1449
+msgid "Show SIO1 debug"
+msgstr "Visa SIO1-felsökning"
+
+#: src/gui/gui.cc:1453
+msgid "Kernel"
+msgstr "Kärna"
+
+#: src/gui/gui.cc:1454
+msgid "Kernel Events"
+msgstr "Kärnhändelser"
+
+#: src/gui/gui.cc:1455
+msgid "Kernel Handlers"
+msgstr "Kärnhanterare"
+
+#: src/gui/gui.cc:1456 src/gui/gui.cc:1604
+msgid "Kernel Calls"
+msgstr "Kärnanrop"
+
+#: src/gui/gui.cc:1459
+msgid "Rendering"
+msgstr "Rendering"
+
+#: src/gui/gui.cc:1460
+msgid "Full window render"
+msgstr "Fullständig fönsterrendering"
+
+#: src/gui/gui.cc:1465
+msgid "Fullscreen"
+msgstr "Helskärm"
+
+#: src/gui/gui.cc:1469
+msgid "Show Output Shader Editor"
+msgstr "Visa redigerare för shader-utdata"
+
+#: src/gui/gui.cc:1470
+msgid "Show Offscreen Shader Editor"
+msgstr "Visa skärmredigeraren för skuggning"
+
+#: src/gui/gui.cc:1471
+msgid "Reset shaders"
+msgstr "Återställ shaders"
+
+#: src/gui/gui.cc:1479
+msgid "Help"
+msgstr "Hjälp"
+
+#: src/gui/gui.cc:1480
+msgid "Show ImGui Demo"
+msgstr "Visa ImGui-demo"
+
+#: src/gui/gui.cc:1482
+msgid "Show UvFile information"
+msgstr "Visa UvFile-information"
+
+#: src/gui/gui.cc:1484 src/gui/gui.cc:2393
+msgid "About"
+msgstr "Om"
+
+#: src/gui/gui.cc:1489
+#, c-format
+msgid "CPU: %s"
+msgstr "CPU: %s"
+
+#: src/gui/gui.cc:1491 src/gui/widgets/isobrowser.cc:102
+#, c-format
+msgid "GAME ID: %s"
+msgstr "SPEL-ID: %s"
+
+#: src/gui/gui.cc:1494
+#, c-format
+msgid "%.2f FPS (%.2f ms)"
+msgstr "%.2f bilder/s (%.2f ms)"
+
+#: src/gui/gui.cc:1497
+#, c-format
+msgid "%.2f ms audio buffer (%i frames)"
+msgstr "%.2f ms ljudbuffert (%i ramar)"
+
+#: src/gui/gui.cc:1499
+msgid "Idle"
+msgstr "Overksam"
+
+#: src/gui/gui.cc:1580
+msgid "Logs"
+msgstr "Loggar"
+
+#: src/gui/gui.cc:1586
+msgid "Lua Console"
+msgstr "Lua-konsol"
+
+#: src/gui/gui.cc:1592
+msgid "Lua Inspector"
+msgstr "Lua-inspektör"
+
+#: src/gui/gui.cc:1595
+msgid "Lua Editor"
+msgstr "Lua-redigerare"
+
+#: src/gui/gui.cc:1598
+msgid "Kernel events"
+msgstr "Kärnhändelser"
+
+#: src/gui/gui.cc:1601
+msgid "Kernel handlers"
+msgstr "Kärnhanterare"
+
+#: src/gui/gui.cc:1607
+msgid "Callstacks"
+msgstr "Callstacks"
+
+#: src/gui/gui.cc:1656
+msgid "Memory Card Manager"
+msgstr "Minneskortshanterare"
+
+#: src/gui/gui.cc:1660 src/gui/widgets/registers.cc:117
+msgid "Registers"
+msgstr "Register"
+
+#: src/gui/gui.cc:1664
+msgid "Assembly"
+msgstr "Assembly"
+
+#: src/gui/gui.cc:1668
+msgid "DynaRec Disassembler"
+msgstr "DynaRec Disassembler"
+
+#: src/gui/gui.cc:1672 src/gui/widgets/typed_debugger.cc:830
+#: src/gui/widgets/typed_debugger.cc:876 src/gui/widgets/typed_debugger.cc:929
+msgid "Breakpoints"
+msgstr "Brytpunkter"
+
+#: src/gui/gui.cc:1676
+msgid "Patches"
+msgstr "Patchar"
+
+#: src/gui/gui.cc:1680
+msgid "Named Save States"
+msgstr "Namngivna sparlägen"
+
+#: src/gui/gui.cc:1684 src/gui/widgets/memory_observer.cc:382
+#: src/gui/widgets/memory_observer.cc:388
+msgid "Memory Observer"
+msgstr "Minnesobservatör"
+
+#: src/gui/gui.cc:1688 src/gui/widgets/typed_debugger.cc:1026
+msgid "Typed Debugger"
+msgstr "Typad felsökare"
+
+#: src/gui/gui.cc:1694
+msgid "Output Video"
+msgstr "Utgångsvideo"
+
+#: src/gui/gui.cc:1699
+msgid "Offscreen Render"
+msgstr "Offscreen-rendering"
+
+#: src/gui/gui.cc:1705
+msgid "PIO Cartridge Configuration"
+msgstr "Konfiguration för PIO-kassett"
+
+#: src/gui/gui.cc:1709
+msgid "SIO1 Debug"
+msgstr "SIO1 Felsökning"
+
+#: src/gui/gui.cc:1713
+msgid "ISO Browser"
+msgstr "ISO-bläddrare"
+
+#: src/gui/gui.cc:1723
+msgid "GPU Logger"
+msgstr "GPU-logger"
+
+#: src/gui/gui.cc:1726
+msgid "UI Configuration"
+msgstr "Grafisk gränssnittskonfiguration"
+
+#: src/gui/gui.cc:1732
+msgid "Locale"
+msgstr "Locale"
+
+#: src/gui/gui.cc:1747
+msgid "Reload locales"
+msgstr "Läs in om lokaliseringar"
+
+#: src/gui/gui.cc:1752
+msgid "Main Font Size"
+msgstr "Huvudteckensnittsstorlek"
+
+#: src/gui/gui.cc:1753
+msgid "Mono Font Size"
+msgstr "Mono Teckenstorlek"
+
+#: src/gui/gui.cc:1755
+msgid "Use Widescreen Aspect Ratio"
+msgstr "Använd bredbildsformat"
+
+#: src/gui/gui.cc:1756
+msgid ""
+"Sets the output screen ratio to 16:9 instead of 4:3.\n"
+"\n"
+"Note that this setting is NOT the popular hack\n"
+"to force games into widescreen mode, but rather an\n"
+"emulation of the fact users could change their\n"
+"TV sets to be in 16:9 mode instead of 4:3.\n"
+"\n"
+"Some games have a \"wide screen\" rendering setting,\n"
+"which changes the rendering of the game accordingly,\n"
+"and requires the user to change the settings of\n"
+"their TV set to match the aspect ratio of the game."
+msgstr ""
+"Ställer in utskärningsförhållandet till 16:9 istället för 4:3.\n"
+"\n"
+"Observera att denna inställning INTE är det populära hacket för att tvinga spel till bredbildsläge, utan snarare en emulering av det faktum att användare kan ändra sina TV-apparater till 16:9-läge istället för 4:3. Vissa spel har en inställning för \"bredbildsvisning\", som ändrar spelets rendering i enlighet med detta och kräver att användaren ändrar inställningarna på sin TV-apparat så att de matchar spelets bildförhållande."
+
+#: src/gui/gui.cc:1775
+msgid "System Configuration"
+msgstr "Systemkonfiguration"
+
+#: src/gui/gui.cc:1777
+msgid "Preload Disk Image files"
+msgstr "Förladda diskavbildningsfiler"
+
+#: src/gui/gui.cc:1778
+msgid "Enable Auto Update"
+msgstr "Aktivera automatisk uppdatering"
+
+#: src/gui/gui.cc:1785
+msgid "Update configuration"
+msgstr "Uppdatera konfigurationen"
+
+#: src/gui/gui.cc:1786
+msgid ""
+"PCSX-Redux can automatically update itself.\n"
+"\n"
+"If you enable the auto update option, it will check for new updates\n"
+"on startup. No personal data nor identifiable token is sent for this\n"
+"process, but Microsoft might still keep and record information such\n"
+"as your IP address.\n"
+"\n"
+"If an update is available, you will get prompted to download and\n"
+"install it. You can still download versions of PCSX-Redux as usual\n"
+"from its website.\n"
+"\n"
+"If you want to change this setting later, you can go to the\n"
+"Configuration -> System menu."
+msgstr ""
+"PCSX-Redux kan uppdatera sig själv automatiskt. Om du aktiverar alternativet för automatisk uppdatering kommer programmet att söka efter nya uppdateringar vid start. Inga personuppgifter eller identifierbara token skickas för denna process, men Microsoft kan fortfarande spara och registrera information såsom din IP-adress. Om en uppdatering är tillgänglig kommer du att uppmanas att ladda ner och installera den. Du kan fortfarande ladda ner versioner av PCSX-Redux som vanligt från dess webbplats.\n"
+"\n"
+"Om du vill ändra denna inställning senare kan du gå till menyn Konfiguration -> System."
+
+#: src/gui/gui.cc:1799
+msgid "Enable auto update"
+msgstr "Aktivera automatisk uppdatering"
+
+#: src/gui/gui.cc:1805
+msgid "No thanks"
+msgstr "Nej tack"
+
+#: src/gui/gui.cc:1814
+msgid "Update available"
+msgstr "Uppdatering tillgänglig"
+
+#: src/gui/gui.cc:1816
+msgid ""
+"An update is available.\n"
+"Click 'Update' to download and apply the update.\n"
+"PCSX-Redux will automatically restart to apply it.\n"
+"\n"
+"Click 'Download' to use your browser to download\n"
+"the update and manually apply it."
+msgstr ""
+"En uppdatering är tillgänglig. Klicka på \"Uppdatera\" för att ladda ner och"
+" installera uppdateringen. PCSX-Redux startas om automatiskt för att "
+"installera uppdateringen. Klicka på \"Läs in ner\" för att ladda ner "
+"uppdateringen med din webbläsare och installera den manuellt."
+
+#: src/gui/gui.cc:1823
+msgid ""
+"An update is available.\n"
+"Click 'Update' to download it. While the update can be\n"
+"downloaded, it won't be applied automatically. You will\n"
+"have to install it manually, the way you previously did.\n"
+"PCSX-Redux will quit once the update is downloaded.\n"
+"\n"
+"Click 'Download' to use your browser to download\n"
+"the update and manually apply it."
+msgstr ""
+"En uppdatering finns tillgänglig.\n"
+"Klicka på \"Uppdatera\" för att ladda ner den. Uppdateringen\n"
+"kan laddas ner, men den installeras inte automatiskt. Du\n"
+"måste installera den manuellt, på samma sätt som tidigare.\n"
+"PCSX-Redux stängs ner när uppdateringen har laddats ner.\n"
+"\n"
+"Klicka på \"Läs in ner\" för att använda din webbläsare för att\n"
+"ladda ner uppdateringen och installera den manuellt."
+
+#: src/gui/gui.cc:1834
+msgid "Update"
+msgstr "Uppdatera"
+
+#: src/gui/gui.cc:1846 src/gui/gui.cc:1851
+msgid ""
+"An error has occured while downloading\n"
+"and/or applying the update."
+msgstr ""
+"Ett fel har uppstått vid nedladdning och/eller installation av "
+"uppdateringen."
+
+#: src/gui/gui.cc:1857
+msgid "Download"
+msgstr "Ladda ner"
+
+#: src/gui/gui.cc:1867
+msgid "An error has occured while downloading the update."
+msgstr "Ett fel har uppstått vid nedladdningen av uppdateringen."
+
+#: src/gui/gui.cc:1873 src/gui/widgets/assembly.cc:1036
+#: src/gui/widgets/registers.cc:470 src/gui/widgets/sio1.cc:202
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: src/gui/gui.cc:1882
+msgid "UvFiles"
+msgstr "UvFiles"
+
+#: src/gui/gui.cc:1885
+#, c-format
+msgid "Read rate: %s"
+msgstr "Läsfrekvens: %s"
+
+#: src/gui/gui.cc:1887
+#, c-format
+msgid "Write rate: %s"
+msgstr "Skrivfrekvens: %s"
+
+#: src/gui/gui.cc:1889
+#, c-format
+msgid "Download rate: %s"
+msgstr "Nedladdningshastighet: %s"
+
+#: src/gui/gui.cc:1891
+msgid "Caching"
+msgstr "Mellanlagring"
+
+#: src/gui/gui.cc:1892 src/gui/widgets/memcard_manager.cc:201
+msgid "Filename"
+msgstr "Filnamn"
+
+#: src/gui/gui.cc:2079
+msgid "Emulation Configuration"
+msgstr "Emuleringskonfiguration"
+
+#: src/gui/gui.cc:2080
+msgid "Idle Swap Interval"
+msgstr "Intervall för idle swap"
+
+#: src/gui/gui.cc:2085
+msgid "Reset Scaler"
+msgstr "Återställ skalare"
+
+#: src/gui/gui.cc:2091
+msgid "Speed Scaler"
+msgstr "Hastighetsskala"
+
+#: src/gui/gui.cc:2093
+msgid "Enable XA decoder"
+msgstr "Aktivera XA-avkodare"
+
+#: src/gui/gui.cc:2094
+msgid "Always enable SPU IRQ"
+msgstr "Aktivera alltid SPU IRQ"
+
+#: src/gui/gui.cc:2095
+msgid "Decode MDEC videos in B&W"
+msgstr "Avkoda MDEC-videor i svartvitt"
+
+#: src/gui/gui.cc:2096
+msgid "Dynarec CPU"
+msgstr "Dynarec CPU"
+
+#: src/gui/gui.cc:2104
+msgid ""
+"Activates the dynamic recompiler CPU core.\n"
+"It is significantly faster than the interpreted CPU,\n"
+"however it doesn't play nicely with the debugger.\n"
+"Changing this setting requires a reboot to take effect.\n"
+"The dynarec core isn't available for all CPUs, so\n"
+"this setting may not have any effect for you."
+msgstr ""
+"Aktiverar den dynamiska omkompilerings-CPU-kärnan.\n"
+"Den är betydligt snabbare än den tolkade CPU:n, men\n"
+"fungerar inte så bra med felsökaren. För att ändringen\n"
+"ska träda i kraft måste datorn startas om. Dynarec-kärnan\n"
+"är inte tillgänglig för alla CPU:er, så den här inställningen\n"
+"kanske inte har någon effekt för dig."
+
+#: src/gui/gui.cc:2110
+msgid "8MB"
+msgstr "8 MB"
+
+#: src/gui/gui.cc:2111
+msgid ""
+"Emulates an installed 8MB system,\n"
+"instead of the normal 2MB. Useful for working\n"
+"with development binaries and games."
+msgstr ""
+"Emulerar ett installerat 8 MB-system\n"
+"istället för det normala 2 MB-systemet. Användbart\n"
+"för arbete med utvecklingsbinärer och spel."
+
+#: src/gui/gui.cc:2115
+msgid "OpenGL GPU *ALPHA STATE*"
+msgstr "OpenGL GPU *ALPHA STATE*"
+
+#: src/gui/gui.cc:2116
+msgid ""
+"Enables the OpenGL GPU renderer.\n"
+"This is not recommended for normal use at the moment,\n"
+"as it is not fully implemented yet. It is recommended\n"
+"to use the software renderer instead. Requires a restart\n"
+"when changing this setting."
+msgstr ""
+"Aktiverar OpenGL GPU-renderaren.\n"
+"Detta rekommenderas inte för normal användning för tillfället,\n"
+"eftersom det ännu inte är fullt implementerat. Det rekommenderas\n"
+"att använda mjukvarurenderaren istället.\n"
+"Kräver omstart när denna inställning ändras."
+
+#: src/gui/gui.cc:2128
+msgid "NTSC"
+msgstr "NTSC"
+
+#: src/gui/gui.cc:2128
+msgid "PAL"
+msgstr "PAL"
+
+#: src/gui/gui.cc:2131
+msgid "System Type"
+msgstr "Systemtyp"
+
+#: src/gui/gui.cc:2150
+msgid "Fast boot"
+msgstr "Snabb uppstart"
+
+#: src/gui/gui.cc:2151
+msgid ""
+"This will cause the BIOS to skip the shell,\n"
+"which may include additional checks.\n"
+"Also will make the boot time substantially\n"
+"faster by not displaying the logo."
+msgstr ""
+"Detta gör att BIOS hoppar över skalet,\n"
+"vilket kan innefatta ytterligare kontroller.\n"
+"Det gör också att starttiden blir betydligt\n"
+"snabbare eftersom logotypen inte visas."
+
+#: src/gui/gui.cc:2156
+msgid "BIOS file"
+msgstr "BIOS-fil"
+
+#: src/gui/gui.cc:2160 src/gui/widgets/assembly.cc:550
+msgid "Enable Debugger"
+msgstr "Aktivera felsökare"
+
+#: src/gui/gui.cc:2167
+msgid ""
+"This will enable the usage of various breakpoints\n"
+"throughout the execution of mips code. Enabling this\n"
+"can slow down emulation to a noticeable extent."
+msgstr ""
+"Detta möjliggör användning av olika brytpunkter under hela exekveringen av "
+"mips-kod. Om du aktiverar detta kan emuleringen bli märkbart långsammare."
+
+#: src/gui/gui.cc:2170
+msgid "Enable GDB Server"
+msgstr "Aktivera GDB-server"
+
+#: src/gui/gui.cc:2179
+msgid ""
+"This will activate a gdb-server that you can\n"
+"connect to with any gdb-remote compliant client.\n"
+"You also need to enable the debugger."
+msgstr ""
+"Detta aktiverar en gdb-server som du kan ansluta till med vilken gdb-remote-"
+"kompatibel klient som helst. Du måste också aktivera felsökaren."
+
+#: src/gui/gui.cc:2183
+msgid "GDB send manifest"
+msgstr "GDB skicka manifest"
+
+#: src/gui/gui.cc:2184
+msgid ""
+"Enables sending the processor's manifest\n"
+"from the gdb server. Keep this enabled, unless\n"
+"you want to connect IDA to this server, as it\n"
+"has a bug in its manifest parser."
+msgstr ""
+"Aktiverar sändning av processorns manifest\n"
+"från gdb-servern. Lämna denna funktion aktiverad,\n"
+"såvida du inte vill ansluta IDA till denna server,\n"
+"eftersom den har en bugg i sin manifestparser."
+
+#: src/gui/gui.cc:2191
+msgid "PCSX Logs to GDB"
+msgstr "PCSX-loggar till GDB"
+
+#: src/gui/gui.cc:2207
+msgid "GDB Server Port"
+msgstr "GDB-serverport"
+
+#: src/gui/gui.cc:2209
+msgid "GDB Server Trace"
+msgstr "GDB-servertrace"
+
+#: src/gui/gui.cc:2210
+msgid ""
+"The GDB server will start tracing its\n"
+"protocol into the logs, which can be helpful to debug\n"
+"the gdb server system itself."
+msgstr ""
+"GDB-servern kommer att börja spåra sitt protokoll i loggarna, vilket kan "
+"vara till hjälp för att felsöka själva gdb-serversystemet."
+
+#: src/gui/gui.cc:2213
+msgid "Enable Web Server"
+msgstr "Aktivera webbserver"
+
+#: src/gui/gui.cc:2222
+msgid ""
+"This will activate a web-server, that you can\n"
+"query using a REST api. See the wiki for details.\n"
+"The debugger might be required in some cases."
+msgstr ""
+"Detta aktiverar en webbserver som du kan fråga med hjälp av ett REST-api. Se"
+" wiki för mer information. I vissa fall kan felsökaren behövas."
+
+#: src/gui/gui.cc:2226
+msgid "Web Server Port"
+msgstr "Webbserverport"
+
+#: src/gui/gui.cc:2227
+msgid "Enable SIO1 Server"
+msgstr "Aktivera SIO1-server"
+
+#: src/gui/gui.cc:2236
+msgid ""
+"This will activate a tcp server, that will\n"
+"relay information between tcp and sio1.\n"
+"See the wiki for details."
+msgstr ""
+"Detta aktiverar en TCP-server som vidarebefordrar information mellan TCP och"
+" sio1. Se wiki för mer information."
+
+#: src/gui/gui.cc:2240
+msgid "SIO1 Server Port"
+msgstr "SIO1-serverport"
+
+#: src/gui/gui.cc:2241
+msgid "Enable SIO1 Client"
+msgstr "Aktivera SIO1-klient"
+
+#: src/gui/gui.cc:2254
+msgid ""
+"This will activate a tcp client, that can connect\n"
+"to another PCSX-Redux server to relay information between tcp and sio1.\n"
+"See the wiki for details."
+msgstr ""
+"Detta aktiverar en TCP-klient som kan ansluta till en annan PCSX-Redux-"
+"server för att vidarebefordra information mellan TCP och SIO1. Se wiki för "
+"mer information."
+
+#: src/gui/gui.cc:2258
+msgid "SIO1 Client Host"
+msgstr "SIO1-klientvärd"
+
+#: src/gui/gui.cc:2261
+msgid "SIO1 Client Port"
+msgstr "SIO1-klientport"
+
+#: src/gui/gui.cc:2265
+msgid "Reset SIO"
+msgstr "Återställ SIO"
+
+#: src/gui/gui.cc:2276
+msgid "Reconnect"
+msgstr "Återanslut"
+
+#: src/gui/gui.cc:2289
+msgid "SIO1Mode"
+msgstr "SIO1-läge"
+
+#: src/gui/gui.cc:2347
+msgid "Interrupt Scaler"
+msgstr "Avbrottsskalare"
+
+#: src/gui/gui.cc:2348
+msgid "Reset all"
+msgstr "Nollställ allt"
+
+#: src/gui/gui.cc:2364
+msgid "Cherry##Theme name"
+msgstr "Cherry##Temanamn"
+
+#: src/gui/gui.cc:2364
+msgid "Classic##Theme name"
+msgstr "Klassisk##Temanamn"
+
+#: src/gui/gui.cc:2364
+msgid "Default theme##Theme name"
+msgstr "Standardtema##Temans namn"
+
+#: src/gui/gui.cc:2364
+msgid "Light##Theme name"
+msgstr "Ljus##Temanamn"
+
+#: src/gui/gui.cc:2365
+msgid "Dracula##Theme name"
+msgstr "Dracula##Temanamn"
+
+#: src/gui/gui.cc:2365
+msgid "Mono##Theme name"
+msgstr "Mono##Temanamn"
+
+#: src/gui/gui.cc:2365
+msgid "Olive##Theme name"
+msgstr "Olive##Temanamn"
+
+#: src/gui/gui.cc:2370
+msgid "Themes"
+msgstr "Teman"
+
+#: src/gui/gui.cc:2401 src/gui/gui.cc:2490
+msgid "Version"
+msgstr "Version"
+
+#: src/gui/gui.cc:2408
+msgid ""
+"No version information.\n"
+"\n"
+"Probably built from source."
+msgstr "Ingen versionsinformation. Troligen byggd från källkod."
+
+#: src/gui/gui.cc:2410
+msgid "Copy to clipboard"
+msgstr "Kopiera till urklipp"
+
+#: src/gui/gui.cc:2422 src/gui/gui.cc:2507
+#, c-format
+msgid "Version: %s"
+msgstr "Version: %s"
+
+#: src/gui/gui.cc:2424
+#, c-format
+msgid "Build: %i"
+msgstr "Byggversion: %i"
+
+#: src/gui/gui.cc:2426
+msgid "Changeset: "
+msgstr "Ändringsuppsättning: "
+
+#: src/gui/gui.cc:2433
+#, c-format
+msgid "Date & time: %s"
+msgstr "Datum och tid: %s"
+
+#: src/gui/gui.cc:2442
+msgid "Authors"
+msgstr "Upphovspersoner"
+
+#: src/gui/gui.cc:2450
+msgid "Licenses"
+msgstr "Licenser"
+
+#: src/gui/gui.cc:2462
+msgid "OpenGL information"
+msgstr "OpenGL-information"
+
+#: src/gui/gui.cc:2464
+msgid "OpenGL error reporting: enabled"
+msgstr "OpenGL-felrapportering: aktiverad"
+
+#: src/gui/gui.cc:2466
+msgid "OpenGL error reporting: disabled"
+msgstr "OpenGL-felrapportering: inaktiverad"
+
+#: src/gui/gui.cc:2469
+msgid ""
+"OpenGL error reporting has been disabled because your OpenGL driver is too "
+"old. Error reporting requires at least OpenGL 4.3. Please update your "
+"graphics drivers, or contact your GPU vendor for up to date OpenGL drivers. "
+"Disabled OpenGL error reporting won't have a negative impact on the "
+"performance of this software, but user code such as the shader editor won't "
+"be able to properly report problems accurately."
+msgstr ""
+"OpenGL-felrapportering har inaktiverats eftersom din OpenGL-drivrutin är för"
+" gammal. Felrapportering kräver minst OpenGL 4.3. Uppdatera dina "
+"grafikkortdrivrutiner eller kontakta din GPU-leverantör för att få "
+"uppdaterade OpenGL-drivrutiner. Inaktiverad OpenGL-felrapportering påverkar "
+"inte prestandan för denna programvara, men användarkod som shader-"
+"redigeraren kommer inte att kunna rapportera problem korrekt."
+
+#: src/gui/gui.cc:2477
+msgid "Enable OpenGL error reporting"
+msgstr "Aktivera OpenGL-felrapportering"
+
+#: src/gui/gui.cc:2480
+msgid ""
+"OpenGL error reporting is necessary for properly reporting OpenGL problems. "
+"However it requires OpenGL 4.3+ and might have performance repercussions on "
+"some computers. (Requires a restart of the emulator)"
+msgstr ""
+"OpenGL-felrapportering är nödvändig för att korrekt rapportera OpenGL-"
+"problem. Det kräver dock OpenGL 4.3+ och kan påverka prestandan på vissa "
+"datorer. (Kräver omstart av emulatorn)"
+
+#: src/gui/gui.cc:2484
+msgid "OpenGL error reporting severity"
+msgstr "Allvarlighetsgrad för OpenGL-felrapportering"
+
+#: src/gui/gui.cc:2487
+#, c-format
+msgid "Core profile: %s"
+msgstr "Kärnprofil: %s"
+
+#: src/gui/gui.cc:2487 src/gui/widgets/assembly.cc:578
+msgid "no"
+msgstr "nej"
+
+#: src/gui/gui.cc:2487 src/gui/widgets/assembly.cc:578
+msgid "yes"
+msgstr "ja"
+
+#: src/gui/gui.cc:2488
+msgid "Vendor"
+msgstr "Tillverkare"
+
+#: src/gui/gui.cc:2489
+msgid "Renderer"
+msgstr "Renderare"
+
+#: src/gui/gui.cc:2491
+msgid "Shading language version"
+msgstr "Språkversion för skuggning"
+
+#: src/gui/gui.cc:2494
+#, c-format
+msgid "Texture units: %d"
+msgstr "Texturenheter: %d"
+
+#: src/gui/gui.cc:2497
+msgid "Extensions:"
+msgstr "Utökningar:"
+
+#: src/gui/gui.cc:2506
+msgid "FFmpeg information"
+msgstr "FFmpeg-information"
+
+#: src/gui/gui.cc:2508
+#, c-format
+msgid "License: %s"
+msgstr "Licens: %s"
+
+#: src/gui/gui.cc:2509
+#, c-format
+msgid "Configuration: %s"
+msgstr "Konfiguration: %s"
+
+#: src/gui/gui.cc:2512
+msgid "List of supported formats:"
+msgstr "Lista över format som stöds:"
+
+#: src/gui/gui.cc:2530
+msgid ""
+"List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
+msgstr ""
+"Lista över kodekar som stöds: (D: Avkodare, E: Kodare, L: Med förlust, S: "
+"Förlustfri)"
+
+#: src/gui/gui.cc:2570
+#, c-format
+msgid "%s codecs"
+msgstr "%s-kodekar"
+
+#: src/gui/gui.h:246
+msgid "Ok"
+msgstr "Ok"
+
+#: src/gui/gui.h:430
+msgid "Notification"
+msgstr "Avisering"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:53
+msgid "Offscreen CRT shader Configuration"
+msgstr "Konfiguration för offscreen CRT-shader"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:59
+msgid "Enable gaussian blur"
+msgstr "Aktivera gaussisk oskärpa"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:61
+msgid "Hard Pixel factor"
+msgstr "Hård pixel-faktor"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:63
+msgid "Hard Scanline factor"
+msgstr "Hård skanningslinjefaktor"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:65
+msgid "Enable Scanlines"
+msgstr "Aktivera skanningslinjer"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:67
+msgid "Use S-rgb"
+msgstr "Använd S-rgb"
+
+#: src/gui/shaders/crt-lottes-offscreen.lua:70
+#: src/gui/shaders/crt-lottes-output.lua:83
+msgid "Reset to defaults"
+msgstr "Återställ till standardinställningar"
+
+#: src/gui/shaders/crt-lottes-output.lua:58
+msgid "Output CRT Shader Configuration"
+msgstr "Utgång CRT Shader-konfiguration"
+
+#: src/gui/shaders/crt-lottes-output.lua:64
+msgid "Warp intensity"
+msgstr "Vridningsintensitet"
+
+#: src/gui/shaders/crt-lottes-output.lua:66
+msgid "Mask intensity"
+msgstr "Maskinintensitet"
+
+#: src/gui/shaders/crt-lottes-output.lua:68
+msgid "Greyscale"
+msgstr "Gråskala"
+
+#: src/gui/shaders/crt-lottes-output.lua:70
+msgid "Trinitron"
+msgstr "Trinitron"
+
+#: src/gui/shaders/crt-lottes-output.lua:70
+msgid "Trinitron 2x"
+msgstr "Trinitron 2x"
+
+#: src/gui/shaders/crt-lottes-output.lua:70
+msgid "Trio"
+msgstr "Trio"
+
+#: src/gui/shaders/crt-lottes-output.lua:72
+msgid "Mask type"
+msgstr "Masktyp"
+
+#: src/gui/widgets/assembly.cc:335
+msgid "Go to in Memory Editor #1 (Default Click)"
+msgstr "Gå till minnesredigeraren nr 1 (standardklick)"
+
+#: src/gui/widgets/assembly.cc:336
+msgid "Go to in Memory Editor #2 (Shift+Click)"
+msgstr "Gå till minnesredigeraren #2 (Skift+klicka)"
+
+#: src/gui/widgets/assembly.cc:337
+msgid "Go to in Memory Editor #3 (Ctrl+Click)"
+msgstr "Gå till minnesredigeraren #3 (Ctrl+klicka)"
+
+#: src/gui/widgets/assembly.cc:340
+msgid "Go to in Memory Editor #{}"
+msgstr "Gå till minnesredigeraren #{}"
+
+#: src/gui/widgets/assembly.cc:343
+msgid "Create Memory Read Breakpoint"
+msgstr "Skapa brytpunkt för minnesläsning"
+
+#: src/gui/widgets/assembly.cc:344 src/gui/widgets/assembly.cc:347
+#: src/gui/widgets/assembly.cc:767 src/gui/widgets/assembly.cc:793
+#: src/gui/widgets/breakpoints.cc:338
+msgid "GUI"
+msgstr "Grafiskt gränssnitt"
+
+#: src/gui/widgets/assembly.cc:346
+msgid "Create Memory Write Breakpoint"
+msgstr "Skapa minnesskrivningsbrytpunkt"
+
+#: src/gui/widgets/assembly.cc:353
+msgid "Go to in Memory Editor..."
+msgstr "Gå till minnesredigeraren..."
+
+#: src/gui/widgets/assembly.cc:401
+#, c-format
+msgid "Go to in Memory Editor #%d"
+msgstr "Gå till minnesredigeraren #%d"
+
+#: src/gui/widgets/assembly.cc:462
+#, c-format
+msgid "Go to in Memory Editor #%u"
+msgstr "Gå till minnesredigeraren #%u"
+
+#: src/gui/widgets/assembly.cc:486
+msgid "Load symbols map"
+msgstr "Läs in symbolkarta"
+
+#: src/gui/widgets/assembly.cc:487
+msgid "Reset symbols map"
+msgstr "Återställ symbolkarta"
+
+#: src/gui/widgets/assembly.cc:493 src/gui/widgets/assembly.cc:568
+msgid "Pause"
+msgstr "Pausa"
+
+#: src/gui/widgets/assembly.cc:494 src/gui/widgets/assembly.cc:570
+#: src/gui/widgets/gpulogger.cc:84
+msgid "Resume"
+msgstr "Återuppta"
+
+#: src/gui/widgets/assembly.cc:496 src/gui/widgets/assembly.cc:572
+msgid "Step In"
+msgstr "Stega in"
+
+#. Options, Filter
+#: src/gui/widgets/assembly.cc:502 src/gui/widgets/console.cc:53
+#: src/gui/widgets/dynarec_disassembly.cc:106
+msgid "Options"
+msgstr "Alternativ"
+
+#: src/gui/widgets/assembly.cc:503
+msgid "Combined pseudo-instructions"
+msgstr "Kombinerade pseudoinstruktioner"
+
+#: src/gui/widgets/assembly.cc:508
+msgid ""
+"When two instructions are detected to be a single pseudo-instruction, "
+"combine them into the actual pseudo-instruction."
+msgstr ""
+"När två instruktioner upptäcks vara en enda pseudoinstruktion, kombinera dem"
+" till den faktiska pseudoinstruktionen."
+
+#: src/gui/widgets/assembly.cc:513
+msgid "Pseudo-instructions filling"
+msgstr "Pseudokommandon som fyller"
+
+#: src/gui/widgets/assembly.cc:518
+msgid ""
+"When combining two instructions into a single pseudo-instruction, add a "
+"placeholder for the second one."
+msgstr ""
+"När du kombinerar två instruktioner till en enda pseudoinstruktion, lägg "
+"till en platshållare för den andra."
+
+#: src/gui/widgets/assembly.cc:523
+msgid "Delay slot notch"
+msgstr "Fördröjningsspårskåra"
+
+#: src/gui/widgets/assembly.cc:528
+msgid ""
+"Add a small visible notch to indicate instructions that are on the delay "
+"slot of a branch."
+msgstr ""
+"Lägg till ett litet synligt märke för att markera instruktioner som finns i "
+"fördröjningsfacket på en gren."
+
+#: src/gui/widgets/assembly.cc:532
+msgid "Draw arrows for jumps"
+msgstr "Rita pilar för hopp"
+
+#: src/gui/widgets/assembly.cc:536
+msgid "Display arrows for jumps. This might crowd the display a bit too much."
+msgstr "Visa pilar för hopp. Detta kan göra skärmen lite för full."
+
+#: src/gui/widgets/assembly.cc:540
+msgid "Columns"
+msgstr "Kolumner"
+
+#: src/gui/widgets/assembly.cc:559 src/gui/widgets/log.cc:112
+msgid "CPU trace"
+msgstr "CPU-spårning"
+
+#: src/gui/widgets/assembly.cc:561
+msgid "Skip ISR"
+msgstr "Hoppa över ISR"
+
+#: src/gui/widgets/assembly.cc:563
+msgid "Follow PC"
+msgstr "Följ PC"
+
+#: src/gui/widgets/assembly.cc:565
+msgid "Jump to PC"
+msgstr "Hoppa till PC"
+
+#: src/gui/widgets/assembly.cc:578
+#, c-format
+msgid "In ISR: %s"
+msgstr "I ISR: %s"
+
+#: src/gui/widgets/assembly.cc:776
+msgid "Remove symbol"
+msgstr "Ta bort symbol"
+
+#: src/gui/widgets/assembly.cc:780
+msgid "Create symbol here"
+msgstr "Skapa symbol här"
+
+#: src/gui/widgets/assembly.cc:785
+msgid "Copy Address"
+msgstr "Kopiera adress"
+
+#: src/gui/widgets/assembly.cc:791
+msgid "Run to Cursor"
+msgstr "Kör till markören"
+
+#: src/gui/widgets/assembly.cc:800
+msgid "Toggle Breakpoint"
+msgstr "Växla brytpunkt"
+
+#: src/gui/widgets/assembly.cc:804 src/gui/widgets/assembly.cc:809
+msgid "Remove Breakpoint"
+msgstr "Ta bort brytpunkt"
+
+#: src/gui/widgets/assembly.cc:816
+msgid "Patch in Return"
+msgstr "Patch i utbyte"
+
+#: src/gui/widgets/assembly.cc:819
+msgid "Patch in NOP"
+msgstr "Patch i NOP"
+
+#: src/gui/widgets/assembly.cc:826
+msgid "Delete Return Patch"
+msgstr "Ta bort returpatch"
+
+#: src/gui/widgets/assembly.cc:832
+msgid "Delete NOP Patch"
+msgstr "Ta bort NOP-patch"
+
+#: src/gui/widgets/assembly.cc:839 src/gui/widgets/assembly.cc:1043
+#: src/gui/widgets/assembly.cc:1045 src/gui/widgets/assembly.cc:1051
+msgid "Assemble"
+msgstr "Assemble"
+
+#: src/gui/widgets/assembly.cc:976 src/gui/widgets/breakpoints.cc:181
+#: src/gui/widgets/memory_observer.cc:170
+#: src/gui/widgets/memory_observer.cc:328
+#: src/gui/widgets/memory_observer.cc:424
+#: src/gui/widgets/typed_debugger.cc:927
+msgid "Address"
+msgstr "Adress"
+
+#: src/gui/widgets/assembly.cc:990
+msgid "RAM base"
+msgstr "RAM-bas"
+
+#: src/gui/widgets/assembly.cc:999 src/gui/widgets/assembly.cc:1109
+msgid "Symbols"
+msgstr "Symboler"
+
+#: src/gui/widgets/assembly.cc:1025 src/gui/widgets/assembly.cc:1027
+msgid "Add symbol"
+msgstr "Lägg till symbol"
+
+#: src/gui/widgets/assembly.cc:1028
+#, c-format
+msgid "Add symbol for address 0x%08x:"
+msgstr "Lägg till symbol för adress 0x%08x:"
+
+#: src/gui/widgets/assembly.cc:1030 src/gui/widgets/breakpoints.cc:242
+msgid "Add"
+msgstr "Lägg till"
+
+#: src/gui/widgets/assembly.cc:1046
+#, c-format
+msgid "Assemble code for address 0x%08x:"
+msgstr "Montera kod för adress 0x%08x:"
+
+#. Clear items button
+#: src/gui/widgets/assembly.cc:1071 src/gui/widgets/console.cc:39
+#: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:129
+#: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:793
+msgid "Clear"
+msgstr "Töm"
+
+#: src/gui/widgets/assembly.cc:1073 src/gui/widgets/dynarec_disassembly.cc:73
+msgid "Close"
+msgstr "Stäng"
+
+#: src/gui/widgets/assembly.cc:1110
+msgid "Refresh"
+msgstr "Uppdatera"
+
+#: src/gui/widgets/assembly.cc:1112
+msgid "Filter"
+msgstr "Filtrera"
+
+#: src/gui/widgets/assembly.cc:1126
+msgid "Code##{}{:08x}"
+msgstr "Kod##{}{:08x}"
+
+#: src/gui/widgets/assembly.cc:1127
+msgid "Data##{}{:08x}"
+msgstr "Data##{}{:08x}"
+
+#: src/gui/widgets/assembly.h:47
+msgid "Load Symbols"
+msgstr "Läs in symboler"
+
+#: src/gui/widgets/breakpoints.cc:40 src/gui/widgets/breakpoints.cc:216
+msgid "Always"
+msgstr "Alltid"
+
+#: src/gui/widgets/breakpoints.cc:42
+msgid "Greater"
+msgstr "Större"
+
+#: src/gui/widgets/breakpoints.cc:44
+msgid "Less"
+msgstr "Mindre"
+
+#: src/gui/widgets/breakpoints.cc:46
+msgid "Change"
+msgstr "Ändra"
+
+#: src/gui/widgets/breakpoints.cc:48
+msgid "Equal"
+msgstr "Lika med"
+
+#: src/gui/widgets/breakpoints.cc:129
+msgid "Delete Breakpoint?"
+msgstr "Ta bort brytpunkt?"
+
+#: src/gui/widgets/breakpoints.cc:130 src/gui/widgets/breakpoints.cc:375
+#: src/gui/widgets/patches.cc:69
+msgid "Delete"
+msgstr "Ta bort"
+
+#: src/gui/widgets/breakpoints.cc:176
+msgid "Add Breakpoint..."
+msgstr "Lägg till brytpunkt..."
+
+#: src/gui/widgets/breakpoints.cc:183 src/gui/widgets/typed_debugger.cc:826
+#: src/gui/widgets/typed_debugger.cc:872
+msgid "Type"
+msgstr "Typ"
+
+#: src/gui/widgets/breakpoints.cc:195
+msgid "Byte"
+msgstr "Byte"
+
+#: src/gui/widgets/breakpoints.cc:196
+msgid "Half"
+msgstr "Halv"
+
+#: src/gui/widgets/breakpoints.cc:197
+msgid "Word"
+msgstr "Word"
+
+#: src/gui/widgets/breakpoints.cc:198
+msgid "Range"
+msgstr "Intervall"
+
+#: src/gui/widgets/breakpoints.cc:201
+msgid "Byte Width"
+msgstr "Bytebredd"
+
+#: src/gui/widgets/breakpoints.cc:216
+msgid "Break Condition"
+msgstr "Brytvillkor"
+
+#. 1
+#: src/gui/widgets/breakpoints.cc:228 src/gui/widgets/memory_observer.cc:289
+#: src/gui/widgets/sio1.cc:149 src/gui/widgets/typed_debugger.cc:828
+#: src/gui/widgets/typed_debugger.cc:874
+msgid "Value"
+msgstr "Värde"
+
+#: src/gui/widgets/breakpoints.cc:235
+msgid "Current Value"
+msgstr "Aktuellt värde"
+
+#: src/gui/widgets/breakpoints.cc:240
+msgid "Label"
+msgstr "Etikett"
+
+#: src/gui/widgets/breakpoints.cc:280
+#, c-format
+msgid "Breakpoint condition met! Type:%s writing:%d condVal:%d\n"
+msgstr "Brytpunktsvillkor uppfyllt! Typ:%s skrivning:%d condVal:%d\n"
+
+#: src/gui/widgets/breakpoints.cc:311
+#, c-format
+msgid "Breakpoint condition met! Type:%s reading:%d condVal:%d\n"
+msgstr "Brytpunktsvillkor uppfyllt! Typ:%s läsning:%d condVal:%d\n"
+
+#: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:96
+msgid "Activate All"
+msgstr "Aktivera alla"
+
+#: src/gui/widgets/breakpoints.cc:363 src/gui/widgets/patches.cc:101
+msgid "Deactivate All"
+msgstr "Inaktivera alla"
+
+#: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:107
+msgid "Delete All"
+msgstr "Ta bort alla"
+
+#: src/gui/widgets/breakpoints.cc:374
+msgid "Delete all Breakpoints?"
+msgstr "Ta bort alla brytpunkter?"
+
+#: src/gui/widgets/breakpoints.cc:383
+msgid "Execution Map"
+msgstr "Exekveringskarta"
+
+#: src/gui/widgets/breakpoints.cc:384
+msgid "Clear maps"
+msgstr "Töm kartor"
+
+#: src/gui/widgets/breakpoints.cc:388
+msgid ""
+"The mapping feature is a simple concept, but requires some amount of "
+"explanation. See the documentation website for more details, in the Misc "
+"Features subsection of the Debugging section."
+msgstr ""
+"Kartläggningsfunktionen är ett enkelt koncept, men kräver en del "
+"förklaringar. Se dokumentationswebbplatsen för mer information, i "
+"underavsnittet Övriga funktioner i avsnittet Felsökning."
+
+#: src/gui/widgets/breakpoints.cc:390
+msgid "Map execution"
+msgstr "Mappa exekvering"
+
+#: src/gui/widgets/breakpoints.cc:391
+msgid "Map byte reads         "
+msgstr "Mappa byte-läsningar         "
+
+#: src/gui/widgets/breakpoints.cc:393
+msgid "Map half reads         "
+msgstr "Mappa half-läsningar         "
+
+#: src/gui/widgets/breakpoints.cc:395
+msgid "Map word reads         "
+msgstr "Mappa word-läsningar         "
+
+#: src/gui/widgets/breakpoints.cc:396
+msgid "Map byte writes        "
+msgstr "Mappa byte-skrivningar        "
+
+#: src/gui/widgets/breakpoints.cc:398
+msgid "Map half writes        "
+msgstr "Mappa half-skrivningar        "
+
+#: src/gui/widgets/breakpoints.cc:400
+msgid "Map word writes        "
+msgstr "Mappa word-skrivningar        "
+
+#: src/gui/widgets/breakpoints.cc:402
+msgid "Break on execution map"
+msgstr "Bryt på exekveringskarta"
+
+#: src/gui/widgets/breakpoints.cc:403
+msgid "Break on byte read map "
+msgstr "Bryt på byte-läsningskarta "
+
+#: src/gui/widgets/breakpoints.cc:405
+msgid "Break on half read map "
+msgstr "Bryt på halvläst karta "
+
+#: src/gui/widgets/breakpoints.cc:407
+msgid "Break on word read map "
+msgstr "Bryt på ordläsningskarta "
+
+#: src/gui/widgets/breakpoints.cc:408
+msgid "Break on byte write map"
+msgstr "Bryt på byte skrivkarta"
+
+#: src/gui/widgets/breakpoints.cc:410
+msgid "Break on half write map"
+msgstr "Bryt på halvskrivningskarta"
+
+#: src/gui/widgets/breakpoints.cc:412
+msgid "Break on word write map"
+msgstr "Bryt på word-skrivningskarta"
+
+#: src/gui/widgets/console.cc:34
+msgid "Close Console"
+msgstr "Stäng konsolen"
+
+#: src/gui/widgets/console.cc:41 src/gui/widgets/dynarec_disassembly.cc:95
+#: src/gui/widgets/log.cc:131
+msgid "Copy"
+msgstr "Kopiera"
+
+#: src/gui/widgets/console.cc:47 src/gui/widgets/dynarec_disassembly.cc:99
+msgid "Auto-scroll"
+msgstr "Automatisk rullning"
+
+#: src/gui/widgets/console.cc:48 src/gui/widgets/dynarec_disassembly.cc:100
+#: src/gui/widgets/log.cc:127
+msgid "Monospace"
+msgstr "Monospace"
+
+#: src/gui/widgets/console.cc:97
+msgid "Input"
+msgstr "Inmatning"
+
+#. Disassemble button
+#: src/gui/widgets/dynarec_disassembly.cc:60
+msgid "Disassemble Buffer"
+msgstr "Disassembler-buffert"
+
+#. Save to File button
+#: src/gui/widgets/dynarec_disassembly.cc:65
+msgid "Save to File"
+msgstr "Spara till fil"
+
+#: src/gui/widgets/dynarec_disassembly.cc:70
+#: src/gui/widgets/dynarec_disassembly.cc:71
+msgid "Disassembler Error"
+msgstr "Disassembler-fel"
+
+#: src/gui/widgets/dynarec_disassembly.cc:72
+msgid ""
+"Disassembly Failed.\n"
+"Check Logs"
+msgstr ""
+"Disassembly misslyckades.\n"
+"Kontrollera loggarna"
+
+#: src/gui/widgets/dynarec_disassembly.cc:82
+msgid "Close Disassembler"
+msgstr "Stäng Disassembler"
+
+#. Show buffer size returned from disassembly function
+#: src/gui/widgets/dynarec_disassembly.cc:112
+#, c-format
+msgid "Code size: %.2fMB"
+msgstr "Kodstorlek: %.2f MB"
+
+#: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:200
+msgid "ID"
+msgstr "ID"
+
+#: src/gui/widgets/events.cc:39
+msgid "Core"
+msgstr "Kärna"
+
+#: src/gui/widgets/events.cc:40
+msgid "Spec"
+msgstr "Specifikation"
+
+#: src/gui/widgets/events.cc:41 src/gui/widgets/sio1.cc:231
+msgid "Mode"
+msgstr "Läge"
+
+#: src/gui/widgets/events.cc:42
+msgid "Flag"
+msgstr "Flagga"
+
+#: src/gui/widgets/events.cc:43
+msgid "CB"
+msgstr "CB"
+
+#: src/gui/widgets/gpulogger.cc:49
+msgid "Settings"
+msgstr "Inställningar"
+
+#: src/gui/widgets/gpulogger.cc:51
+msgid "Color Format"
+msgstr "Färgformat"
+
+#: src/gui/widgets/gpulogger.cc:52
+msgid "None"
+msgstr "Ingen"
+
+#: src/gui/widgets/gpulogger.cc:56
+msgid "Expanded"
+msgstr "Expanderad"
+
+#: src/gui/widgets/gpulogger.cc:60
+msgid "HTML"
+msgstr "HTML"
+
+#: src/gui/widgets/gpulogger.cc:71
+msgid "GPU logging"
+msgstr "GPU-loggning"
+
+#: src/gui/widgets/gpulogger.cc:79
+msgid ""
+"Logs each frame's draw calls. When enabled, all the commands sent to the GPU"
+" will be logged and displayed here. This will contain only a single frame "
+"worth of commands. The feature can be pretty demanding in CPU and memory."
+msgstr ""
+"Loggar varje bildrutas ritningskommandon. När funktionen är aktiverad loggas"
+" alla kommandon som skickas till GPU:n och visas här. Detta innehåller "
+"endast kommandon för en enda bildruta. Funktionen kan vara ganska krävande "
+"för CPU och minne."
+
+#: src/gui/widgets/gpulogger.cc:82
+msgid "Breakpoint on vsync"
+msgstr "Brytpunkt på vsync"
+
+#: src/gui/widgets/gpulogger.cc:87
+msgid "Replay frame"
+msgstr "Uppspelningsram"
+
+#: src/gui/widgets/gpulogger.cc:89
+msgid ""
+"When enabled, the framebuffer will be constantly redrawned using the "
+"selected commands, allowing to see the resulting output immediately. This "
+"doesn't make sense to have this enabled when: (1) the CPU is running and (2)"
+" the GPU logging isn't enabled. Selection of which commands to replay is "
+"done using the first checkbox in the logger display below. The [T] button "
+"will select all commands for replay from the top and until this command."
+msgstr ""
+"När denna funktion är aktiverad kommer framebuffern att ritas om "
+"kontinuerligt med hjälp av de valda kommandona, vilket gör att du kan se "
+"resultatet omedelbart. Det är inte meningsfullt att ha denna funktion "
+"aktiverad när: (1) CPU:n är igång och (2) GPU-loggningen inte är aktiverad. "
+"Valet av vilka kommandon som ska spelas upp görs med hjälp av den första "
+"kryssrutan i loggvisningen nedan. Knappen [T] väljer alla kommandon för "
+"uppspelning från toppen och fram till detta kommando."
+
+#: src/gui/widgets/gpulogger.cc:94
+msgid "Show origins"
+msgstr "Visa ursprung"
+
+#: src/gui/widgets/gpulogger.cc:96
+msgid ""
+"When enabled, the logger display will also show where did the command come "
+"from, which can be useful to debug or reverse engineer, but will also "
+"clutter the logger view."
+msgstr ""
+"När funktionen är aktiverad visar loggarens display även var kommandot kom "
+"ifrån, vilket kan vara användbart för felsökning eller bakåtkompilering, men"
+" också göra loggarens vy rörig."
+
+#: src/gui/widgets/gpulogger.cc:109
+msgid "Collapse all nodes"
+msgstr "Fäll in alla noder"
+
+#: src/gui/widgets/gpulogger.cc:113
+msgid "Keep collapsed"
+msgstr "Håll infällda"
+
+#: src/gui/widgets/gpulogger.cc:116
+msgid "Expand all nodes"
+msgstr "Fäll ut alla noder"
+
+#: src/gui/widgets/gpulogger.cc:120
+msgid "Keep expanded"
+msgstr "Håll utfällda"
+
+#: src/gui/widgets/gpulogger.cc:124
+msgid "Remove all highlight selections"
+msgstr "Ta bort alla markerade val"
+
+#: src/gui/widgets/gpulogger.cc:127
+msgid "Highlight on hover"
+msgstr "Markera vid muspekning"
+
+#: src/gui/widgets/gpulogger.cc:129
+msgid ""
+"When enabled, hovering a command in the logger view will highlight it in the"
+" vram display. Individual commands can be selected for highlight by using "
+"the second checkbox in the logger view. The [B] and [E] buttons can be used "
+"to specify the beginning and the end of a span of commands to highlight."
+msgstr ""
+"När denna funktion är aktiverad markeras kommandot i VRAM-displayen när du "
+"håller muspekaren över det i loggvisningen. Enskilda kommandon kan markeras "
+"genom att använda den andra kryssrutan i loggvisningen. Knapparna [B] och "
+"[E] kan användas för att ange början och slutet på ett intervall av "
+"kommandon som ska markeras."
+
+#: src/gui/widgets/gpulogger.cc:132
+msgid "Filter by pixel"
+msgstr "Filtrera efter pixel"
+
+#: src/gui/widgets/gpulogger.cc:134
+msgid ""
+"When enabled, only the commands that are related to the specified pixel will"
+" be shown. The pixel location is specified in the next input fields. The "
+"[Probe VRAM] button can be used to set the pixel location by hovering and "
+"clicking inside the VRAM viewer."
+msgstr ""
+"När denna funktion är aktiverad visas endast kommandon som är relaterade "
+"till den angivna pixeln. Pixelpositionen anges i nästa inmatningsfält. "
+"Knappen [Probe VRAM] kan användas för att ställa in pixelpositionen genom "
+"att hålla muspekaren över och klicka i VRAM-visaren."
+
+#: src/gui/widgets/gpulogger.cc:137
+msgid "Pixel location"
+msgstr "Pixelposition"
+
+#: src/gui/widgets/gpulogger.cc:138
+msgid "Probe VRAM"
+msgstr "Läs av VRAM"
+
+#: src/gui/widgets/gpulogger.cc:142
+msgid ""
+"When enabled, hovering then clicking inside the VRAM viewer will set the "
+"pixel location for the filtering."
+msgstr ""
+"När funktionen är aktiverad kommer du genom att hålla muspekaren över och "
+"sedan klicka i VRAM-visaren att ställa in pixelplatsen för filtreringen."
+
+#: src/gui/widgets/gpulogger.cc:147
+msgid "Frame {}###FrameCounterNode"
+msgstr "Bildruta {}###FrameCounterNode"
+
+#: src/gui/widgets/gpulogger.cc:149
+msgid "Reset frame counter"
+msgstr "Återställ ramräknare"
+
+#: src/gui/widgets/gpulogger.cc:152
+#, c-format
+msgid "%i primitives"
+msgstr "%i primitiver"
+
+#: src/gui/widgets/gpulogger.cc:157
+#, c-format
+msgid "%i triangles"
+msgstr "%i trianglar"
+
+#: src/gui/widgets/gpulogger.cc:158
+#, c-format
+msgid "%i textured triangles"
+msgstr "%i texturerade trianglar"
+
+#: src/gui/widgets/gpulogger.cc:159
+#, c-format
+msgid "%i rectangles"
+msgstr "%i rektanglar"
+
+#: src/gui/widgets/gpulogger.cc:160
+#, c-format
+msgid "%i sprites"
+msgstr "%i sprites"
+
+#: src/gui/widgets/gpulogger.cc:161
+#, c-format
+msgid "%i pixel writes"
+msgstr "%i pixelskrivningar"
+
+#: src/gui/widgets/gpulogger.cc:162
+#, c-format
+msgid "%i pixel reads"
+msgstr "%i pixelläsningar"
+
+#: src/gui/widgets/gpulogger.cc:163
+#, c-format
+msgid "%i texel reads"
+msgstr "%i texelläsningar"
+
+#: src/gui/widgets/gpulogger.cc:190
+#, c-format
+msgid "Data port write: %08x"
+msgstr "Dataportskrivning: %08x"
+
+#: src/gui/widgets/gpulogger.cc:193
+#, c-format
+msgid "Control port write: %08x"
+msgstr "Kontrollportskrivning: %08x"
+
+#: src/gui/widgets/gpulogger.cc:196
+msgid "Direct DMA from"
+msgstr "Direkt DMA från"
+
+#: src/gui/widgets/gpulogger.cc:204
+msgid "Chain DMA from"
+msgstr "Kedja DMA från"
+
+#: src/gui/widgets/gpulogger.cc:213
+msgid "at PC = "
+msgstr "vid PC = "
+
+#: src/gui/widgets/handlers.cc:40
+msgid "Invalid data at 0x100"
+msgstr "Ogiltiga data vid 0x100"
+
+#: src/gui/widgets/handlers.cc:44
+#, c-format
+msgid "Handlers info at %08x"
+msgstr "Handlers info på %08x"
+
+#: src/gui/widgets/handlers.cc:49
+msgid "Priority {}"
+msgstr "Prioritet {}"
+
+#: src/gui/widgets/handlers.cc:55
+msgid "No handlers"
+msgstr "Inga hanterare"
+
+#: src/gui/widgets/handlers.cc:61
+msgid "Handler data at "
+msgstr "Hanterardata på "
+
+#: src/gui/widgets/handlers.cc:67
+msgid "  verifier: "
+msgstr "  verifierare: "
+
+#: src/gui/widgets/handlers.cc:74
+msgid "  handler: "
+msgstr "  hanterare: "
+
+#: src/gui/widgets/isobrowser.cc:97
+msgid "No iso or invalid iso loaded."
+msgstr "Ingen iso eller ogiltig iso inläst."
+
+#: src/gui/widgets/isobrowser.cc:103
+#, c-format
+msgid "GAME Label: %s"
+msgstr "SPEL-etikett: %s"
+
+#: src/gui/widgets/isobrowser.cc:119
+msgid "Cache files"
+msgstr "Cache-filer"
+
+#: src/gui/widgets/isobrowser.cc:128
+msgid "Compute CRCs"
+msgstr "Beräkna CRC"
+
+#: src/gui/widgets/isobrowser.cc:133
+msgid ""
+"Computes the CRC32 of each track, and of\n"
+"the whole disk. The CRC32 is computed on the raw data,\n"
+"after decompression of the tracks. This is useful to\n"
+"check the disk image against redump's information.\n"
+"\n"
+"The computation can be slow, and can be sped up\n"
+"significantly by caching the files beforehand."
+msgstr ""
+"Beräknar CRC32 för varje spår och för hela disken. CRC32 beräknas på rådata "
+"efter dekomprimering av spåren. Detta är användbart för att kontrollera "
+"diskavbildningen mot redumps information. Beräkningen kan vara långsam, men "
+"kan påskyndas avsevärt genom att cacha filerna i förväg."
+
+#: src/gui/widgets/isobrowser.cc:145
+msgid "Disc size: {} ({}) - CRC32: {:08x}"
+msgstr "Skivstorlek: {} ({}) - CRC32: {:08x}"
+
+#: src/gui/widgets/isobrowser.cc:148
+msgid "Track"
+msgstr "Spåra"
+
+#: src/gui/widgets/isobrowser.cc:150
+msgid "Length"
+msgstr "Längd"
+
+#: src/gui/widgets/isobrowser.cc:151
+msgid "Pregap"
+msgstr "Pregap"
+
+#: src/gui/widgets/log.cc:68
+msgid "Enabled"
+msgstr "Aktiverad"
+
+#: src/gui/widgets/log.cc:70
+msgid "Enable all"
+msgstr "Aktivera alla"
+
+#: src/gui/widgets/log.cc:74
+msgid "Disable all"
+msgstr "Inaktivera alla"
+
+#: src/gui/widgets/log.cc:87
+msgid "Displayed"
+msgstr "Visade"
+
+#: src/gui/widgets/log.cc:89
+msgid "Display all"
+msgstr "Visa alla"
+
+#: src/gui/widgets/log.cc:93
+msgid "Hide all"
+msgstr "Dölj alla"
+
+#: src/gui/widgets/log.cc:106
+msgid "Special"
+msgstr "Special"
+
+#: src/gui/widgets/log.cc:109
+msgid "Log CD-ROM commands"
+msgstr "Logga CD-ROM-kommandon"
+
+#: src/gui/widgets/log.cc:113
+msgid "Skip ISR during CPU traces"
+msgstr "Hoppa över ISR under CPU-spårning"
+
+#: src/gui/widgets/log.cc:115
+msgid "Log kernel calls"
+msgstr "Logga kärnanrop"
+
+#: src/gui/widgets/log.cc:125
+msgid "Follow"
+msgstr "Följ"
+
+#: src/gui/widgets/luaeditor.cc:58
+msgid "Auto run"
+msgstr "Automatisk körning"
+
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:492
+msgid "Auto save"
+msgstr "Automatisk sparning"
+
+#: src/gui/widgets/luaeditor.cc:62
+msgid "> Run"
+msgstr "> Kör"
+
+#: src/gui/widgets/luainspector.cc:95
+msgid "Display"
+msgstr "Visa"
+
+#: src/gui/widgets/luainspector.cc:104
+msgid "Raw"
+msgstr "Rå"
+
+#: src/gui/widgets/memcard_manager.cc:64
+msgid "Import file into memory card 1"
+msgstr "Importera fil till minneskort 1"
+
+#: src/gui/widgets/memcard_manager.cc:68
+msgid "Import file into memory card 2"
+msgstr "Importera fil till minneskort 2"
+
+#: src/gui/widgets/memcard_manager.cc:72
+msgid "Export memory card 1 to file"
+msgstr "Exportera minneskort 1 till fil"
+
+#: src/gui/widgets/memcard_manager.cc:76
+msgid "Export memory card 2 to file"
+msgstr "Exportera minneskort 2 till fil"
+
+#: src/gui/widgets/memcard_manager.cc:121
+msgid "Undo"
+msgstr "Ångra"
+
+#: src/gui/widgets/memcard_manager.cc:141
+msgid "Undo version: "
+msgstr "Ångra version: "
+
+#: src/gui/widgets/memcard_manager.cc:144
+msgid "Latest"
+msgstr "Senaste"
+
+#: src/gui/widgets/memcard_manager.cc:151
+msgid "Clear Undo buffer"
+msgstr "Rensa ångringsbuffert"
+
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
+#. happens as well.
+#: src/gui/widgets/memcard_manager.cc:156
+msgid "Memory Card 1 inserted"
+msgstr "Minneskort 1 inmatat"
+
+#: src/gui/widgets/memcard_manager.cc:160
+msgid "Memory Card 2 inserted"
+msgstr "Minneskort 2 inmatat"
+
+#: src/gui/widgets/memcard_manager.cc:165
+msgid "Card 1 Pocketstation"
+msgstr "Kort 1 Pocketstation"
+
+#: src/gui/widgets/memcard_manager.cc:171
+#: src/gui/widgets/memcard_manager.cc:179
+msgid ""
+"Experimental. Emulator will attempt to send artificial responses to "
+"Pocketstation commands, possibly allowing apps to be saved/exported."
+msgstr ""
+"Experimentellt. Emulatorn kommer att försöka skicka artificiella svar på "
+"Pocketstation-kommandon, vilket eventuellt gör det möjligt att "
+"spara/exportera appar."
+
+#: src/gui/widgets/memcard_manager.cc:173
+msgid "Card 2 Pocketstation"
+msgstr "Kort 2 Pocketstation"
+
+#: src/gui/widgets/memcard_manager.cc:182
+msgid "Icon size"
+msgstr "Ikonstorlek"
+
+#: src/gui/widgets/memcard_manager.cc:183
+msgid "Draw Pocketstation icons"
+msgstr "Rita Pocketstation-ikoner"
+
+#: src/gui/widgets/memcard_manager.cc:197
+msgid "Block number"
+msgstr "Blocknummer"
+
+#: src/gui/widgets/memcard_manager.cc:198
+msgid "Icon"
+msgstr "Ikon"
+
+#: src/gui/widgets/memcard_manager.cc:199
+msgid "Title"
+msgstr "Titel"
+
+#: src/gui/widgets/memcard_manager.cc:202
+msgid "Action"
+msgstr "Åtgärd"
+
+#: src/gui/widgets/memcard_manager.cc:220
+msgid "Chained block"
+msgstr "Kedjat block"
+
+#: src/gui/widgets/memcard_manager.cc:225
+msgid "Free block"
+msgstr "Lediga block"
+
+#: src/gui/widgets/memcard_manager.cc:238
+#, c-format
+msgid "%s (%dKB)"
+msgstr "%s (%dKB)"
+
+#. We have to suffix the action button names with ##number because Imgui
+#. can't handle multiple buttons with the same name well
+#: src/gui/widgets/memcard_manager.cc:243
+msgid "Erase##{}"
+msgstr "Radera##{}"
+
+#: src/gui/widgets/memcard_manager.cc:248
+msgid "Erased file {}({}) off card {}"
+msgstr "Tog bort filen {}({}) från kort {}"
+
+#: src/gui/widgets/memcard_manager.cc:254
+msgid "Copy##{}"
+msgstr "Kopiera##{}"
+
+#: src/gui/widgets/memcard_manager.cc:264
+msgid "Copied file {}({}) from card {} to card {}"
+msgstr "Kopierade filen {}({}) från kort {} till kort {}"
+
+#: src/gui/widgets/memcard_manager.cc:276
+msgid "Move##{}"
+msgstr "Flytta##{}"
+
+#: src/gui/widgets/memcard_manager.cc:287
+msgid "Moved file {}({}) from card {} to card {}"
+msgstr "Flyttade filen {}({}) från kort {} till kort {}"
+
+#: src/gui/widgets/memcard_manager.cc:300
+msgid "Export PNG##{}"
+msgstr "Exportera PNG##{}"
+
+#: src/gui/widgets/memcard_manager.cc:306
+msgid "Copy icon##{}"
+msgstr "Kopiera ikon##{}"
+
+#: src/gui/widgets/memcard_manager.cc:316
+msgid "Memory Card 1"
+msgstr "Minneskort 1"
+
+#: src/gui/widgets/memcard_manager.cc:320
+msgid "Memory Card 2"
+msgstr "Minneskort 2"
+
+#: src/gui/widgets/memcard_manager.h:43
+msgid "Import Memory Card file"
+msgstr "Importera minneskortfil"
+
+#: src/gui/widgets/memcard_manager.h:44
+msgid "Export Memory Card file"
+msgstr "Exportera minneskortfil"
+
+#: src/gui/widgets/memory_observer.cc:97
+msgid "Plain search"
+msgstr "Enkel sökning"
+
+#: src/gui/widgets/memory_observer.cc:98
+msgid "Pattern"
+msgstr "Mönster"
+
+#: src/gui/widgets/memory_observer.cc:99
+#: src/gui/widgets/memory_observer.cc:288
+msgid "Hex"
+msgstr "Hex"
+
+#: src/gui/widgets/memory_observer.cc:152
+#: src/gui/widgets/memory_observer.cc:413
+msgid "Search"
+msgstr "Sök"
+
+#: src/gui/widgets/memory_observer.cc:169
+#: src/gui/widgets/memory_observer.cc:327
+#: src/gui/widgets/memory_observer.cc:423
+msgid "Found values"
+msgstr "Hittade värden"
+
+#: src/gui/widgets/memory_observer.cc:171
+#: src/gui/widgets/memory_observer.cc:331
+#: src/gui/widgets/memory_observer.cc:425
+msgid "Access"
+msgstr "Åtkomst"
+
+#: src/gui/widgets/memory_observer.cc:184
+#: src/gui/widgets/memory_observer.cc:373
+#: src/gui/widgets/memory_observer.cc:438
+msgid "Show in memory editor##{}"
+msgstr "Visa i minnesredigeraren##{}"
+
+#: src/gui/widgets/memory_observer.cc:197
+msgid "Delta-over-time search"
+msgstr "Delta-över-tid-sökning"
+
+#: src/gui/widgets/memory_observer.cc:200
+msgid "First scan"
+msgstr "Första skanning"
+
+#: src/gui/widgets/memory_observer.cc:243
+msgid "Next scan"
+msgstr "Nästa skanning"
+
+#: src/gui/widgets/memory_observer.cc:283
+msgid "New scan"
+msgstr "Ny skanning"
+
+#: src/gui/widgets/memory_observer.cc:294
+msgid "Value type"
+msgstr "Värdetyp"
+
+#: src/gui/widgets/memory_observer.cc:309
+msgid "Scan type"
+msgstr "Skanningstyp"
+
+#: src/gui/widgets/memory_observer.cc:324
+msgid "Display as fixed-point values"
+msgstr "Visa som fastpunktsvärden"
+
+#: src/gui/widgets/memory_observer.cc:329
+msgid "Current value"
+msgstr "Aktuellt värde"
+
+#: src/gui/widgets/memory_observer.cc:330
+msgid "Scanned value"
+msgstr "Skannat värde"
+
+#: src/gui/widgets/memory_observer.cc:332
+msgid "Read breakpoint"
+msgstr "Läs brytpunkt"
+
+#: src/gui/widgets/memory_observer.cc:333
+msgid "Write breakpoint"
+msgstr "Skriv brytpunkt"
+
+#: src/gui/widgets/memory_observer.cc:362
+msgid "Freeze##{}"
+msgstr "Frys##{}"
+
+#: src/gui/widgets/memory_observer.cc:379
+msgid "Add read breakpoint##{}"
+msgstr "Lägg till läsbrytpunkt##{}"
+
+#: src/gui/widgets/memory_observer.cc:385
+msgid "Add write breakpoint##{}"
+msgstr "Lägg till skrivbrytpunkt##{}"
+
+#: src/gui/widgets/memory_observer.cc:398
+msgid "Pattern search"
+msgstr "Mönstersökning"
+
+#: src/gui/widgets/memory_observer.cc:400
+msgid "Sequence size: "
+msgstr "Sekvensstorlek: "
+
+#: src/gui/widgets/memory_observer.cc:402
+msgid "8 bytes (fast)"
+msgstr "8 byte (snabb)"
+
+#: src/gui/widgets/memory_observer.cc:404
+msgid "16 bytes (fast)"
+msgstr "16 byte (snabb)"
+
+#: src/gui/widgets/memory_observer.cc:406
+msgid "Arbitrary"
+msgstr "Godtycklig"
+
+#: src/gui/widgets/memory_observer.cc:409
+msgid "Sequence"
+msgstr "Sekvens"
+
+#: src/gui/widgets/memory_observer.cc:411
+msgid "Step"
+msgstr "Steg"
+
+#: src/gui/widgets/named_savestates.cc:80
+msgid "Filename: "
+msgstr "Filnamn: "
+
+#. Ensure that we don't add invalid characters to the filename
+#. This also filters on pasted text
+#: src/gui/widgets/named_savestates.cc:90
+msgid "Enter the name of your save state here"
+msgstr "Ange namnet på ditt sparade tillstånd här"
+
+#: src/gui/widgets/named_savestates.cc:116
+msgid "Create save"
+msgstr "Skapa sparat tillstånd"
+
+#. The save state exists
+#: src/gui/widgets/named_savestates.cc:122
+msgid "Overwrite save"
+msgstr "Skriv över spara"
+
+#: src/gui/widgets/named_savestates.cc:126
+msgid "Load save"
+msgstr "Läs in sparat tillstånd"
+
+#: src/gui/widgets/named_savestates.cc:132
+msgid "Delete save"
+msgstr "Ta bort sparat tillstånd"
+
+#: src/gui/widgets/patches.cc:35
+msgid "Patching is only available in Interpreted CPU mode"
+msgstr "Patchning är endast tillgängligt i tolkat CPU-läge"
+
+#: src/gui/widgets/patches.cc:68
+msgid "Delete Patch?"
+msgstr "Ta bort patch?"
+
+#: src/gui/widgets/patches.cc:88
+msgid "NOP"
+msgstr "NOP"
+
+#: src/gui/widgets/patches.cc:88
+msgid "Return"
+msgstr "Tillbaka"
+
+#: src/gui/widgets/patches.cc:111
+msgid "Delete all Patches?"
+msgstr "Ta bort alla patchar?"
+
+#: src/gui/widgets/patches.cc:112
+msgid "Delete##patches"
+msgstr "Ta bort##patchar"
+
+#: src/gui/widgets/pio-cart.cc:36
+msgid "ROM"
+msgstr "ROM"
+
+#: src/gui/widgets/pio-cart.cc:47
+msgid "On/Off Switch:"
+msgstr "På/Av-knapp:"
+
+#: src/gui/widgets/pio-cart.cc:53
+msgid "Off"
+msgstr "Av"
+
+#: src/gui/widgets/pio-cart.cc:53
+msgid "On"
+msgstr "På"
+
+#: src/gui/widgets/registers.cc:35
+msgid "Context##{}"
+msgstr "Kontext##{}"
+
+#: src/gui/widgets/registers.cc:37
+msgid "Go to in Assembly"
+msgstr "Gå till i Assembly"
+
+#: src/gui/widgets/registers.cc:40
+msgid "Go to in Memory Editor"
+msgstr "Gå till minnesredigeraren"
+
+#: src/gui/widgets/registers.cc:43
+msgid "Copy Value"
+msgstr "Kopiera värde"
+
+#: src/gui/widgets/registers.cc:51
+msgid "Edit##{}"
+msgstr "Redigera##{}"
+
+#: src/gui/widgets/registers.cc:53 src/gui/widgets/registers.cc:454
+#: src/gui/widgets/sio1.cc:126
+msgid "Edit value of {}"
+msgstr "Redigera värdet {}"
+
+#: src/gui/widgets/registers.cc:156 src/gui/widgets/registers.cc:252
+msgid "Show fixed point"
+msgstr "Visa fast punkt"
+
+#: src/gui/widgets/registers.cc:344
+msgid "Misc"
+msgstr "Övrigt"
+
+#: src/gui/widgets/registers.cc:396
+msgid "Bus Error"
+msgstr "Bussfel"
+
+#: src/gui/widgets/registers.cc:399
+msgid "DMA IRQ Enabled"
+msgstr "DMA IRQ aktiverad"
+
+#: src/gui/widgets/registers.cc:402
+msgid "DMA IRQ Triggered"
+msgstr "DMA IRQ utlöst"
+
+#: src/gui/widgets/registers.cc:408
+msgid "Completion"
+msgstr "Slutfört"
+
+#: src/gui/widgets/registers.cc:411
+msgid "IRQ Enabled"
+msgstr "IRQ aktiverat"
+
+#: src/gui/widgets/registers.cc:414
+msgid "Triggered"
+msgstr "Utlöst"
+
+#: src/gui/widgets/registers.cc:456
+#, c-format
+msgid "Change the value of register %s:"
+msgstr "Ändra värdet i register %s:"
+
+#: src/gui/widgets/registers.cc:457
+msgid "Register"
+msgstr "Registrera"
+
+#: src/gui/widgets/shader-editor.cc:322
+msgid "Vertex Shader compilation error: {}\n"
+msgstr "Vertex Shader-kompileringsfel: {}\n"
+
+#: src/gui/widgets/shader-editor.cc:343
+msgid "Pixel Shader compilation error: {}\n"
+msgstr "Pixel Shader-kompileringsfel: {}\n"
+
+#: src/gui/widgets/shader-editor.cc:365
+msgid "Link error: {}\n"
+msgstr "Länkfel: {}\n"
+
+#: src/gui/widgets/shader-editor.cc:377
+msgid "Missing attribute {} in shader program"
+msgstr "Saknat attribut {} i shaderprogrammet"
+
+#: src/gui/widgets/shader-editor.cc:490
+msgid "Auto compile"
+msgstr "Automatisk kompilering"
+
+#: src/gui/widgets/shader-editor.cc:494
+msgid "Show all"
+msgstr "Visa alla"
+
+#: src/gui/widgets/shader-editor.cc:496
+msgid "Configure shader"
+msgstr "Konfigurera shader"
+
+#: src/gui/widgets/shader-editor.cc:521
+msgid "Vertex Shader"
+msgstr "Vertex-shader"
+
+#: src/gui/widgets/shader-editor.cc:527
+msgid "Pixel Shader"
+msgstr "Pixel Shader"
+
+#: src/gui/widgets/shader-editor.cc:533
+msgid "Lua Invoker"
+msgstr "Lua Invoker"
+
+#: src/gui/widgets/sio1.cc:141
+msgid "Edit"
+msgstr "Redigera"
+
+#: src/gui/widgets/sio1.cc:147
+msgid "Bit"
+msgstr "Bit"
+
+#. Column 0
+#: src/gui/widgets/sio1.cc:148
+msgid "Description"
+msgstr "Beskrivning"
+
+#: src/gui/widgets/sio1.cc:188 src/gui/widgets/typed_debugger.cc:829
+#: src/gui/widgets/typed_debugger.cc:875
+msgid "New value"
+msgstr "Nytt värde"
+
+#: src/gui/widgets/sio1.cc:191 src/gui/widgets/vram-viewer.cc:665
+#: src/gui/widgets/vram-viewer.cc:677 src/gui/widgets/vram-viewer.cc:689
+#: src/gui/widgets/vram-viewer.cc:701
+msgid "OK"
+msgstr "OK"
+
+#: src/gui/widgets/sio1.cc:222
+msgid "Status"
+msgstr "Status"
+
+#: src/gui/widgets/sio1.cc:240
+msgid "Control"
+msgstr "Kontroll"
+
+#: src/gui/widgets/typed_debugger.cc:144 src/gui/widgets/typed_debugger.cc:633
+msgid "Import data types"
+msgstr "Importera datatyper"
+
+#: src/gui/widgets/typed_debugger.cc:145 src/gui/widgets/typed_debugger.cc:663
+msgid "Import functions"
+msgstr "Importfunktioner"
+
+#: src/gui/widgets/typed_debugger.cc:261
+msgid "Log reads and writes##{}{}"
+msgstr "Logg läsningar och skrivningar##{}{}"
+
+#: src/gui/widgets/typed_debugger.cc:271
+msgid "Add read breakpoint##{}{}"
+msgstr "Lägg till läsbrytpunkt##{}{}"
+
+#: src/gui/widgets/typed_debugger.cc:274
+msgid "ReadPause"
+msgstr "LäsPaus"
+
+#: src/gui/widgets/typed_debugger.cc:278
+msgid "Add write breakpoint##{}{}"
+msgstr "Lägg till skrivbrytpunkt##{}{}"
+
+#: src/gui/widgets/typed_debugger.cc:281
+msgid "WritePause"
+msgstr "Skrivpaus"
+
+#. Name.
+#: src/gui/widgets/typed_debugger.cc:288
+msgid "Display log entries##{}{}"
+msgstr "Visa loggposter##{}{}"
+
+#: src/gui/widgets/typed_debugger.cc:315
+#: src/gui/widgets/typed_debugger.cc:1031
+msgid "Re-enable##{}"
+msgstr "Återaktivera##{}"
+
+#: src/gui/widgets/typed_debugger.cc:316
+#: src/gui/widgets/typed_debugger.cc:1032
+msgid "Disable##{}"
+msgstr "Inaktivera##{}"
+
+#. Name.
+#: src/gui/widgets/typed_debugger.cc:360
+msgid "{}\t@ {:#x}##{}"
+msgstr "{} @ {:#x}##{}"
+
+#: src/gui/widgets/typed_debugger.cc:391 src/gui/widgets/typed_debugger.cc:435
+#: src/gui/widgets/typed_debugger.cc:459
+msgid "Show in memory editor##{}{}"
+msgstr "Visa i minnesredigeraren##{}{}"
+
+#: src/gui/widgets/typed_debugger.cc:408
+msgid "Add to Watch tab##{}{}"
+msgstr "Lägg till i fliken \"Titta på\"##{}{}"
+
+#. We have a uchar or something of size 1.
+#. We have a ushort or something of size 2.
+#. We have uint or something of size 4.
+#: src/gui/widgets/typed_debugger.cc:567 src/gui/widgets/typed_debugger.cc:573
+#: src/gui/widgets/typed_debugger.cc:581 src/gui/widgets/typed_debugger.cc:587
+#: src/gui/widgets/typed_debugger.cc:595 src/gui/widgets/typed_debugger.cc:601
+msgid "New value##{}"
+msgstr "Nytt värde##{}"
+
+#: src/gui/widgets/typed_debugger.cc:621
+msgid ""
+"\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will\n"
+"generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the\n"
+"data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples\n"
+"whose elements are separated by commas.\n"
+"\n"
+"For example:\n"
+"```\n"
+"CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1;\n"
+"```\n"
+"\n"
+"Arrays are specified as `type[number]` and pointers as `type *`."
+msgstr ""
+"\n"
+"Datatyper kan importeras från Ghidra med hjälp av tools/ghidra_scripts/export_redux.py, som genererar en redux_data_types.txt-fil i sin mapp, eller från valfri textfil där varje rad anger datatypens namn och fält, separerade med semikolon. Fälten anges i typnamn-storlek-tupler vars element separeras med kommatecken. Till exempel:\n"
+"``` CdlLOC;u_char,minute,1;u_char,second,1;u_char,sector,1;u_char,track,1; ``` Arrayer anges som `type[number]` och pekare som `type *`."
+
+#: src/gui/widgets/typed_debugger.cc:651
+msgid ""
+"\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate\n"
+"a redux_funcs.txt file in its folder, or from any text file where each line specifies the function\n"
+"address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples\n"
+"whose elements are separated by commas.\n"
+"\n"
+"For example:\n"
+"```\n"
+"800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n"
+"```\n"
+"\n"
+"Arrays and pointers are specified as for data types"
+msgstr ""
+"\n"
+"Funktioner kan importeras från Ghidra med hjälp av tools/ghidra_scripts/export_redux.py, som genererar\n"
+"en redux_funcs.txt-fil i sin mapp, eller från valfri textfil där varje rad anger funktionens adress, namn och\n"
+"argument, separerade med semikolon. Argumenten anges i typ-namn-storlek-tupler vars element är\n"
+"separerade med kommatecken.\n"
+"\n"
+"Exempel:\n"
+"```\n"
+"800148b8;task_main_800148B8;int,param_1,4;int,param_2,1;\n"
+"```\n"
+"\n"
+"Arrayer och pekare anges som för datatyper"
+
+#: src/gui/widgets/typed_debugger.cc:728
+msgid "Reimport data types from updated file"
+msgstr "Importera datatyper från uppdaterad fil igen"
+
+#: src/gui/widgets/typed_debugger.cc:730
+msgid "Reimport functions from updated file"
+msgstr "Importera funktioner från uppdaterad fil"
+
+#: src/gui/widgets/typed_debugger.cc:743
+msgid "TypedDebuggerTabBar"
+msgstr "TypedDebuggerTabBar"
+
+#: src/gui/widgets/typed_debugger.cc:744
+msgid "Watch"
+msgstr "Titta"
+
+#: src/gui/widgets/typed_debugger.cc:782
+msgid "{}[{}]"
+msgstr "{}[{}]"
+
+#: src/gui/widgets/typed_debugger.cc:802 src/gui/widgets/typed_debugger.cc:849
+msgid "Clear breakpoints"
+msgstr "Tydliga brytpunkter"
+
+#: src/gui/widgets/typed_debugger.cc:811
+msgid "Restore disabled instructions"
+msgstr "Återställ inaktiverade instruktioner"
+
+#: src/gui/widgets/typed_debugger.cc:824
+msgid "WatchTable"
+msgstr "WatchTable"
+
+#: src/gui/widgets/typed_debugger.cc:825 src/gui/widgets/typed_debugger.cc:871
+#: src/gui/widgets/typed_debugger.cc:928
+msgid "Name"
+msgstr "Namn"
+
+#: src/gui/widgets/typed_debugger.cc:827 src/gui/widgets/typed_debugger.cc:873
+msgid "Size"
+msgstr "Storlek"
+
+#: src/gui/widgets/typed_debugger.cc:843 src/gui/widgets/typed_debugger.cc:926
+msgid "Functions"
+msgstr "Funktioner"
+
+#: src/gui/widgets/typed_debugger.cc:844
+msgid "Clear log"
+msgstr "Rensa logg"
+
+#: src/gui/widgets/typed_debugger.cc:858
+msgid "Restore disabled functions"
+msgstr "Återställ inaktiverade funktioner"
+
+#: src/gui/widgets/typed_debugger.cc:870
+msgid "FunctionBreakpoints"
+msgstr "Funktionsbrytpunkter"
+
+#: src/gui/widgets/typed_debugger.cc:883
+msgid "{}\t(called from {}\t@ {:#x})##{}"
+msgstr "{}\t(anropad från {}\t@ {:#x})##{}"
+
+#: src/gui/widgets/typed_debugger.cc:930
+msgid "Toggle"
+msgstr "Växla"
+
+#: src/gui/widgets/typed_debugger.cc:945
+msgid "Add breakpoint##{}"
+msgstr "Lägg till brytpunkt##{}"
+
+#: src/gui/widgets/vram-viewer.cc:495
+msgid "VRAM Shader Editor"
+msgstr "VRAM Shader Editor"
+
+#: src/gui/widgets/vram-viewer.cc:601
+msgid "View"
+msgstr "Visa"
+
+#: src/gui/widgets/vram-viewer.cc:602
+msgid "Reset view"
+msgstr "Återställ vy"
+
+#: src/gui/widgets/vram-viewer.cc:605
+msgid "24 bits shift"
+msgstr "24-bitarsförskjutning"
+
+#: src/gui/widgets/vram-viewer.cc:606
+msgid "View VRAM in 24 bits"
+msgstr "Visa VRAM i 24 bitar"
+
+#: src/gui/widgets/vram-viewer.cc:610
+msgid "View VRAM in 16 bits"
+msgstr "Visa VRAM i 16 bitar"
+
+#: src/gui/widgets/vram-viewer.cc:614
+msgid "View VRAM in 8 bits"
+msgstr "Visa VRAM i 8 bitar"
+
+#: src/gui/widgets/vram-viewer.cc:618
+msgid "View VRAM in 4 bits"
+msgstr "Visa VRAM i 4 bitar"
+
+#: src/gui/widgets/vram-viewer.cc:623
+msgid "Select a CLUT"
+msgstr "Välj en CLUT"
+
+#: src/gui/widgets/vram-viewer.cc:625
+msgid "Enable Alpha channel view"
+msgstr "Aktivera visning av alfakanal"
+
+#: src/gui/widgets/vram-viewer.cc:626
+msgid "Enable greyscale"
+msgstr "Aktivera gråskala"
+
+#: src/gui/widgets/vram-viewer.cc:628
+msgid "Show grid"
+msgstr "Visa rutnät"
+
+#: src/gui/widgets/vram-viewer.cc:629
+msgid "Select pixel grid color"
+msgstr "Välj färg för pixelrutnätet"
+
+#: src/gui/widgets/vram-viewer.cc:630
+msgid "Select TPage grid color"
+msgstr "Välj TPage-rutnätsfärg"
+
+#: src/gui/widgets/vram-viewer.cc:633
+msgid "Show Shader Editor"
+msgstr "Visa Shader Editor"
+
+#: src/gui/widgets/vram-viewer.cc:640
+msgid "Select read highlight color"
+msgstr "Välj färg för markering av läsning"
+
+#: src/gui/widgets/vram-viewer.cc:641
+msgid "Select written highlight color"
+msgstr "Välj färg för skriftliga markeringar"
+
+#: src/gui/widgets/vram-viewer.cc:659 src/gui/widgets/vram-viewer.cc:661
+msgid "Read Highlight Color Picker"
+msgstr "Läs markeringsfärgväljaren"
+
+#: src/gui/widgets/vram-viewer.cc:671 src/gui/widgets/vram-viewer.cc:673
+msgid "Written Highlight Color Picker"
+msgstr "Skriftlig markeringsfärgväljare"
+
+#: src/gui/widgets/vram-viewer.cc:683 src/gui/widgets/vram-viewer.cc:685
+msgid "Pixel Grid Color Picker"
+msgstr "Pixelrutnätets färgväljare"
+
+#: src/gui/widgets/vram-viewer.cc:695 src/gui/widgets/vram-viewer.cc:697
+msgid "TPage Grid Color Picker"
+msgstr "Färgväljare för TPage-rutnät"
+
+#: src/spu/cfg.cc:28
+msgid "SPU configuration"
+msgstr "SPU-konfiguration"
+
+#: src/spu/cfg.cc:39
+msgid "Backend"
+msgstr "Backend"
+
+#: src/spu/cfg.cc:48
+msgid "Device"
+msgstr "Enhet"
+
+#: src/spu/cfg.cc:57
+msgid "Use Null Sync"
+msgstr "Använd Null Sync"
+
+#: src/spu/cfg.cc:58
+msgid ""
+"More precise CPU-SPU synchronization,\n"
+"at the cost of extra power required."
+msgstr ""
+"Mer precis CPU-SPU-synkronisering, men till priset av extra "
+"strömförbrukning."
+
+#: src/spu/cfg.cc:65
+msgid "Muted"
+msgstr "Tystad"
+
+#: src/spu/cfg.cc:66
+msgid "Enable streaming"
+msgstr "Aktivera strömning"
+
+#: src/spu/cfg.cc:67
+msgid ""
+"Uncheck this to mute the streaming channel\n"
+"from the main CPU to the SPU. This includes\n"
+"XA audio and audio tracks."
+msgstr ""
+"Avmarkera detta för att stänga av ljudet från strömningskanalen från huvud-"
+"CPU:n till SPU:n. Detta inkluderar XA-ljud och ljudspår."
+
+#: src/spu/cfg.cc:70
+msgid "Loud"
+msgstr "Hög"
+
+#: src/spu/cfg.cc:70
+msgid "Loudest"
+msgstr "Högst"
+
+#: src/spu/cfg.cc:70
+msgid "Low"
+msgstr "Låg"
+
+#: src/spu/cfg.cc:70
+msgid "Medium"
+msgstr "Medium"
+
+#: src/spu/cfg.cc:71
+msgid "Volume"
+msgstr "Volym"
+
+#: src/spu/cfg.cc:72
+msgid ""
+"Attempts to make the CPU-to-SPU audio stream\n"
+"in sync, by changing its pitch. Consumes more CPU."
+msgstr ""
+"Försöker synkronisera ljudströmmen mellan CPU och SPU genom att ändra "
+"tonhöjden. Förbrukar mer CPU-kraft."
+
+#: src/spu/cfg.cc:74
+msgid "Pause SPU waiting for CPU IRQ"
+msgstr "Pausa SPU som väntar på CPU IRQ"
+
+#: src/spu/cfg.cc:75
+msgid ""
+"Suspends the SPU processing during an IRQ, waiting\n"
+"for the main CPU to acknowledge it. Fixes issues\n"
+"with some games, but slows SPU processing."
+msgstr ""
+"Avbryter SPU-bearbetningen under en IRQ och väntar på att huvud-CPU:n ska "
+"bekräfta den. Åtgärdar problem med vissa spel, men saktar ner SPU-"
+"bearbetningen."
+
+#: src/spu/cfg.cc:78 src/spu/cfg.cc:81
+msgid "None - fastest"
+msgstr "Ingen - snabbast"
+
+#: src/spu/cfg.cc:78
+msgid "Simple - only handles the most common effects"
+msgstr "Enkel – hanterar endast de vanligaste effekterna"
+
+#: src/spu/cfg.cc:79
+msgid "Accurate - best quality, but slower"
+msgstr "Noggrann – bästa kvalitet, men långsammare"
+
+#: src/spu/cfg.cc:80
+msgid "Reverb"
+msgstr "Reverb"
+
+#: src/spu/cfg.cc:81
+msgid "Simple interpolation"
+msgstr "Enkel interpolering"
+
+#: src/spu/cfg.cc:82
+msgid "Gaussian interpolation - good quality"
+msgstr "Gaussisk interpolering – god kvalitet"
+
+#: src/spu/cfg.cc:83
+msgid "Cubic interpolation - better treble"
+msgstr "Kubisk interpolering – bättre diskant"
+
+#: src/spu/cfg.cc:84
+msgid "Interpolation"
+msgstr "Interpolation"
+
+#: src/spu/cfg.cc:86
+msgid "Mono"
+msgstr "Mono"
+
+#: src/spu/cfg.cc:87
+msgid "Downmixes stereo to mono."
+msgstr "Mixar ner stereo till mono."
+
+#: src/spu/cfg.cc:88
+msgid "Capture/decode buffer IRQ"
+msgstr "Fånga/avkoda buffert IRQ"
+
+#: src/spu/cfg.cc:90
+msgid ""
+"Activates SPU IRQs based on writes to the decode/capture buffer. This option"
+" is necessary for some games."
+msgstr ""
+"Aktiverar SPU IRQ:er baserat på skrivningar till avkodnings-/fångstbuffert. "
+"Detta alternativ är nödvändigt för vissa spel."
+
+#: src/spu/debug.cc:583
+msgid "SPU Debug"
+msgstr "SPU-felsökning"

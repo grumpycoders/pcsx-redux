@@ -218,7 +218,7 @@ int pcsxMain(int argc, char **argv) {
         fmt::print(
             "{{\n  \"version\": \"{}\",\n  \"changeset\": \"{}\",\n  \"timestamp\": \"{}\",\n  \"timestampDecoded\": "
             "\"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
-            version.version, version.changeset, version.timestamp, fmt::localtime(version.timestamp));
+            version.version, version.changeset, version.timestamp, *std::localtime(&version.timestamp));
         return 0;
     }
 
@@ -246,7 +246,7 @@ int pcsxMain(int argc, char **argv) {
         auto argPath1 = args.get<std::string>("memcard1");
         auto argPath2 = args.get<std::string>("memcard2");
         if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>() = argPath1.value();
-        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath1.value();
+        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath2.value();
         PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 
@@ -293,6 +293,17 @@ int pcsxMain(int argc, char **argv) {
 
         if (args.get<int>("gdb-port")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
+        }
+
+        if (args.get<bool>("webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = true;
+        }
+        if (args.get<bool>("no-webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = false;
+        }
+
+        if (args.get<int>("webserver-port")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServerPort>() = args.get<int>("webserver-port").value();
         }
 
         auto argPCdrvBase = args.get<std::string>("pcdrvbase");

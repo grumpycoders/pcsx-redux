@@ -153,7 +153,7 @@ namespace eastl
 
 			auto fMinBucketCount = (nElementCount + nElementAdd) / mfMaxLoadFactor;
 
-			if(fMinBucketCount > (float)nBucketCount)
+			if(fMinBucketCount > nBucketCount)
 			{
 				fMinBucketCount       = eastl::max_alt(fMinBucketCount, mfGrowthFactor * nBucketCount);
 				const uint32_t nPrime = *eastl::lower_bound(gPrimeNumberArray, gPrimeNumberArray + kPrimeCount, (uint32_t)fMinBucketCount);

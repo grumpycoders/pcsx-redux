@@ -23,7 +23,7 @@
 #include <multipart_parser.h>
 
 #include <charconv>
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <map>
 #include <memory>
 #include <string>
@@ -632,7 +632,8 @@ class StateExecutor : public PCSX::WebExecutor {
                         }
                     }
                     if (message.empty()) {
-                        std::filesystem::path saveFilepath(PCSX::g_gui->buildSaveStateFilename(name));
+                        std::filesystem::path saveFilepath =
+                            PCSX::Widgets::NamedSaveStates::createSaveStatePath(PCSX::g_gui, name);
                         bool success = false;
                         if (path == "load") {
                             success = PCSX::g_gui->loadSaveState(saveFilepath);

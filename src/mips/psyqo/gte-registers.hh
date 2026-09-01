@@ -161,6 +161,7 @@ enum Safety {
  */
 template <Register reg, Safety safety = Safe>
 static inline void clear() {
+#ifndef PS1_PC_PORT
     if constexpr (reg < Register::R11R12) {
         asm volatile("mtc2 $0, $%0" ::"i"(static_cast<uint32_t>(reg)));
     } else if constexpr (reg >= Register::R11R12) {
@@ -169,6 +170,7 @@ static inline void clear() {
     if constexpr (safety == Safe) {
         asm volatile("nop; nop");
     }
+#endif
 }
 
 /**
@@ -180,6 +182,7 @@ static inline void clear() {
  */
 template <Register reg, Safety safety = Safe>
 static inline void write(uint32_t value) {
+#ifndef PS1_PC_PORT
     if (__builtin_constant_p(value) && (value == 0)) {
         clear<reg, safety>();
     } else {
@@ -192,6 +195,7 @@ static inline void write(uint32_t value) {
             asm volatile("nop; nop");
         }
     }
+#endif
 }
 
 /**
@@ -340,6 +344,7 @@ static inline void writeUnsafe(const Vec2& in) {
  */
 template <Register reg, Safety safety = Safe>
 static inline void write(const uint32_t* ptr) {
+#ifndef PS1_PC_PORT
     static_assert(reg < Register::R11R12, "Unable to write to register from memory directly");
     if constexpr (reg < Register::R11R12) {
         asm volatile("lwc2 $%1, 0(%0)" ::"r"(ptr), "i"(static_cast<uint32_t>(reg)));
@@ -348,6 +353,7 @@ static inline void write(const uint32_t* ptr) {
     if constexpr (safety == Safe) {
         asm volatile("nop; nop");
     }
+#endif
 }
 
 /**
@@ -359,6 +365,7 @@ static inline void write(const uint32_t* ptr) {
  */
 template <Register reg, Safety safety = Safe>
 static inline uint32_t readRaw() {
+#ifndef PS1_PC_PORT
     uint32_t value;
     if constexpr (reg < Register::R11R12) {
         if constexpr (safety == Safe) {
@@ -374,6 +381,9 @@ static inline uint32_t readRaw() {
         }
     }
     return value;
+#else
+    return 0;
+#endif
 }
 
 /**
@@ -384,10 +394,12 @@ static inline uint32_t readRaw() {
  */
 template <Register reg>
 static inline void read(uint32_t* ptr) {
+#ifndef PS1_PC_PORT
     static_assert(reg < Register::R11R12, "Unable to read from register to memory directly");
     if constexpr (reg < Register::R11R12) {
         asm volatile("swc2 $%2, 0(%1)" : "=m"(*ptr) : "r"(ptr), "i"(static_cast<uint32_t>(reg)));
     }
+#endif
 }
 
 /**
@@ -399,8 +411,12 @@ static inline void read(uint32_t* ptr) {
  */
 template <PseudoRegister reg, bool valid = false>
 static inline PackedVec3 readSafe() {
+#ifndef PS1_PC_PORT
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
+#else
+    return {};
+#endif
 }
 
 /**
@@ -412,20 +428,28 @@ static inline PackedVec3 readSafe() {
  */
 template <PseudoRegister reg, bool valid = false>
 static inline PackedVec3 readUnsafe() {
+#ifndef PS1_PC_PORT
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
+#else
+    return {};
+#endif
 }
 
 template <PseudoRegister reg, bool valid = false>
 [[deprecated("Use the reference version instead")]] static inline void read(Vec3* ptr) {
+#ifndef PS1_PC_PORT
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
+#endif
 }
 
 template <PseudoRegister reg, bool valid = false>
 static inline void read(Vec3& vec) {
+#ifndef PS1_PC_PORT
     static_assert(valid, "Unable to read pseudo register as vector");
     __builtin_unreachable();
+#endif
 }
 
 // The following are template specializations for the various GTE registers.
