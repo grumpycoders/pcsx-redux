@@ -129,6 +129,10 @@ __wrap_memcpy:
     bltu   $a2, 32, .Lmemcpy_last32_unaligned
     andi   $a2, 31
 
+    /* $a3 = end of source - 32 */
+    addu   $a3, $a1, $a2
+    addiu  $a3, -32
+
 .Lmemcpy_loop32_unaligned:
     lw     $t0, 0($a1)
     lw     $t1, 4($a1)

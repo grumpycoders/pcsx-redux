@@ -25,9 +25,12 @@
 
 PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRIso> iso) : m_iso(iso) {
     unsigned pvdSector = 16;
+    bool foundPVD = false;
 
+    // Scan the full Volume Descriptor Set (LBA 16..terminator) to both find
+    // the PVD and record where the set actually ends.
     while (true) {
-        IO<File> pvdFile(new CDRIsoFile(iso, pvdSector++, 2048));
+        IO<File> pvdFile(new CDRIsoFile(iso, pvdSector, 2048));
         if (pvdFile->failed()) {
             m_failed = true;
             return;
@@ -36,22 +39,27 @@ PCSX::ISO9660Reader::ISO9660Reader(std::shared_ptr<CDRIso> iso) : m_iso(iso) {
         uint8_t vd[7];
         pvdFile->readAt(vd, 7, 0);
         if ((vd[1] != 'C') || (vd[2] != 'D') || (vd[3] != '0') || (vd[4] != '0') || (vd[5] != '1') || (vd[6] != 1)) {
+            // Malformed descriptor set: even if we already have the PVD, the
+            // set is broken so we can't trust m_vdEnd.
             m_failed = true;
             return;
         }
 
         if (vd[0] == 255) {
-            m_failed = true;
+            // Terminator: the VD set ends at the sector after this one.
+            m_vdEnd = pvdSector + 1;
+            if (!foundPVD) m_failed = true;
             return;
         }
 
-        if (vd[0] != 1) continue;
+        if (vd[0] == 1 && !foundPVD) {
+            ISO9660LowLevel::PVD pvd;
+            pvd.deserialize(pvdFile);
+            m_pvd = pvd;
+            foundPVD = true;
+        }
 
-        ISO9660LowLevel::PVD pvd;
-        pvd.deserialize(pvdFile);
-
-        m_pvd = pvd;
-        break;
+        pvdSector++;
     }
 }
 

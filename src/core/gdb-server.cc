@@ -21,7 +21,7 @@
 
 #include <assert.h>
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -520,7 +520,7 @@ void PCSX::GdbClient::processCommand() {
         uint8_t n = fromHexChar(m_cmd[1]);
         n <<= 4;
         n |= fromHexChar(m_cmd[2]);
-        dumpOneRegister(n);
+        write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
         if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
             write("E00");
@@ -759,6 +759,25 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             auto pathView = StringsHelpers::trim(pathCmd);
             g_emulator->m_cdrom->setIso(new CDRIso(pathView));
             g_emulator->m_cdrom->check();
+        }
+    } else if (words[0] == "sharedmem") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: sharedmem <type>");
+        } else {
+            if (words[1] == "wram") {
+                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName());
+            } else {
+                writeEscaped("Unknown type. Valid types: wram");
+            }
+        }
+    } else if (words[0] == "cache") {
+        // Writing memory over gdb won't invalidate anything by itself: most of what goes through
+        // there is data, and there's no d-cache to worry about. Patching code needs this after.
+        if ((words.size() != 2) || (words[1] != "flush")) {
+            writeEscaped("Usage: cache flush\n");
+        } else {
+            writeEscaped("Flushing i-cache\n");
+            g_emulator->m_cpu->invalidateCache();
         }
     }
     write("OK");

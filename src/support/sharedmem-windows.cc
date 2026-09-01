@@ -37,11 +37,11 @@ bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
     // Try to create a shared memory mapping, if an id is provided
     if (id != nullptr) {
         // Build the full name to share as
-        std::string fullname = getSharedName(id, static_cast<uint32_t>(GetCurrentProcessId()));
+        m_sharedName = getSharedName(id, static_cast<uint32_t>(GetCurrentProcessId()));
         // Create the memory mapping handle
         m_fileHandle =
             CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, static_cast<uint32_t>(size >> 32),
-                               static_cast<uint32_t>(size), fullname.c_str());
+                               static_cast<uint32_t>(size), m_sharedName.c_str());
         if (m_fileHandle != INVALID_HANDLE_VALUE) {
             // Create a view of the memory mapping at 0 offset
             void* basePointer = MapViewOfFileEx(m_fileHandle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, size, nullptr);
@@ -56,9 +56,11 @@ bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {
             } else {
                 CloseHandle(m_fileHandle);
                 m_fileHandle = nullptr;
+                m_sharedName.clear();
             }
         } else {
             m_fileHandle = nullptr;
+            m_sharedName.clear();
         }
     }
     // Alloc memory directly if we opted out or had problems creating the memory map
@@ -76,6 +78,7 @@ PCSX::SharedMem::~SharedMem() {
         m_mem = nullptr;
         CloseHandle(m_fileHandle);
         m_fileHandle = nullptr;
+        m_sharedName.clear();
     } else {
         free(m_mem);
     }

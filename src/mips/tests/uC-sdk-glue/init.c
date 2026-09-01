@@ -52,7 +52,7 @@ static inline void fastLeaveCriticalSection() {
     setCop0Status(sr);
 }
 
-__attribute__((weak)) int8_t __sync_fetch_and_add_1(int8_t* ptr, int8_t arg) {
+__attribute__((weak)) int8_t __sync_fetch_and_add_1(volatile int8_t* ptr, int8_t arg) {
     int needsToLeaveCS = fastEnterCriticalSection();
     int8_t r = *ptr;
     *ptr += arg;

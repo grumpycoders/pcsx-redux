@@ -317,7 +317,7 @@ void dmaIRQ() {
 }  // namespace
 
 void psyqo::Kernel::Internal::prepare(Application& application) {
-    SPU::reset();
+    SPU::initialize();
     Hardware::CPU::IMask.clear();
     Hardware::CPU::IReg.clear();
     for (unsigned i = 0; i < 7; i++) {
@@ -409,7 +409,8 @@ void psyqo::Kernel::Internal::pumpCallbacks() {
     if (s_flag == 0) return;
     fastEnterCriticalSection();
     s_flag = 0;
-    while (!s_callbacks.empty()) {
+    auto count = s_callbacks.size();
+    for (size_t i = 0; i < count; i++) {
         auto& l = s_callbacks.front();
         fastLeaveCriticalSection();
         l();
