@@ -116,5 +116,11 @@
     <None Include="..\..\third_party\pprint.lua\pprint-internals.lua">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\src\lua\fileffimeta.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\lua\extra.lua">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

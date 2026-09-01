@@ -99,13 +99,13 @@ enum patch_behavior patch_pad_1_execute(uint32_t *ra) {
     ptr <<= 16;
     addend = ra[4] & 0xffff;
     ptr += addend;
-    *((uint32_t *)ptr) = patch_startPad;
+    *((uint32_t *)ptr) = (uint32_t)patch_startPad;
 
     ptr = ra[6] & 0xffff;
     ptr <<= 16;
     addend = ra[7] & 0xffff;
     ptr += addend;
-    *((uint32_t *)ptr) = patch_stopPad;
+    *((uint32_t *)ptr) = (uint32_t)patch_stopPad;
 
     ra[2] = 11 | 0x10000000;
     ra[3] = 0;

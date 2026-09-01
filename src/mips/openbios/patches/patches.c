@@ -169,9 +169,9 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
     // already patched, bail out
     if ((ra[0] == 0) && (ra[1] == 0) && (ra[3] == 0)) return;
 
-    uint32_t* hash_mask = NULL;
+    const uint32_t* hash_mask = NULL;
 
-    struct patch* patches = NULL;
+    const struct patch* patches = NULL;
     unsigned size = 0;
     char t = 'x';
     switch (table) {
@@ -213,7 +213,6 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
         romsyscall_printf("Stopping.\n", t, h);
         enterCriticalSection();
         pcsx_debugbreak();
-        while (1)
-            ;
+        while (1);
     }
 }

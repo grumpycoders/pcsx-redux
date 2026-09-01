@@ -85,7 +85,7 @@ void DynaRecCPU::makeSymbols() {
         REGISTER_VARIABLE(m_regs.CP2C.r[i], COP2_controlRegs[i], 4);
     }
 
-    REGISTER_VARIABLE(m_regs.cycle, "m_cycles", 4);
+    REGISTER_VARIABLE(m_regs.cycle, "m_cycles", 8);
     REGISTER_VARIABLE(m_regs.pc, "m_pc", 4);
 
     for (int i = 0; i < 16; i++) {  // Register host register cache

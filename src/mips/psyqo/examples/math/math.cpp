@@ -113,6 +113,8 @@ void MathScene::frame() {
     // Clear the screen and draw the quad.
     gpu().clear({{.r = 0x68, .g = 0xb0, .b = 0xd8}});
     gpu().sendPrimitive(m_quad);
+
+    math.m_font.printf(gpu(), {{.x = 4, .y = 4}}, {.r = 0xff, .g = 0xff, .b = 0xff}, "Angle: %.3aPi", m_angle);
 }
 
 int main() { return math.run(); }

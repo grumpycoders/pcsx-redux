@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 namespace psyqo {

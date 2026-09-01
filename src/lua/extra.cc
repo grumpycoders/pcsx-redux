@@ -28,6 +28,7 @@
 #include "lua/luawrapper.h"
 #include "support/file.h"
 #include "support/strings-helpers.h"
+#include "support/djbhash.h"
 #include "support/zip.h"
 
 namespace {
@@ -81,6 +82,30 @@ PCSX::File* load(std::string_view name, std::string_view from, bool inArchives =
     return new PCSX::PosixFile(absolutePath);
 }
 
+uint64_t djbHash(const char* str, size_t len) {
+    return PCSX::djb::hash(str, len);
+}
+
+template <typename T, size_t S>
+void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
+    L.push<S>(name);
+    L.push((void*)ptr);
+    L.settable();
+}
+
+#define REGISTER(L, s) registerSymbol(L, #s, s)
+
+void registerAllSymbols(PCSX::Lua L) {
+    L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
+    L.push("SUPPORT_EXTRA");
+    L.newtable();
+
+    REGISTER(L, djbHash);
+
+    L.settable();
+    L.pop();
+}
+
 }  // namespace
 
 PCSX::ZipArchive& PCSX::LuaFFI::addArchive(Lua L, IO<File> file) {
@@ -113,7 +138,7 @@ void PCSX::LuaFFI::open_extra(Lua L) {
     luaopen_pb_unsafe(L.getState());
     L.setfield("pb.unsafe");
 
-    static int lualoader = 7;
+    static int lualoader = 8;
     static const char* pprint = (
 #include "pprint.lua/pprint.lua"
     );
@@ -135,41 +160,27 @@ void PCSX::LuaFFI::open_extra(Lua L) {
     static const char* protoc = (
 #include "lua-protobuf/protoc.lua"
     );
-    L.load(pprint, "internal:pprinter.lua/pprint.lua");
-    L.load(pprint_internals, "internal:pprinter.lua/pprint-internals.lua");
-    L.load(reflectFFI, "internal:ffi-reflect/reflect.lua");
+    static const char* extra = (
+#include "lua/extra.lua"
+    );
+    registerAllSymbols(L);
+    L.load(pprint, "third_party:pprint.lua/pprint.lua");
+    L.load(pprint_internals, "third_party:pprint.lua/pprint-internals.lua");
+    L.load(reflectFFI, "third_party:ffi-reflect/reflect.lua");
 
-    L.load(protobufLexer, "internal:lua-protobuf/lexer.lua");
+    L.load(protobufLexer, "third_party:lua-protobuf/lexer.lua");
     L.setfield("pb.Lexer");
 
-    L.load(protobufTopLevel, "internal:lua-protobuf/toplevel.lua");
+    L.load(protobufTopLevel, "third_party:lua-protobuf/toplevel.lua");
     L.setfield("pb.TopLevel");
 
-    L.load(descriptorPB, "internal:lua-protobuf/descriptor.pb.lua");
+    L.load(descriptorPB, "third_party:lua-protobuf/descriptor.pb.lua");
     L.setfield("pb.Descriptor");
 
-    L.load(protoc, "internal:lua-protobuf/protoc.lua");
+    L.load(protoc, "third_party:lua-protobuf/protoc.lua");
     L.setfield("protoc");
 
-    L.load(R"(
-Support.extra = {
-
-loadfile = function(name)
-    return loadstring(Support._internal.loadfile(name), '@' .. name)
-end,
-
-dofile = function(name)
-    local func, msg = loadstring(Support._internal.loadfile(name), '@' .. name)
-    if func then return func() end
-    error(msg)
-end,
-}
-
-Support.extra.open = function(name)
-    return Support.File._createFileWrapper(ffi.cast('LuaFile*', Support._internal.open(name)))
-end
-)",
-           "internal:extra.lua");
+    L.load(extra, "src:lua/extra.lua");
 
     L.getfieldtable("Support", LUA_GLOBALSINDEX);
     L.getfieldtable("extra");
@@ -191,7 +202,7 @@ end
         "open",
         [](lua_State* L_) -> int {
             Lua L(L_);
-            auto ar = L.getinfo("S", 1);
+            auto ar = L.getinfo("S", 2);
             auto name = L.tostring();
             IO<File> file = load(name, ar.has_value() ? ar->source : "");
             L.push(new LuaFile(file));

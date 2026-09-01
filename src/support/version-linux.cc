@@ -26,6 +26,7 @@ SOFTWARE.
 
 #ifdef __linux__
 
+#include <filesystem>
 #include <stdlib.h>
 
 #include "fmt/format.h"
@@ -41,7 +42,7 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     ZipArchive zip(m_download);
     if (zip.failed()) return false;
 
-    std::string filename;
+    std::filesystem::path filename;
 
     zip.listAllFiles([&zip, &filename, &tmp](std::string_view name) {
         IO<File> out(new UvFile(tmp / name, FileOps::TRUNCATE));
@@ -51,10 +52,16 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
         filename = out->filename();
     });
 
+    std::filesystem::permissions(filename,
+                                 std::filesystem::perms::owner_all | std::filesystem::perms::group_exec |
+                                     std::filesystem::perms::group_read | std::filesystem::perms::others_exec |
+                                     std::filesystem::perms::others_read,
+                                 std::filesystem::perm_options::replace);
+
     std::string cmd = fmt::format(
         "dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 --type=method_call "
         "/org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://{}\" string:\"\"",
-        filename);
+        filename.string());
     system(cmd.c_str());
 
     return true;

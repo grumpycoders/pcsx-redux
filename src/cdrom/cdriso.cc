@@ -227,13 +227,13 @@ ssize_t PCSX::CDRIso::cdread_2048(IO<File> f, unsigned int base, void *dest_, in
     dest[10] = 0xff;
     dest[11] = 0x00;
     IEC60908b::MSF(sector + 150).toBCD(dest + 12);
-    m_cdbuffer[15] = 2;
-    m_cdbuffer[16] = m_cdbuffer[20] = 0;
-    m_cdbuffer[17] = m_cdbuffer[21] = 0;
-    m_cdbuffer[18] = m_cdbuffer[22] = 8;
-    m_cdbuffer[19] = m_cdbuffer[23] = 0;
+    dest[15] = 2;
+    dest[16] = dest[20] = 0;
+    dest[17] = dest[21] = 0;
+    dest[18] = dest[22] = 8;
+    dest[19] = dest[23] = 0;
 
-    IEC60908b::computeEDCECC(m_cdbuffer);
+    IEC60908b::computeEDCECC(dest);
 
     return ret;
 }
@@ -248,10 +248,12 @@ uint8_t *PCSX::CDRIso::getBuffer() {
 
 void PCSX::CDRIso::printTracks() {
     for (int i = 1; i <= m_numtracks; i++) {
-        PCSX::g_system->printf(
-            _("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
-            (m_ti[i].type == TrackType::DATA ? "DATA" : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA" : "CDDA"),
-            m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s, m_ti[i].length.f);
+        PCSX::g_system->printf(_("Track %.2d (%s) - Start %.2d:%.2d:%.2d, Length %.2d:%.2d:%.2d\n"), i,
+                               (m_ti[i].type == TrackType::DATA        ? "DATA"
+                                : m_ti[i].cddatype == trackinfo::CCDDA ? "CZDA"
+                                                                       : "CDDA"),
+                               m_ti[i].start.m, m_ti[i].start.s, m_ti[i].start.f, m_ti[i].length.m, m_ti[i].length.s,
+                               m_ti[i].length.f);
     }
 }
 

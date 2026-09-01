@@ -200,6 +200,10 @@ sub generateImguiGeneric {
         $callMacro = "${callPrefix}CALL_FUNCTION";
         push(@funcArgs, "float");
         push(@after, "PUSH_NUMBER(ret)");
+      } elsif ($retType =~ /^int$/) {
+        $callMacro = "${callPrefix}CALL_FUNCTION";
+        push(@funcArgs, "int");
+        push(@after, "PUSH_NUMBER(ret)");
       } elsif ($retType =~ /^ImVec2$/) {
         $callMacro = "${callPrefix}CALL_FUNCTION";
         push(@funcArgs, "ImVec2");
@@ -281,7 +285,7 @@ sub generateImguiGeneric {
           push(@funcArgs, $name);
           # one of the various enums
           # we are handling these as ints
-        } elsif ($args[$i] =~ m/^ *(ImGuiMouseButton|ImGuiTableBgTarget|ImGuiPopupFlags|ImGuiDataType|ImGuiDir|ImGuiCond|ImGuiFocusedFlags|ImGuiHoveredFlags|ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags) ([^ =]*)( *= *[0-9]*|) *$/) {
+        } elsif ($args[$i] =~ m/^ *(ImGuiMouseButton|ImGuiTableBgTarget|ImGuiPopupFlags|ImGuiDataType|ImGuiCond|ImGuiFocusedFlags|ImGuiHoveredFlags|ImGuiWindowFlags|ImGuiCol|ImGuiStyleVar|ImGuiAlign|ImGuiColorEditMode|ImGuiMouseCursor|ImGuiSetCond|ImGuiInputTextFlags|ImGuiSelectableFlags|ImGuiSliderFlags|ImDrawFlags|ImGuiButtonFlags|ImGuiColorEditFlags|ImGuiComboFlags|ImGuiDockNodeFlags|ImGuiDragDropFlags|ImGuiPopupFlags|ImGuiTabBarFlags|ImGuiTabItemFlags|ImGuiTableColumnFlags|ImGuiTableFlags|ImGuiTableRowFlags|ImGuiTreeNodeFlags|ImGuiChildFlags) ([^ =]*)( *= *[0-9]*|) *$/) {
          #These are ints
          my $name = $2;
           if ($3 =~ m/^ *= *([0-9]+)$/) {
@@ -308,10 +312,11 @@ sub generateImguiGeneric {
             push(@before, "UINT_ARG($name)");
           }
           push(@funcArgs, $name);
-        #ImTextureID or const ImTextureID&
-        # const ImTextureID& is the same thing as var
-        # as lua is concerned
-        } elsif ($args[$i] =~ m/^ *(ImTextureID|const ImTextureID&) ([^ =\[]*) *$/) {
+        #ImTextureID, const ImTextureID&, or ImTextureRef (ImGui v1.92+)
+        # const ImTextureID& is the same thing as ImTextureID as far as lua is concerned.
+        # ImTextureRef in v1.92 wraps an ImTextureID and constructs implicitly from one,
+        # so we pull the Lua arg as ImTextureID and let C++ wrap it at the call site.
+        } elsif ($args[$i] =~ m/^ *(ImTextureID|const ImTextureID&|ImTextureRef) ([^ =\[]*) *$/) {
           my $name = $2;
           push(@before, "IM_TEXTURE_ID_ARG($name)");
           push(@funcArgs, $name);

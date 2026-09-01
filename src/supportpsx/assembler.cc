@@ -53,12 +53,12 @@ void PCSX::LuaSupportPSX::open_assembler(Lua L) {
     static const char* symbols = (
 #include "supportpsx/assembler/symbols.lua"
     );
-    L.load(assembler, "internal:supportpsx/assembler/assembler.lua");
-    L.load(registers, "internal:supportpsx/assembler/registers.lua");
-    L.load(simple, "internal:supportpsx/assembler/simple.lua");
-    L.load(loadstore, "internal:supportpsx/assembler/loadstore.lua");
-    L.load(extra, "internal:supportpsx/assembler/extra.lua");
-    L.load(gte, "internal:supportpsx/assembler/gte.lua");
-    L.load(pseudo, "internal:supportpsx/assembler/pseudo.lua");
-    L.load(symbols, "internal:supportpsx/assembler/symbols.lua");
+    L.load(assembler, "src:supportpsx/assembler/assembler.lua");
+    L.load(registers, "src:supportpsx/assembler/registers.lua");
+    L.load(simple, "src:supportpsx/assembler/simple.lua");
+    L.load(loadstore, "src:supportpsx/assembler/loadstore.lua");
+    L.load(extra, "src:supportpsx/assembler/extra.lua");
+    L.load(gte, "src:supportpsx/assembler/gte.lua");
+    L.load(pseudo, "src:supportpsx/assembler/pseudo.lua");
+    L.load(symbols, "src:supportpsx/assembler/symbols.lua");
 }

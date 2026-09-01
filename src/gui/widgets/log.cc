@@ -19,13 +19,14 @@
 
 #include "gui/widgets/log.h"
 
+#include <magic_enum/magic_enum_all.hpp>
+
 #include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "magic_enum/include/magic_enum.hpp"
 
 PCSX::Widgets::Log::json PCSX::Widgets::Log::serialize() const {
     json ret;
@@ -65,7 +66,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
     bool changed = false;
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu(_("Enabled"))) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
             if (ImGui::MenuItem(_("Enable all"))) {
                 for (auto& c : m_classes) c.enabled = true;
                 changed = true;
@@ -84,7 +85,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Displayed"))) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
             if (ImGui::MenuItem(_("Display all"))) {
                 for (auto& c : m_classes) c.displayed = true;
                 changed = true;
@@ -103,7 +104,7 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Special"))) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
+            ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
             auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
             changed |= ImGui::MenuItem(_("Log CD-ROM commands"), nullptr,
                                        &debugSettings.get<Emulator::DebugSettings::LoggingCDROM>().value);

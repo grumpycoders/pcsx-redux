@@ -43,3 +43,16 @@ void PCSX::Widgets::FileDialogBase::setDeleteTexture() {
         glDeleteTextures(1, &texID);
     };
 }
+
+void PCSX::Widgets::FileDialogBase::restoreFavorites() {
+    for (const auto& fav : m_favorites) {
+        AddFavorite(fav);
+    }
+}
+
+void PCSX::Widgets::FileDialogBase::saveFavorites() {
+    m_favorites.clear();
+    for (const auto& fav : GetFavorites()) {
+        m_favorites.push_back(fav);
+    }
+}

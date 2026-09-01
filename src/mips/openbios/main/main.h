@@ -26,7 +26,29 @@ SOFTWARE.
 
 #pragma once
 
+#include "common/hardware/hwregs.h"
 #include "common/psxlibc/setjmp.h"
+
+// The original 700B01 kernel clears the watchdog using inline code in some
+// places and a subroutine call in others. As there is no point in replicating
+// this inconsistency, we are going to always use an inline function for this
+// purpose. This additionally lets us easily stub out all watchdog calls for
+// non-573 builds in a single place.
+static __inline__ void clearWatchdog() {
+#ifdef OPENBIOS_BOARD_SYS573
+    SYS573_WATCHDOG = 0;
+#endif
+}
+
+// Similar to the case above. The ZN kernel clears these registers in a few
+// different places but they are all gathered here for simplicity's sake.
+static __inline__ void clearZNRegisters() {
+#if defined(OPENBIOS_BOARD_ZN1) || defined(OPENBIOS_BOARD_ZN2)
+    ZN_SIO0_MUX = 0;
+    ZN_COIN_CTRL = 0;
+    ZN_IRQ10_MUX = 0;
+#endif
+}
 
 void setConfiguration(int eventsCount, int taskCount, void* stackBase);
 void getConfiguration(int* eventsCount, int* taskCount, void** stackBase);

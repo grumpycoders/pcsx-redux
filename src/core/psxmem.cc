@@ -85,6 +85,18 @@ static const std::map<uint32_t, std::string_view> s_knownBioses = {
 #endif
 };
 
+PCSX::Memory::Memory() : m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::ExecutionFlow::Reset>([this](auto &) {
+        free(m_msanRAM);
+        free(m_msanUsableBitmap);
+        free(m_msanInitializedBitmap);
+        m_msanRAM = nullptr;
+        m_msanUsableBitmap = nullptr;
+        m_msanInitializedBitmap = nullptr;
+        m_msanAllocs.clear();
+    });
+}
+
 int PCSX::Memory::init() {
     m_readLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
     m_writeLUT = (uint8_t **)calloc(0x10000, sizeof(void *));
@@ -97,9 +109,10 @@ int PCSX::Memory::init() {
     m_exp1 = (uint8_t *)calloc(0x00800000, 1);
     m_hard = (uint8_t *)calloc(0x00010000, 1);
     m_bios = (uint8_t *)calloc(0x00080000, 1);
+    m_sram = (uint8_t *)calloc(0x00200000, 1);
 
     if (m_readLUT == NULL || m_writeLUT == NULL || m_wram == NULL || m_exp1 == NULL || m_bios == NULL ||
-        m_hard == NULL) {
+        m_sram == NULL || m_hard == NULL) {
         g_system->message("%s", _("Error allocating memory!"));
         return -1;
     }
@@ -116,6 +129,18 @@ int PCSX::Memory::init() {
 
     memcpy(m_readLUT + 0x9fc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
     memcpy(m_readLUT + 0xbfc0, m_readLUT + 0x1fc0, 0x08 * sizeof(void *));
+
+    // DTL-H2000 dev board BIOS SRAM: 2MB of writable static RAM at 0x1fa00000,
+    // mirrored across kuser/kseg0/kseg1. setLuts() only touches the main-RAM pages,
+    // so these entries are safe to set once here.
+    for (int i = 0; i < 0x20; i++) {
+        m_readLUT[i + 0x1fa0] = (uint8_t *)&m_sram[i << 16];
+        m_writeLUT[i + 0x1fa0] = (uint8_t *)&m_sram[i << 16];
+    }
+    memcpy(m_readLUT + 0x9fa0, m_readLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_readLUT + 0xbfa0, m_readLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_writeLUT + 0x9fa0, m_writeLUT + 0x1fa0, 0x20 * sizeof(void *));
+    memcpy(m_writeLUT + 0xbfa0, m_writeLUT + 0x1fa0, 0x20 * sizeof(void *));
 
     setLuts();
 
@@ -140,7 +165,7 @@ bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path) {
             memset(m_exp1, 0xff, exp1_size);
             f->read(m_exp1, rom_size);
             f->close();
-            PCSX::g_system->printf(_("Loaded %i bytes to EXP1 from file: %s\n"), rom_size, exp1Path.string());
+            g_system->printf(_("Loaded %i bytes to EXP1 from file: %s\n"), rom_size, exp1Path.string());
             result = true;
         }
     } else {
@@ -162,6 +187,8 @@ void PCSX::Memory::reset() {
     memset(m_wram, 0, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
+    memset(m_sram, 0, 0x00200000);
+    m_psyqoHeapMetadata = 0;
     static const uint32_t nobios[6] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
         Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
@@ -222,7 +249,7 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
                 f->read(m_bios, bios_size);
             }
             f->close();
-            PCSX::g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
+            g_system->printf(_("Loaded BIOS: %s\n"), biosPath.string());
         }
     }
 
@@ -240,15 +267,25 @@ The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
     } else if (crc != nobioscrc) {
         g_system->printf(_("Unknown bios loaded (%08x)\n"), crc);
     }
+    m_BIU = 0;
 }
 
 void PCSX::Memory::shutdown() {
     free(m_exp1);
     free(m_hard);
     free(m_bios);
+    free(m_sram);
 
     free(m_readLUT);
     free(m_writeLUT);
+
+    free(m_msanRAM);
+    free(m_msanUsableBitmap);
+    free(m_msanInitializedBitmap);
+    m_msanRAM = nullptr;
+    m_msanUsableBitmap = nullptr;
+    m_msanInitializedBitmap = nullptr;
+    m_msanAllocs.clear();
 }
 
 uint8_t PCSX::Memory::read8(uint32_t address) {
@@ -258,35 +295,48 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
+            switch (msanGetStatus<1>(address)) {
+                case MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::CPU, _("8-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
+                case MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::CPU, _("8-bit read from unusable msan memory: %8.8lx\n"), address);
+                    break;
+                case MsanStatus::OK:
+                    return m_msanRAM[address - c_msanStart];
+            }
+            g_system->pause();
+            return 0;
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         return *(pointer + offset);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                return m_hard[address & 0x3ff];
-            } else {
-                return g_emulator->m_hw->read8(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read8(address);
-        } else if (sendReadToLua(address, 1)) {
-            auto L = *g_emulator->m_lua;
-            const uint8_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("8-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
-        } else if (address == 0x1f000004 || address == 0x1f000084) {
-            // EXP1 not mapped, likely the bios looking for pre/post boot entry point
-            // We probably don't want to pause here so just throw it a dummy value
-            return 0xff;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            return m_hard[address & 0x3ff];
         } else {
-            g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
-            return 0xff;
+            return g_emulator->m_hw->read8(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read8(address);
+    } else if (sendReadToLua(address, 1)) {
+        auto L = *g_emulator->m_lua;
+        const uint8_t ret = L.tonumber();
+        L.pop();
+        return ret;
+    } else if (address == 0x1f000004 || address == 0x1f000084) {
+        // EXP1 not mapped, likely the bios looking for pre/post boot entry point
+        // We probably don't want to pause here so just throw it a dummy value
+        return 0xff;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("8-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xff;
 }
 
 uint16_t PCSX::Memory::read16(uint32_t address) {
@@ -296,32 +346,45 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) {
+            switch (msanGetStatus<2>(address)) {
+                case MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::CPU, _("16-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
+                case MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::CPU, _("16-bit read from unusable msan memory: %8.8lx\n"), address);
+                    break;
+                case MsanStatus::OK:
+                    return SWAP_LEu16(*(uint16_t *)&m_msanRAM[address - c_msanStart]);
+            }
+            g_system->pause();
+            return 0;
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu16(*(uint16_t *)(pointer + offset));
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
-                return SWAP_LEu16(*ptr);
-            } else {
-                return g_emulator->m_hw->read16(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read8(address);
-        } else if (sendReadToLua(address, 2)) {
-            auto L = *g_emulator->m_lua;
-            const uint16_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("16-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
+            return SWAP_LEu16(*ptr);
         } else {
-            g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
-            return 0xffff;
+            return g_emulator->m_hw->read16(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read8(address);
+    } else if (sendReadToLua(address, 2)) {
+        auto L = *g_emulator->m_lua;
+        const uint16_t ret = L.tonumber();
+        L.pop();
+        return ret;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("16-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xffff;
 }
 
 uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
@@ -331,34 +394,47 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) {
+            switch (msanGetStatus<4>(address)) {
+                case MsanStatus::UNINITIALIZED:
+                    g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                                  address);
+                    break;
+                case MsanStatus::UNUSABLE:
+                    g_system->log(LogClass::CPU, _("32-bit read from unusable msan memory: %8.8lx\n"), address);
+                    break;
+                case MsanStatus::OK:
+                    return SWAP_LEu32(*(uint32_t *)&m_msanRAM[address - c_msanStart]);
+            }
+            g_system->pause();
+            return 0;
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         return SWAP_LEu32(*(uint32_t *)(pointer + offset));
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
-                return SWAP_LEu32(*ptr);
-            } else {
-                return g_emulator->m_hw->read32(address);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            return g_emulator->m_pioCart->read32(address);
-        } else if (sendReadToLua(address, 4)) {
-            auto L = *g_emulator->m_lua;
-            const uint32_t ret = L.tonumber();
-            L.pop();
-            g_system->log(LogClass::HARDWARE, _("32-bit read redirected to Lua for address: %8.8lx\n"), address);
-            return ret;
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
+            return SWAP_LEu32(*ptr);
         } else {
-            if (m_writeok) {
-                g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
-                if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                    g_system->pause();
-                }
-            }
-            return 0xffffffff;
+            return g_emulator->m_hw->read32(address);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        return g_emulator->m_pioCart->read32(address);
+    } else if (address == 0xfffe0130) {
+        return m_BIU;
+    } else if (sendReadToLua(address, 4)) {
+        auto L = *g_emulator->m_lua;
+        const uint32_t ret = L.tonumber();
+        L.pop();
+        return ret;
+    } else if (isiCacheEnabled()) {
+        g_system->log(LogClass::CPU, _("32-bit read from unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
+    return 0xffffffff;
 }
 
 int PCSX::Memory::sendReadToLua(const uint32_t address, const size_t size) {
@@ -442,25 +518,32 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) {
+            if (msanValidateWrite<1>(address)) {
+                m_msanRAM[address - c_msanStart] = value;
+            } else {
+                g_system->log(LogClass::CPU, _("8-bit write to unusable msan memory: %8.8lx\n"), address);
+                g_system->pause();
+            }
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         *(pointer + offset) = static_cast<uint8_t>(value);
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                m_hard[address & 0x3ff] = value;
-            } else {
-                g_emulator->m_hw->write8(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write8(address, value);
-        } else if (sendWriteToLua(address, 1, value)) {
-            g_system->log(LogClass::HARDWARE, _("8-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            m_hard[address & 0x3ff] = value;
         } else {
-            g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
+            g_emulator->m_hw->write8(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write8(address, value);
+    } else if (sendWriteToLua(address, 1, value)) {
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("8-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -472,26 +555,33 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) {
+            if (msanValidateWrite<2>(address)) {
+                *(uint16_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu16(value);
+            } else {
+                g_system->log(LogClass::CPU, _("16-bit write to unusable msan memory: %8.8lx\n"), address);
+                g_system->pause();
+            }
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         *(uint16_t *)(pointer + offset) = SWAP_LEu16(static_cast<uint16_t>(value));
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
-                *ptr = SWAP_LEu16(value);
-            } else {
-                g_emulator->m_hw->write16(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write16(address, value);
-        } else if (sendWriteToLua(address, 2, value)) {
-            g_system->log(LogClass::HARDWARE, _("16-bit write redirected to Lua for address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint16_t *ptr = (uint16_t *)&m_hard[address & 0x3ff];
+            *ptr = SWAP_LEu16(value);
         } else {
-            g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
-            if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
-                g_system->pause();
-            }
+            g_emulator->m_hw->write16(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write16(address, value);
+    } else if (sendWriteToLua(address, 2, value)) {
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("16-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -503,58 +593,51 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
+        if (msanInitialized() && inMsanRange(address)) {
+            if (msanValidateWrite<4>(address)) {
+                *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
+            } else {
+                g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
+                g_system->pause();
+            }
+        }
+        [[likely]];
         const uint32_t offset = address & 0xffff;
         *(uint32_t *)(pointer + offset) = SWAP_LEu32(value);
         g_emulator->m_cpu->Clear((address & (~3)), 1);
-    } else {
-        if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
-            if ((address & 0xffff) < 0x400) {
-                uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
-                *ptr = SWAP_LEu32(value);
-            } else {
-                g_emulator->m_hw->write32(address, value);
-            }
-        } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
-            g_emulator->m_pioCart->write32(address, value);
-        } else if (address != 0xfffe0130) {
-            if (!m_writeok) g_emulator->m_cpu->Clear(address, 1);
-
-            if (m_writeok) {
-                g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
+    } else if (page == 0x1f80 || page == 0x9f80 || page == 0xbf80) {
+        if ((address & 0xffff) < 0x400) {
+            uint32_t *ptr = (uint32_t *)&m_hard[address & 0x3ff];
+            *ptr = SWAP_LEu32(value);
+        } else {
+            g_emulator->m_hw->write32(address, value);
+        }
+    } else if ((page & 0x1fff) >= 0x1f00 && (page & 0x1fff) < 0x1f80 && pioConnected) {
+        g_emulator->m_pioCart->write32(address, value);
+    } else if (address == 0xfffe0130) {
+        m_BIU = value;
+        switch (value) {
+            case 0x00000800:
+            case 0x00000804:
+            case 0x0001e90c:  // TOCA World Touring Cars, SLES-02572, FlushCache at 0xa002f79c
+                g_emulator->m_cpu->invalidateCache();
+                [[fallthrough]];
+            case 0x0001e988:
+                setLuts();
+                break;
+            default:
+                g_system->log(LogClass::CPU, _("Unknown BIU value: %8.8lx\n"), value);
                 if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
                     g_system->pause();
                 }
-            }
-        } else {
-            // a0-44: used for cache flushing
-            switch (value) {
-                case 0x800:
-                case 0x804:
-                    if (m_writeok == 0) break;
-                    m_writeok = 0;
-                    setLuts();
-
-                    g_emulator->m_cpu->invalidateCache();
-                    break;
-                case 0x00:
-                case 0x1e988:
-                    if (m_writeok == 1) break;
-                    m_writeok = 1;
-                    setLuts();
-                    break;
-                default:
-                    if (sendWriteToLua(address, 4, value)) {
-                        g_system->log(LogClass::HARDWARE, _("32-bit write redirected to Lua for address: %8.8lx\n"),
-                                      address);
-                    } else {
-                        g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
-                        if (g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                .get<Emulator::DebugSettings::Debug>()) {
-                            g_system->pause();
-                        }
-                    }
-                    break;
-            }
+                break;
+        }
+    } else if (sendWriteToLua(address, 4, value)) {
+    } else if (isiCacheEnabled()) {
+        g_emulator->m_cpu->Clear(address, 1);
+        g_system->log(LogClass::CPU, _("32-bit write to unknown address: %8.8lx\n"), address);
+        if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            g_system->pause();
         }
     }
 }
@@ -618,19 +701,12 @@ const void *PCSX::Memory::pointerWrite(uint32_t address, int size) {
                 // IO regs that are safe to write to directly. For some of these,
                 // Writing a 8-bit/16-bit value actually writes the entire 32-bit reg, so they're not safe to write
                 // directly
-                case 0x1f801080:
                 case 0x1f801084:
-                case 0x1f801090:
                 case 0x1f801094:
-                case 0x1f8010a0:
                 case 0x1f8010a4:
-                case 0x1f8010b0:
                 case 0x1f8010b4:
-                case 0x1f8010c0:
                 case 0x1f8010c4:
-                case 0x1f8010d0:
                 case 0x1f8010d4:
-                case 0x1f8010e0:
                 case 0x1f8010e4:
                 case 0x1f801074:
                 case 0x1f8010f0:
@@ -655,7 +731,7 @@ void PCSX::Memory::setLuts() {
     for (int i = 0; i < 0x80; i++) m_readLUT[i + 0x0000] = (uint8_t *)&m_wram[(i & (max - 1)) << 16];
     memcpy(m_readLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
     memcpy(m_readLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
-    if (m_writeok) {
+    if (isiCacheEnabled()) {
         memcpy(m_writeLUT + 0x0000, m_readLUT, 0x80 * sizeof(void *));
         memcpy(m_writeLUT + 0x8000, m_readLUT, 0x80 * sizeof(void *));
         memcpy(m_writeLUT + 0xa000, m_readLUT, 0x80 * sizeof(void *));
@@ -731,10 +807,19 @@ ssize_t PCSX::Memory::MemoryAsFile::writeAt(const void *src, size_t size, size_t
     return ret;
 }
 
-void PCSX::Memory::MemoryAsFile::readBlock(void *dest, size_t size, size_t ptr) {
-    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+void PCSX::Memory::MemoryAsFile::readBlock(void *dest_, size_t size, size_t ptr) {
+    auto dest = reinterpret_cast<uint8_t *>(dest_);
+    auto block = m_memory->debugPointer(ptr / c_blockSize);
     if (!block) {
         memset(dest, 0, size);
+        if (m_memory->msanInitialized()) {
+            for (size_t i = 0; i < size; ++i) {
+                size_t msanPtr = ptr + i;
+                if (inMsanRange(msanPtr) && (m_memory->msanGetStatus<1>(msanPtr) == MsanStatus::OK)) {
+                    dest[i] = m_memory->m_msanRAM[msanPtr - c_msanStart];
+                }
+            }
+        }
         return;
     }
     auto offset = ptr % c_blockSize;
@@ -742,13 +827,183 @@ void PCSX::Memory::MemoryAsFile::readBlock(void *dest, size_t size, size_t ptr) 
     memcpy(dest, block + offset, toCopy);
 }
 
-void PCSX::Memory::MemoryAsFile::writeBlock(const void *src, size_t size, size_t ptr) {
-    // Yes. That's not a bug nor a typo.
-    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+void PCSX::Memory::MemoryAsFile::writeBlock(const void *src_, size_t size, size_t ptr) {
+    // The read LUT, on purpose, and not a typo. The write LUT describes what the guest's current
+    // BIU cache configuration lets a store reach, and it goes empty for main RAM whenever the
+    // cache is isolated. That's transient guest state; a write coming in from a debugger has no
+    // business being subject to it. The read LUT is the table that describes what memory is
+    // actually there.
+    auto src = reinterpret_cast<const uint8_t *>(src_);
+    const auto page = ptr / c_blockSize;
+    auto block = m_memory->m_readLUT[page];
+    auto offset = ptr % c_blockSize;
     if (!block) {
+        // The scratchpad is plain memory and safe to poke. The hardware registers sharing its page
+        // are stateful, and writing to their shadow behind the hardware's back would only desync
+        // the two, so those are silently dropped.
+        if ((page == 0x1f80) || (page == 0x9f80) || (page == 0xbf80)) {
+            if (offset < c_scratchpadSize) {
+                memcpy(m_memory->m_hard + offset, src, std::min<size_t>(size, c_scratchpadSize - offset));
+            }
+            return;
+        }
+        if (m_memory->msanInitialized()) {
+            for (size_t i = 0; i < size; ++i) {
+                size_t msanPtr = ptr + i;
+                if (inMsanRange(msanPtr)) {
+                    m_memory->m_msanRAM[msanPtr - c_msanStart] = src[i];
+                }
+            }
+        }
         return;
     }
-    auto offset = ptr % c_blockSize;
     auto toCopy = std::min(size, c_blockSize - offset);
     memcpy(block + offset, src, toCopy);
+}
+
+void PCSX::Memory::initMsan(bool reset) {
+    if (reset) {
+        free(m_msanRAM);
+        free(m_msanUsableBitmap);
+        free(m_msanInitializedBitmap);
+        m_msanRAM = nullptr;
+        m_msanUsableBitmap = nullptr;
+        m_msanInitializedBitmap = nullptr;
+        m_msanAllocs.clear();
+        m_msanChainRegistry.clear();
+    }
+    if (msanInitialized()) {
+        g_system->printf(_("MSAN system was already initialized.\n"));
+        g_system->pause();
+        return;
+    }
+
+    // 1.5GB of RAM, with 384MB worth of bitmap, between 0x20000000 and 0x80000000
+    m_msanRAM = (uint8_t *)calloc(c_msanSize, 1);
+    m_msanUsableBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
+    m_msanInitializedBitmap = (uint8_t *)calloc(c_msanSize / 8, 1);
+    m_msanPtr = 1024;
+    for (uint32_t segment = c_msanStart; segment < c_msanEnd; segment += 0x10000) {
+        m_readLUT[segment >> 16] = m_msanRAM + (segment - c_msanStart);
+        m_writeLUT[segment >> 16] = m_msanRAM + (segment - c_msanStart);
+    }
+}
+
+uint32_t PCSX::Memory::msanAlloc(uint32_t size) {
+    // Allocate 1kB more than requested, to redzone the allocation.
+    // This is to detect out-of-bounds accesses.
+    uint32_t actualSize = size + 1 * 1024;
+    // Then round up to the next 16-byte boundary.
+    actualSize = actualSize + 15 & ~15;
+
+    // Check if we still have enough memory.
+    if (m_msanPtr + actualSize > c_msanSize) {
+        g_system->printf(_("Out of memory in MsanAlloc\n"));
+        g_system->pause();
+        return 0;
+    }
+
+    // Allocate the memory.
+    uint32_t ptr = m_msanPtr;
+    m_msanPtr += actualSize;
+    // Mark the allocation as usable.
+    for (uint32_t i = 0; i < size; i++) {
+        m_msanUsableBitmap[(ptr + i) / 8] |= 1 << ((ptr + i) % 8);
+    }
+
+    // Insert the allocation into the list of allocations.
+    m_msanAllocs.insert({ptr, size});
+    return ptr + c_msanStart;
+}
+
+void PCSX::Memory::msanFree(uint32_t ptr) {
+    if (ptr == 0) {
+        return;
+    }
+    // Check if the pointer is valid.
+    if (!inMsanRange(ptr)) {
+        g_system->printf(_("Invalid pointer passed to MsanFree: %08x\n"), ptr);
+        g_system->pause();
+        return;
+    }
+    ptr -= c_msanStart;
+    auto it = m_msanAllocs.find(ptr);
+    if (it == m_msanAllocs.end()) {
+        g_system->printf(_("Invalid pointer passed to MsanFree: %08x\n"), ptr);
+        g_system->pause();
+        return;
+    }
+    // Mark the allocation as unusable.
+    for (uint32_t i = 0; i < m_msanAllocs[ptr]; i++) {
+        m_msanUsableBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
+    }
+    // Remove the allocation from the list of allocations.
+    m_msanAllocs.erase(ptr);
+}
+
+uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
+    if (ptr == 0) {
+        return msanAlloc(size);
+    }
+    if (size == 0) {
+        msanFree(ptr);
+        return 0;
+    }
+    // Check if the pointer is valid.
+    if (!inMsanRange(ptr)) {
+        g_system->printf(_("Invalid pointer passed to MsanRealloc: %08x\n"), ptr);
+        g_system->pause();
+        return 0;
+    }
+    ptr -= c_msanStart;
+    auto it = m_msanAllocs.find(ptr);
+    if (it == m_msanAllocs.end()) {
+        g_system->printf(_("Invalid pointer passed to MsanRealloc: %08x\n"), ptr);
+        g_system->pause();
+        return 0;
+    }
+    auto oldSize = it->second;
+
+    // Allocate new memory.
+    uint32_t newPtr = msanAlloc(size);
+    if (!newPtr) return 0;
+    newPtr -= c_msanStart;
+
+    // Copy the old memory to the new memory.
+    memcpy(m_msanRAM + newPtr, m_msanRAM + ptr, std::min(size, oldSize));
+
+    // Mark the old allocation as unusable
+    for (uint32_t i = 0; i < oldSize; i++) {
+        m_msanUsableBitmap[(ptr + i) / 8] &= ~(1 << ((ptr + i) % 8));
+    }
+    // Mark the new allocation as written to
+    auto toCopy = std::min(size, oldSize);
+    for (uint32_t i = 0; i < toCopy; i++) {
+        m_msanInitializedBitmap[(newPtr + i) / 8] |= 1 << ((newPtr + i) % 8);
+    }
+    // Remove the allocation from the list of allocations.
+    m_msanAllocs.erase(ptr);
+    return newPtr + c_msanStart;
+}
+
+uint32_t PCSX::Memory::msanSetChainPtr(uint32_t headerAddr, uint32_t nextPtr, uint32_t wordCount) {
+    if (!inMsanRange(headerAddr)) {
+        headerAddr &= 0xffffff;
+    }
+    if (inMsanRange(nextPtr)) {
+        // map the location of an entry to the real pointer it's supposed to contain
+        m_msanChainRegistry[headerAddr] = nextPtr;
+        return c_msanChainMarker | wordCount << 24;
+    }
+    return (nextPtr & 0xffffff) | wordCount << 24;
+}
+
+uint32_t PCSX::Memory::msanGetChainPtr(uint32_t headerAddr) const {
+    auto it = m_msanChainRegistry.find(headerAddr);
+    if (it == m_msanChainRegistry.end()) {
+        g_system->printf(_("Unregistered msan chain header at %08x\n"), headerAddr);
+        g_system->pause();
+        return 0xffffffff;
+    }
+    return it->second;
 }

@@ -157,7 +157,6 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
         changed = true;
     }
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Memory Card 2 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
         changed = true;
@@ -168,23 +167,19 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         g_emulator->m_sio->togglePocketstationMode();
         changed = true;
     }
-    ImGui::SameLine();
     ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Card 2 Pocketstation"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
         g_emulator->m_sio->togglePocketstationMode();
         changed = true;
     }
-    ImGui::SameLine();
     ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Draw Pocketstation icons"), &m_drawPocketstationIcons)) {
         glDeleteTextures(15, m_iconTextures);  // Recreate our textures to fit our new format
         initTextures();
@@ -357,7 +352,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
 
-    ImGui::Image(reinterpret_cast<ImTextureID*>(texture), ImVec2(m_iconSize, m_iconSize));
+    ImGui::Image(texture, ImVec2(m_iconSize, m_iconSize));
 }
 
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)

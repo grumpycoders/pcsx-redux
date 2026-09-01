@@ -53,8 +53,7 @@ void initializeCDRomHandlersAndEvents() {
 
 static void initializeSoftwareAndHardware() {
     initializeCDRomHandlersAndEvents();
-    while (!syscall_cdromInnerInit())
-        ;
+    while (!syscall_cdromInnerInit());
 }
 
 void initCDRom() {
@@ -78,8 +77,7 @@ int cdromBlockGetStatus() {
     uint8_t status;
 
     int cyclesToWait = 9;
-    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0))
-        ;
+    while (!syscall_cdromGetStatus(&status) && (--cyclesToWait > 0));
     if (cyclesToWait < 1) {
         syscall_exception(0x44, 0x1f);
         return -1;
@@ -101,20 +99,20 @@ static const struct Device s_cdromDevice = {
     .flags = 0x14,
     .blockSize = 0x800,
     .desc = "CD-ROM",
-    .init = psxdummy,
+    .init = (void (*)())psxdummy,
     .open = dev_cd_open,
-    .action = psxdummy,
-    .close = psxdummy,
-    .ioctl = psxdummy,
+    .action = (int (*)(struct File *, enum FileAction))psxdummy,
+    .close = (int (*)(struct File *))psxdummy,
+    .ioctl = (int (*)(struct File *, int,  int))psxdummy,
     .read = dev_cd_read,
-    .write = psxdummy,
-    .erase = psxdummy,
+    .write = (int (*)(struct File *, void *, int))psxdummy,
+    .erase = (int (*)(struct File *, const char *))psxdummy,
     .undelete = psxdummy,
     .firstFile = dev_cd_firstFile,
     .nextFile = dev_cd_nextFile,
-    .format = psxdummy,
+    .format = (int (*)(struct File *))psxdummy,
     .chdir = dev_cd_chdir,
-    .rename = psxdummy,
+    .rename = (int (*)(struct File *, const char *, struct File *, const char *))psxdummy,
     .deinit = deinitCDRom,
     .check = psxdummy,
 };

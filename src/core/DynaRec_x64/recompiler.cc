@@ -186,7 +186,6 @@ void DynaRecCPU::emitDispatcher() {
         gen.push(reg.cvt64());
     }
     gen.mov(qword[contextPointer + HOST_REG_CACHE_OFFSET(0)], runningPointer);  // Backup running pointer
-    gen.mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());           // Load pointer to "running" variable
 
     // Allocate shadow stack space on Windows
     if constexpr (isWindows()) {
@@ -202,9 +201,13 @@ void DynaRecCPU::emitDispatcher() {
 
     // Poll events
     emitMemberFunctionCall(&PCSX::R3000Acpu::branchTest, this);
-    gen.test(Xbyak::util::byte[runningPointer], 1);  // Check if PCSX::g_system->running is true
-    gen.jz(done);                                    // If it's not, return
-    emitBlockLookup();                               // Otherwise, look up next block
+    gen.mov(runningPointer, (uintptr_t)PCSX::g_system->runningPtr());   // Load pointer to "running" variable
+    gen.test(Xbyak::util::byte[runningPointer], 1);                     // Check if PCSX::g_system->running is true
+    gen.jz(done);                                                       // If it's not, return
+    gen.mov(runningPointer, (uintptr_t)PCSX::g_system->quittingPtr());  // Load pointer to "quitting" variable
+    gen.test(Xbyak::util::byte[runningPointer], 1);                     // Check if PCSX::g_system->running is true
+    gen.jnz(done);                                                      // If it is, return
+    emitBlockLookup();                                                  // Otherwise, look up next block
 
     gen.align(16);
     // Code for exiting JIT context
@@ -450,7 +453,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         endProfiling();
     }
 
-    gen.add(dword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
+    gen.add(qword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {
@@ -476,7 +479,7 @@ void DynaRecCPU::handleKernelCall() {
         return;
     }
 
-    const uint32_t pc = m_pc & 0x1fffff;
+    const uint32_t pc = m_pc & PCSX::g_emulator->getRamMask();
     const uint32_t base = (m_pc >> 20) & 0xffc;
     if ((base != 0x000) && (base != 0x800) && (base != 0xa00))
         return;  // Mask out the segment, return if not a kernel call vector

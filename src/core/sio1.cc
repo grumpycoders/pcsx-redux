@@ -144,7 +144,7 @@ void PCSX::SIO1::interrupt() {
 
 uint8_t PCSX::SIO1::readData8() {
     updateStat();
-    if (m_sio1fifo || !m_sio1fifo->eof()) {
+    if (m_sio1fifo && !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_regs.data = m_sio1fifo->byte();
             g_emulator->m_mem->writeHardwareRegister<0x1050, uint8_t>(m_regs.data);
@@ -156,7 +156,7 @@ uint8_t PCSX::SIO1::readData8() {
 
 uint16_t PCSX::SIO1::readData16() {
     updateStat();
-    if (m_sio1fifo || !m_sio1fifo->eof()) {
+    if (m_sio1fifo && !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_sio1fifo->read(&m_regs.data, 2);
             g_emulator->m_mem->writeHardwareRegister<0x1050, uint16_t>(m_regs.data);
@@ -168,7 +168,7 @@ uint16_t PCSX::SIO1::readData16() {
 
 uint32_t PCSX::SIO1::readData32() {
     updateStat();
-    if (m_sio1fifo || !m_sio1fifo->eof()) {
+    if (m_sio1fifo && !m_sio1fifo->eof()) {
         if (m_regs.status & SR_RXRDY) {
             m_sio1fifo->read(&m_regs.data, 4);
             g_emulator->m_mem->writeHardwareRegister<0x1050, uint32_t>(m_regs.data);

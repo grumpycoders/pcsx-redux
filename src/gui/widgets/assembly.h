@@ -26,6 +26,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "core/disr3000a.h"
 #include "core/r3000a.h"
@@ -42,11 +43,15 @@ namespace Widgets {
 
 class Assembly : private Disasm {
   public:
-    Assembly(bool& show) : m_show(show), m_listener(g_system->m_eventBus) {
-        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) { m_jumpToPC = event.pc; });
+    Assembly(bool& show, std::vector<std::string>& favorites)
+        : m_show(show), m_listener(g_system->m_eventBus), m_symbolsFileDialog(l_("Load Symbols"), favorites) {
+        m_listener.listen<Events::GUI::JumpToPC>([this](const auto& event) {
+            m_jumpToPC = event.pc;
+            m_show = true;
+        });
         memset(m_jumpAddressString, 0, sizeof(m_jumpAddressString));
     }
-    void draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
+    bool draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title);
 
     bool& m_show;
 
@@ -58,16 +63,17 @@ class Assembly : private Disasm {
     bool m_delaySlotNotch = true;
     bool m_displayArrowForJumps = false;
     int m_numColumns = 4;
+    int m_region = 0;  // index into c_regions: which physical block the view shows
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
-    FileDialog<> m_symbolsFileDialog = {[]() { return _("Load Symbols"); }};
+    FileDialog<> m_symbolsFileDialog;
     std::vector<std::pair<uint32_t, uint32_t>> m_arrows;
 
     // Disasm section
     void sameLine();
     void comma();
     const uint8_t* ptr(uint32_t addr);
-    void jumpToMemory(uint32_t addr, unsigned size);
+    void jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex = 0);
     uint8_t mem8(uint32_t addr);
     uint16_t mem16(uint32_t addr);
     uint32_t mem32(uint32_t addr);
@@ -105,12 +111,12 @@ class Assembly : private Disasm {
         uint32_t addr;
     };
 
-    std::list<std::string> findSymbol(uint32_t addr);
     std::map<std::string, uint32_t> m_symbolsCache;
-    std::map<uint32_t, std::string> m_elfSymbolsCache;
-    bool m_symbolsCachesValid = false;
+    bool m_symbolsCacheValid = false;
 
-    void rebuildSymbolsCaches();
+    void rebuildSymbolsCache();
+    void addMemoryEditorContext(uint32_t addr, int size);
+    void addMemoryEditorSubMenu(uint32_t addr, int size);
 
     bool m_showSymbols = false;
     std::string m_symbolFilter;

@@ -23,9 +23,11 @@
 
 namespace PCSX {
 
+class GUI;
+
 namespace LuaFFI {
 
-void open_imguiextra(Lua L);
+void open_imguiextra(GUI*, Lua L);
 
 }
 

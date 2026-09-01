@@ -26,17 +26,10 @@ SOFTWARE.
 
 #include "psyqo/ordering-table.hh"
 
-#include <EASTL/algorithm.h>
-
-void psyqo::OrderingTableBase::clear(uint32_t* table, size_t size) {
-    table[0] = 0xffffff;
+void psyqo::OrderingTableBase::clear(psyqo::Fragments::ChainEntry* table, size_t size)
+{
+    table[0].setEndMarker();
     for (size_t i = 1; i <= size; i++) {
-        table[i] = reinterpret_cast<uint32_t>(&table[i - 1]) & 0xffffff;
+        table[i].set(&table[i - 1], 0);
     }
-}
-
-void psyqo::OrderingTableBase::insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize, int32_t z) {
-    z = eastl::clamp(z, int32_t(0), size) + 1;
-    *head = shiftedFragmentSize | table[z];
-    table[z] = reinterpret_cast<uint32_t>(head) & 0xffffff;
 }

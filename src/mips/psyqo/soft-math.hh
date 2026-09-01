@@ -26,6 +26,7 @@ SOFTWARE.
 
 #pragma once
 
+#include "fixed-point.hh"
 #include "psyqo/matrix.hh"
 #include "psyqo/trigonometry.hh"
 #include "psyqo/vector.hh"
@@ -42,7 +43,12 @@ enum class Axis { X, Y, Z };
  * @param a The axis to rotate around.
  * @param trig A trigonometry object to use for sine and cosine calculations.
  */
-void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
+void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, const Trig<> &trig);
+[[deprecated("Use the reference version instead")]] static inline void generateRotationMatrix33(Matrix33 *m, Angle t,
+                                                                                                Axis a,
+                                                                                                const Trig<> *trig) {
+    generateRotationMatrix33(m, t, a, *trig);
+}
 
 /**
  * @brief Generate a rotation matrix for a given angle and axis.
@@ -51,7 +57,11 @@ void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
  * @param trig A trigonometry object to use for sine and cosine calculations.
  * @return Matrix33 The rotation matrix.
  */
-[[nodiscard]] Matrix33 generateRotationMatrix33(Angle t, Axis a, Trig<> *trig);
+[[nodiscard]] Matrix33 generateRotationMatrix33(Angle t, Axis a, const Trig<> &trig);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline Matrix33 generateRotationMatrix33(
+    Angle t, Axis a, const Trig<> *trig) {
+    return generateRotationMatrix33(t, a, *trig);
+}
 
 /**
  * @brief Multiply two 3x3 matrices.
@@ -60,16 +70,25 @@ void generateRotationMatrix33(Matrix33 *m, Angle t, Axis a, Trig<> *trig);
  * @param m2 The second matrix.
  * @param out The matrix to store the result in. May be the same as m1 or m2.
  */
-void multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2, Matrix33 *out);
+void multiplyMatrix33(const Matrix33 &m1, const Matrix33 &m2, Matrix33 *out);
+[[deprecated("Use the reference version instead")]] static inline void multiplyMatrix33(const Matrix33 *m1,
+                                                                                        const Matrix33 *m2,
+                                                                                        Matrix33 *out) {
+    multiplyMatrix33(*m1, *m2, out);
+}
 
 /**
  * @brief Multiply two 3x3 matrices.
  *
  * @param m1 The first matrix.
  * @param m2 The second matrix.
- * @param out The matrix to store the result in. May be the same as m1 or m2.
+ * @return Matrix33 The result of the multiplication.
  */
-[[nodiscard]] Matrix33 multiplyMatrix33(const Matrix33 *m1, const Matrix33 *m2);
+[[nodiscard]] Matrix33 multiplyMatrix33(const Matrix33 &m1, const Matrix33 &m2);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline Matrix33 multiplyMatrix33(
+    const Matrix33 *m1, const Matrix33 *m2) {
+    return multiplyMatrix33(*m1, *m2);
+}
 
 /**
  * @brief Scale a 3x3 matrix by a scalar.
@@ -86,7 +105,11 @@ void scaleMatrix33(Matrix33 *m, FixedPoint<> s);
  * @param v The vector.
  * @param out The vector to store the result in. May be the same as v.
  */
-void matrixVecMul3(const Matrix33 *m, const Vec3 *v, Vec3 *out);
+void matrixVecMul3(const Matrix33 &m, const Vec3 &v, Vec3 *out);
+[[deprecated("Use the reference version instead")]] static inline void matrixVecMul3(const Matrix33 *m, const Vec3 *v,
+                                                                                     Vec3 *out) {
+    matrixVecMul3(*m, *v, out);
+}
 
 /**
  * @brief Multiply a 3x3 matrix by a 3D vector, returning only the x and y components.
@@ -95,7 +118,11 @@ void matrixVecMul3(const Matrix33 *m, const Vec3 *v, Vec3 *out);
  * @param v The vector.
  * @param out The vector to store the result in.
  */
-void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v, Vec2 *out);
+void matrixVecMul3xy(const Matrix33 &m, const Vec3 &v, Vec2 *out);
+[[deprecated("Use the reference version instead")]] static inline void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v,
+                                                                                       Vec2 *out) {
+    matrixVecMul3xy(*m, *v, out);
+}
 
 /**
  * @brief Multiply a 3x3 matrix by a 3D vector, returning only the z component.
@@ -104,7 +131,11 @@ void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v, Vec2 *out);
  * @param v The vector.
  * @return FixedPoint<> The z component of the result.
  */
-[[nodiscard]] FixedPoint<> matrixVecMul3z(const Matrix33 *m, const Vec3 *v);
+[[nodiscard]] FixedPoint<> matrixVecMul3z(const Matrix33 &m, const Vec3 &v);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline FixedPoint<> matrixVecMul3z(
+    const Matrix33 *m, const Vec3 *v) {
+    return matrixVecMul3z(*m, *v);
+}
 
 /**
  * @brief Compute the cross product of two 3D vectors.
@@ -113,7 +144,11 @@ void matrixVecMul3xy(const Matrix33 *m, const Vec3 *v, Vec2 *out);
  * @param v2 The second vector.
  * @param out The vector to store the result in. May be the same as v1 or v2.
  */
-void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
+void crossProductVec3(const Vec3 &v1, const Vec3 &v2, Vec3 *out);
+[[deprecated("Use the reference version instead")]] static inline void crossProductVec3(const Vec3 *v1, const Vec3 *v2,
+                                                                                        Vec3 *out) {
+    crossProductVec3(*v1, *v2, out);
+}
 
 /**
  * @brief Compute the cross product of two 3D vectors.
@@ -122,7 +157,11 @@ void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
  * @param v2 The second vector.
  * @return Vec3 The cross product.
  */
-[[nodiscard]] Vec3 crossProductVec3(const Vec3 *v1, const Vec3 *v2);
+[[nodiscard]] Vec3 crossProductVec3(const Vec3 &v1, const Vec3 &v2);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline Vec3 crossProductVec3(const Vec3 *v1,
+                                                                                                      const Vec3 *v2) {
+    return crossProductVec3(*v1, *v2);
+}
 
 /**
  * @brief Compute the determinant of a 3x3 matrix.
@@ -130,7 +169,11 @@ void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
  * @param m The matrix.
  * @return FixedPoint<> The determinant.
  */
-[[nodiscard]] FixedPoint<> matrixDeterminant3(const Matrix33 *m);
+[[nodiscard]] FixedPoint<> matrixDeterminant3(const Matrix33 &m);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline FixedPoint<> matrixDeterminant3(
+    const Matrix33 *m) {
+    return matrixDeterminant3(*m);
+}
 
 /** @brief Computes the square root of a fixed point number, given an approximative hint.
  *
@@ -172,7 +215,10 @@ void crossProductVec3(const Vec3 *v1, const Vec3 *v2, Vec3 *out);
  * @param v The vector.
  * @return psyqo::FixedPoint<> The norm.
  */
-[[nodiscard]] FixedPoint<> normOfVec3(const Vec3 *v);
+[[nodiscard]] FixedPoint<> normOfVec3(const Vec3 &v);
+[[nodiscard]] [[deprecated("Use the reference version instead")]] static inline FixedPoint<> normOfVec3(const Vec3 *v) {
+    return normOfVec3(*v);
+}
 
 /**
  * @brief Normalizes a 3D vector.

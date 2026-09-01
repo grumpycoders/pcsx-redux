@@ -26,7 +26,5 @@ SOFTWARE.
 
 #pragma once
 
-int checkExp1PreHookLicense();
 void runExp1PreHook();
-int checkExp1PostHookLicense();
 void runExp1PostHook();

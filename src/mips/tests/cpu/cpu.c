@@ -83,6 +83,18 @@ CESTER_TEST(cpu_LWR_LWL_delayed, cpu_tests,
     cester_assert_uint_eq(0x88112233, out);
 )
 
+CESTER_TEST(cpu_LWR_LWL_load_different, cpu_tests,
+    uint32_t buff[3] = {0x11223344, 0x55667788, 0xaabbccdd};
+    uint32_t out = cpu_LWR_LWL_load_different(buff, 0xeeffeffe);
+    cester_assert_uint_eq(0x88556677, out);
+)
+
+CESTER_TEST(cpu_LW_LWR, cpu_tests,
+    uint32_t buff[3] = {0x11223344, 0x55667788, 0xaabbccdd};
+    uint32_t out = cpu_LW_LWR(buff, 0xeeffeffe);
+    cester_assert_uint_eq(0xaa112233, out);
+)
+
 CESTER_TEST(cpu_delayed_load, cpu_tests,
     uint32_t buff[1] = {1};
     // As lw has a delayed load, the old value of the loaded
@@ -100,8 +112,17 @@ CESTER_TEST(cpu_delayed_load_cancelled, cpu_tests,
     // move into the same register, the delayed load is
     // cancelled, and the register will contain the new
     // value
-    uint32_t out = cpu_delayed_load(buff, 0);
+    uint32_t out = cpu_delayed_load_cancelled(buff, 0);
     cester_assert_uint_eq(0, out);
+)
+
+CESTER_MAYBE_TEST(cpu_delayed_load_load, cpu_tests,
+    uint32_t buff[2] = {1, 2};
+    // The above becomes complicated once you have two
+    // lw instructions in a row loading the same register
+    uint64_t out = cpu_delayed_load_load(buff, 4);
+    out = ((out >> 16) | out) & 0xffffffff;
+    cester_assert_uint_eq(0x00020004, out);
 )
 
 CESTER_MAYBE_TEST(cpu_BRANCH_BRANCH_slot, cpu_tests,

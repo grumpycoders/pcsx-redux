@@ -29,6 +29,8 @@ SOFTWARE.
 #include <stdarg.h>
 #include <stddef.h>
 
+#include "common/syscalls/syscalls.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,12 +53,19 @@ extern "C" {
  * %z will display a string, and immediately dispose of it using
  * `psyqo_free()`. %r will display a number as an English ordinal.
  * For example, 1 will be displayed as "1st", 2 as "2nd", etc...
- * Finally, one difference with normal printf, is that %#x will
- * output "0x0" instead of "0" for the value 0. Note that floating
- * point formatting will not be available. The callback function will
- * be called with the string to print, and the length of the string. The
- * third argument will be the opaque pointer passed through.
- * The `xprintf` variant is available.
+ * Another difference with normal printf, is that %#x will output
+ * "0x0" instead of "0" for the value 0. Last but not least, the %f, %e,
+ * and %a format specifiers are expecting fixed point values. The scale
+ * of the fixed point value will default to 4096 for %f and %e, and 1024
+ * for %a, making it suitable for displaying angles. The scale can be
+ * specified using the '/' sign. For instance, "%8.3/255f" will render
+ * a fixed point number using 8 characters, with 3 decimal places, and
+ * a scale of 255. The %f and %a format specifiers will render the fixed
+ * point number as a signed number, while the %e format specifier will
+ * render it as an unsigned one. Finally, the callback function will be
+ * called with the string to print, and the length of the string. The
+ * third argument will be the opaque pointer passed through. The `xprintf`
+ * variant is also available.
  *
  * @param func The callback function to use.
  * @param opaque The opaque pointer to pass to the callback.
@@ -139,6 +148,16 @@ static inline int asprintf(char **out, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int ret = vasprintf(out, fmt, ap);
+    va_end(ap);
+    return ret;
+}
+
+static inline void writeToTTYCallback(const char *str, int len, void *opaque) { syscall_write(1, str, len); }
+static inline int vprintf(const char *fmt, va_list ap) { return vxprintf(writeToTTYCallback, NULL, fmt, ap); }
+static inline int printf(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int ret = vprintf(fmt, ap);
     va_end(ap);
     return ret;
 }

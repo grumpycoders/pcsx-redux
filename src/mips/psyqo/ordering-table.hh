@@ -26,18 +26,20 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/algorithm.h>
 #include <stdint.h>
 
 #include "psyqo/fragment-concept.hh"
+#include "psyqo/fragments.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
 class GPU;
 
 class OrderingTableBase {
-  protected:
-    static void clear(uint32_t* table, size_t size);
-    static void insert(uint32_t* table, int32_t size, uint32_t* head, uint32_t shiftedFragmentSize, int32_t z);
+  public:
+    static void clear(psyqo::Fragments::ChainEntry* table, size_t size);
 };
 
 /**
@@ -54,8 +56,8 @@ class OrderingTableBase {
  * @tparam N The number of buckets in the ordering table. The larger the number,
  * the more precise the sorting will be, but the more memory will be used.
  */
-template <size_t N = 4096>
-class OrderingTable : private OrderingTableBase {
+template <size_t N = 4096, Safe safety = Safe::Yes>
+class OrderingTable : public OrderingTableBase {
   public:
     OrderingTable() { clear(); }
 
@@ -74,18 +76,31 @@ class OrderingTable : private OrderingTableBase {
      *
      * @details This function inserts a fragment into the ordering table. The fragment
      * will be inserted into the bucket corresponding to its Z value. Any value outside
-     * of the range [0, N - 1] will be clamped to the nearest valid value.
+     * of the range [0, N - 1] will be clamped to the nearest valid value when `safety`
+     * is set to `Safe::Yes`, which is the default.
      *
      * @param frag The fragment to insert.
      * @param z The Z value of the fragment.
      */
     template <Fragment Frag>
     void insert(Frag& frag, int32_t z) {
-        OrderingTableBase::insert(m_table, N, &frag.head, uint32_t(frag.getActualFragmentSize() << 24), z);
+        // TODO: cater for big packets
+        auto* table = m_table + 1;
+        if constexpr (safety == Safe::Yes) {
+            z = eastl::clamp(z, int32_t(0), int32_t(N - 1));
+        }
+#ifdef PS1_PC_PORT
+        frag.set(table[z].next, frag.getActualFragmentSize());
+        table[z].set(&frag, 0);
+#else
+        frag.set(&table[z], frag.getActualFragmentSize());
+        table[z].head = reinterpret_cast<uint32_t>(&frag) & 0xffffff;
+#endif
     }
 
+    // NOTE: can't use from other classes (PCGPU) otherwise
+    psyqo::Fragments::ChainEntry m_table[N + 1];
   private:
-    uint32_t m_table[N + 1];
     friend class GPU;
 };
 

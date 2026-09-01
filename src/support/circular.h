@@ -38,6 +38,8 @@ namespace PCSX {
 
 template <typename T, size_t BS = 1024>
 class Circular {
+    using ms = std::chrono::milliseconds;
+
   public:
     static constexpr size_t BUFFER_SIZE = BS;
     size_t available() {
@@ -48,13 +50,12 @@ class Circular {
         std::unique_lock<std::mutex> l(m_mu);
         return bufferedLocked();
     }
-    bool enqueue(const T* data, size_t N) {
+    bool enqueue(const T* data, size_t N, ms maxWait = ms{200}) {
         if (N > BUFFER_SIZE) {
             throw std::runtime_error("Trying to enqueue too much data");
         }
         std::unique_lock<std::mutex> l(m_mu);
-        using namespace std::chrono_literals;
-        bool safe = m_cv.wait_for(l, 200ms, [this, N]() -> bool { return N < availableLocked(); });
+        bool safe = m_cv.wait_for(l, maxWait, [this, N]() -> bool { return N < availableLocked(); });
         if (safe) enqueueSafe(data, N);
         return safe;
     }

@@ -4,8 +4,6 @@
 
 #include "lua.hpp"
 
-#define ENABLE_IM_LUA_END_STACK
-
 #ifdef ENABLE_IM_LUA_END_STACK
 // Stack for imgui begin and end
 std::deque<int> endStack;

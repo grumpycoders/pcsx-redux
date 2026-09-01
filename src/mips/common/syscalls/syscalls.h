@@ -36,6 +36,7 @@ SOFTWARE.
 
 struct JmpBuf;
 
+#ifndef PS1_PC_PORT
 static __attribute__((always_inline)) int enterCriticalSection() {
     register int n asm("a0") = 1;
     register int r asm("v0");
@@ -57,10 +58,16 @@ static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t addre
 }
 
 /* A0 table */
-static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf *buf) {
+static __attribute__((always_inline)) size_t syscall_write(int fd, const void *buf, size_t size) {
+    register int n asm("t1") = 0x03;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((size_t(*)(int, const void *, size_t))0xa0)(fd, buf, size);
+}
+
+static __attribute__((always_inline, returns_twice)) int syscall_setjmp(struct JmpBuf *buf) {
     register int n asm("t1") = 0x13;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((int (*)(struct JmpBuf * buf))0xa0)(buf);
+    return ((int (*)(struct JmpBuf *buf))0xa0)(buf);
 }
 
 static __attribute__((always_inline, noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
@@ -177,6 +184,12 @@ static __attribute__((always_inline)) void syscall__exit(int code) {
     register int n asm("t1") = 0x3a;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)(int))0xa0)(code);
+}
+
+static __attribute__((always_inline)) void syscall_puts(const char *msg) {
+    register int n asm("t1") = 0x3e;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(const char *))0xa0)(msg);
 }
 
 // doing this one in raw inline assembly would prove tricky,
@@ -440,12 +453,6 @@ static __attribute__((always_inline)) void syscall_putchar(int c) {
     ((void (*)(int))0xb0)(c);
 }
 
-static __attribute__((always_inline)) void syscall_puts(const char *msg) {
-    register int n asm("t1") = 0x3f;
-    __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void (*)(const char *))0xb0)(msg);
-}
-
 static __attribute__((always_inline)) int syscall_addDevice(const struct Device *device) {
     register int n asm("t1") = 0x47;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -592,3 +599,4 @@ static __attribute__((always_inline)) int syscall_getDeviceStatus() {
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)())0xc0)();
 }
+#endif // #ifdef PS1_PC_PORT

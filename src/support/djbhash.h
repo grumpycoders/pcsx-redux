@@ -32,19 +32,19 @@ SOFTWARE.
 
 namespace PCSX {
 
-struct djbHash {
+struct djb {
   private:
-    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
-        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
+    static inline constexpr uint64_t process(uint64_t hash, const char str[], size_t n) {
+        return n ? process(((hash << 5) + hash) ^ static_cast<uint8_t>(str[0]), str + 1, n - 1) : hash;
     }
 
   public:
     template <size_t S>
     static inline constexpr uint64_t ctHash(const char (&str)[S]) {
-        return djbProcess(5381, str, S - 1);
+        return process(5381, str, S - 1);
     }
-    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
-    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
+    static inline constexpr uint64_t hash(const char *str, size_t n) { return process(5381, str, n); }
+    static inline uint64_t hash(const std::string &str) { return process(5381, str.c_str(), str.length()); }
 };
 
 }  // namespace PCSX

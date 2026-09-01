@@ -11,6 +11,8 @@ endif
 
 SRCS = \
 ../common/crt0/crt0.s \
+../common/crt0/memory-c.c \
+../common/crt0/memory-s.s \
 ../common/syscalls/printf.s \
 blip.hit \
 cdrom.c \
@@ -25,7 +27,7 @@ spu.c \
 include ../common.mk
 
 shell_data.o: shell.bin
-	$(PREFIX)-objcopy -I binary --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips $< $@
+	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips $< $@
 
 blip.o: blip.hit
-	$(PREFIX)-objcopy -I binary --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips $< $@
+	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips $< $@

@@ -206,8 +206,8 @@ function compressFont(fontfile)
             local size = #lut
             tree.leaf = size == 0 and 0 or -size
             lut[size + 1] = tree.byte
+            tree.lut = size + 1
             leaves[tree.byte] = tree
-            tree.byte = nil
             return
         end
         tree.index = index
@@ -232,7 +232,7 @@ function compressFont(fontfile)
         if tree.left then
             local index = tree.left.index
             if index then
-                btree[tree.index * 2 + 1] = index * 2
+                btree[tree.index * 2 + 1] = index * 2 + 2
                 buildBinaryTree(tree.left)
             else
                 btree[tree.index * 2 + 1] = tree.left.leaf
@@ -241,7 +241,7 @@ function compressFont(fontfile)
         if tree.right then
             local index = tree.right.index
             if index then
-                btree[tree.index * 2 + 2] = index * 2
+                btree[tree.index * 2 + 2] = index * 2 + 2
                 buildBinaryTree(tree.right)
             else
                 btree[tree.index * 2 + 2] = tree.right.leaf
@@ -252,17 +252,18 @@ function compressFont(fontfile)
 
     -- last step: build the compressed bitstream
     local bitstream = {}
-    local bitbucket = 1
+    local bitbucket = 65536
     local function pushBit(bit)
-        bitbucket = bitbucket * 2 + bit
-        if bitbucket >= 256 then
+        bitbucket = bitbucket / 2 + bit * 128
+        if bitbucket < 512 then
             bitstream[#bitstream + 1] = bitbucket - 256
-            bitbucket = 1
+            bitbucket = 65536
         end
     end
     local function encode(byte)
         local function buildEncoding(node)
-            if node.parent then buildEncoding(node.parent) end
+            if not node.parent then return end
+            buildEncoding(node.parent)
             pushBit(node.isLeft and 0 or 1)
         end
         buildEncoding(leaves[byte])
@@ -270,7 +271,10 @@ function compressFont(fontfile)
 
     for _, v in ipairs(d) do encode(v) end
 
-    if bitbucket ~= 1 then bitstream[#bitstream + 1] = bitbucket end
+    if bitbucket ~= 65536 then
+        while bitbucket >= 512 do bitbucket = bitbucket / 2 end
+        bitstream[#bitstream + 1] = bitbucket - 256
+    end
 
     -- all the compression is done, dump everything
 

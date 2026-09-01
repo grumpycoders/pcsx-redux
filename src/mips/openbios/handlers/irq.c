@@ -77,48 +77,48 @@ static __attribute__((section(".ramtext"))) int IRQVerifier(void) {
     // guaranteed to not lose any IRQs.
     if ((IMASK & IREG & IRQ_CDROM) != 0) {
         deliverEvent(EVENT_CDROM, 0x1000);
-        if (s_IRQsAutoAck[IRQ_CDROM]) IREG &= ~IRQ_CDROM;
+        if (s_IRQsAutoAck[IRQ_CDROM_NUMBER]) IREG &= ~IRQ_CDROM;
     }
     if ((IMASK & IREG & IRQ_SPU) != 0) {
         deliverEvent(EVENT_SPU, 0x1000);
-        if (s_IRQsAutoAck[IRQ_SPU]) IREG &= ~IRQ_SPU;
+        if (s_IRQsAutoAck[IRQ_SPU_NUMBER]) IREG &= ~IRQ_SPU;
     }
     if ((IMASK & IREG & IRQ_GPU) != 0) {
         deliverEvent(EVENT_GPU, 0x1000);
-        if (s_IRQsAutoAck[IRQ_GPU]) IREG &= ~IRQ_GPU;
+        if (s_IRQsAutoAck[IRQ_GPU_NUMBER]) IREG &= ~IRQ_GPU;
     }
     if ((IMASK & IREG & IRQ_PIO) != 0) {
         deliverEvent(EVENT_PIO, 0x1000);
-        if (s_IRQsAutoAck[IRQ_PIO]) IREG &= ~IRQ_PIO;
+        if (s_IRQsAutoAck[IRQ_PIO_NUMBER]) IREG &= ~IRQ_PIO;
     }
     if ((IMASK & IREG & IRQ_SIO) != 0) {
         deliverEvent(EVENT_SIO, 0x1000);
-        if (s_IRQsAutoAck[IRQ_SIO]) IREG &= ~IRQ_SIO;
+        if (s_IRQsAutoAck[IRQ_SIO_NUMBER]) IREG &= ~IRQ_SIO;
     }
     if ((IMASK & IREG & IRQ_VBLANK) != 0) {
         deliverEvent(EVENT_VBLANK, 0x1000);
-        if (s_IRQsAutoAck[IRQ_VBLANK]) IREG &= ~IRQ_VBLANK;
+        if (s_IRQsAutoAck[IRQ_VBLANK_NUMBER]) IREG &= ~IRQ_VBLANK;
     }
     if ((IMASK & IREG & IRQ_TIMER0) != 0) {
         deliverEvent(EVENT_RTC0, 0x1000);
-        if (s_IRQsAutoAck[IRQ_TIMER0]) IREG &= ~IRQ_TIMER0;
+        if (s_IRQsAutoAck[IRQ_TIMER0_NUMBER]) IREG &= ~IRQ_TIMER0;
     }
     if ((IMASK & IREG & IRQ_TIMER1) != 0) {
         deliverEvent(EVENT_RTC1, 0x1000);
-        if (s_IRQsAutoAck[IRQ_TIMER1]) IREG &= ~IRQ_TIMER1;
+        if (s_IRQsAutoAck[IRQ_TIMER1_NUMBER]) IREG &= ~IRQ_TIMER1;
     }
     if ((IMASK & IREG & IRQ_TIMER2) != 0) {
         // Keeping this copy/paste mistake this way to avoid breaking stuff.
         deliverEvent(EVENT_RTC1, 0x1000);
-        if (s_IRQsAutoAck[IRQ_TIMER2]) IREG &= ~IRQ_TIMER2;
+        if (s_IRQsAutoAck[IRQ_TIMER2_NUMBER]) IREG &= ~IRQ_TIMER2;
     }
     if ((IMASK & IREG & IRQ_CONTROLLER) != 0) {
         deliverEvent(EVENT_CONTROLLER, 0x1000);
-        if (s_IRQsAutoAck[IRQ_CONTROLLER]) IREG &= ~IRQ_CONTROLLER;
+        if (s_IRQsAutoAck[IRQ_CONTROLLER_NUMBER]) IREG &= ~IRQ_CONTROLLER;
     }
     if ((IMASK & IREG & IRQ_DMA) != 0) {
         deliverEvent(EVENT_DMA, 0x1000);
-        if (s_IRQsAutoAck[IRQ_DMA]) IREG &= ~IRQ_DMA;
+        if (s_IRQsAutoAck[IRQ_DMA_NUMBER]) IREG &= ~IRQ_DMA;
     }
     return 0;
 }

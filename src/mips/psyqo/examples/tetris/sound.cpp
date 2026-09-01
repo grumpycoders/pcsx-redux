@@ -30,13 +30,9 @@ extern "C" {
 #include "modplayer/modplayer.h"
 }
 
-void Sound::playClick() {
-    MOD_PlaySoundEffect(4, 28, 30, m_volume);
-}
+void Sound::playClick() { MOD_PlaySoundEffect(4, 28, 30, m_volume); }
 
-void Sound::playFlip(int pitch) {
-    MOD_PlaySoundEffect(5, 27, 30 + pitch, m_volume);
-}
+void Sound::playFlip(int pitch) { MOD_PlaySoundEffect(5, 27, 30 + pitch, m_volume); }
 
 void Sound::playDrop(unsigned int volume) {
     auto vol = m_volume;

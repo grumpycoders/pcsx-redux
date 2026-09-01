@@ -73,8 +73,8 @@ class BezierScene final : public psyqo::Scene {
         // point, which is always the end point of the curve.
         for (unsigned i = 0; i < 20; i++) {
             m_quads[i].setColor({.r = 0xff, .g = 0x80, .b = 0x33});
-            m_quads[i].pointC = psyqo::Vertex{{ .x = int16_t(i * 32), .y = 480}};
-            m_quads[i].pointD = psyqo::Vertex{{ .x = int16_t(i * 32 + 32), .y = 480}};
+            m_quads[i].pointC = psyqo::Vertex{{.x = int16_t(i * 32), .y = 480}};
+            m_quads[i].pointD = psyqo::Vertex{{.x = int16_t(i * 32 + 32), .y = 480}};
         }
         m_quads[19].pointB = b;
     }
@@ -147,7 +147,6 @@ void BezierScene::frame() {
 
     // Draw the Quad fan.
     gpu().sendPrimitive(m_quads);
-
 
 #ifdef DEBUG_BEZIER
     // Draw the control points.

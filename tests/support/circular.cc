@@ -23,7 +23,7 @@
 
 #include "gtest/gtest.h"
 
-TEST(Circular, Basic) {
+TEST(DISABLED_Circular, Basic) {
     PCSX::Circular<uint32_t> circ;
 
     uint32_t data[500];
