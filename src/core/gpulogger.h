@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <array>
+#include <vector>
 
 #include "core/gpu.h"
 #include "support/eventbus.h"
@@ -36,6 +37,21 @@ class GPULogger;
 
 class GPULogger {
   public:
+    // A rectangle of VRAM to watch. Any logged command whose read or write footprint intersects an
+    // enabled breakpoint pauses the emulator. The footprints come straight from Logged::getVertices,
+    // so this covers primitives, blits, and the palette rows of paletted textures alike.
+    struct VramBreakpoint {
+        union {
+            int raw[4];
+            struct {
+                int x, y, w, h;
+            };
+        } area = {0, 0, 64, 64};
+        bool onRead = false;
+        bool onWrite = true;
+        bool enabled = true;
+    };
+
     GPULogger();
     void clearFrameLog() { m_list.destroyAll(); }
     template <typename T>
@@ -56,10 +72,12 @@ class GPULogger {
   private:
     void startNewFrame();
     void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length);
+    void checkVramBreakpoints(GPU::Logged* node);
 
     EventBus::Listener m_listener;
     bool m_enabled = false;
     bool m_breakOnVSync = false;
+    std::vector<VramBreakpoint> m_vramBreakpoints;
     bool m_hasFramebuffers = false;
     uint64_t m_frameCounter = 0;
     GPU::LoggedList m_list;

@@ -50,6 +50,7 @@ void ps1PackerPack(LuaFile* src, LuaFile* dest, uint32_t addr, uint32_t pc, uint
           struct PS1PackerOptions options);
 uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out);
 uint32_t uclUnpackWrapper(const uint8_t* in, uint32_t inSize, uint8_t* out, uint32_t expectedOutSize);
+uint32_t uclGetOverlapMargin(const uint8_t* src, size_t srcLen, size_t expectedDstLen);
 uint32_t writeUclDecomp(LuaFile* dest);
 
 ]]
@@ -277,6 +278,38 @@ PCSX.Misc.uclUnpack = function(src, decompressedSize, dest)
     end
 
     return retIsDest and dest or outSize
+end
+
+-- Returns the number of bytes of overlap that UCL may read past the end of a compressed buffer.
+-- This is used to determine how much extra space to allocate when decompressing a buffer in-place.
+-- The `src` argument is the compressed buffer (File / string / LuaBuffer / Slice),
+-- and `decompressedSize` is the known final size of the decompressed data.
+-- The return value is the number of bytes of overlap.
+PCSX.Misc.uclGetOverlapMargin = function(src, decompressedSize)
+    if type(decompressedSize) ~= 'number' then
+        error('Expected the decompressed size as the second argument')
+    end
+
+    local srcPtr
+    local srcSize
+    if type(src) == 'table' and src._type == 'File' then
+        src = src:read(src:size())
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'string' then
+        srcPtr = ffi.cast('uint8_t*', src)
+        srcSize = #src
+    elseif Support.isLuaBuffer(src) then
+        srcPtr = ffi.cast('uint8_t*', src.data)
+        srcSize = src.size
+    elseif type(src) == 'table' and src._type == 'Slice' then
+        srcPtr = src.data
+        srcSize = src.size
+    else
+        error('Expected a File object, string, LuaBuffer, or Slice as first argument')
+    end
+
+    return C.uclGetOverlapMargin(srcPtr, srcSize, decompressedSize)
 end
 
 -- )EOF"

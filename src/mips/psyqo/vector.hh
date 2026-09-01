@@ -32,6 +32,14 @@ SOFTWARE.
 #include "psyqo/fixed-point.hh"
 #include "psyqo/primitives/common.hh"
 
+// MSVC and clang-cl target the MSVC ABI, which ignores the standard
+// [[no_unique_address]]; they need the vendor spelling to elide empty members.
+#if __has_cpp_attribute(msvc::no_unique_address)
+#define PSYQO_NO_UNIQUE_ADDR [[msvc::no_unique_address]]
+#else
+#define PSYQO_NO_UNIQUE_ADDR [[no_unique_address]]
+#endif
+
 namespace psyqo {
 
 template <unsigned N, unsigned precisionBits = 12, std::integral T = int32_t>
@@ -40,9 +48,9 @@ struct Vector {
     typedef FixedPoint<precisionBits, T> FixedPointType;
     FixedPoint<precisionBits, T> x, y;
     struct EmptyZ {};
-    [[no_unique_address]] std::conditional_t<(N > 2), FixedPoint<precisionBits, T>, EmptyZ> z;
+    PSYQO_NO_UNIQUE_ADDR std::conditional_t<(N > 2), FixedPoint<precisionBits, T>, EmptyZ> z;
     struct EmptyW {};
-    [[no_unique_address]] std::conditional_t<(N > 3), FixedPoint<precisionBits, T>, EmptyW> w;
+    PSYQO_NO_UNIQUE_ADDR std::conditional_t<(N > 3), FixedPoint<precisionBits, T>, EmptyW> w;
     constexpr FixedPointType& get(unsigned i) {
         if constexpr (N == 2) {
             return (i == 0) ? x : y;

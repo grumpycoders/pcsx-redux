@@ -446,8 +446,8 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
 
     int i, j, xmin, xmax, ymin, ymax;
     int32_t cR1 = 0, cG1 = 0, cB1 = 0;
-    int32_t difR = 0, difG = 0, difB = 0, difR2 = 0, difG2 = 0, difB2 = 0;
-    int32_t difX = 0, difY = 0, difX2 = 0, difY2 = 0;
+    int32_t difR = 0, difG = 0, difB = 0;
+    int32_t difX = 0, difY = 0;
     int32_t posX = 0, posY = 0;
 
     const auto drawX = m_drawX;
@@ -494,44 +494,61 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
         difR = m_deltaRightR;
         difG = m_deltaRightG;
         difB = m_deltaRightB;
-        difR2 = difR << 1;
-        difG2 = difG << 1;
-        difB2 = difB << 1;
     }
 
     if constexpr (HasUV) {
         difX = m_deltaRightU;
-        difX2 = difX << 1;
         difY = m_deltaRightV;
-        difY2 = difY << 1;
     }
+
+    // One scanline-span seed shared by every linearly-interpolated channel:
+    // the affine-UV coordinates and, when gouraud, the R/G/B color channels.
+    // At the integer pixel xmin the value is the channel at the row's
+    // (possibly fractional) left-edge X, stepped up to xmin and rounded with
+    // the constant +0x8000 half-LSB bias:
+    //
+    //   seed = leftVal + (((xmin << 16) - m_leftX) * dif >> 16) + 0x8000
+    //
+    // Both corrections are hardware-verified and identical for UV and color:
+    //   - The ((xmin << 16) - m_leftX) step covers the sub-pixel gap between
+    //     the row's fractional left edge and the first integer pixel. It is
+    //     ~0 on an axis-aligned (vertical) left edge - hence invisible to the
+    //     axis-aligned phase-1/7 suites - but a 1-LSB deficit on a slanted
+    //     edge if dropped (HW_VERIFIED: affine UV phase-17..20, slanted
+    //     gouraud phase-22).
+    //   - The +0x8000 rounds to nearest: the texture-center bias for UV, the
+    //     8-bit-accumulator round for color. phase-7 cannot constrain the
+    //     color case because its readback truncates 8-bit -> 5-bit (>>3),
+    //     absorbing the 8-bit +/-1 except at a multiple of 8; the dense
+    //     slanted phase-22 probes pin it on.
+    //
+    // Coalescing UV and color through this one seed is deliberate: the
+    // slanted-gouraud 1-LSB bug fixed just before this refactor was the color
+    // seed having lost this exact correction while the UV seed kept it.
+    // Sharing the seed makes that divergence impossible.
+    const auto seedSpan = [&](int32_t leftVal, int32_t dif) -> int32_t {
+        return leftVal + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * dif) >> 16) + 0x8000;
+    };
 
     const auto beginSpan = [&]() {
         if constexpr (HasUV) {
-            // Hardware affine UV sampler model (phase-17/18/19/20 verified
-            // on SCPH-5501): at integer pixel x, the sampled texel is
-            //   floor((accum_16_16 + 0x8000) >> 16)
-            // where accum_16_16 is the truncated 16.16 fixed-point walker
-            // output. Two corrections vs raw m_leftU/m_leftV are needed:
-            //   1. Step the walker from m_leftX (the row's left-edge X in
-            //      16.16, possibly fractional) up to the integer xmin: add
-            //      ((xmin << 16) - m_leftX) * difX / 0x10000.
-            //   2. Apply the constant +0x8000 half-LSB bias in UV space
-            //      (NOT scaled by difX - the bias is invariant under
-            //      stride magnitude; phase-18 closed that question).
-            // The same formula applies to flat and gouraud shading; the
-            // walker state (m_leftU, m_leftX, difX) is identical.
-            posX = m_leftU + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difX) >> 16) + 0x8000;
-            posY = m_leftV + (int32_t)((((int64_t)((int32_t)xmin << 16) - m_leftX) * difY) >> 16) + 0x8000;
+            posX = seedSpan(m_leftU, difX);
+            posY = seedSpan(m_leftV, difY);
         }
         if constexpr (Shading == GPU::Shading::Gouraud) {
-            cR1 = m_leftR;
-            cG1 = m_leftG;
-            cB1 = m_leftB;
+            cR1 = seedSpan(m_leftR, difR);
+            cG1 = seedSpan(m_leftG, difG);
+            cB1 = seedSpan(m_leftB, difB);
         }
     };
 
-    const auto skipLeftClip = [&](int pixels) {
+    // Advance every active span channel by `pixels`: the affine-UV
+    // coordinates and, when gouraud, the R/G/B color. Used both to skip the
+    // left-clipped pixels and to step the per-pixel scanline walk - pixels=1
+    // for the 1-wide body, pixels=2 for the 2-wide unrolled body (2 * dif
+    // folds to dif << 1, the same arithmetic the old difX2/difR2 precompute
+    // did).
+    const auto advanceSpan = [&](int pixels) {
         if constexpr (HasUV) {
             posX += pixels * difX;
             posY += pixels * difY;
@@ -555,7 +572,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                 if (xmin < drawX) {
                     j = drawX - xmin;
                     xmin = drawX;
-                    skipLeftClip(j);
+                    advanceSpan(j);
                 }
 
                 for (j = xmin; j < xmax; j += 2) {
@@ -567,22 +584,15 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                             PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid>::packed(
                                 rs, j, i, sampled, (cB1 >> 16) | ((cB1 + difB) & 0xff0000),
                                 (cG1 >> 16) | ((cG1 + difG) & 0xff0000), (cR1 >> 16) | ((cR1 + difR) & 0xff0000));
-                            cR1 += difR2;
-                            cG1 += difG2;
-                            cB1 += difB2;
                         }
-                        posX += difX2;
-                        posY += difY2;
                     } else if constexpr (Shading == GPU::Shading::Flat) {
                         PixelWriter<false, GPU::Shading::Flat, WriteMode::Solid>::packed(rs, j, i, lcolor);
                     } else {
                         const uint32_t packedColor =
                             PCSX::SoftGPU::Channel555::fromHighAlignedRGBPair(cR1, cG1, cB1, difR, difG, difB);
                         PixelWriter<false, GPU::Shading::Gouraud, WriteMode::Solid>::packed(rs, j, i, packedColor);
-                        cR1 += difR2;
-                        cG1 += difG2;
-                        cB1 += difB2;
                     }
+                    advanceSpan(2);
                 }
                 if (j == xmax) {
                     if constexpr (HasUV) {
@@ -617,7 +627,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
             if (xmin < drawX) {
                 j = drawX - xmin;
                 xmin = drawX;
-                skipLeftClip(j);
+                advanceSpan(j);
             }
 
             if constexpr (Shading == GPU::Shading::Flat) {
@@ -625,11 +635,10 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                     if constexpr (HasUV) {
                         const uint32_t sampled = Sampler<Tex>::packed(rs, yAdj, posX, posY, difX, difY);
                         PixelWriter<true, GPU::Shading::Flat, WriteMode::Default>::packed(rs, j, i, sampled);
-                        posX += difX2;
-                        posY += difY2;
                     } else {
                         PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::packed(rs, j, i, lcolor);
                     }
+                    advanceSpan(2);
                 }
                 if (j == xmax) {
                     if constexpr (HasUV) {
@@ -650,8 +659,6 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                             PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default>::scalar(
                                 rs, j, i, sampled, (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                         }
-                        posX += difX;
-                        posY += difY;
                     } else {
                         if (m_ditherMode) {
                             getShadeTransColDither<useCachedDither>(&vram16[(i << 10) + j], (cB1 >> 16), (cG1 >> 16),
@@ -661,9 +668,7 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                                 rs, j, i, PCSX::SoftGPU::Channel555::fromHighAlignedRGB(cR1, cG1, cB1));
                         }
                     }
-                    cR1 += difR;
-                    cG1 += difG;
-                    cB1 += difB;
+                    advanceSpan(1);
                 }
             }
         }
