@@ -250,7 +250,7 @@ int pcsxMain(int argc, char **argv) {
         auto argPath1 = args.get<std::string>("memcard1");
         auto argPath2 = args.get<std::string>("memcard2");
         if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>() = argPath1.value();
-        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath1.value();
+        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath2.value();
         PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 

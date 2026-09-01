@@ -87,11 +87,21 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
 
 # Ensure all files are always cleaned up.
+CLEANSRCS = \
+boot/psx.s \
+boot/system573.s \
+boot/zn1.s \
+boot/zn2.s \
+\
+font1.o \
+font2.o \
+./psexe_data.o \
+
 ifeq ($(MAKECMDGOALS),clean)
-SRCS += boot/psx.s boot/system573.s boot/zn.s font1.o font2.o ./psexe_data.o
+SRCS += $(CLEANSRCS)
 endif
 ifeq ($(MAKECMDGOALS),deepclean)
-SRCS += boot/psx.s boot/system573.s boot/zn.s font1.o font2.o ./psexe_data.o
+SRCS += $(CLEANSRCS)
 endif
 
 CPPFLAGS =
@@ -102,8 +112,10 @@ BOOT = rom
 BOOT_MODE = psexe
 ifeq ($(BOARD),system573)
 CPPFLAGS += -DOPENBIOS_BOARD_SYS573
-else ifeq ($(BOARD),zn)
-CPPFLAGS += -DOPENBIOS_BOARD_ZN
+else ifeq ($(BOARD),zn1)
+CPPFLAGS += -DOPENBIOS_BOARD_ZN1
+else ifeq ($(BOARD),zn2)
+CPPFLAGS += -DOPENBIOS_BOARD_ZN2
 endif
 endif
 

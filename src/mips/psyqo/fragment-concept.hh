@@ -49,10 +49,12 @@ struct has_explicit_copy_constructor<
 
 template <typename Frag>
 concept Fragment = requires(Frag frag) {
+#ifndef PS1_PC_PORT
     { (alignof(Frag) & 3) == 0 };
     { (sizeof(Frag) & 3) == 0 };
     { (sizeof(frag.head)) == 4 };
     { ((offsetof(Frag, head)) & 3) == 0 };
+#endif
     // Can't seem to make this work with variadic templated constructors
     // { has_explicit_copy_constructor<Frag>() } -> std::convertible_to<std::true_type>;
     { frag.getActualFragmentSize() } -> std::convertible_to<size_t>;

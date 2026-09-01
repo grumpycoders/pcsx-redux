@@ -30,6 +30,7 @@ SOFTWARE.
 #include "psyqo/hardware/cpu.hh"
 #include "psyqo/hardware/sio.hh"
 #include "psyqo/kernel.hh"
+#include "psyqo/sio0-bus.hh"
 #include "psyqo/utility-polyfill.h"
 
 using namespace psyqo::Hardware;
@@ -163,6 +164,11 @@ inline uint8_t psyqo::AdvancedPad::transceive(uint8_t dataOut) {
 }
 
 void psyqo::AdvancedPad::readPad() {
+    // The memory card and the pad share the SIO0 bus. While a card transaction
+    // owns the bus, stand down entirely: touching SIO0 now would corrupt the
+    // in-flight card transfer. We resume polling once the card releases it.
+    if (SIO0Bus::owned()) return;
+
     uint8_t dataIn, dataOut;
     uint8_t portDevType[2] = {PadType::None, PadType::None};
 

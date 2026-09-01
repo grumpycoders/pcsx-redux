@@ -54,12 +54,20 @@ static constexpr bool debugMode = true;
 
 namespace Internal {
 static inline uint32_t getCop0Status() {
+#ifndef PS1_PC_PORT
     uint32_t r;
     asm("mfc0 %0, $12 ; nop" : "=r"(r));
     return r;
+#else
+    return 0;
+#endif
 }
 
-static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+static inline void setCop0Status(uint32_t r) {
+#ifndef PS1_PC_PORT
+    asm("mtc0 %0, $12 ; nop" : : "r"(r));
+#endif
+}
 
 [[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
 [[noreturn]] void abort();
@@ -72,14 +80,22 @@ static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(
  * @details This function is technically equivalent to `enterCriticalSection`.
  * @return false if the critical section was already entered, true otherwise.
  */
-static inline void fastEnterCriticalSection() { asm volatile("mtc0 %0, $12 ; nop ; nop" : : "r"(0x40000000)); }
+static inline void fastEnterCriticalSection() {
+#ifndef PS1_PC_PORT
+    asm volatile("mtc0 %0, $12 ; nop ; nop" : : "r"(0x40000000));
+#endif
+}
 
 /**
  * @brief A faster version of `leaveCriticalSection`.
  *
  * @details This function is technically equivalent to `leaveCriticalSection`.
  */
-static inline void fastLeaveCriticalSection() { asm volatile("mtc0 %0, $12" : : "r"(0x40000401)); }
+static inline void fastLeaveCriticalSection() {
+#ifndef PS1_PC_PORT
+    asm volatile("mtc0 %0, $12" : : "r"(0x40000401));
+#endif
+}
 
 enum class DMA : unsigned {
     MDECin,

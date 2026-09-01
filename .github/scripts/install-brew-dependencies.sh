@@ -2,6 +2,6 @@
 
 set -e
 
-PACKAGES="capstone curl ffmpeg freetype glfw libuv pkg-config zlib"
+PACKAGES="capstone curl ffmpeg freetype libuv pkg-config sdl3 zlib"
 
 brew install ${PACKAGES}

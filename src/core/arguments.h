@@ -51,9 +51,9 @@ class Arguments {
     // Returns true if the the flag -testmode was used.
     bool isTestModeEnabled() const { return m_testModeEnabled; }
 
-    // Returns true if the the flag -portable was used, if the executable is
-    // located in the same directory as the pcsx.json file, or if the
-    // executable is being run from its source tree.
+    // Returns true if the flag -portable was used, if a pcsx.json file exists in
+    // the current directory or next to the executable, or if the executable is
+    // being run from its source tree.
     bool isPortable() const { return m_portable; }
 
     // Returns true if the safe mode was enabled. This implies
@@ -77,8 +77,9 @@ class Arguments {
     // Toggled with the flags -viewports / -no-viewports.
     bool isViewportsEnabled() const { return m_viewportsEnabled; }
 
-    // Returns the path to the portable directory.
-    // Set with the flag -portable.
+    // Returns the path to the portable directory. Set with the flag -portable, or
+    // to the executable's directory when that is where the pcsx.json was found.
+    // Empty means the current directory.
     std::string_view getPortablePath() const { return m_portablePath; }
 
   private:

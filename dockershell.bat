@@ -20,4 +20,4 @@ if "!REL!" EQU "!ROOT!" (set REL=) ELSE (set "REL=!REL:\=/!")
 set REL=/!REL!
 
 docker pull ghcr.io/grumpycoders/pcsx-redux-build:latest
-docker run --rm --env-file "%ROOT%/env.list" -t -i -w"/project%REL%" -v "%ROOT%:/project" ghcr.io/grumpycoders/pcsx-redux-build:latest bash -l
+docker run --rm -t -i -w"/project%REL%" -v "%ROOT%:/project" ghcr.io/grumpycoders/pcsx-redux-build:latest bash -l

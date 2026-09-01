@@ -15,7 +15,7 @@ const { Octokit } = require('@octokit/rest')
 const octokit = new Octokit()
 const os = require('node:os')
 
-const mipsVersion = '14.2.0'
+const mipsVersion = '16.2.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false
@@ -52,7 +52,8 @@ async function installMips() {
   try {
     await terminal.run('powershell', [
       '-c',
-      '& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
+      '"&"',
+      '{ iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -86,19 +87,11 @@ async function installToolchain() {
       break
     case 'linux':
       try {
-        if (await checkInstalled('apt')) {
-          await terminal.run(
-            'sudo',
-            ['apt', 'install', 'g++-mipsel-linux-gnu'],
-            {
-              message: 'Installing the MIPS toolchain requires root privileges.'
-            }
-          )
-        } else if (await checkInstalled('trizen')) {
+        if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
-            'cross-mipsel-linux-gnu-binutils',
-            'cross-mipsel-linux-gnu-gcc'
+            'mipsel-none-elf-binutils',
+            'mipsel-none-elf-gcc'
           ])
         } else if (await checkInstalled('brew')) {
           const binutilsScriptPath = vscode.Uri.joinPath(
@@ -119,7 +112,7 @@ async function installToolchain() {
           ])
         } else {
           vscode.window.showErrorMessage(
-            'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
+            'Your Linux distribution is not supported. You can build the MIPS toolchain from source using tools/linux-mips/spawn-compiler.sh in the pcsx-redux repository.'
           )
           throw new Error('Unsupported platform')
         }
@@ -563,7 +556,7 @@ const tools = {
     homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
     check: () => checkCommands(
-      ['mipsel-none-elf-g++', 'mipsel-linux-gnu-g++'],
+      ['mipsel-none-elf-g++'],
       ['--version']
     )
   },
@@ -636,8 +629,8 @@ const tools = {
     description:
       'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
     homepage:
-      'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
-    id: 'webfreak.debug'
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools',
+    id: 'ms-vscode.cpptools'
   },
   mipsassembly: {
     type: 'extension',

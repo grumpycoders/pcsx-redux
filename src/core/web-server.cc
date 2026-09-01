@@ -23,7 +23,7 @@
 #include <multipart_parser.h>
 
 #include <charconv>
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <map>
 #include <memory>
 #include <string>

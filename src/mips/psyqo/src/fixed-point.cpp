@@ -26,48 +26,6 @@ SOFTWARE.
 
 #include "psyqo/fixed-point.hh"
 
-uint32_t psyqo::FixedPointInternals::iDiv(uint64_t rem, uint32_t base, unsigned scale) {
-    rem *= scale;
-    uint64_t b = base;
-    uint64_t res, d = 1;
-    uint32_t high = rem >> 32;
-
-    res = 0;
-    if (high >= base) {
-        high /= base;
-        res = static_cast<uint64_t>(high) << 32;
-        rem -= static_cast<uint64_t>(high * base) << 32;
-    }
-
-    while (static_cast<int64_t>(b) > 0 && b < rem) {
-        b = b + b;
-        d = d + d;
-    }
-
-    do {
-        if (rem >= b) {
-            rem -= b;
-            res += d;
-        }
-        b >>= 1;
-        d >>= 1;
-    } while (d);
-
-    return res;
-}
-
-int32_t psyqo::FixedPointInternals::dDiv(int32_t a, int32_t b, unsigned scale) {
-    int s = 1;
-    if (a < 0) {
-        a = -a;
-        s = -1;
-    }
-    if (b < 0) {
-        b = -b;
-        s = -s;
-    }
-    return iDiv(a, b, scale) * s;
-}
 
 void psyqo::FixedPointInternals::printInt(uint32_t value, const eastl::function<void(char)>& charPrinter,
                                           unsigned scale) {
