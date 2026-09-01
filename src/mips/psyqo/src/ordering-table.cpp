@@ -26,9 +26,10 @@ SOFTWARE.
 
 #include "psyqo/ordering-table.hh"
 
-void psyqo::OrderingTableBase::clear(uint32_t* table, size_t size) {
-    table[0] = 0xffffff;
+void psyqo::OrderingTableBase::clear(psyqo::Fragments::ChainEntry* table, size_t size)
+{
+    table[0].setEndMarker();
     for (size_t i = 1; i <= size; i++) {
-        table[i] = reinterpret_cast<uint32_t>(&table[i - 1]) & 0xffffff;
+        table[i].set(&table[i - 1], 0);
     }
 }

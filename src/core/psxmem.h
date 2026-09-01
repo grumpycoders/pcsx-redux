@@ -304,6 +304,20 @@ class Memory {
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
+    // The scratchpad and the hardware registers share a single 64kB page, and the guest path has
+    // to dispatch register accesses to the hardware itself for their side effects, so that page is
+    // deliberately absent from the read LUT. Both are shadowed by m_hard at the same offsets,
+    // which spans the whole page and is safe to read at any time, so debugger-style accesses -
+    // which want a faithful view of memory and none of the side effects - resolve through here
+    // instead of through the read LUT directly.
+    static constexpr uint32_t c_scratchpadSize = 0x400;
+    uint8_t *debugPointer(uint32_t page) const {
+        auto pointer = m_readLUT[page];
+        if (pointer != nullptr) return pointer;
+        if ((page == 0x1f80) || (page == 0x9f80) || (page == 0xbf80)) return m_hard;
+        return nullptr;
+    }
+
     uint32_t m_biosCRC = 0;
 
     // Shared memory wrappers, pointers below point to these where appropriate
@@ -315,8 +329,9 @@ class Memory {
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
     uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
-    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (512K)
+    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (8 Meg buffer; up to 256K loaded)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)
+    uint8_t *m_sram = nullptr;  // DTL-H2000 dev board BIOS SRAM (2 Meg) @ 0x1fa00000
     uint8_t *m_hard = nullptr;  // Scratch Pad (1K) & Hardware Registers (8K)
 
     uint8_t **m_writeLUT = nullptr;
@@ -330,6 +345,10 @@ class Memory {
     uint8_t *m_msanInitializedBitmap = nullptr;
     uint32_t m_msanPtr = 1024;
     EventBus::Listener m_listener;
+
+    // Address of the psyqo heap metadata struct in guest memory,
+    // registered by the MIPS allocator via pcsxhw write to 0x1f8020a0.
+    uint32_t m_psyqoHeapMetadata = 0;
 
     std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
     static constexpr uint32_t c_msanChainMarker = 0x7ffffd;

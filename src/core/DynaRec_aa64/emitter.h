@@ -71,6 +71,8 @@ class Emitter : public MacroAssembler {
         return VirtualProtect(s_codeCache, allocSize, PAGE_EXECUTE_READWRITE, &oldProtect) != 0;
 #elif !defined(__APPLE__)
         return mprotect(s_codeCache, allocSize, PROT_READ | PROT_WRITE | PROT_EXEC) != -1;
+#else
+        return false;
 #endif
     }
 

@@ -238,7 +238,7 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
     if (block < head) {
         if (size < old_size) {
             empty_block *new_block = (empty_block *)((char *)block + size);
-            if (head == (empty_block *)((char *)block + size)) {
+            if (head == (empty_block *)((char *)block + old_size)) {
                 new_block->next = head->next;
                 new_block->size = head->size + (old_size - size);
             } else {
@@ -292,7 +292,7 @@ static __attribute__((section(".ramtext"))) void *multi_realloc(void *ptr_, size
 
         if (size < old_size) {
             empty_block *new_block = (empty_block *)((char *)block + size);
-            if ((next != &marker) && (((char *)block + size) == (char *)next)) {
+            if ((next != &marker) && (((char *)block + old_size) == (char *)next)) {
                 new_block->next = next->next;
                 new_block->size = old_size - size + next->size;
             } else {

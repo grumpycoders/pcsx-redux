@@ -128,7 +128,7 @@ struct Coroutine {
      * @details This method is used to create an instance of the `Awaiter` object.
      * It's used to suspend the coroutine after scheduling an asynchronous operation.
      */
-    Awaiter awaiter() { return Awaiter(this); }
+    Awaiter awaiter() & { return Awaiter(this); }
 
     /**
      * @brief Resumes the coroutine.
@@ -232,18 +232,52 @@ struct Coroutine {
   public:
     using promise_type = Promise;
 
-    constexpr bool await_ready() { return m_handle.done(); }
-    template <typename U>
-    constexpr void await_suspend(std::coroutine_handle<U> h) {
-        m_handle.promise().m_awaitingCoroutine = h;
-        resume();
-    }
-    constexpr T await_resume() {
-        if constexpr (std::is_void<T>::value) {
-            return;
-        } else {
-            return eastl::move(m_handle.promise().m_value);
+    /**
+     * @brief The awaiter type for coroutine-to-coroutine chaining via co_await.
+     *
+     * @details GCC has known bugs across versions 10-15+ where the awaitable temporary
+     * in a `co_await` expression is not correctly promoted to the coroutine frame.
+     * By using `operator co_await()`, we transfer the coroutine handle to this
+     * awaiter object that GCC's coroutine pass reliably stores in the frame.
+     */
+    struct ChainAwaiter {
+        std::coroutine_handle<Promise> handle;
+
+        explicit ChainAwaiter(std::coroutine_handle<Promise> h) : handle(h) {}
+        ~ChainAwaiter() {
+            if (handle) handle.destroy();
         }
+
+        ChainAwaiter(ChainAwaiter &&other) : handle(other.handle) { other.handle = nullptr; }
+        ChainAwaiter &operator=(ChainAwaiter &&) = delete;
+        ChainAwaiter(const ChainAwaiter &) = delete;
+        ChainAwaiter &operator=(const ChainAwaiter &) = delete;
+
+        constexpr bool await_ready() { return handle.done(); }
+
+        void await_suspend(std::coroutine_handle<> h) {
+            handle.promise().m_awaitingCoroutine = h;
+            if (!handle.done()) handle.resume();
+        }
+
+        constexpr T await_resume() {
+            if constexpr (std::is_void<T>::value) {
+                handle.destroy();
+                handle = nullptr;
+                return;
+            } else {
+                auto val = eastl::move(handle.promise().m_value);
+                handle.destroy();
+                handle = nullptr;
+                return val;
+            }
+        }
+    };
+
+    ChainAwaiter operator co_await() && {
+        auto h = m_handle;
+        m_handle = nullptr;
+        return ChainAwaiter{h};
     }
 };
 

@@ -6,7 +6,7 @@
   zlib,
   curl,
   ffmpeg,
-  glfw3,
+  sdl3,
   capstone,
   freetype,
   libX11,
@@ -16,17 +16,17 @@
   multipart-parser-c,
   fmt,
   magic-enum,
-  miniaudio,
   gtest,
   tl-expected,
   elfio,
   tracy,
   md4c,
-  stb,
   uriparser,
   ucl,
   llhttp,
   zip,
+  libxcb,
+  libGL,
 
   src,
   debugBuild ? false,
@@ -40,8 +40,8 @@ let
     ({
       owner = "grumpycoders";
       repo = "zep";
-      rev = "86ea3c7019f45ccd4a13503bf7d98a396e8f0193";
-      hash = "sha256-6NmUlOHkRQvCgbATcNxnFrfA2ZWROPYN8Vpd10k6Z2g=";
+      rev = "969ae7ea35ae583f215e6f3e724366e0815d58f9";
+      hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
     })
     ({
       owner = "grumpycoders";
@@ -56,10 +56,10 @@ let
       hash = "sha256-gZHbNuDkLXlLlXZZpLBHcbwzTfeBBkLY7xl4L5yr2lY=";
     })
     ({
-      owner = "mekhontsev";
+      owner = "grumpycoders";
       repo = "imgui_md";
-      rev = "8ca75c5f7663f314821e3d0b2c51011792bee68f";
-      hash = "sha256-uxhY81DWLRRCceYn9khk3rwzT+2f9PNMIMT9OrkPfFc=";
+      rev = "193314702e08c9e338a0b9d9346cb93ed4d8b758";
+      hash = "sha256-U783p+I1Sy0Dpmz5wRRp6qLiNqcIZ7pUb3Zezgmwhxc=";
     })
     ({
       owner = "herumi";
@@ -70,26 +70,38 @@ let
     ({
       owner = "lunarmodules";
       repo = "luafilesystem";
-      rev = "912e06714fc276c15b4d5d1b42bd2b11edb8deff";
-      hash = "sha256-BShByo2NhVrOHDPze/JXfeFWq36PFrI2HVugR2MDB0A=";
+      rev = "7f89bc0c6529497e0bc45b33467bf6cbcf6e989d";
+      hash = "sha256-vSP+KFxSzpzG+nJp0+YF+cDo0eddV3PvAm/jyzFDp14=";
     })
     ({
       owner = "grumpycoders";
       repo = "luajit";
-      rev = "66fadd16a51955cfbd770de62806cfbdd7c6c818";
-      hash = "sha256-nFlDr79GC8MsL6ausAsEPJwL8OJrFydB37tpD5mS1C8=";
+      rev = "07c36331bb4e1140322a6f8d91d53b9c2767ed46";
+      hash = "sha256-UNoib5Kf3NxkIKaerZW9NrQ3lyQn0WXvBFRQT+KJrYs=";
     })
     ({
       owner = "ocornut";
       repo = "imgui";
-      rev = "368123ab06b2b573d585e52f84cd782c5c006697";
-      hash = "sha256-6VOs7a31bEfAG75SQAY2X90h/f/HvqZmN615WXYkUOA=";
+      rev = "b48d1afbe8ee8b238e2961dc363a949dd7304e23";
+      hash = "sha256-PknWLxYuXQ73TCFN+eKOJDNLGbg/ZqKSF6mFxkJG6vI=";
     })
     ({
       owner = "mdqinc";
       repo = "SDL_GameControllerDB";
       rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
       hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
+    })
+    ({
+      owner = "taocpp";
+      repo = "PEGTL";
+      rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
+      hash = "sha256-1hTwoTCkfOX7e0unAlZ8TnYva3enkCgfrfriZfx2AoE=";
+    })
+    ({
+      owner = "nothings";
+      repo = "stb";
+      rev = "ae721c50eaf761660b4f90cc590453cdb0c2acd0";
+      hash = "sha256-BIhbhXV7q5vodJ3N14vN9mEVwqrP6z9zqEEQrfLPzvI=";
     })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
@@ -104,16 +116,15 @@ let
   };
 
   fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} source/third_party/${repo}";
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} third_party/${repo}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";
   version = "0.99test";
   inherit src;
 
-  postUnpack = ''
-    cp -ruT --no-preserve=all ${miniaudio.out} source/third_party/miniaudio
-    cp -ruT --no-preserve=all ${tracy.src} source/third_party/tracy
+  preConfigure = ''
+    cp -ruT --no-preserve=all ${tracy.src} third_party/tracy
   '' + builtins.concatStringsSep "\n" (map fetchSubmodule submodules);
 
   nativeBuildInputs = [
@@ -127,7 +138,6 @@ in stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    stb
     ucl
     md4c
     luajitPackages.libluv
@@ -142,11 +152,13 @@ in stdenv.mkDerivation {
     curl.dev
     zlib
     ffmpeg.dev
-    glfw3
+    sdl3
     capstone
     freetype.dev
     uriparser
     libX11
+    libxcb
+    libGL
     llhttp
   ];
 
