@@ -46,7 +46,7 @@ struct Line {
     Line(Color c) : command(0x40000000 | c.packed) {}
     Line& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x40000000 | c.packed | wasSemiTrans;
+        command = 0x40000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Line& setOpaque() {
@@ -81,7 +81,7 @@ struct GouraudLine {
     GouraudLine(Color c) : command(0x50000000 | c.packed) {}
     GouraudLine& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x50000000 | c.packed | wasSemiTrans;
+        command = 0x50000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudLine& setColorB(Color c) {
@@ -90,6 +90,25 @@ struct GouraudLine {
     }
     GouraudLine& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details Meant for the GTE's RGBC CODE field, which gets fused into every
+     * colour the GTE emits. Preload it and the colour FIFO hands back finished
+     * first words. See `GouraudQuad::getCommandWord` for the full round trip.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudLine& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudLine& setSemiTrans() {
@@ -125,7 +144,7 @@ struct PolyLineBegin {
     PolyLineBegin(Color c) : command(0x48000000 | c.packed) {}
     PolyLineBegin& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x48000000 | c.packed | wasSemiTrans;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     PolyLineBegin& setOpaque() {
@@ -166,7 +185,7 @@ struct PolyLine {
     PolyLine(Color c) : command(0x48000000 | c.packed) {}
     PolyLine& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x48000000 | c.packed | wasSemiTrans;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     PolyLine& setOpaque() {

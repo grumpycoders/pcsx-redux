@@ -10,4 +10,8 @@ Some of these designs have been thoroughly documented [in the wiki](https://gith
 
 * [PIO-Dev](PIO-Dev) - A development board for the PlayStation 1's parallel I/O port. The board has [extensive documentation](https://github.com/grumpycoders/pcsx-redux/wiki/PIODev-Board) on the wiki.
 
+* [PIO-Dev-Lite](PIO-Dev-Lite) - A smaller version of the PIO-Dev board, with a few less features. It is fitted with a writable flash, an FT232H chip for fast communication, and header pins to connect a [CH376 module](https://www.google.com/search?q=ch376+module). The CH376 module can be used with [Skitchin's project](https://github.com/johnbaumann/psx-wch376s) to access USB mass storage.
+
 * [PowerReplayUSB](PowerReplayUSB) - An easy to build mod for the popular and readily available [Power Replay Flash Cart](https://www.aliexpress.com/w/wholesale-ps1-power-replay.html) which adds USB support to it. The USB support is provided by the [FT232H](https://ftdichip.com/products/ft232hq/) chip, and [unirom](https://unirom.github.io/) has support for it. There is a [USB-C alternative](PowerReplayUSBC) available as well.
+
+The projects featuring FT232H chips can be used for ultra fast communication between the PlayStation 1 and a computer. [Tools made by danhans42](https://github.com/danhans42/psx232h) can be used for this.

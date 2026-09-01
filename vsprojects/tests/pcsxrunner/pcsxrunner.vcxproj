@@ -1,25 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseWithTracy|Win32">
-      <Configuration>ReleaseWithTracy</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="ReleaseWithTracy|x64">
       <Configuration>ReleaseWithTracy</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseWithClangCL|Win32">
-      <Configuration>ReleaseWithClangCL</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -42,50 +26,23 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>ClangCl</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -101,19 +58,6 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\..\common.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\..\common.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\..\common.props" />
-    <Import Project="..\..\tracy.props" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\common.props" />
@@ -127,25 +71,10 @@
     <Import Project="..\..\common.props" />
     <Import Project="..\..\tracy.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <Import Project="..\..\common.props" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
     <Import Project="..\..\common.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
@@ -158,74 +87,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>imm32.lib;iphlpapi.lib;kernel32.lib;opengl32.lib;psapi.lib;setupapi.lib;shlwapi.lib;userenv.lib;version.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -321,7 +182,7 @@
     <ProjectReference Include="..\..\ImFileDialog\ImFileDialog.vcxproj">
       <Project>{2bf92257-03c6-43fe-85e8-918166a07a26}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj">
+    <ProjectReference Include="..\..\imgui-sdl3-ogl3\imgui-sdl3-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\imgui_lua_bindings\imgui_lua_bindings.vcxproj">
@@ -335,6 +196,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\libuv\libuv.vcxproj">
       <Project>{4b88e4f6-56b3-4f66-bee8-0a4a21937bee}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\llhttp\llhttp.vcxproj">
+      <Project>{78bbe8e9-710d-4a8c-8ec5-a8d7864f6db8}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lpeg\lpeg.vcxproj">
       <Project>{ce54ed92-4645-4ae9-bdc8-c0b9607765f8}</Project>
@@ -357,6 +221,9 @@
     <ProjectReference Include="..\..\nanovg\nanovg.vcxproj">
       <Project>{b68e9c60-8362-4a32-ac2e-4f0c2673f3e1}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\SDL\SDL.vcxproj">
+      <Project>{13621b3d-871a-46a0-935f-d92a585ae034}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
@@ -372,6 +239,9 @@
     <ProjectReference Include="..\..\tracy\tracy.vcxproj">
       <Project>{95de2266-7ce9-44bd-9e7b-dca2b9586d01}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\uriparser\uriparser.vcxproj">
+      <Project>{6acdc81a-f4d8-4c2d-8ccd-db72a88febed}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\zep\zep.vcxproj">
       <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
     </ProjectReference>
@@ -386,25 +256,31 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\memcpy.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\psyqo.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\packages\glfw.3.3.8\build\native\glfw.targets" Condition="Exists('..\..\packages\glfw.3.3.8\build\native\glfw.targets')" />
-    <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets')" />
-    <Import Project="..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets')" />
+    <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" />
+    <Import Project="..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\glfw.3.3.8\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\glfw.3.3.8\build\native\glfw.targets'))" />
-    <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.2.2\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
-    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.0-beta3d\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

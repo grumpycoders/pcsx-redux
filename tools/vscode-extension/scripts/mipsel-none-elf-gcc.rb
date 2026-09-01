@@ -1,8 +1,9 @@
 class MipselNoneElfGcc < Formula
   desc "The GNU compiler collection for mipsel"
   homepage "https://gcc.gnu.org"
-  url "https://ftp.gnu.org/gnu/gcc/gcc-13.2.0/gcc-13.2.0.tar.xz"
-  sha256 "e275e76442a6067341a27f04c5c6b83d8613144004c0413528863dc6b5c743da"
+  url "https://ftpmirror.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz"
+  mirror "https://mirrors.kernel.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz"
+  sha256 "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e"
 
   depends_on "gmp"
   depends_on "mipsel-none-elf-binutils"

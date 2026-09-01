@@ -41,25 +41,24 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
         ImGui::End();
         return;
     }
+    ImGui::Text(_("Handlers info at %08x"), arrayPointer);
 
     unsigned counter = 0;
 
     for (unsigned priority = 0; priority < count; priority++) {
-        ImGui::Text(_("Priority %i"), priority);
-        uint32_t infoAddr = memFile->readAt<uint32_t>(arrayPointer + priority * 4);
+        std::string priorityStr = fmt::format(f_("Priority {}"), priority);
+        if (!ImGui::TreeNode(priorityStr.c_str())) {
+            continue;
+        }
+        uint32_t infoAddr = memFile->readAt<uint32_t>(arrayPointer + priority * 8);
         if (!infoAddr) {
-            ImGui::TextUnformatted(_("  No handlers"));
-            ImGui::Separator();
+            ImGui::TextUnformatted(_("No handlers"));
+            ImGui::TreePop();
             continue;
         }
         while (infoAddr) {
-            uint32_t infoStructAddr = memFile->readAt<uint32_t>(infoAddr);
-            if (!infoStructAddr) {
-                ImGui::TextUnformatted(_("  Corrupted info"));
-                break;
-            }
             std::string buttonStr;
-            ImGui::TextUnformatted(_("  Handler data at "));
+            ImGui::TextUnformatted(_("Handler data at "));
             ImGui::SameLine();
             buttonStr = fmt::format("{:08x}##{}", infoAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
@@ -67,21 +66,21 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
             }
             ImGui::TextUnformatted(_("  verifier: "));
             ImGui::SameLine();
-            uint32_t verifierAddr = memFile->readAt<uint32_t>(infoStructAddr + 8);
+            uint32_t verifierAddr = memFile->readAt<uint32_t>(infoAddr + 8);
             buttonStr = fmt::format("{:08x}##{}", verifierAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{verifierAddr});
             }
             ImGui::TextUnformatted(_("  handler: "));
             ImGui::SameLine();
-            uint32_t handlerAddr = memFile->readAt<uint32_t>(infoStructAddr + 4);
+            uint32_t handlerAddr = memFile->readAt<uint32_t>(infoAddr + 4);
             buttonStr = fmt::format("{:08x}##{}", handlerAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{handlerAddr});
             }
-            infoAddr = memFile->readAt<uint32_t>(infoStructAddr);
+            infoAddr = memFile->readAt<uint32_t>(infoAddr);
         }
-        ImGui::Separator();
+        ImGui::TreePop();
     }
 
     ImGui::End();

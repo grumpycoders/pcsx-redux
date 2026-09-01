@@ -26,6 +26,9 @@ void imguiGetViewportSize(unsigned id, ImVec2*);
 void imguiGetViewportWorkPos(unsigned id, ImVec2*);
 void imguiGetViewportWorkSize(unsigned id, ImVec2*);
 float imguiGetViewportDpiScale(unsigned id);
+void imguiLogText(const char* text);
+void guiUseMainFont();
+void guiUseMonoFont();
 ]]
 
 local C = ffi.load 'IMGUIEXTRA'
@@ -63,6 +66,10 @@ imgui.extra = {
         return ret[0]
     end,
     getViewportDpiScale = C.imguiGetViewportDpiScale,
+    logText = C.imguiLogText,
 }
+
+PCSX.GUI.useMainFont = C.guiUseMainFont
+PCSX.GUI.useMonoFont = C.guiUseMonoFont
 
 -- )EOF"

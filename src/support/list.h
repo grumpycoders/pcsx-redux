@@ -147,7 +147,9 @@ class List final {
     bool empty() const { return m_count == 0; }
     void clear() {
         for (Node* ptr = m_head.m_next; ptr; ptr = ptr->m_next) ptr->m_parent = nullptr;
-        m_head.m_next = m_tail.m_prev = nullptr;
+        m_head.m_prev = m_tail.m_next = nullptr;
+        m_head.m_next = &m_tail;
+        m_tail.m_prev = &m_head;
         m_count = 0;
     }
     iterator insert(iterator i, Node* node) {
@@ -191,11 +193,12 @@ class List final {
             push_back(&*list.begin());
         }
     }
+    bool isLinked(const Node* node) const { return node->m_parent == this; }
     iterator buildIterator(Node* node) const {
         if (!isLinked(node)) return end();
         return iterator(node);
     }
-    const_iterator buildConstIterator(Node* node) const {
+    const_iterator buildConstIterator(const Node* node) const {
         if (!contains(node)) return end();
         return const_iterator(node);
     }

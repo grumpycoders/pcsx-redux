@@ -19,6 +19,7 @@ The code in this folder is licensed under the terms of the MIT license.
 * `opengl.h` - A few helpers for OpenGL.
 * `polyfills.h` - Provides missing C++ features for Apple platforms.
 * `sjis_conv.h` & `sjis_conv.cc` - A Shift-JIS to UTF-8 conversion implementation.
+* `table-generator.h` - A compile-time table generator helper.
 
 ### Files with external dependencies
 * `bezier.h` - A simple bezier curve implementation and associated helpers. Requires ImGui for the math vector classes.

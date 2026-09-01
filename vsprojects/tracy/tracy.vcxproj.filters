@@ -110,7 +110,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\third_party\tracy\TracyClient.cpp">
+    <ClCompile Include="..\..\third_party\tracy\public\TracyClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\third_party\tracy\client\tracy_rpmalloc.cpp">

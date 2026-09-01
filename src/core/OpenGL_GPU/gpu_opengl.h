@@ -284,7 +284,6 @@ class OpenGL_GPU final : public GPU {
     void write1(CtrlHorizontalDisplayRange *) override;
     void write1(CtrlVerticalDisplayRange *) override;
     void write1(CtrlDisplayMode *) override;
-    void write1(CtrlQuery *) override;
 };
 
 }  // namespace PCSX

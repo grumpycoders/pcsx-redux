@@ -41,7 +41,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/initializer_list.h>
 #include <EASTL/tuple.h>
-#include <string.h>
+//#include <string.h>
 
 EA_DISABLE_ALL_VC_WARNINGS()
 	#include <new>
@@ -414,13 +414,13 @@ namespace eastl
 	struct EASTL_API prime_rehash_policy
 	{
 	public:
-		float            mfMaxLoadFactor;
-		float            mfGrowthFactor;
+		static constexpr unsigned            mfMaxLoadFactor = 1;
+		static constexpr unsigned            mfGrowthFactor = 2;
 		mutable uint32_t mnNextResize;
 
 	public:
-		prime_rehash_policy(float fMaxLoadFactor = 1.f)
-			: mfMaxLoadFactor(fMaxLoadFactor), mfGrowthFactor(2.f), mnNextResize(0) { }
+		prime_rehash_policy()
+			: mnNextResize(0) { }
 
 		float GetMaxLoadFactor() const
 			{ return mfMaxLoadFactor; }

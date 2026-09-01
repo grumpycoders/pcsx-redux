@@ -637,10 +637,10 @@ namespace eastl
 	///////////////////////////////////////////////////////////////////////////
 	// 20.7.4, value access
 	//
-	template <class T, class... Types, ssize_t I = meta::get_type_index_v<T, Types...>>
+	template <class T, class... Types, EASTL_SSIZE_T I = meta::get_type_index_v<T, Types...>>
 	EA_CONSTEXPR bool holds_alternative(const variant<Types...>& v) EA_NOEXCEPT
 	{
-		// ssize_t template parameter because the value can be negative
+		// EASTL_SSIZE_T template parameter because the value can be negative
 		return I == variant_npos ? false : (v.index() == I);
 	}
 
@@ -858,7 +858,7 @@ namespace eastl
 		//
 		template <class T,
 		          typename T_j = meta::overload_resolution_t<T, meta::overload_set<Types...>>,
-		          ssize_t I = meta::get_type_index_v<decay_t<T_j>, Types...>,
+		          EASTL_SSIZE_T I = meta::get_type_index_v<decay_t<T_j>, Types...>,
 		          typename = enable_if_t<!eastl::is_same_v<decay_t<T>, variant> && eastl::is_assignable_v<T_j&, T> &&
 		                                 eastl::is_constructible_v<T_j, T>>>
 		EA_CPP14_CONSTEXPR variant& operator=(T&& t)

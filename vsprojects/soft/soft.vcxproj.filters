@@ -24,12 +24,27 @@
     <ClCompile Include="..\..\src\gpu\soft\soft.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gpu\soft\lines.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gpu\soft\polys.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\gpu\soft\soft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gpu\soft\interface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gpu\soft\pixel-writer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gpu\soft\raster-state.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gpu\soft\walker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

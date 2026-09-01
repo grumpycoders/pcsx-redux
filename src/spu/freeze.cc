@@ -128,6 +128,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         restorePtr(s_chan[i].pCurr, data.get<Chan::CurrPtr>());
         restorePtr(s_chan[i].pLoop, data.get<Chan::LoopPtr>());
         s_chan[i].data.get<Chan::Mute>().value = false;
+        s_chan[i].data.get<Chan::Solo>().value = false;
         s_chan[i].data.get<Chan::IrqDone>().value = 0;
     }
 

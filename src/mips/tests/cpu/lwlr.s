@@ -32,6 +32,7 @@ SOFTWARE.
     .type cpu_LWR_LWL_half, @function
 
 /* While this usage is rare, it is technically valid and allowed. */
+/* uint32_t cpu_LWR_LWL_half(uint32_t buff[], uint32_t initial); */
 cpu_LWR_LWL_half:
     lwl   $a1, 4($a0)
     jr    $ra
@@ -43,6 +44,7 @@ cpu_LWR_LWL_half:
 
 /* This is technically invalid, and undefined behaviour. The result will be
    deterministic however on the r3000a PSX CPU. */
+/* uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial); */
 cpu_LWR_LWL_nodelay:
     lwl   $a1, 4($a0)
     lwr   $a1, 1($a0)
@@ -55,8 +57,30 @@ cpu_LWR_LWL_nodelay:
     .type cpu_LWR_LWL_delayed, @function
 
 /* This is the proper usage of lwl / lwr. */
+/* uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial); */
 cpu_LWR_LWL_delayed:
     lwl   $a1, 4($a0)
+    lwr   $a1, 1($a0)
+    j     $ra
+    move  $v0, $a1
+
+    .align 2
+    .global cpu_LWR_LWL_load_different
+    .type cpu_LWR_LWL_load_different, @function
+
+/* uint32_t cpu_LWR_LWL_load_different(uint32_t buff[], uint32_t initial); */
+cpu_LWR_LWL_load_different:
+    lwl   $a1, 4($a0)
+    lwr   $a1, 5($a0)
+    j     $ra
+    move  $v0, $a1
+
+    .align 2
+    .global cpu_LW_LWR
+    .type cpu_LW_LWL, @function
+/* uint32_t cpu_LW_LWR(uint32_t buff[], uint32_t initial); */
+cpu_LW_LWR:
+    lw    $a1, 8($a0)
     lwr   $a1, 1($a0)
     j     $ra
     move  $v0, $a1

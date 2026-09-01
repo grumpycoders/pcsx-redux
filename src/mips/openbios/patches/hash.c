@@ -37,7 +37,8 @@ static inline uint32_t hashone(uint32_t a) {
     return a;
 }
 
-uint32_t patch_hash(const uint32_t* ptr, uint8_t* maskPtr, unsigned len) {
+uint32_t patch_hash(const uint32_t* ptr, const void* maskPtr_, unsigned len) {
+    const uint8_t* maskPtr = (const uint8_t*)maskPtr_;
     uint32_t hash = 0x5810d659;
     uint32_t mask = 1;
 

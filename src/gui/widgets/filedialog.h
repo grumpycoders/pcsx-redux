@@ -33,9 +33,15 @@ namespace Widgets {
 class FileDialogBase : protected ifd::FileDialog {
   public:
     virtual void* CreateTexture(uint8_t* data, int w, int h, char fmt) override;
+    FileDialogBase(std::vector<std::string>& favorites) : ifd::FileDialog(), m_favorites(favorites) {}
 
   protected:
     void setDeleteTexture();
+    void restoreFavorites();
+    void saveFavorites();
+
+  private:
+    std::vector<std::string>& m_favorites;
 };
 
 enum class FileDialogMode { Open, MultiSelect, Save };
@@ -43,13 +49,15 @@ enum class FileDialogMode { Open, MultiSelect, Save };
 template <FileDialogMode mode = FileDialogMode::Open>
 class FileDialog : public FileDialogBase {
   public:
-    FileDialog(std::function<const char*()> title) : m_title(title) {
+    FileDialog(std::function<const char*()> title, std::vector<std::string>& favorites)
+        : FileDialogBase(favorites), m_title(title) {
         setToCurrentPath();
         setDeleteTexture();
     }
     virtual ~FileDialog() = default;
     void setToCurrentPath() { m_currentPath = std::filesystem::current_path(); }
     void openDialog() {
+        restoreFavorites();
         if constexpr (mode == FileDialogMode::Open) {
             Open(m_title(), m_title(), "*.*", mode == FileDialogMode::MultiSelect,
                  reinterpret_cast<const char*>(m_currentPath.u8string().c_str()));
@@ -67,6 +75,7 @@ class FileDialog : public FileDialogBase {
             m_results.reserve(results.size());
             for (auto& result : results) m_results.push_back(result.u8string());
             Close();
+            saveFavorites();
         }
         return done;
     }

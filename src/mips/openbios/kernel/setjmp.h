@@ -28,5 +28,5 @@ SOFTWARE.
 
 #include "common/psxlibc/setjmp.h"
 
-int psxsetjmp(struct JmpBuf* buf);
-void __attribute__((noreturn)) psxlongjmp(struct JmpBuf* buf, int ret);
+__attribute__((returns_twice)) int psxsetjmp(struct JmpBuf* buf);
+__attribute__((noreturn)) void psxlongjmp(struct JmpBuf* buf, int ret);

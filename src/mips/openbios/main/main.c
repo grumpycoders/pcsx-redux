@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <alloca.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "common/hardware/cop0.h"
@@ -46,6 +47,7 @@ SOFTWARE.
 #include "openbios/kernel/setjmp.h"
 #include "openbios/kernel/threads.h"
 #include "openbios/kernel/util.h"
+#include "openbios/main/splash.h"
 #include "openbios/pio/pio.h"
 #include "openbios/shell/shell.h"
 #include "openbios/tty/tty.h"
@@ -53,6 +55,9 @@ SOFTWARE.
 static void boot(char *systemCnfPath, char *binaryPath);
 
 void bootThunk() {
+#ifdef OPENBIOS_BOOT_MODE_NO_CDROM
+    boot(NULL, NULL);
+#else
     char binaryPath[80];
     char systemCnfPath[80];
 
@@ -61,21 +66,33 @@ void bootThunk() {
     strcpy(binaryPath, "cdrom:");
     strcat(binaryPath, "PSX.EXE;1");
     boot(systemCnfPath, binaryPath);
+#endif
 }
 
 int main() {
-    // RAM size
-    __globals60.ramsize = 0x02;
-    // ??
+    // __globals60.ramsize would be set here in the retail BIOS, however we have
+    // already done so in the startup code (it's easier to do it there for
+    // arcade boards - the ZN kernel does the same).
     __globals60.unk1 = 0x00;
-    // ??
     __globals60.unk2 = 0xff;
 
     POST = 0x0f;
     muteSpu();
 
-    if (checkExp1PreHookLicense()) runExp1PreHook();
+    // Pre- and post-boot hooks are implemented in the retail BIOS through two
+    // separate functions for each hook, one in charge of validating the
+    // signature and the other actually jumping to the vector. For simplicity's
+    // sake, both steps are combined into a call to a single function here. The
+    // 573 and ZN kernels lack these calls completely (rather than stubbing out
+    // the function's body as done here).
+    runExp1PreHook();
     POST = 0x0e;
+
+    // Same as above, the retail BIOS lacks the drawSplashScreen() call
+    // completely instead of merely stubbing out the function. Note that this
+    // functionality is in no way arcade-specific, so it makes sense to allow
+    // enabling it regardless of the target platform.
+    drawSplashScreen();
     g_installTTY = 0;
     bootThunk();
 }
@@ -130,7 +147,8 @@ static char s_binaryPath[128];
 // the tabulation character ('\t', or character 9) or a space.
 // Last but not least, the retail bios will screw things up
 // fairly badly if the file isn't terminated using CRLFs.
-static void findWordItem(const char *systemCnf, uint32_t *item, const char *name) {
+static void findWordItem(const char *systemCnf, void *item_, const char *name) {
+    uint32_t *item = (uint32_t *)item_;
     char c;
     const unsigned size = strlen(name);
     while (strncmp(systemCnf, name, size) != 0) {
@@ -277,13 +295,34 @@ void gameMainThunk(struct psxExeHeader *binaryInfo, int argc, char **argv) {
 
 extern struct BuildId __build_id, __build_id_end;
 
+// This function is specific to the ZN kernel and prints some basic information
+// about the amount of memory installed on the board, complete with typos and a
+// hint at the fact there may have been a version of the SPU with support for
+// more than 512 KB of RAM.
+static void printBoardConfiguration() {
+#if defined(OPENBIOS_BOARD_ZN1) || defined(OPENBIOS_BOARD_ZN2)
+    uint8_t config = ZN_BOARD_CONFIG;
+    int is2MBSPURAM = (config >> 2) & 1;
+    int is2MBVRAM = (config >> 3) & 1;
+    int revision = (config >> 5) & 7;
+    psxprintf("Borad Configuration: %02x (rev=%d,mem=%dM,smem=%cM,vmem=%dM)\n", config, revision - 2,
+              __globals60.ramsize, is2MBSPURAM ? '2' : 'h', is2MBVRAM + 1);
+#endif
+}
+
 static void boot(char *systemCnfPath, char *binaryPath) {
     POST = 1;
     writeCOP0Status(readCOP0Status() & ~0x401);
     muteSpu();
+    clearZNRegisters();
     POST = 2;
+    // The 573 kernel kicks the watchdog before, after and in the middle of
+    // copyDataAndInitializeBSS(), as it is by far the slowest part of the
+    // initialization sequence.
+    clearWatchdog();
     copyDataAndInitializeBSS();
     POST = 3;
+    clearWatchdog();
     copyA0table();
     installKernelHandlers();
     syscall_patchA0table();
@@ -314,9 +353,10 @@ static void boot(char *systemCnfPath, char *binaryPath) {
             }
             buildIDstring[count * 2] = 0;
         }
-        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2024 PCSX-Redux authors.\n",
+        psxprintf("PS-X Realtime Kernel OpenBios - build id %s.\nCopyright (C) 2019-2026 PCSX-Redux authors.\n",
                   buildIDstring);
     }
+    printBoardConfiguration();
     POST = 6;
     muteSpu();
     s_configuration = g_defaultConfiguration;
@@ -339,12 +379,15 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     // always passed down to the shell is 0x07, due to the POST
     // set just above, and the way this is deterministic.
     startShell(7);
+
+#ifndef OPENBIOS_BOOT_MODE_NO_CDROM
     POST = 8;
     IMASK = 0;
     IREG = 0;
     initCDRom();
     SETJMPFATAL(0x399);
-    if (checkExp1PostHookLicense()) runExp1PostHook();
+    // See the note about hooks in main().
+    runExp1PostHook();
     psxprintf("\nBOOTSTRAP LOADER\n");
     SETJMPFATAL(0x386);
     POST = 9;
@@ -378,13 +421,15 @@ static void boot(char *systemCnfPath, char *binaryPath) {
     psxprintf("EXEC:PC0(%08x)  T_ADDR(%08x)  T_SIZE(%08x)\n", s_binaryInfo.pc, s_binaryInfo.text_addr,
               s_binaryInfo.text_size);
     psxprintf("boot address  : %08x %08x\nExecute !\n\n", s_binaryInfo.pc, s_configuration.stackBase);
-    s_binaryInfo.stack_start = s_configuration.stackBase;
+    s_binaryInfo.stack_start = (uintptr_t)s_configuration.stackBase;
     s_binaryInfo.stack_size = 0;
     // the original format string says S_SIZE(%08), which is obviously wrong...
     psxprintf("                S_ADDR(%08x)  S_SIZE(%08x)\n", s_configuration.stackBase, 0);
     enterCriticalSection();
     SETJMPFATAL(0x38b);
     gameMainThunk(&s_binaryInfo, 1, NULL);
+#endif
+
     psxprintf("End of Main\n");
     fatal(0x38c);
 }

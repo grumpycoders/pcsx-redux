@@ -231,6 +231,7 @@ ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
         size -= p;
         ret += p;
         dest += p;
+        m_filePtr += p;
     }
 
     return ret;
@@ -257,7 +258,6 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
                     }
                 }
             }
-            memcpy(dest, m_resampledFrame->data[0] + m_packetPtr, toCopy);
             m_packetPtr += toCopy;
             m_totalOut += toCopy;
             size -= toCopy;

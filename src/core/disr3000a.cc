@@ -68,7 +68,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 
 #define declare(n) \
     void PCSX::Disasm::n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool *delaySlotNext)
-#define _Funct_ ((code)&0x3F)       // The funct part of the instruction register
+#define _Funct_ ((code) & 0x3F)     // The funct part of the instruction register
 #define _Rd_ ((code >> 11) & 0x1F)  // The rd part of the instruction register
 #define _Rt_ ((code >> 16) & 0x1F)  // The rt part of the instruction register
 #define _Rs_ ((code >> 21) & 0x1F)  // The rs part of the instruction register
@@ -716,7 +716,12 @@ declare(disMTLO) {
  *********************************************************/
 declare(disBREAK) {
     dOpCode("break");
-    Imm32((code >> 6) & 0xfffff);
+    unsigned category = (code >> 16) & 0x3ff;
+    unsigned exCode = (code >> 6) & 0x3ff;
+    Imm16(category);
+    if (exCode != 0) {
+        Imm16(exCode);
+    }
 }
 declare(disRFE) { dOpCode("rfe"); }
 declare(disSYSCALL) {
@@ -777,6 +782,14 @@ declare(disBEQ) {
     if (_Rs_ == _Rt_) {
         dOpCode("b");
         dBranch();
+    } else if (_Rs_ == 0) {
+        dOpCode("beqz");
+        GPR(_Rt_);
+        dBranch();
+    } else if (_Rt_ == 0) {
+        dOpCode("beqz");
+        GPR(_Rs_);
+        dBranch();
     } else {
         dOpCode("beq");
         GPR(_Rs_);
@@ -786,10 +799,20 @@ declare(disBEQ) {
 }
 declare(disBNE) {
     if (delaySlotNext) *delaySlotNext = true;
-    dOpCode("bne");
-    GPR(_Rs_);
-    GPR(_Rt_);
-    dBranch();
+    if (_Rs_ == 0) {
+        dOpCode("bnez");
+        GPR(_Rt_);
+        dBranch();
+    } else if (_Rt_ == 0) {
+        dOpCode("bnez");
+        GPR(_Rs_);
+        dBranch();
+    } else {
+        dOpCode("bne");
+        GPR(_Rs_);
+        GPR(_Rt_);
+        dBranch();
+    }
 }
 
 /*********************************************************

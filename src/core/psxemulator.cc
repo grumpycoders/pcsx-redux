@@ -21,6 +21,7 @@
 
 #include "core/callstacks.h"
 #include "core/cdrom.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
@@ -30,9 +31,11 @@
 #include "core/luaiso.h"
 #include "core/mdec.h"
 #include "core/pad.h"
+#include "core/patchmanager.h"
 #include "core/pcsxlua.h"
 #include "core/pio-cart.h"
 #include "core/r3000a.h"
+#include "core/ramlogger.h"
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
@@ -44,9 +47,10 @@
 #include "lua/zlibffi.h"
 #include "luafilesystem/src/lfs.h"
 extern "C" {
-#include "luv/src/luv.h"
+#include <luv.h>
 }
 #include "spu/interface.h"
+#include "supportpsx/adpcmlua.h"
 #include "supportpsx/assembler.h"
 #include "supportpsx/binlua.h"
 
@@ -55,23 +59,29 @@ extern "C" int luaopen_lpeg(lua_State* L);
 PCSX::Emulator::Emulator()
     : m_callStacks(new PCSX::CallStacks),
       m_cdrom(PCSX::CDRom::factory()),
+      m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
       m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
+      m_ramLogger(new PCSX::RAMLogger()),
       m_hw(new PCSX::HW()),
       m_lua(new PCSX::Lua()),
       m_mdec(new PCSX::MDEC()),
       m_mem(new PCSX::Memory()),
       m_pads(PCSX::Pads::factory()),
+      m_patchManager(new PatchManager()),
       m_pioCart(new PCSX::PIOCart),
       m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),
       m_sio1Server(new PCSX::SIO1Server()),
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
-      m_webServer(new PCSX::WebServer()) {}
+      m_webServer(new PCSX::WebServer()) {
+    auto L = *m_lua;
+    L.openlibs();
+}
 
 void PCSX::Emulator::setLua() {
     auto L = *m_lua;
@@ -84,10 +94,9 @@ void PCSX::Emulator::setLua() {
             return L.error("t_ expects a string");
         }
         auto str = L.tostring(1);
-        L.push(g_system->getStr(djbHash::hash(str), str.c_str()));
+        L.push(g_system->getStr(djb::hash(str), str.c_str()));
         return 1;
     });
-    L.openlibs();
     L.load("ffi = require('ffi')", "internal:setffi.lua");
     LuaFFI::open_zlib(L);
     luv_set_loop(L.getState(), g_system->getLoop());
@@ -103,6 +112,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaSupportPSX::open_adpcm(L);
     LuaSupportPSX::open_assembler(L);
     LuaSupportPSX::open_binaries(L);
 
@@ -111,6 +121,15 @@ void PCSX::Emulator::setLua() {
     L.push("emulator");
     settings.pushValue(L);
     L.settable();
+    L.pop();
+    L.pop();
+
+    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.getfieldtable("CONSTS");
+    L.getfieldtable("CPU");
+    L.push(lua_Number(m_psxClockSpeed));
+    L.setfield("CLOCKSPEED");
+    L.pop();
     L.pop();
     L.pop();
 

@@ -25,6 +25,24 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "imgui.h"
+#include "support/gnu-c++-demangler.h"
+#include "supportpsx/memory.h"
+
+static void drawSymbol(uint32_t pc) {
+    std::pair<const uint32_t, std::string>* symbol = PCSX::g_emulator->m_cpu->findContainingSymbol(pc);
+    if (symbol) {
+        auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+        std::string displayName = debugSettings.get<PCSX::Emulator::DebugSettings::DemangledSymbols>()
+                                      ? PCSX::GNUDemangler::demangle(symbol->second)
+                                      : symbol->second;
+        ImGui::SameLine();
+        ImGui::TextUnformatted(" :: ");
+        ImGui::SameLine();
+        ImGui::TextUnformatted(displayName.data(), displayName.data() + displayName.size());
+        ImGui::SameLine();
+        ImGui::Text("+0x%08x", pc - symbol->first);
+    }
+}
 
 void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     if (!ImGui::Begin(title, &m_show)) {
@@ -35,7 +53,7 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
     gui->useMonoFont();
 
     ImGui::TextUnformatted("    low SP    -   high sp  ");
-    ImGui::TextUnformatted("      ra       :: stack pointer ::  stack frame");
+    ImGui::TextUnformatted("      ra      :: stack pointer ::  stack frame  :: ra symbol");
     ImGui::Separator();
 
     auto& callstacks = g_emulator->m_callStacks;
@@ -50,28 +68,32 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_DefaultOpen;
         if (isCurrent) flags |= ImGuiTreeNodeFlags_Selected;
         if (!ImGui::TreeNodeEx(label.c_str(), flags)) continue;
+        int callId = 0;
         for (auto& call : stack.calls) {
-            std::string label = fmt::format("0x{:08x}", call.ra);
+            ImGui::PushID(callId++);
+            std::string label = fmt::format("0x{:08x}##lowsp", call.ra);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{call.ra});
             }
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
-            label = fmt::format("0x{:08x}", call.sp);
+            label = fmt::format("0x{:08x}##highsp", call.sp);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.sp, 4});
             }
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
-            label = fmt::format("0x{:08x}", call.fp);
+            label = fmt::format("0x{:08x}##frame", call.fp);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{call.fp, 1});
             }
+            drawSymbol(call.ra);
+            ImGui::PopID();
         }
         if (stack.ra != 0) {
-            std::string label = fmt::format("0x{:08x}", stack.ra);
+            std::string label = fmt::format("0x{:08x}##ralowsp", stack.ra);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{stack.ra});
             }
@@ -84,10 +106,11 @@ void PCSX::Widgets::CallStacks::draw(const char* title, PCSX::GUI* gui) {
             ImGui::SameLine();
             ImGui::TextUnformatted(" :: ");
             ImGui::SameLine();
-            label = fmt::format("0x{:08x}", stack.fp);
+            label = fmt::format("0x{:08x}##raframe", stack.fp);
             if (ImGui::Button(label.c_str())) {
                 g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{stack.fp, 1});
             }
+            drawSymbol(stack.ra);
         }
         ImGui::TreePop();
     }

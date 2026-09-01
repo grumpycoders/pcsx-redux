@@ -38,16 +38,16 @@ class TypedDebugger {
   public:
     void draw(const char* title, GUI* gui);
     bool& m_show;
-    TypedDebugger(bool& show);
+    TypedDebugger(bool& show, std::vector<std::string>& favorites);
 
   private:
     /**
      * Data importation.
      */
     std::vector<PCSX::u8string> m_dataTypesFile;
-    Widgets::FileDialog<> m_importDataTypesFileDialog = {[]() { return _("Import data types"); }};
+    Widgets::FileDialog<> m_importDataTypesFileDialog;
     std::vector<PCSX::u8string> m_functionsFile;
-    Widgets::FileDialog<> m_importFunctionsFileDialog = {[]() { return _("Import functions"); }};
+    Widgets::FileDialog<> m_importFunctionsFileDialog;
     enum class ImportType { DataTypes, Functions };
     void import(std::string_view filename, ImportType importType);
 
@@ -119,7 +119,7 @@ class TypedDebugger {
     std::vector<PCSX::Debug::Breakpoint*> m_watchBreakpoints;
     std::unordered_map<uint32_t, std::array<uint8_t, 4>> m_disabledInstructions;
     bool m_hex = false;
-    uint32_t m_newValue = 0;
+    std::unordered_map<uint32_t, uint64_t> m_newValues;
 
     /**
      * Functions.
@@ -154,8 +154,9 @@ class TypedDebugger {
     // - if not, then currentAddress *is* the pointee address.
     void displayNode(WatchTreeNode* node, const uint32_t currentAddress, bool watchView, bool addressOfPointer,
                      uint32_t extraImGuiId = 0);
-    void printValue(const char* type, size_t type_size, void* address);
-    void displayNewValueInput(const char* type, size_t size_type, void* address);
+    void printValue(const char* type, size_t type_size, void* value);
+    void printValue(const char* type, size_t type_size, Slice value);
+    void displayNewValueInput(const char* type, size_t size_type, const Slice& value, IO<File>& memFile, uint32_t address);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address);
 
     /**

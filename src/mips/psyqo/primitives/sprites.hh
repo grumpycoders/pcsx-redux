@@ -46,11 +46,11 @@ namespace Prim {
  */
 struct Sprite {
     static constexpr uint32_t BASE = 0b011'00'1 << 26;
-    Sprite() : command(BASE) {}
+    Sprite() : command(BASE | 0x01000000) {}
     Sprite(Color c) : command(BASE | c.packed) {}
     Sprite& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite& setOpaque() {
@@ -67,7 +67,7 @@ struct Sprite {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
     Vertex size;
 };
 static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits");
@@ -83,11 +83,11 @@ static_assert(sizeof(Sprite) == (sizeof(uint32_t) * 4), "Sprite is not 128 bits"
  */
 struct Sprite1x1 {
     static constexpr uint32_t BASE = 0b011'01'1 << 26;
-    Sprite1x1() : command(BASE) {}
+    Sprite1x1() : command(BASE | 0x01000000) {}
     Sprite1x1(Color c) : command(BASE | c.packed) {}
     Sprite1x1& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite1x1& setOpaque() {
@@ -104,7 +104,7 @@ struct Sprite1x1 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite1x1) == (sizeof(uint32_t) * 3), "Sprite1x1 is not 3 words");
 
@@ -119,11 +119,11 @@ static_assert(sizeof(Sprite1x1) == (sizeof(uint32_t) * 3), "Sprite1x1 is not 3 w
  */
 struct Sprite8x8 {
     static constexpr uint32_t BASE = 0b011'10'1 << 26;
-    Sprite8x8() : command(BASE) {}
+    Sprite8x8() : command(BASE | 0x01000000) {}
     Sprite8x8(Color c) : command(BASE | c.packed) {}
     Sprite8x8& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite8x8& setOpaque() {
@@ -140,7 +140,7 @@ struct Sprite8x8 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite8x8) == (sizeof(uint32_t) * 3), "Sprite8x8 is not 3 words");
 
@@ -155,11 +155,11 @@ static_assert(sizeof(Sprite8x8) == (sizeof(uint32_t) * 3), "Sprite8x8 is not 3 w
  */
 struct Sprite16x16 {
     static constexpr uint32_t BASE = 0b011'11'1 << 26;
-    Sprite16x16() : command(BASE) {}
+    Sprite16x16() : command(BASE | 0x01000000) {}
     Sprite16x16(Color c) : command(BASE | c.packed) {}
     Sprite16x16& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = BASE | c.packed | wasSemiTrans;
+        command = BASE | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Sprite16x16& setOpaque() {
@@ -176,7 +176,7 @@ struct Sprite16x16 {
 
   public:
     Vertex position;
-    TexInfo texInfo;
+    PrimPieces::TexInfo texInfo;
 };
 static_assert(sizeof(Sprite16x16) == (sizeof(uint32_t) * 3), "Sprite16x16 is not 3 words");
 

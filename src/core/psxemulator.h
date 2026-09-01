@@ -24,6 +24,10 @@
 
 #pragma once
 
+// Windows include on top
+#include "support/windowswrapper.h"
+
+// Normal includes
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
@@ -45,7 +49,6 @@
 #include "support/strings-helpers.h"
 
 #ifndef MAXPATHLEN
-#include "support/windowswrapper.h"
 #if defined(MAX_PATH)
 #define MAXPATHLEN MAX_PATH
 #elif defined(PATH_MAX)
@@ -65,17 +68,20 @@ namespace PCSX {
 
 class CallStacks;
 class CDRom;
+class CDRomLogger;
 class Counters;
 class Debug;
 class GdbServer;
 class GPU;
 class GPULogger;
 class GTE;
+class RAMLogger;
 class HW;
 class Lua;
 class MDEC;
 class Memory;
 class Pads;
+class PatchManager;
 class R3000Acpu;
 class SIO;
 class SPUInterface;
@@ -127,6 +133,7 @@ class Emulator {
         typedef Setting<uint32_t, TYPESTRING("KernelCallB0_20_3f"), 0xffffffff> KernelCallB0_20_3f;
         typedef Setting<uint32_t, TYPESTRING("KernelCallB0_40_5f"), 0xffffffff> KernelCallB0_40_5f;
         typedef Setting<uint32_t, TYPESTRING("KernelCallC0_00_1f"), 0xffffffff> KernelCallC0_00_1f;
+        typedef Setting<bool, TYPESTRING("DemangledSymbols"), true> DemangledSymbols;
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
         typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
@@ -143,8 +150,8 @@ class Emulator {
                          GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
                          KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
                          KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
-                         KernelCallC0_00_1f, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost,
-                         SIO1ClientPort, SIO1ModeSetting>
+                         KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort, SIO1Client,
+                         SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -185,6 +192,8 @@ class Emulator {
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
+    typedef SettingPath<TYPESTRING("MapBrowsePath")> SettingMapBrowsePath;
+    typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
              SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
@@ -193,7 +202,7 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected>
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:
@@ -207,7 +216,6 @@ class Emulator {
         uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
         uint32_t AltSpeed2 = 0;
-        uint8_t HackFix = 0;
         bool OverClock = false;  // enable overclocking
         float PsxClock = 0.0f;
         // PGXP variables
@@ -227,6 +235,16 @@ class Emulator {
     uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
     enum { BIAS = 2 };
 
+    template <unsigned alignment = 1>
+        requires((alignment == 1) || (alignment == 4))
+    constexpr uint32_t getRamMask() {
+        if constexpr (alignment == 1) {
+            return settings.get<PCSX::Emulator::Setting8MB>() ? 0x7fffff : 0x1fffff;
+        } else if constexpr (alignment == 4) {
+            return settings.get<PCSX::Emulator::Setting8MB>() ? 0x7ffffc : 0x1ffffc;
+        }
+    }
+
     int init();
     void reset();
     void shutdown();
@@ -239,17 +257,20 @@ class Emulator {
 
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
+    std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
+    std::unique_ptr<RAMLogger> m_ramLogger;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
     std::unique_ptr<Memory> m_mem;
     std::unique_ptr<Pads> m_pads;
+    std::unique_ptr<PatchManager> m_patchManager;
     std::unique_ptr<PIOCart> m_pioCart;
     std::unique_ptr<R3000Acpu> m_cpu;
     std::unique_ptr<SIO> m_sio;

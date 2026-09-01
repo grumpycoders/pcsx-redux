@@ -180,6 +180,22 @@ This way, the fragment will be initialized and filled with the primitives only o
 
 Note that the fragment is not copied when it is sent to the GPU, so it is not safe to mutate the fragment within event callbacks, as they can be dispatched during `sendFragment`. This could potentially create visual glitches as the fragment could be modified while it's being sent to the GPU.
 
+## Fragment chaining
+
+Fragments can be chained together to create a sequence of primitives to draw. The advantage here is that the code no longer has to wait on `sendFragment` to finish, before moving on to the next phase of computation. Instead, the chained fragments will be sent in the background to the GPU in the order they were chained, and the code can continue executing. The actual sending of the fragments will start when the `frame` method returns, and the GPU is ready to accept new fragments. The chain will continue to be sent out to the GPU when the next call to `frame` is made, so double buffering of the fragments becomes necessary. In order to help with this, the `GPU` class has a `getParity` method, which will return the current parity of the GPU, which can be used to determine which buffer to write to.
+
+An important limitation of the chaining mechanism is that the maximum size of a fragment is 255 words. This is a limitation of the PS1 hardware, and not of the PSYQo library. The library will assert if the fragment size exceeds this limit when being chained. Note that it is still possible to send larger fragments using `sendFragment`, but care must be taken to do so only when the previous chain has been fully sent. This also means that once the user decides to use chaining, they must use it for all fragments, and not mix and match with `sendFragment`. This means using a different general paradigm for the drawing code.
+
+Other than the size limitation, one simply need to call the `chain` method of the `GPU` class, and pass the fragment to chain.
+
+## Ordering Tables
+
+When doing 3D rendering, since the PS1 GPU doesn't have a Z-buffer, the order in which primitives are drawn is important. The PSYQo library provides a way to sort primitives based on their Z position, using the `OrderingTable` class. The class is a template taking a number of "buckets" as a parameter. When inserting a primitive into the ordering table, one needs to provide a z value, which represents the depth of the primitive. This z value will be used to select which bucket the primitive will be inserted into. No ordering is done within the buckets, so primitives with the same z value will be drawn in the order they were inserted, but the buckets themselves will be drawn in order of decreasing z value, farthest bucket first, closest bucket last. When inserting a primitive inside an `OrderingTable<N>`, the z value should be in the range of 0 to N-1, with 0 being the closest to the camera, and N-1 being the farthest. If the z value is outside of this range, the primitive will be inserted into the closest bucket, with the z value clamped to the range.
+
+The `OrderingTable` class can only be sent to the GPU using chaining. While not being a Fragment itself, it can be chained with other fragments. Multiple ordering tables can also be chained within the same scene, and they will be sent to the GPU in the order they were chained. This also means it is essential to double buffer the ordering tables, as they will be sent to the GPU in the background, and the code will continue executing.
+
+Once the ordering table has been sent to the GPU, it will be cleared, and can be reused.
+
 ## Memory management
 Note that none of the current [examples](examples) are currently using any memory allocation, unless explicitly showcasing that memory allocation works. The core library itself may allocate memory, when it needs to overspill some heavy usage cases, but it should not be the general case.
 
@@ -235,7 +251,7 @@ void MyScene::frame() {
 The coroutine object will be in a "done" state after the coroutine has terminated, and can be reused by assigning a new coroutine to it. The `value` method will return the result of the coroutine, and can only be called after the coroutine has terminated. The `resume` method will start the coroutine, or resume it if it has been suspended. The `done` method will return `true` if the coroutine has terminated, and `false` otherwise. The coroutine starts in a suspended state, and must be resumed to begin operations. Resuming a coroutine that has already terminated will have no effect. Resuming a coroutine that is already running will likely end up in corruption of the coroutine state, and will likely result in a crash.
 
 ### Task queue
-If the above coroutine system is too expensive, there is a less capable but more efficient way to still have a readable asynchronous code. The [TaskQueue](https://pcsx-redux.github.io/nugget/d4/db5/classpsyqo_1_1TaskQueue.html) class allows for scheduling in advance a series of synchronous or asynchronous tasks that will be executed sequentially, losely inspired by the JavaScript Promise system. There is a [an example](examples/task-demo) showcasing its usage.
+If the above coroutine system is too expensive, there is a less capable but more efficient way to still have a readable asynchronous code. The [TaskQueue](https://pcsx-redux.github.io/nugget/d4/db5/classpsyqo_1_1TaskQueue.html) class allows for scheduling in advance a series of synchronous or asynchronous tasks that will be executed sequentially, loosely inspired by the JavaScript Promise system. There is a [an example](examples/task-demo) showcasing its usage.
 
 This system does not allow for loops or conditions, but will consume less resources overall than coroutines. It can be beneficial to use this system if the code is not expected to be very complex.
 
