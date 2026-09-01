@@ -1,7 +1,6 @@
 TARGET := pcsx-redux
 BUILD ?= Release
 DESTDIR ?= /usr/local
-CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -10,7 +9,7 @@ CC_IS_CLANG := $(shell $(CC) --version | grep -q clang && echo true || echo fals
 
 MACOS_MIN_VERSION := 11
 
-PACKAGES := capstone freetype2 glfw3 libavcodec libavformat libavutil libswresample libcurl libuv zlib
+PACKAGES := capstone freetype2 libavcodec libavformat libavutil libswresample libcurl libuv sdl3 zlib
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
 
@@ -104,10 +103,6 @@ LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
-ifeq ($(CROSS),arm64)
-    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-endif
 
 LD := $(CXX)
 
@@ -126,7 +121,7 @@ SRCS += third_party/gl3w/GL/gl3w-throwers.cc
 SRCS += $(wildcard third_party/iec-60908b/*.c)
 SRCS += third_party/ImFileDialog/ImFileDialog.cpp
 SRCS += third_party/imgui/backends/imgui_impl_opengl3.cpp
-SRCS += third_party/imgui/backends/imgui_impl_glfw.cpp
+SRCS += third_party/imgui/backends/imgui_impl_sdl3.cpp
 SRCS += third_party/imgui/misc/cpp/imgui_stdlib.cpp
 SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
@@ -163,11 +158,6 @@ ifeq ($(UNAME_M),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-ifeq ($(CROSS),arm64)
-        SRCS += $(VIXL_SRCS)
-        CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
-        CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
-endif
 SUPPORT_SRCS := src/support/container-file.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
 SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc src/supportpsx/ucl-utils.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
@@ -175,7 +165,7 @@ SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_p
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = authoring exe2elf exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2exe exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 
@@ -222,11 +212,16 @@ VIXL_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(V
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
-TESTS := $(patsubst %.cc,%,$(TESTS_SRC))
+TESTS_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(TESTS_SRC)))
+
+TOOLS_SRC := $(foreach tool,$(TOOLS),tools/$(tool)/$(tool).cc)
+TOOLS_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(TOOLS_SRC)))
 
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.c,%.dep,$(filter %.c,$(SRCS))))
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(filter %.cc,$(SRCS))))
 DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(filter %.cpp,$(SRCS))))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(TESTS_SRC)))
+DEPS += $(addprefix deps/$(BUILD)/,$(patsubst %.cc,%.dep,$(TOOLS_SRC)))
 
 CP ?= cp
 MKDIRP ?= mkdir -p
@@ -275,15 +270,10 @@ appimage:
 	DESTDIR=AppDir/usr $(MAKE) $(MAKEOPTS) install
 	sed -i s:/usr/bin/:: AppDir/usr/share/applications/pcsx-redux.desktop
 	linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
-	mv PCSX-Redux-x86_64.AppImage PCSX-Redux-HEAD-x86_64.AppImage
+	mv PCSX-Redux-`uname -m`.AppImage PCSX-Redux-HEAD-`uname -m`.AppImage
 
-ifeq ($(CROSS),arm64)
-third_party/luajit/src/libluajit.a:
-	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg HOST_CC=cc CROSS=aarch64-linux-gnu- TARGET_CFLAGS=--sysroot=/opt/cross/sysroot BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
-else
 third_party/luajit/src/libluajit.a:
 	$(MAKE) $(MAKEOPTS) -C third_party/luajit/src amalg CC=$(CC) BUILDMODE=static CFLAGS=$(LUAJIT_CFLAGS) LDFLAGS=$(LUAJIT_LDFLAGS) XCFLAGS="-DLUAJIT_ENABLE_GC64 -DLUAJIT_ENABLE_LUA52COMPAT" MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
-endif
 
 bins/$(BUILD)/$(TARGET): $(OBJECTS) $(LIBS)
 	@$(MKDIRP) $(dir $@)
@@ -329,7 +319,7 @@ objs/$(BUILD)/gtest_main.o: third_party/googletest/googletest/src/gtest_main.cc
 	$(CXX) -O3 -g $(CXXFLAGS) -Ithird_party/googletest/googletest -Ithird_party/googletest/googletest/include -c third_party/googletest/googletest/src/gtest_main.cc -o objs/$(BUILD)/gtest_main.o
 
 clean:
-	rm -f $(OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+	rm -f $(OBJECTS) $(TESTS_OBJECTS) $(TESTS_SRC:.cc=.o) $(TOOLS_OBJECTS) $(TOOLS) $(TARGET) bins/$(BUILD)/$(TARGET) $(addprefix bins/$(BUILD)/,$(TOOLS)) $(DEPS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	$(MAKE) -C third_party/luajit clean MACOSX_DEPLOYMENT_TARGET=$(MACOS_MIN_VERSION)
 
 cleanall:
@@ -354,9 +344,9 @@ regen-i18n:
 	rm pcsx-src-list.txt
 	$(foreach l,$(LOCALES),$(call msgmerge,$(l)))
 
-bins/$(BUILD)/pcsx-redux-tests: $(foreach t,$(TESTS),$(t).o) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
+bins/$(BUILD)/pcsx-redux-tests: $(TESTS_OBJECTS) $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o
 	@$(MKDIRP) $(dir $@)
-	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(foreach t,$(TESTS),$(t).o) -Ithird_party/googletest/googletest/include $(LDFLAGS)
+	$(LD) -o bins/$(BUILD)/pcsx-redux-tests $(NONMAIN_OBJECTS) $(LIBS) objs/$(BUILD)/gtest-all.o objs/$(BUILD)/gtest_main.o $(TESTS_OBJECTS) -Ithird_party/googletest/googletest/include $(LDFLAGS)
 
 pcsx-redux-tests: check_submodules bins/$(BUILD)/pcsx-redux-tests
 	$(CP) bins/$(BUILD)/pcsx-redux-tests pcsx-redux-tests
