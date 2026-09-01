@@ -23,16 +23,21 @@
 
 #include <limits>
 
+#include "core/gpu.h"
+#include "support/eventbus.h"
+
 namespace PCSX {
 class GPULogger;
 namespace Widgets {
 
 class GPULogger {
   public:
-    GPULogger(bool& show) : m_show(show) {}
+    GPULogger(bool& show);
     void draw(PCSX::GPULogger* logger, const char* title);
 
     bool& m_show;
+
+  private:
     bool m_replay = false;
     bool m_showOrigins = false;
     bool m_expandAll = false;
@@ -42,6 +47,16 @@ class GPULogger {
     uint64_t m_frameCounterOrigin = 0;
     unsigned m_beginHighlight = 0;
     unsigned m_endHighlight = std::numeric_limits<unsigned>::max();
+    union {
+        int raw[2];
+        struct {
+            int x, y;
+        };
+    } m_filter = {0, 0};
+    bool m_filterEnabled = false;
+    bool m_filterProbing = false;
+    EventBus::Listener m_listener;
+    GPU::Logged::DrawLogSettings m_settings;
 };
 
 }  // namespace Widgets

@@ -107,13 +107,10 @@ void unimplemented(uint32_t table, uint32_t call, uint32_t ra) {
     osDbgPrintf("hi = %p - lo = %p\r\n", regs->GPR.r[32], regs->GPR.r[33]);
     osDbgPrintf("=== halting ===\r\n");
     pcsx_debugbreak();
-    while (1)
-        ;
+    while (1);
 }
 
 static void installExceptionHandler() { installHandler((uint32_t *)exceptionVector, (uint32_t *)0x80); }
-
-void __attribute__((noreturn)) returnFromException();
 
 #define EXCEPTION_STACK_SIZE 0x800
 
@@ -189,7 +186,7 @@ static const void *romA0table[0xc0] = {
     GPU_send, GPU_cw, GPU_cwb, GPU_sendPackets, // 48
     GPU_abort, GPU_getStatus, GPU_sync, unimplementedThunk, // 4c
     unimplementedThunk, loadAndExec, unimplementedThunk, unimplementedThunk, // 50
-    initCDRom, unimplementedThunk, deinitCDRom, psxdummy, // 54
+    initCDRom, initBackupUnit, deinitCDRom, psxdummy, // 54
     psxdummy, psxdummy, psxdummy, dev_tty_init, // 58
     dev_tty_open, dev_tty_action, dev_tty_ioctl, dev_cd_open, // 5c
     dev_cd_read, psxdummy, dev_cd_firstFile, dev_cd_nextFile, // 60
@@ -213,7 +210,7 @@ static const void *romA0table[0xc0] = {
     buLowLevelOpError1, buLowLevelOpError2, buLowLevelOpError3, cardInfo, // a8
     buReadTOC, buSetAutoFormat, unimplementedThunk, unimplementedThunk, // ac
     unimplementedThunk, unimplementedThunk, ioabortraw, unimplementedThunk, // b0
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
+    getSystemInfo, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b4
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // b8
     unimplementedThunk, unimplementedThunk, unimplementedThunk, unimplementedThunk, // bc
 };
@@ -236,7 +233,7 @@ void *B0table[0x60] = {
     psxexit, isFileConsole, psxgetc, psxputc, // 38
     psxgetchar, psxputchar, psxgets, psxputs, // 3c
     unimplementedThunk, format, firstFile, nextFile, // 40
-    unimplementedThunk, unimplementedThunk, unimplementedThunk, addDevice, // 44
+    psxrename, psxerase, unimplementedThunk, addDevice, // 44
     removeDevice, printInstalledDevices, initCard, startCard, // 48
     stopCard, cardInfoInternal, mcWriteSector, mcReadSector, // 4c
     mcAllowNewCard, Krom2RawAdd, unimplementedThunk, Krom2Offset, // 50
@@ -296,6 +293,7 @@ void copyDataAndInitializeBSS() {
        We can't rely on the code to already exist in RAM,
        so we have to do this in ROM, which will be slower. */
     memcpy(&__data_start, &__rom_data_start, __data_len);
+    clearWatchdog();
     /* The original code does this step by jumping into 0x500.
        Likely the intend being that there's a faster memset at
        this location, for the specific purpose of handling

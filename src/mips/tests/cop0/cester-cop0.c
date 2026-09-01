@@ -37,7 +37,10 @@ CESTER_BODY(
     static uint32_t s_from;
     static uint32_t * s_resume;
     static uint32_t * s_regs;
-    static void (*s_customhandler)() = NULL;
+    static uint32_t (*s_customhandler)() = NULL;
+    static uint32_t s_oldIMASK;
+    static uint32_t s_oldDPCR;
+    static uint32_t s_oldDICR;
     uint32_t handler(uint32_t * regs, uint32_t from) {
         if (from == 0x40) s_got40 = 1;
         if (from == 0x80) s_got80 = 1;
@@ -52,9 +55,11 @@ CESTER_BODY(
         s_cause = cause;
         s_epc = epc;
 
-        if (s_customhandler) s_customhandler();
-
-        return s_resume ? ((uint32_t)s_resume) : (epc + 4);
+        if (s_customhandler) {
+            return s_customhandler();
+        } else {
+            return s_resume ? ((uint32_t)s_resume) : (epc + 4);
+        }
     }
     void installExceptionHandlers(uint32_t (*handler)(uint32_t * regs, uint32_t from));
     void uninstallExceptionHandlers();
@@ -66,8 +71,11 @@ CESTER_BODY(
     uint32_t cpu_LWR_LWL_half(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_nodelay(uint32_t buff[], uint32_t initial);
     uint32_t cpu_LWR_LWL_delayed(uint32_t buff[], uint32_t initial);
+    uint32_t cpu_LWR_LWL_load_different(uint32_t buff[], uint32_t initial);
+    uint32_t cpu_LW_LWR(uint32_t buff[], uint32_t initial);
     uint32_t cpu_delayed_load(uint32_t buff[], uint32_t override);
     uint32_t cpu_delayed_load_cancelled(uint32_t buff[], uint32_t override);
+    uint64_t cpu_delayed_load_load(uint32_t buff[], uint32_t override);
     uint32_t linkandload();
     uint32_t lwandlink();
     uint32_t nolink();
@@ -76,6 +84,20 @@ CESTER_BODY(
 )
 
 CESTER_BEFORE_EACH(cpu_tests, testname, testindex,
+    s_oldIMASK = IMASK;
+    s_oldDPCR = DPCR;
+    s_oldDICR = DICR;
+    IMASK = 0;
+    IREG = 0;
+    for (unsigned i = 0; i < 7; i++) {
+        DMA_CTRL[i].CHCR = 0;
+        DMA_CTRL[i].BCR = 0;
+        DMA_CTRL[i].MADR = 0;
+    }
+    DPCR = 0;
+    uint32_t dicr = DICR;
+    DICR = dicr;
+    DICR = 0;
     s_got40 = 0;
     s_got80 = 0;
     s_cause = 0;
@@ -84,6 +106,12 @@ CESTER_BEFORE_EACH(cpu_tests, testname, testindex,
     s_resume = NULL;
     s_regs = NULL;
     s_customhandler = NULL;
+)
+
+CESTER_AFTER_EACH(cpu_tests, testname, testindex,
+    IMASK = s_oldIMASK;
+    DPCR = s_oldDPCR;
+    DICR = s_oldDICR;
 )
 
 CESTER_BEFORE_ALL(cpu_tests,

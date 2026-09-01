@@ -25,13 +25,18 @@
 #include "gui/gui.h"
 
 void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
-    m_gui->setViewport();
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) {
+        return;
+    }
+    gui->setViewport();
     GLuint textureID;
 
     if (m_softDisplay.RGB24) {
+        auto offset = (m_softDisplay.DisplayPosition.x * 2) % 3;
         textureID = m_vramTexture24;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram16);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
     } else {
         textureID = m_vramTexture16;
         glBindTexture(GL_TEXTURE_2D, textureID);
@@ -52,13 +57,15 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
         height -= 1.f / 512.f;
     }
 
-    m_gui->m_offscreenShaderEditor.render(m_gui, textureID, {startX, startY}, {width, height}, m_gui->getRenderSize());
-    if (!fromGui) m_gui->flip();
+    gui->m_offscreenShaderEditor.render(gui, textureID, {startX, startY}, {width, height}, gui->getRenderSize());
+    if (!fromGui) gui->flip();
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
-    std::memset(m_allocatedVRAM, 0x00, (GPU_HEIGHT * 2) * 1024 + (1024 * 1024));
+    std::memset(m_allocatedVRAM, 0x00, (VRAM_HEIGHT * 2) * 1024 + (1024 * 1024));
 
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);
@@ -66,6 +73,8 @@ void PCSX::SoftGPU::impl::clearVRAM() {
 }
 
 void PCSX::SoftGPU::impl::setLinearFiltering() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     const auto filter = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value ? GL_LINEAR : GL_NEAREST;
     glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -77,6 +86,8 @@ void PCSX::SoftGPU::impl::setLinearFiltering() {
 }
 
 void PCSX::SoftGPU::impl::initDisplay() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
     glGenTextures(1, &m_vramTexture24);
     glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);

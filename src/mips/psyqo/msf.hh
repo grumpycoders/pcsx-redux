@@ -32,8 +32,8 @@ SOFTWARE.
 
 namespace psyqo {
 
-static inline constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
-static inline constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
+constexpr uint8_t btoi(uint8_t b) { return ((b / 16) * 10) + (b % 16); }
+constexpr uint8_t itob(uint8_t i) { return ((i / 10) * 16) + (i % 10); }
 
 struct MSF {
     MSF() : m(0), s(0), f(0) {}
@@ -67,6 +67,7 @@ struct MSF {
             uint8_t pad;
         };
         uint8_t data[4];
+        uint32_t full;
     };
 };
 

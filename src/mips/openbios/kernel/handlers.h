@@ -30,4 +30,4 @@ void installKernelHandlers();
 void copyDataAndInitializeBSS();
 void copyA0table();
 
-void returnFromException();
+void __attribute__((noreturn)) returnFromException();

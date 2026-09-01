@@ -33,4 +33,4 @@ namespace psyqo::Hardware::GPU {
 extern Register<0x0810> Data;
 extern Register<0x0814> Ctrl;
 
-}
+}  // namespace psyqo::Hardware::GPU

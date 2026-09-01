@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'windows-2025-vs2026'
 
 variables:
   solution: 'vsprojects/pcsx-redux.sln'
@@ -70,10 +70,12 @@ steps:
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.main
       vsprojects/x64/ReleaseWithClangCL/pcsx-redux.exe
       vsprojects/x64/ReleaseWithClangCL/crashpad_handler.exe
+      vsprojects/x64/ReleaseWithClangCL/authoring.exe
       vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
       vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
-      vsprojects/x64/ReleaseWithClangCL/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseWithClangCL/modconv.exe
       vsprojects/x64/ReleaseWithClangCL/ps1-packer.exe
+      vsprojects/x64/ReleaseWithClangCL/psyq-obj-parser.exe
       vsprojects/x64/ReleaseWithClangCL/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 
@@ -83,19 +85,24 @@ steps:
       vsprojects/x64/ReleaseWithClangCL/*.pdb
     TargetFolder: '$(build.artifactStagingDirectory)/pdbs'
 
-- task: VSTest@2
+- task: VSTest@3
   inputs:
     testSelector: 'testAssemblies'
     testAssemblyVer2: |
       **\*.exe
       !**\crashpad_handler.exe
+      !**\authoring.exe
       !**\exe2elf.exe
+      !**\exe2exe.exe
       !**\exe2iso.exe
-      !**\pcsxrunner.exe
+      !**\modconv.exe
+      !**\midi2psm.exe
+      !**\midi2spd.exe
       !**\pcsx-redux.main
       !**\pcsx-redux.exe
-      !**\psyq-obj-parser.exe
+      !**\pcsxrunner.exe
       !**\ps1-packer.exe
+      !**\psyq-obj-parser.exe
       !third_party\**\*.exe
     searchFolder: '$(System.DefaultWorkingDirectory)'
     pathtoCustomTestAdapters: 'GoogleTestAdapter'

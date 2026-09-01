@@ -54,8 +54,8 @@ class LinesScene final : public psyqo::Scene {
 };
 
 // We're instantiating the two objects above right now.
-Lines Lines;
-LinesScene LinesScene;
+Lines lines;
+LinesScene linesScene;
 
 }  // namespace
 
@@ -70,7 +70,7 @@ void Lines::prepare() {
 
 void Lines::createScene() {
     m_font.uploadSystemFont(gpu());
-    pushScene(&LinesScene);
+    pushScene(&linesScene);
 }
 
 void LinesScene::frame() {
@@ -81,7 +81,7 @@ void LinesScene::frame() {
     }
     psyqo::Color bg{{.r = 0, .g = 64, .b = 91}};
     bg.r = m_anim;
-    Lines.gpu().clear(bg);
+    lines.gpu().clear(bg);
     if (m_direction) {
         m_anim++;
     } else {
@@ -94,17 +94,17 @@ void LinesScene::frame() {
     line1.pointB.x = 300;
     line1.pointA.y = 50;
     line1.pointB.y = m_anim;
-    Lines.gpu().sendPrimitive(line1);
+    lines.gpu().sendPrimitive(line1);
 
     psyqo::Prim::Line line2(psyqo::Color{{.r = 15, .g = 230, .b = 42}});
     line2.pointA.x = 50;
     line2.pointB.x = 300;
     line2.pointA.y = 200;
     line2.pointB.y = 255 - m_anim;
-    Lines.gpu().sendPrimitive(line2);
+    lines.gpu().sendPrimitive(line2);
 
     psyqo::Color c = {{.r = 255, .g = 255, .b = uint8_t(255 - m_anim)}};
-    Lines.m_font.print(Lines.gpu(), "Lines!", {{.x = 16, .y = 32}}, c);
+    lines.m_font.print(lines.gpu(), "Lines!", {{.x = 16, .y = 32}}, c);
 }
 
-int main() { return Lines.run(); }
+int main() { return lines.run(); }

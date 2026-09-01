@@ -17,11 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define GLFW_INCLUDE_NONE
 #include "gui/widgets/assembly.h"
 
 #include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <fstream>
@@ -29,7 +27,9 @@
 #include <iostream>
 
 #include "core/debug.h"
+#include "support/gnu-c++-demangler.h"
 #include "core/disr3000a.h"
+#include "core/patchmanager.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
@@ -41,6 +41,14 @@
 static ImVec4 s_constantColor = ImColor(0x03, 0xda, 0xc6);
 static ImVec4 s_invalidColor = ImColor(0xb0, 0x00, 0x20);
 static ImVec4 s_labelColor = ImColor(0x01, 0x87, 0x86);
+
+static std::string displaySymbol(const std::string& symbol) {
+    auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    if (debugSettings.get<PCSX::Emulator::DebugSettings::DemangledSymbols>()) {
+        return PCSX::GNUDemangler::demangle(symbol);
+    }
+    return symbol;
+}
 static ImVec4 s_bpColor = ImColor(0xba, 0x00, 0x0d);
 static ImVec4 s_currentColor = ImColor(0xff, 0xeb, 0x3b);
 static ImVec4 s_arrowColor = ImColor(0x61, 0x61, 0x61);
@@ -48,32 +56,34 @@ static ImVec4 s_arrowOutlineColor = ImColor(0x37, 0x37, 0x37);
 
 namespace {
 
-uint32_t virtToReal(uint32_t virt) {
-    uint32_t base = (virt >> 20) & 0xffc;
-    uint32_t real = virt & 0x7fffff;
-    uint32_t pc = real;
-    if ((base == 0x000) || (base == 0x800) || (base == 0xa00)) {
-        // main memory first
-        if (real >= 0x00800000) pc = 0;
-    } else if (base == 0x1f0) {
-        // parallel port second
-        if (real >= 0x00010000) {
-            pc = 0;
-        } else {
-            pc += 0x00800000;
-        }
-    } else if (base == 0xbfc) {
-        // bios last
-        real &= 0x1fffff;
-        pc = real;
-        if (real >= 0x00080000) {
-            pc = 0;
-        } else {
-            pc += 0x00810000;
-        }
-    }
-    return pc;
+// The disassembly view shows one physical memory region at a time, picked from a
+// dropdown. Each region is a contiguous block backed by one of the Memory buffers;
+// the displayed CPU address is reconstructed as segmentBase (kuser/kseg0/kseg1) +
+// physBase + offset. This table is the single place the region layout is encoded -
+// no separate forward/reverse address maps to keep in sync.
+struct DisasmRegion {
+    const char* label;
+    uint32_t physBase;
+    uint32_t size;
+    uint8_t* PCSX::Memory::*buffer;
 };
+
+const DisasmRegion c_regions[] = {
+    {"RAM", 0x00000000, 0x00800000, &PCSX::Memory::m_wram},
+    {"EXP1", 0x1f000000, 0x00800000, &PCSX::Memory::m_exp1},
+    {"SRAM", 0x1fa00000, 0x00200000, &PCSX::Memory::m_sram},
+    {"BIOS", 0x1fc00000, 0x00080000, &PCSX::Memory::m_bios},
+};
+constexpr int c_regionCount = sizeof(c_regions) / sizeof(c_regions[0]);
+
+// Index of the region containing a physical address (the CPU address with its
+// segment bits masked off), or -1 if it lands outside every mapped region.
+int regionForPhys(uint32_t phys) {
+    for (int i = 0; i < c_regionCount; i++) {
+        if (phys >= c_regions[i].physBase && phys < c_regions[i].physBase + c_regions[i].size) return i;
+    }
+    return -1;
+}
 
 void DButton(const char* label, bool enabled, std::function<void(void)> clicked) {
     if (!enabled) {
@@ -88,7 +98,7 @@ void DButton(const char* label, bool enabled, std::function<void(void)> clicked)
 
 class DummyAsm : public PCSX::Disasm {
     virtual void Invalid() final {}
-    virtual void OpCode(const char* str) final {}
+    virtual void OpCode(std::string_view str) final {}
     virtual void GPR(uint8_t reg) final {}
     virtual void CP0(uint8_t reg) final {}
     virtual void CP2C(uint8_t reg) final {}
@@ -126,7 +136,7 @@ void PCSX::Widgets::Assembly::Invalid() {
     ImGui::PopStyleColor();
 }
 
-void PCSX::Widgets::Assembly::OpCode(const char* str) {
+void PCSX::Widgets::Assembly::OpCode(std::string_view str) {
     m_gotArg = false;
     sameLine();
     if (m_notch || m_notchAfterSkip[0]) {
@@ -134,9 +144,9 @@ void PCSX::Widgets::Assembly::OpCode(const char* str) {
         ImGui::TextUnformatted("~ ");
         ImGui::PopStyleColor();
         sameLine();
-        ImGui::Text("%-6s", str);
+        ImGui::Text("%-6s", str.data());
     } else {
-        ImGui::Text("%-8s", str);
+        ImGui::Text("%-8s", str.data());
     }
 }
 void PCSX::Widgets::Assembly::GPR(uint8_t reg) {
@@ -301,8 +311,8 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
     if (m_displayArrowForJumps) m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
     std::string longLabel = label;
-    auto symbols = findSymbol(value);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
+    if (symbol) longLabel = displaySymbol(*symbol) + " ;" + label;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     if (ImGui::Button(longLabel.c_str())) {
         m_jumpToPC = value;
@@ -325,8 +335,37 @@ const uint8_t* PCSX::Widgets::Assembly::ptr(uint32_t addr) {
         return dummy;
     }
 }
-void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size) {
-    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size});
+void PCSX::Widgets::Assembly::jumpToMemory(uint32_t addr, unsigned size, unsigned editorIndex /* = 0*/) {
+    g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{addr, size, editorIndex});
+}
+void PCSX::Widgets::Assembly::addMemoryEditorContext(uint32_t addr, int size) {
+    if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem(_("Go to in Memory Editor #1 (Default Click)"))) jumpToMemory(addr, size, 0);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #2 (Shift+Click)"))) jumpToMemory(addr, size, 1);
+        if (ImGui::MenuItem(_("Go to in Memory Editor #3 (Ctrl+Click)"))) jumpToMemory(addr, size, 2);
+        std::string itemLabel;
+        for (unsigned i = 3; i < 8; ++i) {
+            itemLabel = fmt::format(f_("Go to in Memory Editor #{}"), i + 1);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i);
+        }
+        if (ImGui::MenuItem(_("Create Memory Read Breakpoint"))) {
+            g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Read, size, _("GUI"));
+        }
+        if (ImGui::MenuItem(_("Create Memory Write Breakpoint"))) {
+            g_emulator->m_debug->addBreakpoint(addr, Debug::BreakpointType::Write, size, _("GUI"));
+        }
+        ImGui::EndPopup();
+    }
+}
+void PCSX::Widgets::Assembly::addMemoryEditorSubMenu(uint32_t addr, int size) {
+    if (ImGui::BeginMenu(_("Go to in Memory Editor..."))) {
+        std::string itemLabel;
+        for (unsigned i = 0; i < 8; ++i) {
+            itemLabel = fmt::format("#{}", i + 1);
+            if (ImGui::MenuItem(itemLabel.c_str())) jumpToMemory(addr, size, i);
+        }
+        ImGui::EndMenu();
+    }
 }
 
 void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
@@ -341,14 +380,18 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
     uint32_t addr = m_registers->GPR.r[reg] + offset;
 
     std::string longLabel;
-    auto symbols = findSymbol(addr);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ; ";
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
+    if (symbol) longLabel = displaySymbol(*symbol) + " ; ";
+
+    const auto& io = ImGui::GetIO();
+    unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
 
     ImGui::TextUnformatted(" ");
     ImGui::SameLine(0.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(label)) jumpToMemory(addr, size);
+    if (ImGui::Button(label)) jumpToMemory(addr, size, targetEditorIndex);
     ImGui::PopStyleVar();
+    addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -363,6 +406,7 @@ void PCSX::Widgets::Assembly::OfB(int16_t offset, uint8_t reg, int size) {
                 ImGui::Text("%s[%8.8x] = %8.8x", longLabel.c_str(), addr, mem32(addr));
                 break;
         }
+        ImGui::Text(_("Go to in Memory Editor #%d"), targetEditorIndex + 1);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
@@ -375,17 +419,17 @@ void PCSX::Widgets::Assembly::BranchDest(uint32_t value) {
     sameLine();
     m_arrows.push_back({m_currentAddr, value});
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", value, m_currentAddr);
-    auto symbols = findSymbol(value);
-    if (symbols.size() == 0) {
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(value);
+    if (symbol) {
+        std::string longLabel = displaySymbol(*symbol) + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(label)) {
+        if (ImGui::Button(longLabel.c_str())) {
             m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
     } else {
-        std::string longLabel = *symbols.begin() + " ;" + label;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        if (ImGui::Button(longLabel.c_str())) {
+        if (ImGui::Button(label)) {
             m_jumpToPC = value;
         }
         ImGui::PopStyleVar();
@@ -397,13 +441,18 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
     char label[32];
     std::snprintf(label, sizeof(label), "0x%8.8x##%8.8x", addr, m_currentAddr);
     std::string longLabel = label;
-    auto symbols = findSymbol(addr);
-    if (symbols.size() != 0) longLabel = *symbols.begin() + " ;" + label;
+    std::string* symbol = g_emulator->m_cpu->getSymbolAt(addr);
+    if (symbol) longLabel = displaySymbol(*symbol) + " ;" + label;
+
+    const auto& io = ImGui::GetIO();
+    unsigned targetEditorIndex = io.KeyShift ? 1 : (io.KeyCtrl ? 2 : 0);
+
     ImGui::TextUnformatted(" ");
     sameLine();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size);
+    if (ImGui::Button(longLabel.c_str())) jumpToMemory(addr, size, targetEditorIndex);
     ImGui::PopStyleVar();
+    addMemoryEditorContext(addr, size);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -418,12 +467,14 @@ void PCSX::Widgets::Assembly::Offset(uint32_t addr, int size) {
                 ImGui::Text("[%8.8x] = %8.8x", addr, mem32(addr));
                 break;
         }
+        ImGui::Text(_("Go to in Memory Editor #%u"), targetEditorIndex + 1);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
 }
 
-void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* memory, const char* title) {
+    bool changed = false;
     auto& cpu = g_emulator->m_cpu;
     m_registers = registers;
     m_memory = memory;
@@ -431,7 +482,7 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
     ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
-        return;
+        return changed;
     }
 
     float glyphWidth = ImGui::GetFontSize();
@@ -502,7 +553,6 @@ void PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
 
     DummyAsm dummy;
 
-    uint32_t pc = virtToReal(m_registers->pc);
     auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
     if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
         if (g_emulator->settings.get<Emulator::SettingDynarec>() &&
@@ -516,6 +566,9 @@ settings, otherwise debugging features may not work.)");
     ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
+    ImGui::SameLine();
+    ImGui::Checkbox(_("Demangle C++"),
+                    &debugSettings.get<Emulator::DebugSettings::DemangledSymbols>().value);
     ImGui::SameLine();
     ImGui::Checkbox(_("Follow PC"), &m_followPC);
     ImGui::SameLine();
@@ -541,9 +594,14 @@ settings, otherwise debugging features may not work.)");
     float footerHeight = 0;
     footerHeight += heightSeparator * 2 + ImGui::GetTextLineHeightWithSpacing();
 
+    if (m_region < 0 || m_region >= c_regionCount) m_region = 0;
+    const DisasmRegion& region = c_regions[m_region];
+    uint8_t* const regionBuffer = m_memory->*region.buffer;
+    const uint32_t pcPhys = m_registers->pc & 0x1fffffff;
+
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, -footerHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper;
-    clipper.Begin(0x00890000 / 4);
+    clipper.Begin(region.size / 4);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->ChannelsSplit(129);
@@ -561,56 +619,38 @@ settings, otherwise debugging features may not work.)");
     bool openAssembler = false;
     bool openSymbolAdder = false;
 
+    float lineHeight = ImGui::GetTextLineHeight();
+    float previousSymbolY = topleft.y;
+    std::optional<std::string> previousSymbol;
+
     while (clipper.Step()) {
         bool skipNext = false;
         bool delaySlotNext = false;
-        typedef std::function<void(uint32_t, const char*, uint32_t, uint32_t, uint32_t)> prependType;
-        auto process = [&](uint32_t addr, prependType prepend, PCSX::Disasm* disasm) {
+        typedef std::function<void(uint32_t, uint32_t)> prependType;
+        auto process = [&](uint32_t offset, prependType prepend, PCSX::Disasm* disasm) {
             uint32_t code = 0;
             uint32_t nextCode = 0;
-            uint32_t base = 0;
-            uint32_t absAddr = addr;
-            const char* section = "UNK";
-            if (addr < 0x00800000) {
-                section = "RAM";
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr);
-                if (addr <= 0x007ffff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_wram + addr + 4);
+            if (offset + 4 <= region.size) {
+                code = *reinterpret_cast<uint32_t*>(regionBuffer + offset);
+                if (offset + 8 <= region.size) {
+                    nextCode = *reinterpret_cast<uint32_t*>(regionBuffer + offset + 4);
                 }
-                base = m_ramBase;
-            } else if (addr < 0x00810000) {
-                section = "PAR";
-                addr -= 0x00800000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr);
-                if (addr <= 0x0000fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_exp1 + addr + 4);
-                }
-                base = 0x1f000000;
-            } else if (addr < 0x00890000) {
-                section = "ROM";
-                addr -= 0x00810000;
-                code = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr);
-                if (addr <= 0x0007fff8) {
-                    nextCode = *reinterpret_cast<uint32_t*>(m_memory->m_bios + addr + 4);
-                }
-                base = 0xbfc00000;
             }
-            prepend(code, section, addr | base, absAddr, base);
-            disasm->process(code, nextCode, addr | base, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
+            uint32_t dispAddr = m_ramBase + region.physBase + offset;
+            prepend(code, dispAddr);
+            disasm->process(code, nextCode, dispAddr, m_pseudo ? &skipNext : nullptr, &delaySlotNext);
             m_notch = delaySlotNext && m_delaySlotNotch;
             m_notchAfterSkip[1] = delaySlotNext && m_delaySlotNotch && m_pseudo && skipNext;
         };
         if (clipper.DisplayStart != 0) {
-            uint32_t addr = clipper.DisplayStart * 4 - 4;
-            process(
-                addr, [](uint32_t, const char*, uint32_t, uint32_t, uint32_t) {}, &dummy);
+            uint32_t offset = clipper.DisplayStart * 4 - 4;
+            process(offset, [](uint32_t, uint32_t) {}, &dummy);
         }
         auto& tree = g_emulator->m_debug->getTree();
         for (int x = clipper.DisplayStart; x < clipper.DisplayEnd; x++) {
-            uint32_t addr = x * 4;
+            uint32_t offset = x * 4;
             const Debug::Breakpoint* currentBP = nullptr;
-            prependType l = [&](uint32_t code, const char* section, uint32_t dispAddr, uint32_t absAddr,
-                                uint32_t base) mutable {
+            prependType l = [&](uint32_t code, uint32_t dispAddr) mutable {
                 bool hasBP = false;
                 bool isBPEnabled = false;
 
@@ -640,11 +680,24 @@ settings, otherwise debugging features may not work.)");
                 tcode >>= 8;
                 b[3] = tcode & 0xff;
 
-                auto symbols = findSymbol(dispAddr);
-                if (symbols.size() != 0) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
-                    ImGui::Text("%s:", symbols.begin()->c_str());
-                    ImGui::PopStyleColor();
+                std::pair<const uint32_t, std::string>* symbol = cpu->findContainingSymbol(dispAddr);
+                if (symbol) {
+                    if (symbol->first == dispAddr) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, s_labelColor);
+                        std::string displayName = displaySymbol(symbol->second);
+                        ImGui::Text("%s:", displayName.c_str());
+                        ImGui::PopStyleColor();
+                    } else {
+                        // if this is the first visible line and it's not a label itself, store the previous symbol
+                        float y = ImGui::GetCursorScreenPos().y;
+                        if (y + lineHeight >= topleft.y && y <= topleft.y + lineHeight) {
+                            previousSymbol = displaySymbol(symbol->second);
+                            // if the second visible line is a symbol, push the previous symbol display up
+                            if (cpu->getSymbolAt(dispAddr + 4) && y < previousSymbolY) {
+                                previousSymbolY = y;
+                            }
+                        }
+                    }
                 }
 
                 for (int i = 0; i < m_numColumns * ImGui::GetWindowDpiScale(); i++) {
@@ -670,7 +723,7 @@ settings, otherwise debugging features may not work.)");
                         drawList->AddCircle(ImVec2(x, y), glyphWidth / 2, ImColor(s_bpColor), 20, 1.5f);
                     }
                 }
-                if (addr == pc) {
+                if (region.physBase + offset == pcPhys) {
                     /*
                        a
                     d  +
@@ -696,11 +749,15 @@ settings, otherwise debugging features may not work.)");
                     drawList->AddTriangleFilled(a, b, c, ImColor(s_currentColor));
                     drawList->AddRectFilled(d, e, ImColor(s_currentColor));
                 }
-                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", section, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]), tc(b[3]),
-                            code);
+                ImGui::Text("  %s:%8.8x %c%c%c%c %8.8x: ", region.label, dispAddr, tc(b[0]), tc(b[1]), tc(b[2]),
+                            tc(b[3]), code);
                 auto toggleBP = [&]() {
                     if (hasBP) {
-                        g_emulator->m_debug->removeBreakpoint(currentBP);
+                        if (currentBP->enabled()) {
+                            currentBP->disable();
+                        } else {
+                            currentBP->enable();
+                        }
                     } else {
                         g_emulator->m_debug->addBreakpoint(dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"));
                     }
@@ -710,14 +767,14 @@ settings, otherwise debugging features may not work.)");
                 }
                 std::string contextMenuID = fmt::format("assembly address menu {}", dispAddr);
                 if (ImGui::BeginPopupContextItem(contextMenuID.c_str())) {
-                    if (symbols.size() == 0) {
+                    if (symbol) {
+                        if (ImGui::MenuItem(_("Remove symbol"))) {
+                            cpu->m_symbols.erase(dispAddr);
+                        }
+                    } else {
                         if (ImGui::MenuItem(_("Create symbol here"))) {
                             openSymbolAdder = true;
                             m_symbolAddress = dispAddr;
-                        }
-                    } else {
-                        if (ImGui::MenuItem(_("Remove symbol"))) {
-                            cpu->m_symbols.erase(dispAddr);
                         }
                     }
                     if (ImGui::MenuItem(_("Copy Address"))) {
@@ -725,9 +782,7 @@ settings, otherwise debugging features may not work.)");
                         std::snprintf(fmtAddr, sizeof(fmtAddr), "%8.8x", dispAddr);
                         ImGui::SetClipboardText(fmtAddr);
                     }
-                    if (ImGui::MenuItem(_("Go to in Memory Editor"))) {
-                        jumpToMemory(dispAddr, 4);
-                    }
+                    addMemoryEditorSubMenu(dispAddr, 4);
                     if (ImGui::MenuItem(_("Run to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_debug->addBreakpoint(
                             dispAddr, Debug::BreakpointType::Exec, 4, _("GUI"),
@@ -740,7 +795,42 @@ settings, otherwise debugging features may not work.)");
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
                     }
-                    if (absAddr < 0x00800000) {
+                    if (hasBP) {
+                        if (ImGui::MenuItem(_("Remove Breakpoint"))) {
+                            g_emulator->m_debug->removeBreakpoint(currentBP);
+                        }
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                        ImGui::TextUnformatted(_("Remove Breakpoint"));
+                        ImGui::PopStyleColor();
+                    }
+                    if (region.physBase == 0) {
+                        PatchManager& pm = *g_emulator->m_patchManager;
+                        int patchIdx = pm.findPatch(dispAddr);
+                        if (patchIdx == -1) {
+                            if (ImGui::MenuItem(_("Patch in Return"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::Return);
+                            }
+                            if (ImGui::MenuItem(_("Patch in NOP"))) {
+                                pm.registerPatch(dispAddr, PatchManager::Patch::Type::NOP);
+                            }
+                        } else {
+                            PatchManager::Patch& patch = pm.getPatch(patchIdx);
+                            switch (patch.type) {
+                                case PatchManager::Patch::Type::Return:
+                                    if (ImGui::MenuItem(_("Delete Return Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+
+                                case PatchManager::Patch::Type::NOP:
+                                    if (ImGui::MenuItem(_("Delete NOP Patch"))) {
+                                        pm.deletePatch(patchIdx);
+                                    }
+                                    break;
+                            }
+                        }
+
                         if (ImGui::MenuItem(_("Assemble"))) {
                             openAssembler = true;
                             m_assembleAddress = dispAddr;
@@ -757,7 +847,7 @@ settings, otherwise debugging features may not work.)");
                 }
             };
             m_notchAfterSkip[0] = m_notchAfterSkip[1];
-            process(addr, l, this);
+            process(offset, l, this);
         }
     }
     std::sort(m_arrows.begin(), m_arrows.end(), [](const auto& a, const auto& b) -> bool {
@@ -813,18 +903,18 @@ settings, otherwise debugging features may not work.)");
             cp1.x = columnX;
             cp1.y = p0.y - thickness * direction;
             drawList->ChannelsSetCurrent(1 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
             drawList->ChannelsSetCurrent(0 + column * 2);
-            drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+            drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
             if (dst != linesStartPos.end()) {
                 float dx = dst->second.x + ImGui::GetTextLineHeight() / 2;
                 float dy = dst->second.y + glyphWidth / 2;
                 p0.x = columnX;
                 p0.y = dy - direction * ImGui::GetTextLineHeight() / 2;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, p1, p0, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 p1.x = dx + glyphWidth / 4;
                 p1.y = dy;
                 cp1.x = p0.x - thickness;
@@ -833,9 +923,9 @@ settings, otherwise debugging features may not work.)");
                 cp0.y = p1.y + thickness * direction;
                 p1.x -= thickness;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p0, cp0, cp1, p1, ImColor(s_arrowOutlineColor), thickness + 4);
                 ImVec2 a, b, c;
                 a = b = c = p1;
                 a.x += thickness;
@@ -858,13 +948,20 @@ settings, otherwise debugging features may not work.)");
                 out.x = p1.x;
                 out.y = height * 2 * direction;
                 drawList->ChannelsSetCurrent(1 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowColor), thickness);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowColor), thickness);
                 drawList->ChannelsSetCurrent(0 + column * 2);
-                drawList->AddBezierCurve(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
+                drawList->AddBezierCubic(p1, out, p1, out, ImColor(s_arrowOutlineColor), thickness + 4);
             }
         }
     }
     drawList->ChannelsMerge();
+    if (previousSymbol) {
+        ImVec2 pos(ImGui::GetCursorScreenPos().x, previousSymbolY);
+        ImVec2 posEnd(pos.x + glyphWidth * 64, pos.y + ImGui::GetTextLineHeight());
+        drawList->AddRectFilled(pos, posEnd, ImGui::GetColorU32(ImGuiCol_WindowBg));
+        std::string text = "^ " + previousSymbol.value() + " ^";
+        drawList->AddText(pos, ImGui::GetColorU32(s_labelColor), text.data(), text.data() + text.size());
+    }
     ImGui::EndChild();
     ImGui::PopFont();
     if (m_jumpToPC.has_value()) {
@@ -894,28 +991,32 @@ settings, otherwise debugging features may not work.)");
         ImGui::EndCombo();
     }
     ImGui::SameLine();
+    if (ImGui::BeginCombo(_("Region"), c_regions[m_region].label)) {
+        for (int i = 0; i < c_regionCount; i++) {
+            if (ImGui::Selectable(c_regions[i].label, m_region == i)) {
+                m_region = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
     if (ImGui::Button(_("Symbols"))) m_showSymbols = true;
     ImGui::PopItemWidth();
     ImGui::BeginChild("##ScrollingRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     if ((m_followPC && (m_registers->pc != m_previousPC)) || m_jumpToPC.has_value()) {
         m_previousPC = m_registers->pc;
-        if (m_followPC) {
-            uint32_t basePC = (m_registers->pc >> 20) & 0xffc;
-            switch (basePC) {
-                case 0x000:
-                    m_ramBase = 0x00000000;
-                    break;
-                case 0x800:
-                    m_ramBase = 0x80000000;
-                    break;
-                case 0xa00:
-                    m_ramBase = 0xa0000000;
-                    break;
-            }
+        uint32_t targetAddr = m_jumpToPC ? m_jumpToPC.value() : m_registers->pc;
+        uint32_t targetPhys = targetAddr & 0x1fffffff;
+        int targetRegion = regionForPhys(targetPhys);
+        if (targetRegion >= 0) {
+            uint32_t targetSeg = targetAddr & 0xe0000000;
+            if (targetSeg != 0x80000000 && targetSeg != 0xa0000000) targetSeg = 0x00000000;
+            m_region = targetRegion;
+            m_ramBase = targetSeg;
+            double row = (targetPhys - c_regions[targetRegion].physBase) / 4;
+            double scroll_to_px = row * clipper.ItemsHeight;
+            ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         }
-        double pctopx = (m_jumpToPC ? virtToReal(m_jumpToPC.value()) : pc) / 4;
-        double scroll_to_px = pctopx * clipper.ItemsHeight;
-        ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + scroll_to_px, 0.5f);
         m_jumpToPC.reset();
     }
     ImGui::EndChild();
@@ -973,8 +1074,17 @@ if not success then return msg else return nil end
     }
     ImGui::End();
 
-    if (openSymbolsDialog) m_symbolsFileDialog.openDialog();
+    auto& mapPath = g_emulator->settings.get<Emulator::SettingMapBrowsePath>();
+
+    if (openSymbolsDialog) {
+        if (!mapPath.empty()) {
+            m_symbolsFileDialog.m_currentPath = mapPath.value;
+        }
+        m_symbolsFileDialog.openDialog();
+    }
     if (m_symbolsFileDialog.draw()) {
+        mapPath.value = m_symbolsFileDialog.m_currentPath;
+        changed = true;
         std::vector<PCSX::u8string> filesToOpen = m_symbolsFileDialog.selected();
         for (auto fileName : filesToOpen) {
             std::ifstream file;
@@ -996,7 +1106,7 @@ if not success then return msg else return nil end
 
     if (m_showSymbols) {
         if (ImGui::Begin(_("Symbols"), &m_showSymbols)) {
-            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCaches();
+            if (ImGui::Button(_("Refresh"))) rebuildSymbolsCache();
             ImGui::SameLine();
             ImGui::InputText(_("Filter"), &m_symbolFilter);
             ImGui::BeginChild("symbolsList");
@@ -1008,10 +1118,12 @@ if not success then return msg else return nil end
             std::string filter = up(m_symbolFilter);
             bool empty = filter.empty();
             for (auto& symbol : m_symbolsCache) {
-                int pos = up(symbol.first).find(filter);
+                std::string display = displaySymbol(symbol.first);
+                int pos = up(display).find(filter);
+                if (pos < 0) pos = up(symbol.first).find(filter);
                 bool found = pos >= 0;
                 if (empty || found) {
-                    std::string label = fmt::format("{} - {:08x}", symbol.first, symbol.second);
+                    std::string label = fmt::format("{} - {:08x}", display, symbol.second);
                     std::string codeLabel = fmt::format(f_("Code##{}{:08x}"), symbol.first, symbol.second);
                     std::string dataLabel = fmt::format(f_("Data##{}{:08x}"), symbol.first, symbol.second);
                     if (ImGui::Button(codeLabel.c_str())) {
@@ -1029,26 +1141,14 @@ if not success then return msg else return nil end
         }
         ImGui::End();
     }
+    return changed;
 }
 
-std::list<std::string> PCSX::Widgets::Assembly::findSymbol(uint32_t addr) {
-    auto& cpu = g_emulator->m_cpu;
-    std::list<std::string> ret;
-    auto symbol = cpu->m_symbols.find(addr);
-    if (symbol != cpu->m_symbols.end()) ret.emplace_back(symbol->second);
-
-    if (!m_symbolsCachesValid) rebuildSymbolsCaches();
-    auto elfSymbol = m_elfSymbolsCache.find(addr);
-    if (elfSymbol != m_elfSymbolsCache.end()) ret.emplace_back(elfSymbol->second);
-
-    return ret;
-}
-
-void PCSX::Widgets::Assembly::rebuildSymbolsCaches() {
+void PCSX::Widgets::Assembly::rebuildSymbolsCache() {
     auto& cpu = g_emulator->m_cpu;
     m_symbolsCache.clear();
     for (auto& symbol : cpu->m_symbols) {
         m_symbolsCache.insert(std::pair(symbol.second, symbol.first));
     }
-    m_symbolsCachesValid = true;
+    m_symbolsCacheValid = true;
 }

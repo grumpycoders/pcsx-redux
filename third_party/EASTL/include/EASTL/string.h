@@ -1948,12 +1948,12 @@ namespace eastl
 		const size_type n = (size_type)(pEnd - pBegin);
 		if(n <= internalLayout().GetSize())
 		{
-			memmove(internalLayout().BeginPtr(), pBegin, (size_t)n * sizeof(value_type));
+			__builtin_memmove(internalLayout().BeginPtr(), pBegin, (size_t)n * sizeof(value_type));
 			erase(internalLayout().BeginPtr() + n, internalLayout().EndPtr());
 		}
 		else
 		{
-			memmove(internalLayout().BeginPtr(), pBegin, (size_t)(internalLayout().GetSize()) * sizeof(value_type));
+			__builtin_memmove(internalLayout().BeginPtr(), pBegin, (size_t)(internalLayout().GetSize()) * sizeof(value_type));
 			append(pBegin + internalLayout().GetSize(), pEnd);
 		}
 		return *this;
@@ -2142,7 +2142,7 @@ namespace eastl
 					const size_type nSavedSize = internalLayout().GetSize();
 					CharStringUninitializedCopy((internalLayout().EndPtr() - n) + 1, internalLayout().EndPtr() + 1, internalLayout().EndPtr() + 1);
 					internalLayout().SetSize(nSavedSize + n);
-					memmove(const_cast<value_type*>(p) + n, p, (size_t)((nElementsAfter - n) + 1) * sizeof(value_type));
+					__builtin_memmove(const_cast<value_type*>(p) + n, p, (size_t)((nElementsAfter - n) + 1) * sizeof(value_type));
 					CharTypeAssignN(const_cast<value_type*>(p), n, c);
 				}
 				else
@@ -2243,8 +2243,8 @@ namespace eastl
 					const size_type nSavedSize = internalLayout().GetSize();
 					CharStringUninitializedCopy((internalLayout().EndPtr() - n) + 1, internalLayout().EndPtr() + 1, internalLayout().EndPtr() + 1);
 					internalLayout().SetSize(nSavedSize + n);
-					memmove(const_cast<value_type*>(p) + n, p, (size_t)((nElementsAfter - n) + 1) * sizeof(value_type));
-					memmove(const_cast<value_type*>(p), pBegin, (size_t)(n) * sizeof(value_type));
+					__builtin_memmove(const_cast<value_type*>(p) + n, p, (size_t)((nElementsAfter - n) + 1) * sizeof(value_type));
+					__builtin_memmove(const_cast<value_type*>(p), pBegin, (size_t)(n) * sizeof(value_type));
 				}
 				else
 				{
@@ -2343,7 +2343,7 @@ namespace eastl
 				EASTL_FAIL_MSG("basic_string::erase -- invalid position");
 		#endif
 
-		memmove(const_cast<value_type*>(p), p + 1, (size_t)(internalLayout().EndPtr() - p) * sizeof(value_type));
+		__builtin_memmove(const_cast<value_type*>(p), p + 1, (size_t)(internalLayout().EndPtr() - p) * sizeof(value_type));
 		internalLayout().SetSize(internalLayout().GetSize() - 1);
 		return const_cast<value_type*>(p);
 	}
@@ -2543,9 +2543,9 @@ namespace eastl
 		if(nLength1 >= nLength2) // If we have a non-expanding operation...
 		{
 			if((pBegin2 > pEnd1) || (pEnd2 <= pBegin1))  // If we have a non-overlapping operation...
-				memcpy(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pEnd2 - pBegin2) * sizeof(value_type));
+				__builtin_memcpy(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pEnd2 - pBegin2) * sizeof(value_type));
 			else
-				memmove(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pEnd2 - pBegin2) * sizeof(value_type));
+				__builtin_memmove(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pEnd2 - pBegin2) * sizeof(value_type));
 			erase(pBegin1 + nLength2, pEnd1);
 		}
 		else // Else we are expanding.
@@ -2555,9 +2555,9 @@ namespace eastl
 				const value_type* const pMid2 = pBegin2 + nLength1;
 
 				if((pEnd2 <= pBegin1) || (pBegin2 > pEnd1))
-					memcpy(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pMid2 - pBegin2) * sizeof(value_type));
+					__builtin_memcpy(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pMid2 - pBegin2) * sizeof(value_type));
 				else
-					memmove(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pMid2 - pBegin2) * sizeof(value_type));
+					__builtin_memmove(const_cast<value_type*>(pBegin1), pBegin2, (size_t)(pMid2 - pBegin2) * sizeof(value_type));
 				insert(pEnd1, pMid2, pEnd2);
 			}
 			else // else we have an overlapping operation.
@@ -3192,7 +3192,7 @@ namespace eastl
 		if((internalLayout().EndPtr() + 1) <= internalLayout().CapacityPtr())
 		{
 			const size_type nSavedSize = internalLayout().GetSize();
-			memmove(const_cast<value_type*>(p) + 1, p, (size_t)(internalLayout().EndPtr() - p) * sizeof(value_type));
+			__builtin_memmove(const_cast<value_type*>(p) + 1, p, (size_t)(internalLayout().EndPtr() - p) * sizeof(value_type));
 			*(internalLayout().EndPtr() + 1) = 0;
 			*pNewPosition = c;
 			internalLayout().SetSize(nSavedSize + 1);
@@ -3751,7 +3751,7 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline bool operator==(const basic_string<T, Allocator>& a, const basic_string<T, Allocator>& b)
 	{
-		return ((a.size() == b.size()) && (memcmp(a.data(), b.data(), (size_t)a.size() * sizeof(typename basic_string<T, Allocator>::value_type)) == 0));
+		return ((a.size() == b.size()) && (__builtin_memcmp(a.data(), b.data(), (size_t)a.size() * sizeof(typename basic_string<T, Allocator>::value_type)) == 0));
 	}
 
 
@@ -3760,7 +3760,7 @@ namespace eastl
 	{
 		typedef typename basic_string<T, Allocator>::size_type size_type;
 		const size_type n = (size_type)CharStrlen(p);
-		return ((n == b.size()) && (memcmp(p, b.data(), (size_t)n * sizeof(*p)) == 0));
+		return ((n == b.size()) && (__builtin_memcmp(p, b.data(), (size_t)n * sizeof(*p)) == 0));
 	}
 
 
@@ -3769,7 +3769,7 @@ namespace eastl
 	{
 		typedef typename basic_string<T, Allocator>::size_type size_type;
 		const size_type n = (size_type)CharStrlen(p);
-		return ((a.size() == n) && (memcmp(a.data(), p, (size_t)n * sizeof(*p)) == 0));
+		return ((a.size() == n) && (__builtin_memcmp(a.data(), p, (size_t)n * sizeof(*p)) == 0));
 	}
 
 

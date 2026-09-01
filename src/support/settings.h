@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2019 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #pragma once
 
@@ -26,19 +33,50 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <magic_enum/magic_enum_all.hpp>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 #include "core/system.h"
 #include "json.hpp"
 #include "lua/luawrapper.h"
-#include "magic_enum/include/magic_enum.hpp"
 #include "support/typestring-wrapper.h"
 #include "typestring.hh"
 
 namespace PCSX {
+
+namespace concepts {
+template <typename S>
+concept Setting = requires(S s) {
+    { s.serialize() } -> std::same_as<nlohmann::json>;
+    { s.deserialize(std::declval<nlohmann::json>()) } -> std::same_as<void>;
+    { s.reset() } -> std::same_as<void>;
+    { s.pushLuaClosures(std::declval<Lua>()) } -> std::same_as<void>;
+};
+template <typename S>
+concept Settings = requires(S s) {
+    { s.reset() } -> std::same_as<void>;
+    { s.serialize() } -> std::same_as<nlohmann::json>;
+    { s.deserialize(std::declval<nlohmann::json>()) } -> std::same_as<void>;
+    { s.pushValue(std::declval<Lua>()) } -> std::same_as<void>;
+};
+}  // namespace concepts
+
+template <typename type, typename name>
+struct SettingVector;
+template <typename type, char... C>
+struct SettingVector<type, irqus::typestring<C...>> {
+    using json = nlohmann::json;
+    typedef irqus::typestring<C...> name;
+    json serialize() const { return value; }
+    void deserialize(const json &j) { value = j.template get<std::vector<type>>(); }
+    void reset() { value.clear(); }
+    std::vector<type> value;
+    void pushLuaClosures(Lua L) {}
+};
 
 template <typename type, typename name, type defaultValue = type()>
 struct Setting;
@@ -99,7 +137,7 @@ struct Setting<type, irqus::typestring<C...>, defaultValue> {
         return *this;
     }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<type>(); }
     void reset() { value = defaultValue; }
     type value = defaultValue;
 };
@@ -151,7 +189,7 @@ struct SettingString<irqus::typestring<C...>, irqus::typestring<D...>> {
     }
     const char *c_str() const { return value.c_str(); }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<std::string>(); }
     void reset() { value = defaultValue::data(); }
     type value = defaultValue::data();
 };
@@ -210,7 +248,7 @@ struct SettingPath<irqus::typestring<C...>, irqus::typestring<D...>> {
     // Also, https://github.com/nlohmann/json/issues/1914
     json serialize() const { return reinterpret_cast<const char *>(value.u8string().c_str()); }
     void deserialize(const json &j) {
-        std::string str = j;
+        std::string str = j.template get<std::string>();
         value = str;
     }
     void reset() { value = defaultValue::data(); }
@@ -263,14 +301,14 @@ struct SettingFloat<irqus::typestring<C...>, defaultValue, divisor> {
         return *this;
     }
     json serialize() const { return value; }
-    void deserialize(const json &j) { value = j; }
+    void deserialize(const json &j) { value = j.template get<float>(); }
     void reset() { value = (float)defaultValue / (float)divisor; }
     float value = (float)defaultValue / (float)divisor;
 };
 
-template <typename name, typename nestedSettings>
+template <typename name, concepts::Settings nestedSettings>
 struct SettingNested;
-template <char... C, typename nestedSettings>
+template <char... C, concepts::Settings nestedSettings>
 struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSettings {
     typedef irqus::typestring<C...> name;
 
@@ -287,8 +325,7 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
                 return 1;
             },
             -1);
-        L.declareFunc(
-            "newindex", [](Lua L) -> int { return 0; }, -1);
+        L.declareFunc("newindex", [](Lua L) -> int { return 0; }, -1);
         L.declareFunc(
             "reset",
             [this](Lua L) -> int {
@@ -300,7 +337,7 @@ struct SettingNested<irqus::typestring<C...>, nestedSettings> : public nestedSet
     }
 };
 
-template <typename... settings>
+template <concepts::Setting... settings>
 struct Settings : private std::tuple<settings...> {
     using json = nlohmann::json;
     template <typename setting>
@@ -330,6 +367,8 @@ struct Settings : private std::tuple<settings...> {
         L.declareFunc("__pairs", lua_pairswrapper, -1);
         L.setmetatable();
     }
+
+  private:
     static int lua_index(lua_State *L_) {
         Lua L(L_);
         int r = L.getmetatable(-2);
@@ -378,10 +417,9 @@ struct Settings : private std::tuple<settings...> {
         return 3;
     }
 
-  private:
     template <size_t index>
     constexpr void reset() {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void reset() {
         settingType &setting = std::get<index>(*this);
         setting.reset();
@@ -389,7 +427,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     constexpr void serialize(json &j) const {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void serialize(json &j) const {
         const settingType &setting = std::get<index>(*this);
         j[settingType::name::data()] = setting.serialize();
@@ -397,7 +435,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     constexpr void deserialize(const json &j, bool doReset = true) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     constexpr void deserialize(const json &j, bool doReset = true) {
         settingType &setting = std::get<index>(*this);
         try {
@@ -413,7 +451,7 @@ struct Settings : private std::tuple<settings...> {
     }
     template <size_t index>
     void pushValue(Lua L) {}
-    template <size_t index, typename settingType, typename... nestedSettings>
+    template <size_t index, concepts::Setting settingType, concepts::Setting... nestedSettings>
     void pushValue(Lua L) {
         settingType &setting = std::get<index>(*this);
         setting.pushLuaClosures(L);

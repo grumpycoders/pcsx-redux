@@ -61,6 +61,9 @@ enum CueFileType {
     CUE_FILE_TYPE_AIFF,
     CUE_FILE_TYPE_WAVE,
     CUE_FILE_TYPE_MP3,
+    CUE_FILE_TYPE_OGG,
+    CUE_FILE_TYPE_OPUS,
+    CUE_FILE_TYPE_FLAC,
 };
 
 struct CueParser {

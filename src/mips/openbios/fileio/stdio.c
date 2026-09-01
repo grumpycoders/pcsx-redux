@@ -335,3 +335,79 @@ int psxprintf(const char* fmt, ...) {
     vxprintf(xprintfcallback, NULL, fmt, ap);
     va_end(ap);
 }
+
+int psxrename(const char* oldName, const char* newName) {
+    struct File* oldFile = findEmptyFile();
+    if (!oldFile) {
+        psxerrno = PSXEMFILE;
+        return 0;
+    }
+    struct File* newFile = findEmptyFile();
+    if (!newFile) {
+        psxerrno = PSXEMFILE;
+        oldFile->flags = 0;
+        return 0;
+    }
+    struct Device* oldDevice;
+    int oldDeviceId;
+    const char* oldFilename = splitFilepathAndFindDevice(oldName, &oldDevice, &oldDeviceId);
+    if (oldFilename == ((char*)-1)) {
+        psxerrno = PSXENODEV;
+        oldFile->flags = 0;
+        newFile->flags = 0;
+        return 0;
+    }
+    struct Device* newDevice;
+    int newDeviceId;
+    const char* newFilename = splitFilepathAndFindDevice(newName, &newDevice, &newDeviceId);
+    if (oldDeviceId != newDeviceId) {
+        psxerrno = PSXEXDEV;
+        oldFile->flags = 0;
+        newFile->flags = 0;
+        return 0;
+    }
+    if (newFilename == ((char*)-1)) {
+        psxerrno = PSXENODEV;
+        oldFile->flags = 0;
+        newFile->flags = 0;
+        return 0;
+    }
+    oldFile->deviceId = oldDeviceId;
+    oldFile->device = oldDevice;
+    newFile->deviceId = newDeviceId;
+    newFile->device = newDevice;
+    if (oldDevice->rename(oldFile, oldFilename, newFile, newFilename) != 0) {
+        psxerrno = oldFile->errno;
+        oldFile->flags = 0;
+        newFile->flags = 0;
+        return 0;
+    }
+    oldFile->flags = 0;
+    newFile->flags = 0;
+    return 1;
+}
+
+int psxerase(const char* path) {
+    struct File* file = findEmptyFile();
+    if (!file) {
+        psxerrno = PSXEMFILE;
+        return 0;
+    }
+    struct Device* device;
+    int deviceId;
+    const char* filename = splitFilepathAndFindDevice(path, &device, &deviceId);
+    if (filename == ((char*)-1)) {
+        psxerrno = PSXENODEV;
+        file->flags = 0;
+        return 0;
+    }
+    file->deviceId = deviceId;
+    file->device = device;
+    if (device->erase(file, filename) != 0) {
+        psxerrno = file->errno;
+        file->flags = 0;
+        return 0;
+    }
+    file->flags = 0;
+    return 1;
+}

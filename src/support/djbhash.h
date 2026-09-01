@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2020 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #pragma once
 
@@ -25,19 +32,19 @@
 
 namespace PCSX {
 
-struct djbHash {
+struct djb {
   private:
-    static inline constexpr uint64_t djbProcess(uint64_t hash, const char str[], size_t n) {
-        return n ? djbProcess(((hash << 5) + hash) ^ str[0], str + 1, n - 1) : hash;
+    static inline constexpr uint64_t process(uint64_t hash, const char str[], size_t n) {
+        return n ? process(((hash << 5) + hash) ^ static_cast<uint8_t>(str[0]), str + 1, n - 1) : hash;
     }
 
   public:
     template <size_t S>
     static inline constexpr uint64_t ctHash(const char (&str)[S]) {
-        return djbProcess(5381, str, S - 1);
+        return process(5381, str, S - 1);
     }
-    static inline constexpr uint64_t hash(const char *str, size_t n) { return djbProcess(5381, str, n); }
-    static inline uint64_t hash(const std::string &str) { return djbProcess(5381, str.c_str(), str.length()); }
+    static inline constexpr uint64_t hash(const char *str, size_t n) { return process(5381, str, n); }
+    static inline uint64_t hash(const std::string &str) { return process(5381, str.c_str(), str.length()); }
 };
 
 }  // namespace PCSX

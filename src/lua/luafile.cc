@@ -22,6 +22,7 @@
 #include "core/system.h"
 #include "lua-protobuf/pb.h"
 #include "lua/luawrapper.h"
+#include "support/ffmpeg-audio-file.h"
 #include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
@@ -58,8 +59,8 @@ LuaFile* openFile(const char* filename, FileOps type) {
 }
 
 LuaFile* openFileWithCallback(const char* url, void (*callback)()) {
-    return new LuaFile(new PCSX::UvFile(
-        url, [callback]() { callback(); }, PCSX::g_system->getLoop(), PCSX::UvFile::DOWNLOAD_URL));
+    return new LuaFile(
+        new PCSX::UvFile(url, [callback]() { callback(); }, PCSX::g_system->getLoop(), PCSX::UvFile::DOWNLOAD_URL));
 }
 
 LuaFile* bufferFileReadOnly(void* data, uint64_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
@@ -84,6 +85,12 @@ uint64_t readFileBuffer(LuaFile* wrapper, void* buffer) {
     uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->read(data, *pSize);
+}
+PCSX::Slice* readFileToSlice(LuaFile* wrapper, uint64_t size) {
+    return new PCSX::Slice(std::move(wrapper->file->read(size)));
+}
+uint64_t readFileToExistingSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t size) {
+    return wrapper->file->read(slice->mutableData(), size);
 }
 
 uint64_t writeFileRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size) {
@@ -115,6 +122,12 @@ uint64_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint64_t pos) {
     uint32_t* pSize = reinterpret_cast<uint32_t*>(buffer);
     uint8_t* data = reinterpret_cast<uint8_t*>(pSize + 1);
     return *pSize = wrapper->file->readAt(data, *pSize, pos);
+}
+PCSX::Slice* readFileAtToSlice(LuaFile* wrapper, uint64_t size, uint64_t pos) {
+    return new PCSX::Slice(std::move(wrapper->file->readAt(pos, size)));
+}
+uint64_t readFileAtToExistingSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t size, uint64_t pos) {
+    return wrapper->file->readAt(slice->mutableData(), size, pos);
 }
 
 uint64_t writeFileAtRawPtr(LuaFile* wrapper, const uint8_t* data, uint64_t size, uint64_t pos) {
@@ -166,10 +179,11 @@ LuaFile* zReader(LuaFile* wrapper, int64_t size, bool raw) {
                            : new PCSX::ZReader(wrapper->file, size));
 }
 
+PCSX::Slice* createEmptySlice() { return new PCSX::Slice(); }
 uint64_t getSliceSize(PCSX::Slice* slice) { return slice->size(); }
-
 const void* getSliceData(PCSX::Slice* slice) { return slice->data(); }
-
+void* getSliceMutableData(PCSX::Slice* slice) { return slice->mutableData(); }
+void resizeSlice(PCSX::Slice* slice, uint32_t size) { slice->resize(size); }
 void destroySlice(PCSX::Slice* slice) { delete slice; }
 
 int readFileUserData(PCSX::Lua L) {
@@ -210,6 +224,17 @@ int readFileUserDataAt(PCSX::Lua L) {
     auto ret = wrapper->file->readAt(ptr, len, L.tonumber(4));
     if (ret >= 0) pb_addsize(buffer, ret);
     L.push(lua_Number(ret));
+    return 1;
+}
+
+int readFileGets(PCSX::Lua L) {
+    if (L.gettop() != 1) return L.error("Invalid number of arguments to readFileGets");
+
+    if (!L.iscdata(1)) return L.error("readFileGets: arg 1 not a cdata");
+
+    LuaFile* wrapper = *L.topointer<LuaFile*>(1);
+
+    L.push(wrapper->file->gets());
     return 1;
 }
 
@@ -260,6 +285,12 @@ uint32_t mem4gLowestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>(
 uint32_t mem4gHighestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->highestAddress(); }
 uint32_t mem4gActualSize(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->actualSize(); }
 
+LuaFile* ffmpegAudioFile(LuaFile* file, PCSX::FFmpegAudioFile::Channels channels,
+                         PCSX::FFmpegAudioFile::Endianness endianness, PCSX::FFmpegAudioFile::SampleFormat sampleFormat,
+                         unsigned frequency) {
+    return new LuaFile(new PCSX::FFmpegAudioFile(file->file, channels, endianness, sampleFormat, frequency));
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -293,6 +324,9 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, readFileRawPtr);
     REGISTER(L, readFileBuffer);
+    REGISTER(L, readFileToSlice);
+    REGISTER(L, readFileToExistingSlice);
+
     REGISTER(L, writeFileRawPtr);
     REGISTER(L, writeFileBuffer);
     REGISTER(L, writeFileMoveSlice);
@@ -306,6 +340,8 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, readFileAtRawPtr);
     REGISTER(L, readFileAtBuffer);
+    REGISTER(L, readFileAtToSlice);
+    REGISTER(L, readFileAtToExistingSlice);
 
     REGISTER(L, writeFileAtRawPtr);
     REGISTER(L, writeFileAtBuffer);
@@ -325,8 +361,11 @@ static void registerAllSymbols(PCSX::Lua L) {
 
     REGISTER(L, zReader);
 
+    REGISTER(L, createEmptySlice);
     REGISTER(L, getSliceSize);
     REGISTER(L, getSliceData);
+    REGISTER(L, getSliceMutableData);
+    REGISTER(L, resizeSlice);
     REGISTER(L, destroySlice);
 
     REGISTER(L, mem4g);
@@ -334,23 +373,29 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, mem4gHighestAddress);
     REGISTER(L, mem4gActualSize);
 
+    REGISTER(L, ffmpegAudioFile);
+
     L.settable();
     L.pop();
 }
 
 void PCSX::LuaFFI::open_file(Lua L) {
-    static int lualoader = 1;
+    static int lualoader = 3;
     static const char* fileFFICDef = (
 #include "lua/fileffi-cdef.lua"
     );
     static const char* fileFFI = (
 #include "lua/fileffi.lua"
     );
+    static const char* fileFFIMeta = (
+#include "lua/fileffimeta.lua"
+    );
     registerAllSymbols(L);
     L.getfieldtable("Support", LUA_GLOBALSINDEX);
     L.getfieldtable("_internal");
     L.declareFunc("readFileUserData", readFileUserData, -1);
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
+    L.declareFunc("readFileGets", readFileGets, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
     L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
     L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
@@ -369,6 +414,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
         },
         -1);
     L.pop();
-    L.load(fileFFICDef, "internal:lua/fileffi-cdef.lua");
-    L.load(fileFFI, "internal:lua/fileffi.lua");
+    L.load(fileFFICDef, "src:lua/fileffi-cdef.lua");
+    L.load(fileFFI, "src:lua/fileffi.lua");
+    L.load(fileFFIMeta, "src:lua/fileffimeta.lua");
 }

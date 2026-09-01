@@ -50,8 +50,6 @@ __bss_len_val   = (__bss_end - __bss_start);
 
 __stack_start   = ORIGIN(ram) + LENGTH(ram);
 
-PROVIDE(flushCache = flushCacheFromRealBios);
-
 SECTIONS {
     .base (NOLOAD) : {
         __vector_00 = .;

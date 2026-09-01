@@ -61,6 +61,7 @@ void CDRomDemo::prepare() {
         .set(psyqo::GPU::Interlace::PROGRESSIVE);
     gpu().initialize(config);
     m_cdrom.prepare();
+    m_cdrom.resetBlocking(gpu());
 }
 
 void CDRomDemo::createScene() {

@@ -6,17 +6,18 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   toolchain:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           set-safe-directory: true
-      - uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update packages registry
         run: sudo apt-get update
       - name: Install pre-reqs
@@ -24,4 +25,6 @@ jobs:
       - name: Build toolchains
         run: sudo bash tools/linux-mips/spawn-compiler.sh
       - name: Build OpenBIOS with it
-        run: make -C src/mips/openbios -j 2 all
+        run: make -C src/mips/openbios -j 6 all
+      - name: Build psyqo examples with it
+        run: for d in src/mips/psyqo/examples/* src/mips/psyqo-paths/examples/* src/mips/psyqo-lua/examples/*; do if [ -d "$d" ]; then make -C "$d" -j 6 all TEST=true; fi; done

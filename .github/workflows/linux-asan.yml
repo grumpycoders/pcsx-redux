@@ -1,0 +1,41 @@
+name: Linux CI asan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  asan:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      env:
+        TEST_RESULTS: /tmp/test-results
+        BUILD: asan
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      - run: |
+          make -j 2 all pcsx-redux-tests
+          make -C src/mips/openbios -j 2 BUILD=Release
+          cp src/mips/openbios/openbios.bin .
+          make -C src/mips/openbios clean
+          make -C src/mips/tests -j 2 PCSX_TESTS=true BUILD=Release
+          cp ./openbios.bin src/mips/openbios/
+      - name: Test
+        env:
+          # No dbus-launch in the image, so libdbus autolaunches a session bus, fails to
+          # exec, and leaks the buffer it grew for the reply. Not ours and dbus_shutdown
+          # doesn't reclaim it; telling it there is no session bus avoids the attempt.
+          DBUS_SESSION_BUS_ADDRESS: "disabled:"
+        run: |
+          xvfb-run ./pcsx-redux-tests

@@ -88,7 +88,8 @@ noCOP2adjustmentNeeded:
 /* These 4 blocs of 4 nops are each for an early exception handler slot.
    Only registers at, v0, v1, and ra are saved at this point. The first
    slot is used by the memory card driver. The second is used by the
-   lightgun driver. These are sometimes cleared out by patches. */
+   lightgun driver, and a custom handler from the game Point Blank.
+   These are sometimes cleared out by patches. */
 
 exceptionHandlerPatchSlot1:
     nop
@@ -308,11 +309,59 @@ exceptionVector:
       This results in the address 0x80 being wrongly dereferenced by
       CdControlF to read its parameters, and the retail bios will have
       enough zeroes here to make it work properly, tho it will be at
-      1x speed instead of the intended 2x. We pad with a nop to ensure
-      a behavior that is somewhat similar to the retail bios. */
+      1x speed instead of the intended 2x.
 
-    nop
-    li    $k0, %lo(exceptionHandler)
+      Now, we cannot just use a nop here, even though it would be the
+      simplest way to ensure a valid CdControlF call, because then,
+      Batman - Gotham City Racer NTSC (SLUS-01141) replaces this
+      code by reading the exception handler until a nop is found:
+
+                             copyHandler                                     XREF[1]:     FUN_80016a34:80016a68 (c)   
+        8002668c 80  00  04  24    li         src ,0x80
+        80026690 02  80  02  3c    lui        v0,0x8002
+        80026694 a8  67  42  24    addiu      dst ,dst ,0x67a8
+                             LAB_80026698                                    XREF[1]:     800266a4 (j)   
+        80026698 00  00  88  8c    lw         opcode ,0x0 (src )=>DAT_00000080
+        8002669c 04  00  84  20    addi       src ,src ,0x4
+        800266a0 00  00  48  ac    sw         opcode ,0x0 (dst )=>DAT_800267a8
+        800266a4 fc  ff  00  15    bne        opcode ,zero ,LAB_80026698
+        800266a8 04  00  42  20    _addi      dst ,dst ,0x4
+
+      So if we want to keep the game working, we need to have a valid
+      no-op instruction that is not a nop.
+
+      Using lui $0, 0x80 will not only accomplish these goals, but also
+      ensure that a CdControlF(0x80) actually sets the drive at 2x speed.
+
+      However, Need for Speed - High Stakes will run this code to detect
+      the presence of a debugger:
+
+                             detectDevBIOS                                   XREF[1]:     FUN_800f4390:800f43bc (c)   
+        8010769c 86  00  04  94    lhu        a0,0x86 (zero )
+        801076a0 5a  37  02  24    li         v0,0x375a
+        801076a4 05  00  82  10    beq        a0,v0,LAB_801076bc
+        801076a8 5a  27  03  24    _li        v1,0x275a
+        801076ac 04  00  83  10    beq        a0,v1,LAB_801076c0
+        801076b0 21  10  00  00    _clear     ret
+        801076b4 08  00  e0  03    jr         ra
+        801076b8 ff  ff  02  24    _li        ret ,-0x1
+                             LAB_801076bc                                    XREF[1]:     801076a4 (j)   
+        801076bc 01  00  02  24    li         ret ,0x1
+                             LAB_801076c0                                    XREF[1]:     801076ac (j)   
+        801076c0 08  00  e0  03    jr         ra
+        801076c4 00  00  00  00    _nop
+
+      In other words, it will check if the 16-bits value at 0x86 is 0x275a
+      for a retail bios, or 0x375a for a debugger. If it is neither, it
+      will return the code -1, for an error. 0x375a corresponds to
+      `ori $k0, $k0, xxx`, and 0x275a corresponds to `addiu $k0, $k0, xxx`.
+
+      At this point, our only safe option is to use a `la`, which will
+      expand into lui / addiu, with the low portion of the lui being
+      0x0000, to satisfy all of our constraints.
+      */
+
+    la    $k0, exceptionHandler
     jr    $k0
     nop
 

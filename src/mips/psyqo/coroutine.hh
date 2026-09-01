@@ -26,8 +26,15 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/functional.h>
+#include <EASTL/utility.h>
+
 #include <coroutine>
 #include <type_traits>
+
+#include "common/psxlibc/ucontext.h"
+#include "common/syscalls/syscalls.h"
+#include "psyqo/kernel.hh"
 
 namespace psyqo {
 
@@ -37,7 +44,7 @@ namespace psyqo {
  * @details C++20 introduced the concept of coroutines in the language. This
  * type can be used to properly hold a coroutine and yield and resume it
  * within psyqo. An important caveat of using coroutines is that the language
- * insist on calling `new` and `delete` silently within the coroutine object.
+ * insists on calling `new` and `delete` silently within the coroutine object.
  * This may be a problem for users who don't want to use the heap.
  *
  * @tparam T The type the coroutine returns. `void` by default.
@@ -49,16 +56,50 @@ struct Coroutine {
     typedef typename std::conditional<std::is_void<T>::value, Empty, T>::type SafeT;
 
     Coroutine() = default;
-    Coroutine(Coroutine &&other) = default;
-    Coroutine &operator=(Coroutine &&other) = default;
+
+    Coroutine(Coroutine &&other) {
+        if (m_handle) m_handle.destroy();
+        m_handle = nullptr;
+        m_handle = other.m_handle;
+        m_value = eastl::move(other.m_value);
+        m_suspended = other.m_suspended;
+        m_earlyResume = other.m_earlyResume;
+
+        other.m_handle = nullptr;
+        other.m_value = SafeT{};
+        other.m_suspended = true;
+        other.m_earlyResume = false;
+    }
+
+    Coroutine &operator=(Coroutine &&other) {
+        if (this != &other) {
+            if (m_handle) m_handle.destroy();
+            m_handle = nullptr;
+            m_handle = other.m_handle;
+            m_value = eastl::move(other.m_value);
+            m_suspended = other.m_suspended;
+            m_earlyResume = other.m_earlyResume;
+
+            other.m_handle = nullptr;
+            other.m_value = SafeT{};
+            other.m_suspended = true;
+            other.m_earlyResume = false;
+        }
+        return *this;
+    }
+
     Coroutine(Coroutine const &) = delete;
     Coroutine &operator=(Coroutine const &) = delete;
+    ~Coroutine() {
+        if (m_handle) m_handle.destroy();
+        m_handle = nullptr;
+    }
 
     /**
      * @brief The awaiter type.
      *
      * @details The awaiter type is the type that is used to suspend the coroutine
-     * after scheduling an asychronous operation. The keyword `co_await` can be used
+     * after scheduling an asynchronous operation. The keyword `co_await` can be used
      * on an instance of the object to suspend the current coroutine. Creating an
      * instance of this object is done by calling `coroutine.awaiter()`.
      */
@@ -72,13 +113,13 @@ struct Coroutine {
             m_coroutine->m_earlyResume = false;
             return ret;
         }
-        void await_suspend(std::coroutine_handle<> h) { m_coroutine->m_suspended = true; }
+        constexpr void await_suspend(std::coroutine_handle<> h) { m_coroutine->m_suspended = true; }
         constexpr void await_resume() const noexcept {}
 
       private:
         Awaiter(Coroutine *coroutine) : m_coroutine(coroutine) {}
         Coroutine *m_coroutine;
-        friend class Coroutine;
+        friend struct Coroutine;
     };
 
     /**
@@ -87,7 +128,7 @@ struct Coroutine {
      * @details This method is used to create an instance of the `Awaiter` object.
      * It's used to suspend the coroutine after scheduling an asynchronous operation.
      */
-    Awaiter awaiter() { return Awaiter(this); }
+    Awaiter awaiter() & { return Awaiter(this); }
 
     /**
      * @brief Resumes the coroutine.
@@ -121,6 +162,9 @@ struct Coroutine {
         if (!m_handle) return true;
         bool isDone = m_handle.done();
         if (isDone) {
+            if constexpr (!std::is_void<T>::value) {
+                m_value = eastl::move(m_handle.promise().m_value);
+            }
             m_handle.destroy();
             m_handle = nullptr;
         }
@@ -142,27 +186,44 @@ struct Coroutine {
 
   private:
     struct PromiseVoid {
-        Coroutine get_return_object() {
-            return Coroutine{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
+        Coroutine<> get_return_object() {
+            return Coroutine<>{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
-        void return_void() {}
+        void return_void() {
+            if (m_awaitingCoroutine) {
+                Kernel::queueCallback([h = m_awaitingCoroutine]() { h.resume(); });
+                m_awaitingCoroutine = nullptr;
+            }
+        }
+        [[no_unique_address]] Empty m_value;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     struct PromiseValue {
-        PromiseValue(Coroutine<T> *c) : coroutine(c) {}
         Coroutine<T> get_return_object() {
             return Coroutine{eastl::move(std::coroutine_handle<Promise>::from_promise(*this))};
         }
         std::suspend_always initial_suspend() { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
-        void return_value(T &&value) { coroutine->m_value = eastl::move(value); }
-        Coroutine<T> coroutine = nullptr;
+        void return_value(T &&value) {
+            m_value = eastl::move(value);
+            if (m_awaitingCoroutine) {
+                Kernel::queueCallback([h = m_awaitingCoroutine]() { h.resume(); });
+                m_awaitingCoroutine = nullptr;
+            }
+        }
+        T m_value;
+        std::coroutine_handle<> m_awaitingCoroutine;
     };
+
     typedef typename std::conditional<std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
+
     Coroutine(std::coroutine_handle<Promise> &&handle) : m_handle(eastl::move(handle)) {}
+
     std::coroutine_handle<Promise> m_handle;
     [[no_unique_address]] SafeT m_value;
     bool m_suspended = true;
@@ -170,6 +231,147 @@ struct Coroutine {
 
   public:
     using promise_type = Promise;
+
+    /**
+     * @brief The awaiter type for coroutine-to-coroutine chaining via co_await.
+     *
+     * @details GCC has known bugs across versions 10-15+ where the awaitable temporary
+     * in a `co_await` expression is not correctly promoted to the coroutine frame.
+     * By using `operator co_await()`, we transfer the coroutine handle to this
+     * awaiter object that GCC's coroutine pass reliably stores in the frame.
+     */
+    struct ChainAwaiter {
+        std::coroutine_handle<Promise> handle;
+
+        explicit ChainAwaiter(std::coroutine_handle<Promise> h) : handle(h) {}
+        ~ChainAwaiter() {
+            if (handle) handle.destroy();
+        }
+
+        ChainAwaiter(ChainAwaiter &&other) : handle(other.handle) { other.handle = nullptr; }
+        ChainAwaiter &operator=(ChainAwaiter &&) = delete;
+        ChainAwaiter(const ChainAwaiter &) = delete;
+        ChainAwaiter &operator=(const ChainAwaiter &) = delete;
+
+        constexpr bool await_ready() { return handle.done(); }
+
+        void await_suspend(std::coroutine_handle<> h) {
+            handle.promise().m_awaitingCoroutine = h;
+            if (!handle.done()) handle.resume();
+        }
+
+        constexpr T await_resume() {
+            if constexpr (std::is_void<T>::value) {
+                handle.destroy();
+                handle = nullptr;
+                return;
+            } else {
+                auto val = eastl::move(handle.promise().m_value);
+                handle.destroy();
+                handle = nullptr;
+                return val;
+            }
+        }
+    };
+
+    ChainAwaiter operator co_await() && {
+        auto h = m_handle;
+        m_handle = nullptr;
+        return ChainAwaiter{h};
+    }
+};
+
+class StackfulBase {
+  protected:
+    void initializeInternal(eastl::function<void()> &&func, void *ss_sp, unsigned ss_size);
+    void resume();
+    void yield();
+    [[nodiscard]] bool isAlive() const { return m_isAlive; }
+
+    StackfulBase() = default;
+    StackfulBase(const StackfulBase &) = delete;
+    StackfulBase &operator=(const StackfulBase &) = delete;
+
+  private:
+    static void trampoline(void *arg) {
+        StackfulBase *self = static_cast<StackfulBase *>(arg);
+        self->trampoline();
+    }
+    void trampoline();
+    ucontext_t m_coroutine;
+    ucontext_t m_return;
+    eastl::function<void()> m_func;
+    bool m_isAlive = false;
+};
+
+/**
+ * @brief Stackful coroutine class.
+ *
+ * @details This class provides a simple stackful coroutine implementation.
+ * It allows you to create coroutines that can yield and resume execution.
+ * While the Coroutine class above is a C++20 coroutine, it requires
+ * that all of the code being run are coroutines or awaitables all the way down.
+ * This class is a more traditional coroutine implementation that uses
+ * a separate stack for each coroutine, allowing it to yield and resume
+ * execution without requiring the entire call stack to be coroutine-aware.
+ * It is suitable for use in scenarios where you need to yield execution
+ * from legacy code without converting it to C++20 coroutines.
+ */
+template <unsigned StackSize = 0x10000>
+class Stackful : public StackfulBase {
+  public:
+    static constexpr unsigned c_stackSize = (StackSize + 7) & ~7;
+
+    Stackful() = default;
+    Stackful(const Stackful &) = delete;
+    Stackful &operator=(const Stackful &) = delete;
+
+    /**
+     * @brief Initialize the coroutine with a function and an argument.
+     *
+     * @param func Function to be executed by the coroutine.
+     * @param arg Argument to be passed to the function.
+     */
+    void initialize(eastl::function<void()> &&func) {
+        initializeInternal(eastl::move(func), m_stack.data, c_stackSize);
+    }
+
+    /**
+     * @brief Resume the coroutine.
+     *
+     * @details This will switch to the coroutine's context and execute it.
+     * If the coroutine is not alive, this function does nothing. This
+     * function should be called after the coroutine has been initialized,
+     * and it will return to the point where the coroutine was last yielded.
+     * It can only be called from the "main thread".
+     */
+    void resume() { StackfulBase::resume(); }
+
+    /**
+     * @brief Yield the coroutine.
+     *
+     * @details This will switch back to the main thread and save the
+     * coroutine's context. The coroutine can be resumed later using
+     * `resume()`. It can only be called from within the coroutine
+     * to yield execution.
+     */
+    void yield() { StackfulBase::yield(); }
+
+    /**
+     * @brief Check if the coroutine is currently alive.
+     * @details A coroutine is considered alive if it has been initialized
+     * and has not yet completed its execution. It becomes not alive
+     * when it returns from its function.
+     *
+     * @return true if the coroutine is alive, false otherwise.
+     */
+    [[nodiscard]] bool isAlive() const { return StackfulBase::isAlive(); }
+
+  private:
+    struct alignas(8) Stack {
+        uint8_t data[c_stackSize];
+    };
+    Stack m_stack;
 };
 
 }  // namespace psyqo

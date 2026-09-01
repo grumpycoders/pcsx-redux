@@ -132,5 +132,5 @@ void PCSX::LuaFFI::open_zlib(Lua L) {
 #include "third_party/zlibffi/zlibffi.lua"
     );
     registerAllSymbols(L);
-    L.load(zlibFFI, "internal:third_party/zlibffi/zlibffi.lua");
+    L.load(zlibFFI, "third_party:zlibffi/zlibffi.lua");
 }

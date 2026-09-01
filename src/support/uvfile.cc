@@ -1,22 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
 
+MIT License
+
+Copyright (c) 2022 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 #include "support/uvfile.h"
 
 #include <curl/curl.h>
@@ -110,7 +116,13 @@ void PCSX::UvThreadOp::startThread() {
             c_tick, c_tick);
         barrier.set_value();
         uv_run(&s_uvLoop, UV_RUN_DEFAULT);
-        uv_loop_close(&s_uvLoop);
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+        uv_close(reinterpret_cast<uv_handle_t *>(&s_curlTimeout), [](auto handle) {});
+        while (uv_loop_close(&s_uvLoop) == UV_EBUSY) {
+            uv_run(&s_uvLoop, UV_RUN_NOWAIT);
+        }
+        curl_multi_cleanup(s_curlMulti);
     });
     f.wait();
 }
@@ -184,8 +196,9 @@ void PCSX::UvThreadOp::stopThread() {
     request([&barrier](auto loop) { barrier.set_value(); });
     barrier.get_future().wait();
     request([](auto loop) {
-        uv_close(reinterpret_cast<uv_handle_t *>(&s_kicker), [](auto handle) {});
-        uv_close(reinterpret_cast<uv_handle_t *>(&s_timer), [](auto handle) {});
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_kicker));
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_timer));
+        uv_unref(reinterpret_cast<uv_handle_t *>(&s_curlTimeout));
     });
     s_uvThread.join();
     s_threadRunning = false;
@@ -266,7 +279,10 @@ void PCSX::UvFile::openwrapper(const char *filename, int flags) {
     }
     m_handle = handle;
     m_size = size;
-    if (handle >= 0) m_failed = false;
+    if (handle >= 0) {
+        m_failed = false;
+        m_pendingCloseInfo = new PendingCloseInfo();
+    }
 }
 
 PCSX::UvFile::UvFile(const char *filename) : File(RO_SEEKABLE), m_filename(filename) {
@@ -465,8 +481,7 @@ ssize_t PCSX::UvFile::read(void *dest, size_t size) {
 ssize_t PCSX::UvFile::write(const void *src, size_t size) {
     if (!writable()) return -1;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0);
         size_t newSize = m_ptrW + size;
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -513,8 +528,7 @@ ssize_t PCSX::UvFile::write(const void *src, size_t size) {
 void PCSX::UvFile::write(Slice &&slice) {
     if (!writable()) return;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_relaxed) != 1.0);
         size_t newSize = m_ptrW + slice.size();
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -613,8 +627,7 @@ ssize_t PCSX::UvFile::readAt(void *dest, size_t size, size_t ptr) {
 ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
     if (!writable()) return -1;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0);
         size_t newSize = ptr + size;
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -657,8 +670,7 @@ ssize_t PCSX::UvFile::writeAt(const void *src, size_t size, size_t ptr) {
 void PCSX::UvFile::writeAt(Slice &&slice, size_t ptr) {
     if (!writable()) return;
     if (m_cache) {
-        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0)
-            ;
+        while (m_cacheProgress.load(std::memory_order_acquire) != 1.0);
         size_t newSize = ptr + slice.size();
         if (newSize > m_size) {
             m_cache = reinterpret_cast<uint8_t *>(realloc(m_cache, newSize));
@@ -858,8 +870,7 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
             if (m_size.load() == 0) {
                 return ret == 0 ? -1 : ret;
             }
-            while (!m_queue.Dequeue(m_slice))
-                ;
+            while (!m_queue.Dequeue(m_slice));
         }
         auto toRead = std::min(size, static_cast<size_t>(m_slice.size()) - m_currentPtr);
         memcpy(dest, m_slice.data<uint8_t>() + m_currentPtr, toRead);

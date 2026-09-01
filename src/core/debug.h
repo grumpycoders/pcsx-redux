@@ -32,22 +32,27 @@ namespace PCSX {
 
 class Debug {
   public:
-    uint32_t normalizeAddress(uint32_t address);
-    static inline std::function<const char*()> s_breakpoint_type_names[] = {
-        []() { return _("Exec"); }, []() { return _("Read"); }, []() { return _("Write"); }};
+    Debug();
+    static uint32_t normalizeAddress(uint32_t address);
+    static bool isInKernel(uint32_t address, bool biosIsKernel = true);
+    static inline std::function<const char*()> s_breakpoint_type_names[] = {l_("Exec"), l_("Read"), l_("Write")};
     enum class BreakpointType { Exec, Read, Write };
+    enum class BreakpointCondition { Always, Change, Greater, Less, Equal };
 
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} read", c);
         checkBP(address, BreakpointType::Read, len, cause.c_str());
+        logDMAAccess(address, len, false);
     }
     void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} write", c);
         checkBP(address, BreakpointType::Write, len, cause.c_str());
+        logDMAAccess(address, len, true);
     }
 
   private:
     void checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause = "");
+    void logDMAAccess(uint32_t address, uint32_t len, bool isWrite);
 
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot
@@ -62,22 +67,32 @@ class Debug {
     class Breakpoint;
     typedef Intrusive::Tree<uint32_t, Breakpoint> BreakpointTreeType;
     typedef Intrusive::List<Breakpoint> BreakpointUserListType;
+    struct InternalTemporaryList {};
+    typedef Intrusive::List<Breakpoint, InternalTemporaryList> BreakpointTemporaryListType;
 
-    typedef std::function<bool(const Breakpoint*, uint32_t address, unsigned width, const char* cause)>
-        BreakpointInvoker;
+    typedef std::function<bool(Breakpoint*, uint32_t address, unsigned width, const char* cause)> BreakpointInvoker;
 
-    class Breakpoint : public BreakpointTreeType::Node, public BreakpointUserListType::Node {
+    class Breakpoint : public BreakpointTreeType::Node,
+                       public BreakpointUserListType::Node,
+                       public BreakpointTemporaryListType::Node {
       public:
-        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base)
-            : m_type(type), m_source(source), m_invoker(invoker), m_base(base) {}
+        Breakpoint(BreakpointType type, const std::string& source, BreakpointInvoker invoker, uint32_t base,
+                   std::string label = "")
+            : m_type(type), m_source(source), m_invoker(invoker), m_base(base), m_label(label) {}
         std::string name() const;
         BreakpointType type() const { return m_type; }
+        BreakpointCondition condition() const { return m_condition; }
+        void setCondition(BreakpointCondition condition) { m_condition = condition; }
+        uint32_t conditionData() const { return m_conditionData; }
+        void setConditionData(uint32_t data) { m_conditionData = data; }
         unsigned width() const { return getHigh() - getLow() + 1; }
         uint32_t address() const { return getLow(); }
         bool enabled() const { return m_enabled; }
         void enable() const { m_enabled = true; }
         void disable() const { m_enabled = false; }
         const std::string& source() const { return m_source; }
+        const std::string& label() const { return m_label; }
+        void label(const std::string& label) const { m_label = label; }
         uint32_t base() const { return m_base; }
 
       private:
@@ -87,8 +102,11 @@ class Debug {
         }
 
         const BreakpointType m_type;
+        BreakpointCondition m_condition = BreakpointCondition::Always;
+        uint32_t m_conditionData = 0;
         const std::string m_source;
         const BreakpointInvoker m_invoker;
+        mutable std::string m_label;
         uint32_t m_base;
         mutable bool m_enabled = true;
 
@@ -111,11 +129,11 @@ class Debug {
     bool m_breakmp_e = false;
     bool m_breakmp_r8 = false, m_breakmp_r16 = false, m_breakmp_r32 = false;
     bool m_breakmp_w8 = false, m_breakmp_w16 = false, m_breakmp_w32 = false;
+    bool m_checkKernel = false;
 
     void clearMaps() {
         memset(m_mainMemoryMap, 0, sizeof(m_mainMemoryMap));
         memset(m_biosMemoryMap, 0, sizeof(m_biosMemoryMap));
-        memset(m_parpMemoryMap, 0, sizeof(m_parpMemoryMap));
         memset(m_scratchPadMap, 0, sizeof(m_scratchPadMap));
     }
 
@@ -133,11 +151,25 @@ class Debug {
         address &= ~0xe0000000;
         return &*m_breakpoints.insert(address, address + width - 1, new Breakpoint(type, source, invoker, base));
     }
+    inline Breakpoint* addBreakpoint(
+        uint32_t address, BreakpointType type, unsigned width, const std::string& source, std::string label,
+        BreakpointInvoker invoker = [](const Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
+            g_system->pause();
+            return true;
+        }) {
+        uint32_t base = address & 0xe0000000;
+        address &= ~0xe0000000;
+        return &*m_breakpoints.insert(address, address + width - 1, new Breakpoint(type, source, invoker, base, label));
+    }
     const BreakpointTreeType& getTree() { return m_breakpoints; }
     const Breakpoint* lastBP() { return m_lastBP; }
     void removeBreakpoint(const Breakpoint* bp) {
         if (m_lastBP == bp) m_lastBP = nullptr;
         delete const_cast<Breakpoint*>(bp);
+    }
+    void removeAllBreakpoints() {
+        m_breakpoints.clear();
+        m_lastBP = nullptr;
     }
 
   private:
@@ -146,7 +178,6 @@ class Debug {
 
     uint8_t m_mainMemoryMap[0x00800000] = {0};
     uint8_t m_biosMemoryMap[0x00080000] = {0};
-    uint8_t m_parpMemoryMap[0x00010000] = {0};
     uint8_t m_scratchPadMap[0x00000400] = {0};
 
     void markMap(uint32_t address, int mask);
@@ -163,8 +194,8 @@ class Debug {
 
     bool m_wasInISR = false;
     Breakpoint* m_lastBP = nullptr;
-    BreakpointUserListType m_todelete;
     std::optional<std::tuple<uint32_t, bool>> m_scheduledCop0;
+    EventBus::Listener m_listener;
 };
 
 }  // namespace PCSX

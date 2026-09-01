@@ -34,17 +34,20 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
+uint64_t getCPUCycles() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_wram; }
 void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
+void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
+void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
-                             bool (*invoker)(uint32_t address, unsigned width, const char* cause)) {
+                             bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label) {
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint ") + cause,
+        address, type, width, std::string("Lua Breakpoint"), cause,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
@@ -110,7 +113,7 @@ PCSX::Slice* createSaveState() {
 void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
 
 void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
-    auto data = file->file->readAt(file->file->size(), 0);
+    auto data = file->file->readAt(64 * 1024 * 1024, 0);
     PCSX::SaveStates::load(data.asStringView());
 }
 
@@ -118,7 +121,7 @@ PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
     return new PCSX::LuaFFI::LuaFile(PCSX::g_emulator->m_mem->getMemoryAsFile());
 }
 
-void quit() { PCSX::g_system->quit(); }
+void quit(int code) { PCSX::g_system->quit(code); }
 
 }  // namespace
 
@@ -135,10 +138,14 @@ static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("PCSX");
     L.newtable();
+    REGISTER(L, getCPUCycles);
     REGISTER(L, getMemPtr);
+    REGISTER(L, getParPtr);
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
+    REGISTER(L, getReadLUT);
+    REGISTER(L, getWriteLUT);
     REGISTER(L, addBreakpoint);
     REGISTER(L, enableBreakpoint);
     REGISTER(L, disableBreakpoint);
@@ -169,8 +176,11 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
 #include "core/pcsxffi.lua"
     );
     registerAllSymbols(L);
-    L.load(pcsxFFI, "internal:core/pcsxffi.lua");
+    L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.push("execSlots");
+    L.newtable();
+    L.settable();
     L.declareFunc(
         "getSaveStateProtoSchema",
         [](lua_State* L_) -> int {

@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "psyqo/gte-kernels.hh"
+#include "psyqo/gte-registers.hh"
 #include "psyqo/primitives/common.hh"
 
 namespace psyqo {
@@ -42,18 +44,33 @@ namespace Prim {
  */
 struct Triangle {
     Triangle() : command(0x20000000) {}
-    Triangle(Color c) : command(0x20000000 | c.packed) {}
+    Triangle(Color c) : command(0x20000000 | (c.packed & 0x00ffffff)) {}
+    Triangle(const Triangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     Triangle& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x20000000 | c.packed | wasSemiTrans;
+        command = 0x20000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     Triangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
     Triangle& setSemiTrans() {
         command |= 0x02000000;
+        return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    Triangle& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    Triangle& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    Triangle& setPointC(Vertex v) {
+        pointC = v;
         return *this;
     }
 
@@ -80,7 +97,15 @@ static_assert(sizeof(Triangle) == (sizeof(uint32_t) * 4), "Triangle is not 4 wor
  * - `clutIndex`, `tpage`
  */
 struct TexturedTriangle {
-    TexturedTriangle() : command(0x24000000) {}
+    TexturedTriangle() : command(0x24808080) {}
+    TexturedTriangle(Color c) : command(0x24000000 | (c.packed & 0x00ffffff)) {}
+    TexturedTriangle(const TexturedTriangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
+    TexturedTriangle& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x24000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
+        return *this;
+    }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     TexturedTriangle& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -89,19 +114,20 @@ struct TexturedTriangle {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
 
   private:
     uint32_t command;
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTriangle is not 7 words");
 
@@ -115,10 +141,11 @@ static_assert(sizeof(TexturedTriangle) == (sizeof(uint32_t) * 7), "TexturedTrian
  */
 struct GouraudTriangle {
     GouraudTriangle() : command(0x30000000) {}
-    GouraudTriangle(Color c) : command(0x30000000 | c.packed) {}
+    GouraudTriangle(Color c) : command(0x30000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTriangle(const GouraudTriangle& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x30000000 | c.packed | wasSemiTrans;
+        command = 0x30000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTriangle& setColorB(Color c) {
@@ -129,13 +156,82 @@ struct GouraudTriangle {
         colorC = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
     GouraudTriangle& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details Meant for the GTE's RGBC CODE field, which gets fused into every
+     * colour the GTE emits. Preload it and the colour FIFO hands back finished
+     * first words. See `GouraudQuad::getCommandWord` for the full round trip.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudTriangle& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudTriangle& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    GouraudTriangle& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    GouraudTriangle& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    GouraudTriangle& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&a->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&c->packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x30000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x32000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(a.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(c.packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x30000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x32000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
     }
 
   private:
@@ -165,11 +261,13 @@ static_assert(sizeof(GouraudTriangle) == (sizeof(uint32_t) * 6), "GouraudTriangl
  * - `clutIndex`, `tpage`
  */
 struct GouraudTexturedTriangle {
-    GouraudTexturedTriangle() : command(0x35000000) {}
-    GouraudTexturedTriangle(Color c) : command(0x35000000 | c.packed) {}
+    GouraudTexturedTriangle() : command(0x34000000) {}
+    GouraudTexturedTriangle(Color c) : command(0x34000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTexturedTriangle(const GouraudTexturedTriangle& other, Color c)
+        : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTexturedTriangle& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x35000000 | c.packed | wasSemiTrans;
+        command = 0x34000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedTriangle& setColorB(Color c) {
@@ -180,13 +278,70 @@ struct GouraudTexturedTriangle {
         colorC = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
     GouraudTexturedTriangle& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details Meant for the GTE's RGBC CODE field, which gets fused into every
+     * colour the GTE emits. Preload it and the colour FIFO hands back finished
+     * first words. See `GouraudQuad::getCommandWord` for the full round trip.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudTexturedTriangle& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudTexturedTriangle& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&a->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(&c->packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x34000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x36000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c) {
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(a.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Unsafe>(c.packed);
+        if constexpr (transparency == Transparency::Auto) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(&command);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x34000000);
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            GTE::write<GTE::Register::RGB, GTE::Safe>(0x36000000);
+        }
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&command);
+        GTE::read<GTE::Register::RGB1>(&colorB.packed);
+        GTE::read<GTE::Register::RGB2>(&colorC.packed);
     }
 
   private:
@@ -194,15 +349,15 @@ struct GouraudTexturedTriangle {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
 };
 static_assert(sizeof(GouraudTexturedTriangle) == (sizeof(uint32_t) * 9), "GouraudTexturedTriangle is not 9 words");
 

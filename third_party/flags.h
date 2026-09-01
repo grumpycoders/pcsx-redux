@@ -2,17 +2,17 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace CommandLine {
 namespace detail {
 using argument_map =
-    std::unordered_multimap<std::string_view, std::optional<std::string_view>>;
+    std::multimap<std::string_view, std::optional<std::string_view>>;
 
 // Non-destructively parses the argv tokens.
 // * If the token begins with a -, it will be considered an option.
@@ -91,14 +91,8 @@ inline std::optional<std::string_view> get_value(
 inline std::vector<std::string_view> get_values(
     const argument_map& options, const std::string_view& option) {
     std::vector<std::string_view> values;
-    if (options.bucket_count() == 0) return values;
-    argument_map::size_type bucket = options.bucket(option);
-    values.reserve(options.bucket_size(bucket));
-    auto iter = options.cbegin(bucket);
-    auto end = options.cend(bucket);
-    while (iter != end) {
-        auto & opt = *iter++;
-        if (opt.second.has_value()) {
+    for (auto & opt : options) {
+        if ((opt.first == option) && (opt.second.has_value())) {
             values.emplace_back(opt.second.value());
         }
     }

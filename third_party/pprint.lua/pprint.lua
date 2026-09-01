@@ -4,6 +4,8 @@ pprint = { VERSION = '0.1' }
 
 local depth = 1
 
+pprint._internals = {}
+
 pprint.defaults = {
     -- If set to number N, then limit table recursion to N deep.
     depth_limit = false,
@@ -17,7 +19,7 @@ pprint.defaults = {
     show_function = false,
     show_thread = false,
     show_userdata = false,
-	show_cdata = false,
+    show_cdata = false,
     -- additional display trigger
     show_metatable = false,     -- show metatable
     show_all = false,           -- override other show settings and show everything
@@ -30,95 +32,18 @@ pprint.defaults = {
     level_width = 80,           -- max width per indent level
     wrap_string = true,         -- wrap string when it's longer than level_width
     wrap_array = false,         -- wrap every array elements
+    string_is_utf8 = true,      -- treat string as utf8, and count utf8 char when wrapping, if possible
     sort_keys = true,           -- sort table keys
 }
 
-local TYPES = {
+pprint._internals.TYPES = {
     ['nil'] = 1, ['boolean'] = 2, ['number'] = 3, ['string'] = 4, 
     ['table'] = 5, ['function'] = 6, ['thread'] = 7, ['userdata'] = 8,
     ['cdata'] = 9,
 }
 
--- seems this is the only way to escape these, as lua don't know how to map char '\a' to 'a'
-local ESCAPE_MAP = {
-    ['\a'] = '\\a', ['\b'] = '\\b', ['\f'] = '\\f', ['\n'] = '\\n', ['\r'] = '\\r',
-    ['\t'] = '\\t', ['\v'] = '\\v', ['\\'] = '\\\\',
-}
-
--- generic utilities
-local function escape(s)
-    s = s:gsub('([%c\\])', ESCAPE_MAP)
-    local dq = s:find('"') 
-    local sq = s:find("'")
-    if dq and sq then
-        return s:gsub('"', '\\"'), '"'
-    elseif sq then
-        return s, '"'
-    else
-        return s, "'"
-    end
-end
-
 local function is_plain_key(key)
     return type(key) == 'string' and key:match('^[%a_][%a%d_]*$')
-end
-
-local CACHE_TYPES = {
-    ['table'] = true, ['function'] = true, ['thread'] = true,
-    ['userdata'] = true, ['cdata'] = true,
-}
-
--- cache would be populated to be like:
--- {
---     function = { `fun1` = 1, _cnt = 1 }, -- object id
---     table = { `table1` = 1, `table2` = 2, _cnt = 2 },
---     visited_tables = { `table1` = 7, `table2` = 8  }, -- visit count
--- }
--- use weakrefs to avoid accidentall adding refcount
-local function cache_apperance(obj, cache, option)
-    if not cache.visited_tables then
-        cache.visited_tables = setmetatable({}, {__mode = 'k'})
-    end
-    local t = type(obj)
-
-    -- TODO can't test filter_function here as we don't have the ix and key,
-    -- might cause different results?
-    -- respect show_xxx and filter_function to be consistent with print results
-    if (not TYPES[t] and not option.show_table)
-        or (TYPES[t] and not option['show_'..t]) then
-        return
-    end
-
-    if CACHE_TYPES[t] or TYPES[t] == nil then
-        if not cache[t] then
-            cache[t] = setmetatable({}, {__mode = 'k'})
-            cache[t]._cnt = 0
-        end
-        if not cache[t][obj] then
-            cache[t]._cnt = cache[t]._cnt + 1
-            cache[t][obj] = cache[t]._cnt
-        end
-    end
-    if t == 'table' or TYPES[t] == nil then
-        if cache.visited_tables[obj] == false then
-            -- already printed, no need to mark this and its children anymore
-            return
-        elseif cache.visited_tables[obj] == nil then
-            cache.visited_tables[obj] = 1
-        else
-            -- visited already, increment and continue
-            cache.visited_tables[obj] = cache.visited_tables[obj] + 1
-            return
-        end
-        for k, v in pairs(obj) do
-            cache_apperance(k, cache, option)
-            cache_apperance(v, cache, option)
-        end
-        local mt = getmetatable(obj)
-        if mt and option.show_metatable then
-            cache_apperance(mt, cache, option)
-        end
-    end
 end
 
 -- makes 'foo2' < 'foo100000'. string.sub makes substring anyway, no need to use index based method
@@ -154,8 +79,8 @@ local function cmp(lhs, rhs)
     if tleft == tright then return str_natural_cmp(tostring(lhs), tostring(rhs)) end
 
     -- allow custom types
-    local oleft = TYPES[tleft] or 10
-    local oright = TYPES[tright] or 10
+    local oleft = pprint._internals.TYPES[tleft] or 10
+    local oright = pprint._internals.TYPES[tright] or 10
     return oleft < oright
 end
 
@@ -169,7 +94,7 @@ local function make_option(option)
             option[k] = v
         end
         if option.show_all then
-            for t, _ in pairs(TYPES) do
+            for t, _ in pairs(pprint._internals.TYPES) do
                 option['show_'..t] = true
             end
             option.show_metatable = true
@@ -206,9 +131,11 @@ function pprint.pformat(obj, option, printer)
     local status = {
         indent = '', -- current indent
         len = 0,     -- current line length
+        printed_something = false, -- used to remove leading new lines
     }
 
     local wrapped_printer = function(s)
+        status.printed_something = true
         printer(last)
         last = s
     end
@@ -218,6 +145,7 @@ function pprint.pformat(obj, option, printer)
     end
 
     local function _n(d)
+        if not status.printed_something then return end
         wrapped_printer('\n')
         wrapped_printer(status.indent)
         if d then
@@ -274,26 +202,85 @@ function pprint.pformat(obj, option, printer)
     end
 
     local function string_formatter(s, force_long_quote)
-        local s, quote = escape(s)
-        local quote_len = force_long_quote and 4 or 2
-        if quote_len + #s + status.len > option.level_width then
+        local tokens = option.string_is_utf8 and pprint._internals.tokenize_utf8_string(s) or pprint._internals.tokenize_string(s)
+        local string_len = 0
+        local escape_quotes = tokens.has_double_quote and tokens.has_single_quote
+        for _, token in ipairs(tokens) do
+            if escape_quotes and token.char == '"' then
+                string_len = string_len + 2
+            else
+                string_len = string_len + token.len
+            end
+        end
+        local quote_len = 2
+        local long_quote_dashes = 0
+        local function compute_long_quote_dashes()
+            local keep_looking = true
+            while keep_looking do
+                if s:find('%]' .. string.rep('=', long_quote_dashes) .. '%]') then
+                    long_quote_dashes = long_quote_dashes + 1
+                else
+                    keep_looking = false
+                end
+            end
+        end
+        if force_long_quote then
+            compute_long_quote_dashes()
+            quote_len = 2 + long_quote_dashes
+        end
+        if quote_len + string_len + status.len > option.level_width then
             _n()
             -- only wrap string when is longer than level_width
-            if option.wrap_string and #s + quote_len > option.level_width then
-                -- keep the quotes together
-                _p('[[')
-                while #s + status.len >= option.level_width do
-                    local seg = option.level_width - status.len
-                    _p(string.sub(s, 1, seg), true)
-                    _n()
-                    s = string.sub(s, seg+1)
+            if option.wrap_string and string_len + quote_len > option.level_width then
+                if not force_long_quote then
+                    compute_long_quote_dashes()
+                    quote_len = 2 + long_quote_dashes
                 end
-                _p(s) -- print the remaining parts
-                return ']]' 
+                -- keep the quotes together
+                local dashes = string.rep('=', long_quote_dashes)
+                _p('[' .. dashes .. '[', true)
+                local status_len = status.len
+                local line_len = 0
+                local line = ''
+                for _, token in ipairs(tokens) do
+                    if line_len + token.len + status_len > option.level_width then
+                        _n()
+                        _p(line, true)
+                        line_len = token.len
+                        line = token.char
+                    else
+                        line_len = line_len + token.len
+                        line = line .. token.char
+                    end
+                end
+
+                return line .. ']' .. dashes .. ']'
             end
         end
 
-        return force_long_quote and '[['..s..']]' or quote..s..quote
+        if tokens.has_double_quote and tokens.has_single_quote and not force_long_quote then
+            for i, token in ipairs(tokens) do
+                if token.char == '"' then
+                    tokens[i].char = '\\"'
+                end
+            end
+        end
+        local flat_table = {}
+        for _, token in ipairs(tokens) do
+            table.insert(flat_table, token.char)
+        end
+        local concat = table.concat(flat_table)
+
+        if force_long_quote then
+            local dashes = string.rep('=', long_quote_dashes)
+            return '[' .. dashes .. '[' .. concat .. ']' .. dashes .. ']'
+        elseif tokens.has_single_quote then
+            -- use double quote
+            return '"' .. concat .. '"'
+        else
+            -- use single quote
+            return "'" .. concat .. "'"
+        end
     end
 
     local function table_formatter(t)
@@ -446,7 +433,7 @@ function pprint.pformat(obj, option, printer)
 
     if option.object_cache then
         -- needs to visit the table before start printing
-        cache_apperance(obj, cache, option)
+        pprint._internals.cache_apperance(obj, cache, option)
     end
 
     _p(format(obj))

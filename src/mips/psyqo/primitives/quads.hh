@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "psyqo/gte-kernels.hh"
+#include "psyqo/gte-registers.hh"
 #include "psyqo/primitives/common.hh"
 
 namespace psyqo {
@@ -49,18 +51,37 @@ namespace Prim {
  */
 struct Quad {
     Quad() : command(0x28000000) {}
-    Quad(Color c) : command(0x28000000 | c.packed) {}
+    Quad(Color c) : command(0x28000000 | (c.packed & 0x00ffffff)) {}
+    Quad(const Quad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     Quad& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x28000000 | c.packed | wasSemiTrans;
+        command = 0x28000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     Quad& setOpaque() {
         command &= ~0x02000000;
         return *this;
     }
     Quad& setSemiTrans() {
         command |= 0x02000000;
+        return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    Quad& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    Quad& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    Quad& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
+    Quad& setPointD(Vertex v) {
+        pointD = v;
         return *this;
     }
 
@@ -87,7 +108,15 @@ static_assert(sizeof(Quad) == (sizeof(uint32_t) * 5), "Quad is not 5 words");
  * - `clutIndex`, `tpage`
  */
 struct TexturedQuad {
-    TexturedQuad() : command(0x2c000000) {}
+    TexturedQuad() : command(0x2c808080) {}
+    TexturedQuad(Color c) : command(0x2c000000 | (c.packed & 0x00ffffff)) {}
+    TexturedQuad(const TexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
+    TexturedQuad& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x2c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
+        return *this;
+    }
+    Color getColor() const { return Color{.packed = command & 0x00ffffff}; }
     TexturedQuad& setOpaque() {
         command &= ~0x02000000;
         return *this;
@@ -96,21 +125,22 @@ struct TexturedQuad {
         command |= 0x02000000;
         return *this;
     }
+    bool isSemiTrans() const { return command & 0x02000000; }
 
   private:
     uint32_t command;
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is not 9 words");
 
@@ -124,10 +154,11 @@ static_assert(sizeof(TexturedQuad) == (sizeof(uint32_t) * 9), "TexturedQuad is n
  */
 struct GouraudQuad {
     GouraudQuad() : command(0x38000000) {}
-    GouraudQuad(Color c) : command(0x38000000 | c.packed) {}
+    GouraudQuad(Color c) : command(0x38000000 | (c.packed & 0x00ffffff)) {}
+    GouraudQuad(const GouraudQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x38000000 | c.packed | wasSemiTrans;
+        command = 0x38000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudQuad& setColorB(Color c) {
@@ -142,13 +173,99 @@ struct GouraudQuad {
         colorD = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
+    Color getColorD() const { return colorD; }
     GouraudQuad& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details A GP0 polygon's first word is the command in bits 31-24 and
+     * vertex A's colour in 23-0, and the GTE's RGBC register has an 8 bit CODE
+     * field that it fuses into every colour it produces - which is exactly what
+     * that field is for. Load this into CODE before an nc* command and the
+     * colour FIFO hands back finished first words; then store them with
+     * setColorAPacked and the whole thing is a word store instead of a
+     * read-modify-write per vertex.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudQuad& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudQuad& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    GouraudQuad& setPointA(Vertex v) {
+        pointA = v;
+        return *this;
+    }
+    GouraudQuad& setPointB(Vertex v) {
+        pointB = v;
+        return *this;
+    }
+    GouraudQuad& setPointC(Vertex v) {
+        pointC = v;
+        return *this;
+    }
+    GouraudQuad& setPointD(Vertex v) {
+        pointD = v;
+        return *this;
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c, const Color* d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a->packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a->packed & 0xffffff) | 0x38000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a->packed & 0xffffff) | 0x3a000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c, Color d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a.packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a.packed & 0xffffff) | 0x38000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a.packed & 0xffffff) | 0x3a000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
     }
 
   private:
@@ -181,11 +298,12 @@ static_assert(sizeof(GouraudQuad) == (sizeof(uint32_t) * 8), "GouraudQuad is not
  * `setColorA` method.
  */
 struct GouraudTexturedQuad {
-    GouraudTexturedQuad() : command(0x3d000000) {}
-    GouraudTexturedQuad(Color c) : command(0x3d000000 | c.packed) {}
+    GouraudTexturedQuad() : command(0x3c000000) {}
+    GouraudTexturedQuad(Color c) : command(0x3c000000 | (c.packed & 0x00ffffff)) {}
+    GouraudTexturedQuad(const GouraudTexturedQuad& other, Color c) : command(other.command | (c.packed & 0x00ffffff)) {}
     GouraudTexturedQuad& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x3d000000 | c.packed | wasSemiTrans;
+        command = 0x3c000000 | (c.packed & 0x00ffffff) | wasSemiTrans;
         return *this;
     }
     GouraudTexturedQuad& setColorB(Color c) {
@@ -200,13 +318,79 @@ struct GouraudTexturedQuad {
         colorD = c;
         return *this;
     }
+    Color getColorA() const { return Color{.packed = command & 0x00ffffff}; }
+    Color getColorB() const { return colorB; }
+    Color getColorC() const { return colorC; }
+    Color getColorD() const { return colorD; }
     GouraudTexturedQuad& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details Meant for the GTE's RGBC CODE field, which gets fused into every
+     * colour the GTE emits. Preload it and the colour FIFO hands back finished
+     * first words. See `GouraudQuad::getCommandWord` for the full round trip.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudTexturedQuad& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudTexturedQuad& setSemiTrans() {
         command |= 0x02000000;
         return *this;
+    }
+    bool isSemiTrans() const { return command & 0x02000000; }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(const Color* a, const Color* b, const Color* c, const Color* d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a->packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a->packed & 0xffffff) | 0x3c000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a->packed & 0xffffff) | 0x3e000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(&b->packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(&c->packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(&d->packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
+    }
+    template <Transparency transparency = Transparency::Auto>
+    void interpolateColors(Color a, Color b, Color c, Color d) {
+        uint32_t rgb;
+        if constexpr (transparency == Transparency::Auto) {
+            rgb = (a.packed & 0xffffff) | (command & 0xff000000);
+        } else if constexpr (transparency == Transparency::Opaque) {
+            rgb = (a.packed & 0xffffff) | 0x3c000000;
+        } else if constexpr (transparency == Transparency::SemiTransparent) {
+            rgb = (a.packed & 0xffffff) | 0x3e000000;
+        }
+        GTE::write<GTE::Register::RGB, GTE::Safe>(rgb);
+        GTE::Kernels::dpcs();
+        GTE::read<GTE::Register::RGB2>(&command);
+        GTE::write<GTE::Register::RGB0, GTE::Unsafe>(b.packed);
+        GTE::write<GTE::Register::RGB1, GTE::Unsafe>(c.packed);
+        GTE::write<GTE::Register::RGB2, GTE::Safe>(d.packed);
+        GTE::Kernels::dpct();
+        GTE::read<GTE::Register::RGB0>(&colorB.packed);
+        GTE::read<GTE::Register::RGB1>(&colorC.packed);
+        GTE::read<GTE::Register::RGB2>(&colorD.packed);
     }
 
   private:
@@ -214,18 +398,18 @@ struct GouraudTexturedQuad {
 
   public:
     Vertex pointA;
-    UVCoords uvA;
-    ClutIndex clutIndex;
+    PrimPieces::UVCoords uvA;
+    PrimPieces::ClutIndex clutIndex;
     Color colorB;
     Vertex pointB;
-    UVCoords uvB;
-    TPageAttr tpage;
+    PrimPieces::UVCoords uvB;
+    PrimPieces::TPageAttr tpage;
     Color colorC;
     Vertex pointC;
-    UVCoordsPadded uvC;
+    PrimPieces::UVCoordsPadded uvC;
     Color colorD;
     Vertex pointD;
-    UVCoordsPadded uvD;
+    PrimPieces::UVCoordsPadded uvD;
 };
 static_assert(sizeof(GouraudTexturedQuad) == (sizeof(uint32_t) * 12), "GouraudTexturedQuad is not 12 words");
 

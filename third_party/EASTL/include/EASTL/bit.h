@@ -13,7 +13,6 @@
 
 #include <EASTL/internal/memory_base.h>
 #include <EASTL/type_traits.h>
-#include <string.h> // memcpy
 
 namespace eastl
 {
@@ -54,7 +53,7 @@ namespace eastl
 		inline To bit_cast(const From& from) EA_NOEXCEPT
 		{
 			typename eastl::aligned_storage<sizeof(To), alignof(To)>::type to;
-			::memcpy(eastl::addressof(to), eastl::addressof(from), sizeof(To));
+			__builtin_memcpy(eastl::addressof(to), eastl::addressof(from), sizeof(To));
 			return reinterpret_cast<To&>(to);
 		}
 

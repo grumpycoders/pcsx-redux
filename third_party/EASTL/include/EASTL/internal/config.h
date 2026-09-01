@@ -345,7 +345,7 @@ namespace eastl
 // names. See the usage of EASTL_EASTDC_VSNPRINTF in string.h for more info.
 //
 #if !defined(EASTL_EASTDC_VSNPRINTF)
-	#define EASTL_EASTDC_VSNPRINTF 1
+	#define EASTL_EASTDC_VSNPRINTF 0
 #endif
 
 

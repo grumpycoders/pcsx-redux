@@ -1,26 +1,71 @@
-/***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
 
+MIT License
+
+Copyright (c) 2022 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 #include "support/ffmpeg-audio-file.h"
 
-PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endianness endianess, unsigned frequency)
-    : File(RO_SEEKABLE), m_file(file), m_channels(channels), m_endianess(endianess) {
+#include <stdint.h>
+
+#include <bit>
+
+AVSampleFormat PCSX::FFmpegAudioFile::getSampleFormat() const {
+    switch (m_sampleFormat) {
+        case SampleFormat::U8:
+            return AV_SAMPLE_FMT_U8;
+        case SampleFormat::S16:
+            return AV_SAMPLE_FMT_S16;
+        case SampleFormat::S32:
+            return AV_SAMPLE_FMT_S32;
+        case SampleFormat::F32:
+            return AV_SAMPLE_FMT_FLT;
+        case SampleFormat::D64:
+            return AV_SAMPLE_FMT_DBL;
+        default:
+            return AV_SAMPLE_FMT_NONE;
+    }
+}
+
+unsigned PCSX::FFmpegAudioFile::getSampleSize() const {
+    switch (m_sampleFormat) {
+        case SampleFormat::U8:
+            return 1;
+        case SampleFormat::S16:
+            return 2;
+        case SampleFormat::S32:
+            return 4;
+        case SampleFormat::F32:
+            return 4;
+        case SampleFormat::D64:
+            return 8;
+        default:
+            return 0;
+    }
+}
+
+PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endianness endianess,
+                                       SampleFormat sampleFormat, unsigned frequency)
+    : File(RO_SEEKABLE), m_file(file), m_channels(channels), m_endianess(endianess), m_sampleFormat(sampleFormat) {
     av_log_set_level(AV_LOG_QUIET);
 
     unsigned char *buffer = reinterpret_cast<unsigned char *>(av_malloc(4096));
@@ -73,18 +118,18 @@ PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endiann
         return;
     }
     double duration = ((double)m_formatContext->duration) / ((double)AV_TIME_BASE);
-    unsigned sampleSize = 2;
-    if (channels == CHANNELS_STEREO) sampleSize *= 2;
+    unsigned sampleSize = getSampleSize();
+    if (channels == Channels::Stereo) sampleSize *= 2;
     m_size = ceil(duration * frequency * sampleSize);
 
     m_packet = av_packet_alloc();
     m_decodedFrame = av_frame_alloc();
     m_resampledFrame = av_frame_alloc();
     m_resampledFrame->sample_rate = frequency;
-    m_resampledFrame->format = AV_SAMPLE_FMT_S16;
-    m_resampledFrame->ch_layout.nb_channels = channels == CHANNELS_STEREO ? 2 : 1;
+    m_resampledFrame->format = getSampleFormat();
+    m_resampledFrame->ch_layout.nb_channels = channels == Channels::Stereo ? 2 : 1;
     m_resampledFrame->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
-    m_resampledFrame->ch_layout.u.mask = channels == CHANNELS_STEREO ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
+    m_resampledFrame->ch_layout.u.mask = channels == Channels::Stereo ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
     m_resampledFrame->nb_samples = 0;
     const AVCodec *codec;
     ret = av_find_best_stream(m_formatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
@@ -109,12 +154,12 @@ PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endiann
     }
 
     AVChannelLayout layout;
-    if (channels == CHANNELS_STEREO) {
+    if (channels == Channels::Stereo) {
         layout = AV_CHANNEL_LAYOUT_STEREO;
     } else {
         layout = AV_CHANNEL_LAYOUT_MONO;
     }
-    if (swr_alloc_set_opts2(&m_resamplerContext, &layout, AV_SAMPLE_FMT_S16, frequency, &m_codecContext->ch_layout,
+    if (swr_alloc_set_opts2(&m_resamplerContext, &layout, getSampleFormat(), frequency, &m_codecContext->ch_layout,
                             m_codecContext->sample_fmt, m_codecContext->sample_rate, 0, nullptr) < 0) {
         m_failed = true;
         return;
@@ -186,14 +231,15 @@ ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
         size -= p;
         ret += p;
         dest += p;
+        m_filePtr += p;
     }
 
     return ret;
 }
 
 ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
-    unsigned sampleSize = 2;
-    if (m_channels == CHANNELS_STEREO) sampleSize *= 2;
+    unsigned sampleSize = getSampleSize();
+    if (m_channels == Channels::Stereo) sampleSize *= 2;
     ssize_t dataRead = 0;
     uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
     ssize_t available = m_resampledFrame->nb_samples * sampleSize - m_packetPtr;
@@ -202,7 +248,16 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
     while (true) {
         ssize_t toCopy = std::min(available, size);
         if (toCopy) {
-            memcpy(dest, m_resampledFrame->data[0] + m_packetPtr, toCopy);
+            if (((std::endian::native == std::endian::little) && (m_endianess == Endianness::Little)) ||
+                ((std::endian::native == std::endian::big) && (m_endianess == Endianness::Big))) {
+                memcpy(dest, m_resampledFrame->data[0] + m_packetPtr, toCopy);
+            } else {
+                for (ssize_t i = 0; i < toCopy; i += sampleSize) {
+                    for (unsigned j = 0; j < sampleSize; ++j) {
+                        dest[i + j] = m_resampledFrame->data[0][m_packetPtr + i + sampleSize - j - 1];
+                    }
+                }
+            }
             m_packetPtr += toCopy;
             m_totalOut += toCopy;
             size -= toCopy;

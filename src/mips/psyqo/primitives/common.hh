@@ -53,7 +53,7 @@ union Vertex {
             int16_t y, v, t, h;
         };
     };
-    int32_t packed;
+    uint32_t packed;
 };
 static_assert(sizeof(Vertex) == sizeof(uint32_t), "Vertex is not 32 bits");
 
@@ -90,23 +90,32 @@ static_assert(sizeof(Rect) == sizeof(uint64_t), "Rect is not 64 bits");
 
 union Color {
     struct {
-        uint8_t r, g, b;
+        uint8_t r, g, b, user;
     };
     uint32_t packed;
 };
 static_assert(sizeof(Color) == sizeof(uint32_t), "Color is not 32 bits");
 
+namespace Prim::TPageAttr {
+enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
+enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
+}  // namespace Prim::TPageAttr
+
 namespace Prim {
+enum class Transparency { Auto, Opaque, SemiTransparent };
+}
+
+namespace PrimPieces {
 
 /**
- * @brief A primitive's CLUT command
+ * @brief A primitive's CLUT command.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the CLUT argument for
  * GPU commands. The constructor can take either a `Vertex` or the raw x and y
  * coordinates for the CLUT to use.
  *
- * Remember that CLUTs are aligned to 16 pixels, so the coordinates are rounded
+ * Remember that CLUTs are aligned to 16 pixels, so the vertex coordinates are rounded
  * to the lowest multiple of 16 on the X axis.
  */
 struct ClutIndex {
@@ -122,21 +131,51 @@ static_assert(sizeof(ClutIndex) == sizeof(uint16_t), "ClutIndex is not 16 bits")
 /**
  * @brief A primitive's texture information.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the texture argument for
  * GPU commands.
  */
-struct TexInfo {
+struct alignas(uint32_t) TexInfo {
     uint8_t u;
     uint8_t v;
     ClutIndex clut;
 };
 static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
+static_assert(alignof(TexInfo) == alignof(uint32_t), "TexInfo is not 32-bit aligned");
+
+struct TPageAttr;
+/**
+ * @brief A primitive's tpage location.
+ *
+ * @details This represents the location of a texture page in the VRAM space, and is
+ * used in the `TPageAttr` struct. This can be used to easily set the page location
+ * in a primitive's attribute while keeping the other attributes intact.
+ */
+struct TPageLoc {
+    TPageLoc& setPageX(uint8_t x) {
+        info &= ~0x000f;
+        x &= 0x000f;
+        info |= x;
+        return *this;
+    }
+    TPageLoc& setPageY(uint8_t y) {
+        info &= ~0x0010;
+        y &= 0x0001;
+        info |= y << 4;
+        return *this;
+    }
+
+  private:
+    TPageLoc(uint8_t i) : info(i) {}
+    uint8_t info = 0;
+    friend struct TPageAttr;
+};
+static_assert(sizeof(TPageLoc) == sizeof(uint8_t), "TPageLoc is not 8 bits");
 
 /**
  * @brief A primitive's tpage attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  * The binary representation is meant to be the same as the 16-bits tpage argument for
  * GPU commands. See the `TPage` struct for actual usage, or the various triangle and
  * quad primitives.
@@ -147,6 +186,21 @@ static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
  * as the compiler will better optimize the former sequence of operations.
  */
 struct TPageAttr {
+    TPageAttr() {}
+    TPageAttr(TPageAttr&& other) : info(other.info) {}
+    TPageAttr(const TPageAttr& other) : info(other.info) {}
+    TPageAttr& operator=(TPageAttr&& other) {
+        info = other.info;
+        return *this;
+    }
+    TPageAttr& operator=(const TPageAttr& other) {
+        info = other.info;
+        return *this;
+    }
+    TPageAttr& copy(const TPageAttr& other) {
+        info = other.info;
+        return *this;
+    }
     TPageAttr& setPageX(uint8_t x) {
         info &= ~0x000f;
         x &= 0x000f;
@@ -159,15 +213,18 @@ struct TPageAttr {
         info |= y << 4;
         return *this;
     }
-    enum SemiTrans { HalfBackAndHalfFront, FullBackAndFullFront, FullBackSubFullFront, FullBackAndQuarterFront };
-    TPageAttr& set(SemiTrans trans) {
+    TPageAttr& setPageLoc(TPageLoc loc) {
+        info &= ~0x001f;
+        info |= loc.info;
+        return *this;
+    }
+    TPageAttr& set(Prim::TPageAttr::SemiTrans trans) {
         info &= ~0x0060;
         uint32_t t = static_cast<uint32_t>(trans);
         info |= t << 5;
         return *this;
     }
-    enum ColorMode { Tex4Bits, Tex8Bits, Tex16Bits };
-    TPageAttr& set(ColorMode mode) {
+    TPageAttr& set(Prim::TPageAttr::ColorMode mode) {
         info &= ~0x0180;
         uint32_t m = static_cast<uint32_t>(mode);
         info |= m << 7;
@@ -189,6 +246,17 @@ struct TPageAttr {
         info |= 0x0400;
         return *this;
     }
+    uint8_t getPageX() const { return info & 0x000f; }
+    uint8_t getPageY() const { return (info >> 4) & 0x0001; }
+    TPageLoc getPageLoc() const { return TPageLoc(info & 0x001f); }
+    Prim::TPageAttr::SemiTrans getSemiTrans() const {
+        return static_cast<Prim::TPageAttr::SemiTrans>((info >> 5) & 0x0003);
+    }
+    Prim::TPageAttr::ColorMode getColorMode() const {
+        return static_cast<Prim::TPageAttr::ColorMode>((info >> 7) & 0x0003);
+    }
+    bool hasDithering() const { return (info & 0x0200) != 0; }
+    bool isDisplayAreaEnabled() const { return (info & 0x0400) != 0; }
 
   private:
     uint16_t info = 0;
@@ -198,19 +266,20 @@ static_assert(sizeof(TPageAttr) == sizeof(uint16_t), "TPageAttr is not 16 bits")
 /**
  * @brief A primitive's page info attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
-struct PageInfo {
+struct alignas(uint32_t) PageInfo {
     uint8_t u;
     uint8_t v;
     TPageAttr attr;
 };
 static_assert(sizeof(PageInfo) == sizeof(uint32_t), "PageInfo is not 32 bits");
+static_assert(alignof(PageInfo) == alignof(uint32_t), "PageInfo is not 32-bit aligned");
 
 /**
  * @brief A primitive's UV coordinates attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
 struct UVCoords {
     uint8_t u;
@@ -221,17 +290,15 @@ static_assert(sizeof(UVCoords) == sizeof(uint16_t), "UVCoords is not 16 bits");
 /**
  * @brief A primitive's UV coordinates attribute.
  *
- * @details This shouldn't be used directly, but rather be part of another primitive.
+ * @details This is a common building block piece used in primitives.
  */
 struct UVCoordsPadded {
     uint8_t u;
     uint8_t v;
-
-  private:
-    uint16_t padding;
+    uint16_t user;
 };
 static_assert(sizeof(UVCoordsPadded) == sizeof(uint32_t), "UVCoordsPadded is not 32 bits");
 
-}  // namespace Prim
+}  // namespace PrimPieces
 
 }  // namespace psyqo

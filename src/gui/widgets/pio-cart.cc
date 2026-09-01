@@ -56,7 +56,6 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
             g_emulator->m_pioCart->setLuts();
         }
 
-
         {  // Select EXP1 Dialog
             auto& exp1path = settings.get<Emulator::SettingEXP1BrowsePath>();
             if (selectEXP1Dialog) {
@@ -73,7 +72,8 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
                     // Maybe we should check the file size here?
                     // Display a warning if the file is too big?
                     settings.get<Emulator::SettingEXP1Filepath>().value = fileToOpen[0];
-                    g_emulator->m_mem->loadEXP1FromFile(g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
+                    g_emulator->m_mem->loadEXP1FromFile(
+                        g_emulator->settings.get<Emulator::SettingEXP1Filepath>().value);
                     changed = true;
                 }
             }

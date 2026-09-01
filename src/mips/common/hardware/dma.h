@@ -29,8 +29,8 @@ SOFTWARE.
 #include <stdint.h>
 
 struct DMARegisters {
-    volatile uintptr_t MADR;
-    volatile uint32_t BCR, CHCR, padding;
+    uintptr_t MADR;
+    uint32_t BCR, CHCR, padding;
 };
 
 #define DMA_CTRL ((volatile struct DMARegisters *)0x1f801080)

@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2019 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #pragma once
 
@@ -33,6 +40,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include "support/polyfills.h"
 #include "support/slice.h"
 #include "support/ssize_t.h"
 
@@ -49,27 +57,8 @@ class File;
 template <class T>
 concept FileDerived = std::is_base_of<File, T>::value;
 
-template <class T>
-concept IntegralConcept = std::is_integral<T>::value;
-
 class File {
   public:
-#if defined(__cpp_lib_byteswap) && !defined(_WIN32)
-    using byte_swap = std::byte_swap;
-#else
-    template <IntegralConcept T>
-    static constexpr T byte_swap(T val) {
-        if constexpr (sizeof(T) == 1) {
-            return val;
-        } else {
-            T ret = 0;
-            for (size_t i = 0; i < sizeof(T); i++) {
-                ret |= static_cast<T>(static_cast<uint8_t>(val >> (i * 8)) << ((sizeof(T) - i - 1) * 8));
-            }
-            return ret;
-        }
-    }
-#endif
     enum FileType { RO_STREAM, RW_STREAM, RO_SEEKABLE, RW_SEEKABLE };
     virtual ~File() {
         if (m_refCount.load() != 0) {
@@ -161,7 +150,8 @@ class File {
 
     Slice read(ssize_t size) {
         void* data = malloc(size);
-        read(data, size);
+        size = read(data, size);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -169,7 +159,8 @@ class File {
 
     Slice readAt(ssize_t size, ssize_t pos) {
         void* data = malloc(size);
-        readAt(data, size, pos);
+        size = readAt(data, size, pos);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -190,48 +181,48 @@ class File {
     void writeString(const std::string_view& str) { write(str.data(), str.size()); }
     void writeStringAt(const std::string_view& str, ssize_t pos) { writeAt(str.data(), str.size(), pos); }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
     T read() {
         T ret = T(0);
         read(&ret, sizeof(T));
         if constexpr (endianess != std::endian::native) {
-            ret = byte_swap(ret);
+            ret = PolyFill::byteSwap(ret);
         }
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
     T peek() {
         T ret = T(0);
         readAt(&ret, sizeof(T), rTell());
         if constexpr (endianess != std::endian::native) {
-            ret = byte_swap(ret);
+            ret = PolyFill::byteSwap(ret);
         }
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
     T readAt(size_t pos) {
         T ret = T(0);
         readAt(&ret, sizeof(T), pos);
         if constexpr (endianess != std::endian::native) {
-            ret = byte_swap(ret);
+            ret = PolyFill::byteSwap(ret);
         }
         return ret;
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
     void write(T val) {
         if constexpr (endianess != std::endian::native) {
-            val = byte_swap(val);
+            val = PolyFill::byteSwap(val);
         }
         write(&val, sizeof(T));
     }
 
-    template <IntegralConcept T, std::endian endianess = std::endian::little>
+    template <PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
     void writeAt(T val, size_t pos) {
         if constexpr (endianess != std::endian::native) {
-            val = byte_swap(val);
+            val = PolyFill::byteSwap(val);
         }
         writeAt(&val, sizeof(T), pos);
     }
@@ -250,7 +241,7 @@ class File {
 
     void skip(size_t amount) { rSeek(amount, SEEK_CUR); }
 
-    template <IntegralConcept T>
+    template <PolyFill::IntegralConcept T>
     void skip() {
         skip(sizeof(T));
     }
@@ -337,7 +328,8 @@ class IO : public IOBase {
         if (!r) throw std::runtime_error("operator-> used with incompatible type - shouldn't happen");
         return r;
     }
-    bool isNull() { return dynamic_cast<T*>(m_file); }
+    bool isNull() const { return !dynamic_cast<T*>(m_file); }
+    operator bool() const { return !isNull(); }
 };
 
 class FailedFile : public File {
@@ -349,6 +341,7 @@ class FailedFile : public File {
 class BufferFile : public File {
   public:
     enum Acquire { ACQUIRE };
+    enum Borrow { BORROW };
     // Makes a read-only buffer in memory, referencing the memory
     // without acquiring it. Therefore, memory must remain allocated
     // for the lifespan of the File object. Any dup call will still
@@ -360,6 +353,10 @@ class BufferFile : public File {
     BufferFile(void* data, size_t size, FileOps::ReadWrite);
     // Same as above, but acquires the memory instead of copying it.
     BufferFile(void* data, size_t size, Acquire);
+    // Same as above, but borrows the memory instead of copying it.
+    // The buffer will be written to if needed, but will not be
+    // enlarged if the write goes past the end.
+    BufferFile(void* data, size_t size, Borrow);
     // Makes a dummy read-only file of size 1.
     BufferFile();
     // Makes an empty read-write buffer.
@@ -377,7 +374,7 @@ class BufferFile : public File {
     virtual bool eof() final override;
     virtual File* dup() final override;
 
-    Slice borrow();
+    Slice borrow(size_t offset = 0);
 
   private:
     virtual void closeInternal() final override;
@@ -460,11 +457,20 @@ class SubFile : public File {
           m_file(file),
           m_start(start),
           m_size(size < 0 ? file->size() - start : size) {}
+    SubFile(IO<File> file, size_t start, ssize_t size, FileOps::ReadWrite)
+        : File(file->seekable() ? RW_SEEKABLE : RW_STREAM),
+          m_file(file),
+          m_start(start),
+          m_size(size < 0 ? file->size() - start : size) {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
+    virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
+    virtual ssize_t wTell() final override { return m_ptrW; }
     virtual size_t size() final override { return m_size; }
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t readAt(void* dest, size_t size, size_t ptr) final override;
+    virtual ssize_t write(const void* src, size_t size) final override;
+    virtual ssize_t writeAt(const void* src, size_t size, size_t ptr) final override;
     virtual bool eof() final override { return m_ptrR == m_size; }
     virtual File* dup() final override { return new SubFile(m_file, m_start, m_size); }
     virtual bool failed() final override { return m_file->failed(); }
@@ -472,6 +478,7 @@ class SubFile : public File {
   private:
     IO<File> m_file;
     size_t m_ptrR = 0;
+    size_t m_ptrW = 0;
     const size_t m_start = 0;
     const size_t m_size = 0;
 };

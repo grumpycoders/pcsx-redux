@@ -997,9 +997,16 @@ void InterpretedCPU::psxSW(uint32_t code) {
 void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    addr ^= shift;
+    uint32_t mem;
+    // special handling to avoid msan interpreting this as a read
+    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
+        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
+    } else {
+        mem = PCSX::g_emulator->m_mem->read32(addr);
+    }
 
-    PCSX::g_emulator->m_mem->write32(addr & ~3, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
     /*
     Mem = 1234.  Reg = abcd
     0   123a   (reg >> 24) | (mem & 0xffffff00)
@@ -1012,9 +1019,16 @@ void InterpretedCPU::psxSWL(uint32_t code) {
 void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    addr ^= shift;
+    uint32_t mem;
+    // special handling to avoid msan interpreting this as a read
+    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
+        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
+    } else {
+        mem = PCSX::g_emulator->m_mem->read32(addr);
+    }
 
-    PCSX::g_emulator->m_mem->write32(addr & ~3, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
 
     /*
     Mem = 1234.  Reg = abcd
@@ -1583,7 +1597,14 @@ void InterpretedCPU::Execute() {
         }
     }
 }
-void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {}
+
+void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
+    for (auto i = 0; i < Size; i += 4) {
+        flushICacheLine(Addr);
+        Addr += 16;
+    }
+}
+
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
 template <bool debug, bool trace>
@@ -1613,14 +1634,8 @@ inline void InterpretedCPU::execBlock() {
         (*this.*func)(code);
 
         m_currentDelayedLoad ^= 1;
+        flushCurrentDelayedLoad();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (delayedLoad.active) {
-            uint32_t reg = m_regs.GPR.r[delayedLoad.index];
-            reg &= delayedLoad.mask;
-            reg |= delayedLoad.value;
-            m_regs.GPR.r[delayedLoad.index] = reg;
-            delayedLoad.active = false;
-        }
         bool fromLink = false;
         if (delayedLoad.pcActive) {
             m_regs.pc = delayedLoad.pcValue;

@@ -1,0 +1,519 @@
+/*
+
+MIT License
+
+Copyright (c) 2023 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#pragma once
+
+#include <EASTL/functional.h>
+#include <stdint.h>
+
+#include <compare>
+#include <concepts>
+#include <type_traits>
+
+namespace psyqo {
+
+namespace FixedPointInternals {
+
+void printInt(uint32_t value, const eastl::function<void(char)>&, unsigned scale);
+
+constexpr uint32_t iDiv(uint64_t rem, uint32_t base, unsigned scale) {
+    rem *= scale;
+    uint64_t b = base;
+    uint64_t res, d = 1;
+    uint32_t high = rem >> 32;
+
+    res = 0;
+    if (high >= base) {
+        high /= base;
+        res = static_cast<uint64_t>(high) << 32;
+        rem -= static_cast<uint64_t>(high * base) << 32;
+    }
+
+    while (static_cast<int64_t>(b) > 0 && b < rem) {
+        b = b + b;
+        d = d + d;
+    }
+
+    do {
+        if (rem >= b) {
+            rem -= b;
+            res += d;
+        }
+        b >>= 1;
+        d >>= 1;
+    } while (d);
+
+    return res;
+}
+
+constexpr int32_t dDiv(int32_t a, int32_t b, unsigned scale) {
+    int s = 1;
+    if (a < 0) {
+        a = -a;
+        s = -1;
+    }
+    if (b < 0) {
+        b = -b;
+        s = -s;
+    }
+    return iDiv(a, b, scale) * s;
+}
+
+}  // namespace FixedPointInternals
+
+/**
+ * @brief Fixed point number type.
+ *
+ * @details This is a fixed point number type with a configurable number
+ * of fractional bits. The default is 12 fractional bits, which is
+ * suitable for representing 3D coordinates in the PSX's 20.12 fixed
+ * point format. The number of fractional bits can be changed by
+ * specifying a different value for the template parameter
+ * `precisionBits`. The underlying integer type can also be changed
+ * by specifying a different type for the template parameter `T`.
+ * The default is `int32_t`, but `int16_t`, `int8_t`, `uint32_t`,
+ * `uint16_t`, and `uint8_t` are also supported. The template
+ * behaves as a value type, and supports most of the usual arithmetic
+ * operators. Its size is the same as the underlying integer type.
+ *
+ * @tparam precisionBits The number of fractional bits to use.
+ * @tparam T The underlying integer type to use.
+ * @tparam Scale The scale of the fixed point number. The default is
+ * 2 raised to the power of `precisionBits`, but this can be changed
+ * to produce fixed point numbers with a different range. A scale
+ * which is not a power of 2 will produce slower codegen. This is
+ * used for the external representation of the fixed point number.
+ */
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned Scale = 1 << precisionBits>
+    requires((precisionBits > 0) && (precisionBits < 32) && ((sizeof(T) == 4) || (sizeof(T) == 2) || sizeof(T) == 1))
+class FixedPoint {
+    using signedUpType = std::conditional<sizeof(T) == 4, int64_t, int32_t>::type;
+    using unsignedUpType = std::conditional<sizeof(T) == 4, uint64_t, uint32_t>::type;
+    using upType = std::conditional<std::is_signed<T>::value, signedUpType, unsignedUpType>::type;
+
+  public:
+    /**
+     * @brief The raw value of the fixed point number.
+     *
+     * @details This is the raw value of the fixed point number, and
+     * can be used to access the underlying integer type directly, which
+     * can be useful for some operations.
+     */
+    T value;
+    T raw() const { return value; }
+
+    /**
+     * @brief The scale of the fixed point number.
+     *
+     */
+    static constexpr unsigned scale = Scale;
+
+    /**
+     * @brief Constructs a fixed point number from an integer and a
+     * fraction. Specifying a fraction different from 0 when the
+     * scale is not a power of 2 is undefined behavior.
+     */
+    explicit constexpr FixedPoint(T integer, T fraction) : value(integer * scale + fraction) {
+        static_assert(sizeof(FixedPoint) == sizeof(T));
+    }
+
+    /**
+     * @brief Constructs a fixed point number from a floating point
+     * number.
+     *
+     * @details Note that this is a `consteval` function, so it can
+     * only be used with compile-time constants. This is intentional,
+     * as the conversion from floating point to fixed point is
+     * basically impossible to do at runtime without using floating
+     * point arithmetic, which is not available on the PSX.
+     */
+    consteval FixedPoint(long double ld) {
+        bool negative = ld < 0;
+        T integer = negative ? -ld : ld;
+        T fraction = ld * scale - integer * scale + (negative ? -0.5 : 0.5);
+        value = integer * scale + fraction;
+    }
+
+    constexpr FixedPoint() : value(0) {}
+    constexpr FixedPoint(const FixedPoint&) = default;
+    constexpr FixedPoint(FixedPoint&&) = default;
+    constexpr FixedPoint& operator=(const FixedPoint&) = default;
+
+    enum Raw { RAW };
+    constexpr FixedPoint(T raw, Raw) : value(raw) {}
+
+    /**
+     * @brief Construct a new Fixed Point number from a different
+     * fixed point number.
+     */
+    template <unsigned otherPrecisionBits = 12, std::integral U = int32_t>
+    explicit FixedPoint(FixedPoint<otherPrecisionBits, U> other) {
+        if constexpr (precisionBits == otherPrecisionBits) {
+            value = T(other.value);
+        } else if constexpr (precisionBits > otherPrecisionBits) {
+            value = T(other.value << (precisionBits - otherPrecisionBits));
+        } else if constexpr (precisionBits < otherPrecisionBits) {
+            value = T(other.value >> (otherPrecisionBits - precisionBits));
+        }
+    }
+
+    /**
+     * @brief Returns the integer part of the fixed point number.
+     *
+     * @details This returns the integer part of the fixed point,
+     * rounded to the nearest integer. Note that this is not the same
+     * as truncating the fixed point number, as it rounds to the
+     * nearest integer, rather than towards zero.
+     *
+     * @tparam factor The factor to scale the integer part by. This
+     * defaults to 1, which means that the integer part is returned
+     * as-is. It can be used to return the integer part scaled by
+     * some factor, which can be useful for some operations.
+     * The codegen for this will be bad if the factor is not a
+     * power of 2.
+     * @return constexpr T The integer part of the fixed point number.
+     */
+    template <size_t factor = 1>
+    constexpr T integer() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return T(value - scale / (2 * factor)) / T(scale / factor);
+            }
+        }
+        return T(value + scale / (2 * factor)) / T(scale / factor);
+    }
+
+    template <std::integral U>
+    constexpr U integer() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U((value - scale / 2) / scale);
+            }
+        }
+        return U((value + scale / 2) / scale);
+    }
+
+    /**
+     * @brief Returns the floor of the fixed point number.
+     *
+     * @details This returns the largest integer less than or equal
+     * to the fixed point number. For example, floor of 3.7 is 3,
+     * floor of -3.7 is -4.
+     *
+     * @tparam U The type to return the floor value in. Defaults to
+     * the underlying type T.
+     * @return constexpr U The floor value of the fixed point number.
+     */
+    template <std::integral U = T>
+    constexpr U floor() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U(value - scale + 1) / U(scale);
+            }
+        }
+        return U(value) / U(scale);
+    }
+
+    /**
+     * @brief Returns the ceiling of the fixed point number.
+     *
+     * @details This returns the smallest integer greater than or
+     * equal to the fixed point number. For example, ceil of 3.2
+     * is 4, ceil of -3.2 is -3.
+     *
+     * @tparam U The type to return the ceiling value in. Defaults
+     * to the underlying type T.
+     * @return constexpr U The ceiling value of the fixed point number.
+     */
+    template <std::integral U = T>
+    constexpr U ceil() const {
+        if constexpr (std::is_signed<T>::value) {
+            if (value < 0) {
+                return U(value) / U(scale);
+            }
+        }
+        return U(value + scale - 1) / U(scale);
+    }
+
+    /**
+     * @brief Prints out the fixed point number.
+     *
+     * @details This prints out the fixed point number using the provided
+     * function for emitting characters out. Note that the formatting is
+     * pretty basic for now, and only supports printing out the number in
+     * decimal format, with no padding or precision setting. Maximum
+     * displayed precision is 5 decimal places.
+     *
+     * @param charPrinter A function that prints a single character, to
+     * be used to print the fixed point number.
+     */
+    void print(const eastl::function<void(char)>& charPrinter) const {
+        T copy = value;
+        if constexpr (std::is_signed<T>::value) {
+            if (copy < 0) {
+                charPrinter('-');
+                copy = -copy;
+            }
+        }
+        FixedPointInternals::printInt(copy, charPrinter, scale);
+    }
+
+    constexpr FixedPoint abs() const {
+        FixedPoint ret = *this;
+        if constexpr (std::is_signed<T>::value) {
+            if (ret.value < 0) {
+                ret.value = -ret.value;
+            }
+        }
+        return ret;
+    }
+
+    constexpr FixedPoint operator+(FixedPoint other) const {
+        FixedPoint ret = *this;
+        ret.value += other.value;
+        return ret;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint operator+(U other) const {
+        FixedPoint ret = *this;
+        ret.value += other * scale;
+        return ret;
+    }
+
+    constexpr FixedPoint operator-(FixedPoint other) const {
+        FixedPoint ret = *this;
+        ret.value -= other.value;
+        return ret;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint operator-(U other) const {
+        FixedPoint ret = *this;
+        ret.value -= other * scale;
+        return ret;
+    }
+
+    constexpr FixedPoint operator*(FixedPoint other) const {
+        upType t = value;
+        t *= other.value;
+        t /= scale;
+        FixedPoint ret;
+        ret.value = t;
+        return ret;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint operator*(U other) const {
+        FixedPoint ret = *this;
+        ret.value *= other;
+        return ret;
+    }
+
+    constexpr FixedPoint operator/(FixedPoint other) const {
+        FixedPoint ret;
+        if constexpr (sizeof(T) == 4) {
+            if constexpr (std::is_signed<T>::value) {
+                ret.value = FixedPointInternals::dDiv(value, other.value, scale);
+            } else if constexpr (!std::is_signed<T>::value) {
+                ret.value = FixedPointInternals::iDiv(value, other.value, scale);
+            }
+        } else if constexpr (sizeof(T) < 4) {
+            upType t = value;
+            t *= scale;
+            t /= other.value;
+            ret.value = t;
+        }
+        return ret;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint operator/(U other) const {
+        FixedPoint ret = *this;
+        ret.value /= other;
+        return ret;
+    }
+
+    constexpr FixedPoint operator-() const {
+        FixedPoint ret = *this;
+        ret.value = -ret.value;
+        return ret;
+    }
+
+    constexpr FixedPoint& operator+=(FixedPoint other) {
+        value += other.value;
+        return *this;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint& operator+=(U other) {
+        value += other * scale;
+        return *this;
+    }
+
+    constexpr FixedPoint& operator-=(FixedPoint other) {
+        value -= other.value;
+        return *this;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint& operator-=(U other) {
+        value -= other * scale;
+        return *this;
+    }
+
+    constexpr FixedPoint& operator*=(FixedPoint other) {
+        upType t = value;
+        t *= other.value;
+        t /= scale;
+        value = t;
+        return *this;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint& operator*=(U other) {
+        value *= other;
+        return *this;
+    }
+
+    constexpr FixedPoint& operator/=(FixedPoint other) {
+        if constexpr (sizeof(T) == 4) {
+            if constexpr (std::is_signed<T>::value) {
+                value = FixedPointInternals::dDiv(value, other.value, scale);
+            } else if constexpr (!std::is_signed<T>::value) {
+                value = FixedPointInternals::iDiv(value, other.value, scale);
+            }
+        } else if constexpr (sizeof(T) == 2) {
+            upType t = value;
+            t *= scale;
+            t /= other.value;
+            value = t;
+        }
+        return *this;
+    }
+
+    template <std::integral U>
+    constexpr FixedPoint& operator/=(U other) {
+        value /= other;
+        return *this;
+    }
+
+    auto operator<=>(const FixedPoint& other) const = default;
+
+    constexpr FixedPoint operator<<(unsigned shift) const {
+        FixedPoint ret = *this;
+        ret.value <<= shift;
+        return ret;
+    }
+
+    constexpr FixedPoint operator>>(unsigned shift) const {
+        FixedPoint ret = *this;
+        ret.value >>= shift;
+        return ret;
+    }
+
+    constexpr FixedPoint& operator<<=(unsigned shift) {
+        value <<= shift;
+        return *this;
+    }
+
+    constexpr FixedPoint& operator>>=(unsigned shift) {
+        value >>= shift;
+        return *this;
+    }
+
+    constexpr FixedPoint operator++() {
+        value += scale;
+        return *this;
+    }
+
+    constexpr FixedPoint operator++(int) {
+        FixedPoint ret = *this;
+        value += scale;
+        return ret;
+    }
+
+    constexpr FixedPoint operator--() {
+        value -= scale;
+        return *this;
+    }
+
+    constexpr FixedPoint operator--(int) {
+        FixedPoint ret = *this;
+        value -= scale;
+        return ret;
+    }
+
+    constexpr bool operator!() const { return value == 0; }
+};
+
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator+(U a, FixedPoint<precisionBits, T, scale> b) {
+    return b + a;
+}
+
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator-(U a, FixedPoint<precisionBits, T, scale> b) {
+    return -b + a;
+}
+
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator*(U a, FixedPoint<precisionBits, T, scale> b) {
+    return b * a;
+}
+
+template <unsigned precisionBits = 12, std::integral T = int32_t, unsigned scale = 1 << precisionBits,
+          std::integral U = int32_t>
+constexpr FixedPoint<precisionBits, T, scale> operator/(U a, FixedPoint<precisionBits, T, scale> b) {
+    FixedPoint<precisionBits, T, scale> ret;
+    if constexpr (sizeof(T) == 4) {
+        if constexpr (std::is_signed<T>::value || std::is_signed<U>::value) {
+            ret.value = FixedPointInternals::dDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), scale);
+        } else if constexpr (!std::is_signed<T>::value && !std::is_signed<U>::value) {
+            ret.value = FixedPointInternals::iDiv(a * FixedPoint<precisionBits, T>::scale, b.raw(), scale);
+        }
+    } else if constexpr (sizeof(T) == 2) {
+        ret.value = a * FixedPoint<precisionBits, T>::scale / b.raw();
+    }
+    return ret;
+}
+
+namespace fixed_point_literals {
+
+/**
+ * @brief User-defined literal for constructing a 20.12 fixed point number.
+ *
+ * @param value The value to construct the fixed point number from.
+ * @return consteval FixedPoint<> The constructed fixed point number.
+ */
+consteval FixedPoint<> operator""_fp(long double value) { return value; }
+
+}  // namespace fixed_point_literals
+
+}  // namespace psyqo

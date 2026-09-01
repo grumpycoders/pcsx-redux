@@ -26,6 +26,7 @@
 #include "fmt/format.h"
 #include "gui/gui.h"
 #include "support/imgui-helpers.h"
+#include "support/uvfile.h"
 
 void PCSX::Widgets::MemcardManager::initTextures() {
     // Initialize the OpenGL textures used for the icon images
@@ -50,9 +51,65 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 
-    if (!ImGui::Begin(title, &m_show)) {
+    if (!ImGui::Begin(title, &m_show, ImGuiWindowFlags_MenuBar)) {
         ImGui::End();
         return false;
+    }
+
+    bool showImportMemoryCardDialog = false;
+    bool showExportMemoryCardDialog = false;
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu(_("File"))) {
+            if (ImGui::MenuItem(_("Import file into memory card 1"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Import file into memory card 2"))) {
+                showImportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            if (ImGui::MenuItem(_("Export memory card 1 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 1;
+            }
+            if (ImGui::MenuItem(_("Export memory card 2 to file"))) {
+                showExportMemoryCardDialog = true;
+                m_memoryCardImportExportIndex = 2;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    if (showImportMemoryCardDialog) {
+        m_importMemoryCardDialog.openDialog();
+    }
+
+    if (m_importMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_importMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            g_emulator->m_sio->loadMcd(fileToOpen[0], m_memoryCardImportExportIndex);
+            g_emulator->m_sio->saveMcd(m_memoryCardImportExportIndex);
+            clearUndoBuffer();
+        }
+    }
+
+    if (showExportMemoryCardDialog) {
+        m_exportMemoryCardDialog.openDialog();
+    }
+
+    if (m_exportMemoryCardDialog.draw()) {
+        std::vector<PCSX::u8string> fileToOpen = m_exportMemoryCardDialog.selected();
+        if (!fileToOpen.empty()) {
+            IO<File> out = new UvFile(fileToOpen[0], FileOps::TRUNCATE);
+            if (!out->failed()) {
+                const auto dataCard = g_emulator->m_sio->getMcdData(m_memoryCardImportExportIndex);
+                Slice slice;
+                slice.copy(dataCard, 128 * 1024);
+                out->writeAt(std::move(slice), 0);
+            }
+        }
     }
 
     const bool undoDisabled = m_undo.size() == 0;
@@ -92,8 +149,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         ImGui::EndDisabled();
     }
     if (ImGui::Button(_("Clear Undo buffer"))) {
-        m_undo.clear();
-        m_undoIndex = 0;
+        clearUndoBuffer();
     }
 
     // Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
@@ -101,7 +157,6 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
                         &g_emulator->settings.get<Emulator::SettingMcd1Inserted>().value)) {
         changed = true;
     }
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Memory Card 2 inserted"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Inserted>().value)) {
         changed = true;
@@ -112,23 +167,19 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         g_emulator->m_sio->togglePocketstationMode();
         changed = true;
     }
-    ImGui::SameLine();
     ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Card 2 Pocketstation"),
                         &g_emulator->settings.get<Emulator::SettingMcd2Pocketstation>().value)) {
         g_emulator->m_sio->togglePocketstationMode();
         changed = true;
     }
-    ImGui::SameLine();
     ImGuiHelpers::ShowHelpMarker(
         _("Experimental. Emulator will attempt to send artificial responses to Pocketstation commands, possibly "
           "allowing apps to be saved/exported."));
 
     ImGui::SliderInt(_("Icon size"), &m_iconSize, 16, 512);
-    ImGui::SameLine();
     if (ImGui::Checkbox(_("Draw Pocketstation icons"), &m_drawPocketstationIcons)) {
         glDeleteTextures(15, m_iconTextures);  // Recreate our textures to fit our new format
         initTextures();
@@ -301,7 +352,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
 
-    ImGui::Image(reinterpret_cast<ImTextureID*>(texture), ImVec2(m_iconSize, m_iconSize));
+    ImGui::Image(texture, ImVec2(m_iconSize, m_iconSize));
 }
 
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)

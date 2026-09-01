@@ -615,7 +615,7 @@ namespace eastl
 		EASTL_ASSERT_MSG(p != nullptr, "the behaviour of eastl::allocators that return nullptr is not defined.");
 
 		#if EASTL_DEBUG
-			memset((void*)p, 0, kDequeSubarraySize * sizeof(T));
+			__builtin_memset((void*)p, 0, kDequeSubarraySize * sizeof(T));
 		#endif
 
 		return (T*)p;
@@ -648,7 +648,7 @@ namespace eastl
 		EASTL_ASSERT_MSG(pp != nullptr, "the behaviour of eastl::allocators that return nullptr is not defined.");
 
 		#if EASTL_DEBUG
-			memset((void*)pp, 0, n * sizeof(T*));
+			__builtin_memset((void*)pp, 0, n * sizeof(T*));
 		#endif
 
 		return pp;
@@ -772,10 +772,10 @@ namespace eastl
 				nAdditionalCapacity = (nUnusedPtrCountAtFront / 2);
 
 			pPtrArrayBegin = mpPtrArray + (nUnusedPtrCountAtFront - nAdditionalCapacity);
-			memmove(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
+			__builtin_memmove(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
 
 			#if EASTL_DEBUG
-				memset(pPtrArrayBegin + nUsedPtrCount, 0, (size_t)(mpPtrArray + mnPtrArraySize) - (size_t)(pPtrArrayBegin + nUsedPtrCount));
+				__builtin_memset(pPtrArrayBegin + nUsedPtrCount, 0, (size_t)(mpPtrArray + mnPtrArraySize) - (size_t)(pPtrArrayBegin + nUsedPtrCount));
 			#endif
 		}
 		else if((allocationSide == kSideFront) && (nAdditionalCapacity <= nUnusedPtrCountAtBack)) // If we can take advantage of unused pointers at the back without doing any reallocation...
@@ -784,10 +784,10 @@ namespace eastl
 				nAdditionalCapacity = (nUnusedPtrCountAtBack / 2);
 
 			pPtrArrayBegin = mItBegin.mpCurrentArrayPtr + nAdditionalCapacity;
-			memmove(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
+			__builtin_memmove(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
 
 			#if EASTL_DEBUG
-				memset(mpPtrArray, 0, (size_t)((uintptr_t)pPtrArrayBegin - (uintptr_t)mpPtrArray));
+				__builtin_memset(mpPtrArray, 0, (size_t)((uintptr_t)pPtrArrayBegin - (uintptr_t)mpPtrArray));
 			#endif
 		}
 		else
@@ -801,7 +801,7 @@ namespace eastl
 			// The following is equivalent to: eastl::copy(mItBegin.mpCurrentArrayPtr, mItEnd.mpCurrentArrayPtr + 1, pPtrArrayBegin);
 			// It's OK to use memcpy instead of memmove because the destination is guaranteed to non-overlap the source.
 			if(mpPtrArray) // Could also say: 'if(mItBegin.mpCurrentArrayPtr)' 
-				memcpy(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
+				__builtin_memcpy(pPtrArrayBegin, mItBegin.mpCurrentArrayPtr, nUsedPtrSpace);
 
 			DoFreePtrArray(mpPtrArray, mnPtrArraySize);
 
@@ -1051,7 +1051,7 @@ namespace eastl
 		//        Currently we only do memcpy if the entire operation occurs within a single subarray.
 		if((first.mpBegin == last.mpBegin) && (first.mpBegin == mpBegin)) // If all operations are within the same subarray, implement the operation as a memmove.
 		{
-			memmove(mpCurrent, first.mpCurrent, (size_t)((uintptr_t)last.mpCurrent - (uintptr_t)first.mpCurrent));
+			__builtin_memmove(mpCurrent, first.mpCurrent, (size_t)((uintptr_t)last.mpCurrent - (uintptr_t)first.mpCurrent));
 			return *this + (last.mpCurrent - first.mpCurrent);
 		}
 		return eastl::copy(eastl::make_move_iterator(first), eastl::make_move_iterator(last), eastl::make_move_iterator(*this)).base();
@@ -1072,7 +1072,7 @@ namespace eastl
 		// To do: Implement this as a loop which does memmoves between subarrays appropriately.
 		//        Currently we only do memcpy if the entire operation occurs within a single subarray.
 		if((first.mpBegin == last.mpBegin) && (first.mpBegin == mpBegin)) // If all operations are within the same subarray, implement the operation as a memcpy.
-			memmove(mpCurrent - (last.mpCurrent - first.mpCurrent), first.mpCurrent, (size_t)((uintptr_t)last.mpCurrent - (uintptr_t)first.mpCurrent));
+			__builtin_memmove(mpCurrent - (last.mpCurrent - first.mpCurrent), first.mpCurrent, (size_t)((uintptr_t)last.mpCurrent - (uintptr_t)first.mpCurrent));
 		else
 			eastl::copy_backward(eastl::make_move_iterator(first), eastl::make_move_iterator(last), eastl::make_move_iterator(*this));
 	}

@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include "flags.h"
+#include "core/arguments.h"
 #include "fmt/format.h"
 #include "fmt/printf.h"
 #include "imgui.h"
@@ -88,24 +88,41 @@ struct JumpToPC {
 struct JumpToMemory {
     uint32_t address;
     unsigned size;
+    unsigned editorNum;
 };
 struct SelectClut {
     unsigned x, y;
 };
+enum VRAMMode : int {
+    VRAM_4BITS,
+    VRAM_8BITS,
+    VRAM_16BITS,
+    VRAM_24BITS,
+};
 struct VRAMFocus {
     int x1, y1;
     int x2, y2;
-    enum : int {
-        VRAM_4BITS,
-        VRAM_8BITS,
-        VRAM_16BITS,
-        VRAM_24BITS,
-    } vramMode = VRAM_16BITS;
+    VRAMMode vramMode = VRAM_16BITS;
+};
+struct VRAMHover {
+    float x, y;
+    VRAMMode vramMode;
+};
+struct VRAMClick {
+    float x, y;
+    VRAMMode vramMode;
+};
+struct RAMFocus {
+    uint32_t address;
+    uint32_t size;
 };
 }  // namespace GUI
 struct Keyboard {
     int key, scancode, action, mods;
 };
+namespace Memory {
+struct SetLuts {};
+}  // namespace Memory
 }  // namespace Events
 
 class System {
@@ -119,25 +136,25 @@ class System {
     virtual void hardReset() = 0;
     // Putc used by bios syscalls
     virtual void biosPutc(int c) = 0;
-    virtual const CommandLine::args &getArgs() = 0;
+    virtual const Arguments &getArgs() const = 0;
 
     // Legacy printf stuff; needs to be replaced with loggers
     template <typename... Args>
-    void printf(const char *format, const Args &... args) {
+    void printf(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         printf(std::move(s));
     }
     virtual void printf(std::string &&) = 0;
     // Add a log line
     template <typename... Args>
-    void log(LogClass logClass, const char *format, const Args &... args) {
+    void log(LogClass logClass, const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         log(logClass, std::move(s));
     }
     virtual void log(LogClass, std::string &&) = 0;
     // Display a popup message to the user
     template <typename... Args>
-    void message(const char *format, const Args &... args) {
+    void message(const char *format, const Args &...args) {
         std::string s = fmt::sprintf(format, args...);
         message(std::move(s));
     }
@@ -149,12 +166,16 @@ class System {
     // Close mem and plugins
     virtual void close() = 0;
     virtual void purgeAllEvents() = 0;
-    bool running() { return m_running; }
+    bool running() {
+        std::atomic_signal_fence(std::memory_order_relaxed);
+        return m_running && !m_quitting;
+    }
     const bool *runningPtr() { return &m_running; }
+    const bool *quittingPtr() { return &m_quitting; }
     bool quitting() { return m_quitting; }
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
-    void pause(bool exception = false) {
+    [[gnu::cold]] void pause(bool exception = false) {
         if (!m_running) return;
         m_running = false;
         m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
@@ -165,12 +186,10 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Run{});
     }
     virtual void testQuit(int code) = 0;
-    void quit(int code = 0) {
+    // This needs to only mutate variables, as it requires to be signal-safe.
+    [[gnu::cold]] void quit(int code = 0) {
         m_quitting = true;
-        pause();
         m_exitCode = code;
-        m_eventBus->signal(Events::Quitting{});
-        purgeAllEvents();
     }
 
     std::shared_ptr<EventBus::EventBus> m_eventBus = std::make_shared<EventBus::EventBus>();
@@ -222,6 +241,7 @@ class System {
     }
 
     std::filesystem::path getBinDir() const { return m_binDir; }
+    std::filesystem::path getPersistentDir() const;
     const VersionInfo &getVersion() const { return m_version; }
 
     // needs to be odd, and is a replica of ImGui's range tables
@@ -237,14 +257,22 @@ class System {
 
     uv_loop_t *getLoop() { return &m_loop; }
 
-    bool testmode() { return m_testmode; }
-
   private:
     uv_loop_t m_loop;
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
     std::string m_currentLocale;
+    // If true, indicates that the emulator is currently capturing the main loop
+    // and actively emulates the PSX hardware. If false, the emulator is paused,
+    // waiting for user input or other events inside the UI. The way the UI
+    // is refreshed is by calling update() periodically, so this boolean affects
+    // the moment when and how update() is called.
     bool m_running = false;
+    // If true, indicates that the emulator is quitting. This can be set by a
+    // number of events, including the user pressing the quit button or the
+    // emulator itself requesting a quit due to testing for instance. This will
+    // cause the two main loop to exit: the inner one being the emulator itself,
+    // and the outer one being the main.cc loop.
     bool m_quitting = false;
     int m_exitCode = 0;
     struct LocaleInfo {
@@ -257,13 +285,17 @@ class System {
   protected:
     std::filesystem::path m_binDir;
     PCSX::VersionInfo m_version;
-    bool m_emergencyExit = true;
-    bool m_testmode = false;
+    bool m_emergencyExit = false;
 };
 
 extern System *g_system;
 
 }  // namespace PCSX
 
-#define _(str) PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str)
-#define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djbHash::ctHash(str), str))
+// i18n macros
+// Normal string lookup to const char *
+#define _(str) PCSX::g_system->getStr(PCSX::djb::ctHash(str), str)
+// Formatting string lookup to use with fmt::format or fmt::printf
+#define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djb::ctHash(str), str))
+// Lambda string lookup to use with static arrays of strings
+#define l_(str) []() { return PCSX::g_system->getStr(PCSX::djb::ctHash(str), str); }

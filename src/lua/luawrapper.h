@@ -21,9 +21,12 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
+#include "fmt/printf.h"
 #include "json.hpp"
 #include "lua.hpp"
 #include "support/ssize_t.h"
@@ -174,8 +177,12 @@ class Lua {
     void rawgeti(int idx, int tableIdx = -1) { lua_rawgeti(L, tableIdx, idx); }
     void setvar() { lua_settable(L, LUA_GLOBALSINDEX); }
     int gettop() { return lua_gettop(L); }
-    int pushLuaContext(bool inTable = false);
+    void pushLuaContext(bool inTable = false);
     int error(std::string_view msg);
+    template <typename... Args>
+    int error(const char* format, Args&&... args) {
+        return error(fmt::sprintf(format, std::forward<Args>(args)...));
+    }
 
     int type(int i = -1) { return lua_type(L, i); }
     const char* typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }
@@ -233,6 +240,15 @@ class Lua {
     int setfenv(int index = -2) { return lua_setfenv(L, index); }
 
     bool newmetatable(const char* name) { return luaL_newmetatable(L, name) != 0; }
+
+    std::optional<lua_Debug> getinfo(const char* what, int level = 1) {
+        lua_Debug ar;
+        int r = lua_getstack(L, level, &ar);
+        if (!r) return std::nullopt;
+        r = lua_getinfo(L, what, &ar);
+        if (!r) return std::nullopt;
+        return ar;
+    }
 
   private:
     lua_State* L;

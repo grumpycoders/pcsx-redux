@@ -172,3 +172,13 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'bios'
     publishLocation: 'Container'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/openbios -j deepclean'
+
+- task: Bash@3
+  inputs:
+    filePath: 'dockermake.sh'
+    arguments: '-C src/mips/tests -j 2 PCSX_TESTS=true'

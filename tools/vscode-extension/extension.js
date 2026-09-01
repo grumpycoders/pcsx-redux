@@ -15,7 +15,7 @@ let globalStorageUri
 class PSXDevPanel {
   static currentPanel = undefined
 
-  static createOrShow(extensionUri) {
+  static createOrShow (extensionUri) {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined
@@ -34,11 +34,11 @@ class PSXDevPanel {
     PSXDevPanel.currentPanel = new PSXDevPanel(panel, extensionUri)
   }
 
-  static revive(panel, extensionUri) {
+  static revive (panel, extensionUri) {
     PSXDevPanel.currentPanel = new PSXDevPanel(panel, extensionUri)
   }
 
-  constructor(panel, extensionUri) {
+  constructor (panel, extensionUri) {
     this._disposables = []
     this._panel = panel
     this._extensionUri = extensionUri
@@ -68,7 +68,8 @@ class PSXDevPanel {
           case 'getTemplates':
             this._panel.webview.postMessage({
               command: 'templates',
-              templates: templates.list
+              templates: templates.list,
+              categories: templates.categories
             })
             break
           case 'refreshTools':
@@ -108,6 +109,12 @@ class PSXDevPanel {
             break
           case 'restorePsyq':
             restorePsyq()
+            break
+          case 'restorePythonEnv':
+            restorePythonEnv()
+            break
+          case 'updateModules':
+            updateModules()
             break
           case 'requestHomeDirectory':
             this._panel.webview.postMessage({
@@ -156,7 +163,7 @@ class PSXDevPanel {
     )
   }
 
-  dispose() {
+  dispose () {
     PSXDevPanel.currentPanel = undefined
     // Clean up our resources
     this._panel.dispose()
@@ -168,12 +175,12 @@ class PSXDevPanel {
     }
   }
 
-  _update() {
+  _update () {
     const webview = this._panel.webview
     webview.html = this._getHtmlForWebview(webview)
   }
 
-  _getHtmlForWebview(webview) {
+  _getHtmlForWebview (webview) {
     const scriptPathOnDisk = vscode.Uri.joinPath(
       this._extensionUri,
       'media',
@@ -215,8 +222,11 @@ class PSXDevPanel {
               <p>Before debugging a PlayStation 1 application, you'll need to have a target able to run PlayStation 1 code accessible through the gdb protocol. You can <vscode-link href="https://unirom.github.io/debug_gdb/" target="_blank">connect to a real PlayStation 1</vscode-link>, or you can run an emulator with a gdb server. You can click the button below to launch the <vscode-link href="https://pcsx-redux.consoledev.net" target="_blank">PCSX-Redux</vscode-link> PlayStation 1 emulator in debugger mode.</p><br/>
               <vscode-button id="show-redux-settings" appearance="secondary">Open Settings folder</vscode-button> <vscode-button id="launch-redux">Launch PCSX-Redux</vscode-button><br/>
               <hr/>
-              <p>After cloning a project that uses the Psy-Q library, it'll be necessary to restore it. You can press the button below in order to restore the library into the current workspace.</p><br/>
-              <vscode-button id="restore-psyq">Restore Psy-Q</vscode-button><br/>
+              <p>After cloning a project that uses Psy-Q libraries or a Python virtual environment, it'll be necessary to restore them. Use the buttons below in order to restore the appropriate dependencies into the current workspace.</p><br/>
+              <vscode-button id="restore-psyq">Restore Psy-Q</vscode-button> <vscode-button id="restore-python-env">Restore Python environment</vscode-button><br/>
+              <hr/>
+              <p>The templates will create git repositories with submodules. These submodules may update frequently with bug fixes and new features. The updates should not break backward compatibility in general, and should be safe to do. Press the button below to update the submodules in the current workspace.</p><br/>
+              <vscode-button id="update-modules">Update modules</vscode-button><br/>
               <hr/>
             </div>
           </vscode-panel-view>
@@ -234,6 +244,7 @@ PSXDevPanel.viewType = 'psxDev'
 exports.activate = (context) => {
   tools.setExtensionUri(context.extensionUri)
   tools.setGlobalStorageUri(context.globalStorageUri)
+  templates.setExtensionUri(context.extensionUri)
   pcsxRedux.setGlobalStorageUri(context.globalStorageUri)
   globalStorageUri = context.globalStorageUri
 
@@ -280,8 +291,8 @@ exports.activate = (context) => {
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('psxDev.showReduxSettings', () => {
-      showReduxSettings()
+    vscode.commands.registerCommand('psxDev.restorePythonEnv', () => {
+      restorePythonEnv()
     })
   )
 
@@ -291,15 +302,21 @@ exports.activate = (context) => {
     })
   )
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.showReduxSettings', () => {
+      showReduxSettings()
+    })
+  )
+
   vscode.window.registerWebviewPanelSerializer(PSXDevPanel.viewType, {
-    async deserializeWebviewPanel(webviewPanel) {
+    async deserializeWebviewPanel (webviewPanel) {
       webviewPanel.webview.options = getWebviewOptions(context.extensionUri)
       PSXDevPanel.revive(webviewPanel, context.extensionUri)
     }
   })
 }
 
-function getWebviewOptions(extensionUri) {
+function getWebviewOptions (extensionUri) {
   return {
     enableScripts: true,
     localResourceRoots: [
@@ -315,7 +332,7 @@ function getWebviewOptions(extensionUri) {
   }
 }
 
-function getNonce() {
+function getNonce () {
   let text = ''
   const possible =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -325,7 +342,7 @@ function getNonce() {
   return text
 }
 
-function launchRedux() {
+function launchRedux () {
   tools
     .maybeInstall('redux')
     .then(() => tools.list.redux.launch())
@@ -334,7 +351,7 @@ function launchRedux() {
     })
 }
 
-function restorePsyq() {
+function restorePsyq () {
   if (vscode.workspace.workspaceFolders) {
     tools
       .maybeInstall('psyq')
@@ -355,7 +372,30 @@ function restorePsyq() {
   }
 }
 
-function showReduxSettings() {
+function restorePythonEnv () {
+  if (vscode.workspace.workspaceFolders) {
+    templates
+      .createPythonEnv({
+        path: vscode.workspace.workspaceFolders[0].uri.fsPath,
+        name: 'env',
+        requirementsFiles: [
+          vscode.Uri.joinPath(
+            vscode.workspace.workspaceFolders[0].uri,
+            'ps1-bare-metal',
+            'tools',
+            'requirements.txt'
+          ).fsPath
+        ]
+      })
+      .catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+  } else {
+    vscode.window.showErrorMessage('Please open a project first.')
+  }
+}
+
+function showReduxSettings () {
   const pathToOpen = vscode.Uri.joinPath(
     globalStorageUri,
     'pcsx-redux-settings'
@@ -365,7 +405,7 @@ function showReduxSettings() {
   })
 }
 
-function updateModules() {
+function updateModules () {
   if (vscode.workspace.workspaceFolders) {
     tools
       .maybeInstall('git')

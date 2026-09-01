@@ -55,6 +55,7 @@ enum patch_behavior remove_ChgclrPAD_2_execute(uint32_t* ra);
 enum patch_behavior send_pad_1_execute(uint32_t* ra);
 enum patch_behavior send_pad_2_execute(uint32_t* ra);
 enum patch_behavior clear_card_1_execute(uint32_t* ra);
+enum patch_behavior custom_handler_1_execute(uint32_t* ra);
 enum patch_behavior initgun_1_execute(uint32_t* ra);
 enum patch_behavior patch_card_1_execute(uint32_t* ra);
 enum patch_behavior patch_card_2_execute(uint32_t* ra);
@@ -126,6 +127,11 @@ static const struct patch C0patches[] = {
         .name = "_clear_card#1",
     },
     {
+        .hash = 0xf80aeee3,
+        .execute = custom_handler_1_execute,
+        .name = "custom_handler#1",
+    },
+    {
         .hash = 0x5753f599,
         .execute = initgun_1_execute,
         .name = "_initgun#1",
@@ -163,9 +169,9 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
     // already patched, bail out
     if ((ra[0] == 0) && (ra[1] == 0) && (ra[3] == 0)) return;
 
-    uint32_t* hash_mask = NULL;
+    const uint32_t* hash_mask = NULL;
 
-    struct patch* patches = NULL;
+    const struct patch* patches = NULL;
     unsigned size = 0;
     char t = 'x';
     switch (table) {
@@ -207,7 +213,6 @@ void patch_hook(uint32_t* ra, enum patch_table table) {
         romsyscall_printf("Stopping.\n", t, h);
         enterCriticalSection();
         pcsx_debugbreak();
-        while (1)
-            ;
+        while (1);
     }
 }

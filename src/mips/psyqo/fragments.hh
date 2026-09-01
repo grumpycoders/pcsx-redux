@@ -27,7 +27,10 @@ SOFTWARE.
 #pragma once
 
 #include <EASTL/array.h>
+#include <EASTL/utility.h>
 #include <stdint.h>
+
+#include "psyqo/primitive-concept.hh"
 
 namespace psyqo {
 
@@ -60,17 +63,51 @@ namespace Fragments {
  * @tparam T The primitive type.
  */
 
-template <typename T>
-struct SimpleFragment {
-    constexpr size_t maxSize() const { return 1; }
-    SimpleFragment() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T)),
-                      "Spurious padding in simple fragment");
+struct ChainEntryPS1;
+struct ChainEntryPC;
+
+#ifdef PS1_PC_PORT
+using ChainEntry = ChainEntryPC;
+#else
+using ChainEntry = ChainEntryPS1;
+#endif
+
+struct ChainEntryPC {
+    ChainEntry* next;
+    unsigned size;
+    void setEndMarker() {
+        next = nullptr;
+        size = 0;
     }
-    typedef T FragmentBaseType;
-    constexpr size_t getActualFragmentSize() const { return sizeof(T) / sizeof(uint32_t); }
-    uint32_t head;
-    T primitive;
+    void set(ChainEntry* next_, unsigned size_) {
+        next = next_;
+        size = size_;
+    }
+};
+
+struct ChainEntryPS1 {
+    uintptr_t head;
+    void setEndMarker() {
+        head = 0xffffff;
+    }
+    void set(ChainEntryPS1* next, unsigned size) {
+        head = (size << 24) | (next->head & 0xffffff);
+    }
+};
+
+template <Primitive Prim>
+struct SimpleFragment : ChainEntry {
+    constexpr size_t maxSize() const { return 1; }
+    template <typename... Args>
+    SimpleFragment(Args &&...args) : primitive(eastl::forward<Args>(args)...) {
+#ifndef PS1_PC_PORT
+        static_assert(sizeof(*this) == (sizeof(uint32_t) + sizeof(Prim)), "Spurious padding in simple fragment");
+#endif
+    }
+    explicit SimpleFragment(const SimpleFragment &) = default;
+    typedef Prim FragmentBaseType;
+    constexpr size_t getActualFragmentSize() const { return sizeof(Prim) / sizeof(uint32_t); }
+    Prim primitive;
 };
 
 /**
@@ -84,18 +121,20 @@ struct SimpleFragment {
  * @tparam N The maximum number of primitives in the payload.
  */
 
-template <typename T, size_t N>
-struct FixedFragment {
+template <Primitive Prim, size_t N>
+struct FixedFragment : ChainEntry {
     constexpr size_t maxSize() const { return N; }
     FixedFragment() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(T) * N),
+#ifndef PS1_PC_PORT
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uintptr_t) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
+#endif
     }
-    typedef T FragmentBaseType;
-    size_t getActualFragmentSize() const { return (sizeof(T) * count) / sizeof(uint32_t); }
+    explicit FixedFragment(const FixedFragment &) = default;
+    typedef Prim FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(Prim) * count) / sizeof(uint32_t); }
+    eastl::array<Prim, N> primitives;
     unsigned count = N;
-    uint32_t head;
-    eastl::array<T, N> primitives;
 };
 
 /**
@@ -112,19 +151,21 @@ struct FixedFragment {
  * @tparam N The maximum number of primitives in the payload.
  */
 
-template <typename P, typename T, size_t N>
-struct FixedFragmentWithPrologue {
+template <Primitive P, Primitive Prim, size_t N>
+struct FixedFragmentWithPrologue : ChainEntry {
     constexpr size_t maxSize() const { return N; }
     FixedFragmentWithPrologue() {
-        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uint32_t) + sizeof(P) + sizeof(T) * N),
+#ifndef PS1_PC_PORT
+        static_assert(sizeof(*this) == (sizeof(unsigned) + sizeof(uintptr_t) + sizeof(P) + sizeof(Prim) * N),
                       "Spurious padding in fixed fragment");
+#endif
     }
-    typedef T FragmentBaseType;
-    size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(T) * count) / sizeof(uint32_t); }
-    unsigned count = N;
-    uint32_t head;
+    explicit FixedFragmentWithPrologue(const FixedFragmentWithPrologue &) = default;
+    typedef Prim FragmentBaseType;
+    size_t getActualFragmentSize() const { return (sizeof(P) + sizeof(Prim) * count) / sizeof(uint32_t); }
     P prologue;
-    eastl::array<T, N> primitives;
+    eastl::array<Prim, N> primitives;
+    unsigned count = N;
 };
 
 }  // namespace Fragments

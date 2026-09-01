@@ -8,6 +8,10 @@ This format uses a sort of bytecode in lieu of a hierarchical file format, like 
 This tool is performing a very verbose parsing of an input object file compiled with ccpsx, and can emit an ELF object file compatible with modern toolchains.
 The point of the conversion is to provide viable libraries to be used with an off the shelf compiler such as gcc or clang.
 
+# Usage
+
+The tool currently has two main usages: generating .o files for the purpose of using modern gcc to create homebrew, and used by [decomp.me](https://decomp.me/) in their backend for parsing the output of the old psyq compiler in order to display the output on the website, for their PS1 and N64 targets.
+
 # Caveats
 
 Not all of the particularities of the input format is convertible to the new ELF format, at least, not without an opiniated ldscript. Fortunately, with the whole of

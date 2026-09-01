@@ -9,7 +9,7 @@ unsigned int g_pgxp_debug = 0;
 
 // Instruction register decoding
 #define op(_instr) (_instr >> 26)           // The op part of the instruction register
-#define func(_instr) ((_instr)&0x3F)        // The funct part of the instruction register
+#define func(_instr) ((_instr) & 0x3F)      // The funct part of the instruction register
 #define sa(_instr) ((_instr >> 6) & 0x1F)   // The sa part of the instruction register
 #define rd(_instr) ((_instr >> 11) & 0x1F)  // The rd part of the instruction register
 #define rt(_instr) ((_instr >> 16) & 0x1F)  // The rt part of the instruction register

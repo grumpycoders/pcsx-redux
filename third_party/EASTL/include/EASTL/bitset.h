@@ -817,7 +817,7 @@ namespace eastl
 		if(NW > 16) // This is a constant expression and should be optimized away.
 		{
 			// This will be fastest if compiler intrinsic function optimizations are enabled.
-			memset(mWord, 0, sizeof(mWord));
+			__builtin_memset(mWord, 0, sizeof(mWord));
 		}
 		else
 		{

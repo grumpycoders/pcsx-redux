@@ -1367,7 +1367,7 @@ namespace eastl
 					stack_curr--;
 
 					#if EASTL_DEV_DEBUG
-						memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+						__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 					#endif
 
 					break;
@@ -1380,7 +1380,7 @@ namespace eastl
 					stack_curr--;
 
 					#if EASTL_DEV_DEBUG
-						memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+						__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 					#endif
 
 					break;
@@ -1405,7 +1405,7 @@ namespace eastl
 						#if EASTL_DEV_DEBUG
 							EASTL_DEV_ASSERT((run_stack[stack_curr - 2].start + run_stack[stack_curr - 2].length) <= size);
 							EASTL_DEV_ASSERT((run_stack[stack_curr - 1].start + run_stack[stack_curr - 1].length) <= size);
-							memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+							__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 						#endif
 					}
 					else
@@ -1417,7 +1417,7 @@ namespace eastl
 
 						#if EASTL_DEV_DEBUG
 							EASTL_DEV_ASSERT((run_stack[stack_curr - 1].start + run_stack[stack_curr - 1].length) <= size);
-							memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+							__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 						#endif
 					}
 				}
@@ -1430,7 +1430,7 @@ namespace eastl
 
 					#if EASTL_DEV_DEBUG
 						EASTL_DEV_ASSERT((run_stack[stack_curr - 1].start + run_stack[stack_curr - 1].length) <= size);
-						memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+						__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 					#endif
 				}
 				else
@@ -1487,7 +1487,7 @@ namespace eastl
 
 					#if EASTL_DEV_DEBUG
 						EASTL_DEV_ASSERT((run_stack[stack_curr - 1].start + run_stack[stack_curr - 1].length) <= size);
-						memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
+						__builtin_memset(&run_stack[stack_curr], 0, sizeof(run_stack[stack_curr]));
 					#endif
 				}
 
@@ -1554,7 +1554,7 @@ namespace eastl
 			const intptr_t minrun = timsort_compute_minrun(size);
 
 			#if EASTL_DEV_DEBUG
-				memset(run_stack, 0, sizeof(run_stack));
+				__builtin_memset(run_stack, 0, sizeof(run_stack));
 			#endif
 
 			if(tim_sort_add_run<RandomAccessIterator, T, StrictWeakOrdering>(run_stack, first, pBuffer, size, minrun, len, run, curr, stack_curr, compare))
@@ -1671,7 +1671,7 @@ namespace eastl
 			{
 				if (doSeparateHistogramCalculation)
 				{
-					memset(bucketSize, 0, sizeof(bucketSize));
+					__builtin_memset(bucketSize, 0, sizeof(bucketSize));
 					// Calculate histogram for the first scatter operation
 					for (temp = srcFirst; temp != last; ++temp)
 						++bucketSize[(extractKey(*temp) >> j) & bucketMask];

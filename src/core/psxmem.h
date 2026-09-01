@@ -20,15 +20,19 @@
 #pragma once
 
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "core/psxemulator.h"
+#include "support/eventbus.h"
+#include "support/polyfills.h"
+#include "support/sharedmem.h"
 
 #if defined(__BIGENDIAN__)
 
-#define SWAP_LE16(v) ((((v)&0xff00) >> 8) | (((v)&0xff) << 8))
+#define SWAP_LE16(v) ((((v) & 0xff00) >> 8) | (((v) & 0xff) << 8))
 #define SWAP_LE32(v) \
-    ((((v)&0xff000000ul) >> 24) | (((v)&0xff0000ul) >> 8) | (((v)&0xff00ul) << 8) | (((v)&0xfful) << 24))
+    ((((v) & 0xff000000ul) >> 24) | (((v) & 0xff0000ul) >> 8) | (((v) & 0xff00ul) << 8) | (((v) & 0xfful) << 24))
 #define SWAP_LEu16(v) SWAP_LE16((uint16_t)(v))
 #define SWAP_LEu32(v) SWAP_LE32((uint32_t)(v))
 
@@ -43,8 +47,15 @@
 
 namespace PCSX {
 
+enum class MsanStatus {
+    UNUSABLE,       // memory that hasn't been allocated or has been freed
+    UNINITIALIZED,  // allocated memory that has never been written to, has undefined contents
+    OK              // free to use
+};
+
 class Memory {
   public:
+    Memory();
     int init();
     void reset();
     void shutdown();
@@ -66,16 +77,99 @@ class Memory {
     static constexpr uint16_t IMASK = 0x1074;
 
     static constexpr uint16_t DMA_BASE = 0x1080;
+    static constexpr uint16_t DMA_MADR = 0;
+    static constexpr uint16_t DMA_BCR = 4;
     static constexpr uint16_t DMA_CHCR = 8;
+    static constexpr uint16_t DMA_PCR = 0x10f0;
     static constexpr uint16_t DMA_ICR = 0x10f4;
+
+    void initMsan(bool reset);
+    inline bool msanInitialized() const { return m_msanRAM != nullptr; }
+    uint32_t msanAlloc(uint32_t size);
+    void msanFree(uint32_t ptr);
+    uint32_t msanRealloc(uint32_t ptr, uint32_t size);
+    uint32_t msanSetChainPtr(uint32_t headerAddr, uint32_t ptrToNext, uint32_t size);
+    uint32_t msanGetChainPtr(uint32_t addr) const;
+
+    template <uint32_t length>
+    MsanStatus msanGetStatus(uint32_t addr) const {
+        uint32_t bitmapIndex = (addr - c_msanStart) / 8;
+        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        MsanStatus bestCase = MsanStatus::OK;
+        if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
+            if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                    return MsanStatus::UNUSABLE;
+                }
+                bestCase = MsanStatus::UNINITIALIZED;
+            }
+            bitmask &= 0xff;
+        }
+        if ((m_msanInitializedBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
+            if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) {
+                return MsanStatus::UNUSABLE;
+            }
+            return MsanStatus::UNINITIALIZED;
+        }
+        return bestCase;
+    }
+
+    // if the write is valid, marks the address as initialized, otherwise returns false
+    template <uint32_t length>
+    bool msanValidateWrite(uint32_t addr) {
+        uint32_t bitmapIndex = (addr - c_msanStart) / 8;
+        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
+            if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+                return false;
+            }
+            m_msanInitializedBitmap[bitmapIndex + 1] |= nextBitmask;
+            bitmask &= 0xff;
+        }
+        if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
+            return false;
+        }
+        m_msanInitializedBitmap[bitmapIndex] |= bitmask;
+        return true;
+    }
+
+    void msanDmaWrite(uint32_t addr, uint32_t size) {
+        if (!msanInitialized() || !inMsanRange(addr)) return;
+        addr -= c_msanStart;
+        for (uint32_t i = 0; i < size; ++i) {
+            m_msanInitializedBitmap[(addr + i) / 8] |= 1 << ((addr + i) % 8);
+        }
+    }
+
+    static inline bool inMsanRange(uint32_t addr) { return addr >= c_msanStart && addr < c_msanEnd; }
 
     template <unsigned n>
     void dmaInterrupt() {
         uint32_t icr = readHardwareRegister<DMA_ICR>();
+        if ((icr & 0x00800000) == 0) return;
+        bool triggeredIRQ = false;
         if (icr & (1 << (16 + n))) {
-            writeHardwareRegister<DMA_ICR>(icr | (1 << (24 + n)));
-            setIRQ(8);
+            icr |= (1 << (24 + n));
+            triggeredIRQ = true;
         }
+        if (triggeredIRQ) {
+            writeHardwareRegister<DMA_ICR>(icr | 0x80000000);
+            if ((icr & 0x80000000) == 0) {
+                setIRQ(8);
+            }
+        }
+    }
+
+    void dmaInterruptError() {
+        uint32_t icr = readHardwareRegister<DMA_ICR>();
+        writeHardwareRegister<DMA_ICR>(icr | 0x00008000);
+        setIRQ(8);
+    }
+
+    template <unsigned n>
+    bool isDMAEnabled() {
+        uint32_t pcr = readHardwareRegister<DMA_PCR>();
+        return pcr & (8 << (n * 4));
     }
 
     template <unsigned n>
@@ -97,6 +191,29 @@ class Memory {
     }
 
     template <unsigned n>
+    uint32_t getMADR() {
+        return readHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>();
+    }
+
+    template <unsigned n>
+    void setMADR(uint32_t value) {
+        if (!msanInitialized() || !inMsanRange(value)) {
+            value &= 0xffffff;
+        }
+        writeHardwareRegister<DMA_BASE + DMA_MADR + n * 0x10>(value);
+    }
+
+    template <unsigned n>
+    uint32_t getBCR() {
+        return readHardwareRegister<DMA_BASE + DMA_BCR + n * 0x10>();
+    }
+
+    template <unsigned n>
+    void setBCR(uint32_t value) {
+        writeHardwareRegister<DMA_BASE + DMA_BCR + n * 0x10>(value);
+    }
+
+    template <unsigned n>
     uint32_t getCHCR() {
         return readHardwareRegister<DMA_BASE + DMA_CHCR + n * 0x10>();
     }
@@ -109,31 +226,33 @@ class Memory {
     template <uint16_t reg, typename T = uint32_t>
     T readHardwareRegister() {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        return File::byte_swap(*ptr);
-#else
-        return *ptr;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            return PolyFill::byteSwap(*ptr);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            return *ptr;
+        }
     }
 
     template <uint16_t reg, typename T = uint32_t>
     void writeHardwareRegister(T value) {
         T *ptr = (T *)&m_hard[reg];
-#if defined(__BIGENDIAN__)
-        *ptr = File::byte_swap(value);
-#else
-        *ptr = value;
-#endif
+        if constexpr (std::endian::native == std::endian::big) {
+            *ptr = PolyFill::byteSwap(value);
+        } else if constexpr (std::endian::native == std::endian::little) {
+            *ptr = value;
+        }
     }
 
     void setIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr |= irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat |= irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     void clearIRQ(uint32_t irq) {
-        uint32_t *ptr = (uint32_t *)&m_hard[ISTAT];
-        *ptr &= ~irq;
+        uint32_t istat = readHardwareRegister<ISTAT>();
+        istat &= ~irq;
+        writeHardwareRegister<ISTAT>(istat);
     }
 
     uint32_t getBiosCRC32() { return m_biosCRC; }
@@ -141,6 +260,7 @@ class Memory {
 
     bool loadEXP1FromFile(std::filesystem::path rom_path);
     int sendReadToLua(uint32_t address, size_t size);
+    bool sendWriteToLua(uint32_t address, size_t size, uint32_t value);
 
     class MemoryAsFile : public File {
       public:
@@ -178,22 +298,61 @@ class Memory {
 
     IO<MemoryAsFile> getMemoryAsFile() { return m_memoryAsFile; }
 
+    bool isiCacheEnabled() { return m_BIU == 0x1e988; }
+
   private:
     friend class MemoryAsFile;
     IO<MemoryAsFile> m_memoryAsFile;
 
-    int m_writeok = 1;
+    // The scratchpad and the hardware registers share a single 64kB page, and the guest path has
+    // to dispatch register accesses to the hardware itself for their side effects, so that page is
+    // deliberately absent from the read LUT. Both are shadowed by m_hard at the same offsets,
+    // which spans the whole page and is safe to read at any time, so debugger-style accesses -
+    // which want a faithful view of memory and none of the side effects - resolve through here
+    // instead of through the read LUT directly.
+    static constexpr uint32_t c_scratchpadSize = 0x400;
+    uint8_t *debugPointer(uint32_t page) const {
+        auto pointer = m_readLUT[page];
+        if (pointer != nullptr) return pointer;
+        if ((page == 0x1f80) || (page == 0x9f80) || (page == 0xbf80)) return m_hard;
+        return nullptr;
+    }
+
     uint32_t m_biosCRC = 0;
+
+    // Shared memory wrappers, pointers below point to these where appropriate
+    friend class GdbClient;
+    SharedMem m_wramShared;
+
+    uint32_t m_BIU = 0;
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
     uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
-    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (512K)
+    uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (8 Meg buffer; up to 256K loaded)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)
+    uint8_t *m_sram = nullptr;  // DTL-H2000 dev board BIOS SRAM (2 Meg) @ 0x1fa00000
     uint8_t *m_hard = nullptr;  // Scratch Pad (1K) & Hardware Registers (8K)
 
     uint8_t **m_writeLUT = nullptr;
     uint8_t **m_readLUT = nullptr;
+
+    static constexpr uint32_t c_msanSize = 1'610'612'736;
+    static constexpr uint32_t c_msanStart = 0x20000000;
+    static constexpr uint32_t c_msanEnd = c_msanStart + c_msanSize;
+    uint8_t *m_msanRAM = nullptr;
+    uint8_t *m_msanUsableBitmap = nullptr;
+    uint8_t *m_msanInitializedBitmap = nullptr;
+    uint32_t m_msanPtr = 1024;
+    EventBus::Listener m_listener;
+
+    // Address of the psyqo heap metadata struct in guest memory,
+    // registered by the MIPS allocator via pcsxhw write to 0x1f8020a0.
+    uint32_t m_psyqoHeapMetadata = 0;
+
+    std::unordered_map<uint32_t, uint32_t> m_msanAllocs;
+    static constexpr uint32_t c_msanChainMarker = 0x7ffffd;
+    std::unordered_map<uint32_t, uint32_t> m_msanChainRegistry;
 
     template <typename T = void>
     T *getPointer(uint32_t address) {

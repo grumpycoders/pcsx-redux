@@ -21,7 +21,7 @@
 
 #include "GL/gl3w.h"
 
-void* PCSX::Widgets::FileDialog::CreateTexture(uint8_t* data, int w, int h, char fmt) {
+void* PCSX::Widgets::FileDialogBase::CreateTexture(uint8_t* data, int w, int h, char fmt) {
     GLuint tex;
 
     glGenTextures(1, &tex);
@@ -37,9 +37,22 @@ void* PCSX::Widgets::FileDialog::CreateTexture(uint8_t* data, int w, int h, char
     return (void*)tex;
 }
 
-void PCSX::Widgets::FileDialog::setDeleteTexture() {
+void PCSX::Widgets::FileDialogBase::setDeleteTexture() {
     DeleteTexture = [](void* tex) {
         GLuint texID = reinterpret_cast<uintptr_t>(tex);
         glDeleteTextures(1, &texID);
     };
+}
+
+void PCSX::Widgets::FileDialogBase::restoreFavorites() {
+    for (const auto& fav : m_favorites) {
+        AddFavorite(fav);
+    }
+}
+
+void PCSX::Widgets::FileDialogBase::saveFavorites() {
+    m_favorites.clear();
+    for (const auto& fav : GetFavorites()) {
+        m_favorites.push_back(fav);
+    }
 }

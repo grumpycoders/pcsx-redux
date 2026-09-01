@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2020 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2020 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #include "supportpsx/binloader.h"
 
@@ -213,24 +220,34 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     if (!reader.load(stream)) return false;
     if (reader.get_class() != ELFCLASS32) return false;
 
-    info.pc = reader.get_entry();
+    info.pc = static_cast<uint32_t>(reader.get_entry());
 
     Elf_Half sec_num = reader.sections.size();
+    Elf_Half seg_num = reader.segments.size();
     for (unsigned i = 0; i < sec_num; i++) {
         section* psec = reader.sections[i];
+
+        if (!(psec->get_flags() & SHF_ALLOC)) continue;
+        if (psec->get_type() == SHT_NOBITS) continue;
+
         auto name = psec->get_name();
-
         if (StringsHelpers::endsWith(name, "_Header")) continue;
-        if (StringsHelpers::startsWith(name, ".comment")) continue;
-
-        auto type = psec->get_type();
-        if (type != SHT_PROGBITS) continue;
 
         auto size = psec->get_size();
         auto data = psec->get_data();
-        auto addr = psec->get_address();
-        dest->writeAt(data, size, addr);
-        eraseSymbolsInSpan(addr, addr + size, symbols);
+        auto vaddr = psec->get_address();
+        auto loadAddr = vaddr;
+        for (unsigned j = 0; j < seg_num; j++) {
+            segment* pseg = reader.segments[j];
+            if (pseg->get_type() != PT_LOAD) continue;
+            auto segVaddr = pseg->get_virtual_address();
+            if (vaddr >= segVaddr && vaddr + size <= segVaddr + pseg->get_memory_size()) {
+                loadAddr = pseg->get_physical_address() + (vaddr - segVaddr);
+                break;
+            }
+        }
+        dest->writeAt(data, size, loadAddr);
+        eraseSymbolsInSpan(vaddr, vaddr + size, symbols);
     }
 
     for (unsigned i = 0; i < sec_num; i++) {

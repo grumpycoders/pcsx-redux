@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
@@ -29,7 +30,9 @@
 #include "core/psxemulator.h"
 #include "core/sio.h"
 #include "core/sio1.h"
+#include "lua/luawrapper.h"
 #include "spu/interface.h"
+#include "supportpsx/memory.h"
 
 static constexpr bool between(uint32_t val, uint32_t beg, uint32_t end) {
     return (beg > end) ? false : (val >= beg && val <= end - 3);
@@ -115,6 +118,9 @@ uint8_t PCSX::HW::read8(uint32_t add) {
             break;
         case 0x1f802083:
             hard = 0x58;
+            break;
+        case 0x1f802088:
+            hard = g_emulator->m_debug->m_checkKernel;
             break;
         default:
             hard = g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -311,38 +317,6 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         case 0x1f801824:
             hard = g_emulator->m_mdec->read1();
             break;
-        case 0x1f8010a0:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10a0>();
-            PSXHW_LOG("DMA2 MADR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010a4:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10a4>();
-            PSXHW_LOG("DMA2 BCR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010a8:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10a8>();
-            PSXHW_LOG("DMA2 CHCR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010b0:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10b0>();
-            PSXHW_LOG("DMA3 MADR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010b4:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10b4>();
-            PSXHW_LOG("DMA3 BCR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010b8:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10b8>();
-            PSXHW_LOG("DMA3 CHCR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010f0:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10f0>();
-            PSXHW_LOG("DMA PCR 32bit read %x\n", hard);
-            return hard;
-        case 0x1f8010f4:
-            hard = g_emulator->m_mem->readHardwareRegister<0x10f4>();
-            PSXHW_LOG("DMA ICR 32bit read %x\n", hard);
-            return hard;
         // time for rootcounters :)
         case 0x1f801100:
             hard = g_emulator->m_counters->readCounter(0);
@@ -387,7 +361,37 @@ uint32_t PCSX::HW::read32(uint32_t add) {
         case 0x1f802080:
             hard = 0x58534350;
             break;
-
+        case 0x1f80208c: {
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            hard = g_emulator->m_mem->msanAlloc(size);
+            break;
+        }
+        case 0x1f802090: {
+            uint32_t ptr = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            uint32_t size = g_emulator->m_cpu->m_regs.GPR.n.a1;
+            hard = g_emulator->m_mem->msanRealloc(ptr, size);
+            break;
+        }
+        case 0x1f802094: {
+            uint32_t headerAddr = g_emulator->m_cpu->m_regs.GPR.n.a0;
+            PSXAddress headerAddrInfo(headerAddr);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptr = g_emulator->m_mem->read32(headerAddr) & 0xffffff;
+                    if (ptr == PCSX::Memory::c_msanChainMarker) {
+                        return g_emulator->m_mem->msanGetChainPtr(headerAddr);
+                    } else {
+                        return ptr;
+                    }
+                }
+                default: {
+                    g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
+                    g_system->pause();
+                    return 0xffffffff;
+                }
+            }
+        }
         default: {
             uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
             hard = SWAP_LEu32(*ptr);
@@ -451,10 +455,36 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             g_system->biosPutc(value);
             break;
         case 0x1f802081:
-            g_system->pause();
+            if (value == 0) {
+                g_system->pause();
+            } else {
+                auto L = *g_emulator->m_lua;
+                auto top = L.gettop();
+                L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+                L.getfieldtable("execSlots");
+                L.push(lua_Number(value));
+                L.gettable();
+                if (L.isfunction()) {
+                    try {
+                        L.pcall();
+                    } catch (...) {
+                    }
+                }
+                while (top != L.gettop()) L.pop();
+            }
             break;
-
+        case 0x1f802088:
+            g_emulator->m_debug->m_checkKernel = value;
+            break;
+        case 0x1f802089:
+            g_emulator->m_mem->initMsan(value);
+            break;
         default:
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+                g_emulator->m_spu->writeRegister(add, (uint16_t)rawvalue);
+                break;
+            }
+
             if (addressInRegisterSpace(hwadd)) {
                 uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
                 *ptr = SWAP_LEu32(rawvalue);
@@ -652,103 +682,64 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f801080:
             PSXHW_LOG("DMA0 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x1080>(value);
-            break;  // DMA0 madr
-        case 0x1f801084:
-            PSXHW_LOG("DMA0 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x1084>(value);
-            break;  // DMA0 bcr
+            g_emulator->m_mem->setMADR<0>(value);
+            return;
         case 0x1f801088:
             PSXHW_LOG("DMA0 CHCR 32bit write %x\n", value);
             dmaExec<0>(value);  // DMA0 chcr (MDEC in DMA)
-            break;
+            return;
         case 0x1f801090:
             PSXHW_LOG("DMA1 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x1090>(value);
-            break;  // DMA1 madr
-        case 0x1f801094:
-            PSXHW_LOG("DMA1 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x1094>(value);
-            break;  // DMA1 bcr
+            g_emulator->m_mem->setMADR<1>(value);
+            return;
         case 0x1f801098:
             PSXHW_LOG("DMA1 CHCR 32bit write %x\n", value);
             dmaExec<1>(value);  // DMA1 chcr (MDEC out DMA)
-            break;
+            return;
         case 0x1f8010a0:
             PSXHW_LOG("DMA2 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10a0>(value);
-            break;  // DMA2 madr
-        case 0x1f8010a4:
-            PSXHW_LOG("DMA2 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10a4>(value);
-            break;  // DMA2 bcr
-        case 0x1f8010a8: {
+            g_emulator->m_mem->setMADR<2>(value);
+            return;
+        case 0x1f8010a8:
             PSXHW_LOG("DMA2 CHCR 32bit write %x\n", value);
-            /* A hack that makes Vampire Hunter D title screen visible,
-             * but makes Tomb Raider II water effect to stay opaque
-             * Root cause for this problem is that when DMA2 is issued
-             * the whole chain is incomplete and still being built by
-             * the game. In order for this to work properly, without hacks,
-             * we need the GPU rendering to delay more accurately, instead of
-             * rendering virtually immediately.
-             */
-            auto &mem = g_emulator->m_mem;
-            uint32_t bcr = mem->readHardwareRegister<0x1084 + 2 * 0x10>();
-            uint32_t chcr = value;
-            mem->setCHCR<2>(value);
-
-            if (m_dmaGpuListHackEn && (chcr == 0x00000401) && (bcr == 0x0)) {
-                uint32_t madr = mem->readHardwareRegister<0x1080 + 2 * 0x10>();
-                dma2(madr, bcr, chcr);
-                break;
-            }
             dmaExec<2>(value);  // DMA2 chcr (GPU DMA)
-            chcr = mem->getCHCR<2>();
-            if (g_emulator->config().HackFix && chcr == 0x1000401) m_dmaGpuListHackEn = true;
-        } break;
+            return;
         case 0x1f8010b0:
             PSXHW_LOG("DMA3 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10b0>(value);
-            break;  // DMA3 madr
-        case 0x1f8010b4:
-            PSXHW_LOG("DMA3 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10b4>(value);
-            break;  // DMA3 bcr
+            g_emulator->m_mem->setMADR<3>(value);
+            return;
         case 0x1f8010b8:
             PSXHW_LOG("DMA3 CHCR 32bit write %x\n", value);
             dmaExec<3>(value);  // DMA3 chcr (CDROM DMA)
-            break;
+            return;
         case 0x1f8010c0:
             PSXHW_LOG("DMA4 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10c0>(value);
-            break;  // DMA4 madr
-        case 0x1f8010c4:
-            PSXHW_LOG("DMA4 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10c4>(value);
-            break;  // DMA4 bcr
+            g_emulator->m_mem->setMADR<4>(value);
+            return;
         case 0x1f8010c8:
             PSXHW_LOG("DMA4 CHCR 32bit write %x\n", value);
             dmaExec<4>(value);  // DMA4 chcr (SPU DMA)
-            break;
-
+            return;
+        case 0x1f8010d0:
+            PSXHW_LOG("DMA5 MADR 32bit write %x\n", value);
+            g_emulator->m_mem->setMADR<5>(value);
+            return;
 #if 0
-        case 0x1f8010d0: break; //DMA5write_madr();
-        case 0x1f8010d4: break; //DMA5write_bcr();
-        case 0x1f8010d8: break; //DMA5write_chcr(); // Not needed
+        case 0x1f8010d8:
+            PSXHW_LOG("DMA5 CHCR 32bit write %x\n", value);
+            dmaExec<5>(value);  // DMA5 chcr (PIO DMA)
+            return;
 #endif
         case 0x1f8010e0:
             PSXHW_LOG("DMA6 MADR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10e0>(value);
-            break;  // DMA6 bcr
-        case 0x1f8010e4:
-            PSXHW_LOG("DMA6 BCR 32bit write %x\n", value);
-            g_emulator->m_mem->writeHardwareRegister<0x10e4>(value);
-            break;  // DMA6 bcr
+            g_emulator->m_mem->setMADR<6>(value);
+            return;
         case 0x1f8010e8:
             PSXHW_LOG("DMA6 CHCR 32bit write %x\n", value);
             dmaExec<6>(value);  // DMA6 chcr (OT clear)
-            break;
+            return;
         case 0x1f8010f0:
+            // TODO: check if toggling PCR triggers pending DMAs.
             PSXHW_LOG("DMA PCR 32bit write %x\n", value);
             g_emulator->m_mem->writeHardwareRegister<0x10f0>(value);
             break;
@@ -756,8 +747,24 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             PSXHW_LOG("DMA ICR 32bit write %x\n", value);
             {
                 auto &mem = g_emulator->m_mem;
-                uint32_t icr = (~value) & mem->readHardwareRegister<Memory::DMA_ICR>();
-                mem->writeHardwareRegister<Memory::DMA_ICR>(((icr ^ value) & 0xffffff) ^ icr);
+                uint32_t icr = mem->readHardwareRegister<Memory::DMA_ICR>();
+                uint32_t ack = value & 0b0'1111111'000000000'000000000'000000;
+                bool wasNotTriggered = (icr & 0x80000000) == 0;
+                bool isTriggered = false;
+                bool hasError = value & 0x00008000;
+                bool isEnabled = value & 0x00800000;
+                ack ^= 0b0'1111111'000000000'000000000'000000;
+                value &= 0b0'0000000'111111111'000000000'111111;
+                icr &= ack;
+                icr |= value;
+                if (((icr & 0x7f008000) != 0) && (hasError || isEnabled)) {
+                    icr |= 0x80000000;
+                    isTriggered = true;
+                }
+                mem->writeHardwareRegister<Memory::DMA_ICR>(icr);
+                if (wasNotTriggered && isTriggered) {
+                    mem->setIRQ(8);
+                };
                 return;
             }
         case 0x1f801014:
@@ -770,10 +777,8 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             break;
         case 0x1f801814:
             PSXHW_LOG("GPU STATUS 32bit write %x\n", value);
-            if (value & 0x8000000) m_dmaGpuListHackEn = false;
             g_emulator->m_gpu->writeStatus(value);
             break;
-
         case 0x1f801820:
             g_emulator->m_mdec->write0(value);
             break;
@@ -821,6 +826,32 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             memFile->rSeek(value);
             g_system->message("%s", memFile->gets<false>());
             break;
+        }
+        case 0x1f80208c: {
+            g_emulator->m_mem->msanFree(value);
+            break;
+        }
+        case 0x1f8020a0: {
+            g_emulator->m_mem->m_psyqoHeapMetadata = value;
+            break;
+        }
+        case 0x1f802094: {
+            PSXAddress headerAddrInfo(value);
+            switch (headerAddrInfo.type) {
+                case PSXAddress::Type::RAM:
+                case PSXAddress::Type::MSAN: {
+                    uint32_t ptrToNext = g_emulator->m_cpu->m_regs.GPR.n.a0;
+                    uint32_t wordCount = g_emulator->m_cpu->m_regs.GPR.n.a1;
+                    uint32_t markerValue = g_emulator->m_mem->msanSetChainPtr(value, ptrToNext, wordCount);
+                    g_emulator->m_mem->write32(value, markerValue);
+                    return;
+                }
+                default: {
+                    g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
+                    g_system->pause();
+                    return;
+                }
+            }
         }
         default: {
             if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {

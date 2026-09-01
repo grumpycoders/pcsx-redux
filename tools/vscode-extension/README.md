@@ -13,12 +13,69 @@ The panel will have the ability to install the tools on the most popular platfor
 - The extension is currently only targeting Windows, Linux Ubuntu, Arch Linux, and MacOS. It may work on more platforms, but it's not guaranteed, and won't be as automated as it is on the supported platforms.
 - Only Windows and Linux Ubuntu have been thoroughly tested for now.
 - The extension will not work from the browser as it requires running external tools. It may work in a remote SSH session, but it's not been tested.
-- The PCSX-Redux dependency is currently only available on x86_64 platforms, and may possibly work on M1/M2 Macs.
 - Linux requires libfuse2 to be installed, for AppImages like the PCSX-Redux dependency to work.
 - The PCSX-Redux workflow won't check for system-wide installations, and will always install the dependency locally.
 
 ### Changelog
 
+- 0.5.1
+  - Trying a different method to install the mips tool on Powershell.
+- 0.5.0
+  - Switching from the webfreak debugger to the official Microsoft debugger for VSCode.
+  - Added natvis support for psyqo and eastl.
+- 0.4.1
+  - Bumping gcc to 16.1.0
+  - Bumping binutils to 2.46.1
+  - Bumping gdb to 17.2
+- 0.4.0
+  - Fixed installation issues with MacOS Sequoia.
+  - Bumping gcc to 15.2.0
+  - Bumping binutils to 2.45
+  - Fixed installation issues with the Windows MIPS toolchain when PowerShell is the default shell.
+  - Fixed Python detection and virtual environment setup on Windows.
+  - Fixed CMake installation on Windows.
+- 0.3.10
+  - Fixed the empty-cmake and cmake-cube bare-metal templates to build against the latest ps1-bare-metal.
+- 0.3.9
+  - Fixed cube psyqo template's null pointer exception.
+  - Improved MacOS mips toolchain installation process.
+- 0.3.8
+  - Added automatic setup of Python virtual environments in order to reflect the changes in ps1-bare-metal.
+  - Fixed compile_flags.txt in template file.
+  - Added psyqo cube example.
+  - Added download support for Darwin ARM64 (M1/M2/etc) for PCSX-Redux.
+- 0.3.7
+  - Bumping gcc to 14.2.0
+  - Bumping binutils to 2.43
+- 0.3.6
+  - Bumping gcc to 14.1.0.
+- 0.3.5
+  - Bumping binutils to 2.42
+  - Changing the way the PCSX-Redux dependency is installed, from AppCenter to AppDistrib.
+- 0.3.4
+  - Added CMake bare-metal templates.
+  - Added support for detecting and installing CMake and Python.
+  - Added the CMake Tools and MIPS Assembly extensions.
+- 0.3.3
+  - Adding Net Yaroze template.
+  - Refactored the template panel page a bit.
+- 0.3.2
+  - Fixing PSYQo's template.
+- 0.3.1
+  - Fixing EASTL paths in PSYQo template for Unix-like systems.
+- 0.3.0
+  - Overhauled template system.
+- 0.2.8
+  - Adding main page button to update submodules.
+  - Creating categories for templates.
+- 0.2.7
+  - Adding c_cpp_properties.json to the templates.
+  - Bumping Windows mips toolchain to 13.2.0.
+- 0.2.6
+  - Bumping gcc to 13.2.0.
+  - Bumping binutils to 2.41
+  - Bumping gdb to 13.2.0
+  - Preventing creating projects with spaces in the path.
 - 0.2.5
   - Bumping gcc to 13.1.0.
 - 0.2.4

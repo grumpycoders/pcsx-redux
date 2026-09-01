@@ -28,12 +28,22 @@ SOFTWARE.
 
 #include <EASTL/array.h>
 #include <EASTL/atomic.h>
+#include <EASTL/fixed_list.h>
 #include <EASTL/functional.h>
 #include <EASTL/utility.h>
 #include <stdint.h>
 
+#include <coroutine>
+
+#include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
-#include "psyqo/primitives.hh"
+#include "psyqo/kernel.hh"
+#include "psyqo/ordering-table.hh"
+#include "psyqo/primitive-concept.hh"
+#include "psyqo/primitives/common.hh"
+#include "psyqo/primitives/control.hh"
+#include "psyqo/primitives/misc.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -46,6 +56,27 @@ enum DmaCallback {
 
 }
 
+namespace timer_literals {
+
+/**
+ * @brief Literal operators for time units.
+ *
+ * @details These operators can be used to specify time units suitable
+ * for the GPU's `armTimer` and `armPeriodicTimer` methods. For example,
+ * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
+ * fires every second.
+ */
+consteval uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+consteval uint32_t operator""_us(unsigned long long int value) { return value; }
+consteval uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+consteval uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(long double value) { return value / 1'000; }
+consteval uint32_t operator""_us(long double value) { return value; }
+consteval uint32_t operator""_ms(long double value) { return value * 1'000; }
+consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
+
+}  // namespace timer_literals
+
 /**
  * @brief The singleton GPU class.
  *
@@ -55,15 +86,30 @@ enum DmaCallback {
  */
 
 class GPU {
+    struct TimerAwaiter {
+        TimerAwaiter(GPU &gpu, uint32_t deadline) : m_gpu(gpu), m_deadline(deadline) {}
+        ~TimerAwaiter() {}
+        constexpr bool await_ready() const { return false; }
+        void await_suspend(std::coroutine_handle<> handle) {
+            m_gpu.armTimer(m_deadline, [handle](uint32_t) { handle.resume(); });
+        }
+        void await_resume() {}
+        GPU &m_gpu;
+        uintptr_t m_deadline;
+    };
+
   public:
     struct Configuration;
     enum class Resolution { W256, W320, W368, W512, W640 };
     enum class VideoMode { AUTO, NTSC, PAL };
     enum class ColorMode { C15BITS, C24BITS };
     enum class Interlace { PROGRESSIVE, INTERLACED };
+    enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
     void initialize(const Configuration &config);
+    void reinitialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
+    static constexpr unsigned c_chainThreshold = 56;
 
     /**
      * @brief Returns the refresh rate of the GPU.
@@ -79,9 +125,28 @@ class GPU {
      * @details This returns the internal frame counter being kept by the
      * GPU class. The 32 bits value will wrap around when it reaches 2^32
      * frames, which is 2 years, 3 months, 7 days, 6 hours, 6 minutes and
-     * 28.27 seconds when running constantly at a 60Hz refresh rate.
+     * 28.27 seconds when running constantly at a 60Hz refresh rate. This
+     * counter will be incremented during the frame flip operation by the
+     * appropriate number of hardware frames which have passed since the
+     * last frame flip. In other words, this counter monotonically increases
+     * by one for each vsync event that occurred during the last rendering.
      */
-    uint32_t getFrameCount() const { return m_frameCount; }
+    uint32_t getFrameCount() const { return m_previousFrameCount; }
+
+    /**
+     * @brief Get the index of the current display buffer.
+     *
+     * @details This method will return the index of the current display buffer.
+     * The index will be either 0 or 1, and will be updated during the frame
+     * flip operation. This is useful for double buffering: when designing an
+     * application which uses double buffering, the application should keep
+     * two sets of data, one for each display buffer. The application should
+     * then use the `getParity` method to determine which if its two sets
+     * of data should be used for the current frame.
+     *
+     * @return unsigned The index of the current display buffer, either 0 or 1.
+     */
+    unsigned getParity() const { return m_parity; }
 
     /**
      * @brief Immediately clears the drawing buffer.
@@ -162,9 +227,9 @@ class GPU {
      *
      * @param fragment The fragment to send to the GPU.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize());
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment) {
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize());
     }
 
     /**
@@ -176,10 +241,11 @@ class GPU {
      * @param callback The callback to call upon completion.
      * @param dmaCallback `DMA::FROM_MAIN_LOOP` or `DMA::FROM_ISR`.
      */
-    template <typename Fragment>
-    void sendFragment(const Fragment &fragment, eastl::function<void()> &&callback,
+    template <Fragment Frag>
+    void sendFragment(const Frag &fragment, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize(),
+                     eastl::move(callback), dmaCallback);
     }
 
     /**
@@ -217,13 +283,17 @@ class GPU {
     /**
      * @brief Waits until the GPU is ready to send a command.
      */
-    static void waitReady();
+    void waitReady();
 
     /**
-     * @brief Sends a raw 32 bits value to the GP0 register of the GPU.
+     * @brief Waits until the GPU's FIFO is ready to receive data.
+     */
+    void waitFifo();
+
+    /**
+     * @brief Sends a raw 32 bits value to the Data register of the GPU.
      */
     static void sendRaw(uint32_t data) { Hardware::GPU::Data = data; }
-    template <typename Primitive>
 
     /**
      * @brief Sends a primitive to the GPU. This is a blocking call.
@@ -231,12 +301,13 @@ class GPU {
      * @details This method will immediately send the specified primitive to the GPU.
      * @param primitive The primitive to send to the GPU.
      */
-    static void sendPrimitive(const Primitive &primitive) {
-        static_assert((sizeof(Primitive) % 4) == 0, "Primitive's size must be a multiple of 4");
+    template <Primitive Prim>
+    void sendPrimitive(const Prim &primitive) {
         waitReady();
         const uint32_t *ptr = reinterpret_cast<const uint32_t *>(&primitive);
-        size_t size = sizeof(Primitive) / sizeof(uint32_t);
+        constexpr size_t size = sizeof(Prim) / sizeof(uint32_t);
         for (int i = 0; i < size; i++) {
+            if constexpr (sizeof(Prim) > c_chainThreshold) waitFifo();
             sendRaw(*ptr++);
         }
     }
@@ -254,9 +325,39 @@ class GPU {
      * if applicable.
      * @param fragment The fragment to chain.
      */
-    template <typename Fragment>
-    void chain(Fragment &fragment) {
-        chain(&fragment.head, fragment.getActualFragmentSize());
+    template <Fragment Frag>
+    void chain(Frag &fragment) {
+        chain(&fragment.head, &fragment.head, fragment.getActualFragmentSize());
+    }
+
+    /**
+     * @brief Chains an already constructed DMA chain to the next DMA chain transfer.
+     *
+     * @details This method will chain an already constructed DMA chain to the next DMA chain transfer.
+     * This is an even more complex operation than the previous `chain` method, as it requires the
+     * user to construct the DMA chain manually. Some helpers are provided in the `Fragments` namespace.
+     * @param first The pointer to the first fragment of the chain.
+     * @param last The pointer to the last fragment of the chain.
+     */
+    template <Fragment Frag1, Fragment Frag2>
+    void chain(Frag1 *first, Frag2 *last) {
+        auto count = last->getActualFragmentSize();
+        Kernel::assert(count <= (c_chainThreshold / 4), "Last element of the chain is too big");
+        chain(&first->head, &last->head, last->getActualFragmentSize());
+    }
+
+    /**
+     * @brief Chains an ordering table to the next DMA chain transfer.
+     *
+     * @details This method will chain an ordering table to the next DMA chain transfer. The ordering table
+     * table will be cleared automatically after the transfer is complete.
+     *
+     * @param table The ordering table to chain.
+     */
+    template <size_t N, Safe safety = Safe::Yes>
+    void chain(OrderingTable<N, safety> &table) {
+        chain(&table.m_table[N].head, &table.m_table[0].head, 0);
+        scheduleOTC(&table.m_table[N].head, N + 1);
     }
 
     /**
@@ -297,6 +398,14 @@ class GPU {
     bool isChainTransferred() const;
 
     /**
+     * @brief Waits until the background DMA transfer operation initiated by a frame flip is complete.
+     *
+     */
+    void waitChainIdle() {
+        while (isChainTransferring()) pumpCallbacks();
+    }
+
+    /**
      * @brief Gets the current timestamp in microseconds.
      *
      * @details The current timestamp is in microseconds. It will wrap around after a bit more than
@@ -333,6 +442,19 @@ class GPU {
      * @return The id of the created timer.
      */
     uintptr_t armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback);
+
+    /**
+     * @brief Delays the coroutine for a specified amount of time.
+     *
+     * @details This method will delay the coroutine for a specified amount of time. This
+     * is a coroutine-friendly version of the `armTimer` method. The coroutine will be
+     * suspended until the delay has passed. The delay is specified in microseconds, and
+     * the timer literals can be used to specify the delay. The function can only be called
+     * from within a coroutine, and is meant to be used with the `co_await` keyword.
+     * @param amount The amount of time to delay the coroutine in microseconds.
+     * @return TimerAwaiter The awaitable object to be used with the `co_await` keyword.
+     */
+    TimerAwaiter delay(uint32_t microseconds) { return {*this, now() + microseconds}; }
 
     /**
      * @brief Creates a periodic timer.
@@ -405,30 +527,57 @@ class GPU {
     void pumpCallbacks();
 
   private:
+    GPU();
+    GPU(const GPU &) = delete;
+    GPU(GPU &&) = delete;
+    GPU &operator=(const GPU &) = delete;
+    GPU &operator=(GPU &&) = delete;
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
-    void chain(uint32_t *head, size_t count);
+    void scheduleNormalDMA(uintptr_t data, size_t count);
+    void scheduleChainedDMA(uintptr_t head);
+    void chain(uintptr_t *first, uintptr_t *last, size_t count);
+    void scheduleOTC(uintptr_t *start, uint32_t count);
+    void checkOTCAndTriggerCallback();
+    void prepareForTakeover();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
-    bool m_fromISR = false;
-    bool m_flushCacheAfterDMA = false;
     int m_width = 0;
     int m_height = 0;
     uint32_t m_currentTime = 0;
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
-    int m_parity = 0;
-    uint32_t *m_chainHead = nullptr;
-    uint32_t *m_chainTail = nullptr;
+    unsigned m_parity = 0;
+    uintptr_t *m_chainHead = nullptr;
+    uintptr_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
-    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus = CHAIN_IDLE;
+    struct Timer {
+        eastl::function<void(uint32_t)> callback;
+        uint32_t deadline;
+        uint32_t period;
+        int32_t pausedRemaining;
+        bool periodic;
+        bool paused = false;
+    };
+    eastl::fixed_list<Timer, 32> m_timers;
+    struct ScheduledOTC {
+        uintptr_t *start;
+        uint32_t count;
+    };
+    eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
+    uintptr_t *m_chainNext = nullptr;
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
+    bool m_fromISR = false;
+    bool m_flushCacheAfterDMA = false;
+
     void flip();
     friend class Application;
+    friend void psyqo::Kernel::takeOverKernel();
 };
 
 }  // namespace psyqo

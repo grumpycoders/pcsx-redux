@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2023 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2023 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #include "supportpsx/binlua.h"
 
@@ -28,6 +35,7 @@
 #include "supportpsx/binloader.h"
 #include "supportpsx/n2e-d.h"
 #include "supportpsx/ps1-packer.h"
+#include "supportpsx/ucl-utils.h"
 #include "ucl/ucl.h"
 
 namespace {
@@ -61,26 +69,6 @@ void ps1PackerPack(PCSX::LuaFFI::LuaFile* src, PCSX::LuaFFI::LuaFile* dest, uint
     PCSX::PS1Packer::pack(src->file, dest->file, addr, pc, gp, sp, options);
 }
 
-uint32_t uclPack(PCSX::LuaFFI::LuaFile* src, PCSX::LuaFFI::LuaFile* dest) {
-    std::vector<uint8_t> dataIn;
-    dataIn.resize(src->file->size());
-    src->file->read(dataIn.data(), dataIn.size());
-
-    std::vector<uint8_t> dataOut;
-    dataOut.resize(dataIn.size() * 1.2 + 2048);
-    ucl_uint outSize;
-    int r;
-
-    r = ucl_nrv2e_99_compress(dataIn.data(), dataIn.size(), dataOut.data(), &outSize, nullptr, 10, nullptr, nullptr);
-    if (r != UCL_E_OK) {
-        throw std::runtime_error("Fatal error during data compression.\n");
-    }
-    dataOut.resize(outSize);
-    dest->file->write(dataOut.data(), outSize);
-
-    return outSize;
-}
-
 uint32_t writeUclDecomp(PCSX::LuaFFI::LuaFile* dest) {
     dest->file->write(n2e_d::code, sizeof(n2e_d::code));
     return sizeof(n2e_d::code);
@@ -93,6 +81,29 @@ void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
     L.settable();
 }
 
+uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out) {
+    ucl_uint outSize;
+    auto r = ucl_nrv2e_99_compress(in, size, out, &outSize, nullptr, 10, nullptr, nullptr);
+    return r == UCL_E_OK ? outSize : 0;
+}
+
+uint32_t uclGetOverlapMargin(const uint8_t* src, size_t srcLen, size_t expectedDstLen) {
+    auto margin = PCSX::UCLUtils::inPlaceOverlapMargin(src, srcLen, expectedDstLen);
+    ssize_t relMargin = margin - srcLen + expectedDstLen;
+    return std::clamp<uint32_t>(relMargin, 0L, static_cast<long>(std::numeric_limits<uint32_t>::max()));
+}
+
+// Decompress an NRV2E-compressed payload into a caller-allocated buffer of capacity
+// expectedOutSize. The decompressor is the bounds-checked "safe" variant so corrupted
+// input produces an error return rather than a buffer overrun. Returns the actual
+// number of bytes written on success, or 0 on any failure (UCL error or size mismatch).
+uint32_t uclUnpackWrapper(const uint8_t* in, uint32_t inSize, uint8_t* out, uint32_t expectedOutSize) {
+    ucl_uint outSize = expectedOutSize;
+    auto r = ucl_nrv2e_decompress_safe_8(in, inSize, out, &outSize, nullptr);
+    if (r != UCL_E_OK) return 0;
+    return outSize;
+}
+
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 void registerAllSymbols(PCSX::Lua L) {
@@ -101,7 +112,9 @@ void registerAllSymbols(PCSX::Lua L) {
     L.newtable();
     REGISTER(L, binaryLoaderLoad);
     REGISTER(L, ps1PackerPack);
-    REGISTER(L, uclPack);
+    REGISTER(L, uclWrapper);
+    REGISTER(L, uclUnpackWrapper);
+    REGISTER(L, uclGetOverlapMargin);
     REGISTER(L, writeUclDecomp);
     L.settable();
     L.pop();
@@ -115,5 +128,5 @@ void PCSX::LuaSupportPSX::open_binaries(Lua L) {
 #include "supportpsx/binffi.lua"
     );
     registerAllSymbols(L);
-    L.load(binffi, "internal:supportpsx/binffi.lua");
+    L.load(binffi, "src:supportpsx/binffi.lua");
 }

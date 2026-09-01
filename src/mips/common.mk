@@ -1,18 +1,7 @@
 BUILD ?= Release
 
-ifeq ($(OS),Windows_NT)
-HAS_LINUX_MIPS_GCC = false
-else
-HAS_LINUX_MIPS_GCC = $(shell which mipsel-linux-gnu-gcc > /dev/null 2> /dev/null && echo true || echo false)
-endif
-
-ifeq ($(HAS_LINUX_MIPS_GCC),true)
-PREFIX ?= mipsel-linux-gnu
-FORMAT ?= elf32-tradlittlemips
-else
 PREFIX ?= mipsel-none-elf
 FORMAT ?= elf32-littlemips
-endif
 
 ROOTDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -35,7 +24,7 @@ ARCHFLAGS += -fno-stack-protector -nostdlib -ffreestanding
 ifeq ($(USE_FUNCTION_SECTIONS),true)
 CPPFLAGS += -ffunction-sections
 endif
-CPPFLAGS += -mno-gpopt -fomit-frame-pointer
+CPPFLAGS += -fdata-sections -mno-gpopt -fomit-frame-pointer
 CPPFLAGS += -fno-builtin -fno-strict-aliasing -Wno-attributes
 CPPFLAGS += $(ARCHFLAGS)
 CPPFLAGS += -I$(ROOTDIR)
@@ -47,8 +36,8 @@ LDFLAGS += $(ARCHFLAGS) -Wl,--oformat=$(FORMAT)
 CPPFLAGS_Release += -Os
 LDFLAGS_Release += -Os
 
-CPPFLAGS_LTO += -Os -flto
-LDFLAGS_LTO += -Os -flto
+CPPFLAGS_LTO += -Os -flto -ffat-lto-objects
+LDFLAGS_LTO += -Os -flto -ffat-lto-objects
 
 CPPFLAGS_Debug += -O0
 CPPFLAGS_SmallDebug += -Og
@@ -108,7 +97,7 @@ DEPS += $(patsubst %.s,   %.dep,$(filter %.s,$(SRCS)))
 
 dep: $(DEPS)
 
-clean: $(EXTRA_CLEAN)
+clean::
 	rm -f $(OBJS) $(BINDIR)*.a $(BINDIR)Overlay.* $(BINDIR)*.elf $(BINDIR)*.ps-exe $(BINDIR)*.map $(DEPS)
 
 ifneq ($(MAKECMDGOALS), clean)

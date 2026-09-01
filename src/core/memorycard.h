@@ -48,14 +48,14 @@ class MemoryCard {
             saveMcd(path);
         }
     }
-    void createMcd(const PCSX::u8string mcd);
+    void createMcd(PCSX::u8string mcd);
     bool dataChanged() { return !m_savedToDisk; }
     void disablePocketstation() { m_pocketstationEnabled = false; };
     void enablePocketstation() { m_pocketstationEnabled = true; };
     char *getMcdData() { return m_mcdData; }
-    void loadMcd(const PCSX::u8string str);
-    void saveMcd(const PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
-    void saveMcd(const PCSX::u8string path) { saveMcd(path, m_mcdData, 0, c_cardSize); }
+    void loadMcd(PCSX::u8string mcd);
+    void saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
+    void saveMcd(PCSX::u8string mcd) { saveMcd(mcd, m_mcdData, 0, c_cardSize); }
 
   private:
     enum Commands : uint8_t {

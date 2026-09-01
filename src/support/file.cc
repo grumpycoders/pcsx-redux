@@ -1,21 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2019 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2019 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #include "support/file.h"
 
@@ -43,6 +50,12 @@ PCSX::BufferFile::BufferFile(void *data, size_t size, Acquire) : File(RW_SEEKABL
     m_data = reinterpret_cast<uint8_t *>(data);
     m_size = m_allocSize = size;
     m_owned = true;
+}
+
+PCSX::BufferFile::BufferFile(void *data, size_t size, Borrow) : File(RW_SEEKABLE) {
+    m_data = reinterpret_cast<uint8_t *>(data);
+    m_size = size;
+    m_owned = false;
 }
 
 PCSX::BufferFile::BufferFile() : File(RO_SEEKABLE) {
@@ -139,16 +152,16 @@ ssize_t PCSX::BufferFile::write(const void *src, size_t size) {
 bool PCSX::BufferFile::eof() { return m_size == m_ptrR; }
 
 PCSX::File *PCSX::BufferFile::dup() {
-    if (!m_owned) {
+    if (m_owned && !writable()) {
         return new BufferFile(m_data, m_size);
     } else {
         return new BufferFile(m_data, m_size, FileOps::READWRITE);
     }
 }
 
-PCSX::Slice PCSX::BufferFile::borrow() {
+PCSX::Slice PCSX::BufferFile::borrow(size_t offset) {
     Slice ret;
-    ret.borrow(m_data, m_size);
+    ret.borrow(m_data + offset, m_size - offset);
     return ret;
 }
 
@@ -164,7 +177,7 @@ static FILE *openwrapper(const char *filename, const wchar_t *mode) {
     int needed = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
     if (needed <= 0) return nullptr;
     LPWSTR str = (LPWSTR)_malloca(needed * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, filename, -1, str, needed);
     FILE *ret = _wfopen(str, mode);
     _freea(str);
     return ret;
@@ -297,6 +310,43 @@ ssize_t PCSX::SubFile::readAt(void *dest, size_t size, size_t ptr) {
         size -= excess;
     }
     return m_file->readAt(dest, size, ptr + m_start);
+}
+
+ssize_t PCSX::SubFile::wSeek(ssize_t pos, int wheel) {
+    switch (wheel) {
+        case SEEK_SET:
+            m_ptrW = pos;
+            break;
+        case SEEK_END:
+            m_ptrW = m_size - pos;
+            break;
+        case SEEK_CUR:
+            m_ptrW += pos;
+            break;
+    }
+    m_ptrW = std::max(std::min(m_ptrW, m_size), size_t(0));
+    return m_ptrW;
+}
+
+ssize_t PCSX::SubFile::write(const void *src, size_t size) {
+    ssize_t ret = writeAt(src, size, m_ptrW);
+    if (ret < 0) return ret;
+    m_ptrW += ret;
+    if ((m_ptrW < 0) || (m_ptrW > m_size)) {
+        throw std::runtime_error("SubFile write pointer got out of bound - shouldn't happen");
+    }
+    return ret;
+}
+
+ssize_t PCSX::SubFile::writeAt(const void *src, size_t size, size_t ptr) {
+    ssize_t excess = size + ptr - m_size;
+    if (excess > 0) {
+        if (excess > size) {
+            return -1;
+        }
+        size -= excess;
+    }
+    return m_file->writeAt(src, size, ptr + m_start);
 }
 
 ssize_t PCSX::Fifo::read(void *dest_, size_t size) {

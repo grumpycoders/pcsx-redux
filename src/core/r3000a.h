@@ -22,6 +22,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
@@ -31,6 +32,7 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
+#include "mips/common/util/mips.hh"
 #include "support/file.h"
 #include "support/hashtable.h"
 
@@ -88,20 +90,7 @@ typedef union {
     int32_t sd;
 } PAIR;
 
-typedef union {
-    struct {
-        uint32_t r0, at, v0, v1, a0, a1, a2, a3;
-        uint32_t t0, t1, t2, t3, t4, t5, t6, t7;
-        uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-        uint32_t t8, t9, k0, k1, gp, sp, s8, ra;
-        uint32_t lo, hi;
-    } n;
-    uint32_t r[34]; /* Lo, Hi in r[32] and r[33] */
-    PAIR p[34];
-} psxGPRRegs;
-
-// Make sure no packing is inserted anywhere
-static_assert(sizeof(psxGPRRegs) == 34 * sizeof(uint32_t));
+using psxGPRRegs = Mips::GPRRegs;
 
 typedef union {
     struct {
@@ -198,12 +187,12 @@ struct psxRegisters {
     psxCP2Ctrl CP2C;  // COP2 control registers
     uint32_t pc;      // Program counter
     uint32_t code;    // The current instruction
-    uint32_t cycle;
-    uint32_t previousCycles;
+    uint64_t cycle;
+    uint64_t previousCycles;
     uint32_t interrupt;
     std::atomic<bool> spuInterrupt;
-    uint32_t intTargets[32];
-    uint32_t lowestTarget;
+    uint64_t intTargets[32];
+    uint64_t lowestTarget;
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
 };
@@ -228,7 +217,7 @@ struct psxRegisters {
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
 
 #define _fOp_(code) ((code >> 26))           // The opcode part of the instruction register
-#define _fFunct_(code) ((code)&0x3F)         // The funct part of the instruction register
+#define _fFunct_(code) ((code) & 0x3F)       // The funct part of the instruction register
 #define _fRd_(code) ((code >> 11) & 0x1F)    // The rd part of the instruction register
 #define _fRt_(code) ((code >> 16) & 0x1F)    // The rt part of the instruction register
 #define _fRs_(code) ((code >> 21) & 0x1F)    // The rs part of the instruction register
@@ -269,7 +258,12 @@ struct psxRegisters {
 
 class R3000Acpu {
   public:
-    virtual ~R3000Acpu() { closeAllPCdevFiles(); }
+    virtual ~R3000Acpu() { m_pcdrvFiles.destroyAll(); };
+    R3000Acpu() {
+        for (unsigned i = 0; i < 65536; i++) {
+            m_availableFDs.push_back(i);
+        }
+    }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
@@ -284,7 +278,9 @@ class R3000Acpu {
 
     std::map<uint32_t, std::string> m_symbols;
 
-  public:
+    std::pair<const uint32_t, std::string> *findContainingSymbol(uint32_t addr);
+    std::string *getSymbolAt(uint32_t addr);
+
     static int psxInit();
     virtual bool isDynarec() = 0;
     void psxReset();
@@ -312,13 +308,11 @@ class R3000Acpu {
 
     void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
         PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
-        const uint32_t cycle = m_regs.cycle;
-        uint32_t target = uint32_t(cycle + eCycle * m_interruptScales[interrupt]);
+        const uint64_t cycle = m_regs.cycle;
+        uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
-        int32_t lowest = m_regs.lowestTarget - cycle;
-        int32_t maybeNewLowest = target - cycle;
-        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
+        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
     }
 
     psxRegisters m_regs;
@@ -361,6 +355,16 @@ class R3000Acpu {
         delayedLoad.pcValue = value;
         delayedLoad.fromLink = fromLink;
     }
+    void flushCurrentDelayedLoad() {
+        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        if (delayedLoad.active) {
+            uint32_t reg = m_regs.GPR.r[delayedLoad.index];
+            reg &= delayedLoad.mask;
+            reg |= delayedLoad.value;
+            m_regs.GPR.r[delayedLoad.index] = reg;
+            delayedLoad.active = false;
+        }
+    }
 
   protected:
     R3000Acpu(const std::string &name) : m_name(name) {}
@@ -394,7 +398,7 @@ class R3000Acpu {
   public:
     template <bool checkPC = true>
     inline void InterceptBIOS(uint32_t currentPC) {
-        const uint32_t pc = currentPC & 0x1fffff;
+        const uint32_t pc = currentPC & g_emulator->getRamMask();
 
         if constexpr (checkPC) {
             const uint32_t base = (currentPC >> 20) & 0xffc;
@@ -446,16 +450,37 @@ Formula One 2001
         memset(m_regs.iCacheCode, 0xff, sizeof(m_regs.iCacheCode));
     }
 
+    inline void flushICacheLine(uint32_t pc) {
+        uint32_t pcBank = pc >> 24;
+        if (pcBank == 0x00 || pcBank == 0x80) {
+            uint32_t pcCache = pc & 0xfff;
+            pcCache &= ~0xf;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
+
+            *(uint32_t *)(iAddr + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iAddr + pcCache + 0xc) = 0xff;
+
+            *(uint32_t *)(iCode + pcCache + 0x0) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x4) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0x8) = 0xff;
+            *(uint32_t *)(iCode + pcCache + 0xc) = 0xff;
+        }
+    }
+
     inline uint32_t readICache(uint32_t pc) {
         uint32_t pcBank = pc >> 24;
-        uint32_t pcOffset = pc & 0xffffff;
-        uint32_t pcCache = pc & 0xfff;
-
-        uint8_t * iAddr = m_regs.iCacheAddr;
-        uint8_t * iCode = m_regs.iCacheCode;
 
         // cached - RAM
         if (pcBank == 0x00 || pcBank == 0x80) {
+            uint32_t pcOffset = pc & 0xffffff;
+            uint32_t pcCache = pc & 0xfff;
+
+            uint8_t *iAddr = m_regs.iCacheAddr;
+            uint8_t *iCode = m_regs.iCacheCode;
             if (SWAP_LE32(*(uint32_t *)(iAddr + pcCache)) == pcOffset) {
                 // Cache hit - return last opcode used
                 return SWAP_LE32(*((uint32_t *)(iCode + pcCache)));
@@ -495,24 +520,31 @@ Formula One 2001
 
     struct PCdrvFile;
     typedef Intrusive::HashTable<uint32_t, PCdrvFile> PCdrvFiles;
-    struct PCdrvFile : public PosixFile, public PCdrvFiles::Node {
-        PCdrvFile(const std::filesystem::path &filename) : PosixFile(filename, FileOps::READWRITE) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate) : PosixFile(filename, FileOps::TRUNCATE) {}
-        PCdrvFile(const std::filesystem::path &filename, FileOps::Create) : PosixFile(filename, FileOps::CREATE) {}
+    struct PCdrvFile : public IO<File>, public PCdrvFiles::Node {
+        PCdrvFile(const std::filesystem::path &filename) : IO<File>(new PosixFile(filename)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::ReadWrite)
+            : IO<File>(new PosixFile(filename, FileOps::READWRITE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Truncate)
+            : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
+        PCdrvFile(const std::filesystem::path &filename, FileOps::Create)
+            : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
         virtual ~PCdrvFile() = default;
         std::string m_relativeFilename;
     };
     PCdrvFiles m_pcdrvFiles;
-    uint16_t m_pcdrvIndex = 0;
+    std::list<uint16_t> m_availableFDs;
 
   public:
-    void closeAllPCdevFiles() {
-        for (auto &f : m_pcdrvFiles) f.close();
+    void closeAllPCdrvFiles() {
         m_pcdrvFiles.destroyAll();
+        m_availableFDs.clear();
+        for (unsigned i = 0; i < 65536; i++) {
+            m_availableFDs.push_back(i);
+        }
     }
-    void listAllPCdevFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, iter->writable());
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable());
         }
     }
     void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);

@@ -1,5 +1,6 @@
 PATCHES = \
 clear_card_1.c \
+custom_handler_1.c \
 initgun_1.c \
 patch_card_info_1.c \
 patch_card_1.c \

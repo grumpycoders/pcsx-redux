@@ -31,14 +31,7 @@ namespace PCSX {
 
 class PIOCart {
   public:
-    PIOCart() : m_pal(this) {
-        m_detachedMemory = static_cast<uint8_t *>(calloc(64 * 1024, 1));
-        if (m_detachedMemory == NULL) {
-            g_system->message("%s", _("Error allocating memory!"));
-        } else {
-            memset(m_detachedMemory, 0xff, static_cast<size_t>(64 * 1024));
-        }
-    }
+    PIOCart() : m_pal(this) { memset(m_detachedMemory, 0xff, sizeof(m_detachedMemory)); }
 
     void setLuts();
 
@@ -80,7 +73,7 @@ class PIOCart {
 
   private:
     bool m_switchOn = true;
-    uint8_t *m_detachedMemory = NULL;
+    uint8_t m_detachedMemory[64 * 1024];
 
     class PAL {
       public:
@@ -101,14 +94,9 @@ class PIOCart {
         class FlashMemory {
           public:
             FlashMemory(PAL *parent) : m_pal(parent) {
-                m_softwareID = static_cast<uint8_t *>(calloc(64 * 1024, 1));
-                if (m_softwareID == NULL) {
-                    g_system->message("%s", _("Error allocating memory!"));
-                } else {
-                    for (int i = 0; i < (64 * 1024) - 1; i += 2) {
-                        m_softwareID[i] = 0xbf;
-                        m_softwareID[i + 1] = 0x10;
-                    }
+                for (int i = 0; i < (64 * 1024) - 1; i += 2) {
+                    m_softwareID[i] = 0xbf;
+                    m_softwareID[i + 1] = 0x10;
                 }
             }
 
@@ -158,7 +146,7 @@ class PIOCart {
             uint8_t m_commandBuffer[m_bufferSize] = {0};
             uint8_t m_busCycle = 0;
 
-            uint8_t *m_softwareID = NULL;
+            uint8_t m_softwareID[64 * 1024];
 
             bool m_dataProtectEnabled = true;
             bool m_pageWriteEnabled = false;

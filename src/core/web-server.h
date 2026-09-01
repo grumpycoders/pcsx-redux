@@ -23,8 +23,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
+#include "json.hpp"
 #include "support/eventbus.h"
 #include "support/list.h"
 #include "support/slice.h"
@@ -91,8 +94,8 @@ class WebExecutor : public Intrusive::List<WebExecutor>::Node {
   public:
     virtual bool match(WebClient* client, const UrlData&) = 0;
     virtual bool execute(WebClient* client, RequestData&) = 0;
-    std::multimap<std::string, std::string> parseQuery(const std::string&);
-    std::string percentDecode(std::string_view);
+    std::multimap<std::string, std::optional<std::string>> parseQuery(std::string_view);
+    void write200(WebClient* client, const nlohmann::json& j);
 };
 
 class WebClient : public Intrusive::List<WebClient>::Node {

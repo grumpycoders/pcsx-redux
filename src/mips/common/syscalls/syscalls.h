@@ -36,48 +36,45 @@ SOFTWARE.
 
 struct JmpBuf;
 
+#ifndef PS1_PC_PORT
 static __attribute__((always_inline)) int enterCriticalSection() {
     register int n asm("a0") = 1;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(n), "=r"(r)
-                     : "r"(n)
-                     : "at", "v1", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
-                       "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n) : "memory");
     return r;
 }
 
 static __attribute__((always_inline)) void leaveCriticalSection() {
     register int n asm("a0") = 2;
-    __asm__ volatile("syscall\n"
-                     : "=r"(n)
-                     : "r"(n)
-                     : "at", "v0", "v1", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9",
-                       "memory");
+    __asm__ volatile("syscall\n" : : "r"(n) : "memory");
 }
 
 static __attribute__((always_inline)) int changeThreadSubFunction(uint32_t address) {
     register int n asm("a0") = 3;
     register int tcb asm("a1") = address;
     register int r asm("v0");
-    __asm__ volatile("syscall\n"
-                     : "=r"(r), "=r"(n), "=r"(tcb)
-                     : "r"(n), "r"(tcb)
-                     : "at", "v1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "memory");
+    __asm__ volatile("syscall\n" : "=r"(r) : "r"(n), "r"(tcb) : "memory");
     return r;
 }
 
 /* A0 table */
-static __attribute__((always_inline)) int syscall_setjmp(struct JmpBuf *buf) {
-    register int n asm("t1") = 0x13;
+static __attribute__((always_inline)) size_t syscall_write(int fd, const void *buf, size_t size) {
+    register int n asm("t1") = 0x03;
     __asm__ volatile("" : "=r"(n) : "r"(n));
-    return ((int (*)(struct JmpBuf * buf))0xa0)(buf);
+    return ((size_t(*)(int, const void *, size_t))0xa0)(fd, buf, size);
 }
 
-static __attribute__((always_inline)) __attribute__((noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
+static __attribute__((always_inline, returns_twice)) int syscall_setjmp(struct JmpBuf *buf) {
+    register int n asm("t1") = 0x13;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((int (*)(struct JmpBuf *buf))0xa0)(buf);
+}
+
+static __attribute__((always_inline, noreturn)) void syscall_longjmp(struct JmpBuf *buf, int ret) {
     register int n asm("t1") = 0x14;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)(struct JmpBuf *, int))0xa0)(buf, ret);
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) char *syscall_strcat(char *dst, const char *src) {
@@ -187,6 +184,12 @@ static __attribute__((always_inline)) void syscall__exit(int code) {
     register int n asm("t1") = 0x3a;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)(int))0xa0)(code);
+}
+
+static __attribute__((always_inline)) void syscall_puts(const char *msg) {
+    register int n asm("t1") = 0x3e;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    ((void (*)(const char *))0xa0)(msg);
 }
 
 // doing this one in raw inline assembly would prove tricky,
@@ -407,10 +410,11 @@ static __attribute__((always_inline)) void syscall_stopPad() {
     ((void (*)())0xb0)();
 }
 
-static __attribute__((noreturn)) __attribute__((always_inline)) void syscall_returnFromException() {
+static __attribute__((always_inline, noreturn)) void syscall_returnFromException() {
     register int n asm("t1") = 0x17;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((__attribute__((noreturn)) void (*)())0xb0)();
+    __builtin_unreachable();
 }
 
 static __attribute__((always_inline)) void syscall_setDefaultExceptionJmpBuf() {
@@ -449,12 +453,6 @@ static __attribute__((always_inline)) void syscall_putchar(int c) {
     ((void (*)(int))0xb0)(c);
 }
 
-static __attribute__((always_inline)) void syscall_puts(const char *msg) {
-    register int n asm("t1") = 0x3f;
-    __asm__ volatile("" : "=r"(n) : "r"(n));
-    ((void (*)(const char *))0xb0)(msg);
-}
-
 static __attribute__((always_inline)) int syscall_addDevice(const struct Device *device) {
     register int n asm("t1") = 0x47;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -483,6 +481,12 @@ static __attribute__((always_inline)) void syscall_mcAllowNewCard() {
     register int n asm("t1") = 0x50;
     __asm__ volatile("" : "=r"(n) : "r"(n));
     ((void (*)())0xb0)();
+}
+
+static __attribute__((always_inline)) const uint8_t *syscall_Krom2RawAdd(uint32_t c) {
+    register int n asm("t1") = 0x51;
+    __asm__ volatile("" : "=r"(n) : "r"(n));
+    return ((uint8_t * (*)(uint32_t))0xb0)(c);
 }
 
 static __attribute__((always_inline)) int syscall_mcGetLastDevice() {
@@ -540,6 +544,8 @@ static __attribute__((always_inline)) int syscall_enqueueIrqHandler(int priority
     return ((int (*)(int))0xc0)(priority);
 }
 
+// This syscall is broken beyond repair, as the kernel code contains a race
+// condition that can cause the kernel to lose IRQs. Please don't use it.
 static __attribute__((always_inline)) void syscall_setIrqAutoAck(uint32_t irq, int value) {
     register int n asm("t1") = 0x0d;
     __asm__ volatile("" : "=r"(n) : "r"(n));
@@ -593,3 +599,4 @@ static __attribute__((always_inline)) int syscall_getDeviceStatus() {
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)())0xc0)();
 }
+#endif // #ifdef PS1_PC_PORT

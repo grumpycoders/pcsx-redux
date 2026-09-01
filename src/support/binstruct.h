@@ -1,27 +1,35 @@
-/***************************************************************************
- *   Copyright (C) 2022 PCSX-Redux authors                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/*
+
+MIT License
+
+Copyright (c) 2022 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 
 #pragma once
 
 #include <stdint.h>
 
 #include <bit>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -84,10 +92,6 @@ struct UInt64 : public BasicFieldType<uint64_t, std::endian::little> {
     static constexpr char const typeName[] = "uint64_t";
 };
 
-struct BEInt8 : public BasicFieldType<int8_t, std::endian::big> {
-    static constexpr char const typeName[] = "int8_t";
-};
-
 struct BEInt16 : public BasicFieldType<int16_t, std::endian::big> {
     static constexpr char const typeName[] = "int16_t";
 };
@@ -98,10 +102,6 @@ struct BEInt32 : public BasicFieldType<int32_t, std::endian::big> {
 
 struct BEInt64 : public BasicFieldType<int64_t, std::endian::big> {
     static constexpr char const typeName[] = "int64_t";
-};
-
-struct BEUInt8 : public BasicFieldType<uint8_t, std::endian::big> {
-    static constexpr char const typeName[] = "uint8_t";
 };
 
 struct BEUInt16 : public BasicFieldType<uint16_t, std::endian::big> {
@@ -149,15 +149,25 @@ struct CString {
     static constexpr char const typeName[] = "CString";
     typedef std::string_view type;
     operator type() const { return {value, S}; }
-    CString<S> operator=(const type &v) {
+    CString &operator=(const type &v) {
         memcpy(value, v.data(), S);
         return *this;
     }
-    void set(const type &v) { memcpy(value, v.data(), S); }
+    void set(const type &v, char padding = 0) {
+        value[S] = 0;
+        auto toCopy = std::min(S, v.size());
+        memcpy(value, v.data(), toCopy);
+        if (toCopy < S) {
+            memset(value + toCopy, padding, S - toCopy);
+        }
+    }
     void serialize(IO<File> f) const { f->write(value, S); }
-    void deserialize(IO<File> f) { f->read(value, S); }
-    void reset() { memset(value, 0, S); }
-    char value[S];
+    void deserialize(IO<File> f) {
+        value[S] = 0;
+        f->read(value, S);
+    }
+    void reset() { memset(value, 0, S + 1); }
+    char value[S + 1];
 };
 
 template <typename FieldType, typename name>
@@ -174,6 +184,70 @@ template <typename StructType, char... C>
 struct StructField<StructType, irqus::typestring<C...>> : public StructType {
     StructField() {}
     typedef irqus::typestring<C...> fieldName;
+};
+
+template <typename FieldType, typename name, size_t N>
+struct RepeatedField;
+template <typename FieldType, char... C, size_t N>
+struct RepeatedField<FieldType, irqus::typestring<C...>, N> {
+    RepeatedField() {}
+    typedef irqus::typestring<C...> fieldName;
+    FieldType value[N];
+    FieldType &operator[](size_t i) {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    const FieldType &operator[](size_t i) const {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    void serialize(IO<File> f) const {
+        for (size_t i = 0; i < N; i++) {
+            value[i].serialize(f);
+        }
+    }
+    void deserialize(IO<File> f) {
+        for (size_t i = 0; i < N; i++) {
+            value[i].deserialize(f);
+        }
+    }
+    void reset() {
+        for (size_t i = 0; i < N; i++) {
+            value[i].reset();
+        }
+    }
+};
+
+template <typename FieldType, typename name, size_t N>
+struct RepeatedStruct;
+template <typename FieldType, char... C, size_t N>
+struct RepeatedStruct<FieldType, irqus::typestring<C...>, N> {
+    RepeatedStruct() {}
+    typedef irqus::typestring<C...> fieldName;
+    FieldType value[N];
+    FieldType &operator[](size_t i) {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    const FieldType &operator[](size_t i) const {
+        if (i >= N) throw std::out_of_range("Index out of range");
+        return value[i];
+    }
+    void serialize(IO<File> f) const {
+        for (size_t i = 0; i < N; i++) {
+            value[i].serialize(f);
+        }
+    }
+    void deserialize(IO<File> f) {
+        for (size_t i = 0; i < N; i++) {
+            value[i].deserialize(f);
+        }
+    }
+    void reset() {
+        for (size_t i = 0; i < N; i++) {
+            value[i].reset();
+        }
+    }
 };
 
 template <typename name, typename... fields>
@@ -201,8 +275,8 @@ class Struct<irqus::typestring<C...>, fields...> : private std::tuple<fields...>
     constexpr void reset() {}
     template <size_t index, typename FieldType, typename... nestedFields>
     constexpr void reset() {
-        FieldType &setting = std::get<index>(*this);
-        setting.reset();
+        FieldType &field = std::get<index>(*this);
+        field.reset();
         reset<index + 1, nestedFields...>();
     }
     template <size_t index>

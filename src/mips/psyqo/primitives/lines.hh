@@ -26,6 +26,7 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/array.h>
 #include <stdint.h>
 
 #include "psyqo/primitives/common.hh"
@@ -45,7 +46,7 @@ struct Line {
     Line(Color c) : command(0x40000000 | c.packed) {}
     Line& setColor(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x40000000 | c.packed | wasSemiTrans;
+        command = 0x40000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     Line& setOpaque() {
@@ -80,7 +81,7 @@ struct GouraudLine {
     GouraudLine(Color c) : command(0x50000000 | c.packed) {}
     GouraudLine& setColorA(Color c) {
         uint32_t wasSemiTrans = command & 0x02000000;
-        command = 0x50000000 | c.packed | wasSemiTrans;
+        command = 0x50000000 | (c.packed & 0xffffff) | wasSemiTrans;
         return *this;
     }
     GouraudLine& setColorB(Color c) {
@@ -89,6 +90,25 @@ struct GouraudLine {
     }
     GouraudLine& setOpaque() {
         command &= ~0x02000000;
+        return *this;
+    }
+    /**
+     * @brief The GP0 command word, minus any colour.
+     *
+     * @details Meant for the GTE's RGBC CODE field, which gets fused into every
+     * colour the GTE emits. Preload it and the colour FIFO hands back finished
+     * first words. See `GouraudQuad::getCommandWord` for the full round trip.
+     */
+    uint32_t getCommandWord() const { return command & 0xff000000; }
+    /**
+     * @brief Sets the command word and vertex A's colour in one go.
+     *
+     * @details For a value that came out of the GTE with CODE preloaded from
+     * getCommandWord. Unlike setColorA this does not preserve the transparency
+     * bit, because the value being stored already carries it.
+     */
+    GouraudLine& setColorAPacked(uint32_t packed) {
+        command = packed;
         return *this;
     }
     GouraudLine& setSemiTrans() {
@@ -105,6 +125,87 @@ struct GouraudLine {
     Vertex pointB;
 };
 static_assert(sizeof(GouraudLine) == sizeof(uint32_t) * 4, "Line is not 4 words");
+
+/**
+ * @brief The primitive used to begin a polyline.
+ *
+ * @details This primitive is used to begin a flat-color polyline. As polylines
+ * are drawn using multiple Line primitives, this primitive is used to set the
+ * color of the polyline and the first vertex. As polylines can be complex,
+ * this allows drawing them piece by piece, iteratively. After sending this
+ * primitive, you need to send a number of Vertex structures using the GPU's
+ * `sendRaw` method, and then send a PolyLineEnd struct to finish the polyline.
+ * Note that it may be necessary to use the `waitFifo` method of the GPU to
+ * ensure that the GPU has finished processing the previous vertex data before
+ * sending the next one.
+ */
+struct PolyLineBegin {
+    PolyLineBegin() : command(0x48000000) {}
+    PolyLineBegin(Color c) : command(0x48000000 | c.packed) {}
+    PolyLineBegin& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        return *this;
+    }
+    PolyLineBegin& setOpaque() {
+        command &= ~0x02000000;
+        return *this;
+    }
+    PolyLineBegin& setSemiTrans() {
+        command |= 0x02000000;
+        return *this;
+    }
+
+  private:
+    uint32_t command;
+
+  public:
+    Vertex point;
+};
+static_assert(sizeof(PolyLineBegin) == sizeof(uint32_t) * 2, "PolyLineBegin is not 2 words");
+
+struct PolyLineEnd {
+    const uint32_t endMarker = 0x50005000;
+};
+
+/**
+ * @brief The primitive used to draw a polyline.
+ *
+ * @details This primitive is used to draw a flat-color polyline. This variant
+ * of the primitive is used when the number of segments in the polyline is
+ * known at compile time. If the number of segments is not known at compile
+ * time, use the `PolyLineBegin` mechanism instead.
+ *
+ * @tparam N The number of segments in the polyline.
+ */
+
+template <unsigned N>
+struct PolyLine {
+    PolyLine() : command(0x48000000) {}
+    PolyLine(Color c) : command(0x48000000 | c.packed) {}
+    PolyLine& setColor(Color c) {
+        uint32_t wasSemiTrans = command & 0x02000000;
+        command = 0x48000000 | (c.packed & 0xffffff) | wasSemiTrans;
+        return *this;
+    }
+    PolyLine& setOpaque() {
+        command &= ~0x02000000;
+        return *this;
+    }
+    PolyLine& setSemiTrans() {
+        command |= 0x02000000;
+        return *this;
+    }
+
+  private:
+    uint32_t command;
+
+  public:
+    eastl::array<Vertex, N + 1> points;
+
+  private:
+    const uint32_t endMarker = 0x50005000;
+};
 
 }  // namespace Prim
 

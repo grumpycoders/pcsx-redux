@@ -50,11 +50,15 @@ typedef struct {
 enum BreakpointType { Exec, Read, Write };
 typedef struct { uint8_t opaque[?]; } Breakpoint;
 
+uint64_t getCPUCycles();
 uint8_t* getMemPtr();
+uint8_t* getParPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
-Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause));
+uint8_t** getReadLUT();
+uint8_t** getWriteLUT();
+Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
 void enableBreakpoint(Breakpoint*);
 void disableBreakpoint(Breakpoint*);
 bool breakpointEnabled(Breakpoint*);
@@ -85,7 +89,7 @@ void loadSaveStateFromFile(LuaFile*);
 
 LuaFile* getMemoryAsFile();
 
-void quit();
+void quit(int code);
 ]]
 
 local C = ffi.load 'PCSX'
@@ -106,7 +110,7 @@ end
 
 local validBpTypes = { Exec = true, Read = true, Write = true }
 
-local function addBreakpoint(address, bptype, width, cause, invoker)
+local function addBreakpoint(address, bptype, width, cause, invoker, label)
     if type(address) ~= 'number' then error 'PCSX.addBreakpoint needs an address' end
     if bptype == nil then bptype = 'Exec' end
     if not validBpTypes[bptype] then error 'PCSX.addBreakpoint needs a valid breakpoint type' end
@@ -131,8 +135,10 @@ local function addBreakpoint(address, bptype, width, cause, invoker)
             end
         end
     end
+    if label == nil then label = '' end
+    if type(label) ~= 'string' then error 'PCSX.addBreakpoint needs a label that is a string' end
     invokercb = ffi.cast('bool (*)(uint32_t address, unsigned width, const char* cause)', invokercb)
-    local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb)
+    local wrapper = C.addBreakpoint(address, bptype, width, cause, invokercb, label)
     local bp = {
         _wrapper = wrapper,
         _proxy = newproxy(),
@@ -167,18 +173,21 @@ local function jumpToMemory(address, width)
 end
 
 PCSX = {
+    getCPUCycles = function() return C.getCPUCycles() end,
     getMemPtr = function() return C.getMemPtr() end,
     getParPtr = function() return C.getParPtr() end,
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    getReadLUT = function() return C.getReadLUT() end,
+    getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
     pauseEmulator = function() C.pauseEmulator() end,
     resumeEmulator = function() C.resumeEmulator() end,
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
     invalidateCache = function() C.invalidateCache() end,
-    log = function(...) printLike(C.luaLog, ...) end,
+    log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     nextTick = function(f)
         local oldCleanup = AfterPollingCleanup
@@ -190,7 +199,12 @@ PCSX = {
     GPU = {
         takeScreenShot = function()
             local ss = C.takeScreenShot()
-            return { data = Support.File._createSliceWrapper(ss.data), width = ss.width, height = ss.height, bpp = ss.bpp }
+            return {
+                data = Support.File._createSliceWrapper(ss.data),
+                width = ss.width,
+                height = ss.height,
+                bpp = ss.bpp,
+            }
         end,
     },
     createSaveState = function()
@@ -207,11 +221,12 @@ PCSX = {
             error('loadSaveState: requires a Slice or File as input')
         end
     end,
-    getMemoryAsFile = function() return C.getMemoryAsFile() end,
-    quit = function() C.quit() end,
+    getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    quit = function(code) C.quit(code or 0) end,
 }
 
 print = function(...) printLike(function(s) C.luaMessage(s, false) end, ...) end
 printError = function(...) printLike(function(s) C.luaMessage(s, true) end, ...) end
+bit.extract = function(x, n, w) return bit.rshift(bit.band(x, bit.lshift(1, w) - 1), n) end
 
 -- )EOF"

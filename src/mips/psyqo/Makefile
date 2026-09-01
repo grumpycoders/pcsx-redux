@@ -4,31 +4,26 @@ TARGET = psyqo
 TYPE = library
 
 SRCS = \
-../../../third_party/EASTL/source/fixed_pool.cpp \
+$(wildcard ../../../third_party/EASTL/source/*.cpp) \
 ../common/crt0/crt0cxx.s \
 ../common/crt0/cxxglue.c \
+../common/crt0/memory-c.c \
+../common/crt0/memory-s.s \
+../common/hardware/flushcache.s \
+../common/psxlibc/ucontext.s \
 ../common/syscalls/printf.s \
-src/hardware/cdrom.cpp \
-src/hardware/cpu.cpp \
-src/hardware/gpu.cpp \
-src/hardware/sbus.cpp \
-src/adler32.cpp \
-src/alloc.c \
-src/application.cpp \
-src/cdrom.cpp \
-src/cdrom-device.cpp \
-src/font.cpp \
-src/gpu.cpp \
-src/iso9660-parser.cpp \
-src/kernel.cpp \
-src/msf.cpp \
-src/scene.cpp \
-src/simplepad.cpp \
-src/task.cpp \
-src/xprintf.c \
+$(wildcard src/hardware/*.cpp) \
+$(wildcard src/*.cpp) \
+$(wildcard src/*.c) \
+$(wildcard src/*.s) \
+$(wildcard ../common/util/*.cc) \
 
-CPPFLAGS = -Werror -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
+CPPFLAGS = -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20
+
+ifeq ($(TEST),true)
+CPPFLAGS += -Werror
+endif
 
 EXTRA_DEPS += $(PSYQODIR)Makefile
 

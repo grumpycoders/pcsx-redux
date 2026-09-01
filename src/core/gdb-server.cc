@@ -21,13 +21,15 @@
 
 #include <assert.h>
 
+#include <magic_enum/magic_enum_all.hpp>
+
+#include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum.hpp"
 #include "support/strings-helpers.h"
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
@@ -36,15 +38,6 @@ PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
         auto& args = g_system->getArgs();
         auto& settings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        if (args.get<bool>("gdb", false)) {
-            settings.get<Emulator::DebugSettings::GdbServer>() = true;
-        }
-        if (args.get<bool>("no-gdb", false)) {
-            settings.get<Emulator::DebugSettings::GdbServer>() = false;
-        }
-        if (args.get<int>("gdb-port").has_value()) {
-            settings.get<Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
-        }
         if (settings.get<Emulator::DebugSettings::GdbServer>() && (m_serverStatus != SERVER_STARTED)) {
             startServer(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
         }
@@ -134,6 +127,7 @@ PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
         write("OK");
     });
     m_listener.listen<Events::LogMessage>([this](const auto& event) {
+        if (!m_canReceiveLogs) return;
         auto& emuSettings = PCSX::g_emulator->settings;
         auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
         auto gdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
@@ -275,6 +269,9 @@ static const std::string memoryMap = R"(<?xml version="1.0"?>
   <memory type="ram" start="0x000000001fc00000" length="0x80000"/>
   <memory type="ram" start="0xffffffff9fc00000" length="0x80000"/>
   <memory type="ram" start="0xffffffffbfc00000" length="0x80000"/>
+
+  <!-- MSAN -->
+  <memory type="ram" start="0x0000000020000000" length="0x60000000"/>
 
   <!-- This really is only for 0xfffe0130 -->
   <memory type="ram" start="0xfffffffffffe0000" length="0x200"/>
@@ -523,7 +520,7 @@ void PCSX::GdbClient::processCommand() {
         uint8_t n = fromHexChar(m_cmd[1]);
         n <<= 4;
         n |= fromHexChar(m_cmd[2]);
-        dumpOneRegister(n);
+        write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
         if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
             write("E00");
@@ -543,6 +540,7 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (m_cmd == "c") {
         // continue - this doesn't technically have a reply, only when the target stops later, using T05.
+        m_canReceiveLogs = true;
         g_system->resume();
         m_waitingForTrap = true;
     } else if (m_cmd[0] == 'M') {
@@ -614,7 +612,7 @@ void PCSX::GdbClient::processCommand() {
                 auto& tree = g_emulator->m_debug->getTree();
                 auto bp = tree.find(addr, Debug::BreakpointTreeType::INTERVAL_SEARCH);
                 while (bp != tree.end()) {
-                    if (bp->type() == type && !bp->Debug::BreakpointUserListType::Node::isLinked()) {
+                    if (bp->type() == type && !m_breakpoints.isLinked(&*bp)) {
                         bp++;
                     } else {
                         g_emulator->m_debug->removeBreakpoint(&*bp);
@@ -712,25 +710,74 @@ void PCSX::GdbClient::processCommand() {
 }
 
 void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
-    if (StringsHelpers::startsWith(cmd, "reset")) {
-        g_system->softReset();
-        writeEscaped("Emulation reset\n");
-        auto words = StringsHelpers::split(cmd, " ");
-        if (words.size() == 2) {
-            if (words[1] == "halt") {
-                writeEscaped("Emulation paused\n");
-                g_system->pause();
-            } else if (words[1] == "shellhalt") {
-                writeEscaped("Emulation running until shell\n");
-                m_waitingForShell = true;
-                g_system->resume();
-                // let's not reply to gdb just yet, until we've reached the shell
-                // and are ready to load a binary.
-                return;
-            } else if (words[1] == "hard") {
-                writeEscaped("Emulation hard-reset\n");
-                g_system->hardReset();
+    auto words = StringsHelpers::split(cmd, " ");
+    if (words[0] == "reset") {
+        bool hard = false;
+        bool halt = false;
+        bool shellhalt = false;
+
+        for (size_t i = 1; i < words.size(); i++) {
+            if (words[i] == "hard") {
+                hard = true;
+            } else if (words[i] == "halt") {
+                halt = true;
+            } else if (words[i] == "shellhalt") {
+                shellhalt = true;
             }
+        }
+
+        if (halt && shellhalt) {
+            writeEscaped("Cannot use both halt and shellhalt\n");
+            return;
+        }
+
+        if (hard) {
+            writeEscaped("Emulation hard-reset\n");
+            g_system->hardReset();
+        } else {
+            writeEscaped("Emulation reset\n");
+            g_system->softReset();
+        }
+
+        if (halt) {
+            writeEscaped("Emulation paused\n");
+            g_system->pause();
+        } else if (shellhalt) {
+            writeEscaped("Emulation running until shell\n");
+            m_waitingForShell = true;
+            g_system->resume();
+            // let's not reply to gdb just yet, until we've reached the shell
+            // and are ready to load a binary.
+            return;
+        }
+    } else if (words[0] == "mountcd") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: mountcd <path>\n");
+        } else {
+            writeEscaped("Mounting CD image\n");
+            auto pathCmd = cmd.substr(8);
+            auto pathView = StringsHelpers::trim(pathCmd);
+            g_emulator->m_cdrom->setIso(new CDRIso(pathView));
+            g_emulator->m_cdrom->check();
+        }
+    } else if (words[0] == "sharedmem") {
+        if (words.size() != 2) {
+            writeEscaped("Usage: sharedmem <type>");
+        } else {
+            if (words[1] == "wram") {
+                writeEscaped(g_emulator->m_mem->m_wramShared.getSharedName());
+            } else {
+                writeEscaped("Unknown type. Valid types: wram");
+            }
+        }
+    } else if (words[0] == "cache") {
+        // Writing memory over gdb won't invalidate anything by itself: most of what goes through
+        // there is data, and there's no d-cache to worry about. Patching code needs this after.
+        if ((words.size() != 2) || (words[1] != "flush")) {
+            writeEscaped("Usage: cache flush\n");
+        } else {
+            writeEscaped("Flushing i-cache\n");
+            g_emulator->m_cpu->invalidateCache();
         }
     }
     write("OK");

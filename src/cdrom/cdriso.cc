@@ -19,7 +19,7 @@
 
 #include "cdrom/cdriso.h"
 
-#include "cdrom/iec-60908b.h"
+#include "supportpsx/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -227,13 +227,13 @@ ssize_t PCSX::CDRIso::cdread_2048(IO<File> f, unsigned int base, void *dest_, in
     dest[10] = 0xff;
     dest[11] = 0x00;
     IEC60908b::MSF(sector + 150).toBCD(dest + 12);
-    m_cdbuffer[15] = 2;
-    m_cdbuffer[16] = m_cdbuffer[20] = 0;
-    m_cdbuffer[17] = m_cdbuffer[21] = 0;
-    m_cdbuffer[18] = m_cdbuffer[22] = 8;
-    m_cdbuffer[19] = m_cdbuffer[23] = 0;
+    dest[15] = 2;
+    dest[16] = dest[20] = 0;
+    dest[17] = dest[21] = 0;
+    dest[18] = dest[22] = 8;
+    dest[19] = dest[23] = 0;
 
-    IEC60908b::computeEDCECC(m_cdbuffer);
+    IEC60908b::computeEDCECC(dest);
 
     return ret;
 }
@@ -257,19 +257,14 @@ void PCSX::CDRIso::printTracks() {
     }
 }
 
-// This function is invoked by the front-end when opening an ISO
-// file for playback
-bool PCSX::CDRIso::open(void) {
-    // is it already open?
-    if (m_cdHandle) return true;
-
-    m_cdHandle.setFile(new UvFile(m_isoPath));
-    if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
-        m_cdHandle.asA<UvFile>()->startCaching();
-    }
+bool PCSX::CDRIso::open(IO<File> isoFile) {
+    m_cdHandle = isoFile;
     if (m_cdHandle->failed()) {
         m_cdHandle.reset();
         return false;
+    }
+    if (g_emulator->settings.get<Emulator::SettingFullCaching>() && m_cdHandle.isA<UvFile>()) {
+        m_cdHandle.asA<UvFile>()->startCaching();
     }
 
     PCSX::g_system->printf(_("Loaded CD Image: %s"), m_isoPath.string());

@@ -42,12 +42,12 @@ int dev_bu_open(struct File *file, const char *filename, int mode);
 int dev_bu_close(struct File *file);
 int dev_bu_read(struct File *file, void *buffer, int size);
 int dev_bu_write(struct File *file, void *buffer, int size);
-void dev_bu_erase();
+int dev_bu_erase(struct File *file, const char *path);
 void dev_bu_undelete();
 struct DirEntry *dev_bu_firstFile(struct File *file, const char *filename, struct DirEntry *entry);
 struct DirEntry *dev_bu_nextFile(struct File *file, struct DirEntry *entry);
 int dev_bu_format(struct File *file);
-void dev_bu_rename();
+int dev_bu_rename(struct File *file, const char *oldName, struct File *unused, const char *newName);
 void dev_bu_deinit();
 
 extern int g_buOpSectorStart[2];

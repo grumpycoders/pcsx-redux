@@ -24,12 +24,12 @@
 
 namespace PCSX {
 
-class GUI;
+class UI;
 
 namespace SoftGPU {
 
-class impl final : public GPU, public SoftRenderer {
-    int32_t initBackend(GUI *) override;
+class impl final : public GPU, private SoftRenderer {
+    int32_t initBackend(UI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
     void vblank(bool fromGui) override;
@@ -44,6 +44,13 @@ class impl final : public GPU, public SoftRenderer {
     }
     GLuint getVRAMTexture() override { return m_vramTexture16; }
     void setLinearFiltering() override;
+    void setCachedDithering(bool value) override {
+        if (value) {
+            enableCachedDithering();
+        } else {
+            disableCachedDithering();
+        }
+    }
 
     void restoreStatus(uint32_t status) override;
 
@@ -80,9 +87,8 @@ class impl final : public GPU, public SoftRenderer {
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
 
-    GUI *m_gui;
+    UI *m_ui;
 
-    int32_t m_dataRet;
     bool m_doVSyncUpdate = false;
     SoftDisplay m_previousDisplay;
     unsigned char *m_allocatedVRAM;
@@ -190,7 +196,6 @@ class impl final : public GPU, public SoftRenderer {
     void write1(CtrlHorizontalDisplayRange *) override;
     void write1(CtrlVerticalDisplayRange *) override;
     void write1(CtrlDisplayMode *) override;
-    void write1(CtrlQuery *) override;
 };
 
 }  // namespace SoftGPU
