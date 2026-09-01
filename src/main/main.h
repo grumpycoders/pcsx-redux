@@ -50,6 +50,7 @@ class MainInvoker {
         fprintf(stderr, "PCSX-Redux test finished with exit code %d\n", r);
         return r;
     }
+    bool isInStartup();
 
   private:
     int m_count;

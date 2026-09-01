@@ -48,9 +48,11 @@
 namespace PCSX {
 
 enum class MsanStatus {
-    UNUSABLE,       // memory that hasn't been allocated or has been freed
-    UNINITIALIZED,  // allocated memory that has never been written to, has undefined contents
-    OK              // free to use
+    UNUSABLE,               // memory that hasn't been allocated or has been freed
+    UNINITIALIZED,          // allocated memory that has never been written to, has undefined contents
+    PARTIALLY_INITIALIZED,  // allocated memory that has had some subset of bytes being read initialised
+                            // but not all of them
+    OK                      // free to use
 };
 
 class Memory {
@@ -66,10 +68,10 @@ class Memory {
 
     uint8_t read8(uint32_t address);
     uint16_t read16(uint32_t address);
-    uint32_t read32(uint32_t address, ReadType = ReadType::Data);
+    uint32_t read32(uint32_t address, ReadType = ReadType::Data, const uint32_t msanSubBitmask = UINT32_MAX);
     void write8(uint32_t address, uint32_t value);
     void write16(uint32_t address, uint32_t value);
-    void write32(uint32_t address, uint32_t value);
+    void write32(uint32_t address, uint32_t value, const uint32_t msanSubBitmask = UINT32_MAX);
     const void *pointerRead(uint32_t address);
     const void *pointerWrite(uint32_t address, int size);
 
@@ -92,33 +94,35 @@ class Memory {
     uint32_t msanGetChainPtr(uint32_t addr) const;
 
     template <uint32_t length>
-    MsanStatus msanGetStatus(uint32_t addr) const {
+    MsanStatus msanGetStatus(uint32_t addr, const uint32_t subBitmask = UINT32_MAX) const {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
-        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & subBitmask;
         MsanStatus bestCase = MsanStatus::OK;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
-            if ((m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
+            const uint8_t nextInitEntry = m_msanInitializedBitmap[bitmapIndex + 1] & nextBitmask;
+            if (nextInitEntry != nextBitmask) {
                 if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                     return MsanStatus::UNUSABLE;
                 }
-                bestCase = MsanStatus::UNINITIALIZED;
+                bestCase = nextInitEntry ? MsanStatus::PARTIALLY_INITIALIZED : MsanStatus::UNINITIALIZED;
             }
             bitmask &= 0xff;
         }
-        if ((m_msanInitializedBitmap[bitmapIndex] & bitmask) != bitmask) [[unlikely]] {
+            const uint8_t initEntry = m_msanInitializedBitmap[bitmapIndex] & bitmask;
+        if (initEntry != bitmask) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex] & bitmask) != bitmask) {
                 return MsanStatus::UNUSABLE;
             }
-            return MsanStatus::UNINITIALIZED;
+            return initEntry ? MsanStatus::PARTIALLY_INITIALIZED : MsanStatus::UNINITIALIZED;
         }
         return bestCase;
     }
 
     // if the write is valid, marks the address as initialized, otherwise returns false
     template <uint32_t length>
-    bool msanValidateWrite(uint32_t addr) {
+    bool msanValidateWrite(uint32_t addr, const uint32_t subBitmask = UINT32_MAX) {
         uint32_t bitmapIndex = (addr - c_msanStart) / 8;
-        uint32_t bitmask = ((1 << length) - 1) << addr % 8;
+        uint32_t bitmask = (((1 << length) - 1) << addr % 8) & subBitmask;
         if (uint32_t nextBitmask = bitmask >> 8) [[unlikely]] {
             if ((m_msanUsableBitmap[bitmapIndex + 1] & nextBitmask) != nextBitmask) {
                 return false;
