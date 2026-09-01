@@ -809,7 +809,7 @@ ssize_t PCSX::Memory::MemoryAsFile::writeAt(const void *src, size_t size, size_t
 
 void PCSX::Memory::MemoryAsFile::readBlock(void *dest_, size_t size, size_t ptr) {
     auto dest = reinterpret_cast<uint8_t *>(dest_);
-    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+    auto block = m_memory->debugPointer(ptr / c_blockSize);
     if (!block) {
         memset(dest, 0, size);
         if (m_memory->msanInitialized()) {
@@ -828,10 +828,25 @@ void PCSX::Memory::MemoryAsFile::readBlock(void *dest_, size_t size, size_t ptr)
 }
 
 void PCSX::Memory::MemoryAsFile::writeBlock(const void *src_, size_t size, size_t ptr) {
-    // Yes. That's not a bug nor a typo.
+    // The read LUT, on purpose, and not a typo. The write LUT describes what the guest's current
+    // BIU cache configuration lets a store reach, and it goes empty for main RAM whenever the
+    // cache is isolated. That's transient guest state; a write coming in from a debugger has no
+    // business being subject to it. The read LUT is the table that describes what memory is
+    // actually there.
     auto src = reinterpret_cast<const uint8_t *>(src_);
-    auto block = m_memory->m_readLUT[ptr / c_blockSize];
+    const auto page = ptr / c_blockSize;
+    auto block = m_memory->m_readLUT[page];
+    auto offset = ptr % c_blockSize;
     if (!block) {
+        // The scratchpad is plain memory and safe to poke. The hardware registers sharing its page
+        // are stateful, and writing to their shadow behind the hardware's back would only desync
+        // the two, so those are silently dropped.
+        if ((page == 0x1f80) || (page == 0x9f80) || (page == 0xbf80)) {
+            if (offset < c_scratchpadSize) {
+                memcpy(m_memory->m_hard + offset, src, std::min<size_t>(size, c_scratchpadSize - offset));
+            }
+            return;
+        }
         if (m_memory->msanInitialized()) {
             for (size_t i = 0; i < size; ++i) {
                 size_t msanPtr = ptr + i;
@@ -842,7 +857,6 @@ void PCSX::Memory::MemoryAsFile::writeBlock(const void *src_, size_t size, size_
         }
         return;
     }
-    auto offset = ptr % c_blockSize;
     auto toCopy = std::min(size, c_blockSize - offset);
     memcpy(block + offset, src, toCopy);
 }

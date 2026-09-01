@@ -144,6 +144,41 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
     std::string label;
 
     ImGui::Separator();
+    if (ImGui::TreeNode(_("VRAM breakpoints"))) {
+        ImGuiHelpers::ShowHelpMarker(
+            _("Pauses emulation when a command reads from or writes to one of these VRAM rectangles. Handy to catch "
+              "the texture upload that stomped an area, since those are hard to spot in a frame that redraws "
+              "everything. The command that triggered gets highlighted in the logger view below. Note the footprints "
+              "are unclipped, so a primitive that ends up entirely outside the drawing area still counts as a write."));
+        if (ImGui::Button(_("Add breakpoint"))) {
+            logger->m_vramBreakpoints.emplace_back();
+        }
+        if (!logger->m_vramBreakpoints.empty()) {
+            ImGui::TextUnformatted(_("Enable, then X, Y, width, height:"));
+        }
+        unsigned toRemove = logger->m_vramBreakpoints.size();
+        for (unsigned i = 0; i < logger->m_vramBreakpoints.size(); i++) {
+            auto& bp = logger->m_vramBreakpoints[i];
+            ImGui::PushID(i);
+            ImGui::Checkbox("##enabled", &bp.enabled);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16.0f);
+            ImGui::InputInt4("##area", bp.area.raw);
+            ImGui::SameLine();
+            ImGui::Checkbox(_("Read"), &bp.onRead);
+            ImGui::SameLine();
+            ImGui::Checkbox(_("Write"), &bp.onWrite);
+            ImGui::SameLine();
+            if (ImGui::Button(_("Remove"))) toRemove = i;
+            ImGui::PopID();
+        }
+        if (toRemove != logger->m_vramBreakpoints.size()) {
+            logger->m_vramBreakpoints.erase(logger->m_vramBreakpoints.begin() + toRemove);
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::Separator();
     label = fmt::format(f_("Frame {}###FrameCounterNode"), logger->m_frameCounter - m_frameCounterOrigin);
     if (ImGui::TreeNode(label.c_str())) {
         if (ImGui::Button(_("Reset frame counter"))) {

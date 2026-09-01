@@ -33,15 +33,25 @@ SOFTWARE.
 #if defined(OPENBIOS_BOARD_SYS573)
 static const char s_kernelName[] = "OpenBIOS (System 573)";
 static const int s_kernelFlags = 2;
+#elif defined(OPENBIOS_BOARD_ZN1)
+static const char s_kernelName[] = "OpenBIOS (ZN-1)";
+static const int s_kernelFlags = 0x11001;
+#elif defined(OPENBIOS_BOARD_ZN2)
+static const char s_kernelName[] = "OpenBIOS (ZN-2)";
+static const int s_kernelFlags = 0x13000;
+#else
+static const char s_kernelName[] = "OpenBIOS";
+static const int s_kernelFlags = 3;
+#endif
+
+#if defined(OPENBIOS_BOARD_SYS573)
 static const int s_isArcadeBoard = 1;
 static const int s_unknownFlag = 0;
 
 static __inline__ int getBoardRevision() { return 0; }
 static __inline__ int getVRAMSize() { return 2048; }
 static __inline__ int getSPURAMSize() { return 512; }
-#elif defined(OPENBIOS_BOARD_ZN)
-static const char s_kernelName[] = "OpenBIOS (ZN-1/ZN-2)";
-static const int s_kernelFlags = 0x11001; // ZN-1: 0x11001, ZN-2: 0x13000
+#elif defined(OPENBIOS_BOARD_ZN1) || defined(OPENBIOS_BOARD_ZN2)
 static const int s_isArcadeBoard = 1;
 static const int s_unknownFlag = 1;
 
@@ -49,8 +59,6 @@ static __inline__ int getBoardRevision() { return ((ZN_BOARD_CONFIG >> 5) & 7) -
 static __inline__ int getVRAMSize() { return ((ZN_BOARD_CONFIG >> 3) & 1) ? 2048 : 1024; }
 static __inline__ int getSPURAMSize() { return ((ZN_BOARD_CONFIG >> 2) & 1) ? 2048 : 512; }
 #else
-static const char s_kernelName[] = "OpenBIOS";
-static const int s_kernelFlags = 3;
 static const int s_isArcadeBoard = 0;
 static const int s_unknownFlag = 1;
 

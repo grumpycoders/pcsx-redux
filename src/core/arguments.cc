@@ -21,6 +21,8 @@
 
 #include <filesystem>
 
+#include "support/binpath.h"
+
 PCSX::Arguments::Arguments(const CommandLine::args& args) {
     if (args.get<bool>("lua_stdout") || args.get<bool>("no-ui") || args.get<bool>("cli")) {
         m_luaStdoutEnabled = true;
@@ -35,6 +37,19 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
     if (std::filesystem::exists("pcsx.json")) m_portable = true;
     if (std::filesystem::exists(std::filesystem::path("vsprojects") / "pcsx-redux.sln")) m_portable = true;
     if (std::filesystem::exists(std::filesystem::path("..") / "pcsx-redux.sln")) m_portable = true;
+    if (!m_portable) {
+        // The probes above are relative to the current directory, which is only the install
+        // directory when the binary was started from it. A shortcut with its own start-in, a
+        // file association on a disc image, or a frontend will all hand us something else, so
+        // look next to the binary too, and anchor the portable directory there when that's
+        // what matched. Without this, whether an install is portable depends on how it was
+        // launched rather than on where it lives.
+        std::filesystem::path binDir = std::filesystem::path(BinPath::getExecutablePath()).parent_path();
+        if (!binDir.empty() && std::filesystem::exists(binDir / "pcsx.json")) {
+            m_portable = true;
+            m_portablePath = binDir.string();
+        }
+    }
     if (args.get<bool>("no-portable")) m_portable = false;
     if (args.get<bool>("safe") || args.get<bool>("testmode") || args.get<bool>("cli")) m_safeModeEnabled = true;
     if (args.get<bool>("resetui")) m_uiResetRequested = true;

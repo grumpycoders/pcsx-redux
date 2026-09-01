@@ -76,7 +76,7 @@ powershell -c "& { iwr -UseBasicParsing https://bit.ly/mips-ps1 | iex }"
 Then, open a new command prompt, and type the following:
 
 ```
-mips install 14.2.0
+mips install 16.2.0
 ```
 
 To manually install this script, you can download it from [here](https://bit.ly/mips-ps1), and then install it with the following command:
@@ -90,16 +90,23 @@ You can leave the installation path blank to install the script in the Applicati
 Once the toolchain is installed, you can compile OpenBIOS using `make -C src/mips/openbios`.
 
 ### Linux
-Run `./dockermake.sh appimage`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. This will create an [AppImage](https://appimage.org/) file, called `PCSX-Redux-HEAD-x86_64.AppImage`, which a self-hosted binary containing all of its required dependencies. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
+Run `./dockermake.sh appimage`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work. This will create an [AppImage](https://appimage.org/) file, called `PCSX-Redux-HEAD-x86_64.AppImage` or `PCSX-Redux-HEAD-aarch64.AppImage` depending on your machine, which a self-hosted binary containing all of its required dependencies. Alternatively, if you do not want to use Docker, you can also simply install the dependencies listed below and run `make`.
 
 #### GNU/Linux Dependencies
 
-If you're only interested in compiling psx code, you can simply clone the pcsx-redux repo, then install `g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu` then follow the instructions in `/pcsx-redux/src/mips/psyq/README.md` to convert the PsyQ libraries. You might find them pre-compiled online.
+If you're only interested in compiling psx code, you can simply clone the pcsx-redux repo, then build the mips toolchain with [this script](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/linux-mips/spawn-compiler.sh), then follow the instructions in `/pcsx-redux/src/mips/psyq/README.md` to convert the PsyQ libraries. You might find them pre-compiled online.
 
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libsdl3-dev libswresample-dev libuv1-dev zlib1g-dev
+```
+
+The mips toolchain isn't packaged by Debian or Ubuntu, so build it from source:
+
+```bash
+sudo apt-get install -y wget bzip2 xz-utils bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev
+sudo bash tools/linux-mips/spawn-compiler.sh
 ```
 
  - Arch derivatives :
@@ -113,16 +120,16 @@ paru -S pcsx-redux-git
 Alternatively, the following steps describe how to install dependencies and compile manually:
 
 ```bash
-sudo pacman -S --needed capstone clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb imagemagick
+sudo pacman -S --needed capstone clang git make pkg-config ffmpeg libuv zlib sdl3 curl xorg-server-xvfb imagemagick
 ```
-The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [mipsel-none-elf-binutils](https://aur.archlinux.org/packages/mipsel-none-elf-binutils/) and [mipsel-none-elf-gcc](https://aur.archlinux.org/packages/mipsel-none-elf-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
+trizen -S mipsel-none-elf-binutils mipsel-none-elf-gcc
 ```
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
-Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbios`, or using the `g++-mipsel-linux-gnu` package with `make -C src/mips/openbios`. If you have a different mips compiler, you'll need to override some variables, such as `PREFIX=mipsel-none-elf FORMAT=elf32-littlemips`.
+Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbios`, or with `make -C src/mips/openbios` once you have a mipsel-none-elf toolchain. If you have a different mips compiler, you'll need to override some variables, such as `PREFIX` and `FORMAT`.
 
 ### MacOS
 You need MacOS Catalina or later with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
