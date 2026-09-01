@@ -27,12 +27,28 @@ local sliceMeta = {
             return buffer[index]
         elseif index == 'data' then
             return C.getSliceData(slice._wrapper)
+        elseif index == 'mutable' then
+            return C.getSliceMutableData(slice._wrapper)
         elseif index == 'size' then
             return tonumber(C.getSliceSize(slice._wrapper))
+        elseif index == 'resize' then
+            return function(slice, size)
+                C.resizeSlice(slice._wrapper, size)
+            end
         end
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
-    __newindex = function(slice, index, value) end,
+    __newindex = function(slice, index, value)
+        if type(index) == 'number' and index >= 0 and index < C.getSliceSize(slice._wrapper) then
+            local data = C.getSliceMutableData(slice._wrapper)
+            local buffer = ffi.cast('uint8_t*', data)
+            buffer[index] = value
+        elseif index == 'size' then
+            C.resizeSlice(slice._wrapper, value)
+        else
+            error('Unknown or immutable index `' .. index .. '` for LuaSlice')
+        end
+    end,
 }
 
 local function createSliceWrapper(wrapper)
@@ -71,5 +87,6 @@ local LuaBuffer = ffi.metatype('LuaBuffer', bufferMeta)
 
 Support.File._LuaBuffer = LuaBuffer
 Support.File._createSliceWrapper = createSliceWrapper
+Support.File.createEmptySlice = function() return createSliceWrapper(C.createEmptySlice()) end
 
 -- )EOF"

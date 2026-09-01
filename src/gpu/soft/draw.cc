@@ -65,7 +65,7 @@ void PCSX::SoftGPU::impl::clearVRAM() {
     GUI *gui = dynamic_cast<GUI *>(m_ui);
     if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
-    std::memset(m_allocatedVRAM, 0x00, (GPU_HEIGHT * 2) * 1024 + (1024 * 1024));
+    std::memset(m_allocatedVRAM, 0x00, (VRAM_HEIGHT * 2) * 1024 + (1024 * 1024));
 
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);

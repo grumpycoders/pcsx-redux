@@ -248,7 +248,7 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 // B = 1.000 * (Y) + 1.765 * (Cb - 128)
 #define MULR(a) ((1434 * (a)))
 #define MULB(a) ((1807 * (a)))
-#define MULG2(a, b) ((-351 * (a)-728 * (b)))
+#define MULG2(a, b) ((-351 * (a) - 728 * (b)))
 #define MULY(a) ((a) << 10)
 
 #define MAKERGB15(r, g, b, a) (SWAP_LE16(a | ((b) << 10) | ((g) << 5) | (r)))
@@ -480,6 +480,7 @@ void PCSX::MDEC::dma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     size *= 4;
     /* I guess the memory speed is limitating */
     dmacnt = size;
+    g_emulator->m_mem->msanDmaWrite(adr, size);
     if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
         g_emulator->m_debug->checkDMAwrite(1, adr, size);
     }

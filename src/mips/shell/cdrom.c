@@ -188,7 +188,7 @@ static void complete() {
                 s_wait = 1;
                 break;
             }
-            uint32_t lba = readUnaligned(s_sector, 158) + 150;
+            uint32_t lba = load32Unaligned(s_sector, 158) + 150;
             unsigned minutes = lba / 4500;
             lba %= 4500;
             uint8_t msf[3] = {(minutes % 10) + (minutes / 10) * 0x10, ((lba / 75) % 10) + ((lba / 75) / 10) * 0x10,

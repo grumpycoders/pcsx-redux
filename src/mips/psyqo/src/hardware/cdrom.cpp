@@ -29,9 +29,32 @@ SOFTWARE.
 psyqo::Hardware::Register<0x0800, uint8_t, psyqo::Hardware::WriteQueue::Bypass> psyqo::Hardware::CDRom::Ctrl;
 psyqo::Hardware::Register<0x0801, uint8_t, psyqo::Hardware::WriteQueue::Bypass> psyqo::Hardware::CDRom::Response;
 psyqo::Hardware::Register<0x0802, uint8_t, psyqo::Hardware::WriteQueue::Bypass> psyqo::Hardware::CDRom::Fifo;
-psyqo::Hardware::Register<0x0803, uint8_t, psyqo::Hardware::WriteQueue::Bypass> psyqo::Hardware::CDRom::InterruptControl;
+psyqo::Hardware::Register<0x0803, uint8_t, psyqo::Hardware::WriteQueue::Bypass>
+    psyqo::Hardware::CDRom::InterruptControl;
 
 psyqo::Hardware::CDRom::CommandFifo psyqo::Hardware::CDRom::Command;
-psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass, psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 0>> psyqo::Hardware::CDRom::DataRequest;
-psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass, psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0802, 0xbf801000, uint8_t>, 1>> psyqo::Hardware::CDRom::CauseMask;
-psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass, psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 1>> psyqo::Hardware::CDRom::Cause;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 0>>
+    psyqo::Hardware::CDRom::DataRequest;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0802, 0xbf801000, uint8_t>, 1>>
+    psyqo::Hardware::CDRom::CauseMask;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 1>>
+    psyqo::Hardware::CDRom::Cause;
+
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0802, 0xbf801000, uint8_t>, 2>>
+    psyqo::Hardware::CDRom::LeftToLeftVolume;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 2>>
+    psyqo::Hardware::CDRom::LeftToRightVolume;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0801, 0xbf801000, uint8_t>, 3>>
+    psyqo::Hardware::CDRom::RightToRightVolume;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0802, 0xbf801000, uint8_t>, 3>>
+    psyqo::Hardware::CDRom::RightToLeftVolume;
+psyqo::Hardware::Register<0, uint8_t, psyqo::Hardware::WriteQueue::Bypass,
+                          psyqo::Hardware::CDRom::Access<psyqo::Hardware::BasicAccess<0x0803, 0xbf801000, uint8_t>, 3>>
+    psyqo::Hardware::CDRom::VolumeSettings;

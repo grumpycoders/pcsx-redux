@@ -24,13 +24,14 @@ SOFTWARE.
 
 */
 
+#include "psyqo-paths/cdrom-loader.hh"
+
 #include "psyqo/application.hh"
 #include "psyqo/cdrom-device.hh"
 #include "psyqo/font.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/iso9660-parser.hh"
 #include "psyqo/scene.hh"
-#include "psyqo-paths/cdrom-loader.hh"
 
 namespace {
 
@@ -43,7 +44,7 @@ class CDRomLoaderExample final : public psyqo::Application {
     psyqo::CDRomDevice m_cdrom;
     psyqo::ISO9660Parser m_isoParser = psyqo::ISO9660Parser(&m_cdrom);
     psyqo::paths::CDRomLoader m_cdromLoader;
-    eastl::vector<uint8_t> m_buffer;
+    psyqo::Buffer<uint8_t> m_buffer;
     bool m_callbackCalled = false;
 };
 
@@ -69,11 +70,11 @@ void CDRomLoaderExample::prepare() {
 void CDRomLoaderExample::createScene() {
     m_font.uploadSystemFont(gpu());
     pushScene(&cdromLoaderExampleScene);
-    m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.gpu(), cdromLoaderExample.m_isoParser,
-                           [this](eastl::vector<uint8_t>&& buffer) {
-        m_buffer = eastl::move(buffer);
-        m_callbackCalled = true;
-    });
+    m_cdromLoader.readFile("SYSTEM.CNF;1", cdromLoaderExample.m_isoParser,
+                           [this](psyqo::Buffer<uint8_t>&& buffer) {
+                               m_buffer = eastl::move(buffer);
+                               m_callbackCalled = true;
+                           });
 }
 
 void CDRomLoaderExampleScene::frame() {

@@ -110,6 +110,9 @@ class PSXDevPanel {
           case 'restorePsyq':
             restorePsyq()
             break
+          case 'restorePythonEnv':
+            restorePythonEnv()
+            break
           case 'updateModules':
             updateModules()
             break
@@ -219,8 +222,8 @@ class PSXDevPanel {
               <p>Before debugging a PlayStation 1 application, you'll need to have a target able to run PlayStation 1 code accessible through the gdb protocol. You can <vscode-link href="https://unirom.github.io/debug_gdb/" target="_blank">connect to a real PlayStation 1</vscode-link>, or you can run an emulator with a gdb server. You can click the button below to launch the <vscode-link href="https://pcsx-redux.consoledev.net" target="_blank">PCSX-Redux</vscode-link> PlayStation 1 emulator in debugger mode.</p><br/>
               <vscode-button id="show-redux-settings" appearance="secondary">Open Settings folder</vscode-button> <vscode-button id="launch-redux">Launch PCSX-Redux</vscode-button><br/>
               <hr/>
-              <p>After cloning a project that uses the Psy-Q library, it'll be necessary to restore it. You can press the button below in order to restore the library into the current workspace.</p><br/>
-              <vscode-button id="restore-psyq">Restore Psy-Q</vscode-button><br/>
+              <p>After cloning a project that uses Psy-Q libraries or a Python virtual environment, it'll be necessary to restore them. Use the buttons below in order to restore the appropriate dependencies into the current workspace.</p><br/>
+              <vscode-button id="restore-psyq">Restore Psy-Q</vscode-button> <vscode-button id="restore-python-env">Restore Python environment</vscode-button><br/>
               <hr/>
               <p>The templates will create git repositories with submodules. These submodules may update frequently with bug fixes and new features. The updates should not break backward compatibility in general, and should be safe to do. Press the button below to update the submodules in the current workspace.</p><br/>
               <vscode-button id="update-modules">Update modules</vscode-button><br/>
@@ -284,6 +287,12 @@ exports.activate = (context) => {
   context.subscriptions.push(
     vscode.commands.registerCommand('psxDev.restorePsyq', () => {
       restorePsyq()
+    })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('psxDev.restorePythonEnv', () => {
+      restorePythonEnv()
     })
   )
 
@@ -355,6 +364,29 @@ function restorePsyq () {
           ).fsPath
         )
       )
+      .catch((err) => {
+        vscode.window.showErrorMessage(err.message)
+      })
+  } else {
+    vscode.window.showErrorMessage('Please open a project first.')
+  }
+}
+
+function restorePythonEnv () {
+  if (vscode.workspace.workspaceFolders) {
+    templates
+      .createPythonEnv({
+        path: vscode.workspace.workspaceFolders[0].uri.fsPath,
+        name: 'env',
+        requirementsFiles: [
+          vscode.Uri.joinPath(
+            vscode.workspace.workspaceFolders[0].uri,
+            'ps1-bare-metal',
+            'tools',
+            'requirements.txt'
+          ).fsPath
+        ]
+      })
       .catch((err) => {
         vscode.window.showErrorMessage(err.message)
       })

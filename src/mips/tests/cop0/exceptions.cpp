@@ -49,9 +49,9 @@ struct Handler {
         uint16_t high = value >> 16;
         int16_t low = value & 0xffff;
         dst[0] = lui(Reg::K0, high);
-        dst[1] = ori(Reg::K0, Reg::K0, low);
+        dst[1] = ori(Reg::K0, low);
         dst[2] = jr(Reg::K0);
-        dst[3] = ori(Reg::K1, Reg::R0, addr);
+        dst[3] = li(Reg::K1, addr);
     }
 
     void restore() {
@@ -68,8 +68,8 @@ static Handler<0x40> s_handler40;
 static Handler<0x80> s_handler80;
 
 extern "C" void installExceptionHandlers(uint32_t (*handler)(uint32_t *regs, uint32_t from)) {
-    uint32_t (*wrapper)(uint32_t * regs, uint32_t from, uint32_t(*handler)(uint32_t * regs, uint32_t from)) =
-        [](uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t * regs, uint32_t from)) -> uint32_t {
+    uint32_t (*wrapper)(uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t *regs, uint32_t from)) =
+        [](uint32_t *regs, uint32_t from, uint32_t (*handler)(uint32_t *regs, uint32_t from)) -> uint32_t {
         return handler(regs, from);
     };
     __asm__ volatile(

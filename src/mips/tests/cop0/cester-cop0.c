@@ -89,7 +89,7 @@ CESTER_BEFORE_EACH(cpu_tests, testname, testindex,
     s_oldDICR = DICR;
     IMASK = 0;
     IREG = 0;
-    for (unsigned i = 0; i < 6; i++) {
+    for (unsigned i = 0; i < 7; i++) {
         DMA_CTRL[i].CHCR = 0;
         DMA_CTRL[i].BCR = 0;
         DMA_CTRL[i].MADR = 0;

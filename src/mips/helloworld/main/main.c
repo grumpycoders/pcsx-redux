@@ -28,6 +28,5 @@ SOFTWARE.
 
 int main() {
     ramsyscall_printf("Hello world\n");
-    while (1)
-        ;
+    while (1);
 }

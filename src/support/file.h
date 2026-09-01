@@ -150,7 +150,8 @@ class File {
 
     Slice read(ssize_t size) {
         void* data = malloc(size);
-        read(data, size);
+        size = read(data, size);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -158,7 +159,8 @@ class File {
 
     Slice readAt(ssize_t size, ssize_t pos) {
         void* data = malloc(size);
-        readAt(data, size, pos);
+        size = readAt(data, size, pos);
+        data = realloc(data, size);
         Slice slice;
         slice.acquire(data, size);
         return slice;
@@ -339,6 +341,7 @@ class FailedFile : public File {
 class BufferFile : public File {
   public:
     enum Acquire { ACQUIRE };
+    enum Borrow { BORROW };
     // Makes a read-only buffer in memory, referencing the memory
     // without acquiring it. Therefore, memory must remain allocated
     // for the lifespan of the File object. Any dup call will still
@@ -350,6 +353,10 @@ class BufferFile : public File {
     BufferFile(void* data, size_t size, FileOps::ReadWrite);
     // Same as above, but acquires the memory instead of copying it.
     BufferFile(void* data, size_t size, Acquire);
+    // Same as above, but borrows the memory instead of copying it.
+    // The buffer will be written to if needed, but will not be
+    // enlarged if the write goes past the end.
+    BufferFile(void* data, size_t size, Borrow);
     // Makes a dummy read-only file of size 1.
     BufferFile();
     // Makes an empty read-write buffer.
@@ -367,7 +374,7 @@ class BufferFile : public File {
     virtual bool eof() final override;
     virtual File* dup() final override;
 
-    Slice borrow();
+    Slice borrow(size_t offset = 0);
 
   private:
     virtual void closeInternal() final override;
@@ -450,11 +457,20 @@ class SubFile : public File {
           m_file(file),
           m_start(start),
           m_size(size < 0 ? file->size() - start : size) {}
+    SubFile(IO<File> file, size_t start, ssize_t size, FileOps::ReadWrite)
+        : File(file->seekable() ? RW_SEEKABLE : RW_STREAM),
+          m_file(file),
+          m_start(start),
+          m_size(size < 0 ? file->size() - start : size) {}
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_ptrR; }
+    virtual ssize_t wSeek(ssize_t pos, int wheel) final override;
+    virtual ssize_t wTell() final override { return m_ptrW; }
     virtual size_t size() final override { return m_size; }
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t readAt(void* dest, size_t size, size_t ptr) final override;
+    virtual ssize_t write(const void* src, size_t size) final override;
+    virtual ssize_t writeAt(const void* src, size_t size, size_t ptr) final override;
     virtual bool eof() final override { return m_ptrR == m_size; }
     virtual File* dup() final override { return new SubFile(m_file, m_start, m_size); }
     virtual bool failed() final override { return m_file->failed(); }
@@ -462,6 +478,7 @@ class SubFile : public File {
   private:
     IO<File> m_file;
     size_t m_ptrR = 0;
+    size_t m_ptrW = 0;
     const size_t m_start = 0;
     const size_t m_size = 0;
 };

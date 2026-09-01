@@ -57,6 +57,5 @@ std::string_view HelloWorld::getName() { return "World"; }
 int main() {
     HelloWorld hw;
     hw.print();
-    while (1)
-        ;
+    while (1);
 }

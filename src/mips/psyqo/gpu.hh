@@ -33,6 +33,8 @@ SOFTWARE.
 #include <EASTL/utility.h>
 #include <stdint.h>
 
+#include <coroutine>
+
 #include "psyqo/fragment-concept.hh"
 #include "psyqo/hardware/gpu.hh"
 #include "psyqo/kernel.hh"
@@ -41,6 +43,7 @@ SOFTWARE.
 #include "psyqo/primitives/common.hh"
 #include "psyqo/primitives/control.hh"
 #include "psyqo/primitives/misc.hh"
+#include "psyqo/shared.hh"
 
 namespace psyqo {
 
@@ -63,10 +66,14 @@ namespace timer_literals {
  * `gpu().armPeriodicTimer(1_s, callback)` will create a timer that
  * fires every second.
  */
-constexpr uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
-constexpr uint32_t operator""_us(unsigned long long int value) { return value; }
-constexpr uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
-constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(unsigned long long int value) { return value / 1'000; }
+consteval uint32_t operator""_us(unsigned long long int value) { return value; }
+consteval uint32_t operator""_ms(unsigned long long int value) { return value * 1'000; }
+consteval uint32_t operator""_s(unsigned long long int value) { return value * 1'000'000; }
+consteval uint32_t operator""_ns(long double value) { return value / 1'000; }
+consteval uint32_t operator""_us(long double value) { return value; }
+consteval uint32_t operator""_ms(long double value) { return value * 1'000; }
+consteval uint32_t operator""_s(long double value) { return value * 1'000'000; }
 
 }  // namespace timer_literals
 
@@ -79,13 +86,27 @@ constexpr uint32_t operator""_s(unsigned long long int value) { return value * 1
  */
 
 class GPU {
+    struct TimerAwaiter {
+        TimerAwaiter(GPU &gpu, uint32_t deadline) : m_gpu(gpu), m_deadline(deadline) {}
+        ~TimerAwaiter() {}
+        constexpr bool await_ready() const { return false; }
+        void await_suspend(std::coroutine_handle<> handle) {
+            m_gpu.armTimer(m_deadline, [handle](uint32_t) { handle.resume(); });
+        }
+        void await_resume() {}
+        GPU &m_gpu;
+        uintptr_t m_deadline;
+    };
+
   public:
     struct Configuration;
     enum class Resolution { W256, W320, W368, W512, W640 };
     enum class VideoMode { AUTO, NTSC, PAL };
     enum class ColorMode { C15BITS, C24BITS };
     enum class Interlace { PROGRESSIVE, INTERLACED };
+    enum class MiscSetting { CLEAR_VRAM, KEEP_VRAM };
     void initialize(const Configuration &config);
+    void reinitialize(const Configuration &config);
 
     static constexpr uint32_t US_PER_HBLANK = 64;
     static constexpr unsigned c_chainThreshold = 56;
@@ -104,9 +125,13 @@ class GPU {
      * @details This returns the internal frame counter being kept by the
      * GPU class. The 32 bits value will wrap around when it reaches 2^32
      * frames, which is 2 years, 3 months, 7 days, 6 hours, 6 minutes and
-     * 28.27 seconds when running constantly at a 60Hz refresh rate.
+     * 28.27 seconds when running constantly at a 60Hz refresh rate. This
+     * counter will be incremented during the frame flip operation by the
+     * appropriate number of hardware frames which have passed since the
+     * last frame flip. In other words, this counter monotonically increases
+     * by one for each vsync event that occurred during the last rendering.
      */
-    uint32_t getFrameCount() const { return m_frameCount; }
+    uint32_t getFrameCount() const { return m_previousFrameCount; }
 
     /**
      * @brief Get the index of the current display buffer.
@@ -204,7 +229,7 @@ class GPU {
      */
     template <Fragment Frag>
     void sendFragment(const Frag &fragment) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize());
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize());
     }
 
     /**
@@ -219,7 +244,8 @@ class GPU {
     template <Fragment Frag>
     void sendFragment(const Frag &fragment, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback = DMA::FROM_MAIN_LOOP) {
-        sendFragment(&fragment.head + 1, fragment.getActualFragmentSize(), eastl::move(callback), dmaCallback);
+        sendFragment(reinterpret_cast<const uint32_t *>(&fragment.head + 1), fragment.getActualFragmentSize(),
+                     eastl::move(callback), dmaCallback);
     }
 
     /**
@@ -328,10 +354,10 @@ class GPU {
      *
      * @param table The ordering table to chain.
      */
-    template <size_t N>
-    void chain(OrderingTable<N> &table) {
-        chain(&table.m_table[N], &table.m_table[0], 0);
-        scheduleOTC(&table.m_table[N], N + 1);
+    template <size_t N, Safe safety = Safe::Yes>
+    void chain(OrderingTable<N, safety> &table) {
+        chain(&table.m_table[N].head, &table.m_table[0].head, 0);
+        scheduleOTC(&table.m_table[N].head, N + 1);
     }
 
     /**
@@ -372,6 +398,14 @@ class GPU {
     bool isChainTransferred() const;
 
     /**
+     * @brief Waits until the background DMA transfer operation initiated by a frame flip is complete.
+     *
+     */
+    void waitChainIdle() {
+        while (isChainTransferring()) pumpCallbacks();
+    }
+
+    /**
      * @brief Gets the current timestamp in microseconds.
      *
      * @details The current timestamp is in microseconds. It will wrap around after a bit more than
@@ -408,6 +442,19 @@ class GPU {
      * @return The id of the created timer.
      */
     uintptr_t armTimer(uint32_t deadline, eastl::function<void(uint32_t)> &&callback);
+
+    /**
+     * @brief Delays the coroutine for a specified amount of time.
+     *
+     * @details This method will delay the coroutine for a specified amount of time. This
+     * is a coroutine-friendly version of the `armTimer` method. The coroutine will be
+     * suspended until the delay has passed. The delay is specified in microseconds, and
+     * the timer literals can be used to specify the delay. The function can only be called
+     * from within a coroutine, and is meant to be used with the `co_await` keyword.
+     * @param amount The amount of time to delay the coroutine in microseconds.
+     * @return TimerAwaiter The awaitable object to be used with the `co_await` keyword.
+     */
+    TimerAwaiter delay(uint32_t microseconds) { return {*this, now() + microseconds}; }
 
     /**
      * @brief Creates a periodic timer.
@@ -481,14 +528,19 @@ class GPU {
 
   private:
     GPU();
+    GPU(const GPU &) = delete;
+    GPU(GPU &&) = delete;
+    GPU &operator=(const GPU &) = delete;
+    GPU &operator=(GPU &&) = delete;
     void sendFragment(const uint32_t *data, size_t count);
     void sendFragment(const uint32_t *data, size_t count, eastl::function<void()> &&callback,
                       DMA::DmaCallback dmaCallback);
     void scheduleNormalDMA(uintptr_t data, size_t count);
     void scheduleChainedDMA(uintptr_t head);
-    void chain(uint32_t *first, uint32_t *last, size_t count);
-    void scheduleOTC(uint32_t *start, uint32_t count);
+    void chain(uintptr_t *first, uintptr_t *last, size_t count);
+    void scheduleOTC(uintptr_t *start, uint32_t count);
     void checkOTCAndTriggerCallback();
+    void prepareForTakeover();
 
     eastl::function<void(void)> m_dmaCallback = nullptr;
     unsigned m_refreshRate = 0;
@@ -498,10 +550,10 @@ class GPU {
     uint32_t m_frameCount = 0;
     uint32_t m_previousFrameCount = 0;
     unsigned m_parity = 0;
-    uint32_t *m_chainHead = nullptr;
-    uint32_t *m_chainTail = nullptr;
+    uintptr_t *m_chainHead = nullptr;
+    uintptr_t *m_chainTail = nullptr;
     size_t m_chainTailCount = 0;
-    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus;
+    enum { CHAIN_IDLE, CHAIN_TRANSFERRING, CHAIN_TRANSFERRED } m_chainStatus = CHAIN_IDLE;
     struct Timer {
         eastl::function<void(uint32_t)> callback;
         uint32_t deadline;
@@ -512,11 +564,11 @@ class GPU {
     };
     eastl::fixed_list<Timer, 32> m_timers;
     struct ScheduledOTC {
-        uint32_t *start;
+        uintptr_t *start;
         uint32_t count;
     };
     eastl::fixed_list<ScheduledOTC, 32> m_OTCs[2];
-    uint32_t *m_chainNext = nullptr;
+    uintptr_t *m_chainNext = nullptr;
 
     uint16_t m_lastHSyncCounter = 0;
     bool m_interlaced = false;
@@ -525,6 +577,7 @@ class GPU {
 
     void flip();
     friend class Application;
+    friend void psyqo::Kernel::takeOverKernel();
 };
 
 }  // namespace psyqo

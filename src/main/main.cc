@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <csignal>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -115,8 +116,6 @@ class SystemImpl final : public PCSX::System {
         // emulator is requesting a shutdown of the emulation
     }
 
-    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
-
     virtual void testQuit(int code) final override {
         if (m_args.isTestModeEnabled()) {
             quit(code);
@@ -133,6 +132,8 @@ class SystemImpl final : public PCSX::System {
     const PCSX::Arguments m_args;
 
   public:
+    virtual void purgeAllEvents() final override { uv_run(getLoop(), UV_RUN_DEFAULT); }
+
     void setBinDir(std::filesystem::path path) {
         m_binDir = path;
         m_version.loadFromFile(new PCSX::PosixFile(path / "version.json"));
@@ -165,6 +166,8 @@ struct Cleaner {
     std::function<void()> f;
 };
 
+void handleSignal(int signal) { PCSX::g_system->quit(-1); }
+
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     // Command line arguments are parsed after this point.
@@ -191,10 +194,15 @@ int pcsxMain(int argc, char **argv) {
     // Creating the "system" global object first, making sure anything logging-related is
     // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
+    PCSX::g_system = system;
+    auto sigint = std::signal(SIGINT, handleSignal);
+    auto sigterm = std::signal(SIGTERM, handleSignal);
+#ifndef _WIN32
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
     const auto &logfileArgOpt = args.get<std::string>("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
-    PCSX::g_system = system;
     std::filesystem::path self = PCSX::BinPath::getExecutablePath();
     std::filesystem::path binDir = std::filesystem::absolute(self).parent_path();
     system->setBinDir(binDir);
@@ -210,16 +218,17 @@ int pcsxMain(int argc, char **argv) {
         fmt::print(
             "{{\n  \"version\": \"{}\",\n  \"changeset\": \"{}\",\n  \"timestamp\": \"{}\",\n  \"timestampDecoded\": "
             "\"{:%Y-%m-%d %H:%M:%S}\"\n}}\n",
-            version.version, version.changeset, version.timestamp, fmt::localtime(version.timestamp));
+            version.version, version.changeset, version.timestamp, *std::localtime(&version.timestamp));
         return 0;
     }
 
     // At this point, we're committed to run the emulator, so we first create it, and the UI next.
     PCSX::Emulator *emulator = new PCSX::Emulator();
     PCSX::g_emulator = emulator;
+    auto &favorites = emulator->settings.get<PCSX::Emulator::SettingOpenDialogFavorites>().value;
 
     s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
-                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI());
+                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(favorites));
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
         // Start tweaking / sanitizing settings a bit, while continuing to parse the command line
@@ -237,7 +246,7 @@ int pcsxMain(int argc, char **argv) {
         auto argPath1 = args.get<std::string>("memcard1");
         auto argPath2 = args.get<std::string>("memcard2");
         if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>() = argPath1.value();
-        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath1.value();
+        if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath2.value();
         PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 
@@ -284,6 +293,17 @@ int pcsxMain(int argc, char **argv) {
 
         if (args.get<int>("gdb-port")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
+        }
+
+        if (args.get<bool>("webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = true;
+        }
+        if (args.get<bool>("no-webserver")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = false;
+        }
+
+        if (args.get<int>("webserver-port")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServerPort>() = args.get<int>("webserver-port").value();
         }
 
         auto argPCdrvBase = args.get<std::string>("pcdrvbase");
@@ -383,7 +403,7 @@ runner.init({
         // First, set up a closer. This makes sure that everything is shut down gracefully,
         // in the right order, once we exit the scope. This is because of how we're still
         // allowing exceptions to occur.
-        Cleaner cleaner([&emulator, &system, &exitCode, luacovEnabled]() {
+        Cleaner cleaner([&emulator, &system, &exitCode, luacovEnabled, sigint, sigterm]() {
             emulator->m_spu->close();
             emulator->m_cdrom->clearIso();
 
@@ -402,6 +422,8 @@ runner.init({
             PCSX::g_emulator = nullptr;
 
             exitCode = system->exitCode();
+            std::signal(SIGINT, sigint);
+            std::signal(SIGTERM, sigterm);
             delete system;
             PCSX::g_system = nullptr;
         });
@@ -441,11 +463,14 @@ runner.init({
                     emulator->m_cpu->Execute();
                 } else {
                     // The "update" method will be called periodically by the emulator while
-                    // meaning if we want our UI to work, we have to manually call "update"
-                    // when the emulator is paused.
+                    // it's running, meaning if we want our UI to work, we have to manually
+                    // call "update" when the emulator is paused.
                     s_ui->update();
                 }
             }
+            system->pause();
+            system->m_eventBus->signal(PCSX::Events::Quitting{});
+            system->purgeAllEvents();
         } catch (...) {
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.

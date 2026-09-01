@@ -46,9 +46,9 @@ flushCache:
        This will let us continue to run from uncached memory, while
        allowing us to access the i-cache. We keep the constant in
        $t2, so we can reuse it later when re-enabling the i-cache. */
-    li    $t5, BIU_CONFIG
+    lui   $t5, %hi(BIU_CONFIG)
     li    $t2, 0x0001e90c
-    sw    $t2, 0($t5)
+    sw    $t2, %lo(BIU_CONFIG)($t5)
 
     /* Isolates the cache, and disables interrupts. */
     li    $t1, 0x10000
@@ -74,7 +74,7 @@ flushCache:
     mtc0  $0, $12
     /* Then, restore the BIU_CONFIG register to 0x0001e988. */
     addiu $t2, 0x7c
-    sw    $t2, 0($t5)
+    sw    $t2, %lo(BIU_CONFIG)($t5)
     /* Finally, restore the cop0 Status register, and return. It
        might be unwise to do the mtc0 in the jr delay slot, in
        case we arrive back at a cop2 instruction, but further

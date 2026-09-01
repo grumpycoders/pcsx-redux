@@ -2,6 +2,7 @@
 // Copyright (c) Electronic Arts Inc. All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
 
+#if 0
 
 #ifndef EASTL_INTERNAL_THREAD_SUPPORT_H
 #define EASTL_INTERNAL_THREAD_SUPPORT_H
@@ -244,3 +245,5 @@ EA_RESTORE_VC_WARNING();
 
 
 #endif // Header include guard
+
+#endif

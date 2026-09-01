@@ -43,10 +43,14 @@ extern fptr __preinit_array_end[] __attribute__((weak));
 extern fptr __init_array_start[] __attribute__((weak));
 extern fptr __init_array_end[] __attribute__((weak));
 
-void main();
+int main(int argc, char** argv);
 
-void cxxmain() {
+void cxxmain(int argc, char** argv) {
     size_t count, i;
+
+#ifdef USE_PCSXMSAN
+    pcsx_initMsan();
+#endif
 
     count = __preinit_array_end - __preinit_array_start;
     for (i = 0; i < count; i++) {
@@ -64,14 +68,42 @@ void cxxmain() {
         }
     }
 
-    main();
+    pcsx_exit(main(argc, argv));
+}
+
+// These two technically aren't part of the standard library requirements, but can
+// be invoked by the freestanding libstdc++, so might as well.
+__attribute__((weak)) size_t strlen(const char* s) {
+    size_t r = 0;
+
+    while (*s++) r++;
+
+    return r;
+}
+
+__attribute__((weak)) const void* memchr(const void* _s, int c, size_t n) {
+    const uint8_t* s = (uint8_t*)_s;
+    size_t i;
+
+    for (i = 0; i < n; i++, s++) {
+        if (*s == c) return s;
+    }
+
+    return NULL;
+}
+
+// std::terminate(), called by the freestanding libstdc++ instead of
+// throwing exceptions, when they are disabled.
+__attribute__((weak)) void _ZSt9terminatev() {
+    pcsx_exit(-1);
+    while (1) asm("");
 }
 
 __attribute__((weak)) void abort() {
     pcsx_debugbreak();
+    pcsx_exit(-1);
     // TODO: make this better
-    while (1)
-        ;
+    while (1) asm("");
 }
 
 // This will be called if a pure virtual function is called, usually mistakenly calling
@@ -129,6 +161,7 @@ __attribute__((section(".preinit_array"))) static fptr pi_heap[] = {
 
 // we're not going to care about exit cleanup
 __attribute__((weak)) void __cxa_atexit(void (*func)(void*), void* arg, void* dso_handle) {}
+__attribute__((weak)) int atexit(void (*func)(void)) { return 0; }
 
 // no, we're not going to have shared libraries
 __attribute__((weak)) void* __dso_handle = NULL;
@@ -197,4 +230,8 @@ __attribute__((weak)) void __cxa_guard_release(uint32_t* guardObject) {
     // And is no longer under construction
     guardObject[1] = 0;
     atomic_signal_fence(memory_order_release);
+}
+
+__attribute__((weak)) void _ZSt24__throw_out_of_range_fmtPKcz(const char* format, ...) {
+    abort();
 }

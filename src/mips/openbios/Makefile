@@ -1,12 +1,12 @@
 BOOT ?= rom
+BOARD ?= psx
 
 TARGET = openbios
 TYPE = bin
 
 SRCS = \
-../common/hardware/sio1.c \
 ../common/psxlibc/fastmemset.s \
-boot/boot.s \
+boot/$(BOARD).s \
 card/backupunit.c \
 card/device.c \
 cdrom/cdrom.c \
@@ -35,6 +35,7 @@ kernel/threads.c \
 kernel/util.c \
 kernel/vectors.s \
 main/main.c \
+main/splash.c \
 pio/pio.c \
 shell/shell.c \
 sio0/busyloop.s \
@@ -85,6 +86,39 @@ uC-sdk-glue/init.c \
 ../../../third_party/uC-sdk/os/src/init.c \
 ../../../third_party/uC-sdk/os/src/osdebug.c \
 
+# Ensure all files are always cleaned up.
+CLEANSRCS = \
+boot/psx.s \
+boot/system573.s \
+boot/zn1.s \
+boot/zn2.s \
+\
+font1.o \
+font2.o \
+./psexe_data.o \
+
+ifeq ($(MAKECMDGOALS),clean)
+SRCS += $(CLEANSRCS)
+endif
+ifeq ($(MAKECMDGOALS),deepclean)
+SRCS += $(CLEANSRCS)
+endif
+
+CPPFLAGS =
+
+ifneq ($(BOARD),psx)
+# Disable cheat cart builds and CD-ROM/shell support for arcade boards.
+BOOT = rom
+BOOT_MODE = psexe
+ifeq ($(BOARD),system573)
+CPPFLAGS += -DOPENBIOS_BOARD_SYS573
+else ifeq ($(BOARD),zn1)
+CPPFLAGS += -DOPENBIOS_BOARD_ZN1
+else ifeq ($(BOARD),zn2)
+CPPFLAGS += -DOPENBIOS_BOARD_ZN2
+endif
+endif
+
 ifeq ($(BOOT),rom)
 LDSCRIPT = $(ROOTDIR)openbios/psx-bios.ld
 SRCS += font1.o font2.o
@@ -92,7 +126,7 @@ else
 LDSCRIPT = $(ROOTDIR)openbios/psx-bios-as-cart.ld
 endif
 
-CPPFLAGS = -DNOFLOATINGPOINT -DXPRINTFNOALLOC -DXPRINTFNOSTDIO
+CPPFLAGS += -DNOFLOATINGPOINT -DXPRINTFNOALLOC -DXPRINTFNOSTDIO
 CPPFLAGS += -I../../../third_party/uC-sdk/libc/include
 CPPFLAGS += -I../../../third_party/uC-sdk/os/include
 CPPFLAGS += -IuC-sdk-glue
@@ -103,7 +137,17 @@ SRCS += ./psexe_data.o
 endif
 
 ifneq ($(FASTBOOT),)
-CPPFLAGS += -DOPENBIOS_FASTBOOT
+BOOT_MODE ?= fast
+endif
+
+ifeq ($(BOOT_MODE),fast)
+CPPFLAGS += -DOPENBIOS_BOOT_MODE_NO_SHELL
+else ifeq ($(BOOT_MODE),psexe)
+CPPFLAGS += -DOPENBIOS_BOOT_MODE_NO_SHELL -DOPENBIOS_BOOT_MODE_NO_CDROM
+endif
+
+ifneq ($(SPLASH_SCREEN),)
+CPPFLAGS += -DOPENBIOS_SHOW_SPLASH_SCREEN
 endif
 
 ifneq ($(INSTALL_TTY_CONSOLE),)
@@ -114,9 +158,12 @@ include ../common.mk
 
 ../shell/shell_data.o: shell
 
+# The executable is aligned to 32 bytes in order to make it easier for tools and
+# homebrew apps to locate it by searching the ROM.
 ./psexe_data.o: $(EMBED_PSEXE)
 	cp $(EMBED_PSEXE) psexe.bin
-	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
+	$(PREFIX)-objcopy -I binary --set-section-alignment .data=32 --rename-section .data=.rodata,alloc,load,readonly,data,contents -O $(FORMAT) -B mips psexe.bin psexe_data.o
+	rm -f psexe.bin
 
 ./font1.o: charset/font1.raw
 	$(PREFIX)-objcopy -I binary --set-section-alignment .data=4 --rename-section .data=.font1,alloc,load,readonly,data,contents -O $(FORMAT) -B mips charset/font1.raw font1.o

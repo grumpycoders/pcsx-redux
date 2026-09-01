@@ -694,7 +694,8 @@ void PCSX::SPU::impl::MainThread() {
                         //////////////////////////////////////////////
                         // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 
-                        if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value && !pChannel->data.get<PCSX::SPU::Chan::Solo>().value)
+                        if (pChannel->data.get<PCSX::SPU::Chan::Mute>().value &&
+                            !pChannel->data.get<PCSX::SPU::Chan::Solo>().value)
                             pChannel->data.get<PCSX::SPU::Chan::sval>().value = 0;  // debug mute
                         else {
                             SSumL[ns] += (pChannel->data.get<PCSX::SPU::Chan::sval>().value *
@@ -796,8 +797,8 @@ void PCSX::SPU::impl::MainThread() {
             bool done = false;
             while (!done) {
                 done =
-                    m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(pSpuBuffer),
-                                              (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(MiniAudio::Frame));
+                    m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(pSpuBuffer),
+                                              (((uint8_t *)pS) - ((uint8_t *)pSpuBuffer)) / sizeof(SDLAudio::Frame));
                 if (bEndThread) {
                     bThreadEnded = 1;
                     return;

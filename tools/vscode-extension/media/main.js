@@ -87,6 +87,7 @@ import {
             const panelTab = document.createElement('vscode-panel-tab')
             panelTab.textContent = category
             panels.appendChild(panelTab)
+            templateKeys // Suppress unused variable warning
           }
           for (const [category, templateKeys] of Object.entries(categories)) {
             const panel = document.createElement('vscode-panel-view')
@@ -295,6 +296,11 @@ import {
     document.getElementById('restore-psyq').addEventListener('click', () => {
       vscode.postMessage({ command: 'restorePsyq' })
     })
+    document
+      .getElementById('restore-python-env')
+      .addEventListener('click', () => {
+        vscode.postMessage({ command: 'restorePythonEnv' })
+      })
     document.getElementById('update-modules').addEventListener('click', () => {
       vscode.postMessage({ command: 'updateModules' })
     })

@@ -32,7 +32,4 @@ void BoardLateInit() {}
 
 void BoardShutdown() {}
 
-void BoardExceptionHandler(int code) {
-    while (1)
-        ;
-}
+void BoardExceptionHandler(int code) { while (1); }

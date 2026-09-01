@@ -148,18 +148,18 @@ void PCSX::CallStacks::storeRA(uint32_t sp, uint32_t ra) {
 
 void PCSX::CallStacks::loadRA(uint32_t sp) {
     if (!m_current) {
-        normalLog("[CS] Got a RA load from 0x%08x, but we don't have any active stack.\n", sp);
+        debugLog("[CSDBG] Got a RA load from 0x%08x, but we don't have any active stack.\n", sp);
         return;
     }
     auto& calls = m_current->calls;
     if (calls.size() == 0) {
-        normalLog("[CS] Got a RA load from 0x%08x, but current stack is empty.\n", sp);
+        debugLog("[CSDBG] Got a RA load from 0x%08x, but current stack is empty.\n", sp);
         return;
     }
     auto last = --calls.end();
     if (last->sp != sp) {
-        normalLog("[CS] Got a RA load from 0x%08x, but the active stack's at 0x%08x (ra: 0x%08x, size = %i)\n", sp,
-                  last->sp, last->ra, calls.size());
+        debugLog("[CSDBG] Got a RA load from 0x%08x, but the active stack's at 0x%08x (ra: 0x%08x, size = %i)\n", sp,
+                 last->sp, last->ra, calls.size());
     }
 }
 

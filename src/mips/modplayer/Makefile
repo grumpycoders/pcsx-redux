@@ -3,6 +3,8 @@ TYPE = ps-exe
 
 SRCS = \
 ../common/crt0/crt0.s \
+../common/crt0/memory-c.c \
+../common/crt0/memory-s.s \
 ../common/syscalls/printf.s \
 demo.c \
 modplayer.c \

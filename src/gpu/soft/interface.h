@@ -28,7 +28,7 @@ class UI;
 
 namespace SoftGPU {
 
-class impl final : public GPU, public SoftRenderer {
+class impl final : public GPU, private SoftRenderer {
     int32_t initBackend(UI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
@@ -89,7 +89,6 @@ class impl final : public GPU, public SoftRenderer {
 
     UI *m_ui;
 
-    int32_t m_dataRet;
     bool m_doVSyncUpdate = false;
     SoftDisplay m_previousDisplay;
     unsigned char *m_allocatedVRAM;
@@ -197,7 +196,6 @@ class impl final : public GPU, public SoftRenderer {
     void write1(CtrlHorizontalDisplayRange *) override;
     void write1(CtrlVerticalDisplayRange *) override;
     void write1(CtrlDisplayMode *) override;
-    void write1(CtrlQuery *) override;
 };
 
 }  // namespace SoftGPU

@@ -964,7 +964,7 @@
 #define gte_gpf12_b() __asm__ volatile("cop2 0x0198003D;")
 #define gte_gpf0_b() __asm__ volatile("cop2 0x0190003D;")
 #define gte_gpl12_b() __asm__ volatile("cop2 0x01A8003E;")
-#define gte_gpl0_b() __asm__ volatile("cop2 0x01A0003E0;")
+#define gte_gpl0_b() __asm__ volatile("cop2 0x01A0003E;")
 #define gte_mvmva_core_b(r0) __asm__ volatile("cop2 %0" : : "g"(r0))
 #define gte_mvmva_b(sf, mx, v, cv, lm) \
     gte_mvmva_core_b(0x0400012 | ((sf) << 19) | ((mx) << 17) | ((v) << 15) | ((cv) << 13) | ((lm) << 10))

@@ -232,7 +232,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                                 if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
                                 break;
                             case WAITING_MSGSTRTOKEN:
-                                hashValue = djbHash::hash(currentString);
+                                hashValue = djb::hash(currentString);
                                 break;
                         }
                         currentString = "";
@@ -298,7 +298,7 @@ bool PCSX::System::findResource(std::function<bool(const std::filesystem::path& 
 }
 
 std::filesystem::path PCSX::System::getPersistentDir() const {
-    if (getArgs().isPortable()) return "";
+    if (getArgs().isPortable()) return getArgs().getPortablePath();
 #ifdef _WIN32
     char* homeDir;
     auto ret = _dupenv_s(&homeDir, nullptr, "APPDATA");

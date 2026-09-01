@@ -21,8 +21,8 @@
 
 #if defined(DYNAREC_AA64)
 #include "core/gte.h"
-#define COP2_CONTROL_OFFSET(reg) ((uintptr_t)&m_regs.CP2C.r[(reg)] - (uintptr_t)this)
-#define COP2_DATA_OFFSET(reg) ((uintptr_t)&m_regs.CP2D.r[(reg)] - (uintptr_t)this)
+#define COP2_CONTROL_OFFSET(reg) ((uintptr_t) & m_regs.CP2C.r[(reg)] - (uintptr_t)this)
+#define COP2_DATA_OFFSET(reg) ((uintptr_t) & m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
 void DynaRecCPU::recCOP2(uint32_t code) {
     const auto func = m_recGTE[code & 0x3f];  // Look up the opcode in our decoding LUT
@@ -185,13 +185,10 @@ void DynaRecCPU::recMTC2(uint32_t code) {
 
 static uint32_t MFC2Wrapper(int reg) { return PCSX::g_emulator->m_gte->MFC2(reg); }
 
-void DynaRecCPU::recMFC2(uint32_t code) {
-    if (_Rt_) {
-        allocateRegWithoutLoad(_Rt_);
-        m_gprs[_Rt_].setWriteback(true);
-    }
-
-    switch (_Rd_) {
+// Read a COP2 data register into "dest", applying the sign/zero extension quirks the register file has.
+// Note that this can emit a call for IRGB/ORGB, so "dest" must not be a register the allocator might spill.
+void DynaRecCPU::loadGTEDataRegister(Register dest, int index) {
+    switch (index) {
         case 1:
         case 3:
         case 5:
@@ -199,9 +196,7 @@ void DynaRecCPU::recMFC2(uint32_t code) {
         case 9:
         case 10:
         case 11:
-            if (_Rt_) {
-                gen.Ldrsh(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
-            }
+            gen.Ldrsh(dest, MemOperand(contextPointer, COP2_DATA_OFFSET(index)));
             break;
 
         case 7:
@@ -209,44 +204,81 @@ void DynaRecCPU::recMFC2(uint32_t code) {
         case 17:
         case 18:
         case 19:
-            if (_Rt_) {
-                gen.Ldrh(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
-            }
+            gen.Ldrh(dest, MemOperand(contextPointer, COP2_DATA_OFFSET(index)));
             break;
 
         case 15:  // Return SXY2 from SXYP
-            if (_Rt_) {
-                gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
-            }
+            gen.Ldr(dest, MemOperand(contextPointer, COP2_DATA_OFFSET(14)));
             break;
 
         case 28:
         case 29:  // Fallback for IRGB/ORGB
-            gen.Mov(arg1, _Rd_);
+            gen.Mov(arg1, index);
             call(MFC2Wrapper);  // result in w0
-
-            if (_Rt_) {
-                allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
-                m_gprs[_Rt_].setWriteback(true);
-                gen.Mov(m_gprs[_Rt_].allocatedReg, w0);
-            }
+            gen.Mov(dest, w0);
             break;
 
         default:
-            if (_Rt_) {
-                gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_DATA_OFFSET(_Rd_)));
-            }
+            gen.Ldr(dest, MemOperand(contextPointer, COP2_DATA_OFFSET(index)));
+            break;
+    }
+}
+
+void DynaRecCPU::recMFC2(uint32_t code) {
+    if (!_Rt_) {
+        // Reading IRGB/ORGB has side effects, so it still has to happen even with the result thrown away
+        if (_Rd_ == 28 || _Rd_ == 29) {
+            gen.Mov(arg1, _Rd_);
+            call(MFC2Wrapper);
+        }
+        return;
+    }
+
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        loadGTEDataRegister(w0, _Rd_);
+        storeDelayedLoad(_Rt_, loadDelayDependency);
+        return;
+    }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
+    allocateRegWithoutLoad(_Rt_);
+    m_gprs[_Rt_].setWriteback(true);
+
+    switch (_Rd_) {
+        // Fallback for IRGB/ORGB. Can't use loadGTEDataRegister for these because the call might unallocate $rt
+        case 28:
+        case 29:
+            gen.Mov(arg1, _Rd_);
+            call(MFC2Wrapper);  // result in w0
+
+            allocateRegWithoutLoad(_Rt_);  // Reallocate the reg in case the call thrashed it
+            m_gprs[_Rt_].setWriteback(true);
+            gen.Mov(m_gprs[_Rt_].allocatedReg, w0);
+            break;
+
+        default:
+            loadGTEDataRegister(m_gprs[_Rt_].allocatedReg, _Rd_);
             break;
     }
 }
 
 void DynaRecCPU::recCFC2(uint32_t code) {
-    if (_Rt_) {
-        maybeCancelDelayedLoad(_Rt_);
-        allocateRegWithoutLoad(_Rt_);
-        m_gprs[_Rt_].setWriteback(true);
-        gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+    if (!_Rt_) return;
+
+    const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
+    if (loadDelayDependency != LoadDelayDependencyType::NoDependency) {
+        gen.Ldr(w0, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
+        storeDelayedLoad(_Rt_, loadDelayDependency);
+        return;
     }
+
+    // If we won't emulate the load delay, make sure to cancel any pending loads that might trample the value
+    maybeCancelDelayedLoad(_Rt_);
+    allocateRegWithoutLoad(_Rt_);
+    m_gprs[_Rt_].setWriteback(true);
+    gen.Ldr(m_gprs[_Rt_].allocatedReg, MemOperand(contextPointer, COP2_CONTROL_OFFSET(_Rd_)));
 }
 
 void DynaRecCPU::recLWC2(uint32_t code) {

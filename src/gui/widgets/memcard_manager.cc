@@ -352,7 +352,7 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
 
-    ImGui::Image(reinterpret_cast<ImTextureID*>(texture), ImVec2(m_iconSize, m_iconSize));
+    ImGui::Image(texture, ImVec2(m_iconSize, m_iconSize));
 }
 
 // Extract the pocketstation icon from the block indicated by blockNumber into the pixels array (In RGBA8888)

@@ -34,6 +34,7 @@ struct LuaBreakpoint {
     PCSX::Debug::BreakpointUserListType wrapper;
 };
 
+uint64_t getCPUCycles() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 void* getMemPtr() { return PCSX::g_emulator->m_mem->m_wram; }
 void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
@@ -46,7 +47,7 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label) {
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint ") + cause, label,
+        address, type, width, std::string("Lua Breakpoint"), cause,
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
@@ -112,7 +113,7 @@ PCSX::Slice* createSaveState() {
 void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
 
 void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
-    auto data = file->file->readAt(file->file->size(), 0);
+    auto data = file->file->readAt(64 * 1024 * 1024, 0);
     PCSX::SaveStates::load(data.asStringView());
 }
 
@@ -137,6 +138,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("PCSX");
     L.newtable();
+    REGISTER(L, getCPUCycles);
     REGISTER(L, getMemPtr);
     REGISTER(L, getParPtr);
     REGISTER(L, getRomPtr);
@@ -176,6 +178,9 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     registerAllSymbols(L);
     L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
+    L.push("execSlots");
+    L.newtable();
+    L.settable();
     L.declareFunc(
         "getSaveStateProtoSchema",
         [](lua_State* L_) -> int {

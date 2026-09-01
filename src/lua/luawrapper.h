@@ -24,7 +24,9 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
+#include "fmt/printf.h"
 #include "json.hpp"
 #include "lua.hpp"
 #include "support/ssize_t.h"
@@ -177,6 +179,10 @@ class Lua {
     int gettop() { return lua_gettop(L); }
     void pushLuaContext(bool inTable = false);
     int error(std::string_view msg);
+    template <typename... Args>
+    int error(const char* format, Args&&... args) {
+        return error(fmt::sprintf(format, std::forward<Args>(args)...));
+    }
 
     int type(int i = -1) { return lua_type(L, i); }
     const char* typestring(int i = -1) { return lua_typename(L, lua_type(L, i)); }

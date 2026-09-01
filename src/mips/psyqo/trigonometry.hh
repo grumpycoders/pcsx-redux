@@ -81,7 +81,7 @@ class Trig {
      * @param a The angle to calculate the cosine of.
      * @return FixedPoint<precisionBits> The cosine of the angle.
      */
-    FixedPoint<precisionBits> cos(Angle a) const {
+    constexpr FixedPoint<precisionBits> cos(Angle a) const {
         using namespace trig_literals;
         uint32_t t = a.value;
 
@@ -110,7 +110,7 @@ class Trig {
      * @param a The angle to calculate the sine of.
      * @return FixedPoint<precisionBits> The sine of the angle.
      */
-    FixedPoint<precisionBits> sin(Angle a) const {
+    constexpr FixedPoint<precisionBits> sin(Angle a) const {
         using namespace trig_literals;
         return cos(a - 0.5_pi);
     }

@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <functional>
+#include <magic_enum/magic_enum_all.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -31,16 +32,54 @@
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "support/eventbus.h"
 #include "support/file.h"
 #include "support/list.h"
 #include "support/opengl.h"
+#include "support/polyfills.h"
 #include "support/slice.h"
 
 namespace PCSX {
 class UI;
 struct SaveStateWrapper;
+
+// GP0 / GP1 packet-layout constants. Each constant names the bit-field
+// width that the PSX protocol assigns to a particular packet payload
+// slot. The packet constructors and the GP0 command dispatcher decode
+// these slots with `value & mask` / `(value >> shift) & mask` shapes;
+// the constants below give those expressions hardware-anchored names
+// without changing the constructor logic. The raw env-packet preserve
+// sites (m_textureWindowRaw, m_drawingStartRaw, m_drawingEndRaw,
+// m_drawingOffsetRaw) keep their inline literals because they are
+// protocol-visible logging fields rather than decoded math.
+
+// GP0 command words carry the command byte in bits 24..28 and the
+// payload in bits 0..23. The 24-bit payload mask is the wire shape
+// shared by every env-class packet constructor.
+static constexpr uint32_t c_PacketInfoMask = 0x00ffffff;
+
+// Coordinate field widths. PSX vertex coordinates pack as 11-bit
+// signed values (sign-extended after extraction); draw-area positions
+// pack as 10-bit X / 9-bit Y; horizontal display range as 12-bit X
+// pairs; CLUT selectors as 6-bit X / 9-bit Y; texture-window fields
+// as 5-bit selectors.
+static constexpr uint32_t c_Coord9Mask = 0x1ff;
+static constexpr uint32_t c_Coord10Mask = 0x3ff;
+static constexpr uint32_t c_Coord11Mask = 0x7ff;
+static constexpr uint32_t c_Coord12Mask = 0xfff;
+static constexpr uint32_t c_ClutXFieldMask = 0x3f;
+static constexpr uint32_t c_ClutYFieldMask = c_Coord9Mask;
+static constexpr uint32_t c_TWindowFieldMask = 0x1f;
+
+// Field shifts. The CLUT half-word packs X at bits 0..5 and Y at bits
+// 6..14. The DrawingOffset packs X at bits 0..10 and Y at bits 11..21.
+// The DrawingArea positions pack X at bits 0..9 and Y at bits 10..18.
+// The horizontal display range packs x0 at bits 0..11 and x1 at bits
+// 12..23.
+static constexpr int c_ClutYShift = 6;
+static constexpr int c_DrawingOffsetYShift = 11;
+static constexpr int c_DrawingAreaYShift = 10;
+static constexpr int c_HorizDisplayRangeX1Shift = 12;
 
 class GPU {
   public:
@@ -104,6 +143,7 @@ class GPU {
     virtual void setDither(int setting) = 0;
     void reset() {
         resetBackend();
+        m_dataRet = 0;
         m_readFifo->reset();
         m_processor->reset();
         m_defaultProcessor.setActive();
@@ -154,16 +194,22 @@ class GPU {
     struct Logged : public LoggedList::Node {
         enum class Origin { DATAWRITE, CTRLWRITE, DIRECT_DMA, CHAIN_DMA, REPLAY };
         enum class PixelOp { READ, WRITE };
+        struct DrawLogSettings {
+            enum class ColorFormat { Expanded, HTML, None };
+            ColorFormat colorFormat = ColorFormat::Expanded;
+        };
 
         typedef std::function<void(OpenGL::ivec2, OpenGL::ivec2, OpenGL::ivec2)> AddTri;
 
         virtual ~Logged() {}
         virtual std::string_view getName() = 0;
-        virtual void drawLogNode(unsigned n) = 0;
+        virtual void drawLogNode(unsigned itemIndex, const DrawLogSettings &) = 0;
+        void drawColorBox(uint32_t color, unsigned itemIndex, unsigned colorIndex, const DrawLogSettings &settings);
         virtual void execute(GPU *) = 0;
         virtual void generateStatsInfo() = 0;
         virtual void cumulateStats(GPUStats *) = 0;
         virtual void getVertices(AddTri &&, PixelOp) = 0;
+        virtual bool isInside(unsigned x, unsigned y) { return false; }
         void addLine(AddTri &&, int x1, int y1, int x2, int y2);
 
         uint64_t frame;
@@ -174,6 +220,10 @@ class GPU {
 
         bool enabled = true;
         bool highlight = false;
+
+      protected:
+        static bool isInsideTriangle(int x, int y, int x1, int y1, int x2, int y2, int x3, int y3);
+        static bool isInsideLine(int x, int y, int x1, int y1, int x2, int y2);
     };
 
   private:
@@ -235,37 +285,19 @@ class GPU {
     template <typename T, T wMax = 1024, T hMax = 512>
     static bool clip(T &x, T &y, T &w, T &h) {
         bool clipped = false;
-        if (x >= wMax || y >= hMax) {
-            x = wMax;
-            y = hMax;
-            if ((w != 0) || (h != 0)) {
-                w = h = 0;
-                return true;
-            }
-            return false;
-        }
-        if (x < 0) {
-            clipped = true;
-            w += x;
-            x = 0;
-        }
-        if (y < 0) {
-            clipped = true;
-            h += y;
-            y = 0;
-        }
-        if (w < 0 || h < 0) {
-            h = w = 0;
-            return true;
-        }
+        x %= wMax;
+        y %= hMax;
+
         if (x + w > wMax) {
+            x = 0;
             clipped = true;
-            w = wMax - x;
         }
+
         if (y + h > hMax) {
+            y = 0;
             clipped = true;
-            h = hMax - y;
         }
+
         return clipped;
     }
 
@@ -285,9 +317,11 @@ class GPU {
     };
     enum class TexDepth { Tex4Bits, Tex8Bits, Tex16Bits };
 
+    struct EmptyColor {};
+
     struct ClearCache final : public Logged {
         std::string_view getName() override { return "Clear Cache"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -296,7 +330,7 @@ class GPU {
 
     struct FastFill final : public Command, public Logged {
         std::string_view getName() override { return "Fast Fill"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -304,6 +338,9 @@ class GPU {
         FastFill(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
+        bool isInside(unsigned x, unsigned y) override {
+            return (x >= this->x) && (y >= this->y) && (x < this->x + this->w) && (y < this->y + this->h);
+        }
 
         uint32_t color;
         unsigned x, y, w, h;
@@ -320,7 +357,7 @@ class GPU {
 
     struct BlitVramVram final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to VRAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -328,6 +365,9 @@ class GPU {
         BlitVramVram(GPU *parent) : Command(parent) {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COMMAND; }
+        bool isInside(unsigned x, unsigned y) override {
+            return (x >= this->dX) && (y >= this->dY) && (x < this->dX + this->w) && (y < this->dY + this->h);
+        }
 
         unsigned sX, sY, dX, dY, w, h;
 
@@ -343,7 +383,7 @@ class GPU {
 
     struct BlitRamVram final : public Command, public Logged {
         std::string_view getName() override { return "RAM to VRAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override;
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -363,6 +403,9 @@ class GPU {
             m_state = READ_COMMAND;
             m_data.clear();
         }
+        bool isInside(unsigned x, unsigned y) override {
+            return (x >= this->x) && (y >= this->y) && (x < this->x + this->w) && (y < this->y + this->h);
+        }
 
         unsigned x, y, w, h;
         Slice data;
@@ -380,7 +423,7 @@ class GPU {
 
     struct BlitVramRam final : public Command, public Logged {
         std::string_view getName() override { return "VRAM to RAM blit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -402,7 +445,7 @@ class GPU {
 
     struct TPage : public Logged {
         std::string_view getName() override { return "Texture Page"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void drawLogNodeCommon();
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
@@ -426,7 +469,7 @@ class GPU {
 
     struct TWindow : public Logged {
         std::string_view getName() override { return "Texture Window"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -442,7 +485,7 @@ class GPU {
 
     struct DrawingAreaStart : public Logged {
         std::string_view getName() override { return "Drawing Area Start"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -457,7 +500,7 @@ class GPU {
 
     struct DrawingAreaEnd : public Logged {
         std::string_view getName() override { return "Drawing Area End"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -472,7 +515,7 @@ class GPU {
 
     struct DrawingOffset : public Logged {
         std::string_view getName() override { return "Drawing Offset"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -488,7 +531,7 @@ class GPU {
 
     struct MaskBit : public Logged {
         std::string_view getName() override { return "Mask Bit"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -505,7 +548,7 @@ class GPU {
         static constexpr unsigned count = shape == Shape::Tri ? 3 : 4;
 
         std::string_view getName() override { return "Polygon"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
@@ -516,26 +559,46 @@ class GPU {
             m_state = READ_COLOR;
             m_count = 0;
         }
+        bool isInside(unsigned x, unsigned y) override {
+            if constexpr (shape == Shape::Tri) {
+                return isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
+                                        this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y);
+            } else {
+                return isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
+                                        this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y) ||
+                       isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[2] + offset.x,
+                                        this->y[2] + offset.y, this->x[3] + offset.x, this->y[3] + offset.y);
+            }
+        }
         uint32_t colors[count];
         int x[count], y[count];
         struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]] TextureUnitType u[count];
-        [[no_unique_address]] TextureUnitType v[count];
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        struct EmptyU {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyU>::type TextureUnitTypeU;
+        struct EmptyV {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyV>::type TextureUnitTypeV;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeU u[count];
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeV v[count];
+        struct EmptyTPage {};
+        POLYFILL_NO_UNIQUE_ADDRESS typename std::conditional<textured == Textured::Yes, TPage, EmptyTPage>::type tpage;
+        struct EmptyTWindow {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, TWindow, EmptyTWindow>::type twindow;
+        struct EmptyClutRAW {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, uint16_t, EmptyClutRAW>::type clutraw;
         DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {
-                return (clutraw & 0x3f) * 16;
+                return (clutraw & c_ClutXFieldMask) * 16;
             } else {
                 return {};
             }
         }
         TextureUnitType clutY() {
             if constexpr (textured == Textured::Yes) {
-                return (clutraw >> 6) & 0x1ff;
+                return (clutraw >> c_ClutYShift) & c_ClutYFieldMask;
             } else {
                 return {};
             }
@@ -550,7 +613,7 @@ class GPU {
     template <Shading shading, LineType lineType, Blend blend>
     struct Line final : public Command, public Logged {
         std::string_view getName() override { return "Line"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override;
         void cumulateStats(GPUStats *) override;
@@ -569,6 +632,20 @@ class GPU {
                 colors.clear();
             }
         }
+        bool isInside(unsigned x, unsigned y) override {
+            if constexpr (lineType == LineType::Simple) {
+                return isInsideLine(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
+                                    this->y[1] + offset.y);
+            } else {
+                for (unsigned i = 0; i < this->x.size(); i++) {
+                    if (isInsideLine(x, y, this->x[i] + offset.x, this->y[i] + offset.y,
+                                     this->x[(i + 1) % this->x.size()] + offset.x,
+                                     this->y[(i + 1) % this->y.size()] + offset.y))
+                        return true;
+                }
+                return false;
+            }
+        }
 
         template <typename T>
         using Storage = typename std::conditional<lineType == LineType::Poly, std::vector<T>, std::array<T, 2>>::type;
@@ -580,14 +657,15 @@ class GPU {
       private:
         GPUStats stats;
         struct Empty {};
-        [[no_unique_address]] typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<lineType == LineType::Simple, unsigned, Empty>::type m_count;
         enum { READ_COLOR, READ_XY } m_state = READ_COLOR;
     };
 
     template <Size size, Textured textured, Blend blend, Modulation modulation>
     struct Rect final : public Command, public Logged {
         std::string_view getName() override { return "Rectangle"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write0(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override;
@@ -595,29 +673,42 @@ class GPU {
         Rect() {}
         void processWrite(Buffer &, Logged::Origin, uint32_t value, uint32_t length) override;
         void reset() override { m_state = READ_COLOR; }
+        bool isInside(unsigned x, unsigned y) override {
+            return (x >= (this->x + offset.x)) && (y >= (this->y + offset.y)) && (x < (this->x + offset.x) + this->w) &&
+                   (y < (this->y + offset.y) + this->h);
+        }
 
-        struct Empty {};
         int x, y, w, h;
+        struct Empty {};
         typedef typename std::conditional<textured == Textured::Yes, unsigned, Empty>::type TextureUnitType;
-        [[no_unique_address]]
-        typename std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t, Empty>::type
-            color;
-        [[no_unique_address]] TextureUnitType u;
-        [[no_unique_address]] TextureUnitType v;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TPage, Empty>::type tpage;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, TWindow, Empty>::type twindow;
-        [[no_unique_address]] typename std::conditional<textured == Textured::Yes, uint16_t, Empty>::type clutraw;
+        struct EmptyU {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyU>::type TextureUnitTypeU;
+        struct EmptyV {};
+        typedef typename std::conditional<textured == Textured::Yes, unsigned, EmptyV>::type TextureUnitTypeV;
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<(textured == Textured::No) || (modulation == Modulation::On), uint32_t,
+                                  EmptyColor>::type color;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeU u;
+        POLYFILL_NO_UNIQUE_ADDRESS TextureUnitTypeV v;
+        struct EmptyTPage {};
+        POLYFILL_NO_UNIQUE_ADDRESS typename std::conditional<textured == Textured::Yes, TPage, EmptyTPage>::type tpage;
+        struct EmptyTWindow {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, TWindow, EmptyTWindow>::type twindow;
+        struct EmptyClutRAW {};
+        POLYFILL_NO_UNIQUE_ADDRESS
+        typename std::conditional<textured == Textured::Yes, uint16_t, EmptyClutRAW>::type clutraw;
         DrawingOffset offset;
         TextureUnitType clutX() {
             if constexpr (textured == Textured::Yes) {
-                return (clutraw & 0x3f) * 16;
+                return (clutraw & c_ClutXFieldMask) * 16;
             } else {
                 return {};
             }
         }
         TextureUnitType clutY() {
             if constexpr (textured == Textured::Yes) {
-                return (clutraw >> 6) & 0x1ff;
+                return (clutraw >> c_ClutYShift) & c_ClutYFieldMask;
             } else {
                 return {};
             }
@@ -629,7 +720,7 @@ class GPU {
 
     struct CtrlReset : public Logged {
         std::string_view getName() override { return "Reset"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -637,7 +728,7 @@ class GPU {
     };
     struct CtrlClearFifo : public Logged {
         std::string_view getName() override { return "Clear Fifo"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -645,7 +736,7 @@ class GPU {
     };
     struct CtrlIrqAck : public Logged {
         std::string_view getName() override { return "IRQ Ack"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override {}
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -653,7 +744,7 @@ class GPU {
     };
     struct CtrlDisplayEnable : public Logged {
         std::string_view getName() override { return "Display Enable"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -666,7 +757,7 @@ class GPU {
     };
     struct CtrlDmaSetting : public Logged {
         std::string_view getName() override { return "DMA Setting"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -679,12 +770,12 @@ class GPU {
     };
     struct CtrlDisplayStart : public Logged {
         std::string_view getName() override { return "Display Start"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
-        CtrlDisplayStart(uint32_t value) : x(value & 0x3ff), y((value >> 10) & 0x1ff) {}
+        CtrlDisplayStart(uint32_t value) : x(value & c_Coord10Mask), y((value >> c_DrawingAreaYShift) & c_Coord9Mask) {}
         CtrlDisplayStart(const CtrlDisplayStart &other) = default;
         CtrlDisplayStart(CtrlDisplayStart &&other) = default;
         CtrlDisplayStart &operator=(const CtrlDisplayStart &other) = default;
@@ -692,12 +783,13 @@ class GPU {
     };
     struct CtrlHorizontalDisplayRange : public Logged {
         std::string_view getName() override { return "Horizontal Display Range"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
-        CtrlHorizontalDisplayRange(uint32_t value) : x0(value & 0xfff), x1((value >> 12) & 0xfff) {}
+        CtrlHorizontalDisplayRange(uint32_t value)
+            : x0(value & c_Coord12Mask), x1((value >> c_HorizDisplayRangeX1Shift) & c_Coord12Mask) {}
         CtrlHorizontalDisplayRange(const CtrlHorizontalDisplayRange &other) = default;
         CtrlHorizontalDisplayRange(CtrlHorizontalDisplayRange &&other) = default;
         CtrlHorizontalDisplayRange &operator=(const CtrlHorizontalDisplayRange &other) = default;
@@ -705,12 +797,13 @@ class GPU {
     };
     struct CtrlVerticalDisplayRange : public Logged {
         std::string_view getName() override { return "Vertical Display Range"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
-        CtrlVerticalDisplayRange(uint32_t value) : y0(value & 0x3ff), y1((value >> 10) & 0x3ff) {}
+        CtrlVerticalDisplayRange(uint32_t value)
+            : y0(value & c_Coord10Mask), y1((value >> c_DrawingAreaYShift) & c_Coord10Mask) {}
         CtrlVerticalDisplayRange(const CtrlVerticalDisplayRange &other) = default;
         CtrlVerticalDisplayRange(CtrlVerticalDisplayRange &&other) = default;
         CtrlVerticalDisplayRange &operator=(const CtrlVerticalDisplayRange &other) = default;
@@ -718,7 +811,7 @@ class GPU {
     };
     struct CtrlDisplayMode : public Logged {
         std::string_view getName() override { return "Display Mode"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -741,7 +834,7 @@ class GPU {
     };
     struct CtrlQuery : public Logged {
         std::string_view getName() override { return "Query"; }
-        void drawLogNode(unsigned n) override;
+        void drawLogNode(unsigned itemIndex, const DrawLogSettings &) override;
         void execute(GPU *gpu) override { gpu->write1(this); }
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
@@ -802,6 +895,12 @@ class GPU {
     TPage m_lastTPage;
     TWindow m_lastTWindow;
     DrawingOffset m_lastOffset;
+
+    uint32_t m_dataRet = 0;
+    uint32_t m_textureWindowRaw = 0;
+    uint32_t m_drawingStartRaw = 0;
+    uint32_t m_drawingEndRaw = 0;
+    uint32_t m_drawingOffsetRaw = 0;
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;
@@ -899,7 +998,7 @@ class GPU {
     virtual void write1(CtrlHorizontalDisplayRange *) = 0;
     virtual void write1(CtrlVerticalDisplayRange *) = 0;
     virtual void write1(CtrlDisplayMode *) = 0;
-    virtual void write1(CtrlQuery *) = 0;
+    virtual void write1(CtrlQuery *);
 };
 
 }  // namespace PCSX

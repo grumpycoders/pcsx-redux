@@ -6,16 +6,18 @@ In order to develop for the PlayStation1 using the PSYQo library, a modern C++ t
 
 ## Linux
 ### Debian derivatives:
+There's no distribution package for the toolchain, so build it from source:
 
 ```bash
-sudo apt-get install -y make g++-mipsel-linux-gnu
+sudo apt-get install -y make wget bzip2 xz-utils bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev
+sudo bash tools/linux-mips/spawn-compiler.sh
 ```
 
 ### Arch derivatives:
-The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [mipsel-none-elf-binutils](https://aur.archlinux.org/packages/mipsel-none-elf-binutils/) and [mipsel-none-elf-gcc](https://aur.archlinux.org/packages/mipsel-none-elf-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
+trizen -S mipsel-none-elf-binutils mipsel-none-elf-gcc
 ```
 
 ### All other flavors of Unix environments:
@@ -26,8 +28,9 @@ trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
 Using [Homebrew](https://brew.sh/), you can install the mips toolchain after downloading [these two scripts](https://github.com/grumpycoders/pcsx-redux/tree/main/tools/macos-mips) (or cloning the whole PCSX-Redux repository).
 
 ```bash
-brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install nikitabobko/tap/brew-install-path
+brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
 ## Windows
@@ -43,7 +46,7 @@ The computer might need to be rebooted after the installation of this script.
 Next, run the following command to install the proper toolchain and its dependencies:
 
 ```cmd
-mips install 13.2.0
+mips install 16.2.0
 ```
 
 ## Docker

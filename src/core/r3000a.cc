@@ -23,6 +23,8 @@
 
 #include "core/r3000a.h"
 
+#include <magic_enum/magic_enum_all.hpp>
+
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
@@ -33,11 +35,11 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
+#include "supportpsx/memory.h"
 
 int PCSX::R3000Acpu::psxInit() {
     g_system->printf(_("PCSX-Redux booting\n"));
-    g_system->printf(_("Copyright (C) 2019-%i PCSX-Redux authors\n"), 2024);
+    g_system->printf(_("Copyright (C) 2019-%i PCSX-Redux authors\n"), 2025);
     const auto& args = g_system->getArgs();
 
     if (g_emulator->settings.get<Emulator::SettingDynarec>()) {
@@ -140,7 +142,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
-                    if (regs.a1 == 0) {
+                    if (regs.a2 == 0) {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path));
                     } else {
                         file = m_pcdrvFiles.insert(fd, new PCdrvFile(path, FileOps::READWRITE));
@@ -350,7 +352,7 @@ void PCSX::R3000Acpu::branchTest() {
     }
 #endif
 
-    const uint32_t cycle = m_regs.cycle;
+    const uint64_t cycle = m_regs.cycle;
 
     if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();
 
@@ -358,17 +360,17 @@ void PCSX::R3000Acpu::branchTest() {
 
     const uint32_t interrupts = m_regs.interrupt;
 
-    int32_t lowestDistance = std::numeric_limits<int32_t>::max();
-    uint32_t lowestTarget = cycle;
-    uint32_t* targets = m_regs.intTargets;
+    int32_t lowestDistance = std::numeric_limits<int64_t>::max();
+    uint64_t lowestTarget = cycle;
+    uint64_t* targets = m_regs.intTargets;
 
-    if ((interrupts != 0) && (((int32_t)(m_regs.lowestTarget - cycle)) <= 0)) {
+    if ((interrupts != 0) && (m_regs.lowestTarget < cycle)) {
 #define checkAndUpdate(irq, act)                                                          \
     {                                                                                     \
         constexpr uint32_t mask = 1 << irq;                                               \
         if ((interrupts & mask) != 0) {                                                   \
-            uint32_t target = targets[irq];                                               \
-            int32_t dist = target - cycle;                                                \
+            uint64_t target = targets[irq];                                               \
+            int64_t dist = target - cycle;                                                \
             if (dist > 0) {                                                               \
                 if (lowestDistance > dist) {                                              \
                     lowestDistance = dist;                                                \
@@ -433,14 +435,14 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
 }
 
 void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
-    auto r = m_regs.GPR.n;
+    auto& r = m_regs.GPR.n;
 
     switch (call) {
         case 0x03: {  // write
             if (r.a0 != 1) break;
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             uint32_t size = r.a2;
-            m_regs.GPR.n.v0 = size;
+            r.v0 = size;
             memFile->rSeek(r.a1);
             while (size--) {
                 g_system->biosPutc(memFile->getc());
@@ -468,14 +470,14 @@ void PCSX::R3000Acpu::processA0KernelCall(uint32_t call) {
 }
 
 void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
-    auto r = m_regs.GPR.n;
+    auto& r = m_regs.GPR.n;
 
     switch (call) {
         case 0x35: {  // write
             if (r.a0 != 1) break;
             IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
             uint32_t size = r.a2;
-            m_regs.GPR.n.v0 = size;
+            r.v0 = size;
             memFile->rSeek(r.a1);
             while (size--) {
                 g_system->biosPutc(memFile->getc());
@@ -500,4 +502,29 @@ void PCSX::R3000Acpu::processB0KernelCall(uint32_t call) {
             break;
         }
     }
+}
+
+std::pair<const uint32_t, std::string>* PCSX::R3000Acpu::findContainingSymbol(uint32_t addr) {
+    auto symBefore = m_symbols.upper_bound(addr);
+    if (symBefore != m_symbols.begin()) {  // verify there is actually a symbol before addr
+        symBefore--;
+        if (symBefore->first != addr) {
+            PCSX::PSXAddress addrInfo(addr);
+            PCSX::PSXAddress symbolInfo(symBefore->first);
+            if (addrInfo.segment != symbolInfo.segment) {
+                // if the symbol is different and not in the same memory region, it'd be wrong
+                return nullptr;
+            }
+        }
+        return &*symBefore;
+    }
+    return nullptr;
+}
+
+std::string* PCSX::R3000Acpu::getSymbolAt(uint32_t addr) {
+    auto symBefore = m_symbols.find(addr);
+    if (symBefore != m_symbols.end()) {
+        return &symBefore->second;
+    }
+    return nullptr;
 }

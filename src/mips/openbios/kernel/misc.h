@@ -26,4 +26,7 @@ SOFTWARE.
 
 #pragma once
 
+#include <stdint.h>
+
+uint32_t getSystemInfo(int index);
 void setMemSize(int memSize);

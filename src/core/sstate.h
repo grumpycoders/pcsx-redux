@@ -46,7 +46,8 @@ typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("ram"), 
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00080000>, TYPESTRING("rom"), 2> ROM;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00800000>, TYPESTRING("exp1"), 3> EXP1;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00010000>, TYPESTRING("hardware"), 4> HardwareMemory;
-typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, EXP1, HardwareMemory> Memory;
+typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x00200000>, TYPESTRING("sram"), 5> SRAM;
+typedef Protobuf::Message<TYPESTRING("Memory"), RAM, ROM, EXP1, HardwareMemory, SRAM> Memory;
 typedef Protobuf::MessageField<Memory, TYPESTRING("memory"), 3> MemoryField;
 
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 34, TYPESTRING("gpr"), 1> GPR;
@@ -55,7 +56,7 @@ typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp2d"), 3> 
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("cp2c"), 4> CP2C;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pc"), 5> PC;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("code"), 6> Code;
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("cycle"), 7> Cycle;
+typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("cycle"), 7> Cycle;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("interrupt"), 8> Interrupt;
 // skip id 9
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<0x1000>, TYPESTRING("icache_addr"), 10> ICacheAddr;
@@ -75,7 +76,7 @@ typedef Protobuf::Message<TYPESTRING("DelaySlotInfo"), DelaySlotIndex, DelaySlot
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_1"), 14> DelaySlotInfo1;
 typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 15> DelaySlotInfo2;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"), 16> CurrentDelayedLoad;
-typedef Protobuf::RepeatedFieldRef<Protobuf::UInt32, 32, TYPESTRING("interrupt_targets"), 17> IntTargetsField;
+typedef Protobuf::RepeatedFieldRef<Protobuf::UInt64, 32, TYPESTRING("interrupt_targets"), 17> IntTargetsField;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("in_isr"), 18> InISR;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
@@ -255,15 +256,16 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("rate"), 3> RcntRate;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq"), 4> RcntIRQ;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("counter_state"), 5> RcntCounterState;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("irq_state"), 6> RcntIRQState;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle"), 7> RcntCycle;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("cycle_start"), 8> RcntCycleStart;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("cycle"), 7> RcntCycle;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("cycle_start"), 8> RcntCycleStart;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("gate_started"), 9> RcntGateStarted;
 typedef Protobuf::Message<TYPESTRING("Rcnt"), RcntMode, RcntTarget, RcntRate, RcntIRQ, RcntCounterState, RcntIRQState,
-                          RcntCycle, RcntCycleStart>
+                          RcntCycle, RcntCycleStart, RcntGateStarted>
     Rcnt;
 typedef Protobuf::RepeatedField<Rcnt, 4, TYPESTRING("rcnts"), 1> Rcnts;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCount;
 typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("spu_sync_countdown"), 3> SPUSyncCountdown;
-typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
 typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, SPUSyncCountdown, PSXNextCounter> Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 

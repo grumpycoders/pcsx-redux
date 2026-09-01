@@ -23,11 +23,13 @@
 
 #include "core/cdrom.h"
 
+#include <magic_enum/magic_enum_all.hpp>
+
 #include "cdrom/iso9660-reader.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
-#include "magic_enum/include/magic_enum/magic_enum_all.hpp"
 #include "spu/interface.h"
 #include "support/strings-helpers.h"
 
@@ -412,6 +414,8 @@ class CDRomImpl : public PCSX::CDRom {
         } else {
             m_suceeded = m_iso->readTrack(time);
             if (m_suceeded) m_prev = time;
+            PCSX::g_emulator->m_cdromLogger->recordAccess(time.toLBA(), PCSX::CDRomLogger::AccessType::Data,
+                                                          PCSX::g_emulator->m_cpu->m_regs.cycle);
         }
 
         const PCSX::IEC60908b::Sub *sub = m_iso->getBufferSub();
@@ -536,6 +540,8 @@ class CDRomImpl : public PCSX::CDRom {
         }
 
         m_iso->readCDDA(m_setSectorPlay, m_transfer);
+        PCSX::g_emulator->m_cdromLogger->recordAccess(m_setSectorPlay.toLBA(), PCSX::CDRomLogger::AccessType::Audio,
+                                                      PCSX::g_emulator->m_cpu->m_regs.cycle);
         if (!m_irq && !m_stat && (m_mode & (MODE_AUTOPAUSE | MODE_REPORT))) cdrPlayInterrupt_Autopause();
 
         if (!m_play) return;
@@ -580,7 +586,9 @@ class CDRomImpl : public PCSX::CDRom {
 
         if (m_irqRepeated) {
             m_irqRepeated = 0;
-            if (m_eCycle > PCSX::g_emulator->m_cpu->m_regs.cycle) {
+            auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+            auto diff = regs.intTargets[PCSX::PSXINT_CDR] - regs.cycle;
+            if (m_eCycle > diff) {
                 scheduleCDIRQ(m_eCycle);
                 goto finish;
             }
@@ -1289,6 +1297,8 @@ class CDRomImpl : public PCSX::CDRom {
                     CDROM_LOG("Invalid/out of range seek to %02x:%02x:%02x\n", m_param[0], m_param[1], m_param[2]);
                 } else {
                     set_loc.fromBCD(m_param);
+                    PCSX::g_emulator->m_cdromLogger->recordAccess(set_loc.toLBA(), PCSX::CDRomLogger::AccessType::Seek,
+                                                                  PCSX::g_emulator->m_cpu->m_regs.cycle);
 
                     i = m_setSectorPlay.toLBA();
                     i = abs(i - int(set_loc.toLBA()));
@@ -1463,6 +1473,7 @@ class CDRomImpl : public PCSX::CDRom {
                     memFile->write<uint8_t>(m_transfer[m_transferIndex++]);
                     adjustTransferIndex();
                 }
+                PCSX::g_emulator->m_mem->msanDmaWrite(madr, cdsize);
                 if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                         .get<PCSX::Emulator::DebugSettings::Debug>()) {
                     PCSX::g_emulator->m_debug->checkDMAwrite(3, madr, cdsize);
@@ -1493,7 +1504,10 @@ class CDRomImpl : public PCSX::CDRom {
         }
     }
 
-    void getCdInfo(void) { m_setSectorEnd = m_iso->getTD(0); }
+    void getCdInfo(void) {
+        m_setSectorEnd = m_iso->getTD(0);
+        PCSX::g_emulator->m_cdromLogger->setDiscSectors(m_setSectorEnd.toLBA());
+    }
 
     void reset() final {
         m_reg1Mode = 0;
@@ -1602,8 +1616,12 @@ class CDRomImpl : public PCSX::CDRom {
                                     delayedString, m_param[0], m_param[1], m_param[2]);
                 break;
             case CdlPlay:
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc, delayedString,
-                                    m_param[0]);
+                if (m_paramC == 0) {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay\n", pc, delayedString);
+                } else {
+                    PCSX::g_system->log(PCSX::LogClass::CDROM, "%08x [CDROM]%s Command: CdlPlay %i\n", pc,
+                                        delayedString, m_param[0]);
+                }
                 break;
             case CdlSetfilter:
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
