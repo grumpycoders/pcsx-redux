@@ -54,12 +54,20 @@ static constexpr bool debugMode = true;
 
 namespace Internal {
 static inline uint32_t getCop0Status() {
+#ifndef PS1_PC_PORT
     uint32_t r;
     asm("mfc0 %0, $12 ; nop" : "=r"(r));
     return r;
+#else
+    return 0;
+#endif
 }
 
-static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(r)); }
+static inline void setCop0Status(uint32_t r) {
+#ifndef PS1_PC_PORT
+    asm("mtc0 %0, $12 ; nop" : : "r"(r));
+#endif
+}
 
 [[noreturn]] void abort(const char* msg, std::source_location location = std::source_location::current());
 [[noreturn]] void abort();
@@ -72,14 +80,22 @@ static inline void setCop0Status(uint32_t r) { asm("mtc0 %0, $12 ; nop" : : "r"(
  * @details This function is technically equivalent to `enterCriticalSection`.
  * @return false if the critical section was already entered, true otherwise.
  */
-static inline void fastEnterCriticalSection() { asm volatile("mtc0 %0, $12 ; nop ; nop" : : "r"(0x40000000)); }
+static inline void fastEnterCriticalSection() {
+#ifndef PS1_PC_PORT
+    asm volatile("mtc0 %0, $12 ; nop ; nop" : : "r"(0x40000000));
+#endif
+}
 
 /**
  * @brief A faster version of `leaveCriticalSection`.
  *
  * @details This function is technically equivalent to `leaveCriticalSection`.
  */
-static inline void fastLeaveCriticalSection() { asm volatile("mtc0 %0, $12" : : "r"(0x40000401)); }
+static inline void fastLeaveCriticalSection() {
+#ifndef PS1_PC_PORT
+    asm volatile("mtc0 %0, $12" : : "r"(0x40000401));
+#endif
+}
 
 enum class DMA : unsigned {
     MDECin,
@@ -158,6 +174,24 @@ void takeOverKernel();
  * @brief Returns whether the kernel has been taken over.
  */
 bool isKernelTakenOver();
+
+/**
+ * @brief Installs a crash handler for the application.
+ *
+ * @details This function installs a crash handler for the application.
+ * The crash handler will be called when the application crashes, such
+ * when an unhandled exception occurs. It will display a message on the screen
+ * with the crash information, including the exception type, the exception
+ * address, and the value of all the registers at the time of the crash.
+ * The crash handler requires the system font to be uploaded to VRAM, at
+ * the default location (960, 464). If the system font is not available,
+ * the crash handler will not be able to display the message properly.
+ *
+ * As usual, this function should be called from `main`, before handing
+ * over control to the application, it should only be called once, and
+ * its associated cost will only be added to the binary if it is called.
+ */
+void installCrashHandler();
 
 /**
  * @brief Queues an IRQ handler to be called from the exception handler.
@@ -292,6 +326,7 @@ void prepare(Application&);
 void addInitializer(eastl::function<void(Application&)>&& lambda);
 void addOnFrame(eastl::function<void()>&& lambda);
 void beginFrame();
+[[noreturn]] void crashHandler(uint32_t exceptionCode, uint32_t* kernelRegisters);
 }  // namespace Internal
 
 /**

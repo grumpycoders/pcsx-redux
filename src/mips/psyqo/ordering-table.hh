@@ -30,6 +30,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "psyqo/fragment-concept.hh"
+#include "psyqo/fragments.hh"
 #include "psyqo/shared.hh"
 
 namespace psyqo {
@@ -37,8 +38,8 @@ namespace psyqo {
 class GPU;
 
 class OrderingTableBase {
-  protected:
-    static void clear(uint32_t* table, size_t size);
+  public:
+    static void clear(psyqo::Fragments::ChainEntry* table, size_t size);
 };
 
 /**
@@ -56,7 +57,7 @@ class OrderingTableBase {
  * the more precise the sorting will be, but the more memory will be used.
  */
 template <size_t N = 4096, Safe safety = Safe::Yes>
-class OrderingTable : private OrderingTableBase {
+class OrderingTable : public OrderingTableBase {
   public:
     OrderingTable() { clear(); }
 
@@ -84,17 +85,22 @@ class OrderingTable : private OrderingTableBase {
     template <Fragment Frag>
     void insert(Frag& frag, int32_t z) {
         // TODO: cater for big packets
-        uint32_t* table = m_table + 1;
-        uint32_t* head = &frag.head;
+        auto* table = m_table + 1;
         if constexpr (safety == Safe::Yes) {
             z = eastl::clamp(z, int32_t(0), int32_t(N - 1));
         }
-        *head = (frag.getActualFragmentSize() << 24) | table[z];
-        table[z] = reinterpret_cast<uint32_t>(head) & 0xffffff;
+#ifdef PS1_PC_PORT
+        frag.set(table[z].next, frag.getActualFragmentSize());
+        table[z].set(&frag, 0);
+#else
+        frag.set(&table[z], frag.getActualFragmentSize());
+        table[z].head = reinterpret_cast<uint32_t>(&frag) & 0xffffff;
+#endif
     }
 
+    // NOTE: can't use from other classes (PCGPU) otherwise
+    psyqo::Fragments::ChainEntry m_table[N + 1];
   private:
-    uint32_t m_table[N + 1];
     friend class GPU;
 };
 

@@ -33,6 +33,7 @@ SOFTWARE.
     .global psyqoExceptionHandler
     .global psyqoBreakHandler
     .global psyqoExceptionHandlerAdjustFrameCount
+    .global psyqoExceptionHandlerStop
     .type psyqoAssemblyExceptionHandler, @function
 
 /*
@@ -61,7 +62,7 @@ psyqoAssemblyExceptionHandler:
     andi  $a0, 0x3c        /* Test for what kind of exception */
     beq   $a0, $at, .Lbreak /* (a) */
     li    $at, 0x4a        /* Prepare for cop2 test in (b) */
-.Lstop:                    /* Beyond break, psyqo will only support IRQs, aka 0 */
+                           /* Beyond break, psyqo will only support IRQs, aka 0 */
     bnez  $a0, .Lstop      /* Anything else and we just stop - $a0 available again */
     srl   $v1, 24          /* |    (b)                               */
     andi  $v1, 0xfe        /* |_ Test if we were in a cop2 operation */
@@ -87,12 +88,6 @@ psyqoExceptionHandlerAdjustFrameCount:
     jr    $k1              /* Exit the exception handler */
     rfe
 
-.Lbreak:
-    srl   $a0, $v1, 6
-    la    $v1, psyqoBreakHandler
-    b     .LcallCPlusPlus
-    addiu $k1, 4
-
 .LgotIRQs:
     la    $v1, psyqoExceptionHandler
 .LcallCPlusPlus:
@@ -115,6 +110,7 @@ psyqoExceptionHandlerAdjustFrameCount:
     sw    $ra, 0x14c($0)
 
     /* Call the C++ exception or break handler while adjusting the stack */
+    li    $a1, 0
     jalr  $v1
     li    $sp, 0x1000 - 16
 
@@ -140,3 +136,27 @@ psyqoExceptionHandlerAdjustFrameCount:
     lw    $ra, 0x14c($0)
     jr    $k1
     rfe
+
+.Lbreak:
+    srl   $a0, $v1, 6
+    la    $v1, psyqoBreakHandler
+    b     .LsaveMoreRegisters
+    addiu $k1, 4
+
+psyqoExceptionHandlerStop:
+.Lstop:
+    b     .Lstop           /* Infinite loop to stop execution */
+    nop                    /* Replaced with self-modifying code when adding crash screen */
+.LsaveMoreRegisters:
+    sw    $gp, 0x150($0)
+    sw    $s0, 0x154($0)
+    sw    $s1, 0x158($0)
+    sw    $s2, 0x15c($0)
+    sw    $s3, 0x160($0)
+    sw    $s4, 0x164($0)
+    sw    $s5, 0x168($0)
+    sw    $s6, 0x16c($0)
+    sw    $s7, 0x170($0)
+    sw    $fp, 0x174($0)
+    b     .LcallCPlusPlus
+    srl   $a0, $a0, 2

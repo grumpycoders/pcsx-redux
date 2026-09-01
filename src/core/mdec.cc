@@ -480,6 +480,7 @@ void PCSX::MDEC::dma1(uint32_t adr, uint32_t bcr, uint32_t chcr) {
     size *= 4;
     /* I guess the memory speed is limitating */
     dmacnt = size;
+    g_emulator->m_mem->msanDmaWrite(adr, size);
     if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
         g_emulator->m_debug->checkDMAwrite(1, adr, size);
     }

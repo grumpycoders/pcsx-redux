@@ -24,18 +24,43 @@
     forGithubSystems = lib.genAttrs supportedSystems;
   in {
     packages = forAllSystems (system:
-      let pkgs = import nixpkgs { inherit system; };
+    let
+      pkgs = nixpkgs.legacyPackages.${system};
+      cross = import nixpkgs {
+        inherit system;
+        crossSystem = "mipsel-none-elf";
+      };
     in {
+      default = self.packages.${system}.pcsx-redux;
+
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
+          gccMips = cross.buildPackages.gccWithoutTargetLibc;
       };
-      # FIXME: default gets duplicated in githubActions
-      # default = self.packages.${system}.pcsx-redux;
+
+      # Use this one if you want to provide your own bios and don't care for
+      # openbios being bundled in.
+      pcsx-redux-no-bios = pkgs.callPackage ./pcsx-redux.nix {
+          src = self;
+          platforms = lib.systems.flakeExposed;
+          withOpenbios = false;
+          gccMips = null;
+      };
+    });
+
+    devShells = forAllSystems (system: {
+        # Using this as the default dev shell because we probably don't want to
+        # work on mips code, and shouldn't waste time building the mipsel
+        # toolchain.
+        default = self.packages.${system}.pcsx-redux-no-bios;
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = forGithubSystems (system: self.packages.${system});
+      checks = forGithubSystems (system:
+        # Prevent double build
+        builtins.removeAttrs self.packages.${system} ["default"]
+      );
     };
   };
 }

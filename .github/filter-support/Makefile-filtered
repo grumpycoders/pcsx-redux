@@ -1,6 +1,5 @@
 BUILD ?= Release
 DESTDIR ?= /usr/local
-CROSS ?= none
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -23,6 +22,7 @@ CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/ELFIO
 CPPFLAGS += -Ithird_party/fmt/include/
 CPPFLAGS += -Ithird_party/googletest/googletest/include
+CPPFLAGS += -Ithird_party/PEGTL/include
 CPPFLAGS += -Ithird_party/ucl -Ithird_party/ucl/include
 CPPFLAGS += -g
 
@@ -72,10 +72,6 @@ LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 CPPFLAGS += $(CPPFLAGS_$(BUILD)) -pthread
 LDFLAGS += $(LDFLAGS_$(BUILD)) -pthread
 
-ifeq ($(CROSS),arm64)
-    CPPFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-    LDFLAGS += -fPIC -Wl,-rpath-link,/opt/cross/sysroot/usr/lib/aarch64-linux-gnu -L/opt/cross/sysroot/usr/lib/aarch64-linux-gnu
-endif
 
 LD := $(CXX)
 
@@ -85,7 +81,7 @@ SRCS += $(wildcard third_party/cueparser/*.c)
 SRCS += $(wildcard third_party/iec-60908b/*.c)
 SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c
 
-TOOLS = exe2elf exe2iso ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2exe exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 

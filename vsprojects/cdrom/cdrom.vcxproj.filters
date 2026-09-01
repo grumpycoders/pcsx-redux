@@ -66,15 +66,6 @@
     <ClCompile Include="..\..\third_party\cueparser\fileabstract.c">
       <Filter>Source Files\cueparser</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\iec-60908b\edcecc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\third_party\iec-60908b\tables.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\cdrom\iso9660-builder.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\cdrom\cdriso.h">
@@ -87,9 +78,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\cdrom\file.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\cdrom\iso9660-lowlevel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\cdrom\iso9660-highlevel.h">
@@ -106,18 +94,6 @@
     </ClInclude>
     <ClInclude Include="..\..\third_party\cueparser\scheduler.h">
       <Filter>Header Files\cueparser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\third_party\iec-60908b\edcecc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\third_party\iec-60908b\tables.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\cdrom\iso9660-builder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\cdrom\common.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -45,10 +45,7 @@ void psyqo::paths::ArchiveManager::setupInitQueue(eastl::string_view archiveName
     }
     m_queueInitFilename.then(parser.scheduleGetDirentry(archiveName, &m_archiveDirentry))
         .then([this](auto task) {
-            m_index.resize(2048 / sizeof(IndexEntry));
             m_request.LBA = m_archiveDirentry.LBA;
-            m_request.count = 1;
-            m_request.buffer = m_index.data();
             task->resolve();
         })
         .then(m_queue.schedule());
@@ -62,6 +59,7 @@ void psyqo::paths::ArchiveManager::setupInitQueue(uint32_t LBA, CDRom& device, e
     m_initCallback = eastl::move(callback);
     m_request.LBA = LBA;
     m_request.count = 1;
+    m_index.resize(2048 / sizeof(IndexEntry));
     m_request.buffer = m_index.data();
     m_queue.startWith(device.scheduleReadRequest(&m_request))
         .then([this](auto task) {
@@ -70,8 +68,9 @@ void psyqo::paths::ArchiveManager::setupInitQueue(uint32_t LBA, CDRom& device, e
                 task->reject();
                 return;
             }
-            m_index.resize(getIndexSectorCount() * 2048 / sizeof(IndexEntry));
-            m_request.count = getIndexSectorCount();
+            auto indexSectorCount = getIndexSectorCount();
+            m_index.resize(indexSectorCount * 2048 / sizeof(IndexEntry));
+            m_request.count = indexSectorCount;
             m_request.buffer = m_index.data();
             task->resolve();
         })
@@ -131,7 +130,7 @@ void psyqo::paths::ArchiveManager::setupQueue(const IndexEntry* entry, CDRom& de
         m_data.resize(sectorCount * 2048);
         m_request.buffer = m_data.data();
     } else {
-        uint32_t actualSize = eastl::max<uint32_t>(((decompSize + 3) & ~3) + 16, sectorCount * 2048);
+        uint32_t actualSize = eastl::max<uint32_t>(((decompSize + 3) & ~3) + getSafeMarginLength(), sectorCount * 2048);
         m_data.resize(actualSize);
         m_request.buffer = m_data.data() + actualSize - sectorCount * 2048;
     }

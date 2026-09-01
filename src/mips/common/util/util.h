@@ -54,9 +54,11 @@ void storeUnaligned(uint8_t *ptr, T value) {
 
 #endif
 
+#ifdef __mips__
 static __inline__ uint32_t load32Unaligned(const void *in, int pos) {
     const uint8_t *buffer = (const uint8_t *)in;
     uint32_t r;
     __builtin_memcpy(&r, buffer + pos, sizeof(uint32_t));
     return r;
 }
+#endif
