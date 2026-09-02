@@ -50,10 +50,13 @@ async function installMips() {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
-    await terminal.run('powershell', [
-      '-c',
-      '"&"',
-      '{ iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
+    // Go through cmd rather than launching powershell as the shell: the string
+    // after /c is then byte for byte the one the README tells people to paste,
+    // and powershell's own argument tokenizer never gets a say in how the block
+    // is quoted. Same reason the mips install calls below are wrapped.
+    await terminal.run('cmd', [
+      '/c',
+      'powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
