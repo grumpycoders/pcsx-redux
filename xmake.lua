@@ -2,7 +2,16 @@ includes("third_party/luajit")
 
 add_rules("mode.debug", "mode.release")
 
-add_requires("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+
+-- Only four of ffmpeg's libraries are used, and asking for "ffmpeg" wholesale
+-- never resolves to the system copy: that package requires all eight pkg-config
+-- modules, and libpostproc is GPL-only and so isn't packaged on Ubuntu at all.
+-- The result is ffmpeg getting built from source on every clean checkout. These
+-- are the same four names the Makefile's PACKAGES already asks for.
+add_requires("pkgconfig::libavcodec", "pkgconfig::libavformat",
+             "pkgconfig::libavutil", "pkgconfig::libswresample")
+
 set_languages("c++26")
 
 target("pcsx-redux", function()
@@ -36,7 +45,9 @@ target("pcsx-redux", function()
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
     add_deps("luajit")
-    add_packages("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+    add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
+                 "pkgconfig::libavcodec", "pkgconfig::libavformat",
+                 "pkgconfig::libavutil", "pkgconfig::libswresample")
     add_files(
         "src/**/*.cc",
         "third_party/cq/reclaimer.cc",
