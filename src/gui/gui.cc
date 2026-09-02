@@ -1839,9 +1839,11 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         changed |= m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
+#ifndef __EMSCRIPTEN__  // wasm is interpreter-only, so dynarec_disassembly.cc is disabled
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
+#endif
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
@@ -1892,9 +1894,11 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
+#ifndef __EMSCRIPTEN__  // isobrowser.cc drives the UvThreadOp caching UI, which wasm does not have
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+#endif
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();

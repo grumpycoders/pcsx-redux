@@ -153,7 +153,6 @@ target("pcsx-redux", function()
         "third_party/lpeg/*.c",
         "third_party/lua-protobuf/pb.c",
         "third_party/luafilesystem/src/lfs.c",
-        "third_party/luv/src/luv.c",
         "third_party/md4c/src/md4c.c",
         "third_party/multipart-parser-c/multipart_parser.c",
         "third_party/nanovg/src/nanovg.c",
@@ -170,6 +169,21 @@ target("pcsx-redux", function()
     )
     -- src/mips is the nugget submodule, built by its own toolchain.
     remove_files("src/mips/**")
+
+    -- luv is the Lua libuv binding and v1 wasm has no libuv. It is the ONE
+    -- exception to putting the guard in the source: luvit/luv is an upstream
+    -- submodule we do not control, so a whole-file #ifdef there would mean
+    -- forking a third repository.
+    --
+    -- ITS OWN BLOCK, NOT AN INLINE CONDITIONAL IN THE LIST ABOVE. I put
+    -- `(not is_plat("wasm")) and "..." or nil` in that list and it evaluated to a
+    -- bare nil on wasm, which TRUNCATES a vararg call - silently dropping zep,
+    -- nanovg, ucl, uriparser and everything else after it. 159 undefined symbols
+    -- and 3661 errors, from a footgun documented in a comment forty lines up in
+    -- this same file.
+    if not is_plat("wasm") then
+        add_files("third_party/luv/src/luv.c")
+    end
 
     -- v1 wasm scope is expressed in the SOURCES, not here. Every file below that
     -- belongs to a dropped feature wraps its whole body in one #ifdef, the way
