@@ -125,7 +125,29 @@ target("pcsx-redux", function()
         -- CALL_WITH_LIBFFI swaps luaffifb's DynASM call path, which cannot target
         -- wasm, for libffi's signature-keyed dispatch.
         add_defines("CALL_WITH_LIBFFI", "LUA_COMPAT_5_3")
-        add_ldflags("-Wl,--error-limit=0", {force = true})
+        -- The link had NO memory settings at all, so it took emscripten's
+        -- defaults: a 16 MB heap with growth OFF. Redux is past that before it
+        -- draws a frame - imgui plus freetype's atlas plus the 2 MB PSX RAM, the
+        -- 8 MB expansion and the read/write LUTs - so it aborted at startup.
+        -- MSAN's 1.5 GB is NOT part of this: it is lazily calloc'd in msanInit
+        -- and never touched unless the user turns it on.
+        --
+        -- INITIAL_MEMORY is deliberately generous rather than minimal: with
+        -- growth enabled every expansion copies the whole heap, and there is no
+        -- reason to pay that repeatedly during startup.
+        add_ldflags("-sALLOW_MEMORY_GROWTH=1", "-sINITIAL_MEMORY=512MB",
+                    "-sMAXIMUM_MEMORY=4GB",
+                    -- 64 kB by default in current emscripten, which nothing in a
+                    -- C++ UI with recursive parsers survives.
+                    "-sSTACK_SIZE=8MB",
+                    -- ASSERTIONS is what turned the first abort from "OOM, build
+                    -- with -sASSERTIONS" into something readable. Keep it until
+                    -- the thing renders; it is a debug build either way.
+                    "-sASSERTIONS=1",
+                    "-sEXIT_RUNTIME=0",
+                    -- gl3w and imgui's GL3 backend both want real ES3/WebGL2.
+                    "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2", "-sFULL_ES3=1",
+                    "-Wl,--error-limit=0", {force = true})
     else
     add_deps("luajit")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
