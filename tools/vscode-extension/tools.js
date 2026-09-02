@@ -282,60 +282,80 @@ async function installMake() {
   }
 }
 
+// xmake publishes a standalone single-binary bundle per platform, which needs no
+// installer and no PATH change. There is no linux arm64 one, so that case falls
+// back to a package manager.
+const xmakeBundles = {
+  win32_x64: 'win64.exe',
+  win32_ia32: 'win32.exe',
+  win32_arm64: 'arm64.exe',
+  linux_x64: 'linux.x86_64',
+  darwin_x64: 'macos.x86_64',
+  darwin_arm64: 'macos.arm64'
+}
+
+function xmakeBundleSuffix() {
+  return xmakeBundles[process.platform + '_' + process.arch]
+}
+
+function xmakeBinaryPath() {
+  return vscode.Uri.joinPath(
+    globalStorageUri,
+    'xmake',
+    process.platform === 'win32' ? 'xmake.exe' : 'xmake'
+  ).fsPath
+}
+
+function configuredXMakePath() {
+  return vscode.workspace.getConfiguration('psxDev').get('xmakePath') || 'xmake'
+}
+
 async function installXMake() {
-  switch (process.platform) {
-    case 'win32':
-      const release = await octokit.rest.repos.getLatestRelease({
-        owner: 'xmake-io',
-        repo: 'xmake'
-      })
-      const asset = release.data.assets.find((asset) => {
-        return /^xmake-.*\.win64\.exe$/.test(asset.name)
-      })
-      if (!asset) {
+  const suffix = xmakeBundleSuffix()
+  if (suffix === undefined) {
+    // No bundle for this platform, so fall back to a package manager and to
+    // whatever PATH the user ends up with.
+    try {
+      if (await checkInstalled('brew')) {
+        await terminal.run('brew', ['install', 'xmake'])
+      } else if (await checkInstalled('apt')) {
+        await terminal.run('sudo', ['apt', 'install', 'xmake'], {
+          message: 'Installing xmake requires root privileges.'
+        })
+      } else {
         vscode.window.showErrorMessage(
-          'Could not find the latest xmake release. Please install it manually.'
+          'There is no standalone xmake build for your platform. You need to install xmake manually.'
         )
-        return
+        throw new Error('Unsupported platform')
       }
-      const filename = path.join(
-        os.tmpdir(),
-        asset.browser_download_url.split('/').pop()
-      )
-      await downloader.downloadFile(asset.browser_download_url, filename)
-      await terminal.run(filename, ['/S'])
-      requiresReboot = true
-      break
-    case 'linux':
-    case 'darwin':
-      try {
-        if (await checkInstalled('brew')) {
-          await terminal.run('brew', ['install', 'xmake'])
-        } else {
-          // xmake isn't packaged consistently across distributions, so use its
-          // own installer, which drops a user-local copy and needs no root.
-          await terminal.run('/bin/bash', [
-            '-c',
-            'curl -fsSL https://xmake.io/shget.text | bash'
-          ])
-          requiresReboot = true
-          vscode.window.showInformationMessage(
-            'xmake was installed into your profile. Please restart your shell or your computer before proceeding further.'
-          )
-        }
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          'An error occurred while installing xmake. Please install it manually.'
-        )
-        throw error
-      }
-      break
-    default:
+    } catch (error) {
       vscode.window.showErrorMessage(
-        'Your platform is not supported by this extension. Please install xmake manually.'
+        'An error occurred while installing xmake. Please install it manually.'
       )
-      throw new Error('Unsupported platform')
+      throw error
+    }
+    requiresReboot = true
+    return
   }
+
+  const release = await octokit.rest.repos.getLatestRelease({
+    owner: 'xmake-io',
+    repo: 'xmake'
+  })
+  const wanted = 'xmake-bundle-' + release.data.tag_name + '.' + suffix
+  const asset = release.data.assets.find((asset) => asset.name === wanted)
+  if (!asset) {
+    vscode.window.showErrorMessage(
+      'Could not find ' + wanted + ' in the latest xmake release. Please install xmake manually.'
+    )
+    return
+  }
+  const destination = xmakeBinaryPath()
+  await downloader.downloadFile(asset.browser_download_url, destination)
+  if (process.platform !== 'win32') await fs.chmod(destination, 0o775)
+  await vscode.workspace
+    .getConfiguration('psxDev')
+    .update('xmakePath', destination, vscode.ConfigurationTarget.Global)
 }
 
 async function installCMake() {
@@ -649,7 +669,9 @@ const tools = {
     description: 'A build system used by some of the project templates',
     homepage: 'https://xmake.io/',
     install: installXMake,
-    check: () => checkCommands(['xmake'], ['--version'])
+    // Either an xmake already on PATH or the standalone copy we downloaded; the
+    // setting holds whichever one the generated tasks should call.
+    check: () => checkCommands([configuredXMakePath()], ['--version'])
   },
   git: {
     type: 'package',

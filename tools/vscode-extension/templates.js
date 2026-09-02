@@ -504,11 +504,31 @@ const baseXMakeTemplate = combine(baseTemplate, {
       type: 'json',
       content: {
         version: '2.0.0',
+        // These are process tasks rather than shell ones: psxDev.xmakePath can
+        // point at a standalone binary under the extension's storage, and that
+        // path contains the user's name on Windows, so it can contain spaces.
+        // A process task passes it as one argv entry with no quoting rules in
+        // the way.
         tasks: [
           {
+            label: 'Configure Debug',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['f', '-y', '-m', 'debug']
+          },
+          {
+            label: 'Configure Release',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['f', '-y', '-m', 'release']
+          },
+          {
             label: 'Build Debug',
-            type: 'shell',
-            command: 'xmake f -y -m debug && xmake build',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['build'],
+            dependsOn: ['Configure Debug'],
+            dependsOrder: 'sequence',
             group: {
               kind: 'build',
               isDefault: true
@@ -517,8 +537,11 @@ const baseXMakeTemplate = combine(baseTemplate, {
           },
           {
             label: 'Build Release',
-            type: 'shell',
-            command: 'xmake f -y -m release && xmake build',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['build'],
+            dependsOn: ['Configure Release'],
+            dependsOrder: 'sequence',
             group: {
               kind: 'build',
               isDefault: true
@@ -527,8 +550,9 @@ const baseXMakeTemplate = combine(baseTemplate, {
           },
           {
             label: 'Clean',
-            type: 'shell',
-            command: 'xmake clean',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['clean'],
             group: {
               kind: 'build'
             }

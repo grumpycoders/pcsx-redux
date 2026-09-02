@@ -24,6 +24,16 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "title": "PSX.Dev",
+      "properties": {
+        "psxDev.xmakePath": {
+          "type": "string",
+          "default": "xmake",
+          "description": "Path to the xmake binary. Left as-is, xmake is looked up in your PATH. Installing xmake from the PSX.Dev panel drops a standalone copy next to the emulator and points this at it."
+        }
+      }
+    },
     "walkthroughs": [
       {
         "id": "psxDev",
