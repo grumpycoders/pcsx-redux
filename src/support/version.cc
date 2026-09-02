@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#include <uv.h>
+
 #include "support/version.h"
 
 #include <algorithm>
