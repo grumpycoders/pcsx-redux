@@ -24,7 +24,9 @@
 #include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
 #include "core/gdb-server.h"
+#endif
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/gte.h"
@@ -37,18 +39,24 @@
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
 #include "core/sio.h"
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
 #include "core/sio1-server.h"
+#endif
 #include "core/sio1.h"
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
 #include "core/web-server.h"
+#endif
 #include "gpu/soft/interface.h"
 #include "lua/extra.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "lua/zlibffi.h"
 #include "luafilesystem/src/lfs.h"
+#ifndef __EMSCRIPTEN__  // third_party/luv is the Lua libuv binding; not in the wasm source list
 extern "C" {
 #include <luv.h>
 }
+#endif
 #include "spu/interface.h"
 #include "supportpsx/adpcmlua.h"
 #include "supportpsx/assembler.h"
@@ -62,7 +70,9 @@ PCSX::Emulator::Emulator()
       m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
       m_gdbServer(new PCSX::GdbServer()),
+#endif
       m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
       m_ramLogger(new PCSX::RAMLogger()),
@@ -75,10 +85,22 @@ PCSX::Emulator::Emulator()
       m_pioCart(new PCSX::PIOCart),
       m_sio(new PCSX::SIO()),
       m_sio1(new PCSX::SIO1()),
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
       m_sio1Server(new PCSX::SIO1Server()),
+#endif
+#ifndef __EMSCRIPTEN__  // SIO1 over TCP is libuv-backed; v1 wasm drops it
       m_sio1Client(new PCSX::SIO1Client()),
-      m_spu(new PCSX::SPU::impl()),
-      m_webServer(new PCSX::WebServer()) {
+#endif
+      // Leading comma, not a reorder: m_webServer is declared AFTER m_spu in
+      // psxemulator.h, and a mem-initializer list that disagrees with
+      // declaration order earns -Wreorder while still initialising in
+      // declaration order. Keeping the order costs one odd-looking comma.
+      m_spu(new PCSX::SPU::impl())
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
+      ,
+      m_webServer(new PCSX::WebServer())
+#endif
+{
     auto L = *m_lua;
     L.openlibs();
 }
@@ -99,10 +121,12 @@ void PCSX::Emulator::setLua() {
     });
     L.load("ffi = require('ffi')", "internal:setffi.lua");
     LuaFFI::open_zlib(L);
+#ifndef __EMSCRIPTEN__  // no libuv, so no luv global
     luv_set_loop(L.getState(), g_system->getLoop());
     L.push("luv");
     luaopen_luv(L.getState());
     L.settable(LUA_GLOBALSINDEX);
+#endif
     luaopen_lfs(L.getState());
     L.pop(3);
     luaopen_lpeg(L.getState());

@@ -1,4 +1,10 @@
-includes("third_party/luajit")
+-- LuaJIT's build is host-arch-gated (its minilua/buildvm targets are guarded on
+-- x64/arm64/mips64) and its VM is per-arch assembly, so there is nothing for it
+-- to do on wasm. The wasm arm uses PUC-Lua 5.4 through third_party/puc-lua-compat
+-- instead - a SECOND Lua backend, not a migration off LuaJIT.
+if not is_plat("wasm") then
+    includes("third_party/luajit")
+end
 
 add_rules("mode.debug", "mode.release")
 
@@ -55,12 +61,25 @@ target("pcsx-redux", function()
         nil
     )
 
+    -- NOT folded into the list above: a nil in the middle of a vararg call
+    -- truncates it, so `(cond and dir or nil)` inline would silently drop every
+    -- includedir after it on the non-wasm arm.
+    if is_plat("wasm") then
+        -- uv-wasm-stub declares exactly uv_loop_t / uv_run / uv_loop_init /
+        -- uv_loop_close and #errors outside __EMSCRIPTEN__. That is the whole of
+        -- the core's libuv surface once the three servers and uvfile are dropped.
+        -- Anything wanting a real handle, timer, poll or async MUST fail to
+        -- compile against it rather than get a silent no-op: a no-op in an async
+        -- layer is a runtime-only failure on a build with no debugger.
+        add_includedirs("third_party/uv-wasm-stub")
+    end
+
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
-    add_deps("luajit")
     if is_plat("wasm") then
         add_packages("capstone", "fmt", "freetype", "libsdl3", "zlib")
     else
+    add_deps("luajit")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
                  "pkgconfig::libavcodec", "pkgconfig::libavformat",
                  "pkgconfig::libavutil", "pkgconfig::libswresample")
@@ -104,6 +123,50 @@ target("pcsx-redux", function()
     -- src/mips is the nugget submodule, built by its own toolchain.
     remove_files("src/mips/**")
 
+    -- ================= THE v1 WASM SOURCE LIST =================
+    -- This is the real definition of v1 scope. Until it existed, "the v1 target
+    -- passes N/M" was measured against a drop list kept by hand in a sweep
+    -- script, i.e. a guess. This list is the denominator now.
+    --
+    -- Every removal below is a feature Pixel scoped OUT of v1, not a file that
+    -- was hard to compile. The distinction matters: the rule for this port is
+    -- that anything belonging to a dropped feature must FAIL TO COMPILE rather
+    -- than receive a silent no-op stub, so a file appearing here is a decision,
+    -- and a file needing a stub to survive is a signal it should be here instead.
+    if is_plat("wasm") then
+        remove_files(
+            -- The three network servers. v1 has no libuv and no dev tooling.
+            "src/core/gdb-server.cc",
+            "src/core/sio1-server.cc",
+            "src/core/web-server.cc",
+            -- Pixel, 2026-09-02: "uvfile.cc should be fully dropped in wasm."
+            -- src/support/uvfile-wasm.h supplies the UvFile NAME backed by
+            -- PosixFile, so the ~30 call sites keep saying new UvFile(path).
+            "src/support/uvfile.cc",
+            -- The auto-updater: takes a uv_loop_t*, downloads over libcurl.
+            "src/support/version.cc",
+            -- FFmpeg: one isolated class, two call sites. Raw-PCM .bin tracks
+            -- still play; only compressed CD audio tracks lose sound.
+            "src/support/ffmpeg-audio-file.cc",
+            -- The C++ demangler is PEGTL's only consumer, and its own only
+            -- consumers are two debugger widgets. Keeping it would drag the
+            -- PEGTL 4.x migration (board #428) into a wasm port.
+            "src/support/gnu-c++-demangler.cc",
+            -- Debugger/dynarec UI. wasm v1 is interpreter-only on both axes
+            -- (no xbyak, no vixl), so there is no dynarec to disassemble, and
+            -- isobrowser drives UvThreadOp's caching UI which no longer exists.
+            "src/gui/widgets/dynarec_disassembly.cc",
+            "src/gui/widgets/isobrowser.cc",
+            -- The Lua libuv binding, for the same reason libuv itself is gone.
+            "third_party/luv/src/luv.c",
+            -- llhttp + uriparser + multipart-parser exist for the web server.
+            "third_party/llhttp/*.c",
+            "third_party/uriparser/src/*.c",
+            "third_party/multipart-parser-c/multipart_parser.c",
+            nil
+        )
+    end
+
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
         "IMGUI_ENABLE_FREETYPE",
@@ -116,6 +179,15 @@ target("pcsx-redux", function()
     if is_plat("macosx") then
         add_files("src/main/complain.mm", "third_party/clip/clip_osx.mm")
         add_frameworks("GLUT", "OpenGL", "CoreFoundation", "Cocoa")
+    elseif is_plat("wasm") then
+        -- No X11 clipboard in a browser, and none of -lGL/-lX11/-lxcb exists;
+        -- GL comes from emscripten's own WebGL2 shim at link time.
+        -- NO BACKEND IS ADDED HERE ON PURPOSE. This vendored clip has only
+        -- osx / win / x11 backends - there is no clip_none.cpp in this checkout
+        -- (checked, do not add it from memory of upstream). clip.cpp compiles
+        -- fine without one, so this is a LINK-time item, and it will show up as
+        -- undefined clip::lock symbols the moment tier 3 runs. That is the
+        -- intended way to find it: let the linker enumerate.
     else
         add_files("third_party/clip/clip_x11.cpp")
         add_ldflags("-lstdc++fs", "-lGL", "-lX11", "-lxcb")

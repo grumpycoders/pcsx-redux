@@ -37,7 +37,14 @@ PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
     };
 }
 
+#ifndef __EMSCRIPTEN__  // UvFifo is the libuv-backed SIO1 socket; v1 wasm has neither
 bool PCSX::SIO1::connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
+#else
+// No socket backend on wasm, so a SIO1 fifo is never mid-connect. This is a
+// real semantic, not a silencer: without UvFifo there is no asynchronous
+// connect for the answer to be about.
+bool PCSX::SIO1::connecting() { return false; }
+#endif
 
 void PCSX::SIO1::transmitMessage(std::string &&message) {
     if (fifoError()) return;

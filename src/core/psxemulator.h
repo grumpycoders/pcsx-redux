@@ -261,7 +261,9 @@ class Emulator {
     std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
     std::unique_ptr<Debug> m_debug;
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
     std::unique_ptr<GdbServer> m_gdbServer;
+#endif
     std::unique_ptr<GPU> m_gpu;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
@@ -276,10 +278,16 @@ class Emulator {
     std::unique_ptr<R3000Acpu> m_cpu;
     std::unique_ptr<SIO> m_sio;
     std::unique_ptr<SIO1> m_sio1;
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
     std::unique_ptr<SIO1Server> m_sio1Server;
+#endif
+#ifndef __EMSCRIPTEN__  // SIO1 over TCP is libuv-backed; v1 wasm drops it
     std::unique_ptr<SIO1Client> m_sio1Client;
+#endif
     std::unique_ptr<SPUInterface> m_spu;
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the three network servers (no libuv)
     std::unique_ptr<WebServer> m_webServer;
+#endif
 
   private:
     PcsxConfig m_config;

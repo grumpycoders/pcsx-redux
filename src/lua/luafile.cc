@@ -22,7 +22,9 @@
 #include "core/system.h"
 #include "lua-protobuf/pb.h"
 #include "lua/luawrapper.h"
+#ifndef __EMSCRIPTEN__  // v1 wasm drops FFmpeg
 #include "support/ffmpeg-audio-file.h"
+#endif
 #include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
@@ -51,17 +53,21 @@ LuaFile* openFile(const char* filename, FileOps type) {
             return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::CREATE));
         case READWRITE:
             return new LuaFile(new PCSX::UvFile(filename, PCSX::FileOps::READWRITE));
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer: no download, no caching
         case DOWNLOAD_URL:
             return new LuaFile(new PCSX::UvFile(filename, PCSX::UvFile::DOWNLOAD_URL));
+#endif
     }
 
     return nullptr;
 }
 
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer: no download, no caching
 LuaFile* openFileWithCallback(const char* url, void (*callback)()) {
     return new LuaFile(
         new PCSX::UvFile(url, [callback]() { callback(); }, PCSX::g_system->getLoop(), PCSX::UvFile::DOWNLOAD_URL));
 }
+#endif
 
 LuaFile* bufferFileReadOnly(void* data, uint64_t size) { return new LuaFile(new PCSX::BufferFile(data, size)); }
 LuaFile* bufferFile(void* data, uint64_t size) {
@@ -74,8 +80,10 @@ LuaFile* bufferFileEmpty() { return new LuaFile(new PCSX::BufferFile(PCSX::FileO
 LuaFile* subFile(LuaFile* wrapper, uint64_t start, int64_t size) {
     return new LuaFile(new PCSX::SubFile(wrapper->file, start, size));
 }
+#ifndef __EMSCRIPTEN__  // UvFifo is the libuv-backed SIO1 socket; v1 wasm has neither
 LuaFile* uvFifo(const char* address, int port) { return new LuaFile(new PCSX::UvFifo(address, port)); }
 bool uvFifoIsConnecting(LuaFile* wrapper) { return wrapper->file.asA<PCSX::UvFifo>()->isConnecting(); }
+#endif
 LuaFile* failedFile() { return new LuaFile(new PCSX::FailedFile()); }
 
 void closeFile(LuaFile* wrapper) { wrapper->file->close(); }
@@ -148,6 +156,7 @@ bool isFileWritable(LuaFile* wrapper) { return wrapper->file->writable(); }
 bool isFileEOF(LuaFile* wrapper) { return wrapper->file->eof(); }
 bool isFileFailed(LuaFile* wrapper) { return wrapper->file->failed(); }
 bool isFileCacheable(LuaFile* wrapper) { return wrapper->file.isA<PCSX::UvFile>(); }
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer: no download, no caching
 bool isFileCaching(LuaFile* wrapper) {
     PCSX::IO<PCSX::UvFile> file = wrapper->file.asA<PCSX::UvFile>();
     if (file) return file->caching();
@@ -171,6 +180,7 @@ bool startFileCachingWithCallback(LuaFile* wrapper, void (*callback)()) {
         return false;
     }
 }
+#endif
 
 LuaFile* dupFile(LuaFile* wrapper) { return new LuaFile(wrapper->file->dup()); }
 
@@ -285,11 +295,13 @@ uint32_t mem4gLowestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>(
 uint32_t mem4gHighestAddress(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->highestAddress(); }
 uint32_t mem4gActualSize(LuaFile* file) { return file->file.asA<PCSX::Mem4G>()->actualSize(); }
 
+#ifndef __EMSCRIPTEN__  // v1 wasm drops FFmpeg
 LuaFile* ffmpegAudioFile(LuaFile* file, PCSX::FFmpegAudioFile::Channels channels,
                          PCSX::FFmpegAudioFile::Endianness endianness, PCSX::FFmpegAudioFile::SampleFormat sampleFormat,
                          unsigned frequency) {
     return new LuaFile(new PCSX::FFmpegAudioFile(file->file, channels, endianness, sampleFormat, frequency));
 }
+#endif
 
 }  // namespace
 
@@ -310,14 +322,18 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, deleteFile);
 
     REGISTER(L, openFile);
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer: no download, no caching
     REGISTER(L, openFileWithCallback);
+#endif
     REGISTER(L, bufferFileReadOnly);
     REGISTER(L, bufferFile);
     REGISTER(L, bufferFileAcquire);
     REGISTER(L, bufferFileEmpty);
     REGISTER(L, subFile);
+#ifndef __EMSCRIPTEN__  // UvFifo is libuv-backed; v1 wasm has neither
     REGISTER(L, uvFifo);
     REGISTER(L, uvFifoIsConnecting);
+#endif
     REGISTER(L, failedFile);
 
     REGISTER(L, closeFile);
@@ -352,10 +368,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isFileEOF);
     REGISTER(L, isFileFailed);
     REGISTER(L, isFileCacheable);
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer: no download, no caching
     REGISTER(L, isFileCaching);
     REGISTER(L, fileCacheProgress);
     REGISTER(L, startFileCaching);
     REGISTER(L, startFileCachingWithCallback);
+#endif
 
     REGISTER(L, dupFile);
 
@@ -373,7 +391,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, mem4gHighestAddress);
     REGISTER(L, mem4gActualSize);
 
+#ifndef __EMSCRIPTEN__  // v1 wasm drops FFmpeg
     REGISTER(L, ffmpegAudioFile);
+#endif
 
     L.settable();
     L.pop();

@@ -29,11 +29,13 @@
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
 #include <assert.h>
+#ifndef __EMSCRIPTEN__
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 }
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -51,7 +53,9 @@ extern "C" {
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
 #include "core/debug.h"
+#ifndef __EMSCRIPTEN__
 #include "core/gdb-server.h"
+#endif
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/pad.h"
@@ -59,10 +63,14 @@ extern "C" {
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
+#ifndef __EMSCRIPTEN__
 #include "core/sio1-server.h"
+#endif
 #include "core/sio1.h"
 #include "core/sstate.h"
+#ifndef __EMSCRIPTEN__
 #include "core/web-server.h"
+#endif
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
@@ -2063,6 +2071,7 @@ the update and manually apply it.)")));
             ImGui::Text(_("Write rate: %s"), rate.c_str());
             byteRateToString(UvFile::getDownloadRate(), rate);
             ImGui::Text(_("Download rate: %s"), rate.c_str());
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
             if (ImGui::BeginTable("UvFiles", 2, ImGuiTableFlags_Resizable)) {
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
@@ -2091,6 +2100,7 @@ the update and manually apply it.)")));
                 });
                 ImGui::EndTable();
             }
+#endif
         }
         ImGui::End();
     }
@@ -2376,6 +2386,7 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
+#ifndef __EMSCRIPTEN__
         if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
@@ -2447,6 +2458,8 @@ relay information between tcp and sio1.
 See the wiki for details.)"));
         changed |=
             ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
+#endif  // __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
         if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
             changed = true;
             if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
@@ -2469,12 +2482,14 @@ See the wiki for details.)"));
         changed |=
             ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
 
+#endif
         auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
         auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
         if (ImGui::Button(_("Reset SIO"))) {
             g_emulator->m_sio1->reset();
         }
 
+#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
         const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
                                      !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
 
@@ -2495,6 +2510,7 @@ See the wiki for details.)"));
             ImGui::EndDisabled();
         }
 
+#endif
         if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
             for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
                 bool selected = (v == currentSIO1Mode);
@@ -2712,6 +2728,7 @@ bool PCSX::GUI::about() {
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
+#ifndef __EMSCRIPTEN__
             if (ImGui::BeginTabItem(_("FFmpeg information"))) {
                 ImGui::Text(_("Version: %s"), av_version_info());
                 ImGui::Text(_("License: %s"), avutil_license());
@@ -2790,6 +2807,7 @@ bool PCSX::GUI::about() {
                 ImGui::PopFont();
                 ImGui::EndTabItem();
             }
+#endif  // __EMSCRIPTEN__
             ImGui::EndTabBar();
         }
     }

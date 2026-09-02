@@ -31,7 +31,15 @@ def run(e):
                 skip_next = True
             continue
         out.append(a)
-    out += ["-fsyntax-only", "-ferror-limit=0"]
+    # -ferror-limit is CLANG-ONLY. gcc rejects it outright, so on any arm that
+    # uses gcc every entry fails on MY OWN FLAG and the sweep reports 0/259 with
+    # no information about the code whatsoever. That used to be six entries
+    # (LuaJIT's host tools) and read as a footnote; run the same script against
+    # the desktop arm, which is gcc throughout, and it is the entire result.
+    # An instrument that fails on 100% of its subjects is not a measurement.
+    cc = os.path.basename(out[0]) if out else ""
+    is_gcc = ("gcc" in cc or cc.endswith("g++")) and "clang" not in cc
+    out += ["-fsyntax-only", "-fmax-errors=0" if is_gcc else "-ferror-limit=0"]
     try:
         p = subprocess.run(out, cwd=e["directory"], capture_output=True,
                            text=True, timeout=300)
@@ -58,18 +66,22 @@ for f, rc, err in bad:
             msg = line.split(" error: ", 1)[1].strip()
             othererr[msg[:110]] += 1
 
-print("\n=== MISSING HEADERS (count = files blocked by it) ===")
-for h, n in missing.most_common(40):
-    print(f"{n:4d}  {h}")
+# A top-N is a SAMPLE. Print the distinct total beside every itemisation, and
+# say out loud when the tail was cut - in a failure histogram the
+# single-occurrence tail is the interesting part, and an aggregate that is
+# correct is exactly what makes a truncated list beside it read as complete.
+def show(title, counter, n=40):
+    total = len(counter)
+    print(f"\n=== {title} === ({total} distinct)")
+    for k, v in counter.most_common(n):
+        print(f"{v:4d}  {k}")
+    if total > n:
+        print(f"  ... SAMPLE: {total - n} more distinct entries NOT SHOWN")
 
-print("\n=== OTHER ERRORS ===")
-for m, n in othererr.most_common(30):
-    print(f"{n:4d}  {m}")
-
-print("\n=== FAILING FILES BY DIRECTORY ===")
-byd = collections.Counter(os.path.dirname(f) for f, _, _ in bad)
-for d, n in byd.most_common(30):
-    print(f"{n:4d}  {d or '.'}")
+show("MISSING HEADERS (count = files blocked by it)", missing)
+show("OTHER ERRORS", othererr)
+show("FAILING FILES BY DIRECTORY",
+     collections.Counter(os.path.dirname(f) for f, _, _ in bad))
 
 with open("/tmp/wasm-sweep-detail.txt", "w") as fh:
     for f, rc, err in bad:
