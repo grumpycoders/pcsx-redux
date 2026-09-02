@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "cdrom/cdriso.h"
+#include "support/uvfile.h"
 #include "core/cdrom.h"
 #include "cueparser/cueparser.h"
 #include "cueparser/disc.h"

@@ -19,6 +19,8 @@
 
 #include "core/sio1.h"
 
+#include "support/uvfile.h"
+
 PCSX::SIOPayload PCSX::SIO1::makeFlowControlMessage() {
     return SIOPayload{
         DataTransfer{},
@@ -34,6 +36,8 @@ PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
         FlowControl{},
     };
 }
+
+bool PCSX::SIO1::connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
 
 void PCSX::SIO1::transmitMessage(std::string &&message) {
     if (fifoError()) return;

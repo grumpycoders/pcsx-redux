@@ -19,6 +19,8 @@
 
 #include "cdrom/cdriso.h"
 
+#include "support/uvfile.h"
+
 #include "supportpsx/iec-60908b.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -555,3 +557,8 @@ bool PCSX::CDRIso::readCDDA(IEC60908b::MSF msf, unsigned char *buffer) {
 }
 
 bool PCSX::CDRIso::failed() { return !m_cdHandle && !m_ecm_savetable && !m_decoded_ecm; }
+
+PCSX::CDRIso::CDRIso(const std::filesystem::path& path) : CDRIso() {
+    m_isoPath = path;
+    open(new UvFile(m_isoPath));
+}

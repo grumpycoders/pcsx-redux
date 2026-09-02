@@ -2,15 +2,25 @@ includes("third_party/luajit")
 
 add_rules("mode.debug", "mode.release")
 
-add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+-- WASM PROBE (local, uncommitted): libuv is the ONLY package xmake reports as
+-- unsupported on wasm/wasm32, and libav is pkgconfig-on-the-host. Both are
+-- already scoped OUT of v1. Dropped here purely to let configure proceed far
+-- enough to enumerate the NEXT layer of blockers.
+if is_plat("wasm") then
+    add_requires("capstone", "fmt", "freetype", "libsdl3", "zlib")
+else
+    add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+end
 
 -- Only four of ffmpeg's libraries are used, and asking for "ffmpeg" wholesale
 -- never resolves to the system copy: that package requires all eight pkg-config
 -- modules, and libpostproc is GPL-only and so isn't packaged on Ubuntu at all.
 -- The result is ffmpeg getting built from source on every clean checkout. These
 -- are the same four names the Makefile's PACKAGES already asks for.
+if not is_plat("wasm") then
 add_requires("pkgconfig::libavcodec", "pkgconfig::libavformat",
              "pkgconfig::libavutil", "pkgconfig::libswresample")
+end
 
 set_languages("c++26")
 
@@ -25,6 +35,9 @@ target("pcsx-redux", function()
         "third_party/imgui/backends",
         "third_party/imgui/misc/cpp",
         "third_party/llhttp",
+        -- WASM PROBE (local): PUC-Lua headers + a luajit.h shim must come FIRST
+        -- so "lua.hpp" resolves to the compat one rather than LuaJIT's.
+        (is_plat("wasm") and "third_party/puc-lua-compat" or "third_party/luajit/src"),
         "third_party/luajit/src",
         "third_party/luv/src",
         "third_party/luv/deps/lua-compat-5.3/c-api",
@@ -45,9 +58,13 @@ target("pcsx-redux", function()
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
     add_deps("luajit")
+    if is_plat("wasm") then
+        add_packages("capstone", "fmt", "freetype", "libsdl3", "zlib")
+    else
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
                  "pkgconfig::libavcodec", "pkgconfig::libavformat",
                  "pkgconfig::libavutil", "pkgconfig::libswresample")
+    end
     add_files(
         "src/**/*.cc",
         "third_party/cq/reclaimer.cc",

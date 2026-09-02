@@ -25,6 +25,13 @@ SOFTWARE.
 */
 #pragma once
 
+// The wasm build has no libuv and drops uvfile.cc entirely. Dispatch here so the
+// ~30 v1-path call sites keep saying `new UvFile(path)` unchanged.
+#ifdef __EMSCRIPTEN__
+#include "support/uvfile-wasm.h"
+#else
+
+
 #include <curl/curl.h>
 #include <uv.h>
 
@@ -272,3 +279,5 @@ class UvFifoListener : public UvThreadOp {
 };
 
 }  // namespace PCSX
+
+#endif  // __EMSCRIPTEN__
