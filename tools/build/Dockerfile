@@ -79,6 +79,26 @@ RUN wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
     chmod +x linuxdeploy-`uname -m`.AppImage && \
     mv linuxdeploy-`uname -m`.AppImage /usr/bin/linuxdeploy
 
+# xmake resolves fmt from its own repository, which needs cmake and ninja to
+# build it. Without these it fetches and builds cmake from source on every clean
+# run, which is by far the slowest thing in the job.
+RUN apt install -y cmake ninja-build
+
+# xmake, built from source rather than dropped in as a release binary. There is
+# no prebuilt linux/arm64 build published at all, and the x86_64 one wants
+# libncurses, which isn't in here. The source build only needs make and g++,
+# works the same on both architectures, and this image is rebuilt rarely enough
+# that the couple of minutes are free.
+ARG XMAKE_VERSION=3.1.1
+RUN wget https://github.com/xmake-io/xmake/releases/download/v$XMAKE_VERSION/xmake-v$XMAKE_VERSION.tar.gz && \
+    tar xzf xmake-v$XMAKE_VERSION.tar.gz && \
+    cd xmake-$XMAKE_VERSION && \
+    ./configure && \
+    make -j `nproc` && \
+    make install PREFIX=/usr/local && \
+    cd /tmp && \
+    rm -rf xmake-$XMAKE_VERSION xmake-v$XMAKE_VERSION.tar.gz
+
 # Links the package to the repository, so its permissions follow from there
 # rather than from a settings page somebody has to remember.
 LABEL org.opencontainers.image.source=https://github.com/grumpycoders/pcsx-redux
