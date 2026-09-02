@@ -35,9 +35,6 @@
 #include "lauxlib.h"
 
 
-/* SPIKE-ONLY: defined in ../spike/spikereg.c, stands in for Redux's open_pcsx. */
-int luaopen_spikereg(lua_State *L);
-int luaopen_glstub(lua_State *L);
 
 static int luaopen_jit(lua_State *L) {
 	lua_newtable(L);
@@ -60,11 +57,6 @@ static const luaL_Reg loadedlibs[] = {
   {LUA_UTF8LIBNAME, luaopen_utf8},
   {LUA_DBLIBNAME, luaopen_debug},
   {"jit", luaopen_jit},
-  /* SPIKE-ONLY (2026-09-02): stands in for Redux's open_pcsx, which calls
-     registerAllSymbols at startup to populate registry._CLIBS.PCSX. Not part of
-     lua-ffi-wasm; do not carry this upstream. */
-  {"spikereg", luaopen_spikereg},
-  {"glstub", luaopen_glstub},
   {NULL, NULL}
 };
 

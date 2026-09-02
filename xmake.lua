@@ -78,6 +78,54 @@ target("pcsx-redux", function()
 
     if is_plat("wasm") then
         add_packages("capstone", "fmt", "freetype", "libsdl3", "zlib")
+
+        -- ===== THE SECOND LUA BACKEND =====
+        -- PUC-Lua 5.4.7 + luaffifb + libffi, replacing LuaJIT on wasm only.
+        -- Redux's own Lua corpus and its C++ host layer are unchanged; this is a
+        -- build-time backend choice, not a migration off LuaJIT.
+        --
+        -- Four PUC-Lua sources are overridden rather than compiled from the
+        -- submodule: linit.c auto-opens ffi so `require 'ffi'` works, llex.c
+        -- ignores LL/ULL suffixes, and lobject.c + lvm.c make (void*)NULL == nil
+        -- compare true. onelua/luac/ltests are drivers we do not want, and lua.c
+        -- would give us a second main().
+        local LUA_SKIP = {["linit.c"] = true, ["llex.c"] = true, ["lobject.c"] = true,
+                          ["lvm.c"] = true, ["onelua.c"] = true, ["luac.c"] = true,
+                          ["ltests.c"] = true, ["lua.c"] = true}
+        for _, f in ipairs(os.files("third_party/lua/*.c")) do
+            if not LUA_SKIP[path.filename(f)] then add_files(f) end
+        end
+        add_files("third_party/lua-wasm-patch/*.c")
+
+        add_files("third_party/luaffifb/call.c", "third_party/luaffifb/ctype.c",
+                  "third_party/luaffifb/ffi.c", "third_party/luaffifb/ffi_complex.c",
+                  "third_party/luaffifb/lua.c", "third_party/luaffifb/parser.c")
+
+        -- libffi's configured output is not relocatable, which is why lua-ffi-wasm
+        -- compiles these eight directly rather than linking a built library. There
+        -- is no wasm arm in xmake-repo's libffi package either (checked: aui, botan
+        -- and chipmunk2d do carry wasm arms, so that absence is real).
+        for _, f in ipairs({"prep_cif", "types", "raw_api", "java_raw_api",
+                            "closures", "tramp", "debug", "wasm/ffi"}) do
+            add_files("third_party/libffi/src/" .. f .. ".c")
+        end
+
+        add_includedirs(
+            "third_party/lua",                  -- pristine PUC-Lua 5.4.7 headers
+            "third_party/luaffifb",             -- so "luaffifb/ffi.h" resolves
+            "third_party/libffi-wasm-config",   -- fficonfig.h, configure-generated
+                                                -- and absent upstream; MUST precede
+                                                -- the submodule's own include dir
+            "third_party/libffi/src/wasm",      -- the wasm ffitarget.h, which is
+                                                -- pristine - the x86 one is the
+                                                -- wrongly-autodetected header, so
+                                                -- ORDER is the whole correction
+            "third_party/libffi/include",
+            "third_party/libffi/src")
+        -- CALL_WITH_LIBFFI swaps luaffifb's DynASM call path, which cannot target
+        -- wasm, for libffi's signature-keyed dispatch.
+        add_defines("CALL_WITH_LIBFFI", "LUA_COMPAT_5_3")
+        add_ldflags("-Wl,--error-limit=0", {force = true})
     else
     add_deps("luajit")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
