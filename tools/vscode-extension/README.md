@@ -18,6 +18,11 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.5.2
+  - Settings directory is now passed to the emulator explicitly instead of relying on its working directory.
+  - Added support for linux arm64.
+  - Dropped the mipsel-linux-gnu toolchain.
+  - Bumping gcc to 16.2
 - 0.5.1
   - Trying a different method to install the mips tool on Powershell.
 - 0.5.0
