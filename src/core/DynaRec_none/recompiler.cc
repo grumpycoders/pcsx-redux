@@ -24,18 +24,20 @@ SOFTWARE.
 
 */
 
-// Every other target has exactly one dynarec, and each recompiler.cc defines
-// Cpus::getDynaRec inside its own arch guard. wasm has none - the x64 emitter is
-// xbyak and the aa64 one is vixl, both of which emit host machine code - so
-// without this file getDynaRec has no definition at all on any arch that is
-// neither DYNAREC_X86_64 nor DYNAREC_AA64.
+// r3000a.h already selects a dynarec per architecture and defines DYNAREC_NONE
+// for every one it has no emitter for - i386, AA32, PPC, AA64-on-Windows, and
+// the bare #else that wasm32 lands in. What it did not have was a
+// Cpus::getDynaRec for that case: both recompiler.cc files define it inside
+// their own arch guard, so DYNAREC_NONE targets had no definition at all.
 //
-// The condition is deliberately the negation of the two arch guards rather than
-// __EMSCRIPTEN__: the gap is "no dynarec for this architecture", which is a more
-// general fact than "this is a wasm build", and a future target hits it too.
-#if !defined(DYNAREC_X86_64) && !defined(DYNAREC_AA64)
-
+// THE INCLUDE MUST COME BEFORE THE GUARD. DYNAREC_NONE is defined BY r3000a.h,
+// so testing it above the include tests an undefined macro. My first version
+// guarded on !DYNAREC_X86_64 && !DYNAREC_AA64 with the include inside, which is
+// true everywhere at that point, so this file also defined getDynaRec on x86_64
+// and the desktop link failed with a duplicate symbol. wasm was green throughout.
 #include "core/r3000a.h"
+
+#ifdef DYNAREC_NONE
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::getDynaRec() { return nullptr; }
 
