@@ -20,7 +20,11 @@
 #pragma once
 
 #include <stdarg.h>
-#include <uv.h>
+// libuv only appears here as an opaque handle. Including <uv.h> from this
+// header dragged it into 110 of 251 translation units, of which only eight
+// actually use it; the ones that do include it themselves.
+struct uv_loop_s;
+typedef struct uv_loop_s uv_loop_t;
 
 #include <chrono>
 #include <filesystem>
@@ -35,7 +39,7 @@
 #include "imgui.h"
 #include "support/djbhash.h"
 #include "support/eventbus.h"
-#include "support/version.h"
+#include "support/version-info.h"
 
 namespace PCSX {
 
@@ -127,10 +131,8 @@ struct SetLuts {};
 
 class System {
   public:
-    System() { uv_loop_init(&m_loop); }
-    virtual ~System() {
-        if (!m_emergencyExit) uv_loop_close(&m_loop);
-    }
+    System();
+    virtual ~System();
     // Requests a system reset
     virtual void softReset() = 0;
     virtual void hardReset() = 0;
@@ -255,10 +257,10 @@ class System {
         VIETNAMESE = 13,
     };
 
-    uv_loop_t *getLoop() { return &m_loop; }
+    uv_loop_t *getLoop();
 
   private:
-    uv_loop_t m_loop;
+    uv_loop_t *m_loop;
     std::map<uint64_t, std::string> m_i18n;
     std::map<std::string, decltype(m_i18n)> m_locales;
     std::string m_currentLocale;
