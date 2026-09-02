@@ -103,3 +103,9 @@
 [submodule "src/mips"]
 	path = src/mips
 	url = https://github.com/pcsx-redux/nugget.git
+[submodule "third_party/lua"]
+	path = third_party/lua
+	url = https://github.com/lua/lua.git
+[submodule "third_party/libffi"]
+	path = third_party/libffi
+	url = https://github.com/libffi/libffi.git
