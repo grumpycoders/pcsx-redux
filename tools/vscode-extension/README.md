@@ -19,6 +19,7 @@ The panel will have the ability to install the tools on the most popular platfor
 ### Changelog
 
 - 0.5.2
+  - Added xmake-based templates for bare metal and PSYQo.
   - Settings directory is now passed to the emulator explicitly instead of relying on its working directory.
   - Added support for linux arm64.
   - Dropped the mipsel-linux-gnu toolchain.

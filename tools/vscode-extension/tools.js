@@ -282,6 +282,62 @@ async function installMake() {
   }
 }
 
+async function installXMake() {
+  switch (process.platform) {
+    case 'win32':
+      const release = await octokit.rest.repos.getLatestRelease({
+        owner: 'xmake-io',
+        repo: 'xmake'
+      })
+      const asset = release.data.assets.find((asset) => {
+        return /^xmake-.*\.win64\.exe$/.test(asset.name)
+      })
+      if (!asset) {
+        vscode.window.showErrorMessage(
+          'Could not find the latest xmake release. Please install it manually.'
+        )
+        return
+      }
+      const filename = path.join(
+        os.tmpdir(),
+        asset.browser_download_url.split('/').pop()
+      )
+      await downloader.downloadFile(asset.browser_download_url, filename)
+      await terminal.run(filename, ['/S'])
+      requiresReboot = true
+      break
+    case 'linux':
+    case 'darwin':
+      try {
+        if (await checkInstalled('brew')) {
+          await terminal.run('brew', ['install', 'xmake'])
+        } else {
+          // xmake isn't packaged consistently across distributions, so use its
+          // own installer, which drops a user-local copy and needs no root.
+          await terminal.run('/bin/bash', [
+            '-c',
+            'curl -fsSL https://xmake.io/shget.text | bash'
+          ])
+          requiresReboot = true
+          vscode.window.showInformationMessage(
+            'xmake was installed into your profile. Please restart your shell or your computer before proceeding further.'
+          )
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          'An error occurred while installing xmake. Please install it manually.'
+        )
+        throw error
+      }
+      break
+    default:
+      vscode.window.showErrorMessage(
+        'Your platform is not supported by this extension. Please install xmake manually.'
+      )
+      throw new Error('Unsupported platform')
+  }
+}
+
 async function installCMake() {
   switch (process.platform) {
     case 'win32':
@@ -586,6 +642,14 @@ const tools = {
     homepage: 'https://cmake.org/',
     install: installCMake,
     check: () => checkCommands(['cmake'], ['--version'])
+  },
+  xmake: {
+    type: 'package',
+    name: 'xmake',
+    description: 'A build system used by some of the project templates',
+    homepage: 'https://xmake.io/',
+    install: installXMake,
+    check: () => checkCommands(['xmake'], ['--version'])
   },
   git: {
     type: 'package',
