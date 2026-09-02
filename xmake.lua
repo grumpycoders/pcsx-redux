@@ -171,49 +171,12 @@ target("pcsx-redux", function()
     -- src/mips is the nugget submodule, built by its own toolchain.
     remove_files("src/mips/**")
 
-    -- ================= THE v1 WASM SOURCE LIST =================
-    -- This is the real definition of v1 scope. Until it existed, "the v1 target
-    -- passes N/M" was measured against a drop list kept by hand in a sweep
-    -- script, i.e. a guess. This list is the denominator now.
-    --
-    -- Every removal below is a feature Pixel scoped OUT of v1, not a file that
-    -- was hard to compile. The distinction matters: the rule for this port is
-    -- that anything belonging to a dropped feature must FAIL TO COMPILE rather
-    -- than receive a silent no-op stub, so a file appearing here is a decision,
-    -- and a file needing a stub to survive is a signal it should be here instead.
-    if is_plat("wasm") then
-        remove_files(
-            -- The three network servers. v1 has no libuv and no dev tooling.
-            "src/core/gdb-server.cc",
-            "src/core/sio1-server.cc",
-            "src/core/web-server.cc",
-            -- Pixel, 2026-09-02: "uvfile.cc should be fully dropped in wasm."
-            -- src/support/uvfile-wasm.h supplies the UvFile NAME backed by
-            -- PosixFile, so the ~30 call sites keep saying new UvFile(path).
-            "src/support/uvfile.cc",
-            -- The auto-updater: takes a uv_loop_t*, downloads over libcurl.
-            "src/support/version.cc",
-            -- FFmpeg: one isolated class, two call sites. Raw-PCM .bin tracks
-            -- still play; only compressed CD audio tracks lose sound.
-            "src/support/ffmpeg-audio-file.cc",
-            -- The C++ demangler is PEGTL's only consumer, and its own only
-            -- consumers are two debugger widgets. Keeping it would drag the
-            -- PEGTL 4.x migration (board #428) into a wasm port.
-            "src/support/gnu-c++-demangler.cc",
-            -- Debugger/dynarec UI. wasm v1 is interpreter-only on both axes
-            -- (no xbyak, no vixl), so there is no dynarec to disassemble, and
-            -- isobrowser drives UvThreadOp's caching UI which no longer exists.
-            "src/gui/widgets/dynarec_disassembly.cc",
-            "src/gui/widgets/isobrowser.cc",
-            -- The Lua libuv binding, for the same reason libuv itself is gone.
-            "third_party/luv/src/luv.c",
-            -- llhttp + uriparser + multipart-parser exist for the web server.
-            "third_party/llhttp/*.c",
-            "third_party/uriparser/src/*.c",
-            "third_party/multipart-parser-c/multipart_parser.c",
-            nil
-        )
-    end
+    -- v1 wasm scope is expressed in the SOURCES, not here. Every file below that
+    -- belongs to a dropped feature wraps its whole body in one #ifdef, the way
+    -- sharedmem-unix.cc / sharedmem-windows.cc and version-linux.cc already do,
+    -- and the specialised wasm implementations sit beside them: binpath-wasm.cc,
+    -- version-wasm.cc, DynaRec_none/recompiler.cc, third_party/clip/clip_wasm.cpp.
+    -- So src/**/*.cc stays a full glob on every platform and nothing is removed.
 
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
@@ -228,14 +191,10 @@ target("pcsx-redux", function()
         add_files("src/main/complain.mm", "third_party/clip/clip_osx.mm")
         add_frameworks("GLUT", "OpenGL", "CoreFoundation", "Cocoa")
     elseif is_plat("wasm") then
-        -- No X11 clipboard in a browser, and none of -lGL/-lX11/-lxcb exists;
-        -- GL comes from emscripten's own WebGL2 shim at link time.
-        -- NO BACKEND IS ADDED HERE ON PURPOSE. This vendored clip has only
-        -- osx / win / x11 backends - there is no clip_none.cpp in this checkout
-        -- (checked, do not add it from memory of upstream). clip.cpp compiles
-        -- fine without one, so this is a LINK-time item, and it will show up as
-        -- undefined clip::lock symbols the moment tier 3 runs. That is the
-        -- intended way to find it: let the linker enumerate.
+        -- A browser has no X11 and no synchronous host clipboard, so clip_wasm
+        -- is a process-local board: copy and paste work inside the app, nothing
+        -- crosses to the host. GL comes from emscripten's WebGL2 shim at link.
+        add_files("third_party/clip/clip_wasm.cpp")
     else
         add_files("third_party/clip/clip_x11.cpp")
         add_ldflags("-lstdc++fs", "-lGL", "-lX11", "-lxcb")

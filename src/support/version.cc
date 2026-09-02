@@ -24,6 +24,9 @@ SOFTWARE.
 
 */
 
+// v1 wasm has no updater; version-wasm.cc supplies the stubs.
+#ifndef __EMSCRIPTEN__
+
 #include <uv.h>
 
 #include "support/version.h"
@@ -280,4 +283,6 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     throw std::runtime_error("No platform support for updates");
     return false;
 }
+#endif
+
 #endif

@@ -23,6 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+
+// v1 wasm drops FFmpeg; compressed CD audio tracks lose sound.
+#ifndef __EMSCRIPTEN__
+
 #include "support/ffmpeg-audio-file.h"
 
 #include <stdint.h>
@@ -300,3 +304,5 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
 
     return -1;
 }
+
+#endif

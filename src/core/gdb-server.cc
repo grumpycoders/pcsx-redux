@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no libuv, so no gdb server.
+#ifndef __EMSCRIPTEN__
+
 #include <uv.h>
 
 #include "core/gdb-server.h"
@@ -786,3 +789,5 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
 }
 
 PCSX::Slice PCSX::GdbClient::passthroughData(Slice slice) { return slice; }
+
+#endif

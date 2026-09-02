@@ -23,6 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+
+// v1 wasm replaces UvFile with PosixFile via uvfile-wasm.h.
+#ifndef __EMSCRIPTEN__
+
 #include <uv.h>
 
 #include "support/uvfile.h"
@@ -985,3 +989,5 @@ void PCSX::UvFifoListener::stop() {
         });
     });
 }
+
+#endif

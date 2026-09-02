@@ -109,3 +109,7 @@
 [submodule "third_party/libffi"]
 	path = third_party/libffi
 	url = https://github.com/libffi/libffi.git
+[submodule "third_party/luaffifb"]
+	path = third_party/luaffifb
+	url = https://github.com/grumpycoders/luaffifb.git
+	branch = wasm-i32-ffi-arg
