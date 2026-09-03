@@ -135,6 +135,26 @@ target("pcsx-redux", function()
         -- INITIAL_MEMORY is deliberately generous rather than minimal: with
         -- growth enabled every expansion copies the whole heap, and there is no
         -- reason to pay that repeatedly during startup.
+        -- C++ EXCEPTIONS ARE REQUIRED, and this is NOT what v1 scoped out.
+        -- The v1 note says "drop C++ exception support", but that was about
+        -- Support.extra.safeFFI - the pcall net catching C++ exceptions crossing
+        -- the LUA barrier. Redux's own C++ throws internally regardless;
+        -- gl3w-throwers.cc exists to do exactly that. Without this the first
+        -- throw aborts with "Exception thrown, but exception catching is not
+        -- enabled", which is what the browser did.
+        --
+        -- THE JS-BASED MODEL, NOT -fwasm-exceptions, AND THE PACKAGES DECIDE
+        -- THAT. Native wasm EH is the faster one and was the first thing tried.
+        -- It forces SUPPORT_LONGJMP=wasm, emcc rejects
+        -- "SUPPORT_LONGJMP=emscripten is not compatible with -fwasm-exceptions"
+        -- outright, and freetype's ftbase.c/sfnt.c come from an xmake PACKAGE
+        -- built in a separate compilation that never sees these flags - so they
+        -- carry JS-lowered setjmp and the link dies on an undefined
+        -- emscripten_longjmp. The EH model is therefore not a free choice: it is
+        -- pinned by whatever the packages were built with. Moving to wasm EH
+        -- means rebuilding freetype (and anything else using setjmp) to match.
+        add_cxflags("-fexceptions", {force = true})
+        add_ldflags("-fexceptions", "-sNO_DISABLE_EXCEPTION_CATCHING", {force = true})
         add_ldflags("-sALLOW_MEMORY_GROWTH=1", "-sINITIAL_MEMORY=512MB",
                     "-sMAXIMUM_MEMORY=4GB",
                     -- 64 kB by default in current emscripten, which nothing in a

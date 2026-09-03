@@ -28,7 +28,32 @@
 #include <GL/gl3w.h>
 #include <stdlib.h>
 #define ARRAY_SIZE(x)  (sizeof(x) / sizeof((x)[0]))
-#if defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+/* Emscripten has no dynamic loader and no libGL to dlopen: the GL entry points
+ * are statically linked into the module. Without this arm gl3w falls through to
+ * the Linux branch, dlopen("libGL.so.1") fails, gl3wInit returns
+ * GL3W_ERROR_LIBRARY_OPEN, and the caller reports it as a missing OpenGL driver.
+ *
+ * SDL_GL_GetProcAddress resolves against those linked-in symbols, so the rest of
+ * gl3w - including the generated pointer table that gl3w-throwers.cc wraps -
+ * works unchanged. Doing it here rather than bypassing gl3w on wasm is what
+ * keeps that throwers machinery intact.
+ *
+ * SDL rather than emscripten_GetProcAddress, which does not exist in emsdk
+ * 6.0.3 (checked the sysroot, not assumed), and rather than eglGetProcAddress,
+ * which would pull in an EGL subsystem this build has no other use for. The
+ * caller already owns an SDL GL context by the time gl3wInit runs.
+ */
+#include <SDL3/SDL_video.h>
+
+static int open_libgl(void) { return GL3W_OK; }
+static void close_libgl(void) {}
+static GL3WglProc get_proc(const char *proc)
+{
+	return (GL3WglProc)SDL_GL_GetProcAddress(proc);
+}
+
+#elif defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
