@@ -20,8 +20,20 @@ if is_plat("wasm") then
     -- xmake packages built in a separate compilation that does not see the
     -- target's flags, so they must be told separately. Same shape as the
     -- exception-model constraint above: the packages pin the ABI, not us.
-    add_requireconfs("*", {configs = {cxflags = "-pthread", cflags = "-pthread",
-                                      ldflags = "-pthread"}})
+    -- NOT -fwasm-exceptions here, even though the target uses it. SDL3's cmake
+    -- configure fails its try-compiles with that flag in CFLAGS. What the
+    -- packages actually have to agree on is the setjmp/longjmp LOWERING:
+    -- -fwasm-exceptions implies SUPPORT_LONGJMP=wasm, and freetype's ftbase.c /
+    -- sfnt.c use setjmp, so they must be lowered the same way or the link dies
+    -- on an undefined emscripten_longjmp. None of these packages throws across
+    -- our boundary, so they do not need the EH model itself - only the longjmp
+    -- one, which is the narrower flag.
+    -- LISTS, not space-separated strings: xmake passes a string through as ONE
+    -- argument and clang reports `unknown argument: '-pthread -sSUPPORT_LONGJMP=wasm'`.
+    add_requireconfs("*", {configs = {
+        cxflags = {"-pthread", "-sSUPPORT_LONGJMP=wasm"},
+        cflags  = {"-pthread", "-sSUPPORT_LONGJMP=wasm"},
+        ldflags = {"-pthread", "-sSUPPORT_LONGJMP=wasm"}}})
     add_requires("capstone", "fmt", "freetype", "libsdl3", "zlib")
 else
     add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
@@ -148,33 +160,18 @@ target("pcsx-redux", function()
         -- The v1 note says "drop C++ exception support", but that was about
         -- Support.extra.safeFFI - the pcall net catching C++ exceptions crossing
         -- the LUA barrier. Redux's own C++ throws internally regardless;
-        -- gl3w-throwers.cc exists to do exactly that. Without this the first
-        -- throw aborts with "Exception thrown, but exception catching is not
-        -- enabled", which is what the browser did.
+        -- gl3w-throwers.cc exists to do exactly that.
         --
-        -- THE JS-BASED MODEL, NOT -fwasm-exceptions, AND THE PACKAGES DECIDE
-        -- THAT. Native wasm EH is the faster one and was the first thing tried.
-        -- It forces SUPPORT_LONGJMP=wasm, emcc rejects
-        -- "SUPPORT_LONGJMP=emscripten is not compatible with -fwasm-exceptions"
-        -- outright, and freetype's ftbase.c/sfnt.c come from an xmake PACKAGE
-        -- built in a separate compilation that never sees these flags - so they
-        -- carry JS-lowered setjmp and the link dies on an undefined
-        -- emscripten_longjmp. The EH model is therefore not a free choice: it is
-        -- pinned by whatever the packages were built with. Moving to wasm EH
-        -- means rebuilding freetype (and anything else using setjmp) to match.
-        -- THREADS. Pixel, 2026-09-02: "The SPU can't run on the main loop,
-        -- especially with all of the pending changes I have." So std::thread has
-        -- to work rather than be scoped out: spu.cc:914 starts MainThread and
-        -- sdlaudio.cc:292 starts nullThread, and without -pthread both fail at
-        -- construction with "thread constructor failed: Not supported".
-        --
-        -- This needs SharedArrayBuffer, so the page must be served
-        -- cross-origin-isolated (COOP: same-origin + COEP: require-corp) or the
-        -- module will not even instantiate. That is a SERVING requirement, not a
-        -- build one, and it is easy to miss because a non-isolated page fails
-        -- late and unhelpfully.
-        add_cxflags("-fexceptions", "-pthread", {force = true})
-        add_ldflags("-fexceptions", "-sNO_DISABLE_EXCEPTION_CATCHING",
+        -- NATIVE WASM EH, which only became available once the packages were
+        -- being rebuilt anyway. The first attempt used the JS-based model,
+        -- because -fwasm-exceptions forces SUPPORT_LONGJMP=wasm and freetype's
+        -- ftbase.c/sfnt.c came prebuilt with JS-lowered setjmp, so the link died
+        -- on an undefined emscripten_longjmp. -pthread forced those packages to
+        -- be rebuilt regardless, so the constraint that pinned the exception
+        -- model is gone. Native EH drops the invoke_* JS trampolines around
+        -- every try block.
+        add_cxflags("-fwasm-exceptions", "-pthread", {force = true})
+        add_ldflags("-fwasm-exceptions",
                     "-pthread", "-sPTHREAD_POOL_SIZE=8",
                     -- The browser main thread cannot block, and Redux's main
                     -- thread joins workers. PROXY_TO_PTHREAD moves main() itself
@@ -189,10 +186,13 @@ target("pcsx-redux", function()
                     -- with -sASSERTIONS" into something readable. Keep it until
                     -- the thing renders; it is a debug build either way.
                     "-sASSERTIONS=1",
-                    -- -g2 keeps the wasm name section, so a RuntimeError stack
-                    -- shows function names instead of wasm-function[6585]. No
-                    -- source maps, no codegen change; drop it once this renders.
-                    "-g",
+                    -- -g2 = wasm NAME SECTION only, so a RuntimeError stack
+                    -- shows function names instead of wasm-function[6585].
+                    -- NOT -g: full DWARF crashes wasm-opt at -O3 with an
+                    -- assertion in wasm-debug.cpp AddrExprMap::add, and it fails
+                    -- AFTER writing a zero-byte .wasm, so an mtime check alone
+                    -- reads it as a successful build.
+                    "-g2",
                     "-sEXIT_RUNTIME=0",
                     -- gl3w and imgui's GL3 backend both want real ES3/WebGL2.
                     "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2", "-sFULL_ES3=1",
