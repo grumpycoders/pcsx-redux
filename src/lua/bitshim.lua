@@ -68,4 +68,12 @@ if not bit then
     end,
   }
 end
+
+-- Redux reaches `bit` BOTH ways: pcsxffi.lua touches the global, and
+-- supportpsx/assembler/assembler.lua and pseudo.lua do `local bit =
+-- require('bit')`. LuaJIT satisfies both because bit is a preloaded stdlib.
+-- Setting only the global left require walking package.path and failing on
+-- ./bit.lua, so register it as loaded too. Unconditional: on LuaJIT this
+-- rebinds package.loaded.bit to the same table it already holds.
+package.loaded.bit = bit
 -- )EOF"

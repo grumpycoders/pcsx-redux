@@ -135,6 +135,17 @@ void PCSX::Emulator::setLua() {
         );
         L.load(bitshim, "src:lua/bitshim.lua");
     }
+
+    // The _CLIBS adapter, before ANY ffi file: it wraps ffi.cdef to accumulate
+    // declarations, and a library cdef'd before the wrapper is installed would
+    // be invisible to it. No-op on LuaJIT, where lj_clib.c does this in C.
+    {
+        static int lualoader = 1;
+        static const char* clibs = (
+#include "lua/clibs.lua"
+        );
+        L.load(clibs, "src:lua/clibs.lua");
+    }
     LuaFFI::open_zlib(L);
 #ifndef __EMSCRIPTEN__  // no libuv, so no luv global
     luv_set_loop(L.getState(), g_system->getLoop());
