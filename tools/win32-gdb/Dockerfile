@@ -2,7 +2,7 @@
 
 # Dockerfile to generate the Windows gdb-multiarch-17.2.zip package.
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2025
 WORKDIR C:\windows\temp
 SHELL ["powershell", "-command"]
 

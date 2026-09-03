@@ -28,9 +28,9 @@
 #include "core/sstate.h"
 #include "json.hpp"
 #include "spu/adsr.h"
-#include "spu/miniaudio.h"
 #include "spu/noise.h"
 #include "spu/reverb.h"
+#include "spu/sdlaudio.h"
 #include "spu/types.h"
 #include "support/settings.h"
 
@@ -296,7 +296,7 @@ class impl final : public SPUInterface {
     int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
     int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
 
-    MiniAudio m_audioOut = {settings};
+    SDLAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
 
     // Debug window.

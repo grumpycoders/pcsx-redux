@@ -26,6 +26,8 @@ SOFTWARE.
 
 #if !defined(_WIN32) && !defined(_WIN64)
 
+#include <cstdlib>
+
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>

@@ -29,8 +29,8 @@ static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     int sinc, spos, i, iSize, vl, vr, voldiv = 4 - settings.get<Volume>();
 
-    MiniAudio::Frame XABuffer[32 * 1024];
-    MiniAudio::Frame *XAFeed = XABuffer;
+    SDLAudio::Frame XABuffer[32 * 1024];
+    SDLAudio::Frame *XAFeed = XABuffer;
 
     if (!spuIsOpen) return;
 
@@ -86,7 +86,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 }
             }
 
-            MiniAudio::Frame f;
+            SDLAudio::Frame f;
             int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
             int16_t rawSampleR = static_cast<int16_t>(l >> 16);
             if (mixIrqAddress) {
@@ -130,7 +130,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 l = s;
             }
 
-            MiniAudio::Frame f;
+            SDLAudio::Frame f;
             int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
             int16_t rawSampleR = static_cast<int16_t>(l >> 16);
             // Write the CD-XA samples (left/right) to a temporary buffer. Wrap around if necessary.
@@ -151,5 +151,5 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     }
     if (mixIrqAddress) cbMtx.unlock();
 
-    m_audioOut.feedStreamData(reinterpret_cast<MiniAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+    m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
 }

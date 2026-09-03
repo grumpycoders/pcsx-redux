@@ -13,7 +13,19 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+            project: dev-linux-x64
+            secret: APPDISTRIB_DEV_LINUX_X64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            project: dev-linux-arm64
+            secret: APPDISTRIB_DEV_LINUX_ARM64
+    runs-on: ${{ matrix.runner }}
     container:
       image: ghcr.io/grumpycoders/pcsx-redux-build:latest
       options: --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined
@@ -41,9 +53,9 @@ jobs:
           apt install -y jq
       - name: Packaging
         env:
-          APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_LINUX_X64 }}
+          APPDISTRIB_TOKEN: ${{ secrets[matrix.secret] }}
           APPDISTRIB_ORGANIZATION: pcsx-redux
-          APPDISTRIB_PROJECT: dev-linux-x64
+          APPDISTRIB_PROJECT: ${{ matrix.project }}
         run: |
           npx @appdistrib/cli buildid > buildid.json
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
@@ -59,15 +71,15 @@ jobs:
           echo '    {' >> version.json
           echo '      "channel": "dev",' >> version.json
           echo '      "method": "appdistrib",' >> version.json
-          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/manifest.json",' >> version.json
-          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-linux-x64/",' >> version.json
+          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest.json",' >> version.json
+          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/",' >> version.json
           echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
           echo '    }' >> version.json
           echo '  ]' >> version.json
           echo '}' >> version.json
           cp version.json AppDir/usr/share/pcsx-redux/resources
           linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
-          mv PCSX-Redux-x86_64.AppImage PCSX-Redux-HEAD-x86_64.AppImage
+          mv PCSX-Redux-${{ matrix.arch }}.AppImage PCSX-Redux-HEAD-${{ matrix.arch }}.AppImage
       - name: Test
         run: |
           export GTEST_OUTPUT=xml:${TEST_RESULTS}/
@@ -76,11 +88,11 @@ jobs:
       - name: Deploy
         if: github.event_name == 'push'
         env:
-          APPDISTRIB_TOKEN: ${{ secrets.APPDISTRIB_DEV_LINUX_X64 }}
+          APPDISTRIB_TOKEN: ${{ secrets[matrix.secret] }}
           APPDISTRIB_ORGANIZATION: pcsx-redux
-          APPDISTRIB_PROJECT: dev-linux-x64
+          APPDISTRIB_PROJECT: ${{ matrix.project }}
         run: |
           git config --global --add safe.directory /__w/pcsx-redux/pcsx-redux
           export BUILD=`git rev-parse HEAD | cut -c 1-8`
-          zip PCSX-Redux-$BUILD-linux-x86_64.zip *.AppImage
-          npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-linux-x86_64.zip
+          zip PCSX-Redux-$BUILD-linux-${{ matrix.arch }}.zip *.AppImage
+          npx @appdistrib/cli -l buildId -m version.json upload PCSX-Redux-$BUILD-linux-${{ matrix.arch }}.zip

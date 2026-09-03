@@ -1,0 +1,68 @@
+name: xmake CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The build container runs as root, and xmake refuses outright to run as root
+  # without this. There's no unprivileged user in the image to switch to.
+  XMAKE_ROOT: y
+  # xmake keeps downloaded packages under $HOME, and $HOME here is whatever the
+  # runner injects into the container (/github/home), not what the image sets.
+  # Pin it so the cache path below is a fixed string rather than a guess.
+  XMAKE_GLOBALDIR: /tmp/xmake-global
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      # Most dependencies resolve to system packages, but fmt still comes from
+      # xmake's own repository and gets built from source. Cache it so that
+      # only happens when xmake.lua changes.
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/xmake-global/.xmake/packages
+          key: xmake-packages-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake.lua') }}
+          restore-keys: |
+            xmake-packages-${{ runner.os }}-${{ runner.arch }}-
+      - run: |
+          xmake f -y
+          xmake -y -j 2
+
+  guest:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sample:
+          - src/mips/helloworld
+          - src/mips/modplayer
+          - src/mips/psyqo/examples/hello
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          set-safe-directory: true
+      # -P . is mandatory, and the space in it is load-bearing: xmake resolves
+      # the project by walking up to the topmost xmake.lua, so without it this
+      # builds the emulator from the repository root instead of the sample.
+      - run: |
+          cd ${{ matrix.sample }}
+          xmake f -P . -y
+          xmake -P . -y
