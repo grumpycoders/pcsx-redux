@@ -124,7 +124,7 @@ target("pcsx-redux", function()
             "third_party/libffi/src")
         -- CALL_WITH_LIBFFI swaps luaffifb's DynASM call path, which cannot target
         -- wasm, for libffi's signature-keyed dispatch.
-        add_defines("CALL_WITH_LIBFFI", "LUA_COMPAT_5_3")
+        add_defines("CALL_WITH_LIBFFI", "LUA_COMPAT_5_3", "PCSX_GL3W_TRACE_MISSING")
         -- The link had NO memory settings at all, so it took emscripten's
         -- defaults: a 16 MB heap with growth OFF. Redux is past that before it
         -- draws a frame - imgui plus freetype's atlas plus the 2 MB PSX RAM, the
@@ -164,6 +164,10 @@ target("pcsx-redux", function()
                     -- with -sASSERTIONS" into something readable. Keep it until
                     -- the thing renders; it is a debug build either way.
                     "-sASSERTIONS=1",
+                    -- -g2 keeps the wasm name section, so a RuntimeError stack
+                    -- shows function names instead of wasm-function[6585]. No
+                    -- source maps, no codegen change; drop it once this renders.
+                    "-g",
                     "-sEXIT_RUNTIME=0",
                     -- gl3w and imgui's GL3 backend both want real ES3/WebGL2.
                     "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2", "-sFULL_ES3=1",

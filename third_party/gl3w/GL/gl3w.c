@@ -27,6 +27,7 @@
  */
 #include <GL/gl3w.h>
 #include <stdlib.h>
+#include <string.h>
 #define ARRAY_SIZE(x)  (sizeof(x) / sizeof((x)[0]))
 #if defined(__EMSCRIPTEN__)
 /* Emscripten has no dynamic loader and no libGL to dlopen: the GL entry points
@@ -50,7 +51,13 @@ static int open_libgl(void) { return GL3W_OK; }
 static void close_libgl(void) {}
 static GL3WglProc get_proc(const char *proc)
 {
-	return (GL3WglProc)SDL_GL_GetProcAddress(proc);
+	GL3WglProc r = (GL3WglProc)SDL_GL_GetProcAddress(proc);
+#ifdef PCSX_GL3W_TRACE_MISSING
+	if (!r) { extern void emscripten_console_log(const char *); 
+	          static char b[256]; b[0]=0; strcat(b, "gl3w NULL: "); strncat(b, proc, 200);
+	          emscripten_console_log(b); }
+#endif
+	return r;
 }
 
 #elif defined(_WIN32)
