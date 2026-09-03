@@ -40,6 +40,13 @@ extern "C" void Complain(const char *message) {
         {
             var msg = UTF8ToString($0);
             console.error(msg);
+            // PROXY_TO_PTHREAD runs main() on a WORKER, and a worker has no
+            // document. Touching it there threw "ReferenceError: document is
+            // not defined" from inside the crash reporter, which replaced the
+            // real error with a second one - a reporter that fails louder than
+            // what it was reporting. console.error above has already run, so
+            // bailing out here still surfaces the message.
+            if (typeof document === 'undefined') return;
             var d = document.createElement('div');
             d.setAttribute(
                 'style',

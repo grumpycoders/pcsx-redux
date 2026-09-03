@@ -13,6 +13,15 @@ add_rules("mode.debug", "mode.release")
 -- already scoped OUT of v1. Dropped here purely to let configure proceed far
 -- enough to enumerate the NEXT layer of blockers.
 if is_plat("wasm") then
+    -- The packages have to be built with the SAME threading model as the target.
+    -- -pthread implies -matomics -mbulk-memory, and wasm-ld refuses to mix:
+    -- "--shared-memory is disallowed by sfnt.c.o because it was not compiled
+    -- with 'atomics' or 'bulk-memory' features." freetype and SDL3 come from
+    -- xmake packages built in a separate compilation that does not see the
+    -- target's flags, so they must be told separately. Same shape as the
+    -- exception-model constraint above: the packages pin the ABI, not us.
+    add_requireconfs("*", {configs = {cxflags = "-pthread", cflags = "-pthread",
+                                      ldflags = "-pthread"}})
     add_requires("capstone", "fmt", "freetype", "libsdl3", "zlib")
 else
     add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
@@ -153,8 +162,24 @@ target("pcsx-redux", function()
         -- emscripten_longjmp. The EH model is therefore not a free choice: it is
         -- pinned by whatever the packages were built with. Moving to wasm EH
         -- means rebuilding freetype (and anything else using setjmp) to match.
-        add_cxflags("-fexceptions", {force = true})
-        add_ldflags("-fexceptions", "-sNO_DISABLE_EXCEPTION_CATCHING", {force = true})
+        -- THREADS. Pixel, 2026-09-02: "The SPU can't run on the main loop,
+        -- especially with all of the pending changes I have." So std::thread has
+        -- to work rather than be scoped out: spu.cc:914 starts MainThread and
+        -- sdlaudio.cc:292 starts nullThread, and without -pthread both fail at
+        -- construction with "thread constructor failed: Not supported".
+        --
+        -- This needs SharedArrayBuffer, so the page must be served
+        -- cross-origin-isolated (COOP: same-origin + COEP: require-corp) or the
+        -- module will not even instantiate. That is a SERVING requirement, not a
+        -- build one, and it is easy to miss because a non-isolated page fails
+        -- late and unhelpfully.
+        add_cxflags("-fexceptions", "-pthread", {force = true})
+        add_ldflags("-fexceptions", "-sNO_DISABLE_EXCEPTION_CATCHING",
+                    "-pthread", "-sPTHREAD_POOL_SIZE=8",
+                    -- The browser main thread cannot block, and Redux's main
+                    -- thread joins workers. PROXY_TO_PTHREAD moves main() itself
+                    -- onto a worker so blocking there is legal.
+                    "-sPROXY_TO_PTHREAD=1", {force = true})
         add_ldflags("-sALLOW_MEMORY_GROWTH=1", "-sINITIAL_MEMORY=512MB",
                     "-sMAXIMUM_MEMORY=4GB",
                     -- 64 kB by default in current emscripten, which nothing in a
