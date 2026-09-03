@@ -29,6 +29,9 @@
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
 #include <assert.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5_webgl.h>
+#endif
 #ifndef __EMSCRIPTEN__
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -2276,6 +2279,20 @@ the update and manually apply it.)")));
         SDL_GL_MakeCurrent(m_window, m_glContext);
     }
     SDL_GL_SwapWindow(m_window);
+#ifdef __EMSCRIPTEN__
+    // Nothing in the SDL or EGL path presents a frame in a browser: emscripten's
+    // eglSwapBuffers is a no-op, and a WebGL canvas is normally composited only
+    // when the owning thread's task ENDS. main() runs on a proxied pthread here
+    // and its loop never returns, so without this call the browser never sees a
+    // single frame - measured with a four-arm oracle in which an identical
+    // program drew 208,800 frames to a canvas that stayed black, and the same
+    // program with one `return` after 300 frames came up magenta.
+    // This is the escape hatch: with -sOFFSCREEN_FRAMEBUFFER the context renders
+    // to an offscreen backbuffer that commit_frame blits to the real canvas on
+    // the browser main thread, whose event loop is turning normally. It is what
+    // lets the blocking main loop stand for v1.
+    emscripten_webgl_commit_frame();
+#endif
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");

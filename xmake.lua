@@ -196,6 +196,37 @@ target("pcsx-redux", function()
                     "-sEXIT_RUNTIME=0",
                     -- gl3w and imgui's GL3 backend both want real ES3/WebGL2.
                     "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2", "-sFULL_ES3=1",
+                    -- PROXY_TO_PTHREAD put main() on a worker, and a worker has
+                    -- no DOM: SDL_GL_CreateContext failed with "Could not create
+                    -- webgl context" because the canvas lives on the browser
+                    -- main thread. Emscripten offers two ways out, and the
+                    -- obvious one does not work here.
+                    --
+                    -- NOT -sOFFSCREENCANVAS_SUPPORT. It does fix context
+                    -- creation - the canvas is transferred to the pthread and
+                    -- SDL comes up clean - but a transferred OffscreenCanvas is
+                    -- composited only when the owning worker's TASK ENDS, and
+                    -- our main loop never returns. Measured with a four-arm
+                    -- oracle: 208,800 glClear(magenta) frames left the canvas
+                    -- BLACK, while the same program with one `return` after 300
+                    -- frames came up magenta. emscripten_webgl_commit_frame()
+                    -- cannot rescue it either - it returns -3 in implicit-swap
+                    -- mode, and libhtml5_webgl.js says outright that it is a
+                    -- no-op because browsers removed OffscreenCanvas.commit().
+                    --
+                    -- OFFSCREEN_FRAMEBUFFER is the arm that works: the canvas
+                    -- stays on the browser main thread, the pthread's GL calls
+                    -- are proxied to it, and commit_frame blits an offscreen
+                    -- backbuffer to the real canvas - on a thread whose event
+                    -- loop IS turning. Same blocking loop, canvas comes up.
+                    -- GL_SUPPORT_EXPLICIT_SWAP_CONTROL is what compiles
+                    -- commit_frame in; without it the call is inert.
+                    -- Redux calls it explicitly at the end of GUI::endFrame,
+                    -- because emscripten's automatic swap hook is registered as
+                    -- a pre-main-loop callback and we do not use
+                    -- emscripten_set_main_loop.
+                    "-sOFFSCREEN_FRAMEBUFFER=1",
+                    "-sGL_SUPPORT_EXPLICIT_SWAP_CONTROL=1",
                     "-Wl,--error-limit=0", {force = true})
     else
     add_deps("luajit")
