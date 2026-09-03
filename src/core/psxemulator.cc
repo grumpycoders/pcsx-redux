@@ -120,6 +120,21 @@ void PCSX::Emulator::setLua() {
         return 1;
     });
     L.load("ffi = require('ffi')", "internal:setffi.lua");
+    // Before anything that consumes `bit`. src/core/pcsxffi.lua defines
+    // bit.extract at file scope, so on a backend without the LuaJIT bit library
+    // that is an index of a nil value and the whole chunk dies at startup.
+    // No-op where `bit` already exists.
+    {
+        // The lualoader / paren dance is load-bearing: the .lua file is valid
+        // Lua AND a C++ raw string literal at once, and the leading `--` of its
+        // first line becomes a pre-decrement discarded by the comma operator.
+        // Without the parentheses it is a syntax error, not a string.
+        static int lualoader = 1;
+        static const char* bitshim = (
+#include "lua/bitshim.lua"
+        );
+        L.load(bitshim, "src:lua/bitshim.lua");
+    }
     LuaFFI::open_zlib(L);
 #ifndef __EMSCRIPTEN__  // no libuv, so no luv global
     luv_set_loop(L.getState(), g_system->getLoop());

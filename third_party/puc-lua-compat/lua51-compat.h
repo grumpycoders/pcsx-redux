@@ -40,17 +40,64 @@ static inline int pcsx_compat_pushglobals(lua_State *L) {
     return lua_gettop(L);
 }
 
-#define PCSX_COMPAT_TABLEOP(_name, _call)                              \
-    static inline void pcsx_compat_##_name(lua_State *L, int idx) {    \
-        if (idx == LUA_GLOBALSINDEX) {                                 \
-            int g = pcsx_compat_pushglobals(L);                        \
-            lua_insert(L, -3);                                         \
-            _call(L, g - 2);                                           \
-            lua_remove(L, -2);                                         \
-        } else {                                                       \
-            _call(L, idx);                                             \
-        }                                                              \
-    }
+/* ⛔ THE PREVIOUS VERSION OF THIS BLOCK WAS A MACRO THAT WAS NEVER INSTANTIATED.
+ * PCSX_COMPAT_TABLEOP was defined and then used nowhere, so every
+ * lua_gettable/lua_settable/lua_rawgeti/lua_rawseti carrying LUA_GLOBALSINDEX
+ * reached real 5.4 with a pseudo-index it does not have. 5.4 resolves that to
+ * nil and panics: "unprotected error in call to Lua API (attempt to index a nil
+ * value)" - which is verbatim what the browser reported, twice, once per
+ * crt-lottes shader, because shader-editor.cc fetches _G through
+ * lua_gettable(L, LUA_GLOBALSINDEX) to build each sandbox's __index.
+ *
+ * AND ONE MACRO COULD NOT HAVE SERVED THEM ANYWAY: these ops pop different
+ * numbers of values (gettable 1, settable 2, rawgeti 0, rawseti 1), so the
+ * insert position and the index arithmetic differ per op. Written out
+ * individually below, each verified against real PUC-Lua for net stack delta,
+ * result type, and an untouched guard value underneath.
+ *
+ * Each #define comes AFTER the function that implements it, so the call inside
+ * the body is the real 5.4 API rather than a recursive expansion.
+ */
+
+/* [.., key] -> [.., value] */
+static inline void pcsx_compat_gettable(lua_State *L, int idx) {
+    if (idx != LUA_GLOBALSINDEX) { lua_gettable(L, idx); return; }
+    lua_pushglobaltable(L);   /* [.., key, G] */
+    lua_insert(L, -2);        /* [.., G, key] */
+    lua_gettable(L, -2);      /* [.., G, value] */
+    lua_remove(L, -2);        /* [.., value] */
+}
+
+/* [.., key, value] -> [..] */
+static inline void pcsx_compat_settable(lua_State *L, int idx) {
+    if (idx != LUA_GLOBALSINDEX) { lua_settable(L, idx); return; }
+    lua_pushglobaltable(L);   /* [.., key, value, G] */
+    lua_insert(L, -3);        /* [.., G, key, value] */
+    lua_settable(L, -3);      /* [.., G] */
+    lua_pop(L, 1);            /* [..] */
+}
+
+/* [..] -> [.., value] */
+static inline void pcsx_compat_rawgeti(lua_State *L, int idx, lua_Integer n) {
+    if (idx != LUA_GLOBALSINDEX) { lua_rawgeti(L, idx, n); return; }
+    lua_pushglobaltable(L);
+    lua_rawgeti(L, -1, n);    /* [.., G, value] */
+    lua_remove(L, -2);        /* [.., value] */
+}
+
+/* [.., value] -> [..] */
+static inline void pcsx_compat_rawseti(lua_State *L, int idx, lua_Integer n) {
+    if (idx != LUA_GLOBALSINDEX) { lua_rawseti(L, idx, n); return; }
+    lua_pushglobaltable(L);   /* [.., value, G] */
+    lua_insert(L, -2);        /* [.., G, value] */
+    lua_rawseti(L, -2, n);    /* [.., G] */
+    lua_pop(L, 1);            /* [..] */
+}
+
+#define lua_gettable pcsx_compat_gettable
+#define lua_settable pcsx_compat_settable
+#define lua_rawgeti  pcsx_compat_rawgeti
+#define lua_rawseti  pcsx_compat_rawseti
 
 /* ---- names 5.2+ renamed or dropped ------------------------------------- */
 #define lua_objlen(L, i) lua_rawlen((L), (i))

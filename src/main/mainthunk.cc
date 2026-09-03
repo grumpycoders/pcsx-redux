@@ -128,12 +128,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 #if defined(__APPLE__) && defined(__MACH__)
 extern "C" void Complain(const char *msg);
 #elif defined(__EMSCRIPTEN__)
-// A browser has no X server to pop an error window on, and the message has
-// already gone to stderr, which emscripten routes to the JS console. Printing
-// it again through emscripten's own channel is the equivalent gesture.
-#include <emscripten/console.h>
-
-static void Complain(const char *msg) { emscripten_console_error(msg); }
+// Same shape as the Apple arm above: the implementation lives in its own file,
+// src/main/complain-wasm.cc, because it needs EM_ASM and the DOM.
+extern "C" void Complain(const char *msg);
 #else
 #include <X11/Xlib.h>
 #include <stdlib.h>

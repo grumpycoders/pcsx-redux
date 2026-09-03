@@ -65,14 +65,20 @@ void PCSX::UI::finishLoadSettings() {
 void PCSX::UI::setLuaCommon(Lua L) {
     L.load(R"(
 print("PCSX-Redux Lua Console")
-print(jit.version)
-print((function(status, ...)
-  local ret = "JIT: " .. (status and "ON" or "OFF")
-  for i, v in ipairs({...}) do
-    ret = ret .. " " .. v
-  end
-  return ret
-end)(jit.status()))
+-- `jit` exists only on LuaJIT. On the PUC-Lua backend it is nil, and reading
+-- jit.version indexes a nil value, which killed this whole chunk at startup.
+if jit and jit.status then
+  print(jit.version)
+  print((function(status, ...)
+    local ret = "JIT: " .. (status and "ON" or "OFF")
+    for i, v in ipairs({...}) do
+      ret = ret .. " " .. v
+    end
+    return ret
+  end)(jit.status()))
+else
+  print(_VERSION)
+end
 )",
            "ui startup");
 }
