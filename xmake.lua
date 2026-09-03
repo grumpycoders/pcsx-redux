@@ -227,6 +227,11 @@ target("pcsx-redux", function()
                     -- emscripten_set_main_loop.
                     "-sOFFSCREEN_FRAMEBUFFER=1",
                     "-sGL_SUPPORT_EXPLICIT_SWAP_CONTROL=1",
+                    -- Our own shell rather than emscripten's, for exactly one
+                    -- reason today: it loads enable-threads.js first. Editing
+                    -- the generated pcsx-redux.html instead would work until
+                    -- the next build overwrote it.
+                    "--shell-file", "src/gui/shell-wasm.html",
                     "-Wl,--error-limit=0", {force = true})
     else
     add_deps("luajit")
@@ -314,6 +319,17 @@ target("pcsx-redux", function()
     else
         add_files("third_party/clip/clip_x11.cpp")
         add_ldflags("-lstdc++fs", "-lGL", "-lX11", "-lxcb")
+    end
+
+    -- enable-threads.js has to be a real same-origin file next to the page: a
+    -- service worker cannot be inlined, preloaded into the virtual filesystem,
+    -- or served cross-origin. So the deployable set is four files, not three,
+    -- and the fourth is the one that decides whether the other three run at all.
+    if is_plat("wasm") then
+        after_build(function(target)
+            os.cp("third_party/coi-serviceworker/enable-threads.js",
+                  path.directory(target:targetfile()))
+        end)
     end
 
 end)
