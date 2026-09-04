@@ -38,6 +38,29 @@ typedef struct uv_loop_s {
 
 typedef enum { UV_RUN_DEFAULT = 0, UV_RUN_ONCE, UV_RUN_NOWAIT } uv_run_mode;
 
+/* Opaque handle placeholders. The server classes STORE these as members and
+ * name them in signatures; on wasm nothing ever hands one to libuv, because the
+ * bodies that would live in gdb-server.cc / web-server.cc / sio1-server.cc are
+ * replaced by the -none.cc stubs, which start nothing. They exist so those
+ * headers parse, so that psxemulator.cc and the GUI need no conditionals.
+ *
+ * Layout is deliberately NOT libuv's. Same footing as uv_loop_t above: a
+ * placeholder, not a reimplementation. There are no uv_* FUNCTIONS here beyond
+ * the loop ones, so any code that actually tries to do libuv work fails to
+ * link rather than silently doing nothing. */
+typedef struct uv_handle_s {
+    void* data;
+} uv_handle_t;
+typedef struct uv_stream_s {
+    void* data;
+} uv_stream_t;
+typedef struct uv_tcp_s {
+    void* data;
+} uv_tcp_t;
+typedef struct uv_async_s {
+    void* data;
+} uv_async_t;
+
 static inline int uv_loop_init(uv_loop_t* loop) {
     if (loop) loop->data = 0;
     return 0;
