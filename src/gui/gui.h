@@ -297,8 +297,11 @@ class GUI final : public UI {
     void endFrame();
 
     bool configure();
+    bool debugServersUI();
+    bool sio1ReconnectUI();
     bool showThemes();  // Theme window : Allows for custom imgui themes
     bool about();
+    void aboutFFmpegTab();
     void interruptsScaler();
 
   public:

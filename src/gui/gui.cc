@@ -29,16 +29,6 @@
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
 #include <assert.h>
-#ifdef __EMSCRIPTEN__
-#include <emscripten/html5_webgl.h>
-#endif
-#ifndef __EMSCRIPTEN__
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-}
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -56,9 +46,6 @@ extern "C" {
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
 #include "core/debug.h"
-#ifndef __EMSCRIPTEN__
-#include "core/gdb-server.h"
-#endif
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/pad.h"
@@ -66,16 +53,11 @@ extern "C" {
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
-#ifndef __EMSCRIPTEN__
-#include "core/sio1-server.h"
-#endif
 #include "core/sio1.h"
 #include "core/sstate.h"
-#ifndef __EMSCRIPTEN__
-#include "core/web-server.h"
-#endif
 #include "flags.h"
 #include "fmt/chrono.h"
+#include "gui/gui-platform.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"
 #include "gui/luanvg.h"
@@ -197,26 +179,6 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
 }
 
 using json = nlohmann::json;
-namespace {
-
-// glClearDepth takes a double and is desktop-GL only; ES3 and WebGL2 have only
-// the float form, glClearDepthf. gl3w resolves the desktop name to NULL there,
-// which now lands in a typed thrower and surfaces as "gl function not loaded" -
-// the two occurrences were exactly the two call sites below.
-//
-// Not unconditionally glClearDepthf: that one needs GL 4.1 or
-// ARB_ES2_compatibility, and Redux asks for a 3.2 core context, so on desktop it
-// can be the absent one instead.
-inline void clearDepth(double d) {
-#ifdef __EMSCRIPTEN__
-    glClearDepthf(static_cast<float>(d));
-#else
-    glClearDepth(d);
-#endif
-}
-
-}  // namespace
-
 
 static std::function<void(const char*)> s_imguiUserErrorFunctor = nullptr;
 static void thrower(const char* msg) { throw std::runtime_error(msg); }
@@ -1215,7 +1177,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    clearDepth(0.0);
+    GUIPlatform::clearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -1862,11 +1824,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         changed |= m_assembly.draw(this, &g_emulator->m_cpu->m_regs, g_emulator->m_mem.get(), _("Assembly"));
     }
 
-#ifndef __EMSCRIPTEN__  // wasm is interpreter-only, so dynarec_disassembly.cc is disabled
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
-#endif
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
@@ -1917,11 +1877,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_sio1.draw(this, &PCSX::g_emulator->m_sio1->m_regs, _("SIO1 Debug"));
     }
 
-#ifndef __EMSCRIPTEN__  // isobrowser.cc drives the UvThreadOp caching UI, which wasm does not have
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
-#endif
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
@@ -2186,7 +2144,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    clearDepth(0.0);
+    GUIPlatform::clearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -2276,21 +2234,7 @@ the update and manually apply it.)")));
         }
         SDL_GL_MakeCurrent(m_window, m_glContext);
     }
-    SDL_GL_SwapWindow(m_window);
-#ifdef __EMSCRIPTEN__
-    // Nothing in the SDL or EGL path presents a frame in a browser: emscripten's
-    // eglSwapBuffers is a no-op, and a WebGL canvas is normally composited only
-    // when the owning thread's task ENDS. main() runs on a proxied pthread here
-    // and its loop never returns, so without this call the browser never sees a
-    // single frame - measured with a four-arm oracle in which an identical
-    // program drew 208,800 frames to a canvas that stayed black, and the same
-    // program with one `return` after 300 frames came up magenta.
-    // This is the escape hatch: with -sOFFSCREEN_FRAMEBUFFER the context renders
-    // to an offscreen backbuffer that commit_frame blits to the real canvas on
-    // the browser main thread, whose event loop is turning normally. It is what
-    // lets the blocking main loop stand for v1.
-    emscripten_webgl_commit_frame();
-#endif
+    GUIPlatform::presentFrame(m_window);
 
     L.getfieldtable("nvg", LUA_GLOBALSINDEX);
     L.push("_gui");
@@ -2425,131 +2369,14 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-#ifndef __EMSCRIPTEN__
-        if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
-            } else {
-                g_emulator->m_gdbServer->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
-connect to with any gdb-remote compliant client.
-You also need to enable the debugger.)"));
-        changed |=
-            ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(Enables sending the processor's manifest
-from the gdb server. Keep this enabled, unless
-you want to connect IDA to this server, as it
-has a bug in its manifest parser.)"));
-        auto& currentGdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
-        auto currentName = magic_enum::enum_name(currentGdbLog);
-
-        if (ImGui::BeginCombo(_("PCSX Logs to GDB"), currentName.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::GdbLog>()) {
-                bool selected = (v == currentGdbLog);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentGdbLog = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        changed |=
-            ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
-        changed |=
-            ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(The GDB server will start tracing its
-protocol into the logs, which can be helpful to debug
-the gdb server system itself.)"));
-        if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::WebServerPort>());
-            } else {
-                g_emulator->m_webServer->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
-query using a REST api. See the wiki for details.
-The debugger might be required in some cases.)"));
-        changed |=
-            ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
-        if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->startServer(g_system->getLoop(),
-                                                      debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
-            } else {
-                g_emulator->m_sio1Server->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
-relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
-#endif  // __EMSCRIPTEN__
-#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
-        if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
-                g_emulator->m_sio1Client->startClient(
-                    std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                         .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                         .value),
-                    g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                        .get<Emulator::DebugSettings::SIO1ClientPort>());
-            } else {
-                g_emulator->m_sio1Client->stopClient();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
-to another PCSX-Redux server to relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
-                             ImGuiInputTextFlags_CharsDecimal);
-        changed |=
-            ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
-
-#endif
+        changed |= debugServersUI();
         auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
         auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
         if (ImGui::Button(_("Reset SIO"))) {
             g_emulator->m_sio1->reset();
         }
 
-#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
-        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
-                                     !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
-
-        if (!enableReconnect) {
-            ImGui::BeginDisabled();
-        }
-
-        if (ImGui::Button(_("Reconnect"))) {
-            g_emulator->m_sio1Client->reconnect(
-                std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                     .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                     .value),
-                g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                    .get<Emulator::DebugSettings::SIO1ClientPort>());
-        }
-
-        if (!enableReconnect) {
-            ImGui::EndDisabled();
-        }
-
-#endif
+        changed |= sio1ReconnectUI();
         if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
             for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
                 bool selected = (v == currentSIO1Mode);
@@ -2767,86 +2594,7 @@ bool PCSX::GUI::about() {
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
-#ifndef __EMSCRIPTEN__
-            if (ImGui::BeginTabItem(_("FFmpeg information"))) {
-                ImGui::Text(_("Version: %s"), av_version_info());
-                ImGui::Text(_("License: %s"), avutil_license());
-                ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
-                ImGui::Separator();
-
-                ImGui::TextUnformatted(_("List of supported formats:"));
-                const AVInputFormat* format = nullptr;
-                void* opaque = nullptr;
-                std::vector<const AVInputFormat*> formats;
-                unsigned nb_formats = 0;
-                while ((format = av_demuxer_iterate(&opaque))) nb_formats++;
-                formats.reserve(nb_formats);
-                opaque = nullptr;
-                while ((format = av_demuxer_iterate(&opaque))) formats.push_back(format);
-                std::sort(formats.begin(), formats.end(),
-                          [](auto& a, auto& b) { return strcmp(a->name, b->name) < 0; });
-                useMonoFont();
-                for (auto& format : formats) {
-                    ImGui::Text("  %-25s %s", format->name, format->long_name);
-                }
-                ImGui::PopFont();
-                ImGui::Separator();
-
-                ImGui::TextUnformatted(_("List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"));
-                const AVCodecDescriptor* codec = nullptr;
-                std::vector<const AVCodecDescriptor*> codecs;
-                unsigned nb_codecs = 0;
-                while ((codec = avcodec_descriptor_next(codec))) nb_codecs++;
-                codecs.reserve(nb_codecs);
-                codec = nullptr;
-                while ((codec = avcodec_descriptor_next(codec))) codecs.push_back(codec);
-                std::sort(codecs.begin(), codecs.end(), [](auto& a, auto& b) {
-                    if (a->type == b->type) {
-                        return strcmp(a->name, b->name) < 0;
-                    }
-                    return a->type < b->type;
-                });
-
-                auto getMediaType = [](AVMediaType type) -> const char* {
-                    switch (type) {
-                        case AVMEDIA_TYPE_VIDEO:
-                            return "Video";
-                        case AVMEDIA_TYPE_AUDIO:
-                            return "Audio";
-                        case AVMEDIA_TYPE_DATA:
-                            return "Data";
-                        case AVMEDIA_TYPE_SUBTITLE:
-                            return "Subtitle";
-                        case AVMEDIA_TYPE_ATTACHMENT:
-                            return "Attachment";
-                        default:
-                            return "Unknown";
-                    }
-                };
-
-                auto previousType = AVMEDIA_TYPE_UNKNOWN;
-
-                useMonoFont();
-                for (auto& codec : codecs) {
-                    auto type = codec->type;
-                    if (type != previousType) {
-                        ImGui::Separator();
-                        useMainFont();
-                        ImGui::Text(_("%s codecs"), getMediaType(type));
-                        ImGui::PopFont();
-                        previousType = type;
-                    }
-                    std::string_view name = codec->name;
-                    if (StringsHelpers::endsWith(name, "_deprecated")) continue;
-                    ImGui::Text("  %c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
-                                avcodec_find_encoder(codec->id) ? 'E' : '.',
-                                (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
-                                (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
-                }
-                ImGui::PopFont();
-                ImGui::EndTabItem();
-            }
-#endif  // __EMSCRIPTEN__
+            aboutFFmpegTab();
             ImGui::EndTabBar();
         }
     }

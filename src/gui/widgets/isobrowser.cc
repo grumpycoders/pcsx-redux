@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 // v1 wasm has no UvThreadOp caching layer for this UI to drive.
-#ifndef __EMSCRIPTEN__
 
 #include "gui/widgets/isobrowser.h"
 
@@ -829,5 +828,3 @@ void PCSX::Widgets::IsoBrowser::openHexEditor(const std::string& title, IO<File>
     auto* inst = new HexEditorInstance(label, file, m_monoFont);
     m_hexEditors.push_back(inst);
 }
-
-#endif
