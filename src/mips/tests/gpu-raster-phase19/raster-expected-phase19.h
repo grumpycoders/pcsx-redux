@@ -65,7 +65,7 @@ SOFTWARE.
 #include "raster-helpers.h"
 #include "texture-fixture-phase17.h"
 
-#define HW_TODO  0xCAFEu
+#define HW_TODO 0xCAFEu
 
 // --------------------------------------------------------------------------
 // T_NEG_U_K05: A=(5,5)/(5,0) B=(15,5)/(0,0) C=(5,15)/(5,5)
@@ -77,11 +77,11 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=1.5  v=0.0   -> (2, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_NEG_U_K05_VERTEX     0x1405u  /* HW_VERIFIED: UV(5, 0) */
-#define EXPECT_NEG_U_K05_TOP_NEAR   0x1405u  /* HW_VERIFIED: UV(5, 0) */
-#define EXPECT_NEG_U_K05_LEFT_NEAR  0x1C25u  /* HW_VERIFIED: UV(5, 1) */
-#define EXPECT_NEG_U_K05_INTERIOR   0x1C44u  /* HW_VERIFIED: UV(4, 2) */
-#define EXPECT_NEG_U_K05_TOP_FAR    0x0C02u  /* HW_VERIFIED: UV(2, 0) */
+#define EXPECT_NEG_U_K05_VERTEX 0x1405u    /* HW_VERIFIED: UV(5, 0) */
+#define EXPECT_NEG_U_K05_TOP_NEAR 0x1405u  /* HW_VERIFIED: UV(5, 0) */
+#define EXPECT_NEG_U_K05_LEFT_NEAR 0x1C25u /* HW_VERIFIED: UV(5, 1) */
+#define EXPECT_NEG_U_K05_INTERIOR 0x1C44u  /* HW_VERIFIED: UV(4, 2) */
+#define EXPECT_NEG_U_K05_TOP_FAR 0x0C02u   /* HW_VERIFIED: UV(2, 0) */
 
 // --------------------------------------------------------------------------
 // T_NEG_V_K05: A=(5,5)/(0,5) B=(15,5)/(5,5) C=(5,15)/(0,0)
@@ -93,11 +93,11 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=3.5  v=5.0   -> (4, 5)
 // --------------------------------------------------------------------------
 
-#define EXPECT_NEG_V_K05_VERTEX     0x14A0u  /* HW_VERIFIED: UV(0, 5) */
-#define EXPECT_NEG_V_K05_TOP_NEAR   0x1CA1u  /* HW_VERIFIED: UV(1, 5) */
-#define EXPECT_NEG_V_K05_LEFT_NEAR  0x14A0u  /* HW_VERIFIED: UV(0, 5) */
-#define EXPECT_NEG_V_K05_INTERIOR   0x1C82u  /* HW_VERIFIED: UV(2, 4) */
-#define EXPECT_NEG_V_K05_TOP_FAR    0x24A4u  /* HW_VERIFIED: UV(4, 5) */
+#define EXPECT_NEG_V_K05_VERTEX 0x14A0u    /* HW_VERIFIED: UV(0, 5) */
+#define EXPECT_NEG_V_K05_TOP_NEAR 0x1CA1u  /* HW_VERIFIED: UV(1, 5) */
+#define EXPECT_NEG_V_K05_LEFT_NEAR 0x14A0u /* HW_VERIFIED: UV(0, 5) */
+#define EXPECT_NEG_V_K05_INTERIOR 0x1C82u  /* HW_VERIFIED: UV(2, 4) */
+#define EXPECT_NEG_V_K05_TOP_FAR 0x24A4u   /* HW_VERIFIED: UV(4, 5) */
 
 // --------------------------------------------------------------------------
 // T_NEG_BOTH_K05: A=(5,5)/(5,5) B=(15,5)/(0,5) C=(5,15)/(5,0)
@@ -109,11 +109,11 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=1.5  v=5.0   -> (2, 5)
 // --------------------------------------------------------------------------
 
-#define EXPECT_NEG_BOTH_K05_VERTEX     0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
-#define EXPECT_NEG_BOTH_K05_TOP_NEAR   0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
-#define EXPECT_NEG_BOTH_K05_LEFT_NEAR  0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
-#define EXPECT_NEG_BOTH_K05_INTERIOR   0x2484u  /* HW_VERIFIED: UV(4, 4) */
-#define EXPECT_NEG_BOTH_K05_TOP_FAR    0x1CA2u  /* HW_VERIFIED: UV(2, 5) */
+#define EXPECT_NEG_BOTH_K05_VERTEX 0x2CA5u    /* HW_VERIFIED: UV(5, 5) */
+#define EXPECT_NEG_BOTH_K05_TOP_NEAR 0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
+#define EXPECT_NEG_BOTH_K05_LEFT_NEAR 0x2CA5u /* HW_VERIFIED: UV(5, 5) */
+#define EXPECT_NEG_BOTH_K05_INTERIOR 0x2484u  /* HW_VERIFIED: UV(4, 4) */
+#define EXPECT_NEG_BOTH_K05_TOP_FAR 0x1CA2u   /* HW_VERIFIED: UV(2, 5) */
 
 // --------------------------------------------------------------------------
 // T_NEG_U_K16: A=(5,5)/(16,0) B=(15,5)/(0,0) C=(5,15)/(16,16)
@@ -125,11 +125,11 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=4.8    v=0.0    -> (5, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_NEG_U_K16_VERTEX     0x4410u  /* HW_VERIFIED: UV(16, 0) */
-#define EXPECT_NEG_U_K16_TOP_NEAR   0x3C0Eu  /* HW_VERIFIED: UV(14, 0) */
-#define EXPECT_NEG_U_K16_LEFT_NEAR  0x4C50u  /* HW_VERIFIED: UV(16, 2) */
-#define EXPECT_NEG_U_K16_INTERIOR   0x44ABu  /* HW_VERIFIED: UV(11, 5) */
-#define EXPECT_NEG_U_K16_TOP_FAR    0x1405u  /* HW_VERIFIED: UV(5, 0) */
+#define EXPECT_NEG_U_K16_VERTEX 0x4410u    /* HW_VERIFIED: UV(16, 0) */
+#define EXPECT_NEG_U_K16_TOP_NEAR 0x3C0Eu  /* HW_VERIFIED: UV(14, 0) */
+#define EXPECT_NEG_U_K16_LEFT_NEAR 0x4C50u /* HW_VERIFIED: UV(16, 2) */
+#define EXPECT_NEG_U_K16_INTERIOR 0x44ABu  /* HW_VERIFIED: UV(11, 5) */
+#define EXPECT_NEG_U_K16_TOP_FAR 0x1405u   /* HW_VERIFIED: UV(5, 0) */
 
 // --------------------------------------------------------------------------
 // T_CROSS_45_K05: A=(5,5)/(5,0) B=(15,5)/(10,5) C=(5,15)/(0,5)
@@ -141,11 +141,11 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=8.5  v=3.5   -> (9, 4)
 // --------------------------------------------------------------------------
 
-#define EXPECT_CROSS_45_K05_VERTEX     0x1405u  /* HW_VERIFIED: UV(5, 0) */
-#define EXPECT_CROSS_45_K05_TOP_NEAR   0x1C26u  /* HW_VERIFIED: UV(6, 1) */
-#define EXPECT_CROSS_45_K05_LEFT_NEAR  0x1C25u  /* HW_VERIFIED: UV(5, 1) */
-#define EXPECT_CROSS_45_K05_INTERIOR   0x2465u  /* HW_VERIFIED: UV(5, 3) */
-#define EXPECT_CROSS_45_K05_TOP_FAR    0x3489u  /* HW_VERIFIED: UV(9, 4) */
+#define EXPECT_CROSS_45_K05_VERTEX 0x1405u    /* HW_VERIFIED: UV(5, 0) */
+#define EXPECT_CROSS_45_K05_TOP_NEAR 0x1C26u  /* HW_VERIFIED: UV(6, 1) */
+#define EXPECT_CROSS_45_K05_LEFT_NEAR 0x1C25u /* HW_VERIFIED: UV(5, 1) */
+#define EXPECT_CROSS_45_K05_INTERIOR 0x2465u  /* HW_VERIFIED: UV(5, 3) */
+#define EXPECT_CROSS_45_K05_TOP_FAR 0x3489u   /* HW_VERIFIED: UV(9, 4) */
 
 // --------------------------------------------------------------------------
 // T_CROSS_90_K16: A=(5,5)/(0,0) B=(15,5)/(0,16) C=(5,15)/(16,0)
@@ -157,8 +157,8 @@ SOFTWARE.
 //   P_TOP_FAR    (12,5)  u=0.0    v=11.2    -> (0, 11)
 // --------------------------------------------------------------------------
 
-#define EXPECT_CROSS_90_K16_VERTEX     0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_CROSS_90_K16_TOP_NEAR   0x0C40u  /* HW_VERIFIED: UV(0, 2) */
-#define EXPECT_CROSS_90_K16_LEFT_NEAR  0x0C02u  /* HW_VERIFIED: UV(2, 0) */
-#define EXPECT_CROSS_90_K16_INTERIOR   0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
-#define EXPECT_CROSS_90_K16_TOP_FAR    0x2D60u  /* HW_VERIFIED: UV(0, 11) */
+#define EXPECT_CROSS_90_K16_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_CROSS_90_K16_TOP_NEAR 0x0C40u  /* HW_VERIFIED: UV(0, 2) */
+#define EXPECT_CROSS_90_K16_LEFT_NEAR 0x0C02u /* HW_VERIFIED: UV(2, 0) */
+#define EXPECT_CROSS_90_K16_INTERIOR 0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
+#define EXPECT_CROSS_90_K16_TOP_FAR 0x2D60u   /* HW_VERIFIED: UV(0, 11) */

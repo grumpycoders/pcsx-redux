@@ -54,7 +54,7 @@ SOFTWARE.
 #include "raster-helpers.h"
 #include "texture-fixture-phase17.h"
 
-#define HW_TODO  0xCAFEu
+#define HW_TODO 0xCAFEu
 
 // --------------------------------------------------------------------------
 // K=01 (dU/dx = dV/dy = 0.1)
@@ -63,12 +63,14 @@ SOFTWARE.
 //   v_sampled = floor(v_real + 0.5): 0, 0, 1, 1, 1, 2
 // --------------------------------------------------------------------------
 
-#define EXPECT_LONG_K01_Y05   0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_LONG_K01_Y08   0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_LONG_K01_Y11   0x0420u  /* HW_VERIFIED: UV(0, 1) */
-#define EXPECT_LONG_K01_Y14   0x0420u  /* HW_VERIFIED: UV(0, 1) */
-#define EXPECT_LONG_K01_Y17   0x0420u  /* HW_VERIFIED: UV(0, 1) */
-#define EXPECT_LONG_K01_Y20   0x0420u  /* HW_VERIFIED: UV(0, 1) - row-walk drift: stride 0.1 truncates to 6553/0x10000 in 16.16, 15 steps under-estimates v_real to 1.4999 (< 1.5), floor(1.9999) = 1 instead of the ideal model's 2 */
+#define EXPECT_LONG_K01_Y05 0x0400u /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_LONG_K01_Y08 0x0400u /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_LONG_K01_Y11 0x0420u /* HW_VERIFIED: UV(0, 1) */
+#define EXPECT_LONG_K01_Y14 0x0420u /* HW_VERIFIED: UV(0, 1) */
+#define EXPECT_LONG_K01_Y17 0x0420u /* HW_VERIFIED: UV(0, 1) */
+#define EXPECT_LONG_K01_Y20                                                                                    \
+    0x0420u /* HW_VERIFIED: UV(0, 1) - row-walk drift: stride 0.1 truncates to 6553/0x10000 in 16.16, 15 steps \
+               under-estimates v_real to 1.4999 (< 1.5), floor(1.9999) = 1 instead of the ideal model's 2 */
 
 // --------------------------------------------------------------------------
 // K=03 (dU/dx = dV/dy = 0.3)
@@ -77,12 +79,14 @@ SOFTWARE.
 //   v_sampled: 0, 1, 2, 3, 4, 5
 // --------------------------------------------------------------------------
 
-#define EXPECT_LONG_K03_Y05   0x0401u  /* HW_VERIFIED: UV(1, 0) */
-#define EXPECT_LONG_K03_Y08   0x0C21u  /* HW_VERIFIED: UV(1, 1) */
-#define EXPECT_LONG_K03_Y11   0x0C41u  /* HW_VERIFIED: UV(1, 2) */
-#define EXPECT_LONG_K03_Y14   0x1461u  /* HW_VERIFIED: UV(1, 3) */
-#define EXPECT_LONG_K03_Y17   0x1481u  /* HW_VERIFIED: UV(1, 4) */
-#define EXPECT_LONG_K03_Y20   0x1481u  /* HW_VERIFIED: UV(1, 4) - row-walk drift: stride 0.3 truncates to 19660/0x10000, 15 steps under-estimates v_real to 4.4997 (< 4.5), floor(4.9997) = 4 instead of the ideal model's 5 */
+#define EXPECT_LONG_K03_Y05 0x0401u /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_LONG_K03_Y08 0x0C21u /* HW_VERIFIED: UV(1, 1) */
+#define EXPECT_LONG_K03_Y11 0x0C41u /* HW_VERIFIED: UV(1, 2) */
+#define EXPECT_LONG_K03_Y14 0x1461u /* HW_VERIFIED: UV(1, 3) */
+#define EXPECT_LONG_K03_Y17 0x1481u /* HW_VERIFIED: UV(1, 4) */
+#define EXPECT_LONG_K03_Y20                                                                                            \
+    0x1481u /* HW_VERIFIED: UV(1, 4) - row-walk drift: stride 0.3 truncates to 19660/0x10000, 15 steps under-estimates \
+               v_real to 4.4997 (< 4.5), floor(4.9997) = 4 instead of the ideal model's 5 */
 
 // --------------------------------------------------------------------------
 // K=05 (dU/dx = dV/dy = 0.5)
@@ -91,12 +95,12 @@ SOFTWARE.
 //   v_sampled: 0, 2, 3, 5, 6, 8
 // --------------------------------------------------------------------------
 
-#define EXPECT_LONG_K05_Y05   0x0401u  /* HW_VERIFIED: UV(1, 0) */
-#define EXPECT_LONG_K05_Y08   0x0C41u  /* HW_VERIFIED: UV(1, 2) */
-#define EXPECT_LONG_K05_Y11   0x1461u  /* HW_VERIFIED: UV(1, 3) */
-#define EXPECT_LONG_K05_Y14   0x1CA1u  /* HW_VERIFIED: UV(1, 5) */
-#define EXPECT_LONG_K05_Y17   0x1CC1u  /* HW_VERIFIED: UV(1, 6) */
-#define EXPECT_LONG_K05_Y20   0x2501u  /* HW_VERIFIED: UV(1, 8) */
+#define EXPECT_LONG_K05_Y05 0x0401u /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_LONG_K05_Y08 0x0C41u /* HW_VERIFIED: UV(1, 2) */
+#define EXPECT_LONG_K05_Y11 0x1461u /* HW_VERIFIED: UV(1, 3) */
+#define EXPECT_LONG_K05_Y14 0x1CA1u /* HW_VERIFIED: UV(1, 5) */
+#define EXPECT_LONG_K05_Y17 0x1CC1u /* HW_VERIFIED: UV(1, 6) */
+#define EXPECT_LONG_K05_Y20 0x2501u /* HW_VERIFIED: UV(1, 8) */
 
 // --------------------------------------------------------------------------
 // K=08 (dU/dx = dV/dy = 0.8)
@@ -105,12 +109,12 @@ SOFTWARE.
 //   v_sampled: 0, 2, 5, 7, 10, 12
 // --------------------------------------------------------------------------
 
-#define EXPECT_LONG_K08_Y05   0x0C02u  /* HW_VERIFIED: UV(2, 0) */
-#define EXPECT_LONG_K08_Y08   0x1442u  /* HW_VERIFIED: UV(2, 2) */
-#define EXPECT_LONG_K08_Y11   0x1CA2u  /* HW_VERIFIED: UV(2, 5) */
-#define EXPECT_LONG_K08_Y14   0x24E2u  /* HW_VERIFIED: UV(2, 7) */
-#define EXPECT_LONG_K08_Y17   0x3542u  /* HW_VERIFIED: UV(2, 10) */
-#define EXPECT_LONG_K08_Y20   0x3D82u  /* HW_VERIFIED: UV(2, 12) */
+#define EXPECT_LONG_K08_Y05 0x0C02u /* HW_VERIFIED: UV(2, 0) */
+#define EXPECT_LONG_K08_Y08 0x1442u /* HW_VERIFIED: UV(2, 2) */
+#define EXPECT_LONG_K08_Y11 0x1CA2u /* HW_VERIFIED: UV(2, 5) */
+#define EXPECT_LONG_K08_Y14 0x24E2u /* HW_VERIFIED: UV(2, 7) */
+#define EXPECT_LONG_K08_Y17 0x3542u /* HW_VERIFIED: UV(2, 10) */
+#define EXPECT_LONG_K08_Y20 0x3D82u /* HW_VERIFIED: UV(2, 12) */
 
 // --------------------------------------------------------------------------
 // K=16 (dU/dx = dV/dy = 1.6)
@@ -119,9 +123,9 @@ SOFTWARE.
 //   v_sampled: 0, 5, 10, 14, 19, 24
 // --------------------------------------------------------------------------
 
-#define EXPECT_LONG_K16_Y05   0x0C03u  /* HW_VERIFIED: UV(3, 0) */
-#define EXPECT_LONG_K16_Y08   0x24A3u  /* HW_VERIFIED: UV(3, 5) */
-#define EXPECT_LONG_K16_Y11   0x3543u  /* HW_VERIFIED: UV(3, 10) */
-#define EXPECT_LONG_K16_Y14   0x45C3u  /* HW_VERIFIED: UV(3, 14) */
-#define EXPECT_LONG_K16_Y17   0x5E63u  /* HW_VERIFIED: UV(3, 19) */
-#define EXPECT_LONG_K16_Y20   0x6F03u  /* HW_VERIFIED: UV(3, 24) */
+#define EXPECT_LONG_K16_Y05 0x0C03u /* HW_VERIFIED: UV(3, 0) */
+#define EXPECT_LONG_K16_Y08 0x24A3u /* HW_VERIFIED: UV(3, 5) */
+#define EXPECT_LONG_K16_Y11 0x3543u /* HW_VERIFIED: UV(3, 10) */
+#define EXPECT_LONG_K16_Y14 0x45C3u /* HW_VERIFIED: UV(3, 14) */
+#define EXPECT_LONG_K16_Y17 0x5E63u /* HW_VERIFIED: UV(3, 19) */
+#define EXPECT_LONG_K16_Y20 0x6F03u /* HW_VERIFIED: UV(3, 24) */

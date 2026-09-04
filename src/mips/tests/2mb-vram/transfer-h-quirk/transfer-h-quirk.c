@@ -40,9 +40,9 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define UP_X     0
+#define UP_X 0
 #define BLIT_DST_X 256
-#define COL_W    32
+#define COL_W 32
 #define BG_COLOR 0x7fffu
 
 static uint16_t encodeRow(int y) { return (uint16_t)((y * 0x97) ^ 0xa55a) | 1; }
@@ -80,9 +80,10 @@ static void uploadPass(int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("transfer-h-quirk cmd=upload h=%d eff_h=%d wrote_y_min=%d wrote_y_max=%d "
-                 "exact=%d",
-                 h, eff_h, top, bot, exact);
+    PROBE_RESULT(
+        "transfer-h-quirk cmd=upload h=%d eff_h=%d wrote_y_min=%d wrote_y_max=%d "
+        "exact=%d",
+        h, eff_h, top, bot, exact);
     waitGPU();
 }
 
@@ -134,9 +135,10 @@ static void blitPass(int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("transfer-h-quirk cmd=blit h=%d eff_h=%d found_y_min=%d found_y_max=%d "
-                 "exact=%d",
-                 h, eff_h, top, bot, exact);
+    PROBE_RESULT(
+        "transfer-h-quirk cmd=blit h=%d eff_h=%d found_y_min=%d found_y_max=%d "
+        "exact=%d",
+        h, eff_h, top, bot, exact);
     waitGPU();
 }
 

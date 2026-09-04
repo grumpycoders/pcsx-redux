@@ -87,12 +87,12 @@ SOFTWARE.
 // QFA4: axis-aligned 16x8 4-bit quad
 // --------------------------------------------------------------------------
 
-#define QFA4_0_0     0x03e0u  /* CLUT4[0]  = vram555(0,  31, 0) */
-#define QFA4_14_0    0x022eu  /* CLUT4[14] = vram555(14, 17, 0) */
-#define QFA4_0_6     0x03e0u
-#define QFA4_14_6    0x022eu
-#define QFA4_7_3     0x0307u  /* CLUT4[7]  = vram555(7,  24, 0) */
-#define QFA4_3_5     0x0383u  /* CLUT4[3]  = vram555(3,  28, 0) */
+#define QFA4_0_0 0x03e0u  /* CLUT4[0]  = vram555(0,  31, 0) */
+#define QFA4_14_0 0x022eu /* CLUT4[14] = vram555(14, 17, 0) */
+#define QFA4_0_6 0x03e0u
+#define QFA4_14_6 0x022eu
+#define QFA4_7_3 0x0307u /* CLUT4[7]  = vram555(7,  24, 0) */
+#define QFA4_3_5 0x0383u /* CLUT4[3]  = vram555(3,  28, 0) */
 
 // --------------------------------------------------------------------------
 // QFA8: axis-aligned 32x8 8-bit quad. CLUT8[u] = vram555(u&31, (255-u)&31,
@@ -100,67 +100,67 @@ SOFTWARE.
 // (255-30)=225, 225&31=1 -> green channel = 1 not 31.
 // --------------------------------------------------------------------------
 
-#define QFA8_0_0     0x03e0u  /* CLUT8[0]  = vram555(0,  31, 0) */
-#define QFA8_30_0    0x003eu  /* CLUT8[30] = vram555(30, 1,  0) */
-#define QFA8_0_6     0x03e0u
-#define QFA8_30_6    0x003eu
-#define QFA8_15_3    0x020fu  /* CLUT8[15] = vram555(15, 16, 0) */
-#define QFA8_22_5    0x0136u  /* CLUT8[22] = vram555(22, 9,  0) */
+#define QFA8_0_0 0x03e0u  /* CLUT8[0]  = vram555(0,  31, 0) */
+#define QFA8_30_0 0x003eu /* CLUT8[30] = vram555(30, 1,  0) */
+#define QFA8_0_6 0x03e0u
+#define QFA8_30_6 0x003eu
+#define QFA8_15_3 0x020fu /* CLUT8[15] = vram555(15, 16, 0) */
+#define QFA8_22_5 0x0136u /* CLUT8[22] = vram555(22, 9,  0) */
 
 // --------------------------------------------------------------------------
 // QFA15: axis-aligned 16x8 15-bit. texel(u, v) = vram555(u&31, v&31,
 // (u+v)&31). (0,0) excluded by top-left rule - reads sentinel.
 // --------------------------------------------------------------------------
 
-#define QFA15_0_0    RASTER_SENTINEL  /* top-left vertex excluded */
-#define QFA15_14_0   0x380eu  /* vram555(14, 0, 14) */
-#define QFA15_0_6    0x18c0u  /* vram555(0,  6, 6)  */
-#define QFA15_14_6   0x50ceu  /* vram555(14, 6, 20) - blue=20 overflows 5-bit at bit 14 */
-#define QFA15_7_3    0x2867u  /* vram555(7,  3, 10) */
-#define QFA15_3_5    0x20a3u  /* vram555(3,  5, 8)  */
+#define QFA15_0_0 RASTER_SENTINEL /* top-left vertex excluded */
+#define QFA15_14_0 0x380eu        /* vram555(14, 0, 14) */
+#define QFA15_0_6 0x18c0u         /* vram555(0,  6, 6)  */
+#define QFA15_14_6 0x50ceu        /* vram555(14, 6, 20) - blue=20 overflows 5-bit at bit 14 */
+#define QFA15_7_3 0x2867u         /* vram555(7,  3, 10) */
+#define QFA15_3_5 0x20a3u         /* vram555(3,  5, 8)  */
 
 // --------------------------------------------------------------------------
 // QFD4: parallelogram-skewed 4-bit quad. UV interpolation along the
 // slanted edges produces non-trivial per-pixel UV positions.
 // --------------------------------------------------------------------------
 
-#define QFD4_0_0     0x03e0u
-#define QFD4_8_0     0x02e8u
-#define QFD4_4_3     0x03a2u
-#define QFD4_10_3    0x02e8u
-#define QFD4_4_6     0x03c1u
-#define QFD4_14_6    0x028bu
+#define QFD4_0_0 0x03e0u
+#define QFD4_8_0 0x02e8u
+#define QFD4_4_3 0x03a2u
+#define QFD4_10_3 0x02e8u
+#define QFD4_4_6 0x03c1u
+#define QFD4_14_6 0x028bu
 
 /* Per-row drift probes (added to characterize the QFD half-pixel-bias
    bug). Predicted via U = floor(x + 0.5 - leftX[y]) with leftX[y]
    advancing by 4/7 per row. Rows where frac(leftX) lands in (0, 0.5]
    should expose the bug (Redux samples one LSB low on U). Locked
    HW_VERIFIED once captured on SCPH-5501. */
-#define QFD4_4_1     0x0383u  /* leftX=0.571; HW U=3 (pass row) */
-#define QFD4_10_1    0x02c9u  /* HW U=9 (pass row) */
-#define QFD4_4_2     0x0383u  /* leftX=1.143; HW U=3, Redux U=2 (drift) */
-#define QFD4_10_2    0x02c9u  /* HW U=9, Redux U=8 (drift) */
-#define QFD4_4_4     0x03a2u  /* leftX=2.286; HW U=2, Redux U=1 (drift) */
-#define QFD4_10_4    0x02e8u  /* HW U=8, Redux U=7 (drift) */
-#define QFD4_4_5     0x03c1u  /* leftX=2.857; HW U=1 (pass row) */
-#define QFD4_10_5    0x0307u  /* HW U=7 (pass row) */
+#define QFD4_4_1 0x0383u  /* leftX=0.571; HW U=3 (pass row) */
+#define QFD4_10_1 0x02c9u /* HW U=9 (pass row) */
+#define QFD4_4_2 0x0383u  /* leftX=1.143; HW U=3, Redux U=2 (drift) */
+#define QFD4_10_2 0x02c9u /* HW U=9, Redux U=8 (drift) */
+#define QFD4_4_4 0x03a2u  /* leftX=2.286; HW U=2, Redux U=1 (drift) */
+#define QFD4_10_4 0x02e8u /* HW U=8, Redux U=7 (drift) */
+#define QFD4_4_5 0x03c1u  /* leftX=2.857; HW U=1 (pass row) */
+#define QFD4_10_5 0x0307u /* HW U=7 (pass row) */
 
-#define QFD15_0_0    RASTER_SENTINEL  /* apex excluded by top-left */
-#define QFD15_8_0    0x2008u
-#define QFD15_4_3    0x1462u
-#define QFD15_10_3   0x2c68u
-#define QFD15_4_6    0x1cc1u
-#define QFD15_14_6   0x44cbu
+#define QFD15_0_0 RASTER_SENTINEL /* apex excluded by top-left */
+#define QFD15_8_0 0x2008u
+#define QFD15_4_3 0x1462u
+#define QFD15_10_3 0x2c68u
+#define QFD15_4_6 0x1cc1u
+#define QFD15_14_6 0x44cbu
 
 /* Direct-15 mirror probes. Texel(u,v) = vram555(u, v, (u+v)&31). */
-#define QFD15_4_1    0x1023u  /* HW u=3 v=1 (pass row) */
-#define QFD15_10_1   0x2829u  /* HW u=9 v=1 (pass row) */
-#define QFD15_4_2    0x1443u  /* HW u=3 v=2 (drift) */
-#define QFD15_10_2   0x2c49u  /* HW u=9 v=2 (drift) */
-#define QFD15_4_4    0x1882u  /* HW u=2 v=4 (drift) */
-#define QFD15_10_4   0x3088u  /* HW u=8 v=4 (drift) */
-#define QFD15_4_5    0x18a1u  /* HW u=1 v=5 (pass row) */
-#define QFD15_10_5   0x30a7u  /* HW u=7 v=5 (pass row) */
+#define QFD15_4_1 0x1023u  /* HW u=3 v=1 (pass row) */
+#define QFD15_10_1 0x2829u /* HW u=9 v=1 (pass row) */
+#define QFD15_4_2 0x1443u  /* HW u=3 v=2 (drift) */
+#define QFD15_10_2 0x2c49u /* HW u=9 v=2 (drift) */
+#define QFD15_4_4 0x1882u  /* HW u=2 v=4 (drift) */
+#define QFD15_10_4 0x3088u /* HW u=8 v=4 (drift) */
+#define QFD15_4_5 0x18a1u  /* HW u=1 v=5 (pass row) */
+#define QFD15_10_5 0x30a7u /* HW u=7 v=5 (pass row) */
 
 // --------------------------------------------------------------------------
 // QFO[4|8|15]: 5x4 axis-aligned quad. The right-vertex column (x=4) is
@@ -174,21 +174,21 @@ SOFTWARE.
 // asymmetry to characterize against hardware.
 // --------------------------------------------------------------------------
 
-#define QFO4_TERMINAL_4_0    RASTER_SENTINEL
-#define QFO4_TERMINAL_4_1    RASTER_SENTINEL
-#define QFO4_TERMINAL_4_2    RASTER_SENTINEL
-#define QFO4_INTERIOR_2_1    0x03a2u  /* CLUT4[2] = vram555(2, 29, 0) */
-#define QFO4_INTERIOR_3_2    0x0383u  /* CLUT4[3] = vram555(3, 28, 0) */
+#define QFO4_TERMINAL_4_0 RASTER_SENTINEL
+#define QFO4_TERMINAL_4_1 RASTER_SENTINEL
+#define QFO4_TERMINAL_4_2 RASTER_SENTINEL
+#define QFO4_INTERIOR_2_1 0x03a2u /* CLUT4[2] = vram555(2, 29, 0) */
+#define QFO4_INTERIOR_3_2 0x0383u /* CLUT4[3] = vram555(3, 28, 0) */
 
-#define QFO8_TERMINAL_4_0    RASTER_SENTINEL
-#define QFO8_TERMINAL_4_1    RASTER_SENTINEL
-#define QFO8_TERMINAL_4_2    RASTER_SENTINEL
-#define QFO8_INTERIOR_2_1    0x03a2u  /* CLUT8[2] = vram555(2, 29, 0) */
+#define QFO8_TERMINAL_4_0 RASTER_SENTINEL
+#define QFO8_TERMINAL_4_1 RASTER_SENTINEL
+#define QFO8_TERMINAL_4_2 RASTER_SENTINEL
+#define QFO8_INTERIOR_2_1 0x03a2u /* CLUT8[2] = vram555(2, 29, 0) */
 
-#define QFO15_TERMINAL_4_0   RASTER_SENTINEL
-#define QFO15_TERMINAL_4_1   RASTER_SENTINEL
-#define QFO15_TERMINAL_4_2   RASTER_SENTINEL
-#define QFO15_INTERIOR_2_1   0x0c22u  /* vram555(2, 1, 3) */
+#define QFO15_TERMINAL_4_0 RASTER_SENTINEL
+#define QFO15_TERMINAL_4_1 RASTER_SENTINEL
+#define QFO15_TERMINAL_4_2 RASTER_SENTINEL
+#define QFO15_INTERIOR_2_1 0x0c22u /* vram555(2, 1, 3) */
 
 // --------------------------------------------------------------------------
 // QFS4 / QFS8: semi-trans. PS1 hardware gates the blend on the
@@ -197,23 +197,23 @@ SOFTWARE.
 // values as the opaque command - no blend applied.
 // --------------------------------------------------------------------------
 
-#define QFS4_0_0     0x03e0u  /* same as QFA4_0_0 - no blend */
-#define QFS4_7_3     0x0307u  /* same as QFA4_7_3 */
-#define QFS4_14_6    0x022eu  /* same as QFA4_14_6 */
+#define QFS4_0_0 0x03e0u  /* same as QFA4_0_0 - no blend */
+#define QFS4_7_3 0x0307u  /* same as QFA4_7_3 */
+#define QFS4_14_6 0x022eu /* same as QFA4_14_6 */
 
-#define QFS8_0_0     0x03e0u  /* same as QFA8_0_0 */
-#define QFS8_15_3    0x020fu  /* same as QFA8_15_3 */
-#define QFS8_30_6    0x003eu  /* same as QFA8_30_6 */
+#define QFS8_0_0 0x03e0u  /* same as QFA8_0_0 */
+#define QFS8_15_3 0x020fu /* same as QFA8_15_3 */
+#define QFS8_30_6 0x003eu /* same as QFA8_30_6 */
 
 // --------------------------------------------------------------------------
 // QFDEG / QFDEG_REF: degenerate 4-vert quad collapses to 3-vert
 // triangle. Both produce identical pixels at every probed position.
 // --------------------------------------------------------------------------
 
-#define QFDEG_0_0    0x03e0u
-#define QFDEG_7_3    0x0307u
-#define QFDEG_3_5    0x0383u
+#define QFDEG_0_0 0x03e0u
+#define QFDEG_7_3 0x0307u
+#define QFDEG_3_5 0x0383u
 
-#define QFDEG_REF_0_0    QFDEG_0_0  /* 3-vert ref matches 4-vert degenerate */
-#define QFDEG_REF_7_3    QFDEG_7_3
-#define QFDEG_REF_3_5    QFDEG_3_5
+#define QFDEG_REF_0_0 QFDEG_0_0 /* 3-vert ref matches 4-vert degenerate */
+#define QFDEG_REF_7_3 QFDEG_7_3
+#define QFDEG_REF_3_5 QFDEG_3_5

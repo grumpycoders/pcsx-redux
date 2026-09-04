@@ -210,8 +210,8 @@ class MemoryCardFileSystem {
      * @param data The payload bytes. Must stay valid until the callback fires.
      * @param dataLen The number of payload bytes.
      */
-    void writeFile(Port port, const char *name, const char *title, const Icon &icon, const void *data,
-                   uint32_t dataLen, eastl::function<void(Error)> &&callback);
+    void writeFile(Port port, const char *name, const char *title, const Icon &icon, const void *data, uint32_t dataLen,
+                   eastl::function<void(Error)> &&callback);
 
     /**
      * @brief Deletes a file, freeing all of its blocks.
@@ -343,7 +343,7 @@ class MemoryCardFileSystem {
     uint32_t m_writeOrderLen = 0;
     uint32_t m_dataOffset = 0;
     uint32_t m_written = 0;
-    uint32_t m_blockIdx = 0;     // current block within the chain
+    uint32_t m_blockIdx = 0;      // current block within the chain
     uint32_t m_frameInBlock = 0;  // current frame within the current block
 
     // saved operation arguments

@@ -73,13 +73,13 @@ using ChainEntry = ChainEntryPS1;
 #endif
 
 struct ChainEntryPC {
-    ChainEntry* next;
+    ChainEntry *next;
     unsigned size;
     void setEndMarker() {
         next = nullptr;
         size = 0;
     }
-    void set(ChainEntry* next_, unsigned size_) {
+    void set(ChainEntry *next_, unsigned size_) {
         next = next_;
         size = size_;
     }
@@ -87,12 +87,8 @@ struct ChainEntryPC {
 
 struct ChainEntryPS1 {
     uintptr_t head;
-    void setEndMarker() {
-        head = 0xffffff;
-    }
-    void set(ChainEntryPS1* next, unsigned size) {
-        head = (size << 24) | (next->head & 0xffffff);
-    }
+    void setEndMarker() { head = 0xffffff; }
+    void set(ChainEntryPS1 *next, unsigned size) { head = (size << 24) | (next->head & 0xffffff); }
 };
 
 template <Primitive Prim>

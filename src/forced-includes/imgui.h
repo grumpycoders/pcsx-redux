@@ -41,12 +41,12 @@ void pcsxStaticImguiAssert(int exp, const char* expression);
         if (!(EXP)) pcsxStaticImguiUserError((MSG)); \
     } while (0)
 
-#define IM_ASSERT_USER_ERROR_RET(EXP, MSG)     \
-    do {                                       \
-        if (!(EXP)) {                          \
-            pcsxStaticImguiUserError((MSG));   \
-            return;                            \
-        }                                      \
+#define IM_ASSERT_USER_ERROR_RET(EXP, MSG)   \
+    do {                                     \
+        if (!(EXP)) {                        \
+            pcsxStaticImguiUserError((MSG)); \
+            return;                          \
+        }                                    \
     } while (0)
 
 #define IM_ASSERT_USER_ERROR_RETV(EXP, RETV, MSG) \

@@ -599,4 +599,4 @@ static __attribute__((always_inline)) int syscall_getDeviceStatus() {
     __asm__ volatile("" : "=r"(n) : "r"(n));
     return ((int (*)())0xc0)();
 }
-#endif // #ifdef PS1_PC_PORT
+#endif  // #ifdef PS1_PC_PORT

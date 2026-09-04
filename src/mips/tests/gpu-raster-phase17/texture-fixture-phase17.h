@@ -54,24 +54,22 @@ SOFTWARE.
 #include "raster-helpers.h"
 #include "texture-fixtures.h"
 
-#define TEX17_TX             11u
-#define TEX17_TY             0u
-#define TEX17_VRAM_BASE_X    (TEX17_TX * 64)   /* 704 */
-#define TEX17_VRAM_BASE_Y    (TEX17_TY * 256)  /* 0   */
+#define TEX17_TX 11u
+#define TEX17_TY 0u
+#define TEX17_VRAM_BASE_X (TEX17_TX * 64)  /* 704 */
+#define TEX17_VRAM_BASE_Y (TEX17_TY * 256) /* 0   */
 
-#define TEX17_WIDTH          32  /* texels per row */
-#define TEX17_HEIGHT         32  /* rows */
+#define TEX17_WIDTH 32  /* texels per row */
+#define TEX17_HEIGHT 32 /* rows */
 
-#define TEX17_TPAGE          texpageField(TEX17_TX, TEX17_TY, 0, 2)
-#define TEX17_CLUT_FIELD     0u  /* 15-bit direct ignores CLUT */
+#define TEX17_TPAGE texpageField(TEX17_TX, TEX17_TY, 0, 2)
+#define TEX17_CLUT_FIELD 0u /* 15-bit direct ignores CLUT */
 
 // Encode a texel value for position (u, v). Mirrors uploadTex17's
 // encoding so tests can predict expected sampled-texel values for any
 // (u, v) in [0, 32)^2.
 static inline uint16_t expectedTex17Color(uint8_t u, uint8_t v) {
-    return rasterVram555((uint8_t)(u & 0x1f),
-                         (uint8_t)(v & 0x1f),
-                         (uint8_t)(((u + v) & 0x1f) | 1));
+    return rasterVram555((uint8_t)(u & 0x1f), (uint8_t)(v & 0x1f), (uint8_t)(((u + v) & 0x1f) | 1));
 }
 
 // Upload the 32x32 signature texture to (TEX17_VRAM_BASE_X,
@@ -80,10 +78,8 @@ static inline uint16_t expectedTex17Color(uint8_t u, uint8_t v) {
 static inline void uploadTex17(void) {
     waitGPU();
     GPU_DATA = 0xa0000000u;
-    GPU_DATA = ((uint32_t)(uint16_t)TEX17_VRAM_BASE_Y << 16) |
-               (uint32_t)(uint16_t)TEX17_VRAM_BASE_X;
-    GPU_DATA = ((uint32_t)(uint16_t)TEX17_HEIGHT << 16) |
-               (uint32_t)(uint16_t)TEX17_WIDTH;
+    GPU_DATA = ((uint32_t)(uint16_t)TEX17_VRAM_BASE_Y << 16) | (uint32_t)(uint16_t)TEX17_VRAM_BASE_X;
+    GPU_DATA = ((uint32_t)(uint16_t)TEX17_HEIGHT << 16) | (uint32_t)(uint16_t)TEX17_WIDTH;
     int wordIdx = 0;
     for (int v = 0; v < TEX17_HEIGHT; v++) {
         for (int u = 0; u < TEX17_WIDTH; u += 2) {
@@ -99,11 +95,10 @@ static inline void uploadTex17(void) {
 // raster-helpers.h but does NOT emit the OBS log line - phase-17
 // onward relies on cester's existing FAIL output for hardware-truth
 // capture instead of a parallel printf channel.
-#define PHASE17_ASSERT_PIXEL_EQ(expected, x_, y_)                            \
-    do {                                                                    \
-        uint16_t _aval = rasterReadPixel((int16_t)(x_), (int16_t)(y_));     \
-        cester_assert_uint_eq((unsigned)(expected), (unsigned)_aval);       \
+#define PHASE17_ASSERT_PIXEL_EQ(expected, x_, y_)                       \
+    do {                                                                \
+        uint16_t _aval = rasterReadPixel((int16_t)(x_), (int16_t)(y_)); \
+        cester_assert_uint_eq((unsigned)(expected), (unsigned)_aval);   \
     } while (0)
 
-#define PHASE17_ASSERT_PIXEL_UNTOUCHED(x_, y_) \
-    PHASE17_ASSERT_PIXEL_EQ(RASTER_SENTINEL, (x_), (y_))
+#define PHASE17_ASSERT_PIXEL_UNTOUCHED(x_, y_) PHASE17_ASSERT_PIXEL_EQ(RASTER_SENTINEL, (x_), (y_))

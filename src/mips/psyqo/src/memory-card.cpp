@@ -108,9 +108,7 @@ void psyqo::MemoryCard::prepare() {
     if (c_useIrq) installIrqHandler();
 }
 
-uint16_t psyqo::MemoryCard::portMask(Port port) {
-    return port == Port::Port1 ? SIO::Control::CTRL_PORTSEL : 0;
-}
+uint16_t psyqo::MemoryCard::portMask(Port port) { return port == Port::Port1 ? SIO::Control::CTRL_PORTSEL : 0; }
 
 // Hold the bus deselected (/CS high) for the inter-transaction recovery window
 // before a fresh select. The retail BIOS gets this for free by kicking each
@@ -664,7 +662,7 @@ psyqo::MemoryCard::Error psyqo::MemoryCard::doWriteSector(Port port, uint16_t se
 
 bool psyqo::MemoryCard::isTransient(Error error) {
     switch (error) {
-        case Error::NoCard:     // a slow real card can momentarily miss the first ack
+        case Error::NoCard:  // a slow real card can momentarily miss the first ack
         case Error::Timeout:
         case Error::BadChecksum:
         case Error::ProtocolError:
