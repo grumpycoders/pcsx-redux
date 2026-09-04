@@ -2098,7 +2098,6 @@ the update and manually apply it.)")));
             ImGui::Text(_("Write rate: %s"), rate.c_str());
             byteRateToString(UvFile::getDownloadRate(), rate);
             ImGui::Text(_("Download rate: %s"), rate.c_str());
-#ifndef __EMSCRIPTEN__  // v1 wasm drops the libuv async layer (caching / download / SIO1 over TCP)
             if (ImGui::BeginTable("UvFiles", 2, ImGuiTableFlags_Resizable)) {
                 ImGui::TableSetupColumn(_("Caching"));
                 ImGui::TableSetupColumn(_("Filename"));
@@ -2127,7 +2126,6 @@ the update and manually apply it.)")));
                 });
                 ImGui::EndTable();
             }
-#endif
         }
         ImGui::End();
     }
