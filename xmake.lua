@@ -233,6 +233,34 @@ target("pcsx-redux", function()
                     -- the next build overwrote it.
                     "--shell-file", "src/gui/shell-wasm.html",
                     "-Wl,--error-limit=0", {force = true})
+    -- The virtual filesystem. findResource() walks seven candidate paths off
+    -- m_binDir, and on wasm getExecutablePath() returns an empty string, so
+    -- every one of them is relative to the MEMFS root. The second probe is
+    -- <releasePath>/<name>, which is why laying the bundle out as /resources
+    -- and /fonts needs no change to findResource itself.
+    --
+    -- --preload-file rather than --embed-file: embedding bakes the bytes into
+    -- the .wasm, which is the one file the browser has to compile before
+    -- anything runs. A preload lands in a sibling .data that fetches in
+    -- parallel with it.
+    --
+    -- The CJK faces are deliberately NOT here. NotoSansCJKjp-Regular.otf is
+    -- 16 MB by itself, more than the emulator, and gui.cc already treats a
+    -- failed load as "no Japanese in the memory card manager" rather than an
+    -- error. It belongs behind an on-demand fetch, not in the boot path.
+    --
+    -- The `=` form is load-bearing: xmake deduplicates identical ldflag
+    -- tokens, so five bare `--preload-file` strings collapse into one and the
+    -- four orphaned paths get handed to em++ as input files. That fails with
+    -- "expected to be an input file", naming the second path, which reads
+    -- like a missing file rather than a build-system quirk.
+    add_ldflags("--preload-file=src/mips/openbios/openbios.bin@/resources/openbios.bin",
+                "--preload-file=resources/pcsx-redux.ico@/resources/pcsx-redux.ico",
+                "--preload-file=third_party/SDL_GameControllerDB/gamecontrollerdb.txt" ..
+                "@/resources/gamecontrollerdb.txt",
+                "--preload-file=third_party/noto/NotoSans-Regular.ttf@/fonts/NotoSans-Regular.ttf",
+                "--preload-file=third_party/noto/NotoMono-Regular.ttf@/fonts/NotoMono-Regular.ttf",
+                {force = true})
     else
     add_deps("luajit")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
@@ -323,9 +351,23 @@ target("pcsx-redux", function()
 
     -- enable-threads.js has to be a real same-origin file next to the page: a
     -- service worker cannot be inlined, preloaded into the virtual filesystem,
-    -- or served cross-origin. So the deployable set is four files, not three,
-    -- and the fourth is the one that decides whether the other three run at all.
+    -- or served cross-origin. So the deployable set is five files - .html,
+    -- .js, .wasm, .data and this one - and this is the one that decides
+    -- whether any of the others run at all.
     if is_plat("wasm") then
+        -- OpenBIOS is a freestanding MIPS binary with its own toolchain and
+        -- its own make chain, and it is not getting an xmake target. Build it
+        -- here anyway so that a single `xmake -p wasm` yields a complete,
+        -- deployable artifact instead of one that silently falls back to the
+        -- built-in BIOS stub because nobody ran a second command.
+        --
+        -- No guard on the toolchain being present: if mipsel-none-elf-gcc is
+        -- missing this must fail the build loudly. A missing openbios.bin
+        -- would otherwise surface as emcc failing to package a path, or worse,
+        -- as a working page with no BIOS.
+        before_build(function(target)
+            os.execv("make", {"-C", "src/mips/openbios", "-j" .. tostring(os.default_njob()), "all"})
+        end)
         after_build(function(target)
             os.cp("third_party/coi-serviceworker/enable-threads.js",
                   path.directory(target:targetfile()))
