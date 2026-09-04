@@ -24,10 +24,7 @@
 #include "cueparser/disc.h"
 #include "cueparser/fileabstract.h"
 #include "cueparser/scheduler.h"
-#ifndef __EMSCRIPTEN__  // v1 wasm drops FFmpeg: raw-PCM .bin tracks still play,
-                        // only compressed CD audio tracks lose sound.
 #include "support/ffmpeg-audio-file.h"
-#endif
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
@@ -97,7 +94,6 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
         file->size = [](CueFile *file, CueScheduler *scheduler, int compressed,
                         void (*cb)(CueFile *, CueScheduler *, uint64_t)) {
             File *fi = reinterpret_cast<File *>(file->opaque);
-#ifndef __EMSCRIPTEN__  // v1 wasm drops FFmpeg: only compressed CD audio loses sound
             if (compressed && dynamic_cast<UvFile *>(fi)) {
                 FFmpegAudioFile *cfi =
                     new FFmpegAudioFile(fi, FFmpegAudioFile::Channels::Stereo, FFmpegAudioFile::Endianness::Little,
@@ -105,7 +101,6 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
                 file->opaque = cfi;
                 fi = cfi;
             }
-#endif
             File_schedule_size(file, scheduler, fi->size(), cb);
         };
         file->read = [](CueFile *file, CueScheduler *scheduler, uint32_t amount, uint64_t cursor, uint8_t *buffer,
