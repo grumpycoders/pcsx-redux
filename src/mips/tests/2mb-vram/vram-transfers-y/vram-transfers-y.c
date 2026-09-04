@@ -31,8 +31,8 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X    0
-#define COL_W    32
+#define COL_X 0
+#define COL_W 32
 #define BG_COLOR 0x0000u
 
 // Encode Y so we can identify which row a given pixel came from after
@@ -77,9 +77,10 @@ static void onePass(int16_t y, int16_t h) {
         }
     }
 
-    PROBE_RESULT("vram-transfers-y y=%d h=%d eff_h=%d exact_matches=%d "
-                 "found_y_min=%d found_y_max=%d",
-                 y, h, eff_h, exact_count, first_match, last_match);
+    PROBE_RESULT(
+        "vram-transfers-y y=%d h=%d eff_h=%d exact_matches=%d "
+        "found_y_min=%d found_y_max=%d",
+        y, h, eff_h, exact_count, first_match, last_match);
 
     waitGPU();
 }
@@ -96,7 +97,7 @@ int main(void) {
     onePass(400, 200);  // crosses
     onePass(0, 511);
     onePass(0, 512);
-    onePass(0, 513);    // safe now: copyHeightEff -> 1 row
+    onePass(0, 513);  // safe now: copyHeightEff -> 1 row
     onePass(512, 100);
     onePass(768, 256);
     onePass(900, 200);  // y+h>1024, wrap probe

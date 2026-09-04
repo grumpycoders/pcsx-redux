@@ -46,7 +46,7 @@ PCSX::System::~System() {
     delete m_loop;
 }
 
-uv_loop_t *PCSX::System::getLoop() { return m_loop; }
+uv_loop_t* PCSX::System::getLoop() { return m_loop; }
 
 const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     {

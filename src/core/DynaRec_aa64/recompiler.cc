@@ -246,10 +246,10 @@ void DynaRecCPU::emitDispatcher() {
         const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
         const auto valueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
 
-        gen.Ldr(w4, MemOperand(contextPointer, indexOffset));  // Index of the register that needs to be written
-        gen.Ldr(w5, MemOperand(contextPointer, valueOffset));  // Value it needs to be written with
-        gen.Add(x6, contextPointer, (int64_t)GPR_OFFSET(0));   // Base of the guest register file
-        gen.Str(w5, MemOperand(x6, x4, LSL, 2));               // Write the value
+        gen.Ldr(w4, MemOperand(contextPointer, indexOffset));       // Index of the register that needs to be written
+        gen.Ldr(w5, MemOperand(contextPointer, valueOffset));       // Value it needs to be written with
+        gen.Add(x6, contextPointer, (int64_t)GPR_OFFSET(0));        // Base of the guest register file
+        gen.Str(w5, MemOperand(x6, x4, LSL, 2));                    // Write the value
         gen.Strb(wzr, MemOperand(contextPointer, isActiveOffset));  // The load is no longer pending
         gen.Ret();
     }
@@ -354,8 +354,7 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align,
-                                      bool fullLoadDelayEmulation) {
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align, bool fullLoadDelayEmulation) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;

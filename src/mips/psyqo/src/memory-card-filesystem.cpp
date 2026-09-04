@@ -206,8 +206,7 @@ void psyqo::MemoryCardFileSystem::issueOrFinish() {
         case Phase::ReadTitle:
             // Read the file's first frame to learn how many leading frames are
             // title + icon (not part of the payload).
-            m_card.readSector(m_port, blockToSector(m_chain[0]), m_scratch.bytes,
-                              [this](Error e) { onSectorDone(e); });
+            m_card.readSector(m_port, blockToSector(m_chain[0]), m_scratch.bytes, [this](Error e) { onSectorDone(e); });
             return;
 
         case Phase::ReadData: {
@@ -244,8 +243,8 @@ void psyqo::MemoryCardFileSystem::issueOrFinish() {
                 if (m_dataOffset < m_dataLen) {
                     uint32_t chunk = m_dataLen - m_dataOffset;
                     if (chunk > MemoryCard::c_sectorSize) chunk = MemoryCard::c_sectorSize;
-                    __builtin_memcpy(m_scratch.bytes,
-                                     reinterpret_cast<const uint8_t *>(m_writeData) + m_dataOffset, chunk);
+                    __builtin_memcpy(m_scratch.bytes, reinterpret_cast<const uint8_t *>(m_writeData) + m_dataOffset,
+                                     chunk);
                     m_dataOffset += chunk;
                 }
             }
@@ -429,8 +428,7 @@ void psyqo::MemoryCardFileSystem::onSectorDone(Error error) {
                     } else {
                         put32(entry + c_offSize, 0);
                     }
-                    uint16_t next =
-                        (bi == m_blocksNeeded - 1) ? 0xffff : static_cast<uint16_t>(m_chain[bi + 1] - 1);
+                    uint16_t next = (bi == m_blocksNeeded - 1) ? 0xffff : static_cast<uint16_t>(m_chain[bi + 1] - 1);
                     put16(entry + c_offNext, next);
                     finishDirEntry(entry);
                 }
@@ -655,8 +653,8 @@ void psyqo::MemoryCardFileSystem::getFreeBlockCount(Port port, uint32_t *outFree
     issueOrFinish();
 }
 
-void psyqo::MemoryCardFileSystem::listFiles(Port port, FileEntry *out, uint32_t maxEntries,
-                                            uint32_t *outCount, eastl::function<void(Error)> &&callback) {
+void psyqo::MemoryCardFileSystem::listFiles(Port port, FileEntry *out, uint32_t maxEntries, uint32_t *outCount,
+                                            eastl::function<void(Error)> &&callback) {
     m_outEntries = out;
     m_maxEntries = maxEntries;
     m_outCount = outCount;
@@ -674,8 +672,8 @@ void psyqo::MemoryCardFileSystem::fileExists(Port port, const char *name, bool *
     issueOrFinish();
 }
 
-void psyqo::MemoryCardFileSystem::readFile(Port port, const char *name, void *buffer, uint32_t maxLen,
-                                           uint32_t *outLen, eastl::function<void(Error)> &&callback) {
+void psyqo::MemoryCardFileSystem::readFile(Port port, const char *name, void *buffer, uint32_t maxLen, uint32_t *outLen,
+                                           eastl::function<void(Error)> &&callback) {
     m_name = name;
     m_readBuffer = buffer;
     m_maxLen = maxLen;
@@ -693,8 +691,8 @@ void psyqo::MemoryCardFileSystem::readFileInfo(Port port, const char *name, File
     issueOrFinish();
 }
 
-void psyqo::MemoryCardFileSystem::writeFile(Port port, const char *name, const char *title,
-                                            const Icon &icon, const void *data, uint32_t dataLen,
+void psyqo::MemoryCardFileSystem::writeFile(Port port, const char *name, const char *title, const Icon &icon,
+                                            const void *data, uint32_t dataLen,
                                             eastl::function<void(Error)> &&callback) {
     m_name = name;
     m_title = title;
@@ -705,8 +703,7 @@ void psyqo::MemoryCardFileSystem::writeFile(Port port, const char *name, const c
     issueOrFinish();
 }
 
-void psyqo::MemoryCardFileSystem::deleteFile(Port port, const char *name,
-                                             eastl::function<void(Error)> &&callback) {
+void psyqo::MemoryCardFileSystem::deleteFile(Port port, const char *name, eastl::function<void(Error)> &&callback) {
     m_name = name;
     begin(Op::DeleteFile, port, eastl::move(callback));
     issueOrFinish();

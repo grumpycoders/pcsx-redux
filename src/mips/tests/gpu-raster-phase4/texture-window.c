@@ -46,24 +46,20 @@ SOFTWARE.
 
 CESTER_BODY(
 
-// Texture-window test setup: 4-bit triangle large enough to span 16
-// texel positions horizontally, with chosen E2 window state.
-static void drawTexWindowTri(uint8_t mask_x, uint8_t off_x) {
-    rasterReset();
-    rasterClearTestRegion(0, 0, 32, 16);
-    setTexpage(TEX4_TX, TEX4_TY, 0);
-    setTextureWindow(mask_x, 0, off_x, 0);
-    /* Triangle (0,0)-(16,0)-(0,8), UV (0,0)-(16,0)-(0,8). At pixel
-       (x, y), sample texel (x, y) -> window-filter -> CLUT[filtered_u]. */
-    rasterTexTri(TEX_MOD_NEUTRAL,
-                 0, 0,   0, 0,
-                 16, 0,  16, 0,
-                 0, 8,   0, 8,
-                 CLUT4_FIELD, TEX4_TPAGE);
-    rasterFlushPrimitive();
-}
+    // Texture-window test setup: 4-bit triangle large enough to span 16
+    // texel positions horizontally, with chosen E2 window state.
+    static void drawTexWindowTri(uint8_t mask_x, uint8_t off_x) {
+        rasterReset();
+        rasterClearTestRegion(0, 0, 32, 16);
+        setTexpage(TEX4_TX, TEX4_TY, 0);
+        setTextureWindow(mask_x, 0, off_x, 0);
+        /* Triangle (0,0)-(16,0)-(0,8), UV (0,0)-(16,0)-(0,8). At pixel
+           (x, y), sample texel (x, y) -> window-filter -> CLUT[filtered_u]. */
+        rasterTexTri(TEX_MOD_NEUTRAL, 0, 0, 0, 0, 16, 0, 16, 0, 0, 8, 0, 8, CLUT4_FIELD, TEX4_TPAGE);
+        rasterFlushPrimitive();
+    }
 
-)  // CESTER_BODY
+    )  // CESTER_BODY
 
 // --------------------------------------------------------------------------
 // mask_x = 0, offset_x = 0: identity (no windowing)
@@ -77,40 +73,30 @@ static void drawTexWindowTri(uint8_t mask_x, uint8_t off_x) {
 //   u=8..15  -> texel 0..7 (bit 3 cleared maps 8->0, 9->1, ..., 15->7)
 // --------------------------------------------------------------------------
 
-CESTER_TEST(texwin_mask01_off00_pixel_0_0, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x00);
-    /* u=0, filtered=0, CLUT[0]. But CLUT[0] is texel 0 from
-       expectedClut4Color(0) = vram555(0, 31, 0). NOTE: at (0,0) this
-       reads as transparent if texel value happens to be 0x0000 (after
-       CLUT lookup). CLUT[0] = vram555(0, 31, 0) = 0x03E0 != 0x0000,
-       so the pixel SHOULD be drawn. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(0), 0, 0);
-)
+CESTER_TEST(texwin_mask01_off00_pixel_0_0, gpu_raster_phase4, drawTexWindowTri(0x01, 0x00);
+            /* u=0, filtered=0, CLUT[0]. But CLUT[0] is texel 0 from
+               expectedClut4Color(0) = vram555(0, 31, 0). NOTE: at (0,0) this
+               reads as transparent if texel value happens to be 0x0000 (after
+               CLUT lookup). CLUT[0] = vram555(0, 31, 0) = 0x03E0 != 0x0000,
+               so the pixel SHOULD be drawn. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(0), 0, 0);)
 
-CESTER_TEST(texwin_mask01_off00_pixel_7_0_last_unwrapped, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x00);
-    /* u=7, filtered=7, CLUT[7]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(7), 7, 0);
-)
+CESTER_TEST(texwin_mask01_off00_pixel_7_0_last_unwrapped, gpu_raster_phase4, drawTexWindowTri(0x01, 0x00);
+            /* u=7, filtered=7, CLUT[7]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(7), 7, 0);)
 
-CESTER_TEST(texwin_mask01_off00_pixel_8_0_wrapped_to_0, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x00);
-    /* u=8, filtered=8&~8=0, CLUT[0]. So pixel 8 samples same texel as
-       pixel 0. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(0), 8, 0);
-)
+CESTER_TEST(texwin_mask01_off00_pixel_8_0_wrapped_to_0, gpu_raster_phase4, drawTexWindowTri(0x01, 0x00);
+            /* u=8, filtered=8&~8=0, CLUT[0]. So pixel 8 samples same texel as
+               pixel 0. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(0), 8, 0);)
 
-CESTER_TEST(texwin_mask01_off00_pixel_11_0_wrapped_to_3, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x00);
-    /* u=11=0xB, filtered=0xB&~0x8=0x3, CLUT[3]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(3), 11, 0);
-)
+CESTER_TEST(texwin_mask01_off00_pixel_11_0_wrapped_to_3, gpu_raster_phase4, drawTexWindowTri(0x01, 0x00);
+            /* u=11=0xB, filtered=0xB&~0x8=0x3, CLUT[3]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(3), 11, 0);)
 
-CESTER_TEST(texwin_mask01_off00_pixel_15_0_wrapped_to_7, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x00);
-    /* u=15=0xF, filtered=0xF&~0x8=0x7, CLUT[7]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(7), 15, 0);
-)
+CESTER_TEST(texwin_mask01_off00_pixel_15_0_wrapped_to_7, gpu_raster_phase4, drawTexWindowTri(0x01, 0x00);
+            /* u=15=0xF, filtered=0xF&~0x8=0x7, CLUT[7]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(7), 15, 0);)
 
 // --------------------------------------------------------------------------
 // mask_x = 0x01, offset_x = 0x01: bit 3 forced to 1
@@ -119,23 +105,17 @@ CESTER_TEST(texwin_mask01_off00_pixel_15_0_wrapped_to_7, gpu_raster_phase4,
 //   u=8..15  -> texels 8..15
 // --------------------------------------------------------------------------
 
-CESTER_TEST(texwin_mask01_off01_pixel_0_0_forced_to_8, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x01);
-    /* u=0, filtered=0|8=8, CLUT[8]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(8), 0, 0);
-)
+CESTER_TEST(texwin_mask01_off01_pixel_0_0_forced_to_8, gpu_raster_phase4, drawTexWindowTri(0x01, 0x01);
+            /* u=0, filtered=0|8=8, CLUT[8]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(8), 0, 0);)
 
-CESTER_TEST(texwin_mask01_off01_pixel_3_0_forced_to_b, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x01);
-    /* u=3, filtered=3|8=0xB, CLUT[0xB]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(0x0b), 3, 0);
-)
+CESTER_TEST(texwin_mask01_off01_pixel_3_0_forced_to_b, gpu_raster_phase4, drawTexWindowTri(0x01, 0x01);
+            /* u=3, filtered=3|8=0xB, CLUT[0xB]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(0x0b), 3, 0);)
 
-CESTER_TEST(texwin_mask01_off01_pixel_8_0_already_set, gpu_raster_phase4,
-    drawTexWindowTri(0x01, 0x01);
-    /* u=8, filtered=8 (bit 3 already set), CLUT[8]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(8), 8, 0);
-)
+CESTER_TEST(texwin_mask01_off01_pixel_8_0_already_set, gpu_raster_phase4, drawTexWindowTri(0x01, 0x01);
+            /* u=8, filtered=8 (bit 3 already set), CLUT[8]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(8), 8, 0);)
 
 // --------------------------------------------------------------------------
 // mask_x = 0x03 (= 24-bit mask = bits 3,4 of u): bits 3-4 forced from offset
@@ -147,8 +127,6 @@ CESTER_TEST(texwin_mask01_off01_pixel_8_0_already_set, gpu_raster_phase4,
 // fixture only covers u=0..15. So just one probe to characterize.
 // --------------------------------------------------------------------------
 
-CESTER_TEST(texwin_mask03_off00_pixel_13_0, gpu_raster_phase4,
-    drawTexWindowTri(0x03, 0x00);
-    /* u=13=0xD, filtered=0xD & ~0x18 = 5, CLUT[5]. */
-    ASSERT_PIXEL_EQ(expectedClut4Color(5), 13, 0);
-)
+CESTER_TEST(texwin_mask03_off00_pixel_13_0, gpu_raster_phase4, drawTexWindowTri(0x03, 0x00);
+            /* u=13=0xD, filtered=0xD & ~0x18 = 5, CLUT[5]. */
+            ASSERT_PIXEL_EQ(expectedClut4Color(5), 13, 0);)

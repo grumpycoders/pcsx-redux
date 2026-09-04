@@ -223,10 +223,8 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
         for (uint32_t f = 0; f < chunk; f++) {
             float l = 0.0f, r = 0.0f;
             for (unsigned i = 0; i < STREAMS; i++) {
-                l += static_cast<float>(m_mixBuffers[i][f].L) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
-                r += static_cast<float>(m_mixBuffers[i][f].R) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
+                l += static_cast<float>(m_mixBuffers[i][f].L) / static_cast<float>(std::numeric_limits<int16_t>::max());
+                r += static_cast<float>(m_mixBuffers[i][f].R) / static_cast<float>(std::numeric_limits<int16_t>::max());
             }
 
             if (mono) {

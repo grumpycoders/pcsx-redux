@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <SDL3/SDL.h>
 #include <stdint.h>
 
 #include <array>
@@ -29,8 +30,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-#include <SDL3/SDL.h>
 
 #include "spu/settings.h"
 #include "support/circular.h"

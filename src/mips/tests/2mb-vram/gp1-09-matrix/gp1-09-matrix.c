@@ -38,8 +38,8 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X    0
-#define COL_W    32
+#define COL_X 0
+#define COL_W 32
 #define BG_COLOR 0x7fffu
 
 static void fastFillCell(uint32_t gate, int16_t y, int16_t h) {
@@ -58,8 +58,8 @@ static void fastFillCell(uint32_t gate, int16_t y, int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=fast-fill y=%d h=%d filled_y_min=%d filled_y_max=%d",
-                 gate, y, h, top, bot);
+    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=fast-fill y=%d h=%d filled_y_min=%d filled_y_max=%d", gate, y, h, top,
+                 bot);
 }
 
 static uint16_t encodeRow(int y) { return (uint16_t)((y * 0x97) ^ 0xa55a) | 1; }
@@ -90,8 +90,7 @@ static void uploadCell(uint32_t gate, int16_t y, int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=upload y=%d h=%d wrote_y_min=%d wrote_y_max=%d",
-                 gate, y, h, top, bot);
+    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=upload y=%d h=%d wrote_y_min=%d wrote_y_max=%d", gate, y, h, top, bot);
 }
 
 static void blitCell(uint32_t gate, int16_t src_y, int16_t dst_y, int16_t h) {
@@ -127,8 +126,8 @@ static void blitCell(uint32_t gate, int16_t src_y, int16_t dst_y, int16_t h) {
             bot = row;
         }
     }
-    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=blit src=%d dst=%d h=%d found_y_min=%d found_y_max=%d",
-                 gate, src_y, dst_y, h, top, bot);
+    PROBE_RESULT("gp1-09-matrix gate=%02x cmd=blit src=%d dst=%d h=%d found_y_min=%d found_y_max=%d", gate, src_y,
+                 dst_y, h, top, bot);
 }
 
 static void runMatrixForGate(uint32_t gate) {

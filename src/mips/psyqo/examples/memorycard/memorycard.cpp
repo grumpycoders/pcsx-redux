@@ -60,7 +60,7 @@ class MemoryCardExample final : public psyqo::Application {
 class MemoryCardScene final : public psyqo::Scene {
     void frame() override;
 
-    int m_index = 0;        // next step to run
+    int m_index = 0;         // next step to run
     bool m_started = false;  // false -> showing the warning
     bool m_finished = false;
     bool m_prevCross = false;
@@ -112,7 +112,6 @@ uint8_t g_readback[200];
 char g_modalTitle[40];
 bool g_modalActive = false;
 uint8_t g_modalIconFrames = 0;
-
 
 // A simple 16x16 icon: a white border around a red fill.
 void buildIcon(psyqo::MemoryCardFileSystem::Icon& icon) {
@@ -204,7 +203,8 @@ bool runStep(int index) {
             // Shift-JIS field the BIOS shows (printable ASCII becomes fullwidth).
             psyqo::MemoryCardFileSystem::Icon icon;
             buildIcon(icon);
-            checkOk("Write file", fs.writeFileBlocking(app.gpu(), port, kFileName, kTitle, icon, g_payload, kPayloadLen));
+            checkOk("Write file",
+                    fs.writeFileBlocking(app.gpu(), port, kFileName, kTitle, icon, g_payload, kPayloadLen));
             return true;
         }
 
@@ -230,8 +230,7 @@ bool runStep(int index) {
 
         case 6:
             e = fs.fileExistsBlocking(app.gpu(), port, kFileName, &exists);
-            check("File exists", e == MC::Error::OK && exists,
-                  e != MC::Error::OK ? MC::errorMessage(e) : "not found");
+            check("File exists", e == MC::Error::OK && exists, e != MC::Error::OK ? MC::errorMessage(e) : "not found");
             return true;
 
         case 7:

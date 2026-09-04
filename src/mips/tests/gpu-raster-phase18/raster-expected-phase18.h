@@ -71,7 +71,7 @@ SOFTWARE.
 #include "raster-helpers.h"
 #include "texture-fixture-phase17.h"
 
-#define HW_TODO  0xCAFEu
+#define HW_TODO 0xCAFEu
 
 // --------------------------------------------------------------------------
 // K=1   (stride 0.1)
@@ -82,11 +82,11 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=0.7  v_real=0.0  -> (1, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K01_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K01_TOP_NEAR    0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K01_LEFT_NEAR   0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K01_INTERIOR    0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K01_TOP_FAR     0x0401u  /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_K01_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K01_TOP_NEAR 0x0400u  /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K01_LEFT_NEAR 0x0400u /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K01_INTERIOR 0x0400u  /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K01_TOP_FAR 0x0401u   /* HW_VERIFIED: UV(1, 0) */
 
 // --------------------------------------------------------------------------
 // K=2   (stride 0.2)
@@ -97,11 +97,11 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=1.4  v_real=0.0  -> (1, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K02_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K02_TOP_NEAR    0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K02_LEFT_NEAR   0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K02_INTERIOR    0x0C21u  /* HW_VERIFIED: UV(1, 1) */
-#define EXPECT_K02_TOP_FAR     0x0401u  /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_K02_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K02_TOP_NEAR 0x0400u  /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K02_LEFT_NEAR 0x0400u /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K02_INTERIOR 0x0C21u  /* HW_VERIFIED: UV(1, 1) */
+#define EXPECT_K02_TOP_FAR 0x0401u   /* HW_VERIFIED: UV(1, 0) */
 
 // --------------------------------------------------------------------------
 // K=3   (stride 0.3)
@@ -112,11 +112,11 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=2.1  v_real=0.0  -> (2, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K03_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K03_TOP_NEAR    0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K03_LEFT_NEAR   0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K03_INTERIOR    0x0C21u  /* HW_VERIFIED: UV(1, 1) */
-#define EXPECT_K03_TOP_FAR     0x0C02u  /* HW_VERIFIED: UV(2, 0) */
+#define EXPECT_K03_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K03_TOP_NEAR 0x0400u  /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K03_LEFT_NEAR 0x0400u /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K03_INTERIOR 0x0C21u  /* HW_VERIFIED: UV(1, 1) */
+#define EXPECT_K03_TOP_FAR 0x0C02u   /* HW_VERIFIED: UV(2, 0) */
 
 // --------------------------------------------------------------------------
 // K=5   (stride 0.5 - right at the half-step boundary)
@@ -127,11 +127,11 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=3.5  v_real=0.0  -> (4, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K05_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K05_TOP_NEAR    0x0401u  /* HW_VERIFIED: UV(1, 0) */
-#define EXPECT_K05_LEFT_NEAR   0x0420u  /* HW_VERIFIED: UV(0, 1) */
-#define EXPECT_K05_INTERIOR    0x1442u  /* HW_VERIFIED: UV(2, 2) */
-#define EXPECT_K05_TOP_FAR     0x1404u  /* HW_VERIFIED: UV(4, 0) */
+#define EXPECT_K05_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K05_TOP_NEAR 0x0401u  /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_K05_LEFT_NEAR 0x0420u /* HW_VERIFIED: UV(0, 1) */
+#define EXPECT_K05_INTERIOR 0x1442u  /* HW_VERIFIED: UV(2, 2) */
+#define EXPECT_K05_TOP_FAR 0x1404u   /* HW_VERIFIED: UV(4, 0) */
 
 // --------------------------------------------------------------------------
 // K=8   (stride 0.8 - near 1:1)
@@ -142,11 +142,11 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=5.6  v_real=0.0  -> (6, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K08_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K08_TOP_NEAR    0x0401u  /* HW_VERIFIED: UV(1, 0) */
-#define EXPECT_K08_LEFT_NEAR   0x0420u  /* HW_VERIFIED: UV(0, 1) */
-#define EXPECT_K08_INTERIOR    0x1442u  /* HW_VERIFIED: UV(2, 2) */
-#define EXPECT_K08_TOP_FAR     0x1C06u  /* HW_VERIFIED: UV(6, 0) */
+#define EXPECT_K08_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K08_TOP_NEAR 0x0401u  /* HW_VERIFIED: UV(1, 0) */
+#define EXPECT_K08_LEFT_NEAR 0x0420u /* HW_VERIFIED: UV(0, 1) */
+#define EXPECT_K08_INTERIOR 0x1442u  /* HW_VERIFIED: UV(2, 2) */
+#define EXPECT_K08_TOP_FAR 0x1C06u   /* HW_VERIFIED: UV(6, 0) */
 
 // --------------------------------------------------------------------------
 // K=16  (stride 1.6 - stretched)
@@ -157,8 +157,8 @@ SOFTWARE.
 //   P_TOP_FAR    u_real=11.2  v_real=0.0   -> (11, 0)
 // --------------------------------------------------------------------------
 
-#define EXPECT_K16_VERTEX      0x0400u  /* HW_VERIFIED: UV(0, 0) */
-#define EXPECT_K16_TOP_NEAR    0x0C02u  /* HW_VERIFIED: UV(2, 0) */
-#define EXPECT_K16_LEFT_NEAR   0x0C40u  /* HW_VERIFIED: UV(0, 2) */
-#define EXPECT_K16_INTERIOR    0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
-#define EXPECT_K16_TOP_FAR     0x2C0Bu  /* HW_VERIFIED: UV(11, 0) */
+#define EXPECT_K16_VERTEX 0x0400u    /* HW_VERIFIED: UV(0, 0) */
+#define EXPECT_K16_TOP_NEAR 0x0C02u  /* HW_VERIFIED: UV(2, 0) */
+#define EXPECT_K16_LEFT_NEAR 0x0C40u /* HW_VERIFIED: UV(0, 2) */
+#define EXPECT_K16_INTERIOR 0x2CA5u  /* HW_VERIFIED: UV(5, 5) */
+#define EXPECT_K16_TOP_FAR 0x2C0Bu   /* HW_VERIFIED: UV(11, 0) */

@@ -100,6 +100,7 @@ class OrderingTable : public OrderingTableBase {
 
     // NOTE: can't use from other classes (PCGPU) otherwise
     psyqo::Fragments::ChainEntry m_table[N + 1];
+
   private:
     friend class GPU;
 };
