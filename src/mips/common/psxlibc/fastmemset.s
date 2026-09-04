@@ -24,151 +24,94 @@ SOFTWARE.
 
 */
 
+/* void * fastMemset(void * ptr, int value, size_t num); */
+/* http://man7.org/linux/man-pages/man3/memset.3.html */
+
+/* Deliberately parallel to __wrap_memset in common/crt0/memory-s.s, and
+ * deliberately a separate copy: openbios links this file and does not link
+ * memory-s.s, and this one has to live in .ramtext.
+ *
+ * Four-word block, for the reasons set out in memory-s.s and measured by
+ * src/mips/tests/memops-unroll. Main RAM drains at 2.10 cyc/word, four stores
+ * per iteration already hides the loop tail underneath that, and anything
+ * deeper is icache fill paid on every cold call for no gain per word. That
+ * weighs more here than it does for the wrapped memset: sio0/pad.c calls this
+ * on 0x22 bytes, a length that never reaches the block loop at all and would
+ * still pay to pull the whole body in.
+ *
+ * The head is a single swr rather than a jumptable of byte stores. swr on an
+ * already aligned address writes the whole word, so one instruction covers all
+ * four alignments, and there is no separate count adjustment that can fall out
+ * of step with the number of bytes actually stored.
+ */
+
     .section .ramtext, "ax", @progbits
     .align 2
     .global fastMemset
     .type fastMemset, @function
     .set noreorder
 
-/* void * fastMemset(void * ptr, int value, size_t num); */
-/* http://man7.org/linux/man-pages/man3/memset.3.html */
-
 fastMemset:
-    beqz    $a2, out
+    beqz    $a2, .Lfast_done
     move    $v0, $a0
 
-    sltiu   $v1, $a2, 32
-    beqz    $v1, large_enough
-    move    $t0, $a1
+    bltu    $a2, 4, .Lfast_bytes
+    andi    $a1, 255
 
-    addu    $a2, $a0
-    addiu   $a2, -1
-small_memset_loop:
-    sb		$a1, 0($a0)
-    bne     $a0, $a2, small_memset_loop
-    addiu   $a0, 1
-    jr      $ra
+    sll     $v1, $a1, 8
+    or      $a1, $v1
+    sll     $v1, $a1, 16
+    or      $a1, $v1
 
-large_enough:
-    sll     $t0, 8
-    or      $t0, $a1
-    move    $a1, $t0
-    sll     $t0, 16
-    or      $a1, $t0
-
+    /* Align the destination with one unaligned store. swr on an already
+       aligned address writes the whole word, so this costs four bytes of the
+       count in the aligned case and needs no branch. */
+    li      $t0, 4
     andi    $v1, $a0, 3
-    la      $t1, jumptable1
-    sll     $t2, $v1, 2
-    subu    $a2, $v1
-    addu    $t2, $t1
-    lw      $t1, 0($t2)
-    srl     $t0, $a2, 8
-    jr      $t1
-    andi    $t1, $a2, 0xff
+    subu    $t0, $v1
+    subu    $a2, $t0
+    swr     $a1, 0($a0)
+    addu    $a0, $t0
 
-jumptable1:
-    .word   sb0
-    .word   sb3
-    .word   sb2
-    .word   sb1
+    /* $a3 = destination + the largest multiple of 16 that fits in the count.
+       Derived from the count BEFORE the mask, so an exact multiple of 16 does
+       not lose its final block. */
+    addu    $a3, $a0, $a2
+    bltu    $a2, 16, .Lfast_words
+    andi    $a2, 15
+    subu    $a3, $a2
 
-sb3:
-    sb      $a1, 0($a0)
-    addiu   $a0, 1
-sb2:
-    sb      $a1, 0($a0)
-    addiu   $a0, 1
-sb1:
-    sb      $a1, 0($a0)
-    addiu   $a0, 1
-sb0:
+.Lfast_loop16:
+    addiu   $a0, 16
+    sw      $a1, -16($a0)
+    sw      $a1, -12($a0)
+    sw      $a1, -8($a0)
+    bltu    $a0, $a3, .Lfast_loop16
+    sw      $a1, -4($a0)
 
-/* At this point, we have:
-v0 - our return value
-a0 - current, aligned pointer
-a1 - our word to store
-t0 - our big loop counter
-t1 - the remainder counter to store
-*/
+.Lfast_words:
+    bltu    $a2, 4, .Lfast_bytes
+    addu    $a3, $a0, $a2
+    andi    $a2, 3
+    subu    $a3, $a2
 
-    beqz    $t0, skip_big_loop
+.Lfast_loop4:
+    addiu   $a0, 4
+    bltu    $a0, $a3, .Lfast_loop4
+    sw      $a1, -4($a0)
 
-big_loop:
-    addiu   $t0, -1
-    sw		$a1, 0x0000($a0)
-    sw		$a1, 0x0004($a0)
-    sw		$a1, 0x0008($a0)
-    sw		$a1, 0x000c($a0)
-    sw		$a1, 0x0010($a0)
-    sw		$a1, 0x0014($a0)
-    sw		$a1, 0x0018($a0)
-    sw		$a1, 0x001c($a0)
-    sw		$a1, 0x0020($a0)
-    sw		$a1, 0x0024($a0)
-    sw		$a1, 0x0028($a0)
-    sw		$a1, 0x002c($a0)
-    sw		$a1, 0x0030($a0)
-    sw		$a1, 0x0034($a0)
-    sw		$a1, 0x0038($a0)
-    sw		$a1, 0x003c($a0)
-    sw		$a1, 0x0040($a0)
-    sw		$a1, 0x0044($a0)
-    sw		$a1, 0x0048($a0)
-    sw		$a1, 0x004c($a0)
-    sw		$a1, 0x0050($a0)
-    sw		$a1, 0x0054($a0)
-    sw		$a1, 0x0058($a0)
-    sw		$a1, 0x005c($a0)
-    sw		$a1, 0x0060($a0)
-    sw		$a1, 0x0064($a0)
-    sw		$a1, 0x0068($a0)
-    sw		$a1, 0x006c($a0)
-    sw		$a1, 0x0070($a0)
-    sw		$a1, 0x0074($a0)
-    sw		$a1, 0x0078($a0)
-    sw		$a1, 0x007c($a0)
-    sw		$a1, 0x0080($a0)
-    sw		$a1, 0x0084($a0)
-    sw		$a1, 0x0088($a0)
-    sw		$a1, 0x008c($a0)
-    sw		$a1, 0x0090($a0)
-    sw		$a1, 0x0094($a0)
-    sw		$a1, 0x0098($a0)
-    sw		$a1, 0x009c($a0)
-    sw		$a1, 0x00a0($a0)
-    sw		$a1, 0x00a4($a0)
-    sw		$a1, 0x00a8($a0)
-    sw		$a1, 0x00ac($a0)
-    sw		$a1, 0x00b0($a0)
-    sw		$a1, 0x00b4($a0)
-    sw		$a1, 0x00b8($a0)
-    sw		$a1, 0x00bc($a0)
-    sw		$a1, 0x00c0($a0)
-    sw		$a1, 0x00c4($a0)
-    sw		$a1, 0x00c8($a0)
-    sw		$a1, 0x00cc($a0)
-    sw		$a1, 0x00d0($a0)
-    sw		$a1, 0x00d4($a0)
-    sw		$a1, 0x00d8($a0)
-    sw		$a1, 0x00dc($a0)
-    sw		$a1, 0x00e0($a0)
-    sw		$a1, 0x00e4($a0)
-    sw		$a1, 0x00e8($a0)
-    sw		$a1, 0x00ec($a0)
-    sw		$a1, 0x00f0($a0)
-    sw		$a1, 0x00f4($a0)
-    sw		$a1, 0x00f8($a0)
-    sw		$a1, 0x00fc($a0)
-    bnez    $t0, big_loop
-    addiu   $a0, 0x0100
+.Lfast_bytes:
+    beqz    $a2, .Lfast_done
+    nop
 
-skip_big_loop:
-    beqz    $t1, out
-
-    addu    $a2, $t1, $a0
-    b       small_memset_loop
+.Lfast_loop1:
     addiu   $a2, -1
+    sb      $a1, 0($a0)
+    bnez    $a2, .Lfast_loop1
+    addiu   $a0, 1
 
-out:
+.Lfast_done:
     jr      $ra
     nop
+
+    .size fastMemset, .-fastMemset
