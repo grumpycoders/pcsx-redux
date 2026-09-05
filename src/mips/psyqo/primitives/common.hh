@@ -135,12 +135,13 @@ static_assert(sizeof(ClutIndex) == sizeof(uint16_t), "ClutIndex is not 16 bits")
  * The binary representation is meant to be the same as the texture argument for
  * GPU commands.
  */
-struct TexInfo {
+struct alignas(uint32_t) TexInfo {
     uint8_t u;
     uint8_t v;
     ClutIndex clut;
 };
 static_assert(sizeof(TexInfo) == sizeof(uint32_t), "TexInfo is not 32 bits");
+static_assert(alignof(TexInfo) == alignof(uint32_t), "TexInfo is not 32-bit aligned");
 
 struct TPageAttr;
 /**
@@ -267,12 +268,13 @@ static_assert(sizeof(TPageAttr) == sizeof(uint16_t), "TPageAttr is not 16 bits")
  *
  * @details This is a common building block piece used in primitives.
  */
-struct PageInfo {
+struct alignas(uint32_t) PageInfo {
     uint8_t u;
     uint8_t v;
     TPageAttr attr;
 };
 static_assert(sizeof(PageInfo) == sizeof(uint32_t), "PageInfo is not 32 bits");
+static_assert(alignof(PageInfo) == alignof(uint32_t), "PageInfo is not 32-bit aligned");
 
 /**
  * @brief A primitive's UV coordinates attribute.

@@ -1,0 +1,29 @@
+local root = path.join(os.scriptdir(), "..", "..", "..")
+local mips = path.join(os.scriptdir(), "..")
+
+set_allowedmodes("debug", "dev", "release")
+includes(mips)
+
+target("nugget.modplayer", function()
+    set_kind("static")
+    add_rules("nugget")
+    add_files("modplayer.c")
+end)
+
+target("timewarped", function ()
+    set_kind("static")
+    add_rules("nugget", "nugget.bin2c")
+    add_values("nugget.bin2c.files", "timewarped.hit")
+end)
+
+target("modplayer.demo", function()
+    set_kind("binary")
+    add_rules("nugget")
+    add_deps("nugget.modplayer", "timewarped")
+    add_files("demo.c")
+end)
+
+target("modplayer.demo.ps-exe", function()
+    add_deps("modplayer.demo")
+    add_rules("ps-exe")
+end)

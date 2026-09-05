@@ -110,6 +110,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_returnFromBlock;  // Pointer to the code that will be executed when returning from a block
     DynarecCallback m_uncompiledBlock;  // Pointer to the code that will be executed when jumping to an uncompiled block
     DynarecCallback m_invalidBlock;     // Pointer to the code that will be executed the PC is invalid
+    DynarecCallback m_loadDelayHandler;  // Pointer to the code that will handle load delays at the start of a block
+    // Pointer to the code that will be executed when a block needs to be recompiled with full load delay support
+    DynarecCallback m_needFullLoadDelays;
 
     uint32_t m_pc;
     Emitter gen;
@@ -118,6 +121,19 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
     uint32_t m_ramSize;    // RAM is 2MB on retail units, 8MB on some DTL units (Can be toggled in GUI)
     const int MAX_BLOCK_SIZE = 50;
+
+    bool m_firstInstruction;        // Is the instruction being compiled the first one of the block?
+    bool m_fullLoadDelayEmulation;  // Should we emulate load delays that cross block boundaries?
+
+    // Used to hold info when we've got a load delay between the end of a block and the start of another
+    // For example, when there's an lw instruction in the delay slot of a branch
+    struct {
+        bool active;
+        int index;
+        uint32_t value;
+    } m_runtimeLoadDelay;
+
+    enum class LoadDelayDependencyType { NoDependency, DependencyInsideBlock, DependencyAcrossBlocks };
 
     enum class RegState { Unknown, Constant };
     enum class LoadingMode { DoNotLoad, Load };
@@ -184,7 +200,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
-    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true);
+    DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true,
+                              bool fullLoadDelayEmulation = false);
+    LoadDelayDependencyType getLoadDelayDependencyType(int index);
     void error();
     void flushCache();
     void handleLinking();
@@ -201,8 +219,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     static void recErrorWrapper(DynaRecCPU* that) { that->error(); }
 
     static void signalShellReached(DynaRecCPU* that);
-    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback) {
-        return that->recompile(callback, that->m_regs.pc);
+    static DynarecCallback recRecompileWrapper(DynaRecCPU* that, DynarecCallback* callback,
+                                               bool fullLoadDelayEmulation) {
+        return that->recompile(callback, that->m_regs.pc, true, fullLoadDelayEmulation);
     }
 
     template <uint32_t pc>
@@ -335,9 +354,48 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     }
 
     void maybeCancelDelayedLoad(uint32_t index) {
+        // A load delay inherited from the previous block is only visible to the first instruction of this one, so
+        // that is the only place where it can be cancelled at runtime.
+        if (m_fullLoadDelayEmulation && m_firstInstruction) {
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            Label noDelayedLoad;
+
+            gen.Ldr(w4, MemOperand(contextPointer, indexOffset));
+            gen.Cmp(w4, index);
+            gen.B(&noDelayedLoad, ne);
+            gen.Strb(wzr, MemOperand(contextPointer, isActiveOffset));
+            gen.L(noDelayedLoad);
+        }
+
         const unsigned other = m_currentDelayedLoad ^ 1;
         if (m_delayedLoadInfo[other].index == index) {
             m_delayedLoadInfo[other].active = false;
+        }
+    }
+
+    // Park the value currently in w0 as a load delayed by one instruction, targeting guest register "index".
+    // Either processDelayedLoad picks it back up next instruction, or the load delay handler does at the start of
+    // the next block. Clobbers w4.
+    void storeDelayedLoad(unsigned index, LoadDelayDependencyType type) {
+        m_delayedLoadInfo[m_currentDelayedLoad].active = true;
+
+        if (type == LoadDelayDependencyType::DependencyAcrossBlocks) {
+            const auto valueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
+            const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+            const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
+
+            gen.Str(w0, MemOperand(contextPointer, valueOffset));
+            gen.Mov(w4, 1);
+            gen.Strb(w4, MemOperand(contextPointer, isActiveOffset));
+            gen.Mov(w4, index);
+            gen.Str(w4, MemOperand(contextPointer, indexOffset));
+        } else {
+            auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            const auto valueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+
+            delayedLoad.index = index;
+            gen.Str(w0, MemOperand(contextPointer, valueOffset));
         }
     }
 
@@ -443,8 +501,13 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     template <bool loadSR>
     void testSoftwareInterrupt();
 
+    void loadGTEDataRegister(Register dest, int index);
+
     template <int size, bool signExtend>
     void recompileLoad(uint32_t code);
+
+    template <int size, bool signExtend>
+    void recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType type);
 
     const recompilationFunc m_recBSC[64] = {
         &DynaRecCPU::recSpecial, &DynaRecCPU::recREGIMM,  &DynaRecCPU::recJ,       &DynaRecCPU::recJAL,      // 00

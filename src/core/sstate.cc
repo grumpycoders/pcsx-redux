@@ -42,6 +42,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             ROM{g_emulator->m_mem->m_bios},
             EXP1{g_emulator->m_mem->m_exp1},
             HardwareMemory{g_emulator->m_mem->m_hard},
+            SRAM{g_emulator->m_mem->m_sram},
         },
         Registers{
             GPR{g_emulator->m_cpu->m_regs.GPR.r},
@@ -218,9 +219,9 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
         counters.get<Rcnts>().value[i].get<RcntIRQState>().value = m_rcnts[i].irqState;
         counters.get<Rcnts>().value[i].get<RcntCycle>().value = m_rcnts[i].cycle;
         counters.get<Rcnts>().value[i].get<RcntCycleStart>().value = m_rcnts[i].cycleStart;
+        counters.get<Rcnts>().value[i].get<RcntGateStarted>().value = m_rcnts[i].gateStarted;
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
-    counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
 }
 
@@ -265,7 +266,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     auto& left = xa.get<SaveStates::XAADPCMLeft>();
     g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
-    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    auto& right = xa.get<SaveStates::XAADPCMRight>();
     g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
@@ -383,20 +384,19 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
         m_rcnts[i].irqState = counters.get<Rcnts>().value[i].get<RcntIRQState>().value;
         m_rcnts[i].cycle = counters.get<Rcnts>().value[i].get<RcntCycle>().value;
         m_rcnts[i].cycleStart = counters.get<Rcnts>().value[i].get<RcntCycleStart>().value;
+        m_rcnts[i].gateStarted = counters.get<Rcnts>().value[i].get<RcntGateStarted>().value;
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
-    m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
 
     calculateHsync();
-    // iCB: recalculate target count in case overclock is changed
+    // Recalculate rates from mode registers (handles overclock changes and dotclock)
     m_rcnts[3].target =
         (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
                                         m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
-    if (m_rcnts[1].rate != 1)
-        m_rcnts[1].rate =
-            (g_emulator->m_psxClockSpeed / (FrameRate[g_emulator->settings.get<Emulator::SettingVideo>()] *
-                                            m_HSyncTotal[g_emulator->settings.get<Emulator::SettingVideo>()]));
+    for (unsigned i = 0; i < 3; i++) {
+        recalculateRate(i);
+    }
 
     m_audioFrames = g_emulator->m_spu->getCurrentFrames();
 }

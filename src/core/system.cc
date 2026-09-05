@@ -20,6 +20,7 @@
 #include "core/system.h"
 
 #include <stddef.h>
+#include <uv.h>
 
 #include <iomanip>
 #include <sstream>
@@ -38,6 +39,15 @@ static const ImWchar c_polishRanges[] = {0x0020, 0x00ff, 0x0104, 0x0119, 0x0141,
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
+PCSX::System::System() : m_loop(new uv_loop_t) { uv_loop_init(m_loop); }
+
+PCSX::System::~System() {
+    if (!m_emergencyExit) uv_loop_close(m_loop);
+    delete m_loop;
+}
+
+uv_loop_t *PCSX::System::getLoop() { return m_loop; }
+
 const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     {
         "Deutsch",

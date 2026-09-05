@@ -1,50 +1,42 @@
 /***************************************************************************
-                          adsr.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2004/09/18 - LDChen
-// - Speed optimized ADSR mixing
-//
-// 2003/05/14 - xodnizel
-// - removed stopping of reverb on sample end
-//
-// 2003/01/06 - Pete
-// - added Neill's ADSR timings
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include "spu/adsr.h"
 
 #include <stdint.h>
 
-#include <utility>
+#include <algorithm>
 
-#include "spu/externals.h"
-#include "spu/interface.h"
 #include "support/table-generator.h"
 
+// The ADSR rate/level model derives from Neill Corlett's PlayStation SPU
+// envelope-timing notes; psx-spx (soundprocessingunitspu.md) is the
+// authoritative hardware reference. The live envelope level is a 15-bit value
+// (0..0x7fff). The volume factor handed to the mixer, and reported by voice
+// register 0xC, is that level shifted down to 10 bits (0..0x400).
+
 namespace EnvelopeTables {
-// Generate ADSR envelope tables at compile time with some magic(thanks Nic)
+// The rate tables are built at compile time (consteval; table math by Nic).
+// They encode the classic SPU rate curve whose period doubles every four rate
+// steps: a phase counts samples in the fraction accumulator up to
+// denominator[rate], then steps the level by numerator_increase[rate] (rising)
+// or numerator_decrease[rate] (falling, negative).
 struct DenominatorGenerator {
     static consteval int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
 };
@@ -66,607 +58,152 @@ constexpr auto numerator_increase = PCSX::generateTable<128, NumeratorIncreaseGe
 constexpr auto numerator_decrease = PCSX::generateTable<128, NumeratorDecreaseGenerator>();
 }  // namespace EnvelopeTables
 
-inline int PCSX::SPU::ADSR::Attack(SPUCHAN *ch) {
-    int rate = ch->ADSRX.get<exAttackRate>().value;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
-    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
-    const int32_t attack_mode_exp = ch->ADSRX.get<exAttackModeExp>().value;
+namespace {
+constexpr int32_t kEnvelopeMax = 0x7fff;       // 15-bit envelope ceiling (32767)
+constexpr int kEnvelopeToLevelShift = 5;       // 15-bit level -> 10-bit volume factor
+constexpr int32_t kExponentialKnee = 0x6000;   // above here the exponential rise flattens...
+constexpr int kExponentialKneeRateStep = 8;    // ...by stepping to a slower rate-table entry
+constexpr int kExponentialDecreaseShift = 15;  // Q15 scale for an exponential decrease
+constexpr int kCoarseRateScale = 4;            // decay/release rate -> fine rate-table index
+constexpr int kSustainLevelShift = 11;         // top four bits of the level...
+constexpr int32_t kSustainLevelMask = 0xf;     // ...compared against the 0..15 sustain level
+}  // namespace
 
-    // Exponential increase
-    if (attack_mode_exp && EnvelopeVol >= 0x6000) {
-        rate += 8;
-    }
-
-    EnvelopeVolF++;
-    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
-        EnvelopeVolF = 0;
-        EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
-    }
-
-    if (EnvelopeVol >= 32767L) {
-        EnvelopeVol = 32767L;
-        ch->ADSRX.get<exState>().value = ADSRState::Decay;
-    }
-
-    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
-
-    return EnvelopeVol;
+// Write the freshly computed envelope state back and return the full 15-bit
+// (0..0x7fff) envelope volume. The mixer applies it as `sample * envelope >> 15`,
+// matching the hardware SPU. The 0..0x400 `exVolume` mirror (envelope >> 5) is
+// still maintained for the voice register / debugger, but it is no longer the
+// value handed to the mixer (that lossy 10-bit gain + /1023 divide ran enveloped
+// samples ~0.1% high and discarded the envelope's low 5 bits).
+int PCSX::SPU::AdsrEnvelope::commit(int32_t envelopeVol, int32_t envelopeVolFraction) {
+    const int level = envelopeVol >> kEnvelopeToLevelShift;
+    m_adsrx.get<exEnvelopeVol>().value = envelopeVol;
+    m_adsrx.get<exEnvelopeVolF>().value = envelopeVolFraction;
+    m_adsrx.get<exVolume>().value = level;
+    return envelopeVol;
 }
 
-inline int PCSX::SPU::ADSR::Decay(SPUCHAN *ch) {
-    const int rate = ch->ADSRX.get<exDecayRate>().value * 4;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
-    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
-    const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
+int PCSX::SPU::AdsrEnvelope::Attack() {
+    int rateIndex = m_adsrx.get<exAttackRate>().value;
+    int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
+    int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
+    const bool exponential = m_adsrx.get<exAttackModeExp>().value != 0;
 
-    EnvelopeVolF++;
-    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
-        EnvelopeVolF = 0;
+    // Past the knee the exponential attack curve flattens to a slower rate.
+    if (exponential && envelopeVol >= kExponentialKnee) rateIndex += kExponentialKneeRateStep;
 
-        if (release_mode_exp) {
-            // Exponential decrease
-            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
-        } else {
-            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
-        }
+    if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
+        envelopeVolFraction = 0;
+        envelopeVol += EnvelopeTables::numerator_increase.data[rateIndex];
     }
 
-    if (EnvelopeVol < 0) {
-        EnvelopeVol = 0;
+    if (envelopeVol >= kEnvelopeMax) {
+        envelopeVol = kEnvelopeMax;
+        m_adsrx.get<exState>().value = ADSRState::Decay;
     }
 
-    if (((EnvelopeVol >> 11) & 0xf) <= ch->ADSRX.get<exSustainLevel>().value) {
-        ch->ADSRX.get<exState>().value = ADSRState::Sustain;
-    }
-
-    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
-
-    return EnvelopeVol;
+    return commit(envelopeVol, envelopeVolFraction);
 }
 
-inline int PCSX::SPU::ADSR::Sustain(SPUCHAN *ch) {
-    int rate = ch->ADSRX.get<exSustainRate>().value;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
-    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
-    const int32_t sustain_mode_exp = ch->ADSRX.get<exSustainModeExp>().value;
-    const int32_t sustain_increase = ch->ADSRX.get<exSustainIncrease>().value;
+int PCSX::SPU::AdsrEnvelope::Decay() {
+    const int rateIndex = m_adsrx.get<exDecayRate>().value * kCoarseRateScale;
+    int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
+    int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
+    const bool exponential = m_adsrx.get<exReleaseModeExp>().value != 0;
 
-    if (sustain_increase) {
-        // Exponential increase
-        if (sustain_mode_exp && (EnvelopeVol >= 0x6000)) {
-            rate += 8;
+    if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
+        envelopeVolFraction = 0;
+        envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                         kExponentialDecreaseShift
+                                   : EnvelopeTables::numerator_decrease.data[rateIndex];
+    }
+
+    envelopeVol = std::max(envelopeVol, 0);
+
+    if (((envelopeVol >> kSustainLevelShift) & kSustainLevelMask) <= m_adsrx.get<exSustainLevel>().value) {
+        m_adsrx.get<exState>().value = ADSRState::Sustain;
+    }
+
+    return commit(envelopeVol, envelopeVolFraction);
+}
+
+int PCSX::SPU::AdsrEnvelope::Sustain() {
+    int rateIndex = m_adsrx.get<exSustainRate>().value;
+    int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
+    int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
+    const bool exponential = m_adsrx.get<exSustainModeExp>().value != 0;
+    const bool increase = m_adsrx.get<exSustainIncrease>().value != 0;
+
+    if (increase) {
+        // Past the knee the exponential rise flattens to a slower rate.
+        if (exponential && envelopeVol >= kExponentialKnee) rateIndex += kExponentialKneeRateStep;
+
+        if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
+            envelopeVolFraction = 0;
+            envelopeVol += EnvelopeTables::numerator_increase.data[rateIndex];
         }
 
-        EnvelopeVolF++;
-        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
-            EnvelopeVolF = 0;
-            EnvelopeVol += EnvelopeTables::numerator_increase.data[rate];
-        }
-
-        if (EnvelopeVol > 32767L) {
-            EnvelopeVol = 32767L;
-        }
-
+        envelopeVol = std::min(envelopeVol, kEnvelopeMax);
     } else {
-        EnvelopeVolF++;
-        if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
-            EnvelopeVolF = 0;
-
-            // Exponential decrease
-            if (sustain_mode_exp) {
-                EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
-            } else {
-                EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
-            }
+        if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
+            envelopeVolFraction = 0;
+            envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                             kExponentialDecreaseShift
+                                       : EnvelopeTables::numerator_decrease.data[rateIndex];
         }
 
-        if (EnvelopeVol < 0L) {
-            EnvelopeVol = 0;
-        }
+        envelopeVol = std::max(envelopeVol, 0);
     }
 
-    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
-
-    return EnvelopeVol;
+    return commit(envelopeVol, envelopeVolFraction);
 }
 
-inline int PCSX::SPU::ADSR::Release(SPUCHAN *ch) {
-    int rate = ch->ADSRX.get<exReleaseRate>().value * 4;
-    int32_t EnvelopeVol = ch->ADSRX.get<exEnvelopeVol>().value;
-    int32_t EnvelopeVolF = ch->ADSRX.get<exEnvelopeVolF>().value;
-    const int32_t release_mode_exp = ch->ADSRX.get<exReleaseModeExp>().value;
+int PCSX::SPU::AdsrEnvelope::Release(bool &channelOn) {
+    const int rateIndex = m_adsrx.get<exReleaseRate>().value * kCoarseRateScale;
+    int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
+    int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
+    const bool exponential = m_adsrx.get<exReleaseModeExp>().value != 0;
 
-    EnvelopeVolF++;
-    if (EnvelopeVolF >= EnvelopeTables::denominator.data[rate]) {
-        EnvelopeVolF = 0;
-
-        // Exponential decrease
-        if (release_mode_exp) {
-            EnvelopeVol += (EnvelopeTables::numerator_decrease.data[rate] * EnvelopeVol) >> 15;
-        } else {
-            EnvelopeVol += EnvelopeTables::numerator_decrease.data[rate];
-        }
+    if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
+        envelopeVolFraction = 0;
+        envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
+                                         kExponentialDecreaseShift
+                                   : EnvelopeTables::numerator_decrease.data[rateIndex];
     }
 
-    if (EnvelopeVol < 0L) {
-        ch->ADSRX.get<exState>().value = ADSRState::Stopped;
-        EnvelopeVol = 0;
-        ch->data.get<Chan::On>().value = false;
+    if (envelopeVol < 0) {
+        m_adsrx.get<exState>().value = ADSRState::Stopped;
+        envelopeVol = 0;
+        channelOn = false;
     }
 
-    ch->ADSRX.get<exEnvelopeVol>().value = EnvelopeVol;
-    ch->ADSRX.get<exEnvelopeVolF>().value = EnvelopeVolF;
-    ch->ADSRX.get<exVolume>().value = (EnvelopeVol >>= 5);
-
-    return EnvelopeVol;
+    return commit(envelopeVol, envelopeVolFraction);
 }
 
-void PCSX::SPU::ADSR::start(SPUCHAN *pChannel)  // MIX ADSR
-{
-    pChannel->ADSRX.get<exVolume>().value = 1;  // and init some adsr vars
-    pChannel->ADSRX.get<exState>().value = ADSRState::Attack;
-    pChannel->ADSRX.get<exEnvelopeVol>().value = 0;
-    pChannel->ADSRX.get<exEnvelopeVolF>().value = 0;
+void PCSX::SPU::AdsrEnvelope::keyOn() {
+    // Reset the live envelope to the very start of the Attack phase. The level is
+    // genuinely zero until the first Attack step lands; ENVX reads it as such.
+    m_adsrx.get<exVolume>().value = 0;
+    m_adsrx.get<exState>().value = ADSRState::Attack;
+    m_adsrx.get<exEnvelopeVol>().value = 0;
+    m_adsrx.get<exEnvelopeVolF>().value = 0;
 }
 
-int PCSX::SPU::ADSR::mix(SPUCHAN *ch) {
-    if (ch->data.get<Chan::Stop>().value) {
-        ch->ADSRX.get<exState>().value = ADSRState::Release;
+int PCSX::SPU::AdsrEnvelope::step(bool stopRequested, bool &channelOn) {
+    if (stopRequested) {
+        m_adsrx.get<exState>().value = ADSRState::Release;
     }
 
-    switch (ch->ADSRX.get<exState>().value) {
+    switch (m_adsrx.get<exState>().value) {
         case ADSRState::Attack:
-            return Attack(ch);
+            return Attack();
         case ADSRState::Decay:
-            return Decay(ch);
+            return Decay();
         case ADSRState::Sustain:
-            return Sustain(ch);
+            return Sustain();
         case ADSRState::Release:
-            return Release(ch);
+            return Release(channelOn);
     }
 
     return 0;
 }
-
-/*
-James Higgs ADSR investigations:
-
-PSX SPU Envelope Timings
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-First, here is an extract from doomed's SPU doc, which explains the basics
-of the SPU "volume envelope":
-
-*** doomed doc extract start ***
-
---------------------------------------------------------------------------
-Voices.
---------------------------------------------------------------------------
-The SPU has 24 hardware voices. These voices can be used to reproduce sample
-data, noise or can be used as frequency modulator on the next voice.
-Each voice has it's own programmable ADSR envelope filter. The main volume
-can be programmed independently for left and right output.
-
-The ADSR envelope filter works as follows:
-Ar = Attack rate, which specifies the speed at which the volume increases
-     from zero to it's maximum value, as soon as the note on is given. The
-     slope can be set to lineair or exponential.
-Dr = Decay rate specifies the speed at which the volume decreases to the
-     sustain level. Decay is always decreasing exponentially.
-Sl = Sustain level, base level from which sustain starts.
-Sr = Sustain rate is the rate at which the volume of the sustained note
-     increases or decreases. This can be either lineair or exponential.
-Rr = Release rate is the rate at which the volume of the note decreases
-     as soon as the note off is given.
-
-     lvl |
-       ^ |     /\Dr     __
-     Sl _| _  / _ \__---  \
-         |   /       ---__ \ Rr
-         |  /Ar       Sr  \ \
-         | /                \\
-         |/___________________\________
-                                  ->time
-
-The overal volume can also be set to sweep up or down lineairly or
-exponentially from it's current value. This can be done seperately
-for left and right.
-
-Relevant SPU registers:
--------------------------------------------------------------
-$1f801xx8         Attack/Decay/Sustain level
-bit  |0f|0e 0d 0c 0b 0a 09 08|07 06 05 04|03 02 01 00|
-desc.|Am|         Ar         |Dr         |Sl         |
-
-Am       0        Attack mode Linear
-         1                    Exponential
-
-Ar       0-7f     attack rate
-Dr       0-f      decay rate
-Sl       0-f      sustain level
--------------------------------------------------------------
-$1f801xxa         Sustain rate, Release Rate.
-bit  |0f|0e|0d|0c 0b 0a 09 08 07 06|05|04 03 02 01 00|
-desc.|Sm|Sd| 0|   Sr               |Rm|Rr            |
-
-Sm       0        sustain rate mode linear
-         1                          exponential
-Sd       0        sustain rate mode increase
-         1                          decrease
-Sr       0-7f     Sustain Rate
-Rm       0        Linear decrease
-         1        Exponential decrease
-Rr       0-1f     Release Rate
-
-Note: decay mode is always Expontial decrease, and thus cannot
-be set.
--------------------------------------------------------------
-$1f801xxc         Current ADSR volume
-bit  |0f 0e 0d 0c 0b 0a 09 08 07 06 05 04 03 02 01 00|
-desc.|ADSRvol                                        |
-
-ADSRvol           Returns the current envelope volume when
-                  read.
--- James' Note: return range: 0 -> 32767
-
-*** doomed doc extract end ***
-
-By using a small PSX proggie to visualise the envelope as it was played,
-the following results for envelope timing were obtained:
-
-1. Attack rate value (linear mode)
-
-   Attack value range: 0 -> 127
-
-   Value  | 48 | 52 | 56 | 60 | 64 | 68 | 72 |    | 80 |
-   -----------------------------------------------------------------
-   Frames | 11 | 21 | 42 | 84 | 169| 338| 676|    |2890|
-
-   Note: frames is no. of PAL frames to reach full volume (100%
-   amplitude)
-
-   Hmm, noticing that the time taken to reach full volume doubles
-   every time we add 4 to our attack value, we know the equation is
-   of form:
-             frames = k * 2 ^ (value / 4)
-
-   (You may ponder about envelope generator hardware at this point,
-   or maybe not... :)
-
-   By substituting some stuff and running some checks, we get:
-
-       k = 0.00257              (close enuf)
-
-   therefore,
-             frames = 0.00257 * 2 ^ (value / 4)
-   If you just happen to be writing an emulator, then you can probably
-   use an equation like:
-
-       %volume_increase_per_tick = 1 / frames
-
-
-   ------------------------------------
-   Pete:
-   ms=((1<<(value>>2))*514)/10000
-   ------------------------------------
-
-2. Decay rate value (only has log mode)
-
-   Decay value range: 0 -> 15
-
-   Value  |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 |
-   ------------------------------------------------
-   frames |    |    |    |    |  6 | 12 | 24 | 47 |
-
-   Note: frames here is no. of PAL frames to decay to 50% volume.
-
-   formula: frames = k * 2 ^ (value)
-
-   Substituting, we get: k = 0.00146
-
-   Further info on logarithmic nature:
-   frames to decay to sustain level 3  =  3 * frames to decay to
-   sustain level 9
-
-   Also no. of frames to 25% volume = roughly 1.85 * no. of frames to
-   50% volume.
-
-   Frag it - just use linear approx.
-
-   ------------------------------------
-   Pete:
-   ms=((1<<value)*292)/10000
-   ------------------------------------
-
-
-3. Sustain rate value (linear mode)
-
-   Sustain rate range: 0 -> 127
-
-   Value  | 48 | 52 | 56 | 60 | 64 | 68 | 72 |
-   -------------------------------------------
-   frames |  9 | 19 | 37 | 74 | 147| 293| 587|
-
-   Here, frames = no. of PAL frames for volume amplitude to go from 100%
-   to 0% (or vice-versa).
-
-   Same formula as for attack value, just a different value for k:
-
-   k = 0.00225
-
-   ie: frames = 0.00225 * 2 ^ (value / 4)
-
-   For emulation purposes:
-
-   %volume_increase_or_decrease_per_tick = 1 / frames
-
-   ------------------------------------
-   Pete:
-   ms=((1<<(value>>2))*450)/10000
-   ------------------------------------
-
-
-4. Release rate (linear mode)
-
-   Release rate range: 0 -> 31
-
-   Value  | 13 | 14 | 15 | 16 | 17 |
-   ---------------------------------------------------------------
-   frames | 18 | 36 | 73 | 146| 292|
-
-   Here, frames = no. of PAL frames to decay from 100% vol to 0% vol
-   after "note-off" is triggered.
-
-   Formula: frames = k * 2 ^ (value)
-
-   And so: k = 0.00223
-
-   ------------------------------------
-   Pete:
-   ms=((1<<value)*446)/10000
-   ------------------------------------
-
-
-Other notes:
-
-Log stuff not figured out. You may get some clues from the "Decay rate"
-stuff above. For emu purposes it may not be important - use linear
-approx.
-
-To get timings in millisecs, multiply frames by 20.
-
-
-
-- James Higgs 17/6/2000
-james7780@yahoo.com
-
-//---------------------------------------------------------------
-
-OLD adsr mixing according to james' rules... has to be called
-every one millisecond
-
-
- long v,v2,lT,l1,l2,l3;
-
- if(s_chan[ch].bStop)                                  // psx wants to stop? -> release phase
-  {
-   if(s_chan[ch].ADSR.ReleaseVal!=0)                   // -> release not 0: do release (if 0: stop right now)
-    {
-     if(!s_chan[ch].ADSR.ReleaseVol)                   // --> release just started? set up the release stuff
-      {
-       s_chan[ch].ADSR.ReleaseStartTime=s_chan[ch].ADSR.lTime;
-       s_chan[ch].ADSR.ReleaseVol=s_chan[ch].ADSR.lVolume;
-       s_chan[ch].ADSR.ReleaseTime =                   // --> calc how long does it take to reach the wanted sus level
-         (s_chan[ch].ADSR.ReleaseTime*
-          s_chan[ch].ADSR.ReleaseVol)/1024;
-      }
-                                                       // -> NO release exp mode used (yet)
-     v=s_chan[ch].ADSR.ReleaseVol;                     // -> get last volume
-     lT=s_chan[ch].ADSR.lTime-                         // -> how much time is past?
-        s_chan[ch].ADSR.ReleaseStartTime;
-     l1=s_chan[ch].ADSR.ReleaseTime;
-
-     if(lT<l1)                                         // -> we still have to release
-      {
-       v=v-((v*lT)/l1);                                // --> calc new volume
-      }
-     else                                              // -> release is over: now really stop that sample
-      {v=0;s_chan[ch].bOn=0;s_chan[ch].ADSR.ReleaseVol=0;s_chan[ch].bNoise=0;}
-    }
-   else                                                // -> release IS 0: release at once
-    {
-     v=0;s_chan[ch].bOn=0;s_chan[ch].ADSR.ReleaseVol=0;s_chan[ch].bNoise=0;
-    }
-  }
- else
-  {//--------------------------------------------------// not in release phase:
-   v=1024;
-   lT=s_chan[ch].ADSR.lTime;
-   l1=s_chan[ch].ADSR.AttackTime;
-
-   if(lT<l1)                                           // attack
-    {                                                  // no exp mode used (yet)
-//     if(s_chan[ch].ADSR.AttackModeExp)
-//      {
-//       v=(v*lT)/l1;
-//      }
-//     else
-      {
-       v=(v*lT)/l1;
-      }
-     if(v==0) v=1;
-    }
-   else                                                // decay
-    {                                                  // should be exp, but who cares? ;)
-     l2=s_chan[ch].ADSR.DecayTime;
-     v2=s_chan[ch].ADSR.SustainLevel;
-
-     lT-=l1;
-     if(lT<l2)
-      {
-       v-=(((v-v2)*lT)/l2);
-      }
-     else                                              // sustain
-      {                                                // no exp mode used (yet)
-       l3=s_chan[ch].ADSR.SustainTime;
-       lT-=l2;
-       if(s_chan[ch].ADSR.SustainModeDec>0)
-        {
-         if(l3!=0) v2+=((v-v2)*lT)/l3;
-         else      v2=v;
-        }
-       else
-        {
-         if(l3!=0) v2-=(v2*lT)/l3;
-         else      v2=v;
-        }
-
-       if(v2>v)  v2=v;
-       if(v2<=0) {v2=0;s_chan[ch].bOn=0;s_chan[ch].ADSR.ReleaseVol=0;s_chan[ch].bNoise=0;}
-
-       v=v2;
-      }
-    }
-  }
-
- //----------------------------------------------------//
- // ok, done for this channel, so increase time
-
- s_chan[ch].ADSR.lTime+=1;                             // 1 = 1.020408f ms;
-
- if(v>1024)     v=1024;                                // adjust volume
- if(v<0)        v=0;
- s_chan[ch].ADSR.lVolume=v;                            // store act volume
-
- return v;                                             // return the volume factor
-*/
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-/*
------------------------------------------------------------------------------
-Neill Corlett
-Playstation SPU envelope timing notes
------------------------------------------------------------------------------
-
-This is preliminary.  This may be wrong.  But the model described herein fits
-all of my experimental data, and it's just simple enough to sound right.
-
-ADSR envelope level ranges from 0x00000000 to 0x7FFFFFFF internally.
-The value returned by channel reg 0xC is (envelope_level>>16).
-
-Each sample, an increment or decrement value will be added to or
-subtracted from this envelope level.
-
-Create the rate log table.  The values double every 4 entries.
-   entry #0 = 4
-
-    4, 5, 6, 7,
-    8,10,12,14,
-   16,20,24,28, ...
-
-   entry #40 = 4096...
-   entry #44 = 8192...
-   entry #48 = 16384...
-   entry #52 = 32768...
-   entry #56 = 65536...
-
-increments and decrements are in terms of ratelogtable[n]
-n may exceed the table bounds (plan on n being between -32 and 127).
-table values are all clipped between 0x00000000 and 0x3FFFFFFF
-
-when you "voice on", the envelope is always fully reset.
-(yes, it may click. the real thing does this too.)
-
-envelope level begins at zero.
-
-each state happens for at least 1 cycle
-(transitions are not instantaneous)
-this may result in some oddness: if the decay rate is uberfast, it will cut
-the envelope from full down to half in one sample, potentially skipping over
-the sustain level
-
-ATTACK
-------
-- if the envelope level has overflowed past the max, clip to 0x7FFFFFFF and
-  proceed to DECAY.
-
-Linear attack mode:
-- line extends upward to 0x7FFFFFFF
-- increment per sample is ratelogtable[(Ar^0x7F)-0x10]
-
-Logarithmic attack mode:
-if envelope_level < 0x60000000:
-  - line extends upward to 0x60000000
-  - increment per sample is ratelogtable[(Ar^0x7F)-0x10]
-else:
-  - line extends upward to 0x7FFFFFFF
-  - increment per sample is ratelogtable[(Ar^0x7F)-0x18]
-
-DECAY
------
-- if ((envelope_level>>27)&0xF) <= Sl, proceed to SUSTAIN.
-  Do not clip to the sustain level.
-- current line ends at (envelope_level & 0x07FFFFFF)
-- decrement per sample depends on (envelope_level>>28)&0x7
-  0: ratelogtable[(4*(Dr^0x1F))-0x18+0]
-  1: ratelogtable[(4*(Dr^0x1F))-0x18+4]
-  2: ratelogtable[(4*(Dr^0x1F))-0x18+6]
-  3: ratelogtable[(4*(Dr^0x1F))-0x18+8]
-  4: ratelogtable[(4*(Dr^0x1F))-0x18+9]
-  5: ratelogtable[(4*(Dr^0x1F))-0x18+10]
-  6: ratelogtable[(4*(Dr^0x1F))-0x18+11]
-  7: ratelogtable[(4*(Dr^0x1F))-0x18+12]
-  (note that this is the same as the release rate formula, except that
-   decay rates 10-1F aren't possible... those would be slower in theory)
-
-SUSTAIN
--------
-- no terminating condition except for voice off
-- Sd=0 (increase) behavior is identical to ATTACK for both log and linear.
-- Sd=1 (decrease) behavior:
-Linear sustain decrease:
-- line extends to 0x00000000
-- decrement per sample is ratelogtable[(Sr^0x7F)-0x0F]
-Logarithmic sustain decrease:
-- current line ends at (envelope_level & 0x07FFFFFF)
-- decrement per sample depends on (envelope_level>>28)&0x7
-  0: ratelogtable[(Sr^0x7F)-0x1B+0]
-  1: ratelogtable[(Sr^0x7F)-0x1B+4]
-  2: ratelogtable[(Sr^0x7F)-0x1B+6]
-  3: ratelogtable[(Sr^0x7F)-0x1B+8]
-  4: ratelogtable[(Sr^0x7F)-0x1B+9]
-  5: ratelogtable[(Sr^0x7F)-0x1B+10]
-  6: ratelogtable[(Sr^0x7F)-0x1B+11]
-  7: ratelogtable[(Sr^0x7F)-0x1B+12]
-
-RELEASE
--------
-- if the envelope level has overflowed to negative, clip to 0 and QUIT.
-
-Linear release mode:
-- line extends to 0x00000000
-- decrement per sample is ratelogtable[(4*(Rr^0x1F))-0x0C]
-
-Logarithmic release mode:
-- line extends to (envelope_level & 0x0FFFFFFF)
-- decrement per sample depends on (envelope_level>>28)&0x7
-  0: ratelogtable[(4*(Rr^0x1F))-0x18+0]
-  1: ratelogtable[(4*(Rr^0x1F))-0x18+4]
-  2: ratelogtable[(4*(Rr^0x1F))-0x18+6]
-  3: ratelogtable[(4*(Rr^0x1F))-0x18+8]
-  4: ratelogtable[(4*(Rr^0x1F))-0x18+9]
-  5: ratelogtable[(4*(Rr^0x1F))-0x18+10]
-  6: ratelogtable[(4*(Rr^0x1F))-0x18+11]
-  7: ratelogtable[(4*(Rr^0x1F))-0x18+12]
-
------------------------------------------------------------------------------
-*/

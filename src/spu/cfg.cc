@@ -71,13 +71,9 @@ XA audio and audio tracks.)"));
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
     ImGuiHelpers::ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
 in sync, by changing its pitch. Consumes more CPU.)"));
-    changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
 for the main CPU to acknowledge it. Fixes issues
 with some games, but slows SPU processing.)"));
-    const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
-                                  _("Accurate - best quality, but slower")};
-    changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
     const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
                                          _("Gaussian interpolation - good quality"),
                                          _("Cubic interpolation - better treble")};
@@ -85,9 +81,12 @@ with some games, but slows SPU processing.)"));
                             IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
     ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
-    changed |= ImGui::Checkbox(_("Capture/decode buffer IRQ"), &settings.get<DBufIRQ>().value);
     ImGuiHelpers::ShowHelpMarker(
         _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
+    changed |= ImGui::InputInt(_("Speed multiplier"), &settings.get<Speed>().value);
+    ImGuiHelpers::ShowHelpMarker(_(R"(Emulation speed, applied at the audio sink (the master clock).
+1 = realtime, N = N times faster. Frames are skipped, not resampled, so pitch is preserved.
+0 or less = unbounded: run as fast as the host allows.)"));
 
     ImGui::End();
     return changed;

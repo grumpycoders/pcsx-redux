@@ -51,7 +51,7 @@ void psyqo::GPU::waitFifo() {
     }
 }
 
-void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
+void psyqo::GPU::reinitialize(const psyqo::GPU::Configuration &config) {
     // Reset
     Hardware::GPU::Ctrl = 0;
     // FIFO polling mode
@@ -72,9 +72,6 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
 
     // Display Area
     Hardware::GPU::Ctrl = 0x05000000;
-
-    COUNTERS[1].mode = 0x100;
-    COUNTERS[1].value = 0;
 
     if (config.config.videoInterlace == Configuration::VI_ON) {
         m_interlaced = true;
@@ -108,6 +105,13 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
     } else {
         m_refreshRate = 50;
     }
+}
+
+void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
+    COUNTERS[1].mode = 0x100;
+    COUNTERS[1].value = 0;
+
+    reinitialize(config);
 
     // Install VBlank interrupt handler
     if (Kernel::isKernelTakenOver()) {
@@ -148,7 +152,7 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                 if (count > (c_chainThreshold / 4)) {
                     // next one still too big
                     head &= 0xffffff;
-                    m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
+                    m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uintptr_t *>(head & 0x7fffff);
                     scheduleNormalDMA(reinterpret_cast<uintptr_t>(chainNext) + 4, count);
                 } else {
                     // next one is small enough
@@ -164,12 +168,12 @@ void psyqo::GPU::initialize(const psyqo::GPU::Configuration &config) {
                     // Did we get interrupted in the middle of a chain?
                     // It means we linked a node too big for the DMA engine to handle,
                     // so we need to send it manually
-                    uint32_t *next = reinterpret_cast<uint32_t *>(madr | 0x80000000);
+                    uintptr_t *next = reinterpret_cast<uintptr_t *>(madr | 0x80000000);
                     uint32_t head = *next;
                     uint32_t count = head >> 24;
                     head &= 0xffffff;
                     if (head != 0xffffff) {
-                        m_chainNext = reinterpret_cast<uint32_t *>(head & 0x7fffff);
+                        m_chainNext = reinterpret_cast<uintptr_t *>(head & 0x7fffff);
                     }
                     scheduleNormalDMA(madr + 4, count);
                     return;
@@ -422,7 +426,7 @@ void psyqo::GPU::scheduleNormalDMA(uintptr_t data, size_t count) {
     DMA_CTRL[DMA_GPU].CHCR = 0x01000201;
 }
 
-void psyqo::GPU::chain(uint32_t *first, uint32_t *last, size_t count) {
+void psyqo::GPU::chain(uintptr_t *first, uintptr_t *last, size_t count) {
     Kernel::assert(count < 256, "Fragment too big to be chained");
     if (!m_chainHead) {
         m_chainHead = first;
@@ -464,7 +468,7 @@ void psyqo::GPU::sendChain(eastl::function<void()> &&callback, DMA::DmaCallback 
     uint32_t count = head >> 24;
     head &= 0xffffff;
     if (count > (c_chainThreshold / 4)) {
-        m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uint32_t *>(head & 0x7fffff);
+        m_chainNext = head == 0xffffff ? nullptr : reinterpret_cast<uintptr_t *>(head & 0x7fffff);
         scheduleNormalDMA(ptr + 4, count);
     } else {
         scheduleChainedDMA(ptr);
@@ -579,7 +583,7 @@ void psyqo::GPU::pumpCallbacks() {
     m_lastHSyncCounter = hsyncCounter;
 }
 
-void psyqo::GPU::scheduleOTC(uint32_t *start, uint32_t count) { m_OTCs[m_parity].emplace_back(start, count); }
+void psyqo::GPU::scheduleOTC(uintptr_t *start, uint32_t count) { m_OTCs[m_parity].emplace_back(start, count); }
 
 extern uint16_t psyqoExceptionHandlerAdjustFrameCount[];
 

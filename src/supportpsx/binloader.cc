@@ -114,14 +114,20 @@ bool loadCPE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     return true;
 }
 
-bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols) {
+// `overlay` means another PS-EXE has already been loaded underneath this one, which
+// happens for a minipsf sitting on its _lib. The psf spec takes the initial pc/sp
+// from the FIRST exe loaded; a minipsf's own header carries a placeholder pc (the
+// lib's text base, not an entry point), so honouring it starts execution on data.
+bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols,
+               bool overlay = false) {
     uint64_t magic = file->read<uint64_t>();
     if (magic != 0x45584520582d5350) return false;
 
     file->read<uint32_t>();
     file->read<uint32_t>();
 
-    info.pc = file->read<uint32_t>();
+    const auto pcInFile = file->read<uint32_t>();
+    if (!overlay) info.pc = pcInFile;
     file->read<uint32_t>();
     uint32_t addr = file->read<uint32_t>();
     uint32_t size = file->read<uint32_t>();
@@ -130,7 +136,7 @@ bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<
     file->read<uint32_t>();
     file->read<uint32_t>();
     const auto spInFile = file->read<uint32_t>();
-    if (spInFile != 0) info.sp = spInFile;
+    if (!overlay && spInFile != 0) info.sp = spInFile;
     file->rSeek(0x71, SEEK_SET);
     uint8_t regionByte = file->byte();
     file->rSeek(2048, SEEK_SET);
@@ -148,8 +154,10 @@ bool loadPSEXE(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<
     return true;
 }
 
+// `seenExe` tracks whether any PS-EXE has been loaded yet across the whole recursive
+// load, so that a _lib's entry point survives the minipsf that sits on top of it.
 bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<uint32_t, std::string>& symbols,
-             bool seenRefresh = false, unsigned depth = 0) {
+             bool& seenExe, bool seenRefresh = false, unsigned depth = 0) {
     if (depth >= 10) return false;
     uint32_t magic = file->read<uint32_t>();
     if (magic != 0x1465350) return false;
@@ -193,11 +201,12 @@ bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     if (pairs.find("_lib") != pairs.end()) {
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs["_lib"]));
-        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenExe, seenRefresh, depth + 1);
     }
 
     IO<File> psexe(new ZReader(zpsexe));
-    loadPSEXE(psexe, dest, info, symbols);
+    loadPSEXE(psexe, dest, info, symbols, seenExe);
+    seenExe = true;
 
     unsigned libNum = 2;
 
@@ -206,7 +215,7 @@ bool loadPSF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
         if (pairs.find(libName) == pairs.end()) break;
         std::filesystem::path subFilePath(file->filename());
         IO<File> subFile(new PosixFile(subFilePath.parent_path() / pairs[libName]));
-        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenRefresh, depth++);
+        if (!subFile->failed()) loadPSF(subFile, dest, info, symbols, seenExe, seenRefresh, depth + 1);
     }
 
     return true;
@@ -220,9 +229,10 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
     if (!reader.load(stream)) return false;
     if (reader.get_class() != ELFCLASS32) return false;
 
-    info.pc = reader.get_entry();
+    info.pc = static_cast<uint32_t>(reader.get_entry());
 
     Elf_Half sec_num = reader.sections.size();
+    Elf_Half seg_num = reader.segments.size();
     for (unsigned i = 0; i < sec_num; i++) {
         section* psec = reader.sections[i];
 
@@ -234,9 +244,19 @@ bool loadELF(IO<File> file, IO<File> dest, BinaryLoader::Info& info, std::map<ui
 
         auto size = psec->get_size();
         auto data = psec->get_data();
-        auto addr = psec->get_address();
-        dest->writeAt(data, size, addr);
-        eraseSymbolsInSpan(addr, addr + size, symbols);
+        auto vaddr = psec->get_address();
+        auto loadAddr = vaddr;
+        for (unsigned j = 0; j < seg_num; j++) {
+            segment* pseg = reader.segments[j];
+            if (pseg->get_type() != PT_LOAD) continue;
+            auto segVaddr = pseg->get_virtual_address();
+            if (vaddr >= segVaddr && vaddr + size <= segVaddr + pseg->get_memory_size()) {
+                loadAddr = pseg->get_physical_address() + (vaddr - segVaddr);
+                break;
+            }
+        }
+        dest->writeAt(data, size, loadAddr);
+        eraseSymbolsInSpan(vaddr, vaddr + size, symbols);
     }
 
     for (unsigned i = 0; i < sec_num; i++) {
@@ -277,7 +297,8 @@ bool PCSX::BinaryLoader::load(IO<File> in, IO<File> dest, Info& info, std::map<u
     in->rSeek(0, SEEK_SET);
     if (loadPSEXE(in, dest, info, symbols)) return true;
     in->rSeek(0, SEEK_SET);
-    if (loadPSF(in, dest, info, symbols)) return true;
+    bool seenExe = false;
+    if (loadPSF(in, dest, info, symbols, seenExe)) return true;
     in->rSeek(0, SEEK_SET);
     if (loadELF(in, dest, info, symbols)) return true;
     return false;

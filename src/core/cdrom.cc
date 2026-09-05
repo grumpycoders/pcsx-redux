@@ -23,10 +23,11 @@
 
 #include "core/cdrom.h"
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <string_view>
 
 #include "cdrom/iso9660-reader.h"
+#include "core/cdromlogger.h"
 #include "core/debug.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
@@ -183,6 +184,9 @@ class CDRomImpl final : public PCSX::CDRom {
                 } else {
                     m_invalidLocL = false;
                     m_iso->readTrack(m_currentPosition);
+                    PCSX::g_emulator->m_cdromLogger->recordAccess(m_currentPosition.toLBA(),
+                                                                  PCSX::CDRomLogger::AccessType::Data,
+                                                                  PCSX::g_emulator->m_cpu->m_regs.cycle);
                     auto buffer = m_iso->getBuffer();
                     memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
                     uint32_t size = 0;
@@ -818,6 +822,9 @@ class CDRomImpl final : public PCSX::CDRom {
             cause = Cause::Acknowledge;
             maybeTriggerIRQ(cause, response);
             m_seekPosition = maybeMSF.value();
+            PCSX::g_emulator->m_cdromLogger->recordAccess(m_seekPosition.toLBA(),
+                                                          PCSX::CDRomLogger::AccessType::Seek,
+                                                          PCSX::g_emulator->m_cpu->m_regs.cycle);
         } else {
             maybeEnqueueError(1, 0x10);
         }
@@ -1286,6 +1293,7 @@ PCSX::CDRom *PCSX::CDRom::factory() { return new CDRomImpl; }
 void PCSX::CDRom::parseIso() {
     m_cdromId.clear();
     m_cdromLabel.clear();
+    if (m_iso) g_emulator->m_cdromLogger->setDiscSectors(m_iso->getTD(0).toLBA());
     ISO9660Reader reader(m_iso);
     if (reader.failed()) return;
     IO<File> systemcnf(reader.open("SYSTEM.CNF;1"));

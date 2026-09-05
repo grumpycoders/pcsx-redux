@@ -134,8 +134,8 @@ both the pattern and sample data.
 
     PCSX::IO<PCSX::File> encodedSamples =
         samplesFile.has_value()
-            ? reinterpret_cast<PCSX::File*>(new PCSX::PosixFile(samplesFile.value().c_str(), PCSX::FileOps::TRUNCATE))
-            : reinterpret_cast<PCSX::File*>(new PCSX::BufferFile(PCSX::FileOps::READWRITE));
+            ? static_cast<PCSX::File*>(new PCSX::PosixFile(samplesFile.value().c_str(), PCSX::FileOps::TRUNCATE))
+            : static_cast<PCSX::File*>(new PCSX::BufferFile(PCSX::FileOps::READWRITE));
 
     constexpr uint8_t silentLoopBlock[16] = {0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 

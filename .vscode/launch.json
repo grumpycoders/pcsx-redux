@@ -4,218 +4,373 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch OpenBIOS",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch OpenBIOS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/openbios/openbios.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/openbios/openbios.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset halt",
-                "load ./src/mips/openbios/openbios.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset halt"
+                },
+                {
+                    "text": "load ./src/mips/openbios/openbios.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch Cube",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch Cube",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/cube/cube.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/cube/cube.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/cube/cube.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/cube/cube.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch modplayer demo",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch modplayer demo",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/modplayer/modplay-demo.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/modplayer/modplay-demo.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/modplayer/modplay-demo.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/modplayer/modplay-demo.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch shell",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch shell",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/shell/shell.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/shell/shell.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/shell/shell.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/shell/shell.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch Basic Test",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch Basic Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/tests/basic/basic.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/tests/basic/basic.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/tests/basic/basic.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/tests/basic/basic.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch libc Test",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch libc Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/tests/libc/libc.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/tests/libc/libc.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/tests/libc/libc.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/tests/libc/libc.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch cpu Test",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch cpu Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/tests/cpu/cpu.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/tests/cpu/cpu.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set substitute-path /project .",
-                "monitor reset shellhalt",
-                "load ./src/mips/tests/cpu/cpu.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/tests/cpu/cpu.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch Tetris",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch Tetris",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/psyqo/examples/tetris/tetris.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/psyqo/examples/tetris/tetris.elf",
-            "gdbpath": "/usr/bin/gdb-multiarch",
             "windows": {
-                "gdbpath": "C:/gdb-multiarch/bin/gdb.exe",
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set confirm off",
-                "set substitute-path /project .",
-                "load ./src/mips/openbios/openbios.elf",
-                "add-symbol-file ./src/mips/openbios/openbios.elf",
-                "monitor reset shellhalt",
-                "load ./src/mips/psyqo/examples/tetris/tetris.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set confirm off"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "load ./src/mips/openbios/openbios.elf"
+                },
+                {
+                    "text": "add-symbol-file ./src/mips/openbios/openbios.elf"
+                },
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/psyqo/examples/tetris/tetris.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {
-            "type": "gdb",
-            "request": "attach",
-            "name": "(gdb) Launch Torus demo",
-            "target": "localhost:3333",
-            "remote": true,
+            "name": "(cppdbg) Launch Torus demo",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mips/psyqo/examples/torus/torus.elf",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "mips",
+            "miDebuggerPath": "gdb-multiarch",
+            "miDebuggerServerAddress": "localhost:3333",
             "stopAtConnect": true,
-            "executable": "./src/mips/psyqo/examples/torus/torus.elf",
-            "gdbpath": "gdb-multiarch",
             "windows": {
-                "gdbpath": "gdb-multiarch.exe"
+                "miDebuggerPath": "gdb-multiarch.exe"
             },
-            "cwd": "${workspaceRoot}",
-            "autorun": [
-                "set confirm off",
-                "set substitute-path /project .",
-                "load ./src/mips/openbios/openbios.elf",
-                "add-symbol-file ./src/mips/openbios/openbios.elf",
-                "monitor reset shellhalt",
-                "load ./src/mips/psyqo/examples/torus/torus.elf",
-                "tbreak main",
-                "continue",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set confirm off"
+                },
+                {
+                    "text": "set substitute-path /project ."
+                }
             ],
-            "valuesFormatting": "parseText"
+            "postRemoteConnectCommands": [
+                {
+                    "text": "load ./src/mips/openbios/openbios.elf"
+                },
+                {
+                    "text": "add-symbol-file ./src/mips/openbios/openbios.elf"
+                },
+                {
+                    "text": "monitor reset shellhalt"
+                },
+                {
+                    "text": "load ./src/mips/psyqo/examples/torus/torus.elf"
+                }
+            ],
+            "launchCompleteCommand": "None",
+            "visualizerFile": "${workspaceFolder}/src/mips/psyqo/psyqo.natvis",
+            "showDisplayString": true
         },
 
         {

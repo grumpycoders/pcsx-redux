@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <uv.h>
+
 #include <queue>
 #include <string>
 

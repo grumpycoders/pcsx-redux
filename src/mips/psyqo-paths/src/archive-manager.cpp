@@ -130,7 +130,7 @@ void psyqo::paths::ArchiveManager::setupQueue(const IndexEntry* entry, CDRom& de
         m_data.resize(sectorCount * 2048);
         m_request.buffer = m_data.data();
     } else {
-        uint32_t actualSize = eastl::max<uint32_t>(((decompSize + 3) & ~3) + 16, sectorCount * 2048);
+        uint32_t actualSize = eastl::max<uint32_t>(((decompSize + 3) & ~3) + getSafeMarginLength(), sectorCount * 2048);
         m_data.resize(actualSize);
         m_request.buffer = m_data.data() + actualSize - sectorCount * 2048;
     }

@@ -1,0 +1,26 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@1
+  displayName: 'Use Node.js 24'
+  inputs:
+    version: '24.x'
+
+- script: |
+    npm install -g @vscode/vsce
+    npm i --prefix ./tools/vscode-extension
+  displayName: 'Install vsce and dependencies'
+
+- task: AzureCLI@2
+  displayName: 'Publish VS Code extension'
+  inputs:
+    azureSubscription: 'azure-vsce-publish'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    cwd: '$(Build.SourcesDirectory)/tools/vscode-extension'
+    inlineScript: |
+      vsce publish --azure-credential

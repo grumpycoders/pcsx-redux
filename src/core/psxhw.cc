@@ -480,6 +480,11 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             g_emulator->m_mem->initMsan(value);
             break;
         default:
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+                g_emulator->m_spu->writeRegister(add, (uint16_t)rawvalue);
+                break;
+            }
+
             if (addressInRegisterSpace(hwadd)) {
                 uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
                 *ptr = SWAP_LEu32(rawvalue);
@@ -824,6 +829,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         }
         case 0x1f80208c: {
             g_emulator->m_mem->msanFree(value);
+            break;
+        }
+        case 0x1f8020a0: {
+            g_emulator->m_mem->m_psyqoHeapMetadata = value;
             break;
         }
         case 0x1f802094: {

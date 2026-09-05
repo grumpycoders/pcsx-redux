@@ -231,7 +231,18 @@ class ArchiveManager {
      *
      * @return uint32_t The number of entries in the index.
      */
-    uint32_t getIndexCount() const { return m_index[0].asArray[2]; }
+    uint32_t getIndexCount() const { return m_index[0].asArray[2] & 0xffffff; }
+
+    /**
+     * @brief Get the safe margin length for decompression.
+     *
+     * @details This function returns the safe margin length for decompression.
+     * Calling this function before the archive manager is initialized
+     * successfully is undefined behavior.
+     *
+     * @return uint32_t The safe margin length for decompression.
+     */
+    uint32_t getSafeMarginLength() const { return ((m_index[0].asArray[2] >> 24) + 1) * 16; }
 
     /**
      * @brief Get the IndexEntry object for a given path.

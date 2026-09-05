@@ -8,7 +8,7 @@
 
 #define A (1 << 12)
 #define B 19900
-#define	C 3516
+#define	C  3516
 
 int isin(int x) {
     int c = x << (30 - ISIN_SHIFT);

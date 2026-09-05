@@ -16,6 +16,7 @@ $(wildcard src/hardware/*.cpp) \
 $(wildcard src/*.cpp) \
 $(wildcard src/*.c) \
 $(wildcard src/*.s) \
+$(wildcard ../common/util/*.cc) \
 
 CPPFLAGS = -I../../../third_party/EASTL/include -I../../../third_party/EABase/include/Common
 CXXFLAGS = -std=c++20

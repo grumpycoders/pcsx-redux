@@ -19,7 +19,7 @@
 
 #include "core/kernel.h"
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <string>
 
 #include "core/psxmem.h"

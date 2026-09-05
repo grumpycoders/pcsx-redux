@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <sys/stat.h>
+
 #include "core/memorycard.h"
 
 #include "core/sio.h"

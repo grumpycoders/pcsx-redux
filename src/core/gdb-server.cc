@@ -17,11 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <uv.h>
+
 #include "core/gdb-server.h"
 
 #include <assert.h>
 
-#include <magic_enum_all.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -769,6 +771,15 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
             } else {
                 writeEscaped("Unknown type. Valid types: wram");
             }
+        }
+    } else if (words[0] == "cache") {
+        // Writing memory over gdb won't invalidate anything by itself: most of what goes through
+        // there is data, and there's no d-cache to worry about. Patching code needs this after.
+        if ((words.size() != 2) || (words[1] != "flush")) {
+            writeEscaped("Usage: cache flush\n");
+        } else {
+            writeEscaped("Flushing i-cache\n");
+            g_emulator->m_cpu->invalidateCache();
         }
     }
     write("OK");

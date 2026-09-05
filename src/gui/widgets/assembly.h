@@ -63,6 +63,7 @@ class Assembly : private Disasm {
     bool m_delaySlotNotch = true;
     bool m_displayArrowForJumps = false;
     int m_numColumns = 4;
+    int m_region = 0;  // index into c_regions: which physical block the view shows
     char m_jumpAddressString[20];
     uint32_t m_previousPC = 0;
     FileDialog<> m_symbolsFileDialog;
