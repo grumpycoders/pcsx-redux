@@ -46,15 +46,20 @@ void presentFrame(SDL_Window* window) {
     SDL_GL_SwapWindow(window);
     // Nothing in the SDL or EGL path presents a frame in a browser: emscripten's
     // eglSwapBuffers is a no-op, and a WebGL canvas is normally composited only
-    // when the owning thread's task ENDS. main() runs on a proxied pthread here
-    // and its loop never returns, so without this call the browser never sees a
-    // single frame - measured with a four-arm oracle in which an identical
-    // program drew 208,800 frames to a canvas that stayed black, and the same
-    // program with one `return` after 300 frames came up magenta.
-    // This is the escape hatch: with -sOFFSCREEN_FRAMEBUFFER the context renders
-    // to an offscreen backbuffer that commit_frame blits to the real canvas on
-    // the browser main thread, whose event loop is turning normally. It is what
-    // lets the blocking main loop stand for v1.
+    // when the owning thread's task ENDS.
+    //
+    // This call was written for a world that no longer exists: main() ran on a
+    // proxied pthread whose loop never returned, so nothing ever presented -
+    // measured with a four-arm oracle in which an identical program drew 208,800
+    // frames to a canvas that stayed black, while the same program with one
+    // `return` after 300 frames came up magenta. -sOFFSCREEN_FRAMEBUFFER plus an
+    // explicit commit_frame was the escape hatch.
+    //
+    // main() is on the browser's main thread now and the frame body returns
+    // every frame, so the ordinary composite path should present on its own and
+    // this call may be redundant - or may be presenting twice. UNMEASURED. The
+    // test is one build with this call and both -sOFFSCREEN_FRAMEBUFFER and
+    // -sGL_SUPPORT_EXPLICIT_SWAP_CONTROL dropped, then look at the canvas.
     emscripten_webgl_commit_frame();
 }
 

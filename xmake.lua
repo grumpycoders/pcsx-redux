@@ -208,6 +208,14 @@ target("pcsx-redux", function()
                     "-sEXIT_RUNTIME=0",
                     -- gl3w and imgui's GL3 backend both want real ES3/WebGL2.
                     "-sMIN_WEBGL_VERSION=2", "-sMAX_WEBGL_VERSION=2", "-sFULL_ES3=1",
+                    -- HISTORY, and the premise under it is GONE as of the commit
+                    -- that moved main() back to the browser's main thread. Both
+                    -- flags below were added to survive PROXY_TO_PTHREAD, and
+                    -- whether either is still needed is UNMEASURED - the test is
+                    -- one build with both dropped, then look at the canvas.
+                    -- Left in place because they are known to work, not because
+                    -- they are known to be required.
+                    --
                     -- PROXY_TO_PTHREAD put main() on a worker, and a worker has
                     -- no DOM: SDL_GL_CreateContext failed with "Could not create
                     -- webgl context" because the canvas lives on the browser
@@ -233,10 +241,11 @@ target("pcsx-redux", function()
                     -- loop IS turning. Same blocking loop, canvas comes up.
                     -- GL_SUPPORT_EXPLICIT_SWAP_CONTROL is what compiles
                     -- commit_frame in; without it the call is inert.
-                    -- Redux calls it explicitly at the end of GUI::endFrame,
-                    -- because emscripten's automatic swap hook is registered as
-                    -- a pre-main-loop callback and we do not use
-                    -- emscripten_set_main_loop.
+                    -- endFrame still calls it explicitly. That call was written
+                    -- when there was no main loop for emscripten to hang its
+                    -- automatic swap hook on; there is one now, so the explicit
+                    -- call may be redundant or may be presenting twice. Neither
+                    -- has been measured. Same experiment as above.
                     "-sOFFSCREEN_FRAMEBUFFER=1",
                     "-sGL_SUPPORT_EXPLICIT_SWAP_CONTROL=1",
                     -- Our own shell rather than emscripten's, for exactly one
