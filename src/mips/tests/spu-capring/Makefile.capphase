@@ -1,0 +1,9 @@
+TARGET = spu-capphase
+TYPE = ps-exe
+
+SRCS = \
+../../common/syscalls/printf.s \
+../../common/crt0/crt0.s \
+spu-capphase.c \
+
+include ../../common.mk

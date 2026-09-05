@@ -65,6 +65,7 @@ target("pcsx-redux", function()
         "third_party/imgui_lua_bindings/imgui_lua_bindings.cpp",
         "third_party/imgui_md/imgui_md.cpp",
         "third_party/imgui_memory_editor/imgui_memory_editor.cpp",
+        "third_party/implot/*.cpp",
         "third_party/llhttp/*.c",
         "third_party/lpeg/*.c",
         "third_party/lua-protobuf/pb.c",

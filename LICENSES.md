@@ -37,6 +37,7 @@ find a link to the vendored version itself.
  - [imgui_lua_bindings](https://github.com/patrickriordan/imgui_lua_bindings) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings))
  - [imgui_md](https://github.com/mekhontsev/imgui_md)
  - [imgui_memory_editor](https://github.com/ocornut/imgui_memory_editor) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_memory_editor))
+ - [ImPlot](https://github.com/epezent/implot)
  - [json](https://github.com/nlohmann/json) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/json.hpp))
  - [libcester](https://github.com/exoticlibraries/libcester)
  - [libuv](https://github.com/libuv/libuv)

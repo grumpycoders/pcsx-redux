@@ -163,7 +163,6 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
-    typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
@@ -196,7 +195,7 @@ class Emulator {
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
-             SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
+             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
              SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
              Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,

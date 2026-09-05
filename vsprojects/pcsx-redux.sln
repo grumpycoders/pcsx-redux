@@ -335,6 +335,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2psm", "midi2psm\midi2p
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "exe2exe", "exe2exe\exe2exe.vcxproj", "{6A476694-C1F8-4BA6-AA33-07D70FB197F4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "implot", "implot\implot.vcxproj", "{C068ED1F-1341-42B1-A429-5D5F377FD63D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -794,6 +796,16 @@ Global
 		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
 		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
 		{6A476694-C1F8-4BA6-AA33-07D70FB197F4}.ReleaseWithTracy|x64.Build.0 = Release|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.Debug|x64.ActiveCfg = Debug|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.Debug|x64.Build.0 = Debug|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.Release|x64.ActiveCfg = Release|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.Release|x64.Build.0 = Release|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseCLI|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseCLI|x64.Build.0 = ReleaseWithClangCL|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseWithClangCL|x64.ActiveCfg = ReleaseWithClangCL|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseWithClangCL|x64.Build.0 = ReleaseWithClangCL|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseWithTracy|x64.ActiveCfg = Release|x64
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D}.ReleaseWithTracy|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -852,9 +864,10 @@ Global
 		{FC0BCB98-8E1A-4304-BFF0-B22970853019} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 		{E1D23582-C66F-40D3-A163-B1B4470B3F15} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
 		{6A476694-C1F8-4BA6-AA33-07D70FB197F4} = {C6DD47BC-0C38-4AE6-B517-9675F3AC8A50}
+		{C068ED1F-1341-42B1-A429-5D5F377FD63D} = {64A05F50-3203-42CC-B632-09D6EE6EA856}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 		SolutionGuid = {AC54A867-F976-4B3D-A6EF-F57EB764DCD4}
+		                SolutionGuid = {284E91C1-764E-441A-854D-CFD3623A6501}
 	EndGlobalSection
 EndGlobal

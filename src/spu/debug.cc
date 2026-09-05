@@ -309,7 +309,18 @@ void DrawTableFrequency(SPU_CHANNELS_INFO channels, const float rowHeight) {
     }
 }
 
-void DrawTablePosition(SPU_CHANNELS_INFO channels, const float rowHeight, const uint8_t* spuMemC) {
+// Show a sound-RAM pointer as a byte offset, or a dash when it points outside
+// the 512 KiB SPU RAM - i.e. it is null or the AdpcmDecoder stop sentinel.
+// Subtracting an out-of-range pointer would print a meaningless huge number.
+static void drawRamOffset(const uint8_t* ptr, const uint8_t* spuRamBase) {
+    if (ptr >= spuRamBase && ptr < spuRamBase + 512 * 1024) {
+        ImGui::Text("%i", static_cast<int>(ptr - spuRamBase));
+    } else {
+        ImGui::TextUnformatted("-");
+    }
+}
+
+void DrawTablePosition(SPU_CHANNELS_INFO channels, const float rowHeight, const uint8_t* spuRamBase) {
     if (ImGui::BeginTable("TablePosition", 3, Grid::FlagsTableInner)) {
         ImGui::TableSetupColumn("Start", Grid::FlagsColumn, Grid::WidthPositionStart);
         ImGui::TableSetupColumn("Current", Grid::FlagsColumn, Grid::WidthPositionCurrent);
@@ -321,11 +332,11 @@ void DrawTablePosition(SPU_CHANNELS_INFO channels, const float rowHeight, const 
             ImGui::AlignTextToFramePadding();
             // @formatter:off
             ImGui::TableNextColumn();
-            ImGui::Text("%i", static_cast<int>(chan.pStart - spuMemC));
+            drawRamOffset(chan.adpcm.start(), spuRamBase);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", static_cast<int>(chan.pCurr - spuMemC));
+            drawRamOffset(chan.adpcm.curr(), spuRamBase);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", static_cast<int>(chan.pLoop - spuMemC));
+            drawRamOffset(chan.adpcm.loop(), spuRamBase);
             // @formatter:on
         }
         ImGui::EndTable();
@@ -338,14 +349,13 @@ void DrawTableVolume(SPU_CHANNELS_INFO channels, const float rowHeight) {
         ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthVolumeR);
         ImGui::TableHeadersRow();
         for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
-            const auto& data = channels[i].data;
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::AlignTextToFramePadding();
             // @formatter:off
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::LeftVolume>().value);
+            ImGui::Text("%i", channels[i].volume.left());
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RightVolume>().value);
+            ImGui::Text("%i", channels[i].volume.right());
             // @formatter:on
         }
         ImGui::EndTable();
@@ -360,7 +370,7 @@ void DrawTableAdsr(SPU_CHANNELS_INFO channels, const float rowHeight) {
         ImGui::TableSetupColumn("R", Grid::FlagsColumn, Grid::WidthAdsrR);
         ImGui::TableHeadersRow();
         for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
-            const auto& data = channels[i].ADSRX;
+            const auto& data = channels[i].adsr.ex();
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::AlignTextToFramePadding();
             // @formatter:off
@@ -384,7 +394,7 @@ void DrawTableAdsrSustain(SPU_CHANNELS_INFO channels, const float rowHeight) {
         ImGui::TableSetupColumn("Increase", Grid::FlagsColumn, Grid::WidthAdsrSustainIncrease);
         ImGui::TableHeadersRow();
         for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
-            const auto& data = channels[i].ADSRX;
+            const auto& data = channels[i].adsr.ex();
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::AlignTextToFramePadding();
             // @formatter:off
@@ -404,7 +414,7 @@ void DrawTableAdsrVolume(SPU_CHANNELS_INFO channels, const float rowHeight) {
         ImGui::TableSetupColumn("Envelope", Grid::FlagsColumn, Grid::WidthAdsrVolumeEnvelope);
         ImGui::TableHeadersRow();
         for (auto i = 0u; i < SPU_CHANNELS_SIZE; ++i) {
-            const auto& data = channels[i].ADSRX;
+            const auto& data = channels[i].adsr.ex();
             ImGui::TableNextRow(Grid::FlagsRow, rowHeight);
             ImGui::AlignTextToFramePadding();
             // @formatter:off
@@ -436,11 +446,8 @@ void DrawTableReverb(SPU_CHANNELS_INFO channels, const float rowHeight) {
             ImGui::TableNextColumn();
             ImGui::Text("%i", data.get<Chan::RVBActive>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBNum>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBOffset>().value);
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<Chan::RVBRepeat>().value);
             // @formatter:on
         }
         ImGui::EndTable();
@@ -448,7 +455,7 @@ void DrawTableReverb(SPU_CHANNELS_INFO channels, const float rowHeight) {
 }
 
 void DrawSectionChannels(SPU_CHANNELS_INFO channels, SPU_CHANNELS_TAGS tags, SPU_CHANNELS_PLOT plot,
-                         const uint8_t* spuMemC) {
+                         const uint8_t* spuRamBase) {
     if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
         const auto style = ImGui::GetStyle();
         const auto rowHeight = ImGui::GetFrameHeightWithSpacing();
@@ -473,7 +480,7 @@ void DrawSectionChannels(SPU_CHANNELS_INFO channels, SPU_CHANNELS_TAGS tags, SPU
             ImGui::TableNextColumn();
             DrawTableFrequency(channels, rowHeight);
             ImGui::TableNextColumn();
-            DrawTablePosition(channels, rowHeight, spuMemC);
+            DrawTablePosition(channels, rowHeight, spuRamBase);
             ImGui::TableNextColumn();
             DrawTableVolume(channels, rowHeight);
             ImGui::TableNextColumn();
@@ -490,8 +497,8 @@ void DrawSectionChannels(SPU_CHANNELS_INFO channels, SPU_CHANNELS_TAGS tags, SPU
     }
 }
 
-void DrawSectionSpu(const uint16_t spuCtrl, const uint16_t spuStat, const uint32_t spuAddr, const uint8_t* spuMemC,
-                    const uint8_t* pSpuIrq) {
+void DrawSectionSpu(const uint16_t spuCtrl, const uint16_t spuStat, const uint32_t spuAddr, const uint8_t* spuRamBase,
+                    const uint8_t* irqAddress) {
     if (ImGui::CollapsingHeader("SPU", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::BeginTable("SpuBase", 4, BasicTableFlags)) {
             ImGui::TableSetupColumn("IRQ", 0, BasicTableColumnWidth);
@@ -501,7 +508,11 @@ void DrawSectionSpu(const uint16_t spuCtrl, const uint16_t spuStat, const uint32
             ImGui::TableHeadersRow();
             // @formatter:off
             ImGui::TableNextColumn();
-            ImGui::Text("%08X", static_cast<uint32_t>(pSpuIrq ? -1 : pSpuIrq - spuMemC));
+            if (irqAddress) {
+                ImGui::Text("%08X", static_cast<uint32_t>(irqAddress - spuRamBase));
+            } else {
+                ImGui::TextUnformatted("-");
+            }
             ImGui::TableNextColumn();
             ImGui::Text("%04X", spuCtrl);
             ImGui::TableNextColumn();
@@ -585,9 +596,9 @@ void impl::debug() {
         return;
     }
 
-    DrawSectionSpu(spuCtrl, spuStat, spuAddr, spuMemC, pSpuIrq);
+    DrawSectionSpu(spuCtrl, spuStat, spuAddr, spuRamBase, irqAddress);
     DrawSectionXa(xapGlobal, iLeftXAVol, iRightXAVol);
-    DrawSectionChannels(s_chan, m_channelTag, m_channelDebugData, spuMemC);
+    DrawSectionChannels(s_chan, m_channelTag, m_channelDebugData, spuRamBase);
 
     ImGui::End();
 }

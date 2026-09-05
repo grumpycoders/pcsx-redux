@@ -39,6 +39,9 @@ jobs:
       - run: |
           make -j 2 all pcsx-redux-tests tools
           make -C src/mips/tests -j 2 PCSX_TESTS=true
+          # The tests above leave third_party/uC-sdk objects built with their own
+          # flags, and openbios links a different subset of that same libc. Without
+          # this clean it fails on undefined malloc/free/write. Keep it.
           make -C src/mips/openbios -j 2 clean all
       - name: Install node
         uses: actions/setup-node@v4
