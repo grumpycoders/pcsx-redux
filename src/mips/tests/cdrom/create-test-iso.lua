@@ -53,16 +53,16 @@ root:writeU8At(9, 32)
 root:writeAt('PSX.EXE;1', 33)
 
 pvd:read(b)
-iso:writeSector(b)
+iso:writeSector(b:cast 'uint8_t *', 2048)
 pt:read(b)
-iso:writeSector(b)
+iso:writeSector(b:cast 'uint8_t *', 2048)
 root:read(b)
-iso:writeSector(b)
+iso:writeSector(b:cast 'uint8_t *', 2048)
 
 local count = 19
 while not uniromFile:eof() do
     uniromFile:read(b)
-    iso:writeSector(b)
+    iso:writeSector(b:cast 'uint8_t *', 2048)
     count = count + 1
 end
 
@@ -71,7 +71,7 @@ for i = count, 30 * 60 * 75 - 1 do
     b[0] = bit.band(i, 0xff)
     b[1] = bit.band(bit.rshift(i, 8), 0xff)
     b[2] = bit.band(bit.rshift(i, 16), 0xff)
-    iso:writeSector(b)
+    iso:writeSector(b:cast 'uint8_t *', 2048)
 end
 
 local function generateToneSample(frequency, sampleRate, t)
@@ -99,12 +99,12 @@ xa[6] = 0x64
 xa[7] = 0x00
 for i = 30 * 60 * 75, 40 * 60 * 75 - 1 do
     if i % 16 == 0 then
-        iso:writeSector(xa, 'M2_RAW')
+        iso:writeSector(xa:cast 'uint8_t *', 2336, 'M2_RAW')
     else
         b[0] = bit.band(i, 0xff)
         b[1] = bit.band(bit.rshift(i, 8), 0xff)
         b[2] = bit.band(bit.rshift(i, 16), 0xff)
-        iso:writeSector(b)
+        iso:writeSector(b:cast 'uint8_t *', 2048)
     end
 end
 
@@ -112,7 +112,7 @@ for i = 40 * 60 * 75, 70 * 60 * 75 - 1 do
     b[0] = bit.band(i, 0xff)
     b[1] = bit.band(bit.rshift(i, 8), 0xff)
     b[2] = bit.band(bit.rshift(i, 16), 0xff)
-    iso:writeSector(b)
+    iso:writeSector(b:cast 'uint8_t *', 2048)
 end
 
 b:resize(2352)
