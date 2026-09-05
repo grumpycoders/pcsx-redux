@@ -45,5 +45,10 @@ int PCSX::SPU::VoiceVolume::decode(int16_t vol) {
         vol = (vol & kVolumeMax) - kFixedSignBit;
     }
 
-    return vol & kVolumeMax;
+    // No mask here. Masking with kVolumeMax would throw away the sign the
+    // branch above just reconstructed, turning a quiet phase-inverted voice
+    // into a near-full-scale in-phase one. Every other path already lands in
+    // range: fixed positive has bits 14 and 15 clear, and the sweep
+    // approximation yields 0x3000 or 0x1000.
+    return vol;
 }

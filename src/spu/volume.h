@@ -28,7 +28,7 @@ namespace PCSX {
 namespace SPU {
 
 // Per-voice left/right output volume. Owns both the raw 16-bit value last
-// written to a voice's volume register and the effective 0..0x3fff level the
+// written to a voice's volume register and the effective signed level the
 // mixer and reverb stages multiply by, plus the register decode that maps one
 // to the other (fixed mode, phase invert, and the approximated sweep mode).
 // Extracted out of the SPU impl's SetVolumeL/SetVolumeR register handlers and
@@ -52,7 +52,8 @@ class VoiceVolume {
         m_right = decode(raw);
     }
 
-    // Effective 0..0x3fff volume the mixer and reverb stages apply.
+    // Effective -0x4000..0x3fff volume the mixer and reverb stages apply.
+    // Negative means the voice is phase inverted on that side.
     int left() const { return m_left; }
     int right() const { return m_right; }
 
@@ -93,13 +94,14 @@ class VoiceVolume {
         };
     };
 
-    // The shared register decode used by both channels. sweep and phase invert
-    // are approximated (see the in-body notes), but the behavior is unchanged
-    // from the original SetVolumeL/SetVolumeR handlers.
+    // The shared register decode used by both channels. Sweep is still
+    // approximated (see the in-body notes). Phase invert is not: the original
+    // SetVolumeL/SetVolumeR handlers masked the sign off the result, and this
+    // no longer does.
     static int decode(int16_t vol);
 
-    int m_left = 0;      // effective left level (0..0x3fff)
-    int m_right = 0;     // effective right level (0..0x3fff)
+    int m_left = 0;      // effective left level (-0x4000..0x3fff)
+    int m_right = 0;     // effective right level (-0x4000..0x3fff)
     int m_leftRaw = 0;   // raw left volume register value
     int m_rightRaw = 0;  // raw right volume register value
 };
