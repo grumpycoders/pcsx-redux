@@ -19,6 +19,12 @@
 
 #include <uv.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+#include <functional>
+#endif
+
 #include <csignal>
 #include <filesystem>
 #include <iostream>
@@ -162,7 +168,14 @@ class SystemImpl final : public PCSX::System {
 
 struct Cleaner {
     Cleaner(std::function<void()> &&f) : f(std::move(f)) {}
-    ~Cleaner() { f(); }
+    ~Cleaner() {
+        if (f) f();
+    }
+    // When the browser owns the loop, pcsxMain returns while the emulator, the
+    // UI and the GL context are all still very much in use. The teardown has to
+    // be switched off explicitly rather than avoided by never leaving the scope,
+    // because leaving the scope is exactly what we now do.
+    void disarm() { f = nullptr; }
 
   private:
     std::function<void()> f;
@@ -458,10 +471,16 @@ runner.init({
 
             system->m_inStartup = false;
 
-            // And finally, main loop.
-            while (!system->quitting()) {
+            // And finally, main loop. One pass is one frame either way: Execute()
+            // unwinds at the first block boundary after the emulated vblank, and
+            // update() is already a whole frame.
+            //
+            // Captured BY VALUE. Both are raw pointers and s_ui is file scope, so
+            // this outlives pcsxMain's frame - which it has to, because on wasm
+            // the callbacks keep running long after this function returns.
+            auto oneIteration = [system, emulator]() {
                 if (system->running()) {
-                    // This will run until paused or interrupted somehow.
+                    // Runs until the emulated hardware vsyncs, or until paused.
                     emulator->m_cpu->Execute();
                 } else {
                     // The "update" method will be called periodically by the emulator while
@@ -469,7 +488,34 @@ runner.init({
                     // call "update" when the emulator is paused.
                     s_ui->update();
                 }
-            }
+            };
+
+#ifdef __EMSCRIPTEN__
+            // A browser will not let us keep the thread: the page only paints,
+            // delivers input, or runs anything of its own once we return. So the
+            // loop belongs to emscripten and we hand it one frame at a time.
+            //
+            // simulate_infinite_loop is FALSE, and that is the whole trick. The
+            // true form escapes its caller by THROWING, and this scope has both
+            // a catch (...) below and the Cleaner teardown above - so it unwinds
+            // straight through them, closes the SPU, shuts down the GPU and
+            // deletes the UI, and the first callback then runs against a
+            // destroyed emulator. From the outside that looks nothing like a
+            // teardown: "Cannot read properties of undefined (deleteProgram)".
+            //
+            // So: register, switch the teardown off, and return normally.
+            // EXIT_RUNTIME is 0 and a main loop is registered, so the runtime
+            // stays alive with everything intact. Nothing below runs on wasm -
+            // no pause(), no Quitting signal - which is the honest shape for a
+            // tab, since a tab is closed rather than quit.
+            static std::function<void()> s_frame;
+            s_frame = oneIteration;
+            emscripten_set_main_loop([]() { s_frame(); }, 0, false);
+            cleaner.disarm();
+            return 0;
+#else
+            while (!system->quitting()) oneIteration();
+#endif
             system->pause();
             system->m_eventBus->signal(PCSX::Events::Quitting{});
             system->purgeAllEvents();

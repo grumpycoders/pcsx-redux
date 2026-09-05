@@ -172,11 +172,23 @@ target("pcsx-redux", function()
         -- every try block.
         add_cxflags("-fwasm-exceptions", "-pthread", {force = true})
         add_ldflags("-fwasm-exceptions",
-                    "-pthread", "-sPTHREAD_POOL_SIZE=8",
-                    -- The browser main thread cannot block, and Redux's main
-                    -- thread joins workers. PROXY_TO_PTHREAD moves main() itself
-                    -- onto a worker so blocking there is legal.
-                    "-sPROXY_TO_PTHREAD=1", {force = true})
+                    "-pthread", "-sPTHREAD_POOL_SIZE=8", {force = true})
+    -- PROXY_TO_PTHREAD is deliberately GONE. It moved main() onto a worker so
+    -- that the emulation loop could block, and that bought a loop which never
+    -- returns to the browser - so nothing paints or handles input between
+    -- frames, SDL_GL_SetSwapInterval logs "a main loop does not exist" because
+    -- there genuinely is none, and emscripten_webgl_commit_frame has to exist
+    -- to present at all.
+    --
+    -- It is also incompatible with the fix: emscripten's main loop runner does
+    -- per-frame GL bookkeeping against GL.currentContext on the thread it runs
+    -- on, so with the context parked on a worker it dies in
+    -- GL.newRenderingFrameStarted. The two designs want opposite things.
+    --
+    -- What actually blocked was ONE thing, and it was not the joins the old
+    -- comment here claimed: SPU::waitForGoal, called from psxcounters inside
+    -- Execute(). The joins are all in shutdown paths, which a browser tab never
+    -- runs. -pthread and the worker pool stay; only main() moves.
         add_ldflags("-sALLOW_MEMORY_GROWTH=1", "-sINITIAL_MEMORY=512MB",
                     "-sMAXIMUM_MEMORY=4GB",
                     -- 64 kB by default in current emscripten, which nothing in a
