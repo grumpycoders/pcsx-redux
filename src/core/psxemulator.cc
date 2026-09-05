@@ -206,6 +206,11 @@ void PCSX::Emulator::vsync() {
     m_gpu->vblank();
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
+    // A frame has been produced, so let Execute() unwind at the next block
+    // boundary. Unconditional rather than wasm-only: on desktop this costs one
+    // extra return and re-entry per frame against a few million instruction
+    // dispatches, and one code path is worth more than that.
+    m_cpu->m_frameDone = true;
 
     if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
         // CreateRewindState();

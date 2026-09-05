@@ -319,6 +319,13 @@ class R3000Acpu {
     float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                    1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
+    // Set by Emulator::vsync(), consumed by hasToRun(). It makes Execute()
+    // RETURN once per emulated frame rather than only when the emulator is
+    // paused. Frames were always rendered on this boundary - what was missing
+    // is control coming back to the caller on it, which is what an
+    // emscripten_set_main_loop callback has to do so the browser can run its
+    // own event loop between frames.
+    bool m_frameDone = false;
 
     virtual void Reset() {
         invalidateCache();
@@ -386,6 +393,15 @@ class R3000Acpu {
                 m_shellStarted = true;
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
+        }
+        // Consumed HERE, on the way out, rather than anywhere that runs every
+        // call: hasToRun() is evaluated once per block - roughly every fifty
+        // instructions and around jumps, on the interpreter and both dynarecs
+        // alike - so clearing it on entry would wipe it microseconds after
+        // vsync() set it and the loop would never see it.
+        if (m_frameDone) {
+            m_frameDone = false;
+            return false;
         }
         return g_system->running();
     }
