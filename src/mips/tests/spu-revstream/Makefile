@@ -41,6 +41,10 @@ ifeq ($(NEGOUT),true)
 CPPFLAGS += -DREVSTREAM_NEGOUT
 endif
 
+ifeq ($(NEGVOICE),true)
+CPPFLAGS += -DREVSTREAM_NEGVOICE
+endif
+
 ifeq ($(PITCH),true)
 CPPFLAGS += -DREVSTREAM_PITCH
 endif

@@ -445,7 +445,27 @@ int main(void) {
         for (unsigned i = 0; i < 32; i++) regs[i] = SPU_REVERB_PRESET[i];
     }
 
-#ifdef REVSTREAM_PANNED
+#if defined(REVSTREAM_NEGVOICE)
+    /* PER-VOICE VOLUME, NEGATIVE ON ONE SIDE. Every fixture in this arc has set
+       voice volume to a positive value, so the fixed-mode sign bit (bit 14, with
+       bit 15 clear) has never been exercised against silicon at all. NEGOUT
+       covers the reverb OUTPUT volume's sign; this covers the voice's.
+
+       0x0400 = +1024 left. 0x7c00 = bit15 clear so fixed mode, bit14 set so
+       negative: 0x7c00 - 0x8000 = -1024 right. Same magnitude, opposite sign, so
+       silicon's two channels should come back in antiphase at equal level and
+       the question is decided by one subtraction. Deliberately not full scale -
+       a small level keeps the mix far from the saturation point, so nothing in
+       the answer can be a clamp.
+
+       This is the fixture for the `vol &= 0x3fff` bug: that mask threw away the
+       sign the decode had just reconstructed, so an unfixed build renders the
+       right channel at +15360 rather than -1024, fifteen times the level and in
+       phase. Pair it with DRY=true - the reverb is not under test here, and a dry
+       capture has no 22.05kHz tick phase to draw, so it needs no 3-run vote. */
+    SPU_VOICES[1].volumeLeft = 0x0400;
+    SPU_VOICES[1].volumeRight = 0x7c00;
+#elif defined(REVSTREAM_PANNED)
     /* Hard-left voice, so Lin != Rin. EVERY capture in this arc until 2026-08-14
        used a symmetric stimulus - dry L and dry R came back byte-identical - and
        with L == R the different-side reflection produces the same thing as the
