@@ -51,7 +51,11 @@ void PCSX::SPU::AdpcmDecoder::loadFrom(const Protobuf::Int32 &history1, const Pr
 PCSX::SPU::AdpcmDecoder::DecodeResult PCSX::SPU::AdpcmDecoder::decodeBlock(uint8_t *block) {
     // Header byte 0: high nibble selects the IIR predictor, low nibble is the
     // per-sample right shift. Byte 1 holds the loop/repeat/end flags.
-    const int predictor = *block >> 4;
+    // The high nibble is a full 0..15 but only five filters exist. What the hardware does with
+    // 5..15 is not documented and has not been measured here, so this only keeps the table read
+    // in range; it does not claim to model whatever silicon actually returns.
+    const int rawPredictor = *block >> 4;
+    const int predictor = rawPredictor < kFilterCount ? rawPredictor : kFilterCount - 1;
     const int shift = *block++ & 0xf;
     const int flags = *block++;
 
