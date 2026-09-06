@@ -15,16 +15,21 @@ OPTIONAL_LIBRARIES := multipart ucl
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
-# One sentinel per git submodule the build globs sources from. Checking imgui alone let a
-# checkout that had imgui but not implot report submodules present and then fail at compile
-# time on a missing implot/implot.h, which is a much worse place to find out.
+# One sentinel per submodule the build globs sources from. Checking imgui alone let a checkout
+# that had imgui but not implot report submodules present and then fail at compile time on a
+# missing implot/implot.h, which is a much worse place to find out.
+#
+# Only list things the Nix build also populates. It does not use git submodules: pcsx-redux.nix
+# fetches a hand-maintained list into third_party/ and takes the rest from nixpkgs, so googletest
+# and uriparser are simply not there. Listing those made HAS_SUBMODULES false under Nix, which
+# drops the -include $(DEPS) below, which is what carries luajit.h as a prerequisite - and the
+# build died on a missing luajit.h with nothing pointing back here.
+# Kept to the two that gui.cc includes directly and that both environments demonstrably have.
+# Adding more is easy and is how this broke: a sentinel that is missing anywhere this Makefile
+# runs silently disables the dependency files rather than reporting a missing submodule.
 SUBMODULE_SENTINELS := \
     third_party/imgui/imgui.h \
-    third_party/implot/implot.h \
-    third_party/zep/include/zep.h \
-    third_party/vixl/src/globals-vixl.h \
-    third_party/uriparser/src/UriCommon.h \
-    third_party/googletest/googletest/src/gtest-all.cc
+    third_party/implot/implot.h
 
 MISSING_SUBMODULES := $(strip $(foreach s,$(SUBMODULE_SENTINELS),$(if $(wildcard $(s)),,$(s))))
 
