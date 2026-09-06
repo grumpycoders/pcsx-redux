@@ -15,10 +15,23 @@ OPTIONAL_LIBRARIES := multipart ucl
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
-ifeq ($(wildcard third_party/imgui/imgui.h),)
-HAS_SUBMODULES = false
-else
+# One sentinel per git submodule the build globs sources from. Checking imgui alone let a
+# checkout that had imgui but not implot report submodules present and then fail at compile
+# time on a missing implot/implot.h, which is a much worse place to find out.
+SUBMODULE_SENTINELS := \
+    third_party/imgui/imgui.h \
+    third_party/implot/implot.h \
+    third_party/zep/include/zep.h \
+    third_party/vixl/src/globals-vixl.h \
+    third_party/uriparser/src/UriCommon.h \
+    third_party/googletest/googletest/src/gtest-all.cc
+
+MISSING_SUBMODULES := $(strip $(foreach s,$(SUBMODULE_SENTINELS),$(if $(wildcard $(s)),,$(s))))
+
+ifeq ($(MISSING_SUBMODULES),)
 HAS_SUBMODULES = true
+else
+HAS_SUBMODULES = false
 endif
 
 CXXFLAGS += -std=c++2b
@@ -236,6 +249,7 @@ check_submodules:
 else
 check_submodules:
 	@echo "You need to clone this repository recursively, in order to get its submodules."
+	@echo "Missing: $(MISSING_SUBMODULES)"
 	@false
 endif
 
