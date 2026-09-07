@@ -37,8 +37,9 @@ constexpr int kVoiceVolumeUnity = 0x4000;
 // The capture area mirrors are 0x200 samples each; voice 1 lands at +0x400 and
 // voice 3 at +0x600 (half-word sample indices into spuMem). The write pointer
 // wraps every 0x200 samples and bit 11 of SPUSTAT tracks which half it is in.
-constexpr int kCaptureRegionSamples = 0x200;
-constexpr int kCaptureHalfMarker = kCaptureRegionSamples / 2;  // 0x100
+// kCaptureRegionSamples / kCaptureHalfMarker moved to impl in interface.h - the
+// SPUSTAT read path reconstructs bit 11 from them too, and two copies of a
+// period would rot apart silently.
 constexpr int kCaptureVoice1Offset = 0x400;
 constexpr int kCaptureVoice3Offset = 0x600;
 // The post-ADSR sample is clamped to +/- this before it lands in the capture mirror.

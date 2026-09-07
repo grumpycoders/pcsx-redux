@@ -96,6 +96,12 @@ class impl final : public SPUInterface {
 
     // Number of channels.
     static const size_t MAXCHAN = 24;
+
+    // The per-voice capture mirrors are 0x200 samples each and the write pointer
+    // wraps every 0x200; SPUSTAT bit 11 says which half it is in. Both the SPU
+    // thread's own advance and the SPUSTAT read-time reconstruction key off these.
+    static constexpr int kCaptureRegionSamples = 0x200;
+    static constexpr int kCaptureHalfMarker = kCaptureRegionSamples / 2;  // 0x100
     // Number of characters for a channel tag.
     static constexpr unsigned CHANNEL_TAG = 32;
     // Number of samples for the debugger wave plot.
@@ -194,6 +200,16 @@ class impl final : public SPUInterface {
     void SetupThread();
     void RemoveThread();
     void StartSound(SPUCHAN *voice);
+    // Read-time reconstruction. A CPU read of ENVX or of SPUSTAT bit 11 asks what
+    // the SPU is doing at the reader's own cycle, which is a time the SPU thread
+    // has not reached: it runs asynchronously in NSSIZE batches paced by sink free
+    // space. Answering from the live value hands back wherever that thread happened
+    // to be. Both quantities are pure functions of elapsed samples, so evaluate them
+    // against the reader's cycle instead and the thread's position stops being an
+    // input. The mixer is untouched and keeps using its own live envelope.
+    uint16_t reconstructEnvelope(int ch, uint64_t cycle);
+    // Samples elapsed at a CPU cycle, on the hardware 768 cycles/sample ratio.
+    uint64_t cycleToSample(uint64_t cycle) const;
     // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
     void setPitchStep(SPUCHAN *voice, int32_t step);
     void VoiceChangeFrequency(SPUCHAN *voice);
@@ -268,6 +284,30 @@ class impl final : public SPUInterface {
     std::thread hMainThread;
     // Flags for faster testing of whether a new channel starts.
     uint32_t newChannelMask = 0;
+
+    // Per-voice envelope reconstruction state, owned by the CPU thread. Not
+    // serialized: it is rebuilt from the next key-on, and a savestate that resumed
+    // without it would only lose the walk cache, not correctness.
+    //
+    // KEY-ON IS APPLIED ON THE SPU THREAD - SoundOn only sets Chan::New, and
+    // AdsrEnvelope::keyOn() runs from StartSound inside synthesizeVoice, i.e.
+    // wherever the batch loop next notices the flag, up to NSSIZE samples later.
+    // So the cycle the envelope started at is not recoverable after the fact and
+    // has to be stamped here, at the register write, where the CPU still owns it.
+    struct EnvelopeCheckpoint {
+        uint64_t keyOnCycle = 0;   // CPU cycle of the KEY ON write
+        uint64_t keyOffCycle = 0;  // CPU cycle of the KEY OFF write, 0 while none
+        bool keyedOn = false;
+        // Walk cache. Reads arrive in increasing cycle order (the guest polls), so
+        // stepping forward from the last answer makes each read O(1) amortised
+        // instead of O(samples since key-on).
+        uint64_t cachedSample = 0;
+        int32_t cachedState = 0;
+        int32_t cachedVol = 0;
+        int32_t cachedFraction = 0;
+        bool cachedOn = true;
+    };
+    EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
