@@ -53,6 +53,17 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     if (!cp.keyedOn || cycle < cp.keyOnCycle) return 0;
     const uint64_t target = cycleToSample(cycle - cp.keyOnCycle);
 
+    // The envelope is frozen for the first KeyOnDelay samples after KEY ON - the
+    // mixer models this in synthesizeVoice by skipping adsr.step() while
+    // startupDelayActive(). The reconstruction has to model it too, or the setting
+    // silently applies to the audio path and not to what ENVX reports, and any
+    // measurement of the latency against this suite is a blind null. Measured
+    // 2026-09-07: it was exactly that, and the null looked like a real answer.
+    const uint64_t delay = (uint64_t)std::max(0, settings.get<KeyOnDelay>().value);
+    // Everything below counts STEPS TAKEN, not samples elapsed, so the frozen
+    // prefix stays out of the cache and out of the key-off comparison.
+    const uint64_t steps = target > delay ? target - delay : 0;
+
     // Copy the live envelope for its CONFIGURATION only - attack/decay/sustain/
     // release rates, the exponential flags, the sustain level. Those fields are
     // written exclusively by the CPU thread, a few lines up in writeRegister, so
@@ -60,7 +71,7 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     // so a torn read of one cannot survive into the answer.
     AdsrEnvelope walk = s_chan[ch].adsr;
 
-    if (target < cp.cachedSample) {
+    if (steps < cp.cachedSample) {
         // Cycles went backwards under us. Rebuild from key-on rather than trust it.
         walk.keyOn();
         cp.cachedSample = 0;
@@ -75,13 +86,17 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     walk.ex().get<exEnvelopeVolF>().value = cp.cachedFraction;
 
     // Key-off is a state transition at a known cycle, so the walk can cross it.
-    const uint64_t releaseAt =
-        cp.keyOffCycle > cp.keyOnCycle ? cycleToSample(cp.keyOffCycle - cp.keyOnCycle) : UINT64_MAX;
+    // Expressed in STEPS, not samples, so it stays aligned with the frozen prefix.
+    uint64_t releaseAt = UINT64_MAX;
+    if (cp.keyOffCycle > cp.keyOnCycle) {
+        const uint64_t off = cycleToSample(cp.keyOffCycle - cp.keyOnCycle);
+        releaseAt = off > delay ? off - delay : 0;
+    }
 
     bool on = cp.cachedOn;
-    for (uint64_t s = cp.cachedSample; s < target; s++) walk.step(s >= releaseAt, on);
+    for (uint64_t s = cp.cachedSample; s < steps; s++) walk.step(s >= releaseAt, on);
 
-    cp.cachedSample = target;
+    cp.cachedSample = steps;
     cp.cachedState = walk.ex().get<exState>().value;
     cp.cachedVol = walk.ex().get<exEnvelopeVol>().value;
     cp.cachedFraction = walk.ex().get<exEnvelopeVolF>().value;
