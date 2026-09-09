@@ -81,8 +81,8 @@ static int s_interruptsWereEnabled;
 CESTER_BEFORE_ALL(gpu_raster_phase1,
     // Disable interrupts so VBlank or controller IRQs do not race the
     // tight VRAM transfer loops in raster-helpers.h. The arcade-tests
-    // suite established this discipline; gpu.md "Hardware test interrupt
-    // discipline" documents why.
+    // suite established this discipline: without it the streamed uploads
+    // drop words on real hardware and the failures look like raster bugs.
     s_interruptsWereEnabled = enterCriticalSection();
     IMASK = 0;
     IREG = 0;

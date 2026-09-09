@@ -34,7 +34,7 @@ SOFTWARE.
 // per-pixel cester assertions so failures surface as `expected X, received Y
 // at file:line` and feed a soft-renderer punch-list.
 //
-// IMPORTANT (per ../../../../.. learnings, src/gpu/gpu.md):
+// IMPORTANT, all four of these cost a hardware run to find:
 //   - GP1(0x00) full reset between tests, not GP1(0x01) FIFO-only.
 //   - One waitGPU() before a multi-word GP0 command. Do NOT poll bit 26
 //     between sub-words; it goes LOW for the duration of the multi-word
@@ -208,7 +208,7 @@ static inline void rasterReset(void) {
 
 // Pace large streamed payloads via status bit 25 ("FIFO has room").
 // Without pacing, transfers of more than a few hundred words drop or
-// deadlock under FIFO mode. See gpu.md "GP0 Streaming Pace Bit".
+// deadlock under FIFO mode. Bit 25, not bit 26 - see the note at the top.
 static inline void rasterStreamPace(int idx) {
     if ((idx & 7) == 0) {
         while ((GPU_STATUS & 0x02000000u) == 0) {
