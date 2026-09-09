@@ -84,13 +84,17 @@ class HelixSelector {
         FixedPoint<> innerRadius = 44.0;      // cylinder radii, before projection
         FixedPoint<> outerRadius = 68.0;
         FixedPoint<> cameraDistance = 128.0;  // h in the r = R * h / z divide
-        FixedPoint<> cursorZ = 128.0;         // z of the item under the cursor
-        FixedPoint<> pitch = 7.0;             // z travelled per item
+        FixedPoint<> cursorZ = 150.0;         // z of the item under the cursor
+        FixedPoint<> pitch = 10.0;            // z travelled per item
         FixedPoint<> gap = 0.88;              // fraction of the angular step drawn
         FixedPoint<> settleRate = 0.3;        // per frame, toward the target
-        unsigned itemsPerTurn = 15;
-        unsigned nearSpan = 10;   // items emitted toward the camera
-        unsigned farSpan = 22;    // items emitted away from it
+        unsigned itemsPerTurn = 20;
+        // Two quads may share an angle only well away from the cursor. That is
+        // exactly `nearSpan + farSpan + 1 - itemsPerTurn` items of doubling, and it
+        // sits opposite the cursor if and only if the two spans are equal. Keep them
+        // equal, and keep the excess small.
+        unsigned nearSpan = 13;   // items emitted toward the camera
+        unsigned farSpan = 13;    // items emitted away from it
         unsigned fadeItems = 5;   // far-end fade ramp, in items
     };
 

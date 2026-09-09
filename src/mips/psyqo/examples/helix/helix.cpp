@@ -32,6 +32,7 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#include "common/syscalls/syscalls.h"
 #include "psyqo/advancedpad.hh"
 #include "psyqo/application.hh"
 #include "psyqo/atan2.hh"
@@ -39,6 +40,7 @@ SOFTWARE.
 #include "psyqo/gpu.hh"
 #include "psyqo/helix-selector.hh"
 #include "psyqo/primitives/quads.hh"
+#include "psyqo/primitives/triangles.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/trigonometry.hh"
 
@@ -73,7 +75,7 @@ class Helix final : public psyqo::Application {
     void createScene() override;
 
   public:
-    psyqo::Font<1> m_font;
+    psyqo::Font<48> m_font;
     psyqo::AdvancedPad m_input;
     psyqo::Trig<> m_trig;
 };
@@ -91,6 +93,8 @@ class HelixScene final : public psyqo::Scene {
     bool m_prevRight = false;
     bool m_submitted = false;
     uint32_t m_activations = 0;
+    int32_t m_attract = 0;
+    bool m_attracting = true;
 
     void onEvent(psyqo::HelixSelector::Event e);
     void readInput();
@@ -176,6 +180,24 @@ void HelixScene::readInput() {
     auto& pad = helix.m_input;
     auto p = psyqo::AdvancedPad::Pad::Pad1a;
 
+    // Attract mode. With nothing plugged in there is no input to read, so drive
+    // the crank ourselves off a synthetic stick sweeping a circle. This is the
+    // same code path a real stick takes, atan2 and all.
+    // Latch out of attract on the first real button, not on pad TYPE: a missing
+    // pad reports a phantom stick at a constant angle, which reads as "held" and
+    // silently freezes the crank.
+    if (pad.isButtonPressed(p, psyqo::AdvancedPad::Start) || pad.isButtonPressed(p, psyqo::AdvancedPad::Cross) ||
+        pad.isButtonPressed(p, psyqo::AdvancedPad::Left) || pad.isButtonPressed(p, psyqo::AdvancedPad::Right)) {
+        m_attracting = false;
+    }
+    if (m_attracting) {
+        m_attract += 6;
+        int32_t ax = (helix.m_trig.cos(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 100).integer<int32_t>();
+        int32_t ay = (helix.m_trig.sin(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 100).integer<int32_t>();
+        m_selector.setStickAngle(psyqo::atan2(ay, ax));
+        return;
+    }
+
     // Shoulder held means draw capitals. Pure presentation: the selector never
     // hears about this, and the item count does not change.
     m_upper = pad.isButtonPressed(p, psyqo::AdvancedPad::L1) || pad.isButtonPressed(p, psyqo::AdvancedPad::R1);
@@ -204,7 +226,11 @@ void HelixScene::readInput() {
     m_prevCross = cross;
 }
 
+[[gnu::noinline]] void helixReady() { ramsyscall_printf("HELIX-READY\n"); }
+
 void HelixScene::frame() {
+    static uint32_t s_frameNo = 0;
+    s_frameNo++;
     readInput();
     m_selector.update(helix.m_trig);
 
@@ -229,19 +255,20 @@ void HelixScene::frame() {
         }
     }
 
+
     // The cursor. The app cannot place this unaided, because the inner radius at
     // the cursor angle moves as the helix scales.
     psyqo::Vertex c = m_selector.cursor();
-    psyqo::Prim::Quad marker(psyqo::Color{{.r = 200, .g = 200, .b = 220}});
-    marker.setPointA({{.x = int16_t(c.x - 4), .y = int16_t(c.y - 4)}})
-        .setPointB({{.x = int16_t(c.x + 4), .y = int16_t(c.y - 4)}})
-        .setPointC({{.x = int16_t(c.x - 4), .y = int16_t(c.y + 4)}})
-        .setPointD({{.x = int16_t(c.x + 4), .y = int16_t(c.y + 4)}});
+    psyqo::Prim::Triangle marker(psyqo::Color{{.r = 210, .g = 210, .b = 235}});
+    marker.pointA = {{.x = int16_t(c.x), .y = int16_t(c.y - 6)}};
+    marker.pointB = {{.x = int16_t(c.x - 5), .y = int16_t(c.y + 4)}};
+    marker.pointC = {{.x = int16_t(c.x + 5), .y = int16_t(c.y + 4)}};
     helix.gpu().sendPrimitive(marker);
 
     helix.m_font.print(helix.gpu(), m_text, {{.x = 128, .y = 112}}, {{.r = 255, .g = 255, .b = 255}});
     helix.m_font.printf(helix.gpu(), {{.x = 8, .y = 8}}, {{.r = 160, .g = 160, .b = 180}}, "sel %d  vis %d  act %d%s",
                         selected, count, m_activations, m_submitted ? "  SUBMITTED" : "");
+    if (s_frameNo == 450) helixReady();
 }
 
 int main() { return helix.run(); }
