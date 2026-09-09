@@ -192,8 +192,8 @@ void HelixScene::readInput() {
     }
     if (m_attracting) {
         m_attract += 6;
-        int32_t ax = (helix.m_trig.cos(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 100).integer<int32_t>();
-        int32_t ay = (helix.m_trig.sin(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 100).integer<int32_t>();
+        int32_t ax = (helix.m_trig.cos(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 4000).integer<int32_t>();
+        int32_t ay = (helix.m_trig.sin(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 4000).integer<int32_t>();
         m_selector.setStickAngle(psyqo::atan2(ay, ax));
         return;
     }

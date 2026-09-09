@@ -51,9 +51,11 @@ namespace psyqo {
  * got selected or activated; drawing, atlases, casing, text buffers and what
  * "enter" means are all yours.
  *
- * The item list does not wrap: radius is a function of distance along the helix,
- * so coming all the way around lands you somewhere else. There is a first item
- * and a last item, and the ends clamp.
+ * The helix is infinite and the item list is CYCLIC on it: the item at helix
+ * offset `d` is `(cursor + d) mod itemCount`, so cranking never hits an end, and
+ * one turn out from the first item is whatever the atlas has last. The same item
+ * can therefore be on screen more than once, at different radii, which is exactly
+ * the far-side doubling that tells the user what is coming.
  */
 class HelixSelector {
   public:
@@ -127,7 +129,6 @@ class HelixSelector {
         if (m_hasStick) {
             Angle delta = shortestDelta(a, m_lastStick);
             m_target += FixedPoint<>(delta) / m_angleStep;
-            clampTarget();
         }
         m_lastStick = a;
         m_hasStick = true;
@@ -138,7 +139,6 @@ class HelixSelector {
     /** @brief Crank by whole items. This is the d-pad adapter. */
     void step(int32_t items) {
         m_target += FixedPoint<>(items, int32_t(0));
-        clampTarget();
     }
 
     /**
@@ -160,6 +160,7 @@ class HelixSelector {
     /** @brief Settle one frame and rebuild the visible slots. */
     void update(const Trig<>& trig) {
         m_position += (m_target - m_position) * m_config.settleRate;
+        normalize();
         unsigned index = resolve();
         if (index != m_selected) {
             m_selected = index;
@@ -185,19 +186,33 @@ class HelixSelector {
         return d;
     }
 
-    void clampTarget() {
-        FixedPoint<> lo = FixedPoint<>(int32_t(0), int32_t(0));
-        FixedPoint<> hi = FixedPoint<>(int32_t(m_itemCount ? m_itemCount - 1 : 0), int32_t(0));
-        if (m_target.raw() < lo.raw()) m_target = lo;
-        if (m_target.raw() > hi.raw()) m_target = hi;
+    // Slide BOTH by whole laps together, so their difference (which is what the
+    // settle animation rides on) is untouched and neither can drift out of range
+    // after a few million frames of cranking.
+    void normalize() {
+        if (m_itemCount == 0) return;
+        FixedPoint<> lap(int32_t(m_itemCount), int32_t(0));
+        while (m_position.raw() >= lap.raw()) {
+            m_position -= lap;
+            m_target -= lap;
+        }
+        while (m_position.raw() < 0) {
+            m_position += lap;
+            m_target += lap;
+        }
+    }
+
+    unsigned wrap(int32_t i) const {
+        if (m_itemCount == 0) return 0;
+        int32_t n = int32_t(m_itemCount);
+        i %= n;
+        if (i < 0) i += n;
+        return unsigned(i);
     }
 
     unsigned resolve() const {
         FixedPoint<> half(int32_t(0), int32_t(FixedPoint<>::scale / 2));
-        int32_t i = (m_position + half).integer<int32_t>();
-        if (i < 0) i = 0;
-        if (m_itemCount && unsigned(i) >= m_itemCount) i = m_itemCount - 1;
-        return unsigned(i);
+        return wrap((m_position + half).integer<int32_t>());
     }
 
     void emit(Event e) {
@@ -209,9 +224,8 @@ class HelixSelector {
         int32_t base = m_position.integer<int32_t>();
         int32_t first = base - int32_t(m_config.nearSpan);
         int32_t last = base + int32_t(m_config.farSpan);
-        if (first < 0) first = 0;
-        if (m_itemCount && last >= int32_t(m_itemCount)) last = int32_t(m_itemCount) - 1;
-        // Furthest first, so the caller can draw straight down the list.
+        // Furthest first, so the caller can draw straight down the list. `i` is a
+        // position ON THE HELIX, which is unbounded; the item it shows is `i` wrapped.
         for (int32_t i = last; i >= first; i--) {
             if (m_slotCount >= c_maxSlots) break;
             FixedPoint<> d = FixedPoint<>(i, int32_t(0)) - m_position;
@@ -228,7 +242,7 @@ class HelixSelector {
             FixedPoint<> c0 = trig.cos(t0), s0 = trig.sin(t0);
             FixedPoint<> c1 = trig.cos(t1), s1 = trig.sin(t1);
             Slot& slot = m_slots[m_slotCount++];
-            slot.index = unsigned(i);
+            slot.index = wrap(i);
             slot.a = at(rin, c0, s0);
             slot.b = at(rin, c1, s1);
             slot.c = at(rout, c0, s0);
