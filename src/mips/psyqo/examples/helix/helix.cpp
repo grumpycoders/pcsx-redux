@@ -169,8 +169,6 @@ void HelixScene::start(StartReason reason) {
     // and the initial delay is a subtraction against `m_heldSince`, so there is no
     // second timer and no period juggling. Unsigned subtraction is also what makes
     // the 32-bit microsecond clock rolling over a non-event.
-    // Measured: first repeat 360 ms after the press against 350 configured, then
-    // 60005 us mean interval against 60000, jitter +/-5.6 ms from the pump.
     helix.gpu().armPeriodicTimer(c_repeatRate, [this](uint32_t t) {
         if (m_held == 0) return;
         if ((t - m_heldSince) < c_repeatDelay) return;

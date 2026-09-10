@@ -30,7 +30,6 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "psyqo/fixed-point.hh"
-#include "psyqo/kernel.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/trigonometry.hh"
 
@@ -126,23 +125,7 @@ class HelixSelector {
 
     static constexpr unsigned c_maxSlots = 48;
 
-    void setup(unsigned itemCount, const Config& config) {
-        m_config = config;
-        m_itemCount = itemCount;
-        m_position = FixedPoint<>(int32_t(0), int32_t(0));
-        m_target = m_position;
-        m_selected = 0;
-        m_slotCount = 0;
-        // THE SEAM CONSTRAINT. Item `i` sits on spoke `i mod itemsPerTurn`, and the
-        // item list wraps at `itemCount`. Unless the list wrap lands ON a lap
-        // boundary, the letter that follows the last one comes back on a DIFFERENT
-        // spoke, and the join between one turn of the helix and the next visibly
-        // slips round. Pad the atlas, or pick a turn size that divides it.
-        Kernel::assert((itemCount % config.itemsPerTurn) == 0,
-                       "HelixSelector: itemCount must be a whole number of turns");
-        FixedPoint<> two = 2.0;
-        m_angleStep = two / int32_t(config.itemsPerTurn ? config.itemsPerTurn : 1);
-    }
+    void setup(unsigned itemCount, const Config& config);
 
     void setOnEvent(eastl::function<void(Event)>&& callback) { m_callback = eastl::move(callback); }
 
@@ -156,21 +139,7 @@ class HelixSelector {
      * the LAP: crossing the +/-pi seam moves you one turn along the helix rather
      * than jumping the cursor to the far side of the dial.
      */
-    void setStickAngle(Angle a) {
-        if (m_config.itemsPerTurn == 0) return;
-        // The stick angle IS the cursor angle, so this is a straight conversion
-        // rather than an integration: no drift, and pointing the stick somewhere
-        // new puts the cursor there rather than winding toward it.
-        FixedPoint<> want = FixedPoint<>(a) / m_angleStep;
-        // `a` lives in (-1.0_pi, 1.0_pi], so `want` lands in one arbitrary lap.
-        // Slide it to the lap nearest where the cursor already is; that, and only
-        // that, is what the crank accumulates.
-        FixedPoint<> lap(int32_t(m_config.itemsPerTurn), int32_t(0));
-        FixedPoint<> half = lap / int32_t(2);
-        while ((want - m_target).raw() > half.raw()) want -= lap;
-        while ((m_target - want).raw() > half.raw()) want += lap;
-        m_target = want;
-    }
+    void setStickAngle(Angle a);
 
     /** @brief Crank by whole items. This is the d-pad adapter. */
     void step(int32_t items) {
@@ -183,27 +152,10 @@ class HelixSelector {
      * @details If the helix is still settling this snaps it to the target first and
      * then fires, so a confirm is never swallowed mid-animation.
      */
-    void activate() {
-        m_position = m_target;
-        unsigned index = resolve();
-        if (index != m_selected) {
-            m_selected = index;
-            emit({Event::SelectionChanged, index});
-        }
-        emit({Event::Activated, index});
-    }
+    void activate();
 
     /** @brief Settle one frame and rebuild the visible slots. */
-    void update(const Trig<>& trig) {
-        m_position += (m_target - m_position) * m_config.settleRate;
-        normalize();
-        unsigned index = resolve();
-        if (index != m_selected) {
-            m_selected = index;
-            emit({Event::SelectionChanged, index});
-        }
-        build(trig);
-    }
+    void update(const Trig<>& trig);
 
     unsigned currentIndex() const { return m_selected; }
     unsigned visibleCount() const { return m_slotCount; }
@@ -218,26 +170,9 @@ class HelixSelector {
     // Slide BOTH by whole laps together, so their difference (which is what the
     // settle animation rides on) is untouched and neither can drift out of range
     // after a few million frames of cranking.
-    void normalize() {
-        if (m_itemCount == 0) return;
-        FixedPoint<> lap(int32_t(m_itemCount), int32_t(0));
-        while (m_position.raw() >= lap.raw()) {
-            m_position -= lap;
-            m_target -= lap;
-        }
-        while (m_position.raw() < 0) {
-            m_position += lap;
-            m_target += lap;
-        }
-    }
+    void normalize();
 
-    unsigned wrap(int32_t i) const {
-        if (m_itemCount == 0) return 0;
-        int32_t n = int32_t(m_itemCount);
-        i %= n;
-        if (i < 0) i += n;
-        return unsigned(i);
-    }
+    unsigned wrap(int32_t i) const;
 
     unsigned resolve() const {
         FixedPoint<> half(int32_t(0), int32_t(FixedPoint<>::scale / 2));
@@ -248,72 +183,9 @@ class HelixSelector {
         if (m_callback) m_callback(e);
     }
 
-    void build(const Trig<>& trig) {
-        m_slotCount = 0;
-        int32_t base = m_position.integer<int32_t>();
-        int32_t first = base - int32_t(m_config.nearSpan);
-        int32_t last = base + int32_t(m_config.farSpan);
-        // Furthest first, so the caller can draw straight down the list. `i` is a
-        // position ON THE HELIX, which is unbounded; the item it shows is `i` wrapped.
-        for (int32_t i = last; i >= first; i--) {
-            if (m_slotCount >= c_maxSlots) break;
-            FixedPoint<> d = FixedPoint<>(i, int32_t(0)) - m_position;
-            FixedPoint<> z = m_config.cursorZ + d * m_config.pitch;
-            // Anything at or behind the camera plane is gone.
-            if (z.raw() <= (FixedPoint<>(int32_t(4), int32_t(0))).raw()) continue;
-            FixedPoint<> s = m_config.cameraDistance / z;
-            // The spoke is the item's OWN and does not move: only `z` above depends
-            // on the cursor. `i * angleStep` runs past a full turn and the cosine
-            // table normalises through a uint32_t modulo, so i and i+itemsPerTurn
-            // land on the same spoke by construction.
-            Angle theta = Angle(FixedPoint<>(i, int32_t(0)) * m_angleStep);
-            Angle half = Angle(m_angleStep * m_config.gap) / int32_t(2);
-            Angle t0 = theta - half;
-            Angle t1 = theta + half;
-            FixedPoint<> rin = m_config.innerRadius * s;
-            FixedPoint<> rout = m_config.outerRadius * s;
-            FixedPoint<> c0 = trig.cos(t0), s0 = trig.sin(t0);
-            FixedPoint<> c1 = trig.cos(t1), s1 = trig.sin(t1);
-            Slot& slot = m_slots[m_slotCount++];
-            slot.index = wrap(i);
-            slot.a = at(rin, c0, s0);
-            slot.b = at(rin, c1, s1);
-            slot.c = at(rout, c0, s0);
-            slot.d = at(rout, c1, s1);
-            FixedPoint<> rmid = (rin + rout) / int32_t(2);
-            slot.glyph = at(rmid, trig.cos(theta), trig.sin(theta));
-            slot.scale = s * (m_config.cursorZ / m_config.cameraDistance);
-            slot.fade = fadeFor(d);
-        }
-        // The cursor is the thing that moves. Its angle is the continuous cursor
-        // position on the same spoke scale, so it sweeps between spokes rather than
-        // snapping, and it sits just inside the ring at the cursor's own depth.
-        Angle cursorAngle = Angle(m_position * m_angleStep);
-        FixedPoint<> cc = trig.cos(cursorAngle), cSin = trig.sin(cursorAngle);
-        FixedPoint<> cs = m_config.cameraDistance / m_config.cursorZ;
-        FixedPoint<> rTip = m_config.innerRadius * cs - m_config.cursorGap;
-        FixedPoint<> rBase = rTip - m_config.cursorLength;
-        // Radial unit vector is (cos, sin); its perpendicular is (-sin, cos). No
-        // extra trig needed to spin the marker, just the two we already have.
-        FixedPoint<> bx = m_config.center.x + (rBase * cc);
-        FixedPoint<> by = m_config.center.y + (rBase * cSin);
-        FixedPoint<> wx = -(cSin * m_config.cursorHalfWidth);
-        FixedPoint<> wy = cc * m_config.cursorHalfWidth;
-        m_cursor.tip = at(rTip, cc, cSin);
-        m_cursor.left = vtx(bx + wx, by + wy);
-        m_cursor.right = vtx(bx - wx, by - wy);
-        m_cursorAngle = cursorAngle;
-    }
+    void build(const Trig<>& trig);
 
-    FixedPoint<> fadeFor(FixedPoint<> d) const {
-        if (m_config.fadeItems == 0) return 1.0;
-        FixedPoint<> start = FixedPoint<>(int32_t(m_config.farSpan - m_config.fadeItems), int32_t(0));
-        if (d.raw() <= start.raw()) return 1.0;
-        FixedPoint<> span = FixedPoint<>(int32_t(m_config.fadeItems), int32_t(0));
-        FixedPoint<> f = (FixedPoint<>(int32_t(m_config.farSpan), int32_t(0)) - d) / span;
-        if (f.raw() < 0) return FixedPoint<>(int32_t(0), int32_t(0));
-        return f;
-    }
+    FixedPoint<> fadeFor(FixedPoint<> d) const;
 
     static Vertex vtx(FixedPoint<> x, FixedPoint<> y) {
         return Vertex{{.x = int16_t(x.integer<int32_t>()), .y = int16_t(y.integer<int32_t>())}};
