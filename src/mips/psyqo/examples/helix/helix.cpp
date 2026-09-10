@@ -150,6 +150,9 @@ void Helix::createScene() {
 void HelixScene::start(StartReason reason) {
     psyqo::HelixSelector::Config config;
     config.center = {{.x = 160, .y = 120}};
+    // 42 items over 14 spokes is exactly three turns, so the list wrap lands on a
+    // lap boundary and the join between turns does not slip round.
+    config.itemsPerTurn = 14;
     m_selector.setup(c_itemCount, config);
     m_selector.setOnEvent([this](psyqo::HelixSelector::Event e) { onEvent(e); });
 }
@@ -176,6 +179,9 @@ void HelixScene::onEvent(psyqo::HelixSelector::Event e) {
 void HelixScene::readInput() {
     auto& pad = helix.m_input;
     auto p = psyqo::AdvancedPad::Pad::Pad1a;
+    // With nothing plugged in the button word reads as every button held, which
+    // is a phantom press on the very first frame, so gate the whole thing.
+    if (!pad.isPadConnected(p)) return;
 
     // Shoulder held means draw capitals. Pure presentation: the selector never
     // hears about this, and the item count does not change.
@@ -184,9 +190,13 @@ void HelixScene::readInput() {
     // Analog adapter. The stick angle is the cursor angle directly, so this is a
     // dial: point at a spoke and the cursor is there. Stop feeding it when the
     // stick re-centres and the cursor simply stays put.
-    int32_t sx = int32_t(pad.getAdc(p, 2)) - 128;
-    int32_t sy = int32_t(pad.getAdc(p, 3)) - 128;
-    if ((sx * sx + sy * sy) > (40 * 40)) m_selector.setStickAngle(psyqo::atan2(sy, sx));
+    // A digital pad still answers getAdc, with a constant that reads as a stick
+    // held at one angle, so ask whether the ADC means anything before believing it.
+    if (pad.hasAnalog(p)) {
+        int32_t sx = int32_t(pad.getAdc(p, 2)) - 128;
+        int32_t sy = int32_t(pad.getAdc(p, 3)) - 128;
+        if ((sx * sx + sy * sy) > (40 * 40)) m_selector.setStickAngle(psyqo::atan2(sy, sx));
+    }
 
     // D-pad adapter: one item per press.
     bool left = pad.isButtonPressed(p, psyqo::AdvancedPad::Left);
@@ -229,11 +239,11 @@ void HelixScene::frame() {
 
     // The cursor. The app cannot place this unaided, because the inner radius at
     // the cursor angle moves as the helix scales.
-    psyqo::Vertex c = m_selector.cursor();
+    const auto& c = m_selector.cursor();
     psyqo::Prim::Triangle marker(psyqo::Color{{.r = 210, .g = 210, .b = 235}});
-    marker.pointA = {{.x = int16_t(c.x), .y = int16_t(c.y - 6)}};
-    marker.pointB = {{.x = int16_t(c.x - 5), .y = int16_t(c.y + 4)}};
-    marker.pointC = {{.x = int16_t(c.x + 5), .y = int16_t(c.y + 4)}};
+    marker.pointA = c.tip;
+    marker.pointB = c.left;
+    marker.pointC = c.right;
     helix.gpu().sendPrimitive(marker);
 
     helix.m_font.print(helix.gpu(), m_text, {{.x = 128, .y = 112}}, {{.r = 255, .g = 255, .b = 255}});

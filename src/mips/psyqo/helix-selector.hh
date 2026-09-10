@@ -30,6 +30,7 @@ SOFTWARE.
 #include <stdint.h>
 
 #include "psyqo/fixed-point.hh"
+#include "psyqo/kernel.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/trigonometry.hh"
 
@@ -89,6 +90,18 @@ class HelixSelector {
         FixedPoint<> fade;
     };
 
+    /**
+     * @brief The cursor marker, as a triangle you can draw directly.
+     *
+     * @details Already rotated: `tip` points OUTWARD along the cursor's own spoke,
+     * at the box it currently selects, so it turns as the crank turns. `left` and
+     * `right` are the base corners. The library computes these because the app has
+     * no cheap way to rotate a shape without a trig table of its own.
+     */
+    struct Cursor {
+        Vertex tip, left, right;
+    };
+
     struct Config {
         Vertex center = {{.x = 160, .y = 120}};
         FixedPoint<> innerRadius = 44.0;      // cylinder radii, before projection
@@ -99,13 +112,16 @@ class HelixSelector {
         FixedPoint<> gap = 0.88;              // fraction of the angular step drawn
         FixedPoint<> settleRate = 0.3;        // per frame, toward the target
         unsigned itemsPerTurn = 20;
-        // Two quads may share an angle only well away from the cursor. That is
-        // exactly `nearSpan + farSpan + 1 - itemsPerTurn` items of doubling, and it
-        // sits opposite the cursor if and only if the two spans are equal. Keep them
-        // equal, and keep the excess small.
+        // How much helix is on screen, in items. Since spokes are fixed, these do
+        // not decide WHETHER two quads share an angle - `i` and `i + itemsPerTurn`
+        // always do - they decide how many LAPS of that are visible either side of
+        // the cursor. `(nearSpan + farSpan + 1) / itemsPerTurn` turns, roughly.
         unsigned nearSpan = 13;   // items emitted toward the camera
         unsigned farSpan = 13;    // items emitted away from it
         unsigned fadeItems = 5;   // far-end fade ramp, in items
+        FixedPoint<> cursorGap = 5.0;     // from the inner ring to the marker's tip
+        FixedPoint<> cursorLength = 9.0;  // tip to base, along the spoke
+        FixedPoint<> cursorHalfWidth = 5.0;
     };
 
     static constexpr unsigned c_maxSlots = 48;
@@ -117,6 +133,13 @@ class HelixSelector {
         m_target = m_position;
         m_selected = 0;
         m_slotCount = 0;
+        // THE SEAM CONSTRAINT. Item `i` sits on spoke `i mod itemsPerTurn`, and the
+        // item list wraps at `itemCount`. Unless the list wrap lands ON a lap
+        // boundary, the letter that follows the last one comes back on a DIFFERENT
+        // spoke, and the join between one turn of the helix and the next visibly
+        // slips round. Pad the atlas, or pick a turn size that divides it.
+        Kernel::assert((itemCount % config.itemsPerTurn) == 0,
+                       "HelixSelector: itemCount must be a whole number of turns");
         FixedPoint<> two = 2.0;
         m_angleStep = two / int32_t(config.itemsPerTurn ? config.itemsPerTurn : 1);
     }
@@ -187,7 +210,7 @@ class HelixSelector {
     /** @brief Slot 0 is the furthest from the camera. Draw them in order. */
     const Slot& slot(unsigned n) const { return m_slots[n]; }
     /** @brief Where to draw the cursor marker, just inside the ring at the cursor angle. */
-    Vertex cursor() const { return m_cursor; }
+    const Cursor& cursor() const { return m_cursor; }
     /** @brief The cursor's current angle, if you want to orient the marker you draw. */
     Angle cursorAngle() const { return m_cursorAngle; }
 
@@ -266,9 +289,19 @@ class HelixSelector {
         // position on the same spoke scale, so it sweeps between spokes rather than
         // snapping, and it sits just inside the ring at the cursor's own depth.
         Angle cursorAngle = Angle(m_position * m_angleStep);
+        FixedPoint<> cc = trig.cos(cursorAngle), cSin = trig.sin(cursorAngle);
         FixedPoint<> cs = m_config.cameraDistance / m_config.cursorZ;
-        FixedPoint<> cr = m_config.innerRadius * cs - FixedPoint<>(int32_t(8), int32_t(0));
-        m_cursor = at(cr, trig.cos(cursorAngle), trig.sin(cursorAngle));
+        FixedPoint<> rTip = m_config.innerRadius * cs - m_config.cursorGap;
+        FixedPoint<> rBase = rTip - m_config.cursorLength;
+        // Radial unit vector is (cos, sin); its perpendicular is (-sin, cos). No
+        // extra trig needed to spin the marker, just the two we already have.
+        FixedPoint<> bx = m_config.center.x + (rBase * cc);
+        FixedPoint<> by = m_config.center.y + (rBase * cSin);
+        FixedPoint<> wx = -(cSin * m_config.cursorHalfWidth);
+        FixedPoint<> wy = cc * m_config.cursorHalfWidth;
+        m_cursor.tip = at(rTip, cc, cSin);
+        m_cursor.left = vtx(bx + wx, by + wy);
+        m_cursor.right = vtx(bx - wx, by - wy);
         m_cursorAngle = cursorAngle;
     }
 
@@ -280,6 +313,10 @@ class HelixSelector {
         FixedPoint<> f = (FixedPoint<>(int32_t(m_config.farSpan), int32_t(0)) - d) / span;
         if (f.raw() < 0) return FixedPoint<>(int32_t(0), int32_t(0));
         return f;
+    }
+
+    static Vertex vtx(FixedPoint<> x, FixedPoint<> y) {
+        return Vertex{{.x = int16_t(x.integer<int32_t>()), .y = int16_t(y.integer<int32_t>())}};
     }
 
     Vertex at(FixedPoint<> r, FixedPoint<> cosT, FixedPoint<> sinT) const {
@@ -294,7 +331,7 @@ class HelixSelector {
     FixedPoint<> m_angleStep;
     FixedPoint<> m_position;
     FixedPoint<> m_target;
-    Vertex m_cursor = {{.x = 0, .y = 0}};
+    Cursor m_cursor = {};
     Slot m_slots[c_maxSlots];
     unsigned m_slotCount = 0;
     unsigned m_itemCount = 0;
