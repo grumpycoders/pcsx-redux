@@ -47,15 +47,6 @@ SOFTWARE.
 
 namespace psyqo {
 
-namespace DMA {
-
-enum DmaCallback {
-    FROM_ISR,
-    FROM_MAIN_LOOP,
-};
-
-}
-
 namespace timer_literals {
 
 /**

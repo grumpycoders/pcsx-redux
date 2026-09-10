@@ -35,7 +35,12 @@ SOFTWARE.
 
 // clang-format off
 
-/* This is to test regressions on the fast memcpy code located in common/crt0/memory.s */
+/* Sweep bounds: SWEEP_MAX spans several 32-byte blocks past the point where the
+   block loop engages; SWEEP_SLACK is the guard region checked for overrun. */
+#define SWEEP_MAX 200
+#define SWEEP_SLACK 8
+
+/* This is to test regressions on the fast memcpy code located in common/crt0/memory-s.s */
 
 CESTER_BODY(
     void* __wrap_memcpy(void* dest, const void* src, size_t n);
@@ -233,4 +238,56 @@ CESTER_TEST(memcpyBothUnlikeUnaligned, test_instance,
     for (unsigned i = 0; i < 49; i++) {
         cester_assert_equal(out[i + 1], i + 2);
     }
+)
+
+/* Length SWEEP, not length samples. The cases above pick hand-chosen awkward
+   lengths, and an awkward length is precisely one that misses a block boundary
+   - which is where a hand-unrolled loop's bugs live. Sweep every alignment
+   across several block sizes instead, with guard bytes on the far side so an
+   overrun fails as loudly as a shortfall. */
+
+CESTER_BODY(
+    static unsigned char s_sweepSrc[SWEEP_MAX + 2 * SWEEP_SLACK];
+    static unsigned char s_sweepDst[SWEEP_MAX + 2 * SWEEP_SLACK];
+    static unsigned char s_sweepRef[SWEEP_MAX + 2 * SWEEP_SLACK];
+
+    static unsigned sweepMemcpyOnce(unsigned dalign, unsigned salign, unsigned n) {
+        for (unsigned i = 0; i < SWEEP_MAX + 2 * SWEEP_SLACK; i++) {
+            s_sweepSrc[i] = (unsigned char)(i * 7 + 1);
+            s_sweepDst[i] = 0xa5;
+            s_sweepRef[i] = 0xa5;
+        }
+        for (unsigned i = 0; i < n; i++) s_sweepRef[dalign + i] = s_sweepSrc[salign + i];
+        void *r = __wrap_memcpy(s_sweepDst + dalign, s_sweepSrc + salign, n);
+        if (r != s_sweepDst + dalign) return 1;
+        for (unsigned i = 0; i < SWEEP_MAX + 2 * SWEEP_SLACK; i++) {
+            if (s_sweepDst[i] != s_sweepRef[i]) return i + 1;
+        }
+        return 0;
+    }
+)
+
+/* All sixteen source/destination alignment combinations. The four where the two
+   disagree mod 4 take the separate unaligned path, whose block loop no test can
+   exercise at all unless its unlike-alignment lengths run past 64 bytes. */
+CESTER_TEST(fastmemcpySweep, test_instance,
+    unsigned failures = 0, firstD = 0, firstS = 0, firstN = 0, firstAt = 0;
+    for (unsigned dalign = 0; dalign < 4; dalign++) {
+        for (unsigned salign = 0; salign < 4; salign++) {
+            for (unsigned n = 0; n <= SWEEP_MAX; n++) {
+                unsigned bad = sweepMemcpyOnce(dalign, salign, n);
+                if (bad) {
+                    if (!failures) {
+                        firstD = dalign; firstS = salign; firstN = n; firstAt = bad - 1;
+                    }
+                    failures++;
+                }
+            }
+        }
+    }
+    if (failures) {
+        ramsyscall_printf("  memcpy sweep: %u failing cases, first dst=%u src=%u n=%u at byte %u\n",
+                          failures, firstD, firstS, firstN, firstAt);
+    }
+    cester_assert_uint_eq(0, failures);
 )

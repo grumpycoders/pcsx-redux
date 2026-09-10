@@ -24,6 +24,48 @@ SOFTWARE.
 
 */
 
+/* Optimized memcpy and memset for the R3000A, reached through the linker's
+ * -Wl,-wrap,memcpy / -Wl,-wrap,memset toggles. The plain memcpy below, and the
+ * routines in memory-c.c, are the small default.
+ *
+ * THE BLOCK SIZES ARE MEASURED. src/mips/tests/memops-unroll sweeps both of
+ * them on hardware; re-run it before changing either.
+ *
+ *   memcpy uses a 32-byte block: eight words loaded before any is stored. What
+ *   pays here is that batch depth, not the loop count, because an uncached load
+ *   overlaps the following independent instructions and the shadow takes about
+ *   four of them to saturate. RAM->RAM over 16 KiB, cyc/word: batch 2 is 12.80,
+ *   batch 4 is 9.18, batch 8 is 8.72. Holding the batch at eight and doubling
+ *   the LOOP instead moves nothing - 35697 ticks at eight words per iteration
+ *   against 35698 at thirty-two, over the same 4096 words. Batch 16 was only
+ *   measured on a 1 KiB buffer, where it sat inside the harness's own noise,
+ *   and it costs eight callee-saved spills to reach. These are quoted at 16 KiB
+ *   deliberately: at 1 KiB a single-digit percentage here is not
+ *   distinguishable from where the code happened to land in a 4 KiB
+ *   direct-mapped icache.
+ *
+ *   memset uses a 16-byte block: four words. Back-to-back stores into main RAM
+ *   run at 2.15 cyc/store and are bandwidth bound, while a store with three or
+ *   more independent instructions behind it is absorbed completely - so four
+ *   stores per iteration is where the loop tail disappears underneath the
+ *   drain. Measured cyc/word by depth: 4.05 at one word, 2.59 at two, then flat
+ *   from four out to sixty-four (2.10 at both ends over 16 KiB). Nothing above
+ *   four is left to win, and there is something to lose - the icache is 4 KiB,
+ *   direct mapped, one word per line with no spatial prefetch, so a longer body
+ *   is a longer fill on every cold call. Each kernel's own cold first call
+ *   against its own warm minimum: +8% for this four-store body, +35% for a
+ *   sixty-four store one.
+ *
+ * THE BLOCK LOOPS END ON "start + count with the remainder removed", and must.
+ * Written as "end - blocksize" instead, the mask that follows has already
+ * discarded the fact that a whole block is still owed, so a count that is an
+ * exact multiple of the block size silently loses its last one. The unaligned
+ * memcpy path carries the same trap one step further along: its end has to come
+ * from the count BEFORE the mask, or it lands below the source pointer and the
+ * loop runs exactly once whatever the length. src/mips/tests/{memcpy,memset}
+ * sweep lengths rather than sampling them, which is what holds both.
+ */
+
     .section .text___wrap_memcpy, "ax", @progbits
     .set noreorder
     .align 2
@@ -52,13 +94,13 @@ __wrap_memcpy:
     swr    $t8, 0($a0)
     addu   $a0, $t0
 
-    /* $a3 = end of source - 32 */
+    /* $a3 = source + the largest multiple of 32 that fits in the count. Derive
+       it from the count BEFORE masking, then subtract the remainder; "end - 32"
+       loses the final block on exact multiples of 32. */
     addu   $a3, $a1, $a2
-    addiu  $a3, -32
-
-    /* Copy the rest of the data, 32 bytes at a time */
     bltu   $a2, 32, .Lmemcpy_last32_aligned
     andi   $a2, 31
+    subu   $a3, $a2
 
 .Lmemcpy_loop32_aligned:
     lw     $t0, 0($a1)
@@ -84,15 +126,15 @@ __wrap_memcpy:
 .Lmemcpy_last32_aligned:
     bltu   $a2, 4, .Lmemcpy_last4
     addu   $a3, $a1, $a2
-    addiu  $a3, -4
+    andi   $a2, 3
+    subu   $a3, $a2
 
 .Lmemcpy_loop4_aligned:
     lw     $t0, 0($a1)
     addiu  $a1, 4
-    sw     $t0, 0($a0)
     addiu  $a0, 4
     bltu   $a1, $a3, .Lmemcpy_loop4_aligned
-    addiu  $a2, -4
+    sw     $t0, -4($a0)
 
     b      .Lmemcpy_last4
     nop
@@ -126,12 +168,13 @@ __wrap_memcpy:
     sb     $t0, 0($a0)
     addu   $a0, $t4
 
+    /* Same derivation as the aligned path, and the order is load bearing: mask
+       the count first and $a3 comes out BELOW $a1, which makes this loop run
+       exactly once whatever the length. */
+    addu   $a3, $a1, $a2
     bltu   $a2, 32, .Lmemcpy_last32_unaligned
     andi   $a2, 31
-
-    /* $a3 = end of source - 32 */
-    addu   $a3, $a1, $a2
-    addiu  $a3, -32
+    subu   $a3, $a2
 
 .Lmemcpy_loop32_unaligned:
     lw     $t0, 0($a1)
@@ -165,16 +208,16 @@ __wrap_memcpy:
 .Lmemcpy_last32_unaligned:
     bltu   $a2, 4, .Lmemcpy_last4
     addu   $a3, $a1, $a2
-    addiu  $a3, -4
+    andi   $a2, 3
+    subu   $a3, $a2
 
 .Lmemcpy_loop4_unaligned:
     lw     $t0, 0($a1)
     addiu  $a1, 4
-    swr    $t0, 0($a0)
-    swl    $t0, 3($a0)
     addiu  $a0, 4
+    swr    $t0, -4($a0)
     bltu   $a1, $a3, .Lmemcpy_loop4_unaligned
-    addiu  $a2, -4
+    swl    $t0, -1($a0)
 
 .Lmemcpy_last4:
     beqz   $a2, .Lmemcpy_done
@@ -232,6 +275,9 @@ __wrap_memset:
     sll    $v1, $a1, 16
     or     $a1, $v1
 
+    /* Align the destination with a single unaligned store. swr on an already
+       aligned address writes the whole word, so the aligned case costs four
+       bytes of the count and no branch. */
     li     $t0, 4
     andi   $v1, $a0, 3
     subu   $t0, $v1
@@ -240,34 +286,30 @@ __wrap_memset:
     swr    $a1, 0($a0)
     addu   $a0, $t0
 
+    /* $a3 = destination + the largest multiple of 16 that fits in the count. */
     addu   $a3, $a0, $a2
-    addiu  $a3, -32
+    bltu   $a2, 16, .Lmemset_last16
+    andi   $a2, 15
+    subu   $a3, $a2
 
-    bltu   $a2, 32, .Lmemset_last32
-    andi   $a2, 31
-
-.Lmemset_loop32:
-    addiu  $a0, 32
-    sw     $a1, -32($a0)
-    sw     $a1, -28($a0)
-    sw     $a1, -24($a0)
-    sw     $a1, -20($a0)
+.Lmemset_loop16:
+    addiu  $a0, 16
     sw     $a1, -16($a0)
     sw     $a1, -12($a0)
     sw     $a1, -8($a0)
-    bltu   $a0, $a3, .Lmemset_loop32
+    bltu   $a0, $a3, .Lmemset_loop16
     sw     $a1, -4($a0)
 
-.Lmemset_last32:
+.Lmemset_last16:
     bltu   $a2, 4, .Lmemset_last4
     addu   $a3, $a0, $a2
-    addiu  $a3, -4
+    andi   $a2, 3
+    subu   $a3, $a2
 
 .Lmemset_loop4:
-    sw     $a1, 0($a0)
     addiu  $a0, 4
     bltu   $a0, $a3, .Lmemset_loop4
-    addiu  $a2, -4
+    sw     $a1, -4($a0)
 
 .Lmemset_last4:
     beqz   $a2, .Lmemset_done

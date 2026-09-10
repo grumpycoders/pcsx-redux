@@ -42,7 +42,9 @@ The Makefile features several toggles to mutate the way the compilation works. D
 
 ## Status
 
-This subproject is fairly functional and usable. OpenBIOS does almost all the same things as the retail BIOS does when booting, and implements most of its features. [Many games](https://docs.google.com/spreadsheets/d/1UNGs7uYb8viAbm7YJaf1CR4dkgX7ZzntUdcowGsjcVc/edit?usp=sharing) are booting and working properly with this code. It can be used in emulators or on the real console, either while replacing the rom chip, or by using the "cart" build and programming the flash chip of a cheat cart with the result.
+This subproject is fairly functional and usable. OpenBIOS does almost all the same things as the retail BIOS does when booting, and implements most of its features. Many games are booting and working properly with this code. It can be used in emulators or on the real console, either while replacing the rom chip, or by using the "cart" build and programming the flash chip of a cheat cart with the result.
+
+Read the [compatibility](COMPATIBILITY.md) document for more information.
 
 Please feel free to report bugs encountered while using this project.
 

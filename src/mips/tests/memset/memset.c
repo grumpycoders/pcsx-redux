@@ -35,7 +35,12 @@ SOFTWARE.
 
 // clang-format off
 
-/* This is to test regressions on the fast memcpy code located in common/crt0/memory.s */
+/* Sweep bounds: SWEEP_MAX spans several 32-byte blocks past the point where the
+   block loop engages; SWEEP_SLACK is the guard region checked for overrun. */
+#define SWEEP_MAX 200
+#define SWEEP_SLACK 8
+
+/* This is to test regressions on the fast memset code located in common/crt0/memory-s.s */
 
 CESTER_BODY(
     void* __wrap_memset(void* dest, int c, size_t n);
@@ -117,4 +122,51 @@ CESTER_TEST(memsetUnaligned, test_instance,
         cester_assert_uint_eq(buf[i], 0x55);
     }
     cester_assert_ptr_equal(result, buf + 1);
+)
+
+/* Length SWEEP, not length samples. The cases above pick hand-chosen awkward
+   lengths, and an awkward length is precisely one that misses a block boundary
+   - which is where a hand-unrolled loop's bugs live. Sweep every alignment
+   across several block sizes instead, with guard bytes on the far side so an
+   overrun fails as loudly as a shortfall. */
+
+CESTER_BODY(
+    static unsigned char s_sweepDst[SWEEP_MAX + SWEEP_SLACK];
+    static unsigned char s_sweepRef[SWEEP_MAX + SWEEP_SLACK];
+
+    /* 0 on success, otherwise 1 + the index of the first byte that disagreed,
+       so a failure names a place rather than just tripping a boolean. */
+    static unsigned sweepMemsetOnce(unsigned align, unsigned n) {
+        for (unsigned i = 0; i < SWEEP_MAX + SWEEP_SLACK; i++) {
+            s_sweepDst[i] = 0xa5;
+            s_sweepRef[i] = 0xa5;
+        }
+        for (unsigned i = 0; i < n; i++) s_sweepRef[align + i] = 0x5a;
+        void *r = __wrap_memset(s_sweepDst + align, 0x5a, n);
+        if (r != s_sweepDst + align) return 1;
+        for (unsigned i = 0; i < SWEEP_MAX + SWEEP_SLACK; i++) {
+            if (s_sweepDst[i] != s_sweepRef[i]) return i + 1;
+        }
+        return 0;
+    }
+)
+
+/* Every destination alignment, every length up to several block sizes, with
+   guard bytes on the far side so an overrun fails as loudly as a shortfall. */
+CESTER_TEST(fastmemsetSweep, test_instance,
+    unsigned failures = 0, firstAlign = 0, firstN = 0, firstAt = 0;
+    for (unsigned align = 0; align < 4; align++) {
+        for (unsigned n = 0; n <= SWEEP_MAX; n++) {
+            unsigned bad = sweepMemsetOnce(align, n);
+            if (bad) {
+                if (!failures) { firstAlign = align; firstN = n; firstAt = bad - 1; }
+                failures++;
+            }
+        }
+    }
+    if (failures) {
+        ramsyscall_printf("  memset sweep: %u failing cases, first align=%u n=%u at byte %u\n",
+                          failures, firstAlign, firstN, firstAt);
+    }
+    cester_assert_uint_eq(0, failures);
 )

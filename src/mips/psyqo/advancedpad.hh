@@ -198,6 +198,27 @@ class AdvancedPad {
      */
     uint8_t getPadType(Pad pad) const { return m_padData[toUnderlying(pad)].padType; }
 
+    /**
+     * @brief Checks if the specified pad can do analog.
+     *
+     * @param pad The pad to query.
+     * @return true if the pad can do analog, false otherwise.
+     */
+    bool hasAnalog(Pad pad) const {
+        switch (m_padData[toUnderlying(pad)].padType) {
+            case PadType::Mouse:
+            case PadType::KonamiLightgun:
+            case PadType::DigitalPad:
+            case PadType::NamcoLightGun:
+            case PadType::Multitap:
+            case PadType::ConfigMode:
+            case PadType::None:
+                return false;
+            default:
+                return true;
+        }
+    }
+
   private:
     enum Command : uint8_t {
         PadSelect = 0x01,
