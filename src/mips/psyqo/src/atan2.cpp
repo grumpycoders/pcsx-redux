@@ -84,8 +84,8 @@ psyqo::Angle psyqo::atan2(int32_t y, int32_t x) {
     int32_t den = steep ? ay : ax;
     // Only the ratio matters, so shift both down until the numerator can carry 13
     // extra bits inside an int32_t. This keeps the whole thing off __divdi3, which
-    // the R3000 does not have, and costs nothing in accuracy: what we drop is below
-    // the table's own resolution long before it is below Angle's.
+    // we don't want to depend upon, and costs nothing in accuracy: what we drop is
+    // below the table's own resolution long before it is below Angle's.
     while (den >= (1 << 18)) {
         den >>= 1;
         num >>= 1;
