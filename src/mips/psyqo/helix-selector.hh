@@ -39,11 +39,21 @@ namespace psyqo {
  * @brief A helix selector, seen down its own axis.
  *
  * @details Items are laid out along a helix wrapped around a cylinder, and the
- * camera looks straight down the helix axis. The result on screen is a spiral of
- * annular sectors: items near the camera are large and far apart, items further
- * along shrink toward the middle and pile up. Selection is whichever item is at
- * the cursor angle; you move through the list by cranking, which rotates and
- * advances at the same time, exactly as if you were walking a spiral staircase.
+ * camera looks straight down the helix axis, so the screen shows a spiral of
+ * annular sectors.
+ *
+ * EVERY ITEM OWNS A FIXED SPOKE. Item `i` sits at angle `i * 2pi / itemsPerTurn`
+ * and never leaves it. What the crank moves is the CURSOR, which sweeps around
+ * the circle; items slide IN AND OUT along their own spokes as it approaches or
+ * passes them. So this is a dial, not a carousel: `a` is always in the same place
+ * on screen, and the user gets muscle memory for free.
+ *
+ * It follows that item `i` and item `i + itemsPerTurn` share a spoke exactly, at
+ * different radii. That is the far-side doubling that shows what is coming, and
+ * it falls out of the geometry rather than being tuned in.
+ *
+ * It also means the analog adapter is ABSOLUTE: the stick angle IS the cursor
+ * angle. Only the lap needs unwrapping, which `setStickAngle` does for you.
  *
  * This class owns the geometry and the selection state and nothing else. It has
  * no idea what a glyph is, what a character is, or that capital letters exist. It
@@ -53,9 +63,7 @@ namespace psyqo {
  *
  * The helix is infinite and the item list is CYCLIC on it: the item at helix
  * offset `d` is `(cursor + d) mod itemCount`, so cranking never hits an end, and
- * one turn out from the first item is whatever the atlas has last. The same item
- * can therefore be on screen more than once, at different radii, which is exactly
- * the far-side doubling that tells the user what is coming.
+ * one turn out from the first item is whatever the atlas has last.
  */
 class HelixSelector {
   public:
@@ -108,7 +116,6 @@ class HelixSelector {
         m_position = FixedPoint<>(int32_t(0), int32_t(0));
         m_target = m_position;
         m_selected = 0;
-        m_hasStick = false;
         m_slotCount = 0;
         FixedPoint<> two = 2.0;
         m_angleStep = two / int32_t(config.itemsPerTurn ? config.itemsPerTurn : 1);
@@ -119,22 +126,28 @@ class HelixSelector {
     /**
      * @brief Crank by an absolute stick angle.
      *
-     * @details Feed this the raw stick direction every frame while the stick is
-     * deflected, and call `releaseStick()` when it returns to centre. Successive
-     * angles are unwrapped across the +/-pi seam here, so a full revolution of the
-     * stick advances exactly one turn of the helix and crossing the seam never
-     * sends the selection the long way round.
+     * @details Feed this the raw stick direction every frame the stick is deflected
+     * enough to mean something, and simply stop calling it when it re-centres; the
+     * cursor stays where it was. The stick angle IS the cursor angle, so pointing
+     * somewhere new puts the cursor there directly. The only thing accumulated is
+     * the LAP: crossing the +/-pi seam moves you one turn along the helix rather
+     * than jumping the cursor to the far side of the dial.
      */
     void setStickAngle(Angle a) {
-        if (m_hasStick) {
-            Angle delta = shortestDelta(a, m_lastStick);
-            m_target += FixedPoint<>(delta) / m_angleStep;
-        }
-        m_lastStick = a;
-        m_hasStick = true;
+        if (m_config.itemsPerTurn == 0) return;
+        // The stick angle IS the cursor angle, so this is a straight conversion
+        // rather than an integration: no drift, and pointing the stick somewhere
+        // new puts the cursor there rather than winding toward it.
+        FixedPoint<> want = FixedPoint<>(a) / m_angleStep;
+        // `a` lives in (-1.0_pi, 1.0_pi], so `want` lands in one arbitrary lap.
+        // Slide it to the lap nearest where the cursor already is; that, and only
+        // that, is what the crank accumulates.
+        FixedPoint<> lap(int32_t(m_config.itemsPerTurn), int32_t(0));
+        FixedPoint<> half = lap / int32_t(2);
+        while ((want - m_target).raw() > half.raw()) want -= lap;
+        while ((m_target - want).raw() > half.raw()) want += lap;
+        m_target = want;
     }
-
-    void releaseStick() { m_hasStick = false; }
 
     /** @brief Crank by whole items. This is the d-pad adapter. */
     void step(int32_t items) {
@@ -175,17 +188,10 @@ class HelixSelector {
     const Slot& slot(unsigned n) const { return m_slots[n]; }
     /** @brief Where to draw the cursor marker, just inside the ring at the cursor angle. */
     Vertex cursor() const { return m_cursor; }
+    /** @brief The cursor's current angle, if you want to orient the marker you draw. */
+    Angle cursorAngle() const { return m_cursorAngle; }
 
   private:
-    static Angle shortestDelta(Angle to, Angle from) {
-        Angle d = to - from;
-        Angle full = 2.0;
-        Angle half = 1.0;
-        while (d.raw() > half.raw()) d -= full;
-        while (d.raw() <= -half.raw()) d += full;
-        return d;
-    }
-
     // Slide BOTH by whole laps together, so their difference (which is what the
     // settle animation rides on) is untouched and neither can drift out of range
     // after a few million frames of cranking.
@@ -233,7 +239,11 @@ class HelixSelector {
             // Anything at or behind the camera plane is gone.
             if (z.raw() <= (FixedPoint<>(int32_t(4), int32_t(0))).raw()) continue;
             FixedPoint<> s = m_config.cameraDistance / z;
-            Angle theta = m_cursorAngle + Angle(d * m_angleStep);
+            // The spoke is the item's OWN and does not move: only `z` above depends
+            // on the cursor. `i * angleStep` runs past a full turn and the cosine
+            // table normalises through a uint32_t modulo, so i and i+itemsPerTurn
+            // land on the same spoke by construction.
+            Angle theta = Angle(FixedPoint<>(i, int32_t(0)) * m_angleStep);
             Angle half = Angle(m_angleStep * m_config.gap) / int32_t(2);
             Angle t0 = theta - half;
             Angle t1 = theta + half;
@@ -252,10 +262,14 @@ class HelixSelector {
             slot.scale = s * (m_config.cursorZ / m_config.cameraDistance);
             slot.fade = fadeFor(d);
         }
-        FixedPoint<> cz = m_config.cursorZ;
-        FixedPoint<> cs = m_config.cameraDistance / cz;
+        // The cursor is the thing that moves. Its angle is the continuous cursor
+        // position on the same spoke scale, so it sweeps between spokes rather than
+        // snapping, and it sits just inside the ring at the cursor's own depth.
+        Angle cursorAngle = Angle(m_position * m_angleStep);
+        FixedPoint<> cs = m_config.cameraDistance / m_config.cursorZ;
         FixedPoint<> cr = m_config.innerRadius * cs - FixedPoint<>(int32_t(8), int32_t(0));
-        m_cursor = at(cr, trig.cos(m_cursorAngle), trig.sin(m_cursorAngle));
+        m_cursor = at(cr, trig.cos(cursorAngle), trig.sin(cursorAngle));
+        m_cursorAngle = cursorAngle;
     }
 
     FixedPoint<> fadeFor(FixedPoint<> d) const {
@@ -276,8 +290,7 @@ class HelixSelector {
 
     Config m_config;
     eastl::function<void(Event)> m_callback = nullptr;
-    Angle m_cursorAngle = -0.5;  // straight up, since screen y grows downward
-    Angle m_lastStick;
+    Angle m_cursorAngle;
     FixedPoint<> m_angleStep;
     FixedPoint<> m_position;
     FixedPoint<> m_target;
@@ -286,7 +299,6 @@ class HelixSelector {
     unsigned m_slotCount = 0;
     unsigned m_itemCount = 0;
     unsigned m_selected = 0;
-    bool m_hasStick = false;
 };
 
 }  // namespace psyqo

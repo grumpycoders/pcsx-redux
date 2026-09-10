@@ -32,7 +32,6 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#include "common/syscalls/syscalls.h"
 #include "psyqo/advancedpad.hh"
 #include "psyqo/application.hh"
 #include "psyqo/atan2.hh"
@@ -93,8 +92,6 @@ class HelixScene final : public psyqo::Scene {
     bool m_prevRight = false;
     bool m_submitted = false;
     uint32_t m_activations = 0;
-    int32_t m_attract = 0;
-    bool m_attracting = true;
 
     void onEvent(psyqo::HelixSelector::Event e);
     void readInput();
@@ -180,38 +177,16 @@ void HelixScene::readInput() {
     auto& pad = helix.m_input;
     auto p = psyqo::AdvancedPad::Pad::Pad1a;
 
-    // Attract mode. With nothing plugged in there is no input to read, so drive
-    // the crank ourselves off a synthetic stick sweeping a circle. This is the
-    // same code path a real stick takes, atan2 and all.
-    // Latch out of attract on the first real button, not on pad TYPE: a missing
-    // pad reports a phantom stick at a constant angle, which reads as "held" and
-    // silently freezes the crank.
-    if (pad.isButtonPressed(p, psyqo::AdvancedPad::Start) || pad.isButtonPressed(p, psyqo::AdvancedPad::Cross) ||
-        pad.isButtonPressed(p, psyqo::AdvancedPad::Left) || pad.isButtonPressed(p, psyqo::AdvancedPad::Right)) {
-        m_attracting = false;
-    }
-    if (m_attracting) {
-        m_attract += 6;
-        int32_t ax = (helix.m_trig.cos(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 4000).integer<int32_t>();
-        int32_t ay = (helix.m_trig.sin(psyqo::Angle(m_attract, psyqo::Angle::RAW)) * 4000).integer<int32_t>();
-        m_selector.setStickAngle(psyqo::atan2(ay, ax));
-        return;
-    }
-
     // Shoulder held means draw capitals. Pure presentation: the selector never
     // hears about this, and the item count does not change.
     m_upper = pad.isButtonPressed(p, psyqo::AdvancedPad::L1) || pad.isButtonPressed(p, psyqo::AdvancedPad::R1);
 
-    // Analog adapter: crank. Feed the raw stick direction every frame it is
-    // deflected; the selector unwraps successive angles itself, so one full
-    // revolution of the stick is exactly one turn of the helix.
+    // Analog adapter. The stick angle is the cursor angle directly, so this is a
+    // dial: point at a spoke and the cursor is there. Stop feeding it when the
+    // stick re-centres and the cursor simply stays put.
     int32_t sx = int32_t(pad.getAdc(p, 2)) - 128;
     int32_t sy = int32_t(pad.getAdc(p, 3)) - 128;
-    if ((sx * sx + sy * sy) > (40 * 40)) {
-        m_selector.setStickAngle(psyqo::atan2(sy, sx));
-    } else {
-        m_selector.releaseStick();
-    }
+    if ((sx * sx + sy * sy) > (40 * 40)) m_selector.setStickAngle(psyqo::atan2(sy, sx));
 
     // D-pad adapter: one item per press.
     bool left = pad.isButtonPressed(p, psyqo::AdvancedPad::Left);
@@ -226,11 +201,7 @@ void HelixScene::readInput() {
     m_prevCross = cross;
 }
 
-[[gnu::noinline]] void helixReady() { ramsyscall_printf("HELIX-READY\n"); }
-
 void HelixScene::frame() {
-    static uint32_t s_frameNo = 0;
-    s_frameNo++;
     readInput();
     m_selector.update(helix.m_trig);
 
@@ -268,7 +239,6 @@ void HelixScene::frame() {
     helix.m_font.print(helix.gpu(), m_text, {{.x = 128, .y = 112}}, {{.r = 255, .g = 255, .b = 255}});
     helix.m_font.printf(helix.gpu(), {{.x = 8, .y = 8}}, {{.r = 160, .g = 160, .b = 180}}, "sel %d  vis %d  act %d%s",
                         selected, count, m_activations, m_submitted ? "  SUBMITTED" : "");
-    if (s_frameNo == 450) helixReady();
 }
 
 int main() { return helix.run(); }
