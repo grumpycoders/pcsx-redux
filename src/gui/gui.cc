@@ -2309,6 +2309,17 @@ this setting may not have any effect for you.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(Emulates an installed 8MB system,
 instead of the normal 2MB. Useful for working
 with development binaries and games.)"));
+        changed |= ImGui::InputScalar(_("Memory Fill Value"), ImGuiDataType_U8,
+                                      (void*)&settings.get<Emulator::SettingMemoryFillValue>().value, nullptr, nullptr,
+                                      "%02x", 0);
+        ImGuiHelpers::ShowHelpMarker(_(R"(The SDRAM of the console will be
+filled with this value at startup.
+On real hardware, the SDRAM decays over time,
+and its contents may not be 0 on cold boot.
+This setting is useful for debugging purposes,
+to detect uninitialized memory reads that may
+cause issues in some cases.
+)"));
         changed |=
             ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
         ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
