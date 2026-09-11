@@ -312,10 +312,11 @@ sub generateImguiGeneric {
             push(@before, "UINT_ARG($name)");
           }
           push(@funcArgs, $name);
-        #ImTextureID or const ImTextureID&
-        # const ImTextureID& is the same thing as var
-        # as lua is concerned
-        } elsif ($args[$i] =~ m/^ *(ImTextureID|const ImTextureID&) ([^ =\[]*) *$/) {
+        #ImTextureID, const ImTextureID&, or ImTextureRef (ImGui v1.92+)
+        # const ImTextureID& is the same thing as ImTextureID as far as lua is concerned.
+        # ImTextureRef in v1.92 wraps an ImTextureID and constructs implicitly from one,
+        # so we pull the Lua arg as ImTextureID and let C++ wrap it at the call site.
+        } elsif ($args[$i] =~ m/^ *(ImTextureID|const ImTextureID&|ImTextureRef) ([^ =\[]*) *$/) {
           my $name = $2;
           push(@before, "IM_TEXTURE_ID_ARG($name)");
           push(@funcArgs, $name);

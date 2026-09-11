@@ -41,10 +41,17 @@ bins/
 /pcsx-redux
 /authoring
 /exe2elf
+/exe2exe
 /exe2iso
+/midi2psm
+/midi2spd
 /modconv
 /ps1-packer
 /psyq-obj-parser
+/pcsx-redux-tests
+
+# PCDRV test leftover
+/testfile
 
 # Temporary files from pcsx itself
 pcsx.json
@@ -58,7 +65,7 @@ fb.bat
 
 # macos files
 .DS_store
-
+PCSX-Redux.app
 
 # Savestate files
 *.sstate
@@ -130,3 +137,8 @@ luacov.stats.out
 /AppDir
 /*.AppImage
 /*.AppImage.zsync
+
+# xmake
+.xmake/
+build/
+

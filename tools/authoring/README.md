@@ -27,7 +27,7 @@ The tool takes a json file as input, which can have the following structure:
         "application_id": "MY_APP_ID",
         "copyright": "MY_COPYRIGHT",
         "abstract": "MY_ABSTRACT",
-        "bibliographic": "MY_BIBLIOGRAPHIC",
+        "bibliographic": "MY_BIBLIOGRAPHIC"
     }
 }
 ```

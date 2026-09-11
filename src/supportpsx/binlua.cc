@@ -35,6 +35,7 @@ SOFTWARE.
 #include "supportpsx/binloader.h"
 #include "supportpsx/n2e-d.h"
 #include "supportpsx/ps1-packer.h"
+#include "supportpsx/ucl-utils.h"
 #include "ucl/ucl.h"
 
 namespace {
@@ -86,6 +87,23 @@ uint32_t uclWrapper(const uint8_t* in, uint32_t size, uint8_t* out) {
     return r == UCL_E_OK ? outSize : 0;
 }
 
+uint32_t uclGetOverlapMargin(const uint8_t* src, size_t srcLen, size_t expectedDstLen) {
+    auto margin = PCSX::UCLUtils::inPlaceOverlapMargin(src, srcLen, expectedDstLen);
+    ssize_t relMargin = margin - srcLen + expectedDstLen;
+    return std::clamp<uint32_t>(relMargin, 0L, static_cast<long>(std::numeric_limits<uint32_t>::max()));
+}
+
+// Decompress an NRV2E-compressed payload into a caller-allocated buffer of capacity
+// expectedOutSize. The decompressor is the bounds-checked "safe" variant so corrupted
+// input produces an error return rather than a buffer overrun. Returns the actual
+// number of bytes written on success, or 0 on any failure (UCL error or size mismatch).
+uint32_t uclUnpackWrapper(const uint8_t* in, uint32_t inSize, uint8_t* out, uint32_t expectedOutSize) {
+    ucl_uint outSize = expectedOutSize;
+    auto r = ucl_nrv2e_decompress_safe_8(in, inSize, out, &outSize, nullptr);
+    if (r != UCL_E_OK) return 0;
+    return outSize;
+}
+
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
 void registerAllSymbols(PCSX::Lua L) {
@@ -95,6 +113,8 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, binaryLoaderLoad);
     REGISTER(L, ps1PackerPack);
     REGISTER(L, uclWrapper);
+    REGISTER(L, uclUnpackWrapper);
+    REGISTER(L, uclGetOverlapMargin);
     REGISTER(L, writeUclDecomp);
     L.settable();
     L.pop();

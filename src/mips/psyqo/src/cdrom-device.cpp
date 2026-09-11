@@ -64,82 +64,87 @@ void psyqo::CDRomDevice::ActionBase::queueCallbackFromISR(bool success) {
 }
 
 void psyqo::CDRomDevice::irq() {
-    Kernel::assert(m_action != nullptr, "CDRomDevice::irq() called with no action - spurious interrupt?");
-    uint8_t cause = Hardware::CDRom::Cause;
+    bool ranOnce = false;
+    while (true) {
+        uint8_t cause = Hardware::CDRom::Cause;
+        if (ranOnce && ((cause & 15) == 0)) break;
+        ranOnce = true;
+        Kernel::assert(m_action != nullptr, "CDRomDevice::irq() called with no action - spurious interrupt?");
 
-    if (cause & 7) {
-        Hardware::CDRom::Cause = 7;
-    }
+        if (cause & 7) {
+            Hardware::CDRom::Cause = 7;
+        }
 
-    if (cause & 0x18) {
-        Hardware::CDRom::Cause = 0x18;
-    }
+        if (cause & 0x18) {
+            Hardware::CDRom::Cause = 0x18;
+        }
 
-    bool callCallback = false;
-    Response response;
-    while ((Hardware::CDRom::Ctrl.access() & 0x20) && (response.size() < 16)) {
-        response.push_back(Hardware::CDRom::Response);
-    }
+        bool callCallback = false;
+        Response response;
+        while ((Hardware::CDRom::Ctrl.access() & 0x20) && (response.size() < 16)) {
+            response.push_back(Hardware::CDRom::Response);
+        }
 
 #ifdef DEBUG_CDROM_RESPONSES
-    if (m_blocking) {
-        ramsyscall_printf("Got CD-Rom response:");
-        for (auto byte : response) {
-            ramsyscall_printf(" %02x", byte);
-        }
-        syscall_puts("\n");
-    } else {
-        Kernel::queueCallbackFromISR([response]() {
+        if (m_blocking) {
             ramsyscall_printf("Got CD-Rom response:");
             for (auto byte : response) {
                 ramsyscall_printf(" %02x", byte);
             }
             syscall_puts("\n");
-        });
-    }
-#endif
-
-    switch (cause & 7) {
-        case 1:
-            callCallback = m_action->dataReady(response);
-            break;
-        case 2:
-            callCallback = m_action->complete(response);
-            break;
-        case 3:
-            callCallback = m_action->acknowledge(response);
-            break;
-        case 4:
-            callCallback = m_action->end(response);
-            break;
-        case 5: {
-            m_success = false;
-            callCallback = true;
-#ifdef DEBUG_CDROM_ERRORS
-            m_callback = [callback = eastl::move(m_callback), name = m_action->name(),
-                          response = eastl::move(response)](bool) {
-                ramsyscall_printf("Got CD-Rom error during action %s:", name);
+        } else {
+            Kernel::queueCallbackFromISR([response]() {
+                ramsyscall_printf("Got CD-Rom response:");
                 for (auto byte : response) {
                     ramsyscall_printf(" %02x", byte);
                 }
                 syscall_puts("\n");
-                callback(false);
-            };
+            });
+        }
 #endif
-        } break;
-        default:
-            Kernel::abort("CDRomDevice::irq() invoked with unknown cause");
-            break;
-    }
 
-    if (callCallback) {
-        Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
-        m_action = nullptr;
-        if (m_blocking) {
-            actionComplete();
-        } else {
-            eastl::atomic_signal_fence(eastl::memory_order_acquire);
-            Kernel::queueCallbackFromISR([this]() { actionComplete(); });
+        switch (cause & 7) {
+            case 1:
+                callCallback = m_action->dataReady(response);
+                break;
+            case 2:
+                callCallback = m_action->complete(response);
+                break;
+            case 3:
+                callCallback = m_action->acknowledge(response);
+                break;
+            case 4:
+                callCallback = m_action->end(response);
+                break;
+            case 5: {
+                m_success = false;
+                callCallback = true;
+#ifdef DEBUG_CDROM_ERRORS
+                m_callback = [callback = eastl::move(m_callback), name = m_action->name(),
+                              response = eastl::move(response)](bool) {
+                    ramsyscall_printf("Got CD-Rom error during action %s:", name);
+                    for (auto byte : response) {
+                        ramsyscall_printf(" %02x", byte);
+                    }
+                    syscall_puts("\n");
+                    callback(false);
+                };
+#endif
+            } break;
+            default:
+                Kernel::abort("CDRomDevice::irq() invoked with unknown cause");
+                break;
+        }
+
+        if (callCallback) {
+            Kernel::assert(!!m_callback, "Wrong CDRomDevice state");
+            m_action = nullptr;
+            if (m_blocking) {
+                actionComplete();
+            } else {
+                eastl::atomic_signal_fence(eastl::memory_order_acquire);
+                Kernel::queueCallbackFromISR([this]() { actionComplete(); });
+            }
         }
     }
 }

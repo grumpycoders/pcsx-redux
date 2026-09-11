@@ -42,14 +42,17 @@ class Debug {
     void checkDMAread(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} read", c);
         checkBP(address, BreakpointType::Read, len, cause.c_str());
+        logDMAAccess(address, len, false);
     }
     void checkDMAwrite(unsigned c, uint32_t address, uint32_t len) {
         std::string cause = fmt::format("DMA channel {} write", c);
         checkBP(address, BreakpointType::Write, len, cause.c_str());
+        logDMAAccess(address, len, true);
     }
 
   private:
     void checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause = "");
+    void logDMAAccess(uint32_t address, uint32_t len, bool isWrite);
 
   public:
     // call this if PC is being set, like when the emulation is being reset, or when doing fastboot

@@ -49,6 +49,8 @@ class SharedMem {
     uint8_t* getPtr() { return m_mem; }
     size_t getSize() { return m_size; }
 
+    const std::string& getSharedName() { return m_sharedName; }
+
   private:
     std::string getSharedName(const char* id, uint32_t pid);
 

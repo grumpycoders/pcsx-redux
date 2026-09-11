@@ -29,20 +29,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -182,7 +182,7 @@
     <ProjectReference Include="..\..\ImFileDialog\ImFileDialog.vcxproj">
       <Project>{2bf92257-03c6-43fe-85e8-918166a07a26}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\imgui-glfw-ogl3\imgui-glfw-ogl3.vcxproj">
+    <ProjectReference Include="..\..\imgui-sdl3-ogl3\imgui-sdl3-ogl3.vcxproj">
       <Project>{b86f9380-6228-4b11-87ad-29fdabf95abb}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\imgui_lua_bindings\imgui_lua_bindings.vcxproj">
@@ -221,6 +221,9 @@
     <ProjectReference Include="..\..\nanovg\nanovg.vcxproj">
       <Project>{b68e9c60-8362-4a32-ac2e-4f0c2673f3e1}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\SDL\SDL.vcxproj">
+      <Project>{13621b3d-871a-46a0-935f-d92a585ae034}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\soft\soft.vcxproj">
       <Project>{660a9963-15e0-4b91-a5cf-bed493e862ec}</Project>
     </ProjectReference>
@@ -255,27 +258,29 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\memcpy.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\psyqo.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\packages\glfw.3.4.0\build\native\glfw.targets" Condition="Exists('..\..\packages\glfw.3.4.0\build\native\glfw.targets')" />
     <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" />
-    <Import Project="..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" />
+    <Import Project="..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\glfw.3.4.0\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\glfw.3.4.0\build\native\glfw.targets'))" />
     <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
-    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1739213504\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

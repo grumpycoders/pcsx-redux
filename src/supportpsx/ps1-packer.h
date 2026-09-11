@@ -26,13 +26,13 @@ SOFTWARE.
 
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 
 #include "support/file.h"
 
-namespace PCSX {
-
-namespace PS1Packer {
+namespace PCSX::PS1Packer {
 
 struct Options {
     uint32_t tload = 0;
@@ -46,8 +46,6 @@ struct Options {
     bool cpe = false;
 };
 
-void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options &);
+void pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t pc, uint32_t gp, uint32_t sp, const Options&);
 
-}  // namespace PS1Packer
-
-}  // namespace PCSX
+}  // namespace PCSX::PS1Packer

@@ -18,6 +18,24 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.5.1
+  - Trying a different method to install the mips tool on Powershell.
+- 0.5.0
+  - Switching from the webfreak debugger to the official Microsoft debugger for VSCode.
+  - Added natvis support for psyqo and eastl.
+- 0.4.1
+  - Bumping gcc to 16.1.0
+  - Bumping binutils to 2.46.1
+  - Bumping gdb to 17.2
+- 0.4.0
+  - Fixed installation issues with MacOS Sequoia.
+  - Bumping gcc to 15.2.0
+  - Bumping binutils to 2.45
+  - Fixed installation issues with the Windows MIPS toolchain when PowerShell is the default shell.
+  - Fixed Python detection and virtual environment setup on Windows.
+  - Fixed CMake installation on Windows.
+- 0.3.10
+  - Fixed the empty-cmake and cmake-cube bare-metal templates to build against the latest ps1-bare-metal.
 - 0.3.9
   - Fixed cube psyqo template's null pointer exception.
   - Improved MacOS mips toolchain installation process.

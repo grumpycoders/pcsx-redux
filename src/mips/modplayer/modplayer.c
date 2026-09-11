@@ -104,10 +104,10 @@ static void SPUResetVoice(int voiceID) {
     SPU_VOICES[voiceID].volumeRight = 0;
     SPU_VOICES[voiceID].sampleRate = 0;
     SPU_VOICES[voiceID].sampleStartAddr = 0;
-    SPU_VOICES[voiceID].ad = 0x000f;
+    SPU_VOICES[voiceID].adsrLo = 0x000f;
     SPU_VOICES[voiceID].currentVolume = 0;
     SPU_VOICES[voiceID].sampleRepeatAddr = 0;
-    SPU_VOICES[voiceID].sr = 0x0000;
+    SPU_VOICES[voiceID].adsrHi = 0x0000;
 }
 
 static void SPUUploadInstruments(uint32_t SpuAddr, const uint8_t* data, uint32_t size) {

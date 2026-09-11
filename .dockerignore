@@ -1,0 +1,8 @@
+# The build image only needs a couple of scripts out of the tree, so keep the
+# build context from dragging in a full local build.
+.git
+objs/
+bins/
+/pcsx-redux
+/pcsx-redux-tests
+*.AppImage

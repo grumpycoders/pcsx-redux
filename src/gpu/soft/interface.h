@@ -28,7 +28,7 @@ class UI;
 
 namespace SoftGPU {
 
-class impl final : public GPU, public SoftRenderer {
+class impl final : public GPU, private SoftRenderer {
     int32_t initBackend(UI *) override;
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;

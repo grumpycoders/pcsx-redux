@@ -23,7 +23,6 @@
 #include <numbers>
 
 #include "core/disr3000a.h"
-#include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
 #include "fmt/format.h"
@@ -31,7 +30,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
-void PCSX::Widgets::Registers::makeEditableRegister(const char* name, uint32_t reg) {
+void PCSX::Widgets::Registers::contextMenu(const char* name, uint32_t reg, uint32_t radix) {
     std::string contextLabel = fmt::format(f_("Context##{}"), name);
     if (ImGui::BeginPopupContextItem(contextLabel.c_str())) {
         if (ImGui::MenuItem(_("Go to in Assembly"))) {
@@ -41,72 +40,40 @@ void PCSX::Widgets::Registers::makeEditableRegister(const char* name, uint32_t r
             g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{reg, 1});
         }
         if (ImGui::MenuItem(_("Copy Value"))) {
-            char strVal[10];
-            std::snprintf(strVal, sizeof(strVal), "%8.8x", reg);
+            char strVal[20];
+            if (radix == 16) {
+                std::snprintf(strVal, sizeof(strVal), "%8.8x", reg);
+            } else {
+                std::snprintf(strVal, sizeof(strVal), "%d", (int32_t)reg);
+            }
             ImGui::SetClipboardText(strVal);
         }
         ImGui::EndPopup();
     }
-    ImGui::SameLine();
-    std::string label = fmt::format(f_("Edit##{}"), name);
-    if (ImGui::SmallButton(label.c_str())) {
-        m_editorToOpen = fmt::format(f_("Edit value of {}"), name);
-        snprintf(m_registerEditor, 19, "%08x", reg);
+}
+
+void PCSX::Widgets::Registers::updateRegisterValue(PCSX::psxRegisters* registers, const std::string& val, int reg,
+                                                   int radix) {
+    if (val.empty()) return;
+    char* endPtr = nullptr;
+    uint32_t newReg;
+    if (radix == 16) {
+        uint64_t parsed = strtoull(val.c_str(), &endPtr, 16);
+        if (*endPtr || parsed > UINT32_MAX) return;
+        newReg = (uint32_t)parsed;
+    } else {
+        int64_t parsed = strtoll(val.c_str(), &endPtr, 10);
+        if (*endPtr || parsed < INT32_MIN || parsed > UINT32_MAX) return;
+        newReg = (uint32_t)parsed;
+    }
+    if (reg == 34) {
+        registers->pc = newReg;
+    } else {
+        registers->GPR.r[reg] = newReg;
     }
 }
 
-static constexpr std::string_view irqName(unsigned n) {
-    switch (n) {
-        case 0:
-            return "VBLANK";
-        case 1:
-            return "GPU";
-        case 2:
-            return "CDROM";
-        case 3:
-            return "DMA";
-        case 4:
-            return "TIMER0";
-        case 5:
-            return "TIMER1";
-        case 6:
-            return "TIMER2";
-        case 7:
-            return "CONTROLLER";
-        case 8:
-            return "SIO";
-        case 9:
-            return "SPU";
-        case 10:
-            return "PIO";
-        default:
-            return "UNKNOWN";
-    }
-}
-
-static constexpr std::string_view dmaName(unsigned n) {
-    switch (n) {
-        case 0:
-            return "MDECin";
-        case 1:
-            return "MDECout";
-        case 2:
-            return "GPU";
-        case 3:
-            return "CDROM";
-        case 4:
-            return "SPU";
-        case 5:
-            return "PIO";
-        case 6:
-            return "OTC";
-        default:
-            return "UNKNOWN";
-    }
-}
-
-void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, PCSX::Memory* memory,
-                                    const char* title) {
+void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* registers, const char* title) {
     ImGui::SetNextWindowPos(ImVec2(1040, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(210, 512), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, &m_show)) {
@@ -118,6 +85,18 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
         gui->useMonoFont();
         if (ImGui::BeginTabItem("GPR")) {
             unsigned counter = 0;
+
+            static const uint8_t colorIndices[34] = {0, 1, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+                                                     1, 1, 1, 1, 1, 1, 1, 2, 2, 0, 0, 1, 1, 1, 1, 0, 0};
+
+            static const ImVec4 colors[3] = {
+                ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+                ImVec4(0.0f, 1.0f, 1.0f, 1.0f),
+                ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+            };
+
+            ImGui::PushItemWidth(100);
+
             for (auto& reg : registers->GPR.r) {
                 const char* name;
                 if (counter >= 32) {
@@ -135,13 +114,56 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                 } else {
                     name = PCSX::Disasm::s_disRNameGPR[counter];
                 }
-                ImGui::Text("%s: %08x", name, reg);
-                makeEditableRegister(name, reg);
+
+                ImGui::TextColored(colors[colorIndices[counter]], "%s:", name);
+                ImGui::SameLine();
+
+                char label[8];
+                std::snprintf(label, sizeof(label), "##%2d", counter);
+                std::string val = fmt::format("{0:08x}", reg);
+                if (ImGui::InputText(label, &val,
+                                     ((counter == 0) ? ImGuiInputTextFlags_ReadOnly : 0) |
+                                         ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_AutoSelectAll) ||
+                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                    updateRegisterValue(registers, val, counter, 16);
+                }
+
+                if (counter > 0) {
+                    contextMenu(label, reg, 16);
+                    ImGui::SameLine();
+                    ImGui::PushItemWidth(120);
+
+                    char label2[8];
+                    std::snprintf(label2, sizeof(label2), "##i%2d", counter);
+                    std::string val2 = fmt::format("{0}", (int32_t)reg);
+                    if (ImGui::InputText(label2, &val2,
+                                         ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_AutoSelectAll) ||
+                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                        updateRegisterValue(registers, val2, counter, 10);
+                    }
+                    std::snprintf(label2, sizeof(label2), "##ic%2d", counter);
+                    contextMenu(label2, reg, 10);
+                    ImGui::PopItemWidth();
+                }
+
                 counter++;
             }
+
             ImGui::Separator();
-            ImGui::Text("pc: %08x", registers->pc);
-            makeEditableRegister("pc", registers->pc);
+            ImGui::Text("pc:");
+            ImGui::SameLine();
+            std::string valPC = fmt::format("{0:08x}", registers->pc);
+            if (ImGui::InputText("##pc", &valPC,
+                                 ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
+                                 ImGuiInputTextFlags_AutoSelectAll) ||
+                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                updateRegisterValue(registers, valPC, counter, 16);
+            }
+            contextMenu("##pc", registers->pc, 16);
+            ImGui::PopItemWidth();
+
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("CP0")) {
@@ -342,83 +364,20 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem(_("Misc"))) {
-            ImGui::Text("pc   : %08x", registers->pc);
-            makeEditableRegister("pc", registers->pc);
+            ImGui::Text("pc   :");
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            std::string val = fmt::format("{0:08x}", registers->pc);
+            if (ImGui::InputText("##pc", &val,
+                                 ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
+                                 ImGuiInputTextFlags_AutoSelectAll) ||
+                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                updateRegisterValue(registers, val, 34, 16);
+            }
+            contextMenu("##pc", registers->pc, 16);
+            ImGui::PopItemWidth();
             ImGui::Text("cycle: %08x", registers->cycle);
             ImGui::Text("int  : %08x", registers->interrupt);
-            ImGui::Separator();
-            uint32_t istat = memory->readHardwareRegister<PCSX::Memory::ISTAT>();
-            uint32_t imask = memory->readHardwareRegister<PCSX::Memory::IMASK>();
-            uint32_t dpcr = memory->readHardwareRegister<PCSX::Memory::DMA_PCR>();
-            uint32_t dicr = memory->readHardwareRegister<PCSX::Memory::DMA_ICR>();
-            std::string istatStr = fmt::format("IStat: {0:08x}###ISTAT", istat);
-            if (ImGui::TreeNode(istatStr.c_str())) {
-                for (unsigned i = 0; i < 11; i++) {
-                    bool enabled = istat & (1 << i);
-                    ImGui::Checkbox(irqName(i).data(), &enabled);
-                    uint32_t bit = 1 << i;
-                    istat = enabled ? (istat | bit) : (istat & ~bit);
-                }
-                ImGui::TreePop();
-            }
-            memory->writeHardwareRegister<PCSX::Memory::ISTAT>(istat);
-            std::string imaskStr = fmt::format("IMask: {0:08x}###IMASK", imask);
-            if (ImGui::TreeNode(imaskStr.c_str())) {
-                for (unsigned i = 0; i < 11; i++) {
-                    bool enabled = imask & (1 << i);
-                    ImGui::Checkbox(irqName(i).data(), &enabled);
-                    uint32_t bit = 1 << i;
-                    imask = enabled ? (imask | bit) : (imask & ~bit);
-                }
-                ImGui::TreePop();
-            }
-            memory->writeHardwareRegister<PCSX::Memory::IMASK>(imask);
-            ImGui::Separator();
-            std::string dpcrStr = fmt::format("DPCR : {0:08x}###DPCR", dpcr);
-            if (ImGui::TreeNode(dpcrStr.c_str())) {
-                for (unsigned i = 0; i < 7; i++) {
-                    unsigned priority = (dpcr >> (i * 4)) & 0x7;
-                    bool enabled = (dpcr >> (i * 4 + 3)) & 0x1;
-                    ImGui::Text("%8s: %u", dmaName(i).data(), priority);
-                    ImGui::SameLine();
-                    std::string checkboxStr = fmt::format("###Enabled{}", i);
-                    ImGui::Checkbox(checkboxStr.c_str(), &enabled);
-                    uint32_t bit = 1 << (i * 4 + 3);
-                    dpcr = enabled ? (dpcr | bit) : (dpcr & ~bit);
-                }
-                ImGui::Text("     CPU: %u", (dpcr >> 21) & 0x7);
-                memory->writeHardwareRegister<PCSX::Memory::DMA_PCR>(dpcr);
-                ImGui::TreePop();
-            }
-            std::string dicrStr = fmt::format("DICR : {0:08x}###DICR", dicr);
-            if (ImGui::TreeNode(dicrStr.c_str())) {
-                bool busError = (dicr >> 15) & 1;
-                ImGui::Checkbox(_("Bus Error"), &busError);
-                dicr = busError ? (dicr | (1 << 15)) : (dicr & ~(1 << 15));
-                bool dmaIrqEnabled = (dicr >> 23) & 1;
-                ImGui::Checkbox(_("DMA IRQ Enabled"), &dmaIrqEnabled);
-                dicr = dmaIrqEnabled ? (dicr | (1 << 23)) : (dicr & ~(1 << 23));
-                bool dmaIrqTriggered = (dicr >> 31) & 1;
-                ImGui::Checkbox(_("DMA IRQ Triggered"), &dmaIrqTriggered);
-                dicr = dmaIrqTriggered ? (dicr | (1 << 31)) : (dicr & ~(1 << 31));
-                for (unsigned i = 0; i < 7; i++) {
-                    auto name = dmaName(i);
-                    if (ImGui::TreeNode(name.data())) {
-                        bool completion = (dicr >> i) & 1;
-                        ImGui::Checkbox(_("Completion"), &completion);
-                        dicr = completion ? (dicr | (1 << i)) : (dicr & ~(1 << i));
-                        bool mask = (dicr >> (i + 16)) & 1;
-                        ImGui::Checkbox(_("IRQ Enabled"), &mask);
-                        dicr = mask ? (dicr | (1 << (i + 16))) : (dicr & ~(1 << (i + 16)));
-                        bool triggered = (dicr >> (i + 24)) & 1;
-                        ImGui::Checkbox(_("Triggered"), &triggered);
-                        dicr = triggered ? (dicr | (1 << (i + 24))) : (dicr & ~(1 << (i + 24)));
-                        ImGui::TreePop();
-                    }
-                }
-                memory->writeHardwareRegister<PCSX::Memory::DMA_ICR>(dicr);
-                ImGui::TreePop();
-            }
             ImGui::EndTabItem();
         }
         ImGui::PopFont();
@@ -426,49 +385,4 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
     }
 
     ImGui::End();
-
-    if (!m_editorToOpen.empty()) {
-        ImGui::OpenPopup(m_editorToOpen.c_str());
-        m_editorToOpen = "";
-    }
-    for (unsigned counter = 0; counter < 35; counter++) {
-        const char* name;
-        if (counter >= 32) {
-            switch (counter) {
-                case 32:
-                    name = "hi";
-                    break;
-                case 33:
-                    name = "lo";
-                    break;
-                case 34:
-                    name = "pc";
-                    break;
-                default:
-                    name = "??";
-                    break;
-            }
-        } else {
-            name = PCSX::Disasm::s_disRNameGPR[counter];
-        }
-        std::string editor = fmt::format(f_("Edit value of {}"), name);
-        if (ImGui::BeginPopupModal(editor.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text(_("Change the value of register %s:"), name);
-            if (ImGui::InputText(_("Register"), m_registerEditor, 20,
-                                 ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
-                char* endPtr;
-                uint32_t newReg = strtoul(m_registerEditor, &endPtr, 16);
-                if (!*endPtr) {
-                    if (counter == 34) {
-                        registers->pc = newReg;
-                    } else {
-                        registers->GPR.r[counter] = newReg;
-                    }
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-            if (ImGui::Button(_("Cancel"))) ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-        }
-    }
 }

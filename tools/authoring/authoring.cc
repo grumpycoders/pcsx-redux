@@ -41,6 +41,7 @@
 #include "supportpsx/iso9660-builder.h"
 #include "supportpsx/iso9660-lowlevel.h"
 #include "supportpsx/ps1-packer.h"
+#include "supportpsx/ucl-utils.h"
 #include "ucl/ucl.h"
 
 template <PCSX::PolyFill::IntegralConcept T, std::endian endianess = std::endian::little>
@@ -96,6 +97,7 @@ int main(int argc, char** argv) {
     const auto inputs = args.positional();
     const auto license = args.get<std::string>("license");
     const bool asksForHelp = !!args.get<bool>("h");
+    const bool quiet = !!args.get<bool>("q");
     const bool hasOutput = output.has_value();
     const bool hasExactlyOneInput = inputs.size() == 1;
 
@@ -107,6 +109,7 @@ Usage: {} input.json [-h] -o output.bin
   -basedir path     optional: base directory for the input files.
   -license file     optional: use this license file.
   -threads count    optional: number of threads to use for compression.
+  -q                optional: only print errors.
   -h                displays this help information and exit.
 )",
                    argv[0]);
@@ -199,7 +202,9 @@ Usage: {} input.json [-h] -o output.bin
         fmt::print("Too many files specified ({}), max allowed is {}\n", filesCount, c_maximumSectorCount);
         return -1;
     }
-    fmt::print("Index size: {}\n", indexSectorsCount * 2048);
+    if (!quiet) {
+        fmt::print("Index size: {}\n", indexSectorsCount * 2048);
+    }
 
     PCSX::PS1Packer::Options options;
     options.booty = false;
@@ -219,11 +224,14 @@ Usage: {} input.json [-h] -o output.bin
         fmt::print("Executable size is not a multiple of 2048\n");
         return -1;
     }
-    fmt::print("Executable size: {}\n", compressedExecutable->size());
-    fmt::print("Executable location: {}\n", 23 + indexSectorsCount);
+    if (!quiet) {
+        fmt::print("Executable size: {}\n", compressedExecutable->size());
+        fmt::print("Executable location: {}\n", 23 + indexSectorsCount);
+    }
 
     const unsigned executableSectorsCount = compressedExecutable->size() / 2048;
     unsigned currentSector = 23 + indexSectorsCount;
+    std::atomic<uint32_t> maxMargin;
 
     for (unsigned i = 0; i < executableSectorsCount; i++) {
         auto sector = compressedExecutable.asA<PCSX::BufferFile>()->borrow(i * 2048);
@@ -240,6 +248,7 @@ Usage: {} input.json [-h] -o output.bin
         std::binary_semaphore semaphore;
         std::vector<uint8_t> sectorData;
         nlohmann::json fileInfo;
+        uint32_t margin;
         bool failed;
     };
     static WorkUnit work[c_maximumSectorCount];
@@ -300,6 +309,16 @@ Usage: {} input.json [-h] -o output.bin
                     continue;
                 }
 
+                ssize_t margin = PCSX::UCLUtils::inPlaceOverlapMargin(dataOut.data() + 2048, outSize, size);
+                ssize_t relMargin = margin - size + outSize;
+                workUnit.margin =
+                    std::clamp<uint32_t>(relMargin, 0L, static_cast<long>(std::numeric_limits<uint32_t>::max()));
+                do {
+                    auto oldOverlap = maxMargin.load();
+                    if (workUnit.margin <= oldOverlap) break;
+                    if (maxMargin.compare_exchange_weak(oldOverlap, workUnit.margin)) break;
+                } while (1);
+
                 unsigned compressedSectorsCount = (outSize + 2047) / 2048;
 
                 IndexEntry* entry = &indexEntryData[workUnitIndex];
@@ -356,11 +375,14 @@ Usage: {} input.json [-h] -o output.bin
             return -1;
         }
         IndexEntry* entry = &indexEntryData[workUnitIndex];
-        fmt::print("Processed file: {}\n", workUnit.fileInfo["path"].get<std::string>());
-        fmt::print("  Original size: {}\n", entry->getDecompSize());
-        fmt::print("  Compressed size: {}\n", entry->getCompressedSize() * 2048);
-        fmt::print("  Compression method: {}\n", static_cast<uint32_t>(entry->getCompressionMethod()));
-        fmt::print("  Sector offset: {}\n", currentSector);
+        if (!quiet) {
+            fmt::print("Processed file: {}\n", workUnit.fileInfo["path"].get<std::string>());
+            fmt::print("  Original size: {}\n", entry->getDecompSize());
+            fmt::print("  Compressed size: {}\n", entry->getCompressedSize() * 2048);
+            fmt::print("  Compression method: {}\n", static_cast<uint32_t>(entry->getCompressionMethod()));
+            fmt::print("  Sector offset: {}\n", currentSector);
+            fmt::print("  Margin: {}\n", workUnit.margin);
+        }
         entry->setSectorOffset(currentSector);
         unsigned sectorCount = entry->getCompressedSize();
         for (unsigned sector = 0; sector < sectorCount; sector++) {
@@ -370,10 +392,13 @@ Usage: {} input.json [-h] -o output.bin
         }
     }
 
-    fmt::print("Processed {} files.\n", filesCount);
+    if (!quiet) {
+        fmt::print("Processed {} files.\n", filesCount);
+        fmt::print("Maximum margin: {}\n", maxMargin.load());
+    }
 
     uint8_t empty[2048] = {0};
-    for (unsigned i = 0; i < 150; i++) {
+    for (unsigned i = 0; i < 9000; i++) {
         builder.writeSectorAt(empty, PCSX::IEC60908b::MSF{150 + currentSector++},
                               PCSX::IEC60908b::SectorMode::M2_FORM1);
     }
@@ -388,7 +413,9 @@ Usage: {} input.json [-h] -o output.bin
     indexEntryDataBuffer[5] = 'R';
     indexEntryDataBuffer[6] = 'C';
     indexEntryDataBuffer[7] = '1';
+    uint32_t maxMarginValue = maxMargin.load() >> 4;
     writeToBuffer(indexEntryDataBuffer.get() + 8, filesCount);
+    writeToBuffer<uint8_t>(indexEntryDataBuffer.get() + 11, maxMarginValue);
     writeToBuffer(indexEntryDataBuffer.get() + 12, totalSectorCount);
     std::sort(indexEntryData.begin(), indexEntryData.end(),
               [](const IndexEntry& a, const IndexEntry& b) { return a.hash < b.hash; });

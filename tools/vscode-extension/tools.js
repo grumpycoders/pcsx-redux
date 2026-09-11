@@ -15,40 +15,45 @@ const { Octokit } = require('@octokit/rest')
 const octokit = new Octokit()
 const os = require('node:os')
 
-const mipsVersion = '14.2.0'
+const mipsVersion = '16.2.0'
 let extensionUri
 let globalStorageUri
 let requiresReboot = false
 
-async function checkInstalled (name) {
+async function checkInstalled(name) {
   if (tools[name].installed === undefined) {
     tools[name].installed = await tools[name].check()
   }
   return tools[name].installed
 }
 
-async function checkCommands (commands, args) {
+async function findCommand(commands, args) {
   for (const command of commands) {
     try {
       await execFile(command, args)
     } catch (error) {
       continue
     }
-    return true
+    return command
   }
-  return false
+  return null
+}
+
+async function checkCommands(commands, args) {
+  return (await findCommand(commands, args)) !== null
 }
 
 let mipsInstalling = false
 let win32MipsToolsInstalling = false
 
-async function installMips () {
+async function installMips() {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
     await terminal.run('powershell', [
       '-c',
-      '& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
+      '"&"',
+      '{ iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -62,7 +67,7 @@ async function installMips () {
   }
 }
 
-async function installToolchain () {
+async function installToolchain() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -71,7 +76,7 @@ async function installToolchain () {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -82,19 +87,11 @@ async function installToolchain () {
       break
     case 'linux':
       try {
-        if (await checkInstalled('apt')) {
-          await terminal.run(
-            'sudo',
-            ['apt', 'install', 'g++-mipsel-linux-gnu'],
-            {
-              message: 'Installing the MIPS toolchain requires root privileges.'
-            }
-          )
-        } else if (await checkInstalled('trizen')) {
+        if (await checkInstalled('trizen')) {
           await terminal.run('trizen', [
             '-S',
-            'cross-mipsel-linux-gnu-binutils',
-            'cross-mipsel-linux-gnu-gcc'
+            'mipsel-none-elf-binutils',
+            'mipsel-none-elf-gcc'
           ])
         } else if (await checkInstalled('brew')) {
           const binutilsScriptPath = vscode.Uri.joinPath(
@@ -107,15 +104,15 @@ async function installToolchain () {
             'scripts',
             'mipsel-none-elf-gcc.rb'
           ).fsPath
+          await terminal.run('brew', ['install', 'nikitabobko/tap/brew-install-path'])
           await terminal.run('brew', [
-            'install',
-            '--formula',
+            'install-path',
             binutilsScriptPath,
             gccScriptPath
           ])
         } else {
           vscode.window.showErrorMessage(
-            'Your Linux distribution is not supported. You need to install the MIPS toolchain manually.'
+            'Your Linux distribution is not supported. You can build the MIPS toolchain from source using tools/linux-mips/spawn-compiler.sh in the pcsx-redux repository.'
           )
           throw new Error('Unsupported platform')
         }
@@ -139,9 +136,9 @@ async function installToolchain () {
             'scripts',
             'mipsel-none-elf-gcc.rb'
           ).fsPath
+          await terminal.run('brew', ['install', 'nikitabobko/tap/brew-install-path'])
           await terminal.run('brew', [
-            'install',
-            '--formula',
+            'install-path',
             binutilsScriptPath,
             gccScriptPath
           ])
@@ -170,7 +167,7 @@ async function installToolchain () {
   }
 }
 
-async function installGDB () {
+async function installGDB() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -179,7 +176,7 @@ async function installGDB () {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -240,7 +237,7 @@ async function installGDB () {
   }
 }
 
-async function installMake () {
+async function installMake() {
   switch (process.platform) {
     case 'win32':
       try {
@@ -249,7 +246,7 @@ async function installMake () {
         } else {
           if (win32MipsToolsInstalling) return
           win32MipsToolsInstalling = true
-          await terminal.run('mips', ['install', mipsVersion])
+          await terminal.run('cmd', ['/c', `mips install ${mipsVersion}`])
         }
       } catch (error) {
         vscode.window.showErrorMessage(
@@ -285,7 +282,7 @@ async function installMake () {
   }
 }
 
-async function installCMake () {
+async function installCMake() {
   switch (process.platform) {
     case 'win32':
       const release = await octokit.rest.repos.getLatestRelease({
@@ -306,7 +303,7 @@ async function installCMake () {
         asset.browser_download_url.split('/').pop()
       )
       await downloader.downloadFile(asset.browser_download_url, filename)
-      await execFile('start', [filename])
+      await terminal.run('msiexec', ['/i', filename])
       requiresReboot = true
       break
     case 'linux':
@@ -361,7 +358,7 @@ async function installCMake () {
   }
 }
 
-async function installGit () {
+async function installGit() {
   switch (process.platform) {
     case 'win32': {
       const release = await octokit.rest.repos.getLatestRelease({
@@ -400,7 +397,7 @@ async function installGit () {
   }
 }
 
-async function installPython () {
+async function installPython() {
   switch (process.platform) {
     case 'win32':
       const tags = await octokit.rest.repos.listTags({
@@ -457,7 +454,7 @@ async function installPython () {
   }
 }
 
-async function checkPython () {
+async function findPython() {
   switch (process.platform) {
     case 'win32':
       /*
@@ -501,16 +498,16 @@ async function checkPython () {
           } catch (error) {
             continue
           }
-          return true
+          return fullPath
         }
       }
-      return false
+      return null
     default:
-      return checkCommands(['python3', 'python'], ['--version'])
+      return await findCommand(['python3', 'python'], ['--version'])
   }
 }
 
-function unpackPsyq (destination) {
+function unpackPsyq(destination) {
   const filename = vscode.Uri.joinPath(
     globalStorageUri,
     tools.psyq.filename
@@ -559,7 +556,7 @@ const tools = {
     homepage: 'https://gcc.gnu.org/',
     install: installToolchain,
     check: () => checkCommands(
-      ['mipsel-none-elf-g++', 'mipsel-linux-gnu-g++'],
+      ['mipsel-none-elf-g++'],
       ['--version']
     )
   },
@@ -606,7 +603,7 @@ const tools = {
       'Python language runtime, required to run some project templates\' scripts',
     homepage: 'https://python.org/',
     install: installPython,
-    check: checkPython
+    check: async () => (await findPython()) !== null
   },
   clangd: {
     type: 'extension',
@@ -632,8 +629,8 @@ const tools = {
     description:
       'A VSCode extension to connect to the PlayStation 1 or an emulator, and debug your code',
     homepage:
-      'https://marketplace.visualstudio.com/items?itemName=webfreak.debug',
-    id: 'webfreak.debug'
+      'https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools',
+    id: 'ms-vscode.cpptools'
   },
   mipsassembly: {
     type: 'extension',
@@ -666,7 +663,7 @@ const tools = {
   }
 }
 
-function checkLocalFile (filename) {
+function checkLocalFile(filename) {
   return new Promise((resolve) => {
     filename = vscode.Uri.joinPath(globalStorageUri, filename).fsPath
     fs.access(filename, fs.constants.F_OK, (err) => {
@@ -701,6 +698,8 @@ exports.setExtensionUri = (uri) => {
 exports.setGlobalStorageUri = (uri) => {
   globalStorageUri = uri
 }
+
+exports.findPython = findPython
 
 exports.install = async (toInstall, force) => {
   if (requiresReboot) {

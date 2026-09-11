@@ -113,10 +113,10 @@ _boot:
     /* Clear the watchdog. */
     sh    $0, SYS573_WATCHDOG
 
-    /* The 700B01 BIOS uses the following code to determine whether the board
-       is an older one with eight 512 KB RAM chips, or a revision D populated
-       with two 2 MB chips. The 700A01 BIOS predates such revision and always
-       sets the RAM size register to 0xc80. */
+    /* The 700B01 BIOS probes the ASIC revision bit to determine whether the
+       board is an older one with eight 512 KB RAM chips or a revision D
+       populated with two 4 MB (?) chips. The 700A01 BIOS predates revision D
+       and simply uses a hardcoded DRAM controller configuration instead. */
     lhu   $t1, SYS573_JAMMA_P2_EXT
     li    $t0, 0xc80
     andi  $t1, 1 << 10
@@ -227,6 +227,10 @@ bss_init_skip:
     /* technically have to set $gp, but we are not using it, so, not */
     la    $sp, __sp
     move  $fp, $sp
+
+    /* set __globals60.ramsize to 4 MB */
+    li    $t0, 4
+    sw    $t0, 0x60($0)
 
     jal   _ucsdk_start
 
