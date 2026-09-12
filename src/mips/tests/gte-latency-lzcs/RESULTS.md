@@ -6,15 +6,19 @@ each, 126 input values x N=0..8 x two cache regimes per run.
 The console each ticket ran on was read back from its lease, not assumed
 from the submitted capability request.
 
+Ticket ids are written out in full on purpose: `status`/`result` reject a
+truncated prefix with `ticket_not_found`, which is the same error a
+nonexistent ticket gives.
+
 | Console revision | Device | Ticket | cached minN | uncached minN | shape |
 |---|---|---|---|---:|---:|---|
-| SCPH-1000 (NTSC-J) | seele-scph1000-2 | ticket_25520514 | 2 | 1 | flat |
-| SCPH-1001 (NTSC-U) | seele-scph1001-0 | ticket_f8d8443e | 2 | 1 | flat |
-| SCPH-5501 (NTSC-U) | seele-scph5501-3 | ticket_0d07ac37 | 2 | 1 | flat |
-| SCPH-7001 (NTSC-U) | seele-scph7001-5 | ticket_07eaf7bb | 2 | 1 | flat |
+| SCPH-1000 (NTSC-J) | seele-scph1000-2 | ticket_25520514-a767-4434-9c6f-8d91096db4c6 | 2 | 1 | flat |
+| SCPH-1001 (NTSC-U) | seele-scph1001-0 | ticket_f8d8443e-7359-4d28-a3a9-f04bbff639e4 | 2 | 1 | flat |
+| SCPH-5501 (NTSC-U) | seele-scph5501-3 | ticket_0d07ac37-caf6-4657-9f0a-a2d285f2e4c5 | 2 | 1 | flat |
+| SCPH-7001 (NTSC-U) | seele-scph7001-5 | ticket_07eaf7bb-67e5-4a46-b0be-6a44ba0711dd | 2 | 1 | flat |
 
-Two passes ran. The first swept 29 sampled values (tickets `ticket_e823cd7c`,
-`ticket_a522870c`, `ticket_67717456`, `ticket_a40ad643`, same four devices)
+Two passes ran. The first swept 29 sampled values (tickets `ticket_e823cd7c-9216-4865-9675-02489363697a`,
+`ticket_a522870c-ed70-4164-9b34-95781ab41116`, `ticket_67717456-a02a-44b1-861b-85a02de91de3`, `ticket_a40ad643-6894-4ae8-9d3d-2b408e3e33fc`, same four devices)
 and gave the identical answer. The table above is the second pass, which
 sweeps all 64 counts at two popcounts each and is the one to cite, because
 the first pass's writeup described a sample as complete coverage.
@@ -29,8 +33,8 @@ LEASED, and both ended the same way:
 
 | Attempt | Ticket | Lease | Terminal state | Failure |
 |---|---|---|---|---|
-| 1 | `ticket_23c076b6` | `lease_8b314334` | FAILED 19:58:56Z | `lease_timeout: Lease hard deadline expired` |
-| 2 | `ticket_e6468924` | `lease_c13d532f` | FAILED 20:09:56Z | `lease_timeout: Lease hard deadline expired` |
+| 1 | `ticket_23c076b6-6e71-4779-a83a-094d367801b1` | `lease_8b314334` | FAILED 19:58:56Z | `lease_timeout: Lease hard deadline expired` |
+| 2 | `ticket_e6468924-40f4-4781-9e50-6d99359a21f5` | `lease_c13d532f` | FAILED 20:09:56Z | `lease_timeout: Lease hard deadline expired` |
 
 `seele-scph9002-6` is the ONLY device in the pool advertising `flaky`,
 and its full feature set is `stock-unirom, serial-upload, disc-boot,
