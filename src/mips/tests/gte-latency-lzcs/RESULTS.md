@@ -77,3 +77,25 @@ smoothly varying quantity, which is why it renders as something plausible
 instead of as a crash.
 
 Not changed here. That is a psyqo change and it is its own decision.
+
+## Prior art, found late
+
+This was not the first hardware measurement of the pair. A 2026-05-28
+run during unrelated codec work already established the lower bound:
+`>=2 cycles between mtc2 LZCS and mfc2 LZCR`, one nop not enough, `mfc2`
+returning the previous write's result, from a GTE-versus-software-clz
+self-test loop. That result stands and this one agrees with it.
+
+What is new here is the shape rather than the bound: the magnitude axis
+(flat, so priority encoder rather than shift-and-count), the uncached arm
+(one opcode is enough), the revision sweep, and a harness that lives in
+the tree instead of in a project's notes.
+
+One difference worth stating rather than smoothing over. The earlier run
+reported roughly a third of single-nop reads coming back stale. This one
+reports every single-nop read stale, on 29 inputs and four consoles. The
+two are consistent with a delay counted in clock cycles where surrounding
+real code sometimes fills the gap on its own: this probe is a straight
+line with interrupts masked and a warm icache, so nothing else can. The
+earlier harness was not re-run here, so that is a reading of the
+difference and not a measurement of it.
