@@ -13,10 +13,30 @@ from the submitted capability request.
 | SCPH-5501 (NTSC-U) | seele-scph5501-3 | ticket_67717456 | 2 | 1 | flat |
 | SCPH-7001 (NTSC-U) | seele-scph7001-5 | ticket_a40ad643 | 2 | 1 | flat |
 
-SCPH-9002 (PAL) was submitted and never dispatched, ticket
-`ticket_23c076b6` sat QUEUED. That unit advertises `flaky` and
-`disc-boot`. Not measured, and nothing here should be read as covering
-PAL.
+SCPH-9002 (PAL) was submitted twice and failed both times. Not measured,
+and nothing here should be read as covering PAL.
+
+Corrected 2026-09-12 20:1x: the line above used to say the first attempt
+"was never dispatched" and "sat QUEUED". That was read off the submit
+client's stdout, which is the wrong instrument. Both attempts were
+LEASED, and both ended the same way:
+
+| Attempt | Ticket | Lease | Terminal state | Failure |
+|---|---|---|---|---|
+| 1 | `ticket_23c076b6` | `lease_8b314334` | FAILED 19:58:56Z | `lease_timeout: Lease hard deadline expired` |
+| 2 | `ticket_e6468924` | `lease_c13d532f` | FAILED 20:09:56Z | `lease_timeout: Lease hard deadline expired` |
+
+`seele-scph9002-6` is the ONLY device in the pool advertising `flaky`,
+and its full feature set is `stock-unirom, serial-upload, disc-boot,
+flaky, DFO` (read from `devices --json`, not from the label). It boots
+Unirom off a disc, which is what blows the 900s lease deadline. Steer off
+it with `--exclude-feature flaky`.
+
+⛔ **Do not spend a third lease on it for this measurement.** The result
+is flat across four NTSC revisions spanning first-gen to late silicon,
+and GTE latency is CPU-clock-domain - there is no mechanism by which a
+PAL unit would differ. A PAL datapoint here is a nice-to-have, and this
+unit costs two 15-minute leases to not get it.
 
 `minN_range=[2..2]` cached and `[1..1]` uncached on every run, across all
 29 inputs, with `n0_correct=0/29`, `never_settled=0` and `unstable=0`.
