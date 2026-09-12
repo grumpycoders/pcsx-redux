@@ -1,17 +1,23 @@
 # LZCS -> LZCR store delay: hardware results
 
 Measured 2026-09-12 on the seele farm. Four console revisions, one run
-each, 29 input values x N=0..8 x two cache regimes per run.
+each, 126 input values x N=0..8 x two cache regimes per run.
 
 The console each ticket ran on was read back from its lease, not assumed
 from the submitted capability request.
 
 | Console revision | Device | Ticket | cached minN | uncached minN | shape |
 |---|---|---|---|---:|---:|---|
-| SCPH-1000 (NTSC-J) | seele-scph1000-2 | ticket_e823cd7c | 2 | 1 | flat |
-| SCPH-1001 (NTSC-U) | seele-scph1001-0 | ticket_a522870c | 2 | 1 | flat |
-| SCPH-5501 (NTSC-U) | seele-scph5501-3 | ticket_67717456 | 2 | 1 | flat |
-| SCPH-7001 (NTSC-U) | seele-scph7001-5 | ticket_a40ad643 | 2 | 1 | flat |
+| SCPH-1000 (NTSC-J) | seele-scph1000-2 | ticket_25520514 | 2 | 1 | flat |
+| SCPH-1001 (NTSC-U) | seele-scph1001-0 | ticket_f8d8443e | 2 | 1 | flat |
+| SCPH-5501 (NTSC-U) | seele-scph5501-3 | ticket_0d07ac37 | 2 | 1 | flat |
+| SCPH-7001 (NTSC-U) | seele-scph7001-5 | ticket_07eaf7bb | 2 | 1 | flat |
+
+Two passes ran. The first swept 29 sampled values (tickets `ticket_e823cd7c`,
+`ticket_a522870c`, `ticket_67717456`, `ticket_a40ad643`, same four devices)
+and gave the identical answer. The table above is the second pass, which
+sweeps all 64 counts at two popcounts each and is the one to cite, because
+the first pass's writeup described a sample as complete coverage.
 
 SCPH-9002 (PAL) was submitted twice and failed both times. Not measured,
 and nothing here should be read as covering PAL.
@@ -39,7 +45,7 @@ PAL unit would differ. A PAL datapoint here is a nice-to-have, and this
 unit costs two 15-minute leases to not get it.
 
 `minN_range=[2..2]` cached and `[1..1]` uncached on every run, across all
-29 inputs, with `n0_correct=0/29`, `never_settled=0` and `unstable=0`.
+126 inputs, with `n0_correct=0/126`, `never_settled=0` and `unstable=0`.
 
 ## The answer
 
@@ -113,9 +119,28 @@ the tree instead of in a project's notes.
 
 One difference worth stating rather than smoothing over. The earlier run
 reported roughly a third of single-nop reads coming back stale. This one
-reports every single-nop read stale, on 29 inputs and four consoles. The
+reports every single-nop read stale, on 126 inputs and four consoles. The
 two are consistent with a delay counted in clock cycles where surrounding
 real code sometimes fills the gap on its own: this probe is a straight
 line with interrupts masked and a warm icache, so nothing else can. The
 earlier harness was not re-run here, so that is a reading of the
 difference and not a measurement of it.
+
+## The 256 case, specifically
+
+`.siev` observed a case that appeared to work with one opcode and noted it
+was "exactly on 256". 256 is `0x100`, which is a leading-zero run of 23,
+and both run-23 entries are in the sweep:
+
+```
+LZC C v=000001ff exp=23 stale= 1 got=[1 1 23 23 23 23 23 23 23] minN=2 pos run23 dense
+LZC C v=00000100 exp=23 stale= 1 got=[1 1 23 23 23 23 23 23 23] minN=2 pos run23 sparse
+```
+
+Identical on all four consoles. There is no boundary at 256 and the value
+is not what made that case work. `malucart`'s guess that it was an icache
+stall is the right shape: this harness runs a discarded warm-up pass and
+masks interrupts specifically so that nothing can donate cycles to the
+gap, and under those conditions the answer is 2 everywhere. That is a
+confound controlled away, not a cold-fetch arm measured, so it supports
+the icache reading without being evidence for it.

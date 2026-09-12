@@ -32,10 +32,19 @@ Two axes, not one:
   small inputs would settle sooner. A sweep over N alone returns one
   number and cannot tell those apart.
 
-29 inputs cover leading-zero runs of 1..32 and leading-one runs of 1..32,
-with popcount deliberately varied at a fixed run length (`0x0000ffff`
-against `0x00008000`) so an implementation whose work tracks set bits is
-distinguishable from one whose work tracks the leading run.
+126 inputs cover **every** leading-zero run from 1 to 32 and **every**
+leading-one run from 1 to 32, each at two popcounts: a dense value
+(`0xffffffff >> k`) and a sparse one (a single bit, `1 << (31-k)`), so an
+implementation whose work tracks set bits is distinguishable from one
+whose work tracks the leading run.
+
+The coverage is complete rather than sampled, and it is checked from the
+run's own output rather than from this paragraph: the 126 emitted rows
+must contain all 32 positive and all 32 negative counts. An earlier
+version of this file swept 29 values and described them as covering
+1..32, which was a sample being published as a census. That wording cost
+nothing here only because someone re-derived one of its entries and
+found the arithmetic wrong.
 
 Both cache regimes are measured. psx-spx states the delay in **clock
 cycles** and notes one uncached opcode substitutes for several cached
