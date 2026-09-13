@@ -39,6 +39,7 @@ deps/
 objs/
 bins/
 /pcsx-redux
+/pcsx-redux-tests
 /authoring
 /exe2elf
 /exe2exe
@@ -142,3 +143,5 @@ luacov.stats.out
 .xmake/
 build/
 
+# gtest objects are built next to their sources
+tests/**/*.o

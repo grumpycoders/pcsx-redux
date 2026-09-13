@@ -1,53 +1,49 @@
 /***************************************************************************
-                            dma.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include "spu/externals.h"
 #include "spu/interface.h"
 
-// SPU RAM -> Main RAM DMA
+// SPU RAM -> Main RAM DMA.
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    if (mixIrqAddress) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
-        *mainMem++ = spuMem[spuAddr >> 1];  // Copy 2 bytes
-        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
+        // Copy 2 bytes.
+        *mainMem++ = spuMem[spuAddr >> 1];
+        // Increment the SPU address and wrap around.
+        spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
+    if (mixIrqAddress) cbMtx.unlock();
 }
 
-// to investigate: do sound data updates by writedma affect spu
-// irqs? Will an irq be triggered, if new data is written to
-// the memory irq address?
+// To investigate: do sound data updates by DMA writes affect SPU IRQs? Will an IRQ be triggered if new
+// data is written to the memory IRQ address?
 
 void PCSX::SPU::impl::lockSPURAM() { cbMtx.lock(); }
 void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
 void PCSX::SPU::impl::resetCaptureBuffer() {
-    if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
+    // The capture buffers are always live: hardware writes them continuously and
+    // raises the IRQ whenever the write reaches SPU_IRQ_ADDR. Nothing about that is
+    // optional, so the cursor is always armed.
+    mixIrqAddress = spuRamBase;
     memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
     memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
     captureBuffer.currIndex = 0;
@@ -56,15 +52,16 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     capBufVoiceIndex = 0;
 }
 
-// Main RAM -> SPU RAM DMA
+// Main RAM -> SPU RAM DMA.
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    if (mixIrqAddress) cbMtx.lock();
 
     for (int i = 0; i < size; i++) {
-        spuMem[spuAddr >> 1] = *mainMem++;  // Copy 2 bytes
-        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
+        // Copy 2 bytes.
+        spuMem[spuAddr >> 1] = *mainMem++;
+        // Increment the SPU address and wrap around.
+        spuAddr = (spuAddr + 2) & 0x7ffff;
     }
 
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
+    if (mixIrqAddress) cbMtx.unlock();
 }

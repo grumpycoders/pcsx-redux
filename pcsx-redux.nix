@@ -86,6 +86,12 @@ let
       hash = "sha256-PknWLxYuXQ73TCFN+eKOJDNLGbg/ZqKSF6mFxkJG6vI=";
     })
     ({
+      owner = "epezent";
+      repo = "implot";
+      rev = "d65a2bef53d32502407de3a4be80f191e2f412d7";
+      hash = "sha256-s7URArbirN8uiInhi95eQW7aoq5Clc67NzUCzcslAi8=";
+    })
+    ({
       owner = "mdqinc";
       repo = "SDL_GameControllerDB";
       rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";

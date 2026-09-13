@@ -39,7 +39,13 @@ jobs:
       - run: |
           make -j 2 all pcsx-redux-tests tools
           make -C src/mips/tests -j 2 PCSX_TESTS=true
-          make -C src/mips/openbios -j 2 clean all
+          # The tests above leave third_party/uC-sdk objects built with their own
+          # flags, and openbios links a different subset of that same libc. Without
+          # this clean it fails on undefined malloc/free/write. Keep it.
+          # Two invocations, not "-j 2 clean all": make gives no ordering guarantee between
+          # independent goals named on one command line, so under -j they run concurrently.
+          make -C src/mips/openbios clean
+          make -C src/mips/openbios -j 2 all
       - name: Install node
         uses: actions/setup-node@v4
         with:

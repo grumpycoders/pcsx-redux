@@ -103,3 +103,6 @@
 [submodule "third_party/xmake-psx"]
 	path = third_party/xmake-psx
 	url = https://codeberg.org/malucart/xmake-psx.git
+[submodule "third_party/implot"]
+	path = third_party/implot
+	url = https://github.com/epezent/implot.git
