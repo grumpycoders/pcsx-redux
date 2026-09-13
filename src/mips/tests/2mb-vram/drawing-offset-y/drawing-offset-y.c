@@ -32,20 +32,19 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X      0
-#define COL_W      32
+#define COL_X 0
+#define COL_W 32
 // Command color: G=0xff -> VRAM 0x03e0 (green 5:5:5).
-#define CMD_COLOR  0x0000ff00u
+#define CMD_COLOR 0x0000ff00u
 #define VRAM_COLOR 0x03e0u
-#define BG_COLOR   0x0000u
+#define BG_COLOR 0x0000u
 
 static void onePass(int16_t y_off) {
     fillColumn(COL_X, COL_W, BG_COLOR);
 
     // Drawing area = full VRAM (no scissoring beyond physical extent).
     sendGPUData(0xe3000000u | ((uint32_t)0 << 10) | (uint32_t)COL_X);
-    sendGPUData(0xe4000000u | ((uint32_t)1023 << 10) |
-                (uint32_t)(COL_X + COL_W - 1));
+    sendGPUData(0xe4000000u | ((uint32_t)1023 << 10) | (uint32_t)(COL_X + COL_W - 1));
     // GP0(0xE5) drawing offset: 11-bit signed X (bits 0-10), 11-bit signed
     // Y (bits 11-21).
     sendGPUData(0xe5000000u | (((uint32_t)(uint16_t)y_off & 0x7ffu) << 11));
@@ -70,8 +69,7 @@ static void onePass(int16_t y_off) {
         }
     }
 
-    PROBE_RESULT("drawing-offset-y y_off=%d drawn_y_min=%d drawn_y_max=%d", y_off,
-                 top_drawn, bot_drawn);
+    PROBE_RESULT("drawing-offset-y y_off=%d drawn_y_min=%d drawn_y_max=%d", y_off, top_drawn, bot_drawn);
 }
 
 int main(void) {

@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "common/hardware/pcsxhw.h"
 #include "common/syscalls/syscalls.h"
-
 #include "snitch_all.hpp"
 
 static void psyqo_console_print(std::string_view message) noexcept {

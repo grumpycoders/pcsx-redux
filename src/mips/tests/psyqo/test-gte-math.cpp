@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/gte-math.hh"
-
 #include "psyqo/matrix.hh"
 #include "psyqo/soft-math.hh"
 #include "psyqo/vector.hh"
@@ -87,10 +86,9 @@ int32_t worstMat(const Matrix33& a, const Matrix33& b) {
 // genuinely tiny vector here would crash the oracle and not the subject. The
 // degenerate case is covered on its own below, against GteMath alone.
 const Vec3 c_vectors[] = {
-    {1.0_fp, 0.0_fp, 0.0_fp},    {0.0_fp, 1.0_fp, 0.0_fp},      {0.0_fp, 0.0_fp, 1.0_fp},
-    {1.0_fp, 1.0_fp, 1.0_fp},    {-1.0_fp, 0.5_fp, -0.25_fp},   {3.5_fp, -2.0_fp, 1.25_fp},
-    {0.25_fp, 0.25_fp, 0.25_fp}, {0.15_fp, -0.2_fp, 0.1_fp},    {2.0_fp, 0.0_fp, -3.0_fp},
-    {-0.7_fp, -0.7_fp, 0.14_fp}, {0.125_fp, 0.25_fp, 0.5_fp},   {-3.4_fp, 3.4_fp, 0.0_fp},
+    {1.0_fp, 0.0_fp, 0.0_fp},    {0.0_fp, 1.0_fp, 0.0_fp},    {0.0_fp, 0.0_fp, 1.0_fp},    {1.0_fp, 1.0_fp, 1.0_fp},
+    {-1.0_fp, 0.5_fp, -0.25_fp}, {3.5_fp, -2.0_fp, 1.25_fp},  {0.25_fp, 0.25_fp, 0.25_fp}, {0.15_fp, -0.2_fp, 0.1_fp},
+    {2.0_fp, 0.0_fp, -3.0_fp},   {-0.7_fp, -0.7_fp, 0.14_fp}, {0.125_fp, 0.25_fp, 0.5_fp}, {-3.4_fp, 3.4_fp, 0.0_fp},
 };
 constexpr unsigned c_vectorCount = sizeof(c_vectors) / sizeof(c_vectors[0]);
 

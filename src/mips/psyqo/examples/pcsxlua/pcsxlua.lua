@@ -19,7 +19,6 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
-
 -- This is the companion Lua script for the PCSX-Redux Lua editor demo.
 -- See pcsxlua.cpp for the C++ side of the demo.
 local addresses = {}

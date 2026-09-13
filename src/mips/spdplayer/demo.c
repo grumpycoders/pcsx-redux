@@ -71,8 +71,8 @@ void main() {
         printf("Invalid SPUDUMP file.\n");
         return;
     }
-    printf("%02d Voices, %02d Orders, %02d Patterns, %02d Samples\n",
-           SPD_VoiceCount, SPD_OrderCount, SPD_PatternCount, SPD_SampleCount);
+    printf("%02d Voices, %02d Orders, %02d Patterns, %02d Samples\n", SPD_VoiceCount, SPD_OrderCount, SPD_PatternCount,
+           SPD_SampleCount);
 
     unsigned order = 0xffffffff;
     // Give our initial counter a proper value.

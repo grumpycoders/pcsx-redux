@@ -43,14 +43,14 @@ SOFTWARE.
 // ABR=1: 248+0=248 -> R5=31. Output = 0x001f | 0x8000 = 0x801f
 // ABR=2: 248-0=248 -> R5=31. Output = 0x001f | 0x8000 = 0x801f
 // ABR=3: 248+0=248 -> R5=31. Output = 0x001f | 0x8000 = 0x801f
-#define TR15_SEMI_ABR0_BLEND   0x800fu
-#define TR15_SEMI_ABR1_BLEND   0x801fu
-#define TR15_SEMI_ABR2_BLEND   0x801fu
-#define TR15_SEMI_ABR3_BLEND   0x801fu
+#define TR15_SEMI_ABR0_BLEND 0x800fu
+#define TR15_SEMI_ABR1_BLEND 0x801fu
+#define TR15_SEMI_ABR2_BLEND 0x801fu
+#define TR15_SEMI_ABR3_BLEND 0x801fu
 
 // 8-bit set-mask textured rect: CLUT8[0] = vram555(0, 31, 0) = 0x03e0.
 // E6 set-mask forces bit 15 on output -> 0x03e0 | 0x8000 = 0x83e0.
-#define TR8_SETMASK_OUTPUT     0x83e0u
+#define TR8_SETMASK_OUTPUT 0x83e0u
 
 // 15-bit check-mask: pre-fill (R5=8) | 0x8000 survives = 0x0008 | 0x8000 = 0x8008.
 #define TR15_CHECKMASK_PREFILL 0x8008u

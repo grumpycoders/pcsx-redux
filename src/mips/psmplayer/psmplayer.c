@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <stddef.h>
 #include <stdint.h>
+
 #include "common/hardware/dma.h"
 #include "common/hardware/spu.h"
 
@@ -35,25 +36,25 @@ SOFTWARE.
 // PSM format structures
 // ============================================================================
 
-#define PSM_NOTE_ON       0x00
-#define PSM_NOTE_OFF      0x01
-#define PSM_PITCH_BEND    0x02
-#define PSM_CC_VOLUME     0x03
-#define PSM_CC_PAN        0x04
+#define PSM_NOTE_ON 0x00
+#define PSM_NOTE_OFF 0x01
+#define PSM_PITCH_BEND 0x02
+#define PSM_CC_VOLUME 0x03
+#define PSM_CC_PAN 0x04
 #define PSM_CC_EXPRESSION 0x05
-#define PSM_CC_SUSTAIN    0x06
+#define PSM_CC_SUSTAIN 0x06
 #define PSM_CC_MODULATION 0x07
-#define PSM_CC_REVERB     0x08
+#define PSM_CC_REVERB 0x08
 #define PSM_PROGRAM_CHANGE 0x09
-#define PSM_TEMPO_CHANGE  0x0A
-#define PSM_LOOP_POINT    0x0B
-#define PSM_END           0x0C
-#define PSM_LONG_WAIT     0xFF
+#define PSM_TEMPO_CHANGE 0x0A
+#define PSM_LOOP_POINT 0x0B
+#define PSM_END 0x0C
+#define PSM_LONG_WAIT 0xFF
 
 struct PsmHeader {
-    uint8_t magic[4];      // "PSM\0"
+    uint8_t magic[4];  // "PSM\0"
     uint32_t version;
-    uint32_t tickRate;     // 16.16 fixed-point Hz
+    uint32_t tickRate;  // 16.16 fixed-point Hz
     uint32_t eventCount;
 };
 
@@ -69,7 +70,7 @@ struct PsmEvent {
 // ============================================================================
 
 struct VabHdr {
-    uint8_t magic[4];      // "pBAV"
+    uint8_t magic[4];  // "pBAV"
     uint32_t version;
     uint32_t id;
     uint32_t fileSize;
@@ -101,8 +102,8 @@ struct VagAtr {
     uint8_t mode;
     uint8_t vol;
     uint8_t pan;
-    uint8_t center;        // adjusted root key (folds in sample rate + transpose)
-    uint8_t shift;         // fine tune in cents (signed, as uint8)
+    uint8_t center;  // adjusted root key (folds in sample rate + transpose)
+    uint8_t shift;   // fine tune in cents (signed, as uint8)
     uint8_t min;
     uint8_t max;
     uint8_t vibW;
@@ -113,10 +114,10 @@ struct VagAtr {
     uint8_t pbmax;
     uint8_t reserved0;
     uint8_t reserved1;
-    uint16_t adsr1;        // SPU ADSR register (voice +0x08)
-    uint16_t adsr2;        // SPU ADSR register (voice +0x0A)
+    uint16_t adsr1;  // SPU ADSR register (voice +0x08)
+    uint16_t adsr2;  // SPU ADSR register (voice +0x0A)
     int16_t prog;
-    int16_t vag;           // VAG index (0-based, -1 = unused)
+    int16_t vag;  // VAG index (0-based, -1 = unused)
     int16_t reserved2[4];
 };
 
@@ -126,9 +127,7 @@ struct VagAtr {
 
 // Semitone frequency ratios in 12-bit fixed-point (x4096).
 // semitoneRatio[i] = 2^(i/12) * 4096
-static const uint16_t s_semitoneRatio[12] = {
-    4096, 4340, 4598, 4871, 5161, 5468, 5793, 6137, 6502, 6889, 7298, 7732
-};
+static const uint16_t s_semitoneRatio[12] = {4096, 4340, 4598, 4871, 5161, 5468, 5793, 6137, 6502, 6889, 7298, 7732};
 
 // Compute SPU pitch register value for a given MIDI note and VagAtr center/shift.
 // center = adjusted root key (sample rate + transpose folded in by offline tool)
@@ -236,29 +235,26 @@ static int allocateVoice(uint8_t channel, uint8_t note, uint8_t velocity, unsign
 // ============================================================================
 
 struct ChannelState {
-    uint8_t volume;       // CC#7 (default 100)
-    uint8_t pan;          // CC#10 (default 64)
-    uint8_t expression;   // CC#11 (default 127)
-    uint8_t sustain;      // CC#64 (0 = off)
-    uint8_t modulation;   // CC#1 (default 0)
-    uint8_t reverb;       // CC#91 (default 40)
-    uint8_t program;      // current program
+    uint8_t volume;      // CC#7 (default 100)
+    uint8_t pan;         // CC#10 (default 64)
+    uint8_t expression;  // CC#11 (default 127)
+    uint8_t sustain;     // CC#64 (0 = off)
+    uint8_t modulation;  // CC#1 (default 0)
+    uint8_t reverb;      // CC#91 (default 40)
+    uint8_t program;     // current program
     uint8_t padding;
-    int16_t pitchBend;    // -8192 to 8191
+    int16_t pitchBend;  // -8192 to 8191
     uint16_t padding2;
 };
 
 static struct ChannelState s_channels[16];
 
 // GM velocity curve: vel^2/127
-static uint8_t velocityCurve(uint8_t vel) {
-    return (uint8_t)(((uint16_t)vel * vel + 63) / 127);
-}
+static uint8_t velocityCurve(uint8_t vel) { return (uint8_t)(((uint16_t)vel * vel + 63) / 127); }
 
 // Compute left/right volume for a voice
-static void computeVolume(uint8_t velocity, const struct ChannelState* ch,
-                          const struct VagAtr* tone,
-                          uint16_t* volL, uint16_t* volR) {
+static void computeVolume(uint8_t velocity, const struct ChannelState* ch, const struct VagAtr* tone, uint16_t* volL,
+                          uint16_t* volR) {
     int vel = velocityCurve(velocity);
     // tone->vol already accounts for SF2 attenuation (0-127)
     int vol = (vel * ch->volume * ch->expression * tone->vol) / (127 * 127 * 127);
@@ -356,15 +352,13 @@ static void SPUUpload(uint32_t spuAddr, const uint8_t* data, uint32_t size) {
 
     SPU_RAM_DTA = spuAddr >> 3;
     SPU_CTRL = (SPU_CTRL & ~0x0030) | 0x0020;
-    while ((SPU_CTRL & 0x0030) != 0x0020)
-        ;
+    while ((SPU_CTRL & 0x0030) != 0x0020);
     SBUS_DEV4_CTRL &= ~0x0f000000;
     DMA_CTRL[DMA_SPU].MADR = (uint32_t)data;
     DMA_CTRL[DMA_SPU].BCR = bcr;
     DMA_CTRL[DMA_SPU].CHCR = 0x01000201;
 
-    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0)
-        ;
+    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0);
 }
 
 static void SPUUnMute(void) { SPU_CTRL = 0xc000; }
@@ -395,48 +389,48 @@ static void updateHblanks(void) {
 // ============================================================================
 
 struct ReverbPreset {
-    uint32_t bufferSize;       // bytes needed at top of SPU RAM
-    uint16_t regs[32];         // dAPF1 through vRIN
+    uint32_t bufferSize;  // bytes needed at top of SPU RAM
+    uint16_t regs[32];    // dAPF1 through vRIN
     uint16_t outVolL;
     uint16_t outVolR;
 };
 
 static const struct ReverbPreset s_reverbPresets[] = {
     // 0: off
-    { 0x10, {
-        0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001,
-        0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000
-    }, 0x0000, 0x0000 },
+    {0x10,
+     {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001,
+      0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001,
+      0x0001, 0x0001, 0x0000, 0x0000, 0x0001, 0x0001, 0x0001, 0x0001, 0x0000, 0x0000},
+     0x0000,
+     0x0000},
     // 1: room (Studio Small)
-    { 0x1F40, {
-        0x0033, 0x0025, 0x70F0, 0x4FA8, 0xBCE0, 0x4410, 0xC0F0, 0x9C00,
-        0x5280, 0x4EC0, 0x03E4, 0x031B, 0x03A4, 0x02AF, 0x0372, 0x0266,
-        0x031C, 0x025D, 0x025C, 0x018E, 0x022F, 0x0135, 0x01D2, 0x00B7,
-        0x018F, 0x00B5, 0x00B4, 0x0080, 0x004C, 0x0026, 0x8000, 0x8000
-    }, 0x3800, 0x3800 },
+    {0x1F40,
+     {0x0033, 0x0025, 0x70F0, 0x4FA8, 0xBCE0, 0x4410, 0xC0F0, 0x9C00, 0x5280, 0x4EC0, 0x03E4,
+      0x031B, 0x03A4, 0x02AF, 0x0372, 0x0266, 0x031C, 0x025D, 0x025C, 0x018E, 0x022F, 0x0135,
+      0x01D2, 0x00B7, 0x018F, 0x00B5, 0x00B4, 0x0080, 0x004C, 0x0026, 0x8000, 0x8000},
+     0x3800,
+     0x3800},
     // 2: studio (Studio Medium)
-    { 0x4840, {
-        0x00B1, 0x007F, 0x70F0, 0x4FA8, 0xBCE0, 0x4510, 0xBEF0, 0xB4C0,
-        0x5280, 0x4EC0, 0x0904, 0x076B, 0x0824, 0x065F, 0x07A2, 0x0616,
-        0x076C, 0x05ED, 0x05EC, 0x042E, 0x050F, 0x0305, 0x0462, 0x02B7,
-        0x042F, 0x0265, 0x0264, 0x01B2, 0x0100, 0x0080, 0x8000, 0x8000
-    }, 0x3800, 0x3800 },
+    {0x4840,
+     {0x00B1, 0x007F, 0x70F0, 0x4FA8, 0xBCE0, 0x4510, 0xBEF0, 0xB4C0, 0x5280, 0x4EC0, 0x0904,
+      0x076B, 0x0824, 0x065F, 0x07A2, 0x0616, 0x076C, 0x05ED, 0x05EC, 0x042E, 0x050F, 0x0305,
+      0x0462, 0x02B7, 0x042F, 0x0265, 0x0264, 0x01B2, 0x0100, 0x0080, 0x8000, 0x8000},
+     0x3800,
+     0x3800},
     // 3: hall
-    { 0xADE0, {
-        0x01A5, 0x0139, 0x6000, 0x5000, 0x4C00, 0xB800, 0xBC00, 0xC000,
-        0x6000, 0x5C00, 0x15BA, 0x11BB, 0x14C2, 0x10BD, 0x11BC, 0x0DC1,
-        0x11C0, 0x0DC3, 0x0DC0, 0x09C1, 0x0BC4, 0x07C1, 0x0A00, 0x06CD,
-        0x09C2, 0x05C1, 0x05C0, 0x041A, 0x0274, 0x013A, 0x8000, 0x8000
-    }, 0x3000, 0x3000 },
+    {0xADE0,
+     {0x01A5, 0x0139, 0x6000, 0x5000, 0x4C00, 0xB800, 0xBC00, 0xC000, 0x6000, 0x5C00, 0x15BA,
+      0x11BB, 0x14C2, 0x10BD, 0x11BC, 0x0DC1, 0x11C0, 0x0DC3, 0x0DC0, 0x09C1, 0x0BC4, 0x07C1,
+      0x0A00, 0x06CD, 0x09C2, 0x05C1, 0x05C0, 0x041A, 0x0274, 0x013A, 0x8000, 0x8000},
+     0x3000,
+     0x3000},
     // 4: space (Space Echo)
-    { 0xF6C0, {
-        0x033D, 0x0231, 0x7E00, 0x5000, 0xB400, 0xB000, 0x4C00, 0xB000,
-        0x6000, 0x5400, 0x1ED6, 0x1A31, 0x1D14, 0x183B, 0x1BC2, 0x16B2,
-        0x1A32, 0x15EF, 0x15EE, 0x1055, 0x1334, 0x0F2D, 0x11F6, 0x0C5D,
-        0x1056, 0x0AE1, 0x0AE0, 0x07A2, 0x0464, 0x0232, 0x8000, 0x8000
-    }, 0x2800, 0x2800 },
+    {0xF6C0,
+     {0x033D, 0x0231, 0x7E00, 0x5000, 0xB400, 0xB000, 0x4C00, 0xB000, 0x6000, 0x5400, 0x1ED6,
+      0x1A31, 0x1D14, 0x183B, 0x1BC2, 0x16B2, 0x1A32, 0x15EF, 0x15EE, 0x1055, 0x1334, 0x0F2D,
+      0x11F6, 0x0C5D, 0x1056, 0x0AE1, 0x0AE0, 0x07A2, 0x0464, 0x0232, 0x8000, 0x8000},
+     0x2800,
+     0x2800},
 };
 
 #define REVERB_PRESET_COUNT 5
@@ -541,8 +535,7 @@ unsigned PSM_LoadBank(const void* vabData, uint32_t vabSize) {
     return s_numPrograms;
 }
 
-unsigned PSM_LoadBankEx(const void* vhData, uint32_t vhSize,
-                        const void* vbData, uint32_t vbSize) {
+unsigned PSM_LoadBankEx(const void* vhData, uint32_t vhSize, const void* vbData, uint32_t vbSize) {
     const uint8_t* p = (const uint8_t*)vhData;
     const uint16_t* vagOffsetTable = parseVH(p, vhSize);
     if (!vagOffsetTable) return 0;
@@ -651,8 +644,7 @@ static void updateChannelPitch(uint8_t ch) {
         if (s_voices[v].active && s_voices[v].channel == ch) {
             const struct VagAtr* tone = lookupTone(s_voices[v].program, s_voices[v].toneIndex);
             if (!tone) continue;
-            uint16_t pitch = computePitch(s_voices[v].note, tone->center,
-                                          (int8_t)tone->shift, bendCents);
+            uint16_t pitch = computePitch(s_voices[v].note, tone->center, (int8_t)tone->shift, bendCents);
             SPU_VOICES[v].sampleRate = pitch;
         }
     }
@@ -703,8 +695,8 @@ static void processEvent(const struct PsmEvent* ev) {
             SPU_VOICES[v].volumeRight = volR;
             SPU_VOICES[v].sampleRate = pitch;
             SPU_VOICES[v].sampleStartAddr = s_vagAddrs[tone->vag];
-            SPU_VOICES[v].adsrLo = tone->adsr1;   // offset +0x08: sustain rate/mode + release rate/mode
-            SPU_VOICES[v].adsrHi = tone->adsr2;   // offset +0x0A: attack mode/rate + decay rate + sustain level
+            SPU_VOICES[v].adsrLo = tone->adsr1;  // offset +0x08: sustain rate/mode + release rate/mode
+            SPU_VOICES[v].adsrHi = tone->adsr2;  // offset +0x0A: attack mode/rate + decay rate + sustain level
 
             // Update reverb mask
             if (chanState->reverb > 0) {
