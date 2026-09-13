@@ -26,15 +26,16 @@ SOFTWARE.
 
 #pragma once
 
+#include <EASTL/fixed_string.h>
+
 #include "cdrom.hh"
 #include "common/kernel/pcdrv.h"
-#include <EASTL/fixed_string.h>
 
 namespace psyqo {
 class CDRomPCDrv final : public CDRom {
-public:
+  public:
     // instead of eagerly opening in the constructor:
-    CDRomPCDrv(const char* isoName) : m_isoName(isoName) {}
+    CDRomPCDrv(const char *isoName) : m_isoName(isoName) {}
 
     bool ensureOpen() {
         if (m_isoHandle < 0) {
@@ -45,9 +46,9 @@ public:
     }
 
     void readSectors(uint32_t sector, uint32_t count, void *buffer, eastl::function<void(bool)> &&callback) override;
-private:
+
+  private:
     int m_isoHandle = -1;
     eastl::fixed_string<char, 256> m_isoName;
 };
-}
-
+}  // namespace psyqo

@@ -318,7 +318,7 @@ static void __attribute__((section(".ramtext"))) firstStageCardAction() {
         sysDeqIntRP(1, &g_mcHandlerInfo);
         SIOS[0].ctrl = SIO_CTRL_IR;
         SIOS[0].baudRate = 2073600 / 15200;
-        SIOS[0].mode = 13; // MUL1, 8bit, no parity, normal polarity
+        SIOS[0].mode = 13;  // MUL1, 8bit, no parity, normal polarity
         SIOS[0].ctrl = 0;
         return;
     }

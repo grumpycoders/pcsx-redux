@@ -279,9 +279,10 @@ void PCSX::Counters::recalculateRate(uint32_t index) {
                 uint32_t divider = dotclockDividers[static_cast<int>(hres)];
                 uint32_t videoCyclesPerScanline = (videoMode == GPU::CtrlDisplayMode::VM_PAL) ? 3406 : 3413;
                 uint32_t dotsPerScanline = videoCyclesPerScanline / divider;
-                uint32_t cpuCyclesPerScanline = (PCSX::g_emulator->m_psxClockSpeed /
-                    (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
-                     m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+                uint32_t cpuCyclesPerScanline =
+                    (PCSX::g_emulator->m_psxClockSpeed /
+                     (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                      m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
                 m_rcnts[index].rate = std::max<uint32_t>(cpuCyclesPerScanline / dotsPerScanline, 1);
             } else {
                 m_rcnts[index].rate = 1;

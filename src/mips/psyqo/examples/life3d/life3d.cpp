@@ -46,6 +46,7 @@ SOFTWARE.
 // as the loop walks the board, so there is not a single multiply in the inner
 // loop either.
 
+#include "life-rules.hh"
 #include "psyqo/application.hh"
 #include "psyqo/fixed-point.hh"
 #include "psyqo/font.hh"
@@ -63,8 +64,6 @@ SOFTWARE.
 #include "psyqo/soft-math.hh"
 #include "psyqo/trigonometry.hh"
 #include "psyqo/vector.hh"
-
-#include "life-rules.hh"
 
 using namespace psyqo::fixed_point_literals;
 using namespace psyqo::trig_literals;
@@ -210,20 +209,31 @@ void Life3DScene::start(StartReason reason) {
     // as plain integers in the same 4.12 the packed vectors use, so "one" here
     // is 4096.
     static constexpr psyqo::Vec3 c_normals[6] = {
-        {1.0_fp, 0.0_fp, 0.0_fp}, {-1.0_fp, 0.0_fp, 0.0_fp}, {0.0_fp, 1.0_fp, 0.0_fp},
-        {0.0_fp, -1.0_fp, 0.0_fp}, {0.0_fp, 0.0_fp, 1.0_fp}, {0.0_fp, 0.0_fp, -1.0_fp},
+        {1.0_fp, 0.0_fp, 0.0_fp},  {-1.0_fp, 0.0_fp, 0.0_fp}, {0.0_fp, 1.0_fp, 0.0_fp},
+        {0.0_fp, -1.0_fp, 0.0_fp}, {0.0_fp, 0.0_fp, 1.0_fp},  {0.0_fp, 0.0_fp, -1.0_fp},
     };
     for (unsigned i = 0; i < 6; i++) m_faceNormals[i] = psyqo::GTE::PackedVec3(c_normals[i]);
 
     g_life3d.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
         switch (event.button) {
-            case psyqo::SimplePad::Button::Triangle: m_lightOn[0] = !m_lightOn[0]; break;
-            case psyqo::SimplePad::Button::Circle: m_lightOn[1] = !m_lightOn[1]; break;
-            case psyqo::SimplePad::Button::Cross: m_lightOn[2] = !m_lightOn[2]; break;
-            case psyqo::SimplePad::Button::Square: m_paused = !m_paused; break;
-            case psyqo::SimplePad::Button::Start: m_sim.reseed(); break;
-            default: break;
+            case psyqo::SimplePad::Button::Triangle:
+                m_lightOn[0] = !m_lightOn[0];
+                break;
+            case psyqo::SimplePad::Button::Circle:
+                m_lightOn[1] = !m_lightOn[1];
+                break;
+            case psyqo::SimplePad::Button::Cross:
+                m_lightOn[2] = !m_lightOn[2];
+                break;
+            case psyqo::SimplePad::Button::Square:
+                m_paused = !m_paused;
+                break;
+            case psyqo::SimplePad::Button::Start:
+                m_sim.reseed();
+                break;
+            default:
+                break;
         }
     });
 
@@ -375,8 +385,7 @@ void Life3DScene::frame() {
                     psyqo::GTE::read<psyqo::GTE::Register::MAC0>(reinterpret_cast<uint32_t*>(&mac0));
                     if (mac0 >= 0) continue;
 
-                    int32_t z =
-                        int32_t((sz[face.v[0]] + sz[face.v[1]] + sz[face.v[2]] + sz[face.v[3]]) >> 2);
+                    int32_t z = int32_t((sz[face.v[0]] + sz[face.v[1]] + sz[face.v[2]] + sz[face.v[3]]) >> 2);
                     z = (z * ORDERING_TABLE_SIZE) >> 16;
                     if (z < 0 || z >= ORDERING_TABLE_SIZE) continue;
 

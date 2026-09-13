@@ -25,7 +25,6 @@ SOFTWARE.
 */
 
 #include "psyqo/vector.hh"
-
 #include "snitch_all.hpp"
 
 using namespace psyqo;
@@ -97,9 +96,13 @@ TEST_CASE("Vec3 directional factories") {
 
 TEST_CASE("Vec3 addition") {
     Vec3 a;
-    a.x = 1.0; a.y = 2.0; a.z = 3.0;
+    a.x = 1.0;
+    a.y = 2.0;
+    a.z = 3.0;
     Vec3 b;
-    b.x = 4.0; b.y = 5.0; b.z = 6.0;
+    b.x = 4.0;
+    b.y = 5.0;
+    b.z = 6.0;
     auto c = a + b;
     REQUIRE(c.x.integer() == 5);
     REQUIRE(c.y.integer() == 7);
@@ -108,9 +111,13 @@ TEST_CASE("Vec3 addition") {
 
 TEST_CASE("Vec3 subtraction") {
     Vec3 a;
-    a.x = 10.0; a.y = 20.0; a.z = 30.0;
+    a.x = 10.0;
+    a.y = 20.0;
+    a.z = 30.0;
     Vec3 b;
-    b.x = 3.0; b.y = 7.0; b.z = 11.0;
+    b.x = 3.0;
+    b.y = 7.0;
+    b.z = 11.0;
     auto c = a - b;
     REQUIRE(c.x.integer() == 7);
     REQUIRE(c.y.integer() == 13);
@@ -119,7 +126,9 @@ TEST_CASE("Vec3 subtraction") {
 
 TEST_CASE("Vec3 scalar multiplication") {
     Vec3 a;
-    a.x = 2.0; a.y = 3.0; a.z = 4.0;
+    a.x = 2.0;
+    a.y = 3.0;
+    a.z = 4.0;
     auto b = a * 3;
     REQUIRE(b.x.integer() == 6);
     REQUIRE(b.y.integer() == 9);
@@ -128,7 +137,9 @@ TEST_CASE("Vec3 scalar multiplication") {
 
 TEST_CASE("Vec3 FixedPoint multiplication") {
     Vec3 a;
-    a.x = 2.0; a.y = 4.0; a.z = 6.0;
+    a.x = 2.0;
+    a.y = 4.0;
+    a.z = 6.0;
     FixedPoint<> half = 0.5;
     auto b = a * half;
     REQUIRE(b.x.integer() == 1);
@@ -138,7 +149,9 @@ TEST_CASE("Vec3 FixedPoint multiplication") {
 
 TEST_CASE("Vec3 scalar division") {
     Vec3 a;
-    a.x = 6.0; a.y = 9.0; a.z = 12.0;
+    a.x = 6.0;
+    a.y = 9.0;
+    a.z = 12.0;
     auto b = a / 3;
     REQUIRE(b.x.integer() == 2);
     REQUIRE(b.y.integer() == 3);
@@ -147,7 +160,9 @@ TEST_CASE("Vec3 scalar division") {
 
 TEST_CASE("Vec3 negation") {
     Vec3 a;
-    a.x = 1.0; a.y = -2.0; a.z = 3.0;
+    a.x = 1.0;
+    a.y = -2.0;
+    a.z = 3.0;
     auto b = -a;
     REQUIRE(b.x.integer() == -1);
     REQUIRE(b.y.integer() == 2);
@@ -158,9 +173,13 @@ TEST_CASE("Vec3 negation") {
 
 TEST_CASE("Vec3 compound assignment") {
     Vec3 a;
-    a.x = 1.0; a.y = 2.0; a.z = 3.0;
+    a.x = 1.0;
+    a.y = 2.0;
+    a.z = 3.0;
     Vec3 b;
-    b.x = 1.0; b.y = 1.0; b.z = 1.0;
+    b.x = 1.0;
+    b.y = 1.0;
+    b.z = 1.0;
     a += b;
     REQUIRE(a.x.integer() == 2);
     REQUIRE(a.y.integer() == 3);

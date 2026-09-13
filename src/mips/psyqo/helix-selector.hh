@@ -103,7 +103,7 @@ class HelixSelector {
 
     struct Config {
         Vertex center = {{.x = 160, .y = 120}};
-        FixedPoint<> innerRadius = 44.0;      // cylinder radii, before projection
+        FixedPoint<> innerRadius = 44.0;  // cylinder radii, before projection
         FixedPoint<> outerRadius = 68.0;
         FixedPoint<> cameraDistance = 128.0;  // h in the r = R * h / z divide
         FixedPoint<> cursorZ = 150.0;         // z of the item under the cursor
@@ -115,9 +115,9 @@ class HelixSelector {
         // not decide WHETHER two quads share an angle - `i` and `i + itemsPerTurn`
         // always do - they decide how many LAPS of that are visible either side of
         // the cursor. `(nearSpan + farSpan + 1) / itemsPerTurn` turns, roughly.
-        unsigned nearSpan = 13;   // items emitted toward the camera
-        unsigned farSpan = 13;    // items emitted away from it
-        unsigned fadeItems = 5;   // far-end fade ramp, in items
+        unsigned nearSpan = 13;           // items emitted toward the camera
+        unsigned farSpan = 13;            // items emitted away from it
+        unsigned fadeItems = 5;           // far-end fade ramp, in items
         FixedPoint<> cursorGap = 5.0;     // from the inner ring to the marker's tip
         FixedPoint<> cursorLength = 9.0;  // tip to base, along the spoke
         FixedPoint<> cursorHalfWidth = 5.0;
@@ -142,9 +142,7 @@ class HelixSelector {
     void setStickAngle(Angle a);
 
     /** @brief Crank by whole items. This is the d-pad adapter. */
-    void step(int32_t items) {
-        m_target += FixedPoint<>(items, int32_t(0));
-    }
+    void step(int32_t items) { m_target += FixedPoint<>(items, int32_t(0)); }
 
     /**
      * @brief Your confirm button's rising edge.
