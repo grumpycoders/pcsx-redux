@@ -20,6 +20,10 @@
 
 #include "core/mdec.h"
 
+#include <string.h>
+
+#include <algorithm>
+
 #include "core/debug.h"
 #include "core/psxemulator.h"
 
@@ -190,6 +194,57 @@ enum {
     MDEC1_RESET = 0x80000000,
 };
 
+// The scale matrix every known PSX game uploads, straight out of psx-spx's
+// set_scale_table section. Signed halfwords, 14 fractional bits.
+static const int16_t c_standardScaleTable[PCSX::MDEC::DSIZE2] = {
+    (int16_t)0x5A82, (int16_t)0x5A82, (int16_t)0x5A82, (int16_t)0x5A82, (int16_t)0x5A82, (int16_t)0x5A82,
+    (int16_t)0x5A82, (int16_t)0x5A82, (int16_t)0x7D8A, (int16_t)0x6A6D, (int16_t)0x471C, (int16_t)0x18F8,
+    (int16_t)0xE707, (int16_t)0xB8E3, (int16_t)0x9592, (int16_t)0x8275, (int16_t)0x7641, (int16_t)0x30FB,
+    (int16_t)0xCF04, (int16_t)0x89BE, (int16_t)0x89BE, (int16_t)0xCF04, (int16_t)0x30FB, (int16_t)0x7641,
+    (int16_t)0x6A6D, (int16_t)0xE707, (int16_t)0x8275, (int16_t)0xB8E3, (int16_t)0x471C, (int16_t)0x7D8A,
+    (int16_t)0x18F8, (int16_t)0x9592, (int16_t)0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, (int16_t)0x5A82,
+    (int16_t)0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, (int16_t)0x5A82, (int16_t)0x471C, (int16_t)0x8275,
+    (int16_t)0x18F8, (int16_t)0x6A6D, (int16_t)0x9592, (int16_t)0xE707, (int16_t)0x7D8A, (int16_t)0xB8E3,
+    (int16_t)0x30FB, (int16_t)0x89BE, (int16_t)0x7641, (int16_t)0xCF04, (int16_t)0xCF04, (int16_t)0x7641,
+    (int16_t)0x89BE, (int16_t)0x30FB, (int16_t)0x18F8, (int16_t)0xB8E3, (int16_t)0x6A6D, (int16_t)0x8275,
+    (int16_t)0x7D8A, (int16_t)0x9592, (int16_t)0x471C, (int16_t)0xE707,
+};
+
+void PCSX::MDEC::scaletable_init() {
+    memcpy(scaletable, c_standardScaleTable, sizeof(scaletable));
+    customScaleTable = false;
+}
+
+// psx-spx real_idct_core. dst = src * scaletable with src diagonally mirrored,
+// two passes with src/dst swapped. 1024 multiplications, and the hardware has no
+// idea the table contains cosines: any matrix uploaded here is faithfully applied.
+//
+// NOTE the hardware only uses the upper 13 bits of each 16-bit table entry, and
+// psx-spx itself says of this pseudocode that "the results aren't perfect" and
+// that the real rounding points are not known. So this is the documented model,
+// not a bit-exact hardware model, and a hardware roundtrip is the only thing that
+// can say how far off it is.
+void PCSX::MDEC::real_idct(int *block) {
+    int temp[DSIZE2];
+    int *src = block;
+    int *dst = temp;
+    for (int pass = 0; pass < 2; pass++) {
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                int64_t sum = 0;
+                for (int z = 0; z < 8; z++) {
+                    sum += static_cast<int64_t>(src[y + z * 8]) * (scaletable[x + z * 8] / 8);
+                }
+                dst[x + y * 8] = static_cast<int>((sum + 0xfff) >> 13);
+            }
+        }
+        std::swap(src, dst);
+    }
+    // Two swaps put the result back in `block` already when passes are even; be
+    // explicit rather than relying on it.
+    if (src != block) memcpy(block, src, sizeof(temp));
+}
+
 void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
     for (int i = 0; i < DSIZE2; i++) {
         iqtab[i] = (iq_y[i] * SCALER(aanscales[zscan[i]], AAN_PRESCALE_SCALE));
@@ -204,9 +259,35 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 
     memset(blk, 0, 6 * DSIZE2 * sizeof(int));
     iqtab = iq_uv;
+    const uint8_t *qtab = qt_uv;
     for (int i = 0; i < 6; i++) {
         // decode blocks (Cr,Cb,Y1,Y2,Y3,Y4)
-        if (i == 2) iqtab = iq_y;
+        if (i == 2) {
+            iqtab = iq_y;
+            qtab = qt_y;
+        }
+
+        if (customScaleTable) {
+            // General path: no AAN prescale in the dequantized values, saturation
+            // to signed 11 bits per psx-spx's rl_decode_block, and the full matrix
+            // multiply afterwards. Slower by construction; only taken when
+            // something has actually uploaded a non-standard matrix.
+            rl = SWAP_LE16(*mdec_rl);
+            mdec_rl++;
+            q_scale = RLE_RUN(rl);
+            blk[0] = std::clamp(RLE_VAL(rl) * qtab[0], -0x400, 0x3ff);
+            for (k = 0;;) {
+                rl = SWAP_LE16(*mdec_rl);
+                mdec_rl++;
+                if (rl == MDEC_END_OF_DATA) break;
+                k += RLE_RUN(rl) + 1;
+                if (k > 63) break;
+                blk[zscan[k]] = std::clamp((RLE_VAL(rl) * qtab[k] * q_scale + 4) / 8, -0x400, 0x3ff);
+            }
+            real_idct(blk);
+            blk += DSIZE2;
+            continue;
+        }
 
         rl = SWAP_LE16(*mdec_rl);
         mdec_rl++;
@@ -371,6 +452,9 @@ void PCSX::MDEC::init(void) {
     memset(&mdec, 0, sizeof(mdec));
     memset(iq_y, 0, sizeof(iq_y));
     memset(iq_uv, 0, sizeof(iq_uv));
+    memset(qt_y, 0, sizeof(qt_y));
+    memset(qt_uv, 0, sizeof(qt_uv));
+    scaletable_init();
     mdec.rl = (uint16_t *)&PCSX::g_emulator->m_mem->m_wram[0x100000];
 }
 
@@ -439,14 +523,22 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
             // printmatrixu8(p + 64);
             iqtab_init(iq_y, p);
             iqtab_init(iq_uv, p + 64);
+            memcpy(qt_y, p, sizeof(qt_y));
+            memcpy(qt_uv, p + 64, sizeof(qt_uv));
         }
 
             scheduleMDECINDMAIRQ(size / 4);
             return;
 
-        case 0x6:  // cosine table
-            // printf("mdec cosine table\n");
-
+        case 0x6: {  // scale table, MDEC(3)
+            // 64 signed halfwords with a 14-bit fractional part. This used to be
+            // dropped on the floor, which meant a custom table silently decoded
+            // with the standard one: correct-looking output here, different output
+            // on hardware, and no diagnostic either way.
+            const int16_t *p = g_emulator->m_mem->getPointer<int16_t>(adr);
+            for (unsigned i = 0; i < DSIZE2; i++) scaletable[i] = SWAP_LE16(p[i]);
+            customScaleTable = memcmp(scaletable, c_standardScaleTable, sizeof(scaletable)) != 0;
+        }
             scheduleMDECINDMAIRQ(size / 4);
             return;
 
