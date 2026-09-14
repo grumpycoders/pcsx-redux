@@ -212,19 +212,29 @@ static const int16_t c_standardScaleTable[PCSX::MDEC::DSIZE2] = {
     (int16_t)0x7D8A, (int16_t)0x9592, (int16_t)0x471C, (int16_t)0xE707,
 };
 
-// ⚠ PARTIAL AND MEASURED-NOT-CONVERGED. This implements psx-spx's 11-bit
-// saturation and its q_scale == 0 mode as written, and both move the emulator
-// TOWARD real hardware without reaching it: against console captures the
-// saturating case went 575 -> 560 differing bytes of 768 and the q_scale == 0
-// case 768 -> 568. Running the identical logic through the general matrix path
-// (accurate to 2-3 LSB on ordinary frames) gives 596 and 768, i.e. no better, so
-// the residual is in THIS LOGIC or in the documentation, not in the fast path's
-// domain. psx-spx carries a "(?)" on the DC line of rl_decode_block and says of
-// the surrounding model that "the results aren't perfect". Do not read a green
-// ordinary frame as evidence these two modes are right.
+// The dequantizer follows psx-spx's rl_decode_block, and every clause of it has
+// now been checked against real consoles with an arm that varies ONE term. Five
+// of those arms are bit-exact, 0 of 768 bytes differing: the q_scale == 0 DC rule
+// and its ordinary-route control, both zigzag arms, and the DC-saturation arm.
+// The rig is src/mips/tests/mdec-roundtrip, one arm per clause, and genjob.py
+// documents what each one holds fixed.
 //
-// What IS verified: the normal path is bit-identical to before this change.
-// Arm C against hardware is 332/768 max 2 before and after, to the byte.
+// What is left is NOT in this function. Every single-term arm's residual is
+// exactly +1 on the quadrants whose flat level is an exact .5 and exact
+// everywhere else, because the MDEC rounds a tie DOWN and SCALER here rounds it
+// up: measured 153.00 -> 153, 153.25 -> 153, 153.75 -> 154, 165.50 -> 165, which
+// is round-half-down and not floor. Separately, arms driven far out of range keep
+// isolated bytes where silicon reads 0 and this reads 255 - a wrap where we clamp,
+// in the colour conversion, which psx-spx does not document at all (yuv_to_rgb is
+// called four times on that page and never defined). Both are output-stage
+// findings with their own arms still to build; neither is a dequant bug.
+//
+// Regression control for anything touched here: arm C, the ordinary path, must
+// stay bit-identical. It is 332/768 max 2 against hardware and was 0/768 against
+// the previous build across this change. The first attempt at the saturation
+// clamped in the divided domain, which cost 407 extra differing bytes on an
+// ordinary frame while the SATURATING arm appeared to improve - grade on C, never
+// on the arm the change was written for.
 //
 // psx-spx saturates the dequantized value to signed 11 bits. The fast path works
 // in an UN-DIVIDED domain: its expression is RLE_VAL*qt*q_scale with the /8 folded
@@ -319,14 +329,19 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
             rl = SWAP_LE16(*mdec_rl);
             mdec_rl++;
             q_scale = RLE_RUN(rl);
-            blk[0] = std::clamp(RLE_VAL(rl) * qtab[0], -0x400, 0x3ff);
+            // The q_scale == 0 clauses bind here too, and their absence is why
+            // running this mode through the general path scored no better than
+            // through the fast one - both were wrong about the same two things.
+            blk[0] = std::clamp(q_scale == 0 ? RLE_VAL(rl) * 2 : RLE_VAL(rl) * qtab[0], -0x400, 0x3ff);
             for (k = 0;;) {
                 rl = SWAP_LE16(*mdec_rl);
                 mdec_rl++;
                 if (rl == MDEC_END_OF_DATA) break;
                 k += RLE_RUN(rl) + 1;
                 if (k > 63) break;
-                blk[zscan[k]] = std::clamp((RLE_VAL(rl) * qtab[k] * q_scale + 4) / 8, -0x400, 0x3ff);
+                const int spec =
+                    q_scale == 0 ? RLE_VAL(rl) * 2 : (RLE_VAL(rl) * qtab[k] * q_scale + 4) / 8;
+                blk[q_scale == 0 ? k : zscan[k]] = std::clamp(spec, -0x400, 0x3ff);
             }
             real_idct(blk);
             blk += DSIZE2;
@@ -336,7 +351,31 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
         rl = SWAP_LE16(*mdec_rl);
         mdec_rl++;
         q_scale = RLE_RUN(rl);
-        blk[0] = SCALER(iqtab[0] * RLE_VAL(rl), AAN_EXTRA - 3);
+        {
+            // psx-spx's DC term. Every clause here is MEASURED ON SILICON rather
+            // than taken from the document on trust, one hardware arm per clause:
+            //   val = signed10bit * qt[0], with NO q_scale and NO /8. Arms D8 and
+            //     D63 hold everything else and decode byte-identical at q_scale 8
+            //     and 63, which settles the "(?)" psx-spx prints on that line.
+            //   q_scale == 0 gives val = signed10bit * 2 with no quant table at
+            //     all. Arm ZDC against ZDCC, which reaches the same value by the
+            //     ordinary route, differ 0/768.
+            //   val = minmax(val, -400h, +3FFh). Arm DSAT2 puts two DCs at 1024
+            //     and 2044 on a HALVED basis, where the clamp bites before the
+            //     8-bit output rail does, and they decode byte-identical. At the
+            //     standard basis this is unobservable: a flat block decodes to
+            //     128 + val/8, so the clamp at 1023 and the output rail at 1024
+            //     are one LSB apart and no DC-only arm can separate them.
+            // The clamp lives in the spec's divided domain while this path works
+            // in an un-divided one, so the ORIGINAL expression is what is returned
+            // when nothing saturates - that keeps the ordinary case bit-identical.
+            const int dc = RLE_VAL(rl);
+            const int spec = (q_scale == 0) ? dc * 2 : dc * qtab[0];
+            const int sat = std::clamp(spec, -0x400, 0x3ff);
+            blk[0] = (q_scale != 0 && sat == spec)
+                         ? SCALER(iqtab[0] * dc, AAN_EXTRA - 3)
+                         : SCALER(sat * SCALER(aanscales[0], AAN_PRESCALE_SCALE), AAN_EXTRA - 3);
+        }
         for (k = 0, used_col = 0;;) {
             rl = SWAP_LE16(*mdec_rl);
             mdec_rl++;
@@ -354,7 +393,18 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
             // is bit-identical to what was here before.
             const int dest = q_scale == 0 ? k : zscan[k];
             if (q_scale == 0) {
-                blk[dest] = SCALER(RLE_VAL(rl) * 2 * 8 * iqtab[k] / (qtab[k] ? qtab[k] : 1), AAN_EXTRA);
+                // MEASURED: arm ZAC puts one coefficient at k = 2 with q_scale 0
+                // and silicon decodes a horizontal frequency-2 basis, i.e. block
+                // position 2; the matched-magnitude control ZACC at q_scale 1
+                // decodes a vertical frequency-1 basis, position zscan[2] = 8. So
+                // psx-spx's "no zigzag" is right - and the AAN prescale has to
+                // follow the value to its DESTINATION. iqtab[k] carries
+                // aanscales[zscan[k]], which is the factor for the slot this mode
+                // specifically does not use, so it cannot be reused here. The *8
+                // puts the value in this path's un-divided domain, and psx-spx's
+                // clamp is a no-op in this mode because signed10bit*2 spans
+                // [-1024, +1022], inside [-400h, +3FFh] at both ends.
+                blk[dest] = SCALER(RLE_VAL(rl) * 2 * 8 * SCALER(aanscales[k], AAN_PRESCALE_SCALE), AAN_EXTRA);
             } else {
                 blk[dest] = SCALER(saturateAanAc(RLE_VAL(rl) * qtab[k] * q_scale) *
                                        (iqtab[k] / (qtab[k] ? qtab[k] : 1)),
