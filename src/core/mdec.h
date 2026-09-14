@@ -85,6 +85,11 @@ class MDEC {
     // Scale matrix from MDEC(3). Defaults to the standard JPEG-derived constants,
     // which is what every shipping game uploads. When something uploads anything
     // else we have to stop pretending and run the general matrix multiply.
+    // The AAN prescale on its own, separate from the quant table it is normally
+    // folded into. psx-spx applies the 11-bit saturation to the raw dequantized
+    // value BEFORE "val = val * scalezag[i]", so the fast path has to be able to
+    // reach the two factors independently.
+    int aanPrescale[DSIZE2];
     int16_t scaletable[DSIZE2];
     bool customScaleTable = false;
     // The hardware does NOT initialise the scale matrix: measured 2026-09-14 on

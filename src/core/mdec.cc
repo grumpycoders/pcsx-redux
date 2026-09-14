@@ -212,6 +212,35 @@ static const int16_t c_standardScaleTable[PCSX::MDEC::DSIZE2] = {
     (int16_t)0x7D8A, (int16_t)0x9592, (int16_t)0x471C, (int16_t)0xE707,
 };
 
+// ⚠ PARTIAL AND MEASURED-NOT-CONVERGED. This implements psx-spx's 11-bit
+// saturation and its q_scale == 0 mode as written, and both move the emulator
+// TOWARD real hardware without reaching it: against console captures the
+// saturating case went 575 -> 560 differing bytes of 768 and the q_scale == 0
+// case 768 -> 568. Running the identical logic through the general matrix path
+// (accurate to 2-3 LSB on ordinary frames) gives 596 and 768, i.e. no better, so
+// the residual is in THIS LOGIC or in the documentation, not in the fast path's
+// domain. psx-spx carries a "(?)" on the DC line of rl_decode_block and says of
+// the surrounding model that "the results aren't perfect". Do not read a green
+// ordinary frame as evidence these two modes are right.
+//
+// What IS verified: the normal path is bit-identical to before this change.
+// Arm C against hardware is 332/768 max 2 before and after, to the byte.
+//
+// psx-spx saturates the dequantized value to signed 11 bits. The fast path works
+// in an UN-DIVIDED domain: its expression is RLE_VAL*qt*q_scale with the /8 folded
+// into the AAN normalisation, so the clamp has to be applied to the spec's value
+// while the ORIGINAL expression is what reaches the IDCT. Clamping the divided
+// value and multiplying the prescale onto that instead is an 8x error, and it
+// costs 407 extra differing bytes against hardware on an ordinary frame - the
+// regression control is the only thing that sees it, because the saturating case
+// still looks like it improved.
+static inline int saturateAanAc(int x) {
+    const int v = (x + 4) / 8;
+    if (v > 0x3ff) return 0x3ff * 8;
+    if (v < -0x400) return -0x400 * 8;
+    return x;
+}
+
 void PCSX::MDEC::scaletable_init() {
     // Zero, not the standard constants. See the note in mdec.h: silicon has no
     // default here, and a decode before MDEC(3) produces nothing on hardware.
@@ -319,10 +348,20 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
                 break;
             }
 
-            // zigzag transformation
-            blk[zscan[k]] = SCALER(RLE_VAL(rl) * iqtab[k] * q_scale, AAN_EXTRA);
+            // zigzag transformation. q_scale == 0 selects psx-spx's mode with no
+            // quant table, a doubled value and NO zigzag; the *8 puts it in this
+            // path's un-divided domain. When nothing saturates, the normal branch
+            // is bit-identical to what was here before.
+            const int dest = q_scale == 0 ? k : zscan[k];
+            if (q_scale == 0) {
+                blk[dest] = SCALER(RLE_VAL(rl) * 2 * 8 * iqtab[k] / (qtab[k] ? qtab[k] : 1), AAN_EXTRA);
+            } else {
+                blk[dest] = SCALER(saturateAanAc(RLE_VAL(rl) * qtab[k] * q_scale) *
+                                       (iqtab[k] / (qtab[k] ? qtab[k] : 1)),
+                                   AAN_EXTRA);
+            }
             // keep track of used columns to speed up the idtc
-            used_col |= (zscan[k] > 7) ? 1 << (zscan[k] & 7) : 0;
+            used_col |= (dest > 7) ? 1 << (dest & 7) : 0;
         }
 
         if (k == 0) used_col = -1;
