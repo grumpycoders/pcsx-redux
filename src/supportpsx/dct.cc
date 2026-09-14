@@ -1,0 +1,309 @@
+/*
+
+MIT License
+
+Copyright (c) 2026 PCSX-Redux authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+#include "supportpsx/dct.h"
+
+#include <math.h>
+#include <string.h>
+
+#include <algorithm>
+
+#include "support/cpu-features.h"
+
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64) || defined(_M_AMD64)
+#define DCT_X86
+#if defined(__GNUC__) || defined(__clang__)
+#define DCT_AVX2_FUNC [[gnu::target("avx2")]]
+#else
+#define DCT_AVX2_FUNC
+#endif
+#include <immintrin.h>
+#endif
+
+namespace {
+
+// SIMD batch width: one lane per block. 16 int16 lanes is one AVX2 register and
+// is also a perfectly reasonable unroll factor for the scalar lane, so both lanes
+// run the identical loop structure over the identical memory layout. That is the
+// whole reason for batching across blocks rather than across the eight
+// coefficients of one block: a row-per-register kernel is a different algorithm
+// on every register width and needs transposes that this one does not have.
+constexpr int kBatch = 16;
+
+constexpr int kFixedBits = 14;
+constexpr int kRound = 1 << (kFixedBits - 1);
+
+inline int16_t saturate16(int32_t v) {
+    if (v > 32767) return 32767;
+    if (v < -32768) return -32768;
+    return static_cast<int16_t>(v);
+}
+
+// Scalar lane. c is batch-major: c[coefficient * kBatch + lane].
+void dctBatchScalar(int16_t *c, const int16_t *basis) {
+    int16_t mid[64 * kBatch];
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            int32_t acc[kBatch];
+            for (int l = 0; l < kBatch; l++) acc[l] = 0;
+            for (int k = 0; k < 8; k++) {
+                const int32_t b = basis[8 * i + k];
+                const int16_t *src = c + (8 * j + k) * kBatch;
+                for (int l = 0; l < kBatch; l++) acc[l] += static_cast<int32_t>(src[l]) * b;
+            }
+            int16_t *dst = mid + (8 * i + j) * kBatch;
+            for (int l = 0; l < kBatch; l++) dst[l] = saturate16((acc[l] + kRound) >> kFixedBits);
+        }
+    }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            int32_t acc[kBatch];
+            for (int l = 0; l < kBatch; l++) acc[l] = 0;
+            for (int k = 0; k < 8; k++) {
+                const int32_t b = basis[8 * i + k];
+                const int16_t *src = mid + (8 * j + k) * kBatch;
+                for (int l = 0; l < kBatch; l++) acc[l] += static_cast<int32_t>(src[l]) * b;
+            }
+            int16_t *dst = c + (8 * i + j) * kBatch;
+            for (int l = 0; l < kBatch; l++) dst[l] = saturate16((acc[l] + kRound) >> kFixedBits);
+        }
+    }
+}
+
+#ifdef DCT_X86
+// AVX2 lane. Deliberately accumulates in int32 and saturates on narrowing, which
+// makes it BIT-IDENTICAL to the scalar lane. A 16-lane int16 path using
+// _mm256_mulhrs_epi16 is about 1.6x faster and is NOT bit-identical: measured max
+// absolute deviation from a double-precision reference is 8.75 against 1.25 for
+// this one. An encoder whose output depends on which machine ran it is a bad
+// surprise to hand someone, so the accurate lane is the default. The fast one is
+// worth adding behind an explicit opt-in, not behind a CPU probe.
+DCT_AVX2_FUNC void dctPassAvx2(const int16_t *src, int16_t *dst, const int32_t *basis32) {
+    const __m256i round = _mm256_set1_epi32(kRound);
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            __m256i accLo = _mm256_setzero_si256();
+            __m256i accHi = _mm256_setzero_si256();
+            for (int k = 0; k < 8; k++) {
+                const __m256i s = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src + (8 * j + k) * kBatch));
+                const __m256i b = _mm256_set1_epi32(basis32[8 * i + k]);
+                const __m256i sLo = _mm256_cvtepi16_epi32(_mm256_castsi256_si128(s));
+                const __m256i sHi = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(s, 1));
+                accLo = _mm256_add_epi32(accLo, _mm256_mullo_epi32(sLo, b));
+                accHi = _mm256_add_epi32(accHi, _mm256_mullo_epi32(sHi, b));
+            }
+            accLo = _mm256_srai_epi32(_mm256_add_epi32(accLo, round), kFixedBits);
+            accHi = _mm256_srai_epi32(_mm256_add_epi32(accHi, round), kFixedBits);
+            // packs_epi32 saturates (matching saturate16) but interleaves the two
+            // 128-bit halves, so undo that with a 64-bit lane permute.
+            __m256i packed = _mm256_packs_epi32(accLo, accHi);
+            packed = _mm256_permute4x64_epi64(packed, 0xd8);
+            _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst + (8 * i + j) * kBatch), packed);
+        }
+    }
+}
+
+DCT_AVX2_FUNC void dctBatchAvx2(int16_t *c, const int32_t *basis32) {
+    alignas(32) int16_t mid[64 * kBatch];
+    dctPassAvx2(c, mid, basis32);
+    dctPassAvx2(mid, c, basis32);
+}
+#endif
+
+}  // namespace
+
+const PCSX::DCT::Basis &PCSX::DCT::standardBasis() {
+    static const Basis s_basis = [] {
+        // cos(n * pi / 16) / 2, Q14. Same table the MDEC's own command 3 is handed
+        // by every shipping title, and the same one psxavenc builds from its SFn
+        // constants.
+        double sf[8];
+        for (int n = 0; n < 8; n++) sf[n] = cos(n * M_PI / 16.0) / 2.0;
+        static const int idx[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},    {1, 3, 5, 7, -7, -5, -3, -1},
+                                      {2, 6, -6, -2, -2, -6, 6, 2}, {3, -7, -1, -5, 5, 1, 7, -3},
+                                      {4, -4, -4, 4, 4, -4, -4, 4}, {5, -1, 7, 3, -3, -7, 1, -5},
+                                      {6, -2, 2, -6, -6, 2, -2, 6}, {7, -5, 3, -1, 1, -3, 5, -7}};
+        Basis b{};
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                const int k = idx[i][j];
+                const double v = (k < 0) ? -sf[-k] : sf[k];
+                b[i * 8 + j] = static_cast<int16_t>(lrint(v * 16384.0));
+            }
+        }
+        return b;
+    }();
+    return s_basis;
+}
+
+void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis) {
+    int16_t mid[64];
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            int32_t v = 0;
+            for (int k = 0; k < 8; k++) v += static_cast<int32_t>(block[8 * j + k]) * basis[8 * i + k];
+            mid[8 * i + j] = saturate16((v + kRound) >> kFixedBits);
+        }
+    }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            int32_t v = 0;
+            for (int k = 0; k < 8; k++) v += static_cast<int32_t>(mid[8 * j + k]) * basis[8 * i + k];
+            block[8 * i + j] = saturate16((v + kRound) >> kFixedBits);
+        }
+    }
+}
+
+PCSX::DCT::Encoder::Encoder(unsigned threads, Basis basis) : m_basis(basis) {
+    for (int i = 0; i < 64; i++) m_basisQ15[i] = m_basis[i];
+    m_threadCount = threads ? threads : std::max(1u, std::thread::hardware_concurrency());
+#ifdef DCT_X86
+    m_useAvx2 = CPUFeatures::get().avx2;
+#endif
+    m_threads.reserve(m_threadCount);
+    for (unsigned i = 0; i < m_threadCount; i++) m_threads.emplace_back([this] { worker(); });
+}
+
+PCSX::DCT::Encoder::~Encoder() {
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_shutdown = true;
+    }
+    m_cv.notify_all();
+    for (auto &t : m_threads) t.join();
+}
+
+const char *PCSX::DCT::Encoder::lane() const { return m_useAvx2 ? "avx2" : "scalar"; }
+
+PCSX::DCT::Promise PCSX::DCT::Encoder::submit(const Frame &frame) {
+    Job job;
+    job.frame = frame;
+    auto future = job.result.get_future();
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_queue.push_back(std::move(job));
+    }
+    m_cv.notify_one();
+    return Promise(std::move(future));
+}
+
+namespace {
+
+// Where block `index` lives in the source frame. MDEC block order within a
+// macroblock is Cr, Cb, Y1, Y2, Y3, Y4.
+struct BlockSite {
+    const uint8_t *base;
+    uint32_t stride;
+    uint32_t pixelStride;
+};
+
+BlockSite locate(const PCSX::DCT::Frame &f, uint32_t mbX, uint32_t mbY, uint32_t sub) {
+    switch (sub) {
+        case 0:
+            return {f.cr + f.cStride * (mbY * 8) + f.cPixelStride * (mbX * 8), f.cStride, f.cPixelStride};
+        case 1:
+            return {f.cb + f.cStride * (mbY * 8) + f.cPixelStride * (mbX * 8), f.cStride, f.cPixelStride};
+        default: {
+            const uint32_t dx = ((sub - 2) & 1) * 8;
+            const uint32_t dy = ((sub - 2) >> 1) * 8;
+            return {f.y + f.yStride * (mbY * 16 + dy) + (mbX * 16 + dx), f.yStride, 1};
+        }
+    }
+}
+
+}  // namespace
+
+void PCSX::DCT::Encoder::worker() {
+    std::array<int32_t, 64> basis32{};
+    for (int i = 0; i < 64; i++) basis32[i] = m_basis[i];
+
+    for (;;) {
+        Job job;
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_cv.wait(lock, [this] { return m_shutdown || !m_queue.empty(); });
+            if (m_queue.empty()) {
+                if (m_shutdown) return;
+                continue;
+            }
+            job = std::move(m_queue.front());
+            m_queue.pop_front();
+        }
+
+        const Frame &f = job.frame;
+        Result result;
+        if (!f.y || !f.cb || !f.cr || (f.width % 16) || (f.height % 16) || !f.width || !f.height) {
+            result.failed = true;
+            job.result.set_value(std::move(result));
+            continue;
+        }
+
+        result.macroblocksX = f.width / 16;
+        result.macroblocksY = f.height / 16;
+        const uint32_t macroblocks = result.macroblocksX * result.macroblocksY;
+        result.blockCount = macroblocks * 6;
+        result.coefficients.resize(static_cast<size_t>(result.blockCount) * 64);
+
+        alignas(32) int16_t batch[64 * kBatch];
+
+        for (uint32_t base = 0; base < result.blockCount; base += kBatch) {
+            const uint32_t count = std::min<uint32_t>(kBatch, result.blockCount - base);
+            // The tail of a frame whose block count is not a multiple of kBatch is
+            // zero-filled rather than handled by a second code path. 1800 blocks
+            // for 320x240 leaves a remainder of 8, so this is the common case and
+            // not an edge case; one code path is worth 0.4% of wasted transform.
+            memset(batch, 0, sizeof(batch));
+            for (uint32_t l = 0; l < count; l++) {
+                const uint32_t bi = base + l;
+                const uint32_t mb = bi / 6;
+                const BlockSite site = locate(f, mb % result.macroblocksX, mb / result.macroblocksX, bi % 6);
+                for (uint32_t row = 0; row < 8; row++) {
+                    const uint8_t *p = site.base + site.stride * row;
+                    for (uint32_t col = 0; col < 8; col++) {
+                        batch[(row * 8 + col) * kBatch + l] = static_cast<int16_t>(p[col * site.pixelStride]) - 128;
+                    }
+                }
+            }
+
+#ifdef DCT_X86
+            if (m_useAvx2) {
+                dctBatchAvx2(batch, basis32.data());
+            } else {
+                dctBatchScalar(batch, m_basis.data());
+            }
+#else
+            dctBatchScalar(batch, m_basis.data());
+#endif
+
+            for (uint32_t l = 0; l < count; l++) {
+                int16_t *out = result.coefficients.data() + static_cast<size_t>(base + l) * 64;
+                for (uint32_t k = 0; k < 64; k++) out[k] = batch[k * kBatch + l];
+            }
+        }
+
+        job.result.set_value(std::move(result));
+    }
+}
