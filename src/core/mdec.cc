@@ -437,7 +437,29 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 #define MULY(a) ((a) << 10)
 
 #define MAKERGB15(r, g, b, a) (SWAP_LE16(a | ((b) << 10) | ((g) << 5) | (r)))
-#define SCALE8(c) SCALER(c, 20)
+// MEASURED: the MDEC rounds to nearest with TIES GOING DOWN. Arm D8F puts four
+// flat quadrants at exactly 153.00, 153.25, 153.75 and 165.50; silicon returns
+// 153, 153, 154, 165 - so .75 rounds up and .50 rounds down, which is
+// round-half-down and NOT floor (floor would have given 153 for the .75 quadrant).
+// SCALER adds half and shifts, i.e. rounds ties up. Subtracting 1 from the bias
+// moves the tie and leaves every other fraction alone.
+//
+// SCOPE, and it is narrower than it first looked. This takes the flat-field DC
+// arms D8, D63 and D8F from 384/768 each to 0/768, and is a byte-for-byte no-op on
+// arms A, B, C, D, S and Z - ordinary content with AC energy essentially never
+// lands on an exact tie. ⛔ It does NOT account for the residual on DSAT2 (192,
+// max 1) or ASAT (96, max 1), which are unchanged by it: DSAT2 runs the general
+// matrix path, whose own `(sum + 0xfff) >> 13` is a separate rounding stage, and
+// ASAT's ties arise inside the AAN butterfly rather than here. Those are a
+// different measurement and have not been made. An earlier revision of this
+// comment claimed this one bit was the whole residual on every single-term arm;
+// that was written before the confirming sweep finished and it was wrong.
+#define SCALE8(c) ((((c) + (1 << 19)) - 1) >> 20)
+// ⚠ DELIBERATELY still SCALER, i.e. still rounds ties UP, and the asymmetry with
+// SCALE8 above is unfinished rather than verified. Every arm of the roundtrip rig
+// requests 24bpp, so nothing has driven this path on silicon and I would rather it
+// look unmeasured than look checked. The 15-bit arm is a rig change (depth 3 in the
+// command word, half the output bytes) plus one farm run.
 #define SCALE5(c) SCALER(c, 23)
 
 #define CLAMP5(c) (((c) < -16) ? 0 : (((c) > (31 - 16)) ? 31 : ((c) + 16)))

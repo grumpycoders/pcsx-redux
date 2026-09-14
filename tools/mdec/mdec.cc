@@ -47,6 +47,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <exception>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -540,8 +541,21 @@ int main(int argc, char **argv) {
     }
     const std::string command(positional[0]);
 
-    if (command == "rawencode") return cmdRawEncode(args, asksForHelp);
-    if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
+    // DCT::Transform::FastSymmetric throws std::invalid_argument on a basis
+    // without the even/odd symmetry, which is a documented and reachable input
+    // here - `-transform symmetric` with a `-t` table that lacks it. Without this
+    // the exception escapes main and the tool SIGABRTs on an input its own -h text
+    // says it refuses, while every other bad input prints a line and returns
+    // non-zero. Measured with `-transform exact` on the same table as the control:
+    // exit 0, encodes fine, so the abort was the symmetry check and not the table
+    // loader.
+    try {
+        if (command == "rawencode") return cmdRawEncode(args, asksForHelp);
+        if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
+    } catch (const std::exception &e) {
+        fmt::print(stderr, "{}: {}\n", command, e.what());
+        return -1;
+    }
 
     fmt::print(stderr, "Unknown command: {}\n\n", command);
     printUsage(argv[0]);

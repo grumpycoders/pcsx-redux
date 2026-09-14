@@ -47,6 +47,9 @@ STD = [v - 0x10000 if v > 0x7fff else v for v in STD]
 #   D8F      Output rounding, after D8 and DSAT2 both came back off by exactly
 #            +1 on every quadrant whose flat level is an exact .5 and exact
 #            everywhere else. Four quadrants at 153.0 / 153.25 / 153.75 / 165.5.
+#            ANSWERED: silicon returns 153 / 153 / 154 / 165, so .75 rounds UP and
+#            .50 rounds DOWN. That is ROUND-HALF-DOWN and it is NOT floor - floor
+#            would have returned 153 for the .75 quadrant. SCALER rounds ties up.
 #   DSAT     BLIND, KEPT AS THE RECORD OF WHY. A DC-only block decodes to a flat
 #            128 + val/8, so the 11-bit clamp at val 1023 lands at output 255.875
 #            and the 8-bit output clip lands at val 1024. They are ONE LSB apart,
@@ -110,6 +113,7 @@ def build(arm):
         # gives 153/153/154/166. D8 and DSAT2 already showed silicon taking the
         # LOW side of a .5 tie while the emulator's SCALER rounds up; this arm says
         # whether that is floor everywhere or a tie-break rule only.
+        # ANSWERED 2026-09-14: a tie-break rule only. Measured 153/153/154/165.
         quant, qscale = 1, 8
         dc = [0, 0, 200, 202, 206, 300]
         acs = [[]] * 6
