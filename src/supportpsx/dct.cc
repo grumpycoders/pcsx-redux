@@ -27,6 +27,7 @@ SOFTWARE.
 #include "supportpsx/dct.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <algorithm>
@@ -93,7 +94,60 @@ void dctBatchScalar(int16_t *c, const int16_t *basis) {
     }
 }
 
+// Scalar twin of _mm256_mulhrs_epi16: (a*b + 0x4000) >> 15, low 16 bits, no
+// saturation. Intel's semantics exactly; the FastMatrix lanes are only
+// bit-identical because this matches.
+inline int16_t mulhrs(int16_t a, int16_t b) {
+    return static_cast<int16_t>((static_cast<int32_t>(a) * static_cast<int32_t>(b) + 0x4000) >> 15);
+}
+
+inline int16_t addsSat(int16_t a, int16_t b) { return saturate16(static_cast<int32_t>(a) + static_cast<int32_t>(b)); }
+
+// FastMatrix scalar lane. Narrows after every multiply instead of accumulating in
+// int32, which is what makes the 16-lane int16 vector form possible.
+void dctBatchFastScalar(int16_t *c, const int16_t *basisQ15) {
+    int16_t mid[64 * kBatch];
+    auto pass = [&](const int16_t *src, int16_t *dst) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                int16_t acc[kBatch];
+                for (int l = 0; l < kBatch; l++) acc[l] = 0;
+                for (int k = 0; k < 8; k++) {
+                    const int16_t b = basisQ15[8 * i + k];
+                    const int16_t *p = src + (8 * j + k) * kBatch;
+                    for (int l = 0; l < kBatch; l++) acc[l] = addsSat(acc[l], mulhrs(p[l], b));
+                }
+                int16_t *d = dst + (8 * i + j) * kBatch;
+                for (int l = 0; l < kBatch; l++) d[l] = acc[l];
+            }
+        }
+    };
+    pass(c, mid);
+    pass(mid, c);
+}
+
 #ifdef DCT_X86
+DCT_AVX2_FUNC void dctFastPassAvx2(const int16_t *src, int16_t *dst, const int16_t *basisQ15) {
+    for (int i = 0; i < 8; i++) {
+        __m256i bv[8];
+        for (int k = 0; k < 8; k++) bv[k] = _mm256_set1_epi16(basisQ15[8 * i + k]);
+        for (int j = 0; j < 8; j++) {
+            __m256i acc = _mm256_setzero_si256();
+            for (int k = 0; k < 8; k++) {
+                const __m256i sv = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src + (8 * j + k) * kBatch));
+                acc = _mm256_adds_epi16(acc, _mm256_mulhrs_epi16(sv, bv[k]));
+            }
+            _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst + (8 * i + j) * kBatch), acc);
+        }
+    }
+}
+
+DCT_AVX2_FUNC void dctBatchFastAvx2(int16_t *c, const int16_t *basisQ15) {
+    alignas(32) int16_t mid[64 * kBatch];
+    dctFastPassAvx2(c, mid, basisQ15);
+    dctFastPassAvx2(mid, c, basisQ15);
+}
+
 // AVX2 lane. Deliberately accumulates in int32 and saturates on narrowing, which
 // makes it BIT-IDENTICAL to the scalar lane. A 16-lane int16 path using
 // _mm256_mulhrs_epi16 is about 1.6x faster and is NOT bit-identical: measured max
@@ -159,7 +213,24 @@ const PCSX::DCT::Basis &PCSX::DCT::standardBasis() {
     return s_basis;
 }
 
-void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis) {
+void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis, Transform transform) {
+    if (transform == Transform::FastMatrix) {
+        int16_t q15[64];
+        for (int i = 0; i < 64; i++) q15[i] = saturate16(static_cast<int32_t>(basis[i]) * 2);
+        int16_t mid[64];
+        auto pass = [&](const int16_t *src, int16_t *dst) {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    int16_t acc = 0;
+                    for (int k = 0; k < 8; k++) acc = addsSat(acc, mulhrs(src[8 * j + k], q15[8 * i + k]));
+                    dst[8 * i + j] = acc;
+                }
+            }
+        };
+        pass(block, mid);
+        pass(mid, block);
+        return;
+    }
     int16_t mid[64];
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -177,11 +248,20 @@ void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis) {
     }
 }
 
-PCSX::DCT::Encoder::Encoder(unsigned threads, Basis basis) : m_basis(basis) {
-    for (int i = 0; i < 64; i++) m_basisQ15[i] = m_basis[i];
+PCSX::DCT::Encoder::Encoder(unsigned threads, Transform transform, Basis basis)
+    : m_basis(basis), m_transform(transform) {
+    // Q14 -> Q15. The standard basis peaks at 0.5 so this never saturates, but a
+    // caller-supplied basis with a coefficient at or above 1.0 would, hence the clamp.
+    for (int i = 0; i < 64; i++) {
+        const int32_t v = static_cast<int32_t>(m_basis[i]) * 2;
+        m_basisQ15[i] = saturate16(v);
+    }
     m_threadCount = threads ? threads : std::max(1u, std::thread::hardware_concurrency());
 #ifdef DCT_X86
-    m_useAvx2 = CPUFeatures::get().avx2;
+    // The override exists so the scalar lane stays reachable and therefore
+    // testable on a machine that has AVX2, and so a lane can be bisected out in
+    // the field without a rebuild. It can only ever turn features off.
+    m_useAvx2 = CPUFeatures::get().avx2 && (getenv("PCSX_DCT_NO_SIMD") == nullptr);
 #endif
     m_threads.reserve(m_threadCount);
     for (unsigned i = 0; i < m_threadCount; i++) m_threads.emplace_back([this] { worker(); });
@@ -288,15 +368,27 @@ void PCSX::DCT::Encoder::worker() {
                 }
             }
 
+            switch (m_transform) {
+                case Transform::FastMatrix:
 #ifdef DCT_X86
-            if (m_useAvx2) {
-                dctBatchAvx2(batch, basis32.data());
-            } else {
-                dctBatchScalar(batch, m_basis.data());
-            }
-#else
-            dctBatchScalar(batch, m_basis.data());
+                    if (m_useAvx2) {
+                        dctBatchFastAvx2(batch, m_basisQ15.data());
+                        break;
+                    }
 #endif
+                    dctBatchFastScalar(batch, m_basisQ15.data());
+                    break;
+                case Transform::ExactMatrix:
+                default:
+#ifdef DCT_X86
+                    if (m_useAvx2) {
+                        dctBatchAvx2(batch, basis32.data());
+                        break;
+                    }
+#endif
+                    dctBatchScalar(batch, m_basis.data());
+                    break;
+            }
 
             for (uint32_t l = 0; l < count; l++) {
                 int16_t *out = result.coefficients.data() + static_cast<size_t>(base + l) * 64;

@@ -54,6 +54,25 @@ namespace DCT {
 // able to express the matching forward transform, so the general form is the one
 // implemented here.
 
+// Which transform an Encoder runs. This is a USER choice, deliberately, because
+// the variants do not produce identical coefficients and the difference is a
+// quality/speed tradeoff somebody should be making on purpose.
+//
+// Orthogonal to this, and NOT a user choice: each variant has a scalar lane and a
+// vectorized lane selected by CPUFeatures at construction. Every lane of a given
+// variant is bit-identical to every other lane of that variant, verified by test.
+// So output depends on the Transform you asked for and never on the machine that
+// ran it.
+enum class Transform {
+    // General basis, int32 accumulation, saturating narrow. Matches
+    // transformBlockReference() bit for bit. The default.
+    ExactMatrix,
+    // General basis, Q15 round-and-narrow per multiply (the shape
+    // _mm256_mulhrs_epi16 implements natively). Measurably faster and measurably
+    // less accurate; see the README notes on deviation.
+    FastMatrix,
+};
+
 // 64 signed Q14 coefficients, row-major. Row i column k is the weight of input k
 // in output i of a 1D 8-point transform.
 using Basis = std::array<int16_t, 64>;
@@ -123,7 +142,8 @@ class Encoder {
     // 2-socket Haswell box tops out at the physical core count and regresses hard
     // past it, so hardware_concurrency() (which counts SMT siblings) is a ceiling
     // and not a recommendation.
-    explicit Encoder(unsigned threads = 0, Basis basis = standardBasis());
+    explicit Encoder(unsigned threads = 0, Transform transform = Transform::ExactMatrix,
+                     Basis basis = standardBasis());
     ~Encoder();
 
     Encoder(const Encoder &) = delete;
@@ -134,8 +154,10 @@ class Encoder {
     // been joined. Nothing is copied here.
     Promise submit(const Frame &frame);
 
-    // Which kernel lane the runtime probe selected, for logs.
+    // Which kernel lane the runtime probe selected, for logs. Not a correctness
+    // knob: lanes of one Transform agree bit for bit.
     const char *lane() const;
+    Transform transform() const { return m_transform; }
 
     unsigned threadCount() const { return m_threadCount; }
 
@@ -149,6 +171,7 @@ class Encoder {
 
     Basis m_basis;
     std::array<int16_t, 64> m_basisQ15{};
+    Transform m_transform = Transform::ExactMatrix;
     unsigned m_threadCount = 0;
     std::vector<std::thread> m_threads;
     std::deque<Job> m_queue;
@@ -159,9 +182,9 @@ class Encoder {
 };
 
 // Exposed for testing: transform one 8x8 block in place, block-major, scalar,
-// against the given basis. This is the reference the vectorized lanes must match
-// bit for bit.
-void transformBlockReference(int16_t *block, const Basis &basis);
+// against the given basis, using the given variant's arithmetic. This is the
+// reference every lane of that variant must match bit for bit.
+void transformBlockReference(int16_t *block, const Basis &basis, Transform transform = Transform::ExactMatrix);
 
 }  // namespace DCT
 
