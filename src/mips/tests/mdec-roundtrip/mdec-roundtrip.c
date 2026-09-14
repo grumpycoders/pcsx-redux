@@ -153,16 +153,21 @@ int main() {
     // Probe the READ half as well. Attach any asset as `mdec-in.bin` and this
     // reports whether a console can actually read it back, which is the one thing
     // the farm-side fix is not yet verified on.
+    // Both cases of the same name, so one run measures whether the lookup is
+    // case sensitive instead of asserting it. Stage the asset lowercase.
     {
-        int pf = PCopen("mdec-in.bin", 0, 0);
-        ramsyscall_printf("MDRT: PCopen(mdec-in.bin) -> %d\n", pf);
-        if (pf >= 0) {
-            uint8_t probe[16];
-            memset(probe, 0, sizeof(probe));
-            int got = PCread(pf, probe, sizeof(probe));
-            PCclose(pf);
-            ramsyscall_printf("MDRT: PCread -> %d, bytes %02x %02x %02x %02x\n", got, probe[0], probe[1], probe[2],
-                              probe[3]);
+        static const char *const names[] = {"mdec-in.bin", "MDEC-IN.BIN"};
+        for (unsigned i = 0; i < 2; i++) {
+            int pf = PCopen(names[i], 0, 0);
+            ramsyscall_printf("MDRT: PCopen(%s) -> %d\n", names[i], pf);
+            if (pf >= 0) {
+                uint8_t probe[16];
+                memset(probe, 0, sizeof(probe));
+                int got = PCread(pf, probe, sizeof(probe));
+                PCclose(pf);
+                ramsyscall_printf("MDRT: PCread -> %d, bytes %02x %02x %02x %02x\n", got, probe[0], probe[1],
+                                  probe[2], probe[3]);
+            }
         }
     }
     int fd = PCcreat("mdec-out-" JOB_ARM ".bin", 0);
