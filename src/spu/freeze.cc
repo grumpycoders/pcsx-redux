@@ -1,37 +1,21 @@
 /***************************************************************************
-                          freeze.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
-
-//*************************************************************************//
-// History of changes:
-//
-// 2004/09/18 - Pete
-// - corrected LDChen ADSRX values after save state loading
-//
-// 2003/03/20 - Pete
-// - fix to prevent the new interpolations from crashing when loading a save state
-//
-// 2003/01/06 - Pete
-// - small changes for version 1.3 adsr save state loading
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
 
 #include "spu/externals.h"
 #include "spu/interface.h"
@@ -40,7 +24,7 @@
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     RemoveThread();
 
-    // Capture buffer
+    // Capture buffer.
     spu.get<SaveStates::CBCDLeft>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
     spu.get<SaveStates::CBCDRight>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
     spu.get<SaveStates::CBCurrIndex>().value = captureBuffer.currIndex;
@@ -59,39 +43,43 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
         auto &left = xa.get<SaveStates::XAADPCMLeft>();
         left.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->left.y0;
         left.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->left.y1;
-        auto &right = xa.get<SaveStates::XAADPCMLeft>();
+        auto &right = xa.get<SaveStates::XAADPCMRight>();
         right.get<SaveStates::ADPCMDecodeY0>().value = xapGlobal->right.y0;
         right.get<SaveStates::ADPCMDecodeY1>().value = xapGlobal->right.y1;
         xa.get<SaveStates::XAPCM>().copyFrom(reinterpret_cast<uint8_t *>(xapGlobal->pcm));
     }
     spu.get<SaveStates::SPUIrq>().value = spuIrq;
-    if (pSpuIrq) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(pSpuIrq - spuMemC);
+    if (irqAddress) spu.get<SaveStates::SPUIrqPtr>().value = uintptr_t(irqAddress - spuRamBase);
 
     for (unsigned i = 0; i < MAXCHAN; i++) {
         auto &channel = spu.get<SaveStates::Channels>().value[i];
         auto &data = channel.get<SaveStates::Data>();
         data = s_chan[i].data;
-        channel.get<SaveStates::ADSRInfo>() = s_chan[i].ADSR;
-        channel.get<SaveStates::ADSRInfoEx>() = s_chan[i].ADSRX;
-        auto storePtr = [this](uint8_t *ptr, Protobuf::Int32 &val) { val.value = ptr ? ptr - spuMemC : -1; };
-        storePtr(s_chan[i].pStart, data.get<Chan::StartPtr>());
-        storePtr(s_chan[i].pCurr, data.get<Chan::CurrPtr>());
-        storePtr(s_chan[i].pLoop, data.get<Chan::LoopPtr>());
+        channel.get<SaveStates::ADSRInfo>() = s_chan[i].adsr.legacy();
+        channel.get<SaveStates::ADSRInfoEx>() = s_chan[i].adsr.ex();
+        // Each per-voice helper owns the conversion between its runtime state and
+        // its savestate-mirror fields; we just hand it the fields.
+        s_chan[i].adpcm.saveTo(data.get<Chan::s_1>(), data.get<Chan::s_2>(), data.get<Chan::StartPtr>(),
+                               data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase,
+                               data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
+        s_chan[i].volume.saveTo(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
+                                data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
+        s_chan[i].interp.saveTo(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(), data.get<Chan::sinc>());
     }
 
     spu.get<SaveStates::SPUAddr>().value = spuAddr;
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
 
-    spu.get<SaveStates::SPUNoiseClock>().value = m_noiseClock;
-    spu.get<SaveStates::SPUNoiseCount>().value = m_noiseCount;
-    spu.get<SaveStates::SPUNoiseVal>().value = m_noiseVal;
+    m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
+                   spu.get<SaveStates::SPUNoiseVal>());
 
     SetupThread();
 }
 
 void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
-    RemoveThread();  // we stop processing while doing the save!
+    // Processing is stopped while the state is restored.
+    RemoveThread();
 
     spu.get<SaveStates::CBCDLeft>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
     spu.get<SaveStates::CBCDRight>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
@@ -104,8 +92,8 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUPorts>().copyTo(reinterpret_cast<uint8_t *>(regArea));
 
 #if 0
-// ugh, the xa_decode pointer is grabbed... this seems a mess. We'll need to fix this up later.
-    if (pF->xa.nsamples <= 4032)  // start xa again
+// The xa_decode pointer is grabbed here, which is messy. This needs to be fixed up later.
+    if (pF->xa.nsamples <= 4032)  // Start XA again.
         playADPCMchannel(&pF->xa);
 #endif
 
@@ -113,20 +101,20 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
 
     spuIrq = spu.get<SaveStates::SPUIrq>().value;
     const auto &pSpuIrqIn = spu.get<SaveStates::SPUIrqPtr>().value;
-    pSpuIrq = pSpuIrqIn ? pSpuIrqIn + spuMemC : nullptr;
+    irqAddress = pSpuIrqIn ? pSpuIrqIn + spuRamBase : nullptr;
 
     for (unsigned i = 0; i < MAXCHAN; i++) {
         const auto &channel = spu.get<SaveStates::Channels>().value[i];
         const auto &data = channel.get<SaveStates::Data>();
         s_chan[i].data = data;
-        s_chan[i].ADSR = channel.get<SaveStates::ADSRInfo>();
-        s_chan[i].ADSRX = channel.get<SaveStates::ADSRInfoEx>();
-        auto restorePtr = [this](uint8_t *&ptr, const Protobuf::Int32 &val) {
-            ptr = val.value == -1 ? nullptr : val.value + spuMemC;
-        };
-        restorePtr(s_chan[i].pStart, data.get<Chan::StartPtr>());
-        restorePtr(s_chan[i].pCurr, data.get<Chan::CurrPtr>());
-        restorePtr(s_chan[i].pLoop, data.get<Chan::LoopPtr>());
+        s_chan[i].adsr.legacy() = channel.get<SaveStates::ADSRInfo>();
+        s_chan[i].adsr.ex() = channel.get<SaveStates::ADSRInfoEx>();
+        s_chan[i].adpcm.loadFrom(data.get<Chan::s_1>(), data.get<Chan::s_2>(), data.get<Chan::StartPtr>(),
+                                 data.get<Chan::CurrPtr>(), data.get<Chan::LoopPtr>(), spuRamBase,
+                                 data.get<Chan::SB>().value.data(), data.get<Chan::SBPos>());
+        s_chan[i].volume.loadFrom(data.get<Chan::LeftVolume>(), data.get<Chan::RightVolume>(),
+                                  data.get<Chan::LeftVolRaw>(), data.get<Chan::RightVolRaw>());
+        s_chan[i].interp.loadFrom(data.get<Chan::SB>().value.data(), data.get<Chan::spos>(), data.get<Chan::sinc>());
         s_chan[i].data.get<Chan::Mute>().value = false;
         s_chan[i].data.get<Chan::Solo>().value = false;
         s_chan[i].data.get<Chan::IrqDone>().value = 0;
@@ -136,11 +124,10 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
     spuStat = spu.get<SaveStates::SPUStat>().value;
 
-    m_noiseClock = spu.get<SaveStates::SPUNoiseClock>().value;
-    m_noiseCount = spu.get<SaveStates::SPUNoiseCount>().value;
-    m_noiseVal = spu.get<SaveStates::SPUNoiseVal>().value;
+    m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
+                     spu.get<SaveStates::SPUNoiseVal>());
 
-    // repair some globals
+    // Repair some globals.
     for (unsigned i = 0; i <= 62; i += 2) writeRegister(H_Reverb + i, regArea[(H_Reverb + i - 0xc00) >> 1]);
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);
@@ -151,10 +138,10 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
     writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 
-    // fix to prevent new interpolations from crashing
-    for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].data.get<Chan::SB>().value[28].value = 0;
+    // Fix to prevent new interpolations from crashing.
+    for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].interp.resetAfterLoad();
 
-    // repair LDChen's ADSR changes
+    // Repair LDChen's ADSR changes.
     if (spuAddr < 0x7ffff) {
         for (unsigned i = 0; i < 24; i++) {
             writeRegister(0x1f801c00 + (i << 4) + 0xc8, regArea[(i << 3) + 0x64]);
@@ -162,5 +149,6 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         }
     }
 
-    SetupThread();  // start sound processing again
+    // Start sound processing again.
+    SetupThread();
 }

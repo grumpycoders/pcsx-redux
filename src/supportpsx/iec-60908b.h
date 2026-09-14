@@ -128,6 +128,49 @@ struct MSF {
         ++(*this);
         return tmp;
     }
+    MSF &operator--() {
+        if (f == 0) {
+            f = 74;
+            if (s == 0) {
+                s = 59;
+                if (m == 0) {
+                    m = 99;
+                } else {
+                    m--;
+                }
+            } else {
+                s--;
+            }
+        } else {
+            f--;
+        }
+        return *this;
+    }
+    MSF operator--(int) {
+        MSF tmp = *this;
+        --(*this);
+        return tmp;
+    }
+    MSF operator+(const MSF &other) const {
+        MSF tmp = *this;
+        tmp += other;
+        return tmp;
+    }
+    MSF operator-(const MSF &other) const {
+        MSF tmp = *this;
+        tmp -= other;
+        return tmp;
+    }
+    MSF &operator+=(const MSF &other) {
+        uint32_t lba = toLBA() + other.toLBA();
+        *this = MSF(lba);
+        return *this;
+    }
+    MSF &operator-=(const MSF &other) {
+        uint32_t lba = toLBA() - other.toLBA();
+        *this = MSF(lba);
+        return *this;
+    }
     constexpr uint32_t toLBA() const { return (m * 60 + s) * 75 + f; }
     constexpr void toBCD(uint8_t *dst) const {
         dst[0] = itob(m);
@@ -156,6 +199,53 @@ void computeEDCECC(uint8_t *sector);
 
 // Compute the CRC-16 for the SubQ channel.
 uint16_t subqCRC(const uint8_t *d, int len = 10);
+
+struct SubHeaders {
+    uint8_t fileNumber;
+    uint8_t channelNumber;
+    uint8_t subMode;
+    uint8_t codingInfo;
+    bool fromBuffer(const uint8_t buffer[]) {
+        fileNumber = buffer[0];
+        channelNumber = buffer[1];
+        subMode = buffer[2];
+        codingInfo = buffer[3];
+        return (buffer[0] == buffer[4]) && (buffer[1] == buffer[5]) && (buffer[2] == buffer[6]) &&
+               (buffer[3] == buffer[7]);
+    }
+    void toBuffer(uint8_t buffer[]) const {
+        buffer[0] = buffer[4] = fileNumber;
+        buffer[1] = buffer[5] = channelNumber;
+        buffer[2] = buffer[6] = subMode;
+        buffer[3] = buffer[7] = codingInfo;
+    }
+    bool isEndOfRecord() const { return subMode & 0x01; }
+    bool isVideo() const { return subMode & 0x02; }
+    bool isAudio() const { return subMode & 0x04; }
+    bool isData() const { return subMode & 0x08; }
+    bool isTrigger() const { return subMode & 0x10; }
+    bool isForm2() const { return subMode & 0x20; }
+    bool isRealTime() const { return subMode & 0x40; }
+    bool isEOF() const { return subMode & 0x80; }
+
+    void setEndOfRecord() { subMode |= 0x01; }
+    void setVideo() { subMode |= 0x02; }
+    void setAudio() { subMode |= 0x04; }
+    void setData() { subMode |= 0x08; }
+    void setTrigger() { subMode |= 0x10; }
+    void setForm2() { subMode |= 0x20; }
+    void setRealTime() { subMode |= 0x40; }
+    void setEOF() { subMode |= 0x80; }
+
+    void clearEndOfRecord() { subMode &= ~0x01; }
+    void clearVideo() { subMode &= ~0x02; }
+    void clearAudio() { subMode &= ~0x04; }
+    void clearData() { subMode &= ~0x08; }
+    void clearTrigger() { subMode &= ~0x10; }
+    void clearForm2() { subMode &= ~0x20; }
+    void clearRealTime() { subMode &= ~0x40; }
+    void clearEOF() { subMode &= ~0x80; }
+};
 
 }  // namespace IEC60908b
 }  // namespace PCSX
