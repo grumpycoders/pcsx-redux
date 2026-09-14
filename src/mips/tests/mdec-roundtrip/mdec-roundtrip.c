@@ -82,10 +82,10 @@ static int done(int code) {
 }
 
 int main() {
-    // The job is compiled in rather than read over pcdrv. On the hwtest farm every
-    // PCopen returns -1 while PCcreat succeeds, so the read half of PCDRV is not
-    // available there and the write half is. Baking the input in costs a rebuild
-    // per arm and makes the rig work identically on the farm and in the emulator.
+    // The job is compiled in rather than read over pcdrv, which makes a run
+    // self-contained and identical under the emulator and on the farm. It is NOT
+    // because PCDRV reads are unavailable: that was an early misdiagnosis of an
+    // empty asset directory on the runner side, since fixed.
     ramsyscall_printf("MDRT: arm " JOB_ARM " build 1789414538, %d rl words, upload_scale=%d\n", JOB_RL_WORDS,
                       JOB_UPLOAD_SCALE);
 
@@ -117,6 +117,23 @@ int main() {
     // starting DMA1 deadlocks on real silicon. pcsx-redux does not deadlock here,
     // because its dma0 stashes the request in pending_dma1 and runs it for you, so
     // a serialised version passes in the emulator and hangs on hardware.
+#if JOB_RESET_MODE
+    // Does a reset clear the uploaded tables? Reset is documented as setting
+    // status to 80040000h and says nothing about the matrices, so this is a
+    // measurement rather than a lookup. The DMA request enables DO get cleared,
+    // hence the second write: that part is the sequence, not the question.
+    MDEC1 = 0x80000000;
+    MDEC1 = 0x60000000;
+#if JOB_RESET_MODE == 2 || JOB_RESET_MODE == 4
+    MDEC0 = MDEC_CMD_QUANT | 1;
+    if (dmaWrite(s_quant, 32) < 0) return done(8);
+#endif
+#if JOB_RESET_MODE == 3 || JOB_RESET_MODE == 4
+    MDEC0 = MDEC_CMD_SCALE;
+    if (dmaWrite(s_scale, 32) < 0) return done(9);
+#endif
+#endif
+
     const uint32_t decodeWords = (JOB_RL_WORDS + 1) / 2;
     MDEC0 = MDEC_CMD_DECODE | (decodeWords & 0xffff);
     if (waitIdle(DMA_MDECIN, "pre-decode") < 0) return done(4);
@@ -133,6 +150,21 @@ int main() {
 
     int r = PCinit();
     (void)r;
+    // Probe the READ half as well. Attach any asset as `mdec-in.bin` and this
+    // reports whether a console can actually read it back, which is the one thing
+    // the farm-side fix is not yet verified on.
+    {
+        int pf = PCopen("mdec-in.bin", 0, 0);
+        ramsyscall_printf("MDRT: PCopen(mdec-in.bin) -> %d\n", pf);
+        if (pf >= 0) {
+            uint8_t probe[16];
+            memset(probe, 0, sizeof(probe));
+            int got = PCread(pf, probe, sizeof(probe));
+            PCclose(pf);
+            ramsyscall_printf("MDRT: PCread -> %d, bytes %02x %02x %02x %02x\n", got, probe[0], probe[1], probe[2],
+                              probe[3]);
+        }
+    }
     int fd = PCcreat("mdec-out-" JOB_ARM ".bin", 0);
     if (fd >= 0) {
         int w = PCwrite(fd, s_out, sizeof(s_out));
