@@ -25,6 +25,8 @@
 #include "common/kernel/pcdrv.h"
 #include "common/syscalls/syscalls.h"
 
+#include "job.h"
+
 #define MDEC0 HW_U32(0x1f801820)
 #define MDEC1 HW_U32(0x1f801824)
 
@@ -34,12 +36,10 @@
 
 #define JOB_MAGIC 0x5452444d
 
-static uint8_t s_job[262144] __attribute__((aligned(4)));
-static uint8_t s_out[131072] __attribute__((aligned(4)));
-
-static uint32_t rd32(const uint8_t *p) {
-    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
-}
+static uint8_t s_out[16 * 16 * 3] __attribute__((aligned(4)));
+static uint8_t s_quant[128] __attribute__((aligned(4)));
+static int16_t s_scale[64] __attribute__((aligned(4)));
+static uint16_t s_rl[JOB_RL_WORDS] __attribute__((aligned(4)));
 
 // Every wait here is bounded. An unbounded spin makes a stalled MDEC, a wedged
 // emulator and a program that never ran render as exactly the same thing: nothing
@@ -74,35 +74,17 @@ static int done(int code) {
 }
 
 int main() {
-    int r = PCinit();
-    if (r != 0) {
-        ramsyscall_printf("MDRT: PCinit failed: %d\n", r);
-        return done(1);
-    }
+    // The job is compiled in rather than read over pcdrv. On the hwtest farm every
+    // PCopen returns -1 while PCcreat succeeds, so the read half of PCDRV is not
+    // available there and the write half is. Baking the input in costs a rebuild
+    // per arm and makes the rig work identically on the farm and in the emulator.
+    ramsyscall_printf("MDRT: arm " JOB_ARM ", %d rl words, upload_scale=%d\n", JOB_RL_WORDS,
+                      JOB_UPLOAD_SCALE);
 
-    int fd = PCopen("mdec-in.bin", 0, 0);
-    if (fd < 0) {
-        ramsyscall_printf("MDRT: cannot open mdec-in.bin\n");
-        return done(1);
-    }
-    int got = PCread(fd, s_job, sizeof(s_job));
-    PCclose(fd);
-    if (got < 0x110) {
-        ramsyscall_printf("MDRT: short job file: %d\n", got);
-        return done(1);
-    }
-    if (rd32(s_job) != JOB_MAGIC) {
-        ramsyscall_printf("MDRT: bad magic %08x\n", rd32(s_job));
-        return done(1);
-    }
-
-    const uint32_t flags = rd32(s_job + 4);
-    const uint32_t rlWords = rd32(s_job + 8);
-    const uint32_t outBytes = rd32(s_job + 12);
-    if (outBytes > sizeof(s_out)) {
-        ramsyscall_printf("MDRT: outBytes %u too large\n", outBytes);
-        return done(1);
-    }
+    // DMA cannot source from .rodata safely across every setup here; stage into RAM.
+    for (unsigned i = 0; i < 128; i++) s_quant[i] = job_quant[i];
+    for (unsigned i = 0; i < 64; i++) s_scale[i] = job_scale[i];
+    for (unsigned i = 0; i < JOB_RL_WORDS; i++) s_rl[i] = job_rl[i];
 
     // Enable DMA0 and DMA1. Each channel gets a nibble of DPCR laid out as
     // [enable|prio2..0], so the enable is bit 3 OF THE NIBBLE: 0x77 sets both
@@ -110,31 +92,36 @@ int main() {
     // DMA0 never clearing its busy bit.
     DPCR |= 0x000000ff;
 
-    // Reset, then enable both DMA directions. Bit31 reset, bit30 DMA0 enable,
-    // bit29 DMA1 enable.
     MDEC1 = 0x80000000;
     MDEC1 = 0x60000000;
 
     MDEC0 = MDEC_CMD_QUANT | 1;  // bit0 = colour, so 128 bytes of table follow
-    if (dmaWrite(s_job + 0x10, 32) < 0) return done(2);
+    if (dmaWrite(s_quant, 32) < 0) return done(2);
 
-    if (flags & 1) {
-        MDEC0 = MDEC_CMD_SCALE;
-        if (dmaWrite(s_job + 0x90, 32) < 0) return done(3);
+#if JOB_UPLOAD_SCALE
+    MDEC0 = MDEC_CMD_SCALE;
+    if (dmaWrite(s_scale, 32) < 0) return done(3);
+#endif
+
+    const uint32_t decodeWords = (JOB_RL_WORDS + 1) / 2;
+    MDEC0 = MDEC_CMD_DECODE | (decodeWords & 0xffff);
+    if (dmaWrite(s_rl, decodeWords) < 0) return done(4);
+    if (dmaRead(s_out, sizeof(s_out) / 4) < 0) return done(5);
+
+    // Console first, so a result survives even if the artifact path fails.
+    ramsyscall_printf("MDRT: status %08x\nMDRT-HEX:", MDEC1);
+    for (unsigned i = 0; i < sizeof(s_out); i++) ramsyscall_printf("%02x", s_out[i]);
+    ramsyscall_printf("\nMDRT: end\n");
+
+    int r = PCinit();
+    (void)r;
+    int fd = PCcreat("mdec-out-" JOB_ARM ".bin", 0);
+    if (fd >= 0) {
+        int w = PCwrite(fd, s_out, sizeof(s_out));
+        PCclose(fd);
+        ramsyscall_printf("MDRT: wrote %d bytes to mdec-out-" JOB_ARM ".bin\n", w);
+    } else {
+        ramsyscall_printf("MDRT: PCcreat failed, console hex is the only result\n");
     }
-
-    const uint32_t decodeWords = (rlWords + 1) / 2;
-    MDEC0 = MDEC_CMD_DECODE | (flags & 2 ? 0x08000000 : 0) | (decodeWords & 0xffff);
-    if (dmaWrite(s_job + 0x110, decodeWords) < 0) return done(4);
-    if (dmaRead(s_out, outBytes / 4) < 0) return done(5);
-
-    fd = PCcreat("mdec-out.bin", 0);
-    if (fd < 0) {
-        ramsyscall_printf("MDRT: cannot create mdec-out.bin\n");
-        return done(1);
-    }
-    r = PCwrite(fd, s_out, outBytes);
-    PCclose(fd);
-    ramsyscall_printf("MDRT: wrote %d of %u bytes, status %08x\n", r, outBytes, MDEC1);
-    return done(r == (int)outBytes ? 0 : 6);
+    return done(0);
 }
