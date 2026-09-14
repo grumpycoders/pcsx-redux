@@ -235,7 +235,16 @@ void PCSX::MDEC::real_idct(int *block) {
                 for (int z = 0; z < 8; z++) {
                     sum += static_cast<int64_t>(src[y + z * 8]) * (scaletable[x + z * 8] / 8);
                 }
-                dst[x + y * 8] = static_cast<int>((sum + 0xfff) >> 13);
+                int v = static_cast<int>((sum + 0xfff) >> 13);
+                // The second pass leaves psx-spx's pixel-domain result, but the
+                // colour conversion downstream expects the AAN path's domain,
+                // which carries a 2^10 prescale: MULR/MULB/MULG2 are 1024-fixed
+                // point and SCALE8 shifts by 20. Without this the general path
+                // hands yuv2rgb values about 1024x too small and every macroblock
+                // collapses to flat mid-grey - which reads exactly like the scale
+                // table being ignored, and is not.
+                if (pass == 1) v <<= 10;
+                dst[x + y * 8] = v;
             }
         }
         std::swap(src, dst);
