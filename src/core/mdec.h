@@ -87,6 +87,13 @@ class MDEC {
     // else we have to stop pretending and run the general matrix multiply.
     int16_t scaletable[DSIZE2];
     bool customScaleTable = false;
+    // The hardware does NOT initialise the scale matrix: measured 2026-09-14 on
+    // real consoles, a decode with no MDEC(3) upload returns flat mid-grey for
+    // every pixel. We reproduce that rather than silently substituting the
+    // standard constants, and say so once in the log, because the alternative is
+    // homebrew that works here and shows a grey rectangle on console.
+    bool scaleTableUploaded = false;
+    bool warnedNoScaleTable = false;
 
     static inline const int zscan[DSIZE2] = {
         0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,   // 00

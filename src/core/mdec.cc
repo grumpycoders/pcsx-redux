@@ -25,6 +25,8 @@
 #include <algorithm>
 
 #include "core/debug.h"
+#include "core/logger.h"
+#include "core/system.h"
 #include "core/psxemulator.h"
 
 #define AAN_CONST_BITS 12
@@ -211,8 +213,12 @@ static const int16_t c_standardScaleTable[PCSX::MDEC::DSIZE2] = {
 };
 
 void PCSX::MDEC::scaletable_init() {
-    memcpy(scaletable, c_standardScaleTable, sizeof(scaletable));
-    customScaleTable = false;
+    // Zero, not the standard constants. See the note in mdec.h: silicon has no
+    // default here, and a decode before MDEC(3) produces nothing on hardware.
+    memset(scaletable, 0, sizeof(scaletable));
+    customScaleTable = true;  // an all-zero matrix is not the standard one
+    scaleTableUploaded = false;
+    warnedNoScaleTable = false;
 }
 
 // psx-spx real_idct_core. dst = src * scaletable with src diagonally mirrored,
@@ -505,6 +511,12 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
 
     switch (cmd >> 28) {
         case 0x3:  // decode
+            if (!scaleTableUploaded && !warnedNoScaleTable) {
+                warnedNoScaleTable = true;
+                g_system->log(LogClass::HARDWARE,
+                              _("MDEC decode issued with no scale table uploaded. Real hardware has no default "
+                                "here and will decode this to flat grey; send MDEC(3) before MDEC(1).\n"));
+            }
             mdec.rl = g_emulator->m_mem->getPointer<uint16_t>(adr);
             /* now the mdec is busy till all data are decoded */
             mdec.reg1 |= MDEC1_BUSY;
@@ -547,6 +559,8 @@ void PCSX::MDEC::dma0(uint32_t adr, uint32_t bcr, uint32_t chcr) {
             const int16_t *p = g_emulator->m_mem->getPointer<int16_t>(adr);
             for (unsigned i = 0; i < DSIZE2; i++) scaletable[i] = SWAP_LE16(p[i]);
             customScaleTable = memcmp(scaletable, c_standardScaleTable, sizeof(scaletable)) != 0;
+            scaleTableUploaded = true;
+            warnedNoScaleTable = false;
         }
             scheduleMDECINDMAIRQ(size / 4);
             return;
