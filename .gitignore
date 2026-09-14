@@ -43,6 +43,7 @@ bins/
 /exe2elf
 /exe2exe
 /exe2iso
+/mdec
 /midi2psm
 /midi2spd
 /modconv
