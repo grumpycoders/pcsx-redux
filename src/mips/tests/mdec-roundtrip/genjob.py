@@ -64,6 +64,12 @@ STD = [v - 0x10000 if v > 0x7fff else v for v in STD]
 #            Y4 (4024) share the rails AND the four intermediate ramp values, which
 #            a 3.9x steeper unclamped ramp could not do. Read the ramp, not the
 #            rails - "both quadrants are railed" would have proved nothing.
+#   ZTWO     Two ACs in one block, the last uncovered shape in that mode.
+#   ZK5      ZMIX with the coefficient moved to k=5, arm Z's other AC position.
+#   ZMIX     q_scale == 0 with a DC AND an AC - the combination ZDC and ZAC each
+#            cover half of, and the only untested shape left in that mode.
+#   WRAP     The 9-bit clip in the colour path, which psx-spx marks "probably".
+#            Needs a clamped DC plus a clamped AC to reach - see the arm.
 #   ZDC      q_scale == 0 DC rule.  ZDCC computes the SAME value by the ordinary
 #            route (qt[0]=2 at the neutral q_scale), so identical output means
 #            "val = signed10bit * 2 with no quant table" is right.
@@ -129,6 +135,54 @@ def build(arm):
         dc = [0] * 6
         # (v*63+4)/8 -> 504, 788, 1024, 4024
         acs = [[], [], [(0, 64)], [(0, 100)], [(0, 130)], [(0, 511)]]
+    if arm == 'ZMIX':
+        # q_scale == 0 with a DC *and* ACs, which is the one combination none of
+        # the single-term Z arms covers. ZDC (DC only) and ZAC (AC only, DC zero)
+        # are both bit-exact; arm Z, which has both plus a second AC, is not, and
+        # its survivors run the OPPOSITE way to the wrap (emulator 0 where hardware
+        # reads 255). So the terms are individually right and the combination is
+        # not - this arm says whether that is the combination itself or arm Z's
+        # third variable. Same DC as ZDC, same single AC at k=2 as ZAC, nothing
+        # else moved.
+        quant, qscale = 1, 0
+        dc = [0, 0, 100, 200, 300, 400]
+        acs = [[], [], [(1, 300)], [(1, 300)], [(1, 300)], [(1, 300)]]
+    if arm == 'ZTWO':
+        # Last uncovered shape in q_scale == 0 mode, and the only variable left
+        # between the bit-exact arms and arm Z: TWO ACs in one block. ZDC (DC
+        # only), ZAC (one AC, no DC), ZMIX (DC + AC at k=2) and ZK5 (DC + AC at
+        # k=5) are all bit-exact. Arm Z carries a DC plus ACs at k=1 and k=5 with
+        # opposite signs, and rail-flips against hardware. Same AC pair as arm Z,
+        # on the controlled DC set, so nothing else moves.
+        quant, qscale = 1, 0
+        dc = [0, 0, 100, 200, 300, 400]
+        acs = [[], [], [(0, 200), (3, -150)]] * 1 + [[(0, 200), (3, -150)]] * 3
+    if arm == 'ZK5':
+        # ZMIX came back +-1, so q_scale == 0 with a DC and ONE AC is fine and the
+        # combination is not the defect. Arm Z's remaining variable is its SECOND
+        # AC, at run 3 -> k = 5 (zscan[5] = 2, so the no-zigzag store is observable
+        # there too). This is ZMIX with that coefficient in place of the k=2 one and
+        # nothing else moved: +-1 means the POSITION is fine and the defect is in
+        # carrying TWO ACs, rail flips mean it is the position.
+        quant, qscale = 1, 0
+        dc = [0, 0, 100, 200, 300, 400]
+        acs = [[], [], [(3, 300)], [(3, 300)], [(3, 300)], [(3, 300)]]
+    if arm == 'WRAP':
+        # The 9-bit clip psx-spx marks "probably" on yuv_to_rgb, borrowed from
+        # y_to_mono's `Y = Y AND 1FFh` BEFORE the MinMax(-128,127). A DC-only arm
+        # cannot reach it: the 11-bit dequant clamp caps val at 1023, so Y tops out
+        # at 127.875 and never crosses 256. It needs a clamped DC AND a clamped AC
+        # summing past it. qt=83 puts both at the 1023 rail; the AC at k=1 then
+        # adds roughly +-178 to the DC's 127.9, so the bright end of each quadrant
+        # crosses 256 and the dark end does not.
+        #   WRAP  : Y>=256 masks to a negative 9-bit value, saturates to -128 and
+        #           comes out 0, so a DARK BAND appears inside the bright region.
+        #   CLAMP : the bright region is flat 255 with no band.
+        # A dark band inside a bright region cannot be produced by clamping, so the
+        # arm is self-discriminating in one capture.
+        quant, qscale = 83, 8
+        dc = [0, 0, 400, 400, 400, 400]
+        acs = [[], [], [(0, 400)], [(0, 400)], [(0, 400)], [(0, 400)]]
     if arm in ('ZDC', 'ZDCC'):
         quant, qscale = (1, 0) if arm == 'ZDC' else (2, 8)
         dc = [0, 0, 100, 200, 300, 400]

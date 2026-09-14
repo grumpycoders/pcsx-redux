@@ -463,7 +463,33 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
 #define SCALE5(c) SCALER(c, 23)
 
 #define CLAMP5(c) (((c) < -16) ? 0 : (((c) > (31 - 16)) ? 31 : ((c) + 16)))
-#define CLAMP8(c) (((c) < -128) ? 0 : (((c) > (255 - 128)) ? 255 : ((c) + 128)))
+// MEASURED: the output stage masks to signed 9 bits BEFORE it saturates, so a
+// value that overruns the range comes out BLACK rather than white.
+//
+// psx-spx spells this out for y_to_mono - `Y = Y AND 1FFh ;clip to signed 9bit
+// range` ahead of `MinMax(-128,127,Y)` - and says of yuv_to_rgb only that
+// "there's probably also some 9bit limit (similar as in y_to_mono)". There is.
+// Arm WRAP of the roundtrip rig puts a clamped DC and a clamped AC in one block so
+// the bright end of the quadrant crosses 256 (a DC-only arm cannot get there: the
+// 11-bit dequant clamp caps Y at 127.875). One row, silicon against this emulator
+// before the fix:
+//
+//   hardware    0    0  255  255  221  155  105   78
+//   emulator  255  255  255  255  221  155  106   79
+//
+// The two BRIGHTEST pixels read 0 on hardware. Clamping cannot put a dark band
+// inside a bright region, so this is a wrap and not a rounding difference. It is
+// also the whole of the remaining max-255 residual on the out-of-range arms.
+//
+// CLAMP5, the 15-bit sibling, is deliberately left alone: every arm of the rig
+// requests 24bpp, so the equivalent limit on that path is unmeasured here.
+static inline uint8_t clamp8(int c) {
+    const int v = ((c & 0x1ff) ^ 0x100) - 0x100;  // sign-extend the low 9 bits
+    if (v < -128) return 0;
+    if (v > 127) return 255;
+    return static_cast<uint8_t>(v + 128);
+}
+#define CLAMP8(c) (clamp8(c))
 
 #define CLAMP_SCALE8(a) (CLAMP8(SCALE8(a)))
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
