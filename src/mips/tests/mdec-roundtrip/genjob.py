@@ -29,7 +29,12 @@ def build(arm):
                (0 << 10) | (90 & 0x3ff),
                (2 << 10) | ((-60) & 0x3ff),
                0xFE00]
-    while len(rl) % 32: rl.append(0xFE00)
+    # psx-spx: "DMA0 and DMA1 should be usually used with a blocksize of 20h words.
+    # If necessary, the parameters for the MDEC(1) command should be padded with
+    # FE00h halfwords to match the 20h words (40h halfwords) DMA blocksize."
+    # 40h HALFWORDS, not 20h. Padding to 32 halfwords leaves a 16-word transfer,
+    # whose block count (words/32) rounds to ZERO and hangs DMA0 on real hardware.
+    while len(rl) % 64: rl.append(0xFE00)
     return upload, st, rl
 
 arm = sys.argv[1]
