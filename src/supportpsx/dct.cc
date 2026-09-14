@@ -126,7 +126,74 @@ void dctBatchFastScalar(int16_t *c, const int16_t *basisQ15) {
     pass(mid, c);
 }
 
+
+// FastSymmetric. One 1D pass, batch-major, Q15 arithmetic.
+//
+// s_k = x_k + x_(7-k), d_k = x_k - x_(7-k), k = 0..3.  Even output rows of a
+// symmetric basis depend only on s, odd rows only on d, so each output is a
+// 4-term dot product instead of an 8-term one: 22 multiplies per pass against 64.
+// Exact decomposition; the only error is the Q15 rounding, of which there is less
+// than FastMatrix does.
+//
+// The scalar and AVX2 bodies below are the SAME algebra over different primitive
+// sets (adds/subs/mulhrs). Keeping them textually parallel is the only reason the
+// bit-identity test passes, so do not "simplify" one of them alone.
+void dctSymPassScalar(const int16_t *src, int16_t *dst, const int16_t *q15) {
+    for (int j = 0; j < 8; j++) {
+        int16_t sv[4][kBatch], dv[4][kBatch];
+        for (int k = 0; k < 4; k++) {
+            const int16_t *a = src + (8 * j + k) * kBatch;
+            const int16_t *b = src + (8 * j + (7 - k)) * kBatch;
+            for (int l = 0; l < kBatch; l++) {
+                sv[k][l] = addsSat(a[l], b[l]);
+                dv[k][l] = saturate16(static_cast<int32_t>(a[l]) - static_cast<int32_t>(b[l]));
+            }
+        }
+        for (int i = 0; i < 8; i++) {
+            const int16_t(*in)[kBatch] = (i & 1) ? dv : sv;
+            int16_t *d = dst + (8 * i + j) * kBatch;
+            for (int l = 0; l < kBatch; l++) {
+                int16_t acc = 0;
+                for (int k = 0; k < 4; k++) acc = addsSat(acc, mulhrs(in[k][l], q15[8 * i + k]));
+                d[l] = acc;
+            }
+        }
+    }
+}
+
+void dctBatchSymScalar(int16_t *c, const int16_t *q15) {
+    int16_t mid[64 * kBatch];
+    dctSymPassScalar(c, mid, q15);
+    dctSymPassScalar(mid, c, q15);
+}
+
 #ifdef DCT_X86
+DCT_AVX2_FUNC void dctSymPassAvx2(const int16_t *src, int16_t *dst, const int16_t *q15) {
+    for (int j = 0; j < 8; j++) {
+        __m256i sv[4], dv[4];
+        for (int k = 0; k < 4; k++) {
+            const __m256i a = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src + (8 * j + k) * kBatch));
+            const __m256i b = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src + (8 * j + (7 - k)) * kBatch));
+            sv[k] = _mm256_adds_epi16(a, b);
+            dv[k] = _mm256_subs_epi16(a, b);
+        }
+        for (int i = 0; i < 8; i++) {
+            const __m256i *in = (i & 1) ? dv : sv;
+            __m256i acc = _mm256_setzero_si256();
+            for (int k = 0; k < 4; k++) {
+                acc = _mm256_adds_epi16(acc, _mm256_mulhrs_epi16(in[k], _mm256_set1_epi16(q15[8 * i + k])));
+            }
+            _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst + (8 * i + j) * kBatch), acc);
+        }
+    }
+}
+
+DCT_AVX2_FUNC void dctBatchSymAvx2(int16_t *c, const int16_t *q15) {
+    alignas(32) int16_t mid[64 * kBatch];
+    dctSymPassAvx2(c, mid, q15);
+    dctSymPassAvx2(mid, c, q15);
+}
+
 DCT_AVX2_FUNC void dctFastPassAvx2(const int16_t *src, int16_t *dst, const int16_t *basisQ15) {
     for (int i = 0; i < 8; i++) {
         __m256i bv[8];
@@ -214,6 +281,30 @@ const PCSX::DCT::Basis &PCSX::DCT::standardBasis() {
 }
 
 void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis, Transform transform) {
+    if (transform == Transform::FastSymmetric) {
+        int16_t q15[64];
+        for (int i = 0; i < 64; i++) q15[i] = saturate16(static_cast<int32_t>(basis[i]) * 2);
+        int16_t mid[64];
+        auto pass = [&](const int16_t *src, int16_t *dst) {
+            for (int j = 0; j < 8; j++) {
+                int16_t sv[4], dv[4];
+                for (int k = 0; k < 4; k++) {
+                    sv[k] = addsSat(src[8 * j + k], src[8 * j + (7 - k)]);
+                    dv[k] = saturate16(static_cast<int32_t>(src[8 * j + k]) -
+                                       static_cast<int32_t>(src[8 * j + (7 - k)]));
+                }
+                for (int i = 0; i < 8; i++) {
+                    const int16_t *in = (i & 1) ? dv : sv;
+                    int16_t acc = 0;
+                    for (int k = 0; k < 4; k++) acc = addsSat(acc, mulhrs(in[k], q15[8 * i + k]));
+                    dst[8 * i + j] = acc;
+                }
+            }
+        };
+        pass(block, mid);
+        pass(mid, block);
+        return;
+    }
     if (transform == Transform::FastMatrix) {
         int16_t q15[64];
         for (int i = 0; i < 64; i++) q15[i] = saturate16(static_cast<int32_t>(basis[i]) * 2);
@@ -248,8 +339,24 @@ void PCSX::DCT::transformBlockReference(int16_t *block, const Basis &basis, Tran
     }
 }
 
+bool PCSX::DCT::basisIsSymmetric(const Basis &basis) {
+    for (int i = 0; i < 8; i++) {
+        const int sign = (i & 1) ? -1 : 1;
+        for (int j = 0; j < 4; j++) {
+            if (basis[i * 8 + (7 - j)] != sign * basis[i * 8 + j]) return false;
+        }
+    }
+    return true;
+}
+
 PCSX::DCT::Encoder::Encoder(unsigned threads, Transform transform, Basis basis)
     : m_basis(basis), m_transform(transform) {
+    if (transform == Transform::FastSymmetric && !basisIsSymmetric(basis)) {
+        // Loudly, at construction. The decomposition simply cannot express this
+        // basis, and silently falling back to another Transform would hand the
+        // caller different coefficients than the ones they selected.
+        throw std::invalid_argument("DCT::Transform::FastSymmetric requires a basis with even/odd symmetry");
+    }
     // Q14 -> Q15. The standard basis peaks at 0.5 so this never saturates, but a
     // caller-supplied basis with a coefficient at or above 1.0 would, hence the clamp.
     for (int i = 0; i < 64; i++) {
@@ -278,9 +385,10 @@ PCSX::DCT::Encoder::~Encoder() {
 
 const char *PCSX::DCT::Encoder::lane() const { return m_useAvx2 ? "avx2" : "scalar"; }
 
-PCSX::DCT::Promise PCSX::DCT::Encoder::submit(const Frame &frame) {
+PCSX::DCT::Promise PCSX::DCT::Encoder::submit(const Frame &frame, std::span<int16_t> out) {
     Job job;
     job.frame = frame;
+    job.out = out;
     auto future = job.result.get_future();
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -335,7 +443,8 @@ void PCSX::DCT::Encoder::worker() {
 
         const Frame &f = job.frame;
         Result result;
-        if (!f.y || !f.cb || !f.cr || (f.width % 16) || (f.height % 16) || !f.width || !f.height) {
+        if (!f.y || !f.cb || !f.cr || (f.width % 16) || (f.height % 16) || !f.width || !f.height ||
+            job.out.size() < requiredCoefficientCount(f.width, f.height)) {
             result.failed = true;
             job.result.set_value(std::move(result));
             continue;
@@ -345,7 +454,6 @@ void PCSX::DCT::Encoder::worker() {
         result.macroblocksY = f.height / 16;
         const uint32_t macroblocks = result.macroblocksX * result.macroblocksY;
         result.blockCount = macroblocks * 6;
-        result.coefficients.resize(static_cast<size_t>(result.blockCount) * 64);
 
         alignas(32) int16_t batch[64 * kBatch];
 
@@ -369,6 +477,15 @@ void PCSX::DCT::Encoder::worker() {
             }
 
             switch (m_transform) {
+                case Transform::FastSymmetric:
+#ifdef DCT_X86
+                    if (m_useAvx2) {
+                        dctBatchSymAvx2(batch, m_basisQ15.data());
+                        break;
+                    }
+#endif
+                    dctBatchSymScalar(batch, m_basisQ15.data());
+                    break;
                 case Transform::FastMatrix:
 #ifdef DCT_X86
                     if (m_useAvx2) {
@@ -391,7 +508,7 @@ void PCSX::DCT::Encoder::worker() {
             }
 
             for (uint32_t l = 0; l < count; l++) {
-                int16_t *out = result.coefficients.data() + static_cast<size_t>(base + l) * 64;
+                int16_t *out = job.out.data() + static_cast<size_t>(base + l) * 64;
                 for (uint32_t k = 0; k < 64; k++) out[k] = batch[k * kBatch + l];
             }
         }

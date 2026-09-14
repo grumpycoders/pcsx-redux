@@ -34,6 +34,8 @@ SOFTWARE.
 #include <future>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -68,10 +70,24 @@ enum class Transform {
     // transformBlockReference() bit for bit. The default.
     ExactMatrix,
     // General basis, Q15 round-and-narrow per multiply (the shape
-    // _mm256_mulhrs_epi16 implements natively). Measurably faster and measurably
-    // less accurate; see the README notes on deviation.
+    // _mm256_mulhrs_epi16 implements natively). Faster and less accurate.
     FastMatrix,
+    // FastMatrix's arithmetic plus the even/odd butterfly: with s_k = x_k + x_7-k
+    // and d_k = x_k - x_7-k, the symmetric rows of the basis consume only s and
+    // the antisymmetric rows only d, which is 22 multiplies per 1D pass instead of
+    // 64. That decomposition is EXACT, not an approximation, so the only error is
+    // the Q15 rounding, and there is less of it than FastMatrix has because there
+    // are fewer roundings.
+    //
+    // Requires a basis whose even rows are symmetric and odd rows antisymmetric
+    // about the centre. The standard MDEC basis is. A basis that is not will throw
+    // from the Encoder constructor rather than quietly producing nonsense, and
+    // note that this is a weaker requirement than "the standard basis": a custom
+    // symmetric basis still works here.
+    FastSymmetric,
 };
+
+
 
 // 64 signed Q14 coefficients, row-major. Row i column k is the weight of input k
 // in output i of a 1D 8-point transform.
@@ -80,6 +96,10 @@ using Basis = std::array<int16_t, 64>;
 // The standard MDEC basis: cos(n*pi/16)/2 in Q14, the table every shipping game
 // uploads.
 const Basis &standardBasis();
+
+// True if `basis` has the even/odd symmetry Transform::FastSymmetric needs: even
+// rows symmetric about the centre, odd rows antisymmetric.
+bool basisIsSymmetric(const Basis &basis);
 
 // Chroma siting is 4:2:0. cPixelStride lets a caller pass interleaved chroma
 // (the shape libswscale hands back for NV-style formats) without repacking:
@@ -96,16 +116,24 @@ struct Frame {
     uint32_t cPixelStride = 1;
 };
 
-// Coefficients are block-major: 64 int16 per block, blocks in MDEC order within
-// each macroblock (Cr, Cb, Y1, Y2, Y3, Y4), macroblocks in raster order.
-// Downstream can treat coefficients.data() + 64 * n as one 8x8 block.
+// How many int16 the caller must provide for a frame of this size.
+constexpr size_t requiredCoefficientCount(uint32_t width, uint32_t height) {
+    return static_cast<size_t>(width / 16) * (height / 16) * 6 * 64;
+}
+
+// Metadata only. The coefficients went into the span the caller supplied, which
+// is deliberate: allocating and zero-filling a per-frame output vector measured as
+// the dominant cost of this stage at high thread counts, well above the transform
+// it exists to carry.
 //
-// Note that the kernel works batch-major internally (one SIMD lane per block) and
-// de-interleaves on store. If a downstream stage is also going to be vectorized,
-// that de-interleave is pure waste and this is the place to add a batch-major
-// accessor rather than transposing twice.
+// Layout in that span is block-major: 64 int16 per block, blocks in MDEC order
+// within each macroblock (Cr, Cb, Y1, Y2, Y3, Y4), macroblocks in raster order.
+// out.data() + 64 * n is block n.
+//
+// The kernel works batch-major internally (one SIMD lane per block) and
+// de-interleaves on store. If a downstream stage is also vectorized, that
+// de-interleave is waste and this is where a batch-major output option belongs.
 struct Result {
-    std::vector<int16_t> coefficients;
     uint32_t blockCount = 0;
     uint32_t macroblocksX = 0;
     uint32_t macroblocksY = 0;
@@ -149,10 +177,14 @@ class Encoder {
     Encoder(const Encoder &) = delete;
     Encoder &operator=(const Encoder &) = delete;
 
-    // The frame's pixels are read on a worker thread at an unspecified later time.
-    // The caller owns them and must keep them alive until the returned Promise has
-    // been joined. Nothing is copied here.
-    Promise submit(const Frame &frame);
+    // The frame's pixels are READ and the output span is WRITTEN on a worker
+    // thread at an unspecified later time. The caller owns both and must keep both
+    // alive and untouched until the returned Promise has been joined. Nothing is
+    // copied and nothing is allocated per frame.
+    //
+    // `out` must hold at least requiredCoefficientCount(frame.width, frame.height)
+    // entries; a short span is reported as Result::failed rather than clipped.
+    Promise submit(const Frame &frame, std::span<int16_t> out);
 
     // Which kernel lane the runtime probe selected, for logs. Not a correctness
     // knob: lanes of one Transform agree bit for bit.
@@ -164,6 +196,7 @@ class Encoder {
   private:
     struct Job {
         Frame frame;
+        std::span<int16_t> out;
         std::promise<Result> result;
     };
 
