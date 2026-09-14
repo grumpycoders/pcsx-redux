@@ -389,12 +389,23 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
     for (uint32_t b = 0; b < result.blockCount; b++) {
         const int16_t *blk = coeffs.data() + static_cast<size_t>(b) * 64;
         const uint8_t *qt = (b % 6) < 2 ? tables.quantUV : tables.quantY;
-        const int dc = clamp10(divRound(blk[0], qt[0] ? qt[0] : 1), clipped);
+        // Calibration, MEASURED not derived (harness in learnings/mdec-dct-bench):
+        // the forward transform puts 16*luma in blk[0] and real_idct_core turns a
+        // DC of D back into D/8, so the composite DC gain is 2 and the divisor is
+        // qt[0]*2. Dividing by qt[0] alone leaves DC twice too large, which clips
+        // the 10 bit field for anything brighter than mid-grey.
+        const int dcDen = (qt[0] ? qt[0] : 1) * 2;
+        const int dc = clamp10(divRound(blk[0], dcDen), clipped);
         stream.push_back(static_cast<uint16_t>(((qscale & 0x3f) << 10) | (dc & 0x3ff)));
         int run = 0;
         for (int k = 1; k < 64; k++) {
+            // AC composite gain measures 1.4139 across all seven frequencies,
+            // i.e. sqrt(2): the psx-spx scale matrix carries the orthonormal DCT's
+            // 1/sqrt(2) on its DC row and the forward basis does not. The decoder
+            // computes (code*qt*qscale + 4)/8, so the encoder divides by
+            // sqrt(2)*qt*qscale/8, and 5793/1024 is 8/sqrt(2) in fixed point.
             const int den = qt[k] * qscale;
-            const int ac = clamp10(divRound(blk[c_zscan[k]] * 8, den ? den : 1), clipped);
+            const int ac = clamp10(divRound(blk[c_zscan[k]] * 5793, (den ? den : 1) * 1024), clipped);
             if (ac == 0) {
                 run++;
                 continue;
