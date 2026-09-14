@@ -30,7 +30,10 @@
 #define MDEC0 HW_U32(0x1f801820)
 #define MDEC1 HW_U32(0x1f801824)
 
-#define MDEC_CMD_DECODE 0x38000000
+// MDEC(1): bits 31-29 = command 1, bits 28-27 = output depth (0=4bit, 1=8bit,
+// 2=24bit, 3=15bit). 0x38000000 sets depth 3, i.e. 15-bit, which is what STR
+// video actually uses and is NOT what this rig wants. 24-bit is depth 2.
+#define MDEC_CMD_DECODE 0x30000000
 #define MDEC_CMD_QUANT 0x40000000
 #define MDEC_CMD_SCALE 0x60000000
 
@@ -44,28 +47,33 @@ static uint16_t s_rl[JOB_RL_WORDS] __attribute__((aligned(4)));
 // Every wait here is bounded. An unbounded spin makes a stalled MDEC, a wedged
 // emulator and a program that never ran render as exactly the same thing: nothing
 // on stdout and no output file.
-static int waitIdle(int ch) {
+static int waitIdle(int ch, const char *site) {
     for (unsigned i = 0; i < 10000000; i++) {
         if ((DMA_CTRL[ch].CHCR & 0x01000000) == 0) return 0;
     }
-    ramsyscall_printf("MDRT: DMA%d stuck, CHCR=%08x MDEC1=%08x\n", ch, DMA_CTRL[ch].CHCR, MDEC1);
+    // One slot per outcome: without the site tag, four different stalls render as
+    // the same line and the status word has to carry the whole diagnosis alone.
+    ramsyscall_printf("MDRT: DMA%d stuck at %s, CHCR=%08x BCR=%08x MDEC1=%08x\n", ch, site,
+                      DMA_CTRL[ch].CHCR, DMA_CTRL[ch].BCR, MDEC1);
     return -1;
 }
 
-static int dmaWrite(const void *src, unsigned words) {
-    if (waitIdle(DMA_MDECIN) < 0) return -1;
+static void startWrite(const void *src, unsigned words) {
     DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)src;
     DMA_CTRL[DMA_MDECIN].BCR = ((words / 32) << 16) | 32;
     DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
-    return waitIdle(DMA_MDECIN);
 }
 
-static int dmaRead(void *dst, unsigned words) {
-    if (waitIdle(DMA_MDECOUT) < 0) return -1;
+static void startRead(void *dst, unsigned words) {
     DMA_CTRL[DMA_MDECOUT].MADR = (uintptr_t)dst;
     DMA_CTRL[DMA_MDECOUT].BCR = ((words / 32) << 16) | 32;
     DMA_CTRL[DMA_MDECOUT].CHCR = 0x01000200;
-    return waitIdle(DMA_MDECOUT);
+}
+
+static int dmaWrite(const void *src, unsigned words) {
+    if (waitIdle(DMA_MDECIN, "pre-write") < 0) return -1;
+    startWrite(src, words);
+    return waitIdle(DMA_MDECIN, "post-write");
 }
 
 static int done(int code) {
@@ -78,7 +86,7 @@ int main() {
     // PCopen returns -1 while PCcreat succeeds, so the read half of PCDRV is not
     // available there and the write half is. Baking the input in costs a rebuild
     // per arm and makes the rig work identically on the farm and in the emulator.
-    ramsyscall_printf("MDRT: arm " JOB_ARM ", %d rl words, upload_scale=%d\n", JOB_RL_WORDS,
+    ramsyscall_printf("MDRT: arm " JOB_ARM " build 1789414538, %d rl words, upload_scale=%d\n", JOB_RL_WORDS,
                       JOB_UPLOAD_SCALE);
 
     // DMA cannot source from .rodata safely across every setup here; stage into RAM.
@@ -103,10 +111,20 @@ int main() {
     if (dmaWrite(s_scale, 32) < 0) return done(3);
 #endif
 
+    // The decode transfer CANNOT be serialised in front of the output transfer.
+    // Once the MDEC has a block ready it stops asserting Data-In Request, so DMA0
+    // never completes until DMA1 drains it: waiting for DMA0 and only then
+    // starting DMA1 deadlocks on real silicon. pcsx-redux does not deadlock here,
+    // because its dma0 stashes the request in pending_dma1 and runs it for you, so
+    // a serialised version passes in the emulator and hangs on hardware.
     const uint32_t decodeWords = (JOB_RL_WORDS + 1) / 2;
     MDEC0 = MDEC_CMD_DECODE | (decodeWords & 0xffff);
-    if (dmaWrite(s_rl, decodeWords) < 0) return done(4);
-    if (dmaRead(s_out, sizeof(s_out) / 4) < 0) return done(5);
+    if (waitIdle(DMA_MDECIN, "pre-decode") < 0) return done(4);
+    if (waitIdle(DMA_MDECOUT, "pre-read") < 0) return done(5);
+    startWrite(s_rl, decodeWords);
+    startRead(s_out, sizeof(s_out) / 4);
+    if (waitIdle(DMA_MDECOUT, "post-read") < 0) return done(6);
+    if (waitIdle(DMA_MDECIN, "post-decode") < 0) return done(7);
 
     // Console first, so a result survives even if the artifact path fails.
     ramsyscall_printf("MDRT: status %08x\nMDRT-HEX:", MDEC1);
