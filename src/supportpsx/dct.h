@@ -301,6 +301,26 @@ PackResult pack(std::span<const int16_t> coefficients, const Result &shape, cons
 // the only way to change the SHAPE of quantization rather than its level.
 void scaleQuantTable(const uint8_t *in, uint8_t *out, int quality);
 
+// Map a quality percentage onto the MDEC's q_scale field. 100 is finest, 1 is
+// coarsest, and the spread is geometric rather than linear because the format's
+// own rate curve is: measured over the standard table, q_scale 1/8/16/32/63 give
+// 90752/50304/33408/20480/12160 bytes on one 320x240 frame. A linear map puts the
+// midpoint at q_scale 32, which is most of the way to the coarse end.
+//
+// quality 50 lands exactly on q_scale 8, which is the value every caller here
+// defaulted to before there was a dial.
+//
+// ⚠ This deliberately moves q_scale ONLY and never the quant table. Scaling the
+// standard table finer does not work: qt[0] is 2, the DC divisor is qt[0]*2, and
+// the scale clamps at 1, so above about quality 50 the DC divisor pins at 2 and
+// DC coefficients overrun the signed 10-bit run-level field - measured on both a
+// high-frequency and a smooth 320x240 frame, mean error rising 1.31 -> 19.18 on
+// the smooth one while the size barely moved. The standard table is not a default
+// to be improved on, it is the finest DC the field tolerates. Over that table
+// q_scale 1..63 is clip-free across its whole range, measured, and its error
+// curve is monotonic.
+int qualityToQScale(int quality);
+
 // The standard MDEC quant table, the one every shipping encoder uses.
 const uint8_t *standardQuantTable();
 

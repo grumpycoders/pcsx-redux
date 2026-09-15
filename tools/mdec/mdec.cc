@@ -206,14 +206,22 @@ Usage: mdec rawencode -i input.png -o output.bin [options]
               16 by edge replication; the padding is encoded and reported.
   -o file     mandatory: raw MDEC run-level stream, little endian halfwords.
   -t file     optional: JSON tables, see below.
-  -q n        optional: quantizer scale, 1..63. Default 8. This is the MDEC's
-              own q_scale field, carried in every block header. It multiplies the
-              AC divisors ONLY - the DC divisor is qt[0] alone, matching hardware,
-              which ignores q_scale on the DC term.
-  -quality n  optional: 1..100, JPEG-style scaling of the quant table. 50 leaves
-              the table alone, 1 is coarsest, 100 finest. Unlike -q this moves the
-              DC as well, and it scales a table loaded with -t rather than
-              replacing it. The two compose: -quality sets the shape, -q the level.
+  -quality n  optional: 1..100, higher is better. Default 50, which is exactly
+              the q_scale of 8 this defaulted to before there was a dial. The
+              spread is geometric, because the format's rate curve is: 100 is
+              q_scale 1, 50 is 8, 1 is 63.
+  -qscale n   optional: the MDEC's own q_scale field, 1..63, for when you want to
+              set the format value directly. Higher is coarser, so it reads the
+              opposite way round to -quality. Mutually exclusive with it.
+
+              Neither one touches the quant table, and that is deliberate. qt[0]
+              is 2 and the DC divisor is qt[0]*2, so a finer table pins the DC
+              divisor at 2 and DC coefficients overrun the signed 10 bit field -
+              measured, on a smooth frame, mean error going 1.31 to 19.18 while
+              the size barely moved. The standard table is the finest DC the
+              format tolerates rather than a default to improve on. Supply a
+              genuinely different table with -t if you want one.
+
   -transform  optional: exact | fast | symmetric. Default exact.
               exact     general basis, int32 accumulation, reference accurate
               fast      general basis, Q15 narrowing, quicker and coarser
@@ -300,8 +308,27 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
         usageRawEncode();
         return -1;
     }
-    const int qscale = std::clamp(args.get<int>("q").value_or(8), 1, 63);
-    const auto quality = args.get<int>("quality");
+    // -q is RETIRED rather than redefined. It used to mean the raw q_scale field,
+    // and making it mean a quality percentage would silently invert its sense -
+    // higher was worse, higher is now better - while every old invocation kept
+    // working and produced a very different image. An unknown option is already an
+    // error here, so the hard break is the one that cannot be misread.
+    if (args.get<int>("q").has_value()) {
+        fmt::print(stderr,
+                   "-q is retired because it meant the raw q_scale field, which reads backwards as a quality "
+                   "dial. Use -quality 1..100 (higher is better, 50 is the old default), or -qscale 1..63 for "
+                   "the format field itself.\n");
+        return -1;
+    }
+    const auto qualityOpt = args.get<int>("quality");
+    const auto qscaleOpt = args.get<int>("qscale");
+    if (qualityOpt.has_value() && qscaleOpt.has_value()) {
+        fmt::print(stderr, "-quality and -qscale set the same thing. Pass one.\n");
+        return -1;
+    }
+    const int quality = std::clamp(qualityOpt.value_or(50), 1, 100);
+    const int qscale =
+        qscaleOpt.has_value() ? std::clamp(qscaleOpt.value(), 1, 63) : PCSX::DCT::qualityToQScale(quality);
     const std::string which = args.get<std::string>("transform").value_or("exact");
 
     PCSX::DCT::Transform transform;
@@ -392,15 +419,6 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
         return -1;
     }
 
-    // -quality scales whatever tables are in effect, including ones loaded from
-    // -t, which is the JPEG semantic and composes with a custom table. It is a
-    // different axis from -q: q_scale multiplies AC divisors only, so it cannot
-    // touch the DC at all, while scaling the table moves every coefficient.
-    if (quality.has_value()) {
-        PCSX::DCT::scaleQuantTable(tables.quantY, tables.quantY, quality.value());
-        PCSX::DCT::scaleQuantTable(tables.quantUV, tables.quantUV, quality.value());
-    }
-
     // Quantization and run-level packing live in supportpsx/dct now: they are
     // format knowledge, not CLI knowledge, and putting them there is what lets a
     // caller drive per-macroblock rate control through a functor.
@@ -431,7 +449,7 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
 
     fmt::print("{}x{}", w, h);
     if (pw != w || ph != h) fmt::print(" padded to {}x{}", pw, ph);
-    if (quality.has_value()) fmt::print(", quality {}", std::clamp(quality.value(), 1, 100));
+    if (!qscaleOpt.has_value()) fmt::print(", quality {}", quality);
     fmt::print(", {} blocks, {} halfwords, q_scale {}, transform {}\n", result.blockCount, stream.size(), qscale,
                which);
     if (clipped) {

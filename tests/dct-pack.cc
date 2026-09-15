@@ -222,3 +222,18 @@ TEST(DctPack, dcAndAcClippingAreCountedSeparately) {
     auto std50 = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, c);
     EXPECT_EQ(std50.clippedDc, 0u);
 }
+
+TEST(QualityToQScale, endpointsMidpointAndMonotonicity) {
+    EXPECT_EQ(PCSX::DCT::qualityToQScale(100), 1);
+    EXPECT_EQ(PCSX::DCT::qualityToQScale(1), 63);
+    // 50 must land on 8, the value the tool defaulted to before the dial existed.
+    EXPECT_EQ(PCSX::DCT::qualityToQScale(50), 8);
+    // Monotonically non-increasing: a higher quality never asks for a coarser
+    // q_scale. A linear map would also pass this, so the midpoint above is what
+    // pins the shape.
+    for (int q = 1; q < 100; q++) {
+        EXPECT_GE(PCSX::DCT::qualityToQScale(q), PCSX::DCT::qualityToQScale(q + 1)) << "at quality " << q;
+    }
+    EXPECT_EQ(PCSX::DCT::qualityToQScale(-5), 63);
+    EXPECT_EQ(PCSX::DCT::qualityToQScale(1000), 1);
+}

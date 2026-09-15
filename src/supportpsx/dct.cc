@@ -31,6 +31,7 @@ SOFTWARE.
 #include <string.h>
 
 #include <algorithm>
+#include <cmath>
 #include <numbers>
 
 #include "support/cpu-features.h"
@@ -589,6 +590,14 @@ void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<ui
 }  // namespace
 
 const uint8_t *PCSX::DCT::standardQuantTable() { return c_packStandardQuant; }
+
+int PCSX::DCT::qualityToQScale(int quality) {
+    quality = std::clamp(quality, 1, 100);
+    // 63^((100-q)/99): 100 -> 1, 50 -> 8, 1 -> 63.
+    const double e = static_cast<double>(100 - quality) / 99.0;
+    const int v = static_cast<int>(std::lround(std::pow(63.0, e)));
+    return std::clamp(v, 1, 63);
+}
 
 void PCSX::DCT::scaleQuantTable(const uint8_t *in, uint8_t *out, int quality) {
     if (!in) in = c_packStandardQuant;
