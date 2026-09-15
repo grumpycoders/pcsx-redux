@@ -31,6 +31,7 @@ SOFTWARE.
 #include <string.h>
 
 #include <algorithm>
+#include <numbers>
 
 #include "support/cpu-features.h"
 
@@ -262,7 +263,7 @@ const PCSX::DCT::Basis &PCSX::DCT::standardBasis() {
         // by every shipping title, and the same one psxavenc builds from its SFn
         // constants.
         double sf[8];
-        for (int n = 0; n < 8; n++) sf[n] = cos(n * M_PI / 16.0) / 2.0;
+        for (int n = 0; n < 8; n++) sf[n] = cos(n * std::numbers::pi / 16.0) / 2.0;
         static const int idx[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},    {1, 3, 5, 7, -7, -5, -3, -1},
                                       {2, 6, -6, -2, -2, -6, 6, 2}, {3, -7, -1, -5, 5, 1, 7, -3},
                                       {4, -4, -4, 4, 4, -4, -4, 4}, {5, -1, 7, 3, -3, -7, 1, -5},
