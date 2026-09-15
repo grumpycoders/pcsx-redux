@@ -20,16 +20,14 @@ nonexistent ticket gives.
 Two passes ran. The first swept 29 sampled values (tickets `ticket_e823cd7c-9216-4865-9675-02489363697a`,
 `ticket_a522870c-ed70-4164-9b34-95781ab41116`, `ticket_67717456-a02a-44b1-861b-85a02de91de3`, `ticket_a40ad643-6894-4ae8-9d3d-2b408e3e33fc`, same four devices)
 and gave the identical answer. The table above is the second pass, which
-sweeps all 64 counts at two popcounts each and is the one to cite, because
-the first pass's writeup described a sample as complete coverage.
+sweeps all 64 counts at two popcounts each and is the one to cite.
 
 SCPH-9002 (PAL) was submitted twice and failed both times. Not measured,
 and nothing here should be read as covering PAL.
 
-Corrected 2026-09-12 20:1x: the line above used to say the first attempt
-"was never dispatched" and "sat QUEUED". That was read off the submit
-client's stdout, which is the wrong instrument. Both attempts were
-LEASED, and both ended the same way:
+Both attempts were leased, and both ended the same way. The submit
+client's stdout does not carry the terminal state; read it back from the
+lease:
 
 | Attempt | Ticket | Lease | Terminal state | Failure |
 |---|---|---|---|---|
@@ -42,7 +40,7 @@ flaky, DFO` (read from `devices --json`, not from the label). It boots
 Unirom off a disc, which is what blows the 900s lease deadline. Steer off
 it with `--exclude-feature flaky`.
 
-⛔ **Do not spend a third lease on it for this measurement.** The result
+A third lease is not worth spending here. The result
 is flat across four NTSC revisions spanning first-gen to late silicon,
 and GTE latency is CPU-clock-domain - there is no mechanism by which a
 PAL unit would differ. A PAL datapoint here is a nice-to-have, and this

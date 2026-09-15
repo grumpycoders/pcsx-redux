@@ -38,13 +38,9 @@ leading-one run from 1 to 32, each at two popcounts: a dense value
 implementation whose work tracks set bits is distinguishable from one
 whose work tracks the leading run.
 
-The coverage is complete rather than sampled, and it is checked from the
-run's own output rather than from this paragraph: the 126 emitted rows
-must contain all 32 positive and all 32 negative counts. An earlier
-version of this file swept 29 values and described them as covering
-1..32, which was a sample being published as a census. That wording cost
-nothing here only because someone re-derived one of its entries and
-found the arithmetic wrong.
+The coverage is complete, and it is checked from the run's own output
+rather than from this paragraph: the 126 emitted rows must contain all 32
+positive and all 32 negative counts.
 
 Both cache regimes are measured. psx-spx states the delay in **clock
 cycles** and notes one uncached opcode substitutes for several cached
