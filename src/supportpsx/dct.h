@@ -31,9 +31,11 @@ SOFTWARE.
 #include <array>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <thread>
@@ -45,9 +47,14 @@ namespace DCT {
 
 // Forward 8x8 DCT stage of an MDEC-style encoder.
 //
-// Scope is deliberately just the transform: raw image in, dequantized-domain
-// coefficients out. Quantization, run-length coding, entropy coding, sector
-// muxing and disc layout are all somebody else's problem.
+// Scope is the transform and the MDEC's own run-level packing: raw image in,
+// either dequantized-domain coefficients (Encoder) or the halfword stream DMA0
+// consumes (pack, below). Entropy coding, sector muxing and disc layout are still
+// somebody else's problem.
+//
+// Packing lives here rather than in a tool because it is format knowledge - the
+// 10-bit signed fields, the FE00h terminator, the DMA block padding and the
+// dequantizer's exact divisors are properties of the MDEC, not of any one caller.
 //
 // The transform is a general 8x8 matrix multiply against a settable basis, not a
 // hardwired DCT. This mirrors the MDEC itself, whose command 3 uploads a 64-entry
@@ -213,6 +220,89 @@ class Encoder {
     bool m_shutdown = false;
     bool m_useAvx2 = false;
 };
+
+// ---------------------------------------------------------------------------
+// Run-level packing, and rate control.
+//
+// Separate from Encoder deliberately. The transform is embarrassingly parallel
+// and runs on the pool; rate control accumulates a budget in macroblock order and
+// therefore has to be serial. Feed this the span Encoder wrote, on the caller's
+// thread, and the split costs nothing: the DCT is the expensive half and it still
+// runs N-wide.
+
+// The two MDEC(2) tables. Both are 64 unsigned bytes. A null member means the
+// standard table.
+struct QuantTables {
+    const uint8_t *y = nullptr;   // luminance, used for Y1..Y4
+    const uint8_t *uv = nullptr;  // colour, used for Cb and Cr
+};
+
+// Reported to the rate-control functor after every packing attempt.
+struct PackAttempt {
+    uint32_t macroblock = 0;    // raster index
+    uint32_t attempt = 0;       // 0 is the first pack of this macroblock
+    int qScale = 0;             // what produced the sizes below
+    size_t sizeHalfwords = 0;   // this macroblock alone
+    size_t totalHalfwords = 0;  // accepted macroblocks so far, plus this one
+    // Saturations of the 10-bit run-level field, split because the two have
+    // DIFFERENT remedies and merging them hands the caller an ambiguous signal.
+    // An AC clip is fixable from here: raise q_scale and re-pack. A DC clip is
+    // NOT - the DC divisor is qt[0] alone and q_scale does not appear in it, so
+    // no value this functor can return will help. A rate controller seeing
+    // clippedDc should stop iterating and tell someone the TABLE is too fine.
+    uint32_t clippedAc = 0;
+    uint32_t clippedDc = 0;
+};
+
+// Called once per packing attempt, in macroblock raster order, on the caller's
+// thread. Return the q_scale to try next, or nullopt to accept the attempt just
+// reported.
+//
+// ⚠ The only per-macroblock knob the format has is q_scale, because it is the one
+// quantization parameter carried IN the block stream. The quant tables arrive by
+// their own MDEC(2) command, so they are frame-level and changing them mid-stream
+// is not something MDEC(1) can express.
+//
+// A retry re-quantizes and re-packs without re-transforming, since the transform
+// output does not depend on q_scale. An extra attempt costs the quantize and the
+// RLE, never the DCT.
+//
+// A returned value outside 1..63 is clamped. Two things stop a functor hanging
+// the encoder: repeating a q_scale is treated as accept, and attempts per
+// macroblock are capped at 64, which is the number of distinct q_scale values.
+// The cap is not redundant - a functor alternating between two values never
+// repeats consecutively, so the first test alone would loop forever.
+using RateControl = std::function<std::optional<int>(const PackAttempt &)>;
+
+struct PackResult {
+    size_t halfwords = 0;
+    uint32_t clippedAc = 0;
+    uint32_t clippedDc = 0;
+    uint32_t attempts = 0;  // total across the frame; == macroblock count if no retries
+    bool failed = false;
+};
+
+// Pack a transformed frame into the MDEC run-level stream, appending to `out`.
+//
+// `shape` is the Result the Encoder returned for this same span. `qScale` is the
+// initial value, 1..63; 0 is the format's no-quant-table mode and this does not
+// emit it. With no `rateControl` every macroblock is packed once at `qScale`,
+// which is the whole of the previous behaviour.
+PackResult pack(std::span<const int16_t> coefficients, const Result &shape, const QuantTables &tables, int qScale,
+                std::vector<uint16_t> &out, const RateControl &rateControl = {});
+
+// JPEG-style quality scaling of an MDEC(2) quant table. 1 is the coarsest and 100
+// the finest; 50 returns the input unchanged. Entries clamp to 1..255, the width
+// of the field the command carries.
+//
+// This is the axis q_scale cannot reach. q_scale multiplies AC divisors only - the
+// DC divisor is qt[0] alone, matching the hardware, which ignores q_scale on the
+// DC term - so scaling the table is the only way to trade DC precision, and it is
+// the only way to change the SHAPE of quantization rather than its level.
+void scaleQuantTable(const uint8_t *in, uint8_t *out, int quality);
+
+// The standard MDEC quant table, the one every shipping encoder uses.
+const uint8_t *standardQuantTable();
 
 // Exposed for testing: transform one 8x8 block in place, block-major, scalar,
 // against the given basis, using the given variant's arithmetic. This is the

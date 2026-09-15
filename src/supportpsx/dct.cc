@@ -517,3 +517,151 @@ void PCSX::DCT::Encoder::worker() {
         job.result.set_value(std::move(result));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Run-level packing and rate control.
+
+namespace {
+
+// psx-spx zigzag: c_zscan[k] is the natural-order index of zigzag position k.
+constexpr int c_packZscan[64] = {
+    0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
+    41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
+    30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
+};
+
+// The table every shipping encoder uses. Not an all-ones table: the run-level DC
+// field is signed TEN BITS and an unquantized DC runs to about 1150, so identity
+// quant clips every block brighter than mid-grey.
+constexpr uint8_t c_packStandardQuant[64] = {
+    2,  16, 19, 22, 26, 27, 29, 34, 16, 16, 22, 24, 27, 29, 34, 37, 19, 22, 26, 27, 29, 34,
+    34, 38, 22, 22, 26, 27, 29, 34, 37, 40, 22, 26, 27, 29, 32, 35, 40, 48, 26, 27, 29, 32,
+    35, 40, 48, 58, 26, 27, 29, 34, 38, 46, 56, 69, 27, 29, 35, 38, 46, 56, 69, 83,
+};
+
+int clampField10(int v, uint32_t &clipped) {
+    if (v > 511) {
+        clipped++;
+        return 511;
+    }
+    if (v < -512) {
+        clipped++;
+        return -512;
+    }
+    return v;
+}
+
+int divRoundPack(int num, int den) {
+    if (den == 0) return 0;
+    return (num < 0) ? -((-num + den / 2) / den) : ((num + den / 2) / den);
+}
+
+// One 8x8 block, appended. Returns nothing; the caller tracks sizes by watching
+// `out`. Calibration constants are MEASURED, not derived - harness in
+// learnings/mdec-dct-bench:
+//   the forward transform puts 16*luma in blk[0] and real_idct_core turns a DC of
+//   D back into D/8, so the composite DC gain is 2 and the divisor is qt[0]*2;
+//   the AC composite gain is sqrt(2) across all seven frequencies, because the
+//   psx-spx scale matrix carries the orthonormal DCT's 1/sqrt(2) on its DC row and
+//   the forward basis does not, and 5793/1024 is 8/sqrt(2) in fixed point.
+// ⚠ q_scale appears in the AC divisor and NOT the DC one. That mirrors the
+// hardware, measured 2026-09-14: arms holding everything but q_scale and running
+// it at 8 against 63 decode byte-identical, so the DC genuinely ignores it.
+void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<uint16_t> &out, uint32_t &clippedAc,
+               uint32_t &clippedDc) {
+    const int dcDen = (qt[0] ? qt[0] : 1) * 2;
+    const int dc = clampField10(divRoundPack(blk[0], dcDen), clippedDc);
+    out.push_back(static_cast<uint16_t>(((qScale & 0x3f) << 10) | (dc & 0x3ff)));
+    int run = 0;
+    for (int k = 1; k < 64; k++) {
+        const int den = qt[k] * qScale;
+        const int ac = clampField10(divRoundPack(blk[c_packZscan[k]] * 5793, (den ? den : 1) * 1024), clippedAc);
+        if (ac == 0) {
+            run++;
+            continue;
+        }
+        out.push_back(static_cast<uint16_t>(((run & 0x3f) << 10) | (ac & 0x3ff)));
+        run = 0;
+    }
+    out.push_back(0xfe00);
+}
+
+}  // namespace
+
+const uint8_t *PCSX::DCT::standardQuantTable() { return c_packStandardQuant; }
+
+void PCSX::DCT::scaleQuantTable(const uint8_t *in, uint8_t *out, int quality) {
+    if (!in) in = c_packStandardQuant;
+    quality = std::clamp(quality, 1, 100);
+    // The IJG curve. Below 50 the divisors grow without bound as quality falls;
+    // above it they shrink linearly to 2% of nominal at 100.
+    const int scale = (quality < 50) ? (5000 / quality) : (200 - quality * 2);
+    for (int i = 0; i < 64; i++) {
+        const int v = (in[i] * scale + 50) / 100;
+        out[i] = static_cast<uint8_t>(std::clamp(v, 1, 255));
+    }
+}
+
+PCSX::DCT::PackResult PCSX::DCT::pack(std::span<const int16_t> coefficients, const Result &shape,
+                                      const QuantTables &tables, int qScale, std::vector<uint16_t> &out,
+                                      const RateControl &rateControl) {
+    PackResult result;
+    if (shape.failed || shape.blockCount == 0 || (shape.blockCount % 6) != 0) {
+        result.failed = true;
+        return result;
+    }
+    if (coefficients.size() < static_cast<size_t>(shape.blockCount) * 64) {
+        result.failed = true;
+        return result;
+    }
+    const uint8_t *qy = tables.y ? tables.y : c_packStandardQuant;
+    const uint8_t *quv = tables.uv ? tables.uv : c_packStandardQuant;
+    const int initial = std::clamp(qScale, 1, 63);
+
+    const uint32_t macroblocks = shape.blockCount / 6;
+    for (uint32_t mb = 0; mb < macroblocks; mb++) {
+        const size_t acceptedSoFar = out.size();
+        int q = initial;
+        uint32_t attempt = 0;
+        uint32_t acHere = 0, dcHere = 0;
+        for (;;) {
+            out.resize(acceptedSoFar);
+            acHere = 0;
+            dcHere = 0;
+            for (uint32_t i = 0; i < 6; i++) {
+                const size_t b = static_cast<size_t>(mb) * 6 + i;
+                packBlock(coefficients.data() + b * 64, (i < 2) ? quv : qy, q, out, acHere, dcHere);
+            }
+            result.attempts++;
+            if (!rateControl) break;
+            PackAttempt info;
+            info.macroblock = mb;
+            info.attempt = attempt;
+            info.qScale = q;
+            info.sizeHalfwords = out.size() - acceptedSoFar;
+            info.totalHalfwords = out.size();
+            info.clippedAc = acHere;
+            info.clippedDc = dcHere;
+            const auto next = rateControl(info);
+            if (!next.has_value()) break;
+            const int want = std::clamp(*next, 1, 63);
+            // Two independent stops. Repeating a value means converged, which is
+            // the common case. The hard cap is what a functor ALTERNATING between
+            // two values needs: it never repeats consecutively, so the first test
+            // alone loops forever. 64 is the count of distinct q_scale values, so
+            // no search that makes progress can reach it.
+            if (want == q) break;
+            if (attempt + 1 >= 64) break;
+            q = want;
+            attempt++;
+        }
+        result.clippedAc += acHere;
+        result.clippedDc += dcHere;
+    }
+
+    // psx-spx: MDEC(1) parameters want padding to 40h halfwords so the DMA block
+    // count is a whole number of 20h-word blocks. A half block hangs DMA0.
+    while (out.size() % 64) out.push_back(0xfe00);
+    result.halfwords = out.size();
+    return result;
+}

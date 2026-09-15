@@ -1,0 +1,224 @@
+/*
+ * Tests for supportpsx/dct's run-level packing and rate control.
+ *
+ * Each test below is written so it CAN fail: where the assertion is an equality
+ * the other arm is constructed to differ, and where it is a bound the input is
+ * built to cross it. A test that passes because nothing ran is the failure this
+ * file exists to avoid.
+ */
+
+#include <stdint.h>
+
+#include <vector>
+
+#include "gtest/gtest.h"
+#include "supportpsx/dct.h"
+
+namespace {
+
+// A 32x32 frame with real structure, so blocks differ from each other and a
+// change in quantization is visible in the packed size. A flat frame would make
+// every quantization setting produce the same stream and every test below vacuous.
+struct TestFrame {
+    std::vector<uint8_t> y, cb, cr;
+    PCSX::DCT::Frame frame;
+    TestFrame() : y(32 * 32), cb(16 * 16), cr(16 * 16) {
+        for (int j = 0; j < 32; j++) {
+            for (int i = 0; i < 32; i++) {
+                y[j * 32 + i] = static_cast<uint8_t>((i * 7 + j * 3) ^ (i * j));
+            }
+        }
+        for (int j = 0; j < 16; j++) {
+            for (int i = 0; i < 16; i++) {
+                cb[j * 16 + i] = static_cast<uint8_t>(128 + ((i - 8) * 5));
+                cr[j * 16 + i] = static_cast<uint8_t>(128 - ((j - 8) * 5));
+            }
+        }
+        frame.y = y.data();
+        frame.cb = cb.data();
+        frame.cr = cr.data();
+        frame.width = 32;
+        frame.height = 32;
+        frame.yStride = 32;
+        frame.cStride = 16;
+    }
+};
+
+struct Transformed {
+    std::vector<int16_t> coeffs;
+    PCSX::DCT::Result shape;
+    Transformed() : coeffs(PCSX::DCT::requiredCoefficientCount(32, 32)) {
+        TestFrame tf;
+        PCSX::DCT::Encoder enc(1);
+        auto p = enc.submit(tf.frame, coeffs);
+        shape = p.get();
+    }
+};
+
+}  // namespace
+
+TEST(DctPack, transformSucceededAndFrameIsNotDegenerate) {
+    Transformed t;
+    ASSERT_FALSE(t.shape.failed);
+    EXPECT_EQ(t.shape.blockCount, 4u * 6u);  // 2x2 macroblocks, 6 blocks each
+    // The frame must actually carry AC energy, or every test below is vacuous.
+    int nonZeroAc = 0;
+    for (uint32_t b = 0; b < t.shape.blockCount; b++) {
+        for (int k = 1; k < 64; k++) {
+            if (t.coeffs[b * 64 + k] != 0) nonZeroAc++;
+        }
+    }
+    EXPECT_GT(nonZeroAc, 100);
+}
+
+TEST(DctPack, noRateControlEqualsAnAlwaysAcceptingFunctor) {
+    Transformed t;
+    std::vector<uint16_t> plain, viaFunctor;
+    auto a = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, plain);
+    unsigned calls = 0;
+    auto b = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, viaFunctor,
+                             [&](const PCSX::DCT::PackAttempt &info) -> std::optional<int> {
+                                 calls++;
+                                 EXPECT_EQ(info.attempt, 0u);
+                                 EXPECT_EQ(info.qScale, 8);
+                                 return std::nullopt;
+                             });
+    EXPECT_FALSE(a.failed);
+    EXPECT_FALSE(b.failed);
+    EXPECT_EQ(plain, viaFunctor);
+    EXPECT_EQ(calls, t.shape.blockCount / 6);  // once per macroblock
+    EXPECT_EQ(a.attempts, b.attempts);
+}
+
+TEST(DctPack, aRetryActuallyRepacksAtTheNewQScale) {
+    Transformed t;
+    std::vector<uint16_t> low, raised;
+    PCSX::DCT::pack(t.coeffs, t.shape, {}, 2, low);
+    // Ask once for a much coarser q_scale, then accept. If the retry did not run,
+    // or ran and ignored the value, this comes out the same size as `low`.
+    auto r = PCSX::DCT::pack(t.coeffs, t.shape, {}, 2, raised,
+                             [](const PCSX::DCT::PackAttempt &info) -> std::optional<int> {
+                                 if (info.attempt == 0) return 63;
+                                 return std::nullopt;
+                             });
+    EXPECT_FALSE(r.failed);
+    EXPECT_LT(raised.size(), low.size());
+    EXPECT_EQ(r.attempts, 2u * (t.shape.blockCount / 6));
+    // And the q_scale the decoder will read is the raised one, not the initial.
+    EXPECT_EQ((raised[0] >> 10) & 0x3f, 63);
+    EXPECT_EQ((low[0] >> 10) & 0x3f, 2);
+}
+
+TEST(DctPack, alternatingFunctorTerminates) {
+    Transformed t;
+    std::vector<uint16_t> out;
+    // Never repeats a value consecutively, so the converged-test alone cannot stop
+    // it. Only the hard attempt cap can. Without the cap this hangs forever.
+    auto r = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, out,
+                             [](const PCSX::DCT::PackAttempt &info) -> std::optional<int> {
+                                 return (info.attempt % 2) ? 10 : 20;
+                             });
+    EXPECT_FALSE(r.failed);
+    EXPECT_GT(out.size(), 0u);
+    EXPECT_EQ(r.attempts, 64u * (t.shape.blockCount / 6));
+}
+
+TEST(DctPack, outOfRangeQScaleIsClamped) {
+    Transformed t;
+    std::vector<uint16_t> lo, hi;
+    PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, lo,
+                    [](const PCSX::DCT::PackAttempt &i) -> std::optional<int> {
+                        return i.attempt == 0 ? std::optional<int>(-5) : std::nullopt;
+                    });
+    PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, hi,
+                    [](const PCSX::DCT::PackAttempt &i) -> std::optional<int> {
+                        return i.attempt == 0 ? std::optional<int>(9999) : std::nullopt;
+                    });
+    EXPECT_EQ((lo[0] >> 10) & 0x3f, 1);
+    EXPECT_EQ((hi[0] >> 10) & 0x3f, 63);
+}
+
+TEST(DctPack, reportedSizesAgreeWithTheStream) {
+    Transformed t;
+    std::vector<uint16_t> out;
+    size_t lastTotal = 0;
+    std::vector<size_t> perBlock;
+    auto r = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, out,
+                             [&](const PCSX::DCT::PackAttempt &info) -> std::optional<int> {
+                                 EXPECT_EQ(info.totalHalfwords, lastTotal + info.sizeHalfwords);
+                                 lastTotal = info.totalHalfwords;
+                                 perBlock.push_back(info.sizeHalfwords);
+                                 return std::nullopt;
+                             });
+    size_t sum = 0;
+    for (size_t v : perBlock) sum += v;
+    EXPECT_EQ(sum, lastTotal);
+    // The reported total is before the DMA padding, so the final stream is at
+    // least that and is a whole number of 40h-halfword blocks.
+    EXPECT_GE(r.halfwords, sum);
+    EXPECT_EQ(r.halfwords % 64, 0u);
+    EXPECT_EQ(out.size(), r.halfwords);
+}
+
+TEST(DctPack, shortCoefficientSpanFailsRatherThanReadingPastTheEnd) {
+    Transformed t;
+    std::vector<uint16_t> out;
+    auto r = PCSX::DCT::pack(std::span<const int16_t>(t.coeffs.data(), 64), t.shape, {}, 8, out);
+    EXPECT_TRUE(r.failed);
+    EXPECT_EQ(out.size(), 0u);
+}
+
+TEST(ScaleQuantTable, fiftyIsTheIdentityAndTheCurveIsMonotonic) {
+    const uint8_t *std8 = PCSX::DCT::standardQuantTable();
+    uint8_t at50[64], at1[64], at100[64];
+    PCSX::DCT::scaleQuantTable(std8, at50, 50);
+    PCSX::DCT::scaleQuantTable(std8, at1, 1);
+    PCSX::DCT::scaleQuantTable(std8, at100, 100);
+    for (int i = 0; i < 64; i++) {
+        EXPECT_EQ(at50[i], std8[i]) << "quality 50 must leave entry " << i << " alone";
+        EXPECT_GE(at1[i], at50[i]) << "quality 1 must not be finer at entry " << i;
+        EXPECT_LE(at100[i], at50[i]) << "quality 100 must not be coarser at entry " << i;
+        EXPECT_GE(at1[i], 1);
+        EXPECT_GE(at100[i], 1) << "a zero divisor would be a division by zero downstream";
+    }
+    // And the extremes must actually differ, or the curve is flat and useless.
+    int differ = 0;
+    for (int i = 0; i < 64; i++) {
+        if (at1[i] != at100[i]) differ++;
+    }
+    EXPECT_GT(differ, 50);
+}
+
+TEST(ScaleQuantTable, aCoarserTableProducesASmallerStream) {
+    Transformed t;
+    uint8_t fine[64], coarse[64];
+    PCSX::DCT::scaleQuantTable(nullptr, fine, 95);
+    PCSX::DCT::scaleQuantTable(nullptr, coarse, 5);
+    PCSX::DCT::QuantTables tf{fine, fine}, tc{coarse, coarse};
+    std::vector<uint16_t> a, b;
+    PCSX::DCT::pack(t.coeffs, t.shape, tf, 8, a);
+    PCSX::DCT::pack(t.coeffs, t.shape, tc, 8, b);
+    EXPECT_LT(b.size(), a.size());
+}
+
+TEST(DctPack, dcAndAcClippingAreCountedSeparately) {
+    Transformed t;
+    // A table fine enough to clip the DC: qt[0] of 1 makes the DC divisor 2, and
+    // the forward transform puts 16*luma in blk[0], so a bright block overruns
+    // the signed 10 bit field. Raising q_scale cannot reach it, which is the
+    // whole reason the two counters are separate.
+    uint8_t fine[64];
+    PCSX::DCT::scaleQuantTable(nullptr, fine, 100);
+    PCSX::DCT::QuantTables tabs{fine, fine};
+    std::vector<uint16_t> a, b;
+    auto lowQ = PCSX::DCT::pack(t.coeffs, t.shape, tabs, 1, a);
+    auto highQ = PCSX::DCT::pack(t.coeffs, t.shape, tabs, 63, b);
+    // q_scale 63 against 1 must cut AC clipping hard and leave DC clipping alone.
+    EXPECT_LT(highQ.clippedAc, lowQ.clippedAc);
+    EXPECT_EQ(highQ.clippedDc, lowQ.clippedDc);
+    // And the standard table at quality 50 must clip no DC at all, or the test
+    // above is measuring nothing.
+    std::vector<uint16_t> c;
+    auto std50 = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, c);
+    EXPECT_EQ(std50.clippedDc, 0u);
+}

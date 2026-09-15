@@ -206,7 +206,14 @@ Usage: mdec rawencode -i input.png -o output.bin [options]
               16 by edge replication; the padding is encoded and reported.
   -o file     mandatory: raw MDEC run-level stream, little endian halfwords.
   -t file     optional: JSON tables, see below.
-  -q n        optional: quantizer scale, 1..63. Default 8.
+  -q n        optional: quantizer scale, 1..63. Default 8. This is the MDEC's
+              own q_scale field, carried in every block header. It multiplies the
+              AC divisors ONLY - the DC divisor is qt[0] alone, matching hardware,
+              which ignores q_scale on the DC term.
+  -quality n  optional: 1..100, JPEG-style scaling of the quant table. 50 leaves
+              the table alone, 1 is coarsest, 100 finest. Unlike -q this moves the
+              DC as well, and it scales a table loaded with -t rather than
+              replacing it. The two compose: -quality sets the shape, -q the level.
   -transform  optional: exact | fast | symmetric. Default exact.
               exact     general basis, int32 accumulation, reference accurate
               fast      general basis, Q15 narrowing, quicker and coarser
@@ -294,6 +301,7 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
         return -1;
     }
     const int qscale = std::clamp(args.get<int>("q").value_or(8), 1, 63);
+    const auto quality = args.get<int>("quality");
     const std::string which = args.get<std::string>("transform").value_or("exact");
 
     PCSX::DCT::Transform transform;
@@ -384,41 +392,31 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
         return -1;
     }
 
-    unsigned clipped = 0;
+    // -quality scales whatever tables are in effect, including ones loaded from
+    // -t, which is the JPEG semantic and composes with a custom table. It is a
+    // different axis from -q: q_scale multiplies AC divisors only, so it cannot
+    // touch the DC at all, while scaling the table moves every coefficient.
+    if (quality.has_value()) {
+        PCSX::DCT::scaleQuantTable(tables.quantY, tables.quantY, quality.value());
+        PCSX::DCT::scaleQuantTable(tables.quantUV, tables.quantUV, quality.value());
+    }
+
+    // Quantization and run-level packing live in supportpsx/dct now: they are
+    // format knowledge, not CLI knowledge, and putting them there is what lets a
+    // caller drive per-macroblock rate control through a functor.
     std::vector<uint16_t> stream;
     stream.reserve(result.blockCount * 12);
-    for (uint32_t b = 0; b < result.blockCount; b++) {
-        const int16_t *blk = coeffs.data() + static_cast<size_t>(b) * 64;
-        const uint8_t *qt = (b % 6) < 2 ? tables.quantUV : tables.quantY;
-        // Calibration, MEASURED not derived (harness in learnings/mdec-dct-bench):
-        // the forward transform puts 16*luma in blk[0] and real_idct_core turns a
-        // DC of D back into D/8, so the composite DC gain is 2 and the divisor is
-        // qt[0]*2. Dividing by qt[0] alone leaves DC twice too large, which clips
-        // the 10 bit field for anything brighter than mid-grey.
-        const int dcDen = (qt[0] ? qt[0] : 1) * 2;
-        const int dc = clamp10(divRound(blk[0], dcDen), clipped);
-        stream.push_back(static_cast<uint16_t>(((qscale & 0x3f) << 10) | (dc & 0x3ff)));
-        int run = 0;
-        for (int k = 1; k < 64; k++) {
-            // AC composite gain measures 1.4139 across all seven frequencies,
-            // i.e. sqrt(2): the psx-spx scale matrix carries the orthonormal DCT's
-            // 1/sqrt(2) on its DC row and the forward basis does not. The decoder
-            // computes (code*qt*qscale + 4)/8, so the encoder divides by
-            // sqrt(2)*qt*qscale/8, and 5793/1024 is 8/sqrt(2) in fixed point.
-            const int den = qt[k] * qscale;
-            const int ac = clamp10(divRound(blk[c_zscan[k]] * 5793, (den ? den : 1) * 1024), clipped);
-            if (ac == 0) {
-                run++;
-                continue;
-            }
-            stream.push_back(static_cast<uint16_t>(((run & 0x3f) << 10) | (ac & 0x3ff)));
-            run = 0;
-        }
-        stream.push_back(0xfe00);
+    PCSX::DCT::QuantTables qtabs;
+    qtabs.y = tables.quantY;
+    qtabs.uv = tables.quantUV;
+    const auto packed = PCSX::DCT::pack(coeffs, result, qtabs, qscale, stream);
+    if (packed.failed) {
+        fmt::print(stderr, "the packing stage refused the frame\n");
+        return -1;
     }
-    // psx-spx: MDEC(1) parameters want padding to 40h halfwords so the DMA block
-    // count is a whole number of 20h-word blocks. A half block hangs DMA0.
-    while (stream.size() % 64) stream.push_back(0xfe00);
+    // Two counters, two remedies. Merging them is what made the old message
+    // advise "raise -q" for a DC clip, which q_scale structurally cannot fix.
+    const unsigned clipped = packed.clippedAc + packed.clippedDc;
 
     FILE *f = fopen(out.value().c_str(), "wb");
     if (!f) {
@@ -433,10 +431,23 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
 
     fmt::print("{}x{}", w, h);
     if (pw != w || ph != h) fmt::print(" padded to {}x{}", pw, ph);
+    if (quality.has_value()) fmt::print(", quality {}", std::clamp(quality.value(), 1, 100));
     fmt::print(", {} blocks, {} halfwords, q_scale {}, transform {}\n", result.blockCount, stream.size(), qscale,
                which);
     if (clipped) {
-        fmt::print(stderr, "warning: {} coefficients clipped to the 10 bit run-level range. Raise -q.\n", clipped);
+        // Name the lever that can actually reach each one. q_scale is in the AC
+        // divisor only, so it cannot fix a clipped DC however far it is raised.
+        if (packed.clippedAc) {
+            fmt::print(stderr, "warning: {} AC coefficients clipped to the 10 bit run-level range. Raise -q.\n",
+                       packed.clippedAc);
+        }
+        if (packed.clippedDc) {
+            fmt::print(stderr,
+                       "warning: {} DC coefficients clipped to the 10 bit run-level range. Raising -q will NOT "
+                       "help - q_scale is not in the DC divisor. Use a coarser quant table: lower -quality, or "
+                       "raise quant[0] with -t.\n",
+                       packed.clippedDc);
+        }
     }
     return 0;
 }
