@@ -258,7 +258,11 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     for (unsigned i = 0; i < 64; i++) {
         mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
         mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
+        mdecSave.get<MDECQTY>().value[i].value = qt_y[i];
+        mdecSave.get<MDECQTUV>().value[i].value = qt_uv[i];
+        mdecSave.get<MDECScaleTable>().value[i].value = scaletable[i];
     }
+    mdecSave.get<MDECCustomScale>().value = customScaleTable ? 1 : 0;
 }
 
 void PCSX::Counters::serialize(SaveStateWrapper* w) {
@@ -420,7 +424,11 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     for (unsigned i = 0; i < 64; i++) {
         iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
         iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+        qt_y[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
+        qt_uv[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
+        scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
     }
+    customScaleTable = mdecSave.get<MDECCustomScale>().value != 0;
 }
 
 void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
