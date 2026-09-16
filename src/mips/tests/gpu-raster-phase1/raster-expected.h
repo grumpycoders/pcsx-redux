@@ -29,9 +29,10 @@ SOFTWARE.
 // Expected hardware VRAM values for the gpu-raster suite.
 //
 // These are the per-pixel hardware-truth assertions the suite checks against.
-// Initial values are best-guess from psx-spx + the standard top-left fill
-// rule; anything marked HW_VERIFIED below was captured off an SCPH-5501 by
-// the workflow immediately underneath.
+// They began as best-guess from psx-spx + the standard top-left fill rule and
+// were then captured off an SCPH-5501 by the workflow immediately underneath
+// and patched to match it; every macro below carries the date of that capture.
+// Triangle I is the one place the guess was wrong - see the note there.
 //
 // CAPTURE WORKFLOW:
 //
@@ -43,9 +44,8 @@ SOFTWARE.
 //      the soft-renderer punch-list.
 //
 // Each macro is tagged with one of:
-//   /* HW_VERIFIED */    - matches hardware as of the date noted
-//   /* HW_VERIFIED 2026-05-15       */  - best-guess, hardware capture pending
-//   /* HW_VERIFIED 2026-05-15 note  */  - best-guess with a specific uncertainty note
+//   /* HW_VERIFIED 2026-05-15      */  - captured on SCPH-5501 on that date
+//   /* HW_VERIFIED 2026-05-15 note */  - same, plus what the pixel demonstrates
 
 #include "raster-helpers.h"
 
