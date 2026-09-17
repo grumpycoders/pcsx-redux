@@ -73,9 +73,12 @@ class CDRomImpl : public PCSX::CDRom {
 
     static const size_t cdCmdEnumCount = magic_enum::enum_count<Commands>();
 
-    static const inline uint8_t Test20[] = {0x98, 0x06, 0x10, 0xC3};
-    static const inline uint8_t Test22[] = {0x66, 0x6F, 0x72, 0x20, 0x45, 0x75, 0x72, 0x6F};
-    static const inline uint8_t Test23[] = {0x43, 0x58, 0x44, 0x32, 0x39, 0x34, 0x30, 0x51};
+    static const inline uint8_t discID[] = {'P', 'C', 'S', 'X'};
+    static const inline uint8_t firmwareVersion[] = {0x98, 0x06, 0x10, 0xC3};
+    static const inline uint8_t regionNTSC[] = {'f', 'o', 'r', ' ', 'U', '/', 'C'};
+    static const inline uint8_t regionPAL[] = {'f', 'o', 'r', ' ', 'E', 'u', 'r', 'o', 'p', 'e'};
+    static const inline uint8_t cdromChip[] = {'C', 'X', 'D', '2', '9', '4', '0', 'Q'};
+
     static const unsigned irqReschedule = 0x100;
 
     // m_stat:
@@ -884,18 +887,33 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlTest:
                 switch (m_param[0]) {
-                    case 0x20:  // System Controller ROM Version
-                        SetResultSize(4);
-                        memcpy(m_result, Test20, 4);
+                    case 0x05: // Get ID counters (total/successful)
+                        SetResultSize(2);
+                        m_result[0] = m_iso->failed() ? 0x00 : 0x01;
+                        m_result[1] = m_result[0];
                         break;
-                    case 0x22:
-                        SetResultSize(8);
-                        memcpy(m_result, Test22, 4);
+                    case 0x20: // Get firmware build date and version
+                        SetResultSize(sizeof(firmwareVersion));
+                        memcpy(m_result, firmwareVersion, sizeof(firmwareVersion));
                         break;
-                    case 0x23:
-                    case 0x24:
-                        SetResultSize(8);
-                        memcpy(m_result, Test23, 4);
+                    case 0x21: // Get switch status
+                        SetResultSize(1);
+                        m_result[0] = isLidOpened() ? 0x02 : 0x00;
+                        break;
+                    case 0x22: // Get drive region
+                        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() == PCSX::Emulator::PSX_TYPE_PAL) {
+                            SetResultSize(sizeof(regionPAL));
+                            memcpy(m_result, regionPAL, sizeof(regionPAL));
+                        } else {
+                            SetResultSize(sizeof(regionNTSC));
+                            memcpy(m_result, regionNTSC, sizeof(regionNTSC));
+                        }
+                        break;
+                    case 0x23: // Get servo chip
+                    case 0x24: // Get DSP chip
+                    case 0x25: // Get decoder chip
+                        SetResultSize(sizeof(cdromChip));
+                        memcpy(m_result, cdromChip, sizeof(cdromChip));
                         break;
                 }
                 no_busy_error = 1;
@@ -931,7 +949,7 @@ class CDRomImpl : public PCSX::CDRom {
                 }
                 m_result[0] |= (m_result[1] >> 4) & 0x08;
 
-                strncpy((char *)&m_result[4], "PCSX", 4);
+                memcpy(&m_result[4], discID, 4);
                 m_stat = Complete;
                 m_suceeded = true;
                 break;
