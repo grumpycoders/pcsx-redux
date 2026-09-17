@@ -32,11 +32,13 @@ Two axes, not one:
   small inputs would settle sooner. A sweep over N alone returns one
   number and cannot tell those apart.
 
-126 inputs cover **every** leading-zero run from 1 to 32 and **every**
-leading-one run from 1 to 32, each at two popcounts: a dense value
+126 rows cover **every** leading-zero run from 1 to 32 and **every**
+leading-one run from 1 to 32, at two popcounts each: a dense value
 (`0xffffffff >> k`) and a sparse one (a single bit, `1 << (31-k)`), so an
 implementation whose work tracks set bits is distinguishable from one
-whose work tracks the leading run.
+whose work tracks the leading run. The two popcounts coincide at run 31
+(`0x00000001` and `0xfffffffe`) and run 32 has a single value, so the 126
+rows carry 124 distinct inputs.
 
 The coverage is complete, and it is checked from the run's own output
 rather than from this paragraph: the 126 emitted rows must contain all 32

@@ -1,7 +1,7 @@
 # LZCS -> LZCR store delay: hardware results
 
 Measured 2026-09-12 on four console revisions, one run each, 126 input
-values x N=0..8 x two cache regimes per run.
+rows x N=0..8 x two cache regimes per run.
 
 | Console revision | cached minN | uncached minN | shape |
 |---|---:|---:|---|
