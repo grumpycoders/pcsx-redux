@@ -28,10 +28,6 @@ SOFTWARE.
 
 #include "bsdec-vlc.h"
 
-#ifdef __mips__
-#include "common/hardware/cop2.h"
-#endif
-
 /*
  * Every code in Sony's AC book is N zeros, a marker 1, then a suffix whose width
  * depends only on N - so the decode is a count-leading-zeros, a shift past the
@@ -47,21 +43,6 @@ SOFTWARE.
  * count is within range decodes to a symbol and the dispatch has no error arm.
  */
 
-static uint32_t bsdecClz(uint32_t v) {
-#ifdef __mips__
-    /* LZCR counts leading bits EQUAL TO THE SIGN BIT, so it answers leading
-     * zeros only for a non-negative input. Every caller below has already taken
-     * the MSB-set branch, where the answer is 0 by construction. LZCS/LZCR is
-     * also the one corner of the GTE that does not interlock - cop2_put and
-     * cop2_get carry the two nops that covers. */
-    uint32_t r;
-    cop2_put(30, v);
-    cop2_get(31, r);
-    return r;
-#else
-    return v ? (uint32_t)__builtin_clz(v) : 32u;
-#endif
-}
 
 struct BsdecBits {
     const uint8_t *base; /* payload, i.e. the frame past its 8-byte header */
@@ -231,10 +212,11 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             uint32_t n, e;
             unsigned w, kind;
             bsdecRefill(&b);
-            /* The MSB-set branch is both the correctness guard on LZCR's
-             * sign-bit counting and the hot path: every block ends in an
-             * end-of-block code, which lives in exactly this group. */
-            n = ((int32_t)b.window < 0) ? 0u : bsdecClz(b.window);
+            /* bsdecClz32's own sign-bit branch does double duty here: the
+             * MSB-set group is where the end-of-block code lives, so every
+             * block exits through it and it is the hot path as well as the
+             * correction. */
+            n = bsdecClz32(b.window);
             if (n > BSDEC_VLC_MAXNZ) {
                 count = blockStart;
                 b.overrun = 1;

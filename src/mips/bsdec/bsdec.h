@@ -61,6 +61,42 @@ SOFTWARE.
 
 #include <stdint.h>
 
+#ifdef __mips__
+#include "common/hardware/cop2.h"
+#endif
+
+/*
+ * Leading zeros of a 32-bit word, 0 to 32. Here in the header rather than hidden
+ * in the decoder because the decoder's hot path and any test of that path have to
+ * be the same code - a self-test that builds its own copy of this measures the
+ * copy.
+ *
+ * The R3000A has no CLZ opcode; that is MIPS32 and the console predates it. GTE
+ * LZCS/LZCR is the only count-leading hardware on the machine, which is what
+ * makes it worth shaping a bitstream decoder around. Two things about it:
+ *
+ *  - It counts leading bits EQUAL TO THE SIGN BIT, so on a negative input it
+ *    returns the leading-ONES count and answers 1 for both 0x80000000 and
+ *    0x40000000-with-the-top-bit-set. The branch below is that correction, not
+ *    an optimisation. LZCR(0) is 32, which is already what this wants.
+ *  - It is the one corner of the GTE that does not interlock, so the write and
+ *    the read each need two dummy opcodes after them; cop2_put and cop2_get
+ *    carry those. One nop is NOT enough - the read comes back with the previous
+ *    write's answer about a third of the time, and a single isolated call passes
+ *    by luck, so only a loop self-test on real silicon exposes it.
+ */
+static inline uint32_t bsdecClz32(uint32_t v) {
+#ifdef __mips__
+    uint32_t r;
+    if ((int32_t)v < 0) return 0;
+    cop2_put(30, v);
+    cop2_get(31, r);
+    return r;
+#else
+    return v ? (uint32_t)__builtin_clz(v) : 32u;
+#endif
+}
+
 enum BsdecError {
     BSDEC_OK = 0,
     BSDEC_SHORT,          /* fewer than 8 bytes, so not even a header */
