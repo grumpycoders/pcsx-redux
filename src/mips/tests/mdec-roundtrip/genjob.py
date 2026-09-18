@@ -145,6 +145,45 @@ def build(arm):
         acs[2] = [(0, 400)]   # Y1, top-left quadrant:  raster 1, ONE axis at DC
         acs[3] = [(3, 400)]   # Y2, top-right quadrant: raster 9, NEITHER axis at DC
 
+    # YUV*: the colour matrix, which psx-spx prints and then disclaims - "Note: The
+    # exact fixed point resolution for yuv_to_rgb is unknown." Our two implementations
+    # disagree about it (tools/mdec uses /1000, src/core uses /1024) and NEITHER is
+    # measured, so this is the one part of the decode path where the emulator's copy
+    # is not the validated one either.
+    #
+    # ⭐ EACH CAPTURE CARRIES ITS OWN LUMA CONTROL, so nothing has to model the IDCT
+    # and there is no cross-run normalisation. psx-spx's colour step is
+    #     R = Y + a*Cr,  G = Y - b*Cb - c*Cr,  B = Y + d*Cb
+    # so with ONE chroma block active the other chroma term drops out and one output
+    # channel reads the luma plane back unmodified:
+    #     Cr active (Cb flat 0) -> B == Y everywhere.  Read a and c from R and G.
+    #     Cb active (Cr flat 0) -> R == Y everywhere.  Read d and b from B and G.
+    # Y1 carries the SAME DC as the active chroma block, at the same quant table
+    # (job_quant is one byte repeated over both tables), so the control channel's
+    # Y1-minus-Y2 difference IS the chroma plane value, measured in output units.
+    # The coefficient is then a ratio of two numbers off one capture:
+    #     a = (R_Y2 - B_Y2) / (B_Y1 - B_Y2)      d = (B_Y2 - R_Y2) / (R_Y1 - R_Y2)
+    #
+    # MAGNITUDES. quant=1 and q_scale=8 put a DC-only block at plane = DC/8, so
+    # DC 400 is plane 50 and DC 504 is plane 63. ⛔ THE DC FIELD IS SIGNED 10-BIT, so
+    # 511 is the ceiling and BIG was 720 for one run: that wrapped to -304, the arm
+    # measured a plane of -38 instead of +90, and the only thing that said so was the
+    # capture's own control channel reading -38 where +90 was predicted. The arm was
+    # not wrong, the magnitude was outside the field - which is exactly what a
+    # self-contained control is for. ⛔ B_Y1 in the Cb arms
+    # DOES clip (50 + 1.772*50 + 128 = 267); that quadrant's B is not read, only its R.
+    # The negative arms are not symmetry theatre: a ties-round-down rule (D8F, measured)
+    # lands differently on a negative product, and that is where a /1000 and a /1024
+    # implementation part company first.
+    if arm.startswith('YUV'):
+        quant, qscale = 1, 8
+        v = 504 if arm.endswith('BIG') else 400
+        if 'N' in arm[3:]: v = -v
+        dc = [0] * 6
+        dc[0 if 'CR' in arm else 1] = v   # the active chroma block
+        dc[2] = v                         # Y1: the luma control, same DC, same table
+        acs = [[] for _ in range(6)]
+
     # --- single-term arms. Chroma is flat in every one of them on purpose. ---
     if arm in ('D8', 'D63'):
         qscale = 8 if arm == 'D8' else 63
@@ -273,6 +312,7 @@ MAX_RL_WORDS = 4096
 ARMS = frozenset("""
 A B C D D8 D63 D8F S S2 Z Z2 ZK5 DSAT DSAT2 ASAT ZTWO ZMIX WRAP
 ZDC ZDCC ZAC ZACC GSPLIT R1 R2 R3 R4
+YUVCR YUVCRN YUVCRBIG YUVCB YUVCBN YUVCBBIG
 """.split())
 
 # `genjob.py --show <capture>` prints a capture's provenance header. It lives here
