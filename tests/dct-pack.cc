@@ -331,4 +331,38 @@ TEST(DctContainer, bsRoundTripsAndRefusesWhatItCannotExpress) {
     auto badr = PCSX::DCT::fromContainer(bad, PCSX::DCT::Container::Bs, nothing);
     EXPECT_TRUE(badr.failed);
     EXPECT_TRUE(nothing.empty());
+
+    // ⛔ THE VERSION FIELD IS NOT A v2/v3 BINARY. v1 and v2 both carry a raw 10-bit
+    // DC and only v3 delta-codes it, so relabelling a v2 stream as v1 must decode to
+    // the identical run-level. Sony's own DecDCTvlc gets this wrong - it tests
+    // `type == 2` and sends v1 down the delta path - and a decoder written from that
+    // code inherits the bug. Measured on Suikoden II `_KONAMIC.STR`, 168 retail v1
+    // frames: the delta path yields 16 blocks of 1800 and then fills with EOB, the
+    // raw path yields 1800 and a picture.
+    std::vector<uint8_t> asV1 = bs;
+    asV1[6] = 1;
+    std::vector<uint16_t> v1Back;
+    auto v1r = PCSX::DCT::fromContainer(asV1, PCSX::DCT::Container::Bs, v1Back);
+    ASSERT_FALSE(v1r.failed) << (v1r.error ? v1r.error : "");
+    EXPECT_EQ(v1Back, stream) << "v1 is raw-DC like v2, not delta-coded like v3";
+    EXPECT_EQ(v1r.blocks, t.shape.blockCount);
+
+    // v3 takes the delta path, so the same bytes must NOT come back as the v2 stream.
+    // This is a dispatch check, not a check of the delta tables - those were graded
+    // against DecDCTvlc on 143 retail v3 frames, which no unit test here can carry.
+    std::vector<uint8_t> asV3 = bs;
+    asV3[6] = 3;
+    std::vector<uint16_t> v3Back;
+    PCSX::DCT::fromContainer(asV3, PCSX::DCT::Container::Bs, v3Back);
+    EXPECT_NE(v3Back, stream) << "v3 must not be decoded as raw DC";
+
+    // Versions outside 1..3 are refused rather than guessed at.
+    for (uint8_t v : {uint8_t(0), uint8_t(4), uint8_t(0xff)}) {
+        std::vector<uint8_t> odd = bs;
+        odd[6] = v;
+        std::vector<uint16_t> out;
+        auto r = PCSX::DCT::fromContainer(odd, PCSX::DCT::Container::Bs, out);
+        EXPECT_TRUE(r.failed) << "BS version " << int(v) << " should be refused";
+        EXPECT_TRUE(out.empty());
+    }
 }

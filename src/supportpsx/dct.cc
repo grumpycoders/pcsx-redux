@@ -732,6 +732,36 @@ struct BitReader {
         }
         return v;
     }
+    // Look at the next `bits` without consuming them or latching an overrun. The
+    // delta-DC size codes are variable length with no separator, so they have to be
+    // matched against a peeked window.
+    uint32_t peek(int bits) {
+        const size_t savedPos = pos;
+        const bool savedOverrun = overrun;
+        const uint32_t v = get(bits);
+        pos = savedPos;
+        overrun = savedOverrun;
+        return v;
+    }
+};
+
+// Delta-DC size codes for BS versions other than 2, as {code, codeLength} indexed by
+// size. These are the MPEG-1 DC size code books (ISO/IEC 11172-2 tables B-12 and B-13),
+// not a transcription of anyone's source. Sony's DecDCTvlc corroborates them without
+// spelling them out: its long-code arm derives the length arithmetically, `bit = 3;
+// while (Show_Bits(bit) & 1) bit++; bit++;` for luma and `bit = 4; while (...) bit++;`
+// for chroma, which reproduces exactly this progression of leading ones for sizes 4..8.
+struct DcSizeCode {
+    uint32_t code;
+    int length;
+};
+static constexpr DcSizeCode c_dcSizeLuma[9] = {
+    {0b100, 3}, {0b00, 2},     {0b01, 2},      {0b101, 3},      {0b110, 3},
+    {0b1110, 4}, {0b11110, 5}, {0b111110, 6},  {0b1111110, 7},
+};
+static constexpr DcSizeCode c_dcSizeChroma[9] = {
+    {0b00, 2},   {0b01, 2},     {0b10, 2},      {0b110, 3},      {0b1110, 4},
+    {0b11110, 5}, {0b111110, 6}, {0b1111110, 7}, {0b11111110, 8},
 };
 
 PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, Container container,
@@ -979,12 +1009,21 @@ PCSX::DCT::ContainerResult PCSX::DCT::fromContainer(std::span<const uint8_t> in,
         r.error = "not a BS stream: word 0 is not the MDEC decode command";
         return r;
     }
-    if (version != 2) {
-        // v3 delta-codes the DC against a per-component predictor and uses a
-        // different set of DC tables. Refusing beats decoding it as v2, which
-        // produces a plausible image with the luminance drifting.
+    // The version field is NOT a v2/v3 binary, and reading it as one is what kept this
+    // decoder from opening two of the eleven retail streams it was measured against.
+    // v1 and v2 both carry a raw 10-bit DC; v3 delta-codes it against a per-component
+    // predictor. All three ship on retail discs: Suikoden II `_KONAMIC.STR` is v1,
+    // Castlevania SOTN `LOGO15XA.STR` is v3, everything else measured is v2.
+    // ⛔ ONLY v3 delta-codes the DC. Sony's DecDCTvlc tests `type == 2` and sends
+    // everything else down the delta path, which is WRONG for v1 and measurably so:
+    // on Suikoden II's `_KONAMIC.STR` it yields 149 of 4416 halfwords before it
+    // degenerates to filling the buffer with EOB, against 4358 of 4416 and a correct
+    // 1800-block count when v1 is read as raw DC. Do not "fix" this to match
+    // DecDCTvlc - a zero return from it means the buffer got filled, not decoded.
+    const bool deltaDc = version == 3;
+    if (version == 0 || version > 3) {
         r.failed = true;
-        r.error = "only BS v2 is implemented; v3 delta-codes the DC";
+        r.error = "BS version out of range: expected 1, 2 or 3";
         return r;
     }
     r.qScale = static_cast<int>(quant);
@@ -1002,10 +1041,46 @@ PCSX::DCT::ContainerResult PCSX::DCT::fromContainer(std::span<const uint8_t> in,
     // halfword each time. The doc says the decoder ADDS footers to reach the boundary,
     // which is what this does instead - so expect a one-halfword disagreement with
     // that implementation, in the pad, in this direction.
+    // Block order within a macroblock is Cr, Cb, Y0, Y1, Y2, Y3, so blocks 0 and 1 take
+    // the chroma code book and their own predictors, and 2..5 share the luma one.
+    int lastDc[3] = {0, 0, 0};
+    int blockInMacroblock = 0;
+
     while (rl.size() < target) {
         const size_t blockStart = rl.size();
         if (br.overrun) break;
-        const uint32_t dc = br.get(10);
+        uint32_t dc;
+        if (!deltaDc) {
+            dc = br.get(10);
+        } else {
+            const bool luma = blockInMacroblock >= 2;
+            const DcSizeCode *book = luma ? c_dcSizeLuma : c_dcSizeChroma;
+            int size = -1;
+            for (int s = 0; s < 9; s++) {
+                if (br.peek(book[s].length) == book[s].code) {
+                    size = s;
+                    break;
+                }
+            }
+            if (size < 0 || br.overrun) {
+                rl.resize(blockStart);
+                br.overrun = true;
+                break;
+            }
+            br.get(book[size].length);
+            int delta = 0;
+            if (size > 0) {
+                const uint32_t raw = br.get(size);
+                // Top bit set means positive; clear means the value was stored as an
+                // offset from -(2^size - 1).
+                delta = (raw & (1u << (size - 1))) ? static_cast<int>(raw)
+                                                   : static_cast<int>(raw) - ((1 << size) - 1);
+            }
+            const int predictor = luma ? 2 : blockInMacroblock;
+            lastDc[predictor] += delta * 4;
+            dc = static_cast<uint32_t>(lastDc[predictor]) & 0x3ff;
+            if (++blockInMacroblock == 6) blockInMacroblock = 0;
+        }
         if (br.overrun) break;
         rl.push_back(static_cast<uint16_t>(((quant & 0x3f) << 10) | (dc & 0x3ff)));
         bool closed = false;
