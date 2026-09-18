@@ -31,6 +31,7 @@ SOFTWARE.
 #include <string.h>
 
 #include <algorithm>
+#include <map>
 #include <cmath>
 #include <numbers>
 
@@ -680,6 +681,59 @@ void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<ui
 
 const uint8_t *PCSX::DCT::standardQuantTable() { return c_packStandardQuant; }
 
+// Reverse lookup for the code book, built once. 224 codes over lengths 2..17, so a
+// per-length table keyed by the accumulated bits is enough and needs no trie.
+struct VlcDecodeEntry {
+    int run;
+    int level;
+    bool escape;
+    bool eob;
+};
+const std::map<uint32_t, VlcDecodeEntry> &vlcDecodeTable() {
+    static const std::map<uint32_t, VlcDecodeEntry> s_table = [] {
+        std::map<uint32_t, VlcDecodeEntry> t;
+        // Key packs the LENGTH with the code, because a code value is only unique
+        // within its length - 0b10 at 2 bits and 0b10 at 6 bits are different symbols.
+        auto key = [](uint32_t code, int bits) { return (static_cast<uint32_t>(bits) << 20) | code; };
+        t[key(c_vlcEob.code, c_vlcEob.bits)] = {0, 0, false, true};
+        t[key(c_vlcEsc.code, c_vlcEsc.bits)] = {0, 0, true, false};
+        for (int run = 0; run < 32; run++) {
+            for (int lvl = 1; lvl <= c_vlcMaxLevel[run]; lvl++) {
+                const VlcCode &c = c_vlcRun[run][lvl - 1];
+                if (!c.bits) continue;
+                t[key(c.code, c.bits)] = {run, lvl, false, false};
+                t[key(c.code | 1u, c.bits)] = {run, -lvl, false, false};
+            }
+        }
+        return t;
+    }();
+    return s_table;
+}
+
+// MSB-first out of little-endian halfwords, the mirror of BitWriter.
+struct BitReader {
+    std::span<const uint8_t> in;
+    size_t pos = 0;  // bit position
+    bool overrun = false;
+    explicit BitReader(std::span<const uint8_t> i) : in(i) {}
+    uint32_t get(int bits) {
+        uint32_t v = 0;
+        for (int b = 0; b < bits; b++) {
+            const size_t hw = pos >> 4;
+            const size_t bit = pos & 15;
+            uint32_t word = 0;
+            if (hw * 2 + 1 < in.size()) {
+                word = static_cast<uint32_t>(in[hw * 2]) | (static_cast<uint32_t>(in[hw * 2 + 1]) << 8);
+            } else {
+                overrun = true;
+            }
+            v = (v << 1) | ((word >> (15 - bit)) & 1);
+            pos++;
+        }
+        return v;
+    }
+};
+
 PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, Container container,
                                                   std::vector<uint8_t> &out) {
     ContainerResult r;
@@ -891,4 +945,103 @@ PCSX::DCT::PackResult PCSX::DCT::pack(std::span<const int16_t> coefficients, con
     while (out.size() % 64) out.push_back(0xfe00);
     result.halfwords = out.size();
     return result;
+}
+
+
+PCSX::DCT::ContainerResult PCSX::DCT::fromContainer(std::span<const uint8_t> in, Container container,
+                                                    std::vector<uint16_t> &rl) {
+    ContainerResult r;
+    rl.clear();
+    if (container == Container::Raw) {
+        if (in.size() & 1) {
+            r.failed = true;
+            r.error = "raw stream has an odd byte count";
+            return r;
+        }
+        rl.resize(in.size() / 2);
+        for (size_t k = 0; k < rl.size(); k++) rl[k] = in[k * 2] | (static_cast<uint16_t>(in[k * 2 + 1]) << 8);
+        r.bytes = static_cast<uint32_t>(in.size());
+        r.rlWords = static_cast<uint32_t>((rl.size() + 1) >> 1);
+        return r;
+    }
+
+    if (in.size() < 8) {
+        r.failed = true;
+        r.error = "shorter than a BS header";
+        return r;
+    }
+    const uint32_t rlWords = in[0] | (static_cast<uint32_t>(in[1]) << 8);
+    const uint32_t magic = in[2] | (static_cast<uint32_t>(in[3]) << 8);
+    const uint32_t quant = in[4] | (static_cast<uint32_t>(in[5]) << 8);
+    const uint32_t version = in[6] | (static_cast<uint32_t>(in[7]) << 8);
+    if (magic != 0x3800) {
+        r.failed = true;
+        r.error = "not a BS stream: word 0 is not the MDEC decode command";
+        return r;
+    }
+    if (version != 2) {
+        // v3 delta-codes the DC against a per-component predictor and uses a
+        // different set of DC tables. Refusing beats decoding it as v2, which
+        // produces a plausible image with the luminance drifting.
+        r.failed = true;
+        r.error = "only BS v2 is implemented; v3 delta-codes the DC";
+        return r;
+    }
+    r.qScale = static_cast<int>(quant);
+    r.rlWords = rlWords;
+
+    const size_t target = static_cast<size_t>(rlWords) * 2;
+    rl.reserve(target);
+    BitReader br(in.subspan(8));
+    const auto &table = vlcDecodeTable();
+
+    // ⚠ Stop at the last block that FITS, rather than filling to `target`. Sony's
+    // DecDCTvlc loops `while (mdec_rl < rl_end)` and so decodes one more block header
+    // out of exhausted bits when the payload does not reach the padded length: it
+    // writes a spurious DC word into the first pad slot. Measured on two streams, one
+    // halfword each time. The doc says the decoder ADDS footers to reach the boundary,
+    // which is what this does instead - so expect a one-halfword disagreement with
+    // that implementation, in the pad, in this direction.
+    while (rl.size() < target) {
+        const size_t blockStart = rl.size();
+        if (br.overrun) break;
+        const uint32_t dc = br.get(10);
+        if (br.overrun) break;
+        rl.push_back(static_cast<uint16_t>(((quant & 0x3f) << 10) | (dc & 0x3ff)));
+        bool closed = false;
+        while (!closed) {
+            uint32_t code = 0;
+            int bits = 0;
+            const VlcDecodeEntry *found = nullptr;
+            while (bits < 17) {
+                code = (code << 1) | br.get(1);
+                bits++;
+                auto it = table.find((static_cast<uint32_t>(bits) << 20) | code);
+                if (it != table.end()) {
+                    found = &it->second;
+                    break;
+                }
+            }
+            if (!found || br.overrun) {
+                rl.resize(blockStart);
+                closed = true;
+                br.overrun = true;
+                break;
+            }
+            if (found->eob) {
+                rl.push_back(0xfe00);
+                closed = true;
+            } else if (found->escape) {
+                rl.push_back(static_cast<uint16_t>(br.get(16)));
+            } else {
+                rl.push_back(static_cast<uint16_t>(((found->run & 0x3f) << 10) | (found->level & 0x3ff)));
+            }
+        }
+        if (br.overrun) break;
+        r.blocks++;
+    }
+    // The footers the header's length implies, which the bitstream does not carry.
+    while (rl.size() < target) rl.push_back(0xfe00);
+    r.bytes = static_cast<uint32_t>(in.size());
+    return r;
 }

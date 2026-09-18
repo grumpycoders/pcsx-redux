@@ -366,6 +366,16 @@ struct ContainerResult {
 // Wrap a packed run-level stream. `rl` is exactly what pack() produced.
 ContainerResult toContainer(std::span<const uint16_t> rl, Container container, std::vector<uint8_t> &out);
 
+// The inverse. `rl` comes back padded to the length the header declares, so it is
+// ready for DMA0 as-is.
+//
+// ⚠ This is NOT the oracle for toContainer. Both were written by the same hand from
+// the same reading of FileFormat47, so a round trip between them is a consistency
+// check and cannot see a shared misreading - which is exactly how the 28-bit escape
+// survived its first test. The independent check is Sony's own DecDCTvlc, in
+// PSX-Bundle psxdev/vlc.c.
+ContainerResult fromContainer(std::span<const uint8_t> in, Container container, std::vector<uint16_t> &rl);
+
 // Exposed for testing: transform one 8x8 block in place, block-major, scalar,
 // against the given basis, using the given variant's arithmetic. This is the
 // reference every lane of that variant must match bit for bit.

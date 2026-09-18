@@ -210,6 +210,7 @@ Usage: {} <command> [options]
 commands:
   rawencode   a PNG into a raw MDEC run-level stream (what DMA0 consumes)
   bsencode    a PNG into Sony's legacy BS: the same stream, VLC/Huffman coded
+  bsdecode    a BS stream back into a raw MDEC run-level stream
   rawdecode   a raw MDEC run-level stream back into a PNG
 
   -h          this help, or a command's help when given after a command
@@ -498,6 +499,61 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     return 0;
 }
 
+int cmdBsDecode(CommandLine::args &args, bool asksForHelp) {
+    if (asksForHelp) {
+        fmt::print(R"(
+Usage: mdec bsdecode -i input.bs -o output.bin
+
+  -i file     mandatory: a BS stream, as bsencode writes.
+  -o file     mandatory: the raw MDEC run-level stream it carries.
+
+  This undoes the VLC layer and nothing else, so it composes: `bsdecode` then
+  `rawdecode` gets you back to a PNG, and `bsencode | bsdecode` must reproduce
+  `rawencode` byte for byte on the same input and settings.
+
+  Dimensions are not needed and not accepted - a BS header carries the decoded
+  length, which is the whole reason its first word is the MDEC decode command.
+)");
+        return 0;
+    }
+    auto in = args.get<std::string>("i");
+    auto out = args.get<std::string>("o");
+    if (!in.has_value() || !out.has_value()) {
+        fmt::print(stderr, "bsdecode needs -i and -o\n");
+        return -1;
+    }
+    FILE *f = fopen(in.value().c_str(), "rb");
+    if (!f) {
+        fmt::print(stderr, "cannot read {}\n", in.value());
+        return -1;
+    }
+    std::vector<uint8_t> bytes;
+    uint8_t buf[65536];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) bytes.insert(bytes.end(), buf, buf + n);
+    fclose(f);
+
+    std::vector<uint16_t> rl;
+    auto r = PCSX::DCT::fromContainer(bytes, PCSX::DCT::Container::Bs, rl);
+    if (r.failed) {
+        fmt::print(stderr, "cannot decode {}: {}\n", in.value(), r.error);
+        return -1;
+    }
+    FILE *o = fopen(out.value().c_str(), "wb");
+    if (!o) {
+        fmt::print(stderr, "cannot write {}\n", out.value());
+        return -1;
+    }
+    for (uint16_t v : rl) {
+        const uint8_t b2[2] = {static_cast<uint8_t>(v & 0xff), static_cast<uint8_t>(v >> 8)};
+        fwrite(b2, 1, 2, o);
+    }
+    fclose(o);
+    fmt::print("{} blocks, q_scale {}, {} halfwords ({} words as the header declares)\n", r.blocks, r.qScale,
+               rl.size(), r.rlWords);
+    return 0;
+}
+
 int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
     if (asksForHelp) {
         usageRawDecode();
@@ -609,6 +665,7 @@ int main(int argc, char **argv) {
     try {
         if (command == "rawencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw);
         if (command == "bsencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs);
+        if (command == "bsdecode") return cmdBsDecode(args, asksForHelp);
         if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());

@@ -271,3 +271,64 @@ TEST(QualityToQScale, endpointsMidpointAndMonotonicity) {
     EXPECT_EQ(PCSX::DCT::qualityToQScale(-5), 63);
     EXPECT_EQ(PCSX::DCT::qualityToQScale(1000), 1);
 }
+
+// The BS container: header shape, the q_scale constraint, and a round trip.
+//
+// ⚠ The round trip below is a CONSISTENCY check, not a correctness one - both
+// halves live in the same file and were written from the same reading of
+// FileFormat47, so a shared misreading passes it. One did: the escape was encoded
+// as a 6-bit run plus a 16-bit level, which is 28 bits where Sony's DecDCTvlc
+// reads 16, and a round trip against a matching decoder was perfectly green while
+// the stream was garbage to anything else. The real oracle is PSX-Bundle
+// psxdev/vlc.c. What this test is for is catching a REGRESSION in one half.
+TEST(DctContainer, bsRoundTripsAndRefusesWhatItCannotExpress) {
+    Transformed t;
+    std::vector<uint16_t> stream;
+    auto packed = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, stream);
+    ASSERT_FALSE(packed.failed);
+    EXPECT_EQ(packed.minQScale, 8);
+    EXPECT_EQ(packed.maxQScale, 8);
+
+    std::vector<uint8_t> bs;
+    auto wrapped = PCSX::DCT::toContainer(stream, PCSX::DCT::Container::Bs, bs);
+    ASSERT_FALSE(wrapped.failed) << (wrapped.error ? wrapped.error : "");
+    EXPECT_EQ(wrapped.blocks, t.shape.blockCount);
+    EXPECT_EQ(wrapped.qScale, 8);
+    // Word 0 is the MDEC decode command, so the magic sits in its high half and
+    // the length is in 32-bit words of PADDED run-level.
+    ASSERT_GE(bs.size(), 8u);
+    EXPECT_EQ(bs[2] | (bs[3] << 8), 0x3800);
+    EXPECT_EQ(bs[4] | (bs[5] << 8), 8);
+    EXPECT_EQ(bs[6] | (bs[7] << 8), 2);
+    EXPECT_EQ(static_cast<uint32_t>(bs[0] | (bs[1] << 8)), (stream.size() + 1) >> 1);
+
+    std::vector<uint16_t> back;
+    auto un = PCSX::DCT::fromContainer(bs, PCSX::DCT::Container::Bs, back);
+    ASSERT_FALSE(un.failed) << (un.error ? un.error : "");
+    EXPECT_EQ(back, stream) << "bsencode | bsdecode must reproduce the packed stream";
+
+    // A q_scale that moves mid-frame has no representation: BS stores QUANT once.
+    // Rate control can produce one, so this must fail rather than write a stream
+    // the stock player silently misreads.
+    std::vector<uint16_t> varying;
+    auto mixed = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, varying,
+                                 [](const PCSX::DCT::PackAttempt &i) -> std::optional<int> {
+                                     return i.attempt == 0 ? std::optional<int>(i.qScale == 8 ? 20 : 8)
+                                                           : std::nullopt;
+                                 });
+    ASSERT_FALSE(mixed.failed);
+    if (mixed.minQScale != mixed.maxQScale) {
+        std::vector<uint8_t> nope;
+        auto refused = PCSX::DCT::toContainer(varying, PCSX::DCT::Container::Bs, nope);
+        EXPECT_TRUE(refused.failed) << "a varying q_scale is not BS-expressible";
+        EXPECT_TRUE(nope.empty());
+    }
+
+    // And a corrupt header is refused rather than decoded into plausible noise.
+    std::vector<uint8_t> bad = bs;
+    bad[3] ^= 0xff;
+    std::vector<uint16_t> nothing;
+    auto badr = PCSX::DCT::fromContainer(bad, PCSX::DCT::Container::Bs, nothing);
+    EXPECT_TRUE(badr.failed);
+    EXPECT_TRUE(nothing.empty());
+}
