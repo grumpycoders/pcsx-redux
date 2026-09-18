@@ -524,16 +524,21 @@ void PCSX::DCT::Encoder::worker() {
 
 namespace {
 
-// psx-spx zigzag: c_zscan[k] is the natural-order index of zigzag position k.
+// Sony's own zscan[], FileFormat47 p.1-12, verified identical entry for entry.
+// c_packZscan[k] is the natural-order index of zigzag position k.
 constexpr int c_packZscan[64] = {
     0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
     41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
     30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 };
 
-// The table every shipping encoder uses. Not an all-ones table: the run-level DC
-// field is signed TEN BITS and an unquantized DC runs to about 1150, so identity
-// quant clips every block brighter than mid-grey.
+// Sony's Qtab, FileFormat47 p.1-11, verified identical entry for entry. Their
+// matrix is drawn "x 1/16", so the printed integers are what goes here and the
+// 16 in their quantization formula is what cancels it.
+//
+// Not an all-ones table: the run-level DC field is signed TEN BITS and an
+// unquantized DC runs to about 1150, so identity quant clips every block
+// brighter than mid-grey.
 constexpr uint8_t c_packStandardQuant[64] = {
     2,  16, 19, 22, 26, 27, 29, 34, 16, 16, 22, 24, 27, 29, 34, 37, 19, 22, 26, 27, 29, 34,
     34, 38, 22, 22, 26, 27, 29, 34, 37, 40, 22, 26, 27, 29, 32, 35, 40, 48, 26, 27, 29, 32,
@@ -571,9 +576,11 @@ int divRoundPack(int num, int den) {
 //   The 14 one-axis slots measure Gfwd 8.000 * Ginv 0.1768 = 1.4139; the 49
 //   two-axis slots measure Gfwd 4.000 * Ginv 0.2500 = 1.0000. The class is a
 //   property of the RASTER position, so it is keyed off c_packZscan[k], not k.
-// ⚠ q_scale appears in the AC divisor and NOT the DC one. That mirrors the
-// hardware, measured 2026-09-14: arms holding everything but q_scale and running
-// it at 8 against 63 decode byte-identical, so the DC genuinely ignores it.
+// ⚠ q_scale appears in the AC divisor and NOT the DC one. Sony says so twice in
+// FileFormat47 p.1-11 - "DC elements are not affected by QUANT" in prose, and a
+// separate blk_zig[0] statement using a constant 8 where the i >= 1 loop uses
+// q_scale - and it is measured on hardware, 2026-09-14: arms holding everything
+// but q_scale and running it at 8 against 63 decode byte-identical.
 void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<uint16_t> &out, uint32_t &clippedAc,
                uint32_t &clippedDc) {
     const int dcDen = (qt[0] ? qt[0] : 1) * 2;
