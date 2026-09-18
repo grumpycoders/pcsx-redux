@@ -63,6 +63,7 @@
 #include "fmt/format.h"
 #include "json.hpp"
 #include "supportpsx/dct.h"
+#include "ucl/ucl.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -122,6 +123,28 @@ struct Tables {
         forward = PCSX::DCT::standardBasis();
     }
 };
+
+// Compression applied to the RAW run-level bytes. Deliberately not a
+// DCT::Container: supportpsx is MIT and ucl's compressor is GPLv2, so it lives on
+// this side of the line. lz4 belongs here too when a host compressor exists - the
+// vendored src/mips/lz4/lz4.c is decompress-only and there is no third_party/lz4.
+enum class Compress { None, Ucl };
+
+// nrv2e at level 10, the same call ps1-packer makes. Returns false and fills `err`
+// rather than throwing, so a compression failure reads like every other CLI error.
+bool compressUcl(const std::vector<uint8_t> &in, std::vector<uint8_t> &out, std::string &err) {
+    // UCL's worst case is documented as input + input/8 + 256.
+    out.resize(in.size() + in.size() / 8 + 256);
+    ucl_uint len = static_cast<ucl_uint>(out.size());
+    const int r = ucl_nrv2e_99_compress(in.data(), static_cast<ucl_uint>(in.size()), out.data(), &len, nullptr, 10,
+                                        nullptr, nullptr);
+    if (r != UCL_E_OK) {
+        err = fmt::format("ucl_nrv2e_99_compress failed with {}", r);
+        return false;
+    }
+    out.resize(len);
+    return true;
+}
 
 bool loadArray(const nlohmann::json &j, const char *key, int *out, unsigned n, std::string &err) {
     if (!j.contains(key)) return false;
@@ -203,6 +226,7 @@ Usage: {} <command> [options]
 commands:
   rawencode   a PNG into a raw MDEC run-level stream (what DMA0 consumes)
   bsencode    a PNG into Sony's legacy BS: the same stream, VLC/Huffman coded
+  uclencode   a PNG into a ucl-nrv2e compressed raw stream
   rawdecode   a raw MDEC run-level stream back into a PNG
 
   -h          this help, or a command's help when given after a command
@@ -309,7 +333,8 @@ void realIdct(int *block, const int16_t *scale) {
     if (src != block) memcpy(block, src, sizeof(temp));
 }
 
-int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container) {
+int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container,
+              Compress compress = Compress::None) {
     if (asksForHelp) {
         usageRawEncode();
         return 0;
@@ -460,7 +485,20 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
         fmt::print(stderr, "cannot wrap the stream: {}\n", wrap.error);
         return -1;
     }
-    fwrite(wrapped.data(), 1, wrapped.size(), f);
+    size_t finalBytes = wrapped.size();
+    if (compress == Compress::Ucl) {
+        std::vector<uint8_t> packedBytes;
+        std::string cerr;
+        if (!compressUcl(wrapped, packedBytes, cerr)) {
+            fclose(f);
+            fmt::print(stderr, "{}\n", cerr);
+            return -1;
+        }
+        fwrite(packedBytes.data(), 1, packedBytes.size(), f);
+        finalBytes = packedBytes.size();
+    } else {
+        fwrite(wrapped.data(), 1, wrapped.size(), f);
+    }
     fclose(f);
 
     fmt::print("{}x{}", w, h);
@@ -468,8 +506,12 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     if (!qscaleOpt.has_value()) fmt::print(", quality {}", quality);
     fmt::print(", {} blocks, {} halfwords, q_scale {}, transform {}", result.blockCount, stream.size(), qscale,
                which);
+    const double raw = static_cast<double>(stream.size() * 2);
     if (container == PCSX::DCT::Container::Bs) {
-        fmt::print(", BS {} bytes ({:.1f}% of raw)", wrap.bytes, 100.0 * wrap.bytes / (stream.size() * 2));
+        fmt::print(", BS {} bytes ({:.1f}% of raw)", wrap.bytes, 100.0 * wrap.bytes / raw);
+    }
+    if (compress == Compress::Ucl) {
+        fmt::print(", ucl-nrv2e {} bytes ({:.1f}% of raw)", finalBytes, 100.0 * finalBytes / raw);
     }
     fmt::print("\n");
     if (clipped) {
@@ -601,6 +643,8 @@ int main(int argc, char **argv) {
     try {
         if (command == "rawencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw);
         if (command == "bsencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs);
+        if (command == "uclencode")
+            return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw, Compress::Ucl);
         if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());
