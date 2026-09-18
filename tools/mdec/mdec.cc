@@ -37,10 +37,17 @@
 //   5. An unknown command lists what exists and exits non-zero. It never falls
 //      back to a default.
 //
-// Commands so far: rawencode, rawdecode. "raw" means the MDEC's own run-level
-// halfword stream, the bytes DMA0 consumes, with no BS/VLC entropy layer and no
-// STR framing. When those land they get their own commands rather than flags on
-// these, so that `rawencode` keeps meaning exactly what it means today.
+// Commands so far: rawencode, bsencode, rawdecode. "raw" means the MDEC's own
+// run-level halfword stream, the bytes DMA0 consumes, with no BS/VLC entropy
+// layer and no STR framing; `bsencode` is the same stream VLC coded into Sony's
+// legacy BS. STR framing gets its own command when it lands, rather than a flag
+// on either of these, so that each one keeps meaning what it means today.
+//
+// ⭐ COMPRESSION BELONGS HERE, NOT IN supportpsx, and it is a licence boundary.
+// This tool is GPLv2; the library is MIT. ucl's compressor is GPLv2, so linking
+// it into supportpsx would encumber every downstream user of the library. The
+// library therefore emits Container::Raw and stops, and anything that compresses
+// those bytes lives on this side of the line.
 // ---------------------------------------------------------------------------
 
 #include <stdint.h>
@@ -195,6 +202,7 @@ Usage: {} <command> [options]
 
 commands:
   rawencode   a PNG into a raw MDEC run-level stream (what DMA0 consumes)
+  bsencode    a PNG into Sony's legacy BS: the same stream, VLC/Huffman coded
   rawdecode   a raw MDEC run-level stream back into a PNG
 
   -h          this help, or a command's help when given after a command
@@ -301,7 +309,7 @@ void realIdct(int *block, const int16_t *scale) {
     if (src != block) memcpy(block, src, sizeof(temp));
 }
 
-int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
+int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container) {
     if (asksForHelp) {
         usageRawEncode();
         return 0;
@@ -445,17 +453,25 @@ int cmdRawEncode(CommandLine::args &args, bool asksForHelp) {
         fmt::print(stderr, "cannot write {}\n", out.value());
         return -1;
     }
-    for (uint16_t v : stream) {
-        const uint8_t bytes[2] = {static_cast<uint8_t>(v & 0xff), static_cast<uint8_t>(v >> 8)};
-        fwrite(bytes, 1, 2, f);
+    std::vector<uint8_t> wrapped;
+    auto wrap = PCSX::DCT::toContainer(stream, container, wrapped);
+    if (wrap.failed) {
+        fclose(f);
+        fmt::print(stderr, "cannot wrap the stream: {}\n", wrap.error);
+        return -1;
     }
+    fwrite(wrapped.data(), 1, wrapped.size(), f);
     fclose(f);
 
     fmt::print("{}x{}", w, h);
     if (pw != w || ph != h) fmt::print(" padded to {}x{}", pw, ph);
     if (!qscaleOpt.has_value()) fmt::print(", quality {}", quality);
-    fmt::print(", {} blocks, {} halfwords, q_scale {}, transform {}\n", result.blockCount, stream.size(), qscale,
+    fmt::print(", {} blocks, {} halfwords, q_scale {}, transform {}", result.blockCount, stream.size(), qscale,
                which);
+    if (container == PCSX::DCT::Container::Bs) {
+        fmt::print(", BS {} bytes ({:.1f}% of raw)", wrap.bytes, 100.0 * wrap.bytes / (stream.size() * 2));
+    }
+    fmt::print("\n");
     if (clipped) {
         // Name the lever that can actually reach each one. q_scale is in the AC
         // divisor only, so it cannot fix a clipped DC however far it is raised.
@@ -583,7 +599,8 @@ int main(int argc, char **argv) {
     // exit 0, encodes fine, so the abort was the symmetry check and not the table
     // loader.
     try {
-        if (command == "rawencode") return cmdRawEncode(args, asksForHelp);
+        if (command == "rawencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw);
+        if (command == "bsencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs);
         if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());

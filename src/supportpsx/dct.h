@@ -338,13 +338,16 @@ const uint8_t *standardQuantTable();
 //   Bs   Sony's legacy BS: VLC/Huffman per the FileFormat47 code book, with the
 //        8-byte header whose first word IS the MDEC decode command. Playable by
 //        the stock library. Requires a single q_scale for the whole frame.
-//   Lz4  lz4 block over the raw run-level halfwords.
-//   Ucl  ucl nrv2e over the same.
+//   Raw  the run-level halfwords as bytes, padding included - exactly what DMA0
+//        consumes. This is the handoff point for a compressing front end.
 //
-// The two compressed forms decompress straight into what DMA0 consumes, so they
-// skip the VLC pass entirely - which is the interesting axis, and the one that
-// costs CPU per frame rather than bytes on disc.
-enum class Container { Bs, Lz4, Ucl };
+// ⛔ THERE IS DELIBERATELY NO Lz4 OR Ucl HERE, and it is a licensing boundary
+// rather than a missing feature. ucl's compressor is GPLv2 while this library is
+// MIT, so linking it would encumber every downstream user of supportpsx. The CLI
+// compresses `Raw` and carries that licence itself. An enum value that always
+// failed would be worse than its absence: it compiles, so the constraint would
+// only show up at runtime.
+enum class Container { Bs, Raw };
 
 struct ContainerResult {
     bool failed = false;

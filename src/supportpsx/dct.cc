@@ -734,15 +734,15 @@ PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, 
     const size_t padded = (rl.size() + 0x3f) & ~size_t(0x3f);
     r.rlWords = static_cast<uint32_t>((padded + 1) >> 1);
 
-    if (container == Container::Lz4 || container == Container::Ucl) {
-        // Deliberately not wired HERE. supportpsx owns format knowledge; the
-        // compressors are a dependency choice that belongs with the caller, and
-        // for ucl specifically it is a LICENSING one - its compressor is GPLv2
-        // while this library is MIT, so linking it in would encumber every
-        // downstream user. ps1-packer already links it as a standalone tool,
-        // which is the pattern to follow.
-        r.failed = true;
-        r.error = "lz4/ucl are caller-side: compress the run-level bytes directly";
+    if (container == Container::Raw) {
+        // The stream as DMA0 wants it, padding and all. A compressing front end
+        // takes these bytes; what it links against is its own licence problem.
+        out.resize(rl.size() * 2);
+        for (size_t k = 0; k < rl.size(); k++) {
+            out[k * 2] = static_cast<uint8_t>(rl[k] & 0xff);
+            out[k * 2 + 1] = static_cast<uint8_t>(rl[k] >> 8);
+        }
+        r.bytes = static_cast<uint32_t>(out.size());
         return r;
     }
 
