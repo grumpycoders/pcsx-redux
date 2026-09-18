@@ -43,8 +43,8 @@ namespace SoftGPU {
 // Bias       - the initial value of the Bresenham error term. Shallow
 //              uses the pixel-centre-biased 3*dy - dx that matches the
 //              PlayStation GPU's minor-axis tie-break at half-pixel
-//              crossings (phase-2 / phase-10 hardware-verified, see
-//              learnings/pcsx-redux/gpu.md). Steep uses the standard
+//              crossings (hardware-verified by the gpu-raster-phase2 and
+//              gpu-raster-phase10 suites). Steep uses the standard
 //              midpoint 2*dx - dy which already matches hardware for
 //              Y-major lines. The bias is hardware-load-bearing and
 //              MUST track MajorAxis explicitly; do not unify the two
