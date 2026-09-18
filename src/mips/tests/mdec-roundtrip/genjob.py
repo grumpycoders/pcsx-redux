@@ -106,35 +106,41 @@ def build(arm):
         qscale = 0
         ac = [(0, 200), (3, -150)]
 
-    # G arms: the AC composite gain split, ON SILICON. One AC per arm, DC zero,
-    # chroma identical, and the quant table is flat (job_quant is 128 copies of
-    # `quant`), so the ONLY thing that differs between them is how many axes of the
-    # coefficient's RASTER position sit at DC.
-    #   GONE  run 0 -> zigzag 1 -> raster 1  (row 0, col 1): ONE axis at DC
-    #   GTWO  run 3 -> zigzag 4 -> raster 9  (row 1, col 1): NEITHER axis at DC
+    # GSPLIT: the AC composite gain split, ON SILICON, in ONE capture. Both readings
+    # ride the same run the way every other arm here does - Y1 and Y2 are two of the
+    # four independent quadrants, so there is no cross-run normalisation to get
+    # wrong. Zero DC everywhere, chroma flat, and the quant table is flat (job_quant
+    # is 128 copies of `quant`), so the only thing separating the two quadrants is
+    # how many axes of the coefficient's RASTER position sit at DC.
+    #   Y1  run 0 -> zigzag 1 -> raster 1  (row 0, col 1): ONE axis at DC
+    #   Y2  run 3 -> zigzag 4 -> raster 9  (row 1, col 1): NEITHER axis at DC
+    # ⚠ Not a byte-identical verdict like the Z and D arms, because the two basis
+    # FUNCTIONS differ - a horizontal ramp against a 2D lobe. It is a ratio, and the
+    # two hypotheses are far enough apart that the ratio is enough.
     #
     # Host measurement against real_idct_core says Ginv is 0.1768 and 0.2500, a
-    # factor of sqrt(2). The basis at pixel (0,0) is cos(pi/16) for GONE and
-    # cos(pi/16)^2 for GTWO, so the two hypotheses predict:
-    #   split gain (what we now ship) : GTWO/GONE amplitude = 1.391
-    #   uniform gain (what we shipped): GTWO/GONE amplitude = 0.981
+    # factor of sqrt(2). The basis at each quadrant corner is cos(pi/16) for Y1 and
+    # cos(pi/16)^2 for Y2, so the two hypotheses predict:
+    #   split gain (what we now ship) : Y2/Y1 amplitude = 1.391
+    #   uniform gain (what we shipped): Y2/Y1 amplitude = 0.981
     # Near-equality against a 39% difference - these cannot be confused, which is
-    # the whole reason the arm is a RATIO of two arms rather than one absolute read.
-    # Score on (pixel - flat background) at Y1's top-left corner, same pixel in both.
+    # the whole reason the verdict is a RATIO of two quadrants rather than one absolute read.
+    # Score the corner pixel of each quadrant against the flat background.
     #
-    # Run through real_idct_core at these exact settings, the luma offset at that
-    # pixel is +69 for GONE and +96 for GTWO, ratio 1.3913. Both are well inside
+    # Run through real_idct_core at these exact settings, the luma offset at each
+    # quadrant corner is +69 for Y1 and +96 for Y2, ratio 1.3913. Both are well inside
     # range with no clipping at either end of the basis, so a console that clips is
     # reporting something other than this. If silicon comes back near 0.98 the
     # split is wrong and the 8192/1024 divisor in supportpsx/dct.cc must go back.
     #
     # ⚠ This is the one claim in the encoder calibration that has only ever been
     # checked against psx-spx's pseudocode, never against a console.
-    if arm in ('GONE', 'GTWO'):
+    if arm == 'GSPLIT':
         quant, qscale = 1, 8
         dc = [0] * 6
         acs = [[] for _ in range(6)]
-        acs[2] = [(0 if arm == 'GONE' else 3, 400)]   # block 2 = Y1
+        acs[2] = [(0, 400)]   # Y1, top-left quadrant:  raster 1, ONE axis at DC
+        acs[3] = [(3, 400)]   # Y2, top-right quadrant: raster 9, NEITHER axis at DC
 
     # --- single-term arms. Chroma is flat in every one of them on purpose. ---
     if arm in ('D8', 'D63'):
@@ -250,13 +256,13 @@ RESET_MODE = {'R1': 1, 'R2': 2, 'R3': 3, 'R4': 4}
 
 # Every arm build() actually branches on, plus C, which is the control and is the
 # thing every unmatched name falls through to. That fall-through is why this list
-# exists: before it, `genjob.py GTWO2` built the CONTROL job, printed "arm GTWO2"
+# exists: before it, `genjob.py GSPLT` built the CONTROL job, printed "arm GSPLT"
 # and exited 0, so a typo produced a real console run whose pixels were scored as
 # an arm that was never built. Fail closed instead - a name added to build() and
 # not to this list refuses loudly, which is the direction that cannot lie.
 ARMS = frozenset("""
 A B C D D8 D63 D8F S S2 Z Z2 ZK5 DSAT DSAT2 ASAT ZTWO ZMIX WRAP
-ZDC ZDCC ZAC ZACC GONE GTWO R1 R2 R3 R4
+ZDC ZDCC ZAC ZACC GSPLIT R1 R2 R3 R4
 """.split())
 
 arm = sys.argv[1]
