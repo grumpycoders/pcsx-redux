@@ -280,6 +280,13 @@ struct PackResult {
     uint32_t clippedDc = 0;
     uint32_t attempts = 0;  // total across the frame; == macroblock count if no retries
     bool failed = false;
+    // The q_scale range actually emitted. Rate control may raise or lower it per
+    // macroblock, and BS cannot express that: its header carries QUANT once and
+    // Sony's spec says in terms that every block is assumed to share it. Reported
+    // rather than forbidden, so the container decides - toContainer(Bs) refuses a
+    // frame where these differ, and the run-level containers do not care.
+    int minQScale = 0;
+    int maxQScale = 0;
 };
 
 // Pack a transformed frame into the MDEC run-level stream, appending to `out`.
@@ -323,6 +330,38 @@ int qualityToQScale(int quality);
 
 // The standard MDEC quant table, the one every shipping encoder uses.
 const uint8_t *standardQuantTable();
+
+// What the run-level stream gets wrapped in for delivery. Everything upstream of
+// here is shared; these differ only in what the PS1 has to do to get back to a
+// run-level stream the MDEC can eat.
+//
+//   Bs   Sony's legacy BS: VLC/Huffman per the FileFormat47 code book, with the
+//        8-byte header whose first word IS the MDEC decode command. Playable by
+//        the stock library. Requires a single q_scale for the whole frame.
+//   Lz4  lz4 block over the raw run-level halfwords.
+//   Ucl  ucl nrv2e over the same.
+//
+// The two compressed forms decompress straight into what DMA0 consumes, so they
+// skip the VLC pass entirely - which is the interesting axis, and the one that
+// costs CPU per frame rather than bytes on disc.
+enum class Container { Bs, Lz4, Ucl };
+
+struct ContainerResult {
+    bool failed = false;
+    // Set whenever failed. A static string, safe to print, says WHICH constraint
+    // was violated - "q_scale varies" and "stream is truncated" are different bugs
+    // and a bare false cannot tell them apart.
+    const char *error = nullptr;
+    uint32_t bytes = 0;
+    // 32-bit words of decompressed run-level, padding included. This is what BS's
+    // header carries, because that field is literally the MDEC command's length.
+    uint32_t rlWords = 0;
+    uint32_t blocks = 0;
+    int qScale = 0;  // the single q_scale, when the stream has one
+};
+
+// Wrap a packed run-level stream. `rl` is exactly what pack() produced.
+ContainerResult toContainer(std::span<const uint16_t> rl, Container container, std::vector<uint8_t> &out);
 
 // Exposed for testing: transform one 8x8 block in place, block-major, scalar,
 // against the given basis, using the given variant's arithmetic. This is the
