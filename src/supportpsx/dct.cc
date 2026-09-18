@@ -562,9 +562,15 @@ int divRoundPack(int num, int den) {
 // learnings/mdec-dct-bench:
 //   the forward transform puts 16*luma in blk[0] and real_idct_core turns a DC of
 //   D back into D/8, so the composite DC gain is 2 and the divisor is qt[0]*2;
-//   the AC composite gain is sqrt(2) across all seven frequencies, because the
-//   psx-spx scale matrix carries the orthonormal DCT's 1/sqrt(2) on its DC row and
-//   the forward basis does not, and 5793/1024 is 8/sqrt(2) in fixed point.
+//   the AC composite gain is NOT uniform, because the psx-spx scale matrix carries
+//   the orthonormal DCT's 1/sqrt(2) on its DC row and the forward basis does not.
+//   That term is per-axis, so it lands once for every axis sitting at DC:
+//     both axes at DC (k == 0)          composite 2      divisor qt[0]*2
+//     one axis at DC (row 0 or col 0)   composite sqrt(2)  8/sqrt(2) = 5793/1024
+//     neither axis at DC                composite 1        8        = 8192/1024
+//   The 14 one-axis slots measure Gfwd 8.000 * Ginv 0.1768 = 1.4139; the 49
+//   two-axis slots measure Gfwd 4.000 * Ginv 0.2500 = 1.0000. The class is a
+//   property of the RASTER position, so it is keyed off c_packZscan[k], not k.
 // ⚠ q_scale appears in the AC divisor and NOT the DC one. That mirrors the
 // hardware, measured 2026-09-14: arms holding everything but q_scale and running
 // it at 8 against 63 decode byte-identical, so the DC genuinely ignores it.
@@ -576,7 +582,9 @@ void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<ui
     int run = 0;
     for (int k = 1; k < 64; k++) {
         const int den = qt[k] * qScale;
-        const int ac = clampField10(divRoundPack(blk[c_packZscan[k]] * 5793, (den ? den : 1) * 1024), clippedAc);
+        const int raster = c_packZscan[k];
+        const int num = ((raster >> 3) == 0 || (raster & 7) == 0) ? 5793 : 8192;
+        const int ac = clampField10(divRoundPack(blk[raster] * num, (den ? den : 1) * 1024), clippedAc);
         if (ac == 0) {
             run++;
             continue;

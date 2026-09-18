@@ -223,6 +223,40 @@ TEST(DctPack, dcAndAcClippingAreCountedSeparately) {
     EXPECT_EQ(std50.clippedDc, 0u);
 }
 
+// The AC divisor is NOT uniform across the 63 slots. psx-spx's scale matrix
+// carries the orthonormal DCT's DC term and the forward basis does not, and that
+// term is PER AXIS, so it lands once for every axis sitting at DC: one-axis slots
+// get composite sqrt(2) (8/sqrt(2) = 5793/1024), two-axis slots get composite 1
+// (8 = 8192/1024). Measured with the calibration harness: one-axis arms read
+// Gfwd 8.000 * Ginv 0.1768 = 1.4139, two-axis arms read 4.000 * 0.2500 = 1.0000.
+//
+// This exists because the original calibration swept a vertically uniform
+// cosine, so every one of its seven frequencies was a one-axis slot and the
+// sqrt(2) got applied to all 63. Nothing in this suite ranged over the other
+// class, so the whole suite stayed green while 49 of 63 coefficients came back
+// at 1/sqrt(2) amplitude.
+TEST(DctPack, theAcDivisorSplitsOnHowManyAxesSitAtDc) {
+    Transformed t;
+    std::vector<int16_t> coeffs(t.coeffs.size(), 0);
+    // Raster 1 is row 0 col 1, so one axis is at DC. Raster 9 is row 1 col 1, so
+    // neither is. They are zigzag positions 1 and 4, hence runs of 0 and 2.
+    coeffs[1] = 1200;
+    coeffs[9] = 1200;
+    uint8_t flat[64];
+    for (auto &v : flat) v = 8;  // flat table, so the frequency class is the only difference
+    PCSX::DCT::QuantTables tabs{flat, flat};
+    std::vector<uint16_t> out;
+    PCSX::DCT::pack(coeffs, t.shape, tabs, 4, out);
+    ASSERT_GE(out.size(), 3u);
+    // 1200*5793/(8*4*1024) = 212, 1200*8192/(8*4*1024) = 300.
+    EXPECT_EQ(out[1], static_cast<uint16_t>((0 << 10) | 212));
+    EXPECT_EQ(out[2], static_cast<uint16_t>((2 << 10) | 300));
+    // And state the thing the numbers are for: the same coefficient through the
+    // same table must come out sqrt(2) larger when neither axis is at DC.
+    const int mixed = out[1] & 0x3ff, both = out[2] & 0x3ff;
+    EXPECT_NEAR(static_cast<double>(both) / mixed, 1.41421, 0.005);
+}
+
 TEST(QualityToQScale, endpointsMidpointAndMonotonicity) {
     EXPECT_EQ(PCSX::DCT::qualityToQScale(100), 1);
     EXPECT_EQ(PCSX::DCT::qualityToQScale(1), 63);
