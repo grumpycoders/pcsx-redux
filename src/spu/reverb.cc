@@ -1,329 +1,243 @@
 /***************************************************************************
-                          reverb.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-//*************************************************************************//
-// History of changes:
+#include <cstdint>
+
+#include "spu/reverb.h"
+
+#include <string.h>
+
+#include <algorithm>
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::ReverbUnit::reset() { memset((void *)&rvb, 0, sizeof(REVERBInfo)); }
+
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl) {
+    voice->data.get<Chan::RVBActive>().value =
+        voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// Helper for Neill's reverb: re-initializes the reverb mixing buffer.
+void PCSX::SPU::ReverbUnit::init(int nssize) { memset(mixStart, 0, nssize * 2 * 4); }
+
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::ReverbUnit::store(SPUCHAN *voice, int ns) {
+    const int sendLeft = (voice->data.get<Chan::sval>().value * voice->volume.left()) / 0x4000;
+    const int sendRight = (voice->data.get<Chan::sval>().value * voice->volume.right()) / 0x4000;
+
+    // Every active reverb voice is summed into the mixing buffer, interleaved.
+    ns <<= 1;
+    mixStart[ns] += sendLeft;
+    mixStart[ns + 1] += sendRight;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// Resolve a work-area offset to a sample index, wrapping at both ends. Offsets
+// arrive in 32-bit units, hence the * 4.
+int PCSX::SPU::ReverbUnit::wrapOffset(int offset, int extraSample) const {
+    offset = offset * 4 + rvb.CurrAddr + extraSample;
+    while (offset > 0x3ffff) offset = rvb.StartAddr + (offset - 0x40000);
+    while (offset < rvb.StartAddr) offset = 0x3ffff - (rvb.StartAddr - offset);
+    return offset;
+}
+
+int PCSX::SPU::ReverbUnit::getBuffer(int offset, uint16_t *spuMem) const {
+    return reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, 0)];
+}
+
+template <int ExtraSample>
+void PCSX::SPU::ReverbUnit::setBuffer(int offset, int value, uint16_t *spuMem) {
+    reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, ExtraSample)] =
+        static_cast<int16_t>(std::clamp(value, -32768, 32767));
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+namespace {
+// psx-spx "Reverb Buffer Resampling": input to and output from the reverb unit are
+// resampled with this 39-tap FIR.
 //
-// 2003/01/19 - Pete
-// - added Neill's reverb (see at the end of file)
-//
-// 2002/12/26 - Pete
-// - adjusted reverb handling
-//
-// 2002/08/14 - Pete
-// - added extra reverb
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
-
-#include "spu/externals.h"
-#include "spu/interface.h"
-
-////////////////////////////////////////////////////////////////////////
-// SET REVERB
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::SetREVERB(unsigned short val) {
-    switch (val) {
-        case 0x0000:
-            iReverbOff = -1;
-            break;  // off
-        case 0x007D:
-            iReverbOff = 32;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // ok room
-
-        case 0x0033:
-            iReverbOff = 32;
-            iReverbNum = 2;
-            iReverbRepeat = 64;
-            break;  // studio small
-        case 0x00B1:
-            iReverbOff = 48;
-            iReverbNum = 2;
-            iReverbRepeat = 96;
-            break;  // ok studio medium
-        case 0x00E3:
-            iReverbOff = 64;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // ok studio large ok
-
-        case 0x01A5:
-            iReverbOff = 128;
-            iReverbNum = 4;
-            iReverbRepeat = 32;
-            break;  // ok hall
-        case 0x033D:
-            iReverbOff = 256;
-            iReverbNum = 4;
-            iReverbRepeat = 64;
-            break;  // space echo
-        case 0x0001:
-            iReverbOff = 184;
-            iReverbNum = 3;
-            iReverbRepeat = 128;
-            break;  // echo/delay
-        case 0x0017:
-            iReverbOff = 128;
-            iReverbNum = 2;
-            iReverbRepeat = 128;
-            break;  // half echo
-        default:
-            iReverbOff = 32;
-            iReverbNum = 1;
-            iReverbRepeat = 0;
-            break;
-    }
+// Normalisation, worked from the table rather than assumed: all 39 taps sum to 32766
+// (~0x8000), so the DECIMATING direction divides by 0x8000. Upsampling zero-stuffs, so
+// the two output phases split the taps - the odd indices contribute only h[19]=0x4000
+// (a passthrough of the raw 22kHz sample) and the even indices sum to 16382 (~0x4000).
+// The INTERPOLATING direction therefore divides by 0x4000. Getting those two the same
+// way round would present as a plausible 2x gain error rather than as a filter fault.
+constexpr int kFir[39] = {
+    -0x0001, 0x0000,  0x0002, 0x0000, -0x000A, 0x0000,  0x0023, 0x0000,
+    -0x0067, 0x0000,  0x010A, 0x0000, -0x0268, 0x0000,  0x0534, 0x0000,
+    -0x0B90, 0x0000,  0x2806, 0x4000,  0x2806, 0x0000, -0x0B90, 0x0000,
+     0x0534, 0x0000, -0x0268, 0x0000,  0x010A, 0x0000, -0x0067, 0x0000,
+     0x0023, 0x0000, -0x000A, 0x0000,  0x0002, 0x0000, -0x0001,
+};
+// h44[k] = the 44.1kHz reverb input k samples ago; h22[k] = the 22.05kHz wet output
+// k ticks ago. The FIR is centred, so a causal implementation runs a fixed delay
+// (19 samples in / 10 ticks out). That is harmless here: p3-compare.py scores modulo
+// rotation, so a constant group delay costs nothing.
+int h44L[39], h44R[39], h22L[20], h22R[20];
+bool altLeftTick;  // which half of the 22.05kHz iteration this 44.1kHz cycle runs
+inline void firPushIn(int l, int r) {
+    for (int i = 38; i > 0; i--) { h44L[i] = h44L[i - 1]; h44R[i] = h44R[i - 1]; }
+    h44L[0] = l; h44R[0] = r;
 }
-
-////////////////////////////////////////////////////////////////////////
-// START REVERB
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::StartREVERB(SPUCHAN *pChannel) {
-    if (pChannel->data.get<Chan::Reverb>().value && (spuCtrl & ControlFlags::ReverbMasterEnable))  // reverb possible?
-    {
-        if (settings.get<Reverb>() == 2)
-            pChannel->data.get<Chan::RVBActive>().value = true;
-        else if (settings.get<Reverb>() == 1 && iReverbOff > 0)  // -> fake reverb used?
-        {
-            pChannel->data.get<Chan::RVBActive>().value = true;  // -> activate it
-            pChannel->data.get<Chan::RVBOffset>().value = iReverbOff * 45;
-            pChannel->data.get<Chan::RVBRepeat>().value = iReverbRepeat * 45;
-            pChannel->data.get<Chan::RVBNum>().value = iReverbNum;
-        }
-    } else
-        pChannel->data.get<Chan::RVBActive>().value = false;  // else -> no reverb
+// A hardware fixed-point datapath keeps the upper multiplier bits, which is an
+// arithmetic shift, i.e. floor. C's / rounds toward zero, so the two differ by one
+// LSB on every negative product; the shift is the one that matches the silicon.
+inline int rdiv15(int64_t v) { return (int)(v >> 15); }
+inline int rdiv14(int64_t v) { return (int)(v >> 14); }
+// Every named intermediate of the spec formula (Lin, IIR_INPUT, ACC, the running
+// Lout/Rout between the APF clauses) is saturated to the 16-bit rail, mirroring a
+// datapath whose registers are 16 bits wide rather than only clamping on the way to
+// memory.
+inline int sat16(int v) { return std::clamp(v, -32768, 32767); }
+inline int firDecimate(const int *h) {
+    int64_t a = 0;
+    for (int i = 0; i < 39; i++) a += (int64_t)kFir[i] * h[i];
+    return rdiv15(a);
 }
-
-////////////////////////////////////////////////////////////////////////
-// HELPER FOR NEILL'S REVERB: re-inits our reverb mixing buf
-////////////////////////////////////////////////////////////////////////
-
-void PCSX::SPU::impl::InitREVERB() {
-    if (settings.get<Reverb>() == 2) {
-        memset(sRVBStart, 0, NSSIZE * 2 * 4);
-    }
+inline int firInterp(const int *h, bool passthrough) {
+    if (passthrough) return h[10];
+    int64_t a = 0;
+    for (int i = 0; i < 39; i += 2) a += (int64_t)kFir[i] * h[i / 2];
+    return rdiv14(a);
 }
+}  // namespace
 
-////////////////////////////////////////////////////////////////////////
-// STORE REVERB
-////////////////////////////////////////////////////////////////////////
+int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
+    // This function is called at 44.1 kHz.
+    static int callCount = 0;
 
-void PCSX::SPU::impl::StoreREVERB(SPUCHAN *pChannel, int ns) {
-    if (settings.get<Reverb>() == 0)
-        return;
-    else if (settings.get<Reverb>() == 2)  // -------------------------------- // Neil's reverb
-    {
-        const int iRxl =
-            (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::LeftVolume>().value) / 0x4000;
-        const int iRxr =
-            (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::RightVolume>().value) / 0x4000;
-
-        ns <<= 1;
-
-        *(sRVBStart + ns) += iRxl;  // -> we mix all active reverb channels into an extra buffer
-        *(sRVBStart + ns + 1) += iRxr;
-    } else  // --------------------------------------------- // Pete's easy fake reverb
-    {
-        int *pN;
-        int iRn, iRr = 0;
-
-        // we use the half channel volume (/0x8000) for the first reverb effects, quarter for next and so on
-
-        int iRxl = (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::LeftVolume>().value) / 0x8000;
-        int iRxr = (pChannel->data.get<Chan::sval>().value * pChannel->data.get<Chan::RightVolume>().value) / 0x8000;
-
-        for (iRn = 1; iRn <= pChannel->data.get<Chan::RVBNum>().value;
-             iRn++, iRr += pChannel->data.get<Chan::RVBRepeat>().value, iRxl /= 2, iRxr /= 2) {
-            pN = sRVBPlay + ((pChannel->data.get<Chan::RVBOffset>().value + iRr + ns) << 1);
-            if (pN >= sRVBEnd) pN = sRVBStart + (pN - sRVBEnd);
-
-            (*pN) += iRxl;
-            pN++;
-            (*pN) += iRxr;
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////
-
-inline int PCSX::SPU::impl::g_buffer(int iOff)  // get_buffer content helper: takes care about wraps
-{
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    return (int)*(p + iOff);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-inline void PCSX::SPU::impl::s_buffer(int iOff,
-                                      int iVal)  // set_buffer content helper: takes care about wraps and clipping
-{
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    if (iVal < -32768L) iVal = -32768L;
-    if (iVal > 32767L) iVal = 32767L;
-    *(p + iOff) = (short)iVal;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-inline void PCSX::SPU::impl::s_buffer1(
-    int iOff, int iVal)  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
-{
-    short *p = (short *)spuMem;
-    iOff = (iOff * 4) + rvb.CurrAddr + 1;
-    while (iOff > 0x3FFFF) iOff = rvb.StartAddr + (iOff - 0x40000);
-    while (iOff < rvb.StartAddr) iOff = 0x3ffff - (rvb.StartAddr - iOff);
-    if (iVal < -32768L) iVal = -32768L;
-    if (iVal > 32767L) iVal = 32767L;
-    *(p + iOff) = (short)iVal;
-}
-
-////////////////////////////////////////////////////////////////////////
-int PCSX::SPU::impl::MixREVERBLeft(int ns) {
-    if (settings.get<Reverb>() == 0)
+    // Reverb is off.
+    if (!rvb.StartAddr) {
+        rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;
         return 0;
-    else if (settings.get<Reverb>() == 2) {
-        static int iCnt = 0;  // this func will be called with 44.1 khz
+    }
 
-        if (!rvb.StartAddr)  // reverb is off
-        {
-            rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
-            return 0;
-        }
+    callCount++;
 
-        iCnt++;
-
-        if (iCnt & 1)  // we work on every second left value: downsample to 22 khz
-        {
-            if (spuCtrl & ControlFlags::ReverbMasterEnable)  // -> reverb on? oki
-            {
-                int ACC0, ACC1, FB_A0, FB_A1, FB_B0, FB_B1;
-
-                const int INPUT_SAMPLE_L = *(sRVBStart + (ns << 1));
-                const int INPUT_SAMPLE_R = *(sRVBStart + (ns << 1) + 1);
-
-                const int IIR_INPUT_A0 =
-                    (g_buffer(rvb.IIR_SRC_A0) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
-                const int IIR_INPUT_A1 =
-                    (g_buffer(rvb.IIR_SRC_A1) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
-                const int IIR_INPUT_B0 =
-                    (g_buffer(rvb.IIR_SRC_B0) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_L * rvb.IN_COEF_L) / 32768L;
-                const int IIR_INPUT_B1 =
-                    (g_buffer(rvb.IIR_SRC_B1) * rvb.IIR_COEF) / 32768L + (INPUT_SAMPLE_R * rvb.IN_COEF_R) / 32768L;
-
-                const int IIR_A0 = (IIR_INPUT_A0 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_A0) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_A1 = (IIR_INPUT_A1 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_A1) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_B0 = (IIR_INPUT_B0 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_B0) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-                const int IIR_B1 = (IIR_INPUT_B1 * rvb.IIR_ALPHA) / 32768L +
-                                   (g_buffer(rvb.IIR_DEST_B1) * (32768L - rvb.IIR_ALPHA)) / 32768L;
-
-                s_buffer1(rvb.IIR_DEST_A0, IIR_A0);
-                s_buffer1(rvb.IIR_DEST_A1, IIR_A1);
-                s_buffer1(rvb.IIR_DEST_B0, IIR_B0);
-                s_buffer1(rvb.IIR_DEST_B1, IIR_B1);
-
-                ACC0 = (g_buffer(rvb.ACC_SRC_A0) * rvb.ACC_COEF_A) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_B0) * rvb.ACC_COEF_B) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_C0) * rvb.ACC_COEF_C) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_D0) * rvb.ACC_COEF_D) / 32768L;
-                ACC1 = (g_buffer(rvb.ACC_SRC_A1) * rvb.ACC_COEF_A) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_B1) * rvb.ACC_COEF_B) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_C1) * rvb.ACC_COEF_C) / 32768L +
-                       (g_buffer(rvb.ACC_SRC_D1) * rvb.ACC_COEF_D) / 32768L;
-
-                FB_A0 = g_buffer(rvb.MIX_DEST_A0 - rvb.FB_SRC_A);
-                FB_A1 = g_buffer(rvb.MIX_DEST_A1 - rvb.FB_SRC_A);
-                FB_B0 = g_buffer(rvb.MIX_DEST_B0 - rvb.FB_SRC_B);
-                FB_B1 = g_buffer(rvb.MIX_DEST_B1 - rvb.FB_SRC_B);
-
-                s_buffer(rvb.MIX_DEST_A0, ACC0 - (FB_A0 * rvb.FB_ALPHA) / 32768L);
-                s_buffer(rvb.MIX_DEST_A1, ACC1 - (FB_A1 * rvb.FB_ALPHA) / 32768L);
-
-                s_buffer(rvb.MIX_DEST_B0, (rvb.FB_ALPHA * ACC0) / 32768L -
-                                              (FB_A0 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
-                                              (FB_B0 * rvb.FB_X) / 32768L);
-                s_buffer(rvb.MIX_DEST_B1, (rvb.FB_ALPHA * ACC1) / 32768L -
-                                              (FB_A1 * (int)(rvb.FB_ALPHA ^ 0xFFFF8000)) / 32768L -
-                                              (FB_B1 * rvb.FB_X) / 32768L);
-
-                rvb.iLastRVBLeft = rvb.iRVBLeft;
-                rvb.iLastRVBRight = rvb.iRVBRight;
-
-                rvb.iRVBLeft = (g_buffer(rvb.MIX_DEST_A0) + g_buffer(rvb.MIX_DEST_B0)) / 3;
-                rvb.iRVBRight = (g_buffer(rvb.MIX_DEST_A1) + g_buffer(rvb.MIX_DEST_B1)) / 3;
-
-                rvb.iRVBLeft = (rvb.iRVBLeft * rvb.VolLeft) / 0x4000;
-                rvb.iRVBRight = (rvb.iRVBRight * rvb.VolRight) / 0x4000;
-
-                rvb.CurrAddr++;
-                if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
-
-                return rvb.iLastRVBLeft + (rvb.iRVBLeft - rvb.iLastRVBLeft) / 2;
-            } else  // -> reverb off
-            {
-                rvb.iLastRVBLeft = rvb.iLastRVBRight = rvb.iRVBLeft = rvb.iRVBRight = 0;
-            }
-
+    // psx-spx: the unit spends "one 44100h cycle on left calculations, and the next on
+    // right". A complete 22.05kHz iteration is therefore two 44.1kHz cycles, each half
+    // running the same formula against that channel's half of the register set, and the
+    // work address advancing only once both have run.
+    if (spuCtrl & kReverbMasterEnable) {
+        firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
+        altLeftTick = (callCount & 1) != 0;
+        const int in = sat16(altLeftTick ? firDecimate(h44L) : firDecimate(h44R));
+        const int sSame = altLeftTick ? rvb.IIR_SRC_A0 : rvb.IIR_SRC_A1;
+        const int dSame = altLeftTick ? rvb.IIR_DEST_A0 : rvb.IIR_DEST_A1;
+        const int sDiff = altLeftTick ? rvb.IIR_SRC_B0 : rvb.IIR_SRC_B1;
+        const int dDiff = altLeftTick ? rvb.IIR_DEST_B0 : rvb.IIR_DEST_B1;
+        const int inCoef = altLeftTick ? rvb.IN_COEF_L : rvb.IN_COEF_R;
+        const int c1 = altLeftTick ? rvb.ACC_SRC_A0 : rvb.ACC_SRC_A1;
+        const int c2 = altLeftTick ? rvb.ACC_SRC_B0 : rvb.ACC_SRC_B1;
+        const int c3 = altLeftTick ? rvb.ACC_SRC_C0 : rvb.ACC_SRC_C1;
+        const int c4 = altLeftTick ? rvb.ACC_SRC_D0 : rvb.ACC_SRC_D1;
+        const int mA = altLeftTick ? rvb.MIX_DEST_A0 : rvb.MIX_DEST_A1;
+        const int mB = altLeftTick ? rvb.MIX_DEST_B0 : rvb.MIX_DEST_B1;
+        auto at = [&](int off, int extra) {
+            return (int)reinterpret_cast<int16_t *>(spuMem)[wrapOffset(off, extra)];
+        };
+        const int iirSame = sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) +
+                                  rdiv15((int64_t)(in * inCoef)));
+        const int iirDiff = sat16(rdiv15((int64_t)(getBuffer(sDiff, spuMem) * rvb.IIR_COEF)) +
+                                  rdiv15((int64_t)(in * inCoef)));
+        // psx-spx stores the IIR result at [mLSAME] and reads the previous value back
+        // from [mLSAME-2], i.e. the destination cell itself one 16-bit sample earlier -
+        // hence the -1 extraSample on the read and none on the store.
+        setBuffer<0>(dSame, rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) +
+                                rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))), spuMem);
+        setBuffer<0>(dDiff, rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) +
+                                rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))), spuMem);
+        int out = sat16(rdiv15((int64_t)(getBuffer(c1, spuMem) * rvb.ACC_COEF_A)) +
+                        rdiv15((int64_t)(getBuffer(c2, spuMem) * rvb.ACC_COEF_B)) +
+                        rdiv15((int64_t)(getBuffer(c3, spuMem) * rvb.ACC_COEF_C)) +
+                        rdiv15((int64_t)(getBuffer(c4, spuMem) * rvb.ACC_COEF_D)));
+        // psx-spx "SPU Reverb Formula", APF1 then APF2, three clauses each:
+        //   Lout=Lout-vAPF1*[mLAPF1-dAPF1], [mLAPF1]=Lout, Lout=Lout*vAPF1+[mLAPF1-dAPF1]
+        //   Lout=Lout-vAPF2*[mLAPF2-dAPF2], [mLAPF2]=Lout, Lout=Lout*vAPF2+[mLAPF2-dAPF2]
+        //   LeftOutput = Lout*vLOUT          (all products divided by 8000h)
+        const int tapA = getBuffer(mA - rvb.FB_SRC_A, spuMem);
+        out = sat16(out - rdiv15((int64_t)(tapA * rvb.FB_ALPHA)));
+        setBuffer<0>(mA, out, spuMem);
+        out = sat16(rdiv15((int64_t)(out * rvb.FB_ALPHA)) + tapA);
+        const int tapB = getBuffer(mB - rvb.FB_SRC_B, spuMem);
+        out = sat16(out - rdiv15((int64_t)(tapB * rvb.FB_X)));
+        setBuffer<0>(mB, out, spuMem);
+        out = sat16(rdiv15((int64_t)(out * rvb.FB_X)) + tapB);
+        // vLOUT/vROUT are signed 16bit and their products divide by 8000h, not 4000h.
+        // registers.cc assigns these from a uint16_t with no cast, unlike every other
+        // reverb coefficient there, so sign-extend at the point of use.
+        const int vol = altLeftTick ? (int)(int16_t)rvb.VolLeft : (int)(int16_t)rvb.VolRight;
+        const int wet = rdiv15((int64_t)out * vol);
+        if (altLeftTick) {
+            rvb.wetLeft = wet;
+            for (int i = 19; i > 0; i--) h22L[i] = h22L[i - 1];
+            h22L[0] = wet;
+        } else {
+            rvb.wetRight = wet;
+            for (int i = 19; i > 0; i--) h22R[i] = h22R[i - 1];
+            h22R[0] = wet;
+            // Address advances once per COMPLETE 22.05kHz iteration, after both halves.
             rvb.CurrAddr++;
             if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
         }
-
-        return rvb.iLastRVBLeft;
-    } else  // easy fake reverb:
-    {
-        const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value
-        *sRVBPlay++ = 0;                                // -> init it after
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;  // -> and take care about wrap arounds
-        return iRV;                                     // -> return reverb mix buf val
+        // Emit the even (interpolating) polyphase on this channel's own compute cycle
+        // and the centre-tap passthrough on the other one, which puts the wet output one
+        // phase earlier than pairing them the obvious way round. h22[9] and not h22[10]:
+        // on the off cycle h22[10] is 21 ticks old, so the parity swap on its own would
+        // jitter the group delay between 19 and 21.
+        return altLeftTick ? firInterp(h22L, false) : h22L[9];
     }
+
+    firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
+
+    // Reverb master is off. Per Neill's notes below the work address still advances once
+    // per 22.05kHz tick regardless, i.e. on every second 44.1kHz call.
+    if (callCount & 1) {
+        rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;
+
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+    }
+
+    // Nothing was computed this call, so the output is the passthrough phase of whatever
+    // the resampler history still holds.
+    return h22L[9];
 }
 
 ////////////////////////////////////////////////////////////////////////
 
-int PCSX::SPU::impl::MixREVERBRight() {
-    if (settings.get<Reverb>() == 0)
-        return 0;
-    else if (settings.get<Reverb>() == 2)  // Neill's reverb:
-    {
-        int i = rvb.iLastRVBRight + (rvb.iRVBRight - rvb.iLastRVBRight) / 2;
-        rvb.iLastRVBRight = rvb.iRVBRight;
-        return i;  // -> just return the last right reverb val (little bit scaled by the previous right val)
-    } else         // easy fake reverb:
-    {
-        const int iRV = *sRVBPlay;                      // -> simply take the reverb mix buf value
-        *sRVBPlay++ = 0;                                // -> init it after
-        if (sRVBPlay >= sRVBEnd) sRVBPlay = sRVBStart;  // -> and take care about wrap arounds
-        return iRV;                                     // -> return reverb mix buf val
-    }
+int PCSX::SPU::ReverbUnit::mixRight() {
+    // The mirror of the left output stage: mixLeft has already run for this 44.1kHz
+    // cycle and left altLeftTick set, so the right channel takes the interpolating
+    // polyphase on its own compute cycle and the passthrough on the other one.
+    return !altLeftTick ? firInterp(h22R, false) : h22R[9];
 }
 
 ////////////////////////////////////////////////////////////////////////
