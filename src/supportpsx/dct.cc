@@ -563,8 +563,8 @@ int divRoundPack(int num, int den) {
 }
 
 // One 8x8 block, appended. Returns nothing; the caller tracks sizes by watching
-// `out`. Calibration constants are MEASURED, not derived - harness in
-// learnings/mdec-dct-bench:
+// `out`. Calibration constants are MEASURED against real_idct_core, not derived,
+// and DctPack.theAcDivisorSplitsOnHowManyAxesSitAtDc pins the AC half of it:
 //   the forward transform puts 16*luma in blk[0] and real_idct_core turns a DC of
 //   D back into D/8, so the composite DC gain is 2 and the divisor is qt[0]*2;
 //   the AC composite gain is NOT uniform, because the psx-spx scale matrix carries
