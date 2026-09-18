@@ -47,15 +47,15 @@ SOFTWARE.
 // shows through. So filtered_u=0 (which would produce vram555(0,0,0)
 // = 0x0000) reads back as sentinel, not 0x0000. This is the PS1's
 // "transparent black" texture quirk.
-#define TW15_M01_O00_U0_Y0    RASTER_SENTINEL  /* filtered=0 -> texel 0x0000 = transparent */
-#define TW15_M01_O00_U7_Y0    0x1c07u          /* filtered=7 -> vram555(7,0,7) */
-#define TW15_M01_O00_U8_Y0    RASTER_SENTINEL  /* filtered=0 -> texel 0x0000 = transparent */
-#define TW15_M01_O00_U15_Y0   0x1c07u          /* filtered=7 -> vram555(7,0,7) */
+#define TW15_M01_O00_U0_Y0 RASTER_SENTINEL /* filtered=0 -> texel 0x0000 = transparent */
+#define TW15_M01_O00_U7_Y0 0x1c07u         /* filtered=7 -> vram555(7,0,7) */
+#define TW15_M01_O00_U8_Y0 RASTER_SENTINEL /* filtered=0 -> texel 0x0000 = transparent */
+#define TW15_M01_O00_U15_Y0 0x1c07u        /* filtered=7 -> vram555(7,0,7) */
 
 // mask_u = 0x01, offset_u = 0x01 -> bit 3 forced set
-#define TW15_M01_O01_U0_Y0    0x2008u  /* filtered=8  -> vram555(8,0,8) */
-#define TW15_M01_O01_U3_Y0    0x2c0bu  /* filtered=11 -> vram555(11,0,11) */
-#define TW15_M01_O01_U8_Y0    0x2008u  /* filtered=8  -> vram555(8,0,8) */
+#define TW15_M01_O01_U0_Y0 0x2008u /* filtered=8  -> vram555(8,0,8) */
+#define TW15_M01_O01_U3_Y0 0x2c0bu /* filtered=11 -> vram555(11,0,11) */
+#define TW15_M01_O01_U8_Y0 0x2008u /* filtered=8  -> vram555(8,0,8) */
 
 // mask_u = 0x03, offset_u = 0 -> bits 3,4 cleared
-#define TW15_M03_O00_U13_Y0   0x1405u  /* filtered=5  -> vram555(5,0,5) */
+#define TW15_M03_O00_U13_Y0 0x1405u /* filtered=5  -> vram555(5,0,5) */

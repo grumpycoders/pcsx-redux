@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include "psyqo/application.hh"
 #include "psyqo/fixed-point.hh"
+#include "psyqo/font.hh"
 #include "psyqo/fragments.hh"
 #include "psyqo/gpu.hh"
 #include "psyqo/gte-kernels.hh"
@@ -44,11 +45,9 @@ SOFTWARE.
 #include "psyqo/primitives/quads.hh"
 #include "psyqo/scene.hh"
 #include "psyqo/simplepad.hh"
-#include "psyqo/font.hh"
 #include "psyqo/soft-math.hh"
 #include "psyqo/trigonometry.hh"
 #include "psyqo/vector.hh"
-
 #include "teapot-data.hh"
 
 using namespace psyqo::fixed_point_literals;
@@ -122,7 +121,6 @@ class TeapotScene final : public psyqo::Scene {
 
     static constexpr psyqo::Color c_bg = {{.r = 20, .g = 22, .b = 28}};
 
-
     // A cubic Bezier the camera drifts along, in the same raw units the GTE
     // reads the packed vectors in. Evaluated once per frame with gteCubic.
     static constexpr psyqo::Vec3 c_path[4] = {
@@ -189,7 +187,8 @@ void TeapotScene::tessellate() {
                 psyqo::Vec3 row[4], drow[4];
                 for (unsigned r = 0; r < 4; r++) {
                     row[r] = psyqo::GteMath::cubic(cp[r * 4 + 0], cp[r * 4 + 1], cp[r * 4 + 2], cp[r * 4 + 3], v);
-                    drow[r] = psyqo::GteMath::cubicDerivative(cp[r * 4 + 0], cp[r * 4 + 1], cp[r * 4 + 2], cp[r * 4 + 3], v);
+                    drow[r] =
+                        psyqo::GteMath::cubicDerivative(cp[r * 4 + 0], cp[r * 4 + 1], cp[r * 4 + 2], cp[r * 4 + 3], v);
                 }
                 psyqo::Vec3 point = psyqo::GteMath::cubic(row[0], row[1], row[2], row[3], u);
                 psyqo::Vec3 du = psyqo::GteMath::cubicDerivative(row[0], row[1], row[2], row[3], u);
@@ -267,10 +266,17 @@ void TeapotScene::start(StartReason reason) {
     g_teapot.m_input.setOnEvent([this](const psyqo::SimplePad::Event& event) {
         if (event.type != psyqo::SimplePad::Event::ButtonReleased) return;
         switch (event.button) {
-            case psyqo::SimplePad::Button::Triangle: m_lightOn[0] = !m_lightOn[0]; break;
-            case psyqo::SimplePad::Button::Circle: m_lightOn[1] = !m_lightOn[1]; break;
-            case psyqo::SimplePad::Button::Cross: m_lightOn[2] = !m_lightOn[2]; break;
-            default: break;
+            case psyqo::SimplePad::Button::Triangle:
+                m_lightOn[0] = !m_lightOn[0];
+                break;
+            case psyqo::SimplePad::Button::Circle:
+                m_lightOn[1] = !m_lightOn[1];
+                break;
+            case psyqo::SimplePad::Button::Cross:
+                m_lightOn[2] = !m_lightOn[2];
+                break;
+            default:
+                break;
         }
     });
 
@@ -329,10 +335,16 @@ void TeapotScene::frame() {
     psyqo::Vec3 cam = psyqo::GteMath::cubic(c_path[0], c_path[1], c_path[2], c_path[3], m_pathT);
     if (m_pathForward) {
         m_pathT += 0.0025_fp;
-        if (m_pathT >= 1.0_fp) { m_pathT = 1.0_fp; m_pathForward = false; }
+        if (m_pathT >= 1.0_fp) {
+            m_pathT = 1.0_fp;
+            m_pathForward = false;
+        }
     } else {
         m_pathT -= 0.0025_fp;
-        if (m_pathT <= 0.0_fp) { m_pathT = 0.0_fp; m_pathForward = true; }
+        if (m_pathT <= 0.0_fp) {
+            m_pathT = 0.0_fp;
+            m_pathForward = true;
+        }
     }
 
     // ---- Pass 1: project every vertex. ----
@@ -394,8 +406,8 @@ void TeapotScene::frame() {
     // masking, and the assembly below is a word store rather than a
     // read-modify-write. The material stays 0xff - full brightness on an
     // untextured primitive.
-    psyqo::GTE::write<psyqo::GTE::Register::RGB, psyqo::GTE::Unsafe>(
-        m_frags[parity][0].primitive.getCommandWord() | 0x00ffffff);
+    psyqo::GTE::write<psyqo::GTE::Register::RGB, psyqo::GTE::Unsafe>(m_frags[parity][0].primitive.getCommandWord() |
+                                                                     0x00ffffff);
 
     // Three normals at a time, exactly like rtpt above. NCCT is 39 cycles
     // against 51 for three NCCS, and it costs one kernel issue instead of
@@ -467,8 +479,8 @@ void TeapotScene::frame() {
     static constexpr int16_t c_lineHeight = 18;
     static constexpr int16_t c_textTop = 6;
     g_teapot.m_font.chainprintf(gpu(), {{.x = 6, .y = c_textTop}}, m_lightOn[0] ? c_on : c_off, "[Tri] key");
-    g_teapot.m_font.chainprintf(gpu(), {{.x = 6, .y = int16_t(c_textTop + c_lineHeight)}},
-                                m_lightOn[1] ? c_on : c_off, "[Cir] fill");
+    g_teapot.m_font.chainprintf(gpu(), {{.x = 6, .y = int16_t(c_textTop + c_lineHeight)}}, m_lightOn[1] ? c_on : c_off,
+                                "[Cir] fill");
     g_teapot.m_font.chainprintf(gpu(), {{.x = 6, .y = int16_t(c_textTop + 2 * c_lineHeight)}},
                                 m_lightOn[2] ? c_on : c_off, "[Cro] rim");
 

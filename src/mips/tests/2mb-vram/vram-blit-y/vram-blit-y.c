@@ -28,9 +28,9 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define SRC_X    256
-#define DST_X    512
-#define COL_W    32
+#define SRC_X 256
+#define DST_X 512
+#define COL_W 32
 #define BG_COLOR 0xffffu  // white background = "untouched"
 
 static uint16_t encodeRow(int y) { return (uint16_t)((y * 0x97) ^ 0xa55a) | 1; }
@@ -88,9 +88,10 @@ static void onePass(const char* label, int16_t src_y, int16_t dst_y, int16_t h) 
         }
     }
 
-    PROBE_RESULT("vram-blit-y %s src_y=%d dst_y=%d h=%d eff_h=%d exact_matches=%d "
-                 "found_y_min=%d found_y_max=%d",
-                 label, src_y, dst_y, h, eff_h, exact_count, found_first, found_last);
+    PROBE_RESULT(
+        "vram-blit-y %s src_y=%d dst_y=%d h=%d eff_h=%d exact_matches=%d "
+        "found_y_min=%d found_y_max=%d",
+        label, src_y, dst_y, h, eff_h, exact_count, found_first, found_last);
 
     waitGPU();
 }
@@ -118,8 +119,8 @@ int main(void) {
     // h spans the documented 9-bit-mask boundary. copyHeightEff handles
     // the overflow safely so all values land cleanly.
     onePass("tall-h512", 0, 512, 512);
-    onePass("tall-h513-eff1", 0, 0, 513);    // psx-spx: 1 row
-    onePass("tall-h1024-eff512", 0, 0, 1024); // psx-spx: full 512 rows
+    onePass("tall-h513-eff1", 0, 0, 513);      // psx-spx: 1 row
+    onePass("tall-h1024-eff512", 0, 0, 1024);  // psx-spx: full 512 rows
 
     PROBE_INFO(&stats, "vram-blit-y sweep complete");
     probeStatsSummary(&stats, "vram-blit-y");

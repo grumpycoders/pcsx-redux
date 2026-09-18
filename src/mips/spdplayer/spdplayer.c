@@ -34,35 +34,34 @@ SOFTWARE.
 
 // SPUDUMP magic: "PSXSPUDUMP v1r1\0\0"
 static const uint8_t s_magic[16] = {
-    'P', 'S', 'X', 'S', 'P', 'U', 'D', 'U',
-    'M', 'P', 'v', '1', 'r', '1', '\0', '\0',
+    'P', 'S', 'X', 'S', 'P', 'U', 'D', 'U', 'M', 'P', 'v', '1', 'r', '1', '\0', '\0',
 };
 
 // Packet types
-#define PKT_REG_WRITE    0x00
-#define PKT_WAIT         0x01
-#define PKT_END_PATTERN  0x02
-#define PKT_LOOP_POINT   0x03
-#define PKT_TRACE_BEGIN  0x04
-#define PKT_ORDER_TABLE  0x10
-#define PKT_PATTERN_HDR  0x11
-#define PKT_SUBSONG_TBL  0x12
-#define PKT_MACRO_DEF    0x13
+#define PKT_REG_WRITE 0x00
+#define PKT_WAIT 0x01
+#define PKT_END_PATTERN 0x02
+#define PKT_LOOP_POINT 0x03
+#define PKT_TRACE_BEGIN 0x04
+#define PKT_ORDER_TABLE 0x10
+#define PKT_PATTERN_HDR 0x11
+#define PKT_SUBSONG_TBL 0x12
+#define PKT_MACRO_DEF 0x13
 #define PKT_MACRO_INVOKE 0x14
-#define PKT_SAMPLE_DIR   0x20
-#define PKT_SAMPLE_DATA  0x21
-#define PKT_TICK_RATE    0x30
-#define PKT_TITLE        0x40
-#define PKT_AUTHOR       0x41
-#define PKT_GAME_ID      0x42
-#define PKT_COMMENT      0x43
+#define PKT_SAMPLE_DIR 0x20
+#define PKT_SAMPLE_DATA 0x21
+#define PKT_TICK_RATE 0x30
+#define PKT_TITLE 0x40
+#define PKT_AUTHOR 0x41
+#define PKT_GAME_ID 0x42
+#define PKT_COMMENT 0x43
 #define PKT_SUBSONG_NAME 0x44
-#define PKT_VOICE_COUNT  0x45
+#define PKT_VOICE_COUNT 0x45
 
-#define MAX_ORDERS   256
+#define MAX_ORDERS 256
 #define MAX_PATTERNS 256
-#define MAX_SAMPLES  128
-#define MAX_MACROS   256
+#define MAX_SAMPLES 128
+#define MAX_MACROS 256
 #define MAX_MACRO_WRITES 8
 
 struct SPDSampleInfo {
@@ -161,15 +160,13 @@ static void SPUUpload(uint32_t spuAddr, const uint8_t* data, uint32_t size) {
 
     SPU_RAM_DTA = spuAddr >> 3;
     SPU_CTRL = (SPU_CTRL & ~0x0030) | 0x0020;
-    while ((SPU_CTRL & 0x0030) != 0x0020)
-        ;
+    while ((SPU_CTRL & 0x0030) != 0x0020);
     SBUS_DEV4_CTRL &= ~0x0f000000;
     DMA_CTRL[DMA_SPU].MADR = (uint32_t)data;
     DMA_CTRL[DMA_SPU].BCR = bcr;
     DMA_CTRL[DMA_SPU].CHCR = 0x01000201;
 
-    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0)
-        ;
+    while ((DMA_CTRL[DMA_SPU].CHCR & 0x01000000) != 0);
 }
 
 static void SPUUnMute() { SPU_CTRL = 0xc000; }
@@ -186,13 +183,13 @@ static void updateHblanks() {
     int isPal = (status & 0x00100000) != 0;
     uint32_t hlinesPerSecond;
     if (isPal && isPalConsole) {
-        hlinesPerSecond = 15625;   // 312.5 * 50.000
+        hlinesPerSecond = 15625;  // 312.5 * 50.000
     } else if (isPal && !isPalConsole) {
-        hlinesPerSecond = 15769;   // 312.5 * 50.460
+        hlinesPerSecond = 15769;  // 312.5 * 50.460
     } else if (!isPal && isPalConsole) {
-        hlinesPerSecond = 15607;   // 262.5 * 59.393 (approx)
+        hlinesPerSecond = 15607;  // 262.5 * 59.393 (approx)
     } else {
-        hlinesPerSecond = 15734;   // 262.5 * 59.940
+        hlinesPerSecond = 15734;  // 262.5 * 59.940
     }
     // s_tickRateFP is 16.16 fixed-point Hz.
     // hblanks = hlinesPerSecond / tickRate
@@ -324,8 +321,8 @@ static void parsePackets(const uint8_t* base, uint32_t size, int skipSamples) {
 
             case PKT_SAMPLE_DATA:
                 if (!skipSamples && len >= 1) {
-                    uint32_t baseAddr = payload[0];         // in 8-byte units
-                    uint32_t dataSize = (len - 1) * 4;      // remaining payload in bytes
+                    uint32_t baseAddr = payload[0];     // in 8-byte units
+                    uint32_t dataSize = (len - 1) * 4;  // remaining payload in bytes
                     SPUUpload(baseAddr * 8, (const uint8_t*)&payload[1], dataSize);
                 }
                 break;
@@ -352,8 +349,7 @@ static void parsePackets(const uint8_t* base, uint32_t size, int skipSamples) {
     }
 }
 
-static unsigned loadInternal(const void* data, uint32_t size,
-                             const void* sampleData, uint32_t sampleSize) {
+static unsigned loadInternal(const void* data, uint32_t size, const void* sampleData, uint32_t sampleSize) {
     if (!SPD_Check(data, size)) return 0;
 
     SPUInit();
@@ -408,12 +404,9 @@ static unsigned loadInternal(const void* data, uint32_t size,
     return SPD_VoiceCount;
 }
 
-unsigned SPD_Load(const void* data, uint32_t size) {
-    return loadInternal(data, size, (const void*)-1, 0);
-}
+unsigned SPD_Load(const void* data, uint32_t size) { return loadInternal(data, size, (const void*)-1, 0); }
 
-unsigned SPD_LoadEx(const void* data, uint32_t size,
-                    const void* sampleData, uint32_t sampleSize) {
+unsigned SPD_LoadEx(const void* data, uint32_t size, const void* sampleData, uint32_t sampleSize) {
     return loadInternal(data, size, sampleData, sampleSize);
 }
 

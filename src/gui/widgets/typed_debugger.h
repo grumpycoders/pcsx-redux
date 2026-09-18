@@ -156,7 +156,8 @@ class TypedDebugger {
                      uint32_t extraImGuiId = 0);
     void printValue(const char* type, size_t type_size, void* value);
     void printValue(const char* type, size_t type_size, Slice value);
-    void displayNewValueInput(const char* type, size_t size_type, const Slice& value, IO<File>& memFile, uint32_t address);
+    void displayNewValueInput(const char* type, size_t size_type, const Slice& value, IO<File>& memFile,
+                              uint32_t address);
     void displayBreakpointOptions(WatchTreeNode* node, const uint32_t address);
 
     /**
