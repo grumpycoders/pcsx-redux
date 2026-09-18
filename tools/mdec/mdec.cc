@@ -64,7 +64,8 @@
 
 namespace {
 
-// psx-spx zigzag: zscan[k] is the natural-order index of zigzag position k.
+// Sony's own zscan[], FileFormat47 p.1-12, verified identical entry for entry.
+// c_zscan[k] is the natural-order index of zigzag position k.
 constexpr int c_zscan[64] = {
     0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
     41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
@@ -84,8 +85,11 @@ constexpr int16_t c_standardScale[64] = {
     0x18F8, (int16_t)0xB8E3, 0x6A6D, (int16_t)0x8275, 0x7D8A, (int16_t)0x9592, 0x471C, (int16_t)0xE707,
 };
 
-// The standard MDEC quantization table, the one psxavenc and the shipping
-// encoders use. It is the DEFAULT here rather than an all-ones table: an
+// Sony's Qtab, FileFormat47 p.1-11, verified identical entry for entry. Their
+// matrix is drawn "x 1/16", so the printed integers are what goes here and the
+// 16 in their quantization formula is what cancels it.
+//
+// It is the DEFAULT here rather than an all-ones table: an
 // unquantized DC for a bright 8x8 block lands around 1150, and the run-level
 // field is signed TEN BITS. An identity quant table therefore clips the DC of
 // any block brighter than about mid-grey, which is not a tuning problem, it is
