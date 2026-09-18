@@ -275,6 +275,36 @@ A B C D D8 D63 D8F S S2 Z Z2 ZK5 DSAT DSAT2 ASAT ZTWO ZMIX WRAP
 ZDC ZDCC ZAC ZACC GSPLIT R1 R2 R3 R4
 """.split())
 
+# `genjob.py --show <capture>` prints a capture's provenance header. It lives here
+# rather than in its own script because a header nothing reads is a header nobody
+# checks, and this is the file anyone touching the rig already has open.
+if len(sys.argv) > 2 and sys.argv[1] == '--show':
+    blob = open(sys.argv[2], 'rb').read()
+    if blob[:4] != b'MDRC':
+        sys.exit(f'{sys.argv[2]}: no MDRC header, so this capture predates 2026-09-18 and '
+                 'CANNOT say which machine produced it. It is not citable as a hardware\n'
+                 'measurement, and re-running does not recover the old one - it replaces it.')
+    ver, payload = struct.unpack_from('<HH', blob, 4)
+    capArm = blob[8:8 + ARM_FIELD].rstrip(b'\0').decode('ascii', 'replace')
+    emu, mdec, biosSum, jobSum = struct.unpack_from('<IIII', blob, 8 + ARM_FIELD)
+    biosId = blob[24 + ARM_FIELD:56 + ARM_FIELD].decode('ascii', 'replace')
+    zeroedId = not blob[24 + ARM_FIELD:56 + ARM_FIELD].strip(b'\0')
+    print(f'{sys.argv[2]}: MDRC v{ver}, arm {capArm}, {payload} payload bytes')
+    print(f'  emuId      {emu:08x}  {"an emulator answers PCSX" if emu == 0x58534350 else "no PCSX signature"}')
+    print(f'  biosId     {biosId!r}{"  (zeroed - OpenBIOS)" if zeroedId else ""}')
+    print(f'  biosSum    {biosSum:08x}   mdecStatus {mdec:08x}   jobSum {jobSum:08x}')
+    # Say what the pair means, and say when it does not mean what someone wants it to.
+    if emu == 0x58534350:
+        print('  => EMULATOR. Not a silicon measurement, whatever the BIOS field says.')
+    elif zeroedId:
+        print('  => no PCSX signature and OpenBIOS. Consistent with a console running OpenBIOS.')
+    else:
+        print('  => no PCSX signature and a retail kernel. Consistent with a real console.')
+    print('  NB: emuId is the raw word at 0x1f802080. A devkit or another emulator putting')
+    print('      something else in EXP2 is recorded rather than interpreted - read it, do not')
+    print('      assume the absence of "PCSX" proves silicon on its own.')
+    sys.exit(0)
+
 arm = sys.argv[1]
 if arm not in ARMS:
     sys.exit(f'genjob.py: unknown arm {arm!r}. Known: {" ".join(sorted(ARMS))}\n'

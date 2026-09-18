@@ -61,6 +61,55 @@ static uint32_t le32(const uint8_t *p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+// ---------------------------------------------------------------------------
+// PROVENANCE. A capture that cannot say which machine wrote it is not a hardware
+// measurement, and until 2026-09-18 none of these could: this rig runs identically
+// under pcsx-redux and on a console, so `-testmode` output and silicon output were
+// byte-identical files with the same name. One of them was then sitting on disk with
+// nobody able to say which it was.
+//
+// This records OBSERVATIONS and draws no conclusion, deliberately. `emuId` is the raw
+// word, not the boolean, so a devkit or another emulator putting something else in
+// EXP2 gets written down rather than misread. `biosId` is the retail kernel's own
+// identity string; OpenBIOS leaves that window ZEROED, which is itself the tell
+// (measured: scph5501 reads "System ROM Version 3.0 1...", openbios.bin reads all
+// zeros). `biosSum` pins the exact image, since the string alone does not.
+//
+// Reading the pairs: zeros + PCSX is redux on OpenBIOS, which is the harness default.
+// A version string + PCSX is redux on a retail image. A version string and no PCSX is
+// a console, and the string says which family. Zeros and no PCSX is OpenBIOS on real
+// hardware, which is a thing people do and which the file should not hide.
+// ---------------------------------------------------------------------------
+#define BIOS_ROM ((const volatile uint8_t *)0xbfc00000)
+#define BIOS_ID_OFF 0x7ff32
+#define BIOS_ID_LEN 32
+#define BIOS_ROM_LEN 0x80000
+
+typedef struct {
+    char magic[4];   // "MDRC"
+    uint16_t version;
+    uint16_t payloadBytes;
+    char arm[ARM_FIELD];
+    uint32_t emuId;       // raw read of 0x1f802080; 0x58534350 is "PCSX"
+    uint32_t mdecStatus;  // MDEC1 as the run left it
+    uint32_t biosSum;     // over the whole 512K ROM
+    uint32_t jobSum;      // over the job this capture came from
+    char biosId[BIOS_ID_LEN];
+} MdrtCapture;
+
+static uint32_t sum32(const void *p, unsigned bytes) {
+    const uint8_t *b = (const uint8_t *)p;
+    uint32_t s = 0;
+    for (unsigned i = 0; i < bytes; i++) s = (s * 31u) + b[i];
+    return s;
+}
+
+static uint32_t biosSum32(void) {
+    uint32_t s = 0;
+    for (unsigned i = 0; i < BIOS_ROM_LEN; i++) s = (s * 31u) + BIOS_ROM[i];
+    return s;
+}
+
 // PCread is allowed to return short. Looping is the difference between a truncated
 // job that decodes garbage and one that says so.
 static int readExact(int fd, void *buf, int len, const char *what) {
@@ -231,8 +280,34 @@ int main() {
     if (waitIdle(DMA_MDECOUT, "post-read") < 0) return done(6);
     if (waitIdle(DMA_MDECIN, "post-decode") < 0) return done(7);
 
-    // Console first, so a result survives even if the artifact path fails.
-    ramsyscall_printf("MDRT: status %08x\nMDRT-HEX:", MDEC1);
+    // Identity is built before anything is emitted, so the console line and the file
+    // carry the same bytes rather than two independently-assembled versions of them.
+    MdrtCapture cap;
+    memset(&cap, 0, sizeof(cap));
+    cap.magic[0] = 'M';
+    cap.magic[1] = 'D';
+    cap.magic[2] = 'R';
+    cap.magic[3] = 'C';
+    cap.version = 1;
+    cap.payloadBytes = sizeof(s_out);
+    memcpy(cap.arm, s_arm, ARM_FIELD);
+    cap.emuId = *((volatile uint32_t *const)0x1f802080);
+    cap.mdecStatus = MDEC1;
+    cap.biosSum = biosSum32();
+    cap.jobSum = sum32(s_quant, sizeof(s_quant)) ^ sum32(s_scale, sizeof(s_scale)) ^
+                 sum32(s_rl, s_rlWords * 2) ^ s_flags ^ s_resetMode;
+    for (unsigned i = 0; i < BIOS_ID_LEN; i++) cap.biosId[i] = (char)BIOS_ROM[BIOS_ID_OFF + i];
+
+    // Console first, so a result survives even if the artifact path fails - and the
+    // identity goes out on the same principle, since a run whose PCcreat fails is
+    // exactly the run whose provenance nobody can reconstruct later.
+    ramsyscall_printf("MDRT-ID: emu=%08x bios=%08x job=%08x mdec=%08x biosid=", cap.emuId, cap.biosSum, cap.jobSum,
+                      cap.mdecStatus);
+    for (unsigned i = 0; i < BIOS_ID_LEN; i++) {
+        const char c = cap.biosId[i];
+        ramsyscall_printf("%c", (c >= 32 && c < 127) ? c : '.');
+    }
+    ramsyscall_printf("\nMDRT: status %08x\nMDRT-HEX:", MDEC1);
     for (unsigned i = 0; i < sizeof(s_out); i++) ramsyscall_printf("%02x", s_out[i]);
     ramsyscall_printf("\nMDRT: end\n");
 
@@ -245,9 +320,16 @@ int main() {
     strcat(outName, ".bin");
     int fd = PCcreat(outName, 0);
     if (fd >= 0) {
+        // Header then payload. ⛔ A capture written before 2026-09-18 has no header and
+        // starts straight into pixels, so an old file is distinguishable from a new one
+        // by its first four bytes rather than by its date - which is the point, because
+        // the old ones cannot say where they came from and must not be read as if they
+        // could. Do not "repair" one by re-running: that produces a second file with
+        // the same ambiguity and a newer mtime.
+        int wh = PCwrite(fd, &cap, sizeof(cap));
         int w = PCwrite(fd, s_out, sizeof(s_out));
         PCclose(fd);
-        ramsyscall_printf("MDRT: wrote %d bytes to %s\n", w, outName);
+        ramsyscall_printf("MDRT: wrote %d+%d bytes to %s\n", wh, w, outName);
     } else {
         ramsyscall_printf("MDRT: PCcreat(%s) failed, console hex is the only result\n", outName);
     }
