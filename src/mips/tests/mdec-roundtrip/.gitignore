@@ -1,0 +1,5 @@
+# genjob.py writes the job here and the guest writes its result beside it. Both
+# are per-arm, so tracking either one means selecting an arm dirties the tree -
+# which is what job.h used to do.
+mdec-in.bin
+mdec-out-*.bin
