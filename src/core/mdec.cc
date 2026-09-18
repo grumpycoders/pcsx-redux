@@ -426,13 +426,22 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
     return mdec_rl;
 }
 
-// full scale (JPEG)
-// Y/Cb/Cr[0...255] -> R/G/B[0...255]
-// R = 1.000 * (Y) + 1.400 * (Cr - 128)
-// G = 1.000 * (Y) - 0.343 * (Cb - 128) - 0.711 (Cr - 128)
-// B = 1.000 * (Y) + 1.765 * (Cb - 128)
+// The colour matrix, at 2^10. These were a generic full-scale JPEG set, and the
+// blue term was MEASURED WRONG on silicon 2026-09-18: arms YUVCB / YUVCBN /
+// YUVCBBIG, on three different consoles (BIOS 2.1, 3.0 and 4.1) at chroma planes
+// +50, -50 and +63, return blue offsets of 89, -89 and 112. 1807/1024 = 1.7646
+// predicts 88, -88, 111 - one LSB low, every time, in the same direction. psx-spx
+// prints 1.772 for this term and that is what silicon answers, so MULB is
+// round(1.772 * 1024) = 1814.
+//
+// ⛔ MULR and MULG2 are NOT changed, because those same arms do not discriminate:
+// 1434/1024 and psx-spx's 1.402 predict the identical integer at every magnitude
+// measured, and so do 351/728 against 0.3437/0.7143. Changing them would be
+// tidying, not measuring. psx-spx's own note that the fixed point RESOLUTION is
+// unknown still stands - many denominators fit these three magnitudes, and
+// pinning the width needs a sweep that walks the rounding steps.
 #define MULR(a) ((1434 * (a)))
-#define MULB(a) ((1807 * (a)))
+#define MULB(a) ((1814 * (a)))
 #define MULG2(a, b) ((-351 * (a) - 728 * (b)))
 #define MULY(a) ((a) << 10)
 
