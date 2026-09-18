@@ -778,10 +778,18 @@ PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, 
                 const VlcCode &c = c_vlcRun[run][mag - 1];
                 bw.put(level < 0 ? (c.code | 1u) : c.code, c.bits);
             } else {
-                // Off the book: ESCAPE, then run and level as fixed-length fields.
+                // Off the book: ESCAPE, then the run-level word VERBATIM. Sony's
+                // DecDCTvlc does `Flush_Buffer(6); code2 = Show_Bits(16)`, and reads
+                // that with RUNOF(a)=(a)>>10 and VALOF(a)=((short)((a)<<6)>>6) - so
+                // the payload is SIXTEEN bits total, 6-bit run then 10-bit signed
+                // level, which is exactly the run-level word already in hand.
+                // ⛔ FileFormat47's Table 1-9 lists 16-bit patterns for the LEVEL and
+                // reads as though run and level were separate fields. Encoding it
+                // that way costs 28 bits per escape, desyncs the bitstream at the
+                // first one, and still round-trips against a decoder written from the
+                // same misreading. The decoder is ground truth here, not the table.
                 bw.put(c_vlcEsc.code, c_vlcEsc.bits);
-                bw.put(static_cast<uint32_t>(run), 6);
-                bw.put(static_cast<uint32_t>(level) & 0xffff, 16);
+                bw.put(static_cast<uint32_t>(rl[i]) & 0xffff, 16);
             }
             i++;
         }
