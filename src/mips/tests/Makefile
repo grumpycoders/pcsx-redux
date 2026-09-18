@@ -1,6 +1,7 @@
 all:
 	$(MAKE) -C 2mb-vram all
 	$(MAKE) -C basic all
+	$(MAKE) -C cdrom all
 	$(MAKE) -C cpu all
 	$(MAKE) -C cop0 all
 	$(MAKE) -C dcache all
@@ -42,11 +43,14 @@ all:
 	$(MAKE) -C pcdrv all
 	$(MAKE) -C psyqo all
 	$(MAKE) -C regwrites all
+	$(MAKE) -C spu-endx all
+	$(MAKE) -C spu-offvoice all
 	$(MAKE) -C timers all
 
 clean:
 	$(MAKE) -C 2mb-vram clean
 	$(MAKE) -C basic clean
+	$(MAKE) -C cdrom clean
 	$(MAKE) -C cpu clean
 	$(MAKE) -C cop0 clean
 	$(MAKE) -C dcache clean
@@ -88,4 +92,6 @@ clean:
 	$(MAKE) -C pcdrv clean
 	$(MAKE) -C psyqo clean
 	$(MAKE) -C regwrites clean
+	$(MAKE) -C spu-endx clean
+	$(MAKE) -C spu-offvoice clean
 	$(MAKE) -C timers clean
