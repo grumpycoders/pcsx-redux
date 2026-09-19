@@ -12,7 +12,10 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-SRC = os.path.join(ROOT, 'src', 'supportpsx', 'dct.cc')
+# The code book is read out of dct.cc so there is one copy of it in the tree. On a
+# branch that does not carry the encoder yet, point BSDEC_DCT_ROOT at a checkout
+# that does; the tables it generates are identical either way.
+SRC = os.path.join(os.environ.get('BSDEC_DCT_ROOT', ROOT), 'src', 'supportpsx', 'dct.cc')
 OUT = os.path.join(ROOT, 'src', 'mips', 'bsdec', 'bsdec-vlc.h')
 
 src = open(SRC).read()
@@ -144,11 +147,20 @@ with open(OUT, 'w') as f:
 #define BSDEC_VLC_ESCAPE 2
 
 ''' % MAXNZ)
-    f.write('static const uint8_t c_bsdecVlcSuffixBits[BSDEC_VLC_MAXNZ + 1] = {%s};\n\n'
-            % ', '.join(str(w) for w in widths))
-    f.write('static const uint16_t c_bsdecVlcOffset[BSDEC_VLC_MAXNZ + 1] = {%s};\n\n'
-            % ', '.join(str(o) for o in offsets))
-    f.write('static const uint32_t c_bsdecVlc[%d] = {\n' % total)
+    # PADDED TO 33 ENTRIES ON PURPOSE. bsdecClz32 returns 0..32, and the decoder
+    # used to spend a compare-and-branch per symbol rejecting n > MAXNZ. The
+    # stream is the user's own data, so a malformed prefix does not need
+    # detecting, it needs to stop costing a branch: rows MAXNZ+1..32 carry width
+    # 0 and point at a sentinel EOB slot appended to the table, so garbage ends
+    # the block through the ordinary end-of-block path with no test at all.
+    pad = 33 - len(widths)
+    f.write('/* Rows past %d are the garbage-prefix sentinel: width 0, pointing at\n'
+            '   the appended EOB slot, so an impossible prefix needs no bounds test. */\n' % MAXNZ)
+    f.write('static const uint8_t c_bsdecVlcSuffixBits[33] = {%s};\n\n'
+            % ', '.join(str(w) for w in list(widths) + [0] * pad))
+    f.write('static const uint16_t c_bsdecVlcOffset[33] = {%s};\n\n'
+            % ', '.join(str(o) for o in list(offsets) + [total] * pad))
+    f.write('static const uint32_t c_bsdecVlc[%d] = {\n' % (total + 1))
     for n, t in enumerate(tables):
         f.write('    // n = %d, suffix %d bits\n' % (n, widths[n]))
         line = '   '
@@ -159,6 +171,8 @@ with open(OUT, 'w') as f:
                 line = '   '
             line += tok
         f.write(line + '\n')
+    f.write('    // sentinel: every prefix longer than the book ends the block here\n')
+    f.write('    0x%08x,\n' % pack((1, 0, 0, 0)))  # kind 1 = EOB, no suffix
     f.write('};\n')
 
 # The version-3 delta-DC size books, read out of the same file for the same reason.

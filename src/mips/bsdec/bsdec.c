@@ -111,12 +111,20 @@ static void bsdecRefill(struct BsdecBits *b) {
 
 static uint32_t bsdecPeek(const struct BsdecBits *b, unsigned bits) { return b->window >> (32 - bits); }
 
+/* NO OVERRUN TEST HERE ON PURPOSE. It used to run on every consume, two or three
+ * times per AC symbol, and a compare-and-branch was all it did to maintain a flag
+ * that `pos > availBits` already answers from state this keeps anyway. The tests
+ * that used to read the flag ask that question directly instead, which is the
+ * same answer at every point that reads it and costs nothing per symbol. */
 static void bsdecConsume(struct BsdecBits *b, unsigned bits) {
     b->pos += bits;
-    if (b->pos > b->availBits) b->overrun = 1;
     b->window <<= bits;
     b->valid -= bits;
 }
+
+/* A consumed bit came from past the payload. Peeking past the end is normal near
+ * the last halfword, which is why this asks about `pos` and not about `feed`. */
+static int bsdecPastEnd(const struct BsdecBits *b) { return b->pos > b->availBits; }
 
 uint32_t bsdecRlHalfwords(const void *in, uint32_t inBytes) {
     const uint8_t *p = (const uint8_t *)in;
@@ -225,10 +233,6 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                  * it was stored as an offset from -(2^size - 1). */
                 delta = (raw & (1u << (size - 1))) ? (int32_t)raw : (int32_t)raw - (int32_t)((1u << size) - 1);
             }
-            if (b.overrun) {
-                count = blockStart;
-                break;
-            }
             pred = luma ? 2u : blockInMb;
             /* The predictor is NOT clamped to ten bits between blocks - some Sony
              * decoders let it run and wrap only at use, and psxavenc's encoder
@@ -237,6 +241,7 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             dc = (uint32_t)lastDc[pred] & 0x3ff;
             if (++blockInMb == 6) blockInMb = 0;
         }
+        if (bsdecPastEnd(&b)) b.overrun = 1;
         if (b.overrun) break;
         if (count >= target) {
             count = blockStart;
@@ -258,28 +263,22 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
              * MSB-set group is where the end-of-block code lives, so every
              * block exits through it and it is the hot path as well as the
              * correction. */
+            /* n is 0..32 and both dispatch tables are 33 long, the rows past
+             * the book pointing at an EOB sentinel, so an impossible prefix ends
+             * the block through the ordinary path instead of through a range
+             * test. The VALID test that used to follow could not fire either -
+             * the book saturates its slots. What is NOT dead, and is the one
+             * test left here, is the bound on `out`: a block writes one halfword
+             * per code and nothing in the loop limits how many codes a malformed
+             * stream can spell, so this is the only thing standing between it
+             * and the caller's buffer. The end-of-stream test is gone from here
+             * because running past the payload discards the whole block anyway,
+             * which the check after the loop does once instead of per symbol. */
             n = bsdecClz32(b.window);
-            if (n > BSDEC_VLC_MAXNZ) {
-                count = blockStart;
-                b.overrun = 1;
-                break;
-            }
             bsdecConsume(&b, n + 1);
             w = c_bsdecVlcSuffixBits[n];
             e = c_bsdecVlc[c_bsdecVlcOffset[n] + (w ? bsdecPeek(&b, w) : 0u)];
-            /* Cannot fire against the book as generated today, which saturates
-             * its 269 slots. It is here so that a change to the code book fails
-             * loudly instead of spinning: a zero entry consumes no bits. */
-            if (!BSDEC_VLC_VALID(e)) {
-                count = blockStart;
-                b.overrun = 1;
-                break;
-            }
             bsdecConsume(&b, BSDEC_VLC_SUFFIXBITS(e));
-            if (b.overrun) {
-                count = blockStart;
-                break;
-            }
             if (count >= target) {
                 count = blockStart;
                 r.error = BSDEC_OVERLONG;
@@ -302,6 +301,15 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             }
         }
         PROF2_ACC(tAc, g_bsdecProf.tAc);
+        }
+        /* A block is only sound if every bit in it came from the payload, and a
+         * block that ran off the end is discarded whole. Asking once here is what
+         * pays for the loop above having no end-of-stream test in it: the per
+         * symbol version discovered the same thing a few symbols earlier and
+         * threw away exactly the same block. */
+        if (bsdecPastEnd(&b)) {
+            b.overrun = 1;
+            count = blockStart;
         }
         if (b.overrun || r.error != BSDEC_OK) break;
         r.blocks++;

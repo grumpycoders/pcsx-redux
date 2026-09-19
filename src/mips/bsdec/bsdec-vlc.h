@@ -42,11 +42,13 @@
 #define BSDEC_VLC_EOB 1
 #define BSDEC_VLC_ESCAPE 2
 
-static const uint8_t c_bsdecVlcSuffixBits[BSDEC_VLC_MAXNZ + 1] = {2, 3, 6, 3, 3, 0, 4, 5, 5, 5, 5, 5};
+/* Rows past 11 are the garbage-prefix sentinel: width 0, pointing at
+   the appended EOB slot, so an impossible prefix needs no bounds test. */
+static const uint8_t c_bsdecVlcSuffixBits[33] = {2, 3, 6, 3, 3, 0, 4, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-static const uint16_t c_bsdecVlcOffset[BSDEC_VLC_MAXNZ + 1] = {0, 4, 12, 76, 84, 92, 93, 109, 141, 173, 205, 237};
+static const uint16_t c_bsdecVlcOffset[33] = {0, 4, 12, 76, 84, 92, 93, 109, 141, 173, 205, 237, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269};
 
-static const uint32_t c_bsdecVlc[269] = {
+static const uint32_t c_bsdecVlc[270] = {
     // n = 0, suffix 2 bits
     0x00a1fe00, 0x00a1fe00, 0x00820001, 0x008203ff,
     // n = 1, suffix 3 bits
@@ -94,6 +96,8 @@ static const uint32_t c_bsdecVlc[269] = {
     0x00851bfd, 0x00854002, 0x008543fe, 0x00853c02, 0x00853ffe, 0x00853802, 0x00853bfe, 0x00853402, 0x008537fe,
     0x00853002, 0x008533fe, 0x00852c02, 0x00852ffe, 0x00857c01, 0x00857fff, 0x00857801, 0x00857bff, 0x00857401,
     0x008577ff, 0x00857001, 0x008573ff, 0x00856c01, 0x00856fff,
+    // sentinel: every prefix longer than the book ends the block here
+    0x00a0fe00,
 };
 
 // Version-3 delta-DC size books, indexed by size 0..8: MPEG-1's DC size codes
