@@ -91,26 +91,44 @@ struct BsdecBits {
 };
 
 /*
- * Top the window up to at least 25 bits, which covers the longest thing anything
- * below peeks at: an escape is 6 bits of marker and 16 of payload, and the
- * longest code is 17.
+ * THE PAYLOAD IS READ A HALFWORD AT A TIME, NOT A BYTE. Codes are MSB-first
+ * inside little-endian halfwords, so the bytes are wanted in the order b1, b0,
+ * b3, b2 - which is what b[feed] | b[feed + 1] << 8 spells, the same quantity
+ * the old index-XOR-1 walk produced one byte at a time. Two loads still, but one
+ * bounds test, one shift and one loop trip per sixteen bits where the byte loop
+ * spent two of each. It stays two byte loads rather than one lhu so that `in`
+ * needs no alignment it does not already have: an address error on this machine
+ * is a trap, not a wrong answer, and the load is not what the loop was spending.
  *
- * Bytes leave the payload in the order b1, b0, b3, b2, ... - the index XOR 1 -
- * because codes are MSB-first inside little-endian halfwords. Past the end the
- * window takes zeros and says nothing: no code is all zeros, so a run of them
- * pushes the leading-zero count out of range and the block truncates. Feeding
- * zeros is deliberately NOT an overrun on its own, because peeking past the end
- * is normal for a short code near the last halfword; only consuming is.
+ * SIXTEEN IS THE LARGEST GRANULARITY A 32-BIT WINDOW ALLOWS, and the threshold
+ * below is exact rather than comfortable. Topping up while valid <= 16 leaves
+ * between 17 and 32 bits in the window, and the most any one symbol takes before
+ * the next top-up is n + 1 for the prefix plus the suffix width that n selects.
+ * Over the book that peaks at 17, on n = 11 with a 5-bit suffix. Seventeen
+ * against seventeen: a code book with one more leading zero, or one wider
+ * suffix, breaks this and gentable.py should be made to say so.
+ *
+ * The escape reads 16 more after its marker and tops the window up again first,
+ * which is why that peek does not enter the sum above.
+ *
+ * Past the end the window takes zeros and says nothing: no code is all zeros, so
+ * a run of them pushes the leading-zero count past the book and the block ends
+ * on the sentinel. Feeding zeros is deliberately NOT an overrun on its own,
+ * because peeking past the end is normal for a short code near the last
+ * halfword; only consuming is.
+ *
+ * `bytes` is even - bsdecFrame rounds it down - so the pair read never straddles
+ * the end of the payload.
  */
 static void bsdecRefill(struct BsdecBits *b) {
     PROF_COUNT(refillCalls);
-    while (b->valid <= 24) {
+    while (b->valid <= 16) {
         PROF_COUNT(refillBytes);
-        uint32_t byte = 0;
-        if (b->feed < b->bytes) byte = b->base[b->feed ^ 1];
-        b->feed++;
-        b->window |= byte << (24 - b->valid);
-        b->valid += 8;
+        uint32_t half = 0;
+        if (b->feed < b->bytes) half = (uint32_t)b->base[b->feed] | ((uint32_t)b->base[b->feed + 1] << 8);
+        b->feed += 2;
+        b->window |= half << (16 - b->valid);
+        b->valid += 16;
     }
 }
 
@@ -276,13 +294,13 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             uint32_t n, e;
             PROF_COUNT(acSymbols);
             unsigned w, kind;
-            while (valid <= 24) {
-                uint32_t byte = 0;
+            while (valid <= 16) {
+                uint32_t half = 0;
                 PROF_COUNT(refillBytes);
-                if (feed < bytes) byte = base[feed ^ 1];
-                feed++;
-                win |= byte << (24 - valid);
-                valid += 8;
+                if (feed < bytes) half = (uint32_t)base[feed] | ((uint32_t)base[feed + 1] << 8);
+                feed += 2;
+                win |= half << (16 - valid);
+                valid += 16;
             }
             PROF_COUNT(refillCalls);
             /* n is 0..31 and both dispatch tables are 32 long, the rows past the
@@ -326,13 +344,18 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                  * reading it that way costs 28 bits and desyncs at the first
                  * escape. An escape running off the end is left for the next
                  * code fetch to catch, which discards the block. */
-                while (valid <= 24) {
-                    uint32_t byte = 0;
+                /* Sixteen at a time here too, and not for speed: `feed` is even
+                 * between pulls and the pair read is what keeps it that way. A
+                 * byte pull here would leave it odd and every later pair would
+                 * straddle two halfwords, which desyncs the stream from the
+                 * first escape on and decodes as a plausible 1861 blocks. */
+                while (valid <= 16) {
+                    uint32_t half = 0;
                     PROF_COUNT(refillBytes);
-                    if (feed < bytes) byte = base[feed ^ 1];
-                    feed++;
-                    win |= byte << (24 - valid);
-                    valid += 8;
+                    if (feed < bytes) half = (uint32_t)base[feed] | ((uint32_t)base[feed + 1] << 8);
+                    feed += 2;
+                    win |= half << (16 - valid);
+                    valid += 16;
                 }
                 PROF_COUNT(refillCalls);
                 out[count++] = (uint16_t)(win >> 16);
