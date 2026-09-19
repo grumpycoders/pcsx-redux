@@ -72,7 +72,9 @@ void bsdecProfileReset(void) {
 }
 #else
 #define PROF2() 0
-#define PROF2_ACC(t0, acc) ((void)0)
+/* Consumes t0 so that the timestamps the profile build reads are not unused
+ * variables in the build that does not, which the host harness compiles -Wall. */
+#define PROF2_ACC(t0, acc) ((void)(t0))
 #define PROF_COUNT(f) ((void)0)
 #define PROF_ADD(f, n) ((void)0)
 #endif
