@@ -103,3 +103,9 @@
 [submodule "third_party/xmake-psx"]
 	path = third_party/xmake-psx
 	url = https://codeberg.org/malucart/xmake-psx.git
+[submodule "third_party/iec-60908b"]
+	path = third_party/iec-60908b
+	url = https://github.com/rixnobis/iec-60908b.git
+[submodule "third_party/cueparser"]
+	path = third_party/cueparser
+	url = https://github.com/rixnobis/cueparser.git

@@ -80,11 +80,11 @@ jobs:
           /tmp/filter-mips/filter.sh
       - name: Pushing result
         env:
-          PAT: ${{ secrets.PAT }}
+          PAT: ${{ secrets.EXPORT_PAT }}
         run: |
           git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-          git remote add nugget https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git
-          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git main
+          git remote add nugget https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git
+          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git main
       - name: Creating documentation
         run: |
           doxygen /tmp/Doxyfile
@@ -99,9 +99,9 @@ jobs:
           git commit -m "Documentation."
       - name: Pushing documentation
         env:
-          PAT: ${{ secrets.PAT }}
+          PAT: ${{ secrets.EXPORT_PAT }}
         run: |
-          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/nugget.git gh_pages
+          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git gh_pages
 
   export-support:
     runs-on: ubuntu-latest
@@ -118,8 +118,8 @@ jobs:
           /tmp/filter-support/filter.sh
       - name: Pushing result
         env:
-          PAT: ${{ secrets.PAT }}
+          PAT: ${{ secrets.EXPORT_PAT }}
         run: |
           git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-          git remote add support https://nicolasnoble:$PAT@github.com/pcsx-redux/support.git
-          git push --force https://nicolasnoble:$PAT@github.com/pcsx-redux/support.git main
+          git remote add support https://rixnobis:$PAT@github.com/pcsx-redux/support.git
+          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/support.git main
