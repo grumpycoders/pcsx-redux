@@ -61,50 +61,29 @@ SOFTWARE.
 
 #include <stdint.h>
 
-#ifdef __mips__
-#include "common/hardware/cop2.h"
-#endif
-
-/*
- * Leading zeros of a 32-bit word, 0 to 32. Here in the header rather than hidden
- * in the decoder because the decoder's hot path and any test of that path have to
- * be the same code - a self-test that builds its own copy of this measures the
- * copy.
- *
- * The R3000A has no CLZ opcode; that is MIPS32 and the console predates it. GTE
- * LZCS/LZCR is the only count-leading hardware on the machine, which is what
- * makes it worth shaping a bitstream decoder around. Two things about it:
- *
- *  - It counts leading bits EQUAL TO THE SIGN BIT, so on a negative input it
- *    returns the leading-ONES count and answers 1 for both 0x80000000 and
- *    0x40000000-with-the-top-bit-set. The branch below is that correction, not
- *    an optimisation. LZCR(0) is 32, which is already what this wants.
- *  - It is the one corner of the GTE that does not interlock, so the write and
- *    the read each need two dummy opcodes after them; cop2_put and cop2_get
- *    carry those. One nop is NOT enough - the read comes back with the previous
- *    write's answer about a third of the time, and a single isolated call passes
- *    by luck, so only a loop self-test on real silicon exposes it.
- */
-static inline uint32_t bsdecClz32(uint32_t v) {
-#ifdef __mips__
-    uint32_t r;
-    if ((int32_t)v < 0) return 0;
-    cop2_put(30, v);
-    cop2_get(31, r);
-    return r;
-#else
-    return v ? (uint32_t)__builtin_clz(v) : 32u;
-#endif
-}
-
 enum BsdecError {
     BSDEC_OK = 0,
-    BSDEC_SHORT,          /* fewer than 8 bytes, so not even a header */
-    BSDEC_NOT_BS,         /* word 0 is not the MDEC decode command */
-    BSDEC_BAD_VERSION,    /* version field outside 1..3 */
+    /* Refusals. Nothing is written to out. */
+    BSDEC_SHORT,            /* fewer than 8 bytes, so not even a header */
+    BSDEC_NOT_BS,           /* word 0 is not the MDEC decode command */
+    BSDEC_BAD_VERSION,      /* version field outside 1..3 */
     BSDEC_OUTPUT_TOO_SMALL, /* out holds fewer than bsdecRlHalfwords() entries */
-    BSDEC_TRUNCATED,      /* the bitstream ended more than a pad block early */
+    /* Malformed bitstreams. out still holds a complete, DMA-able frame. */
+    BSDEC_TRUNCATED,        /* ended more than a pad block early; rest padded */
+    BSDEC_OVERLONG,         /* carried more than the header's length; excess dropped */
 };
+
+/**
+ * @brief Whether a result's output buffer is usable.
+ *
+ * @details True for success and for both malformed-bitstream statuses, which
+ * still produce a complete frame of the length the header declares. A caller
+ * that treats every non-zero status as fatal throws away frames it could have
+ * displayed, so prefer this over comparing against BSDEC_OK.
+ */
+static inline int bsdecUsable(uint8_t error) {
+    return error == BSDEC_OK || error == BSDEC_TRUNCATED || error == BSDEC_OVERLONG;
+}
 
 struct BsdecResult {
     uint32_t mdecCommand; /* write this to MDEC0 before the DMA */
@@ -117,23 +96,26 @@ struct BsdecResult {
     uint8_t error;        /* enum BsdecError */
 };
 
-/*
- * How many run-level halfwords a frame decodes to, read straight out of the
- * header. Returns 0 if the buffer is too short to hold a header. Cheap enough
- * to call before every decode; it reads two bytes.
+/**
+ * @brief How many run-level halfwords a frame decodes to.
+ *
+ * @details Read straight out of the header, so it costs two bytes and can be
+ * called before every decode. This is the size out must have. Returns 0 if the
+ * buffer is too short to hold a header.
  */
 uint32_t bsdecRlHalfwords(const void *in, uint32_t inBytes);
 
-/*
- * Decode one frame. `in` must be halfword aligned - the bit reader walks the
- * payload in halfword pairs - and in practice it is, since a frame arrives in
- * sector payloads. `out` needs bsdecRlHalfwords(in, inBytes) entries.
+/**
+ * @brief Decode one BS frame into MDEC run-level halfwords.
  *
- * On a truncated or malformed bitstream the result reports BSDEC_TRUNCATED and
- * `blocks` says how far it got: the partially decoded block is discarded and the
- * remainder is padded with end-of-block markers, so the output is always a
- * complete, DMA-able buffer that renders as much of the frame as arrived. That
- * is deliberate - a video decoder that refuses a damaged frame outright drops a
- * frame where it could have shown most of one.
- */
-struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, uint32_t outHalfwords);
+ * @details in must be halfword aligned - the bit reader walks the payload in
+ * halfword pairs - and in practice it is, since a frame arrives in sector
+ * payloads. out needs bsdecRlHalfwords(in, inBytes) entries.
+ *
+ * The output is always a complete frame of exactly that many halfwords whenever
+ * bsdecUsable() holds, whatever the bitstream did: a partially decoded block is
+ * discarded, a short bitstream is padded with end-of-block markers, and a
+ * bitstream carrying more than its header declares is cut at the declared
+ * length. That is deliberate - a video decoder that refuses a damaged frame
+ * outright drops a frame where it could have shown most of one.
+ */struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, uint32_t outHalfwords);

@@ -3,7 +3,9 @@
  *
  * Two jobs, in this order, because the second is worthless without the first.
  *
- * 1. A self-test of the GTE leading-zero count the decoder is built on. LZCS/LZCR
+ * 1. A self-test of the GTE leading-zero count the decoder is built on, which is
+ *    common/crt0/clz.c's __clzsi2 reached through __builtin_clz - so this checks
+ *    the shared intrinsic every user of the builtin gets, not a private copy. LZCS/LZCR
  *    is the one corner of the GTE that does not interlock, and the failure is
  *    probabilistic: with one dummy opcode instead of two, the read comes back with
  *    the PREVIOUS write's answer about a third of the time. A single call passes
@@ -23,7 +25,7 @@
  * emulator need not model the missing interlock, so the emulator arm passing says
  * nothing about hardware and the two arms have to be compared.
  *
- * ⛔ There is deliberately NO fallback frame. A rig that decodes something built
+ * There is deliberately NO fallback frame. A rig that decodes something built
  * in when its input is missing reports a real-looking result for a run that never
  * happened.
  *
@@ -76,7 +78,7 @@ static uint32_t testClz32(uint32_t v) {
     return r;
 }
 #else
-#define testClz32 bsdecClz32
+#define testClz32(v) ((uint32_t)((v) ? __builtin_clz(v) : 32))
 #endif
 
 /* Returns the number of disagreements, and prints the first few. */
@@ -129,7 +131,7 @@ static uint32_t clzSelfTest(void) {
 
     ramsyscall_printf("BSDR-CLZ: checked %d, disagreements %d\n", checked, bad);
     /*
-     * ⛔ A green above means NOTHING under an emulator, and this line is the only
+     * A green above means NOTHING under an emulator, and this line is the only
      * thing that says so. pcsx-redux computes LZCR synchronously inside MTC2 -
      * gte-transfer.cc, `case 30: d[31].d = countLeadingBits(value)` - so there is
      * no pending write for a too-early MFC2 to catch, and the store delay the CPU
@@ -192,7 +194,7 @@ int main() {
     r = bsdecFrame(s_in, inBytes, s_out, need);
     ramsyscall_printf("BSDR: in %d bytes, ver %d, q %d, blocks %d, halfwords %d, err %d, cmd %08x\n", inBytes,
                       r.version, r.qScale, r.blocks, r.halfwords, r.error, r.mdecCommand);
-    if (r.error != BSDEC_OK && r.error != BSDEC_TRUNCATED) return done(13);
+    if (!bsdecUsable(r.error)) return done(13);
 
     {
         uint8_t hdr[16];
@@ -218,9 +220,17 @@ int main() {
             ramsyscall_printf("BSDR: PCcreat failed, no artifact\n");
             return done(14);
         }
-        PCwrite(fd, hdr, sizeof(hdr));
-        PCwrite(fd, s_out, (int)(r.halfwords * 2));
+        // The handler maps a failed host write to -1, and a short count is
+        // possible, so an unchecked write leaves a truncated artifact that the
+        // host side would diff as a decoder bug.
+        const int wh = PCwrite(fd, hdr, sizeof(hdr));
+        const int wb = PCwrite(fd, s_out, (int)(r.halfwords * 2));
         PCclose(fd);
+        if (wh != (int)sizeof(hdr) || wb != (int)(r.halfwords * 2)) {
+            ramsyscall_printf("BSDR: short write, %d/%d header and %d/%d payload - artifact is incomplete\n", wh,
+                              (int)sizeof(hdr), wb, (int)(r.halfwords * 2));
+            return done(15);
+        }
         ramsyscall_printf("BSDR: wrote %d halfwords\nBSDR: end\n", r.halfwords);
     }
     return done(0);

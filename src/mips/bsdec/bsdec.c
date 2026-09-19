@@ -41,8 +41,14 @@ SOFTWARE.
  * encoder uses. It came out with 269 slots and no holes, which is a stronger
  * property than prefix-free: the book saturates, so any window whose leading-zero
  * count is within range decodes to a symbol and the dispatch has no error arm.
+ *
+ * __builtin_clz lowers to __clzsi2, which common/crt0/clz.c implements on the
+ * GTE. Only the zero case is handled here, because the builtin leaves it
+ * undefined and this decoder relies on 32 to detect a run of zeros past the end
+ * of the payload.
  */
 
+static inline uint32_t bsdecClz32(uint32_t v) { return v ? (uint32_t)__builtin_clz(v) : 32u; }
 
 struct BsdecBits {
     const uint8_t *base; /* payload, i.e. the frame past its 8-byte header */
@@ -126,6 +132,9 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
     r.qScale = (uint16_t)qScale;
     r.version = (uint8_t)version;
 
+    /* The only use of outHalfwords: past this point every write is bounded by
+       target instead, so the output length is exactly what the MDEC command
+       declares whether or not the caller left slack. */
     target = ((uint32_t)p[0] | ((uint32_t)p[1] << 8)) * 2;
     if (outHalfwords < target) {
         r.error = BSDEC_OUTPUT_TOO_SMALL;
@@ -201,9 +210,9 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             if (++blockInMb == 6) blockInMb = 0;
         }
         if (b.overrun) break;
-        if (count >= outHalfwords) {
+        if (count >= target) {
             count = blockStart;
-            r.error = BSDEC_OUTPUT_TOO_SMALL;
+            r.error = BSDEC_OVERLONG;
             break;
         }
         out[count++] = (uint16_t)(((qScale & 0x3f) << 10) | (dc & 0x3ff));
@@ -238,9 +247,9 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                 count = blockStart;
                 break;
             }
-            if (count >= outHalfwords) {
+            if (count >= target) {
                 count = blockStart;
-                r.error = BSDEC_OUTPUT_TOO_SMALL;
+                r.error = BSDEC_OVERLONG;
                 break;
             }
             kind = BSDEC_VLC_KIND(e);
