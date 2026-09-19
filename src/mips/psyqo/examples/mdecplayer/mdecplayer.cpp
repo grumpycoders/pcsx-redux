@@ -63,6 +63,22 @@ extern "C" {
 }
 #endif
 
+// Build with -DMDECPLAYER_PROFILE to print where a frame's time goes. Counter 1
+// free-runs on hblanks, so the unit is host-independent: one NTSC vsync is about
+// 262 hblanks and one PAL vsync about 312, and a 16-bit hblank counter wraps
+// every ~4 s, which is long enough that a per-phase delta never aliases.
+#ifdef MDECPLAYER_PROFILE
+#include "common/hardware/counters.h"
+extern "C" {
+#include "common/syscalls/syscalls.h"
+}
+#define PROF_HB() (COUNTERS[1].value)
+#define PROF_ACC(start, acc) (acc) += (uint16_t)(COUNTERS[1].value - (start))
+#else
+#define PROF_HB() 0
+#define PROF_ACC(start, acc) ((void)0)
+#endif
+
 #define MDEC0 HW_U32(0x1f801820)
 #define MDEC1 HW_U32(0x1f801824)
 
@@ -144,6 +160,15 @@ class PlayScene final : public psyqo::Scene {
     uint32_t m_shownAt = 0;
     bool m_haveFrame = false;
     bool m_broken = false;
+#ifdef MDECPLAYER_PROFILE
+    uint32_t m_bsHb = 0;      // hblanks inside bsdecFrame alone, CPU side
+    uint32_t m_mdecHb = 0;    // hblanks inside the MDEC command plus both DMAs
+    uint32_t m_decHb = 0;     // hblanks inside decodeInto
+    uint32_t m_upHb = 0;      // hblanks inside the macroblock upload loop
+    uint32_t m_decodes = 0;   // frames actually decoded since the last report
+    uint32_t m_calls = 0;     // frame() entries since the last report
+    uint32_t m_reportAt = 0;  // gpu frame count at the last report
+#endif
 };
 
 Player g_player;
@@ -194,11 +219,17 @@ void PlayScene::start(Scene::StartReason) {
     m_index = 0;
     m_shownAt = 0;
     m_haveFrame = false;
+#ifdef MDECPLAYER_PROFILE
+    COUNTERS[1].mode = 0x0100;  // hblank source, free running
+#endif
 }
 
 bool PlayScene::decodeInto(uint32_t index) {
+    const uint16_t tBs = PROF_HB();
     const BsdecResult r = bsdecFrame(m_hdr.frame(index), m_hdr.frameBytes(index), s_rl, kMaxRl);
+    PROF_ACC(tBs, m_bsHb);
     if (!bsdecUsable(r.error)) return false;
+    const uint16_t tMdec = PROF_HB();
 
     const uint32_t outWords = (m_hdr.width() * m_hdr.height() * 2) / 4;
     const uint32_t inWords = (r.halfwords + 1) / 2;
@@ -217,6 +248,7 @@ bool PlayScene::decodeInto(uint32_t index) {
     DMA_CTRL[DMA_MDECOUT].BCR = 32 << 16 | (outWords / 32);
     DMA_CTRL[DMA_MDECOUT].CHCR = 0x01000200;
     if (waitDma(DMA_MDECOUT) < 0 || waitDma(DMA_MDECIN) < 0) return false;
+    PROF_ACC(tMdec, m_mdecHb);
     return true;
 }
 
@@ -270,10 +302,15 @@ void PlayScene::frame() {
 
     const uint32_t now = gpu().getFrameCount();
     if (!m_haveFrame || (now - m_shownAt) >= m_hdr.vsyncsPerFrame()) {
+        const uint16_t t0 = PROF_HB();
         if (!decodeInto(m_index)) {
             m_broken = true;
             return;
         }
+        PROF_ACC(t0, m_decHb);
+#ifdef MDECPLAYER_PROFILE
+        m_decodes++;
+#endif
         m_shownAt = now;
         m_haveFrame = true;
         if (++m_index >= m_hdr.frames()) m_index = 0;  // loop
@@ -287,6 +324,7 @@ void PlayScene::frame() {
     const unsigned rows = m_hdr.height() / 16;
     const int16_t bufY = gpu().getParity() ? 256 : 0;
     const uint16_t *src = s_pixels;
+    const uint16_t tUp = PROF_HB();
     for (unsigned i = 0; i < cols * rows; i++, src += 16 * 16) {
         const unsigned col = m_hdr.columnMajor() ? (i / rows) : (i % cols);
         const unsigned row = m_hdr.columnMajor() ? (i % rows) : (i / cols);
@@ -294,6 +332,25 @@ void PlayScene::frame() {
                               .size = {{.w = 16, .h = 16}}};
         gpu().uploadToVRAM(src, region);
     }
+    PROF_ACC(tUp, m_upHb);
+
+#ifdef MDECPLAYER_PROFILE
+    m_calls++;
+    if (m_decodes >= 30) {
+        // vsyncs per decoded frame is the number that answers "is it keeping up":
+        // the blob asks for m_hdr.vsyncsPerFrame(), anything above that is the
+        // shortfall, and it is measured in the guest so a slow host cannot fake it.
+        const uint32_t vsyncs = now - m_reportAt;
+        ramsyscall_printf(
+            "MDPL: %d decodes over %d vsyncs (%d frame() calls), want %d vsync/frame, got %d.%02d\n", m_decodes,
+            vsyncs, m_calls, m_hdr.vsyncsPerFrame(), vsyncs / m_decodes, (vsyncs * 100 / m_decodes) % 100);
+        ramsyscall_printf("MDPL: hblanks/frame: bsdec %d + mdec %d (= decode %d) + upload %d, %d macroblocks\n",
+                          m_bsHb / m_decodes, m_mdecHb / m_decodes, m_decHb / m_decodes, m_upHb / m_calls,
+                          cols * rows);
+        m_bsHb = m_mdecHb = m_decHb = m_upHb = m_decodes = m_calls = 0;
+        m_reportAt = now;
+    }
+#endif
 }
 
 }  // namespace
