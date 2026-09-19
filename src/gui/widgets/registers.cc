@@ -125,7 +125,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                                      ((counter == 0) ? ImGuiInputTextFlags_ReadOnly : 0) |
                                          ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
                                          ImGuiInputTextFlags_AutoSelectAll) ||
-                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                    ImGui::IsItemDeactivatedAfterEdit()) {
                     updateRegisterValue(registers, val, counter, 16);
                 }
 
@@ -139,8 +139,8 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                     std::string val2 = fmt::format("{0}", (int32_t)reg);
                     if (ImGui::InputText(label2, &val2,
                                          ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                         ImGuiInputTextFlags_AutoSelectAll) ||
-                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                                             ImGuiInputTextFlags_AutoSelectAll) ||
+                        ImGui::IsItemDeactivatedAfterEdit()) {
                         updateRegisterValue(registers, val2, counter, 10);
                     }
                     std::snprintf(label2, sizeof(label2), "##ic%2d", counter);
@@ -157,8 +157,8 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             std::string valPC = fmt::format("{0:08x}", registers->pc);
             if (ImGui::InputText("##pc", &valPC,
                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                 ImGuiInputTextFlags_AutoSelectAll) ||
-                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                                     ImGuiInputTextFlags_AutoSelectAll) ||
+                ImGui::IsItemDeactivatedAfterEdit()) {
                 updateRegisterValue(registers, valPC, counter, 16);
             }
             contextMenu("##pc", registers->pc, 16);
@@ -370,8 +370,8 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             std::string val = fmt::format("{0:08x}", registers->pc);
             if (ImGui::InputText("##pc", &val,
                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                 ImGuiInputTextFlags_AutoSelectAll) ||
-                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                                     ImGuiInputTextFlags_AutoSelectAll) ||
+                ImGui::IsItemDeactivatedAfterEdit()) {
                 updateRegisterValue(registers, val, 34, 16);
             }
             contextMenu("##pc", registers->pc, 16);

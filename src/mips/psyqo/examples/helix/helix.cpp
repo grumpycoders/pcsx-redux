@@ -99,7 +99,7 @@ class HelixScene final : public psyqo::Scene {
     bool m_submitted = false;
     uint32_t m_activations = 0;
 
-    int32_t m_held = 0;   // -1, 0 or +1: which way the d-pad is being held
+    int32_t m_held = 0;  // -1, 0 or +1: which way the d-pad is being held
     uint32_t m_heldSince = 0;
 
     void onEvent(psyqo::HelixSelector::Event e);
@@ -113,16 +113,24 @@ psyqo::Color colorFor(const Item& item, psyqo::FixedPoint<> fade, bool selected)
     uint8_t r, g, b;
     switch (item.kind) {
         case Letter:
-            r = 24; g = 148; b = 112;
+            r = 24;
+            g = 148;
+            b = 112;
             break;
         case Digit:
-            r = 32; g = 110; b = 150;
+            r = 32;
+            g = 110;
+            b = 150;
             break;
         case Symbol:
-            r = 108; g = 68; b = 172;
+            r = 108;
+            g = 68;
+            b = 172;
             break;
         default:
-            r = 208; g = 116; b = 24;
+            r = 208;
+            g = 116;
+            b = 24;
             break;
     }
     if (selected) {
@@ -263,7 +271,6 @@ void HelixScene::frame() {
             helix.m_font.print(helix.gpu(), text, at, {{.r = 255, .g = 255, .b = 255}});
         }
     }
-
 
     // The cursor. The app cannot place this unaided, because the inner radius at
     // the cursor angle moves as the helix scales.

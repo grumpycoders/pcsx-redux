@@ -17,9 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <uv.h>
-
 #include "core/sio1-server.h"
+
+#include <uv.h>
 
 #include "core/psxemulator.h"
 #include "core/sio1.h"

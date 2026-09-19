@@ -80,7 +80,7 @@ uint32_t getSystemInfo(int index) {
         case 1:
             return s_kernelFlags;
         case 2:
-            return (uint32_t) s_kernelName;
+            return (uint32_t)s_kernelName;
         case 3:
             return getCPURevision();
         case 4:

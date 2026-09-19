@@ -36,12 +36,12 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X      0
-#define COL_W      32
+#define COL_X 0
+#define COL_W 32
 // Command color: R=0xff, G=0, B=0 -> VRAM pixel 0x001f (red 5:5:5).
-#define CMD_COLOR  0x000000ffu
+#define CMD_COLOR 0x000000ffu
 #define VRAM_COLOR 0x001fu
-#define BG_COLOR   0x0000u
+#define BG_COLOR 0x0000u
 
 // Pre-fill only the column rows we'll inspect, not the whole VRAM. Saves
 // ~16K word writes per test iteration.
@@ -51,12 +51,10 @@ static void onePass(int16_t y_top, int16_t y_bot) {
     fillColumn(COL_X, COL_W, BG_COLOR);
 
     // GP0(0xE3) drawing area top-left.
-    sendGPUData(0xe3000000u | ((uint32_t)(uint16_t)y_top << 10) |
-                (uint32_t)(uint16_t)COL_X);
+    sendGPUData(0xe3000000u | ((uint32_t)(uint16_t)y_top << 10) | (uint32_t)(uint16_t)COL_X);
     // GP0(0xE4) drawing area bottom-right (inclusive). Subtracting 1 gives
     // a half-open [top, bot) interpretation that's easier to reason about.
-    sendGPUData(0xe4000000u | ((uint32_t)(uint16_t)(y_bot - 1) << 10) |
-                (uint32_t)(uint16_t)(COL_X + COL_W - 1));
+    sendGPUData(0xe4000000u | ((uint32_t)(uint16_t)(y_bot - 1) << 10) | (uint32_t)(uint16_t)(COL_X + COL_W - 1));
     sendGPUData(0xe5000000u);  // drawing offset = (0,0)
 
     // GP0(0x60) variable rectangle. Width/height fields appear to mask to
@@ -82,8 +80,7 @@ static void onePass(int16_t y_top, int16_t y_bot) {
         }
     }
 
-    PROBE_RESULT("drawing-area-y top=%d bot=%d drawn_y_min=%d drawn_y_max=%d", y_top, y_bot,
-                 top_drawn, bot_drawn);
+    PROBE_RESULT("drawing-area-y top=%d bot=%d drawn_y_min=%d drawn_y_max=%d", y_top, y_bot, top_drawn, bot_drawn);
 }
 
 int main(void) {

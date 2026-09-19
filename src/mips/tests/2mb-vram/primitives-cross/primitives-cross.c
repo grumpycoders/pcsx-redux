@@ -33,18 +33,17 @@ SOFTWARE.
 
 #include "probe-common.h"
 
-#define COL_X      64
-#define COL_W      32
+#define COL_X 64
+#define COL_W 32
 // Command color: B=0xff -> VRAM 0x7c00 (blue 5:5:5).
-#define CMD_COLOR  0x00ff0000u
+#define CMD_COLOR 0x00ff0000u
 #define VRAM_COLOR 0x7c00u
-#define BG_COLOR   0x0000u
+#define BG_COLOR 0x0000u
 
 static void setupArea(void) {
     fillColumn(COL_X, COL_W, BG_COLOR);
     sendGPUData(0xe3000000u | ((uint32_t)0 << 10) | (uint32_t)COL_X);
-    sendGPUData(0xe4000000u | ((uint32_t)1023 << 10) |
-                (uint32_t)(COL_X + COL_W - 1));
+    sendGPUData(0xe4000000u | ((uint32_t)1023 << 10) | (uint32_t)(COL_X + COL_W - 1));
     sendGPUData(0xe5000000u);
 }
 
@@ -57,13 +56,16 @@ static void countDrawnAt(const char* label, int read_x) {
     for (int y = 400; y < 600; y++) {
         readStrip(read_x, y, 2, buf);
         if (buf[0] == VRAM_COLOR || buf[1] == VRAM_COLOR) {
-            if (y < 500) drawn_lo++;
-            else if (y < 520) drawn_mid++;
-            else drawn_hi++;
+            if (y < 500)
+                drawn_lo++;
+            else if (y < 520)
+                drawn_mid++;
+            else
+                drawn_hi++;
         }
     }
-    PROBE_RESULT("primitives-cross %s drawn_y400_499=%d drawn_y500_519=%d drawn_y520_599=%d",
-                 label, drawn_lo, drawn_mid, drawn_hi);
+    PROBE_RESULT("primitives-cross %s drawn_y400_499=%d drawn_y500_519=%d drawn_y520_599=%d", label, drawn_lo,
+                 drawn_mid, drawn_hi);
 }
 
 static void countDrawn(const char* label) { countDrawnAt(label, COL_X + 4); }

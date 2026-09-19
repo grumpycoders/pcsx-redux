@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "psyqo/fixed-point.hh"
 
-
 void psyqo::FixedPointInternals::printInt(uint32_t value, const eastl::function<void(char)>& charPrinter,
                                           unsigned scale) {
     uint32_t integer = value / scale;
