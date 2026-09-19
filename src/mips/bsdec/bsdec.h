@@ -85,6 +85,24 @@ static inline int bsdecUsable(uint8_t error) {
     return error == BSDEC_OK || error == BSDEC_TRUNCATED || error == BSDEC_OVERLONG;
 }
 
+/* Where a frame's decode time goes, for the console profile build. Ticks are
+ * counter 2 at system clock / 8, so one tick is 236 ns. Built only when
+ * BSDEC_PROFILE is defined; the symbols do not exist otherwise. */
+struct BsdecProf {
+    uint32_t tDc;         /* ticks in the DC path, summed over blocks */
+    uint32_t tAc;         /* ticks in the AC/VLC loop, summed over blocks */
+    uint32_t blocks;      /* blocks decoded */
+    uint32_t acSymbols;   /* VLC codes read in the AC loop */
+    uint32_t refillCalls; /* bsdecRefill entries */
+    uint32_t refillBytes; /* bytes the refill loop actually pulled */
+    uint32_t dcScanIters; /* iterations of the 9-deep DC code-length scan */
+};
+
+#ifdef BSDEC_PROFILE
+struct BsdecProf *bsdecProfile(void);
+void bsdecProfileReset(void);
+#endif
+
 struct BsdecResult {
     uint32_t mdecCommand; /* write this to MDEC0 before the DMA */
     uint32_t halfwords;   /* run-level halfwords written, padding included */

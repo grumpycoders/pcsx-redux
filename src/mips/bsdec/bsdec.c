@@ -50,6 +50,30 @@ SOFTWARE.
 
 static inline uint32_t bsdecClz32(uint32_t v) { return v ? (uint32_t)__builtin_clz(v) : 32u; }
 
+#ifdef BSDEC_PROFILE
+/* Counter 2 on the system clock over 8 is 4.23 MHz, so one tick is 236 ns and a
+ * 16-bit counter wraps every 15.5 ms. Every phase timed below is one block, far
+ * under that, so a 16-bit delta never aliases. Counter 1 on hblanks is 64 us and
+ * cannot see inside a block at all, which is why this uses a different one from
+ * the frame-level harness. */
+#include "common/hardware/counters.h"
+struct BsdecProf g_bsdecProf;
+#define PROF2() (COUNTERS[2].value)
+#define PROF2_ACC(t0, acc) (acc) += (uint16_t)(COUNTERS[2].value - (t0))
+#define PROF_COUNT(f) (g_bsdecProf.f++)
+#define PROF_ADD(f, n) (g_bsdecProf.f += (n))
+struct BsdecProf *bsdecProfile(void) { return &g_bsdecProf; }
+void bsdecProfileReset(void) {
+    COUNTERS[2].mode = 0x0200; /* system clock / 8, free running */
+    __builtin_memset(&g_bsdecProf, 0, sizeof(g_bsdecProf));
+}
+#else
+#define PROF2() 0
+#define PROF2_ACC(t0, acc) ((void)0)
+#define PROF_COUNT(f) ((void)0)
+#define PROF_ADD(f, n) ((void)0)
+#endif
+
 struct BsdecBits {
     const uint8_t *base; /* payload, i.e. the frame past its 8-byte header */
     uint32_t bytes;      /* payload bytes; always even, the writer flushes halfwords */
@@ -74,7 +98,9 @@ struct BsdecBits {
  * is normal for a short code near the last halfword; only consuming is.
  */
 static void bsdecRefill(struct BsdecBits *b) {
+    PROF_COUNT(refillCalls);
     while (b->valid <= 24) {
+        PROF_COUNT(refillBytes);
         uint32_t byte = 0;
         if (b->feed < b->bytes) byte = b->base[b->feed ^ 1];
         b->feed++;
@@ -163,6 +189,7 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
      */
     while (count < target) {
         const uint32_t blockStart = count;
+        const uint16_t tDc = PROF2();
         if (b.overrun) break;
 
         if (version != 3) {
@@ -179,6 +206,7 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             int32_t delta = 0;
             bsdecRefill(&b);
             for (s = 0; s < 9; s++) {
+                PROF_COUNT(dcScanIters);
                 if (bsdecPeek(&b, bits[s]) == code[s]) {
                     size = s;
                     break;
@@ -216,9 +244,14 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
             break;
         }
         out[count++] = (uint16_t)(((qScale & 0x3f) << 10) | (dc & 0x3ff));
+        PROF2_ACC(tDc, g_bsdecProf.tDc);
+        PROF_COUNT(blocks);
 
+        {
+        const uint16_t tAc = PROF2();
         for (;;) {
             uint32_t n, e;
+            PROF_COUNT(acSymbols);
             unsigned w, kind;
             bsdecRefill(&b);
             /* bsdecClz32's own sign-bit branch does double duty here: the
@@ -267,6 +300,8 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                 out[count++] = BSDEC_VLC_HALFWORD(e);
                 if (kind == BSDEC_VLC_EOB) break;
             }
+        }
+        PROF2_ACC(tAc, g_bsdecProf.tAc);
         }
         if (b.overrun || r.error != BSDEC_OK) break;
         r.blocks++;

@@ -283,6 +283,9 @@ void PlayScene::start(Scene::StartReason) {
     m_index = 1 < m_hdr.frames() ? 1 : 0;
 #ifdef MDECPLAYER_PROFILE
     COUNTERS[1].mode = 0x0100;  // hblank source, free running
+#ifdef BSDEC_PROFILE
+    bsdecProfileReset();  // also arms counter 2 at system clock / 8
+#endif
     m_trace = 2;
     ramsyscall_printf("MDPL: start ok, %d frames %dx%d, %d vsync/frame, %s order\n", m_hdr.frames(),
                       m_hdr.width(), m_hdr.height(), m_hdr.vsyncsPerFrame(),
@@ -581,6 +584,18 @@ void PlayScene::frame() {
         ramsyscall_printf("MDPL: hblanks/frame: bsdec %d + mdec %d + isr-tax %d = %d, overhang %d, %d regions\n",
                           m_bsHb / m_decodes, m_mdecHb / m_decodes, dec > work ? dec - work : 0, dec,
                           (m_upHb / m_calls) > dec ? (m_upHb / m_calls) - dec : 0, m_upCount);
+#ifdef BSDEC_PROFILE
+        {
+            // Raw counters. One counter-2 tick is 8 system clocks, so ticks * 8
+            // is cycles exactly; the division is left to whoever reads this.
+            const BsdecProf *p = bsdecProfile();
+            ramsyscall_printf("MDPL: bsdec ticks dc %d ac %d over %d blocks, %d ac symbols\n", p->tDc, p->tAc,
+                              p->blocks, p->acSymbols);
+            ramsyscall_printf("MDPL: bsdec work: %d refill calls, %d refill bytes, %d dc scan iters\n",
+                              p->refillCalls, p->refillBytes, p->dcScanIters);
+            bsdecProfileReset();
+        }
+#endif
         m_bsHb = m_mdecHb = m_decHb = m_upHb = m_decodes = m_calls = 0;
         m_reportAt = now;
     }

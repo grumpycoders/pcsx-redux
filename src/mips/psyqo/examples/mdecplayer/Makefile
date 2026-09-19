@@ -42,6 +42,7 @@ CXXFLAGS = -std=c++20
 CAPTURE ?=
 PROFILE ?=
 DMASPIN ?=
+BSDECPROF ?=
 ifneq ($(CAPTURE),)
 CPPFLAGS += -DMDECPLAYER_CAPTURE=$(CAPTURE)
 endif
@@ -50,6 +51,12 @@ CPPFLAGS += -DMDECPLAYER_PROFILE=$(PROFILE)
 endif
 ifneq ($(DMASPIN),)
 CPPFLAGS += -DMDECPLAYER_DMA_SPIN=$(DMASPIN)
+endif
+ifneq ($(BSDECPROF),)
+# Times the DC path against the AC/VLC loop with counter 2 and counts the work
+# each does. bsdec.o lives in the shared bsdec dir, so the tag recipe below has
+# to wipe it or a flag change silently reuses the other build's object.
+CPPFLAGS += -DBSDEC_PROFILE
 endif
 
 include ../../psyqo.mk
@@ -69,10 +76,11 @@ include ../../psyqo.mk
 # CAPTURE and PROFILE are in the hash for the same reason STREAM is: they are
 # invisible to make, and mdecplayer.o is what they change, so the recipe has to
 # wipe that too or a mode switch silently reuses the other mode's object.
-STREAMTAG := .stream-$(shell printf '%s' '$(abspath $(STREAM))|$(CAPTURE)|$(PROFILE)|$(DMASPIN)' | md5sum | cut -c1-12)
+STREAMTAG := .stream-$(shell printf '%s' '$(abspath $(STREAM))|$(CAPTURE)|$(PROFILE)|$(DMASPIN)|$(BSDECPROF)' | md5sum | cut -c1-12)
 
 $(STREAMTAG):
 	rm -f .stream-* stream-gen.s stream-gen.o stream-gen.dep mdecplayer.o mdecplayer.dep
+	rm -f ../../../bsdec/bsdec.o ../../../bsdec/bsdec.dep
 	touch $@
 
 mdecplayer.o: $(STREAMTAG)
