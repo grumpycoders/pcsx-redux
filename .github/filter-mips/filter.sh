@@ -27,6 +27,7 @@ git filter-branch -f --tree-filter "find . -name Makefile -exec sed 's|\.\./\.\.
 git filter-branch -f --tree-filter "find . -name '*.mk' -exec sed 's|\.\./\.\./\.\./third_party/uC-sdk/|../third_party/uC-sdk/|' -i {} \;" --tag-name-filter cat --prune-empty
 git filter-branch -f --tree-filter "sed 's|src/mips/third_party/uC-sdk|third_party/uC-sdk|' -i .gitmodules" --tag-name-filter cat --prune-empty
 git filter-branch -f --tree-filter "sed 's|src/mips/third_party/psxlua|third_party/psxlua|' -i .gitmodules" --tag-name-filter cat --prune-empty
+git filter-branch -f --tree-filter "sed 's|src/mips/third_party/xmake-psx|third_party/xmake-psx|' -i .gitmodules" --tag-name-filter cat --prune-empty
 
 # Adjust paths for the EASTL
 git filter-branch -f --tree-filter "find . -name Makefile -exec sed 's|\.\./\.\./\.\./third_party/EABase/|../third_party/EABase/|' -i {} \;" --tag-name-filter cat --prune-empty
