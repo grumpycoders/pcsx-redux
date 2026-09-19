@@ -1,0 +1,4 @@
+stream-gen.s
+stream-gen.dep
+stream-gen.o
+.stream-*
