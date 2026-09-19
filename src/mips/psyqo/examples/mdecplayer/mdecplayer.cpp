@@ -43,6 +43,7 @@ SOFTWARE.
 #include "common/hardware/hwregs.h"
 #include "psyqo/application.hh"
 #include "psyqo/gpu.hh"
+#include "psyqo/kernel.hh"
 #include "psyqo/primitives/common.hh"
 #include "psyqo/scene.hh"
 
@@ -137,7 +138,9 @@ constexpr unsigned kMaxWidth = 320;
 constexpr unsigned kMaxHeight = 240;
 constexpr unsigned kMaxRl = 24576;  // blob says 16768 for q_scale 4 at this size
 
-uint16_t s_pixels[kMaxWidth * kMaxHeight] __attribute__((aligned(4)));
+// Two frame buffers: the GPU uploads one while the MDEC fills the other. 150 KB
+// each, which is what buys the overlap.
+uint16_t s_pixels[2][kMaxWidth * kMaxHeight] __attribute__((aligned(4)));
 uint16_t s_rl[kMaxRl] __attribute__((aligned(4)));
 uint8_t s_quant[128] __attribute__((aligned(4)));
 int16_t s_scale[64] __attribute__((aligned(4)));
@@ -199,7 +202,10 @@ class PlayScene final : public psyqo::Scene {
     void start(Scene::StartReason reason) override;
     void frame() override;
 
-    bool decodeInto(uint32_t index);
+    bool decodeInto(uint32_t index, unsigned buf);
+    void startUpload(unsigned buf);
+    void uploadNext();
+    void waitUpload();
 
     Header m_hdr{g_stream};
     uint32_t m_index = 0;
@@ -218,6 +224,12 @@ class PlayScene final : public psyqo::Scene {
     int m_lastErr = 0;        // bsdec error, or -1/-2 for a DMA that never finished
 #endif
     bool m_needReset = false; // the last decode left the MDEC mid-command
+    unsigned m_showBuf = 0;   // being uploaded to VRAM
+    unsigned m_fillBuf = 1;   // being written by the MDEC
+    unsigned m_upIndex = 0;   // next region in the running upload chain
+    unsigned m_upCount = 0;   // regions in one frame
+    int16_t m_upBufY = 0;     // VRAM half the chain is writing
+    volatile bool m_upDone = true;
 #ifdef MDECPLAYER_PROFILE
 #endif
 };
@@ -254,9 +266,20 @@ void PlayScene::start(Scene::StartReason) {
     DPCR |= 0x000000ff;  // the enable is bit 3 of each channel's nibble
     mdecReset();
 
+    // Prime the pipeline: frame 0 is decoded here so that the very first frame()
+    // already has something to upload while it decodes frame 1.
     m_index = 0;
     m_shownAt = 0;
     m_haveFrame = false;
+    m_showBuf = 0;
+    m_fillBuf = 1;
+    m_upDone = true;
+    if (!decodeInto(0, 0)) {
+        m_broken = true;
+        return;
+    }
+    m_haveFrame = true;
+    m_index = 1 < m_hdr.frames() ? 1 : 0;
 #ifdef MDECPLAYER_PROFILE
     COUNTERS[1].mode = 0x0100;  // hblank source, free running
     m_trace = 2;
@@ -266,7 +289,8 @@ void PlayScene::start(Scene::StartReason) {
 #endif
 }
 
-bool PlayScene::decodeInto(uint32_t index) {
+bool PlayScene::decodeInto(uint32_t index, unsigned buf) {
+    uint16_t *const dst = s_pixels[buf];
     // Only when the previous frame left the command half-consumed. Resetting
     // unconditionally means resetting twice in a row on frame 0, right behind
     // start()'s own reset, and on an SCPH-1001 that makes the quant upload stall
@@ -306,7 +330,7 @@ bool PlayScene::decodeInto(uint32_t index) {
     // tracing: 76800 stores inside the timed region would otherwise BE the
     // measurement.
     if (m_trace) {
-        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) s_pixels[i] = 0xdead;
+        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) dst[i] = 0xdead;
     }
 #endif
 
@@ -317,7 +341,7 @@ bool PlayScene::decodeInto(uint32_t index) {
     DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)s_rl;
     DMA_CTRL[DMA_MDECIN].BCR = 32 << 16 | ((inWords + 31) / 32);
     DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
-    DMA_CTRL[DMA_MDECOUT].MADR = (uintptr_t)s_pixels;
+    DMA_CTRL[DMA_MDECOUT].MADR = (uintptr_t)dst;
     DMA_CTRL[DMA_MDECOUT].BCR = 32 << 16 | (outWords / 32);
     DMA_CTRL[DMA_MDECOUT].CHCR = 0x01000200;
     // THE OUTPUT IS WHAT FINISHES A FRAME, NOT THE INPUT. bsdec pads the run-level
@@ -346,7 +370,7 @@ bool PlayScene::decodeInto(uint32_t index) {
             const uint32_t total = m_hdr.width() * m_hdr.height();
             uint32_t written = 0, last = 0;
             for (uint32_t i = 0; i < total; i++) {
-                if (s_pixels[i] != 0xdead) {
+                if (dst[i] != 0xdead) {
                     written++;
                     last = i;
                 }
@@ -369,11 +393,59 @@ bool PlayScene::decodeInto(uint32_t index) {
         // Sum the decoded frame so the console and the emulator can be compared on
         // the pixels rather than on whether anything crashed.
         uint32_t sum = 0;
-        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) sum = sum * 31u + s_pixels[i];
+        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) sum = sum * 31u + dst[i];
         ramsyscall_printf("MDPL: frame %d pixel sum %08x\n", index, sum);
     }
 #endif
     return true;
+}
+
+// One region of the running chain. The MDEC emits 16x16 macroblocks back to back,
+// so each is its own VRAM rect and no CPU reorder pass is needed. The order they
+// arrive in is the stream's, not an assumption: raster walks rows, column-major
+// walks 16-pixel columns top to bottom, which is what retail STR does.
+void PlayScene::uploadNext() {
+    if (m_upIndex >= m_upCount) {
+        m_upDone = true;
+        return;
+    }
+    const unsigned i = m_upIndex++;
+    const unsigned cols = m_hdr.width() / 16;
+    const unsigned rows = m_hdr.height() / 16;
+    psyqo::Rect region;
+    const uint16_t *src;
+    if (m_hdr.columnMajor()) {
+        // ⛔ UNREACHABLE TODAY AND DELIBERATELY KEPT. `mdec` emits raster order, and
+        // packstream's --order flag DECLARES what the encoder emits rather than
+        // reordering anything, so passing --order column writes a header byte that
+        // lies about the data. Caught by the pixel sums coming back byte-identical
+        // to the raster build, which they could not be if the order had changed.
+        // A whole 16-wide column is ONE contiguous run: 15 macroblocks back to
+        // back, each 16 rows of 16, which is exactly what a 16x240 VRAM rect
+        // consumes. 20 transfers instead of 300, for the same bytes.
+        region = {.pos = {{.x = int16_t(i * 16), .y = m_upBufY}},
+                  .size = {{.w = 16, .h = int16_t(rows * 16)}}};
+        src = s_pixels[m_showBuf] + i * rows * 16 * 16;
+    } else {
+        region = {.pos = {{.x = int16_t((i % cols) * 16), .y = int16_t(m_upBufY + (i / cols) * 16)}},
+                  .size = {{.w = 16, .h = 16}}};
+        src = s_pixels[m_showBuf] + i * 16 * 16;
+    }
+    gpu().uploadToVRAM(src, region, [this]() { uploadNext(); }, psyqo::DMA::FROM_ISR);
+}
+
+void PlayScene::startUpload(unsigned buf) {
+    if (!m_haveFrame) return;  // nothing decoded yet, so nothing to show
+    m_showBuf = buf;
+    m_upBufY = gpu().getParity() ? 256 : 0;
+    m_upCount = m_hdr.columnMajor() ? (m_hdr.width() / 16) : (m_hdr.width() / 16) * (m_hdr.height() / 16);
+    m_upIndex = 0;
+    m_upDone = false;
+    uploadNext();
+}
+
+void PlayScene::waitUpload() {
+    while (!m_upDone) psyqo::Kernel::Internal::pumpCallbacks();
 }
 
 void PlayScene::frame() {
@@ -435,39 +507,43 @@ void PlayScene::frame() {
 #endif
 
     const uint32_t now = gpu().getFrameCount();
-    if (!m_haveFrame || (now - m_shownAt) >= m_hdr.vsyncsPerFrame()) {
-        const uint16_t t0 = PROF_HB();
-        if (!decodeInto(m_index)) {
-            m_broken = true;
-            return;
-        }
-        PROF_ACC(t0, m_decHb);
-#ifdef MDECPLAYER_PROFILE
-        m_decodes++;
-        if (m_trace) ramsyscall_printf("MDPL: decode %d ok\n", m_index);
-#endif
-        m_shownAt = now;
-        m_haveFrame = true;
-        if (++m_index >= m_hdr.frames()) m_index = 0;  // loop
-    }
 
-    // The MDEC emits 16x16 macroblocks back to back, so each one is its own upload
-    // region and no CPU reorder pass is needed. The order the macroblocks arrive in
-    // is the stream's, not an assumption: raster walks rows, column-major walks
-    // 16-pixel columns top to bottom, which is what retail STR does.
+    // THE WHOLE POINT OF THE DOUBLE BUFFER. The frame decoded last time goes to
+    // VRAM asynchronously, and the CPU decodes the NEXT one into the other buffer
+    // while the GPU DMA drains this one. Upload and decode used to be strictly
+    // serial, which on an SCPH-1001 cost 580 of 1900 hblanks a frame doing nothing
+    // but spinning on a DMA that needed no CPU at all.
+    const uint16_t tUp = PROF_HB();
+    startUpload(m_showBuf);
+
+    const uint16_t t0 = PROF_HB();
+    const bool ok = decodeInto(m_index, m_fillBuf);
+    PROF_ACC(t0, m_decHb);
+
+    // The GPU has to be finished before psyqo flips, so the wait lands here, after
+    // the decode rather than instead of it. What it measures now is the OVERHANG:
+    // upload time the decode did not already cover.
+    waitUpload();
+    PROF_ACC(tUp, m_upHb);
+
+    if (!ok) {
+        m_broken = true;
+        return;
+    }
+#ifdef MDECPLAYER_PROFILE
+    m_decodes++;
+    if (m_trace) ramsyscall_printf("MDPL: decode %d ok into buf %d\n", m_index, m_fillBuf);
+#endif
+    m_shownAt = now;
+    m_haveFrame = true;
+    if (++m_index >= m_hdr.frames()) m_index = 0;  // loop
+
+    const unsigned swap = m_showBuf;
+    m_showBuf = m_fillBuf;
+    m_fillBuf = swap;
+
     const unsigned cols = m_hdr.width() / 16;
     const unsigned rows = m_hdr.height() / 16;
-    const int16_t bufY = gpu().getParity() ? 256 : 0;
-    const uint16_t *src = s_pixels;
-    const uint16_t tUp = PROF_HB();
-    for (unsigned i = 0; i < cols * rows; i++, src += 16 * 16) {
-        const unsigned col = m_hdr.columnMajor() ? (i / rows) : (i % cols);
-        const unsigned row = m_hdr.columnMajor() ? (i % rows) : (i / cols);
-        psyqo::Rect region = {.pos = {{.x = int16_t(col * 16), .y = int16_t(bufY + row * 16)}},
-                              .size = {{.w = 16, .h = 16}}};
-        gpu().uploadToVRAM(src, region);
-    }
-    PROF_ACC(tUp, m_upHb);
 
 #ifdef MDECPLAYER_PROFILE
     if (m_trace) {
@@ -483,9 +559,15 @@ void PlayScene::frame() {
         ramsyscall_printf(
             "MDPL: %d decodes over %d vsyncs (%d frame() calls), want %d vsync/frame, got %d.%02d\n", m_decodes,
             vsyncs, m_calls, m_hdr.vsyncsPerFrame(), vsyncs / m_decodes, (vsyncs * 100 / m_decodes) % 100);
-        ramsyscall_printf("MDPL: hblanks/frame: bsdec %d + mdec %d (= decode %d) + upload %d, %d macroblocks\n",
-                          m_bsHb / m_decodes, m_mdecHb / m_decodes, m_decHb / m_decodes, m_upHb / m_calls,
-                          cols * rows);
+        // The upload runs under the decode now, so its cost shows up two ways: the
+        // ISR TAX is CPU time the chain's interrupts stole from the decode, and the
+        // OVERHANG is upload time the decode did not manage to cover. Both are the
+        // upload; neither is visible in a serial version.
+        const uint32_t dec = m_decHb / m_decodes;
+        const uint32_t work = m_bsHb / m_decodes + m_mdecHb / m_decodes;
+        ramsyscall_printf("MDPL: hblanks/frame: bsdec %d + mdec %d + isr-tax %d = %d, overhang %d, %d regions\n",
+                          m_bsHb / m_decodes, m_mdecHb / m_decodes, dec > work ? dec - work : 0, dec,
+                          (m_upHb / m_calls) > dec ? (m_upHb / m_calls) - dec : 0, m_upCount);
         m_bsHb = m_mdecHb = m_decHb = m_upHb = m_decodes = m_calls = 0;
         m_reportAt = now;
     }

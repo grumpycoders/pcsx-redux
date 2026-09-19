@@ -208,8 +208,12 @@ void psyqo::GPU::checkOTCAndTriggerCallback() {
         DMA_CTRL[DMA_GPUOTC].CHCR = 0x11000002;
     } else {
         if (m_fromISR) {
-            m_dmaCallback();
+            // Detach before calling, so the callback may arm the next transfer.
+            // Clearing afterwards instead makes a chained DMA trip the
+            // one-transfer-at-a-time assert from inside its own completion.
+            auto callback = eastl::move(m_dmaCallback);
             m_dmaCallback = nullptr;
+            callback();
         } else {
             Kernel::queueCallbackFromISR(eastl::move(m_dmaCallback));
         }
