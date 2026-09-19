@@ -544,7 +544,10 @@ void PCSX::DCT::Encoder::worker() {
             for (uint32_t l = 0; l < count; l++) {
                 const uint32_t bi = base + l;
                 const uint32_t mb = bi / 6;
-                const BlockSite site = locate(f, mb % result.macroblocksX, mb / result.macroblocksX, bi % 6);
+                const bool column = f.order == MacroblockOrder::Column;
+                const uint32_t mbx = column ? mb / result.macroblocksY : mb % result.macroblocksX;
+                const uint32_t mby = column ? mb % result.macroblocksY : mb / result.macroblocksX;
+                const BlockSite site = locate(f, mbx, mby, bi % 6);
                 for (uint32_t row = 0; row < 8; row++) {
                     const uint8_t *p = site.base + site.stride * row;
                     for (uint32_t col = 0; col < 8; col++) {

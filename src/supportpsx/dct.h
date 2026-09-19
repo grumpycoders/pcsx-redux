@@ -112,6 +112,13 @@ bool basisIsSymmetric(const Basis &basis);
 // (the shape libswscale hands back for NV-style formats) without repacking:
 // set cb and cr to adjacent bytes of one plane, cStride to the plane pitch, and
 // cPixelStride to 2.
+// Which way the encoder walks the image. Raster is row by row and is what a
+// still-image round trip wants. Column walks 16-pixel columns top to bottom,
+// which is what retail STR does, and it makes each column of the decoded output
+// one contiguous run in memory: a player can hand a whole 16-wide column to the
+// GPU as a single VRAM rect instead of one transfer per macroblock.
+enum class MacroblockOrder { Raster, Column };
+
 struct Frame {
     const uint8_t *y = nullptr;
     const uint8_t *cb = nullptr;
@@ -121,6 +128,7 @@ struct Frame {
     uint32_t yStride = 0;
     uint32_t cStride = 0;
     uint32_t cPixelStride = 1;
+    MacroblockOrder order = MacroblockOrder::Raster;
 };
 
 // How many int16 the caller must provide for a frame of this size.
@@ -134,7 +142,8 @@ constexpr size_t requiredCoefficientCount(uint32_t width, uint32_t height) {
 // it exists to carry.
 //
 // Layout in that span is block-major: 64 int16 per block, blocks in MDEC order
-// within each macroblock (Cr, Cb, Y1, Y2, Y3, Y4), macroblocks in raster order.
+// within each macroblock (Cr, Cb, Y1, Y2, Y3, Y4), macroblocks in the order
+// Frame::order selects: raster by default, or 16-pixel columns top to bottom.
 // out.data() + 64 * n is block n.
 //
 // The kernel works batch-major internally (one SIMD lane per block) and

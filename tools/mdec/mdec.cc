@@ -242,6 +242,16 @@ Usage: mdec rawencode -i input.png -o output.bin [options]
               format tolerates rather than a default to improve on. Supply a
               genuinely different table with -t if you want one.
 
+  -order      optional: raster | column. Default raster.
+              raster walks the image row by row. column walks 16-pixel columns
+              top to bottom, which is what retail STR does; it makes each column
+              of the decoded output one contiguous run, so a player can upload a
+              whole column as a single VRAM rect instead of one transfer per
+              macroblock. The pixels are identical either way, only the order
+              the macroblocks arrive in changes, and a decoder that disagrees
+              with the stream about it renders bands of vertically-striped
+              blocks.
+
   -transform  optional: exact | fast | symmetric. Default exact.
               exact     general basis, int32 accumulation, reference accurate
               fast      general basis, Q15 narrowing, quicker and coarser
@@ -429,6 +439,17 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     frame.height = ph;
     frame.yStride = pw;
     frame.cStride = pw / 2;
+
+    // -order column walks 16-pixel columns top to bottom, the way retail STR
+    // does, so each decoded column is one contiguous run and a player can upload
+    // it as a single VRAM rect.
+    const std::string order = args.get<std::string>("order").value_or("raster");
+    if (order == "column") {
+        frame.order = PCSX::DCT::MacroblockOrder::Column;
+    } else if (order != "raster") {
+        fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
+        return -1;
+    }
 
     std::vector<int16_t> coeffs(PCSX::DCT::requiredCoefficientCount(pw, ph));
     PCSX::DCT::Encoder encoder(0, transform, tables.forward);
