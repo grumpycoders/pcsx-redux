@@ -179,15 +179,21 @@ SOFTWARE.
 // ==========================================================================
 
 // GTE data registers (MTC2/MFC2, $0-$31)
+// The register argument is stringified into the instruction, so it has to be
+// expanded first or the COP2_* names below arrive as literal text and the
+// assembler rejects `mtc2 $4,$COP2_LZCS`. Numeric arguments still work.
+#define COP2_STRINGIFY_(x) #x
+#define COP2_STRINGIFY(x) COP2_STRINGIFY_(x)
+
 #define cop2_put(reg, val) do {             \
     uint32_t _v = (val);                    \
-    __asm__ volatile("mtc2 %0, $" #reg      \
+    __asm__ volatile("mtc2 %0, $" COP2_STRINGIFY(reg) \
                      "\n\tnop\n\tnop"        \
                      : : "r"(_v));          \
 } while (0)
 
 #define cop2_get(reg, dest) do {            \
-    __asm__ volatile("mfc2 %0, $" #reg      \
+    __asm__ volatile("mfc2 %0, $" COP2_STRINGIFY(reg)      \
                      "\n\tnop\n\tnop"        \
                      : "=r"(dest));          \
 } while (0)
@@ -195,13 +201,13 @@ SOFTWARE.
 // GTE control registers (CTC2/CFC2, $0-$31)
 #define cop2_putc(reg, val) do {            \
     uint32_t _v = (val);                    \
-    __asm__ volatile("ctc2 %0, $" #reg      \
+    __asm__ volatile("ctc2 %0, $" COP2_STRINGIFY(reg)      \
                      "\n\tnop\n\tnop"        \
                      : : "r"(_v));          \
 } while (0)
 
 #define cop2_getc(reg, dest) do {           \
-    __asm__ volatile("cfc2 %0, $" #reg      \
+    __asm__ volatile("cfc2 %0, $" COP2_STRINGIFY(reg)      \
                      "\n\tnop\n\tnop"        \
                      : "=r"(dest));          \
 } while (0)
