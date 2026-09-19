@@ -36,13 +36,20 @@ CXXFLAGS = -std=c++20
 # that says nothing about the real cause.
 #   make STREAM=... CAPTURE=0   decode frame 0, hand it back over pcdrv, exit
 #   make STREAM=... PROFILE=1   print where each frame's time goes
+#   make STREAM=... PROFILE=8 DMASPIN=1   give up on the DMA immediately, which
+#                                         is how the stuck-path dump gets tested
+#                                         on a machine where nothing is stuck
 CAPTURE ?=
 PROFILE ?=
+DMASPIN ?=
 ifneq ($(CAPTURE),)
 CPPFLAGS += -DMDECPLAYER_CAPTURE=$(CAPTURE)
 endif
 ifneq ($(PROFILE),)
-CPPFLAGS += -DMDECPLAYER_PROFILE
+CPPFLAGS += -DMDECPLAYER_PROFILE=$(PROFILE)
+endif
+ifneq ($(DMASPIN),)
+CPPFLAGS += -DMDECPLAYER_DMA_SPIN=$(DMASPIN)
 endif
 
 include ../../psyqo.mk
@@ -62,7 +69,7 @@ include ../../psyqo.mk
 # CAPTURE and PROFILE are in the hash for the same reason STREAM is: they are
 # invisible to make, and mdecplayer.o is what they change, so the recipe has to
 # wipe that too or a mode switch silently reuses the other mode's object.
-STREAMTAG := .stream-$(shell printf '%s' '$(abspath $(STREAM))|$(CAPTURE)|$(PROFILE)' | md5sum | cut -c1-12)
+STREAMTAG := .stream-$(shell printf '%s' '$(abspath $(STREAM))|$(CAPTURE)|$(PROFILE)|$(DMASPIN)' | md5sum | cut -c1-12)
 
 $(STREAMTAG):
 	rm -f .stream-* stream-gen.s stream-gen.o stream-gen.dep mdecplayer.o mdecplayer.dep

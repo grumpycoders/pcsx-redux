@@ -142,8 +142,49 @@ uint16_t s_rl[kMaxRl] __attribute__((aligned(4)));
 uint8_t s_quant[128] __attribute__((aligned(4)));
 int16_t s_scale[64] __attribute__((aligned(4)));
 
-int waitDma(int ch) {
+// Overridable so the give-up path can be exercised on purpose: a diagnostic that
+// only runs when something is stuck is otherwise never tested until it matters.
+#ifndef MDECPLAYER_DMA_SPIN
+#define MDECPLAYER_DMA_SPIN 20000000
+#endif
+
+// The table uploads are tiny and must always be allowed to finish, so they do not
+// use the DMASPIN-shortened wait that exists to exercise the give-up path.
+int waitDmaRaw(int ch) {
     for (unsigned i = 0; i < 20000000; i++) {
+        if ((DMA_CTRL[ch].CHCR & 0x01000000) == 0) return 0;
+    }
+    return -1;
+}
+
+// Reset the MDEC and re-seat both tables. This runs before EVERY frame, not just
+// at startup, because a decode that ends with input still queued leaves the
+// command half-consumed: the next MDEC0 write lands on a busy command and the
+// following frame wedges with the out-FIFO empty and DMA0 armed but idle.
+// Measured on an SCPH-1001 (ticket 1175ab76): cancelling DMA0 alone got two
+// frames out and then hung on the third. The two table uploads are 32 words
+// each, which is noise next to a frame.
+int mdecReset() {
+    int bad = 0;
+    MDEC1 = 0x80000000;  // abort whatever the last command left behind
+    MDEC1 = 0x60000000;  // re-enable the data-in and data-out requests
+
+    MDEC0 = MDEC_CMD_QUANT | 1;  // bit0 = colour, so 128 bytes follow
+    DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)s_quant;
+    DMA_CTRL[DMA_MDECIN].BCR = 32 << 16 | 1;
+    DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
+    if (waitDmaRaw(DMA_MDECIN) < 0) bad |= 1;
+
+    MDEC0 = MDEC_CMD_SCALE;
+    DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)s_scale;
+    DMA_CTRL[DMA_MDECIN].BCR = 32 << 16 | 1;
+    DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
+    if (waitDmaRaw(DMA_MDECIN) < 0) bad |= 2;
+    return bad;
+}
+
+int waitDma(int ch) {
+    for (unsigned i = 0; i < MDECPLAYER_DMA_SPIN; i++) {
         if ((DMA_CTRL[ch].CHCR & 0x01000000) == 0) return 0;
     }
     return -1;
@@ -175,6 +216,9 @@ class PlayScene final : public psyqo::Scene {
     uint32_t m_reportAt = 0;  // gpu frame count at the last report
     uint32_t m_trace = 0;     // milestone prints remaining, for the first frames
     int m_lastErr = 0;        // bsdec error, or -1/-2 for a DMA that never finished
+#endif
+    bool m_needReset = false; // the last decode left the MDEC mid-command
+#ifdef MDECPLAYER_PROFILE
 #endif
 };
 
@@ -208,20 +252,7 @@ void PlayScene::start(Scene::StartReason) {
     for (unsigned i = 0; i < 64; i++) s_scale[i] = m_hdr.scale()[i];
 
     DPCR |= 0x000000ff;  // the enable is bit 3 of each channel's nibble
-    MDEC1 = 0x80000000;
-    MDEC1 = 0x60000000;
-
-    MDEC0 = MDEC_CMD_QUANT | 1;  // bit0 = colour, so 128 bytes follow
-    DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)s_quant;
-    DMA_CTRL[DMA_MDECIN].BCR = 32 << 16 | 1;
-    DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
-    waitDma(DMA_MDECIN);
-
-    MDEC0 = MDEC_CMD_SCALE;
-    DMA_CTRL[DMA_MDECIN].MADR = (uintptr_t)s_scale;
-    DMA_CTRL[DMA_MDECIN].BCR = 32 << 16 | 1;
-    DMA_CTRL[DMA_MDECIN].CHCR = 0x01000201;
-    waitDma(DMA_MDECIN);
+    mdecReset();
 
     m_index = 0;
     m_shownAt = 0;
@@ -236,6 +267,12 @@ void PlayScene::start(Scene::StartReason) {
 }
 
 bool PlayScene::decodeInto(uint32_t index) {
+    // Only when the previous frame left the command half-consumed. Resetting
+    // unconditionally means resetting twice in a row on frame 0, right behind
+    // start()'s own reset, and on an SCPH-1001 that makes the quant upload stall
+    // two words in with MDEC1 a004001e (ticket 72a16984).
+    const int resetBad = m_needReset ? mdecReset() : 0;
+    m_needReset = false;
     const uint16_t tBs = PROF_HB();
     const BsdecResult r = bsdecFrame(m_hdr.frame(index), m_hdr.frameBytes(index), s_rl, kMaxRl);
     PROF_ACC(tBs, m_bsHb);
@@ -254,9 +291,24 @@ bool PlayScene::decodeInto(uint32_t index) {
     if (waitDma(DMA_MDECIN) < 0 || waitDma(DMA_MDECOUT) < 0) {
 #ifdef MDECPLAYER_PROFILE
         m_lastErr = -1;  // a channel was still busy before the transfers were armed
+        ramsyscall_printf("MDPL: -1 at frame %d. reset bad=%d (1 quant, 2 scale)\n", index, resetBad);
+        ramsyscall_printf("MDPL: MDEC1 %08x  ch0 CHCR %08x  ch1 CHCR %08x\n", MDEC1,
+                          DMA_CTRL[DMA_MDECIN].CHCR, DMA_CTRL[DMA_MDECOUT].CHCR);
+#else
+        (void)resetBad;
 #endif
         return false;
     }
+
+#ifdef MDECPLAYER_PROFILE
+    // Poison the destination so "how far did DMA1 actually get" is answerable by
+    // looking at RAM rather than by guessing at BCR readback semantics. Only while
+    // tracing: 76800 stores inside the timed region would otherwise BE the
+    // measurement.
+    if (m_trace) {
+        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) s_pixels[i] = 0xdead;
+    }
+#endif
 
     // Both transfers are started before either is waited on. Once the MDEC has a
     // block ready it stops asserting Data-In Request, so DMA0 never completes
@@ -268,13 +320,59 @@ bool PlayScene::decodeInto(uint32_t index) {
     DMA_CTRL[DMA_MDECOUT].MADR = (uintptr_t)s_pixels;
     DMA_CTRL[DMA_MDECOUT].BCR = 32 << 16 | (outWords / 32);
     DMA_CTRL[DMA_MDECOUT].CHCR = 0x01000200;
-    if (waitDma(DMA_MDECOUT) < 0 || waitDma(DMA_MDECIN) < 0) {
+    // THE OUTPUT IS WHAT FINISHES A FRAME, NOT THE INPUT. bsdec pads the run-level
+    // buffer out to a 32-word block and the BS header's word count covers the
+    // padding, so the MDEC emits all 300 macroblocks and then stops consuming with
+    // input still queued: in-FIFO full, Data-In Request deasserted, DMA0 busy
+    // forever. Measured on an SCPH-1001 (ticket 84f931e0): DMA1 had landed 76800 of
+    // 76800 halfwords while DMA0 sat at CHCR 01000201. Redux drains the tail for
+    // you, which is why waiting on both passes there and hangs on silicon.
+    // So: wait on the output, then cancel whatever input is left.
+    if (waitDma(DMA_MDECOUT) < 0) {
 #ifdef MDECPLAYER_PROFILE
         m_lastErr = -2;  // the decode transfers themselves never completed
+        // Which side is stuck, and what the MDEC thinks, because "neither
+        // finished" is one symptom over several different faults.
+        ramsyscall_printf("MDPL: stuck. cmd %08x words %d (hdr %d) out %d\n", r.mdecCommand, inWords,
+                          r.mdecCommand & 0xffff, outWords);
+        ramsyscall_printf("MDPL: MDEC1 %08x  DPCR %08x  DICR %08x\n", MDEC1, DPCR, DICR);
+        ramsyscall_printf("MDPL: ch0 CHCR %08x BCR %08x MADR %08x\n", DMA_CTRL[DMA_MDECIN].CHCR,
+                          DMA_CTRL[DMA_MDECIN].BCR, DMA_CTRL[DMA_MDECIN].MADR);
+        ramsyscall_printf("MDPL: ch1 CHCR %08x BCR %08x MADR %08x\n", DMA_CTRL[DMA_MDECOUT].CHCR,
+                          DMA_CTRL[DMA_MDECOUT].BCR, DMA_CTRL[DMA_MDECOUT].MADR);
+        // How many halfwords DMA1 actually landed, counted in RAM rather than
+        // inferred from a register whose readback rules I would be guessing at.
+        {
+            const uint32_t total = m_hdr.width() * m_hdr.height();
+            uint32_t written = 0, last = 0;
+            for (uint32_t i = 0; i < total; i++) {
+                if (s_pixels[i] != 0xdead) {
+                    written++;
+                    last = i;
+                }
+            }
+            ramsyscall_printf("MDPL: DMA1 landed %d of %d halfwords, last touched %d\n", written, total, last);
+        }
 #endif
         return false;
     }
+    // The frame is done the moment the output lands. If the input never drained,
+    // drop the tail and remember that the MDEC needs re-seating before the next
+    // command; if it drained by itself there is nothing to clean up.
+    if (DMA_CTRL[DMA_MDECIN].CHCR & 0x01000000) {
+        DMA_CTRL[DMA_MDECIN].CHCR = 0;
+        m_needReset = true;
+    }
     PROF_ACC(tMdec, m_mdecHb);
+#ifdef MDECPLAYER_PROFILE
+    if (m_trace) {
+        // Sum the decoded frame so the console and the emulator can be compared on
+        // the pixels rather than on whether anything crashed.
+        uint32_t sum = 0;
+        for (uint32_t i = 0; i < m_hdr.width() * m_hdr.height(); i++) sum = sum * 31u + s_pixels[i];
+        ramsyscall_printf("MDPL: frame %d pixel sum %08x\n", index, sum);
+    }
+#endif
     return true;
 }
 
