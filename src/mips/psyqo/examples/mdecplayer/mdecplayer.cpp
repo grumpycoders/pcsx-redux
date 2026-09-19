@@ -224,6 +224,7 @@ class PlayScene final : public psyqo::Scene {
     int m_lastErr = 0;        // bsdec error, or -1/-2 for a DMA that never finished
 #endif
     bool m_needReset = false; // the last decode left the MDEC mid-command
+    int m_resetBad = 0;       // what the last re-seat reported, for the -1 dump
     unsigned m_showBuf = 0;   // being uploaded to VRAM
     unsigned m_fillBuf = 1;   // being written by the MDEC
     unsigned m_upIndex = 0;   // next region in the running upload chain
@@ -295,8 +296,11 @@ bool PlayScene::decodeInto(uint32_t index, unsigned buf) {
     // unconditionally means resetting twice in a row on frame 0, right behind
     // start()'s own reset, and on an SCPH-1001 that makes the quant upload stall
     // two words in with MDEC1 a004001e (ticket 72a16984).
-    const int resetBad = m_needReset ? mdecReset() : 0;
-    m_needReset = false;
+    // The re-seat does NOT happen here. It shares the bus with the upload chain
+    // that is running right now, and on an SCPH-1001 with 20 column-sized
+    // transfers in flight the quant upload stalls 29 words in (MDEC1 a004001d,
+    // ticket f41e90ef). It runs in the quiet window after waitUpload instead.
+    const int resetBad = m_resetBad;
     const uint16_t tBs = PROF_HB();
     const BsdecResult r = bsdecFrame(m_hdr.frame(index), m_hdr.frameBytes(index), s_rl, kMaxRl);
     PROF_ACC(tBs, m_bsHb);
@@ -525,6 +529,15 @@ void PlayScene::frame() {
     // upload time the decode did not already cover.
     waitUpload();
     PROF_ACC(tUp, m_upHb);
+
+    // Nothing is on the bus now, so this is where the MDEC gets re-seated if the
+    // decode above left its command half-consumed.
+    if (m_needReset) {
+        m_resetBad = mdecReset();
+        m_needReset = false;
+    } else {
+        m_resetBad = 0;
+    }
 
     if (!ok) {
         m_broken = true;

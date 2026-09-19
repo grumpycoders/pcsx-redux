@@ -66,8 +66,10 @@ def main():
     ap.add_argument('--root', default=None, help='repo root; defaults to four levels up from here')
     ap.add_argument('-o', '--out', required=True)
     ap.add_argument('--order', choices=('raster', 'column'), default='raster',
-                    help="the macroblock order the ENCODER emits. `mdec` is raster today; this is "
-                         "recorded in the blob so the player follows the stream rather than a guess.")
+                    help="the macroblock order to encode in. Passed through to `mdec -order` AND "
+                         "recorded in the blob, so the two cannot disagree. column walks 16-pixel "
+                         "columns top to bottom, which makes each column of the decoded frame one "
+                         "contiguous run the player can upload as a single VRAM rect.")
     a = ap.parse_args()
 
     root = a.root or os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -96,7 +98,8 @@ def main():
         elif dims != (w, h):
             sys.exit('packstream: %s is %dx%d, the series started at %dx%d' % (png, w, h, *dims))
         tmp = a.out + '.frame.tmp'
-        r = subprocess.run([a.mdec, 'bsencode', '-i', png, '-o', tmp, '-qscale', str(a.qscale)],
+        r = subprocess.run([a.mdec, 'bsencode', '-i', png, '-o', tmp, '-qscale', str(a.qscale),
+                            '-order', a.order],
                            capture_output=True)
         if r.returncode:
             sys.exit('packstream: bsencode failed on %s: %s' % (png, r.stderr.decode()[:200]))
