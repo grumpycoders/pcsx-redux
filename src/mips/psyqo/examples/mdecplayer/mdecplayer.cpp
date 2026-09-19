@@ -68,6 +68,11 @@ extern "C" {
 // 262 hblanks and one PAL vsync about 312, and a 16-bit hblank counter wraps
 // every ~4 s, which is long enough that a per-phase delta never aliases.
 #ifdef MDECPLAYER_PROFILE
+// PROFILE=N reports every N decoded frames.
+#if MDECPLAYER_PROFILE < 1
+#undef MDECPLAYER_PROFILE
+#define MDECPLAYER_PROFILE 30
+#endif
 #include "common/hardware/counters.h"
 extern "C" {
 #include "common/syscalls/syscalls.h"
@@ -168,6 +173,8 @@ class PlayScene final : public psyqo::Scene {
     uint32_t m_decodes = 0;   // frames actually decoded since the last report
     uint32_t m_calls = 0;     // frame() entries since the last report
     uint32_t m_reportAt = 0;  // gpu frame count at the last report
+    uint32_t m_trace = 0;     // milestone prints remaining, for the first frames
+    int m_lastErr = 0;        // bsdec error, or -1/-2 for a DMA that never finished
 #endif
 };
 
@@ -221,6 +228,10 @@ void PlayScene::start(Scene::StartReason) {
     m_haveFrame = false;
 #ifdef MDECPLAYER_PROFILE
     COUNTERS[1].mode = 0x0100;  // hblank source, free running
+    m_trace = 2;
+    ramsyscall_printf("MDPL: start ok, %d frames %dx%d, %d vsync/frame, %s order\n", m_hdr.frames(),
+                      m_hdr.width(), m_hdr.height(), m_hdr.vsyncsPerFrame(),
+                      m_hdr.columnMajor() ? "column" : "raster");
 #endif
 }
 
@@ -228,14 +239,24 @@ bool PlayScene::decodeInto(uint32_t index) {
     const uint16_t tBs = PROF_HB();
     const BsdecResult r = bsdecFrame(m_hdr.frame(index), m_hdr.frameBytes(index), s_rl, kMaxRl);
     PROF_ACC(tBs, m_bsHb);
-    if (!bsdecUsable(r.error)) return false;
+    if (!bsdecUsable(r.error)) {
+#ifdef MDECPLAYER_PROFILE
+        m_lastErr = (int)r.error;
+#endif
+        return false;
+    }
     const uint16_t tMdec = PROF_HB();
 
     const uint32_t outWords = (m_hdr.width() * m_hdr.height() * 2) / 4;
     const uint32_t inWords = (r.halfwords + 1) / 2;
 
     MDEC0 = r.mdecCommand;  // word 0 of the BS header IS the decode command
-    if (waitDma(DMA_MDECIN) < 0 || waitDma(DMA_MDECOUT) < 0) return false;
+    if (waitDma(DMA_MDECIN) < 0 || waitDma(DMA_MDECOUT) < 0) {
+#ifdef MDECPLAYER_PROFILE
+        m_lastErr = -1;  // a channel was still busy before the transfers were armed
+#endif
+        return false;
+    }
 
     // Both transfers are started before either is waited on. Once the MDEC has a
     // block ready it stops asserting Data-In Request, so DMA0 never completes
@@ -247,16 +268,31 @@ bool PlayScene::decodeInto(uint32_t index) {
     DMA_CTRL[DMA_MDECOUT].MADR = (uintptr_t)s_pixels;
     DMA_CTRL[DMA_MDECOUT].BCR = 32 << 16 | (outWords / 32);
     DMA_CTRL[DMA_MDECOUT].CHCR = 0x01000200;
-    if (waitDma(DMA_MDECOUT) < 0 || waitDma(DMA_MDECIN) < 0) return false;
+    if (waitDma(DMA_MDECOUT) < 0 || waitDma(DMA_MDECIN) < 0) {
+#ifdef MDECPLAYER_PROFILE
+        m_lastErr = -2;  // the decode transfers themselves never completed
+#endif
+        return false;
+    }
     PROF_ACC(tMdec, m_mdecHb);
     return true;
 }
 
 void PlayScene::frame() {
     if (m_broken) {
+#ifdef MDECPLAYER_PROFILE
+        if (m_trace) {
+            m_trace = 0;
+            ramsyscall_printf("MDPL: BROKEN, last error %d (>=0 bsdec, -1 channel busy, -2 no completion)\n",
+                              m_lastErr);
+        }
+#endif
         gpu().clear({{.r = 0x60, .g = 0x00, .b = 0x00}});
         return;
     }
+#ifdef MDECPLAYER_PROFILE
+    if (m_trace) ramsyscall_printf("MDPL: frame() entry, index %d\n", m_index);
+#endif
 
 #ifdef MDECPLAYER_CAPTURE
     {
@@ -310,6 +346,7 @@ void PlayScene::frame() {
         PROF_ACC(t0, m_decHb);
 #ifdef MDECPLAYER_PROFILE
         m_decodes++;
+        if (m_trace) ramsyscall_printf("MDPL: decode %d ok\n", m_index);
 #endif
         m_shownAt = now;
         m_haveFrame = true;
@@ -335,8 +372,12 @@ void PlayScene::frame() {
     PROF_ACC(tUp, m_upHb);
 
 #ifdef MDECPLAYER_PROFILE
+    if (m_trace) {
+        m_trace--;
+        ramsyscall_printf("MDPL: upload pass done, %d macroblocks\n", cols * rows);
+    }
     m_calls++;
-    if (m_decodes >= 30) {
+    if (m_decodes >= MDECPLAYER_PROFILE) {
         // vsyncs per decoded frame is the number that answers "is it keeping up":
         // the blob asks for m_hdr.vsyncsPerFrame(), anything above that is the
         // shortfall, and it is measured in the guest so a slow host cannot fake it.
