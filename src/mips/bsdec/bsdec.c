@@ -44,11 +44,14 @@ SOFTWARE.
  *
  * __builtin_clz lowers to __clzsi2, which common/crt0/clz.c implements on the
  * GTE. Only the zero case is handled here, because the builtin leaves it
- * undefined and this decoder relies on 32 to detect a run of zeros past the end
- * of the payload.
+ * undefined. It reports 31 rather than the true 32: rows 12..31 of the dispatch
+ * are all the same end-of-block sentinel, so an empty window lands on one either
+ * way, and capping at 31 keeps the AC loop's prefix shift inside the range C
+ * defines. A run of zeros past the end of the payload is still what ends the
+ * block; it just arrives through row 31 instead of row 32.
  */
 
-static inline uint32_t bsdecClz32(uint32_t v) { return v ? (uint32_t)__builtin_clz(v) : 32u; }
+static inline uint32_t bsdecClz32(uint32_t v) { return v ? (uint32_t)__builtin_clz(v) : 31u; }
 
 #ifdef BSDEC_PROFILE
 /* Counter 2 on the system clock over 8 is 4.23 MHz, so one tick is 236 ns and a
@@ -254,31 +257,60 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
 
         {
         const uint16_t tAc = PROF2();
+        /*
+         * THE BIT WINDOW LIVES IN LOCALS FOR THE LENGTH OF THIS LOOP. The tree
+         * builds with -fno-strict-aliasing, so every `out[count++]` is a store
+         * the compiler must assume can land anywhere, including on `b` - and it
+         * reloads window, valid, pos and feed after each one. Automatic
+         * variables whose address is never taken cannot be aliased by anything,
+         * so these stay in registers across the stores and are written back once
+         * on the way out. Nothing between here and the write-back may touch `b`.
+         */
+        uint32_t win = b.window, pos = b.pos, feed = b.feed;
+        int32_t valid = b.valid;
+        const uint8_t *const base = b.base;
+        const uint32_t bytes = b.bytes;
         for (;;) {
             uint32_t n, e;
             PROF_COUNT(acSymbols);
             unsigned w, kind;
-            bsdecRefill(&b);
-            /* bsdecClz32's own sign-bit branch does double duty here: the
-             * MSB-set group is where the end-of-block code lives, so every
-             * block exits through it and it is the hot path as well as the
-             * correction. */
-            /* n is 0..32 and both dispatch tables are 33 long, the rows past
-             * the book pointing at an EOB sentinel, so an impossible prefix ends
-             * the block through the ordinary path instead of through a range
-             * test. The VALID test that used to follow could not fire either -
-             * the book saturates its slots. What is NOT dead, and is the one
-             * test left here, is the bound on `out`: a block writes one halfword
-             * per code and nothing in the loop limits how many codes a malformed
+            while (valid <= 24) {
+                uint32_t byte = 0;
+                PROF_COUNT(refillBytes);
+                if (feed < bytes) byte = base[feed ^ 1];
+                feed++;
+                win |= byte << (24 - valid);
+                valid += 8;
+            }
+            PROF_COUNT(refillCalls);
+            /* n is 0..31 and both dispatch tables are 32 long, the rows past the
+             * book pointing at an EOB sentinel, so an impossible prefix ends the
+             * block through the ordinary path instead of through a range test.
+             * The VALID test that used to follow could not fire either - the
+             * book saturates its slots. What is NOT dead, and is the one test
+             * left here, is the bound on `out`: a block writes one halfword per
+             * code and nothing in the loop limits how many codes a malformed
              * stream can spell, so this is the only thing standing between it
              * and the caller's buffer. The end-of-stream test is gone from here
              * because running past the payload discards the whole block anyway,
-             * which the check after the loop does once instead of per symbol. */
-            n = bsdecClz32(b.window);
-            bsdecConsume(&b, n + 1);
+             * which the check after the loop does once instead of per symbol.
+             *
+             * The prefix consume is two shifts because n + 1 reaches 32 and a
+             * 32-bit value shifted by 32 is undefined. Each of these is at most
+             * 31, and bsdecClz32 reports 31 rather than 32 for an empty window
+             * so that the first one is in range as well. */
+            n = bsdecClz32(win);
+            pos += n + 1;
+            win = (win << n) << 1;
+            valid -= (int32_t)n + 1;
             w = c_bsdecVlcSuffixBits[n];
-            e = c_bsdecVlc[c_bsdecVlcOffset[n] + (w ? bsdecPeek(&b, w) : 0u)];
-            bsdecConsume(&b, BSDEC_VLC_SUFFIXBITS(e));
+            e = c_bsdecVlc[c_bsdecVlcOffset[n] + (w ? (win >> (32 - w)) : 0u)];
+            {
+                const unsigned sb = BSDEC_VLC_SUFFIXBITS(e);
+                pos += sb;
+                win <<= sb;
+                valid -= (int32_t)sb;
+            }
             if (count >= target) {
                 count = blockStart;
                 r.error = BSDEC_OVERLONG;
@@ -292,14 +324,28 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                  * reading it that way costs 28 bits and desyncs at the first
                  * escape. An escape running off the end is left for the next
                  * code fetch to catch, which discards the block. */
-                bsdecRefill(&b);
-                out[count++] = (uint16_t)bsdecPeek(&b, 16);
-                bsdecConsume(&b, 16);
+                while (valid <= 24) {
+                    uint32_t byte = 0;
+                    PROF_COUNT(refillBytes);
+                    if (feed < bytes) byte = base[feed ^ 1];
+                    feed++;
+                    win |= byte << (24 - valid);
+                    valid += 8;
+                }
+                PROF_COUNT(refillCalls);
+                out[count++] = (uint16_t)(win >> 16);
+                pos += 16;
+                win <<= 16;
+                valid -= 16;
             } else {
                 out[count++] = BSDEC_VLC_HALFWORD(e);
                 if (kind == BSDEC_VLC_EOB) break;
             }
         }
+        b.window = win;
+        b.pos = pos;
+        b.feed = feed;
+        b.valid = valid;
         PROF2_ACC(tAc, g_bsdecProf.tAc);
         }
         /* A block is only sound if every bit in it came from the payload, and a

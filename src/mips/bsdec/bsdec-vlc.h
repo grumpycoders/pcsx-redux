@@ -44,9 +44,9 @@
 
 /* Rows past 11 are the garbage-prefix sentinel: width 0, pointing at
    the appended EOB slot, so an impossible prefix needs no bounds test. */
-static const uint8_t c_bsdecVlcSuffixBits[33] = {2, 3, 6, 3, 3, 0, 4, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static const uint8_t c_bsdecVlcSuffixBits[32] = {2, 3, 6, 3, 3, 0, 4, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-static const uint16_t c_bsdecVlcOffset[33] = {0, 4, 12, 76, 84, 92, 93, 109, 141, 173, 205, 237, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269};
+static const uint16_t c_bsdecVlcOffset[32] = {0, 4, 12, 76, 84, 92, 93, 109, 141, 173, 205, 237, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269, 269};
 
 static const uint32_t c_bsdecVlc[270] = {
     // n = 0, suffix 2 bits

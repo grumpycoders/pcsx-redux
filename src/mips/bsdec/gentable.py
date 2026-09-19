@@ -147,18 +147,18 @@ with open(OUT, 'w') as f:
 #define BSDEC_VLC_ESCAPE 2
 
 ''' % MAXNZ)
-    # PADDED TO 33 ENTRIES ON PURPOSE. bsdecClz32 returns 0..32, and the decoder
+    # PADDED TO 32 ENTRIES ON PURPOSE. bsdecClz32 reports 0..31, and the decoder
     # used to spend a compare-and-branch per symbol rejecting n > MAXNZ. The
     # stream is the user's own data, so a malformed prefix does not need
-    # detecting, it needs to stop costing a branch: rows MAXNZ+1..32 carry width
+    # detecting, it needs to stop costing a branch: rows MAXNZ+1..31 carry width
     # 0 and point at a sentinel EOB slot appended to the table, so garbage ends
     # the block through the ordinary end-of-block path with no test at all.
-    pad = 33 - len(widths)
+    pad = 32 - len(widths)
     f.write('/* Rows past %d are the garbage-prefix sentinel: width 0, pointing at\n'
             '   the appended EOB slot, so an impossible prefix needs no bounds test. */\n' % MAXNZ)
-    f.write('static const uint8_t c_bsdecVlcSuffixBits[33] = {%s};\n\n'
+    f.write('static const uint8_t c_bsdecVlcSuffixBits[32] = {%s};\n\n'
             % ', '.join(str(w) for w in list(widths) + [0] * pad))
-    f.write('static const uint16_t c_bsdecVlcOffset[33] = {%s};\n\n'
+    f.write('static const uint16_t c_bsdecVlcOffset[32] = {%s};\n\n'
             % ', '.join(str(o) for o in list(offsets) + [total] * pad))
     f.write('static const uint32_t c_bsdecVlc[%d] = {\n' % (total + 1))
     for n, t in enumerate(tables):
