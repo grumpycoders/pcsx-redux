@@ -1,0 +1,4 @@
+# Reviews on the MIPS tree are auto-requested from its owner. This is advisory
+# until `require_code_owner_review` is enabled on the branch ruleset.
+
+/src/mips/ @rixnobis
