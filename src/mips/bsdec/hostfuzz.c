@@ -31,7 +31,14 @@ SOFTWARE.
  * cases that need thousands of decodes do not need a console at all.
  *
  *   cc -O2 -fno-strict-aliasing -I. -o hostfuzz hostfuzz.c bsdec.c
- *   ./hostfuzz frame.bs
+ *   ./hostfuzz frame.bs [expected-blocks]
+ *
+ * PASS THE BLOCK COUNT. Six blocks per macroblock and the picture size is the
+ * caller's to know, so a BS header cannot check it and neither can this without
+ * being told: 320x240 is 300 macroblocks, so 1800. Without it the only thing
+ * asserted about a sound decode is that it filled the buffer, and a desynced
+ * decoder fills it too. One did - a refill that left `feed` odd returned 1861
+ * blocks of confident garbage and this harness said ok.
  *
  * A frame is one entry of a packstream blob, not the blob: the offset table
  * starts at 0x118 and holds one 32-bit absolute offset per frame, so frame i
@@ -134,10 +141,13 @@ int main(int argc, char **argv) {
     struct Outcome clean, zeroRun;
     int fail = 0;
 
+    uint32_t expectBlocks = 0;
+
     if (argc < 2) {
-        fprintf(stderr, "usage: hostfuzz <frame.bs>\n");
+        fprintf(stderr, "usage: hostfuzz <frame.bs> [expected-blocks]\n");
         return 2;
     }
+    if (argc > 2) expectBlocks = (uint32_t)strtoul(argv[2], NULL, 0);
     f = fopen(argv[1], "rb");
     if (!f) {
         perror(argv[1]);
@@ -160,6 +170,14 @@ int main(int argc, char **argv) {
     printf("  sound frame: err %u, %u blocks, %u halfwords\n", clean.error, clean.blocks, clean.halfwords);
     if (clean.error != BSDEC_OK || clean.halfwords != target || clean.blocks == 0) {
         printf("  FAIL: a sound frame did not decode to its declared length\n");
+        fail = 1;
+    }
+    if (expectBlocks == 0) {
+        printf("  NOTE: block count unchecked. Pass it as argv[2] - six per macroblock - or a\n");
+        printf("        decoder that desyncs and fills the buffer with the wrong number of\n");
+        printf("        short blocks passes everything below.\n");
+    } else if (clean.blocks != expectBlocks) {
+        printf("  FAIL: %u blocks against the %u the picture calls for\n", clean.blocks, expectBlocks);
         fail = 1;
     }
 
