@@ -63,6 +63,9 @@
     <ClCompile Include="..\..\src\supportpsx\ucl-utils.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\dct.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\binffi.lua">
@@ -138,6 +141,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\ucl-utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\dct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
