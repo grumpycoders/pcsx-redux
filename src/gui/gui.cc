@@ -1169,7 +1169,7 @@ void PCSX::GUI::startFrame() {
 
     if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
         m_turboEnabled = !m_turboEnabled;
-        g_emulator->settings.get<Emulator::SettingScaler>() = m_turboEnabled ? 200 : 100;
+        g_emulator->setTurbo(m_turboEnabled);
     }
 }
 

@@ -20,14 +20,31 @@
 #include "spu/sdlaudio.h"
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <string>
 
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "spu/interface.h"
+
+uint32_t PCSX::SPU::SDLAudio::sourceFramesForOutput(uint32_t outN, int scale) {
+    if (outN == 0) return 0;
+    if (scale <= 0) scale = 1;
+    const uint32_t inN = static_cast<uint32_t>((static_cast<uint64_t>(outN) * static_cast<uint32_t>(scale)) / 100);
+    return inN < 1 ? 1 : inN;
+}
+
+void PCSX::SPU::SDLAudio::scalerSelfCheck() {
+    assert(sourceFramesForOutput(100, 100) == 100);
+    assert(sourceFramesForOutput(100, 200) == 200);
+    assert(sourceFramesForOutput(100, 50) == 50);
+    assert(sourceFramesForOutput(1, 200) == 2);
+    assert(sourceFramesForOutput(0, 200) == 0);
+}
 
 PCSX::SPU::SDLAudio::SDLAudio(PCSX::SPU::SettingsType& settings)
     : m_settings(settings), m_listener(g_system->m_eventBus) {
@@ -57,6 +74,8 @@ PCSX::SPU::SDLAudio::SDLAudio(PCSX::SPU::SettingsType& settings)
 }
 
 void PCSX::SPU::SDLAudio::init(bool safe) {
+    scalerSelfCheck();
+
     // Pick the audio driver. SDL_HINT_AUDIO_DRIVER must be set before SDL_InitSubSystem.
     if (safe) {
         SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
@@ -202,52 +221,76 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
 
     const bool mono = m_settings.get<Mono>();
     const bool muted = m_settings.get<Mute>();
+    const int scale = g_emulator ? g_emulator->getScaler() : 100;
 
     static_assert(STREAMS == 2);
 
     // SDL doesn't promise a fixed callback chunk size, so feed in slices that fit our
-    // mixing scratch buffer.
+    // mixing scratch buffer. When speeding up, source frames exceed output frames, so
+    // shrink the output chunk until sourceFramesForOutput fits in BUFFER_SIZE.
     while (requested > 0) {
-        const uint32_t chunk = std::min<uint32_t>(requested, VoiceStream::BUFFER_SIZE);
+        uint32_t outN = std::min<uint32_t>(requested, VoiceStream::BUFFER_SIZE);
+        if (scale > 100) {
+            const uint32_t maxOut = std::max<uint32_t>(1, (VoiceStream::BUFFER_SIZE * 100u) / static_cast<uint32_t>(scale));
+            outN = std::min(outN, maxOut);
+        }
+        const uint32_t inN = sourceFramesForOutput(outN, scale);
 
         for (unsigned i = 0; i < STREAMS; i++) {
-            size_t a = (i == 0) ? m_voicesStream.dequeue(m_mixBuffers[i].data(), chunk)
-                                : m_audioStream.dequeue(m_mixBuffers[i].data(), chunk);
-            for (size_t f = (muted ? 0 : a); f < chunk; f++) {
+            size_t a = (i == 0) ? m_voicesStream.dequeue(m_mixBuffers[i].data(), inN)
+                                : m_audioStream.dequeue(m_mixBuffers[i].data(), inN);
+            for (size_t f = (muted ? 0 : a); f < inN; f++) {
                 // Same as the previous backend: silently zero-fill on underflow.
                 // CDDA underflow on stream 1 is expected and fine.
                 m_mixBuffers[i][f] = {};
             }
         }
 
-        for (uint32_t f = 0; f < chunk; f++) {
+        for (uint32_t o = 0; o < outN; o++) {
             float l = 0.0f, r = 0.0f;
-            for (unsigned i = 0; i < STREAMS; i++) {
-                l += static_cast<float>(m_mixBuffers[i][f].L) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
-                r += static_cast<float>(m_mixBuffers[i][f].R) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
+            if (scale == 100) {
+                for (unsigned i = 0; i < STREAMS; i++) {
+                    l += static_cast<float>(m_mixBuffers[i][o].L) /
+                         static_cast<float>(std::numeric_limits<int16_t>::max());
+                    r += static_cast<float>(m_mixBuffers[i][o].R) /
+                         static_cast<float>(std::numeric_limits<int16_t>::max());
+                }
+            } else {
+                // Linear resample source → device rate so pitch tracks speed.
+                const float srcPos = (static_cast<float>(o) * static_cast<float>(inN)) / static_cast<float>(outN);
+                const uint32_t i0 = std::min(static_cast<uint32_t>(srcPos), inN - 1);
+                const uint32_t i1 = std::min(i0 + 1, inN - 1);
+                const float t = srcPos - static_cast<float>(i0);
+                for (unsigned i = 0; i < STREAMS; i++) {
+                    const float l0 = static_cast<float>(m_mixBuffers[i][i0].L);
+                    const float l1 = static_cast<float>(m_mixBuffers[i][i1].L);
+                    const float r0 = static_cast<float>(m_mixBuffers[i][i0].R);
+                    const float r1 = static_cast<float>(m_mixBuffers[i][i1].R);
+                    l += (l0 + (l1 - l0) * t) / static_cast<float>(std::numeric_limits<int16_t>::max());
+                    r += (r0 + (r1 - r0) * t) / static_cast<float>(std::numeric_limits<int16_t>::max());
+                }
             }
 
             if (mono) {
                 const float lr = (l + r) * 0.5f;
-                m_outputBuffer[f * 2 + 0] = lr;
-                m_outputBuffer[f * 2 + 1] = lr;
+                m_outputBuffer[o * 2 + 0] = lr;
+                m_outputBuffer[o * 2 + 1] = lr;
             } else {
-                m_outputBuffer[f * 2 + 0] = l;
-                m_outputBuffer[f * 2 + 1] = r;
+                m_outputBuffer[o * 2 + 0] = l;
+                m_outputBuffer[o * 2 + 1] = r;
             }
         }
 
-        SDL_PutAudioStreamData(stream, m_outputBuffer.data(), chunk * kFrameSizeBytes);
+        SDL_PutAudioStreamData(stream, m_outputBuffer.data(), outN * kFrameSizeBytes);
 
         // When NullSync is off, the real audio callback is the timing source. When it's
-        // on, the dedicated null thread drives timing instead.
+        // on, the dedicated null thread drives timing instead. Advance by source frames
+        // so waitForGoal completes sooner/later with speed.
         if (!m_settings.get<NullSync>()) {
-            advanceFrames(chunk);
+            advanceFrames(inN);
         }
 
-        requested -= chunk;
+        requested -= outN;
     }
 }
 
@@ -294,13 +337,15 @@ void PCSX::SPU::SDLAudio::nullThreadLoop() {
     using namespace std::chrono;
     // 64 frames at 44100 Hz ~= 1.451 ms per tick. We pretend to consume that many frames
     // each tick, mirroring what miniaudio's null backend used to do for a stable timing
-    // source independent of the real device's bursty callbacks.
+    // source independent of the real device's bursty callbacks. Scale the advance by the
+    // effective speed so Null Sync honors turbo / Speed Scaler.
     constexpr double periodSeconds = static_cast<double>(kPeriodFrames) / kSampleRate;
     const auto periodNs = duration_cast<nanoseconds>(duration<double>(periodSeconds));
     auto next = steady_clock::now();
     while (!m_nullThreadStop.load()) {
         next += periodNs;
         std::this_thread::sleep_until(next);
-        advanceFrames(kPeriodFrames);
+        const int scale = g_emulator ? g_emulator->getScaler() : 100;
+        advanceFrames(sourceFramesForOutput(kPeriodFrames, scale));
     }
 }

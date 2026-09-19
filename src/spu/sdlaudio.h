@@ -87,6 +87,9 @@ class SDLAudio {
         }
     }
     uint32_t getCurrentFrames() { return m_frames.load(); }
+    // Source frames consumed for `outN` device frames at `scale` percent (100 = 1x).
+    static uint32_t sourceFramesForOutput(uint32_t outN, int scale);
+    static void scalerSelfCheck();
     void waitForGoal(uint32_t goal) {
 #if HAS_ATOMIC_WAIT
         // for once, Visual Studio is better than clang/gcc/libc++/libstdc++. Its C++20

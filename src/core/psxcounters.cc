@@ -161,8 +161,7 @@ void PCSX::Counters::update() {
     {
         uint64_t prev = g_emulator->m_cpu->m_regs.previousCycles;
         uint64_t diff = cycle - prev;
-        diff *= 4410000;
-        diff /= g_emulator->settings.get<Emulator::SettingScaler>();
+        diff *= 44100;
         diff /= g_emulator->m_psxClockSpeed;
         uint32_t target = m_audioFrames + diff;
         uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
