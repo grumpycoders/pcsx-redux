@@ -103,6 +103,18 @@ let
       rev = "ae721c50eaf761660b4f90cc590453cdb0c2acd0";
       hash = "sha256-BIhbhXV7q5vodJ3N14vN9mEVwqrP6z9zqEEQrfLPzvI=";
     })
+    ({
+      owner = "rixnobis";
+      repo = "iec-60908b";
+      rev = "62f7068397b7fae3abcd44e3d1c85c793de8938a";
+      hash = "sha256-haVRc7iIXKk36OTMGCy065OJTiT+B7aFs5MYiWzMotA=";
+    })
+    ({
+      owner = "rixnobis";
+      repo = "cueparser";
+      rev = "17f2c521ddf76466ef23db92b9fa2d7b933ca7ef";
+      hash = "sha256-wBkLoznyekF+HGZagfOdQVyvkjqqgaFHIL1cIKqdLA4=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
