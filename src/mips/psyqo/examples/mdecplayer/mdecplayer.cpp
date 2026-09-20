@@ -479,9 +479,20 @@ void PlayScene::frame() {
             pcsx_exit(20);
         }
         for (uint32_t i = 0; i <= want; i++) {
-            if (!decodeInto(i)) {
+            if (!decodeInto(i, 0)) {
                 ramsyscall_printf("MDPL: decode failed on frame %d\n", i);
                 pcsx_exit(21);
+            }
+            // frame() re-seats the MDEC after waitUpload() when a decode leaves a
+            // command half-consumed. Nothing here reaches that, so a capture of
+            // frame n > 0 would feed the next command into a stalled MDEC.
+            if (m_needReset) {
+                const int bad = mdecReset();
+                m_needReset = false;
+                if (bad) {
+                    ramsyscall_printf("MDPL: MDEC re-seat failed (%d) after frame %d\n", bad, i);
+                    pcsx_exit(24);
+                }
             }
         }
         PCinit();
