@@ -51,7 +51,6 @@ jobs:
       fail-fast: false
       matrix:
         sample:
-          - src/mips/helloworld
           - src/mips/modplayer
           - src/mips/psyqo/examples/hello
     steps:
