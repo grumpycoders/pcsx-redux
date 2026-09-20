@@ -32,7 +32,7 @@ SOFTWARE.
 #include <exception>
 #include <vector>
 
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/encoder.hh"
 #include "n2e-d.h"
 #include "support/polyfills.h"
 #include "supportpsx/ucl-utils.h"

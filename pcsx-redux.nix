@@ -120,15 +120,26 @@ let
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
-  } ++ lib.optional withOpenbios {
-    owner = "grumpycoders";
-    repo = "uC-sdk";
-    rev = "69e06871824e2d62069487a7426ded09090ceb69";
-    hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
-  };
+  } ++ lib.optionals withOpenbios [
+    # nugget first: uC-sdk lands inside the tree this unpacks.
+    ({
+      owner = "pcsx-redux";
+      repo = "nugget";
+      rev = "77adff516017044f2c6d9b21f66c124b9593959a";
+      hash = "sha256-N6FmNautSbIGNfsfNDdmy4jqj6dco8dXj5GBdKadQkI=";
+      dest = "src/mips";
+    })
+    ({
+      owner = "grumpycoders";
+      repo = "uC-sdk";
+      rev = "69e06871824e2d62069487a7426ded09090ceb69";
+      hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
+      dest = "src/mips/third_party/uC-sdk";
+    })
+  ];
 
-  fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} third_party/${repo}";
+  fetchSubmodule = { owner, repo, rev, hash, dest ? "third_party/${repo}" }@args:
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub (removeAttrs args [ "dest" ])).out} ${dest}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";

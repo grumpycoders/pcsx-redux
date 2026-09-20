@@ -8,7 +8,7 @@ under certain conditions. See [the license](https://github.com/grumpycoders/pcsx
 OpenBIOS, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)
 OpenBIOS comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
-under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/LICENSE) for details.
+under certain conditions. See [the license](https://github.com/pcsx-redux/nugget/blob/main/LICENSE) for details.
 
 PCSX-Redux uses many third party libraries to function,
 each with its own license. The following is an alphabetical
