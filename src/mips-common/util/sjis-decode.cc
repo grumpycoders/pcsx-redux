@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2022 PCSX-Redux authors
+Copyright (c) 2026 PCSX-Redux authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,18 @@ SOFTWARE.
 
 */
 
-#include "support/sjis_conv.h"
+#include "sjis-decode.hh"
 
-#include "mips-common/util/sjis-table.h"
+#include "sjis-fullwidth-ascii.hh"
+#include "sjis-table.h"
 
-std::string PCSX::Sjis::toUtf8(const std::string_view& str) {
-    std::string ret;
-    constexpr unsigned tableSize = sizeof(c_sjisToUnicodeConvTable) / sizeof(c_sjisToUnicodeConvTable[0]);
-    for (size_t i = 0; i < str.length(); i++) {
-        uint8_t c = str[i];
+uint32_t Sjis::sjisToUtf8(char* dst, uint32_t dstSize, const uint8_t* src, uint32_t srcLen) {
+    constexpr uint32_t tableSize = sizeof(c_sjisToUnicodeConvTable) / sizeof(c_sjisToUnicodeConvTable[0]);
+    if (dstSize == 0) return 0;
+    uint32_t out = 0;
+    for (uint32_t i = 0; i < srcLen; i++) {
+        uint8_t c = src[i];
+        if (c == 0) break;  // NUL terminates; 0x00 is never a Shift-JIS lead/trail byte.
         uint32_t index = 0;
         switch (c >> 4) {
             case 8:
@@ -45,29 +48,28 @@ std::string PCSX::Sjis::toUtf8(const std::string_view& str) {
                 index = 0x2100;
                 break;
         }
-
         if (index != 0) {
             index += (c & 0x0f) << 8;
-            i++;
-            if (i >= str.length()) break;
-            c = str[i];
+            if (++i >= srcLen) break;  // truncated trailing lead byte: drop it.
+            c = src[i];
         }
-
         index += c;
-
         if (index >= tableSize) continue;
         uint16_t v = c_sjisToUnicodeConvTable[index];
         if (v < 0x80) {
-            ret += v;
+            if (out + 1 >= dstSize) break;
+            dst[out++] = static_cast<char>(v);
         } else if (v < 0x800) {
-            ret += 0xc0 | (v >> 6);
-            ret += 0x80 | (v & 0x3f);
+            if (out + 2 >= dstSize) break;
+            dst[out++] = static_cast<char>(0xc0 | (v >> 6));
+            dst[out++] = static_cast<char>(0x80 | (v & 0x3f));
         } else {
-            ret += 0xe0 | (v >> 12);
-            ret += 0x80 | ((v & 0xfff) >> 6);
-            ret += 0x80 | (v & 0x3f);
+            if (out + 3 >= dstSize) break;
+            dst[out++] = static_cast<char>(0xe0 | (v >> 12));
+            dst[out++] = static_cast<char>(0x80 | ((v & 0xfff) >> 6));
+            dst[out++] = static_cast<char>(0x80 | (v & 0x3f));
         }
     }
-
-    return ret;
+    dst[out] = '\0';
+    return out;
 }

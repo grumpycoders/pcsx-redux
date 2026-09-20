@@ -27,7 +27,7 @@
 #include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/encoder.hh"
 #include "support/file.h"
 #include "supportpsx/binloader.h"
 
