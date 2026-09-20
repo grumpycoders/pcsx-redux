@@ -46,11 +46,12 @@ SOFTWARE.
  * and 0x3800.
  *
  * WHAT IT IS FOR. The AC loop has one bounds test in it, `count >= target`, and
- * a dispatch whose rows past the code book are an end-of-block sentinel. Neither
- * is reachable from a sound stream, so a real frame exercises neither: the
- * sentinel entry can be corrupted and every decode of a real frame is still
- * byte-identical, which is how it went untested. Both cases need input built to
- * reach them, which is what this makes.
+ * a dispatch whose rows past the code book are an end-of-block sentinel. A sound
+ * frame indexes that sentinel about once, at the end of the payload, in the block
+ * the past-end check then discards - so its contents never reach `out` and a
+ * corrupted sentinel leaves every decode of a real frame byte-identical. The
+ * bounds test is not reached at all. Both need input built to reach them with an
+ * observable result, which is what this makes.
  *
  * The three properties it asserts, and why each one is here:
  *
