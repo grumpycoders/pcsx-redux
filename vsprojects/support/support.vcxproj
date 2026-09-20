@@ -149,7 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\mips\common\util\sjis-table.h" />
+    <ClInclude Include="..\..\src\mips-common\util\sjis-table.h" />
     <ClInclude Include="..\..\src\support\bezier.h" />
     <ClInclude Include="..\..\src\support\binpath.h" />
     <ClInclude Include="..\..\src\support\binstruct.h" />
