@@ -78,13 +78,6 @@ jobs:
           cp -rv .github/filter-mips /tmp
           cp src/mips/Doxyfile /tmp
           /tmp/filter-mips/filter.sh
-      - name: Pushing result
-        env:
-          PAT: ${{ secrets.EXPORT_PAT }}
-        run: |
-          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-          git remote add nugget https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git
-          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git main
       - name: Creating documentation
         run: |
           doxygen /tmp/Doxyfile
@@ -101,6 +94,7 @@ jobs:
         env:
           PAT: ${{ secrets.EXPORT_PAT }}
         run: |
+          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
           git push --force https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git gh_pages
 
   export-support:
