@@ -62,41 +62,6 @@ jobs:
           title: "[Chores] Format code"
           draft: false
 
-  export-mips:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install doxygen
-        run: sudo apt-get install -y doxygen graphviz
-      - name: Filter repository
-        env:
-          FILTER_BRANCH_SQUELCH_WARNING: 1
-        run: |
-          cp -rv .github/filter-mips /tmp
-          cp src/mips/Doxyfile /tmp
-          /tmp/filter-mips/filter.sh
-      - name: Creating documentation
-        run: |
-          doxygen /tmp/Doxyfile
-          mv html /tmp
-          rm -rf latex
-          git checkout --orphan gh_pages
-          git rm -rf .
-          mv /tmp/html/* .
-          git add .
-          git config --global user.email "pixel@nobis-crew.org."
-          git config --global user.name 'Nicolas "Pixel" Noble'
-          git commit -m "Documentation."
-      - name: Pushing documentation
-        env:
-          PAT: ${{ secrets.EXPORT_PAT }}
-        run: |
-          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/nugget.git gh_pages
-
   export-support:
     runs-on: ubuntu-latest
 

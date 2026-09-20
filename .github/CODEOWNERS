@@ -1,4 +1,6 @@
-# Reviews on the MIPS tree are auto-requested from its owner. This is advisory
-# until `require_code_owner_review` is enabled on the branch ruleset.
+# The MIPS tree lives in pcsx-redux/nugget now, so the only thing left under
+# this path is the submodule pointer. Bumping it auto-requests a review from
+# nugget's owner. Advisory until `require_code_owner_review` is enabled on the
+# branch ruleset.
 
-/src/mips/ @rixnobis
+/src/mips @rixnobis
