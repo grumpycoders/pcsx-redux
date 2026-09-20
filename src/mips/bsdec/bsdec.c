@@ -120,12 +120,35 @@ struct BsdecBits {
  * `bytes` is even - bsdecFrame rounds it down - so the pair read never straddles
  * the end of the payload.
  */
+/*
+ * ONE HALFWORD LOAD, NOT TWO BYTES AND A SHIFT-OR, AND THE ALIGNMENT IS ALREADY
+ * REQUIRED. bsdecFrame documents that `in` must be halfword aligned; the
+ * payload starts eight bytes into it, so `base` inherits that, and `feed` is
+ * even between pulls because every pull is a pair. The comment that used to sit
+ * here defended the byte pair as costing `in` no alignment it did not already
+ * have - which was answering the wrong question, since it already has it.
+ * Measured on an SCPH-1001, whole-symbol arms with the leading-zero count
+ * inlined so the reading is not swamped by spills: 72.49 -> 64.68 cycles a
+ * symbol, i.e. the pair was worth 7.81.
+ *
+ * Little-endian only, and guarded rather than assumed: the halfword a BS stream
+ * carries is `b[feed] | b[feed+1] << 8`, which is what a 16-bit load spells on
+ * a little-endian machine and is not what it spells anywhere else. The console
+ * and every host this is built on are little-endian; a big-endian one still
+ * gets a correct decoder through the byte pair.
+ */
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define BSDEC_HALF(base, feed) (((const uint16_t *)(base))[(feed) >> 1])
+#else
+#define BSDEC_HALF(base, feed) ((uint32_t)(base)[feed] | ((uint32_t)(base)[(feed) + 1] << 8))
+#endif
+
 static void bsdecRefill(struct BsdecBits *b) {
     PROF_COUNT(refillCalls);
     while (b->valid <= 16) {
         PROF_COUNT(refillBytes);
         uint32_t half = 0;
-        if (b->feed < b->bytes) half = (uint32_t)b->base[b->feed] | ((uint32_t)b->base[b->feed + 1] << 8);
+        if (b->feed < b->bytes) half = BSDEC_HALF(b->base, b->feed);
         b->feed += 2;
         b->window |= half << (16 - b->valid);
         b->valid += 16;
@@ -286,21 +309,42 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
          * so these stay in registers across the stores and are written back once
          * on the way out. Nothing between here and the write-back may touch `b`.
          */
-        uint32_t win = b.window, pos = b.pos, feed = b.feed;
-        int32_t valid = b.valid;
+        /*
+         * ONE COUNTER, NOT TWO. `pos` and `valid` are the same quantity read
+         * from opposite ends - `valid == 8 * feed - pos` holds at every point,
+         * because the only things that move either are a refill (feed += 2,
+         * valid += 16) and a consume (pos += k, valid -= k), and both start at
+         * zero. So maintaining both costs an add and a subtract per symbol to
+         * compute something the other one already knows, and it holds one more
+         * value live across the leading-zero call, where a spill and its reload
+         * cost 6 to 10 cycles each.
+         *
+         * What is kept is `16 - valid` rather than `valid`, which makes the
+         * refill's shift free: the amount a top-up has to shift by IS the
+         * counter, so `half << (16 - valid)` becomes `half << d` and the
+         * subtract goes with it. Refill while d >= 0 is exactly the old
+         * `valid <= 16`.
+         *
+         * Measured on an SCPH-1001, same whole-symbol arm: 64.68 -> 51.46
+         * cycles a symbol with the count inlined, 147.91 -> 92.22 as the
+         * decoder is built today, where dropping the live value matters more
+         * than dropping the arithmetic.
+         */
+        uint32_t win = b.window, feed = b.feed;
+        int32_t d = 16 - b.valid;
         const uint8_t *const base = b.base;
         const uint32_t bytes = b.bytes;
         for (;;) {
             uint32_t n, e;
             PROF_COUNT(acSymbols);
             unsigned w, kind;
-            while (valid <= 16) {
+            while (d >= 0) {
                 uint32_t half = 0;
                 PROF_COUNT(refillBytes);
-                if (feed < bytes) half = (uint32_t)base[feed] | ((uint32_t)base[feed + 1] << 8);
+                if (feed < bytes) half = BSDEC_HALF(base, feed);
                 feed += 2;
-                win |= half << (16 - valid);
-                valid += 16;
+                win |= half << d;
+                d -= 16;
             }
             PROF_COUNT(refillCalls);
             /* n is 0..31 and both dispatch tables are 32 long, the rows past the
@@ -320,16 +364,14 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
              * 31, and bsdecClz32 reports 31 rather than 32 for an empty window
              * so that the first one is in range as well. */
             n = bsdecClz32(win);
-            pos += n + 1;
             win = (win << n) << 1;
-            valid -= (int32_t)n + 1;
+            d += (int32_t)n + 1;
             w = c_bsdecVlcSuffixBits[n];
             e = c_bsdecVlc[c_bsdecVlcOffset[n] + (w ? (win >> (32 - w)) : 0u)];
             {
                 const unsigned sb = BSDEC_VLC_SUFFIXBITS(e);
-                pos += sb;
                 win <<= sb;
-                valid -= (int32_t)sb;
+                d += (int32_t)sb;
             }
             if (count >= target) {
                 count = blockStart;
@@ -349,28 +391,31 @@ struct BsdecResult bsdecFrame(const void *in, uint32_t inBytes, uint16_t *out, u
                  * byte pull here would leave it odd and every later pair would
                  * straddle two halfwords, which desyncs the stream from the
                  * first escape on and decodes as a plausible 1861 blocks. */
-                while (valid <= 16) {
+                while (d >= 0) {
                     uint32_t half = 0;
                     PROF_COUNT(refillBytes);
-                    if (feed < bytes) half = (uint32_t)base[feed] | ((uint32_t)base[feed + 1] << 8);
+                    if (feed < bytes) half = BSDEC_HALF(base, feed);
                     feed += 2;
-                    win |= half << (16 - valid);
-                    valid += 16;
+                    win |= half << d;
+                    d -= 16;
                 }
                 PROF_COUNT(refillCalls);
                 out[count++] = (uint16_t)(win >> 16);
-                pos += 16;
                 win <<= 16;
-                valid -= 16;
+                d += 16;
             } else {
                 out[count++] = BSDEC_VLC_HALFWORD(e);
                 if (kind == BSDEC_VLC_EOB) break;
             }
         }
+        /* `pos` is reconstructed from the invariant the loop maintained rather
+         * than carried through it. Everything downstream reads `pos` - the
+         * past-end test is `pos > availBits` - so it has to be exact here, and
+         * it is: nothing between the read above and this write touches `b`. */
         b.window = win;
-        b.pos = pos;
         b.feed = feed;
-        b.valid = valid;
+        b.valid = 16 - d;
+        b.pos = feed * 8u - (uint32_t)(16 - d);
         PROF2_ACC(tAc, g_bsdecProf.tAc);
         }
         /* A block is only sound if every bit in it came from the payload, and a
