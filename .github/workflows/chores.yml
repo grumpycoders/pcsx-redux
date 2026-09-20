@@ -80,5 +80,5 @@ jobs:
           PAT: ${{ secrets.EXPORT_PAT }}
         run: |
           git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
-          git remote add support https://rixnobis:$PAT@github.com/pcsx-redux/support.git
-          git push --force https://rixnobis:$PAT@github.com/pcsx-redux/support.git main
+          git remote add support "https://rixnobis:$PAT@github.com/pcsx-redux/support.git"
+          git push --force "https://rixnobis:$PAT@github.com/pcsx-redux/support.git" main
