@@ -41,4 +41,28 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-dofile` | Specifies a Lua file to load through the `Support.extra.dofile` function. |
 | `-exec` | Specifies a Lua string to execute. |
 | `-luacov` | Enables Lua code coverage report. Requires the `luacov` Lua module to be installed. |
-| `-portable` | Enables portable mode. Settings and saves will be stored in the same directory as the executable, or in the directory specified by the optional argument to this flag. |
+| `-portable` | Enables portable mode. Settings and saves are stored in the current directory, or in the directory given as an optional argument to this flag. See [Where your data lives](#where-your-data-lives). |
+| `-no-portable` | Disables portable mode, overriding any of the automatic detections described below. |
+
+## Where your data lives
+
+Settings, memory cards and save states go in one of two places.
+
+**Normally** they go in a per-user directory: `%APPDATA%\pcsx-redux` on Windows and
+`$HOME/.config/pcsx-redux` everywhere else, macOS included. It is created on first run.
+
+**In portable mode** they go in the portable directory instead, which is the current
+directory unless something else set it. Portable mode turns on when any of these is true:
+
+- `-portable` was passed;
+- a `pcsx.json` exists in the current directory;
+- a `pcsx.json` exists next to the executable, in which case the portable directory is
+  the executable's directory and not the current one;
+- the emulator is being run out of its own source tree.
+
+`-no-portable` turns it off again.
+
+The current directory is not always the directory holding the binary. A shortcut with its
+own start-in, a file association on a disc image, or a frontend will each hand the emulator
+something else. For a portable install that follows the binary, put the `pcsx.json` next to
+it; then the launch directory stops mattering.
