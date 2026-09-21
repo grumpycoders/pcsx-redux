@@ -56,6 +56,11 @@ static void spu_dma_write(uint32_t spuByteAddr, const void *src, uint32_t bytes)
 int main() {
     ramsyscall_printf("SPUENDX: start\n");
 
+    // DMA4 has to be enabled before any SPU RAM transfer, or spu_dma_write
+    // below is a no-op and every voice reads whatever was already in SPU RAM.
+    // The other SPU suites (spu, spu-envx, spu-revstream) all do this; this one
+    // copied their transfer routine without it.
+    DPCR |= 0x000b0000;
     SPU_CTRL = 0;
     for (volatile int i = 0; i < 60; i++);
     SPU_RAM_DTC = 4;  // required on real hardware for SPU RAM transfers
