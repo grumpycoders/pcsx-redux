@@ -150,7 +150,11 @@ This is where the work happens: the layout is computed, then the PVD, the volume
 
 EDC and ECC are computed for every sector, in parallel. `threadCount` is the number of worker threads to use for that; 0 means one per hardware thread. There is no way to turn the computation off, since an image with wrong EDC is not a useful image.
 
-The builder does not add trailing padding past the end of the volume. That is worth knowing if the image is destined for real hardware rather than for an emulator: the CD-ROM controller's seek-and-settle behaviour near the end of the disc can run off the back of the readable region, so a burnable image generally wants some zero-filled sectors after the last real data. PCSX-Redux itself is perfectly happy with a truncated tail.
+The builder does not add trailing padding past the end of the volume, and on real hardware that is a problem. The Mechacon has trouble seeking near the end of a disc: it regularly overshoots, and with nothing past the last real sector, it gets stuck there. Zero-filled sectors after the data are a landing zone that guarantees it cannot.
+
+How many of them you need is a function of the read pattern. If the read is linear from the start of an extent and never goes near the edge of the written area, read-ahead slack is all there is to cover, and the 150 sectors `exe2iso` appends, two seconds of disc time, are right for a disc holding a single executable. If arbitrary seeks near the last written sector are possible, size against the overshoot instead: the authoring tool appends 9000, since an archive can be seeked into anywhere, including its own edge. Neither number is wrong; they answer different questions.
+
+PCSX-Redux reads a truncated tail perfectly happily, so an image missing its padding passes every test you can run without a burner. Append the sectors after `close()`: the layout always starts at sector 16 and leaves the cursor past the end of the volume, so a loop of blank `writeSector` calls lands exactly where it should.
 
 ## A complete example
 
