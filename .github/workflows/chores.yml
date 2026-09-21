@@ -26,7 +26,7 @@ jobs:
         run: rm -f i18n/*~
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT }}
           commit-message: "[Chores] Regen i18n"
@@ -50,7 +50,7 @@ jobs:
         run: ./tools/code-format/format.sh
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT }}
           commit-message: "[Chores] Format code"
