@@ -2,7 +2,7 @@
 // Validate voice resampling
 // ==========================================================================
 
-CESTER_TEST(voice_sample_rates, spu_tests,
+CESTER_MAYBE_TEST(voice_sample_rates, spu_tests,
     run_voice1_with_sample(kAdpcmSine, 0x0800);
     SPU_ASSERT_GOLDEN(sine_pitch_0800);
     run_voice1_with_sample(kAdpcmSine, 0x2000);
@@ -24,7 +24,7 @@ CESTER_TEST(voice_sample_rates, spu_tests,
 // which fits inside the 512-sample capture ring; a rate whose period does not
 // fit leaves the golden unable to absorb a phase difference by rotation, and
 // the comparison silently becomes a test of absolute key-on phase.
-CESTER_TEST(voice_sample_rate_nondyadic, spu_tests,
+CESTER_MAYBE_TEST(voice_sample_rate_nondyadic, spu_tests,
     run_voice1_with_sample(kAdpcmSine, 0x1500);
     SPU_ASSERT_GOLDEN(sine_pitch_1500);
 )
@@ -44,7 +44,7 @@ CESTER_TEST(voice_sample_rate_nondyadic, spu_tests,
 // samples for one rate in one pass. den = 4 costs 112 samples of the 512-sample
 // ring, which survives the worst warmup seen; den = 8 and den = 16 do not, and both
 // were measured taking the no-period path.
-CESTER_TEST(voice_sample_rate_swept_index, spu_tests,
+CESTER_MAYBE_TEST(voice_sample_rate_swept_index, spu_tests,
     run_voice1_with_sample(kAdpcmSine, 0x1400);
     SPU_ASSERT_GOLDEN(sine_pitch_1400);
 )
@@ -54,12 +54,12 @@ CESTER_TEST(voice_sample_rate_swept_index, spu_tests,
 // joint period of 16*7 = 112 - the same ring cost as the four-index capture
 // above, four times the coverage, and 400 samples of headroom for the warmup.
 // gcd(19, 7) = 1, so every source phase stays reachable by rotation.
-CESTER_TEST(voice_sample_rate_swept_index_full, spu_tests,
+CESTER_MAYBE_TEST(voice_sample_rate_swept_index_full, spu_tests,
     run_voice1_with_sample(kAdpcmSine7, 0x1300);
     SPU_ASSERT_GOLDEN(sine7_pitch_1300);
 )
 
-CESTER_TEST(voice_volume_does_not_affect_capture, spu_tests,
+CESTER_MAYBE_TEST(voice_volume_does_not_affect_capture, spu_tests,
     SPU_VOICES[1].volumeLeft = 0x3fff;
     SPU_VOICES[1].volumeRight = 0x3fff;
     run_voice1_with_sample(kAdpcmTriangle, 0x1000);

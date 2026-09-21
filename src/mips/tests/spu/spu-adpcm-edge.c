@@ -275,7 +275,7 @@ CESTER_TEST(adpcm_edge_flag_loop_start_latch, spu_tests,
     spu_adpcm_edge_stop();
 )
 
-CESTER_TEST(adpcm_edge_flag_end_mute, spu_tests,
+CESTER_MAYBE_TEST(adpcm_edge_flag_end_mute, spu_tests,
     uint8_t sample[64];
     spu_adpcm_edge_block(sample, 0, 0x04, 0x04, kEdgePositive);
     spu_adpcm_edge_block(sample, 1, 0x04, 0x01, kEdgeNegative);

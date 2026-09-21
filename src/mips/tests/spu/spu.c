@@ -47,6 +47,20 @@ static uint8_t  s_reverb_work[0x3000]   __attribute__((aligned(4)));
 #define EXIT_FAILURE 1
 #include "exotic/cester.h"
 
+// Tests that hold on silicon and do not hold under emulation yet. Same convention as the cpu
+// and gpu-raster-phase16 suites: skipped when built for the emulator, run when built for real
+// hardware, so CI gets a verdict it can act on and the goldens keep their value as a target.
+// Every one of these is a known open defect with a card behind it, not a tolerance dodge.
+#ifndef PCSX_TESTS
+#define PCSX_TESTS 0
+#endif
+
+#if PCSX_TESTS
+#define CESTER_MAYBE_TEST CESTER_SKIP_TEST
+#else
+#define CESTER_MAYBE_TEST CESTER_TEST
+#endif
+
 #ifndef SPU_TEST_HELPERS_DEFINED
 #define SPU_TEST_HELPERS_DEFINED
 

@@ -43,3 +43,16 @@ TEST(SPU, OffVoiceIrq) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// The accuracy suite: ADPCM decode, the envelope shapes, the capture mirror, sample rates and
+// IRQ9, every one graded against a capture from an SCPH-1001 rather than against us. The
+// families that do not hold here yet are CESTER_MAYBE_TEST in the guest and compile out under
+// PCSX_TESTS, so what runs below is the part that already matches silicon and a failure is a
+// regression in it. Interpreter for the same reason as above. Building the guest with
+// PCSX_TESTS=true is what selects the emulator subset, and src/mips/tests/Makefile passes it.
+TEST(SPU, Accuracy) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu/spu.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}

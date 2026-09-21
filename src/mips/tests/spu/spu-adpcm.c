@@ -7,32 +7,32 @@ CESTER_TEST(adpcm_decode_silent, spu_tests,
     SPU_ASSERT_GOLDEN(silent);
 )
 
-CESTER_TEST(adpcm_decode_sinewave, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_sinewave, spu_tests,
     run_voice1_with_sample(kAdpcmSine, 0x1000);
     SPU_ASSERT_GOLDEN(sine);
 )
 
-CESTER_TEST(adpcm_decode_sinewave_lowpitch, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_sinewave_lowpitch, spu_tests,
     run_voice1_with_sample(kAdpcmSine394Hz, 0x1000);
     SPU_ASSERT_GOLDEN(sine_low);
 )
 
-CESTER_TEST(adpcm_decode_sinewave_highpitch, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_sinewave_highpitch, spu_tests,
     run_voice1_with_sample(kAdpcmSine5512Hz, 0x1000);
     SPU_ASSERT_GOLDEN(sine_high);
 )
 
-CESTER_TEST(adpcm_decode_tranglewave, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_tranglewave, spu_tests,
     run_voice1_with_sample(kAdpcmTriangle, 0x1000);
     SPU_ASSERT_GOLDEN(triangle);
 )
 
-CESTER_TEST(adpcm_decode_squarewave, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_squarewave, spu_tests,
     run_voice1_with_sample(kAdpcmSquare, 0x1000);
     SPU_ASSERT_GOLDEN(square);
 )
 
-CESTER_TEST(adpcm_decode_with_loop, spu_tests,
+CESTER_MAYBE_TEST(adpcm_decode_with_loop, spu_tests,
     run_voice1_with_sample(kAdpcmTriangle, 0x1000);
     SPU_ASSERT_GOLDEN(loop_t0);
 
