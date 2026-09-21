@@ -29,8 +29,8 @@ SOFTWARE.
 // Expected hardware VRAM values for the gpu-raster suite.
 //
 // These are the per-pixel hardware-truth assertions the suite checks against.
-// Initial values are best-guess from psx-spx + the standard top-left fill
-// rule + the verified facts in ~/.claude-stealth/learnings/pcsx-redux/gpu.md.
+// Initial values are best-guess from psx-spx plus the standard top-left fill
+// rule, then captured off real hardware by the workflow immediately below.
 //
 // CAPTURE WORKFLOW:
 //
