@@ -26,10 +26,10 @@ struct Thrower<R (*)(A...)> {
     static R call(A...) { throw std::runtime_error("gl function not loaded"); }
 };
 
-#if defined(_WIN32) || defined(_WIN64)
-// APIENTRY is __stdcall on Windows, which is a distinct type from the one above.
-// Where it expands to nothing these two would be the same declaration, hence the
-// guard rather than an unconditional second specialization.
+#if defined(_WIN32) && (defined(_M_IX86) || defined(__i386__))
+// APIENTRY is __stdcall on Windows, which is a distinct type from the one above
+// only on 32-bit x86. Everywhere else the calling convention is ignored and a
+// second specialization would redefine the first.
 template <typename R, typename... A>
 struct Thrower<R(APIENTRY *)(A...)> {
     static R APIENTRY call(A...) { throw std::runtime_error("gl function not loaded"); }
