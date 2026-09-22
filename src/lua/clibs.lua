@@ -168,12 +168,10 @@ function M.install()
     return true
 end
 
--- Self-installing: Redux's L.load runs the chunk and discards its return value,
--- so there is no module for a later require to pick up.
+-- Self-installing, and returns nothing: Redux's L.load leaves a chunk's return
+-- values on the Lua stack, and the emulator expects it empty once setLua is done.
 local ok, why = M.install()
 if not ok then
     print("_CLIBS adapter not installed: " .. tostring(why))
 end
-
-return M
 -- )EOF"
