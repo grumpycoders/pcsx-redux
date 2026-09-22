@@ -2,7 +2,7 @@
   "name": "psx-dev",
   "displayName": "PSX.Dev",
   "description": "PlayStation 1 development made easy",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "engines": {
     "vscode": "^1.82.0"
   },
