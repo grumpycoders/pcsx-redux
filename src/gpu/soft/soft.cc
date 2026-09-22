@@ -32,12 +32,11 @@ static constexpr int CHKMAX_Y = 512;
 // via gpu-raster-phase14). The drop is unconditional - it does NOT depend on
 // any vertex being off-screen.
 //
-// The comment here used to say hardware applied the rule to the 4-vertex
-// perimeter only, and that was never measured. It is wrong: gpu-raster-phase23
-// Q2/Q3 on SCPH-1000, SCPH-5501 and SCPH-7001 show the compared set is the
-// five edges of the two rendered triangles, i.e. the perimeter PLUS the shared
-// diagonal v1-v2. The remaining pair v0-v3 belongs to neither triangle and is
-// NOT compared, so a quad may legally span more than 1023 across it.
+// For a quad the compared set is the five edges of the two rendered triangles:
+// the four perimeter edges plus the shared diagonal v1-v2. The remaining pair
+// v0-v3 belongs to neither triangle and is not compared, so a quad may span
+// more than 1023 across it and still draw. Verified on SCPH-1000, SCPH-5501
+// and SCPH-7001 via gpu-raster-phase23 Q2/Q3.
 static inline bool edgeOverLimit(int x0, int y0, int x1, int y1) {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -53,8 +52,8 @@ bool PCSX::SoftGPU::SoftRenderer::checkCoord4(int16_t &x0, int16_t &y0, int16_t 
     if (edgeOverLimit(x1, y1, x3, y3)) return true;
     if (edgeOverLimit(x3, y3, x2, y2)) return true;
     if (edgeOverLimit(x2, y2, x0, y0)) return true;
-    // Plus the diagonal the two rendered triangles share. v0-v3 is deliberately
-    // absent: it is an edge of neither triangle and hardware does not compare it.
+    // Plus the diagonal the two rendered triangles share. v0-v3 is an edge of
+    // neither triangle and hardware does not compare it.
     if (edgeOverLimit(x1, y1, x2, y2)) return true;
 
     return false;
