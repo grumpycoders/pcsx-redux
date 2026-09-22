@@ -9,6 +9,6 @@ target("pcsx.authoring", function ()
     add_includedirs(path.join(support_root, "third_party", "ucl", "include"))
 end)
 
-rule("pcsx.authoring.iso", function()
-    generic_conversion("pcsx.authoring", ".iso", "authoring")
+rule("pcsx.authoring.image", function()
+    authoring_image("pcsx.authoring", ".bin", "authoring")
 end)
