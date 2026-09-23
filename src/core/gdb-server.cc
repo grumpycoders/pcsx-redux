@@ -607,7 +607,7 @@ void PCSX::GdbClient::processCommand() {
         }
         const auto bpActionExec = [action, this](uint32_t addr, Debug::BreakpointType type, unsigned width) -> void {
             if (action == Action::ADD) {
-                auto bp = g_emulator->m_debug->addBreakpoint(addr, type, 4, _("GDB client"));
+                auto bp = g_emulator->m_debug->addBreakpoint(addr, type, width, _("GDB client"));
                 m_breakpoints.push_back(bp);
             } else {
                 addr &= ~0xe0000000;
