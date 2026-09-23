@@ -27,7 +27,7 @@
 #include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/encoder.hh"
 #include "support/file.h"
 #include "supportpsx/binloader.h"
 
@@ -182,9 +182,10 @@ bool PCSX::Memory::loadEXP1FromFile(std::filesystem::path rom_path) {
 }
 
 void PCSX::Memory::reset() {
+    const uint8_t memsetValue = g_emulator->settings.get<Emulator::SettingMemoryFillValue>().value;
     const uint32_t bios_size = 0x00080000;
     const uint32_t exp1_size = 0x00040000;
-    memset(m_wram, 0, 0x00800000);
+    memset(m_wram, memsetValue, 0x00800000);
     memset(m_exp1, 0xff, exp1_size);
     memset(m_bios, 0, bios_size);
     memset(m_sram, 0, 0x00200000);

@@ -109,20 +109,43 @@ let
       rev = "ae721c50eaf761660b4f90cc590453cdb0c2acd0";
       hash = "sha256-BIhbhXV7q5vodJ3N14vN9mEVwqrP6z9zqEEQrfLPzvI=";
     })
+    ({
+      owner = "rixnobis";
+      repo = "iec-60908b";
+      rev = "62f7068397b7fae3abcd44e3d1c85c793de8938a";
+      hash = "sha256-haVRc7iIXKk36OTMGCy065OJTiT+B7aFs5MYiWzMotA=";
+    })
+    ({
+      owner = "rixnobis";
+      repo = "cueparser";
+      rev = "17f2c521ddf76466ef23db92b9fa2d7b933ca7ef";
+      hash = "sha256-wBkLoznyekF+HGZagfOdQVyvkjqqgaFHIL1cIKqdLA4=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
-  } ++ lib.optional withOpenbios {
-    owner = "grumpycoders";
-    repo = "uC-sdk";
-    rev = "69e06871824e2d62069487a7426ded09090ceb69";
-    hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
-  };
+  } ++ lib.optionals withOpenbios [
+    # nugget first: uC-sdk lands inside the tree this unpacks.
+    ({
+      owner = "pcsx-redux";
+      repo = "nugget";
+      rev = "77adff516017044f2c6d9b21f66c124b9593959a";
+      hash = "sha256-N6FmNautSbIGNfsfNDdmy4jqj6dco8dXj5GBdKadQkI=";
+      dest = "src/mips";
+    })
+    ({
+      owner = "grumpycoders";
+      repo = "uC-sdk";
+      rev = "69e06871824e2d62069487a7426ded09090ceb69";
+      hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
+      dest = "src/mips/third_party/uC-sdk";
+    })
+  ];
 
-  fetchSubmodule = { owner, repo, rev, hash }@args:
-      "cp -ruT --no-preserve=all ${(fetchFromGitHub args).out} third_party/${repo}";
+  fetchSubmodule = { owner, repo, rev, hash, dest ? "third_party/${repo}" }@args:
+      "cp -ruT --no-preserve=all ${(fetchFromGitHub (removeAttrs args [ "dest" ])).out} ${dest}";
 
 in stdenv.mkDerivation {
   pname = "pcsx-redux";

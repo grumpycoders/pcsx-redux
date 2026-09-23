@@ -31,7 +31,7 @@
 #include "gui/gui.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/encoder.hh"
 
 void PCSX::Widgets::TypedDebugger::import(std::string_view fileContents, ImportType importType) {
     std::istringstream file(std::string(fileContents), std::ios_base::in);

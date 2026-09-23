@@ -85,6 +85,8 @@ target("pcsx-redux", function()
         "third_party/zep/src/mcommon/string/stringutils.cpp",
         nil
     )
+    -- src/mips is the nugget submodule, built by its own toolchain.
+    remove_files("src/mips/**")
 
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
