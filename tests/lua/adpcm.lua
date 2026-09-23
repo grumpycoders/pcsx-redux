@@ -253,20 +253,39 @@ local function measureError(reference, decoded, count, what)
 end
 
 -- Bounds measured with the current encoder and decoder, with some margin. See the printed values.
--- Measured: spu 277 / 52.89 dB, xa4mono 3738 / 32.86 dB, xa4stereo 3965 / 33.54 dB.
--- The XA 4-bit figures are limited by the encoder: its XA nibble packing rounds twice, via
--- (encoded + 2048) >> 12, so a sample clamped to 32767 wraps around to the nibble -8.
+-- Measured: spu 277 / 52.89 dB, xa4 mono 279 / 48.74 dB, xa4 stereo 288 / 48.56 dB,
+-- xa8 mono 19 / 67.14 dB, xa8 stereo 20 / 66.92 dB.
 -- A decoder layout mistake would bring the SNR down to about 0 dB.
 local roundTripBounds = {
     spu = { maxErr = 400, snr = 50 },
-    xa4mono = { maxErr = 5000, snr = 30 },
-    xa4stereo = { maxErr = 5000, snr = 30 },
+    xa4mono = { maxErr = 400, snr = 45 },
+    xa4stereo = { maxErr = 400, snr = 45 },
+    xa8mono = { maxErr = 100, snr = 60 },
+    xa8stereo = { maxErr = 100, snr = 60 },
 }
 
 local function checkBounds(name, maxErr, snr)
     local b = roundTripBounds[name]
     lu.assertTrue(maxErr <= b.maxErr, name .. ': max abs error ' .. maxErr .. ' exceeds ' .. b.maxErr)
     lu.assertTrue(snr >= b.snr, name .. ': SNR ' .. snr .. ' below ' .. b.snr)
+end
+
+-- Full scale input, expected blocks taken from Sony's encvag.dll output for the same input.
+function TestAdpcm:test_encodeFullScaleSPU()
+    local cases = {
+        { value = 32767, expected = '\x00\x00' .. string.rep('\x77', 14) },
+        { value = -32768, expected = '\x01\x00' .. string.rep('\x88', 14) },
+    }
+    for _, c in ipairs(cases) do
+        local samples = ffi.new('int16_t[56]')
+        for t = 28, 55 do samples[t] = c.value end
+        local out = ffi.new('uint8_t[32]')
+        local e = PCSX.Adpcm.NewEncoder()
+        e:reset 'FourBits'
+        e:processSPUBlock(samples, out, 'OneShot')
+        e:processSPUBlock(samples + 28, out + 16, 'OneShot')
+        lu.assertEquals(ffi.string(out + 16, 16), c.expected)
+    end
 end
 
 function TestAdpcm:test_roundTripSPU()
@@ -325,19 +344,8 @@ end
 
 function TestAdpcm:test_roundTripXA4Mono() roundTripXA(4, 1) end
 function TestAdpcm:test_roundTripXA4Stereo() roundTripXA(4, 2) end
--- The encoder writes max(0, shift - 4) in 8-bit XA headers, while its data, and its own noise shaping
--- feedback, use shift. Per psx-spx, 8-bit samples decode as (byte << 8) >> shift, so these streams
--- decode 16 times too loud: measured max abs error 46584 / SNR -8.33 dB (mono), 47932 / -8.47 dB
--- (stereo). The 8-bit decoding path is covered by test_decodeXALayout below instead.
-local xa8Skip = 'encoder 8-bit XA header shift (shift - 4) disagrees with psx-spx decoding; measured SNR -8 dB'
-function TestAdpcm:test_roundTripXA8Mono()
-    lu.skip(xa8Skip)
-    roundTripXA(8, 1)
-end
-function TestAdpcm:test_roundTripXA8Stereo()
-    lu.skip(xa8Skip)
-    roundTripXA(8, 2)
-end
+function TestAdpcm:test_roundTripXA8Mono() roundTripXA(8, 1) end
+function TestAdpcm:test_roundTripXA8Stereo() roundTripXA(8, 2) end
 
 -- Packs interleaved samples into XA sound groups using only filter 0, choosing the finest shift that
 -- fits each unit. With filter 0 there is no prediction, so the exact decoded output is known: each

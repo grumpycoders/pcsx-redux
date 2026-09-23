@@ -81,9 +81,8 @@ class Encoder {
     // not part of the original encvag API, but is exposed here to allow for more flexibility in the encoder.
     // The output is another block of 28 samples, but with the filter and shift values applied. The block
     // needs to be then processed using blockTo4Bit or blockTo8Bit to get the final output. The shift value
-    // will be between 0 and 12, and the filter value will be between 0 and 4. If encoding for 8-bit ADPCM,
-    // the shift value will need to be adjusted to be between 0 and 8, with the following formula:
-    //      shift8 = max(0, shift - 4)
+    // will be between 0 and 12, and the filter value will be between 0 and 4. The same shift value goes in
+    // the header for 8-bit ADPCM, as 8-bit samples are expanded by a left shift of 8 instead of 12.
     // The channels parameter is used to specify the number of channels in the input block. The input block
     // is expected to be interleaved, but the output buffer will NOT be interlaced. The maximum number of
     // channels is 2, for stereo audio, and the default is 1, for mono audio. This means that the input and

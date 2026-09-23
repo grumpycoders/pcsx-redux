@@ -70,9 +70,10 @@ void PCSX::ADPCM::Encoder::convertToDoubles(std::span<const int16_t> input, std:
     // The original code here has a more complex mechanism, using an extra parameter, which then is used to
     // generate a filter waveform to process the input, but it's always set to 1.0, so we can simplify it
     // to just this simple loop. There might be other internal code that uses this parameter, but the
-    // original encvag code doesn't seem to use it.
+    // original encvag code doesn't seem to use it. The input is clamped to [-30720, 30719] like the original,
+    // which keeps the shift search in findFilterAndShift from overflowing on loud input.
     for (int i = 0; i < 28; i++) {
-        output[i] = static_cast<double>(input[i * channels]);
+        output[i] = std::clamp(static_cast<double>(input[i * channels]), -30720.0, 30719.0);
     }
 }
 
@@ -231,8 +232,8 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Then convert and interlace the 4-bit samples
             for (unsigned s = 0; s < 28; s++) {
                 for (unsigned b = 0; b < 4; b++) {
-                    auto s1 = (encoded[s + (b * 2 + 0) * 28] + 2048) >> 12;
-                    auto s2 = (encoded[s + (b * 2 + 1) * 28] + 2048) >> 12;
+                    auto s1 = encoded[s + (b * 2 + 0) * 28] >> 12;
+                    auto s2 = encoded[s + (b * 2 + 1) * 28] >> 12;
                     output[16 + s * 4 + b] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
                 }
             }
@@ -242,7 +243,6 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Process all of the 4 28-samples block
             for (unsigned b = 0; b < 4; b++) {
                 processBlock(input + b * 28, encoded + b * 28, &filter, &shift, channels, xaMode);
-                shift = std::max(0, int(shift) - 4);
                 uint8_t h = (shift & 0x0f) | ((filter & 0x0f) << 4);
                 output[b + 0] = h;
                 output[b + 4] = h;
@@ -252,7 +252,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Then convert and interlace the 8-bit samples
             for (unsigned s = 0; s < 28; s++) {
                 for (unsigned b = 0; b < 4; b++) {
-                    output[16 + s * 4 + b] = (encoded[s + b * 28] + 128) >> 8;
+                    output[16 + s * 4 + b] = encoded[s + b * 28] >> 8;
                 }
             }
         }
@@ -276,8 +276,8 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Then convert and interlace the 4-bit samples
             for (unsigned s = 0; s < 28; s++) {
                 for (unsigned b = 0; b < 4; b++) {
-                    auto s1 = (encoded[s + (b * 2 + 0) * 28] + 2048) >> 12;
-                    auto s2 = (encoded[s + (b * 2 + 1) * 28] + 2048) >> 12;
+                    auto s1 = encoded[s + (b * 2 + 0) * 28] >> 12;
+                    auto s2 = encoded[s + (b * 2 + 1) * 28] >> 12;
                     output[16 + s * 4 + b] = (s1 & 0x0f) | ((s2 & 0x0f) << 4);
                 }
             }
@@ -287,8 +287,6 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Process all the 2 input blocks
             for (unsigned b = 0; b < 2; b++) {
                 processBlock(input + b * 56, encoded + b * 56, filter, shift, channels, xaMode);
-                shift[0] = std::max(0, int(shift[0]) - 4);
-                shift[1] = std::max(0, int(shift[1]) - 4);
                 uint8_t h0 = (shift[0] & 0x0f) | ((filter[0] & 0x0f) << 4);
                 uint8_t h1 = (shift[1] & 0x0f) | ((filter[1] & 0x0f) << 4);
                 output[b * 2 + 0] = h0;
@@ -303,7 +301,7 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
             // Then convert and interlace the 8-bit samples
             for (unsigned s = 0; s < 28; s++) {
                 for (unsigned b = 0; b < 4; b++) {
-                    output[16 + s * 4 + b] = (encoded[s + b * 28] + 128) >> 8;
+                    output[16 + s * 4 + b] = encoded[s + b * 28] >> 8;
                 }
             }
         }
