@@ -309,3 +309,81 @@ void PCSX::ADPCM::Encoder::processXABlock(const int16_t* input, uint8_t* output,
         }
     }
 }
+
+void PCSX::ADPCM::Decoder::reset() { m_history = {}; }
+
+void PCSX::ADPCM::Decoder::decodeUnit(uint8_t header, unsigned maxFilter, const int32_t* expanded, int16_t* output,
+                                      unsigned outputStride, unsigned channel) {
+    // Reserved shift values 13..15 behave the same as 9.
+    unsigned shift = header & 0x0f;
+    if (shift > 12) shift = 9;
+    // XA headers only have 2 bits of filter. SPU headers have more room, but the filter values past 4 are
+    // not documented; we treat them as filter 0, meaning no prediction.
+    unsigned filter = (header >> 4) & (maxFilter == 3 ? 0x03 : 0x07);
+    if (filter > maxFilter) filter = 0;
+    const int32_t f0 = c_filters[filter][0];
+    const int32_t f1 = c_filters[filter][1];
+    auto& history = m_history[channel];
+    int32_t old = history[0];
+    int32_t older = history[1];
+    for (unsigned i = 0; i < 28; i++) {
+        // Right shifts of negative values are arithmetic, which is well defined as of C++20. The division
+        // by 64 of the filter contribution is thus rounding towards negative infinity, after the +32 bias.
+        int32_t sample = (expanded[i] >> shift) + ((old * f0 + older * f1 + 32) >> 6);
+        sample = std::clamp(sample, -32768, 32767);
+        output[i * outputStride] = static_cast<int16_t>(sample);
+        older = old;
+        old = sample;
+    }
+    history[0] = old;
+    history[1] = older;
+}
+
+void PCSX::ADPCM::Decoder::decodeSPUBlock(const uint8_t* block, int16_t* output, uint8_t* flagsOut) {
+    if (flagsOut) *flagsOut = block[1];
+    // Byte 2 holds sample 0 in its low nibble, and sample 1 in its high nibble, and so on.
+    int32_t expanded[28];
+    for (unsigned i = 0; i < 28; i++) {
+        int32_t nibble = (block[2 + i / 2] >> ((i & 1) * 4)) & 0x0f;
+        if (nibble >= 8) nibble -= 16;
+        expanded[i] = nibble * 4096;
+    }
+    decodeUnit(block[0], 4, expanded, output, 1, 0);
+}
+
+unsigned PCSX::ADPCM::Decoder::decodeXASoundGroup(const uint8_t* group, int16_t* output, unsigned bitsPerSample,
+                                                  unsigned channels) {
+    if ((bitsPerSample != 4) && (bitsPerSample != 8)) {
+        throw std::invalid_argument("Bits per sample must be 4 or 8");
+    }
+    if ((channels != 1) && (channels != 2)) {
+        throw std::invalid_argument("Channels must be 1 or 2");
+    }
+    // A sound group is a 16-byte header, followed by 28 little endian 32-bit data words. Each data word
+    // holds one sample of each of the 8 units (4-bit) or 4 units (8-bit) of the sound group. The header
+    // of unit N is at offset 4 + N, and is repeated elsewhere in the 16-byte header. In stereo, even
+    // units are the left channel, and odd units are the right channel.
+    const bool eightBits = bitsPerSample == 8;
+    const unsigned units = eightBits ? 4 : 8;
+    for (unsigned unit = 0; unit < units; unit++) {
+        int32_t expanded[28];
+        for (unsigned i = 0; i < 28; i++) {
+            const uint8_t* word = group + 16 + i * 4;
+            if (eightBits) {
+                expanded[i] = static_cast<int32_t>(static_cast<int8_t>(word[unit])) * 256;
+            } else {
+                int32_t nibble = (word[unit / 2] >> ((unit & 1) * 4)) & 0x0f;
+                if (nibble >= 8) nibble -= 16;
+                expanded[i] = nibble * 4096;
+            }
+        }
+        const uint8_t header = group[4 + unit];
+        if (channels == 1) {
+            decodeUnit(header, 3, expanded, output + unit * 28, 1, 0);
+        } else {
+            const unsigned channel = unit & 1;
+            decodeUnit(header, 3, expanded, output + (unit / 2) * 56 + channel, 2, channel);
+        }
+    }
+    return units * 28;
+}

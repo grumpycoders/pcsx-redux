@@ -56,11 +56,48 @@ void adpcmEncoderFinishSPU(LuaAdpcmEncoder* encoder, uint8_t* output);
 void adpcmEncoderProcessXABlock(LuaAdpcmEncoder* encoder, const int16_t* input, uint8_t* output,
                                 enum XAMode, unsigned channels);
 
+typedef struct { char opaque[?]; } LuaAdpcmDecoder;
+
+LuaAdpcmDecoder* newAdpcmDecoder();
+void destroyAdpcmDecoder(LuaAdpcmDecoder* decoder);
+void adpcmDecoderReset(LuaAdpcmDecoder* decoder);
+uint8_t adpcmDecoderDecodeSPUBlock(LuaAdpcmDecoder* decoder, const void* input, void* output);
+unsigned adpcmDecoderDecodeXASoundGroup(LuaAdpcmDecoder* decoder, const void* input, void* output,
+                                        unsigned bitsPerSample, unsigned channels);
+
 ]]
 
 local C = ffi.load 'SUPPORTPSX_ADPCM'
 
 local uint8_t = ffi.typeof 'uint8_t'
+
+-- Returns a pointer to the input data, and its size if known. Accepts a LuaBuffer, a Lua string,
+-- or a raw ffi pointer; the caller has to keep the original object alive during the call.
+local function decoderInput(inData, needed, name)
+    if Support.isLuaBuffer(inData) then
+        if #inData < needed then error(name .. ': input buffer too small, needs ' .. needed .. ' bytes') end
+        return inData.data
+    elseif type(inData) == 'string' then
+        if #inData < needed then error(name .. ': input string too small, needs ' .. needed .. ' bytes') end
+        return ffi.cast('const uint8_t*', inData)
+    elseif type(inData) == 'cdata' then
+        return inData
+    end
+    error(name .. ': input must be a LuaBuffer, a string, or a pointer')
+end
+
+-- Returns the object to hand back to the caller, and the pointer to write to.
+local function decoderOutput(outData, bytes, name)
+    if outData == nil then outData = Support.NewLuaBuffer(bytes) end
+    if Support.isLuaBuffer(outData) then
+        if outData:maxsize() < bytes then error(name .. ': output buffer too small, needs ' .. bytes .. ' bytes') end
+        outData:resize(bytes)
+        return outData, outData.data
+    elseif type(outData) == 'cdata' then
+        return outData, outData
+    end
+    error(name .. ': output must be a LuaBuffer or a pointer')
+end
 
 PCSX.Adpcm = {
     NewEncoder = function()
@@ -172,6 +209,47 @@ PCSX.Adpcm = {
         }
         debug.setmetatable(encoder._proxy, { __gc = function() C.destroyAdpcmEncoder(encoder._wrapped) end })
         return encoder
+    end,
+    NewDecoder = function()
+        local wrapped = C.newAdpcmDecoder()
+        local decoder = {
+            _wrapped = wrapped,
+            _proxy = newproxy(),
+            reset = function(self) C.adpcmDecoderReset(self._wrapped) end,
+            -- Decodes one 16-byte SPU block into 28 int16_t samples.
+            -- Returns the output object (a new LuaBuffer of 56 bytes by default), and the block's flags byte.
+            decodeSPUBlock = function(self, inData, outData)
+                local inp = decoderInput(inData, 16, 'decodeSPUBlock')
+                local out
+                outData, out = decoderOutput(outData, 56, 'decodeSPUBlock')
+                local flags = C.adpcmDecoderDecodeSPUBlock(self._wrapped, inp, out)
+                return outData, flags
+            end,
+            -- Decodes one 128-byte XA sound group. bitsPerSample is 4 or 8, and channels is 1 or 2.
+            -- Stereo output is interleaved. Returns the output object (a new LuaBuffer by default), and
+            -- the number of int16_t values written.
+            decodeXASoundGroup = function(self, inData, outData, bitsPerSample, channels)
+                if type(outData) == 'number' then
+                    channels = bitsPerSample
+                    bitsPerSample = outData
+                    outData = nil
+                end
+                if bitsPerSample == nil then bitsPerSample = 4 end
+                if channels == nil then channels = 1 end
+                if bitsPerSample ~= 4 and bitsPerSample ~= 8 then
+                    error('decodeXASoundGroup: bitsPerSample must be 4 or 8')
+                end
+                if channels ~= 1 and channels ~= 2 then error('decodeXASoundGroup: channels must be 1 or 2') end
+                local count = bitsPerSample == 4 and 224 or 112
+                local inp = decoderInput(inData, 128, 'decodeXASoundGroup')
+                local out
+                outData, out = decoderOutput(outData, count * 2, 'decodeXASoundGroup')
+                local written = C.adpcmDecoderDecodeXASoundGroup(self._wrapped, inp, out, bitsPerSample, channels)
+                return outData, tonumber(written)
+            end,
+        }
+        debug.setmetatable(decoder._proxy, { __gc = function() C.destroyAdpcmDecoder(decoder._wrapped) end })
+        return decoder
     end,
 }
 
