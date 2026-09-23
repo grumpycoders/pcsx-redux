@@ -55,7 +55,7 @@ find a link to the vendored version itself.
  - [pprint.lua](https://github.com/jagt/pprint.lua) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/pprint.lua))
  - [snitch](https://github.com/snitch-org/snitch) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/snitch))
  - [stb](https://github.com/nothings/stb)
- - [thorvg](https://github.com/thorvg/thorvg)
+ - [thorvg](https://github.com/thorvg/thorvg) ([vendored](https://github.com/pcsx-redux/thorvg))
  - [tracy](https://github.com/wolfpld/tracy)
  - [typestring](https://github.com/irrequietus/typestring) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/typestring.hh))
  - [uC-sdk](https://github.com/grumpycoders/uC-sdk)

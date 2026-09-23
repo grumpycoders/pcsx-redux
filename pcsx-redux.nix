@@ -44,10 +44,10 @@ let
       hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
     })
     ({
-      owner = "thorvg";
+      owner = "pcsx-redux";
       repo = "thorvg";
-      rev = "b004a778f53a5df61f06be45748761ae42c52dda";
-      hash = "sha256-r+kXQK/SyvE320bHx1pkgUcDN55cD0QCTYGQNymbXE4=";
+      rev = "e4925951e038f8c514b880305c66fb95c7da4296";
+      hash = "sha256-1chDcHiGjuqoR6naTfAEuVcuoX8bngq/FrKcH44f5qU=";
     })
     ({
       owner = "grumpycoders";
