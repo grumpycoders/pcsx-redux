@@ -4,6 +4,15 @@
     <ClCompile Include="..\..\src\gui\gui.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-about-ffmpeg.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-platform-desktop.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-servers.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
       <Filter>Source Files\themes</Filter>
     </ClCompile>
