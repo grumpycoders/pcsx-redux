@@ -69,7 +69,6 @@ unsigned adpcmDecoderDecodeXASoundGroup(LuaAdpcmDecoder* decoder, const void* in
 
 local C = ffi.load 'SUPPORTPSX_ADPCM'
 
-local uint8_t = ffi.typeof 'uint8_t'
 
 -- Returns a pointer to the input data, and its size if known. Accepts a LuaBuffer, a Lua string,
 -- or a raw ffi pointer; the caller has to keep the original object alive during the call.
@@ -110,35 +109,37 @@ PCSX.Adpcm = {
                 C.adpcmEncoderReset(self._wrapped, mode)
             end,
             processBlock = function(self, inData, outData, channels)
-                local filterPtr = ffi.new(uint8_t)
-                local shiftPtr = ffi.new(uint8_t)
+                local filterPtr = ffi.new('uint8_t[2]')
+                local shiftPtr = ffi.new('uint8_t[2]')
                 if type(outData) == 'number' then
                     channels = outData
                     outData = nil
                 end
-                if outData == nil then outData = Support.NewLuaBuffer(56) end
                 if channels == nil then channels = 1 end
+                local blockSize = 56 * channels
+                if outData == nil then outData = Support.NewLuaBuffer(blockSize) end
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
                     local size = #inp
-                    if size < 56 then
-                        inp = Support.NewLuaBuffer(56)
-                        ffi.fill(inp.data, 56, 0)
+                    if size < blockSize then
+                        inp = Support.NewLuaBuffer(blockSize)
+                        ffi.fill(inp.data, blockSize, 0)
                         ffi.copy(inp.data, inData.data, size)
                     end
                     inp = inp.data
                 end
                 if Support.isLuaBuffer(out) then
-                    if out:maxsize() < 56 then error('output buffer too small') end
-                    out:resize(56)
+                    if out:maxsize() < blockSize then error('output buffer too small') end
+                    out:resize(blockSize)
                     out = out.data
                 end
                 C.adpcmEncoderProcessBlock(self._wrapped, inp, out, filterPtr, shiftPtr, channels)
-                return outData, filterPtr[1], shiftPtr[1]
+                if channels == 2 then return outData, filterPtr[0], shiftPtr[0], filterPtr[1], shiftPtr[1] end
+                return outData, filterPtr[0], shiftPtr[0]
             end,
             processSPUBlock = function(self, inData, outData, blockAttribute)
-                if type(outdata) == 'string' and blockAttribute == nil then
+                if type(outData) == 'string' and blockAttribute == nil then
                     blockAttribute = outData
                     outData = nil
                 end
@@ -189,7 +190,7 @@ PCSX.Adpcm = {
                 local inp = inData
                 local out = outData
                 if Support.isLuaBuffer(inp) then
-                    local theoreticalSize = 28 * 4 * (mode == 'XAFourBits' and 2 or 1)
+                    local theoreticalSize = 28 * 4 * (mode == 'XAFourBits' and 2 or 1) * 2
                     local size = #inp
                     if size < theoreticalSize then
                         inp = Support.NewLuaBuffer(theoreticalSize)

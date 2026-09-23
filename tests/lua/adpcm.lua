@@ -270,6 +270,27 @@ local function checkBounds(name, maxErr, snr)
     lu.assertTrue(snr >= b.snr, name .. ': SNR ' .. snr .. ' below ' .. b.snr)
 end
 
+function TestAdpcm:test_processBlockReturnsFilterAndShift()
+    local samples = ffi.new('int16_t[56]')
+    for t = 0, 55 do samples[t] = (t % 2 == 0) and 1000 or -1000 end
+    local e = PCSX.Adpcm.NewEncoder()
+    e:reset 'FourBits'
+    local out, filter, shift = e:processBlock(samples)
+    lu.assertEquals(filter, 0)
+    lu.assertEquals(shift, 4)
+    e:reset 'FourBits'
+    local _, filterL, shiftL, filterR, shiftR = e:processBlock(samples, 2)
+    lu.assertEquals({ filterL, shiftL, filterR, shiftR }, { 0, 4, 0, 4 })
+end
+
+function TestAdpcm:test_processSPUBlockAttributeAsSecondArgument()
+    local samples = ffi.new('int16_t[28]')
+    local e = PCSX.Adpcm.NewEncoder()
+    e:reset 'Normal'
+    local out = e:processSPUBlock(samples, 'LoopEnd')
+    lu.assertEquals(out.data[1], 0x03)
+end
+
 -- Full scale input, expected blocks taken from Sony's encvag.dll output for the same input.
 function TestAdpcm:test_encodeFullScaleSPU()
     local cases = {
