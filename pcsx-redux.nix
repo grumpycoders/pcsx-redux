@@ -44,16 +44,10 @@ let
       hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
     })
     ({
-      owner = "grumpycoders";
-      repo = "nanosvg";
-      rev = "f0a3e1034dd22e2e87e5db22401e44998383124e";
-      hash = "sha256-af11kAga6Ru2rPgrfcYswXNy9etvH3J9FX2T0I0++ew=";
-    })
-    ({
-      owner = "grumpycoders";
-      repo = "nanovg";
-      rev = "7c021819bbd4843a1a3091fe47346d3fcb2a3e1a";
-      hash = "sha256-gZHbNuDkLXlLlXZZpLBHcbwzTfeBBkLY7xl4L5yr2lY=";
+      owner = "thorvg";
+      repo = "thorvg";
+      rev = "b004a778f53a5df61f06be45748761ae42c52dda";
+      hash = "sha256-r+kXQK/SyvE320bHx1pkgUcDN55cD0QCTYGQNymbXE4=";
     })
     ({
       owner = "grumpycoders";

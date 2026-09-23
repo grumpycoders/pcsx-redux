@@ -14,6 +14,37 @@ add_requires("pkgconfig::libavcodec", "pkgconfig::libavformat",
 
 set_languages("c++26")
 
+target("thorvg", function()
+    set_kind("static")
+    local dir = "third_party/thorvg/src/"
+    add_files(
+        dir .. "common/*.cpp",
+        dir .. "renderer/*.cpp",
+        dir .. "renderer/cpu_engine/*.cpp",
+        dir .. "renderer/gpu_engine/*.cpp",
+        dir .. "renderer/gpu_engine/gl/*.cpp",
+        dir .. "loaders/svg/*.cpp",
+        dir .. "loaders/png/*.cpp",
+        dir .. "loaders/jpg/*.cpp",
+        dir .. "loaders/lottie/*.cpp",
+        dir .. "loaders/sfnt/*.cpp",
+        dir .. "loaders/raw/*.cpp",
+        dir .. "bindings/capi/tvgCapi.cpp",
+        "third_party/thorvg-config/tvgGlLoader.cpp",
+        nil
+    )
+    -- Replaced by third_party/thorvg-config/tvgGlLoader.cpp, which includes it.
+    remove_files(dir .. "renderer/gpu_engine/gl/tvgGl.cpp")
+    add_includedirs("third_party/thorvg-config", "third_party/thorvg/inc")
+    for _, sub in ipairs({ "common", "renderer", "renderer/cpu_engine", "renderer/gpu_engine",
+                           "renderer/gpu_engine/gl", "loaders/svg", "loaders/png", "loaders/jpg",
+                           "loaders/lottie", "loaders/sfnt", "loaders/raw", "bindings/capi" }) do
+        add_includedirs(dir .. sub)
+    end
+    add_defines("THORVG_GL_TARGET_GL=1")
+    add_defines("TVG_STATIC=1", { public = true })
+end)
+
 target("pcsx-redux", function()
     add_includedirs(
         ".",
@@ -44,7 +75,7 @@ target("pcsx-redux", function()
 
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
-    add_deps("luajit")
+    add_deps("luajit", "thorvg")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
                  "pkgconfig::libavcodec", "pkgconfig::libavformat",
                  "pkgconfig::libavutil", "pkgconfig::libswresample")
@@ -72,7 +103,6 @@ target("pcsx-redux", function()
         "third_party/luv/src/luv.c",
         "third_party/md4c/src/md4c.c",
         "third_party/multipart-parser-c/multipart_parser.c",
-        "third_party/nanovg/src/nanovg.c",
         "third_party/ucl/src/n2e_99.c",
         "third_party/ucl/src/n2e_ds.c",
         "third_party/ucl/src/alloc.c",
@@ -90,7 +120,6 @@ target("pcsx-redux", function()
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
         "IMGUI_ENABLE_FREETYPE",
-        "NVG_NO_STB",
         "PB_STATIC_API",
         "ZEP_FEATURE_CPP_FILE_SYSTEM",
         nil
