@@ -165,14 +165,15 @@ tvg = {
     loadFont = function(path) return C.tvg_font_load(path) end,
     unloadFont = function(path) return C.tvg_font_unload(path) end,
 
-    -- The scene drawn on top of an ImGui viewport, in ImGui coordinates. It is owned by
-    -- the UI; add paints to it, and remove them when they should stop being displayed.
-    -- Defaults to the viewport of the ImGui window currently being drawn.
+    -- The scene rendered on top of an ImGui viewport, in ImGui coordinates. Add paints
+    -- to it, and remove them when they should stop being displayed. The returned object
+    -- holds its own reference, so it stays valid if the viewport goes away, but it is
+    -- no longer displayed then. Defaults to the viewport of the ImGui window being drawn.
     getViewportScene = function(viewportId)
         if viewportId == nil then viewportId = imgui.extra.getCurrentViewportId() end
         local scene = C.tvgReduxGetViewportScene(tvg._gui, viewportId)
         if scene == nil then return nil end
-        return ffi.cast('Tvg_Paint', scene)
+        return ownPaint(ffi.cast('Tvg_Paint', scene))
     end,
 
     -- Draws an arrow on top of the current ImGui viewport, for the current frame only.

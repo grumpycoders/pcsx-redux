@@ -2148,6 +2148,8 @@ the update and manually apply it.)")));
         SDL_GL_MakeCurrent(m_window, m_glContext);
     }
     SDL_GL_SwapWindow(m_window);
+    // Per-frame paints are dropped whether or not their viewport got rendered this frame.
+    for (auto& [id, vp] : m_tvgViewports) vp.transient->remove();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -2943,7 +2945,6 @@ void PCSX::GUI::renderTvgViewport(ImGuiViewport* viewport, SDL_Window* window) {
 
     vp.canvas->update();
     if (vp.canvas->draw(false) == tvg::Result::Success) vp.canvas->sync();
-    vp.transient->remove();
 }
 
 void PCSX::GUI::destroyTvgViewport(unsigned viewportId, SDL_Window* window) {
