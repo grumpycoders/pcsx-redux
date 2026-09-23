@@ -193,6 +193,30 @@ int pcsxMain(int argc, char **argv) {
         return 0;
     }
 
+    // Files given on the command line are otherwise only opened much later, and a missing one
+    // is either silently replaced (bios), or merely logged (iso, exe). Bail out early instead.
+    // Memory cards are created on demand, and dofile goes through the archive lookup, so neither
+    // is checked here.
+    {
+        bool missing = false;
+        auto checkPath = [&args, &missing](const char* name, bool directory) {
+            for (auto value : args.values(name)) {
+                if (value.empty()) continue;
+                std::string str(value);
+                std::error_code ec;
+                std::filesystem::path path = PCSX::u8string(MAKEU8(str.c_str()));
+                bool ok =
+                    directory ? std::filesystem::is_directory(path, ec) : std::filesystem::is_regular_file(path, ec);
+                if (ok) continue;
+                fmt::print(stderr, "-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
+                missing = true;
+            }
+        };
+        for (auto name : {"bios", "iso", "loadiso", "disk", "loadexe", "exe", "archive"}) checkPath(name, false);
+        checkPath("pcdrvbase", true);
+        if (missing) return 1;
+    }
+
     // Creating the "system" global object first, making sure anything logging-related is
     // enabled as much as possible.
     SystemImpl *system = new SystemImpl(args);
