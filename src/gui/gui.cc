@@ -25,7 +25,6 @@
 
 // And only then we can load the rest
 #define IMGUI_DEFINE_MATH_OPERATORS
-#define NANOVG_GLES3_IMPLEMENTATION
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
 #include <assert.h>
@@ -67,7 +66,7 @@ extern "C" {
 #include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"
-#include "gui/luanvg.h"
+#include "gui/luatvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
 #include "imgui.h"
@@ -80,9 +79,7 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "nanovg/src/nanovg.h"
-#include "nanovg/src/nanovg_gl.h"
-#include "nanovg/src/nanovg_gl_utils.h"
+#include "thorvg/inc/thorvg.h"
 #include "spu/interface.h"
 #include "support/bezier.h"
 #include "support/mem4g.h"
@@ -373,7 +370,7 @@ void PCSX::GUI::setLua(Lua L) {
     LoadImguiBindings(L.getState());
     LuaFFI::open_imguiextra(this, L);
     LuaFFI::open_gl(L);
-    LuaFFI::open_nvg(L);
+    LuaFFI::open_tvg(this, L);
     {
         static int lualoader = 1;
         static const char* guiextra = (
@@ -629,16 +626,15 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         glDebugMessageCallback = nullptr;
     }
 
-    auto vg = m_nvgContext = nvgCreateGLES3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
-    if (vg) {
+    m_tvgInitialized = tvg::Initializer::init() == tvg::Result::Success;
+    if (m_tvgInitialized) {
         g_system->findResource(
-            [vg](auto path) -> bool {
-                int res = nvgCreateFont(vg, "noto-sans-regular", (const char*)(path.u8string().c_str()));
-                return res >= 0;
+            [](auto path) -> bool {
+                return tvg::Text::load((const char*)(path.u8string().c_str())) == tvg::Result::Success;
             },
             MAKEU8("NotoSans-Regular.ttf"), "fonts", std::filesystem::path("third_party") / "noto");
     } else {
-        g_system->log(LogClass::UI, "Warning: Unable to initialize NanoVG. Check OpenGL drivers.\n");
+        g_system->log(LogClass::UI, "Warning: Unable to initialize ThorVG.\n");
     }
 
     // Setup ImGui binding
@@ -723,15 +719,6 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         clip::get_text(clipboard);
         return clipboard.c_str();
     };
-    m_createWindowOldCallback = platform_io.Platform_CreateWindow;
-    platform_io.Platform_CreateWindow = [](ImGuiViewport* viewport) {
-        if (g_gui->m_createWindowOldCallback) g_gui->m_createWindowOldCallback(viewport);
-        // imgui_impl_sdl3 dispatches keyboard/mouse via ImGui_ImplSDL3_ProcessEvent
-        // applied to every polled event in startFrame(), so we don't need a
-        // per-window key callback the way the GLFW backend did.
-        auto id = viewport->ID;
-        g_gui->m_nvgSubContextes[id] = nvgCreateSubContextGL(g_gui->m_nvgContext);
-    };
     m_onChangedViewportOldCallback = platform_io.Platform_OnChangedViewport;
     platform_io.Platform_OnChangedViewport = [](ImGuiViewport* viewport) {
         if (g_gui->m_onChangedViewportOldCallback) g_gui->m_onChangedViewportOldCallback(viewport);
@@ -739,13 +726,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     };
     m_destroyWindowOldCallback = platform_io.Platform_DestroyWindow;
     platform_io.Platform_DestroyWindow = [](ImGuiViewport* viewport) {
-        auto id = viewport->ID;
-        auto& subContextes = g_gui->m_nvgSubContextes;
-        auto subContext = subContextes.find(id);
-        if (subContext != subContextes.end()) {
-            nvgDeleteSubContextGL(subContext->second);
-            subContextes.erase(subContext);
-        }
+        g_gui->destroyTvgViewport(viewport->ID, getSDLWindowFromImGuiViewport(viewport));
         if (g_gui->m_destroyWindowOldCallback) g_gui->m_destroyWindowOldCallback(viewport);
     };
     // Some bad GPU drivers (*cough* Intel) don't like mixed shaders versions,
@@ -885,17 +866,11 @@ void PCSX::GUI::close() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
-    // Tear down all GL-backed resources (NanoVG sub/main contexts) BEFORE
-    // dropping the GL context they live in. The previous (GLFW-era) ordering
-    // freed NanoVG after glfwDestroyWindow, which technically leaked GPU
-    // resources because their owning context was already gone; SDL's explicit
-    // context handle makes the correct ordering easy to enforce.
-    for (auto& subContext : m_nvgSubContextes) {
-        nvgDeleteSubContextGL(subContext.second);
-    }
-    m_nvgSubContextes.clear();
-    nvgDeleteGLES3(m_nvgContext);
-    m_nvgContext = nullptr;
+    // Tear down all GL-backed resources (ThorVG canvases) BEFORE
+    // dropping the GL context they live in.
+    while (!m_tvgViewports.empty()) destroyTvgViewport(m_tvgViewports.begin()->first, m_window);
+    if (m_tvgInitialized) tvg::Initializer::term();
+    m_tvgInitialized = false;
     if (m_glContext) {
         SDL_GL_DestroyContext(m_glContext);
         m_glContext = nullptr;
@@ -2156,45 +2131,7 @@ the update and manually apply it.)")));
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
-    int winWidth, winHeight;
-    int fbWidth, fbHeight;
-    float pxRatio;
-    auto vg = m_nvgContext;
-    if (vg) {
-        SDL_GetWindowSize(m_window, &winWidth, &winHeight);
-        SDL_GetWindowSizeInPixels(m_window, &fbWidth, &fbHeight);
-        pxRatio = (float)fbWidth / (float)winWidth;
-        nvgSwitchMainContextGL(vg);
-        nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
-        while (L.gettop()) L.pop();
-        L.getfieldtable("nvg", LUA_GLOBALSINDEX);
-        L.push("_gui");
-        L.push(this);
-        L.settable();
-        L.push("_ctx");
-        L.push(vg);
-        L.settable();
-        L.getfield("_processQueueForViewportId", -1);
-        L.copy(-2);
-        L.push(lua_Number(platform_io.Viewports[0]->ID));
-        try {
-            L.pcall(2);
-            bool gotGLerror = false;
-            for (const auto& error : m_glErrors) {
-                m_luaConsole.addError(error);
-                if (g_system->getArgs().isLuaStdoutEnabled()) {
-                    fputs(error.c_str(), stderr);
-                    fputc('\n', stderr);
-                }
-                gotGLerror = true;
-            }
-            m_glErrors.clear();
-            if (gotGLerror) throw("OpenGL error while running NanoVG queue");
-        } catch (...) {
-        }
-        nvgEndFrame(vg);
-        while (L.gettop()) L.pop();
-    }
+    renderTvgViewport(platform_io.Viewports[0], m_window);
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
@@ -2204,53 +2141,13 @@ the update and manually apply it.)")));
             if (viewport->Flags & ImGuiViewportFlags_IsMinimized) continue;
             if (platform_io.Platform_RenderWindow) platform_io.Platform_RenderWindow(viewport, nullptr);
             if (platform_io.Renderer_RenderWindow) platform_io.Renderer_RenderWindow(viewport, nullptr);
-            if (vg) {
-                auto window = getSDLWindowFromImGuiViewport(viewport);
-                auto nvgSubContext = m_nvgSubContextes.find(viewport->ID);
-                if (nvgSubContext != m_nvgSubContextes.end()) {
-                    SDL_GetWindowSize(window, &winWidth, &winHeight);
-                    SDL_GetWindowSizeInPixels(window, &fbWidth, &fbHeight);
-                    pxRatio = (float)fbWidth / (float)winWidth;
-                    nvgSwitchSubContextGL(vg, nvgSubContext->second);
-                    nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
-                    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
-                    L.getfield("_processQueueForViewportId", -1);
-                    L.copy(-2);
-                    L.push(lua_Number(viewport->ID));
-                    try {
-                        L.pcall(2);
-                        bool gotGLerror = false;
-                        for (const auto& error : m_glErrors) {
-                            m_luaConsole.addError(error);
-                            if (g_system->getArgs().isLuaStdoutEnabled()) {
-                                fputs(error.c_str(), stderr);
-                                fputc('\n', stderr);
-                            }
-                            gotGLerror = true;
-                        }
-                        m_glErrors.clear();
-                        if (gotGLerror) throw("OpenGL error while running NanoVG queue");
-                    } catch (...) {
-                    }
-                    nvgEndFrame(vg);
-                    while (L.gettop()) L.pop();
-                }
-            }
+            renderTvgViewport(viewport, getSDLWindowFromImGuiViewport(viewport));
             if (platform_io.Platform_SwapBuffers) platform_io.Platform_SwapBuffers(viewport, nullptr);
             if (platform_io.Renderer_SwapBuffers) platform_io.Renderer_SwapBuffers(viewport, nullptr);
         }
         SDL_GL_MakeCurrent(m_window, m_glContext);
     }
     SDL_GL_SwapWindow(m_window);
-
-    L.getfieldtable("nvg", LUA_GLOBALSINDEX);
-    L.push("_gui");
-    L.push();
-    L.settable();
-    L.push("_ctx");
-    L.push();
-    L.settable();
-    while (L.gettop()) L.pop();
 
     if (changed) saveCfg();
     if (m_gotImguiUserError) {
@@ -2993,79 +2890,122 @@ void PCSX::GUI::byteRateToString(float rate, std::string& str) {
     }
 }
 
+PCSX::GUI::TvgViewport* PCSX::GUI::getTvgViewport(unsigned viewportId) {
+    if (!m_tvgInitialized) return nullptr;
+    auto [it, inserted] = m_tvgViewports.try_emplace(viewportId);
+    auto& vp = it->second;
+    if (inserted) {
+        vp.root = tvg::Scene::gen();
+        vp.root->ref();
+        vp.transient = tvg::Scene::gen();
+        vp.transient->ref();
+    }
+    return &vp;
+}
+
+tvg::Scene* PCSX::GUI::getTvgViewportScene(unsigned viewportId) {
+    auto vp = getTvgViewport(viewportId);
+    return vp ? vp->root : nullptr;
+}
+
+void PCSX::GUI::renderTvgViewport(ImGuiViewport* viewport, SDL_Window* window) {
+    auto it = m_tvgViewports.find(viewport->ID);
+    if (it == m_tvgViewports.end()) return;
+    auto& vp = it->second;
+
+    int winWidth, winHeight, fbWidth, fbHeight;
+    SDL_GetWindowSize(window, &winWidth, &winHeight);
+    SDL_GetWindowSizeInPixels(window, &fbWidth, &fbHeight);
+    if ((winWidth <= 0) || (winHeight <= 0) || (fbWidth <= 0) || (fbHeight <= 0)) return;
+
+    auto glContext = SDL_GL_GetCurrentContext();
+    if (!vp.canvas) {
+        vp.canvas = tvg::GlCanvas::gen();
+        if (!vp.canvas) return;
+        vp.canvas->add(vp.root);
+        vp.canvas->add(vp.transient);
+    }
+    if ((vp.glContext != glContext) || (vp.width != fbWidth) || (vp.height != fbHeight)) {
+        if (vp.canvas->target(nullptr, nullptr, glContext, 0, fbWidth, fbHeight, tvg::ColorSpace::ABGR8888S) !=
+            tvg::Result::Success) {
+            return;
+        }
+        vp.glContext = glContext;
+        vp.width = fbWidth;
+        vp.height = fbHeight;
+    }
+
+    // Paints are expressed in ImGui coordinates, which are absolute when multi-viewports are enabled.
+    float scale = float(fbWidth) / float(winWidth);
+    tvg::Matrix m = {scale, 0.0f, -viewport->Pos.x * scale, 0.0f, scale, -viewport->Pos.y * scale, 0.0f, 0.0f, 1.0f};
+    vp.root->transform(m);
+    vp.transient->transform(m);
+
+    vp.canvas->update();
+    if (vp.canvas->draw(false) == tvg::Result::Success) vp.canvas->sync();
+    vp.transient->remove();
+}
+
+void PCSX::GUI::destroyTvgViewport(unsigned viewportId, SDL_Window* window) {
+    auto it = m_tvgViewports.find(viewportId);
+    if (it == m_tvgViewports.end()) return;
+    auto& vp = it->second;
+    if (vp.canvas) {
+        // The canvas releases its GL objects on destruction, so its context needs to be current.
+        auto previousWindow = SDL_GL_GetCurrentWindow();
+        auto previousContext = SDL_GL_GetCurrentContext();
+        bool switchContext = window && vp.glContext && (previousContext != vp.glContext);
+        if (switchContext) SDL_GL_MakeCurrent(window, static_cast<SDL_GLContext>(vp.glContext));
+        delete vp.canvas;
+        if (switchContext) SDL_GL_MakeCurrent(previousWindow, previousContext);
+    }
+    vp.root->unref();
+    vp.transient->unref();
+    m_tvgViewports.erase(it);
+}
+
 void PCSX::GUI::drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end, ImVec4 innerColor,
                                 ImVec4 outerColor) {
-    const float innerWidth = width;
-    const float outerWidth = width * 2.0f;
-    auto vg = m_nvgContext;
-    float bump;
+    auto vp = getTvgViewport(ImGui::GetWindowViewport()->ID);
+    if (!vp) return;
     float angle = Bezier::angle(start, c1, c2, end, 1.0f);
-    auto vgInnerColor = nvgRGBA(innerColor.x * 255, innerColor.y * 255, innerColor.z * 255, innerColor.w * 255);
-    auto vgOuterColor = nvgRGBA(outerColor.x * 255, outerColor.y * 255, outerColor.z * 255, outerColor.w * 255);
 
-    if (!vg) return;
+    auto drawArrow = [&](float w, ImVec4 color, float headLength, float headNotch, float headWidth) {
+        uint8_t r = color.x * 255, g = color.y * 255, b = color.z * 255, a = color.w * 255;
 
-    nvgSave(vg);
-    nvgLineCap(vg, NVG_BUTT);
+        // The butt of the arrow.
+        auto butt = tvg::Shape::gen();
+        butt->appendCircle(start.x, start.y, w / 2.0f, w / 2.0f);
+        butt->fill(r, g, b, a);
+        vp->transient->add(butt);
 
-    // Set the outer arrow drawing settings.
-    nvgFillColor(vg, vgOuterColor);
-    nvgStrokeColor(vg, vgOuterColor);
-    nvgStrokeWidth(vg, outerWidth);
+        // The shaft of the arrow itself.
+        auto shaft = tvg::Shape::gen();
+        shaft->moveTo(start.x, start.y);
+        shaft->cubicTo(c1.x, c1.y, c2.x, c2.y, end.x, end.y);
+        shaft->strokeWidth(w);
+        shaft->strokeFill(r, g, b, a);
+        shaft->strokeCap(tvg::StrokeCap::Butt);
+        vp->transient->add(shaft);
 
-    // Draw the butt of the arrow - the linecap setting works for both ends, and we only want it round at the start.
-    nvgBeginPath(vg);
-    nvgArc(vg, start.x, start.y, outerWidth / 2.0f, 0.0f, 2.0f * std::numbers::pi_v<float>, NVG_CW);
-    nvgFill(vg);
+        // The arrowhead.
+        float bump = w / 1.5f;
+        auto head = tvg::Shape::gen();
+        head->moveTo(0.0f, 0.0f);
+        head->lineTo(-bump * headLength, bump * headWidth);
+        head->lineTo(-bump * headNotch, 0.0f);
+        head->lineTo(-bump * headLength, -bump * headWidth);
+        head->close();
+        head->strokeWidth(w);
+        head->strokeFill(r, g, b, a);
+        head->strokeCap(tvg::StrokeCap::Butt);
+        head->rotate(angle * 180.0f / std::numbers::pi_v<float>);
+        head->translate(end.x, end.y);
+        vp->transient->add(head);
+    };
 
-    // Draw the shaft of the arrow itself.
-    nvgBeginPath(vg);
-    nvgMoveTo(vg, start.x, start.y);
-    nvgBezierTo(vg, c1.x, c1.y, c2.x, c2.y, end.x, end.y);
-    nvgStroke(vg);
-
-    // Draw the arrowhead.
-    bump = outerWidth / 1.5f;
-    nvgTranslate(vg, end.x, end.y);
-    nvgRotate(vg, angle);
-    nvgBeginPath(vg);
-    nvgMoveTo(vg, 0.0f, 0.0f);
-    nvgLineTo(vg, -bump * 2.0f, bump);
-    nvgLineTo(vg, -bump * 1.6f, 0.0f);
-    nvgLineTo(vg, -bump * 2.0f, -bump);
-    nvgClosePath(vg);
-    nvgStroke(vg);
-
-    // Set the inner arrow drawing settings, and draw everything again, with some slightly different offsets.
-    nvgResetTransform(vg);
-    nvgFillColor(vg, vgInnerColor);
-    nvgStrokeColor(vg, vgInnerColor);
-    nvgStrokeWidth(vg, innerWidth);
-
-    // Draw the butt of the arrow - the linecap setting works for both ends, and we only want it round at the start.
-    nvgBeginPath(vg);
-    nvgArc(vg, start.x, start.y, innerWidth / 2.0f, 0.0f, 2.0f * std::numbers::pi_v<float>, NVG_CW);
-    nvgFill(vg);
-
-    // Draw the shaft of the arrow itself.
-    nvgBeginPath(vg);
-    nvgMoveTo(vg, start.x, start.y);
-    nvgBezierTo(vg, c1.x, c1.y, c2.x, c2.y, end.x, end.y);
-    nvgStroke(vg);
-
-    // Draw the arrowhead.
-    bump = innerWidth / 1.5f;
-    nvgTranslate(vg, end.x, end.y);
-    nvgRotate(vg, angle);
-    nvgBeginPath(vg);
-    nvgMoveTo(vg, 0.0f, 0.0f);
-    nvgLineTo(vg, -bump * 3.55f, bump * 1.65f);
-    nvgLineTo(vg, -bump * 2.85f, 0.0f);
-    nvgLineTo(vg, -bump * 3.55f, -bump * 1.65f);
-    nvgClosePath(vg);
-    nvgStroke(vg);
-
-    nvgRestore(vg);
+    drawArrow(width * 2.0f, outerColor, 2.0f, 1.6f, 1.0f);
+    drawArrow(width, innerColor, 3.55f, 2.85f, 1.65f);
 }
 
 ImFont* PCSX::GUI::findClosestFont(const std::map<float, ImFont*>& fonts) {

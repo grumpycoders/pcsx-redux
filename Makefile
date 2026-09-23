@@ -51,7 +51,7 @@ CPPFLAGS += -Ithird_party/xbyak/xbyak
 CPPFLAGS += -g
 CPPFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GL3W -DIMGUI_ENABLE_FREETYPE
 CPPFLAGS += -DZEP_FEATURE_CPP_FILE_SYSTEM
-CPPFLAGS += -DNVG_NO_STB
+CPPFLAGS += -DTVG_STATIC=1
 CPPFLAGS += -DPB_STATIC_API
 IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
 
@@ -137,13 +137,13 @@ SRCS += third_party/luafilesystem/src/lfs.c
 SRCS_pkg_libluv += third_party/luv/src/luv.c
 SRCS_pkg_md4c += third_party/md4c/src/md4c.c
 SRCS_lib_multipart += third_party/multipart-parser-c/multipart_parser.c
-SRCS += third_party/nanovg/src/nanovg.c
 THORVG_DIR := third_party/thorvg/src
 THORVG_SRCS := $(wildcard $(THORVG_DIR)/common/*.cpp)
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/renderer/*.cpp)
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/renderer/cpu_engine/*.cpp)
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/renderer/gpu_engine/*.cpp)
-THORVG_SRCS += $(wildcard $(THORVG_DIR)/renderer/gpu_engine/gl/*.cpp)
+THORVG_SRCS += $(filter-out %/tvgGl.cpp,$(wildcard $(THORVG_DIR)/renderer/gpu_engine/gl/*.cpp))
+THORVG_SRCS += third_party/thorvg-config/tvgGlLoader.cpp
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/loaders/svg/*.cpp)
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/loaders/png/*.cpp)
 THORVG_SRCS += $(wildcard $(THORVG_DIR)/loaders/jpg/*.cpp)
@@ -154,7 +154,7 @@ THORVG_SRCS += $(THORVG_DIR)/bindings/capi/tvgCapi.cpp
 THORVG_CPPFLAGS := -Ithird_party/thorvg-config -Ithird_party/thorvg/inc
 THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,common renderer renderer/cpu_engine renderer/gpu_engine renderer/gpu_engine/gl)
 THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,loaders/svg loaders/png loaders/jpg loaders/lottie loaders/sfnt loaders/raw bindings/capi)
-THORVG_CPPFLAGS += -DTHORVG_GL_TARGET_GL=1 -DTVG_STATIC=1
+THORVG_CPPFLAGS += -DTHORVG_GL_TARGET_GL=1
 SRCS += $(THORVG_SRCS)
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
 SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c

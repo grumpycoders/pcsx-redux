@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2023 PCSX-Redux authors                                 *
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,9 +23,11 @@
 
 namespace PCSX {
 
+class GUI;
+
 namespace LuaFFI {
 
-void open_nvg(Lua L);
+void open_tvg(GUI* gui, Lua L);
 
 }
 
