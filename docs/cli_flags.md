@@ -12,11 +12,12 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-lua_stdout` | Redirect Lua's console output to stdout. |
 | `-logfile` | Specify a file to log output to. |
 | `-bios` | Specify a BIOS file. |
-| `-testmode` | Interpret [internal API](mips_api.md)'s `pcsx_exit()` command as a request to exit the emulator instead of pausing, and close the emulator. Implies `-safe`, `-no-gui-log`, and will also disable first chance exceptions. Use only when doing unit testing. |
+| `-testmode` | Interpret [internal API](mips_api.md)'s `pcsx_exit()` command as a request to exit the emulator instead of pausing, and close the emulator. Implies `-safe`, `-no-gui-log`, and will also disable first chance exceptions. If no BIOS could be loaded, the emulator exits with code -1 (255 on POSIX systems) right after the "No BIOS loaded" message, instead of halting. Use only when doing unit testing. |
 | `-exe` | Load a PSX exe. |
 | `-loadexe` | Load a PSX exe. |
 | `-iso` | Load a PSX disk image (iso, bin/cue). |
 | `-loadiso` | Load a PSX disk image (iso, bin/cue). |
+| `-disk` | Load a PSX disk image (iso, bin/cue). |
 | `-memcard1` | Specify a memory card file to use as memory card slot 1. |
 | `-memcard2` | Specify a memory card file to use as memory card slot 2. |
 | `-pcdrv` | Enable the pcdrv device interface. (Access PC filesystem through SIO). |
@@ -43,6 +44,12 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-luacov` | Enables Lua code coverage report. Requires the `luacov` Lua module to be installed. |
 | `-portable` | Enables portable mode. Settings and saves are stored in the current directory, or in the directory given as an optional argument to this flag. See [Where your data lives](#where-your-data-lives). |
 | `-no-portable` | Disables portable mode, overriding any of the automatic detections described below. |
+
+## Missing files
+
+Before anything starts, the files given to `-bios`, `-iso`, `-loadiso`, `-disk`, `-exe`, `-loadexe` and `-archive` must exist, and `-pcdrvbase` must be a directory. Otherwise the emulator prints one line per missing path on stderr and exits with code 1. A missing `-bios` file is an error: the OpenBIOS fallback only applies to a BIOS set in the configuration.
+
+`-memcard1` and `-memcard2` are not checked, since missing memory cards are created on demand. Neither is `-dofile`, which is looked up through `-archive`.
 
 ## Where your data lives
 

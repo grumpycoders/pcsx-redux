@@ -160,6 +160,10 @@ Source :
 [https://archive.org/details/pcsx_redux_geany_gdb](https://archive.org/details/pcsx_redux_geany_gdb)
 
 
+## Watchpoints
+
+Write, read and access watchpoints (`watch`, `rwatch` and `awatch` in gdb) cover the full length gdb requests, so watching a whole struct or array stops on an access anywhere in it. A watchpoint of length 0, or one wrapping around the end of the address space, is refused with an error.
+
 ## Additional tools
 
 [https://github.com/cyrus-and/gdb-dashboard/](https://github.com/cyrus-and/gdb-dashboard/)
