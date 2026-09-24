@@ -43,13 +43,6 @@ steps:
     TargetFolder: '$(build.artifactStagingDirectory)/assets/fonts'
     FlattenFolders: true
 
-- task: CopyFiles@2
-  inputs:
-    Contents: |
-      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
-    TargetFolder: '$(build.artifactStagingDirectory)/assets'
-    FlattenFolders: true
-
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'

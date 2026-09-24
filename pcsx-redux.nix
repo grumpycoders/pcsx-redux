@@ -80,12 +80,6 @@ let
       hash = "sha256-PknWLxYuXQ73TCFN+eKOJDNLGbg/ZqKSF6mFxkJG6vI=";
     })
     ({
-      owner = "mdqinc";
-      repo = "SDL_GameControllerDB";
-      rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
-      hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
-    })
-    ({
       owner = "taocpp";
       repo = "PEGTL";
       rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
