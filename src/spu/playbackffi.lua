@@ -196,7 +196,8 @@ PCSX.SPU = PCSX.SPU or {}
 
 -- Plays an in-memory audio buffer through the emulator's audio output, independently of the emulated
 -- SPU, and of the emulation being paused or running. The source is copied or decoded before this
--- returns. See the descriptor checks above for the accepted formats.
+-- returns. See the descriptor checks above for the accepted formats. The returned object owns the
+-- sound: playback stops when it is garbage collected, so keep it for as long as the sound should play.
 PCSX.SPU.playAudio = function(source, descriptor)
     local cdesc = checkDescriptor(descriptor)
     local ptr, size, keepAlive = getSource(source)

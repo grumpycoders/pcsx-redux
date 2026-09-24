@@ -57,17 +57,18 @@ local function encodeXAGroups(groups)
     return ffi.string(out, groups * 128)
 end
 
--- Builds sectors from 18 sound groups each. submodes is a list with one submode byte per sector.
-local function buildSectors(raw, submodes)
+-- Builds sectors from 18 sound groups each. submodes is a list with one submode byte per sector;
+-- channels and codings optionally give each sector's channel and coding info bytes.
+local function buildSectors(raw, submodes, channels, codings)
     local groups = encodeXAGroups(18)
     local parts = {}
-    for _, submode in ipairs(submodes) do
+    for i, submode in ipairs(submodes) do
         local sector = {}
         if raw then
             table.insert(sector, '\0' .. string.rep('\255', 10) .. '\0')
             table.insert(sector, string.char(0, 2, 0, 2))
         end
-        local subheader = string.char(1, 0, submode, 0)
+        local subheader = string.char(1, channels and channels[i] or 0, submode, codings and codings[i] or 0)
         table.insert(sector, subheader .. subheader)
         table.insert(sector, groups)
         table.insert(sector, string.rep('\0', 0x14 + 4))
@@ -185,5 +186,15 @@ function TestAudioPlayback:test_xaGroupsAndSectors()
         sound:stop()
         lu.assertErrorMsgContains('no audio sector', PCSX.SPU.playAudio, sectors,
             { format = 'xa', sectors = true, xaChannel = 3 })
+
+        -- Without a filter, only the first audio stream plays, so a stereo channel interleaved
+        -- with it is skipped instead of being rejected as a mixed format.
+        sectors = buildSectors(raw, { 0x64, 0x64, 0x64, 0x64 }, { 0, 1, 0, 1 }, { 0, 1, 0, 1 })
+        sound = PCSX.SPU.playAudio(sectors, { format = 'xa', sectors = true })
+        lu.assertTrue(sound:isPlaying())
+        sound:stop()
+        sound = PCSX.SPU.playAudio(sectors, { format = 'xa', sectors = true, xaChannel = 1 })
+        lu.assertTrue(sound:isPlaying())
+        sound:stop()
     end
 end

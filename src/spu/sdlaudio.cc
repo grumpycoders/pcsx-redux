@@ -475,6 +475,9 @@ bool decodeXA(const uint8_t* data, size_t size, PCSX::SPU::SDLAudio::SoundDescri
         if ((subheader[2] & 0x04) == 0) continue;
         if ((descriptor.xaFile >= 0) && (subheader[0] != descriptor.xaFile)) continue;
         if ((descriptor.xaChannel >= 0) && (subheader[1] != descriptor.xaChannel)) continue;
+        // Without a filter, play the stream of the first audio sector only; files usually interleave several.
+        if (descriptor.xaFile < 0) descriptor.xaFile = subheader[0];
+        if (descriptor.xaChannel < 0) descriptor.xaChannel = subheader[1];
         const uint8_t ci = subheader[3];
         if (!formatKnown) {
             const unsigned stereo = ci & 3;

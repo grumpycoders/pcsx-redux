@@ -71,7 +71,8 @@ local C = ffi.load 'SUPPORTPSX_ADPCM'
 
 
 -- Returns a pointer to the input data, and its size if known. Accepts a LuaBuffer, a Lua string,
--- or a raw ffi pointer; the caller has to keep the original object alive during the call.
+-- or a raw ffi pointer; the caller has to keep the original object alive during the call, and
+-- a pointer has to reach as far as the call reads or writes, since its size cannot be checked.
 local function decoderInput(inData, needed, name)
     if Support.isLuaBuffer(inData) then
         if #inData < needed then error(name .. ': input buffer too small, needs ' .. needed .. ' bytes') end
