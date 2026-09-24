@@ -32,18 +32,18 @@ local MAX_DIM = 4096
 -- when drawing textures.
 local function psxColour(c)
     if c == 0 then return 0 end
-    local r = bit.band(c, 0x1f)
-    local g = bit.band(bit.rshift(c, 5), 0x1f)
-    local b = bit.band(bit.rshift(c, 10), 0x1f)
-    r = bit.bor(bit.lshift(r, 3), bit.rshift(r, 2))
-    g = bit.bor(bit.lshift(g, 3), bit.rshift(g, 2))
-    b = bit.bor(bit.lshift(b, 3), bit.rshift(b, 2))
-    return bit.bor(0xff000000, bit.lshift(b, 16), bit.lshift(g, 8), r)
+    local r = c & 0x1f
+    local g = (c >> 5) & 0x1f
+    local b = (c >> 10) & 0x1f
+    r = (r << 3) | (r >> 2)
+    g = (g << 3) | (g >> 2)
+    b = (b << 3) | (b >> 2)
+    return 0xff000000 | (b << 16) | (g << 8) | r
 end
 
 local function grey(v, max)
     local g = math.floor(v * 255 / max)
-    return bit.bor(0xff000000, bit.lshift(g, 16), bit.lshift(g, 8), g)
+    return 0xff000000 | (g << 16) | (g << 8) | g
 end
 
 -- A texture holder: upload(pix, w, h) replaces the content, draw(zoom) shows it.
@@ -94,18 +94,19 @@ local function readPixels(data, size, byteOffset, bpp, count, put)
         end
     else
         local perByte = 8 / bpp
-        local mask = bit.lshift(1, bpp) - 1
+        local mask = (1 << bpp) - 1
         for i = 0, count - 1 do
             local p = byteOffset + math.floor(i / perByte)
             if p >= size then return end
             local shift = (i % perByte) * bpp
-            put(i, bit.band(bit.rshift(data[p], shift), mask))
+            put(i, (data[p] >> shift) & mask)
         end
     end
 end
 
-local function readAll(file)
-    local size = file:size()
+-- Reads the first `limit` bytes of the file, or all of it if it is shorter.
+local function readHead(file, limit)
+    local size = math.min(file:size(), limit)
     return file:readAt(size, 0), size
 end
 
@@ -118,8 +119,8 @@ function PCSX.FileViewers.parseTim(file)
     local size = file:size()
     if size < 20 or file:readU32At(0) ~= 0x10 then return nil end
     local flags = file:readU32At(4)
-    if bit.band(flags, bit.bnot(0xf)) ~= 0 then return nil end
-    local tim = { bpp = timBpp[bit.band(flags, 3)], hasClut = bit.band(flags, 8) ~= 0, size = size }
+    if (flags & ~0xf) ~= 0 then return nil end
+    local tim = { bpp = timBpp[flags & 3], hasClut = (flags & 8) ~= 0, size = size }
     local off = 8
     if tim.hasClut then
         local len = file:readU32At(off)
@@ -144,6 +145,7 @@ function PCSX.FileViewers.parseTim(file)
     tim.truncated = off + expected > size
     tim.width = math.floor(w * 16 / tim.bpp)
     tim.height = h
+    tim.tooLarge = tim.width > MAX_DIM or tim.height > MAX_DIM
     if tim.clut and tim.bpp <= 8 then
         tim.paletteSize = tim.bpp == 4 and 16 or 256
         tim.palettes = math.max(1, math.floor(tim.clut.w * tim.clut.h / tim.paletteSize))
@@ -166,11 +168,14 @@ local function timInfo(tim)
         lines[#lines + 1] = string.format('Pixel block needs %d bytes, the file has %d.',
             tim.pix.w * tim.pix.h * 2 + 12, tim.size - tim.pix.offset + 12)
     end
+    if tim.tooLarge then
+        lines[#lines + 1] = string.format('Larger than %dx%d, not displayed.', MAX_DIM, MAX_DIM)
+    end
     return table.concat(lines, '\n')
 end
 
 local function decodeTim(file, tim, palette)
-    local data, size = readAll(file)
+    local data, size = readHead(file, tim.pix.offset + tim.pix.w * tim.pix.h * 2)
     local w, h = tim.width, tim.height
     local pix = ffi.new('uint32_t[?]', w * h)
     local lut
@@ -188,9 +193,9 @@ local function decodeTim(file, tim, palette)
         elseif tim.bpp == 16 then
             pix[i] = psxColour(v)
         elseif tim.bpp == 24 then
-            pix[i] = bit.bor(0xff000000, v)
+            pix[i] = 0xff000000 | v
         else
-            pix[i] = grey(v, bit.lshift(1, tim.bpp) - 1)
+            pix[i] = grey(v, (1 << tim.bpp) - 1)
         end
     end)
     return pix, w, h
@@ -201,7 +206,7 @@ function PCSX.FileViewers.timViewer(openFile, tim)
     local v = { name = 'TIM', palette = 0, zoom = 2, texture = newTexture() }
     function v.draw()
         imgui.TextUnformatted(timInfo(tim))
-        if tim.truncated then return end
+        if tim.truncated or tim.tooLarge then return end
         local dirty = not v.uploaded
         if tim.palettes and tim.palettes > 1 then
             local changed, n = imgui.SliderInt('palette', v.palette, 0, tim.palettes - 1)
@@ -247,20 +252,21 @@ function PCSX.FileViewers.rawViewer(openFile)
         imgui.PopItemWidth()
         if dirty then
             local ok, err = pcall(function()
-                local data, size = readAll(openFile())
+                local file = openFile()
                 local bpp = rawBpps[v.bppIndex]
                 local w = v.width
-                local available = math.max(0, size - v.header)
+                local available = math.max(0, file:size() - v.header)
                 local h = v.height
                 if h == 0 then h = math.ceil(available * 8 / bpp / w) end
                 h = math.max(1, math.min(MAX_DIM, h))
+                local data, size = readHead(file, v.header + math.ceil(w * h * bpp / 8))
                 local pix = ffi.new('uint32_t[?]', w * h)
-                local max = bpp <= 8 and (bit.lshift(1, bpp) - 1) or nil
+                local max = bpp <= 8 and ((1 << bpp) - 1) or nil
                 readPixels(data, size, v.header, bpp, w * h, function(i, val)
                     if bpp == 16 then
-                        pix[i] = bit.bor(0xff000000, psxColour(val))
+                        pix[i] = 0xff000000 | psxColour(val)
                     elseif bpp == 24 then
-                        pix[i] = bit.bor(0xff000000, val)
+                        pix[i] = 0xff000000 | val
                     else
                         pix[i] = grey(val, max)
                     end
