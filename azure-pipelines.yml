@@ -47,6 +47,7 @@ steps:
   inputs:
     Contents: |
       third_party/SDL_GameControllerDB/gamecontrollerdb.txt
+      resources/*.lua
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
     FlattenFolders: true
 

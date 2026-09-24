@@ -378,6 +378,20 @@ void PCSX::GUI::setLua(Lua L) {
         );
         L.load(guiextra, "src:gui/extra.lua");
     }
+    // Optional Lua helpers shipped as resources. Missing or broken ones are
+    // only logged; the widgets using them check they exist before calling.
+    g_system->findResource(
+        [&L](const std::filesystem::path& filename) {
+            IO<File> file(new PosixFile(filename));
+            if (file->failed()) return false;
+            try {
+                L.load(file->readString(file->size()), "resources:fileviewers.lua");
+            } catch (...) {
+                g_system->log(LogClass::UI, "Unable to load %s\n", filename.string());
+            }
+            return true;
+        },
+        "fileviewers.lua", "resources", "resources");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.getfieldtable("settings");
     L.push("gui");
