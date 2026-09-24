@@ -218,8 +218,8 @@
     <ProjectReference Include="..\..\multipart-parser\multipart-parser.vcxproj">
       <Project>{de9d9c53-5caa-4542-8c27-72d84334f9e3}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\nanovg\nanovg.vcxproj">
-      <Project>{b68e9c60-8362-4a32-ac2e-4f0c2673f3e1}</Project>
+    <ProjectReference Include="..\..\thorvg\thorvg.vcxproj">
+      <Project>{d5d8da97-d5d6-455f-92ac-9d020ebac8ca}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\SDL\SDL.vcxproj">
       <Project>{13621b3d-871a-46a0-935f-d92a585ae034}</Project>

@@ -81,7 +81,11 @@
 struct SDL_Window;
 struct SDL_GLContextState;
 typedef SDL_GLContextState* SDL_GLContext;
-struct NVGcontext;
+struct ImGuiViewport;
+namespace tvg {
+struct GlCanvas;
+struct Scene;
+}  // namespace tvg
 
 namespace PCSX {
 
@@ -180,7 +184,6 @@ class GUI final : public UI {
         settings;
 
     // imgui can't handle more than one "instance", so...
-    void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
@@ -314,8 +317,19 @@ class GUI final : public UI {
     int &m_windowSizeY = settings.get<WindowSizeY>().value;
     bool &m_windowMaximized = settings.get<WindowMaximized>().value;
     GLuint m_VRAMTexture = 0;
-    NVGcontext *m_nvgContext = nullptr;
-    std::map<unsigned, void *> m_nvgSubContextes;
+    struct TvgViewport {
+        tvg::GlCanvas *canvas = nullptr;
+        tvg::Scene *root = nullptr;
+        tvg::Scene *transient = nullptr;
+        void *glContext = nullptr;
+        int width = 0;
+        int height = 0;
+    };
+    std::map<unsigned, TvgViewport> m_tvgViewports;
+    bool m_tvgInitialized = false;
+    TvgViewport *getTvgViewport(unsigned viewportId);
+    void renderTvgViewport(ImGuiViewport *viewport, SDL_Window *window);
+    void destroyTvgViewport(unsigned viewportId, SDL_Window *window);
     std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
@@ -523,6 +537,8 @@ class GUI final : public UI {
     bool &allowMouseCaptureToggle() { return settings.get<AllowMouseCaptureToggle>().value; }
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
 
+    // Returns the root scene drawn on top of the given viewport, in ImGui coordinates.
+    tvg::Scene *getTvgViewportScene(unsigned viewportId);
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
                          ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
 };  // namespace PCSX
