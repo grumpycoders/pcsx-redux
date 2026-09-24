@@ -5,6 +5,14 @@ The only location for the source is [on github](https://github.com/grumpycoders/
 
 `git clone https://github.com/grumpycoders/pcsx-redux.git --recursive`.
 
+The PlayStation side of the code, which includes [OpenBIOS](./openbios.md), PSYQo, and the MIPS tests, lives in its own repository, [nugget](https://github.com/pcsx-redux/nugget), which is mounted as a submodule at `src/mips`. Nugget has submodules of its own, so the clone needs to be recursive for it to be complete.
+
+If you already have a checkout, run the following after pulling, so that new or moved submodules get fetched:
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Windows
 
 Install [Visual Studio 2019 Community Edition](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).   
@@ -79,7 +87,8 @@ If you're only interested in compiling psx code, you can clone the PCSX-Redux re
 ```bash
 git clone https://github.com/grumpycoders/pcsx-redux.git --recursive
 ```  
-then install a mips toolchain and get the converted PsyQ libraries in the `pcsx-redux/src/mips/psyq/` folder as per  [these instructions](https://github.com/ABelliqueux/pcsx-redux/blob/main/src/mips/psyq/README.md).
+then install a mips toolchain and get the converted PsyQ libraries in the `pcsx-redux/src/mips/psyq/` folder as per  [these instructions](https://github.com/pcsx-redux/nugget/blob/main/psyq/README.md).  
+The `src/mips` folder is the [nugget](https://github.com/pcsx-redux/nugget) submodule, so it is only populated if the clone was recursive.
 
 You can also [find the pre-compiled converted Psyq libraries online](https://github.com/ABelliqueux/nolibgs_hello_worlds/blob/main/README.md#nugget--psyq-setup).
 

@@ -12,6 +12,15 @@ Breakpoints are always checked before mapping the memory, so it's safe to keep b
 
 Click the `Clear maps` button to zero out all of the maps, when starting anew.
 
+## ISO browser file viewer
+
+In the ISO browser (`Debug > CD-Rom > Show Iso Browser`), right-clicking a file offers `View`, next to `Extract`, `Replace` and `Hex Edit`. It opens a `View - <file>` window with up to two tabs:
+
+  * `TIM` : only present when the file parses as a TIM image. Shows its bpp, size and VRAM position, with a `palette` slider when the CLUT holds more than one palette.
+  * `Raw image` : decodes the file as 1, 2, 4, 8, 16 or 24 bpp pixels, with `width`, `height (0 = fit)` and `header bytes` set by hand. 16 bpp is read as PlayStation 15-bit colour, 1 to 8 bpp as greyscale.
+
+Both tabs have a `zoom` slider. The viewers are written in Lua and loaded from `resources/fileviewers.lua`; if that file is missing or fails to load, the `View` item does not appear.
+
 ## CPU trace dump
 
 ### Setup

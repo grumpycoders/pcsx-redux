@@ -9,7 +9,7 @@ The rendering of the UI is done through [ImGui](https://github.com/ocornut/imgui
 bound is to Lua using [bindings](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings).
 
 A good portion of the OpenGL3 API is also bound to Lua, as well as the
-[nanovg library](https://github.com/grumpycoders/nanovg/tree/master).
+[ThorVG library](https://github.com/thorvg/thorvg).
 
 ## Emulated GPU rendering pipeline
 
@@ -235,10 +235,22 @@ not be called, as the `error` function will unwind the stack, and the
 `imgui.End` function will never be called.
 
 In order to mitigate this, safe wrappers are provided for all of the ImGui
-Begin\*/End\* functions. The safe wrappers will catch any exception thrown
-by the user code, and will call the corresponding End\* function if the
-Begin\* function returned true. The error will be rethrown after the End\* function
-is called. The wrapped lambda will only be called if the Begin\* function
+Begin\*/End\* functions. Each wrapper takes the same arguments as the
+corresponding Begin\* function, followed by a function to call for the contents.
+The safe wrappers will catch any exception thrown by the user code, and will
+call the corresponding End\* function. The error will be rethrown after the
+End\* function is called. The wrapped function will only be called if the
+Begin\* function returned true, and receives the same arguments as the Begin\*
+function. The wrapper returns the values returned by the Begin\* function.
+
+The End\* function is called following the ImGui rules for each pair:
+
+- `imgui.safe.Begin`, `imgui.safe.BeginChild` and `imgui.safe.BeginChild_4` always
+call `imgui.End` or `imgui.EndChild`, whatever the Begin\* function returned.
+- `imgui.safe.BeginDisabled` and `imgui.safe.BeginGroup` always call the wrapped
+function, since `imgui.BeginDisabled` and `imgui.BeginGroup` return nothing, and
+then always call `imgui.EndDisabled` or `imgui.EndGroup`.
+- All the other wrappers only call the End\* function if the Begin\* function
 returned true.
 
 The example above can be rewritten as:
@@ -251,59 +263,77 @@ function DrawImguiFrame()
 end
 ```
 
-## NanoVG
+## ThorVG
 
-The NanoVG library is bound to Lua, and can be used to draw arbitrary vector graphics
-on top of the emulator. The NanoVG API is documented on the [NanoVG source code](https://github.com/grumpycoders/nanovg/blob/master/src/nanovg.h). The API is very similar to the HTML5 Canvas API, meaning that
-one can use the [MDN CanvasRenderingContext2D documentation](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D) and [other](https://www.w3schools.com/html/html5_canvas.asp) [related documentation](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes) to learn how to use it.
+The [ThorVG](https://github.com/thorvg/thorvg) library is bound to Lua under the global
+`tvg` table, and can be used to draw arbitrary vector graphics, SVG and Lottie files,
+PNG and JPEG images, and text on top of the emulator. The rendering happens after the
+ImGui rendering, meaning that it will be on top of the ImGui rendering, regardless of
+the order in which the ThorVG and ImGui functions are called.
 
-Using an HTML5 canvas toybox like [this one](https://codepen.io/nicolas_noble/pen/MWXqwQG) is a good way to learn how to use this API safely.
+The binding exposes the ThorVG object model directly, through its
+[C API](https://github.com/thorvg/thorvg/blob/main/src/bindings/capi/thorvg_capi.h).
+Objects are created with the following constructors:
 
-Note that the NanoVG rendering will happen after the ImGui rendering, meaning
-that the NanoVG rendering will be on top of the ImGui rendering, regardless
-of the order in which the NanoVG and ImGui functions are called.
+- `tvg.Shape()`
+- `tvg.Scene()`
+- `tvg.Picture()`
+- `tvg.Text()`
+- `tvg.LinearGradient([x1, y1, x2, y2])`
+- `tvg.RadialGradient([cx, cy, r[, fx, fy[, fr]]])`, where `fx` and `fy` default to `cx` and `cy`, and `fr` defaults to 0.
+- `tvg.Animation()`
+- `tvg.LottieAnimation()`
 
-Most of the NanoVG API is bound to Lua, with the exception of the following functions:
+Their methods are named after the C functions, in camel case, without the
+`tvg_<type>_` prefix, and without the object argument. For example,
+`tvg_shape_append_rect(shape, ...)` becomes `shape:appendRect(...)`, and
+`tvg_paint_translate(paint, x, y)` becomes `paint:translate(x, y)`. Shapes, scenes,
+pictures and texts also have all the `tvg_paint_*` methods. Gradients have the
+`tvg_gradient_*` methods, plus `:setLinear`, `:getLinear`, `:setRadial` and `:getRadial`.
+Animations have the `tvg_animation_*` and `tvg_lottie_animation_*` methods. The
+methods return the raw `Tvg_Result` value of the C function, where 0 means success.
+The raw C functions are also available in `tvg.C`.
 
-- `nvgBeginFrame`
-- `nvgCancelFrame`
-- `nvgEndFrame`
-- `nvgCreateImage`
-- `nvgCreateImageMem`
+A few methods have default arguments on top of the C API:
 
-In addition, the enums and some constructors for the structures used in NanoVG are available
-as extra values and functions. Please refer [to the Lua source code](https://github.com/grumpycoders/pcsx-redux/blob/main/src/gui/nvgffi.lua)
-for more details.
+- `shape:appendRect(x, y, w, h[, rx[, ry[, cw]]])`: `rx` defaults to 0, `ry` defaults to `rx`, and `cw` defaults to true.
+- `shape:appendCircle(cx, cy, rx[, ry[, cw]])`: `ry` defaults to `rx`, and `cw` defaults to true.
+- `shape:setFillColor(r, g, b[, a])` and `shape:setStrokeColor(r, g, b[, a])`: the components are integers between 0 and 255, and `a` defaults to 255.
+- `gradient:setColorStops(stops)` also accepts a table of `{ offset, r, g, b[, a] }` entries, where `a` defaults to 255.
+- `shape:setGradient(gradient)`, `shape:setStrokeGradient(gradient)` and `text:setGradient(gradient)` use a copy of the gradient, so the gradient can be reused afterwards.
 
-The general idea is that the emulator will call `nvgBeginFrame` and `nvgEndFrame` before
-and after the Lua code is executed, and the Lua code will be able to call
-the other functions to draw the vector graphics.
+Additionally, the following functions are available:
 
-The proper way to use the NanoVG API is to call `nvg:queueNvgRender(function() ... end)`,
-when in an ImGui window in order to queue the NanoVG rendering for this specific window.
+- `tvg.getViewportScene([viewportId])` returns the scene rendered on top of the
+given ImGui viewport, or `nil` if ThorVG isn't available. The viewport defaults to
+the one of the ImGui window currently being drawn, as returned by
+`imgui.extra.getCurrentViewportId()`. Paints in this scene are expressed in ImGui
+coordinates, which are absolute screen coordinates when multi-viewports are enabled.
 
-The `nvg:queueNvgRender` function takes a single argument, which is a function
-that will be called when the NanoVG rendering is being executed. The function
-will be called without argument.
+- `tvg.drawBezierArrow(width, p1, c1, c2, p2[, innerColor[, outerColor]])` draws an
+arrow on top of the current ImGui viewport, for the current frame only. The points
+are tables or objects with `x` and `y` fields, such as the ones created by
+`imgui.extra.ImVec2.New`. The colors are tables with either `r`, `g`, `b`, `a` fields
+or 4 array entries, with components between 0.0 and 1.0. The inner color defaults
+to opaque white, and the outer color to opaque grey.
 
-All of the NanoVG functions are bound to the `nvg` object, which is a proxy
-object to the proper NanoVG context, meaning it is only valid within the
-function passed to `nvg:queueNvgRender`.
+- `tvg.loadFont(path)` and `tvg.unloadFont(path)` load and unload a TTF or OTF font
+file. A loaded font is referred to by its file name without the extension. The
+emulator's font is loaded at startup, so `text:setFont('NotoSans-Regular')` works
+without loading a font first.
 
-This allows the user to call the NanoVG functions without having to pass the
-NanoVG context as the first argument, as it is done automatically by the
-proxy object.
-
-Note that the font used by the emulator is also loaded into the NanoVG context,
-meaning that it is possible to use `nvg:Text` without having to load a font
-first.
+The rendering is retained, not immediate: a paint added to the viewport scene with
+`scene:add(paint)` is displayed on every frame until it is removed with
+`scene:remove(paint)`, and it can be modified in place in between. Lua holds its own
+reference on the objects it creates, and releases it when they are garbage collected,
+but adding a paint to a scene keeps it alive as long as it is in the scene. Remove
+the paints from the scene when they should no longer be displayed.
 
 ## Example of using everything together
 
-As the NanoVG rendering is very low level, and requires a viewport to draw to,
-it is required to use the ImGui API to draw some UI, grab the positions of the
-vector graphics to add, and then queue some NanoVG calls within some ImGui
-context to draw the wanted vector graphics.
+As the vector graphics are drawn on top of the ImGui viewports, it is required to
+use the ImGui API to draw some UI, grab the positions of the vector graphics to add,
+and then update some ThorVG paints accordingly.
 
 The following example will draw a red rectangle in the middle of the Output
 region. The rectangle will be 100x100 pixels in size, and will be drawn on top
@@ -315,28 +345,26 @@ of the Output shader invoker, so we can get the position of the Output region
 to draw to.
 
 ```lua
+local square = tvg.Shape()
+square:setFillColor(255, 0, 0)
+local scene
+
 function Image(textureID, srcSizeX, srcSizeY, dstSizeX, dstSizeY)
-    -- This helper is provided by the emulator, and will properly calculate
-    -- arbitrary coordinates within an ImGui image that is dstSizeX x dstSizeY
-    -- in size. The first two arguments are the coordinates to convert, and
-    -- the middle two arguments are the boundaries of the source image.
+    -- The top left corner of the image, in ImGui coordinates.
+    local x, y = imgui.GetCursorScreenPos()
 
-    -- Here, we are using (1.0, 1.0) as the source image size, but it could
-    -- be any other size, as long as the coordinates are within the boundaries
-    -- of the source image. For example, if the source image is 320x240, then
-    -- the coordinates should be within (0, 0) and (320, 240), and the helper
-    -- will properly convert the coordinates to the destination image size.
+    -- The Output window may move to another viewport, so the square
+    -- needs to follow it into the matching scene.
+    local current = tvg.getViewportScene()
+    if current ~= scene then
+        if scene then scene:remove(square) end
+        scene = current
+        if scene then scene:add(square) end
+    end
 
-    local cx, cy = PCSX.Helpers.UI.imageCoordinates(0.5, 0.5, 1.0, 1.0, dstSizeX, dstSizeY)
-
-    -- As explained, we can't call NanoVG functions directly, so we need to
-    -- queue the rendering of the vector graphics.
-    nvg:queueNvgRender(function()
-        nvg:beginPath()
-        nvg:rect(cx - 50, cy - 50, 100, 100)
-        nvg:fillColor(nvg.Color.New(1, 0, 0, 1))
-        nvg:fill()
-    end)
+    -- Resetting a shape clears its path, but keeps its colors.
+    square:reset()
+    square:appendRect(x + dstSizeX / 2 - 50, y + dstSizeY / 2 - 50, 100, 100)
     imgui.Image(textureID, dstSizeX, dstSizeY, 0, 0, 1, 1)
 end
 ```

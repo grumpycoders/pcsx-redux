@@ -7,6 +7,7 @@ The menu bar holds some informations :
   * CPU mode
   * Game ID
   * ImGui FPS counter (not psx internal fps)
+  * Guest FPS counter ("guest FPS") : how many times per second the emulated software moves its display start, which is how games flip buffers. Measured over one second of emulated vsyncs, 50 or 60 depending on the video setting. Reads 0 when the same buffer stays on screen, as with interlaced or single buffered games, and some pause screens.
 
 ## File
 

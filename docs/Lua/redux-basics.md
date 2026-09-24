@@ -138,6 +138,63 @@ struct ScreenShot {
 
 The `Slice` will contain the raw bytes of the screenshot data. It's meant to be written out using the `:writeMoveSlice()` method on a `File` object. The `width` and `height` will be the width and height of the screenshot, in pixels. The `bpp` will be either `BPP_16` or `BPP_24`, depending on the color depth of the screenshot. The size of the `data` Slice will be `height * width` multiplied by the number of bytes per pixel, depending on the `bpp`.
 
+You can also get the framerate of the emulated game using the following:
+
+- `PCSX.GPU.getGuestFPS()`
+
+This will return a number, which is how many times the game moved the display start area per second of emulated vsyncs. As games flip their buffers by moving the display start area, this is the framerate of the game itself, as opposed to the framerate of the UI. The value is updated once every 50 or 60 emulated vsyncs, depending on the video mode. Games which keep displaying the same buffer, such as interlaced or single buffered games, will read 0.
+
+## SPU
+You can play audio from memory through the emulator's audio output using the following:
+
+- `PCSX.SPU.playAudio(source, descriptor)`
+
+The `source` can be a string, a LuaBuffer, a [`File` object](file-api.md), or a `Slice`. A `File` is read entirely, without moving its read cursor. The data is copied or decoded before the function returns. The playback is independent of the emulated SPU, and happens whether the emulation is running or paused. The Mute setting also applies to it.
+
+The `descriptor` is a table which describes the format of the data. Its `format` field is mandatory, and can be one of `'pcm'`, `'spu'`, or `'xa'`. All formats accept an optional `gain` field, which is a non-negative number defaulting to 1.0. Any other field that isn't listed below for the given format is an error.
+
+- `'pcm'`: raw interleaved little endian samples. The data size needs to be a multiple of the frame size.
+    - `bits`: mandatory, 8 or 16.
+    - `channels`: mandatory, 1 or 2.
+    - `rate`: mandatory, the sample rate in Hz, between 1 and 384000.
+    - `signed`: optional boolean, defaults to true for 16 bits, and false for 8 bits. 16 bits samples have to be signed.
+- `'spu'`: a sequence of 16-byte SPU-ADPCM blocks, mono. The data size needs to be a multiple of 16 bytes. Exactly one of these two fields is mandatory:
+    - `rate`: the sample rate in Hz, between 1 and 176400.
+    - `pitch`: the SPU pitch value, between 1 and 0x4000, where 0x1000 is 44100Hz.
+
+    The loop flags of the blocks are followed: the playback stops at a block with the loop end flag without the repeat flag, and jumps back to the last loop start block at a block with both the loop end and repeat flags. A single silent block looping onto itself ends the playback, as it is the usual terminator of a one-shot sample.
+- `'xa'`: XA-ADPCM data.
+    - `sectors`: optional boolean, defaults to false.
+    - When `sectors` is false, the data is a sequence of 128-byte sound groups, and these fields are mandatory:
+        - `bits`: 4 or 8.
+        - `channels`: 1 or 2.
+        - `rate`: 37800 or 18900.
+    - When `sectors` is true, the data is a sequence of 2352-byte raw sectors starting with the CD sync pattern, or of 2336-byte sectors starting at the subheader. Only the audio sectors are played, and the format is read from their subheaders, so `bits`, `channels`, and `rate` are an error. These fields are optional, and only valid in this mode:
+        - `xaFile`: only play the sectors with this file number, between 0 and 255.
+        - `xaChannel`: only play the sectors with this channel number, between 0 and 255.
+
+        Without these fields, only the file and channel of the first audio sector are played, since XA files usually interleave several streams. All the played sectors need to have the same format.
+
+The function will throw an error if the descriptor or the data are invalid, or if no audio device is available. Otherwise, it will return a sound object, which has the following methods:
+
+- `:stop()` stops the playback.
+- `:isPlaying()` returns true until the playback has finished or has been stopped.
+- `:setGain(gain)` changes the gain, which is a non-negative number.
+
+The sound object owns the playback: the sound stops when the object is garbage collected, so it needs to be kept around for as long as the sound should play.
+
+```lua
+-- One second of a 440Hz sine wave, as 16 bits mono samples.
+local samples = ffi.new('int16_t[44100]')
+for i = 0, 44099 do samples[i] = 8000 * math.sin(2 * math.pi * 440 * i / 44100) end
+beep = PCSX.SPU.playAudio(ffi.string(samples, 44100 * 2), { format = 'pcm', bits = 16, channels = 1, rate = 44100 })
+
+-- Playing an XA file, keeping its first stream only.
+local file = Support.File.open('MUSIC.XA')
+music = PCSX.SPU.playAudio(file, { format = 'xa', sectors = true, gain = 0.5 })
+file:close()
+```
+
 ## Loading and executing code
 
 While the basic Lua functions `dofile` and `loadfile` exist, some alternative functions are available to load and execute code in a more flexible way.
@@ -178,7 +235,7 @@ This allows distributing complex "mods" as zip files, which can be loaded and ex
 
 - `PCSX.Adpcm.NewEncoder` will return an Adpcm encoder object. The object has the following methods:
   - `:reset([mode])` will reset the encoder, and set the mode to the given mode. The mode can be `'Normal'`, `'XA'`, `'High'`, `'Low'`, `'FourBits'`. The default mode is `'Normal'`, which enables all the filters available in the SPU. The `'XA'` mode limits the encoder to the filters available in the XA ADPCM format. The `'High'` mode uses the high-pass filter, and the `'Low'` mode uses the low-pass filter. The `'FourBits'` mode forces plain 4-bit Adpcm encoding.
-  - `:processBlock(inData, [outData], [channels])` will encode the given ffi input buffer, and write the result to the given ffi output buffer. The input buffer should be a buffer of 16-bit signed integers, and the output buffer should be a buffer of 16-bit signed integers. The channels parameter is optional, and will default to 2. The input buffer should contain exactly 28 samples, and so does the output buffer. If the output buffer is not given, the function will return a new buffer with the result. LuaBuffers are also accepted as input and output buffers. The function will return three values: the output buffer, the filter index used, and the shifting used. The function is intended to be used as an intermediate computation step, and the output still needs to be processed into 4 bits or 8 bits samples.
+  - `:processBlock(inData, [outData], [channels])` will encode the given ffi input buffer, and write the result to the given ffi output buffer. The input buffer should be a buffer of 16-bit signed integers, and the output buffer should be a buffer of 16-bit signed integers. The channels parameter is optional, and will default to 1. The input buffer should contain exactly 28 samples per channel, interleaved when stereo, and so does the output buffer. If the output buffer is not given, the function will return a new buffer with the result. LuaBuffers are also accepted as input and output buffers. The function will return three values: the output buffer, the filter index used, and the shifting used. With 2 channels, it will return five values: the output buffer, then the filter index and shifting used for the first channel, then the filter index and shifting used for the second channel. The function is intended to be used as an intermediate computation step, and the output still needs to be processed into 4 bits or 8 bits samples.
   - `:processSPUBlock(inData, [outData], [blockAttribute])` will encode the given ffi input buffer, and write the result to the given ffi output buffer. The input buffer should be a buffer of 16-bit signed integers, and the output buffer should be a buffer which is at least 16 bytes large. The blockAttribute parameter is optional, and will default to `'OneShot'`. The input buffer should contain exactly 28 samples. If the output buffer is not given, the function will return a new buffer with the result. LuaBuffers are also accepted as input and output buffers. The function will return the encoded block, suitable for SPU usage. The `blockAttribute` parameter can be one of the following strings: `'OneShot'`, `'OneShotEnd'`, `'LoopStart'`, `'LoopBody'`, `'LoopEnd'`.
   - `:finishSPU([outData])` will write the opinionated end of sample looping block, as prescribed by the original Sony API. The output buffer should be a buffer which is at least 16 bytes large. If the output buffer is not given, the function will return a new buffer with the result. LuaBuffers are also accepted as output buffers. The function will return the encoded block, suitable for SPU usage.
   - `:processXABlock(inData, [outData], [xaMode], [channels])` will encode the given ffi input buffer, and write the result to the given ffi output buffer. The input buffer should be a buffer of 16-bit signed integers, and the output buffer should be a buffer which is at least 128 bytes large. Note that a MODE2 FORM2 XA sector requires subheaders and 18 of these blocks. The xaMode parameter is optional, and will default to `'XAFourBits'`. The other valid value is `'XAEightBits'`. It will defines the encoding output between either 4-bit and 8-bit. The channels parameter is optional, and will default to 1. If the output buffer is not given, the function will return a new buffer with the result. LuaBuffers are also accepted as input and output buffers. The function will return the encoded block, suitable for XA usage. The amount of required input samples varies depending of the number of channels and the encoding mode:
@@ -186,6 +243,11 @@ This allows distributing complex "mods" as zip files, which can be loaded and ex
     - 4-bit stereo: 112 samples aka 448 bytes
     - 8-bit mono: 112 samples aka 224 bytes
     - 8-bit stereo: 56 samples aka 224 bytes
+
+- `PCSX.Adpcm.NewDecoder` will return an Adpcm decoder object. The object has the following methods:
+  - `:reset()` will reset the decoder history.
+  - `:decodeSPUBlock(inData, [outData])` will decode a single 16-byte SPU-ADPCM block into 28 16-bit signed samples. The input can be a LuaBuffer, a string, or an ffi pointer, and needs to be at least 16 bytes large. The output can be a LuaBuffer or an ffi pointer, and needs to be at least 56 bytes large. If the output buffer is not given, the function will return a new LuaBuffer with the result. The function will return two values: the output buffer, and the flags byte of the block, which contains the loop flags.
+  - `:decodeXASoundGroup(inData, [outData], [bitsPerSample], [channels])` will decode a single 128-byte XA-ADPCM sound group into 16-bit signed samples. The input can be a LuaBuffer, a string, or an ffi pointer, and needs to be at least 128 bytes large. The output can be a LuaBuffer or an ffi pointer. If the output buffer is not given, the function will return a new LuaBuffer with the result. The bitsPerSample parameter is optional, can be 4 or 8, and will default to 4. The channels parameter is optional, can be 1 or 2, and will default to 1. Stereo output is interleaved, left first. The function will return two values: the output buffer, and the number of samples written, which is 224 for 4-bit, and 112 for 8-bit, stereo included. An XA sector contains 18 of these sound groups.
 
 Using the encoder to process an input audio file is as simple as:
 
