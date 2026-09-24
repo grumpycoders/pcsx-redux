@@ -62,7 +62,10 @@ at the cost of extra power required.)"));
     }
     changed = deviceChanged;
 
-    changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
+    if (ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value)) {
+        changed = true;
+        m_audioOut.updatePlaybackMute();
+    }
     changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
