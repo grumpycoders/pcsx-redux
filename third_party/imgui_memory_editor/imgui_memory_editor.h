@@ -149,7 +149,7 @@ private:
     std::string     AddrInputBuf;
     size_t          GotoAddr;
     size_t          HighlightMin, HighlightMax;
-    int             PreviewEndianess;
+    int             PreviewEndianness;
     bool            RestoreOffset;
     const size_t    BaseAddr;
 
@@ -189,10 +189,10 @@ public:
     size_t DataTypeGetSize(ImGuiDataType data_type) const;
     const char* DataFormatGetDesc(DataFormat data_format) const;
     bool IsBigEndian() const;
-    static void* EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian);
-    static void* EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian);
-    void* EndianessCopy(void* dst, void* src, size_t size) const;
-    const char* FormatBinary(const uint8_t* buf, int width) const;
+    static void* EndiannessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian);
+    static void* EndiannessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian);
+    void* EndiannessCopy(void* dst, void* src, size_t size) const;
+    const char* FormatBinary(const ImU8* buf, int width) const;
 
 private:
     // [Internal]

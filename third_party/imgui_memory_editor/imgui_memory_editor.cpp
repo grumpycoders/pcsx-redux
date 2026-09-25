@@ -34,7 +34,7 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	OptAddrDigitsCount = 0;
 	OptFooterExtraHeight = 0.0f;
 	HighlightColor = IM_COL32(255, 255, 255, 50);
-	HighlightFn = NULL;
+	HighlightFn = nullptr;
 	MouseHovered = false;
 	MouseHoveredAddr = 0;
 	// State/Internals
@@ -43,7 +43,7 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	DataEditingTakeFocus = false;
 	GotoAddr = (size_t)-1;
 	HighlightMin = HighlightMax = (size_t)-1;
-	PreviewEndianess = 0;
+	PreviewEndianness = 0;
 	PreviewDataType = ImGuiDataType_S32;
         RestoreOffset = true;
 }
@@ -501,7 +501,7 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 	}
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth((s.GlyphWidth * 6.0f) + style.FramePadding.x * 2.0f + style.ItemInnerSpacing.x);
-	ImGui::Combo("##combo_endianess", &PreviewEndianess, "LE\0BE\0\0");
+	ImGui::Combo("##combo_endianness", &PreviewEndianness, "LE\0BE\0\0");
 
 	char buf[128] = "";
 	float x = s.GlyphWidth * 6.0f;
@@ -543,18 +543,18 @@ const char* MemoryEditor::DataFormatGetDesc(DataFormat data_format) const
 
 bool MemoryEditor::IsBigEndian() const
 {
-	uint16_t x = 1;
+	ImU16 x = 1;
 	char c[2];
 	memcpy(c, &x, 2);
 	return c[0] != 0;
 }
 
-void* MemoryEditor::EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian)
+void* MemoryEditor::EndiannessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian)
 {
 	if (is_little_endian)
 	{
-		uint8_t* dst = (uint8_t*)_dst;
-		uint8_t* src = (uint8_t*)_src + s - 1;
+		ImU8* dst = (ImU8*)_dst;
+		ImU8* src = (ImU8*)_src + s - 1;
 		for (int i = 0, n = (int)s; i < n; ++i)
 			memcpy(dst++, src--, 1);
 		return _dst;
@@ -565,7 +565,7 @@ void* MemoryEditor::EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int
 	}
 }
 
-void* MemoryEditor::EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian)
+void* MemoryEditor::EndiannessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian)
 {
 	if (is_little_endian)
 	{
@@ -573,23 +573,23 @@ void* MemoryEditor::EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, 
 	}
 	else
 	{
-		uint8_t* dst = (uint8_t*)_dst;
-		uint8_t* src = (uint8_t*)_src + s - 1;
+		ImU8* dst = (ImU8*)_dst;
+		ImU8* src = (ImU8*)_src + s - 1;
 		for (int i = 0, n = (int)s; i < n; ++i)
 			memcpy(dst++, src--, 1);
 		return _dst;
 	}
 }
 
-void* MemoryEditor::EndianessCopy(void* dst, void* src, size_t size) const
+void* MemoryEditor::EndiannessCopy(void* dst, void* src, size_t size) const
 {
-	static void* (*fp)(void*, void*, size_t, int) = NULL;
-	if (fp == NULL)
-		fp = IsBigEndian() ? EndianessCopyBigEndian : EndianessCopyLittleEndian;
-	return fp(dst, src, size, PreviewEndianess);
+	static void* (*fp)(void*, void*, size_t, int) = nullptr;
+	if (fp == nullptr)
+		fp = IsBigEndian() ? EndiannessCopyBigEndian : EndiannessCopyLittleEndian;
+	return fp(dst, src, size, PreviewEndianness);
 }
 
-const char* MemoryEditor::FormatBinary(const uint8_t* buf, int width) const
+const char* MemoryEditor::FormatBinary(const ImU8* buf, int width) const
 {
 	IM_ASSERT(width <= 64);
 	size_t out_n = 0;
@@ -610,7 +610,7 @@ const char* MemoryEditor::FormatBinary(const uint8_t* buf, int width) const
 void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const
 {
 	if (addr >= mem_size) { out_buf[0] = 0; return; }
-	uint8_t buf[8];
+	ImU8 buf[8];
 	size_t elem_size = DataTypeGetSize(data_type);
 	size_t size = addr + elem_size > mem_size ? mem_size - addr : elem_size;
 	for (int i = 0, n = (int)size; i < n; ++i)
@@ -618,8 +618,8 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 
 	if (data_format == DataFormat_Bin)
 	{
-		uint8_t binbuf[8];
-		EndianessCopy(binbuf, buf, size);
+		ImU8 binbuf[8];
+		EndiannessCopy(binbuf, buf, size);
 		ImSnprintf(out_buf, out_buf_size, "%s", FormatBinary(binbuf, (int)size * 8));
 		return;
 	}
@@ -629,89 +629,89 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 	{
 	case ImGuiDataType_S8:
 	{
-		int8_t int8 = 0;
-		EndianessCopy(&int8, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhd", int8); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", int8 & 0xFF); return; }
+		ImS8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhd", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", data & 0xFF); return; }
 		break;
 	}
 	case ImGuiDataType_U8:
 	{
-		uint8_t uint8 = 0;
-		EndianessCopy(&uint8, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhu", uint8); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", uint8 & 0XFF); return; }
+		ImU8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhu", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", data & 0XFF); return; }
 		break;
 	}
 	case ImGuiDataType_S16:
 	{
-		int16_t int16 = 0;
-		EndianessCopy(&int16, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hd", int16); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", int16 & 0xFFFF); return; }
+		ImS16 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hd", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", data & 0xFFFF); return; }
 		break;
 	}
 	case ImGuiDataType_U16:
 	{
-		uint16_t uint16 = 0;
-		EndianessCopy(&uint16, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hu", uint16); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", uint16 & 0xFFFF); return; }
+		ImU16 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hu", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", data & 0xFFFF); return; }
 		break;
 	}
 	case ImGuiDataType_S32:
 	{
-		int32_t int32 = 0;
-		EndianessCopy(&int32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%d", int32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", int32); return; }
+		ImS32 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%d", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", data); return; }
 		break;
 	}
 	case ImGuiDataType_U32:
 	{
-		uint32_t uint32 = 0;
-		EndianessCopy(&uint32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%u", uint32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", uint32); return; }
+		ImU32 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%u", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", data); return; }
 		break;
 	}
 	case ImGuiDataType_S64:
 	{
-		int64_t int64 = 0;
-		EndianessCopy(&int64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%lld", (long long)int64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)int64); return; }
+		ImS64 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%lld", (long long)data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)data); return; }
 		break;
 	}
 	case ImGuiDataType_U64:
 	{
-		uint64_t uint64 = 0;
-		EndianessCopy(&uint64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%llu", (long long)uint64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)uint64); return; }
+		ImU64 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%llu", (long long)data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)data); return; }
 		break;
 	}
 	case ImGuiDataType_Float:
 	{
-		float float32 = 0.0f;
-		EndianessCopy(&float32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", float32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", float32); return; }
+		float data = 0.0f;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", data); return; }
 		break;
 	}
 	case ImGuiDataType_Double:
 	{
-		double float64 = 0.0;
-		EndianessCopy(&float64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", float64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", float64); return; }
+		double data = 0.0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", data); return; }
 		break;
 	}
 	case ImGuiDataType_Bool:
 	{
-		int8_t int8 = 0;
-		EndianessCopy(&int8, buf, size);
-		if (int8 == 0)
+		ImS8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data == 0)
 			memcpy(out_buf, "false", 6);
 		else
 			memcpy(out_buf, "true", 5);
