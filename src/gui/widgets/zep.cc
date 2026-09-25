@@ -97,7 +97,8 @@ void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
 
     auto& io = ImGui::GetIO();
 
-    if (io.MouseWheel != 0.0f && ImGui::IsItemHovered()) {
+    // Taking the wheel keeps a scrollable parent window from also scrolling.
+    if (ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY) && io.MouseWheel != 0.0f) {
         m_editor->OnMouseWheel(Zep::toNVec2f(io.MousePos), io.MouseWheel);
     }
 
