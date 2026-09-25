@@ -185,7 +185,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	while (clipper.Step())
 		for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
 		{
-			size_t addr = (size_t)(line_i * Cols);
+			size_t addr = (size_t)line_i * Cols;
 			ImGui::Text(format_address, s.AddrDigitsCount, BaseAddr + addr);
 
 			// Draw Hexadecimal
@@ -308,7 +308,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 				// Draw ASCII values
 				ImGui::SameLine(s.PosAsciiStart);
 				ImVec2 pos = ImGui::GetCursorScreenPos();
-				addr = line_i * Cols;
+				addr = (size_t)line_i * Cols;
 
 				const float mouse_off_x = ImGui::GetIO().MousePos.x - pos.x;
 				const size_t mouse_addr = (mouse_off_x >= 0.0f && mouse_off_x < s.PosAsciiEnd - s.PosAsciiStart) ? addr + (size_t)(mouse_off_x / s.GlyphWidth) : (size_t)-1;
