@@ -1158,6 +1158,15 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
+
+    // Tab is also a text and navigation key: leave it alone while a widget or editor (Lua console, assembler,
+    // memory editor...) owns the keyboard. Keyboard navigation is enabled, so a focused Output window also
+    // reports WantCaptureKeyboard; that one is where the user is playing, so let it through.
+    const bool keyboardCaptured = io.WantCaptureKeyboard && !m_outputWindowFocused;
+    if (!keyboardCaptured && ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+        m_turboEnabled = !m_turboEnabled;
+        g_emulator->setTurbo(m_turboEnabled);
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -1236,6 +1245,7 @@ void PCSX::GUI::endFrame() {
         m_fullWindowRender = false;
         ImGui::SetNextWindowDockID(dockspaceId);
     }
+    m_outputWindowFocused = false;
     if (m_fullWindowRender) {
         ImTextureID texture = m_offscreenTextures[m_currentTexture];
         const auto basePos = ImGui::GetMainViewport()->Pos;
@@ -1265,6 +1275,7 @@ void PCSX::GUI::endFrame() {
         if (ImGui::Begin(
                 _("Output"), &outputWindowShown,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse)) {
+            m_outputWindowFocused = ImGui::IsWindowFocused();
             ImGuiDockNode* outputNode = ImGui::GetWindowDockNode();
             if (outputNode && dockspaceNode->OnlyNodeWithWindows == outputNode &&
                 (!outputNode->TabBar || outputNode->TabBar->Tabs.size() == 1)) {
@@ -1615,6 +1626,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
                 ImGui::TextUnformatted(_("Idle"));
+            }
+            if (m_turboEnabled) {
+                ImGui::Separator();
+                ImGui::TextUnformatted(_("Turbo"));
             }
 
             ImGui::EndMainMenuBar();

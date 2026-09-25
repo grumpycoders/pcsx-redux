@@ -353,6 +353,8 @@ class GUI final : public UI {
     bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
+    bool m_turboEnabled = false;
+    bool m_outputWindowFocused = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper(GUI *gui, bool &show, size_t &offsetAddr, size_t baseAddr = 0x0000)

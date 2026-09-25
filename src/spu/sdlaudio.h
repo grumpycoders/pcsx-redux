@@ -151,6 +151,12 @@ class SDLAudio {
         }
     }
     uint32_t getCurrentFrames() { return m_frames.load(); }
+    // Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
+    // at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
+    // producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
+    static constexpr int kMaxSpeed = 1024;
+    // The sink multiplier actually applied: the configured SPU::Speed times the GUI's turbo factor.
+    static int effectiveSpeed(int configured, int turboFactor);
     void waitForGoal(uint32_t goal) {
 #if HAS_ATOMIC_WAIT
         // for once, Visual Studio is better than clang/gcc/libc++/libstdc++. Its C++20
