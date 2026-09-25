@@ -116,6 +116,12 @@ let
       hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
       dest = "third_party/ftxui";
     })
+    ({
+      owner = "Taywee";
+      repo = "args";
+      rev = "794f2dc7caa306984cf385cbb8e7176146514959";
+      hash = "sha256-S5FaAtPY/mXsQ8aYsluxwwYZ1CK20/DRew3ltRkm2z8=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
