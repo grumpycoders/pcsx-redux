@@ -15,7 +15,7 @@ git submodule update --init --recursive
 
 ## Windows
 
-Install [Visual Studio 2019 Community Edition](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).   
+Install [Visual Studio 2026 Community Edition](https://visualstudio.microsoft.com/vs/community/) using the `Desktop development with C++` workload, and the `C++ Clang tools for Windows` component, as some of the projects use the ClangCL toolset.   
 Open the file `vsprojects\pcsx-redux.sln`, select `pcsx-redux -> pcsx-redux`, right click, `Set as Startup Project`, and hit `F7` to build.  
 The project follows the open-and-build paradigm with no extra step, so no specific dependency ought to be needed, as [NuGet](https://www.nuget.org/)
 will take care of downloading them automatically for you on the first build.
@@ -33,36 +33,36 @@ Using [Visual Studio Code](https://code.visualstudio.com/), one can use the task
 Run `./dockermake.sh`. You need [docker](https://en.wikipedia.org/wiki/Docker_(software)) for this to work.
 ```bash
 # Debian derivative; Ubuntu, Mint...
-sudo apt install docker
+sudo apt install docker.io
 # Arch derivative; Manjaro...
 sudo pacman -S docker
 ```
 
 You will also need a few libraries on your system for this to work. 
-Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L22) for a list of library packages to install.
+Check the [Dockerfile](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/build/Dockerfile#L41-L51) for a list of library packages to install.
 
 ### Compiling with make
 
  - Debian derivatives ( for full emulator compilation ):
 
 ```bash
-sudo apt-get install -y build-essential git make pkg-config clang g++ g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libglfw3-dev libswresample-dev libuv1-dev zlib1g-dev
+sudo apt-get install -y build-essential git make pkg-config clang g++ libcapstone-dev libfreetype-dev libavcodec-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libsdl3-dev libswresample-dev libuv1-dev zlib1g-dev
 ```
 
  - Arch derivatives :
 
 ```bash
-sudo pacman -S clang git make pkg-config ffmpeg libuv zlib glfw-x11 curl xorg-server-xvfb
+sudo pacman -S capstone clang git make pkg-config ffmpeg freetype2 libuv zlib sdl3 curl xorg-server-xvfb
 ```
 
 You can then just enter the 'pcsx-redux' directory and compile without using docker with `make`.
 
-If you have a different mips compiler, you'll need to override some variables, such as `PREFIX=mipsel-none-elf FORMAT=elf32-littlemips`.  
+If you have a different mips compiler, you'll need to override the `PREFIX` and `FORMAT` variables, which default to `PREFIX=mipsel-none-elf FORMAT=elf32-littlemips`.  
 
 #### Openbios
 
 Building [OpenBIOS](./openbios.md) on Linux can be done with docker : `./dockermake.sh openbios`,  
-or using `make`, with the `g++-mipsel-linux-gnu` package installed ; `make openbios`.  
+or using `make`, with a `mipsel-none-elf` toolchain installed (see [below](#getting-the-toolchain-on-gnulinux)) ; `make openbios`.  
 
 ### MacOS
 You need MacOS Catalina with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages.  
@@ -75,8 +75,9 @@ Compiling  [OpenBIOS](./openbios.md) will require a mips compiler, that you can 
 #### Openbios
 
 ```bash
-brew install ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install nikitabobko/tap/brew-install-path
+brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
+brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
 ```
 
 Then, you can compile  [OpenBIOS](./openbios.md) using `make -C ./src/mips/openbios`.
@@ -94,21 +95,34 @@ You can also [find the pre-compiled converted Psyq libraries online](https://git
 
 ### Getting the toolchain on Windows
 
-Download the MIPS toolchain here : [https://static.grumpycoder.net/pixel/mips/g++-mipsel-none-elf-10.3.0.zip](http://static.grumpycoder.net/pixel/mips/g++-mipsel-none-elf-10.3.0.zip)  
-and add the `bin` folder to [your $PATH](https://stackoverflow.com/questions/44272416/how-to-add-a-folder-to-path-environment-variable-in-windows-10-with-screensho#44272417).  
-You can test it's working by [launching a command prompt](https://www.lifewire.com/how-to-open-command-prompt-2618089) and typing `mipsel-none-elf-gcc.exe --version`. If you get a message like `mipsel-none-gnu-gcc (GCC) 10.3.0`, then it's working !
+Install the `mips` toolchain manager script by copy-pasting the following into a command prompt:
+
+```cmd
+powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"
+```
+
+Then, open a new command prompt, and install the toolchain, which will also be added to your `PATH`:
+
+```cmd
+mips install 16.2.0
+```
+
+You can test it's working by [launching a command prompt](https://www.lifewire.com/how-to-open-command-prompt-2618089) and typing `mipsel-none-elf-gcc.exe --version`. If you get a message like `mipsel-none-elf-gcc (GCC) 16.2.0`, then it's working !
 
 ### Getting the toolchain on GNU/Linux 
 
 #### Debian derivative; Ubuntu, Mint...
 
+There's no distribution package for the `mipsel-none-elf` toolchain, so build it from source, from the root of the repository:
+
 ```bash
-sudo apt install g++-mipsel-linux-gnu cpp-mipsel-linux-gnu binutils-mipsel-linux-gnu
+sudo apt-get install -y make wget bzip2 xz-utils bison flex texinfo libgmp-dev libmpfr-dev libmpc-dev
+sudo bash tools/linux-mips/spawn-compiler.sh
 ```
 #### Arch derivative; Manjaro...
 
-The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [cross-mipsel-linux-gnu-binutils](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-binutils/) and [cross-mipsel-linux-gnu-gcc](https://aur.archlinux.org/packages/cross-mipsel-linux-gnu-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
+The mipsel environment can be installed from [AUR](https://wiki.archlinux.org/index.php/Aur) : [mipsel-none-elf-binutils](https://aur.archlinux.org/packages/mipsel-none-elf-binutils/) and [mipsel-none-elf-gcc](https://aur.archlinux.org/packages/mipsel-none-elf-gcc/) using your [AURhelper](https://wiki.archlinux.org/index.php/AUR_helpers) of choice:
 
 ```bash
-trizen -S cross-mipsel-linux-gnu-binutils cross-mipsel-linux-gnu-gcc
+trizen -S mipsel-none-elf-binutils mipsel-none-elf-gcc
 ```

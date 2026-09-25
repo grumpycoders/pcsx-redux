@@ -4,11 +4,11 @@ A web server can be activated. This allows the use of a REST api to access vario
 
 ## Activation
 
-You can activate the web server by going to `Configuration > Emulation > Enable Web Server`
+You can activate the web server by going to `Configuration > Emulation > Enable Web Server`, or by using the `-webserver` [command line flag](cli_flags.md).
 
 ## REST API
 
-By default, the server listens for incoming connection on `localhost:8080`. The port can be changed in the same settings above.
+By default, the server listens for incoming connection on port 8080, on all network interfaces, so it is reachable at `localhost:8080`, but also from other machines on the network. The port can be changed in the same settings above, or with the `-webserver-port` command line flag.
 
 These GET methods are available:
 
@@ -16,8 +16,17 @@ These GET methods are available:
 | :- | :- |
 | [/api/v1/gpu/vram/raw](http://localhost:8080/api/v1/gpu/vram/raw) | Dump VRAM  |
 | [/api/v1/cpu/ram/raw](http://localhost:8080/api/v1/cpu/ram/raw) | Dump RAM |
-| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | Emulation Status |
+| [/api/v1/execution-flow](http://localhost:8080/api/v1/execution-flow) | Emulation Status, as a JSON object with the `running`, `isDynarec`, `8mb` and `debugger` fields |
+| [/api/v1/cd/info](http://localhost:8080/api/v1/cd/info) | Information on the loaded disc image, as a JSON object |
 | [/api/v1/cd/files?filename=<value>](http://localhost:8080/api/v1/cd/files?filename=SYSTEM.CNF;1) | Dump a file from the loaded disc image |
+| [/api/v1/screen/still](http://localhost:8080/api/v1/screen/still) | Take a screenshot, returned as a PNG image |
+| /api/v1/screen/save?filepath=<value> | Take a screenshot, and save it as a PNG file at the given path. A relative path is relative to the directory holding the settings. |
+| [/api/v1/state/usage](http://localhost:8080/api/v1/state/usage) | List the used save state slots, and the named save states, as a JSON object |
+| /api/v1/state/load?slot=<value> or /api/v1/state/load?name=<value> | Load a save state, either from a slot between 0 and 9, or by name |
+| /api/v1/state/save?slot=<value> or /api/v1/state/save?name=<value> | Save a save state, either to a slot between 0 and 9, or by name |
+| /api/v1/state/delete?slot=<value> or /api/v1/state/delete?name=<value> | Delete a save state, either from a slot between 0 and 9, or by name |
+
+The save state endpoints are unavailable when running without the graphical user interface.
 
 The following POST methods are available:
 
@@ -36,7 +45,7 @@ The above needs to also send a form with binary contents, which will update the 
 | reset | Resets the symbols loaded in redux |
 | upload | Uploads a `.map` file to redux |
 
-The above expects a `.map` file with symbols and addresses, which will be merged with the current symbols already loaded in redux. The map file should contain a pair of `symbol address` for each line. e.g `Foo 80010000` would load the symbol `Foo` in the address `0x80010000`.
+The above expects a `.map` file with symbols and addresses, which will be merged with the current symbols already loaded in redux. The map file should contain a pair of `address symbol` for each line, with the address in hexadecimal. e.g `80010000 Foo` would load the symbol `Foo` in the address `0x80010000`.
 
 `/api/v1/cpu/cache?function=<value>`
 
@@ -78,9 +87,11 @@ The above needs to also send a form with binary contents, which will patch the c
 
 All changes are cumulative.
 
-`api/v1/cd/ppf?function=<value>`
+`/api/v1/cd/ppf?function=<value>`
 
 | Value | Function |
 | :- | :- |
 | save | Saves the current state of the disc image patches to a PPF file. |
 | clear | Clears the current list of patches. |
+
+Additional endpoints can be written in Lua, and are served under `/api/v1/lua/`. See the [Lua web server](Lua/web-server.md) page.

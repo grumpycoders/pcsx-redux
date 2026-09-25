@@ -25,7 +25,7 @@ Both tabs have a `zoom` slider. The viewers are written in Lua and loaded from `
 
 ### Setup
 
-In PCSX-Redux, make sure `Debug > Show logs` is enabled.
+In PCSX-Redux, make sure `Debug > Show Logs` is enabled.
 
 In the 'Logs' window, hide all logs : `Displayed > Hide all`
 

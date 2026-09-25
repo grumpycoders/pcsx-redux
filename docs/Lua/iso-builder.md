@@ -148,7 +148,7 @@ Layout overrides:
 
 This is where the work happens: the layout is computed, then the PVD, the volume descriptor set terminator, both path tables, the directory extents, the anchor padding and finally the file contents are written in that order.
 
-EDC and ECC are computed for every sector, in parallel. `threadCount` is the number of worker threads to use for that; 0 means one per hardware thread. There is no way to turn the computation off, since an image with wrong EDC is not a useful image.
+EDC and ECC are computed for every sector the builder assembles itself, and the file contents are processed in parallel. `threadCount` is the number of worker threads to use for that; 0 means one per hardware thread. There is no way to turn the computation off, since an image with wrong EDC is not a useful image. The only exception is file content in `RAW` or `M2_RAW` mode, which already carries its own EDC and ECC and is written as supplied.
 
 The builder does not add trailing padding past the end of the volume, and on real hardware that is a problem. The Mechacon has trouble seeking near the end of a disc: it regularly overshoots, and with nothing past the last real sector, it gets stuck there. Zero-filled sectors after the data are a landing zone that guarantees it cannot.
 
@@ -204,7 +204,7 @@ local f = reader:open('DATA/LEVEL1.BIN;1')
 print(f:size())
 ```
 
-Note the `rSeek(0)` calls. A `File` object has separate read and write pointers, so a buffer you have just written content into still has its read pointer where you left it. Rewind before handing a buffer to `createFile`, and rewind the output before reopening it as an ISO.
+Note the `rSeek(0)` calls. A `File` object has separate read and write pointers, so a buffer you have just written content into still has its read pointer where you left it. The builder rewinds every content file itself before reading it during `close()`, so rewinding a buffer before handing it to `createFile` is only a precaution, but rewind the output before reopening it as an ISO.
 
 This is exactly what the test suite in `tests/lua/isobuilder.lua` does.
 

@@ -6,7 +6,7 @@ The GDB server allows you to set breakpoints  and control your PSX program's exe
 
 ![Enable gdb server](./images/gdb-server-enable.png)  
 
-In PCSX-Redux:  `Configuration > Emulation > Enable GDB server`.   
+In PCSX-Redux:  `Configuration > Emulation > Enable GDB Server`.   
 
 Make sure the debugger is also enabled.  
 
@@ -49,7 +49,7 @@ sudo pacman -S gdb
 ![VScode native debg extension](./images/vscode_native_debug.png)  
 
   * Adapt your `launch.json` file to your environment :  
-  A sample `lanuch.json` file is available [here](https://github.com/grumpycoders/pcsx-redux/blob/main/.vscode/launch.json).  
+  A sample `launch.json` file is available [here](https://github.com/grumpycoders/pcsx-redux/blob/a3bebd490388130e924124cdfeff3bc46b6149d9/.vscode/launch.json).  
   This should go in `your-project/.vscode/`.  
   
   You need to adapt the values of `"executable"`, `"gdbpath"` and `"autorun"` according to your system :
@@ -79,7 +79,7 @@ sudo pacman -S gdb
     "load your-file.elf",
 ```
 
-  Make sure that `"load your-file.elf"` corresponds to the `"target"` value.  
+  Make sure that `"load your-file.elf"` corresponds to the `"executable"` value.  
   
   [https://github.com/grumpycoders/pcsx-redux/blob/a3bebd490388130e924124cdfeff3bc46b6149d9/.vscode/launch.json#L159-L165](https://github.com/grumpycoders/pcsx-redux/blob/a3bebd490388130e924124cdfeff3bc46b6149d9/.vscode/launch.json#L159-L165)
   
@@ -107,7 +107,7 @@ Create a `.gdbinit` file at the root of your project with the following content,
 
 ```
 target remote localhost:3333
-symbol-file load /path/to/your/executable.elf
+symbol-file /path/to/your/executable.elf
 monitor reset shellhalt
 load /path/to/your/executable.elf
 ```

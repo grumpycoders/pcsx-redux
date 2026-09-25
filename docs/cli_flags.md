@@ -7,6 +7,9 @@ You can launch `pcsx-redux` with the following command line parameters:
 | Flag | Meaning |
 | :- | :- |
 | `-dumpproto` | Dump the protobuf schemas for PCSX-Redux on stdout and exit immediately. |
+| `-version` | Print the version information as JSON on stdout and exit immediately. |
+| `-no-ui` | Run without the graphical user interface, using a text interface instead. Implies `-stdout` and `-lua_stdout`. |
+| `-cli` | Same as `-no-ui`, and also implies `-safe`. |
 | `-run` | Begin execution immediately on startup. |
 | `-stdout` | Redirect log output to stdout. |
 | `-lua_stdout` | Redirect Lua's console output to stdout. |
@@ -21,13 +24,22 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-memcard1` | Specify a memory card file to use as memory card slot 1. |
 | `-memcard2` | Specify a memory card file to use as memory card slot 2. |
 | `-pcdrv` | Enable the pcdrv device interface. (Access PC filesystem through SIO). |
+| `-no-pcdrv` | Disable the pcdrv device interface. Will change the saved setting. |
 | `-pcdrvbase` | Specify base directory for pcdrv. |
 | `-safe` | Resets configuration to defaults. |
 | `-resetui` | Resets the UI to its defaults. |
+| `-noshaders` | Displays the emulated output without going through the output shaders. |
+| `-noupdate` | Disables the automatic update checks. |
+| `-viewports` | Enables ImGui viewports, allowing windows to be dragged outside of the main window. Enabled by default except on Linux. |
+| `-no-viewports` | Disables ImGui viewports. |
 | `-kiosk` | Enables kiosk mode, disabling UI interaction. Will change the saved setting. |
 | `-no-kiosk` | Disables kiosk mode, allowing the user to interact with the UI. Will change the saved setting. |
 | `-interpreter` | Use the interpreter CPU core. |
 | `-dynarec` | Use the dynamic recompiler CPU core. |
+| `-openglgpu` | Use the OpenGL GPU renderer. Will change the saved setting. |
+| `-softgpu` | Use the software GPU renderer. Will change the saved setting. |
+| `-8mb` | Emulates 8MB of RAM instead of 2MB. Will change the saved setting. |
+| `-2mb` | Emulates 2MB of RAM. Will change the saved setting. |
 | `-debugger` | Activates the debugger. Will change the saved setting. |
 | `-no-debugger` | Deactivates the debugger. Will change the saved setting. |
 | `-fastboot` | Skips the BIOS logo and boot animation. Will change the saved setting. |
@@ -35,6 +47,9 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-gdb` | Activates the gdb server. Will change the saved setting. |
 | `-no-gdb` | Deactivates the gdb server. Will change the saved setting. |
 | `-gdb-port` | Sets the TCP port the gdb server is listening on. Will change the saved setting. |
+| `-webserver` | Activates the [web server](web_server.md). Will change the saved setting. |
+| `-no-webserver` | Deactivates the web server. Will change the saved setting. |
+| `-webserver-port` | Sets the TCP port the web server is listening on. Will change the saved setting. |
 | `-trace` | Activates the CPU trace logging. Will change the saved setting. |
 | `-no-trace` | Deactivates the CPU trace logging. Will change the saved setting. |
 | `-no-gui-log` | Fully disables logs to be sent to the GUI. |

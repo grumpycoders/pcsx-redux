@@ -12,7 +12,7 @@ See [this page](https://github.com/pcsx-redux/nugget/tree/main/openbios) for mor
 
 ## Building
 
-It is compiled together with `pcsx-redux` or can be compiled on its own.  
+It is not part of the default `pcsx-redux` build, and is compiled on its own, from the `src/mips/openbios` directory. On Linux and MacOS, the top level `Makefile` has an `openbios` target for it.  
 
 See the corresponding sections in [Compiling](./compiling.md) for instructions.  
 
@@ -21,15 +21,15 @@ and a file called `openbios.bin` which can be used in emulators or even burned t
 
 ## Status
 
-This subproject is still under construction, but is fairly functional and usable. OpenBIOS does almost all the same things as the retail BIOS does when booting, and implements most of its features.  
-[Many games](https://docs.google.com/spreadsheets/d/1UNGs7uYb8viAbm7YJaf1CR4dkgX7ZzntUdcowGsjcVc/edit?usp=sharing) are booting and working properly with this code.  
+This subproject is fairly functional and usable. OpenBIOS does almost all the same things as the retail BIOS does when booting, and implements most of its features.  
+Many games are booting and working properly with this code. Read the [compatibility](https://github.com/pcsx-redux/nugget/blob/main/openbios/COMPATIBILITY.md) document for more information.  
 It can be used in emulators or on the real console, either while replacing the rom chip, or by using the "cart" build and programming the flash chip of a cheat cart with the result.
 
 ## Organization
 
 The BIOS is split in two major parts: the low level code for the bios itself, and the shell, which is the binary that's being loaded into memory at boot time by the bios, to display the SONY sound and logo, and has a small utility menu for playing audio discs, or shuffling around memory cards.
 
-While the first part is the main one that's being targeted here, the second one isn't currently present. This may change in the future, but this isn't currently the focus of this project.
+While the first part is the main one that's being targeted here, the second one hasn't been reversed, and has been fully replaced with a completely different project. This may change in the future, but this isn't currently the focus of this project.
 
 The original code was most likely chunked into several sub-projects, that were all linked together like a giant patchwork. This approach is less readable, and for this reason, we're not going to do this.  
 However this will result in the ROM/RAM split to be less obvious, and slower at times than the original. Tuning of the hot functions is eventually required.

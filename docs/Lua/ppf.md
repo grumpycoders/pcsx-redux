@@ -24,7 +24,7 @@ The reader accepts PPF1, PPF2 and PPF3. A few things are worth knowing about the
 
 ## Generating patches
 
-Patches come from writing to the disc. Open a region of the current image as a `File` object, write to it, and every byte that ends up different from the original is recorded:
+Patches come from writing to the disc. Open a region of the current image as a `File` object, write to it, and every byte that ends up different from what the disc held before the write is recorded:
 
 ```lua
 local iso = PCSX.getCurrentIso()
@@ -32,7 +32,7 @@ local f = iso:open(lba, size, mode)
 f:writeAt('patched bytes', offset)
 ```
 
-The details of `iso:open` and of what writing to a disc file does to sector headers and EDC/ECC are covered in the [File API](file-api.md) page. What matters here is what happens underneath: for each sector touched, the original 2352-byte sector and the modified one are compared byte by byte, and every contiguous run of differing bytes becomes a patch record holding the new bytes. Writes that happen to store the value that was already there produce nothing.
+The details of `iso:open` and of what writing to a disc file does to sector headers and EDC/ECC are covered in the [File API](file-api.md) page. What matters here is what happens underneath: for each sector touched, the 2352-byte sector as it read before the write, with any existing patches applied, and the modified one are compared byte by byte, and every contiguous run of differing bytes becomes a patch record holding the new bytes. Writes that happen to store the value that was already there produce nothing.
 
 The far more convenient way to reach a specific region is through the reader, which resolves a path to an LBA for you:
 
@@ -62,7 +62,7 @@ Both are also reachable from the GUI, in the ISO browser, as the "Save PPF" and 
 
 The generated file is always PPF1, regardless of what version was loaded. That is the version every PPF applier understands, and none of what the later versions add is data PCSX-Redux has: there is no undo information, no verification block, and no image size field.
 
-The 50-byte description field and the `FILE_ID.DIZ` block are read from patches that carry them, but there is currently no way to set either one, from Lua or from anywhere else, so generated files carry an empty description.
+The 50-byte description field and the `FILE_ID.DIZ` block are read from patches that carry them, but there is currently no way to set either one, from Lua or from anywhere else, so generated files carry the description of the patch that was loaded alongside the image, if any, and an empty description otherwise.
 
 One consequence of PPF1 having a single-byte length field is that a long run of changed bytes is emitted as several consecutive records of at most 255 bytes each. This is normal and every applier handles it.
 

@@ -6,7 +6,7 @@ primitives. This means there is very little boundaries between the
 various rendered elements on the screen.
 
 The rendering of the UI is done through [ImGui](https://github.com/ocornut/imgui), and a chunk of its API is
-bound is to Lua using [bindings](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings).
+bound to Lua using [bindings](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings).
 
 A good portion of the OpenGL3 API is also bound to Lua, as well as the
 [ThorVG library](https://github.com/thorvg/thorvg).
@@ -26,7 +26,7 @@ a crt shader.
 
 The second step is called the "Output rendering", and is done every
 time the UI wants to refresh its display, which may or may not be at
-the same time as the emulated vsync. The resolution of the input will
+the same time as the emulated vsync. The resolution of the Output region will
 match exactly the resolution of the input texture, and the default
 shader should simply copy all the texels without any sort of
 interpolation, but as the second stage of the rendering pipeline, this
@@ -58,14 +58,15 @@ The shader editor is split in 3 regions:
 The Lua invoker code will be compiled and executed in a soft sandbox
 environment. The code can still access already created globals and mutate them,
 but any newly created global will be kept within the sandbox and won't be
-accessible from other Lua code. All these globals will be saved and restored
-with the normal emulator settings.
+accessible from other Lua code. When the `Draw` function returns true, all these
+globals will be saved to a JSON file, and they will be restored the next time
+the shader is compiled.
 
 When the shaders are compiled, the Vertex and Fragment shader code will be
 compiled together, and if the resulting program is valid, the Lua invoker code
 will be compiled and executed. If the Lua code fails to compile or execute, the
-shader will be considered invalid and the error will be displayed in the
-shader editor.
+error will be displayed in the shader editor, but the shader program itself
+will still be used.
 
 This compilation order allows the Lua code to access the shader program
 uniforms, and to set them up as needed. The global `shaderProgramID` will be
@@ -95,10 +96,11 @@ The code is expected to export a few functions:
   - `BindAttributes(textureID, shaderProgramID, srcLocX, srcLocY, srcSizeX, srcSizeY, dstSizeX, dstSizeY)`
   will be called when the shader program is about to be executed, and needs
   to bind the attributes. The texture ID is the OpenGL texture ID, and the
-  shader program ID is the OpenGL shader program ID. The location and sizes are in pixels, but are only
-  used for the Emulated GPU Pipeline, when the Offscreen shader is being
+  shader program ID is the OpenGL shader program ID. The location and sizes are only
+  passed for the Emulated GPU Pipeline, when the Offscreen shader is being
   executed, as it needs to grab a portion of the VRAM texture to be rendered
-  to the offscreen texture.
+  to the offscreen texture. The source location and size are normalized texture
+  coordinates within the VRAM texture, while the destination size is in pixels.
 
 Additionally, it is possible to programmatically set the content of the editors using the following methods:
 
@@ -235,7 +237,7 @@ not be called, as the `error` function will unwind the stack, and the
 `imgui.End` function will never be called.
 
 In order to mitigate this, safe wrappers are provided for all of the ImGui
-Begin\*/End\* functions. Each wrapper takes the same arguments as the
+Begin\*/End\* functions, except `imgui.BeginItemTooltip`. Each wrapper takes the same arguments as the
 corresponding Begin\* function, followed by a function to call for the contents.
 The safe wrappers will catch any exception thrown by the user code, and will
 call the corresponding End\* function. The error will be rethrown after the

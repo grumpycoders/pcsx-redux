@@ -62,7 +62,7 @@ Some APIs may return a `Slice` object, which is an opaque buffer coming from C++
 :writeAtMoveSlice(slice, pos)
 ```
 
-After which, the slice will be consumed and not reusable. The `Slice` object is convertible to a string using `tostring()`, and also has two members: `data`, which is a `const void*`, and `size`. Once consumed by the `MoveSlice` variants, the size of a slice will go down to zero.
+After which, the slice will be consumed and not reusable. The `Slice` object is convertible to a string using `tostring()`, and also has, among others, the members `data`, which is a `const void*`, and `size`. Once consumed by the `MoveSlice` variants, the size of a slice will go down to zero.
 
 Finally, it is possible to convert a `Slice` object to a `pb.slice` one using the `Support.sliceToPBSlice` function. However, the same caveats as for normal `pb.slice` objects apply: it is fragile, and will be invalidated if the underlying Slice is moved or destroyed, so it is recommended to use it as a temporary object, such as an argument to `pb.decode`. Still, it is a much faster alternative to calling `tostring()` which will make a copy of the underlying slice.
 
@@ -192,7 +192,7 @@ The `:open` method has some magic built-in. The size argument is optional, and i
 
 The resulting File object will cache a single full sector in memory, meaning that small sequential reads won't read the same sector over and over from the disk.
 
-The resulting File object will be writable, which will temporarily patch the CD-Rom image file in memory. It is possible to flush the patches to a PPF file by calling the `:savePPF()` method of the corresponding Iso object. When writing to one of these files, the filesystem metadata information will not be updated, meaning that the size of the file on the filesystem will not change, despite it being possible to write past the end of it and overflow on the next sectors. Note that while the virtual File object will enlarge to accommodate the writes, it will not be filled with zeroes as with typical filesystem operations, but instead will be filled with the existing data from the iso image. When applicable, sync headers, location, MODE2 subheaders will be added, and ECC and EDC will be recalculated on the fly, and the resulting data will be written to the virtual file, except for files opened in `'RAW'` mode. The `'M1'` mode cannot be written to, and will throw an error if attempted.
+The resulting File object will be writable, which will temporarily patch the CD-Rom image file in memory. It is possible to flush the patches to a PPF file by calling the `:savePPF()` method of the corresponding Iso object. When writing to one of these files, the filesystem metadata information will not be updated, meaning that the size of the file on the filesystem will not change, despite it being possible to write past the end of it and overflow on the next sectors. Note that while the virtual File object will enlarge to accommodate the writes, it will not be filled with zeroes as with typical filesystem operations, but instead will be filled with the existing data from the iso image. The written data is laid over the existing sector: only the part of the sector the mode exposes is replaced, and the rest, such as the sync header and location, is kept as it is on the image. ECC and EDC will be recalculated on the fly for files opened in `'M2_FORM1'` or `'M2_FORM2'` mode, including when that mode was guessed. In any other mode, including `'M1'`, they are not recalculated.
 
 The ISOReader object has the following methods:
 

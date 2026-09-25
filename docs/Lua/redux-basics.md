@@ -42,13 +42,13 @@ function createClient(ip, port)
             luv.close(client)
           end
         end)
-      )
+      end)
 
       pprint("writing from client")
       luv.write(client, "Hello")
       luv.write(client, "World")
 
-    end
+    end)
   end)
   return client
 end
