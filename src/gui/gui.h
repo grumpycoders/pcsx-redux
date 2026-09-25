@@ -472,6 +472,7 @@ class GUI final : public UI {
     std::string buildSaveStateFilename(int i);
     std::string buildSaveStateFilename(std::string name);
     bool saveStateExists(std::filesystem::path filename);
+    bool saveScreenShot();
 
   private:
     void applyTheme(int theme);

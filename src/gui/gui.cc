@@ -62,6 +62,7 @@ extern "C" {
 #include "core/sio1.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
+#include "core/screenshot.h"
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
@@ -1414,6 +1415,13 @@ void PCSX::GUI::endFrame() {
                 }
                 if (ImGui::MenuItem(_("Hard Reset"), "Shift+F8")) {
                     g_system->hardReset();
+                }
+                if (ImGui::MenuItem(_("Take Screenshot"), "F12")) {
+                    bool success = saveScreenShot();
+
+                    if (!success) {
+                        addNotification(_("Failed to save screenshot"));
+                    }
                 }
                 ImGui::EndMenu();
             }
@@ -3069,4 +3077,14 @@ void PCSX::GUI::changeScale(float scale) {
             ImGui::GetStyle().FontSizeBase = mainFont->LegacySize;
         }
     }
+}
+
+bool PCSX::GUI::saveScreenShot() {
+    std::filesystem::path path =
+        g_system->getPersistentDir() / (getSaveStatePrefix(true) + PCSX::ScreenShot::getDateString() + ".png");
+    auto screenshot = g_emulator->m_gpu->takeScreenShot();
+    clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
+    bool success = PCSX::ScreenShot::writeImagePNG(path.string(), std::move(img));
+
+    return success;
 }
