@@ -300,7 +300,6 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // Collect 1 ms of this channel's audio.
     for (int ns = 0; ns < NSSIZE; ns++) {
         int rawSample;
-        m_noise.step();
 
         // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
         // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
@@ -343,7 +342,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 
         if constexpr (Src == SampleSource::Noise) {
             // Get the noise value.
-            rawSample = m_noise.getVal();
+            rawSample = noiseLevel[ns];
             voice->interp.parkExternalSample(rawSample, settings.get<Interpolation>());
         } else {
             rawSample = voice->interp.getVal(settings.get<Interpolation>(), kIsFModSource);
@@ -455,6 +454,12 @@ void PCSX::SPU::impl::MainThread() {
 
         tmpCapVoice1Index = capBufVoiceIndex;
         tmpCapVoice3Index = capBufVoiceIndex;
+
+        // Clock the shared noise generator once per output sample of the batch.
+        for (ns = 0; ns < NSSIZE; ns++) {
+            m_noise.step();
+            noiseLevel[ns] = m_noise.getVal();
+        }
 
         // Collect 1 ms of sound from every channel into the mix accumulators.
         for (ch = 0; ch < MAXCHAN; ch++) {

@@ -316,6 +316,10 @@ class impl final : public SPUInterface {
     int SSumR[NSSIZE];
     int SSumL[NSSIZE];
     int fmodInput[NSSIZE];
+    // The shared noise level for each sample of the batch. The LFSR is one per SPU and
+    // steps once per output sample, but voices are mixed channel-major, so MainThread
+    // steps it NSSIZE times up front and noise voices read their sample's level here.
+    int noiseLevel[NSSIZE];
     int iCycle = 0;
     int16_t *pS;
 
