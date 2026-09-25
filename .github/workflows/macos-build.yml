@@ -18,8 +18,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: recursive
         set-safe-directory: true
+    - name: Fetch submodules
+      run: ./.github/scripts/update-submodules.sh
     - name: Build OpenBIOS
       run: make -C src/mips/openbios -j2
     - name: Upload results for MacOS build job
@@ -45,7 +46,7 @@ jobs:
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
-      run: git submodule update --init --recursive
+      run: ./.github/scripts/update-submodules.sh
     - name: Build PCSX-Redux
       run: make -j 2 all pcsx-redux-tests
     - name: Download OpenBIOS build

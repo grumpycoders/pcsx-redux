@@ -10,7 +10,10 @@ variables:
 
 steps:
 - checkout: self
-  submodules: recursive
+  submodules: false
+- task: Bash@3
+  inputs:
+    filePath: '.github/scripts/update-submodules.sh'
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
