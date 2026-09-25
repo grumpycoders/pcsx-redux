@@ -1156,6 +1156,14 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
+
+    if (ImGui::IsKeyPressed(ImGuiKey_F12)) {
+        bool success = saveScreenShot();
+
+        if (!success) {
+            addNotification(_("Failed to save screenshot"));
+        }
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
