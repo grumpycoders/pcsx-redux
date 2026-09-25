@@ -204,14 +204,19 @@ int pcsxMain(int argc, char **argv) {
     if (args.status() != PCSX::CommandLine::Status::Ok) {
         bool error = args.status() == PCSX::CommandLine::Status::Error;
 #if defined(_WIN32) || defined(_WIN64)
-        // We're a Windows subsystem application, so there's no console to print to, unless
-        // we were started from one.
-        if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-            MessageBoxA(nullptr, args.message().c_str(), "PCSX-Redux", error ? MB_ICONERROR : MB_ICONINFORMATION);
-            return error ? 1 : 0;
+        // We're a Windows subsystem application. If the caller redirected our output, it's
+        // already usable. Otherwise there's no console to print to, unless we were started
+        // from one.
+        HANDLE out = GetStdHandle(error ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE);
+        bool redirected = out && out != INVALID_HANDLE_VALUE && GetFileType(out) != FILE_TYPE_UNKNOWN;
+        if (!redirected) {
+            if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+                MessageBoxA(nullptr, args.message().c_str(), "PCSX-Redux", error ? MB_ICONERROR : MB_ICONINFORMATION);
+                return error ? 1 : 0;
+            }
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
         }
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
 #endif
         fputs(args.message().c_str(), error ? stderr : stdout);
         return error ? 1 : 0;
