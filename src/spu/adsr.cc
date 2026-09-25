@@ -115,13 +115,12 @@ int PCSX::SPU::AdsrEnvelope::Decay() {
     const int rateIndex = m_adsrx.get<exDecayRate>().value * kCoarseRateScale;
     int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
     int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
-    const bool exponential = m_adsrx.get<exReleaseModeExp>().value != 0;
 
+    // Decay has no mode bit of its own: psx-spx lists it as "Fixed, always Exponential".
+    // The release mode bit only governs Release.
     if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
         envelopeVolFraction = 0;
-        envelopeVol += exponential ? (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >>
-                                         kExponentialDecreaseShift
-                                   : EnvelopeTables::numerator_decrease.data[rateIndex];
+        envelopeVol += (EnvelopeTables::numerator_decrease.data[rateIndex] * envelopeVol) >> kExponentialDecreaseShift;
     }
 
     envelopeVol = std::max(envelopeVol, 0);
