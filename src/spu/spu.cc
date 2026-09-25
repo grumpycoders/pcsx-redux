@@ -216,6 +216,10 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         cursor = (blockFlags != 3 || voice->adpcm.loop() == nullptr) ? AdpcmDecoder::kStopped : voice->adpcm.loop();
     }
 
+    // The address counter is 19 bits wide: a stream with no end flag runs off the top of
+    // the 512KiB sound RAM and continues from address 0, rather than out of spuMem.
+    if (cursor != AdpcmDecoder::kStopped && cursor >= spuRamBase + sizeof(spuMem)) cursor -= sizeof(spuMem);
+
     // Store the cursor for the next cycle.
     voice->adpcm.setCurr(cursor);
 
