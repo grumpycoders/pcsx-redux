@@ -173,8 +173,19 @@ struct PsyqLnkFile {
         std::string name;
         ELFIO::Elf_Word elfSym;
         uint16_t getKey() { return getLow(); }
+        uint32_t getCommAlignment() const {
+            if (size >= 8) {
+                return 8;
+            } else if (size >= 4) {
+                return 4;
+            } else if (size >= 2) {
+                return 2;
+            } else {
+                return 1;
+            }
+        }
         uint32_t getOffset(PsyqLnkFile* psyq) const {
-            if (symbolType == Type::UNINITIALIZED || symbolType == Type::COMM) {
+            if (symbolType == Type::UNINITIALIZED) {
                 auto section = psyq->sections.find(sectionIndex);
                 assert(section != psyq->sections.end());
                 return section->data.size() + section->zeroes + offset;
@@ -975,10 +986,11 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
     ELFIO::Elf_Half elfSectionIndex = 0;
     bool isText = false;
     bool isWeak = false;
+    ELFIO::Elf64_Addr symbolValue = getOffset(psyq);
 
-    fmt::print("    :: Generating symbol {} {} {}\n", name, getOffset(psyq), sectionIndex);
     if (symbolType == Type::COMM) {
         elfSectionIndex = ELFIO::SHN_COMMON;
+        symbolValue = getCommAlignment();
     } else if (symbolType != Type::IMPORTED) {
         auto section = psyq->sections.find(sectionIndex);
         if (section == psyq->sections.end()) {
@@ -990,6 +1002,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         isText = section->isText();
         isWeak = symbolType != Type::EXPORTED;
     }
+    fmt::print("    :: Generating symbol {} {} {}\n", name, symbolValue, sectionIndex);
     uint32_t functionSize = 0;
     if (isText) {
         auto functionSizeIter = psyq->functionSizes.find(name);
@@ -997,7 +1010,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
             functionSize = functionSizeIter->second;
         }
     }
-    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), isText ? functionSize : size,
+    elfSym = syma.add_symbol(stra, name.c_str(), symbolValue, isText ? functionSize : size,
                              isWeak                      ? ELFIO::STB_WEAK
                              : symbolType == Type::LOCAL ? ELFIO::STB_LOCAL
                                                          : ELFIO::STB_GLOBAL,
