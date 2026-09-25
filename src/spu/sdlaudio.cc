@@ -29,6 +29,16 @@
 #include "core/system.h"
 #include "spu/interface.h"
 
+// Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
+// at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
+// producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
+static constexpr int kMaxSpeed = 1024;
+
+static int effectiveSpeed(int configured) {
+    if (configured <= 0 || configured > kMaxSpeed) return kMaxSpeed;
+    return configured;
+}
+
 PCSX::SPU::SDLAudio::SDLAudio(PCSX::SPU::SettingsType& settings)
     : m_settings(settings), m_listener(g_system->m_eventBus) {
     // Enumerate compiled-in drivers. This is static information available before
@@ -90,6 +100,19 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
         return;
     }
     m_audioInitialized = true;
+
+    // The dummy driver turns the period hint straight into its tick, in whole milliseconds:
+    // io_delay = sample_frames * 1000 / spec.freq, integer division, in
+    // third_party/SDL/src/audio/dummy/SDL_dummyaudio.c. 64 frames at 44100 Hz is 1.451 ms and
+    // truncates to 1, so the sink drains about 30% fast, the CPU never gets ahead of it, and
+    // the throttle in psxcounters.cc never binds - so anything the guest times against the SPU
+    // is measured with a short ruler, and that is exactly what the SPU test suite runs on. 441
+    // divides exactly (10 ms). Keyed off the driver actually in use rather than off `safe`,
+    // because the failure fallbacks and an explicit backend choice both end up here too.
+    const char* driver = SDL_GetCurrentAudioDriver();
+    if (driver && std::string(driver) == "dummy") {
+        SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "441");
+    }
 
     // Enumerate playback devices and locate the user's saved choice, if any.
     m_devices.clear();
@@ -161,6 +184,16 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
         SDL_CloseAudioDevice(m_device);
         m_device = 0;
         throw std::runtime_error("Unable to bind SDL audio stream: " + err);
+    }
+
+    // What the device actually negotiated, which is not always what was hinted, and on the dummy
+    // driver decides the drain rate the whole emulator is paced against. Worth one line at open:
+    // guessing at it from the outside costs hours.
+    SDL_AudioSpec got;
+    int gotFrames = 0;
+    if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
+        g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n",
+                      SDL_GetCurrentAudioDriver(), got.freq, gotFrames);
     }
 
     // Devices come up in the resumed state; pause until execution actually starts so
@@ -244,6 +277,19 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
 
         SDL_PutAudioStreamData(stream, m_outputBuffer.data(), chunk * kFrameSizeBytes);
 
+        // Fast-forward lives at the sink (the master clock). We have already kept the first `chunk`
+        // frames of each stream for playback at native 44.1kHz -- pitch is preserved. To run the whole
+        // emulator `speed` times faster we drain the producer rings `speed` times faster: discard the
+        // additional (speed - 1) frame-runs from BOTH streams (SPU voices and CD-ROM XA). Draining the
+        // rings faster paces the SPU thread faster, which through waitForGoal paces the CPU thread
+        // faster. dequeue() naturally caps at what is available, so this is safe (and self-limits) at
+        // any speed.
+        const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+        for (int rep = 1; rep < speed; rep++) {
+            m_voicesStream.dequeue(m_mixBuffers[0].data(), chunk);
+            m_audioStream.dequeue(m_mixBuffers[1].data(), chunk);
+        }
+
         // When NullSync is off, the real audio callback is the timing source. When it's
         // on, the dedicated null thread drives timing instead.
         if (!m_settings.get<NullSync>()) {
@@ -257,7 +303,12 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
 void PCSX::SPU::SDLAudio::advanceFrames(uint32_t frameCount) {
     m_frameCount.store(frameCount);
 
-    auto total = m_frames.fetch_add(frameCount);
+    // Advance the master clock `speed` times faster than realtime. m_frames is the frame counter the
+    // CPU thread waits on in waitForGoal(); the CPU's goalpost grows at the realtime rate per emulated
+    // cycle, so advancing m_frames `speed` times faster makes the CPU reach its goalpost (and thus run)
+    // `speed` times faster. At speed == 1 this is byte-identical to the previous fetch_add(frameCount).
+    const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+    auto total = m_frames.fetch_add(frameCount * static_cast<uint32_t>(speed));
 
 #if HAS_ATOMIC_WAIT
     auto goalpost = m_goalpost.load();

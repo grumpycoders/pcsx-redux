@@ -15,10 +15,28 @@ OPTIONAL_LIBRARIES := multipart ucl
 
 LOCALES := el es_ES fr ja pt_BR uk zh_CN
 
-ifeq ($(wildcard third_party/imgui/imgui.h),)
-HAS_SUBMODULES = false
-else
+# One sentinel per submodule the build globs sources from. Checking imgui alone let a checkout
+# that had imgui but not implot report submodules present and then fail at compile time on a
+# missing implot/implot.h, which is a much worse place to find out.
+#
+# Only list things the Nix build also populates. It does not use git submodules: pcsx-redux.nix
+# fetches a hand-maintained list into third_party/ and takes the rest from nixpkgs, so googletest
+# and uriparser are simply not there. Listing those made HAS_SUBMODULES false under Nix, which
+# drops the -include $(DEPS) below, which is what carries luajit.h as a prerequisite - and the
+# build died on a missing luajit.h with nothing pointing back here.
+# Kept to the two that gui.cc includes directly and that both environments demonstrably have.
+# Adding more is easy and is how this broke: a sentinel that is missing anywhere this Makefile
+# runs silently disables the dependency files rather than reporting a missing submodule.
+SUBMODULE_SENTINELS := \
+    third_party/imgui/imgui.h \
+    third_party/implot/implot.h
+
+MISSING_SUBMODULES := $(strip $(foreach s,$(SUBMODULE_SENTINELS),$(if $(wildcard $(s)),,$(s))))
+
+ifeq ($(MISSING_SUBMODULES),)
 HAS_SUBMODULES = true
+else
+HAS_SUBMODULES = false
 endif
 
 CXXFLAGS += -std=c++2b
@@ -130,6 +148,7 @@ SRCS += third_party/imgui/misc/freetype/imgui_freetype.cpp
 SRCS += third_party/imgui_lua_bindings/imgui_lua_bindings.cpp
 SRCS += third_party/imgui_md/imgui_md.cpp
 SRCS += third_party/imgui_memory_editor/imgui_memory_editor.cpp
+SRCS += $(wildcard third_party/implot/*.cpp)
 SRCS_pkg_libllhttp += $(wildcard third_party/llhttp/*.c)
 SRCS += $(wildcard third_party/lpeg/*.c)
 SRCS += third_party/lua-protobuf/pb.c
@@ -259,6 +278,7 @@ check_submodules:
 else
 check_submodules:
 	@echo "You need to clone this repository recursively, in order to get its submodules."
+	@echo "Missing: $(MISSING_SUBMODULES)"
 	@false
 endif
 

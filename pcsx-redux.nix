@@ -80,6 +80,12 @@ let
       hash = "sha256-PknWLxYuXQ73TCFN+eKOJDNLGbg/ZqKSF6mFxkJG6vI=";
     })
     ({
+      owner = "epezent";
+      repo = "implot";
+      rev = "d65a2bef53d32502407de3a4be80f191e2f412d7";
+      hash = "sha256-s7URArbirN8uiInhi95eQW7aoq5Clc67NzUCzcslAi8=";
+    })
+    ({
       owner = "taocpp";
       repo = "PEGTL";
       rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
@@ -113,8 +119,8 @@ let
     ({
       owner = "pcsx-redux";
       repo = "nugget";
-      rev = "77adff516017044f2c6d9b21f66c124b9593959a";
-      hash = "sha256-N6FmNautSbIGNfsfNDdmy4jqj6dco8dXj5GBdKadQkI=";
+      rev = "d93840921b5ad7ed515e95b0e414f1b1e2038b1a";
+      hash = "sha256-+THJqpj64/43NAuEERCdOXzrW/jykk4IoL8RCFax+Xs=";
       dest = "src/mips";
     })
     ({
