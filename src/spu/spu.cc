@@ -256,6 +256,10 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // its output goes to fmodInput rather than the stereo mix.
     constexpr bool kIsFModSource = Role == FModRole::Source;
 
+    // A source that is off, in its key-on delay, or stops mid-batch writes no sample for
+    // those slots; zero the whole batch up front so the target never reads a stale one.
+    if constexpr (kIsFModSource) std::fill(std::begin(fmodInput), std::end(fmodInput), 0);
+
     // The mixing state still lives in the savestate protobuf, so bind it once here
     // instead of spelling the accessor out at every use. These are all references:
     // the register path writes several of them from another thread while we mix, so
