@@ -31,6 +31,7 @@ SOFTWARE.
 #include <atomic>
 #include <functional>
 #include <future>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -238,11 +239,53 @@ class UvFifo : public File, public UvThreadOp {
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
     virtual bool failed() final override { return m_failed.test(); }
     bool isConnecting() { return m_connecting.test(); }
+    // uv error code of a failed connect, or 0. Meaningful once failed() is set.
+    // Without this a failed outgoing connection is a bare bool, which is enough
+    // to colour a status bullet red and not enough to say why.
+    int connectErrorCode() const { return m_connectErrorCode.load(std::memory_order_acquire); }
+    const char* connectError() const {
+        int code = connectErrorCode();
+        return code == 0 ? "" : uv_strerror(code);
+    }
+
+    // Opt-in readable notification.
+    //
+    // Reads land in a lock-free queue on the uv worker thread, so without this
+    // the only way to notice traffic is to poll size() from somewhere - which
+    // is what SIO1 and ATCons do off the counters, and which is fine for them.
+    // It is not fine for anything latency-sensitive or idle-heavy, so a
+    // consumer can hand over an async living on ITS OWN loop and get woken
+    // instead. `cb` runs on that loop, never on the worker thread.
+    //
+    // Fires on data arrival and on EOF/error. Wake-ups are coalesced by libuv,
+    // so treat it as "something changed, go look", not as one call per chunk.
+    // Safe to install after data has already arrived: it fires once up front if
+    // the fifo is already readable or already closed, so no wake-up is lost in
+    // the gap between accept and setNotifier.
+    //
+    // The caller owns `async` and must keep it alive until it closes the fifo,
+    // then uv_close it, exactly like UvFifoListener's.
+    void setNotifier(uv_loop_t* loop, uv_async_t* async, std::function<void()>&& cb);
+    void clearNotifier() { m_notifyAsync.store(nullptr, std::memory_order_release); }
+
+    // Writes are queued to the uv worker thread, so "I called write()" and "the
+    // bytes left the machine" are different moments. Closing between the two
+    // cancels the pending uv_writes and truncates whatever was in flight, which
+    // for an HTTP response is a silently short reply. close() is therefore
+    // graceful: the socket is torn down by the last write to complete, not by
+    // the caller. Exposed for consumers that want to know, e.g. to hold a
+    // connection open until a response has drained.
+    size_t pendingWrites() const { return m_control->m_pending.load(std::memory_order_acquire); }
 
   private:
     virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
     void startRead(uv_tcp_t*);
+    // Worker-thread side of the notification. A no-op when nobody opted in.
+    void notify() {
+        auto async = m_notifyAsync.load(std::memory_order_acquire);
+        if (async) uv_async_send(async);
+    }
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
     void* m_buffer = nullptr;
@@ -252,23 +295,60 @@ class UvFifo : public File, public UvThreadOp {
     std::atomic<size_t> m_size = 0;
     std::atomic_flag m_failed;
     std::atomic_flag m_connecting;
+    std::atomic<int> m_connectErrorCode = 0;
     Slice m_slice;
     size_t m_currentPtr = 0;
+    std::atomic<uv_async_t*> m_notifyAsync = nullptr;
+
+    // The socket and the graceful-close bookkeeping outlive the UvFifo on
+    // purpose. An in-flight uv_write holds a reference, so a fifo destroyed
+    // while writes are still queued cannot pull the state out from under the
+    // worker thread - which is why the write path must never capture `this`.
+    struct Control {
+        std::atomic<size_t> m_pending = 0;
+        bool m_closeRequested = false;  // worker thread only
+        uv_tcp_t* m_tcp = nullptr;      // worker thread only, after construction
+        void closeNow();
+        void writeCompleted();
+    };
+    std::shared_ptr<Control> m_control = std::make_shared<Control>();
+    std::function<void()> m_notifyCb;
     friend class UvFifoListener;
 };
 
 class UvFifoListener : public UvThreadOp {
   public:
+    // The bind and the listen both happen asynchronously on the uv worker
+    // thread, so a failure cannot be returned from start(). It lands here
+    // instead, and the callback is invoked with nullptr the same way an
+    // orderly shutdown does, so consumers have exactly one path for "this
+    // listener is finished, clean up".
+    enum class Status { Stopped, Starting, Listening, Failed };
+
     UvFifoListener() {}
     void start(unsigned port, uv_loop_t* loop, uv_async_t* async, std::function<void(UvFifo*)>&& cb);
     void stop();
 
+    Status status() const { return m_status.load(std::memory_order_acquire); }
+    bool isListening() const { return status() == Status::Listening; }
+    // uv error code of whichever step failed, or 0. Meaningful once status() is Failed.
+    int lastErrorCode() const { return m_lastErrorCode.load(std::memory_order_acquire); }
+    const char* lastError() const {
+        int code = lastErrorCode();
+        return code == 0 ? "" : uv_strerror(code);
+    }
+
   private:
     virtual bool canCache() const override { return false; }
+    // Worker-thread only. Records the error, tears down the half-built server
+    // handle, and wakes the consumer with a nullptr.
+    void failed(int code);
     uv_async_t* m_async = nullptr;
     uv_tcp_t m_server = {};
     std::function<void(UvFifo*)> m_cb;
     ConcurrentQueue<UvFifo*> m_pending;
+    std::atomic<Status> m_status = Status::Stopped;
+    std::atomic<int> m_lastErrorCode = 0;
 };
 
 }  // namespace PCSX
