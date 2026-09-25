@@ -727,6 +727,8 @@ void DynaRecCPU::recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType t
                 break;
         }
 
+        // Cancel any pending load to the same register, as this load overrides it
+        maybeCancelDelayedLoad(_Rt_);
         storeDelayedLoad(_Rt_, type);
     }
 }
