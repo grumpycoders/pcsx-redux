@@ -129,7 +129,9 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                      spu.get<SaveStates::SPUNoiseVal>());
 
-    // Repair some globals.
+    // Repair some globals. The reverb unit is reset first so no filter history or L/R parity from
+    // before the load survives; the register replay below rebuilds its configuration.
+    m_reverb.reset();
     for (unsigned i = 0; i <= 62; i += 2) writeRegister(H_Reverb + i, regArea[(H_Reverb + i - 0xc00) >> 1]);
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);
