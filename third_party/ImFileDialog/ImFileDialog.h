@@ -16,7 +16,7 @@
 
 namespace ifd {
 	inline std::filesystem::path stringToU8Path(const std::string& str) {
-		return std::filesystem::path(std::u8string_view(reinterpret_cast<const char8_t*>(str.data()), str.size()));
+		return std::filesystem::path(std::u8string(str.begin(), str.end()));
 	}
 
 	class FileDialog {
