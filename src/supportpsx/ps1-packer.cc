@@ -32,7 +32,7 @@ SOFTWARE.
 #include <exception>
 #include <vector>
 
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/encoder.hh"
 #include "n2e-d.h"
 #include "support/polyfills.h"
 #include "supportpsx/ucl-utils.h"
@@ -158,7 +158,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         pushBytes(stub, andd(Reg::RA, Reg::T0));
         pushBytes(stub, lui(Reg::T0, 0x8000));
         pushBytes(stub, orr(Reg::RA, Reg::T0));
-        pushBytes(stub, addu(Reg::T0, Reg::T1));
+        pushBytes(stub, addu(Reg::T0, Reg::RA, Reg::T1));
         pushBytes(stub, jr(Reg::T0));
         pushBytes(stub, addiu(Reg::A0, Reg::RA, 32));
 

@@ -27,7 +27,7 @@
 
 #include "core/memorycard.h"
 #include "core/pad.h"
-#include "mips/common/util/sjis-fullwidth-ascii.hh"
+#include "mips-common/util/sjis-fullwidth-ascii.hh"
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
 

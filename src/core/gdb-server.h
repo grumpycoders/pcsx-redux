@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <uv.h>
+
 #include <assert.h>
 
 #include <cstdarg>

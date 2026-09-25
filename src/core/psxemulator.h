@@ -164,7 +164,6 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
-    typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
@@ -175,6 +174,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
+    typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
@@ -197,13 +197,13 @@ class Emulator {
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
-             SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
+             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
              SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
-             Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
-             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
-             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
-             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             Setting8MB, SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering,
+             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
+             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
+             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
+             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:
@@ -256,10 +256,9 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
+    // Turbo multiplies the SPU::Speed sink multiplier; see SPU::SDLAudio::effectiveSpeed.
     void setTurbo(bool on) { m_turboFactor.store(on ? 2 : 1, std::memory_order_relaxed); }
-    int getScaler() const {
-        return settings.get<SettingScaler>().value * m_turboFactor.load(std::memory_order_relaxed);
-    }
+    int getTurboFactor() const { return m_turboFactor.load(std::memory_order_relaxed); }
 
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;

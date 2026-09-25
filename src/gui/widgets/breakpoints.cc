@@ -23,7 +23,7 @@
 #include "core/r3000a.h"
 #include "fmt/format.h"
 #include "imgui.h"
-#include "mips/common/util/decoder.hh"
+#include "mips-common/util/decoder.hh"
 #include "support/imgui-helpers.h"
 
 static uint32_t getValueAboutToWrite(PCSX::R3000Acpu& cpu) {
