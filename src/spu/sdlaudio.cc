@@ -30,17 +30,16 @@
 #include "core/system.h"
 #include "spu/interface.h"
 
-// Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
-// at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
-// producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
-static constexpr int kMaxSpeed = 1024;
-
-// The configured sink multiplier, times the GUI's turbo factor (1 or 2). Clamped before multiplying so
-// a large configured value can't overflow.
-static int effectiveSpeed(int configured) {
+int PCSX::SPU::SDLAudio::effectiveSpeed(int configured, int turboFactor) {
     if (configured <= 0 || configured > kMaxSpeed) return kMaxSpeed;
+    if (turboFactor < 1) turboFactor = 1;
+    // Both operands are clamped to kMaxSpeed first, so the product can't overflow.
+    return std::min(configured * std::min(turboFactor, kMaxSpeed), kMaxSpeed);
+}
+
+static int currentSpeed(int configured) {
     const int turbo = PCSX::g_emulator ? PCSX::g_emulator->getTurboFactor() : 1;
-    return std::min(configured * turbo, kMaxSpeed);
+    return PCSX::SPU::SDLAudio::effectiveSpeed(configured, turbo);
 }
 
 PCSX::SPU::SDLAudio::SDLAudio(PCSX::SPU::SettingsType& settings)
@@ -288,7 +287,7 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
         // rings faster paces the SPU thread faster, which through waitForGoal paces the CPU thread
         // faster. dequeue() naturally caps at what is available, so this is safe (and self-limits) at
         // any speed.
-        const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+        const int speed = currentSpeed(m_settings.get<Speed>().value);
         for (int rep = 1; rep < speed; rep++) {
             m_voicesStream.dequeue(m_mixBuffers[0].data(), chunk);
             m_audioStream.dequeue(m_mixBuffers[1].data(), chunk);
@@ -311,7 +310,7 @@ void PCSX::SPU::SDLAudio::advanceFrames(uint32_t frameCount) {
     // CPU thread waits on in waitForGoal(); the CPU's goalpost grows at the realtime rate per emulated
     // cycle, so advancing m_frames `speed` times faster makes the CPU reach its goalpost (and thus run)
     // `speed` times faster. At speed == 1 this is byte-identical to the previous fetch_add(frameCount).
-    const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+    const int speed = currentSpeed(m_settings.get<Speed>().value);
     auto total = m_frames.fetch_add(frameCount * static_cast<uint32_t>(speed));
 
 #if HAS_ATOMIC_WAIT
