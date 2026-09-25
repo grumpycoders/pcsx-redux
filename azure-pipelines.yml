@@ -95,6 +95,7 @@ steps:
       !**\exe2elf.exe
       !**\exe2exe.exe
       !**\exe2iso.exe
+      !**\mdec.exe
       !**\modconv.exe
       !**\midi2psm.exe
       !**\midi2spd.exe
