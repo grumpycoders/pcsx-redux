@@ -177,7 +177,9 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_openArchiveDialog(l_("Open Archive"), favorites),
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
-      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
+      m_isoBrowser(
+          settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); },
+          [this](const std::string& name, IO<File> file) { m_dalos.addSource(name, file); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
@@ -1591,6 +1593,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::EndMenu();
             }
             ImGui::Separator();
+            if (ImGui::BeginMenu(_("Dalos"))) {
+                ImGui::MenuItem(_("Show Canvas"), nullptr, &m_dalos.m_show);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::MenuItem(_("Show ImPlot Demo"), nullptr, &m_showImPlotDemo);
@@ -1882,6 +1888,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
+    }
+
+    if (m_dalos.m_show) {
+        m_dalos.draw(_("Dalos Canvas"));
     }
 
     if (m_showCfg) changed |= configure();

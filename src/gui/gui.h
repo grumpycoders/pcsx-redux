@@ -48,6 +48,7 @@
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
+#include "gui/widgets/dalos.h"
 #include "gui/widgets/isobrowser.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
@@ -123,6 +124,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
+    typedef Setting<bool, TYPESTRING("ShowDalos")> ShowDalos;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
@@ -173,7 +175,7 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize,
+             ShowIsoBrowser, ShowDalos, ShowGPULogger, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize,
              MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
              ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
              ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
@@ -427,6 +429,7 @@ class GUI final : public UI {
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser;
+    Widgets::Dalos m_dalos = {settings.get<ShowDalos>().value};
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
