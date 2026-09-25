@@ -152,7 +152,9 @@ void MemoryEditor::DrawContents(size_t mem_size)
 
 	bool data_next = false;
 
-	if (ReadOnly || !WriteFn || DataEditingAddr >= mem_size)
+	// Without a WriteFn, behave as ReadOnly: bytes can still be selected and previewed, but not written.
+	const bool read_only = ReadOnly || !WriteFn;
+	if (DataEditingAddr >= mem_size)
 		DataEditingAddr = (size_t)-1;
 	if (DataPreviewAddr >= mem_size)
 		DataPreviewAddr = (size_t)-1;
@@ -249,6 +251,8 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					user_data.CursorPos = -1;
 					sprintf(user_data.CurrentBufOverwrite, format_byte, ReadByte(addr));
 					ImGuiInputTextFlags flags = ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CallbackAlways;
+					if (read_only)
+						flags |= ImGuiInputTextFlags_ReadOnly;
 #if IMGUI_VERSION_NUM >= 18104
 					flags |= ImGuiInputTextFlags_AlwaysOverwrite;
 #else
@@ -265,12 +269,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					if (data_editing_addr_next != (size_t)-1)
 						data_write = data_next = false;
 					unsigned int data_input_value = 0;
-					if (data_write && sscanf(DataInputBuf.c_str(), "%X", &data_input_value) == 1)
+					if (!read_only && data_write && sscanf(DataInputBuf.c_str(), "%X", &data_input_value) == 1)
 					{
-						if (WriteFn) {
-							WriteFn(addr, (ImU8)data_input_value);
-							Cache.invalidate();
-						}
+						WriteFn(addr, (ImU8)data_input_value);
+						Cache.invalidate();
 					}
 					ImGui::PopID();
 				}
@@ -297,7 +299,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 						else
 							ImGui::Text(format_byte_space, b);
 					}
-					if (!ReadOnly && WriteFn && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
 					{
 						DataEditingTakeFocus = true;
 						data_editing_addr_next = addr;
@@ -318,11 +320,8 @@ void MemoryEditor::DrawContents(size_t mem_size)
 				ImGui::PushID(line_i);
 				if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
 				{
-					DataPreviewAddr = mouse_addr;
-					if (!ReadOnly && WriteFn) {
-						DataEditingAddr = DataPreviewAddr;
-						DataEditingTakeFocus = true;
-					}
+					DataEditingAddr = DataPreviewAddr = mouse_addr;
+					DataEditingTakeFocus = true;
 				}
 				ImGui::PopID();
 				for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
