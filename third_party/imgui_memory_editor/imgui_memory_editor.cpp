@@ -309,10 +309,14 @@ void MemoryEditor::DrawContents(size_t mem_size)
 				ImGui::SameLine(s.PosAsciiStart);
 				ImVec2 pos = ImGui::GetCursorScreenPos();
 				addr = line_i * Cols;
+
+				const float mouse_off_x = ImGui::GetIO().MousePos.x - pos.x;
+				const size_t mouse_addr = (mouse_off_x >= 0.0f && mouse_off_x < s.PosAsciiEnd - s.PosAsciiStart) ? addr + (size_t)(mouse_off_x / s.GlyphWidth) : (size_t)-1;
+
 				ImGui::PushID(line_i);
 				if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
 				{
-					DataPreviewAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
+					DataPreviewAddr = mouse_addr;
 					if (!ReadOnly && WriteFn) {
 						DataEditingAddr = DataPreviewAddr;
 						DataEditingTakeFocus = true;
