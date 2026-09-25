@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <thread>
 
 #include "core/decode_xa.h"
@@ -268,17 +269,19 @@ class impl final : public SPUInterface {
 
     // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
     // ADPCM block carrying the end flag, cleared on key-on. Read-only.
-    uint32_t spuEndx = 0;
+    std::atomic<uint32_t> spuEndx = 0;
 
     // Storage for the PSX register values.
-    uint16_t spuCtrl = 0;
-    uint16_t spuStat = 0;
+    // Both the register path and the mixer thread read-modify-write these, so every
+    // update is an atomic RMW.
+    std::atomic<uint16_t> spuCtrl = 0;
+    std::atomic<uint16_t> spuStat = 0;
     uint16_t spuIrq = 0;
     // Address into SPU memory.
     uint32_t spuAddr = 0xffffffff;
     // Thread handling.
-    int endThread = 0;
-    int threadEnded = 0;
+    std::atomic<int> endThread = 0;
+    std::atomic<int> threadEnded = 0;
     int bSpuInit = 0;
 
     std::thread hMainThread;

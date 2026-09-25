@@ -595,7 +595,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return (uint16_t)((spuEndx >> 16) & 0xff);
 
         case H_SPUctrl:
-            PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", spuCtrl);
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", spuCtrl.load());
             return spuCtrl;
 
         case H_SPUstat: {
