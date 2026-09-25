@@ -335,24 +335,6 @@ void PadsImpl::init() {
     if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
         PCSX::g_system->log(PCSX::LogClass::UI, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s\n", SDL_GetError());
     }
-    PCSX::g_system->findResource(
-        [](const std::filesystem::path& filename) -> bool {
-            PCSX::IO<PCSX::File> database(new PCSX::PosixFile(filename));
-            if (database->failed()) {
-                return false;
-            }
-
-            size_t dbsize = database->size();
-            auto dbStr = database->readString(dbsize);
-
-            // Wrap the in-memory buffer as an SDL_IOStream so SDL parses the
-            // mapping DB using the same routine it uses for files.
-            SDL_IOStream* io = SDL_IOFromConstMem(dbStr.data(), dbStr.size());
-            if (!io) return false;
-            int ret = SDL_AddGamepadMappingsFromIO(io, true /* closeio */);
-            return ret > 0;
-        },
-        "gamecontrollerdb.txt", "resources", std::filesystem::path("third_party") / "SDL_GameControllerDB");
     scanGamepads();
     reset();
     map();

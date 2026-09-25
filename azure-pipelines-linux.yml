@@ -10,7 +10,7 @@ variables:
 
 steps:
 - checkout: self
-  submodules: true
+  submodules: recursive
 
 - task: Bash@3
   inputs:

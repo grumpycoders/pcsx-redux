@@ -19,15 +19,15 @@ if not imgui.safe then imgui.safe = {} end
 
 function imgui.safe.builder(proxy, finalIfShown, final)
     local function builder(...)
+        local n = select('#', ...)
         local args = { ... }
-        local lambda = args[#args]
+        local lambda = args[n]
         if type(lambda) ~= 'function' then error('Last argument must be a function') end
-        args[#args] = nil
-        local rets = { proxy(...) }
+        local rets = { proxy(unpack(args, 1, n - 1)) }
         local shown = rets[1]
         local status, err = true
         if shown then
-            status, err = pcall(function() lambda(table.unpack(args)) end)
+            status, err = pcall(function() lambda(unpack(args, 1, n - 1)) end)
             if finalIfShown then finalIfShown() end
         end
         if final then final() end
@@ -38,14 +38,22 @@ function imgui.safe.builder(proxy, finalIfShown, final)
 end
 
 imgui.safe.Begin = imgui.safe.builder(imgui.Begin, nil, imgui.End)
-imgui.safe.BeginChild = imgui.safe.builder(imgui.BeginChild, imgui.EndChild)
+-- EndChild has to be called whatever BeginChild returns.
+imgui.safe.BeginChild = imgui.safe.builder(imgui.BeginChild, nil, imgui.EndChild)
 imgui.safe.BeginChildFrame = imgui.safe.builder(imgui.BeginChildFrame, imgui.EndChildFrame)
-imgui.safe.BeginChild_4 = imgui.safe.builder(imgui.BeginChild_4, imgui.EndChild)
+imgui.safe.BeginChild_4 = imgui.safe.builder(imgui.BeginChild_4, nil, imgui.EndChild)
 imgui.safe.BeginCombo = imgui.safe.builder(imgui.BeginCombo, imgui.EndCombo)
-imgui.safe.BeginDisabled = imgui.safe.builder(imgui.BeginDisabled, imgui.EndDisabled)
+-- BeginDisabled and BeginGroup return nothing: their contents always run.
+local function alwaysShown(begin)
+    return function(...)
+        begin(...)
+        return true
+    end
+end
+imgui.safe.BeginDisabled = imgui.safe.builder(alwaysShown(imgui.BeginDisabled), imgui.EndDisabled)
 imgui.safe.BeginDragDropSource = imgui.safe.builder(imgui.BeginDragDropSource, imgui.EndDragDropSource)
 imgui.safe.BeginDragDropTarget = imgui.safe.builder(imgui.BeginDragDropTarget, imgui.EndDragDropTarget)
-imgui.safe.BeginGroup = imgui.safe.builder(imgui.BeginGroup, imgui.EndGroup)
+imgui.safe.BeginGroup = imgui.safe.builder(alwaysShown(imgui.BeginGroup), imgui.EndGroup)
 imgui.safe.BeginListBox = imgui.safe.builder(imgui.BeginListBox, imgui.EndListBox)
 imgui.safe.BeginMainMenuBar = imgui.safe.builder(imgui.BeginMainMenuBar, imgui.EndMainMenuBar)
 imgui.safe.BeginMenu = imgui.safe.builder(imgui.BeginMenu, imgui.EndMenu)

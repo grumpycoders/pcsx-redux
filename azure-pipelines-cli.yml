@@ -46,7 +46,7 @@ steps:
 - task: CopyFiles@2
   inputs:
     Contents: |
-      third_party/SDL_GameControllerDB/gamecontrollerdb.txt
+      resources/*.lua
     TargetFolder: '$(build.artifactStagingDirectory)/assets'
     FlattenFolders: true
 
@@ -62,13 +62,13 @@ steps:
     Contents: |
       vsprojects/x64/ReleaseCLI/pcsx-redux.exe
       vsprojects/x64/ReleaseCLI/crashpad_handler.exe
-      vsprojects/x64/ReleaseCLI/authoring.exe
-      vsprojects/x64/ReleaseCLI/exe2elf.exe
-      vsprojects/x64/ReleaseCLI/exe2exe.exe
-      vsprojects/x64/ReleaseCLI/exe2iso.exe
-      vsprojects/x64/ReleaseCLI/modconv.exe
-      vsprojects/x64/ReleaseCLI/ps1-packer.exe
-      vsprojects/x64/ReleaseCLI/psyq-obj-parser.exe
+      vsprojects/x64/ReleaseWithClangCL/authoring.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2exe.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
+      vsprojects/x64/ReleaseWithClangCL/modconv.exe
+      vsprojects/x64/ReleaseWithClangCL/ps1-packer.exe
+      vsprojects/x64/ReleaseWithClangCL/psyq-obj-parser.exe
       vsprojects/x64/ReleaseCLI/*.dll
     TargetFolder: '$(build.artifactStagingDirectory)/binaries'
 

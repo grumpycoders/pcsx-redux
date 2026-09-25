@@ -30,7 +30,7 @@
 #include "flags.h"
 #include "fmt/format.h"
 #include "json.hpp"
-#include "mips/common/util/bitfield.hh"
+#include "mips-common/util/bitfield.hh"
 #include "support/container-file.h"
 #include "support/djbhash.h"
 #include "support/file.h"

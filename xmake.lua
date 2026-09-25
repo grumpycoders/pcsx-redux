@@ -2,8 +2,48 @@ includes("third_party/luajit")
 
 add_rules("mode.debug", "mode.release")
 
-add_requires("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+add_requires("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+
+-- Only four of ffmpeg's libraries are used, and asking for "ffmpeg" wholesale
+-- never resolves to the system copy: that package requires all eight pkg-config
+-- modules, and libpostproc is GPL-only and so isn't packaged on Ubuntu at all.
+-- The result is ffmpeg getting built from source on every clean checkout. These
+-- are the same four names the Makefile's PACKAGES already asks for.
+add_requires("pkgconfig::libavcodec", "pkgconfig::libavformat",
+             "pkgconfig::libavutil", "pkgconfig::libswresample")
+
 set_languages("c++26")
+
+target("thorvg", function()
+    set_kind("static")
+    local dir = "third_party/thorvg/src/"
+    add_files(
+        dir .. "common/*.cpp",
+        dir .. "renderer/*.cpp",
+        dir .. "renderer/cpu_engine/*.cpp",
+        dir .. "renderer/gpu_engine/*.cpp",
+        dir .. "renderer/gpu_engine/gl/*.cpp",
+        dir .. "loaders/svg/*.cpp",
+        dir .. "loaders/png/*.cpp",
+        dir .. "loaders/jpg/*.cpp",
+        dir .. "loaders/lottie/*.cpp",
+        dir .. "loaders/sfnt/*.cpp",
+        dir .. "loaders/raw/*.cpp",
+        dir .. "bindings/capi/tvgCapi.cpp",
+        "third_party/thorvg-config/tvgGlLoader.cpp",
+        nil
+    )
+    -- Replaced by third_party/thorvg-config/tvgGlLoader.cpp, which includes it.
+    remove_files(dir .. "renderer/gpu_engine/gl/tvgGl.cpp")
+    add_includedirs("third_party/thorvg-config", "third_party/thorvg/inc")
+    for _, sub in ipairs({ "common", "renderer", "renderer/cpu_engine", "renderer/gpu_engine",
+                           "renderer/gpu_engine/gl", "loaders/svg", "loaders/png", "loaders/jpg",
+                           "loaders/lottie", "loaders/sfnt", "loaders/raw", "bindings/capi" }) do
+        add_includedirs(dir .. sub)
+    end
+    add_defines("THORVG_GL_TARGET_GL=1")
+    add_defines("TVG_STATIC=1", { public = true })
+end)
 
 target("pcsx-redux", function()
     add_includedirs(
@@ -35,8 +75,10 @@ target("pcsx-redux", function()
 
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
-    add_deps("luajit")
-    add_packages("capstone", "ffmpeg", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib")
+    add_deps("luajit", "thorvg")
+    add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
+                 "pkgconfig::libavcodec", "pkgconfig::libavformat",
+                 "pkgconfig::libavutil", "pkgconfig::libswresample")
     add_files(
         "src/**/*.cc",
         "third_party/cq/reclaimer.cc",
@@ -61,7 +103,6 @@ target("pcsx-redux", function()
         "third_party/luv/src/luv.c",
         "third_party/md4c/src/md4c.c",
         "third_party/multipart-parser-c/multipart_parser.c",
-        "third_party/nanovg/src/nanovg.c",
         "third_party/ucl/src/n2e_99.c",
         "third_party/ucl/src/n2e_ds.c",
         "third_party/ucl/src/alloc.c",
@@ -73,11 +114,12 @@ target("pcsx-redux", function()
         "third_party/zep/src/mcommon/string/stringutils.cpp",
         nil
     )
+    -- src/mips is the nugget submodule, built by its own toolchain.
+    remove_files("src/mips/**")
 
     add_defines(
         "IMGUI_IMPL_OPENGL_LOADER_GL3W",
         "IMGUI_ENABLE_FREETYPE",
-        "NVG_NO_STB",
         "PB_STATIC_API",
         "ZEP_FEATURE_CPP_FILE_SYSTEM",
         nil

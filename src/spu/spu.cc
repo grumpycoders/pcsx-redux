@@ -1058,4 +1058,5 @@ void PCSX::SPU::impl::setLua(Lua L) {
     L.settable();
     L.pop();
     L.pop();
+    m_audioOut.setLua(L);
 }

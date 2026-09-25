@@ -142,3 +142,7 @@ luacov.stats.out
 .xmake/
 build/
 
+
+# Objects from the shared MIPS/host util sources, built by the guest toolchain.
+src/mips-common/**/*.o
+src/mips-common/**/*.dep

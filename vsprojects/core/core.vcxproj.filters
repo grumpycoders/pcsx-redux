@@ -154,13 +154,13 @@
     <ClCompile Include="..\..\src\core\cdromlogger.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mips\common\util\sjis-decode.cc">
+    <ClCompile Include="..\..\src\mips-common\util\sjis-decode.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mips\common\util\sjis-fullwidth-ascii.cc">
+    <ClCompile Include="..\..\src\mips-common\util\sjis-fullwidth-ascii.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mips\common\util\utf8-decode.cc">
+    <ClCompile Include="..\..\src\mips-common\util\utf8-decode.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -237,7 +237,7 @@
     <ClInclude Include="..\..\src\core\gdb-server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mips\common\util\encoder.hh">
+    <ClInclude Include="..\..\src\mips-common\util\encoder.hh">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\disr3000a.h">

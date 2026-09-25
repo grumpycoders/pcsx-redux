@@ -121,6 +121,7 @@
     <ClCompile Include="..\..\src\spu\freeze.cc" />
     <ClCompile Include="..\..\src\spu\registers.cc" />
     <ClCompile Include="..\..\src\spu\reverb.cc" />
+    <ClCompile Include="..\..\src\spu\playbacklua.cc" />
     <ClCompile Include="..\..\src\spu\sdlaudio.cc" />
     <ClCompile Include="..\..\src\spu\spu.cc" />
     <ClCompile Include="..\..\src\spu\xa.cc" />
@@ -136,6 +137,7 @@
     <ClInclude Include="..\..\src\spu\types.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\spu\playbackffi.lua" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

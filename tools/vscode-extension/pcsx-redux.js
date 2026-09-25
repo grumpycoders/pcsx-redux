@@ -190,16 +190,22 @@ exports.install = async () => {
 exports.launch = async () => {
   let path = binaryPath()
   if (path === undefined || !(await checkLocalFile(path))) path = 'PCSX-Redux'
-  const cwd = vscode.Uri.joinPath(
+  // Settings live next to the extension's storage rather than next to the
+  // binary, so that they survive an emulator update. -portable takes the
+  // directory as its argument; passing it bare would mean "the current
+  // directory" instead, which ties the settings location to whatever cwd the
+  // terminal happens to get.
+  const settingsPath = vscode.Uri.joinPath(
     globalStorageUri,
     'pcsx-redux-settings'
   ).fsPath
-  await fs.mkdirp(cwd)
+  await fs.mkdirp(settingsPath)
   const pcdrvOpts = []
-  if (vscode.workspace.workspaceFolders) {
+  const workspace = vscode.workspace.workspaceFolders
+  if (workspace) {
     pcdrvOpts.push('-pcdrv')
     pcdrvOpts.push('-pcdrvbase')
-    pcdrvOpts.push(vscode.workspace.workspaceFolders[0].uri.fsPath)
+    pcdrvOpts.push(workspace[0].uri.fsPath)
   }
   return terminal.run(
     path,
@@ -210,10 +216,11 @@ exports.launch = async () => {
       '-debugger',
       '-gdb',
       '-portable',
+      settingsPath,
       '-noupdate',
       ...pcdrvOpts
     ],
-    { name: 'PCSX-Redux', cwd }
+    { name: 'PCSX-Redux', cwd: workspace ? workspace[0].uri.fsPath : settingsPath }
   )
 }
 
