@@ -109,14 +109,17 @@ static inline void pcsx_compat_rawseti(lua_State *L, int idx, lua_Integer n) {
 static inline void luaL_openlib(lua_State *L, const char *libname,
                                 const luaL_Reg *l, int nup) {
     if (libname) {
-        lua_newtable(L);
-        lua_pushvalue(L, -1);
-        lua_setglobal(L, libname);
-        lua_insert(L, -(nup + 2));
+        if (lua_getglobal(L, libname) != LUA_TTABLE) {
+            lua_pop(L, 1);
+            lua_newtable(L);
+            lua_pushvalue(L, -1);
+            lua_setglobal(L, libname);
+        }
+        /* The table goes directly below the nup upvalues, where luaL_setfuncs
+         * expects it; it is left on top once they are popped, as 5.1 does. */
+        lua_insert(L, -(nup + 1));
     }
     luaL_setfuncs(L, l, nup);
-    if (libname) { /* leave the table on top, as 5.1 does */
-    }
 }
 
 /* ---- getfenv / setfenv -------------------------------------------------
