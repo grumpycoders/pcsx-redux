@@ -78,7 +78,13 @@ target("thorvg", function()
                            "loaders/lottie", "loaders/sfnt", "loaders/raw", "bindings/capi" }) do
         add_includedirs(dir .. sub)
     end
-    add_defines("THORVG_GL_TARGET_GL=1")
+    -- WebGL2 is GLES 3.0: thorvg keys its "#version 300 es" shader header off this.
+    add_defines(is_plat("wasm") and "THORVG_GL_TARGET_GLES=1" or "THORVG_GL_TARGET_GL=1")
+    if is_plat("wasm") then
+        -- Same flags as the pcsx-redux target: wasm-ld refuses to link
+        -- non-atomics objects into a --shared-memory module.
+        add_cxflags("-fwasm-exceptions", "-pthread", {force = true})
+    end
     add_defines("TVG_STATIC=1", { public = true })
 end)
 
@@ -129,6 +135,7 @@ target("pcsx-redux", function()
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
 
     if is_plat("wasm") then
+        add_deps("thorvg")
         add_packages("capstone", "fmt", "freetype", "libsdl3", "zlib")
 
         -- ===== THE SECOND LUA BACKEND =====
