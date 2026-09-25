@@ -68,6 +68,8 @@ void PCSX::SoftGPU::impl::resolveVRAM() {
     GLint oldFBO = 0, oldViewport[4];
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
     glGetIntegerv(GL_VIEWPORT, oldViewport);
+    const auto oldBlend = OpenGL::isEnabled(GL_BLEND);
+    const auto oldScissor = OpenGL::scissorEnabled();
 
     m_resolveFBO.bind(OpenGL::DrawAndReadFramebuffer);
     glViewport(0, 0, 1024, 512);
@@ -82,6 +84,8 @@ void PCSX::SoftGPU::impl::resolveVRAM() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
     glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
+    if (oldBlend) OpenGL::enableBlend();
+    if (oldScissor) OpenGL::enableScissor();
 }
 
 void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
