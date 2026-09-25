@@ -373,7 +373,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	ImGui::EndChild();
 
 	// Notify the main window of our ideal child content size (FIXME: we are missing an API to get the contents size from the child)
+	ImVec2 backup_pos = ImGui::GetCursorScreenPos();
 	ImGui::SetCursorPosX(s.WindowWidth);
+	ImGui::Dummy(ImVec2(0.0f, 0.0f));
+	ImGui::SetCursorScreenPos(backup_pos);
 
 	if (data_next && DataEditingAddr + 1 < mem_size)
 	{
