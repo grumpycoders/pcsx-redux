@@ -76,6 +76,7 @@ extern "C" {
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "implot/implot.h"
+#include "implot/implot_internal.h"
 #include "json.hpp"
 #include "lua/extra.h"
 #include "lua/glffi.h"
@@ -2114,6 +2115,17 @@ the update and manually apply it.)")));
             L.push("DrawImguiFrame");
             L.push();
             L.settable(LUA_GLOBALSINDEX);
+        }
+        // A script that errors (or forgets to close) between ImPlot Begin* and End* leaves ImPlot's
+        // current plot/subplot set, and the next native BeginPlot would then throw its mismatch assert.
+        // Calling End* here is unsafe since the enclosing ImGui window may already be gone, so just drop
+        // the dangling state; ImGui's own error recovery takes care of the ID stack.
+        ImPlotContext* gp = ImPlot::GetCurrentContext();
+        if (gp && (gp->CurrentPlot || gp->CurrentSubplot || gp->CurrentAlignmentH || gp->CurrentAlignmentV)) {
+            ImPlot::ResetCtxForNextPlot(gp);
+            ImPlot::ResetCtxForNextSubplot(gp);
+            ImPlot::ResetCtxForNextAlignedPlots(gp);
+            gp->CurrentItems = nullptr;
         }
     } else {
         L.pop();

@@ -691,6 +691,7 @@ int implotGetColormapCount() {
     return guarded([&] { return ImPlot::GetColormapCount(); });
 }
 const char* implotGetColormapName(int cmap) {
+    if (cmap < 0) return nullptr;
     return guarded([&] { return ImPlot::GetColormapName(cmap); });
 }
 int implotGetColormapIndex(const char* name) {
