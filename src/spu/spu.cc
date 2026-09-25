@@ -42,8 +42,10 @@ constexpr int kVoiceVolumeUnity = 0x4000;
 // period would rot apart silently.
 constexpr int kCaptureVoice1Offset = 0x400;
 constexpr int kCaptureVoice3Offset = 0x600;
-// The post-ADSR sample is clamped to +/- this before it lands in the capture mirror.
-constexpr int kCaptureSampleClamp = 0xffff;
+// The post-ADSR sample saturates to the signed 16-bit capture cell before it lands in
+// the capture mirror; anything wider would wrap on the uint16_t store.
+constexpr int kCaptureSampleMin = -32768;
+constexpr int kCaptureSampleMax = 32767;
 // The final stereo mix is clamped to this symmetric signed-16-bit range.
 constexpr int kMixSampleClamp = 32767;
 }  // namespace
@@ -344,7 +346,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
         sval = mixedSample;
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.
-        mixedSample = std::clamp(mixedSample, -kCaptureSampleClamp, kCaptureSampleClamp);
+        mixedSample = std::clamp(mixedSample, kCaptureSampleMin, kCaptureSampleMax);
         captureVoiceSample(ch, capVoice1Index, capVoice3Index, mixedSample);
 
         if constexpr (Role == FModRole::Source) {
