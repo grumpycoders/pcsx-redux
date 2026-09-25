@@ -70,7 +70,18 @@ void Endpoint::settled() {
 //
 
 void Server::start(uv_loop_t* loop, int port) {
-    if (status() == Status::Running) return;
+    if (m_async) {
+        // The previous listener has not delivered its nullptr yet. If it is
+        // still up or coming up, there is nothing to do. If it has already
+        // failed or stopped, its teardown is in flight and will close m_async
+        // on arrival; start once it has, the same way a restart does.
+        auto current = status();
+        if ((current == Status::Running) || (current == Status::Starting)) return;
+        m_loop = loop;
+        m_port = port;
+        m_restartPending = true;
+        return;
+    }
     m_loop = loop;
     m_port = port;
     onStarting();
@@ -102,10 +113,14 @@ void Server::stop() {
         m_listener.stop();
         return;  // onListenerEvent(nullptr) finishes the teardown
     }
-    // Already down - a failed bind has torn itself down and delivered its
-    // nullptr already, so nothing further is going to call back. Settle here
-    // rather than waiting for an event that will never arrive, which is what
-    // would strand a pending restart.
+    // Already down, but a failure whose nullptr has not been delivered yet
+    // still owns m_async and will finish the teardown when it arrives. Doing
+    // it here as well would leave that nullptr queued in the listener, where
+    // the next start() would pick it up and tear itself down.
+    if (m_async) return;
+    // Otherwise nothing further is going to call back. Settle here rather than
+    // waiting for an event that will never arrive, which is what would strand
+    // a pending restart.
     onListenerEvent(nullptr);
 }
 
