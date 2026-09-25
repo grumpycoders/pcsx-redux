@@ -159,7 +159,6 @@ SRCS += $(THORVG_SRCS)
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
 SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
-SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
 SRCS += third_party/zep/src/mcommon/file/path.cpp

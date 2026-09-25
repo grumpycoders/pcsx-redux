@@ -138,7 +138,7 @@
     <ClCompile Include="..\..\third_party\zep\src\mcommon\string\stringutils.cpp">
       <Filter>Source Files\mcommon\string</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\third_party\zep\extensions\repl\mode_repl.cpp">
+    <ClCompile Include="..\..\third_party\zep\src\mode_repl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -302,8 +302,8 @@
     <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\file\path.h">
       <Filter>Header Files\zep\mcommon\file</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\third_party\zep\extensions\repl\mode_repl.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_repl.h">
+      <Filter>Header Files\zep</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
