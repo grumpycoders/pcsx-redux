@@ -44,16 +44,10 @@ let
       hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
     })
     ({
-      owner = "grumpycoders";
-      repo = "nanosvg";
-      rev = "f0a3e1034dd22e2e87e5db22401e44998383124e";
-      hash = "sha256-af11kAga6Ru2rPgrfcYswXNy9etvH3J9FX2T0I0++ew=";
-    })
-    ({
-      owner = "grumpycoders";
-      repo = "nanovg";
-      rev = "7c021819bbd4843a1a3091fe47346d3fcb2a3e1a";
-      hash = "sha256-gZHbNuDkLXlLlXZZpLBHcbwzTfeBBkLY7xl4L5yr2lY=";
+      owner = "pcsx-redux";
+      repo = "thorvg";
+      rev = "e4925951e038f8c514b880305c66fb95c7da4296";
+      hash = "sha256-1chDcHiGjuqoR6naTfAEuVcuoX8bngq/FrKcH44f5qU=";
     })
     ({
       owner = "grumpycoders";
@@ -90,12 +84,6 @@ let
       repo = "implot";
       rev = "d65a2bef53d32502407de3a4be80f191e2f412d7";
       hash = "sha256-s7URArbirN8uiInhi95eQW7aoq5Clc67NzUCzcslAi8=";
-    })
-    ({
-      owner = "mdqinc";
-      repo = "SDL_GameControllerDB";
-      rev = "b1e342774cbb35467dfdd3634d4f0181a76cbc89";
-      hash = "sha256-LYvO+chDVo6D++fuFbxqSRltGW3y82SESmtFj39TdSA=";
     })
     ({
       owner = "taocpp";

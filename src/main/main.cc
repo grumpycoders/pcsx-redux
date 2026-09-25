@@ -170,6 +170,34 @@ struct Cleaner {
 
 void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 
+// Files given on the command line are otherwise only opened much later, and a missing one
+// is either silently replaced (bios), or merely logged (iso, exe). Check them up front instead.
+// Memory cards are created on demand, and dofile goes through the archive lookup, so neither
+// is checked here.
+static bool checkCommandLinePaths(const CommandLine::args &args) {
+    bool ok = true;
+    auto checkPath = [&args, &ok](const char *name, bool directory) {
+        for (auto value : args.values(name)) {
+            if (value.empty()) continue;
+            std::string str(value);
+            std::error_code ec;
+            std::filesystem::path path = PCSX::u8string(MAKEU8(str.c_str()));
+            bool found =
+                directory ? std::filesystem::is_directory(path, ec) : std::filesystem::is_regular_file(path, ec);
+            if (found) continue;
+            ok = false;
+            if (ec && ec != std::errc::no_such_file_or_directory && ec != std::errc::not_a_directory) {
+                fmt::print(stderr, "-{}: unable to access '{}': {}\n", name, str, ec.message());
+            } else {
+                fmt::print(stderr, "-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
+            }
+        }
+    };
+    for (auto name : {"bios", "iso", "loadiso", "disk", "loadexe", "exe", "archive"}) checkPath(name, false);
+    checkPath("pcdrvbase", true);
+    return ok;
+}
+
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     // Command line arguments are parsed after this point.
@@ -192,6 +220,9 @@ int pcsxMain(int argc, char **argv) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
         return 0;
     }
+
+    // The version query never opens any of these files.
+    if (!args.get<bool>("version") && !checkCommandLinePaths(args)) return 1;
 
     // Creating the "system" global object first, making sure anything logging-related is
     // enabled as much as possible.

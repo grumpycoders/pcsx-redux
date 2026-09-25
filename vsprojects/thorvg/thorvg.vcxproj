@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|Win32">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithClangCL|x64">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithTracy|Win32">
+      <Configuration>ReleaseWithTracy</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithTracy|x64">
+      <Configuration>ReleaseWithTracy</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{d5d8da97-d5d6-455f-92ac-9d020ebac8ca}</ProjectGuid>
+    <RootNamespace>thorvg</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+    <Import Project="..\tracy.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+    <Import Project="..\tracy.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>THORVG_GL_TARGET_GL=1;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\thorvg-config;$(SolutionDir)..\third_party\thorvg\inc;$(SolutionDir)..\third_party\thorvg\src\common;$(SolutionDir)..\third_party\thorvg\src\renderer;$(SolutionDir)..\third_party\thorvg\src\renderer\cpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine;$(SolutionDir)..\third_party\thorvg\src\renderer\gpu_engine\gl;$(SolutionDir)..\third_party\thorvg\src\loaders\svg;$(SolutionDir)..\third_party\thorvg\src\loaders\png;$(SolutionDir)..\third_party\thorvg\src\loaders\jpg;$(SolutionDir)..\third_party\thorvg\src\loaders\lottie;$(SolutionDir)..\third_party\thorvg\src\loaders\sfnt;$(SolutionDir)..\third_party\thorvg\src\loaders\raw;$(SolutionDir)..\third_party\thorvg\src\bindings\capi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgAllocator.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgArray.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgColor.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgCompressor.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgInlist.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgLock.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgMap.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgMath.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgStr.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgAccessor.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgAnimation.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgCanvas.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgFill.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgLoaderMgr.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgPaint.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgPicture.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgRender.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgSaveModule.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgScene.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgShape.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgTaskScheduler.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgText.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterAvx.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterC.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterNeon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterTexmap.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRenderer.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\tvgGpuCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGl.cpp" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGl.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlEffect.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGpuBuffer.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlProgram.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderPass.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTarget.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTask.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderer.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShaderSrc.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlSolidBatch.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStateCache.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStencilCoverBatch.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTessellator.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTextureMgr.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgBuilder.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCssStyle.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgPath.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgUtil.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgXmlParser.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePng.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\png\tvgPngLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgd.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\thorvg_lottie.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieBuilder.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieCommon.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieExpressions.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieInterpolator.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModel.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModifier.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParser.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParserHandler.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieProperty.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieRenderPooler.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieTween.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgOtfReader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntReader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgTtfReader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\raw\tvgRawLoader.h" />
+    <ClInclude Include="..\..\third_party\thorvg\src\bindings\capi\thorvg_capi.h" />
+    <ClInclude Include="..\..\third_party\thorvg\inc\thorvg.h" />
+    <ClInclude Include="..\..\third_party\thorvg-config\config.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgCompressor.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgMath.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgStr.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgAccessor.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgAnimation.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgCanvas.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgFill.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgInitializer.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgLoaderMgr.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgPaint.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgPicture.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgRender.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgSaver.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgScene.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgShape.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgTaskScheduler.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgText.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwBlendOp.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwFill.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwImage.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwMemPool.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwPostEffect.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRaster.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRenderer.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRle.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwShape.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwStroke.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwUtil.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\tvgGpuCommon.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlEffect.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGeometry.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGpuBuffer.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlProgram.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderPass.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTarget.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTask.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderer.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShaderSrc.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlSolidBatch.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStateCache.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStencilCoverBatch.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTessellator.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTextureMgr.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgBuilder.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCssStyle.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgPath.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgUtil.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgXmlParser.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePng.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePngUtil.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgPngLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgd.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieAnimation.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieBuilder.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieExpressions.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieInterpolator.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModel.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModifier.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParser.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParserHandler.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieProperty.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgOtfReader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntReader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgTtfReader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\raw\tvgRawLoader.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg\src\bindings\capi\tvgCapi.cpp" />
+    <ClCompile Include="..\..\third_party\thorvg-config\tvgGlLoader.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

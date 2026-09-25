@@ -82,6 +82,7 @@ typedef struct {
 } LuaScreenShot;
 
 LuaScreenShot takeScreenShot();
+double getGuestFPS();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
@@ -206,6 +207,7 @@ PCSX = {
                 bpp = ss.bpp,
             }
         end,
+        getGuestFPS = function() return C.getGuestFPS() end,
     },
     createSaveState = function()
         local slice = C.createSaveState()
