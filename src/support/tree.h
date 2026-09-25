@@ -504,7 +504,7 @@ class Tree final {
         Node* first = m_root;
         while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(interval)) first = first->m_left;
         iterator ret(first, interval);
-        if (!ret->overlaps(interval)) ret++;
+        if ((first != &m_nil) && !first->overlaps(interval)) ret++;
         return ret;
     }
     const_iterator find(const Key& low, const Key& high) const {
@@ -512,7 +512,7 @@ class Tree final {
         const Node* first = m_root;
         while ((first != &m_nil) && (first->m_left != &m_nil) && first->overlapsMax(interval)) first = first->m_left;
         const_iterator ret(first, interval);
-        if (!ret->overlaps(interval)) ret++;
+        if ((first != &m_nil) && !first->overlaps(interval)) ret++;
         return ret;
     }
     iterator erase(iterator i) {
