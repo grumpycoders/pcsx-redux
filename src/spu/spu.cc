@@ -117,14 +117,15 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *voice, int ns) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample) {
-    if (mixIrqAddress && ch == 1) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (ch != 1 && ch != 3) return;
+    std::lock_guard<std::mutex> lock(cbMtx);
+    if (!mixIrqAddress) return;
+    if (ch == 1) {
         for (int c = fromSample; c < NSSIZE; c++) {
             spuMem[capVoice1Index + kCaptureVoice1Offset] = 0;
             capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
         }
-    } else if (mixIrqAddress && ch == 3) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    } else {
         for (int c = fromSample; c < NSSIZE; c++) {
             spuMem[capVoice3Index + kCaptureVoice3Offset] = 0;
             capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
@@ -133,12 +134,13 @@ void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32
 }
 
 void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample) {
-    if (mixIrqAddress && ch == 1) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (ch != 1 && ch != 3) return;
+    std::lock_guard<std::mutex> lock(cbMtx);
+    if (!mixIrqAddress) return;
+    if (ch == 1) {
         spuMem[capVoice1Index + kCaptureVoice1Offset] = sample;
         capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
-    } else if (mixIrqAddress && ch == 3) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    } else {
         spuMem[capVoice3Index + kCaptureVoice3Offset] = sample;
         capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
     }
@@ -452,8 +454,12 @@ void PCSX::SPU::impl::MainThread() {
             if (newChannelMask) secureStart = 1;
         }
 
-        tmpCapVoice1Index = capBufVoiceIndex;
-        tmpCapVoice3Index = capBufVoiceIndex;
+        {
+            // capBufVoiceIndex is reset from the emulation thread (resetCaptureBuffer).
+            std::lock_guard<std::mutex> lock(cbMtx);
+            tmpCapVoice1Index = capBufVoiceIndex;
+            tmpCapVoice3Index = capBufVoiceIndex;
+        }
 
         // Clock the shared noise generator once per output sample of the batch.
         for (ns = 0; ns < NSSIZE; ns++) {
@@ -474,11 +480,14 @@ void PCSX::SPU::impl::MainThread() {
         // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff).
         // Hardware toggles this bit as the 44.1kHz capture pointer crosses the
         // half boundary; guests sync capture reads on its edge.
-        capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % kCaptureRegionSamples;
-        if (capBufVoiceIndex & kCaptureHalfMarker)
-            spuStat |= StatusFlags::CBIndex;
-        else
-            spuStat &= ~StatusFlags::CBIndex;
+        {
+            std::lock_guard<std::mutex> lock(cbMtx);
+            capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % kCaptureRegionSamples;
+            if (capBufVoiceIndex & kCaptureHalfMarker)
+                spuStat |= StatusFlags::CBIndex;
+            else
+                spuStat &= ~StatusFlags::CBIndex;
+        }
 
         //---------------------------------------------------//
         // Another 1 ms of sound data is now available.
@@ -515,7 +524,10 @@ void PCSX::SPU::impl::MainThread() {
         // modes, so it is ignored in this path. Note also that the channel 0-3 IRQ debug display
         // is reused for these IRQs, as that is the simplest way to display them in debug mode.
 
-        // mixIrqAddress is only set if the config option is active.
+        // mixIrqAddress is armed by resetCaptureBuffer on the emulation thread, so the walk
+        // runs under cbMtx. triggerIrq only sets flags (scheduleInterrupt stores an atomic),
+        // so nothing in here takes another lock. The hold is NSSIZE * 4 compares.
+        std::unique_lock<std::mutex> irqLock(cbMtx);
         if (mixIrqAddress) {
             for (ns = 0; ns < NSSIZE; ns++) {
                 if ((spuCtrl & ControlFlags::IRQEnable) && irqAddress && irqAddress < spuRamBase + 0x1000) {
@@ -531,6 +543,7 @@ void PCSX::SPU::impl::MainThread() {
                 if (mixIrqAddress > spuRamBase + 0x3ff) mixIrqAddress = spuRamBase;
             }
         }
+        irqLock.unlock();
 
         m_reverb.init(NSSIZE);
 
@@ -556,8 +569,8 @@ void PCSX::SPU::impl::MainThread() {
 }
 
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
+    std::lock_guard<std::mutex> lock(cbMtx);
     if (mixIrqAddress) {
-        std::unique_lock<std::mutex> lock(cbMtx);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
                 // If there are no samples left in the temp buffer,

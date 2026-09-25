@@ -22,7 +22,9 @@
 
 // SPU RAM -> Main RAM DMA.
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
-    if (mixIrqAddress) cbMtx.lock();
+    // Always lock: the mixer thread writes the capture areas of spuMem under cbMtx,
+    // and deciding from an unlocked read of mixIrqAddress would itself be a race.
+    std::lock_guard<std::mutex> lock(cbMtx);
 
     for (int i = 0; i < size; i++) {
         // Copy 2 bytes.
@@ -30,7 +32,6 @@ void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
         // Increment the SPU address and wrap around.
         spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-    if (mixIrqAddress) cbMtx.unlock();
 }
 
 // To investigate: do sound data updates by DMA writes affect SPU IRQs? Will an IRQ be triggered if new
@@ -43,6 +44,8 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     // The capture buffers are always live: hardware writes them continuously and
     // raises the IRQ whenever the write reaches SPU_IRQ_ADDR. Nothing about that is
     // optional, so the cursor is always armed.
+    // Everything below is shared with the mixer thread (MainThread), so hold cbMtx.
+    std::lock_guard<std::mutex> lock(cbMtx);
     mixIrqAddress = spuRamBase;
     memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
     memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
@@ -54,7 +57,7 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
 
 // Main RAM -> SPU RAM DMA.
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
-    if (mixIrqAddress) cbMtx.lock();
+    std::lock_guard<std::mutex> lock(cbMtx);
 
     for (int i = 0; i < size; i++) {
         // Copy 2 bytes.
@@ -62,6 +65,4 @@ void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
         // Increment the SPU address and wrap around.
         spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-
-    if (mixIrqAddress) cbMtx.unlock();
 }
