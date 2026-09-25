@@ -1072,13 +1072,15 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
 
 void PCSX::UvFifoListener::stop() {
     request([this](auto loop) {
-        // Runs on the same worker thread as start()'s body and after it, so the
-        // status here is settled: a failed bind has already closed m_server and
-        // there is nothing left to tear down. Closing it again is what aborted
-        // inside uv_close (`!uv__is_closing(handle)`) whenever a server was
-        // enabled on a busy port and then switched off.
+        // Runs on the same worker thread as start()'s body and after it, so a
+        // failed bind or listen has already called uv_close on m_server. Its
+        // close callback, which is what sets Failed, may not have run yet
+        // though, so the status alone cannot tell; ask libuv. Closing twice
+        // aborts inside uv_close (`!uv__is_closing(handle)`), and the pending
+        // close callback delivers the nullptr on its own.
         auto status = m_status.load(std::memory_order_acquire);
         if ((status == Status::Failed) || (status == Status::Stopped)) return;
+        if (uv_is_closing(reinterpret_cast<uv_handle_t *>(&m_server))) return;
         uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
             UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
             listener->m_status.store(Status::Stopped, std::memory_order_release);
