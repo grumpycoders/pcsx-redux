@@ -282,8 +282,6 @@ install: all strip
 	$(CP) i18n/*.po $(DESTDIR)/share/pcsx-redux/i18n
 	$(CP) resources/*.ico $(DESTDIR)/share/pcsx-redux/resources
 	$(CP) resources/*.lua $(DESTDIR)/share/pcsx-redux/resources
-	$(CP) third_party/SDL_GameControllerDB/LICENSE $(DESTDIR)/share/pcsx-redux/resources
-	$(CP) third_party/SDL_GameControllerDB/gamecontrollerdb.txt $(DESTDIR)/share/pcsx-redux/resources
 
 install-openbios: openbios
 	$(MKDIRP) $(DESTDIR)/share/pcsx-redux/resources
