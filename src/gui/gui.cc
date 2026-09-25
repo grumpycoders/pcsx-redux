@@ -62,7 +62,6 @@ extern "C" {
 #include "core/sio1.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
-#include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"

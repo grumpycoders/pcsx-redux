@@ -23,16 +23,16 @@
 
 #include "support/binpath.h"
 
-PCSX::Arguments::Arguments(const CommandLine::args& args) {
-    if (args.get<bool>("lua_stdout") || args.get<bool>("no-ui") || args.get<bool>("cli")) {
+PCSX::Arguments::Arguments(const PCSX::CommandLine& args) {
+    if (args.has("lua_stdout") || args.has("no-ui") || args.has("cli")) {
         m_luaStdoutEnabled = true;
     }
-    if (args.get<bool>("stdout") && !args.get<bool>("tui")) m_stdoutEnabled = true;
-    if (args.get<bool>("no-ui") || args.get<bool>("cli")) m_stdoutEnabled = true;
-    if (args.get<bool>("testmode") || args.get<bool>("no-gui-log")) m_guiLogsEnabled = false;
-    if (args.get<bool>("testmode")) m_testModeEnabled = true;
-    if (args.get<bool>("portable")) m_portable = true;
-    auto portablePath = args.get<std::string_view>("portable");
+    if (args.has("stdout") && !args.has("tui")) m_stdoutEnabled = true;
+    if (args.has("no-ui") || args.has("cli")) m_stdoutEnabled = true;
+    if (args.has("testmode") || args.has("no-gui-log")) m_guiLogsEnabled = false;
+    if (args.has("testmode")) m_testModeEnabled = true;
+    if (args.has("portable")) m_portable = true;
+    auto portablePath = args.value("portable");
     if (portablePath.has_value()) m_portablePath = portablePath.value();
     if (std::filesystem::exists("pcsx.json")) m_portable = true;
     if (std::filesystem::exists(std::filesystem::path("vsprojects") / "pcsx-redux.sln")) m_portable = true;
@@ -50,11 +50,11 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
             m_portablePath = binDir.string();
         }
     }
-    if (args.get<bool>("no-portable")) m_portable = false;
-    if (args.get<bool>("safe") || args.get<bool>("testmode") || args.get<bool>("cli")) m_safeModeEnabled = true;
-    if (args.get<bool>("resetui")) m_uiResetRequested = true;
-    if (args.get<bool>("noshaders")) m_shadersDisabled = true;
-    if (args.get<bool>("noupdate")) m_updateDisabled = true;
-    if (args.get<bool>("viewports")) m_viewportsEnabled = true;
-    if (args.get<bool>("no-viewports")) m_viewportsEnabled = false;
+    if (args.has("no-portable")) m_portable = false;
+    if (args.has("safe") || args.has("testmode") || args.has("cli")) m_safeModeEnabled = true;
+    if (args.has("resetui")) m_uiResetRequested = true;
+    if (args.has("noshaders")) m_shadersDisabled = true;
+    if (args.has("noupdate")) m_updateDisabled = true;
+    if (args.has("viewports")) m_viewportsEnabled = true;
+    if (args.has("no-viewports")) m_viewportsEnabled = false;
 }
