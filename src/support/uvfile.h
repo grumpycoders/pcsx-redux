@@ -32,6 +32,7 @@ SOFTWARE.
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -266,7 +267,10 @@ class UvFifo : public File, public UvThreadOp {
     // The caller owns `async` and must keep it alive until it closes the fifo,
     // then uv_close it, exactly like UvFifoListener's.
     void setNotifier(uv_loop_t* loop, uv_async_t* async, std::function<void()>&& cb);
-    void clearNotifier() { m_notifyAsync.store(nullptr, std::memory_order_release); }
+    void clearNotifier() {
+        std::lock_guard lock(m_control->m_lock);
+        m_notifyAsync.store(nullptr, std::memory_order_release);
+    }
 
     // Writes are queued to the uv worker thread, so "I called write()" and "the
     // bytes left the machine" are different moments. Closing between the two
@@ -280,17 +284,19 @@ class UvFifo : public File, public UvThreadOp {
   private:
     virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
-    void startRead(uv_tcp_t*);
+    struct Control;
+    static void startRead(Control*);
     // Worker-thread side of the notification. A no-op when nobody opted in.
+    // Worker callers hold m_control->m_lock, so clearNotifier() returning means
+    // no uv_async_send on the old async is still in progress.
     void notify() {
         auto async = m_notifyAsync.load(std::memory_order_acquire);
         if (async) uv_async_send(async);
     }
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
-    void* m_buffer = nullptr;
     std::atomic<bool> m_closed = false;
-    const size_t c_chunkSize = 4096;
+    static constexpr size_t c_chunkSize = 4096;
     ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
     std::atomic_flag m_failed;
@@ -304,10 +310,18 @@ class UvFifo : public File, public UvThreadOp {
     // purpose. An in-flight uv_write holds a reference, so a fifo destroyed
     // while writes are still queued cannot pull the state out from under the
     // worker thread - which is why the write path must never capture `this`.
+    //
+    // The read and connect paths do need the fifo, so they reach it through
+    // m_fifo under m_lock. closeInternal() clears it before File::delRef()
+    // deletes the fifo, and the socket's data pointer is this block rather than
+    // the fifo, so a read landing after that finds nullptr instead of freed
+    // memory.
     struct Control {
         std::atomic<size_t> m_pending = 0;
         bool m_closeRequested = false;  // worker thread only
         uv_tcp_t* m_tcp = nullptr;      // worker thread only, after construction
+        std::mutex m_lock;
+        UvFifo* m_fifo = nullptr;  // guarded by m_lock
         void closeNow();
         void writeCompleted();
     };
