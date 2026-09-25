@@ -70,6 +70,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUAddr>().value = spuAddr;
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
+    spu.get<SaveStates::SPUEndx>().value = spuEndx;
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
@@ -123,6 +124,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     spuAddr = spu.get<SaveStates::SPUAddr>().value;
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
     spuStat = spu.get<SaveStates::SPUStat>().value;
+    spuEndx = spu.get<SaveStates::SPUEndx>().value & 0xffffff;
 
     m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                      spu.get<SaveStates::SPUNoiseVal>());
