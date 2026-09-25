@@ -44,8 +44,8 @@ The following functions are available :
 | :- | :- | 
 |`pcsx_putc(int c)` | Print ASCII character with code `c` to console/stdout. | 
 |`pcsx_debugbreak()` | Break execution (Pause emulation). |
-|`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. The `slot` value can be between 1 and 255. If no Lua function exists within a slot, then this behaves the same as `pcsx_debugbreak()`. |
-|`pcsx_exit(int code)` | Exit emulator and forward `code` as exit code. | 
+|`pcsx_execSlot(uint8_t slot)` | Executes Lua function at `PCSX.execSlots[slot]`. The `slot` value can be between 1 and 255, as a `slot` value of 0 is `pcsx_debugbreak()`. If no Lua function exists within a slot, nothing happens. |
+|`pcsx_exit(int code)` | When the emulator was started with `-testmode`, exit the emulator and forward `code` as exit code. Otherwise, log the exit code and pause emulation. | 
 |`pcsx_message(const char* msg)` | Create a UI dialog displaying `msg` | 
 |`pcsx_checkKernel(int enable)` | Enable or disable kernel checking. |
 |`pcsx_isCheckingKernel()` | Returns truthy if kernel checking is enabled. |
@@ -55,6 +55,7 @@ The following functions are available :
 |`pcsx_msanAlloc(uint32_t size)` | Allocate memory with memory sanitizer. |
 |`pcsx_msanFree(void* ptr)` | Free memory with memory sanitizer. |
 |`pcsx_msanRealloc(void* ptr, uint32_t size)` | Reallocate memory with memory sanitizer. |
+|`pcsx_registerHeapMetadata(const void* metadata)` | Register the address of the psyqo heap metadata, which is used by the PSYQo heap viewer. |
 
 Example of a UI dialog created with `pcsx_message()` :  
 
@@ -65,9 +66,9 @@ Example of a UI dialog created with `pcsx_message()` :
 The kernel checking feature is used to try and catch unwanted accesses to the kernel, which are usually a sign of a bug in the code, such as a buffer overflow or a null pointer dereference. If the kernel checking feature is enabled, the emulator will break execution and display a message in the console if it detects an unwanted access to the kernel. The following actions are considered unwanted accesses to the kernel:
 
 - Reading or writing to a kernel address from a user-mode address and while not in a kernel-mode context such as while in the ISR. The ISR sets up a stack frame within the kernel space, so callbacks from the kernel and into the user space will be using kernel space as the stack. This means that a null pointer dereference in a callback from the kernel during an interrupt or exception will not be caught by the kernel checking feature.
-- An indirect jump to a kernel address from a user-mode address and that isn't 0xa0, 0xb0, or 0xc0, and that isn't a `jr $ra` instruction. Direct jumps and branches to kernel addresses should be compiler-level problems, so they are not checked for. The `jr $ra` exception to the rule is because callbacks from the kernel will use `jr $ra` to return to the kernel. Optimizations which bypass the `jr $ra` instruction by using a different register to return to the kernel during a callback will cause false positives.
+- An indirect jump to a kernel address from a user-mode address and that isn't 0x40, 0x80, 0xa0, 0xb0, or 0xc0, and that isn't a `jr $ra` instruction. The 0x40 and 0x80 addresses are the break and exception handlers, and the 0xa0, 0xb0, and 0xc0 addresses are the syscall gates. Direct jumps and branches to kernel addresses should be compiler-level problems, so they are not checked for. The `jr $ra` exception to the rule is because callbacks from the kernel will use `jr $ra` to return to the kernel. Optimizations which bypass the `jr $ra` instruction by using a different register to return to the kernel during a callback will cause false positives.
 
-The feature is disabled by default as many games and software will access the kernel in various ways, and it can be enabled by calling `pcsx_checkKernel(1)`. The feature can be disabled by calling `pcsx_checkKernel(0)`. Since many startup sequences will access the kernel to patch it or clean it, it is recommended to enable the feature after the startup sequence has completed. Some libraries may also access the kernel during their normal operations. The user can simply disable the checker temporarily by toggling it before and after calling such APIs. The kernel space is considered to be all the memory addresses between 0x80000000 and 0x8000ffff. The BIOS is considered to be part of the kernel space in terms of code, so any access to the RAM Kernel space from the BIOS memory space will not trigger any of the kernel checks. The kernel checking feature is only available in the interpreter with the debugger enabled, and it is not available in the dynarec. Trying to enable the feature while using the dynarec, or while the debugger is disabled, will not have any effect.
+The feature is disabled by default as many games and software will access the kernel in various ways, and it can be enabled by calling `pcsx_checkKernel(1)`. The feature can be disabled by calling `pcsx_checkKernel(0)`, and it is also disabled again on every reset. Since many startup sequences will access the kernel to patch it or clean it, it is recommended to enable the feature after the startup sequence has completed. Some libraries may also access the kernel during their normal operations. The user can simply disable the checker temporarily by toggling it before and after calling such APIs. The kernel space is considered to be all the memory addresses between 0x80000000 and 0x8000ffff. The BIOS is considered to be part of the kernel space in terms of code, so any access to the RAM Kernel space from the BIOS memory space will not trigger any of the kernel checks. The kernel checking feature is only available in the interpreter with the debugger enabled, and it is not available in the dynarec. Trying to enable the feature while using the dynarec, or while the debugger is disabled, will not have any effect.
 
 ### Memory Sanitizer
 

@@ -4,9 +4,9 @@ When the [webserver](../web_server.md) is enabled, it will expose the `/api/v1/l
 
 The request object has the following fields:
 
-- `form` is a table of the form data in the request. This is only available if the request is a POST request, and the content type is `application/x-www-form-urlencoded`.
-- `headers` is a table of the headers in the request.
-- `method` is the HTTP method of the request.
+- `form` is a table of the part headers found in the request body. It is only filled if the content type of the request is `multipart/form-data`, and is empty otherwise. Each header name maps to an array of its values.
+- `headers` is a table of the headers in the request. Each header name maps to an array of its values.
+- `method` is the HTTP method of the request, as an uppercase string such as `POST`. Note that GET requests report `HTTP_GET`.
 - `urlData` is a table with more information about the URL. It has the following string fields:
     - `fragment`
     - `host`

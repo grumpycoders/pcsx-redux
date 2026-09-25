@@ -1,12 +1,12 @@
 # GPU Logger
 
-The GPU logger is a tool that allows you to see the GPU commands being executed by the emulator, and the resulting VRAM changes. It can be used to debug the GPU, and to understand how the executed software is rendering the scene. The logger will have a full frame worth of primitives, and will automatically clear the log when a new frame is started. Note that the notion of a frame may span over multiple vsyncs, if the PlayStation software isn't running at full FPS.
+The GPU logger is a tool that allows you to see the GPU commands being executed by the emulator, and the resulting VRAM changes. It can be used to debug the GPU, and to understand how the executed software is rendering the scene. The logger will have the primitives sent since the last vsync, and will automatically clear the log when the first command after a new vsync is received. Note that if the PlayStation software isn't running at full FPS, the rendering of one of its frames may span over multiple vsyncs, and the logger will then only have the part sent since the last vsync.
 
 Note that it can be fairly resource intensive, and may significantly slow down the emulation, depending on the context.
 
 The top of the GPU Logger window will have the following checkboxes:
 
-- GPU Logging - Enable or disable the GPU logging.
+- GPU logging - Enable or disable the GPU logging.
 - Breakpoint on vsync - Pause the emulation when a vsync occurs, allowing to inspect the current frame.
 - Replay frame - Enables the replay of the current frame. See below for details.
 - Show origins - Show the data path of the primitives. This will show the origin of the data, and the path it took to reach the GPU. For example, a sequence of primitives may be sent to the GPU via chained DMA.
