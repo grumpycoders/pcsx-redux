@@ -80,7 +80,7 @@
 
 struct SDL_Window;
 struct SDL_GLContextState;
-typedef SDL_GLContextState* SDL_GLContext;
+typedef SDL_GLContextState *SDL_GLContext;
 struct ImGuiViewport;
 namespace tvg {
 struct GlCanvas;

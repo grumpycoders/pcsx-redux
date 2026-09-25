@@ -95,8 +95,7 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("solo"), 31> Solo;
 // Skip ID 32.
 typedef Protobuf::Message<TYPESTRING("ChannelData"), New, SBPos, spos, sinc, SB, sval, StartPtr, CurrPtr, LoopPtr, On,
                           Stop, Reverb, ActFreq, UsedFreq, LeftVolume, LeftVolRaw, IgnoreLoop, Mute, RightVolume,
-                          RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, Noise, FMod,
-                          Solo>
+                          RightVolRaw, RawPitch, IrqDone, s_1, s_2, RVBActive, Noise, FMod, Solo>
     Data;
 }  // namespace Chan
 

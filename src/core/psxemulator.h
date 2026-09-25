@@ -196,13 +196,13 @@ class Emulator {
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
-             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
-             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
-             Setting8MB, SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering,
-             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
-             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
-             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
-             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
+             SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec, Setting8MB,
+             SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
+             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
+             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
+             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:

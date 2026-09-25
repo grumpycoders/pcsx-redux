@@ -539,7 +539,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             PCSX::PSXSPU_LOGGER::Log("SPU.write, vRIN = %04x\n", val);
             break;
     }
-
 }
 
 ////////////////////////////////////////////////////////////////////////

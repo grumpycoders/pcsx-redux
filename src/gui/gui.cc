@@ -80,13 +80,13 @@ extern "C" {
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "thorvg/inc/thorvg.h"
 #include "spu/interface.h"
 #include "support/bezier.h"
 #include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
+#include "thorvg/inc/thorvg.h"
 #include "tracy/Tracy.hpp"
 
 unsigned PCSX::GUI::MarkDown::m_id = 0;
@@ -581,8 +581,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     // window creation (Win32 WGL is the strict case) a clean retry needs a
     // fresh window too, so we destroy and recreate both.
     if (!m_window || !m_glContext) {
-        g_system->log(LogClass::UI,
-                      "SDL failed to create OpenGL 3.2 core context, retrying with any 3.0 profile\n");
+        g_system->log(LogClass::UI, "SDL failed to create OpenGL 3.2 core context, retrying with any 3.0 profile\n");
         if (m_glContext) {
             SDL_GL_DestroyContext(m_glContext);
             m_glContext = nullptr;
@@ -1009,9 +1008,9 @@ void PCSX::GUI::startFrame() {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
                 const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
-                g_system->m_eventBus->signal(Events::Keyboard{
-                    static_cast<int>(event.key.key), static_cast<int>(event.key.scancode), action,
-                    static_cast<int>(event.key.mod)});
+                g_system->m_eventBus->signal(Events::Keyboard{static_cast<int>(event.key.key),
+                                                              static_cast<int>(event.key.scancode), action,
+                                                              static_cast<int>(event.key.mod)});
                 break;
             }
             default:
