@@ -59,32 +59,41 @@ struct SoftRenderer {
                      int16_t &y3);
     bool checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2);
 
+    // Screen coordinates live in an 11-bit signed field, and the wrap applies
+    // to the vertex-plus-offset SUM rather than only to the vertex as it
+    // arrived. With a draw offset of -1000 a vertex at X=1500 renders at
+    // X=500, not 548 pixels off the left edge. Verified on SCPH-1000,
+    // SCPH-5501 and SCPH-7001 via gpu-raster-phase23 O3.
+    static int16_t offsetCoord(int16_t v, int16_t off) {
+        return static_cast<int16_t>(PCSX::GPU::signExtend<int, 11>(int(v) + int(off)));
+    }
+
     void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
+        x0 = offsetCoord(x0, m_softDisplay.DrawOffset.x);
+        y0 = offsetCoord(y0, m_softDisplay.DrawOffset.y);
+        x1 = offsetCoord(x1, m_softDisplay.DrawOffset.x);
+        y1 = offsetCoord(y1, m_softDisplay.DrawOffset.y);
     }
 
     void applyOffset3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
-        x2 += m_softDisplay.DrawOffset.x;
-        y2 += m_softDisplay.DrawOffset.y;
+        x0 = offsetCoord(x0, m_softDisplay.DrawOffset.x);
+        y0 = offsetCoord(y0, m_softDisplay.DrawOffset.y);
+        x1 = offsetCoord(x1, m_softDisplay.DrawOffset.x);
+        y1 = offsetCoord(y1, m_softDisplay.DrawOffset.y);
+        x2 = offsetCoord(x2, m_softDisplay.DrawOffset.x);
+        y2 = offsetCoord(y2, m_softDisplay.DrawOffset.y);
     }
 
     void applyOffset4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
                       int16_t &y3) {
-        x0 += m_softDisplay.DrawOffset.x;
-        y0 += m_softDisplay.DrawOffset.y;
-        x1 += m_softDisplay.DrawOffset.x;
-        y1 += m_softDisplay.DrawOffset.y;
-        x2 += m_softDisplay.DrawOffset.x;
-        y2 += m_softDisplay.DrawOffset.y;
-        x3 += m_softDisplay.DrawOffset.x;
-        y3 += m_softDisplay.DrawOffset.y;
+        x0 = offsetCoord(x0, m_softDisplay.DrawOffset.x);
+        y0 = offsetCoord(y0, m_softDisplay.DrawOffset.y);
+        x1 = offsetCoord(x1, m_softDisplay.DrawOffset.x);
+        y1 = offsetCoord(y1, m_softDisplay.DrawOffset.y);
+        x2 = offsetCoord(x2, m_softDisplay.DrawOffset.x);
+        y2 = offsetCoord(y2, m_softDisplay.DrawOffset.y);
+        x3 = offsetCoord(x3, m_softDisplay.DrawOffset.x);
+        y3 = offsetCoord(y3, m_softDisplay.DrawOffset.y);
     }
 
     void fillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t col);

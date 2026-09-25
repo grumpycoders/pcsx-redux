@@ -21,6 +21,7 @@
 
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/gpulogger.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
@@ -105,6 +106,8 @@ LuaScreenShot takeScreenShot() {
     return ret;
 }
 
+double getGuestFPS() { return PCSX::g_emulator->m_gpuLogger->getGuestFPS(); }
+
 PCSX::Slice* createSaveState() {
     auto ss = PCSX::SaveStates::save();
     return new PCSX::Slice(std::move(ss));
@@ -161,6 +164,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToMemory);
     REGISTER(L, invalidateCache);
     REGISTER(L, takeScreenShot);
+    REGISTER(L, getGuestFPS);
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
     REGISTER(L, loadSaveStateFromFile);

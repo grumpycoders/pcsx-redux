@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\src\spu\sdlaudio.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\spu\playbacklua.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\spu\adsr.h">
@@ -73,6 +76,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\spu\playbackffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

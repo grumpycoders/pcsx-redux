@@ -190,13 +190,15 @@ void PCSX::Memory::reset() {
     memset(m_bios, 0, bios_size);
     memset(m_sram, 0, 0x00200000);
     m_psyqoHeapMetadata = 0;
-    static const uint32_t nobios[6] = {
+    static const uint32_t nobios[7] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
         Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000
         Mips::Encoder::addiu(Mips::Encoder::Reg::T0, Mips::Encoder::Reg::V0, sizeof(nobios)),
         Mips::Encoder::sw(Mips::Encoder::Reg::T0, 0x2084, Mips::Encoder::Reg::V1),  // display notification
+        Mips::Encoder::li(Mips::Encoder::Reg::T1, -1),
         Mips::Encoder::j(0xbfc00000),
-        Mips::Encoder::sb(Mips::Encoder::Reg::R0, 0x2081, Mips::Encoder::Reg::V1),  // pause
+        // exit code: quits in test mode, pauses otherwise
+        Mips::Encoder::sh(Mips::Encoder::Reg::T1, 0x2082, Mips::Encoder::Reg::V1),
     };
 
     int index = 0;
