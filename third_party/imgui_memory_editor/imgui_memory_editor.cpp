@@ -6,15 +6,18 @@
 #include "fmt/format.h"
 #include "imgui_stdlib.h"
 
-#ifdef _MSC_VER
-#define _PRISizeT   "I"
+#if defined(_MSC_VER) && !defined(snprintf)
 #define ImSnprintf  _snprintf
 #else
-#define _PRISizeT   "z"
 #define ImSnprintf  snprintf
 #endif
+#if defined(_MSC_VER) && !defined(__clang__)
+#define _PRISizeT   "I"
+#else
+#define _PRISizeT   "z"
+#endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_UCRT)
 #pragma warning (push)
 #pragma warning (disable: 4996) // warning C4996: 'sprintf': This function or variable may be unsafe.
 #endif
@@ -69,17 +72,17 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size)
 	s.ByteSpacingWidth = (float)(int)(s.GlyphWidth * 0.5f);
 	s.HexCellWidth = (float)(int)((s.ByteWidth * (float)(int)DataTypeGetSize(PreviewDataType) + s.ByteSpacingWidth));             // "FF " we include trailing space in the width to easily catch clicks everywhere
 	s.SpacingBetweenMidCols = (float)(int)(s.HexCellWidth * 0.25f); // Every OptMidColsCount columns we add a bit of extra spacing
-	s.PosHexStart = (s.AddrDigitsCount + 2) * s.GlyphWidth;
-	s.PosHexEnd = s.PosHexStart + (s.HexCellWidth * (float)(int)(Cols / DataTypeGetSize(PreviewDataType)));
-	s.PosAsciiStart = s.PosAsciiEnd = s.PosHexEnd;
+	s.OffsetHexMinX = (s.AddrDigitsCount + 2) * s.GlyphWidth;
+	s.OffsetHexMaxX = s.OffsetHexMinX + (s.HexCellWidth * (float)(int)(Cols / DataTypeGetSize(PreviewDataType)));
+	s.OffsetAsciiMinX = s.OffsetAsciiMaxX = s.OffsetHexMaxX;
 	if (OptShowAscii)
 	{
-		s.PosAsciiStart = s.PosHexEnd + s.GlyphWidth * 1;
+		s.OffsetAsciiMinX = s.OffsetHexMaxX + s.GlyphWidth * 1;
 		if (OptMidColsCount > 0)
-			s.PosAsciiStart += (float)((Cols + OptMidColsCount - 1) / OptMidColsCount) * s.SpacingBetweenMidCols;
-		s.PosAsciiEnd = s.PosAsciiStart + Cols * s.GlyphWidth;
+			s.OffsetAsciiMinX += (float)((Cols + OptMidColsCount - 1) / OptMidColsCount) * s.SpacingBetweenMidCols;
+		s.OffsetAsciiMaxX = s.OffsetAsciiMinX + Cols * s.GlyphWidth;
 	}
-	s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
+	s.WindowWidth = s.OffsetAsciiMaxX + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
 	if (PushMonoFont) ImGui::PopFont();
 }
 
@@ -141,7 +144,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	// Draw vertical separator
 	ImVec2 window_pos = ImGui::GetWindowPos();
 	if (OptShowAscii)
-		draw_list->AddLine(ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
+		draw_list->AddLine(ImVec2(window_pos.x + s.OffsetAsciiMinX - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.OffsetAsciiMinX - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -200,7 +203,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 			// Draw Hexadecimal
 			for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
 			{
-				float byte_pos_x = s.PosHexStart + s.ByteWidth * n + s.ByteSpacingWidth * (n / preview_data_type_size);
+				float byte_pos_x = s.OffsetHexMinX + s.ByteWidth * n + s.ByteSpacingWidth * (n / preview_data_type_size);
 				if (OptMidColsCount > 0)
 					byte_pos_x += (float)(n / OptMidColsCount) * s.SpacingBetweenMidCols;
 				ImGui::SameLine(byte_pos_x);
@@ -260,7 +263,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					};
 					UserData user_data;
 					user_data.CursorPos = -1;
-					sprintf(user_data.CurrentBufOverwrite, format_byte, ReadByte(addr));
+					ImSnprintf(user_data.CurrentBufOverwrite, 3, format_byte, ReadByte(addr));
 					ImGuiInputTextFlags flags = ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CallbackAlways;
 					if (read_only)
 						flags |= ImGuiInputTextFlags_ReadOnly;
@@ -331,15 +334,15 @@ void MemoryEditor::DrawContents(size_t mem_size)
 			if (OptShowAscii)
 			{
 				// Draw ASCII values
-				ImGui::SameLine(s.PosAsciiStart);
+				ImGui::SameLine(s.OffsetAsciiMinX);
 				ImVec2 pos = ImGui::GetCursorScreenPos();
 				addr = (size_t)line_i * Cols;
 
 				const float mouse_off_x = ImGui::GetIO().MousePos.x - pos.x;
-				const size_t mouse_addr = (mouse_off_x >= 0.0f && mouse_off_x < s.PosAsciiEnd - s.PosAsciiStart) ? addr + (size_t)(mouse_off_x / s.GlyphWidth) : (size_t)-1;
+				const size_t mouse_addr = (mouse_off_x >= 0.0f && mouse_off_x < s.OffsetAsciiMaxX - s.OffsetAsciiMinX) ? addr + (size_t)(mouse_off_x / s.GlyphWidth) : (size_t)-1;
 
 				ImGui::PushID(line_i);
-				if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
+				if (ImGui::InvisibleButton("ascii", ImVec2(s.OffsetAsciiMaxX - s.OffsetAsciiMinX, s.LineHeight)))
 				{
 					DataEditingAddr = DataPreviewAddr = mouse_addr;
 					DataEditingTakeFocus = true;

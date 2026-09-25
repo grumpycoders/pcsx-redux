@@ -161,18 +161,18 @@ public:
 
     struct Sizes
     {
-        int     AddrDigitsCount;
-        float   LineHeight;
-        float   GlyphWidth;
-        float   ByteWidth;
-        float   ByteSpacingWidth;
-        float   HexCellWidth;
-        float   SpacingBetweenMidCols;
-        float   PosHexStart;
-        float   PosHexEnd;
-        float   PosAsciiStart;
-        float   PosAsciiEnd;
-        float   WindowWidth;
+        int     AddrDigitsCount;            // Number of digits required to represent maximum address.
+        float   LineHeight;                 // Height of each line (no spacing), measured with the mono font.
+        float   GlyphWidth;                 // Glyph width (assume mono-space).
+        float   ByteWidth;                  // Width of a single byte "FF" ~2.0f * GlyphWidth.
+        float   ByteSpacingWidth;           // Spacing after each preview-type group of bytes ~0.5f * GlyphWidth.
+        float   HexCellWidth;               // Width of a hex edit cell (one preview-type group of bytes plus trailing spacing).
+        float   SpacingBetweenMidCols;      // Spacing between each columns section (OptMidColsCount).
+        float   OffsetHexMinX;
+        float   OffsetHexMaxX;
+        float   OffsetAsciiMinX;
+        float   OffsetAsciiMaxX;
+        float   WindowWidth;                // Ideal window width.
 
         Sizes() { memset(this, 0, sizeof(*this)); }
     };
