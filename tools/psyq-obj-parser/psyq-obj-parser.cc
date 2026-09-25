@@ -1459,6 +1459,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         return true;
                     }
                     // Handled already
+                    case PsyqRelocType::REL32:
                     case PsyqRelocType::REL32_BE:
                     case PsyqRelocType::HI16_BE:
                     case PsyqRelocType::LO16_BE: {
