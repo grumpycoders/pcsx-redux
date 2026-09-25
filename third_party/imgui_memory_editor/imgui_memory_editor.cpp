@@ -35,6 +35,8 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	OptFooterExtraHeight = 0.0f;
 	HighlightColor = IM_COL32(255, 255, 255, 50);
 	HighlightFn = NULL;
+	MouseHovered = false;
+	MouseHoveredAddr = 0;
 	// State/Internals
 	ContentsWidthChanged = false;
 	DataPreviewAddr = DataEditingAddr = (size_t)-1;
@@ -186,6 +188,9 @@ void MemoryEditor::DrawContents(size_t mem_size)
 		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{:02X}" : "{:02x}"), byte);
 	};
 
+	MouseHovered = false;
+	MouseHoveredAddr = 0;
+
 	while (clipper.Step())
 		for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
 		{
@@ -200,16 +205,22 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					byte_pos_x += (float)(n / OptMidColsCount) * s.SpacingBetweenMidCols;
 				ImGui::SameLine(byte_pos_x);
 
-				// Draw highlight
+				// Draw highlight or custom background color
 				size_t DataPreviewHighlightBase = DataPreviewAddr & ~(preview_data_type_size - 1);
 				bool is_highlight_from_user_range = (HighlightMin && addr >= HighlightMin && addr < HighlightMax);
 				bool is_highlight_from_user_func = (HighlightFn && HighlightFn(addr));
 				bool is_highlight_from_preview = (addr >= DataPreviewHighlightBase && addr < DataPreviewHighlightBase + preview_data_type_size);
+
+				ImU32 bg_color = 0;
 				if (is_highlight_from_user_range || is_highlight_from_user_func || is_highlight_from_preview)
+					bg_color = HighlightColor;
+				else if (BgColorFn)
+					bg_color = BgColorFn(addr);
+				if (bg_color != 0)
 				{
 					ImVec2 pos = ImGui::GetCursorScreenPos();
-					float highlight_width = s.ByteWidth;
-					draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
+					float bg_width = s.ByteWidth;
+					draw_list->AddRectFilled(pos, ImVec2(pos.x + bg_width, pos.y + s.LineHeight), bg_color);
 				}
 
 				if (DataEditingAddr == addr)
@@ -274,6 +285,11 @@ void MemoryEditor::DrawContents(size_t mem_size)
 						WriteFn(addr, (ImU8)data_input_value);
 						Cache.invalidate();
 					}
+					if (ImGui::IsItemHovered())
+					{
+						MouseHovered = true;
+						MouseHoveredAddr = addr;
+					}
 					ImGui::PopID();
 				}
 				else
@@ -299,10 +315,15 @@ void MemoryEditor::DrawContents(size_t mem_size)
 						else
 							ImGui::Text(format_byte_space, b);
 					}
-					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+					if (ImGui::IsItemHovered())
 					{
-						DataEditingTakeFocus = true;
-						data_editing_addr_next = addr;
+						MouseHovered = true;
+						MouseHoveredAddr = addr;
+						if (ImGui::IsMouseClicked(0))
+						{
+							DataEditingTakeFocus = true;
+							data_editing_addr_next = addr;
+						}
 					}
 				}
 			}
@@ -323,6 +344,11 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					DataEditingAddr = DataPreviewAddr = mouse_addr;
 					DataEditingTakeFocus = true;
 				}
+				if (ImGui::IsItemHovered())
+				{
+					MouseHovered = true;
+					MouseHoveredAddr = mouse_addr;
+				}
 				ImGui::PopID();
 				for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
 				{
@@ -330,6 +356,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					{
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), ImGui::GetColorU32(ImGuiCol_FrameBg));
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), ImGui::GetColorU32(ImGuiCol_TextSelectedBg));
+					}
+					else if (BgColorFn)
+					{
+						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), BgColorFn(addr));
 					}
 					unsigned char c = ReadByte(addr);
 					char display_c = (c < 32 || c >= 128) ? '.' : c;

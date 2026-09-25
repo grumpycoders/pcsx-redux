@@ -88,6 +88,7 @@ struct MemoryEditor
     float           OptFooterExtraHeight;                       // = 0      // space to reserve at the bottom of the widget to add custom widgets
     ImU32           HighlightColor;                             //          // background color of highlighted bytes.
     bool            (*HighlightFn)(size_t off);                 // = 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
+    std::function<ImU32(size_t off)> BgColorFn = nullptr;       // optional handler to return custom background color of individual bytes.
     std::function<void()> PushMonoFont = nullptr;
     size_t&          OffsetAddr; // referenced from PCSX-Redux Settings
 
@@ -133,6 +134,10 @@ struct MemoryEditor
     };
 
     mutable ReadCache Cache;
+
+    // Public read-only data
+    bool            MouseHovered;                               // set when mouse is hovering a value.
+    size_t          MouseHoveredAddr;                           // the address currently being hovered if MouseHovered is set.
 
 private:
     // [Internal State]
