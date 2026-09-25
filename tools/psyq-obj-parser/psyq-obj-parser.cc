@@ -125,7 +125,8 @@ struct PsyqLnkFile {
     struct Expression;
 
     /* The main parser entry point; will return nullptr on error */
-    static std::unique_ptr<PsyqLnkFile> parse(PCSX::IO<PCSX::File> file, bool verbose, bool sorted);
+    static std::unique_ptr<PsyqLnkFile> parse(PCSX::IO<PCSX::File> file, bool verbose, bool sorted,
+                                              bool convertCommToBss);
     static std::string readPsyqString(PCSX::IO<PCSX::File> file) { return file->readString(file->byte()); }
 
     /* Our list of sections and symbols will be keyed by their id from the LNK file */
@@ -164,6 +165,7 @@ struct PsyqLnkFile {
             EXPORTED,
             IMPORTED,
             UNINITIALIZED,
+            COMM,
         } symbolType;
         uint16_t sectionIndex;
         uint32_t offset = 0;
@@ -171,6 +173,17 @@ struct PsyqLnkFile {
         std::string name;
         ELFIO::Elf_Word elfSym;
         uint16_t getKey() { return getLow(); }
+        uint32_t getCommAlignment() const {
+            if (size >= 8) {
+                return 8;
+            } else if (size >= 4) {
+                return 4;
+            } else if (size >= 2) {
+                return 2;
+            } else {
+                return 1;
+            }
+        }
         uint32_t getOffset(PsyqLnkFile* psyq) const {
             if (symbolType == Type::UNINITIALIZED) {
                 auto section = psyq->sections.find(sectionIndex);
@@ -243,7 +256,8 @@ struct PsyqLnkFile {
 };
 
 /* The psyq LNK parser code */
-std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool verbose, bool sorted) {
+std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool verbose, bool sorted,
+                                                bool convertCommToBss) {
     std::unique_ptr<PsyqLnkFile> ret = std::make_unique<PsyqLnkFile>();
     vprint(":: Reading signature.\n");
     std::string signature = file->readString(3);
@@ -291,7 +305,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                     // Static bss symbols will be represented as a ZEROES opcode instead of UNINITIALIZED.
                     // This will cause them to have a size of zero, so ignore size zero symbols here.
                     // Their relocs will resolve to an offset of the local .bss instead, so this causes no issues.
-                    if (symbol.size > 0) {
+                    if (symbol.size > 0 && symbol.symbolType != PsyqLnkFile::Symbol::Type::COMM) {
                         auto section = ret->sections.find(symbol.sectionIndex);
                         if (section != ret->sections.end() && section->isBss()) {
                             auto align = std::min((uint32_t)section->alignment, symbol.size) - 1;
@@ -498,7 +512,11 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 std::string name = readPsyqString(file);
 
                 Symbol* symbol = new Symbol();
-                symbol->symbolType = Symbol::Type::UNINITIALIZED;
+                if (convertCommToBss) {
+                    symbol->symbolType = Symbol::Type::UNINITIALIZED;
+                } else {
+                    symbol->symbolType = Symbol::Type::COMM;
+                }
                 symbol->sectionIndex = sectionIndex;
                 symbol->size = size;
                 symbol->name = name;
@@ -968,9 +986,12 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
     ELFIO::Elf_Half elfSectionIndex = 0;
     bool isText = false;
     bool isWeak = false;
+    ELFIO::Elf64_Addr symbolValue = getOffset(psyq);
 
-    fmt::print("    :: Generating symbol {} {} {}\n", name, getOffset(psyq), sectionIndex);
-    if (symbolType != Type::IMPORTED) {
+    if (symbolType == Type::COMM) {
+        elfSectionIndex = ELFIO::SHN_COMMON;
+        symbolValue = getCommAlignment();
+    } else if (symbolType != Type::IMPORTED) {
         auto section = psyq->sections.find(sectionIndex);
         if (section == psyq->sections.end()) {
             psyq->setElfConversionError("Couldn't find section index {} for symbol {} ('{}')", sectionIndex, getKey(),
@@ -981,6 +1002,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
         isText = section->isText();
         isWeak = symbolType != Type::EXPORTED;
     }
+    fmt::print("    :: Generating symbol {} {} {}\n", name, symbolValue, sectionIndex);
     uint32_t functionSize = 0;
     if (isText) {
         auto functionSizeIter = psyq->functionSizes.find(name);
@@ -988,7 +1010,7 @@ bool PsyqLnkFile::Symbol::generateElfSymbol(PsyqLnkFile* psyq, ELFIO::string_sec
             functionSize = functionSizeIter->second;
         }
     }
-    elfSym = syma.add_symbol(stra, name.c_str(), getOffset(psyq), isText ? functionSize : size,
+    elfSym = syma.add_symbol(stra, name.c_str(), symbolValue, isText ? functionSize : size,
                              isWeak                      ? ELFIO::STB_WEAK
                              : symbolType == Type::LOCAL ? ELFIO::STB_LOCAL
                                                          : ELFIO::STB_GLOBAL,
@@ -1387,7 +1409,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                     psyq->setElfConversionError("Couldn't find symbol {} for relocation.", expr->symbolIndex);
                     return false;
                 }
-                if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED) {
+                if (symbol->symbolType != PsyqLnkFile::Symbol::Type::IMPORTED &&
+                    symbol->symbolType != PsyqLnkFile::Symbol::Type::COMM) {
                     return localSymbolReloc(symbol->sectionIndex, symbol->getOffset(psyq) + addend);
                 }
                 if (pass == ElfRelocationPass::PASS1) {
@@ -1436,6 +1459,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         return true;
                     }
                     // Handled already
+                    case PsyqRelocType::REL32:
                     case PsyqRelocType::REL32_BE:
                     case PsyqRelocType::HI16_BE:
                     case PsyqRelocType::LO16_BE: {
@@ -1536,6 +1560,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
   -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
                  can only work with a single input file.
   -b             outputs a big-endian ELF file.
+  -c             converts comm symbols into .bss symbols
 )",
                    argv[0]);
         return -1;
@@ -1551,7 +1576,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
             fmt::print(stderr, "Unable to open file: {}\n", input);
             ret = -2;
         } else {
-            auto psyq = PsyqLnkFile::parse(file, verbose, !!args.get<bool>("s"));
+            auto psyq = PsyqLnkFile::parse(file, verbose, !!args.get<bool>("s"), !!args.get<bool>("c"));
             if (!psyq) {
                 ret = -3;
             } else {
