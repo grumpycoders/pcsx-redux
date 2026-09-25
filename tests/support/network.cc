@@ -36,6 +36,11 @@ constexpr int c_serverPort = 47841;
 constexpr int c_busyPort = 47843;
 constexpr int c_restartPort = 47845;
 constexpr int c_deadPort = 47847;
+constexpr int c_busyStopPort = 47849;
+constexpr int c_doubleStartPort = 47851;
+constexpr int c_undeliveredPort = 47853;
+constexpr int c_oldPort = 47855;
+constexpr int c_newPort = 47857;
 
 void pump(uv_loop_t* loop, int milliseconds = 300) {
     auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
@@ -48,11 +53,13 @@ void pump(uv_loop_t* loop, int milliseconds = 300) {
 // uv_loop_close returns EBUSY while any handle is still open or still closing,
 // and ignoring that return leaks the loop's internals. Close everything first,
 // then keep pumping until it actually takes.
-void closeLoop(uv_loop_t* loop) {
-    for (int i = 0; (i < 200) && (uv_loop_close(loop) == UV_EBUSY); i++) {
+int closeLoop(uv_loop_t* loop) {
+    int result;
+    for (int i = 0; (i < 200) && ((result = uv_loop_close(loop)) == UV_EBUSY); i++) {
         uv_run(loop, UV_RUN_NOWAIT);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
+    return result;
 }
 
 // Holds a port so a Server's bind is guaranteed to fail. Releasable mid-test,
@@ -86,10 +93,14 @@ class TestServer : public Network::Server {
     TestServer() : Network::Server("test-server") {}
     std::vector<IO<File>> m_connections;
     int m_stoppedCount = 0;
+    int m_failedCount = 0;
+    int m_configuredPort = 0;
 
   protected:
     void onConnection(IO<File> connection) override { m_connections.push_back(connection); }
     void onStopped() override { m_stoppedCount++; }
+    void onFailed() override { m_failedCount++; }
+    int configuredPort() const override { return m_configuredPort ? m_configuredPort : Server::configuredPort(); }
 };
 
 class TestClient : public Network::Client {
@@ -189,6 +200,149 @@ TEST(NetworkServer, RestartRecoversFromFailure) {
 
     pump(&loop);
     closeLoop(&loop);
+}
+
+// Switching a server on and straight back off on a busy port. Both requests
+// reach the uv worker in the same drain, so stop() runs while the failed bind's
+// uv_close is still in flight and the status still reads Starting. Closing
+// m_server a second time aborts inside libuv.
+TEST(NetworkServer, StartStopOnBusyPortDoesNotAbort) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+
+    Squatter squatter(&loop, c_busyStopPort);
+
+    TestServer server;
+    server.start(&loop, c_busyStopPort);
+    server.stop();
+    server.stop();
+    pump(&loop);
+
+    EXPECT_EQ(server.status(), Network::Status::Failed);
+    EXPECT_EQ(server.m_failedCount, 1);
+    EXPECT_EQ(server.m_stoppedCount, 1);
+
+    squatter.release(&loop);
+    pump(&loop);
+    EXPECT_EQ(closeLoop(&loop), 0);
+}
+
+// A second start() while the first bind is still in flight must not replace
+// the listener's async: the first one would never be closed, and the loop
+// could never be shut down.
+TEST(NetworkServer, StartWhileStartingIsIgnored) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+
+    TestServer server;
+    server.start(&loop, c_doubleStartPort);
+    ASSERT_EQ(server.status(), Network::Status::Starting);
+    server.start(&loop, c_doubleStartPort);
+    pump(&loop);
+    EXPECT_EQ(server.status(), Network::Status::Running);
+
+    IO<File> client(new UvFifo("127.0.0.1", c_doubleStartPort));
+    pump(&loop);
+    EXPECT_EQ(server.m_connections.size(), 1u);
+
+    client.reset();
+    server.m_connections.clear();
+    server.stop();
+    pump(&loop);
+    EXPECT_EQ(server.status(), Network::Status::Stopped);
+    EXPECT_EQ(server.m_stoppedCount, 1);
+
+    pump(&loop);
+    EXPECT_EQ(closeLoop(&loop), 0);
+}
+
+// The failed bind has reported Failed, but its nullptr is still sitting in the
+// listener's queue because the consumer loop has not run yet. Neither stop()
+// nor start() may tear down or replace the async in that window: the stale
+// nullptr would then be delivered to the next listener and close its async
+// from under it, which the connection below would trip over.
+TEST(NetworkServer, StartBeforeFailureIsDelivered) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+    // The squatter lives on its own loop so releasing it does not pump ours.
+    uv_loop_t squatLoop;
+    uv_loop_init(&squatLoop);
+    Squatter squatter(&squatLoop, c_undeliveredPort);
+
+    TestServer server;
+    server.start(&loop, c_undeliveredPort);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while ((server.status() != Network::Status::Failed) && (std::chrono::steady_clock::now() < deadline)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    ASSERT_EQ(server.status(), Network::Status::Failed);
+
+    server.stop();
+    squatter.release(&squatLoop);
+    server.start(&loop, c_undeliveredPort);
+    pump(&loop);
+
+    EXPECT_EQ(server.status(), Network::Status::Running);
+    EXPECT_EQ(server.m_failedCount, 1);
+
+    // The first connection is what would dequeue a stale nullptr, and the
+    // second would then be announced through an async that is already gone.
+    IO<File> client(new UvFifo("127.0.0.1", c_undeliveredPort));
+    pump(&loop);
+    EXPECT_EQ(server.m_connections.size(), 1u);
+    EXPECT_EQ(server.m_stoppedCount, 1);
+    IO<File> secondClient(new UvFifo("127.0.0.1", c_undeliveredPort));
+    pump(&loop);
+    EXPECT_EQ(server.m_connections.size(), 2u);
+    EXPECT_EQ(server.status(), Network::Status::Running);
+
+    secondClient.reset();
+    client.reset();
+    server.m_connections.clear();
+    server.stop();
+    pump(&loop);
+    EXPECT_EQ(server.status(), Network::Status::Stopped);
+
+    pump(&squatLoop);
+    EXPECT_EQ(closeLoop(&squatLoop), 0);
+    pump(&loop);
+    EXPECT_EQ(closeLoop(&loop), 0);
+}
+
+// The Network window promises that a port change applies on the next restart.
+TEST(NetworkServer, RestartPicksUpNewPort) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+
+    TestServer server;
+    server.m_configuredPort = c_oldPort;
+    server.start(&loop, c_oldPort);
+    pump(&loop);
+    ASSERT_EQ(server.status(), Network::Status::Running);
+    EXPECT_EQ(server.port(), c_oldPort);
+
+    server.m_configuredPort = c_newPort;
+    server.restart();
+    pump(&loop);
+    EXPECT_EQ(server.status(), Network::Status::Running);
+    EXPECT_EQ(server.port(), c_newPort);
+
+    IO<File> client(new UvFifo("127.0.0.1", c_newPort));
+    pump(&loop);
+    EXPECT_EQ(server.m_connections.size(), 1u);
+
+    client.reset();
+    server.m_connections.clear();
+    server.stop();
+    pump(&loop);
+    EXPECT_EQ(server.status(), Network::Status::Stopped);
+
+    pump(&loop);
+    EXPECT_EQ(closeLoop(&loop), 0);
 }
 
 TEST(NetworkClient, ConnectFailureIsVisible) {
