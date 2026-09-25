@@ -309,8 +309,8 @@ target("pcsx-redux", function()
     -- error. It belongs behind an on-demand fetch, not in the boot path.
     --
     -- The `=` form is load-bearing: xmake deduplicates identical ldflag
-    -- tokens, so five bare `--preload-file` strings collapse into one and the
-    -- four orphaned paths get handed to em++ as input files. That fails with
+    -- tokens, so four bare `--preload-file` strings collapse into one and the
+    -- three orphaned paths get handed to em++ as input files. That fails with
     -- "expected to be an input file", naming the second path, which reads
     -- like a missing file rather than a build-system quirk.
     add_ldflags("--preload-file=src/mips/openbios/openbios.bin@/resources/openbios.bin",
