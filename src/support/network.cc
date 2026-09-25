@@ -102,6 +102,7 @@ void Server::onListenerEvent(UvFifo* fifo) {
         uv_close(reinterpret_cast<uv_handle_t*>(m_async),
                  [](uv_handle_t* handle) { delete reinterpret_cast<uv_async_t*>(handle); });
         m_async = nullptr;
+        if (status() == Status::Failed) onFailed();
     }
     onStopped();
     settled();

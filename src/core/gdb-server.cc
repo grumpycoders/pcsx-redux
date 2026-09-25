@@ -62,6 +62,10 @@ void PCSX::GdbServer::onStopped() {
     }
 }
 
+void PCSX::GdbServer::onFailed() {
+    g_system->printf(_("GDB server: unable to listen on port %i: %s\n"), port(), lastError());
+}
+
 int PCSX::GdbServer::configuredPort() const {
     return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerPort>();
 }

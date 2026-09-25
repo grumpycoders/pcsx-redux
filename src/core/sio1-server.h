@@ -37,6 +37,7 @@ class SIO1Server : public Network::Server {
     void onStarting() override;
     void onConnection(IO<File> connection) override;
     void onStopped() override;
+    void onFailed() override;
     int configuredPort() const override;
 
   private:

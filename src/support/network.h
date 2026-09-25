@@ -116,6 +116,10 @@ class Server : public Endpoint {
     // failure. Check status() to tell which. Subclasses use this to drop any
     // connection state they were holding.
     virtual void onStopped() {}
+    // The bind or listen failed; lastError() says why. Runs once per failed
+    // start(), before onStopped(). The UI reads the status on its own, but a
+    // headless run has nothing else to tell the user.
+    virtual void onFailed() {}
 
     void restartNow(uv_loop_t* loop, int port) override { start(loop, port); }
 

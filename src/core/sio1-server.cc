@@ -60,6 +60,10 @@ void PCSX::SIO1Server::onStopped() {
     g_emulator->m_sio1->stopSIO1Connection();
 }
 
+void PCSX::SIO1Server::onFailed() {
+    g_system->printf(_("SIO1 server: unable to listen on port %i: %s\n"), port(), lastError());
+}
+
 int PCSX::SIO1Server::configuredPort() const {
     return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1ServerPort>();
 }

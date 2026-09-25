@@ -829,6 +829,10 @@ void PCSX::WebServer::onStopped() {
     }
 }
 
+void PCSX::WebServer::onFailed() {
+    g_system->printf(_("Web server: unable to listen on port %i: %s\n"), port(), lastError());
+}
+
 int PCSX::WebServer::configuredPort() const {
     return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::WebServerPort>();
 }

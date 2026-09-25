@@ -186,6 +186,7 @@ class GdbServer : public Network::Server {
   protected:
     void onConnection(IO<File> connection) override;
     void onStopped() override;
+    void onFailed() override;
     int configuredPort() const override;
 
   private:
