@@ -62,6 +62,10 @@ void PCSX::GdbServer::onStopped() {
     }
 }
 
+int PCSX::GdbServer::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerPort>();
+}
+
 void PCSX::GdbClient::logOutgoing(const Slice& slice) {
     if (!g_emulator->settings.get<Emulator::SettingDebugSettings>()
              .get<Emulator::DebugSettings::GdbServerTrace>()) {

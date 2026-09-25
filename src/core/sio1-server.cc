@@ -60,6 +60,10 @@ void PCSX::SIO1Server::onStopped() {
     g_emulator->m_sio1->stopSIO1Connection();
 }
 
+int PCSX::SIO1Server::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1ServerPort>();
+}
+
 PCSX::SIO1Client::SIO1Client() : Network::Client("SIO1 Client"), m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto &event) {
         auto &debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
@@ -93,6 +97,10 @@ void PCSX::SIO1Client::onStopped() {
     g_emulator->m_counters->m_pollSIO1 = false;
     g_emulator->m_sio1->stopSIO1Connection();
     g_system->printf("%s", _("SIO1 client disconnected\n"));
+}
+
+int PCSX::SIO1Client::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1ClientPort>();
 }
 
 void PCSX::SIO1Client::reconnect(std::string_view address, unsigned port) {

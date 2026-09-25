@@ -55,6 +55,7 @@ Endpoint::~Endpoint() {
 
 void Endpoint::restart() {
     if (!m_loop) return;
+    m_port = configuredPort();
     m_restartPending = true;
     stop();
 }

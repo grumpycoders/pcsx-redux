@@ -63,8 +63,9 @@ class Endpoint {
 
     bool isRunning() const { return status() == Status::Running; }
 
-    // Every endpoint remembers the loop and port it was last asked to use, so
-    // the UI's restart button does not have to know either.
+    // Every endpoint remembers the loop it was last asked to use, and asks
+    // configuredPort() for the port, so the UI's restart button does not have
+    // to know either.
     virtual void stop() = 0;
     void restart();
 
@@ -75,6 +76,10 @@ class Endpoint {
 
   protected:
     virtual void restartNow(uv_loop_t* loop, int port) = 0;
+    // The port restart() should use. Endpoints backed by a port setting return
+    // it, so that a port change takes effect on the next restart; the default
+    // is whatever the endpoint was last started on.
+    virtual int configuredPort() const { return m_port; }
     // Called by subclasses once a teardown has completed, so a restart that was
     // requested while the endpoint was still shutting down can proceed.
     void settled();

@@ -37,6 +37,7 @@ class SIO1Server : public Network::Server {
     void onStarting() override;
     void onConnection(IO<File> connection) override;
     void onStopped() override;
+    int configuredPort() const override;
 
   private:
     EventBus::Listener m_listener;
@@ -51,6 +52,7 @@ class SIO1Client : public Network::Client {
     void onStarting() override;
     void onStarted(IO<File> connection) override;
     void onStopped() override;
+    int configuredPort() const override;
 
   private:
     EventBus::Listener m_listener;

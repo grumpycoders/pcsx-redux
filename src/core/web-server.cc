@@ -829,6 +829,10 @@ void PCSX::WebServer::onStopped() {
     }
 }
 
+int PCSX::WebServer::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::WebServerPort>();
+}
+
 struct PCSX::WebClient::WebClientImpl {
     // The async lives here rather than in the client so the close callback can
     // find its way back after uv is done with the handle - UvFifo::setNotifier

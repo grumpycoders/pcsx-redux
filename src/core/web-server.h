@@ -129,6 +129,7 @@ class WebServer : public Network::Server {
   protected:
     void onConnection(IO<File> connection) override;
     void onStopped() override;
+    int configuredPort() const override;
 
   private:
     WebClient::ListType m_clients;
