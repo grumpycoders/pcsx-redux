@@ -450,11 +450,16 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 	ImGui::Text("Preview as:");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth((s.GlyphWidth * 10.0f) + style.FramePadding.x * 2.0f + style.ItemInnerSpacing.x);
+
+	static const ImGuiDataType supported_data_types[] = { ImGuiDataType_S8, ImGuiDataType_U8, ImGuiDataType_S16, ImGuiDataType_U16, ImGuiDataType_S32, ImGuiDataType_U32, ImGuiDataType_S64, ImGuiDataType_U64, ImGuiDataType_Float, ImGuiDataType_Double, ImGuiDataType_Bool };
 	if (ImGui::BeginCombo("##combo_type", DataTypeGetDesc(PreviewDataType), ImGuiComboFlags_HeightLargest))
 	{
-		for (int n = 0; n < ImGuiDataType_COUNT; n++)
-			if (ImGui::Selectable(DataTypeGetDesc((ImGuiDataType)n), PreviewDataType == n))
-				PreviewDataType = (ImGuiDataType)n;
+		for (int n = 0; n < IM_ARRAYSIZE(supported_data_types); n++)
+		{
+			ImGuiDataType data_type = supported_data_types[n];
+			if (ImGui::Selectable(DataTypeGetDesc(data_type), PreviewDataType == data_type))
+				PreviewDataType = data_type;
+		}
 		ImGui::EndCombo();
 	}
 	ImGui::SameLine();
@@ -476,18 +481,19 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 	ImGui::Text("Bin"); ImGui::SameLine(x); ImGui::TextUnformatted(has_value ? buf : "N/A");
 }
 
-// Utilities for Data Preview
+// Utilities for Data Preview (since we don't access imgui_internal.h)
+// FIXME: This technically depends on ImGuiDataType order.
 const char* MemoryEditor::DataTypeGetDesc(ImGuiDataType data_type) const
 {
 	const char* descs[] = { "Int8", "Uint8", "Int16", "Uint16", "Int32", "Uint32", "Int64", "Uint64", "Float", "Double", "Bool" };
-	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
+	IM_ASSERT(data_type >= 0 && data_type < IM_ARRAYSIZE(descs));
 	return descs[data_type];
 }
 
 size_t MemoryEditor::DataTypeGetSize(ImGuiDataType data_type) const
 {
 	const size_t sizes[] = { 1, 1, 2, 2, 4, 4, 8, 8, sizeof(float), sizeof(double), 1 };
-	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
+	IM_ASSERT(data_type >= 0 && data_type < IM_ARRAYSIZE(sizes));
 	return sizes[data_type];
 }
 
@@ -674,6 +680,7 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 			memcpy(out_buf, "true", 5);
 		return;
 	}
+	default:
 	case ImGuiDataType_COUNT:
 		break;
 	} // Switch
