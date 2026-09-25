@@ -106,6 +106,9 @@
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\luaimplot.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\splash.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -228,6 +231,9 @@
     <ClInclude Include="..\..\src\gui\luaimguiextra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\luaimplot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\patches.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
@@ -265,6 +271,12 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguisafe.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotsafe.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

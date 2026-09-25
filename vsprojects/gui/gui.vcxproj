@@ -127,6 +127,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\gui\gui.cc" />
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc" />
+    <ClCompile Include="..\..\src\gui\luaimplot.cc" />
     <ClCompile Include="..\..\src\gui\luatvg.cc" />
     <ClCompile Include="..\..\src\gui\splash.cc" />
     <ClCompile Include="..\..\src\gui\resources-unix.cc" />
@@ -170,6 +171,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\gui\gui.h" />
     <ClInclude Include="..\..\src\gui\luaimguiextra.h" />
+    <ClInclude Include="..\..\src\gui\luaimplot.h" />
     <ClInclude Include="..\..\src\gui\luatvg.h" />
     <ClInclude Include="..\..\src\gui\resources.h" />
     <ClInclude Include="..\..\src\gui\shaders\crt-lottes.h" />
@@ -210,6 +212,8 @@
   <ItemGroup>
     <None Include="..\..\src\gui\imguiextraffi.lua" />
     <None Include="..\..\src\gui\imguisafe.lua" />
+    <None Include="..\..\src\gui\implotffi.lua" />
+    <None Include="..\..\src\gui\implotsafe.lua" />
     <None Include="..\..\src\gui\tvgffi-cdefs.lua" />
     <None Include="..\..\src\gui\tvgffi.lua" />
     <None Include="..\..\src\gui\shaders\crt-lottes-offscreen.lua" />
