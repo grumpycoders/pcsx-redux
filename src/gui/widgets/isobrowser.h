@@ -29,6 +29,7 @@
 
 #include "cdrom/iso9660-reader.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/fileviewers.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "support/coroutine.h"
 #include "support/file.h"
@@ -45,15 +46,16 @@ namespace Widgets {
 
 class IsoBrowser {
   public:
-    IsoBrowser(bool& show, std::vector<std ::string>& favorites, std::function<void()> monoFont = nullptr)
+    IsoBrowser(bool& show, std::vector<std ::string>& favorites, std::function<void()> monoFont = nullptr,
+               std::function<void(const std::string&, IO<File>)> sendToDalos = nullptr)
         : m_show(show),
           m_openIsoFileDialog(l_("Open Disk Image"), favorites),
           m_saveFileDialog(l_("Extract File"), favorites),
           m_openReplaceFileDialog(l_("Replace File"), favorites),
-          m_monoFont(monoFont) {}
+          m_monoFont(monoFont),
+          m_sendToDalos(sendToDalos) {}
     ~IsoBrowser() {
         m_hexEditors.destroyAll();
-        m_fileViewers.destroyAll();
     }
     void draw(CDRom* cdrom, const char* title);
 
@@ -130,18 +132,8 @@ class IsoBrowser {
 
     void openHexEditor(const std::string& title, IO<File> file);
 
-    struct FileViewerInstance : public Intrusive::List<FileViewerInstance>::Node {
-        FileViewerInstance(const std::string& title, int ref) : m_title(title), m_ref(ref) {}
-        std::string m_title;
-        int m_ref;
-        bool m_open = true;
-        bool m_failed = false;
-    };
-    Intrusive::List<FileViewerInstance> m_fileViewers;
-    bool hasFileViewers();
-    void openFileViewer(const std::string& title, IO<File> file);
-    void drawFileViewers();
-    bool callFileViewer(FileViewerInstance& inst, const char* method);
+    FileViewers m_fileViewers;
+    std::function<void(const std::string&, IO<File>)> m_sendToDalos;
 };
 
 }  // namespace Widgets
