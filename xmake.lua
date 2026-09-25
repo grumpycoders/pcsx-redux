@@ -74,6 +74,7 @@ target("pcsx-redux", function()
     )
 
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
+    add_files("third_party/implot/*.cpp", { cxxflags = "-include src/forced-includes/implot.h" })
 
     add_deps("luajit", "thorvg")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
@@ -96,7 +97,6 @@ target("pcsx-redux", function()
         "third_party/imgui_lua_bindings/imgui_lua_bindings.cpp",
         "third_party/imgui_md/imgui_md.cpp",
         "third_party/imgui_memory_editor/imgui_memory_editor.cpp",
-        "third_party/implot/*.cpp",
         "third_party/llhttp/*.c",
         "third_party/lpeg/*.c",
         "third_party/lua-protobuf/pb.c",
