@@ -39,6 +39,7 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	ContentsWidthChanged = false;
 	DataPreviewAddr = DataEditingAddr = (size_t)-1;
 	DataEditingTakeFocus = false;
+	GotoAddr = (size_t)-1;
 	HighlightMin = HighlightMax = (size_t)-1;
 	PreviewEndianess = 0;
 	PreviewDataType = ImGuiDataType_S32;
@@ -144,6 +145,7 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
 	// We are not really using the clipper API correctly here, because we rely on visible_start_addr/visible_end_addr for our scrolling function.
+	const ImVec2 avail_size = ImGui::GetContentRegionAvail();
 	const int line_total_count = (int)((mem_size + Cols - 1) / Cols);
 	ImGuiListClipper clipper;
 	clipper.Begin(line_total_count, s.LineHeight);
@@ -372,6 +374,20 @@ void MemoryEditor::DrawContents(size_t mem_size)
 		ImGui::Separator();
 		DrawPreviewLine(s, mem_size);
 	}
+
+	if (GotoAddr != (size_t)-1)
+	{
+		if (GotoAddr < mem_size)
+		{
+			// s.LineHeight is measured with the mono font (see CalcSizes), matching the clipper's line height.
+			ImGui::BeginChild("##scrolling");
+			ImGui::SetScrollY((GotoAddr / Cols) * s.LineHeight - avail_size.y * 0.5f);
+			ImGui::EndChild();
+			DataEditingAddr = DataPreviewAddr = GotoAddr;
+			DataEditingTakeFocus = true;
+		}
+		GotoAddr = (size_t)-1;
+	}
 }
 
 void MemoryEditor::DrawOptionsLine(const Sizes& s, size_t mem_size)
@@ -413,21 +429,6 @@ void MemoryEditor::DrawOptionsLine(const Sizes& s, size_t mem_size)
                   OffsetAddr = GotoAddr; // Back up the offset since it gets trashed later down the line
                   HighlightMin = HighlightMax = (size_t)-1;
           }
-    }
-
-    if (GotoAddr != (size_t)-1) {
-            if (GotoAddr < mem_size) {
-                    ImGui::BeginChild("##scrolling");
-                    if (PushMonoFont) PushMonoFont();
-                    ImGui::SetScrollFromPosY(
-                        ImGui::GetCursorStartPos().y +
-                        (GotoAddr / Cols) * ImGui::GetTextLineHeight());
-                    if (PushMonoFont) ImGui::PopFont();
-                    ImGui::EndChild();
-                    DataEditingAddr = DataPreviewAddr = GotoAddr;
-                    DataEditingTakeFocus = true;
-            }
-            GotoAddr = (size_t)-1;
     }
 
     // Clear Input Address and reset to beginning of address space
