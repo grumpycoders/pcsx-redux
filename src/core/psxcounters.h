@@ -86,6 +86,8 @@ class Counters {
 
     uint32_t m_hSyncCount = 0;
     uint32_t m_audioFrames = 0;
+    // How far the CPU may trail the audio clock, in 44.1kHz frames (250ms).
+    static constexpr int32_t kMaxAudioLagFrames = 44100 / 4;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
   public:
