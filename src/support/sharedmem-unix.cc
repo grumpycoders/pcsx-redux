@@ -26,14 +26,14 @@ SOFTWARE.
 
 #if !defined(_WIN32) && !defined(_WIN64)
 
-#include <cstdlib>
-
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <cstdlib>
 
 #include "support/sharedmem.h"
 

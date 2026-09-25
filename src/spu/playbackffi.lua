@@ -63,30 +63,30 @@ local function fail(msg) error('PCSX.SPU.playAudio: ' .. msg, 0) end
 local function checkInteger(desc, key, required)
     local v = desc[key]
     if v == nil then
-        if required then fail("descriptor field '" .. key .. "' is required for format '" .. desc.format .. "'") end
+        if required then
+            fail('descriptor field \'' .. key .. '\' is required for format \'' .. desc.format .. '\'')
+        end
         return nil
     end
-    if type(v) ~= 'number' or v ~= math.floor(v) then fail("descriptor field '" .. key .. "' must be an integer") end
+    if type(v) ~= 'number' or v ~= math.floor(v) then fail('descriptor field \'' .. key .. '\' must be an integer') end
     return v
 end
 
 local function checkOneOf(desc, key, values)
     local v = checkInteger(desc, key, true)
-    for _, allowed in ipairs(values) do
-        if v == allowed then return v end
-    end
-    fail("descriptor field '" .. key .. "' must be one of " .. table.concat(values, ', ') .. ', got ' .. v)
+    for _, allowed in ipairs(values) do if v == allowed then return v end end
+    fail('descriptor field \'' .. key .. '\' must be one of ' .. table.concat(values, ', ') .. ', got ' .. v)
 end
 
 local function checkDescriptor(desc)
     if type(desc) ~= 'table' then fail('the second argument must be a descriptor table') end
     local format = desc.format
     if type(format) ~= 'string' or formats[format] == nil then
-        fail("descriptor field 'format' must be one of 'pcm', 'spu', 'xa'")
+        fail('descriptor field \'format\' must be one of \'pcm\', \'spu\', \'xa\'')
     end
     for k, _ in pairs(desc) do
         if not allowedKeys[format][k] then
-            fail("descriptor field '" .. tostring(k) .. "' is not valid for format '" .. format .. "'")
+            fail('descriptor field \'' .. tostring(k) .. '\' is not valid for format \'' .. format .. '\'')
         end
     end
 
@@ -97,7 +97,7 @@ local function checkDescriptor(desc)
     cdesc.gain = 1.0
     if desc.gain ~= nil then
         if type(desc.gain) ~= 'number' or not (desc.gain >= 0) then
-            fail("descriptor field 'gain' must be a non-negative number")
+            fail('descriptor field \'gain\' must be a non-negative number')
         end
         cdesc.gain = desc.gain
     end
@@ -106,51 +106,58 @@ local function checkDescriptor(desc)
         cdesc.bits = checkOneOf(desc, 'bits', { 8, 16 })
         cdesc.channels = checkOneOf(desc, 'channels', { 1, 2 })
         local rate = checkInteger(desc, 'rate', true)
-        if rate < 1 or rate > 384000 then fail("descriptor field 'rate' must be between 1 and 384000") end
+        if rate < 1 or rate > 384000 then fail('descriptor field \'rate\' must be between 1 and 384000') end
         cdesc.rate = rate
         local signed = desc.signed
         if signed == nil then signed = cdesc.bits == 16 end
-        if type(signed) ~= 'boolean' then fail("descriptor field 'signed' must be a boolean") end
+        if type(signed) ~= 'boolean' then fail('descriptor field \'signed\' must be a boolean') end
         if cdesc.bits == 16 and not signed then fail('16 bits pcm data must be signed') end
         cdesc.isSigned = signed and 1 or 0
     elseif format == 'spu' then
         if (desc.rate == nil) == (desc.pitch == nil) then
-            fail("format 'spu' requires exactly one of the descriptor fields 'rate' or 'pitch'")
+            fail('format \'spu\' requires exactly one of the descriptor fields \'rate\' or \'pitch\'')
         end
         if desc.rate ~= nil then
             local rate = checkInteger(desc, 'rate', true)
-            if rate < 1 or rate > 176400 then fail("descriptor field 'rate' must be between 1 and 176400") end
+            if rate < 1 or rate > 176400 then fail('descriptor field \'rate\' must be between 1 and 176400') end
             cdesc.rate = rate
         else
             local pitch = checkInteger(desc, 'pitch', true)
-            if pitch < 1 or pitch > 0x4000 then fail("descriptor field 'pitch' must be between 1 and 0x4000") end
+            if pitch < 1 or pitch > 0x4000 then
+                fail('descriptor field \'pitch\' must be between 1 and 0x4000')
+            end
             -- 0x1000 is 44100Hz.
             cdesc.rate = math.max(1, math.floor(pitch * 44100 / 4096 + 0.5))
         end
     else
         local sectors = desc.sectors
         if sectors == nil then sectors = false end
-        if type(sectors) ~= 'boolean' then fail("descriptor field 'sectors' must be a boolean") end
+        if type(sectors) ~= 'boolean' then fail('descriptor field \'sectors\' must be a boolean') end
         cdesc.sectors = sectors and 1 or 0
         if sectors then
             for _, k in ipairs({ 'bits', 'channels', 'rate' }) do
                 if desc[k] ~= nil then
-                    fail("descriptor field '" .. k .. "' is not valid with sectors = true; it is read from the subheaders")
+                    fail('descriptor field \'' .. k ..
+                             '\' is not valid with sectors = true; it is read from the subheaders')
                 end
             end
             local file = checkInteger(desc, 'xaFile', false)
             if file ~= nil then
-                if file < 0 or file > 255 then fail("descriptor field 'xaFile' must be between 0 and 255") end
+                if file < 0 or file > 255 then
+                    fail('descriptor field \'xaFile\' must be between 0 and 255')
+                end
                 cdesc.xaFile = file
             end
             local channel = checkInteger(desc, 'xaChannel', false)
             if channel ~= nil then
-                if channel < 0 or channel > 255 then fail("descriptor field 'xaChannel' must be between 0 and 255") end
+                if channel < 0 or channel > 255 then
+                    fail('descriptor field \'xaChannel\' must be between 0 and 255')
+                end
                 cdesc.xaChannel = channel
             end
         else
             if desc.xaFile ~= nil or desc.xaChannel ~= nil then
-                fail("descriptor fields 'xaFile' and 'xaChannel' are only valid with sectors = true")
+                fail('descriptor fields \'xaFile\' and \'xaChannel\' are only valid with sectors = true')
             end
             cdesc.bits = checkOneOf(desc, 'bits', { 4, 8 })
             cdesc.channels = checkOneOf(desc, 'channels', { 1, 2 })
@@ -186,7 +193,9 @@ local function createSoundWrapper(wrapper)
         stop = function(self) C.spuStopSound(self._wrapper) end,
         isPlaying = function(self) return C.spuSoundIsPlaying(self._wrapper) end,
         setGain = function(self, gain)
-            if type(gain) ~= 'number' or not (gain >= 0) then error('Sound:setGain: gain must be a non-negative number') end
+            if type(gain) ~= 'number' or not (gain >= 0) then
+                error('Sound:setGain: gain must be a non-negative number')
+            end
             C.spuSetSoundGain(self._wrapper, gain)
         end,
     }
