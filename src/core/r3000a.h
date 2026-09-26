@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -162,22 +163,18 @@ typedef union {
     PAIR p[32];
 } psxCP2Ctrl;
 
-enum {
-    PSXINT_SIO = 0,
-    PSXINT_SIO1,
-    PSXINT_CDR,
-    PSXINT_CDREAD,
-    PSXINT_GPUDMA,
-    PSXINT_MDECOUTDMA,
-    PSXINT_SPUDMA,
-    PSXINT_GPUBUSY,
-    PSXINT_MDECINDMA,
-    PSXINT_GPUOTCDMA,
-    PSXINT_CDRDMA,
-    PSXINT_SPUASYNC,
-    PSXINT_CDRDBUF,
-    PSXINT_CDRLID,
-    PSXINT_CDRPLAY
+enum class Schedule : unsigned {
+    SIO = 0,
+    SIO1,
+    CDRFIFO,
+    CDRCOMMANDS,
+    CDREAD,
+    GPUDMA,
+    MDECOUTDMA,
+    SPUDMA,
+    MDECINDMA,
+    GPUOTCDMA,
+    CDRDMA,
 };
 
 struct psxRegisters {
@@ -189,29 +186,20 @@ struct psxRegisters {
     uint32_t code;    // The current instruction
     uint64_t cycle;
     uint64_t previousCycles;
-    uint32_t interrupt;
+    uint32_t scheduleMask;
     std::atomic<bool> spuInterrupt;
-    uint64_t intTargets[32];
+    uint64_t scheduleTargets[32];
     uint64_t lowestTarget;
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
+    uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
+    std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
+        return std::chrono::nanoseconds(int32_t(futureCycle - cycle) * 1'000'000'000 / Emulator::m_psxClockSpeed);
+    }
+    static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
+        return duration.count() * Emulator::m_psxClockSpeed / 1'000'000'000;
+    }
 };
-
-// U64 and S64 are used to wrap long integer constants.
-#define U64(val) val##ULL
-#define S64(val) val##LL
-
-#if defined(__BIGENDIAN__)
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#else
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#endif
 
 // R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
@@ -306,23 +294,37 @@ class R3000Acpu {
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
-    void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
-        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
+    void schedule(Schedule s_, uint32_t eCycle) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
         const uint64_t cycle = m_regs.cycle;
-        uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
-        m_regs.interrupt |= (1 << interrupt);
-        m_regs.intTargets[interrupt] = target;
-        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
+        uint64_t target = uint64_t(cycle + eCycle * m_scheduleScales[s]);
+        m_regs.scheduleMask |= (1 << s);
+        m_regs.scheduleTargets[s] = target;
+        int64_t lowest = m_regs.lowestTarget - cycle;
+        int64_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
+    }
+
+    void unschedule(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Unscheduling callback %08x\n", s);
+        m_regs.scheduleMask &= ~(1 << s);
+    }
+
+    bool isScheduled(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        return (m_regs.scheduleMask & (1 << s)) != 0;
     }
 
     psxRegisters m_regs;
-    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_scheduleScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                  1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
         invalidateCache();
-        m_regs.interrupt = 0;
+        m_regs.scheduleMask = 0;
     }
     bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
@@ -337,13 +339,14 @@ class R3000Acpu {
         bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
+    template <typename T = uint32_t>
+    T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
         delayedLoad.mask = mask;
-        return delayedLoad.value;
+        return reinterpret_cast<T &>(delayedLoad.value);
     }
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
         auto &ref = delayedLoadRef(reg, mask);

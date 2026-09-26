@@ -377,7 +377,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             contextMenu("##pc", registers->pc, 16);
             ImGui::PopItemWidth();
             ImGui::Text("cycle: %08x", registers->cycle);
-            ImGui::Text("int  : %08x", registers->interrupt);
+            ImGui::Text("sched: %08x", registers->scheduleMask);
             ImGui::EndTabItem();
         }
         ImGui::PopFont();

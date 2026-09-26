@@ -30,6 +30,7 @@
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
 #include "support/strings-helpers.h"
+#include "supportpsx/iec-60908b.h"
 #include "supportpsx/iso9660-builder.h"
 
 namespace {
@@ -37,6 +38,10 @@ namespace {
 struct LuaIso {
     LuaIso(std::shared_ptr<PCSX::CDRIso> iso) : iso(iso) {}
     std::shared_ptr<PCSX::CDRIso> iso;
+};
+
+struct MSF {
+    uint8_t m, s, f;
 };
 
 void deleteIso(LuaIso* wrapper) { delete wrapper; }
@@ -58,6 +63,11 @@ PCSX::LuaFFI::LuaFile* readerOpen(PCSX::ISO9660Reader* reader, const char* path)
 }
 PCSX::LuaFFI::LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, PCSX::IEC60908b::SectorMode mode) {
     return new PCSX::LuaFFI::LuaFile(new PCSX::CDRIsoFile(wrapper->iso, lba, size, mode));
+}
+uint32_t getIsoTN(LuaIso* wrapper) { return wrapper->iso->getTN(); }
+MSF getIsoTD(LuaIso* wrapper, uint32_t tn) {
+    auto ret = wrapper->iso->getTD(tn);
+    return {ret.m, ret.s, ret.f};
 }
 
 struct DirEntries {
@@ -435,6 +445,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getCurrentIso);
     REGISTER(L, openIso);
     REGISTER(L, openIsoFromFile);
+    REGISTER(L, getIsoTD);
+    REGISTER(L, getIsoTN);
     REGISTER(L, createIsoReader);
     REGISTER(L, deleteIsoReader);
     REGISTER(L, isReaderFailed);
