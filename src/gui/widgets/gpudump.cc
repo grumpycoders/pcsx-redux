@@ -86,7 +86,7 @@ void PCSX::Widgets::GPUDump::drawRecorder() {
     } else {
         if (ImGui::Button(_("Start recording..."))) m_saveDialog.openDialog();
         ImGui::SameLine();
-        ImGui::TextDisabled(_("The capture starts at the next vsync, with the full VRAM and GPU state."));
+        ImGui::TextDisabled("%s", _("The capture starts at the next vsync, with the full VRAM and GPU state."));
     }
     if (!m_error.empty()) ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", m_error.c_str());
 }
