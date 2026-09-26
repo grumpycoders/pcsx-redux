@@ -16,6 +16,7 @@ list of the libraries used by PCSX-Redux. Some of them have been
 vendored with modifications. If this is the case, you will also
 find a link to the vendored version itself.
 
+ - [args](https://github.com/Taywee/args)
  - [arith64](https://github.com/glitchub/arith64) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/arith64))
  - [Capstone](https://github.com/capstone-engine/capstone)
  - [Clip](https://github.com/dacap/clip) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/clip))
