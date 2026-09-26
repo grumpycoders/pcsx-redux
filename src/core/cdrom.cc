@@ -664,7 +664,6 @@ class CDRomImpl : public PCSX::CDRom {
 
             case CdlForward:
                 // TODO: error 80 if stopped
-                m_stat = Complete;
                 m_suceeded = true;
 
                 // GameShark CD Player: Calls 2x + Play 2x
@@ -678,7 +677,6 @@ class CDRomImpl : public PCSX::CDRom {
                 break;
 
             case CdlBackward:
-                m_stat = Complete;
                 m_suceeded = true;
 
                 // GameShark CD Player: Calls 2x + Play 2x
