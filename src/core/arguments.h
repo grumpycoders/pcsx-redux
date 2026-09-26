@@ -24,13 +24,13 @@
 #include <string>
 #include <string_view>
 
-#include "flags.h"
+#include "core/commandline.h"
 
 namespace PCSX {
 
 class Arguments {
   public:
-    Arguments(const CommandLine::args& args);
+    Arguments(const PCSX::CommandLine& args);
     Arguments(const Arguments&) = delete;
     Arguments(Arguments&&) = delete;
     Arguments& operator=(const Arguments&) = delete;

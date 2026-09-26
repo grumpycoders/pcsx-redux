@@ -27,7 +27,7 @@
 #include <thread>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "json.hpp"
 #include "mips-common/util/bitfield.hh"
@@ -36,6 +36,7 @@
 #include "support/file.h"
 #include "support/mem4g.h"
 #include "support/polyfills.h"
+#include "support/tool-args.h"
 #include "supportpsx/binloader.h"
 #include "supportpsx/iec-60908b.h"
 #include "supportpsx/iso9660-builder.h"
@@ -92,12 +93,20 @@ union IndexEntry {
 static_assert(sizeof(IndexEntry) == 16);
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
-    const auto inputs = args.positional();
-    const auto license = args.get<std::string>("license");
-    const bool asksForHelp = !!args.get<bool>("h");
-    const bool quiet = !!args.get<bool>("q");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> basedirFlag(parser, "basedir", "", {"basedir"});
+    args::ValueFlag<std::string> licenseFlag(parser, "license", "", {"license"});
+    args::ValueFlag<unsigned> threadsFlag(parser, "threads", "", {"threads"});
+    args::Flag quietFlag(parser, "quiet", "", {"q"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
+    const auto inputs = args::get(inputsList);
+    const auto license = PCSX::ToolArgs::get(licenseFlag);
+    const bool asksForHelp = args::get(helpFlag);
+    const bool quiet = args::get(quietFlag);
     const bool hasOutput = output.has_value();
     const bool hasExactlyOneInput = inputs.size() == 1;
 
@@ -118,7 +127,7 @@ Usage: {} input.json [-h] -o output.bin
 
     auto input = inputs[0];
     const std::filesystem::path basePath =
-        args.get<std::string>("basedir", std::filesystem::path(input).parent_path().string());
+        PCSX::ToolArgs::get(basedirFlag).value_or(std::filesystem::path(input).parent_path().string());
     PCSX::IO<PCSX::File> indexFile(new PCSX::PosixFile(input));
     if (indexFile->failed()) {
         fmt::print("Unable to open file: {}\n", input);
@@ -166,7 +175,7 @@ Usage: {} input.json [-h] -o output.bin
         }
     }
 
-    const unsigned threadCount = args.get<unsigned>("threads", std::thread::hardware_concurrency());
+    const unsigned threadCount = PCSX::ToolArgs::get(threadsFlag).value_or(std::thread::hardware_concurrency());
 
     nlohmann::json pvdData = nlohmann::json::object();
     if (indexData.contains("pvd") && indexData["pvd"].is_object()) {

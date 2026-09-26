@@ -23,24 +23,29 @@
 
 #include <vector>
 
+#include "args/args.hxx"
 #include "elfio/elfio.hpp"
-#include "flags.h"
 #include "fmt/format.h"
 #include "support/file.h"
 #include "support/mem4g.h"
+#include "support/tool-args.h"
 #include "supportpsx/binloader.h"
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    auto output = PCSX::ToolArgs::get(outputFlag);
 
     fmt::print(R"(
 exe2elf by Nicolas "Pixel" Noble
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2elf/
 )");
 
-    auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
     if (asksForHelp || !oneInput || !hasOutput) {

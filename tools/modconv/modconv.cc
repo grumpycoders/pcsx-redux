@@ -22,10 +22,11 @@
 #include <memory>
 #include <string_view>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/binstruct.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "support/typestring-wrapper.h"
 #include "supportpsx/adpcm.h"
 
@@ -54,8 +55,14 @@ typedef PCSX::BinStruct::Struct<TYPESTRING("ModFile"), ModTitle, ModSamples, Pos
     ModFile;
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> samplesFlag(parser, "samples", "", {"s"});
+    args::ValueFlag<unsigned> amplificationFlag(parser, "amplification", "", {"a"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
 
     fmt::print(R"(
 modconv by Nicolas "Pixel" Noble
@@ -63,12 +70,12 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
 
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
-    const auto samplesFile = args.get<std::string>("s");
-    const auto amplification = args.get<unsigned>("a").value_or(175);
+    const auto samplesFile = PCSX::ToolArgs::get(samplesFlag);
+    const auto amplification = PCSX::ToolArgs::get(amplificationFlag).value_or(175);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
 Usage: {} input.mod [-h] [-s output.smp] [-a amp] -o output.hit
@@ -252,7 +259,7 @@ both the pattern and sample data.
     out->close();
     encodedSamples->close();
     if (samplesFile.has_value()) {
-        fmt::print("All done, files {} and {} written out.\n", output.value(), args.get<std::string>("s").value());
+        fmt::print("All done, files {} and {} written out.\n", output.value(), samplesFile.value());
     } else {
         fmt::print("All done, file {} written out.\n", output.value());
     }
