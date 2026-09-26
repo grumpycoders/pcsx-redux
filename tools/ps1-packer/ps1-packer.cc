@@ -19,34 +19,48 @@
 
 #include "supportpsx/ps1-packer.h"
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/file.h"
 #include "support/mem4g.h"
+#include "support/tool-args.h"
 #include "supportpsx/binloader.h"
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> tloadFlag(parser, "tload", "", {"tload"});
+    args::Flag shellFlag(parser, "shell", "", {"shell"});
+    args::Flag nokernelFlag(parser, "nokernel", "", {"nokernel"});
+    args::Flag resetstackFlag(parser, "resetstack", "", {"resetstack"});
+    args::Flag rawFlag(parser, "raw", "", {"raw"});
+    args::Flag bootyFlag(parser, "booty", "", {"booty"});
+    args::Flag romFlag(parser, "rom", "", {"rom"});
+    args::Flag cpeFlag(parser, "cpe", "", {"cpe"});
+    args::Flag nopadFlag(parser, "nopad", "", {"nopad"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    auto output = PCSX::ToolArgs::get(outputFlag);
 
     fmt::print(R"(
 ps1-packer by Nicolas "Pixel" Noble
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/ps1-packer/
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
-    const uint32_t tload = std::stoul(args.get<std::string>("tload").value_or("0"), nullptr, 0);
+    const uint32_t tload = std::stoul(PCSX::ToolArgs::get(tloadFlag).value_or("0"), nullptr, 0);
     const bool oneInput = inputs.size() == 1;
-    const bool shell = args.get<bool>("shell").value_or(false);
-    const bool nokernel = args.get<bool>("nokernel").value_or(false);
-    const bool resetstack = args.get<bool>("resetstack").value_or(false);
-    const bool raw = args.get<bool>("raw").value_or(false);
-    const bool booty = args.get<bool>("booty").value_or(false);
-    const bool rom = args.get<bool>("rom").value_or(false);
-    const bool cpe = args.get<bool>("cpe").value_or(false);
-    const bool nopad = args.get<bool>("nopad").value_or(false);
+    const bool shell = args::get(shellFlag);
+    const bool nokernel = args::get(nokernelFlag);
+    const bool resetstack = args::get(resetstackFlag);
+    const bool raw = args::get(rawFlag);
+    const bool booty = args::get(bootyFlag);
+    const bool rom = args::get(romFlag);
+    const bool cpe = args::get(cpeFlag);
+    const bool nopad = args::get(nopadFlag);
     const unsigned outputTypeCount = (raw ? 1 : 0) + (booty ? 1 : 0) + (rom ? 1 : 0) + (cpe ? 1 : 0);
     if (asksForHelp || !oneInput || !hasOutput || (outputTypeCount > 1)) {
         fmt::print(R"(

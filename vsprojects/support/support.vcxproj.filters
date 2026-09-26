@@ -81,6 +81,9 @@
     <ClInclude Include="..\..\src\support\strings-helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\support\tool-args.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\support\binstruct.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -26,10 +26,11 @@
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/binstruct.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "support/typestring-wrapper.h"
 #include "supportpsx/midi-converter.h"
 
@@ -746,12 +747,20 @@ bool ConvertContext::writePsm(const char* filename) {
 // ============================================================================
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
-    const auto soundfont = args.get<std::string>("s");
-    const auto bankOutput = args.get<std::string>("b");
-    const auto sampleOutput = args.get<std::string>("i");
-    const auto maxLayersOpt = args.get<unsigned>("l");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> soundfontFlag(parser, "soundfont", "", {"s"});
+    args::ValueFlag<std::string> bankOutputFlag(parser, "bank", "", {"b"});
+    args::ValueFlag<std::string> sampleOutputFlag(parser, "samples", "", {"i"});
+    args::ValueFlag<unsigned> maxLayersFlag(parser, "maxlayers", "", {"l"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
+    const auto soundfont = PCSX::ToolArgs::get(soundfontFlag);
+    const auto bankOutput = PCSX::ToolArgs::get(bankOutputFlag);
+    const auto sampleOutput = PCSX::ToolArgs::get(sampleOutputFlag);
+    const auto maxLayersOpt = PCSX::ToolArgs::get(maxLayersFlag);
 
     fmt::print(R"(
 midi2psm - MIDI to PSM+VAB converter
@@ -759,8 +768,8 @@ Part of PCSX-Redux - https://github.com/grumpycoders/pcsx-redux
 
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
     const bool hasSoundfont = soundfont.has_value();
     const bool hasBankOutput = bankOutput.has_value();
