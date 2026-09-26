@@ -26,6 +26,7 @@
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
 #include "core/gpu.h"
+#include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
@@ -63,6 +64,8 @@ PCSX::Emulator::Emulator()
       m_counters(new PCSX::Counters()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
+      m_gpuDumper(new PCSX::GPUDumper()),
+      m_gpuDumpPlayer(new PCSX::GPUDumpPlayer()),
       m_gpuLogger(new PCSX::GPULogger()),
       m_gte(new PCSX::GTE()),
       m_ramLogger(new PCSX::RAMLogger()),
@@ -151,6 +154,7 @@ int PCSX::Emulator::init() {
     const auto& args = g_system->getArgs();
 
     m_gpu = settings.get<SettingHardwareRenderer>() ? GPU::getOpenGL() : GPU::getSoft();
+    m_gpu->setDumper(m_gpuDumper.get());
 
     setPGXPMode(m_config.PGXP_Mode);
     m_sio->init();
@@ -177,6 +181,7 @@ void PCSX::Emulator::shutdown() {
 }
 
 void PCSX::Emulator::vsync() {
+    m_gpuDumper->vsync(m_gpu.get(), m_cpu->m_regs.cycle);
     m_gpu->vblank();
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);

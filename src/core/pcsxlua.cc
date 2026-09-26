@@ -21,6 +21,7 @@
 
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -108,6 +109,24 @@ LuaScreenShot takeScreenShot() {
 
 double getGuestFPS() { return PCSX::g_emulator->m_gpuLogger->getGuestFPS(); }
 
+void startGPUDump(PCSX::LuaFFI::LuaFile* file) { PCSX::g_emulator->m_gpuDumper->start(file->file); }
+void stopGPUDump() { PCSX::g_emulator->m_gpuDumper->stop(); }
+bool isGPUDumpArmed() { return PCSX::g_emulator->m_gpuDumper->armed(); }
+bool isGPUDumpRecording() { return PCSX::g_emulator->m_gpuDumper->recording(); }
+uint64_t getGPUDumpFrames() { return PCSX::g_emulator->m_gpuDumper->frames(); }
+
+bool loadGPUDumpPlayer(PCSX::LuaFFI::LuaFile* file) { return PCSX::g_emulator->m_gpuDumpPlayer->load(file->file); }
+void unloadGPUDumpPlayer() { PCSX::g_emulator->m_gpuDumpPlayer->unload(); }
+bool stepGPUDumpPlayer() { return PCSX::g_emulator->m_gpuDumpPlayer->step(); }
+void rewindGPUDumpPlayer() { PCSX::g_emulator->m_gpuDumpPlayer->rewind(); }
+uint64_t getGPUDumpPlayerFrame() { return PCSX::g_emulator->m_gpuDumpPlayer->frame(); }
+PCSX::Slice* getGPUDumpPlayerVRAM() {
+    auto gpu = PCSX::g_emulator->m_gpuDumpPlayer->gpu();
+    if (!gpu) return new PCSX::Slice();
+    return new PCSX::Slice(gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE));
+}
+PCSX::Slice* getVRAM() { return new PCSX::Slice(PCSX::g_emulator->m_gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE)); }
+
 PCSX::Slice* createSaveState() {
     auto ss = PCSX::SaveStates::save();
     return new PCSX::Slice(std::move(ss));
@@ -165,6 +184,18 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, invalidateCache);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
+    REGISTER(L, startGPUDump);
+    REGISTER(L, stopGPUDump);
+    REGISTER(L, isGPUDumpArmed);
+    REGISTER(L, isGPUDumpRecording);
+    REGISTER(L, getGPUDumpFrames);
+    REGISTER(L, loadGPUDumpPlayer);
+    REGISTER(L, unloadGPUDumpPlayer);
+    REGISTER(L, stepGPUDumpPlayer);
+    REGISTER(L, rewindGPUDumpPlayer);
+    REGISTER(L, getGPUDumpPlayerFrame);
+    REGISTER(L, getGPUDumpPlayerVRAM);
+    REGISTER(L, getVRAM);
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
     REGISTER(L, loadSaveStateFromFile);

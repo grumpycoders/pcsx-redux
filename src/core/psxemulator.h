@@ -73,6 +73,8 @@ class Counters;
 class Debug;
 class GdbServer;
 class GPU;
+class GPUDumper;
+class GPUDumpPlayer;
 class GPULogger;
 class GTE;
 class RAMLogger;
@@ -262,6 +264,8 @@ class Emulator {
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GPUDumper> m_gpuDumper;
+    std::unique_ptr<GPUDumpPlayer> m_gpuDumpPlayer;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<RAMLogger> m_ramLogger;
