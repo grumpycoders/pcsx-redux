@@ -94,6 +94,7 @@ class VRAMViewer : public ZoomableImage {
     int m_attribLocationVtxUV;
     int m_attribLocationWrittenColor;
     int m_attribLocationWrittenHeatmap;
+    int m_attribLocationHeatmapMode;
     int m_attribLocationWrittenHighlight;
 
     GLuint m_textureID;
@@ -107,6 +108,7 @@ class VRAMViewer : public ZoomableImage {
     ImVec4 m_pixelGridColor = ImVec4{0.5f, 0.5f, 0.5f, 0.8f};
     ImVec4 m_tpageGridColor = ImVec4{0.9f, 0.9f, 0.9f, 0.8f};
     bool m_greyscale = false;
+    int m_heatmapMode = 0;
     bool m_magnify = false;
     float m_magnifyAmount = 5.0f;
     float m_magnifyRadius = 150.0f;

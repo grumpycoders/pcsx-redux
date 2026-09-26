@@ -85,6 +85,9 @@ uniform sampler2D u_vramTexture;
 uniform vec4 u_writtenColor;
 uniform sampler2D u_readHighlight;
 uniform sampler2D u_writtenHighlight;
+uniform sampler2D u_readHeatmap;
+uniform sampler2D u_writtenHeatmap;
+uniform int u_heatmapMode;
 
 in vec2 fragUV;
 out vec4 outColor;
@@ -215,6 +218,18 @@ vec4 outlineColor(in sampler2D sampler, in vec4 color, in vec2 pos) {
     return color;
 }
 
+// Number of times a pixel was written (or read) during the last frame. Touched once is the normal
+// case and shows as a faint blue; every further touch is overdraw, going green, yellow, then red.
+vec4 heatmapColor(in vec2 pos) {
+    if (any(lessThan(pos, vec2(0.0))) || any(greaterThan(pos, vec2(1.0)))) return vec4(0.0);
+    float count = u_heatmapMode == 1 ? texture(u_writtenHeatmap, pos).r : texture(u_readHeatmap, pos).r;
+    if (count < 0.5) return vec4(0.0);
+    if (count < 1.5) return vec4(0.0, 0.2, 1.0, 0.35);
+    const vec3 ramp[4] = vec3[4](vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), vec3(1.0, 0.5, 0.0), vec3(1.0, 0.0, 0.0));
+    int i = min(int(count + 0.5) - 2, 3);
+    return vec4(ramp[i], 0.6);
+}
+
 void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
@@ -225,6 +240,13 @@ void main() {
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
     vec2 magnifyPos = magnifyVector + u_mouseUV;
     vec4 magnifyColor = readTexture(magnifyPos);
+
+    if (u_heatmapMode != 0) {
+        vec4 heat = heatmapColor(fragUV.st);
+        fragColor = mix(fragColor, heat, heat.a);
+        vec4 heatMagnify = heatmapColor(magnifyPos);
+        magnifyColor = mix(magnifyColor, heatMagnify, heatMagnify.a);
+    }
 
     vec4 readOutline = outlineColor(u_readHighlight, u_readColor, fragUV.st);
     fragColor = mix(fragColor, readOutline, readOutline.a);
@@ -351,6 +373,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
     m_attribLocationWrittenColor = glGetUniformLocation(m_shaderProgram, "u_writtenColor");
     m_attribLocationWrittenHeatmap = glGetUniformLocation(m_shaderProgram, "u_writtenHeatmap");
+    m_attribLocationHeatmapMode = glGetUniformLocation(m_shaderProgram, "u_heatmapMode");
     m_attribLocationWrittenHighlight = glGetUniformLocation(m_shaderProgram, "u_writtenHighlight");
 }
 
@@ -570,6 +593,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
                           (GLvoid *)offsetof(ImDrawVert, uv));
     glUniform4f(m_attribLocationWrittenColor, m_writtenColor.x, m_writtenColor.y, m_writtenColor.z, m_writtenColor.w);
     glUniform1i(m_attribLocationWrittenHeatmap, 1);
+    glUniform1i(m_attribLocationHeatmapMode, m_heatmapMode);
     glUniform1i(m_attribLocationWrittenHighlight, 3);
 
     auto *logger = g_emulator->m_gpuLogger.get();
@@ -635,6 +659,13 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 }
                 ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                 ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
+                if (ImGui::BeginMenu(_("Overdraw heatmap"))) {
+                    ImGui::TextUnformatted(_("Requires the GPU logger to be enabled"));
+                    if (ImGui::MenuItem(_("Off"), nullptr, m_heatmapMode == 0)) m_heatmapMode = 0;
+                    if (ImGui::MenuItem(_("Pixels written"), nullptr, m_heatmapMode == 1)) m_heatmapMode = 1;
+                    if (ImGui::MenuItem(_("Pixels read"), nullptr, m_heatmapMode == 2)) m_heatmapMode = 2;
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show grid"), nullptr, &m_drawGrid);
                 ImGui::MenuItem(_("Select pixel grid color"), nullptr, &openPixelGridColorPicker);

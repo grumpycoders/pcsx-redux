@@ -1323,22 +1323,27 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
     }
 }
 
+// The GPU adds the drawing offset to each vertex and keeps the sum as an 11 bit signed value, so a vertex pushed past
+// 1023 wraps to the far side. The soft renderer does the same; the logger has to follow it or its picture of what a
+// primitive touched is not what was drawn.
+static inline int wrapCoord(int v, int off) { return PCSX::GPU::signExtend<int, 11>(v + off); }
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
+        add({wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
         if constexpr (shape == Shape::Quad) {
-            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                {x[3] + offset.x, y[3] + offset.y});
+            add({wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
-                {x[2] + offset.x, y[2] + offset.y});
+            add({wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
             if constexpr (shape == Shape::Quad) {
-                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                    {x[3] + offset.x, y[3] + offset.y});
+                add({wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                    {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
             }
         }
         if constexpr (textured == Textured::Yes) {
@@ -1372,19 +1377,21 @@ void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelO
         auto y0 = y[i - 1];
         auto y1 = y[i];
 
-        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
+        addLine(std::move(add), wrapCoord(x0, offset.x), wrapCoord(y0, offset.y), wrapCoord(x1, offset.x), wrapCoord(y1, offset.y));
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+        const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+        add({rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+        add({rx + w, ry + h}, {rx, ry + h}, {rx, ry});
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+            const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+            add({rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+            add({rx + w, ry + h}, {rx, ry + h}, {rx, ry});
         }
         if constexpr (textured == Textured::Yes) {
             unsigned tx = tpage.tx * 64;
