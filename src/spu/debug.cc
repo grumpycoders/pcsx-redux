@@ -399,7 +399,7 @@ void DrawTableAdsrSustain(SPU_CHANNELS_INFO channels, const float rowHeight) {
             ImGui::AlignTextToFramePadding();
             // @formatter:off
             ImGui::TableNextColumn();
-            ImGui::Text("%i", data.get<exSustainLevel>().value >> 27);
+            ImGui::Text("%i", data.get<exSustainLevel>().value);
             ImGui::TableNextColumn();
             ImGui::Text("%i", data.get<exSustainIncrease>().value);
             // @formatter:on

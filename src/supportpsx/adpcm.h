@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+#pragma once
+
 #include <stdint.h>
 
 #include <array>
@@ -79,9 +81,8 @@ class Encoder {
     // not part of the original encvag API, but is exposed here to allow for more flexibility in the encoder.
     // The output is another block of 28 samples, but with the filter and shift values applied. The block
     // needs to be then processed using blockTo4Bit or blockTo8Bit to get the final output. The shift value
-    // will be between 0 and 12, and the filter value will be between 0 and 4. If encoding for 8-bit ADPCM,
-    // the shift value will need to be adjusted to be between 0 and 8, with the following formula:
-    //      shift8 = max(0, shift - 4)
+    // will be between 0 and 12, and the filter value will be between 0 and 4. The same shift value goes in
+    // the header for 8-bit ADPCM, as 8-bit samples are expanded by a left shift of 8 instead of 12.
     // The channels parameter is used to specify the number of channels in the input block. The input block
     // is expected to be interleaved, but the output buffer will NOT be interlaced. The maximum number of
     // channels is 2, for stereo audio, and the default is 1, for mono audio. This means that the input and
@@ -142,6 +143,59 @@ class Encoder {
                             uint8_t* shiftPtr, unsigned channel);
     void convert(std::span<const double> input, std::span<int16_t> output, uint8_t filter, uint8_t shift,
                  unsigned channel, XAMode xaMode);
+};
+
+// Decoder for both SPU-ADPCM and XA-ADPCM, following the psx-spx documentation. Both formats share the
+// same decompression algorithm: each 4-bit (or 8-bit) value is sign-extended, left-shifted to 16 bits,
+// right-shifted by the header's shift value, and then the filter contribution computed from the two
+// previous output samples is added, using the integer coefficients below divided by 64 with rounding,
+// before the result is clamped to 16 bits. The decoder is stateful: the two previous output samples of
+// each channel are carried over from one call to the next, which is required to decode a stream of
+// blocks or sound groups properly. Call reset() before decoding a new, unrelated stream.
+class Decoder {
+  public:
+    // SPU block flag bits, found in the second byte of each 16-byte SPU block.
+    enum SPUFlags : uint8_t {
+        LoopEnd = 0x01,
+        LoopRepeat = 0x02,
+        LoopStart = 0x04,
+    };
+
+    // Reset the history of all channels to zero.
+    void reset();
+
+    // Decode a single 16-byte SPU-ADPCM block into 28 16-bit samples. The first byte of the block is the
+    // header, with the shift in its lower 4 bits and the filter (0..4) in the upper bits. The second byte
+    // contains the loop flags, which are returned through flagsOut if it is not null, and are otherwise
+    // ignored by the decoder. The block always uses the history of channel 0.
+    void decodeSPUBlock(const uint8_t* block, int16_t* output, uint8_t* flagsOut = nullptr);
+
+    // Decode a single 128-byte XA-ADPCM sound group. The bitsPerSample parameter must be 4 or 8, and the
+    // channels parameter must be 1 or 2. Stereo output is interleaved, left first. The output buffer needs
+    // to be able to hold the following number of int16_t values, which is also the returned value:
+    //      4-bit mono: 224 samples
+    //      4-bit stereo: 112 frames, aka 224 samples
+    //      8-bit mono: 112 samples
+    //      8-bit stereo: 56 frames, aka 112 samples
+    // An XA sector contains 18 such sound groups.
+    unsigned decodeXASoundGroup(const uint8_t* group, int16_t* output, unsigned bitsPerSample, unsigned channels);
+
+  private:
+    // Positive and negative filter coefficients, in 1/64 units, as documented in psx-spx.
+    static constexpr std::array<std::array<int32_t, 2>, 5> c_filters = {{
+        {0, 0},
+        {60, 0},
+        {115, -52},
+        {98, -55},
+        {122, -60},
+    }};
+
+    // Decodes one unit of 28 samples. The expanded values are the sign-extended nibbles or bytes, already
+    // left-shifted to 16 bits. Output samples are written every outputStride int16_t.
+    void decodeUnit(uint8_t header, unsigned maxFilter, const int32_t* expanded, int16_t* output, unsigned outputStride,
+                    unsigned channel);
+    // Per-channel history: [channel][0] is the previous sample, [channel][1] the one before that.
+    std::array<std::array<int32_t, 2>, 2> m_history = {};
 };
 
 }  // namespace ADPCM

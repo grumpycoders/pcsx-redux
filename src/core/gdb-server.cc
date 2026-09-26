@@ -605,9 +605,17 @@ void PCSX::GdbClient::processCommand() {
             close();
             return;
         }
+        if ((action == Action::ADD) && (type >= 2) && (type <= 4)) {
+            // watchpoint ranges: reject empty ones and ones wrapping around the address space
+            uint32_t start = addr & ~0xe0000000;
+            if ((kind == 0) || (start + kind - 1 < start)) {
+                write("E01");
+                return;
+            }
+        }
         const auto bpActionExec = [action, this](uint32_t addr, Debug::BreakpointType type, unsigned width) -> void {
             if (action == Action::ADD) {
-                auto bp = g_emulator->m_debug->addBreakpoint(addr, type, 4, _("GDB client"));
+                auto bp = g_emulator->m_debug->addBreakpoint(addr, type, width, _("GDB client"));
                 m_breakpoints.push_back(bp);
             } else {
                 addr &= ~0xe0000000;

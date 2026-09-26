@@ -70,6 +70,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUAddr>().value = spuAddr;
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
+    spu.get<SaveStates::SPUEndx>().value = spuEndx;
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
@@ -123,11 +124,14 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     spuAddr = spu.get<SaveStates::SPUAddr>().value;
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
     spuStat = spu.get<SaveStates::SPUStat>().value;
+    spuEndx = spu.get<SaveStates::SPUEndx>().value & 0xffffff;
 
     m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                      spu.get<SaveStates::SPUNoiseVal>());
 
-    // Repair some globals.
+    // Repair some globals. The reverb unit is reset first so no filter history or L/R parity from
+    // before the load survives; the register replay below rebuilds its configuration.
+    m_reverb.reset();
     for (unsigned i = 0; i <= 62; i += 2) writeRegister(H_Reverb + i, regArea[(H_Reverb + i - 0xc00) >> 1]);
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);

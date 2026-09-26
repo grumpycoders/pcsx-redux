@@ -52,8 +52,10 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     // Calculate the frequency as sample count divided by size.
     sinc = (xap->nsamples << 16) / iSize;
 
-    // The lock is needed for the capture buffers. Open question: should it be taken here or in the inner loop?
-    if (mixIrqAddress) cbMtx.lock();
+    // The lock is needed for the capture buffers and mixIrqAddress, both shared with the
+    // mixer thread. Taken unconditionally: gating it on an unlocked read of mixIrqAddress
+    // is itself a race, and could pair a skipped lock with a later unlock.
+    std::unique_lock<std::mutex> cbLock(cbMtx);
 
     if (xap->stereo) {
         uint32_t *pS = (uint32_t *)xap->pcm;
@@ -149,7 +151,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             spos += sinc;
         }
     }
-    if (mixIrqAddress) cbMtx.unlock();
+    cbLock.unlock();
 
     m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
 }

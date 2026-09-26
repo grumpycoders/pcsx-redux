@@ -37,12 +37,15 @@ constexpr int kVoiceVolumeUnity = 0x4000;
 // The capture area mirrors are 0x200 samples each; voice 1 lands at +0x400 and
 // voice 3 at +0x600 (half-word sample indices into spuMem). The write pointer
 // wraps every 0x200 samples and bit 11 of SPUSTAT tracks which half it is in.
-constexpr int kCaptureRegionSamples = 0x200;
-constexpr int kCaptureHalfMarker = kCaptureRegionSamples / 2;  // 0x100
+// kCaptureRegionSamples / kCaptureHalfMarker moved to impl in interface.h - the
+// SPUSTAT read path reconstructs bit 11 from them too, and two copies of a
+// period would rot apart silently.
 constexpr int kCaptureVoice1Offset = 0x400;
 constexpr int kCaptureVoice3Offset = 0x600;
-// The post-ADSR sample is clamped to +/- this before it lands in the capture mirror.
-constexpr int kCaptureSampleClamp = 0xffff;
+// The post-ADSR sample saturates to the signed 16-bit capture cell before it lands in
+// the capture mirror; anything wider would wrap on the uint16_t store.
+constexpr int kCaptureSampleMin = -32768;
+constexpr int kCaptureSampleMax = 32767;
 // The final stereo mix is clamped to this symmetric signed-16-bit range.
 constexpr int kMixSampleClamp = 32767;
 }  // namespace
@@ -114,14 +117,15 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *voice, int ns) {
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample) {
-    if (mixIrqAddress && ch == 1) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (ch != 1 && ch != 3) return;
+    std::lock_guard<std::mutex> lock(cbMtx);
+    if (!mixIrqAddress) return;
+    if (ch == 1) {
         for (int c = fromSample; c < NSSIZE; c++) {
             spuMem[capVoice1Index + kCaptureVoice1Offset] = 0;
             capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
         }
-    } else if (mixIrqAddress && ch == 3) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    } else {
         for (int c = fromSample; c < NSSIZE; c++) {
             spuMem[capVoice3Index + kCaptureVoice3Offset] = 0;
             capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
@@ -130,12 +134,13 @@ void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32
 }
 
 void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample) {
-    if (mixIrqAddress && ch == 1) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    if (ch != 1 && ch != 3) return;
+    std::lock_guard<std::mutex> lock(cbMtx);
+    if (!mixIrqAddress) return;
+    if (ch == 1) {
         spuMem[capVoice1Index + kCaptureVoice1Offset] = sample;
         capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
-    } else if (mixIrqAddress && ch == 3) {
-        std::unique_lock<std::mutex> lock(cbMtx);
+    } else {
         spuMem[capVoice3Index + kCaptureVoice3Offset] = sample;
         capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
     }
@@ -213,6 +218,10 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         cursor = (blockFlags != 3 || voice->adpcm.loop() == nullptr) ? AdpcmDecoder::kStopped : voice->adpcm.loop();
     }
 
+    // The address counter is 19 bits wide: a stream with no end flag runs off the top of
+    // the 512KiB sound RAM and continues from address 0, rather than out of spuMem.
+    if (cursor != AdpcmDecoder::kStopped && cursor >= spuRamBase + sizeof(spuMem)) cursor -= sizeof(spuMem);
+
     // Store the cursor for the next cycle.
     voice->adpcm.setCurr(cursor);
 
@@ -248,6 +257,10 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // voice bypasses the resampler, it skips the volume and reverb stage, and
     // its output goes to fmodInput rather than the stereo mix.
     constexpr bool kIsFModSource = Role == FModRole::Source;
+
+    // A source that is off, in its key-on delay, or stops mid-batch writes no sample for
+    // those slots; zero the whole batch up front so the target never reads a stale one.
+    if constexpr (kIsFModSource) std::fill(std::begin(fmodInput), std::end(fmodInput), 0);
 
     // The mixing state still lives in the savestate protobuf, so bind it once here
     // instead of spelling the accessor out at every use. These are all references:
@@ -289,7 +302,6 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // Collect 1 ms of this channel's audio.
     for (int ns = 0; ns < NSSIZE; ns++) {
         int rawSample;
-        m_noise.step();
 
         // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
         // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
@@ -332,7 +344,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 
         if constexpr (Src == SampleSource::Noise) {
             // Get the noise value.
-            rawSample = m_noise.getVal();
+            rawSample = noiseLevel[ns];
             voice->interp.parkExternalSample(rawSample, settings.get<Interpolation>());
         } else {
             rawSample = voice->interp.getVal(settings.get<Interpolation>(), kIsFModSource);
@@ -343,7 +355,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
         sval = mixedSample;
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.
-        mixedSample = std::clamp(mixedSample, -kCaptureSampleClamp, kCaptureSampleClamp);
+        mixedSample = std::clamp(mixedSample, kCaptureSampleMin, kCaptureSampleMax);
         captureVoiceSample(ch, capVoice1Index, capVoice3Index, mixedSample);
 
         if constexpr (Role == FModRole::Source) {
@@ -442,8 +454,18 @@ void PCSX::SPU::impl::MainThread() {
             if (newChannelMask) secureStart = 1;
         }
 
-        tmpCapVoice1Index = capBufVoiceIndex;
-        tmpCapVoice3Index = capBufVoiceIndex;
+        {
+            // capBufVoiceIndex is reset from the emulation thread (resetCaptureBuffer).
+            std::lock_guard<std::mutex> lock(cbMtx);
+            tmpCapVoice1Index = capBufVoiceIndex;
+            tmpCapVoice3Index = capBufVoiceIndex;
+        }
+
+        // Clock the shared noise generator once per output sample of the batch.
+        for (ns = 0; ns < NSSIZE; ns++) {
+            m_noise.step();
+            noiseLevel[ns] = m_noise.getVal();
+        }
 
         // Collect 1 ms of sound from every channel into the mix accumulators.
         for (ch = 0; ch < MAXCHAN; ch++) {
@@ -458,11 +480,14 @@ void PCSX::SPU::impl::MainThread() {
         // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff).
         // Hardware toggles this bit as the 44.1kHz capture pointer crosses the
         // half boundary; guests sync capture reads on its edge.
-        capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % kCaptureRegionSamples;
-        if (capBufVoiceIndex & kCaptureHalfMarker)
-            spuStat |= StatusFlags::CBIndex;
-        else
-            spuStat &= ~StatusFlags::CBIndex;
+        {
+            std::lock_guard<std::mutex> lock(cbMtx);
+            capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % kCaptureRegionSamples;
+            if (capBufVoiceIndex & kCaptureHalfMarker)
+                spuStat |= StatusFlags::CBIndex;
+            else
+                spuStat &= ~StatusFlags::CBIndex;
+        }
 
         //---------------------------------------------------//
         // Another 1 ms of sound data is now available.
@@ -499,7 +524,10 @@ void PCSX::SPU::impl::MainThread() {
         // modes, so it is ignored in this path. Note also that the channel 0-3 IRQ debug display
         // is reused for these IRQs, as that is the simplest way to display them in debug mode.
 
-        // mixIrqAddress is only set if the config option is active.
+        // mixIrqAddress is armed by resetCaptureBuffer on the emulation thread, so the walk
+        // runs under cbMtx. triggerIrq only sets flags (scheduleInterrupt stores an atomic),
+        // so nothing in here takes another lock. The hold is NSSIZE * 4 compares.
+        std::unique_lock<std::mutex> irqLock(cbMtx);
         if (mixIrqAddress) {
             for (ns = 0; ns < NSSIZE; ns++) {
                 if ((spuCtrl & ControlFlags::IRQEnable) && irqAddress && irqAddress < spuRamBase + 0x1000) {
@@ -515,6 +543,7 @@ void PCSX::SPU::impl::MainThread() {
                 if (mixIrqAddress > spuRamBase + 0x3ff) mixIrqAddress = spuRamBase;
             }
         }
+        irqLock.unlock();
 
         m_reverb.init(NSSIZE);
 
@@ -540,8 +569,8 @@ void PCSX::SPU::impl::MainThread() {
 }
 
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
+    std::lock_guard<std::mutex> lock(cbMtx);
     if (mixIrqAddress) {
-        std::unique_lock<std::mutex> lock(cbMtx);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
                 // If there are no samples left in the temp buffer,
@@ -653,7 +682,7 @@ void PCSX::SPU::impl::SetupStreams() {
         // No per-channel mutex synchronization is used here: it is not needed, and would only slow
         // things down.
         // Initialize the sustain level.
-        s_chan[i].adsr.ex().get<exSustainLevel>().value = 0xf << 27;
+        s_chan[i].adsr.ex().get<exSustainLevel>().value = ADSRFlags::SustainLevelMask;
         s_chan[i].data.get<PCSX::SPU::Chan::Mute>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::Solo>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::IrqDone>().value = 0;
@@ -747,4 +776,5 @@ void PCSX::SPU::impl::setLua(Lua L) {
     L.settable();
     L.pop();
     L.pop();
+    m_audioOut.setLua(L);
 }

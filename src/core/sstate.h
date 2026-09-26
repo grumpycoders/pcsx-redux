@@ -131,9 +131,12 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseClock"), 16> SPUNoise
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseCount"), 17> SPUNoiseCount;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseVal"), 18> SPUNoiseVal;
 
+// ENDX latch, one bit per voice
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("endx"), 19> SPUEndx;
+
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
                           SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight,
-                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal>
+                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 

@@ -42,7 +42,10 @@ class NoiseGenerator {
   public:
     // The SPUCTRL noise shift+step selector (register bits 13..8, already
     // shifted down). Recomputed on every SPUCTRL write.
-    void setClock(uint32_t clock) { m_clock = clock; }
+    // Masked to the six bits the register actually supplies. The register path already narrows
+    // it, but the savestate path did not, and a clock of 64 or more drives the shift past 15, so
+    // the threshold in step() computes to zero and its subtract loop never terminates.
+    void setClock(uint32_t clock) { m_clock = clock & kClockMask; }
 
     // Advance the LFSR by one mixing sample (was impl::NoiseClock()). Called
     // once per output sample, before any voice consumes the level.
@@ -63,12 +66,15 @@ class NoiseGenerator {
         value.value = m_val;
     }
     void loadFrom(const Protobuf::UInt32 &clock, const Protobuf::UInt32 &count, const Protobuf::UInt32 &value) {
-        m_clock = clock.value;
+        setClock(clock.value);
         m_count = count.value;
         m_val = value.value;
     }
 
   private:
+    // SPUCTRL bits 13..8: four shift bits and two step bits.
+    static constexpr uint32_t kClockMask = 0x3f;
+
     uint32_t m_clock = 0;  // shift+step selector from SPUCTRL
     uint32_t m_count = 0;  // fractional accumulator pacing the LFSR
     uint32_t m_val = 1;    // LFSR state; the noise level lives in the low 16 bits

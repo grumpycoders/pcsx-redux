@@ -27,10 +27,6 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::reset() { memset((void *)&rvb, 0, sizeof(REVERBInfo)); }
-
-////////////////////////////////////////////////////////////////////////
-
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl) {
@@ -102,6 +98,15 @@ constexpr int kFir[39] = {
 // rotation, so a constant group delay costs nothing.
 int h44L[39], h44R[39], h22L[20], h22R[20];
 bool altLeftTick;  // which half of the 22.05kHz iteration this 44.1kHz cycle runs
+int callCount;     // 44.1kHz cycles run with reverb on; its parity picks altLeftTick
+void resetFilterState() {
+    memset(h44L, 0, sizeof(h44L));
+    memset(h44R, 0, sizeof(h44R));
+    memset(h22L, 0, sizeof(h22L));
+    memset(h22R, 0, sizeof(h22R));
+    altLeftTick = false;
+    callCount = 0;
+}
 inline void firPushIn(int l, int r) {
     for (int i = 38; i > 0; i--) { h44L[i] = h44L[i - 1]; h44R[i] = h44R[i - 1]; }
     h44L[0] = l; h44R[0] = r;
@@ -129,10 +134,15 @@ inline int firInterp(const int *h, bool passthrough) {
 }
 }  // namespace
 
+// The FIR histories and the L/R parity are reverb-unit state too; a reset that left
+// them would replay the previous tail through h22[9].
+void PCSX::SPU::ReverbUnit::reset() {
+    memset((void *)&rvb, 0, sizeof(REVERBInfo));
+    resetFilterState();
+}
+
 int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
     // This function is called at 44.1 kHz.
-    static int callCount = 0;
-
     // Reverb is off.
     if (!rvb.StartAddr) {
         rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;

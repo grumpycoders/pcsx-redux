@@ -53,7 +53,7 @@ You can allow the application to run by doing either of the following. You only 
 - Alternatively, go to macOS Settings > Privacy & Security. Scroll down to see a section that will let you allow the app.
 
 ## How?
-The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
+The code is meant to be built using very modern compilers. Also it's still fairly experimental, and lots of things can break. If you still want to proceed, here are instructions to build it on Linux, MacOS and Windows. The code now comes in two big parts: the emulator itself, and [OpenBIOS](https://github.com/pcsx-redux/nugget/tree/main/openbios), which can be used as an alternative to the retail, copyright protected BIOS.
 
 ### Getting sources
 The only location for the source is [on GitHub](https://github.com/grumpycoders/pcsx-redux/).

@@ -33,7 +33,7 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include "mips/common/util/mips.hh"
+#include "mips-common/util/mips.hh"
 #include "support/file.h"
 #include "support/hashtable.h"
 
