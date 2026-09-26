@@ -19,6 +19,8 @@
 
 #include "core/sio1.h"
 
+#include "support/uvfile.h"
+
 PCSX::SIOPayload PCSX::SIO1::makeFlowControlMessage() {
     return SIOPayload{
         DataTransfer{},
@@ -33,6 +35,13 @@ PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
         },
         FlowControl{},
     };
+}
+
+bool PCSX::SIO1::connecting() {
+    // m_fifo is an IO<File> and is only ever a UvFifo once a socket backend has
+    // handed one over, so asA can legitimately come back empty.
+    auto fifo = m_fifo.asA<UvFifo>();
+    return fifo && fifo->isConnecting();
 }
 
 void PCSX::SIO1::transmitMessage(std::string &&message) {

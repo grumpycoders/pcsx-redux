@@ -137,6 +137,15 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
         m_settings.get<Device>().reset();
     }
 
+#ifdef __EMSCRIPTEN__
+    // SDL3's emscripten audio backend defaults to a 128-frame buffer, and the
+    // Web Audio ScriptProcessorNode it drives rejects anything that is not a
+    // power of two between 256 and 16384 - it throws IndexSizeError during
+    // device open, which surfaces as an uncaught JS exception rather than an
+    // SDL error. 1024 frames is ~21 ms at 48 kHz, comfortably inside the range
+    // and still low enough not to add audible latency.
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024");
+#endif
     SDL_AudioSpec spec;
     spec.format = SDL_AUDIO_F32;
     spec.channels = kChannels;

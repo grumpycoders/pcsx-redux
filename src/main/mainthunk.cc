@@ -127,6 +127,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 #ifndef PCSX_CLI
 #if defined(__APPLE__) && defined(__MACH__)
 extern "C" void Complain(const char *msg);
+#elif defined(__EMSCRIPTEN__)
+// Same shape as the Apple arm above: the implementation lives in its own file,
+// src/main/complain-wasm.cc, because it needs EM_ASM and the DOM.
+extern "C" void Complain(const char *msg);
 #else
 #include <X11/Xlib.h>
 #include <stdlib.h>

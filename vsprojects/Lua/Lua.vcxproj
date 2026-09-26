@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\src\lua\extra.cc" />
     <ClCompile Include="..\..\src\lua\glffi.cc" />
     <ClCompile Include="..\..\src\lua\luafile.cc" />
+    <ClCompile Include="..\..\src\lua\luv-glue.cc" />
     <ClCompile Include="..\..\src\lua\luawrapper.cc" />
     <ClCompile Include="..\..\src\lua\zlibffi.cc" />
     <ClCompile Include="..\..\third_party\lua-protobuf\pb.c" />

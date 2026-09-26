@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "cdrom/cdriso.h"
+#include "support/uvfile.h"
 #include "core/cdrom.h"
 
 // this function tries to get the .toc file of the given .bin

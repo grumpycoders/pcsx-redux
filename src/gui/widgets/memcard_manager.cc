@@ -38,7 +38,12 @@ void PCSX::Widgets::MemcardManager::initTextures() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         if (!m_drawPocketstationIcons) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 16, 16, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
+            // Unlike VRAM, there is nowhere to move a 1555 unpack to here: these
+            // are handed straight to ImGui::Image and sampled by ImGui's own
+            // shader, which we do not own. So they become RGBA8 and the expansion
+            // happens on the CPU at upload - 256 pixels, and only while the
+            // memory card window is open.
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 16, 16);
         } else {
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 32, 32);
         }
@@ -345,7 +350,19 @@ void PCSX::Widgets::MemcardManager::drawIcon(const PCSX::SIO::McdBlock& block) {
 
         // Pointer to the current frame. Skip 16x16 pixels for each frame
         const auto icon = block.icon + (currentFrame * 16 * 16);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, icon);
+        uint32_t pixels[16 * 16];
+        for (unsigned i = 0; i < 16 * 16; i++) {
+            const uint16_t w = icon[i];
+            // X1B5G5R5, the same word layout as VRAM. The 5-to-8 bit expansion
+            // is bit replication, which is exact at both ends of the range.
+            // Alpha stays the mask bit rather than becoming opaque: that is what
+            // GL_UNSIGNED_SHORT_1_5_5_5_REV was feeding ImGui before, and these
+            // are drawn with alpha blending on.
+            const uint32_t r = (w >> 0) & 0x1f, g = (w >> 5) & 0x1f, b = (w >> 10) & 0x1f;
+            pixels[i] = ((r << 3) | (r >> 2)) | (((g << 3) | (g >> 2)) << 8) | (((b << 3) | (b >> 2)) << 16) |
+                        ((w & 0x8000) ? 0xff000000u : 0u);
+        }
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     } else {
         uint32_t pixels[32 * 32];
         getPocketstationIcon(pixels, block);

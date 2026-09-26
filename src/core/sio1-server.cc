@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no libuv, so no SIO1 TCP server.
+#ifndef __EMSCRIPTEN__
+
 #include <uv.h>
 
 #include "core/sio1-server.h"
@@ -127,3 +130,5 @@ void PCSX::SIO1Client::stopClient() {
     g_emulator->m_sio1->stopSIO1Connection();
     g_system->printf("%s", _("SIO1 client disconnected\n"));
 }
+
+#endif
