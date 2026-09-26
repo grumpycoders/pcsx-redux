@@ -44,6 +44,7 @@
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/gpudump.h"
 #include "gui/widgets/gpulogger.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
@@ -124,6 +125,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
+    typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
@@ -173,14 +175,14 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize,
-             MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
-             ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
-             ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
-             ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr,
-             MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr,
-             ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
-             ShowMsanViewer>
+             ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs,
+             MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
+             ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4,
+             ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor,
+             ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr,
+             MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
+             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr,
+             BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -450,6 +452,7 @@ class GUI final : public UI {
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
     Widgets::PIOCart m_pioCart;
+    Widgets::GPUDump m_gpuDump;
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};

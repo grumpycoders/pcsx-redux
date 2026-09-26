@@ -178,7 +178,8 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
       m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
-      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
+      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }
@@ -1555,6 +1556,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
+                    ImGui::MenuItem(_("Show GPU dump recorder / player"), nullptr, &m_gpuDump.m_show);
                     ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
                     ImGui::EndMenu();
                 }
@@ -1892,6 +1894,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
+    if (m_gpuDump.m_show) m_gpuDump.draw(_("GPU Dump"));
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
