@@ -21,6 +21,8 @@
 
 #include <string.h>
 
+#include <algorithm>
+
 #include "core/cdrom.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -162,7 +164,9 @@ bool PCSX::GPUDumpReader::open(IO<File> file) {
     size_t size = file->size();
     std::vector<uint32_t> words(size / 4);
     file->rSeek(0, SEEK_SET);
-    file->read(words.data(), words.size() * 4);
+    ssize_t got = file->read(words.data(), words.size() * 4);
+    // Keep only what was actually read; next() then stops at a packet cut short.
+    words.resize(got > 0 ? size_t(got) / 4 : 0);
     return open(std::move(words));
 }
 
@@ -271,7 +275,10 @@ void PCSX::GPUDumpPlayer::execute(const GPUDumpReader::Packet& packet) {
         case GPUDumper::ThrowAway:
         case GPUDumper::Readback:
             if (packet.length >= 1) {
-                for (uint32_t i = 0; i < packet.words[0]; i++) m_gpu->readData();
+                // Reads past the end of a VRAM transfer have no effect, so a count larger than 2MB of VRAM
+                // can only come from a corrupt file.
+                uint32_t count = std::min<uint32_t>(packet.words[0], 1024 * 1024 / 2);
+                for (uint32_t i = 0; i < count; i++) m_gpu->readData();
             }
             break;
         case GPUDumper::GameID:
