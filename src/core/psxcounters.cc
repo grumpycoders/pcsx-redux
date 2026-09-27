@@ -174,8 +174,12 @@ void PCSX::Counters::update() {
             g_emulator->m_cpu->m_regs.previousCycles = cycle;
             g_emulator->m_spu->waitForGoal(target);
             m_audioFrames = target;
-        } else if (framesDiff < -2000000000) {
-            m_audioFrames = newFrames;
+        } else if (framesDiff < -kMaxAudioLagFrames) {
+            // The host couldn't sustain the requested speed. Cap the debt, otherwise returning to 1x runs
+            // the CPU unthrottled until it has caught up. Resetting it to zero would stall every update on
+            // the next audio callback instead.
+            g_emulator->m_cpu->m_regs.previousCycles = cycle;
+            m_audioFrames = newFrames - kMaxAudioLagFrames;
         }
     }
 
