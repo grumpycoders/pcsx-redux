@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "cdrom/cdriso.h"
+#include "support/uvfile.h"
 
 bool PCSX::CDRIso::LoadSBI(const char *filename) {
     IO<File> sbihandle(new UvFile(filename));

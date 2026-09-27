@@ -26,17 +26,16 @@
 
 #include "cdrom/ppf.h"
 #include "core/psxemulator.h"
-#include "support/uvfile.h"
 #include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 
 class CDRIso {
   public:
-    CDRIso(const std::filesystem::path& path) : CDRIso() {
-        m_isoPath = path;
-        open(new UvFile(m_isoPath));
-    }
+    // Out-of-lined so this header does not need uvfile.h, which pulls in libcurl
+    // and libuv. UvFile was the only thing here that needed it - everything else
+    // is IO<File>.
+    CDRIso(const std::filesystem::path& path);
     CDRIso(IO<File> isoFile) : CDRIso() {
         m_isoPath = isoFile->filename();
         open(isoFile);

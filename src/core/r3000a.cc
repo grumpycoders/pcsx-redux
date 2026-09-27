@@ -430,7 +430,9 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
     std::unique_ptr<PCSX::R3000Acpu> cpu = getDynaRec();
-    if (cpu->Implemented()) return cpu;
+    // An architecture with no dynarec at all returns nullptr here, which is not
+    // the same as one whose dynarec reports itself unimplemented.
+    if (cpu && cpu->Implemented()) return cpu;
     return nullptr;
 }
 

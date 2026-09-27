@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm is interpreter-only, so there is no dynarec to disassemble.
+#ifndef __EMSCRIPTEN__
+
 #include "gui/widgets/dynarec_disassembly.h"
 
 #include <capstone.h>
@@ -202,3 +205,5 @@ size_t PCSX::Widgets::Disassembly::disassembleBuffer() {
     cs_close(&handle);
     return bufferSize;
 }
+
+#endif

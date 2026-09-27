@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no UvThreadOp caching layer for this UI to drive.
+
 #include "gui/widgets/isobrowser.h"
 
 #include <zlib.h>

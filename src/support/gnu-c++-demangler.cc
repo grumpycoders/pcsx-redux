@@ -24,6 +24,9 @@ SOFTWARE.
 
 */
 
+// v1 wasm has no debugger UI, and PEGTL does not build under libc++ (board #428).
+#ifndef __EMSCRIPTEN__
+
 #include "support/gnu-c++-demangler.h"
 
 #include <cctype>
@@ -692,3 +695,5 @@ std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
     }
     return std::string(mangled);
 }
+
+#endif
