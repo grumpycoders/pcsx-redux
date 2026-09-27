@@ -20,8 +20,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <filesystem>
 #include <map>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "flags.h"
@@ -61,7 +63,10 @@ static bool writeFile(const std::string& name, const uint8_t* data, size_t size)
         fmt::print("Unable to open output file: {}\n", name);
         return false;
     }
-    out->write(data, size);
+    if (out->write(data, size) != static_cast<ssize_t>(size)) {
+        fmt::print("Unable to write output file: {}\n", name);
+        return false;
+    }
     fmt::print("File {} created.\n", name);
     return true;
 }
@@ -112,6 +117,26 @@ Valid input binary files can be in the following formats:
         return -1;
     }
 
+    std::vector<std::filesystem::path> outputs;
+    if (output.has_value()) outputs.push_back(output.value());
+    if (hasSplit) {
+        outputs.push_back(even.value());
+        outputs.push_back(odd.value());
+    }
+    for (auto& path : outputs) {
+        std::error_code ec;
+        auto normal = std::filesystem::weakly_canonical(path, ec);
+        path = ec ? path.lexically_normal() : normal;
+    }
+    for (size_t i = 0; i < outputs.size(); i++) {
+        for (size_t j = i + 1; j < outputs.size(); j++) {
+            if (outputs[i] == outputs[j]) {
+                fmt::print("Output files must be distinct: {}\n", outputs[i].string());
+                return -1;
+            }
+        }
+    }
+
     auto& input = inputs[0];
     PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
     if (file->failed()) {
@@ -160,6 +185,10 @@ Valid input binary files can be in the following formats:
     put32(exe, 0x1c, size);
     put32(exe, 0x30, sp);
     auto data = memory.asA<PCSX::File>()->readAt(size, tload);
+    if (data.size() != size) {
+        fmt::print("File {} is invalid: the payload runs past the end of the address space.\n", input);
+        return -1;
+    }
     memcpy(exe.data() + 2048, data.data(), size);
 
     uint32_t crc = crc573(exe, size);
