@@ -790,7 +790,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
     m_softDisplay.RGB24New = ctrl->depth == CtrlDisplayMode::CD_24BITS;
     m_softDisplay.InterlacedNew = ctrl->interlace;
 
-    if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+    if (!isDetached() && g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
         if (m_softDisplay.PAL) {
             g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
         } else {

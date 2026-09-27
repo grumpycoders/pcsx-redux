@@ -141,6 +141,7 @@
     <ClCompile Include="..\..\src\gui\widgets\dynarec_disassembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\events.cc" />
     <ClCompile Include="..\..\src\gui\widgets\filedialog.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\gpudump.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc" />
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc" />
@@ -181,6 +182,7 @@
     <ClInclude Include="..\..\src\gui\widgets\dynarec_disassembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\events.h" />
     <ClInclude Include="..\..\src\gui\widgets\filedialog.h" />
+    <ClInclude Include="..\..\src\gui\widgets\gpudump.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h" />
     <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h" />

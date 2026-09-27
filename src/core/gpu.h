@@ -29,6 +29,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -41,6 +42,8 @@
 
 namespace PCSX {
 class UI;
+class GPUDumper;
+class GPULogger;
 struct SaveStateWrapper;
 
 // GP0 / GP1 packet-layout constants. Each constant names the bit-field
@@ -97,14 +100,34 @@ class GPU {
 
     // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
     // when readStatus is called
-    void requestIRQ1() { g_emulator->m_mem->setIRQ(2); }
-    void acknowledgeIRQ1() { g_emulator->m_mem->clearIRQ(2); }
+    void requestIRQ1() {
+        if (!m_detached) g_emulator->m_mem->setIRQ(2);
+    }
+    void acknowledgeIRQ1() {
+        if (!m_detached) g_emulator->m_mem->clearIRQ(2);
+    }
+
+    // A detached GPU is an extra instance that is not wired to the emulated machine, such as the one
+    // used to play back GPU dumps. It raises no interrupts, touches no emulator settings, and logs
+    // into its own GPULogger instead of the global one.
+    void detach(GPULogger* logger) {
+        m_detached = true;
+        m_logger = logger;
+    }
+    bool isDetached() const { return m_detached; }
+    void setDumper(GPUDumper* dumper) { m_dumper = dumper; }
+    // True when no GP0 command is partially received, so a dump can start cleanly.
+    bool isIdle() const { return m_processor == &m_defaultProcessor; }
+    // The last word written for a given GP1 command.
+    uint32_t getStatusControl(uint8_t cmd) const { return m_statusControl[cmd]; }
+    // Words that bring a freshly reset GPU to the current state, VRAM excluded.
+    void getRestoreSequence(std::vector<uint32_t>& gp0, std::vector<uint32_t>& gp1) const;
 
     bool m_showCfg = false;
     bool m_showDebug = false;
     virtual bool configure() = 0;
     virtual void debug() = 0;
-    virtual ~GPU() {}
+    virtual ~GPU();
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
@@ -228,6 +251,10 @@ class GPU {
 
   private:
     uint32_t m_statusControl[256];
+    uint32_t m_envRaw[7];
+    bool m_detached = false;
+    GPULogger* m_logger = nullptr;
+    GPUDumper* m_dumper = nullptr;
 
     class Buffer {
       public:

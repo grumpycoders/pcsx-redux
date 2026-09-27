@@ -35,6 +35,7 @@ struct SoftRenderer {
 
     void enableCachedDithering();
     void disableCachedDithering();
+    bool m_usesDitherLUT = false;
 
     inline void resetRenderer() {
         m_globalTextAddrX = 0;
