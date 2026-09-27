@@ -118,6 +118,10 @@ class CDRomImpl final : public PCSX::CDRom {
         m_interruptCauseMask = 0x1f;
         m_subheaderFilter = false;
         m_realtime = false;
+        m_autoPause = false;
+        m_report = false;
+        m_setLocPending = false;
+        m_muted = false;
         m_commandFifo.clear();
         m_commandExecuting.clear();
         m_responseFifo[0].clear();
@@ -151,7 +155,8 @@ class CDRomImpl final : public PCSX::CDRom {
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
         if (m_readingState == ReadingState::Seeking) {
-            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, SeekType::DATA, true);
+            auto seekType = m_readingType == ReadingType::Play ? SeekType::CDDA : SeekType::DATA;
+            auto seekDelay = computeSeekDelay(m_currentPosition, m_seekPosition, seekType, true);
             m_status = Status::Seeking;
             if (m_speedChanged) {
                 m_speedChanged = false;
@@ -163,7 +168,11 @@ class CDRomImpl final : public PCSX::CDRom {
             return;
         } else if (m_readingState == ReadingState::Reading) {
             m_readingState = ReadingState::None;
-            m_status = Status::ReadingData;
+            if (m_readingType == ReadingType::Play) {
+                startPlaying();
+            } else {
+                m_status = Status::ReadingData;
+            }
         } else if ((m_status == Status::Idle) || (m_status == Status::Seeking)) {
             m_readingType = ReadingType::None;
             if (debug) {
@@ -241,6 +250,9 @@ class CDRomImpl final : public PCSX::CDRom {
                     scheduleRead(readDelay);
                 }
             } break;
+            case Status::PlayingCDDA:
+                playSector();
+                break;
             default:
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "unsupported yet\n");
                 PCSX::g_system->pause();
@@ -822,6 +834,7 @@ class CDRomImpl final : public PCSX::CDRom {
             cause = Cause::Acknowledge;
             maybeTriggerIRQ(cause, response);
             m_seekPosition = maybeMSF.value();
+            m_setLocPending = true;
             PCSX::g_emulator->m_cdromLogger->recordAccess(m_seekPosition.toLBA(),
                                                           PCSX::CDRomLogger::AccessType::Seek,
                                                           PCSX::g_emulator->m_cpu->m_regs.cycle);
@@ -830,6 +843,115 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         maybeScheduleNextCommand();
         return false;
+    }
+
+    // Command 3. The optional parameter is a track number: 1..N starts that track, N+1..99 restarts the
+    // current one, and none or 0 plays from a pending Setloc, or from the current position.
+    bool cdlPlay(const QueueElement &command, bool start) {
+        unsigned track = 0;
+        if (command.payloadSize > 0) {
+            track = isValidBCD(command.payload[0]) ? PCSX::IEC60908b::btoi(command.payload[0]) : 100;
+        }
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+
+        if (track != 0) {
+            if (track > m_iso->getTN()) track = m_iso->getTrack(m_currentPosition);
+            if (track != 0) {
+                m_seekPosition = m_iso->getTD(track);
+                m_setLocPending = true;
+            }
+        }
+        m_readingType = ReadingType::Play;
+        if (m_setLocPending) {
+            m_setLocPending = false;
+            m_status = Status::Idle;
+            m_readingState = ReadingState::Seeking;
+            scheduleRead(20ms);
+        } else {
+            m_readingState = ReadingState::None;
+            startPlaying();
+            scheduleRead(computeReadDelay());
+        }
+        return false;
+    }
+
+    void startPlaying() {
+        m_status = Status::PlayingCDDA;
+        m_playTrack = 0;
+        m_playStartCycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    }
+
+    void stopPlaying() {
+        m_status = Status::Idle;
+        m_readingType = ReadingType::None;
+        QueueElement end;
+        end.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::End, end);
+    }
+
+    // One sector of CD-DA playback: audio to the SPU, then the optional report.
+    void playSector() {
+        if (m_currentPosition >= m_iso->getTD(0)) {
+            // End of disc: INT4, and the motor stops.
+            stopPlaying();
+            m_motorOn = false;
+            return;
+        }
+        uint8_t locP[8];
+        bool haveQ = m_iso->getLocP(m_currentPosition, locP);
+        if (haveQ) {
+            if (m_playTrack == 0) m_playTrack = locP[0];
+            if (m_autoPause && (locP[0] != m_playTrack)) {
+                // Autopause: INT4 on the SubQ track transition, staying where we are.
+                stopPlaying();
+                return;
+            }
+        }
+
+        int16_t samples[PCSX::IEC60908b::FRAMESIZE_RAW / 2];
+        m_iso->readCDDA(m_currentPosition, reinterpret_cast<uint8_t *>(samples));
+        PCSX::g_emulator->m_cdromLogger->recordAccess(m_currentPosition.toLBA(), PCSX::CDRomLogger::AccessType::Data,
+                                                      PCSX::g_emulator->m_cpu->m_regs.cycle);
+        if (!m_muted) PCSX::g_emulator->m_spu->playCDDAchannel(samples, sizeof(samples));
+
+        // The peak's L/R flag toggles on every SubQ read, i.e. every sector.
+        m_peakFlag = !m_peakFlag;
+        const uint32_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_playStartCycle;
+        const bool settled = elapsed >= PCSX::psxRegisters::durationToCycles(750ms);
+        if (m_report && haveQ && settled) {
+            uint8_t frame = PCSX::IEC60908b::btoi(locP[7]);
+            if ((frame % 10) == 0) {
+                unsigned peak = 0;
+                for (unsigned i = m_peakFlag ? 1 : 0; i < std::size(samples); i += 2) {
+                    int s = samples[i];
+                    unsigned a = s < 0 ? -s : s;
+                    if (a > peak) peak = a;
+                }
+                if (peak > 0x7fff) peak = 0x7fff;
+                if (m_peakFlag) peak |= 0x8000;
+                QueueElement report;
+                report.pushPayloadData(getStatus());
+                report.pushPayloadData(locP[0]);
+                report.pushPayloadData(locP[1]);
+                if (((frame / 10) & 1) == 0) {
+                    report.pushPayloadData(locP[5]);
+                    report.pushPayloadData(locP[6]);
+                    report.pushPayloadData(locP[7]);
+                } else {
+                    report.pushPayloadData(locP[2]);
+                    report.pushPayloadData(locP[3] | 0x80);
+                    report.pushPayloadData(locP[4]);
+                }
+                report.pushPayloadData(peak & 0xff);
+                report.pushPayloadData(peak >> 8);
+                maybeTriggerIRQ(Cause::DataReady, report);
+            }
+        }
+        m_currentPosition++;
+        scheduleRead(computeReadDelay());
     }
 
     // Commands 4 and 5. Only valid while playing audio; otherwise the drive errors out.
@@ -850,6 +972,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
+        m_setLocPending = false;
         m_status = Status::Idle;
         scheduleRead(20ms);
         m_readingType = ReadingType::Normal;
@@ -904,6 +1027,10 @@ class CDRomImpl final : public PCSX::CDRom {
             m_status = Status::Idle;
             m_interruptCauseMask = 0x1f;
             m_readingState = ReadingState::None;
+            m_readingType = ReadingType::None;
+            m_setLocPending = false;
+            m_autoPause = false;
+            m_report = false;
             memset(m_lastLocP, 0, sizeof(m_lastLocP));
             // Probably need to cancel other scheduled tasks here.
             return true;
@@ -920,7 +1047,7 @@ class CDRomImpl final : public PCSX::CDRom {
     bool cdlMute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Mute - not yet implemented.\n");
+        m_muted = true;
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
@@ -932,7 +1059,7 @@ class CDRomImpl final : public PCSX::CDRom {
     bool cdlDemute(const QueueElement &command, bool start) {
         // TODO: probably should error out if no disc or
         // lid open?
-        PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Demute - not yet implemented.\n");
+        m_muted = false;
         QueueElement response;
         response.pushPayloadData(getStatus());
         maybeTriggerIRQ(Cause::Acknowledge, response);
@@ -972,7 +1099,9 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         m_subheaderFilter = (mode & 0x08) != 0;
         m_realtime = (mode & 0x40) != 0;
-        if (mode & 0x07) {
+        m_report = (mode & 0x04) != 0;
+        m_autoPause = (mode & 0x02) != 0;
+        if (mode & 0x01) {
             PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
             PCSX::g_system->pause();
         }
@@ -1045,6 +1174,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 21.
     bool cdlSeekL(const QueueElement &command, bool start) {
         m_readingState = ReadingState::None;
+        m_setLocPending = false;
         if (start) {
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -1082,6 +1212,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 22.
     bool cdlSeekP(const QueueElement &command, bool start) {
         m_readingState = ReadingState::None;
+        m_setLocPending = false;
         if (start) {
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -1186,7 +1317,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlSync,
         &CDRomImpl::cdlNop,
         &CDRomImpl::cdlSetLoc,
-        nullptr,  // 0
+        &CDRomImpl::cdlPlay,  // 0
         &CDRomImpl::cdlForward,
         &CDRomImpl::cdlBackward,
         &CDRomImpl::cdlReadN,

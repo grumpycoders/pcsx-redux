@@ -130,7 +130,15 @@ class CDRom {
         None,
         Normal,
         Streaming,
+        Play,
     } m_readingType = ReadingType::None;
+    bool m_autoPause = false;
+    bool m_report = false;
+    bool m_setLocPending = false;
+    bool m_muted = false;
+    bool m_peakFlag = false;
+    uint8_t m_playTrack = 0;
+    uint32_t m_playStartCycle = 0;
     enum class Status : uint8_t {
         Idle,
         ReadingData,
