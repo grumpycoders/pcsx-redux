@@ -832,6 +832,22 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
+    // Commands 4 and 5. Only valid while playing audio; otherwise the drive errors out.
+    bool cdlForward(const QueueElement &command, bool start) { return fastSkip(command, start); }
+    bool cdlBackward(const QueueElement &command, bool start) { return fastSkip(command, start); }
+    bool fastSkip(const QueueElement &command, bool start) {
+        if (m_status != Status::PlayingCDDA) {
+            maybeEnqueueError(1, 0x80);
+        } else {
+            // TODO: skip sectors while playing, once CdlPlay exists.
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+        }
+        maybeScheduleNextCommand();
+        return false;
+    }
+
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
         m_status = Status::Idle;
@@ -1171,8 +1187,8 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlNop,
         &CDRomImpl::cdlSetLoc,
         nullptr,  // 0
-        nullptr,
-        nullptr,
+        &CDRomImpl::cdlForward,
+        &CDRomImpl::cdlBackward,
         &CDRomImpl::cdlReadN,
         nullptr,  // 4
         nullptr,
