@@ -188,6 +188,9 @@
     <ClCompile Include="..\..\src\support\uvfile.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\support\network.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\support\zfile.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -91,6 +91,9 @@
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\network.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
