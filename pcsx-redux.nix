@@ -40,8 +40,8 @@ let
     ({
       owner = "grumpycoders";
       repo = "zep";
-      rev = "969ae7ea35ae583f215e6f3e724366e0815d58f9";
-      hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
+      rev = "1c107cbe1ed39e5d453cb5d9fb5811abfe644571";
+      hash = "sha256-n2N5/llbPAytHrXZLTjT7tA3q633Vz1i8yBj8WTlRmM=";
     })
     ({
       owner = "pcsx-redux";
