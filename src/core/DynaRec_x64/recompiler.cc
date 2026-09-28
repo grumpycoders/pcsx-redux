@@ -168,7 +168,7 @@ void DynaRecCPU::emitBlockLookup() {
         loadAddress(rax, m_recompilerLUT);
         gen.mov(rax, qword[rax + rcx * 8]);
     }
-    gen.jmp(qword[rax + rdx * 2]);  // Jump to block
+    gen.jmp(ptr[rax + rdx * 2]);  // Jump to block
 }
 
 void DynaRecCPU::emitDispatcher() {
