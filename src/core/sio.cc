@@ -33,7 +33,13 @@
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
 
-PCSX::SIO::SIO() { reset(); }
+PCSX::SIO::SIO() : m_listener(g_system->m_eventBus) {
+    m_listener.listen<Events::ExecutionFlow::SaveStateLoaded>([this](const auto &) {
+        m_psxCycleValid = false;
+        m_wallClockValid = false;
+    });
+    reset();
+}
 
 // ARM7 cycle-delta catch-up, driven from R3000Acpu::branchTest() (the inter-burst boundary). Reads
 // the R3000A cycle delta since the last catch-up, scales it by the ARM/PSX clock ratio, and runs

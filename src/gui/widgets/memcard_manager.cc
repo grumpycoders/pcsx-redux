@@ -184,7 +184,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
     {
         auto biosPath = g_emulator->settings.get<Emulator::SettingPocketstationBios>().string();
         ImGui::InputText(_("Pocketstation BIOS"), const_cast<char*>(reinterpret_cast<const char*>(biosPath.c_str())),
-                         biosPath.length(), ImGuiInputTextFlags_ReadOnly);
+                         biosPath.length() + 1, ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         if (ImGui::Button("...##pocketstationBios")) {
             auto& browsePath = g_emulator->settings.get<Emulator::SettingBiosBrowsePath>();

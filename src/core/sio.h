@@ -294,6 +294,9 @@ class SIO {
     // starve the device. (Declaration is in the public section above.)
     uint64_t m_lastPsxCycle = 0;   // R3000A cycle at the previous catch-up (now advanced fully to now).
     bool m_psxCycleValid = false;  // false until the first catch-up after a reset re-syncs the anchor.
+    // A savestate load can move the cycle counter forward as well as back; drop the anchor so the
+    // next catch-up re-syncs instead of running the whole jump through the ARM7.
+    EventBus::Listener m_listener;
     // Per-device PSX-cycle catch-up remainder, accumulated in (PSX-cycle * armHz) units. Carrying the
     // fraction per device (rather than a single shared anchor) is what lets each docked PocketStation
     // convert at its OWN live CLK_MODE.FREQ clock while never discarding a sub-1-ARM-cycle delta.
