@@ -214,9 +214,9 @@ class CDRomImpl final : public PCSX::CDRom {
                     if ((buffer[3] == 2) && (m_realtime || m_subheaderFilter)) {
                         PCSX::IEC60908b::SubHeaders subHeaders;
                         subHeaders.fromBuffer(buffer + 4);
-                        // With RT or SF set, XA audio sectors never reach the host as data, whatever the
-                        // filter says; Form 2 data sectors still do (#6, SCPH-9002, 2026-09-28).
-                        if (subHeaders.isAudio() && (m_subheaderFilter || subHeaders.isRealTime())) {
+                        // With RT or SF set, real-time audio sectors never reach the host as data, whatever the
+                        // filter says; Form 2 data and audio without the RT submode bit still do (SCPH-9002).
+                        if (subHeaders.isAudio() && subHeaders.isRealTime()) {
                             passToData = false;
                             if (m_realtime) playXASector(buffer + 4, subHeaders);
                         }
