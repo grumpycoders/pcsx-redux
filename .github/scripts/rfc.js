@@ -73,45 +73,54 @@ function indexBody(owner, repo, rows) {
         rows.map((r) => `| #${r.number} ${r.title.replace(/\|/g, '\\|').replace(/@/g, '&#64;')} | ${r.notBefore ? stamp(r.notBefore) : 'unknown'} |`).join('\n') + '\n';
 }
 
-async function run({ github, context, core, now = Date.now(), stakeholdersText }) {
-    const { owner, repo } = context.repo;
-    const target = `https://github.com/${owner}/${repo}/blob/main/RFC.md`;
-    const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-    const rows = [];
+// Pull requests can share a head commit, and a commit has one status per
+// context, so a failing verdict for any of them wins.
+function worst(a, b) {
+    return !a || (b.state === 'failure' && a.state !== 'failure') ? b : a;
+}
 
+async function evaluate(github, owner, repo, prs, now) {
+    const rows = [];
+    const bySha = new Map();
     for (const pr of prs) {
         const labels = pr.labels.map((l) => l.name);
-        const events = labels.includes(LABEL)
+        const isRfc = labels.includes(LABEL);
+        const events = isRfc
             ? await github.paginate(github.rest.issues.listEvents, { owner, repo, issue_number: pr.number, per_page: 100 })
             : [];
         const v = verdict(labels, events, now);
-        if (labels.includes(LABEL)) rows.push({ number: pr.number, title: pr.title, notBefore: v.notBefore });
+        if (isRfc) rows.push({ number: pr.number, title: pr.title, notBefore: v.notBefore });
+        bySha.set(pr.head.sha, worst(bySha.get(pr.head.sha), v));
+    }
+    return { rows, bySha };
+}
 
-        const { data: current } = await github.rest.repos.listCommitStatusesForRef({
-            owner, repo, ref: pr.head.sha, per_page: 100,
-        });
+async function publishStatuses(github, core, owner, repo, bySha, target) {
+    for (const [sha, v] of bySha) {
+        const { data: current } = await github.rest.repos.listCommitStatusesForRef({ owner, repo, ref: sha, per_page: 100 });
         const last = current.find((s) => s.context === CONTEXT);
         if (last && last.state === v.state && last.description === v.description) continue;
         await github.rest.repos.createCommitStatus({
-            owner, repo, sha: pr.head.sha, state: v.state, context: CONTEXT, description: v.description, target_url: target,
+            owner, repo, sha, state: v.state, context: CONTEXT, description: v.description, target_url: target,
         });
-        core.info(`#${pr.number}: ${v.state}, ${v.description}`);
+        core.info(`${sha.slice(0, 7)}: ${v.state}, ${v.description}`);
     }
+}
 
-    const payload = context.payload;
-    if (context.eventName === 'pull_request_target' && payload.action === 'labeled' && payload.label.name === LABEL) {
-        const pr = payload.pull_request;
-        const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 }))
-            .map((f) => f.filename);
-        const text = stakeholdersText !== undefined ? stakeholdersText : readStakeholders();
-        const who = stakeholders(parseStakeholders(text), files, pr.user.login);
-        const row = rows.find((r) => r.number === pr.number);
-        const body = `This is now an RFC: it cannot merge before ${row && row.notBefore ? stamp(row.notBefore) : 'the window closes'}, ` +
-            'so anyone who depends on what it changes has a week to comment. See [RFC.md](' + target + ').' +
-            (who.length ? '\n\n' + who.map((h) => '@' + h).join(' ') + ', this touches code you depend on.' : '');
-        await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
-    }
+async function announce(github, owner, repo, pr, rows, target, stakeholdersText) {
+    const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 }))
+        .map((f) => f.filename);
+    const text = stakeholdersText !== undefined ? stakeholdersText : readStakeholders();
+    const who = stakeholders(parseStakeholders(text), files, pr.user.login);
+    const row = rows.find((r) => r.number === pr.number);
+    const when = row && row.notBefore ? stamp(row.notBefore) : 'the window closes';
+    const body = `This is now an RFC: it cannot merge before ${when}, ` +
+        'so anyone who depends on what it changes has a week to comment. See [RFC.md](' + target + ').' +
+        (who.length ? '\n\n' + who.map((h) => '@' + h).join(' ') + ', this touches code you depend on.' : '');
+    await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+}
 
+async function updateIndex(github, core, owner, repo, rows) {
     const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
     const index = issues.find((i) => !i.pull_request && i.title === INDEX_TITLE);
     const body = indexBody(owner, repo, rows);
@@ -120,6 +129,19 @@ async function run({ github, context, core, now = Date.now(), stakeholdersText }
     } else if (index.body !== body) {
         await github.rest.issues.update({ owner, repo, issue_number: index.number, body });
     }
+}
+
+async function run({ github, context, core, now = Date.now(), stakeholdersText }) {
+    const { owner, repo } = context.repo;
+    const target = `https://github.com/${owner}/${repo}/blob/main/RFC.md`;
+    const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+    const { rows, bySha } = await evaluate(github, owner, repo, prs, now);
+    await publishStatuses(github, core, owner, repo, bySha, target);
+    const payload = context.payload;
+    if (context.eventName === 'pull_request_target' && payload.action === 'labeled' && payload.label.name === LABEL) {
+        await announce(github, owner, repo, payload.pull_request, rows, target, stakeholdersText);
+    }
+    await updateIndex(github, core, owner, repo, rows);
 }
 
 module.exports = { run, verdict, labeledAt, parseStakeholders, readStakeholders, stakeholders, indexBody, WINDOW_MS };

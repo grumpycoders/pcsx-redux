@@ -108,3 +108,25 @@ test('index escapes mentions in titles', () => {
     assert.ok(!body.includes('@someone'));
     assert.match(body, /&#64;someone \\\| x/);
 });
+
+test('a shared head commit gets the failing verdict', async () => {
+    const statuses = [];
+    const prs = [
+        { number: 1, title: 'a', labels: [{ name: 'rfc' }], head: { sha: 'same' }, user: { login: 'x' } },
+        { number: 2, title: 'b', labels: [], head: { sha: 'same' }, user: { login: 'x' } },
+    ];
+    const github = {
+        paginate: async (fn, args) => fn(args),
+        rest: {
+            pulls: { list: () => prs },
+            issues: { listEvents: () => [on(t0)], listForRepo: () => [] },
+            repos: {
+                listCommitStatusesForRef: async () => ({ data: [] }),
+                createCommitStatus: async (a) => statuses.push([a.sha, a.state]),
+            },
+        },
+    };
+    const context = { repo: { owner: 'o', repo: 'r' }, eventName: 'schedule', payload: {} };
+    await rfc.run({ github, context, core: { info() {}, warning() {} }, now: t0 + DAY });
+    assert.deepStrictEqual(statuses, [['same', 'failure']]);
+});
