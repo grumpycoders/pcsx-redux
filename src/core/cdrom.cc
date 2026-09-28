@@ -927,8 +927,9 @@ class CDRomImpl final : public PCSX::CDRom {
                 PCSX::g_emulator->m_spu->playADPCMchannel(&m_xa);
             }
         }
-        // An end-of-file sector stops ADPCM playback, with no interrupt; reading carries on.
-        if (subHeaders.isEOF()) m_xaEnded = true;
+        // A sector with both EOF and EOR stops ADPCM playback, with no interrupt; reading carries on.
+        // EOF alone or EOR alone does not (#6, SCPH-9002).
+        if (subHeaders.isEOF() && subHeaders.isEndOfRecord()) m_xaEnded = true;
     }
 
     void startPlaying() {
