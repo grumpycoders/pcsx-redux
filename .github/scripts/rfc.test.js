@@ -49,10 +49,11 @@ test('stakeholders by path, author left out', () => {
 });
 
 test('the real stakeholders file parses', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const rules = rfc.parseStakeholders(fs.readFileSync(path.join(__dirname, '..', 'rfc-stakeholders'), 'utf8'));
-    assert.deepStrictEqual(rfc.stakeholders(rules, ['src/core/sstate.cc'], 'x'), ['nicolasnoble']);
+    for (const { pattern, handles } of rfc.parseStakeholders(rfc.readStakeholders())) {
+        assert.ok(pattern.length > 0);
+        assert.ok(handles.length > 0, `${pattern} names nobody`);
+        handles.forEach((h) => assert.match(h, /^[A-Za-z0-9-]+$/));
+    }
 });
 
 test('run sets statuses, comments on labeling, rewrites the index', async () => {
@@ -90,13 +91,13 @@ test('run sets statuses, comments on labeling, rewrites the index', async () => 
         payload: { action: 'labeled', label: { name: 'rfc' }, pull_request: prs[0] },
     };
     const core = { info() {}, warning() {} };
-    await rfc.run({ github, context, core, now: t0 + DAY });
+    await rfc.run({ github, context, core, now: t0 + DAY, stakeholdersText: '* @nicolasnoble\nmonitor/ @spicyjpeg\n' });
 
     const statuses = calls.filter((c) => c[0] === 'status').map((c) => [c[1].sha, c[1].state]);
     assert.deepStrictEqual(statuses, [['aaa', 'failure'], ['bbb', 'success']]);
     const comment = calls.find((c) => c[0] === 'comment')[1];
     assert.match(comment.body, /2026-09-08 12:00 UTC/);
-    assert.match(comment.body, /@nicolasnoble,/);
+    assert.match(comment.body, /@nicolasnoble @spicyjpeg/);
     const update = calls.find((c) => c[0] === 'update')[1];
     assert.strictEqual(update.issue_number, 47);
     assert.match(update.body, /\| #37 monitor: protocol v3 \| 2026-09-08 12:00 UTC \|/);

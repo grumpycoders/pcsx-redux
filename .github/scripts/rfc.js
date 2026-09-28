@@ -59,6 +59,10 @@ function stakeholders(rules, files, author) {
     return [...out];
 }
 
+function readStakeholders() {
+    return fs.readFileSync(path.join(__dirname, '..', 'rfc-stakeholders'), 'utf8');
+}
+
 function indexBody(owner, repo, rows) {
     const head = 'Pull requests carrying the `rfc` label and the earliest time each can merge. ' +
         `The RFC workflow rewrites this issue, see [RFC.md](https://github.com/${owner}/${repo}/blob/main/RFC.md). ` +
@@ -69,7 +73,7 @@ function indexBody(owner, repo, rows) {
         rows.map((r) => `| #${r.number} ${r.title.replace(/\|/g, '\\|')} | ${r.notBefore ? stamp(r.notBefore) : 'unknown'} |`).join('\n') + '\n';
 }
 
-async function run({ github, context, core, now = Date.now() }) {
+async function run({ github, context, core, now = Date.now(), stakeholdersText }) {
     const { owner, repo } = context.repo;
     const target = `https://github.com/${owner}/${repo}/blob/main/RFC.md`;
     const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
@@ -99,7 +103,7 @@ async function run({ github, context, core, now = Date.now() }) {
         const pr = payload.pull_request;
         const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 }))
             .map((f) => f.filename);
-        const text = fs.readFileSync(path.join(__dirname, '..', 'rfc-stakeholders'), 'utf8');
+        const text = stakeholdersText !== undefined ? stakeholdersText : readStakeholders();
         const who = stakeholders(parseStakeholders(text), files, pr.user.login);
         const row = rows.find((r) => r.number === pr.number);
         const body = `This is now an RFC: it cannot merge before ${row && row.notBefore ? stamp(row.notBefore) : 'the window closes'}, ` +
@@ -118,4 +122,4 @@ async function run({ github, context, core, now = Date.now() }) {
     }
 }
 
-module.exports = { run, verdict, labeledAt, parseStakeholders, stakeholders, indexBody, WINDOW_MS };
+module.exports = { run, verdict, labeledAt, parseStakeholders, readStakeholders, stakeholders, indexBody, WINDOW_MS };
