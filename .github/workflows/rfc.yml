@@ -16,8 +16,10 @@ permissions:
   pull-requests: write
   statuses: write
 
+# A labeled run posts the announcement, so it gets its own group: a pending
+# run in a shared group is replaced by the next one and would be lost.
 concurrency:
-  group: rfc
+  group: ${{ github.event.action == 'labeled' && format('rfc-labeled-{0}', github.run_id) || 'rfc' }}
   cancel-in-progress: false
 
 jobs:
