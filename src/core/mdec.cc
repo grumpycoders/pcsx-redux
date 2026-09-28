@@ -278,7 +278,7 @@ void PCSX::MDEC::real_idct(int *block) {
             for (int y = 0; y < 8; y++) {
                 int64_t sum = 0;
                 for (int z = 0; z < 8; z++) {
-                    sum += static_cast<int64_t>(src[y + z * 8]) * (scaletable[x + z * 8] / 8);
+                    sum += static_cast<int64_t>(src[y + z * 8]) * (scaletable[x + z * 8] >> 3);
                 }
                 int v = static_cast<int>((sum + 0xfff) >> 13);
                 // The second pass leaves psx-spx's pixel-domain result, but the
@@ -288,7 +288,7 @@ void PCSX::MDEC::real_idct(int *block) {
                 // hands yuv2rgb values about 1024x too small and every macroblock
                 // collapses to flat mid-grey - which reads exactly like the scale
                 // table being ignored, and is not.
-                if (pass == 1) v <<= 10;
+                if (pass == 1) v *= 1024;
                 dst[x + y * 8] = v;
             }
         }
