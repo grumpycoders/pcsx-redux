@@ -133,8 +133,9 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             }
 
             SDLAudio::Frame f;
+            // Mono XA plays on both sides.
             int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
-            int16_t rawSampleR = static_cast<int16_t>(l >> 16);
+            int16_t rawSampleR = rawSampleL;
             // Write the CD-XA samples (left/right) to a temporary buffer. Wrap around if necessary.
             if (mixIrqAddress) {
                 captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
