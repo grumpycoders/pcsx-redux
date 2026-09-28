@@ -1,0 +1,8 @@
+# Who is mentioned when the rfc label goes on a pull request, by the paths it
+# touches. One pattern per line, then the GitHub handles to mention.
+#   *          every change
+#   dir/       anything under dir
+#   path       that exact file
+# The pull request's author is never mentioned.
+
+*   @nicolasnoble
