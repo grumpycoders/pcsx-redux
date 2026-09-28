@@ -423,6 +423,16 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     for (unsigned i = 0; i < 64; i++) {
         iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
         iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+    }
+    // Fields 12-15 were added without a version bump. A state from before them
+    // deserialises zero elements into the repeated fields, which would otherwise
+    // leave all-zero quant tables and a zero scale matrix.
+    if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
+        mdecSave.get<MDECScaleTable>().count == 0) {
+        standardTables_init();
+        return;
+    }
+    for (unsigned i = 0; i < 64; i++) {
         qt_y[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
         qt_uv[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
         scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);

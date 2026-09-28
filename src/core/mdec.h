@@ -123,6 +123,7 @@ class MDEC {
     void yuv2rgb15(int *blk, unsigned short *image);
     void iqtab_init(int *iqtab, unsigned char *iq_y);
     void scaletable_init();
+    void standardTables_init();
     void real_idct(int *block);
     unsigned short *rl2blk(int *blk, unsigned short *mdec_rl);
 };

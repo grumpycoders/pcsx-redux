@@ -28,6 +28,7 @@
 #include "core/logger.h"
 #include "core/system.h"
 #include "core/psxemulator.h"
+#include "supportpsx/dct.h"
 
 #define AAN_CONST_BITS 12
 #define AAN_PRESCALE_BITS 16
@@ -257,6 +258,18 @@ void PCSX::MDEC::scaletable_init() {
     memset(scaletable, 0, sizeof(scaletable));
     customScaleTable = true;  // an all-zero matrix is not the standard one
     scaleTableUploaded = false;
+    warnedNoScaleTable = false;
+}
+
+void PCSX::MDEC::standardTables_init() {
+    // For save states written before the raw quant tables and the scale matrix
+    // were serialised. Those emulators always decoded with the standard matrix,
+    // and the standard quant table is what nearly every game uploads.
+    memcpy(qt_y, PCSX::DCT::standardQuantTable(), sizeof(qt_y));
+    memcpy(qt_uv, PCSX::DCT::standardQuantTable(), sizeof(qt_uv));
+    memcpy(scaletable, c_standardScaleTable, sizeof(scaletable));
+    customScaleTable = false;
+    scaleTableUploaded = true;
     warnedNoScaleTable = false;
 }
 
