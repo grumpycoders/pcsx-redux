@@ -1560,7 +1560,8 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
   -o output.o    tries to dump the parsed psyq LNK file into an ELF file;
                  can only work with a single input file.
   -b             outputs a big-endian ELF file.
-  -c             converts comm symbols into .bss symbols
+  -c             enables use of ELF COMMON section;
+                 by default .comm symbols are converted to local BSS symbols.
 )",
                    argv[0]);
         return -1;
@@ -1576,7 +1577,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
             fmt::print(stderr, "Unable to open file: {}\n", input);
             ret = -2;
         } else {
-            auto psyq = PsyqLnkFile::parse(file, verbose, !!args.get<bool>("s"), !!args.get<bool>("c"));
+            auto psyq = PsyqLnkFile::parse(file, verbose, !!args.get<bool>("s"), !args.get<bool>("c"));
             if (!psyq) {
                 ret = -3;
             } else {
