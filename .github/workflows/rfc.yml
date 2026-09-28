@@ -1,0 +1,36 @@
+name: RFC
+
+# Keeps the rfc-moratorium status and the pinned Open RFCs issue current. See
+# RFC.md. The hourly run is what turns the status green once a window closes.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled, unlabeled, closed]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: rfc
+  cancel-in-progress: false
+
+jobs:
+  moratorium:
+    runs-on: ubuntu-latest
+    steps:
+      # This checks out the base branch. The job holds a write token, so it
+      # must never check out or run anything from the pull request.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await require('./.github/scripts/rfc.js').run({ github, context, core });

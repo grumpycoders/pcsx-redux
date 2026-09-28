@@ -1,0 +1,121 @@
+'use strict';
+
+// Sets the rfc-moratorium commit status on open pull requests and rewrites
+// the pinned "Open RFCs" issue. Run by .github/workflows/rfc.yml; see RFC.md.
+
+const fs = require('fs');
+const path = require('path');
+
+const LABEL = 'rfc';
+const CONTEXT = 'rfc-moratorium';
+const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const INDEX_TITLE = 'Open RFCs';
+
+function stamp(ms) {
+    return new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+}
+
+// When the rfc label was last applied, from the issue events, or null.
+function labeledAt(events) {
+    let at = null;
+    for (const e of events) {
+        if (e.event !== 'labeled' || !e.label || e.label.name !== LABEL) continue;
+        const t = Date.parse(e.created_at);
+        if (at === null || t > at) at = t;
+    }
+    return at;
+}
+
+function verdict(labels, events, now) {
+    if (!labels.includes(LABEL)) return { state: 'success', description: 'Not an RFC' };
+    const at = labeledAt(events);
+    if (at === null) return { state: 'failure', description: 'Labeled rfc, but no labeled event found' };
+    const notBefore = at + WINDOW_MS;
+    if (now < notBefore) {
+        return { state: 'failure', description: `RFC window open, merge not before ${stamp(notBefore)}`, notBefore };
+    }
+    return { state: 'success', description: `RFC window closed ${stamp(notBefore)}`, notBefore };
+}
+
+function parseStakeholders(text) {
+    const rules = [];
+    for (const raw of text.split('\n')) {
+        const line = raw.replace(/#.*/, '').trim();
+        if (!line) continue;
+        const [pattern, ...handles] = line.split(/\s+/);
+        rules.push({ pattern, handles: handles.map((h) => h.replace(/^@/, '')) });
+    }
+    return rules;
+}
+
+function stakeholders(rules, files, author) {
+    const out = new Set();
+    for (const { pattern, handles } of rules) {
+        const hit = files.some((f) =>
+            pattern === '*' || (pattern.endsWith('/') ? f.startsWith(pattern) : f === pattern));
+        if (hit) handles.forEach((h) => out.add(h));
+    }
+    out.delete(author);
+    return [...out];
+}
+
+function indexBody(owner, repo, rows) {
+    const head = 'Pull requests carrying the `rfc` label and the earliest time each can merge. ' +
+        `The RFC workflow rewrites this issue, see [RFC.md](https://github.com/${owner}/${repo}/blob/main/RFC.md). ` +
+        'Comment on the pull request itself.\n\n';
+    if (rows.length === 0) return head + 'No open RFCs.\n';
+    rows.sort((a, b) => a.notBefore - b.notBefore);
+    return head + '| Pull request | Merge not before |\n|---|---|\n' +
+        rows.map((r) => `| #${r.number} ${r.title.replace(/\|/g, '\\|')} | ${r.notBefore ? stamp(r.notBefore) : 'unknown'} |`).join('\n') + '\n';
+}
+
+async function run({ github, context, core, now = Date.now() }) {
+    const { owner, repo } = context.repo;
+    const target = `https://github.com/${owner}/${repo}/blob/main/RFC.md`;
+    const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
+    const rows = [];
+
+    for (const pr of prs) {
+        const labels = pr.labels.map((l) => l.name);
+        const events = labels.includes(LABEL)
+            ? await github.paginate(github.rest.issues.listEvents, { owner, repo, issue_number: pr.number, per_page: 100 })
+            : [];
+        const v = verdict(labels, events, now);
+        if (labels.includes(LABEL)) rows.push({ number: pr.number, title: pr.title, notBefore: v.notBefore });
+
+        const { data: current } = await github.rest.repos.listCommitStatusesForRef({
+            owner, repo, ref: pr.head.sha, per_page: 100,
+        });
+        const last = current.find((s) => s.context === CONTEXT);
+        if (last && last.state === v.state && last.description === v.description) continue;
+        await github.rest.repos.createCommitStatus({
+            owner, repo, sha: pr.head.sha, state: v.state, context: CONTEXT, description: v.description, target_url: target,
+        });
+        core.info(`#${pr.number}: ${v.state}, ${v.description}`);
+    }
+
+    const payload = context.payload;
+    if (context.eventName === 'pull_request_target' && payload.action === 'labeled' && payload.label.name === LABEL) {
+        const pr = payload.pull_request;
+        const files = (await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 }))
+            .map((f) => f.filename);
+        const text = fs.readFileSync(path.join(__dirname, '..', 'rfc-stakeholders'), 'utf8');
+        const who = stakeholders(parseStakeholders(text), files, pr.user.login);
+        const row = rows.find((r) => r.number === pr.number);
+        const body = `This is now an RFC: it cannot merge before ${row && row.notBefore ? stamp(row.notBefore) : 'the window closes'}, ` +
+            'so anyone who depends on what it changes has a week to comment. See [RFC.md](' + target + ').' +
+            (who.length ? '\n\n' + who.map((h) => '@' + h).join(' ') + ', this touches code you depend on.' : '');
+        await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+    }
+
+    const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+    const index = issues.find((i) => !i.pull_request && i.title === INDEX_TITLE);
+    const body = indexBody(owner, repo, rows);
+    if (!index) {
+        core.warning(`No open issue titled "${INDEX_TITLE}", so no index to update.`);
+    } else if (index.body !== body) {
+        await github.rest.issues.update({ owner, repo, issue_number: index.number, body });
+    }
+}
+
+module.exports = { run, verdict, labeledAt, parseStakeholders, stakeholders, indexBody, WINDOW_MS };
