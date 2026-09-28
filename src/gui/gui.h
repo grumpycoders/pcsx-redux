@@ -34,7 +34,6 @@
 
 #include "core/system.h"
 #include "core/ui.h"
-#include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"

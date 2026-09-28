@@ -16,6 +16,7 @@ list of the libraries used by PCSX-Redux. Some of them have been
 vendored with modifications. If this is the case, you will also
 find a link to the vendored version itself.
 
+ - [args](https://github.com/Taywee/args)
  - [arith64](https://github.com/glitchub/arith64) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/arith64))
  - [Capstone](https://github.com/capstone-engine/capstone)
  - [Clip](https://github.com/dacap/clip) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/clip))
@@ -25,7 +26,6 @@ find a link to the vendored version itself.
  - [expected](https://github.com/TartanLlama/expected)
  - [ffi-reflect](https://github.com/corsix/ffi-reflect) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/ffi-reflect))
  - [FFmpeg](https://ffmpeg.org)
- - [flags](https://github.com/sailormoon/flags) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/flags.h))
  - [fmt](https://github.com/fmtlib/fmt)
  - [FreeType](https://gitlab.freedesktop.org/freetype/freetype.git)
  - [gl3w](https://github.com/skaslev/gl3w) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/gl3w/GL))

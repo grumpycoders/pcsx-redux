@@ -27,9 +27,10 @@
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "supportpsx/midi-converter.h"
 
 
@@ -1308,13 +1309,22 @@ bool ConvertContext::writeSplit(const char* musicFile, const char* sampleFile, c
 // ============================================================================
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
-    const auto soundfont = args.get<std::string>("s");
-    const auto maxVoicesOpt = args.get<unsigned>("v");
-    const auto sampleOutput = args.get<std::string>("i");
-    const auto reverbOpt = args.get<std::string>("r");
-    const auto maxLayersOpt = args.get<unsigned>("l");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> soundfontFlag(parser, "soundfont", "", {"s"});
+    args::ValueFlag<unsigned> maxVoicesFlag(parser, "maxvoices", "", {"v"});
+    args::ValueFlag<std::string> sampleOutputFlag(parser, "samples", "", {"i"});
+    args::ValueFlag<std::string> reverbFlag(parser, "reverb", "", {"r"});
+    args::ValueFlag<unsigned> maxLayersFlag(parser, "maxlayers", "", {"l"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
+    const auto soundfont = PCSX::ToolArgs::get(soundfontFlag);
+    const auto maxVoicesOpt = PCSX::ToolArgs::get(maxVoicesFlag);
+    const auto sampleOutput = PCSX::ToolArgs::get(sampleOutputFlag);
+    const auto reverbOpt = PCSX::ToolArgs::get(reverbFlag);
+    const auto maxLayersOpt = PCSX::ToolArgs::get(maxLayersFlag);
 
     fmt::print(R"(
 midi2spd - MIDI to SPUDUMP converter
@@ -1322,8 +1332,8 @@ Part of PCSX-Redux - https://github.com/grumpycoders/pcsx-redux
 
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
     const bool hasSoundfont = soundfont.has_value();
     const bool oneInput = inputs.size() == 1;

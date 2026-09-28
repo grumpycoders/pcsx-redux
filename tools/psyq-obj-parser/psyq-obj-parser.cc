@@ -24,8 +24,8 @@
 #include <string>
 #include <string_view>
 
+#include "args/args.hxx"
 #include "elfio/elfio.hpp"
-#include "flags.h"
 #include "fmt/format.h"
 #include <magic_enum/magic_enum_all.hpp>
 #include "support/djbhash.h"
@@ -33,6 +33,7 @@
 #include "support/list.h"
 #include "support/tree.h"
 #include "support/slice.h"
+#include "support/tool-args.h"
 #include "support/windowswrapper.h"
 
 #define SHF_MIPS_GPREL 0x10000000
@@ -1515,11 +1516,21 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
 }
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> prefixFlag(parser, "prefix", "", {"p"});
+    args::Flag verboseFlag(parser, "verbose", "", {"v"});
+    args::Flag displayFlag(parser, "display", "", {"d"});
+    args::Flag noneAbiFlag(parser, "none", "", {"n"});
+    args::Flag sortFlag(parser, "sort", "", {"s"});
+    args::Flag bigEndianFlag(parser, "bigendian", "", {"b"});
+    args::Flag helpFlag(parser, "help", "", {"h", "help"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    auto output = PCSX::ToolArgs::get(outputFlag);
 
-    auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h") || args.get<bool>("help");
+    auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool noInput = inputs.size() == 0;
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
@@ -1541,7 +1552,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
         return -1;
     }
 
-    bool verbose = !!args.get<bool>("v");
+    bool verbose = args::get(verboseFlag);
 
     int ret = 0;
 
@@ -1551,20 +1562,20 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
             fmt::print(stderr, "Unable to open file: {}\n", input);
             ret = -2;
         } else {
-            auto psyq = PsyqLnkFile::parse(file, verbose, !!args.get<bool>("s"));
+            auto psyq = PsyqLnkFile::parse(file, verbose, args::get(sortFlag));
             if (!psyq) {
                 ret = -3;
             } else {
-                if (args.get<bool>("d").value_or(false)) {
+                if (args::get(displayFlag)) {
                     fmt::print(":: Displaying {}\n", input);
                     psyq->display();
                     fmt::print("\n\n\n");
                 }
                 if (hasOutput) {
                     fmt::print(":: Converting {} to {}...\n", input, output.value());
-                    std::string prefix = args.get<std::string>("p").value_or("");
-                    bool success = psyq->writeElf(prefix, output.value(), !!args.get<bool>("n"),
-                                                  !!args.get<bool>("b"));
+                    std::string prefix = PCSX::ToolArgs::get(prefixFlag).value_or("");
+                    bool success =
+                        psyq->writeElf(prefix, output.value(), args::get(noneAbiFlag), args::get(bigEndianFlag));
                     if (success) {
                         fmt::print(":: Conversion completed.\n");
                     } else {

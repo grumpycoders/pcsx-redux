@@ -169,6 +169,7 @@
     <ClInclude Include="..\..\src\support\opengl.h" />
     <ClInclude Include="..\..\src\support\stream-file.h" />
     <ClInclude Include="..\..\src\support\strings-helpers.h" />
+    <ClInclude Include="..\..\src\support\tool-args.h" />
     <ClInclude Include="..\..\src\support\protobuf.h" />
     <ClInclude Include="..\..\src\support\settings.h" />
     <ClInclude Include="..\..\src\support\sharedmem.h" />
