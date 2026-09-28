@@ -72,11 +72,6 @@ from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
     const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
-    ImGuiHelpers::ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
-in sync, by changing its pitch. Consumes more CPU.)"));
-    ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
-for the main CPU to acknowledge it. Fixes issues
-with some games, but slows SPU processing.)"));
     const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
                                          _("Gaussian interpolation - good quality"),
                                          _("Cubic interpolation - better treble")};
@@ -84,8 +79,6 @@ with some games, but slows SPU processing.)"));
                             IM_ARRAYSIZE(interpolationValues));
     changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
     ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
-    ImGuiHelpers::ShowHelpMarker(
-        _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
     changed |= ImGui::InputInt(_("Speed multiplier"), &settings.get<Speed>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Emulation speed, applied at the audio sink (the master clock).
 1 = realtime, N = N times faster. Frames are skipped, not resampled, so pitch is preserved.
