@@ -110,18 +110,18 @@ class GPU {
     // A detached GPU is an extra instance that is not wired to the emulated machine, such as the one
     // used to play back GPU dumps. It raises no interrupts, touches no emulator settings, and logs
     // into its own GPULogger instead of the global one.
-    void detach(GPULogger* logger) {
+    void detach(GPULogger *logger) {
         m_detached = true;
         m_logger = logger;
     }
     bool isDetached() const { return m_detached; }
-    void setDumper(GPUDumper* dumper) { m_dumper = dumper; }
+    void setDumper(GPUDumper *dumper) { m_dumper = dumper; }
     // True when no GP0 command is partially received, so a dump can start cleanly.
     bool isIdle() const { return m_processor == &m_defaultProcessor; }
     // The last word written for a given GP1 command.
     uint32_t getStatusControl(uint8_t cmd) const { return m_statusControl[cmd]; }
     // Words that bring a freshly reset GPU to the current state, VRAM excluded.
-    void getRestoreSequence(std::vector<uint32_t>& gp0, std::vector<uint32_t>& gp1) const;
+    void getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const;
 
     bool m_showCfg = false;
     bool m_showDebug = false;
@@ -253,8 +253,8 @@ class GPU {
     uint32_t m_statusControl[256];
     uint32_t m_envRaw[7];
     bool m_detached = false;
-    GPULogger* m_logger = nullptr;
-    GPUDumper* m_dumper = nullptr;
+    GPULogger *m_logger = nullptr;
+    GPUDumper *m_dumper = nullptr;
 
     class Buffer {
       public:

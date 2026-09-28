@@ -44,8 +44,7 @@ typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
 // it is the latency itself or is absorbing a rounding error in cycleToSample() is still open. It applies
 // to the mixer and to the reconstructed ENVX alike; override via Lua to characterize the offset.
 typedef Setting<int, TYPESTRING("KeyOnDelay"), 6> KeyOnDelay;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute,
-                 Speed, KeyOnDelay>
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, KeyOnDelay>
     SettingsType;
 
 }  // namespace SPU

@@ -36,11 +36,10 @@ SOFTWARE.
 
 #include "json.hpp"
 #include "support/file.h"
-#include "support/version-info.h"
 #include "support/uvfile.h"
+#include "support/version-info.h"
 
 namespace PCSX {
-
 
 class Update {
   public:

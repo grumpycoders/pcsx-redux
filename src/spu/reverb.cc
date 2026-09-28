@@ -17,21 +17,19 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <cstdint>
-
 #include "spu/reverb.h"
 
 #include <string.h>
 
 #include <algorithm>
+#include <cstdint>
 
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl) {
-    voice->data.get<Chan::RVBActive>().value =
-        voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable);
+    voice->data.get<Chan::RVBActive>().value = voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -72,7 +70,6 @@ void PCSX::SPU::ReverbUnit::setBuffer(int offset, int value, uint16_t *spuMem) {
         static_cast<int16_t>(std::clamp(value, -32768, 32767));
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 
 namespace {
@@ -86,11 +83,9 @@ namespace {
 // The INTERPOLATING direction therefore divides by 0x4000. Getting those two the same
 // way round would present as a plausible 2x gain error rather than as a filter fault.
 constexpr int kFir[39] = {
-    -0x0001, 0x0000,  0x0002, 0x0000, -0x000A, 0x0000,  0x0023, 0x0000,
-    -0x0067, 0x0000,  0x010A, 0x0000, -0x0268, 0x0000,  0x0534, 0x0000,
-    -0x0B90, 0x0000,  0x2806, 0x4000,  0x2806, 0x0000, -0x0B90, 0x0000,
-     0x0534, 0x0000, -0x0268, 0x0000,  0x010A, 0x0000, -0x0067, 0x0000,
-     0x0023, 0x0000, -0x000A, 0x0000,  0x0002, 0x0000, -0x0001,
+    -0x0001, 0x0000, 0x0002, 0x0000,  -0x000A, 0x0000, 0x0023, 0x0000, -0x0067, 0x0000,  0x010A, 0x0000, -0x0268,
+    0x0000,  0x0534, 0x0000, -0x0B90, 0x0000,  0x2806, 0x4000, 0x2806, 0x0000,  -0x0B90, 0x0000, 0x0534, 0x0000,
+    -0x0268, 0x0000, 0x010A, 0x0000,  -0x0067, 0x0000, 0x0023, 0x0000, -0x000A, 0x0000,  0x0002, 0x0000, -0x0001,
 };
 // h44[k] = the 44.1kHz reverb input k samples ago; h22[k] = the 22.05kHz wet output
 // k ticks ago. The FIR is centred, so a causal implementation runs a fixed delay
@@ -108,8 +103,12 @@ void resetFilterState() {
     callCount = 0;
 }
 inline void firPushIn(int l, int r) {
-    for (int i = 38; i > 0; i--) { h44L[i] = h44L[i - 1]; h44R[i] = h44R[i - 1]; }
-    h44L[0] = l; h44R[0] = r;
+    for (int i = 38; i > 0; i--) {
+        h44L[i] = h44L[i - 1];
+        h44R[i] = h44R[i - 1];
+    }
+    h44L[0] = l;
+    h44R[0] = r;
 }
 // A hardware fixed-point datapath keeps the upper multiplier bits, which is an
 // arithmetic shift, i.e. floor. C's / rounds toward zero, so the two differ by one
@@ -170,20 +169,22 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
         const int c4 = altLeftTick ? rvb.ACC_SRC_D0 : rvb.ACC_SRC_D1;
         const int mA = altLeftTick ? rvb.MIX_DEST_A0 : rvb.MIX_DEST_A1;
         const int mB = altLeftTick ? rvb.MIX_DEST_B0 : rvb.MIX_DEST_B1;
-        auto at = [&](int off, int extra) {
-            return (int)reinterpret_cast<int16_t *>(spuMem)[wrapOffset(off, extra)];
-        };
-        const int iirSame = sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) +
-                                  rdiv15((int64_t)(in * inCoef)));
-        const int iirDiff = sat16(rdiv15((int64_t)(getBuffer(sDiff, spuMem) * rvb.IIR_COEF)) +
-                                  rdiv15((int64_t)(in * inCoef)));
+        auto at = [&](int off, int extra) { return (int)reinterpret_cast<int16_t *>(spuMem)[wrapOffset(off, extra)]; };
+        const int iirSame =
+            sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
+        const int iirDiff =
+            sat16(rdiv15((int64_t)(getBuffer(sDiff, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
         // psx-spx stores the IIR result at [mLSAME] and reads the previous value back
         // from [mLSAME-2], i.e. the destination cell itself one 16-bit sample earlier -
         // hence the -1 extraSample on the read and none on the store.
-        setBuffer<0>(dSame, rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) +
-                                rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))), spuMem);
-        setBuffer<0>(dDiff, rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) +
-                                rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))), spuMem);
+        setBuffer<0>(
+            dSame,
+            rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))),
+            spuMem);
+        setBuffer<0>(
+            dDiff,
+            rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))),
+            spuMem);
         int out = sat16(rdiv15((int64_t)(getBuffer(c1, spuMem) * rvb.ACC_COEF_A)) +
                         rdiv15((int64_t)(getBuffer(c2, spuMem) * rvb.ACC_COEF_B)) +
                         rdiv15((int64_t)(getBuffer(c3, spuMem) * rvb.ACC_COEF_C)) +

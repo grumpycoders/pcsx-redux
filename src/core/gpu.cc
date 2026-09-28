@@ -231,19 +231,18 @@ namespace {
 template <size_t Index>
 auto *polyCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Poly<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                         (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri,
-                         (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
+    return new GPU::Poly < (Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+           (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri, (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+           (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On > ();
 }
 
 template <size_t Index>
 auto *lineCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Line<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                         (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off>();
+    return new GPU::Line < (Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+           (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off > ();
 }
 
 template <size_t Index>
@@ -262,9 +261,9 @@ consteval GPU::Size rectSize() {
 template <size_t Index>
 auto *rectCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Rect<rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
+    return new GPU::Rect < rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+           (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On > ();
 }
 
 }  // namespace
@@ -1404,7 +1403,7 @@ bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y
     return o1 == 0;
 }
 
-void PCSX::GPU::getRestoreSequence(std::vector<uint32_t>& gp0, std::vector<uint32_t>& gp1) const {
+void PCSX::GPU::getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const {
     gp1.clear();
     gp1.push_back(0x00000000);
     for (unsigned cmd : {3, 8, 6, 7, 5, 4}) gp1.push_back(m_statusControl[cmd]);
