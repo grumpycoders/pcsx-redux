@@ -901,18 +901,15 @@ class CDRomImpl final : public PCSX::CDRom {
 
     static int16_t saturate(int v) { return v < -32768 ? -32768 : (v > 32767 ? 32767 : v); }
 
-    // Applies the ATV mixing matrix: ATV0 L->L, ATV1 L->R, ATV2 R->R, ATV3 R->L, 0x80 = unity.
-    void attenuate(int16_t *buf, int frames, bool stereo) {
+    // Applies the ATV mixing matrix to interleaved stereo frames: ATV0 L->L, ATV1 L->R, ATV2 R->R,
+    // ATV3 R->L, 0x80 = unity.
+    void attenuate(int16_t *buf, int frames) {
         const int ll = m_atv[0], lr = m_atv[1], rr = m_atv[2], rl = m_atv[3];
-        if (stereo) {
-            for (int i = 0; i < frames; i++) {
-                int l = buf[i * 2];
-                int r = buf[i * 2 + 1];
-                buf[i * 2] = saturate((l * ll + r * rl) >> 7);
-                buf[i * 2 + 1] = saturate((r * rr + l * lr) >> 7);
-            }
-        } else {
-            for (int i = 0; i < frames; i++) buf[i] = saturate((buf[i] * (ll + rl)) >> 7);
+        for (int i = 0; i < frames; i++) {
+            int l = buf[i * 2];
+            int r = buf[i * 2 + 1];
+            buf[i * 2] = saturate((l * ll + r * rl) >> 7);
+            buf[i * 2 + 1] = saturate((r * rr + l * lr) >> 7);
         }
     }
 
@@ -923,8 +920,19 @@ class CDRomImpl final : public PCSX::CDRom {
         if (xa_decode_sector(&m_xa, subHeader, m_xaFirstSector) == 0) {
             m_xaFirstSector = false;
             if (!m_muted && !m_adpcmMuted) {
-                attenuate(m_xa.pcm, m_xa.nsamples, m_xa.stereo);
-                PCSX::g_emulator->m_spu->playADPCMchannel(&m_xa);
+                // Mono feeds the same sample to both matrix inputs (SCPH-9002: L gets ATV0+ATV3,
+                // R gets ATV1+ATV2).
+                m_xaOut.freq = m_xa.freq;
+                m_xaOut.nbits = m_xa.nbits;
+                m_xaOut.stereo = 1;
+                m_xaOut.nsamples = m_xa.nsamples;
+                if (m_xa.stereo) {
+                    memcpy(m_xaOut.pcm, m_xa.pcm, m_xa.nsamples * 2 * sizeof(m_xa.pcm[0]));
+                } else {
+                    for (int i = 0; i < m_xa.nsamples; i++) m_xaOut.pcm[i * 2] = m_xaOut.pcm[i * 2 + 1] = m_xa.pcm[i];
+                }
+                attenuate(m_xaOut.pcm, m_xaOut.nsamples);
+                PCSX::g_emulator->m_spu->playADPCMchannel(&m_xaOut);
             }
         }
         // A sector with both EOF and EOR stops ADPCM playback, with no interrupt; reading carries on.
@@ -972,7 +980,7 @@ class CDRomImpl final : public PCSX::CDRom {
         if (!m_muted) {
             int16_t out[std::size(samples)];
             memcpy(out, samples, sizeof(out));
-            attenuate(out, std::size(out) / 2, true);
+            attenuate(out, std::size(out) / 2);
             PCSX::g_emulator->m_spu->playCDDAchannel(out, sizeof(out));
         }
 
