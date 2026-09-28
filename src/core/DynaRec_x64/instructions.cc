@@ -617,7 +617,57 @@ void DynaRecCPU::recSRLV(uint32_t code) {
     }
 }
 
+// Waits for the previous mul/div to complete. Block cycles are only added to
+// the cycle counter at the end of a block, so the current cycle is computed
+// from the position of this instruction in the block. Leaves it in rax.
+void DynaRecCPU::emitMuldivStall() {
+    Label noStall;
+    gen.mov(rax, qword[contextPointer + CYCLE_OFFSET]);
+    gen.add(rax, m_instructionCount * PCSX::Emulator::BIAS);
+    gen.mov(rcx, qword[contextPointer + MULDIV_READY_OFFSET]);
+    gen.cmp(rax, rcx);
+    gen.jae(noStall);
+    gen.sub(rcx, rax);
+    gen.add(qword[contextPointer + CYCLE_OFFSET], rcx);
+    gen.add(rax, rcx);
+    gen.L(noStall);
+}
+
+void DynaRecCPU::emitMuldivStart(uint32_t latency) {
+    emitMuldivStall();
+    gen.add(rax, latency + PCSX::Emulator::BIAS);
+    gen.mov(qword[contextPointer + MULDIV_READY_OFFSET], rax);
+}
+
+void DynaRecCPU::emitMultStart(uint32_t code, bool isSigned) {
+    if (m_gprs[_Rs_].isConst()) {
+        emitMuldivStart(multLatency(m_gprs[_Rs_].val, isSigned));
+        return;
+    }
+
+    Label done;
+    allocateReg(_Rs_);
+    emitMuldivStall();
+    gen.mov(edx, m_gprs[_Rs_].allocatedReg);
+    if (isSigned) {
+        gen.mov(ecx, edx);
+        gen.sar(ecx, 31);
+        gen.xor_(edx, ecx);
+    }
+    gen.cmp(edx, 0x800);
+    gen.mov(ecx, 6 + PCSX::Emulator::BIAS);
+    gen.jb(done);
+    gen.cmp(edx, 0x100000);
+    gen.mov(ecx, 9 + PCSX::Emulator::BIAS);
+    gen.jb(done);
+    gen.mov(ecx, 13 + PCSX::Emulator::BIAS);
+    gen.L(done);
+    gen.add(rax, rcx);
+    gen.mov(qword[contextPointer + MULDIV_READY_OFFSET], rax);
+}
+
 void DynaRecCPU::recMULT(uint32_t code) {
+    emitMultStart(code, true);
     if ((m_gprs[_Rs_].isConst() && m_gprs[_Rs_].val == 0) || (m_gprs[_Rt_].isConst() && m_gprs[_Rt_].val == 0)) {
         gen.mov(qword[contextPointer + LO_OFFSET], 0);  // Set both LO and HI to 0 in a single 64-bit write
         return;
@@ -652,6 +702,7 @@ void DynaRecCPU::recMULT(uint32_t code) {
 
 // TODO: Add a static_assert that makes sure address_of_hi == address_of_lo + 4
 void DynaRecCPU::recMULTU(uint32_t code) {
+    emitMultStart(code, false);
     if ((m_gprs[_Rs_].isConst() && m_gprs[_Rs_].val == 0) || (m_gprs[_Rt_].isConst() && m_gprs[_Rt_].val == 0)) {
         gen.mov(qword[contextPointer + LO_OFFSET], 0);  // Set both LO and HI to 0 in a single 64-bit write
         return;
@@ -1683,6 +1734,7 @@ void DynaRecCPU::recBLEZ(uint32_t code) {
 void DynaRecCPU::recDIV(uint32_t code) {
     Label notIntMin, divisionByZero, end;
     bool emitIntMinCheck = true;
+    emitMuldivStart(c_divLatency);
 
     if (m_gprs[_Rt_].isConst()) {     // Check divisor if constant
         if (m_gprs[_Rt_].val == 0) {  // Handle case where divisor is 0
@@ -1770,6 +1822,7 @@ void DynaRecCPU::recDIV(uint32_t code) {
 
 void DynaRecCPU::recDIVU(uint32_t code) {
     Label divisionByZero;
+    emitMuldivStart(c_divLatency);
 
     if (m_gprs[_Rt_].isConst()) {                            // Check divisor if constant
         if (m_gprs[_Rt_].val == 0) {                         // Handle case where divisor is 0
@@ -1832,6 +1885,7 @@ void DynaRecCPU::recDIVU(uint32_t code) {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFLO(uint32_t code) {
+    emitMuldivStall();
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);
@@ -1843,6 +1897,7 @@ void DynaRecCPU::recMFLO(uint32_t code) {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFHI(uint32_t code) {
+    emitMuldivStall();
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);

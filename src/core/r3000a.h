@@ -193,6 +193,7 @@ struct psxRegisters {
     std::atomic<bool> spuInterrupt;
     uint64_t intTargets[32];
     uint64_t lowestTarget;
+    uint64_t muldivReady;  // cycle at which hi/lo can be read without stalling
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
 };
@@ -313,6 +314,27 @@ class R3000Acpu {
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
         if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
+    }
+
+    // Multiplier and divider result latency. A multiply takes 6, 9 or 13 cycles
+    // depending on the magnitude of rs only; a divide always takes 36.
+    static uint32_t multLatency(uint32_t rs, bool isSigned) {
+        if (isSigned && (int32_t(rs) < 0)) rs = ~rs;
+        if (rs < 0x800) return 6;
+        if (rs < 0x100000) return 9;
+        return 13;
+    }
+    static constexpr uint32_t c_divLatency = 36;
+    // Called when a mul/div issues, after the cycle counter was advanced for it.
+    // The result can be read by an instruction issuing latency cycles later.
+    void muldivStart(uint32_t latency) {
+        muldivStall();
+        m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
+    }
+    // Called when hi/lo is read, or when a new mul/div issues: waits for the
+    // previous operation to complete.
+    void muldivStall() {
+        if (m_regs.cycle < m_regs.muldivReady) m_regs.cycle = m_regs.muldivReady;
     }
 
     psxRegisters m_regs;

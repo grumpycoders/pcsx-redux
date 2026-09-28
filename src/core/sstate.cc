@@ -78,6 +78,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CurrentDelayedLoad { g_emulator->m_cpu->m_currentDelayedLoad },
             IntTargetsField { g_emulator->m_cpu->m_regs.intTargets },
             InISR { g_emulator->m_cpu->m_inISR },
+            MulDivReady { g_emulator->m_cpu->m_regs.muldivReady },
         },
         GPU {},
         SPU {},
