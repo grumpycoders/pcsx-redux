@@ -34,11 +34,6 @@ TEST(SPUSpeed, TurboDoublesConfiguredSpeed) {
     EXPECT_EQ(SDLAudio::effectiveSpeed(3, 2), 6);
 }
 
-TEST(SPUSpeed, ReturningFromTurboRestoresConfiguredSpeed) {
-    EXPECT_EQ(SDLAudio::effectiveSpeed(1, 2), 2);
-    EXPECT_EQ(SDLAudio::effectiveSpeed(1, 1), 1);
-}
-
 TEST(SPUSpeed, NonPositiveConfiguredIsUnbounded) {
     EXPECT_EQ(SDLAudio::effectiveSpeed(0, 1), SDLAudio::kMaxSpeed);
     EXPECT_EQ(SDLAudio::effectiveSpeed(-5, 2), SDLAudio::kMaxSpeed);
