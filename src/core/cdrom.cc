@@ -122,6 +122,17 @@ class CDRomImpl final : public PCSX::CDRom {
         m_report = false;
         m_setLocPending = false;
         m_muted = false;
+        m_adpcmMuted = false;
+        m_mode = 0;
+        m_filterFile = 0;
+        m_filterChannel = 0;
+        m_xaEnded = false;
+        m_xaFirstSector = true;
+        xa_decode_reset(&m_xa);
+        m_atv[0] = m_atvPending[0] = 0x80;
+        m_atv[1] = m_atvPending[1] = 0;
+        m_atv[2] = m_atvPending[2] = 0x80;
+        m_atv[3] = m_atvPending[3] = 0;
         m_commandFifo.clear();
         m_commandExecuting.clear();
         m_responseFifo[0].clear();
@@ -200,16 +211,14 @@ class CDRomImpl final : public PCSX::CDRom {
                     memcpy(m_lastLocL, buffer, sizeof(m_lastLocL));
                     uint32_t size = 0;
                     bool passToData = true;
-                    if ((buffer[3] == 2) && m_realtime) {
+                    if ((buffer[3] == 2) && (m_realtime || m_subheaderFilter)) {
                         PCSX::IEC60908b::SubHeaders subHeaders;
                         subHeaders.fromBuffer(buffer + 4);
-                        if (subHeaders.isRealTime() && subHeaders.isAudio()) {
+                        // With RT or SF set, XA audio sectors never reach the host as data, whatever the
+                        // filter says; Form 2 data sectors still do (#6, SCPH-9002, 2026-09-28).
+                        if (subHeaders.isAudio() && (m_subheaderFilter || subHeaders.isRealTime())) {
                             passToData = false;
-                            if (m_subheaderFilter) {
-                                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: filtering not supported yet.\n");
-                                PCSX::g_system->pause();
-                            }
-                            // TODO: play XA sector.
+                            if (m_realtime) playXASector(buffer + 4, subHeaders);
                         }
                     }
                     if (passToData) {
@@ -233,9 +242,12 @@ class CDRomImpl final : public PCSX::CDRom {
                         }
                     }
                     auto readDelay = computeReadDelay();
-                    m_dataFIFOIndex = 0;
-                    m_dataFIFOPending = size;
-                    if (m_dataRequested) m_dataFIFOSize = size;
+                    // A sector withheld from the host leaves the previous data sector in the buffer.
+                    if (passToData) {
+                        m_dataFIFOIndex = 0;
+                        m_dataFIFOPending = size;
+                        if (m_dataRequested) m_dataFIFOSize = size;
+                    }
                     m_currentPosition++;
                     if (debug) {
                         std::string msfFormat = fmt::format("{}", m_currentPosition);
@@ -383,7 +395,7 @@ class CDRomImpl final : public PCSX::CDRom {
           bit 2: ADPBUSY (ADPCM busy)
                  This bit is set high for ADPCM decoding.
          */
-        uint8_t v2 = 0; /* adpcmPlaying */
+        uint8_t v2 = adpcmBusy() ? 0x04 : 0;
         /*
           bits 1, 0: RA1, 0
                  The values of the RA1 and 0 bits for the ADDRESS register can be read from these bits.
@@ -533,7 +545,7 @@ class CDRomImpl final : public PCSX::CDRom {
             } break;
             case 3: {
                 // ATV2 Right-to-Right
-                m_atv[2] = value;
+                m_atvPending[2] = value;
             } break;
         }
     }
@@ -557,11 +569,11 @@ class CDRomImpl final : public PCSX::CDRom {
             } break;
             case 2: {
                 // ATV0 Left-to-Left
-                m_atv[0] = value;
+                m_atvPending[0] = value;
             } break;
             case 3: {
                 // ATV3 Right-to-Left
-                m_atv[3] = value;
+                m_atvPending[3] = value;
             } break;
         }
     }
@@ -668,7 +680,7 @@ class CDRomImpl final : public PCSX::CDRom {
             } break;
             case 2: {
                 // ATV1 Left-to-Right
-                m_atv[1] = value;
+                m_atvPending[1] = value;
             } break;
             case 3: {
                 // clang-format off
@@ -684,7 +696,8 @@ class CDRomImpl final : public PCSX::CDRom {
                   bits 7, 6, 4 to 1: Reserved
                 */
                 // clang-format on
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: w3:3 not available yet\n");
+                if (value & 0x20) memcpy(m_atv, m_atvPending, sizeof(m_atv));
+                m_adpcmMuted = value & 0x01;
             } break;
         }
     }
@@ -878,6 +891,46 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
+    void resetXA() {
+        xa_decode_reset(&m_xa);
+        m_xaFirstSector = true;
+        m_xaEnded = false;
+    }
+
+    bool adpcmBusy() const { return m_realtime && (m_status == Status::ReadingData) && !m_xaEnded; }
+
+    static int16_t saturate(int v) { return v < -32768 ? -32768 : (v > 32767 ? 32767 : v); }
+
+    // Applies the ATV mixing matrix: ATV0 L->L, ATV1 L->R, ATV2 R->R, ATV3 R->L, 0x80 = unity.
+    void attenuate(int16_t *buf, int frames, bool stereo) {
+        const int ll = m_atv[0], lr = m_atv[1], rr = m_atv[2], rl = m_atv[3];
+        if (stereo) {
+            for (int i = 0; i < frames; i++) {
+                int l = buf[i * 2];
+                int r = buf[i * 2 + 1];
+                buf[i * 2] = saturate((l * ll + r * rl) >> 7);
+                buf[i * 2 + 1] = saturate((r * rr + l * lr) >> 7);
+            }
+        } else {
+            for (int i = 0; i < frames; i++) buf[i] = saturate((buf[i] * (ll + rl)) >> 7);
+        }
+    }
+
+    void playXASector(uint8_t *subHeader, const PCSX::IEC60908b::SubHeaders &subHeaders) {
+        if (m_xaEnded) return;
+        if (m_subheaderFilter && ((subHeader[0] != m_filterFile) || (subHeader[1] != m_filterChannel))) return;
+        if (subHeader[1] == 0xff) return;
+        if (xa_decode_sector(&m_xa, subHeader, m_xaFirstSector) == 0) {
+            m_xaFirstSector = false;
+            if (!m_muted && !m_adpcmMuted) {
+                attenuate(m_xa.pcm, m_xa.nsamples, m_xa.stereo);
+                PCSX::g_emulator->m_spu->playADPCMchannel(&m_xa);
+            }
+        }
+        // An end-of-file sector stops ADPCM playback, with no interrupt; reading carries on.
+        if (subHeaders.isEOF()) m_xaEnded = true;
+    }
+
     void startPlaying() {
         m_status = Status::PlayingCDDA;
         m_playTrack = 0;
@@ -915,7 +968,12 @@ class CDRomImpl final : public PCSX::CDRom {
         m_iso->readCDDA(m_currentPosition, reinterpret_cast<uint8_t *>(samples));
         PCSX::g_emulator->m_cdromLogger->recordAccess(m_currentPosition.toLBA(), PCSX::CDRomLogger::AccessType::Data,
                                                       PCSX::g_emulator->m_cpu->m_regs.cycle);
-        if (!m_muted) PCSX::g_emulator->m_spu->playCDDAchannel(samples, sizeof(samples));
+        if (!m_muted) {
+            int16_t out[std::size(samples)];
+            memcpy(out, samples, sizeof(out));
+            attenuate(out, std::size(out) / 2, true);
+            PCSX::g_emulator->m_spu->playCDDAchannel(out, sizeof(out));
+        }
 
         // The peak's L/R flag toggles on every SubQ read, i.e. every sector.
         m_peakFlag = !m_peakFlag;
@@ -973,6 +1031,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
         m_setLocPending = false;
+        resetXA();
         m_status = Status::Idle;
         scheduleRead(20ms);
         m_readingType = ReadingType::Normal;
@@ -1067,6 +1126,17 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
+    // Command 13
+    bool cdlSetFilter(const QueueElement &command, bool start) {
+        m_filterFile = command.payload[0];
+        m_filterChannel = command.payload[1];
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
     // Command 14
     bool cdlSetMode(const QueueElement &command, bool start) {
         uint8_t mode = command.payload[0];
@@ -1098,15 +1168,29 @@ class CDRomImpl final : public PCSX::CDRom {
                 break;
         }
         m_subheaderFilter = (mode & 0x08) != 0;
-        m_realtime = (mode & 0x40) != 0;
+        bool realtime = (mode & 0x40) != 0;
+        if (realtime && !m_realtime) resetXA();
+        m_realtime = realtime;
         m_report = (mode & 0x04) != 0;
         m_autoPause = (mode & 0x02) != 0;
-        if (mode & 0x01) {
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: unsupported mode: %02x\n", mode);
-            PCSX::g_system->pause();
-        }
+        // Bit 0 (CDDA) only matters for reading audio sectors as data, which is not modelled; keep it
+        // for GetParam.
+        m_mode = mode;
         QueueElement response;
         response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    // Command 15.
+    bool cdlGetParam(const QueueElement &command, bool start) {
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        response.pushPayloadData(m_mode);
+        response.pushPayloadData(0);
+        response.pushPayloadData(m_filterFile);
+        response.pushPayloadData(m_filterChannel);
         maybeTriggerIRQ(Cause::Acknowledge, response);
         maybeScheduleNextCommand();
         return false;
@@ -1327,9 +1411,9 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlInit,
         &CDRomImpl::cdlMute,  // 8
         &CDRomImpl::cdlDemute,
-        nullptr,
+        &CDRomImpl::cdlSetFilter,
         &CDRomImpl::cdlSetMode,
-        nullptr,  // 12
+        &CDRomImpl::cdlGetParam,  // 12
         &CDRomImpl::cdlGetLocL,
         &CDRomImpl::cdlGetLocP,
         nullptr,

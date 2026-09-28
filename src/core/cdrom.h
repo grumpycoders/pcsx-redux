@@ -148,7 +148,15 @@ class CDRom {
     enum class Speed : uint8_t { Simple, Double } m_speed;
     enum class ReadSpan : uint8_t { S2048, S2328, S2340 } m_readSpan;
     uint8_t m_interruptCauseMask = 0x1f;
-    uint8_t m_atv[4] = {0};
+    uint8_t m_atv[4] = {0x80, 0, 0x80, 0};
+    uint8_t m_atvPending[4] = {0x80, 0, 0x80, 0};
+    bool m_adpcmMuted = false;
+    uint8_t m_mode = 0;
+    uint8_t m_filterFile = 0;
+    uint8_t m_filterChannel = 0;
+    bool m_xaEnded = false;
+    bool m_xaFirstSector = true;
+    xa_decode_t m_xa;
     bool m_soundMapEnabled = false;
 
     enum class Cause : uint8_t {
