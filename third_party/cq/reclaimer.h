@@ -169,7 +169,9 @@ public:
 		return *this;
 	}
 
-	void UnMark() { reclaimer_->UnMarkHazard(index); }
+	void UnMark() {
+		if (reclaimer_) reclaimer_->UnMarkHazard(index);
+	}
 
 public:
 	Reclaimer* reclaimer_;
