@@ -168,7 +168,11 @@ bool loadTables(const std::string &path, Tables &t, std::string &err) {
         return false;
     }
     int tmp[64];
-    if (j.contains("quant") && j["quant"].is_object()) {
+    if (j.contains("quant") && !j["quant"].is_object()) {
+        err = fmt::format("{}: \"quant\" must be an object with \"y\" and/or \"uv\" arrays", path);
+        return false;
+    }
+    if (j.contains("quant")) {
         if (loadArray(j["quant"], "y", tmp, 64, err)) {
             for (int i = 0; i < 64; i++) t.quantY[i] = static_cast<uint8_t>(std::clamp(tmp[i], 0, 255));
         } else if (!err.empty()) {
@@ -489,8 +493,11 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
         fmt::print(stderr, "cannot wrap the stream: {}\n", wrap.error);
         return -1;
     }
-    fwrite(wrapped.data(), 1, wrapped.size(), f);
-    fclose(f);
+    const bool wrote = fwrite(wrapped.data(), 1, wrapped.size(), f) == wrapped.size();
+    if ((fclose(f) != 0) || !wrote) {
+        fmt::print(stderr, "error writing {}\n", out.value());
+        return -1;
+    }
 
     fmt::print("{}x{}", w, h);
     if (pw != w || ph != h) fmt::print(" padded to {}x{}", pw, ph);
@@ -506,14 +513,15 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
         // Name the lever that can actually reach each one. q_scale is in the AC
         // divisor only, so it cannot fix a clipped DC however far it is raised.
         if (packed.clippedAc) {
-            fmt::print(stderr, "warning: {} AC coefficients clipped to the 10 bit run-level range. Raise -q.\n",
+            fmt::print(stderr, "warning: {} AC coefficients clipped to the 10 bit run-level range. Raise -qscale, or "
+                       "lower -quality.\n",
                        packed.clippedAc);
         }
         if (packed.clippedDc) {
             fmt::print(stderr,
-                       "warning: {} DC coefficients clipped to the 10 bit run-level range. Raising -q will NOT "
-                       "help - q_scale is not in the DC divisor. Use a coarser quant table: lower -quality, or "
-                       "raise quant[0] with -t.\n",
+                       "warning: {} DC coefficients clipped to the 10 bit run-level range. Raising -qscale or "
+                       "lowering -quality will NOT help - q_scale is not in the DC divisor. Use a coarser quant "
+                       "table: raise quant[0] with -t.\n",
                        packed.clippedDc);
         }
     }
@@ -565,11 +573,18 @@ Usage: mdec bsdecode -i input.bs -o output.bin
         fmt::print(stderr, "cannot write {}\n", out.value());
         return -1;
     }
+    bool wrote = true;
     for (uint16_t v : rl) {
         const uint8_t b2[2] = {static_cast<uint8_t>(v & 0xff), static_cast<uint8_t>(v >> 8)};
-        fwrite(b2, 1, 2, o);
+        if (fwrite(b2, 1, 2, o) != 2) {
+            wrote = false;
+            break;
+        }
     }
-    fclose(o);
+    if ((fclose(o) != 0) || !wrote) {
+        fmt::print(stderr, "error writing {}\n", out.value());
+        return -1;
+    }
     fmt::print("{} blocks, q_scale {}, {} halfwords ({} words as the header declares)\n", r.blocks, r.qScale,
                rl.size(), r.rlWords);
     return 0;
@@ -624,15 +639,31 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
                 uint16_t n = stream[pos++];
                 const int qscale = (n >> 10) & 0x3f;
                 auto sext10 = [](uint16_t v) { return static_cast<int>(static_cast<int16_t>(v << 6)) >> 6; };
-                blocks[b][0] = std::clamp(sext10(n & 0x3ff) * qt[0], -0x400, 0x3ff);
+                // q_scale 0 is the no-quant mode, as in core/mdec.cc rl2blk: every
+                // value is doubled, no table, no q_scale, and no zigzag.
+                blocks[b][0] = std::clamp(qscale == 0 ? sext10(n & 0x3ff) * 2 : sext10(n & 0x3ff) * qt[0],
+                                          -0x400, 0x3ff);
+                bool terminated = false;
                 for (int k = 0;;) {
                     if (pos >= stream.size()) break;
                     n = stream[pos++];
-                    if (n == 0xfe00) break;
+                    if (n == 0xfe00) {
+                        terminated = true;
+                        break;
+                    }
                     k += ((n >> 10) & 0x3f) + 1;
-                    if (k > 63) break;
-                    blocks[b][c_zscan[k]] =
-                        std::clamp((sext10(n & 0x3ff) * qt[k] * qscale + 4) / 8, -0x400, 0x3ff);
+                    if (k > 63) {
+                        fmt::print(stderr, "block at macroblock {},{} block {} runs past coefficient 63\n", mx, my,
+                                   b);
+                        return -1;
+                    }
+                    const int spec = qscale == 0 ? sext10(n & 0x3ff) * 2
+                                                 : (sext10(n & 0x3ff) * qt[k] * qscale + 4) / 8;
+                    blocks[b][qscale == 0 ? k : c_zscan[k]] = std::clamp(spec, -0x400, 0x3ff);
+                }
+                if (!terminated) {
+                    fmt::print(stderr, "block at macroblock {},{} block {} has no 0xfe00 terminator\n", mx, my, b);
+                    return -1;
                 }
                 realIdct(blocks[b], tables.scale);
             }
