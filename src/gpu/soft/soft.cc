@@ -30,9 +30,13 @@ static constexpr int CHKMAX_Y = 512;
 // Hardware silently drops any polygon or line that has an edge longer than
 // 1023 pixels horizontally or 511 pixels vertically (verified on SCPH-5501
 // via gpu-raster-phase14). The drop is unconditional - it does NOT depend on
-// any vertex being off-screen. For quads, hardware applies the rule to the
-// original 4-vertex perimeter, not to the decomposed-triangle edges, so the
-// 4-vert check stays at this level rather than firing inside drawPolyXXX4.
+// any vertex being off-screen.
+//
+// For a quad the compared set is the five edges of the two rendered triangles:
+// the four perimeter edges plus the shared diagonal v1-v2. The remaining pair
+// v0-v3 belongs to neither triangle and is not compared, so a quad may span
+// more than 1023 across it and still draw. Verified on SCPH-1000, SCPH-5501
+// and SCPH-7001 via gpu-raster-phase23 Q2/Q3.
 static inline bool edgeOverLimit(int x0, int y0, int x1, int y1) {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -43,12 +47,14 @@ static inline bool edgeOverLimit(int x0, int y0, int x1, int y1) {
 
 bool PCSX::SoftGPU::SoftRenderer::checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2,
                                               int16_t &y2, int16_t &x3, int16_t &y3) {
-    // Per-perimeter-edge over-limit cull. Quad perimeter (PSX vertex order)
-    // is v0->v1, v1->v3, v3->v2, v2->v0.
+    // Quad perimeter (PSX vertex order) is v0->v1, v1->v3, v3->v2, v2->v0.
     if (edgeOverLimit(x0, y0, x1, y1)) return true;
     if (edgeOverLimit(x1, y1, x3, y3)) return true;
     if (edgeOverLimit(x3, y3, x2, y2)) return true;
     if (edgeOverLimit(x2, y2, x0, y0)) return true;
+    // Plus the diagonal the two rendered triangles share. v0-v3 is an edge of
+    // neither triangle and hardware does not compare it.
+    if (edgeOverLimit(x1, y1, x2, y2)) return true;
 
     return false;
 }

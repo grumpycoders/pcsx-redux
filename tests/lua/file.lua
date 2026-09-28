@@ -16,8 +16,17 @@
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 local lu = require 'luaunit'
+local ffi = require 'ffi'
 
 TestFile = {}
+
+function TestFile:test_readAtToSlice()
+    local buf = Support.File.buffer()
+    buf:write('hello world')
+    local slice = buf:readAtToSlice(5, 6)
+    lu.assertEquals(slice.size, 5)
+    lu.assertEquals(ffi.string(slice.data, slice.size), 'world')
+end
 
 function TestFile:test_buffer()
     local buf = Support.File.buffer()

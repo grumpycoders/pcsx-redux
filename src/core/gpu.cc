@@ -24,6 +24,7 @@
 #include <magic_enum/magic_enum_all.hpp>
 
 #include "core/debug.h"
+#include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
 #include "core/psxdma.h"
@@ -94,7 +95,7 @@ void GPU::Poly<shading, shape, textured, blend, modulation>::processWrite(Buffer
     }
     offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
-    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+    m_gpu->m_logger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 
@@ -152,7 +153,7 @@ void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Ori
     offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
     if ((colors.size() >= 2) && ((colors.size() == x.size()))) {
-        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+        m_gpu->m_logger->addNode(*this, origin, origvalue, length);
         m_gpu->write0(this);
     } else {
         g_system->log(LogClass::GPU, "Got an invalid line command...\n");
@@ -220,7 +221,7 @@ void GPU::Rect<size, textured, blend, modulation>::processWrite(Buffer & buf, Lo
     }
     offset = m_gpu->m_lastOffset;
     m_gpu->m_defaultProcessor.setActive();
-    g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+    m_gpu->m_logger->addNode(*this, origin, origvalue, length);
     m_gpu->write0(this);
 }
 // clang-format on
@@ -229,22 +230,20 @@ namespace {
 
 template <size_t Index>
 auto *polyCommand() {
-    static GPU::Poly<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                     (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri,
-                     (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                     (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                     (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>
-        command;
-    return &command;
+    // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
+    return new GPU::Poly<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+                         (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri,
+                         (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
 }
 
 template <size_t Index>
 auto *lineCommand() {
-    static GPU::Line<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                     (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
-                     (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off>
-        command;
-    return &command;
+    // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
+    return new GPU::Line<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+                         (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
+                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off>();
 }
 
 template <size_t Index>
@@ -262,18 +261,25 @@ consteval GPU::Size rectSize() {
 
 template <size_t Index>
 auto *rectCommand() {
-    static GPU::Rect<rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                     (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                     (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>
-        command;
-    return &command;
+    // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
+    return new GPU::Rect<rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
 }
 
 }  // namespace
 
 }  // namespace PCSX
 
+PCSX::GPU::~GPU() {
+    for (auto poly : m_polygons) delete poly;
+    for (auto line : m_lines) delete line;
+    for (auto rect : m_rects) delete rect;
+}
+
 PCSX::GPU::GPU() {
+    for (unsigned i = 0; i < 256; i++) m_statusControl[i] = i << 24;
+    for (unsigned i = 0; i < 7; i++) m_envRaw[i] = (0xe0 + i) << 24;
     [&]<size_t... Is>(std::index_sequence<Is...>) {
         ((m_polygons[Is] = polyCommand<Is>()), ...);
     }(std::make_index_sequence<32>{});
@@ -286,6 +292,7 @@ PCSX::GPU::GPU() {
 }
 
 int PCSX::GPU::init(UI *ui) {
+    if (!m_logger) m_logger = g_emulator->m_gpuLogger.get();
     for (auto poly : m_polygons) poly->setGPU(this);
     for (auto line : m_lines) line->setGPU(this);
     for (auto rect : m_rects) rect->setGPU(this);
@@ -464,6 +471,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
     uint32_t cmd = (value >> 24) & 0xff;
     bool gotUnknown = false;
 
+    if (m_dumper) m_dumper->gp1(value);
     m_statusControl[cmd] = value;
 
     switch (cmd) {
@@ -472,57 +480,58 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_processor->reset();
             m_defaultProcessor.setActive();
             CtrlReset ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
             m_textureWindowRaw = 0;
             m_drawingStartRaw = 0;
             m_drawingEndRaw = 0;
             m_drawingOffsetRaw = 0;
+            for (unsigned i = 0; i < 7; i++) m_envRaw[i] = (0xe0 + i) << 24;
             m_dataRet = 0x400;
         } break;
         case 1: {
             CtrlClearFifo ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 2: {
             CtrlIrqAck ctrl;
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 3: {
             CtrlDisplayEnable ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 4: {
             CtrlDmaSetting ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 5: {
             CtrlDisplayStart ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 6: {
             CtrlHorizontalDisplayRange ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 7: {
             CtrlVerticalDisplayRange ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 8: {
             CtrlDisplayMode ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         case 16: {
             CtrlQuery ctrl(value);
-            g_emulator->m_gpuLogger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
+            m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
         } break;
         default: {
@@ -536,6 +545,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
 }
 
 uint32_t PCSX::GPU::readData() {
+    if (m_dumper) m_dumper->read(1);
     if (m_readFifo->size() == 0) {
         return m_dataRet;
     }
@@ -560,11 +570,13 @@ void PCSX::GPU::write1(CtrlQuery *ctrl) {
 }
 
 void PCSX::GPU::writeData(uint32_t value) {
+    if (m_dumper) m_dumper->gp0(value);
     Buffer buf(value);
     m_processor->processWrite(buf, Logged::Origin::DATAWRITE, value, 1);
 }
 
 void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t hwAddr) {
+    if (m_dumper) m_dumper->gp0LE(feed, transferSize);
     Buffer buf(feed, transferSize);
     while (!buf.isEmpty()) {
         m_processor->processWrite(buf, Logged::Origin::DIRECT_DMA, hwAddr, transferSize);
@@ -572,6 +584,7 @@ void PCSX::GPU::directDMAWrite(const uint32_t *feed, int transferSize, uint32_t 
 }
 
 void PCSX::GPU::directDMARead(uint32_t *dest, int transferSize, uint32_t hwAddr) {
+    if (m_dumper) m_dumper->read(transferSize);
     auto size = m_readFifo->size();
     m_readFifo->read(dest, transferSize * 4);
     transferSize -= size / 4;
@@ -621,6 +634,7 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
 
         // # 32-bit blocks to transfer
         uint32_t transferWords = header >> 24;
+        if (m_dumper && transferWords) m_dumper->gp0LE(feed, transferWords);
         Buffer buf(feed, transferWords);
         while (!buf.isEmpty()) {
             m_processor->processWrite(buf, Logged::Origin::CHAIN_DMA, addr, transferWords);
@@ -651,7 +665,7 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                     case 0x01: {  // clear cache
                         ClearCache prim;
                         m_gpu->write0(&prim);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                     } break;
                     case 0x02: {  // fast fill
                         buf.rewind();
@@ -691,42 +705,43 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                 m_gpu->m_processor->processWrite(buf, origin, originValue, length);
             } break;
             case 7: {  // Environment command
+                if (command >= 1 && command <= 6) m_gpu->m_envRaw[command] = value;
                 switch (command) {
                     case 1: {  // tpage
                         TPage prim(packetInfo);
                         m_gpu->m_lastTPage = TPage(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     case 2: {  // twindow
                         TWindow prim(packetInfo);
                         m_gpu->m_lastTWindow = TWindow(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                         m_gpu->m_textureWindowRaw = packetInfo & 0xfffff;
                     } break;
                     case 3: {  // drawing area top left
                         DrawingAreaStart prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                         m_gpu->m_drawingStartRaw = packetInfo & 0xfffff;
                     } break;
                     case 4: {  // drawing area bottom right
                         DrawingAreaEnd prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                         m_gpu->m_drawingEndRaw = packetInfo & 0xfffff;
                     } break;
                     case 5: {  // drawing offset
                         DrawingOffset prim(packetInfo);
                         m_gpu->m_lastOffset = DrawingOffset(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                         m_gpu->m_drawingOffsetRaw = packetInfo & 0x3fffff;
                     } break;
                     case 6: {  // mask bit
                         MaskBit prim(packetInfo);
-                        g_emulator->m_gpuLogger->addNode(prim, origin, originValue, length);
+                        m_gpu->m_logger->addNode(prim, origin, originValue, length);
                         m_gpu->write0(&prim);
                     } break;
                     default: {
@@ -768,7 +783,7 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
-            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+            m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
@@ -809,7 +824,7 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
             clipped |= GPU::clip(dX, dY, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
-            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+            m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             m_gpu->write0(this);
             return;
     }
@@ -866,7 +881,7 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
         clipped = GPU::clip(x, y, w, h);
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
-        g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+        m_gpu->m_logger->addNode(*this, origin, origvalue, length);
         m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>(), PartialUpdateVram::Synchronous);
     }
 }
@@ -899,7 +914,7 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
-            g_emulator->m_gpuLogger->addNode(*this, origin, origvalue, length);
+            m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
@@ -1387,4 +1402,12 @@ bool PCSX::GPU::Logged::isInsideTriangle(int x, int y, int x1, int y1, int x2, i
 bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y2) {
     int o1 = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
     return o1 == 0;
+}
+
+void PCSX::GPU::getRestoreSequence(std::vector<uint32_t>& gp0, std::vector<uint32_t>& gp1) const {
+    gp1.clear();
+    gp1.push_back(0x00000000);
+    for (unsigned cmd : {3, 8, 6, 7, 5, 4}) gp1.push_back(m_statusControl[cmd]);
+    gp0.clear();
+    for (unsigned cmd = 1; cmd <= 6; cmd++) gp0.push_back(m_envRaw[cmd]);
 }

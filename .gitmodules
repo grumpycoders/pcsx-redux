@@ -7,9 +7,6 @@
 [submodule "third_party/libuv"]
 	path = third_party/libuv
 	url = https://github.com/libuv/libuv.git
-[submodule "third_party/uC-sdk"]
-	path = third_party/uC-sdk
-	url = https://github.com/grumpycoders/uC-sdk.git
 [submodule "third_party/googletest"]
 	path = third_party/googletest
 	url = https://github.com/google/googletest.git
@@ -43,9 +40,6 @@
 [submodule "third_party/ucl"]
 	path = third_party/ucl
 	url = https://github.com/Distrotech/ucl.git
-[submodule "third_party/SDL_GameControllerDB"]
-	path = third_party/SDL_GameControllerDB
-	url = https://github.com/gabomdq/SDL_GameControllerDB
 [submodule "third_party/xbyak"]
 	path = third_party/xbyak
 	url = https://github.com/herumi/xbyak
@@ -73,12 +67,6 @@
 [submodule "third_party/multipart-parser-c"]
 	path = third_party/multipart-parser-c
 	url = https://github.com/iafonov/multipart-parser-c
-[submodule "third_party/nanovg"]
-	path = third_party/nanovg
-	url = https://github.com/grumpycoders/nanovg
-[submodule "third_party/nanosvg"]
-	path = third_party/nanosvg
-	url = https://github.com/grumpycoders/nanosvg
 [submodule "third_party/luafilesystem"]
 	path = third_party/luafilesystem
 	url = https://github.com/nicolasnoble/luafilesystem.git
@@ -94,12 +82,21 @@
 [submodule "third_party/PEGTL"]
 	path = third_party/PEGTL
 	url = https://github.com/taocpp/PEGTL.git
-[submodule "third_party/psxlua"]
-	path = third_party/psxlua
-	url = https://github.com/grumpycoders/psxlua.git
 [submodule "third_party/SDL"]
 	path = third_party/SDL
 	url = https://github.com/libsdl-org/SDL.git
-[submodule "third_party/xmake-psx"]
-	path = third_party/xmake-psx
-	url = https://codeberg.org/malucart/xmake-psx.git
+[submodule "third_party/implot"]
+	path = third_party/implot
+	url = https://github.com/epezent/implot.git
+[submodule "third_party/iec-60908b"]
+	path = third_party/iec-60908b
+	url = https://github.com/pcsx-redux/iec-60908b.git
+[submodule "third_party/cueparser"]
+	path = third_party/cueparser
+	url = https://github.com/pcsx-redux/cueparser.git
+[submodule "src/mips"]
+	path = src/mips
+	url = https://github.com/pcsx-redux/nugget.git
+[submodule "third_party/thorvg"]
+	path = third_party/thorvg
+	url = https://github.com/pcsx-redux/thorvg.git

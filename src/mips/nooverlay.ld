@@ -1,1 +1,0 @@
-__heap_base     = __bss_end;

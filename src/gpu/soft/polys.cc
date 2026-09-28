@@ -31,7 +31,9 @@ static constexpr int8_t s_dithertable[16] = {
 };
 // clang-format on
 
+// Shared by every SoftRenderer instance, and freed when the last one using it lets go.
 static uint16_t *s_ditherLUT = nullptr;
+static unsigned s_ditherLUTUsers = 0;
 
 static void prepareDitherLut() {
     uint32_t r, g, b, s;
@@ -74,20 +76,22 @@ static void prepareDitherLut() {
 }
 
 void PCSX::SoftGPU::SoftRenderer::enableCachedDithering() {
-    if (!s_ditherLUT) prepareDitherLut();
+    if (m_usesDitherLUT) return;
+    m_usesDitherLUT = true;
+    if (s_ditherLUTUsers++ == 0) prepareDitherLut();
 }
 
 void PCSX::SoftGPU::SoftRenderer::disableCachedDithering() {
-    if (s_ditherLUT) delete[] s_ditherLUT;
+    if (!m_usesDitherLUT) return;
+    m_usesDitherLUT = false;
+    if (--s_ditherLUTUsers != 0) return;
+    delete[] s_ditherLUT;
     s_ditherLUT = nullptr;
 }
 
 PCSX::SoftGPU::SoftRenderer::SoftRenderer() { resetRenderer(); }
 
-PCSX::SoftGPU::SoftRenderer::~SoftRenderer() {
-    if (s_ditherLUT) delete[] s_ditherLUT;
-    s_ditherLUT = nullptr;
-}
+PCSX::SoftGPU::SoftRenderer::~SoftRenderer() { disableCachedDithering(); }
 
 static void applyDitherCached(uint16_t *pdest, uint16_t *base, uint32_t r, uint32_t g, uint32_t b, uint16_t sM) {
     int x, y;

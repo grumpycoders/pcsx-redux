@@ -22,7 +22,7 @@
 #include <optional>
 
 #include "gui/widgets/zep-lua.h"
-#include "repl/mode_repl.h"
+#include "zep/mode_repl.h"
 #include "zep/editor.h"
 #include "zep/filesystem.h"
 #include "zep/imgui/display_imgui.h"

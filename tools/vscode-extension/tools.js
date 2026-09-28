@@ -50,10 +50,13 @@ async function installMips() {
   if (mipsInstalling) return
   mipsInstalling = true
   try {
-    await terminal.run('powershell', [
-      '-c',
-      '"&"',
-      '{ iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }'
+    // Go through cmd rather than launching powershell as the shell: the string
+    // after /c is then byte for byte the one the README tells people to paste,
+    // and powershell's own argument tokenizer never gets a say in how the block
+    // is quoted. Same reason the mips install calls below are wrapped.
+    await terminal.run('cmd', [
+      '/c',
+      'powershell -c "& { iwr -UseBasicParsing https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1 | iex }"'
     ])
     requiresReboot = true
     vscode.window.showInformationMessage(
@@ -280,6 +283,82 @@ async function installMake() {
       )
       throw new Error('Unsupported platform')
   }
+}
+
+// xmake publishes a standalone single-binary bundle per platform, which needs no
+// installer and no PATH change. There is no linux arm64 one, so that case falls
+// back to a package manager.
+const xmakeBundles = {
+  win32_x64: 'win64.exe',
+  win32_ia32: 'win32.exe',
+  win32_arm64: 'arm64.exe',
+  linux_x64: 'linux.x86_64',
+  darwin_x64: 'macos.x86_64',
+  darwin_arm64: 'macos.arm64'
+}
+
+function xmakeBundleSuffix() {
+  return xmakeBundles[process.platform + '_' + process.arch]
+}
+
+function xmakeBinaryPath() {
+  return vscode.Uri.joinPath(
+    globalStorageUri,
+    'xmake',
+    process.platform === 'win32' ? 'xmake.exe' : 'xmake'
+  ).fsPath
+}
+
+function configuredXMakePath() {
+  return vscode.workspace.getConfiguration('psxDev').get('xmakePath') || 'xmake'
+}
+
+async function installXMake() {
+  const suffix = xmakeBundleSuffix()
+  if (suffix === undefined) {
+    // No bundle for this platform, so fall back to a package manager and to
+    // whatever PATH the user ends up with.
+    try {
+      if (await checkInstalled('brew')) {
+        await terminal.run('brew', ['install', 'xmake'])
+      } else if (await checkInstalled('apt')) {
+        await terminal.run('sudo', ['apt', 'install', 'xmake'], {
+          message: 'Installing xmake requires root privileges.'
+        })
+      } else {
+        vscode.window.showErrorMessage(
+          'There is no standalone xmake build for your platform. You need to install xmake manually.'
+        )
+        throw new Error('Unsupported platform')
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        'An error occurred while installing xmake. Please install it manually.'
+      )
+      throw error
+    }
+    requiresReboot = true
+    return
+  }
+
+  const release = await octokit.rest.repos.getLatestRelease({
+    owner: 'xmake-io',
+    repo: 'xmake'
+  })
+  const wanted = 'xmake-bundle-' + release.data.tag_name + '.' + suffix
+  const asset = release.data.assets.find((asset) => asset.name === wanted)
+  if (!asset) {
+    vscode.window.showErrorMessage(
+      'Could not find ' + wanted + ' in the latest xmake release. Please install xmake manually.'
+    )
+    return
+  }
+  const destination = xmakeBinaryPath()
+  await downloader.downloadFile(asset.browser_download_url, destination)
+  if (process.platform !== 'win32') await fs.chmod(destination, 0o775)
+  await vscode.workspace
+    .getConfiguration('psxDev')
+    .update('xmakePath', destination, vscode.ConfigurationTarget.Global)
 }
 
 async function installCMake() {
@@ -586,6 +665,16 @@ const tools = {
     homepage: 'https://cmake.org/',
     install: installCMake,
     check: () => checkCommands(['cmake'], ['--version'])
+  },
+  xmake: {
+    type: 'package',
+    name: 'xmake',
+    description: 'A build system used by some of the project templates',
+    homepage: 'https://xmake.io/',
+    install: installXMake,
+    // Either an xmake already on PATH or the standalone copy we downloaded; the
+    // setting holds whichever one the generated tasks should call.
+    check: () => checkCommands([configuredXMakePath()], ['--version'])
   },
   git: {
     type: 'package',

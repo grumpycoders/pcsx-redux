@@ -51,7 +51,10 @@ class IsoBrowser {
           m_saveFileDialog(l_("Extract File"), favorites),
           m_openReplaceFileDialog(l_("Replace File"), favorites),
           m_monoFont(monoFont) {}
-    ~IsoBrowser() { m_hexEditors.destroyAll(); }
+    ~IsoBrowser() {
+        m_hexEditors.destroyAll();
+        m_fileViewers.destroyAll();
+    }
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
@@ -126,6 +129,19 @@ class IsoBrowser {
     std::function<void()> m_monoFont;
 
     void openHexEditor(const std::string& title, IO<File> file);
+
+    struct FileViewerInstance : public Intrusive::List<FileViewerInstance>::Node {
+        FileViewerInstance(const std::string& title, int ref) : m_title(title), m_ref(ref) {}
+        std::string m_title;
+        int m_ref;
+        bool m_open = true;
+        bool m_failed = false;
+    };
+    Intrusive::List<FileViewerInstance> m_fileViewers;
+    bool hasFileViewers();
+    void openFileViewer(const std::string& title, IO<File> file);
+    void drawFileViewers();
+    bool callFileViewer(FileViewerInstance& inst, const char* method);
 };
 
 }  // namespace Widgets

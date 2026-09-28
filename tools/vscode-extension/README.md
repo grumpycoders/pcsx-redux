@@ -6,7 +6,7 @@ In order to show the tools and templates panels, type the following in the **Ctr
 
 For more information on the tools and libraries, please refer to the [PSX.Dev website](https://psx.dev/). Also feel free to join the [Discord server](https://discord.gg/QByKPpH) for support.
 
-The panel will have the ability to install the tools on the most popular platforms, but there's definitely corner cases when it won't work. When manual installation is required, either look at the homepage provided for each tool, or check the [installation instructions](https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/psyqo/GETTING_STARTED.md) provided in the documentation. Additionally, the TOOLS panel can leverage [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) to install dependencies on an unsupported Linux platform.
+The panel will have the ability to install the tools on the most popular platforms, but there's definitely corner cases when it won't work. When manual installation is required, either look at the homepage provided for each tool, or check the [installation instructions](https://github.com/pcsx-redux/nugget/blob/main/psyqo/GETTING_STARTED.md) provided in the documentation. Additionally, the TOOLS panel can leverage [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) to install dependencies on an unsupported Linux platform.
 
 ### Known issues / limitations
 
@@ -18,6 +18,12 @@ The panel will have the ability to install the tools on the most popular platfor
 
 ### Changelog
 
+- 0.6.0
+  - Added xmake-based templates for bare metal and PSYQo.
+  - Settings directory is now passed to the emulator explicitly instead of relying on its working directory.
+  - Added support for linux arm64.
+  - Dropped the mipsel-linux-gnu toolchain.
+  - Bumping gcc to 16.2
 - 0.5.1
   - Trying a different method to install the mips tool on Powershell.
 - 0.5.0

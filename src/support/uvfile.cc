@@ -23,6 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+#include <uv.h>
+
 #include "support/uvfile.h"
 
 #include <curl/curl.h>

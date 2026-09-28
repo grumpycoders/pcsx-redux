@@ -105,6 +105,7 @@ Valid input binary files can be in the following formats:
     options.cpe = cpe;
     options.shell = shell;
     options.nokernel = nokernel;
+    options.resetstack = resetstack;
     options.tload = tload;
     options.nopad = nopad;
     PCSX::IO<PCSX::File> out(new PCSX::PosixFile(output.value().c_str(), PCSX::FileOps::TRUNCATE));

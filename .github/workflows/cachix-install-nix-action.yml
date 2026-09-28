@@ -16,6 +16,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
+      # pcsx-redux.nix pins nugget by hand, because src = self carries no
+      # submodule content. Nothing ties that pin to the gitlink, so a submodule
+      # bump would quietly keep building the old tree.
+      - name: nugget pin matches the submodule
+        run: |
+          set -Eeu
+          gitlink=$(git ls-tree HEAD src/mips | awk '{print $3}')
+          pinned=$(sed -n '/repo = "nugget"/,/}/{s/.*rev = "\([0-9a-f]\{40\}\)".*/\1/p}' pcsx-redux.nix)
+          echo "submodule: ${gitlink:-<none>}"
+          echo "nix pin:   ${pinned:-<none>}"
+          if [ -z "$gitlink" ] || [ -z "$pinned" ]; then
+            echo "could not read one of them"; exit 1
+          fi
+          [ "$gitlink" = "$pinned" ] || {
+            echo "pcsx-redux.nix pins nugget at $pinned but src/mips is $gitlink"; exit 1
+          }
       - id: set-matrix
         name: Generate Nix Matrix
         run: |

@@ -9,8 +9,7 @@ ROOT=$(pwd)
 cd $CWD
 
 # Delete non-tools source code
-git filter-branch -f --tree-filter '(mv src/mips . || true) && (mv src/support . || true) && (mv src/supportpsx . || true) && rm -rf src && mkdir -p src && (mv mips src || true) && (mv support src || true) && mv supportpsx src || true' --tag-name-filter cat --prune-empty
-git filter-branch -f --tree-filter 'find src/mips -depth -type f -not -path src/mips/common/\* -delete || true' --tag-name-filter cat --prune-empty
+git filter-branch -f --tree-filter '(mv src/mips-common . || true) && (mv src/support . || true) && (mv src/supportpsx . || true) && rm -rf src && mkdir -p src && (mv mips-common src || true) && (mv support src || true) && mv supportpsx src || true' --tag-name-filter cat --prune-empty
 
 # Delete some root files.
 git filter-branch -f --tree-filter 'rm -f *.yml LICENSE* mips.ps1 TODO.md' --tag-name-filter cat --prune-empty

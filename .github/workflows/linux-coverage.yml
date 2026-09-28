@@ -31,8 +31,9 @@ jobs:
           make install
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/openbios -j 2

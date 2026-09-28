@@ -453,6 +453,163 @@ const psyqoTemplate = combine(baseNuggetTemplate, {
   ]
 })
 
+// xmake puts its output in build/<plat>/<mode>, so the debugger and the load
+// command have to agree on the mode the build tasks configure. Both point at
+// debug, which is what the default build task selects.
+const baseXMakeTemplate = combine(baseTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/',
+              '${workspaceFolder}/third_party/nugget'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/launch.json',
+      content: {
+        configurations: [
+          {
+            name: 'Debug',
+            program:
+              '${workspaceFolder}/build/psx/debug/${workspaceRootFolderName}.elf',
+            postRemoteConnectCommands: [
+              {
+                text: 'monitor reset shellhalt'
+              },
+              {
+                text: 'load ./build/psx/debug/${workspaceRootFolderName}.elf'
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      name: '.vscode/tasks.json',
+      type: 'json',
+      content: {
+        version: '2.0.0',
+        // These are process tasks rather than shell ones: psxDev.xmakePath can
+        // point at a standalone binary under the extension's storage, and that
+        // path contains the user's name on Windows, so it can contain spaces.
+        // A process task passes it as one argv entry with no quoting rules in
+        // the way.
+        tasks: [
+          {
+            label: 'Configure Debug',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['f', '-y', '-m', 'debug']
+          },
+          {
+            label: 'Configure Release',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['f', '-y', '-m', 'release']
+          },
+          {
+            label: 'Build Debug',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['build'],
+            dependsOn: ['Configure Debug'],
+            dependsOrder: 'sequence',
+            group: {
+              kind: 'build',
+              isDefault: true
+            },
+            problemMatcher: ['$gcc']
+          },
+          {
+            label: 'Build Release',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['build'],
+            dependsOn: ['Configure Release'],
+            dependsOrder: 'sequence',
+            group: {
+              kind: 'build',
+              isDefault: true
+            },
+            problemMatcher: ['$gcc']
+          },
+          {
+            label: 'Clean',
+            type: 'process',
+            command: '${config:psxDev.xmakePath}',
+            args: ['clean'],
+            group: {
+              kind: 'build'
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: '.gitignore',
+      content: [
+        '*.elf',
+        '*.map',
+        '*.cpe',
+        '*.ps-exe',
+        '*.psexe',
+        '*.dep',
+        '*.o',
+        '*.a',
+        '.xmake/',
+        'build/'
+      ]
+    }
+  ],
+  modules: [
+    {
+      name: 'third_party/nugget',
+      url: 'https://github.com/pcsx-redux/nugget.git'
+    }
+  ]
+})
+
+const psyqoXMakeTemplate = combine(baseXMakeTemplate, {
+  files: [
+    {
+      name: '.vscode/c_cpp_properties.json',
+      content: {
+        configurations: [
+          {
+            includePath: [
+              '${workspaceFolder}/third_party/nugget/third_party/EASTL/include',
+              '${workspaceFolder}/third_party/nugget/third_party/EABase/include/common'
+            ],
+            name: 'Win32'
+          },
+          {
+            includePath: [
+              '${workspaceFolder}/third_party/nugget/third_party/EASTL/include',
+              '${workspaceFolder}/third_party/nugget/third_party/EABase/include/common'
+            ],
+            name: 'linux'
+          }
+        ]
+      }
+    }
+  ]
+})
+
 const psyqTemplate = combine(baseNuggetTemplate, {
   files: [
     {
@@ -734,6 +891,38 @@ const templates = {
       )
     }
   },
+  xmake_empty: {
+    name: 'Empty (xmake)',
+    category: 'Bare metal',
+    description:
+      'An empty project, with just the barebone setup to get started using an xmake-based build system.',
+    url: 'https://github.com/pcsx-redux/nugget/blob/main/doc/README.md',
+    examples: 'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips',
+    requiredTools: ['git', 'xmake', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        baseXMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(
+            extensionUri.fsPath,
+            'templates',
+            'bare-metal',
+            'empty-xmake'
+          )
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
   psyq_cube: {
     name: 'Psy-Q Cube',
     category: 'Psy-Q SDK',
@@ -811,6 +1000,62 @@ const templates = {
         [
           path.join(extensionUri.fsPath, 'templates', 'common'),
           path.join(extensionUri.fsPath, 'templates', 'psyqo', 'cube')
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
+  psyqo_hello_xmake: {
+    name: 'PSYQo Hello World (xmake)',
+    category: 'PSYQo SDK',
+    description:
+      'A project simply displaying Hello World using the PSYQo SDK and an xmake-based build system.',
+    url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
+    examples:
+      'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
+    requiredTools: ['git', 'xmake', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        psyqoXMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'hello-xmake')
+        ],
+        { projectName: name, isCMake: false }
+      )
+    }
+  },
+  psyqo_cube_xmake: {
+    name: 'PSYQo Cube (xmake)',
+    category: 'PSYQo SDK',
+    description:
+      'A project featuring a rotating cube using the PSYQo SDK and an xmake-based build system.',
+    url: 'https://github.com/pcsx-redux/nugget/tree/main/psyqo#how',
+    examples:
+      'https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/examples',
+    requiredTools: ['git', 'xmake', 'toolchain'],
+    recommendedTools: ['gdb', 'debugger', 'redux'],
+    create: async function (fullPath, name, progressReporter) {
+      const git = await createGitRepository(
+        fullPath,
+        psyqoXMakeTemplate,
+        progressReporter
+      )
+      await copyTemplateDirectory(
+        git,
+        fullPath,
+        name,
+        [
+          path.join(extensionUri.fsPath, 'templates', 'common'),
+          path.join(extensionUri.fsPath, 'templates', 'psyqo', 'cube-xmake')
         ],
         { projectName: name, isCMake: false }
       )

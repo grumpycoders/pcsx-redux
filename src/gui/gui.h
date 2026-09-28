@@ -44,6 +44,7 @@
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/gpudump.h"
 #include "gui/widgets/gpulogger.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
@@ -81,7 +82,11 @@
 struct SDL_Window;
 struct SDL_GLContextState;
 typedef SDL_GLContextState* SDL_GLContext;
-struct NVGcontext;
+struct ImGuiViewport;
+namespace tvg {
+struct GlCanvas;
+struct Scene;
+}  // namespace tvg
 
 namespace PCSX {
 
@@ -120,6 +125,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
+    typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
@@ -169,18 +175,17 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize,
-             MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig,
-             ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5,
-             ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor,
-             ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr,
-             MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr,
-             ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
-             ShowMsanViewer>
+             ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs,
+             MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
+             ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4,
+             ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor,
+             ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr,
+             MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
+             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr,
+             BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
-    void (*m_createWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_onChangedViewportOldCallback)(ImGuiViewport *viewport) = nullptr;
     void (*m_destroyWindowOldCallback)(ImGuiViewport *viewport) = nullptr;
     void glErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
@@ -314,8 +319,19 @@ class GUI final : public UI {
     int &m_windowSizeY = settings.get<WindowSizeY>().value;
     bool &m_windowMaximized = settings.get<WindowMaximized>().value;
     GLuint m_VRAMTexture = 0;
-    NVGcontext *m_nvgContext = nullptr;
-    std::map<unsigned, void *> m_nvgSubContextes;
+    struct TvgViewport {
+        tvg::GlCanvas *canvas = nullptr;
+        tvg::Scene *root = nullptr;
+        tvg::Scene *transient = nullptr;
+        void *glContext = nullptr;
+        int width = 0;
+        int height = 0;
+    };
+    std::map<unsigned, TvgViewport> m_tvgViewports;
+    bool m_tvgInitialized = false;
+    TvgViewport *getTvgViewport(unsigned viewportId);
+    void renderTvgViewport(ImGuiViewport *viewport, SDL_Window *window);
+    void destroyTvgViewport(unsigned viewportId, SDL_Window *window);
     std::vector<ImWchar> m_baseFontRanges;
 
     unsigned int m_offscreenFrameBuffer = 0;
@@ -335,6 +351,7 @@ class GUI final : public UI {
     int &m_idleSwapInterval = {settings.get<IdleSwapInterval>().value};
     bool m_showThemes = false;
     bool m_showDemo = false;
+    bool m_showImPlotDemo = false;
     bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
@@ -435,6 +452,7 @@ class GUI final : public UI {
     Widgets::CallStacks m_callstacks = {settings.get<ShowCallstacks>().value};
 
     Widgets::PIOCart m_pioCart;
+    Widgets::GPUDump m_gpuDump;
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
@@ -523,6 +541,8 @@ class GUI final : public UI {
     bool &allowMouseCaptureToggle() { return settings.get<AllowMouseCaptureToggle>().value; }
     bool &isRawMouseMotionEnabled() { return settings.get<EnableRawMouseMotion>().value; }
 
+    // Returns the root scene drawn on top of the given viewport, in ImGui coordinates.
+    tvg::Scene *getTvgViewportScene(unsigned viewportId);
     void drawBezierArrow(float width, ImVec2 start, ImVec2 c1, ImVec2 c2, ImVec2 end,
                          ImVec4 innerColor = {1.0f, 1.0f, 1.0f, 1.0f}, ImVec4 outerColor = {0.5f, 0.5f, 0.5f, 1.0f});
 };  // namespace PCSX

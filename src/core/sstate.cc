@@ -276,7 +276,6 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
         counters.get<Rcnts>().value[i].get<RcntGateStarted>().value = m_rcnts[i].gateStarted;
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
-    counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
 }
 
@@ -318,7 +317,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     auto& left = xa.get<SaveStates::XAADPCMLeft>();
     g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
-    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    auto& right = xa.get<SaveStates::XAADPCMRight>();
     g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
@@ -438,7 +437,6 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
         m_rcnts[i].gateStarted = counters.get<Rcnts>().value[i].get<RcntGateStarted>().value;
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
-    m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
 
     calculateHsync();

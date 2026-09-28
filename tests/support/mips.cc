@@ -19,8 +19,8 @@
 
 #include "gtest/gtest.h"
 
-#include "mips/common/util/decoder.hh"
-#include "mips/common/util/encoder.hh"
+#include "mips-common/util/decoder.hh"
+#include "mips-common/util/encoder.hh"
 
 using namespace Mips;
 using namespace Mips::Decoder;

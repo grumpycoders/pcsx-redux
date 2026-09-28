@@ -75,7 +75,7 @@
     <ClInclude Include="..\..\third_party\typestring.hh">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mips\common\util\sjis-table.h">
+    <ClInclude Include="..\..\src\mips-common\util\sjis-table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\support\strings-helpers.h">

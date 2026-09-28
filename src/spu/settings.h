@@ -29,13 +29,23 @@ typedef SettingString<TYPESTRING("Device"), TYPESTRING("Default")> Device;
 typedef Setting<bool, TYPESTRING("UseNullSync"), false> NullSync;
 typedef Setting<bool, TYPESTRING("Streaming"), true> Streaming;
 typedef Setting<int, TYPESTRING("Volume"), 3> Volume;
-typedef Setting<bool, TYPESTRING("IRQWait"), true> SPUIRQWait;
-typedef Setting<int, TYPESTRING("Reverb"), 2> Reverb;
 typedef Setting<int, TYPESTRING("Interp"), 2> Interpolation;
 typedef Setting<bool, TYPESTRING("Mono")> Mono;
-typedef Setting<bool, TYPESTRING("DBufIRQ"), true> DBufIRQ;
 typedef Setting<bool, TYPESTRING("Mute")> Mute;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, SPUIRQWait, Reverb, Interpolation, Mono, DBufIRQ, Mute>
+// Emulation speed multiplier, applied at the audio sink (the emulator's master clock). 1 = realtime
+// (1:1 emulated:hardware), N = N times faster, <= 0 = unbounded (drain as fast as the producer fills).
+// The sink decimates whole frame-runs (skip, not resample) so pitch is preserved at any multiplier.
+// This replaces the old cycle-derived Emulator::SettingScaler: because both audio sources (SPU voices
+// and CD-ROM XA) converge at the sink, speeding up here also speeds up XA, which the cycle scaler missed.
+typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
+// Voice key-on -> first-output startup latency, in 44.1kHz samples. Real hardware emits a few samples of
+// silence after KEY_ON before the voice's first decoded sample appears in the capture mirror; Redux used
+// to emit immediately. 6 is the value that lines the ADSR goldens in src/mips/tests/spu up best - whether
+// it is the latency itself or is absorbing a rounding error in cycleToSample() is still open. It applies
+// to the mixer and to the reconstructed ENVX alike; override via Lua to characterize the offset.
+typedef Setting<int, TYPESTRING("KeyOnDelay"), 6> KeyOnDelay;
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute,
+                 Speed, KeyOnDelay>
     SettingsType;
 
 }  // namespace SPU

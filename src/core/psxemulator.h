@@ -73,6 +73,8 @@ class Counters;
 class Debug;
 class GdbServer;
 class GPU;
+class GPUDumper;
+class GPUDumpPlayer;
 class GPULogger;
 class GTE;
 class RAMLogger;
@@ -163,7 +165,6 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Xa"), true> SettingXa;
     typedef Setting<bool, TYPESTRING("SpuIrq")> SettingSpuIrq;
     typedef Setting<bool, TYPESTRING("BnWMdec")> SettingBnWMdec;
-    typedef Setting<int, TYPESTRING("Scaler"), 100> SettingScaler;
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
@@ -174,6 +175,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
+    typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
@@ -196,13 +198,13 @@ class Emulator {
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
-             SettingBnWMdec, SettingScaler, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
+             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
              SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
-             Setting8MB, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
-             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
-             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
-             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             Setting8MB, SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering,
+             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
+             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
+             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
+             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:
@@ -262,6 +264,8 @@ class Emulator {
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GPUDumper> m_gpuDumper;
+    std::unique_ptr<GPUDumpPlayer> m_gpuDumpPlayer;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<RAMLogger> m_ramLogger;

@@ -161,8 +161,11 @@ void PCSX::Counters::update() {
     {
         uint64_t prev = g_emulator->m_cpu->m_regs.previousCycles;
         uint64_t diff = cycle - prev;
-        diff *= 4410000;
-        diff /= g_emulator->settings.get<Emulator::SettingScaler>();
+        // Map elapsed CPU cycles to the realtime (1:1 emulated:hardware) audio-frame target. Emulation
+        // speed is no longer controlled here: it lives entirely at the audio sink (SPU::Speed), which is
+        // the master clock both this counter and the SPU thread pace against. 44100 == 4410000 / 100, and
+        // the old Emulator::SettingScaler defaulted to 100, so this is byte-identical to the prior default.
+        diff *= 44100;
         diff /= g_emulator->m_psxClockSpeed;
         uint32_t target = m_audioFrames + diff;
         uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
@@ -171,8 +174,12 @@ void PCSX::Counters::update() {
             g_emulator->m_cpu->m_regs.previousCycles = cycle;
             g_emulator->m_spu->waitForGoal(target);
             m_audioFrames = target;
-        } else if (framesDiff < -2000000000) {
-            m_audioFrames = newFrames;
+        } else if (framesDiff < -kMaxAudioLagFrames) {
+            // The host couldn't sustain the requested speed. Cap the debt, otherwise returning to 1x runs
+            // the CPU unthrottled until it has caught up. Resetting it to zero would stall every update on
+            // the next audio callback instead.
+            g_emulator->m_cpu->m_regs.previousCycles = cycle;
+            m_audioFrames = newFrames - kMaxAudioLagFrames;
         }
     }
 
@@ -195,7 +202,6 @@ void PCSX::Counters::update() {
         reset(3);
 
         m_hSyncCount++;
-        m_spuSyncCountdown--;
 
         // Counter 0 gate: triggered by Hblank
         if (isGateEnabled(0, m_rcnts[0].mode)) {
@@ -213,15 +219,6 @@ void PCSX::Counters::update() {
                     }
                     break;
             }
-        }
-
-        // Update spu.
-        if (m_spuSyncCountdown <= 0) {
-            // Scanlines until next sync
-            const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
-            m_spuSyncCountdown = scanlines;
-
-            PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
         }
 
         // SIO1 callback on hsync to process data
@@ -442,7 +439,6 @@ void PCSX::Counters::init() {
     }
 
     m_hSyncCount = 0;
-    m_spuSyncCountdown = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
     set();
 }

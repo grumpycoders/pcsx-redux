@@ -18,8 +18,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: recursive
         set-safe-directory: true
+    - name: Fetch submodules
+      run: ./.github/scripts/update-submodules.sh
     - name: install dependencies
       run: brew install --verbose nikitabobko/tap/brew-install-path
     - name: build mips binutils

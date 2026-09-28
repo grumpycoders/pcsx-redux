@@ -16,7 +16,7 @@ The tool currently has two main usages: generating .o files for the purpose of u
 
 Not all of the particularities of the input format is convertible to the new ELF format, at least, not without an opiniated ldscript. Fortunately, with the whole of
 the official Sony libraries, the only sorts of object files that fails conversion are the various crt0, which would also require a very opiniated ldscript too.
-The user is then compelled to provide their own crt0 and ldscript of their choice. Such files can be found [here](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips).
+The user is then compelled to provide their own crt0 and ldscript of their choice. Such files can be found [here](https://github.com/pcsx-redux/nugget).
 
 # Compatibility
 

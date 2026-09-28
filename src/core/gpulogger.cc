@@ -109,6 +109,12 @@ void main() {
 PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
         m_frameCounter++;
+        const unsigned rate = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL ? 50 : 60;
+        if (++m_fpsVSyncs >= rate) {
+            m_guestFPS = float(m_displayStartChanges) * rate / m_fpsVSyncs;
+            m_displayStartChanges = 0;
+            m_fpsVSyncs = 0;
+        }
         if (m_breakOnVSync) {
             g_system->pause();
         }

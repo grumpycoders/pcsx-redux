@@ -146,6 +146,7 @@
     <ClCompile Include="..\..\src\core\pio-cart.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
+    <ClCompile Include="..\..\src\core\gpudump.cc" />
     <ClCompile Include="..\..\src\core\gpulogger.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
@@ -176,9 +177,9 @@
     <ClCompile Include="..\..\src\core\system.cc" />
     <ClCompile Include="..\..\src\core\ui.cc" />
     <ClCompile Include="..\..\src\core\web-server.cc" />
-    <ClCompile Include="..\..\src\mips\common\util\sjis-decode.cc" />
-    <ClCompile Include="..\..\src\mips\common\util\sjis-fullwidth-ascii.cc" />
-    <ClCompile Include="..\..\src\mips\common\util\utf8-decode.cc" />
+    <ClCompile Include="..\..\src\mips-common\util\sjis-decode.cc" />
+    <ClCompile Include="..\..\src\mips-common\util\sjis-fullwidth-ascii.cc" />
+    <ClCompile Include="..\..\src\mips-common\util\utf8-decode.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\arguments.h" />
@@ -203,6 +204,7 @@
     <ClInclude Include="..\..\src\core\pio-cart.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
+    <ClInclude Include="..\..\src\core\gpudump.h" />
     <ClInclude Include="..\..\src\core\gpulogger.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
@@ -233,7 +235,7 @@
     <ClInclude Include="..\..\src\core\system.h" />
     <ClInclude Include="..\..\src\core\ui.h" />
     <ClInclude Include="..\..\src\core\web-server.h" />
-    <ClInclude Include="..\..\src\mips\common\util\encoder.hh" />
+    <ClInclude Include="..\..\src\mips-common\util\encoder.hh" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\core\isoffi.lua" />

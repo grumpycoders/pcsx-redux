@@ -65,7 +65,9 @@ struct Emitter final : public CodeGenerator {
     // Uses lea if the value is non-zero, or mov otherwise
     void moveAndAdd(Xbyak::Reg32 dest, Xbyak::Reg32 source, uint32_t value) {
         if (value != 0) {
-            lea(dest, dword[source.cvt64() + value]);
+            // The displacement is sign-extended by the CPU, and the 32-bit destination truncates the result,
+            // so passing it as int32_t yields the same wrapping 32-bit add for any uint32_t value
+            lea(dest, dword[source.cvt64() + static_cast<int32_t>(value)]);
         } else {
             mov(dest, source);
         }

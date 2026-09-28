@@ -24,7 +24,9 @@
 #include <array>
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -32,9 +34,11 @@
 
 #include <SDL3/SDL.h>
 
+#include "lua/luawrapper.h"
 #include "spu/settings.h"
 #include "support/circular.h"
 #include "support/eventbus.h"
+#include "supportpsx/adpcm.h"
 
 #if defined(_MSC_VER) || defined(__linux__)
 #define HAS_ATOMIC_WAIT 1
@@ -50,6 +54,66 @@ class SDLAudio {
     struct Frame {
         int16_t L = 0, R = 0;
     };
+
+    // Standalone sound playback, independent of the emulated SPU. These sounds go through a second
+    // logical SDL audio device, opened on the same physical device as the emulator's output, and which
+    // is not paused along with the emulation. Each sound gets its own SDL audio stream, so SDL takes
+    // care of the format conversion, resampling, and mixing.
+    struct SoundDescriptor {
+        enum class Format { PCM, SPU, XA };
+        Format format = Format::PCM;
+        // PCM: 8 or 16. XA: 4 or 8. Unused for SPU.
+        unsigned bits = 16;
+        // PCM only. 16-bit samples are little endian.
+        bool isSigned = true;
+        // PCM and XA: 1 or 2. SPU is always mono.
+        unsigned channels = 1;
+        // Sample rate in Hz. XA: 37800 or 18900.
+        unsigned rate = 44100;
+        // XA only: the data is made of CD sectors instead of raw 128-byte sound groups, and the format
+        // is read from the sectors' subheaders instead of the fields above.
+        bool sectors = false;
+        // XA sectors only: if not negative, only play the sectors with this file / channel number.
+        int xaFile = -1;
+        int xaChannel = -1;
+        float gain = 1.0f;
+    };
+
+    class Sound {
+      public:
+        ~Sound();
+        void stop();
+        bool isPlaying();
+        void setGain(float gain);
+
+      private:
+        friend class SDLAudio;
+        Sound() = default;
+        void detach();
+        void spuCallback(SDL_AudioStream* stream, int additionalBytes);
+
+        SDLAudio* m_owner = nullptr;
+        SDL_AudioStream* m_stream = nullptr;
+        float m_gain = 1.0f;
+        // True while the SPU refill callback still has data to produce.
+        std::atomic<bool> m_feeding = false;
+        // SPU decoding state. Once the stream is bound, this is only touched from the SDL audio thread,
+        // by the stream callback, until the stream is destroyed.
+        std::vector<uint8_t> m_spuData;
+        size_t m_spuPosition = 0;
+        size_t m_spuLoopStart = 0;
+        ADPCM::Decoder m_decoder;
+    };
+
+    // Starts playing the given data. The data is copied or decoded before this returns, so the caller
+    // doesn't need to keep it alive. On error, returns nullptr, and sets the error string.
+    std::shared_ptr<Sound> playSound(const uint8_t* data, size_t size, const SoundDescriptor& descriptor,
+                                     std::string& error);
+    // Applies the Mute setting to the sounds played through playSound.
+    void updatePlaybackMute();
+    // Exposes the above to Lua, as PCSX.SPU.playAudio.
+    void setLua(Lua L);
+
     SDLAudio(SettingsType& settings);
     ~SDLAudio() { uninit(); }
     uint32_t getFrameCount() { return m_frameCount.load(); }
@@ -123,6 +187,13 @@ class SDLAudio {
     SDL_AudioDeviceID m_device = 0;
     SDL_AudioStream* m_stream = nullptr;
     bool m_audioInitialized = false;
+
+    // Second logical device for standalone sounds, and the sounds currently attached to it.
+    // Only touched from the main thread.
+    void openPlaybackDevice(SDL_AudioDeviceID physical);
+    void closePlaybackDevice();
+    SDL_AudioDeviceID m_playbackDevice = 0;
+    std::set<Sound*> m_sounds;
 
     std::thread m_nullThread;
     std::atomic<bool> m_nullThreadStop{false};

@@ -82,6 +82,9 @@
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\gpudump.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -100,10 +103,13 @@
     <ClCompile Include="..\..\src\gui\widgets\named_savestates.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\luanvg.cc">
+    <ClCompile Include="..\..\src\gui\luatvg.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\luaimplot.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\splash.cc">
@@ -204,6 +210,9 @@
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\gpudump.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
@@ -222,10 +231,13 @@
     <ClInclude Include="..\..\src\gui\widgets\named_savestates.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gui\luanvg.h">
+    <ClInclude Include="..\..\src\gui\luatvg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\luaimguiextra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\luaimplot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\patches.h">
@@ -255,16 +267,22 @@
     <None Include="..\..\src\gui\shaders\crt-lottes-output.lua">
       <Filter>Source Files\shaders</Filter>
     </None>
-    <None Include="..\..\src\gui\nvgffi.lua">
+    <None Include="..\..\src\gui\tvgffi.lua">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="..\..\src\gui\nvgffi-cdefs.lua">
+    <None Include="..\..\src\gui\tvgffi-cdefs.lua">
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguiextraffi.lua">
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguisafe.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotsafe.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

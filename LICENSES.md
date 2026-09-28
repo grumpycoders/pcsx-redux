@@ -8,7 +8,7 @@ under certain conditions. See [the license](https://github.com/grumpycoders/pcsx
 OpenBIOS, Copyright (C) 2019-2025 [PCSX-Redux authors](AUTHORS)
 OpenBIOS comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
-under certain conditions. See [the license](https://github.com/grumpycoders/pcsx-redux/blob/main/src/mips/LICENSE) for details.
+under certain conditions. See [the license](https://github.com/pcsx-redux/nugget/blob/main/LICENSE) for details.
 
 PCSX-Redux uses many third party libraries to function,
 each with its own license. The following is an alphabetical
@@ -37,6 +37,7 @@ find a link to the vendored version itself.
  - [imgui_lua_bindings](https://github.com/patrickriordan/imgui_lua_bindings) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_lua_bindings))
  - [imgui_md](https://github.com/mekhontsev/imgui_md)
  - [imgui_memory_editor](https://github.com/ocornut/imgui_memory_editor) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/imgui_memory_editor))
+ - [ImPlot](https://github.com/epezent/implot)
  - [json](https://github.com/nlohmann/json) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/json.hpp))
  - [libcester](https://github.com/exoticlibraries/libcester)
  - [libuv](https://github.com/libuv/libuv)
@@ -50,13 +51,12 @@ find a link to the vendored version itself.
  - [magic_enum](https://github.com/Neargye/magic_enum)
  - [md4c](https://github.com/mity/md4c)
  - [multipart-parser-c](https://github.com/iafonov/multipart-parser-c)
- - [nanosvg](https://github.com/memononen/nanosvg) ([vendored](https://github.com/grumpycoders/nanosvg))
- - [nanovg](https://github.com/memononen/nanovg) ([vendored](https://github.com/grumpycoders/nanovg))
  - [noto](https://fonts.google.com/noto) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/noto))
  - [PEGTL](https://github.com/taocpp/PEGTL)
  - [pprint.lua](https://github.com/jagt/pprint.lua) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/pprint.lua))
  - [snitch](https://github.com/snitch-org/snitch) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/snitch))
  - [stb](https://github.com/nothings/stb)
+ - [thorvg](https://github.com/thorvg/thorvg) ([vendored](https://github.com/pcsx-redux/thorvg))
  - [tracy](https://github.com/wolfpld/tracy)
  - [typestring](https://github.com/irrequietus/typestring) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/typestring.hh))
  - [uC-sdk](https://github.com/grumpycoders/uC-sdk)
