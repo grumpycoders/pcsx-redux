@@ -27,9 +27,124 @@
 
 #include "core/memorycard.h"
 #include "core/pad.h"
+#include "core/system.h"
 #include "mips-common/util/sjis-fullwidth-ascii.hh"
+#include "pocketstation/pocketstation.h"
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
+
+PCSX::SIO::SIO() { reset(); }
+
+// ARM7 cycle-delta catch-up, driven from R3000Acpu::branchTest() (the inter-burst boundary). Reads
+// the R3000A cycle delta since the last catch-up, scales it by the ARM/PSX clock ratio, and runs
+// each docked PocketStation that far. See sio.h for why this is at the inter-burst boundary and not
+// per-instruction or per-frame. Cheap when nothing is docked (early return).
+void PCSX::SIO::stepPocketstation() {
+    PocketStation::PocketStation *devs[c_cardCount];
+    bool any = false;
+    for (unsigned i = 0; i < c_cardCount; i++) {
+        // Dock before stepping, so the edge is taken by the cycles this call is about to run.
+        m_memoryCard[i].tickPocketstationDock();
+        devs[i] = m_memoryCard[i].getPocketstation();
+        if (devs[i]) any = true;
+    }
+    if (!any) {
+        m_psxCycleValid = false;  // nothing docked; re-anchor when a device appears.
+        return;
+    }
+
+    const uint64_t now = g_emulator->m_cpu->m_regs.cycle;
+    if (!m_psxCycleValid || now < m_lastPsxCycle) {
+        // First catch-up with a device docked, or the counter went backwards (reset/savestate
+        // load): re-anchor without running a bogus delta.
+        m_lastPsxCycle = now;
+        m_psxCycleValid = true;
+        return;
+    }
+    const uint64_t psxDelta = now - m_lastPsxCycle;
+    m_lastPsxCycle = now;  // consume the whole delta; each device's accumulator carries its fraction.
+
+    // The PSX-cycle path is taking over: drop the wall-clock anchor so it re-syncs (rather than
+    // running a stale multi-second delta) the next time the core pauses.
+    m_wallClockValid = false;
+
+    for (unsigned i = 0; i < c_cardCount; i++) {
+        if (!devs[i]) {
+            m_psxArmAccum[i] = 0;
+            continue;
+        }
+        // Scale PSX cycles -> ARM7 cycles at THIS device's LIVE clock (CLK_MODE.FREQ); a software
+        // clock change (SWI 4) rescales the device's run rate without touching the RTC's real rate.
+        // The remainder is accumulated in (PSX-cycle * Hz) units, so a sub-1-ARM-cycle delta is
+        // never discarded -- truncating it would freeze the ARM7 at the high-frequency inter-burst
+        // boundary (tiny deltas -> 0 forever) -- and the carry survives a live clock change because
+        // each call divides by the current clock.
+        const uint64_t armHz = devs[i]->armClockHz();
+        m_psxArmAccum[i] += psxDelta * armHz;
+        const uint64_t armCycles = m_psxArmAccum[i] / kPsxClockHz;
+        m_psxArmAccum[i] -= armCycles * kPsxClockHz;
+        if (armCycles) devs[i]->runCycles(armCycles);
+    }
+}
+
+// Wall-clock standalone driver: advance an enabled PocketStation off REAL elapsed time when the
+// R3000A is not executing (paused/stopped, or no game), so the device runs fully standalone - keeps
+// time, runs its GUI/apps, and sleeps cheaply via CLK_STOP between RTC ticks (a sleeping device
+// steps only a handful of ARM7 instructions per real second, so it never burns a host core). Called
+// once per GUI frame from main.cc's not-running branch; that gating is what prevents double-driving
+// with stepPocketstation() (which only runs while the core executes). Inert when nothing is enabled.
+void PCSX::SIO::stepPocketstationWallClock() {
+    PocketStation::PocketStation *devs[c_cardCount];
+    bool any = false;
+    for (unsigned i = 0; i < c_cardCount; i++) {
+        // Dock before stepping, so the edge is taken by the cycles this call is about to run.
+        m_memoryCard[i].tickPocketstationDock();
+        devs[i] = m_memoryCard[i].getPocketstation();
+        if (devs[i]) any = true;
+    }
+    if (!any) {
+        m_wallClockValid = false;  // nothing enabled; re-anchor when a device appears.
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!m_wallClockValid) {
+        // First call with a device present, or just took over from the PSX-cycle path: anchor
+        // without running a bogus delta.
+        m_lastWallClock = now;
+        m_wallClockValid = true;
+        for (unsigned i = 0; i < c_cardCount; i++) m_wallClockRemainderNs[i] = 0;
+        return;
+    }
+
+    uint64_t elapsedNs = std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_lastWallClock).count();
+    m_lastWallClock = now;
+    // Bound a single catch-up so a long host pause (process suspended, breakpoint held for minutes)
+    // can't stall the frame with one enormous burst. A standalone idle clock can't recover time the
+    // host was frozen for, so the excess is dropped, not banked. 1 s is generous: a sleeping device
+    // handles it in ~tens of instructions, a busy one in ~4M cycles (a few ms of host work).
+    constexpr uint64_t kMaxCatchUpNs = 1'000'000'000ull;
+    if (elapsedNs > kMaxCatchUpNs) elapsedNs = kMaxCatchUpNs;
+
+    // Symmetric to the PSX path: drop its anchor so it re-syncs when the core resumes.
+    m_psxCycleValid = false;
+
+    for (unsigned i = 0; i < c_cardCount; i++) {
+        if (!devs[i]) {
+            m_wallClockRemainderNs[i] = 0;
+            continue;
+        }
+        // Scale real elapsed ns -> ARM7 cycles at THIS device's LIVE clock (CLK_MODE.FREQ). Per-device
+        // ns remainder carries the sub-1-ARM-cycle fraction (same discipline as the PSX path) and lets
+        // a software clock change rescale the standalone run rate cleanly.
+        const uint64_t armHz = devs[i]->armClockHz();
+        m_wallClockRemainderNs[i] += elapsedNs;
+        const uint64_t armCycles = m_wallClockRemainderNs[i] * armHz / 1'000'000'000ull;
+        if (armCycles == 0) continue;  // sub-1-ARM-cycle delta; keep the remainder and grow it.
+        m_wallClockRemainderNs[i] -= armCycles * 1'000'000'000ull / armHz;
+        devs[i]->runCycles(armCycles);
+    }
+}
 
 // clk cycle byte
 // 4us * 8bits = (PCSX::g_emulator->m_psxClockSpeed / 1000000) * 32; (linuzappz)
@@ -103,6 +218,12 @@ void PCSX::SIO::reset() {
     m_memoryCard[0].deselect();
     m_memoryCard[1].deselect();
     m_currentDevice = DeviceType::None;
+    m_psxCycleValid = false;   // re-anchor the PocketStation catch-up on the next VSync.
+    m_wallClockValid = false;  // re-anchor the wall-clock standalone driver too.
+    for (unsigned i = 0; i < c_cardCount; i++) {
+        m_psxArmAccum[i] = 0;
+        m_wallClockRemainderNs[i] = 0;
+    }
 }
 
 void PCSX::SIO::writePad(uint8_t value) {
