@@ -374,7 +374,19 @@ PCSX::DCT::Encoder::Encoder(unsigned threads, Transform transform, Basis basis)
     m_useAvx2 = CPUFeatures::get().avx2 && (getenv("PCSX_DCT_NO_SIMD") == nullptr);
 #endif
     m_threads.reserve(m_threadCount);
-    for (unsigned i = 0; i < m_threadCount; i++) m_threads.emplace_back([this] { worker(); });
+    try {
+        for (unsigned i = 0; i < m_threadCount; i++) m_threads.emplace_back([this] { worker(); });
+    } catch (...) {
+        // The destructor does not run for a constructor that throws, and
+        // destroying a joinable std::thread calls std::terminate.
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_shutdown = true;
+        }
+        m_cv.notify_all();
+        for (auto &t : m_threads) t.join();
+        throw;
+    }
 }
 
 PCSX::DCT::Encoder::~Encoder() {
@@ -838,6 +850,13 @@ PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, 
         r.error = "q_scale varies across the frame and BS carries QUANT once";
         return r;
     }
+    if (r.rlWords > 0xffff) {
+        // The header field is 16 bits; masking would describe a different,
+        // shorter stream than the one that follows.
+        r.failed = true;
+        r.error = "run-level stream too long for the BS header's 16-bit length";
+        return r;
+    }
 
     // Header. Word 0 IS the MDEC(1) decode command, which is why the magic is
     // 0x3800 rather than something arbitrary.
@@ -926,6 +945,9 @@ PCSX::DCT::PackResult PCSX::DCT::pack(std::span<const int16_t> coefficients, con
     const uint8_t *qy = tables.y ? tables.y : c_packStandardQuant;
     const uint8_t *quv = tables.uv ? tables.uv : c_packStandardQuant;
     const int initial = std::clamp(qScale, 1, 63);
+    // `out` is appended to, so every size reported or padded below is relative
+    // to what the caller already had in it.
+    const size_t base = out.size();
 
     const uint32_t macroblocks = shape.blockCount / 6;
     for (uint32_t mb = 0; mb < macroblocks; mb++) {
@@ -948,7 +970,7 @@ PCSX::DCT::PackResult PCSX::DCT::pack(std::span<const int16_t> coefficients, con
             info.attempt = attempt;
             info.qScale = q;
             info.sizeHalfwords = out.size() - acceptedSoFar;
-            info.totalHalfwords = out.size();
+            info.totalHalfwords = out.size() - base;
             info.clippedAc = acHere;
             info.clippedDc = dcHere;
             const auto next = rateControl(info);
@@ -975,8 +997,8 @@ PCSX::DCT::PackResult PCSX::DCT::pack(std::span<const int16_t> coefficients, con
 
     // psx-spx: MDEC(1) parameters want padding to 40h halfwords so the DMA block
     // count is a whole number of 20h-word blocks. A half block hangs DMA0.
-    while (out.size() % 64) out.push_back(0xfe00);
-    result.halfwords = out.size();
+    while ((out.size() - base) % 64) out.push_back(0xfe00);
+    result.halfwords = out.size() - base;
     return result;
 }
 
@@ -1088,6 +1110,13 @@ PCSX::DCT::ContainerResult PCSX::DCT::fromContainer(std::span<const uint8_t> in,
         rl.push_back(static_cast<uint16_t>(((quant & 0x3f) << 10) | (dc & 0x3ff)));
         bool closed = false;
         while (!closed) {
+            if (rl.size() >= target) {
+                // The block has not closed and the header's length is used up:
+                // it does not fit, so drop it like any other that runs out.
+                rl.resize(blockStart);
+                br.overrun = true;
+                break;
+            }
             uint32_t code = 0;
             int bits = 0;
             const VlcDecodeEntry *found = nullptr;

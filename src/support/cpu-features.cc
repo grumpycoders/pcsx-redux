@@ -141,26 +141,29 @@ const PCSX::CPUFeatures &PCSX::CPUFeatures::get() {
 }
 
 const char *PCSX::CPUFeatures::describe() {
-    static char s_buffer[256];
-    static bool s_built = false;
-    if (s_built) return s_buffer;
-    const auto &f = get();
-    s_buffer[0] = 0;
-    auto append = [](const char *s) {
-        if (s_buffer[0]) strncat(s_buffer, " ", sizeof(s_buffer) - strlen(s_buffer) - 1);
-        strncat(s_buffer, s, sizeof(s_buffer) - strlen(s_buffer) - 1);
+    struct Description {
+        char buffer[256] = {0};
+        void append(const char *s) {
+            if (buffer[0]) strncat(buffer, " ", sizeof(buffer) - strlen(buffer) - 1);
+            strncat(buffer, s, sizeof(buffer) - strlen(buffer) - 1);
+        }
+        Description() {
+            const auto &f = get();
+            if (f.sse2) append("sse2");
+            if (f.ssse3) append("ssse3");
+            if (f.sse41) append("sse4.1");
+            if (f.sse42) append("sse4.2");
+            if (f.avx) append("avx");
+            if (f.fma) append("fma");
+            if (f.avx2) append("avx2");
+            if (f.avx512f) append("avx512f");
+            if (f.avx512bw) append("avx512bw");
+            if (f.neon) append("neon");
+            if (!buffer[0]) strncpy(buffer, "none", sizeof(buffer));
+        }
     };
-    if (f.sse2) append("sse2");
-    if (f.ssse3) append("ssse3");
-    if (f.sse41) append("sse4.1");
-    if (f.sse42) append("sse4.2");
-    if (f.avx) append("avx");
-    if (f.fma) append("fma");
-    if (f.avx2) append("avx2");
-    if (f.avx512f) append("avx512f");
-    if (f.avx512bw) append("avx512bw");
-    if (f.neon) append("neon");
-    if (!s_buffer[0]) strncpy(s_buffer, "none", sizeof(s_buffer));
-    s_built = true;
-    return s_buffer;
+    // A function-local static, so concurrent first calls are synchronised by
+    // the compiler instead of racing on a hand-rolled "built" flag.
+    static const Description s_description;
+    return s_description.buffer;
 }

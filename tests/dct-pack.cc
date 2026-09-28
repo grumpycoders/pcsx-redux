@@ -310,19 +310,20 @@ TEST(DctContainer, bsRoundTripsAndRefusesWhatItCannotExpress) {
     // A q_scale that moves mid-frame has no representation: BS stores QUANT once.
     // Rate control can produce one, so this must fail rather than write a stream
     // the stock player silently misreads.
+    // Odd macroblocks move to 20, even ones keep 8, so the frame really does mix.
     std::vector<uint16_t> varying;
     auto mixed = PCSX::DCT::pack(t.coeffs, t.shape, {}, 8, varying,
                                  [](const PCSX::DCT::PackAttempt &i) -> std::optional<int> {
-                                     return i.attempt == 0 ? std::optional<int>(i.qScale == 8 ? 20 : 8)
-                                                           : std::nullopt;
+                                     if (i.attempt == 0 && (i.macroblock & 1)) return 20;
+                                     return std::nullopt;
                                  });
     ASSERT_FALSE(mixed.failed);
-    if (mixed.minQScale != mixed.maxQScale) {
-        std::vector<uint8_t> nope;
-        auto refused = PCSX::DCT::toContainer(varying, PCSX::DCT::Container::Bs, nope);
-        EXPECT_TRUE(refused.failed) << "a varying q_scale is not BS-expressible";
-        EXPECT_TRUE(nope.empty());
-    }
+    ASSERT_EQ(mixed.minQScale, 8);
+    ASSERT_EQ(mixed.maxQScale, 20);
+    std::vector<uint8_t> nope;
+    auto refused = PCSX::DCT::toContainer(varying, PCSX::DCT::Container::Bs, nope);
+    EXPECT_TRUE(refused.failed) << "a varying q_scale is not BS-expressible";
+    EXPECT_TRUE(nope.empty());
 
     // And a corrupt header is refused rather than decoded into plausible noise.
     std::vector<uint8_t> bad = bs;
@@ -353,7 +354,12 @@ TEST(DctContainer, bsRoundTripsAndRefusesWhatItCannotExpress) {
     std::vector<uint8_t> asV3 = bs;
     asV3[6] = 3;
     std::vector<uint16_t> v3Back;
-    PCSX::DCT::fromContainer(asV3, PCSX::DCT::Container::Bs, v3Back);
+    auto v3r = PCSX::DCT::fromContainer(asV3, PCSX::DCT::Container::Bs, v3Back);
+    // A failed or empty decode differs from `stream` too, so rule those out first
+    // or the comparison below passes on nothing.
+    ASSERT_FALSE(v3r.failed) << (v3r.error ? v3r.error : "");
+    ASSERT_GT(v3r.blocks, 0u) << "the delta path decoded no blocks at all";
+    ASSERT_EQ(v3Back.size(), stream.size());
     EXPECT_NE(v3Back, stream) << "v3 must not be decoded as raw DC";
 
     // Versions outside 1..3 are refused rather than guessed at.
