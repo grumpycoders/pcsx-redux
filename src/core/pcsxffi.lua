@@ -67,6 +67,10 @@ void pauseEmulator();
 void resumeEmulator();
 void softResetEmulator();
 void hardResetEmulator();
+bool isRunning();
+void stepIn();
+void stepOver();
+void stepOut();
 void luaMessage(const char* msg, bool error);
 void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
@@ -199,6 +203,10 @@ PCSX = {
     resumeEmulator = function() C.resumeEmulator() end,
     softResetEmulator = function() C.softResetEmulator() end,
     hardResetEmulator = function() C.hardResetEmulator() end,
+    isRunning = function() return C.isRunning() end,
+    stepIn = function() C.stepIn() end,
+    stepOver = function() C.stepOver() end,
+    stepOut = function() C.stepOut() end,
     invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },

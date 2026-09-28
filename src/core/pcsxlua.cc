@@ -83,6 +83,10 @@ void pauseEmulator() { PCSX::g_system->pause(); }
 void resumeEmulator() { PCSX::g_system->resume(); }
 void softResetEmulator() { PCSX::g_system->softReset(); }
 void hardResetEmulator() { PCSX::g_system->hardReset(); }
+bool isRunning() { return PCSX::g_system->running(); }
+void stepIn() { PCSX::g_emulator->m_debug->stepIn(); }
+void stepOver() { PCSX::g_emulator->m_debug->stepOver(); }
+void stepOut() { PCSX::g_emulator->m_debug->stepOut(); }
 void luaMessage(const char* msg, bool error) { PCSX::g_system->luaMessage(msg, error); }
 void luaLog(const char* msg) { PCSX::g_system->log(PCSX::LogClass::LUA, msg); }
 void jumpToPC(uint32_t pc) { PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToPC{pc}); }
@@ -177,6 +181,10 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, resumeEmulator);
     REGISTER(L, softResetEmulator);
     REGISTER(L, hardResetEmulator);
+    REGISTER(L, isRunning);
+    REGISTER(L, stepIn);
+    REGISTER(L, stepOver);
+    REGISTER(L, stepOut);
     REGISTER(L, luaMessage);
     REGISTER(L, luaLog);
     REGISTER(L, jumpToPC);
