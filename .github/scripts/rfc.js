@@ -70,7 +70,7 @@ function indexBody(owner, repo, rows) {
     if (rows.length === 0) return head + 'No open RFCs.\n';
     rows.sort((a, b) => a.notBefore - b.notBefore);
     return head + '| Pull request | Merge not before |\n|---|---|\n' +
-        rows.map((r) => `| #${r.number} ${r.title.replace(/\|/g, '\\|')} | ${r.notBefore ? stamp(r.notBefore) : 'unknown'} |`).join('\n') + '\n';
+        rows.map((r) => `| #${r.number} ${r.title.replace(/\|/g, '\\|').replace(/@/g, '&#64;')} | ${r.notBefore ? stamp(r.notBefore) : 'unknown'} |`).join('\n') + '\n';
 }
 
 async function run({ github, context, core, now = Date.now(), stakeholdersText }) {

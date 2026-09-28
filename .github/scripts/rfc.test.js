@@ -102,3 +102,9 @@ test('run sets statuses, comments on labeling, rewrites the index', async () => 
     assert.strictEqual(update.issue_number, 47);
     assert.match(update.body, /\| #37 monitor: protocol v3 \| 2026-09-08 12:00 UTC \|/);
 });
+
+test('index escapes mentions in titles', () => {
+    const body = rfc.indexBody('o', 'r', [{ number: 1, title: 'ping @someone | x', notBefore: 0 }]);
+    assert.ok(!body.includes('@someone'));
+    assert.match(body, /&#64;someone \\\| x/);
+});
