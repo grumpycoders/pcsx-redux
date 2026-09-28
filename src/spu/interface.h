@@ -335,13 +335,13 @@ class impl final : public SPUInterface {
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;
 
-    int gauss_ptr = 0;
-    int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-    int &gvall0() { return gauss_window[gauss_ptr]; }
-    int &gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
-    int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
-    int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
+    // XA resampler ring (see FeedXA).
+    int16_t xaRingL[32] = {0};
+    int16_t xaRingR[32] = {0};
+    unsigned xaRingPos = 0;
+    int xaSixStep = 6;
+    int16_t xaLastL = 0, xaLastR = 0;
+    int16_t zigzag(const int16_t *ring, unsigned table);
 
     SDLAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
