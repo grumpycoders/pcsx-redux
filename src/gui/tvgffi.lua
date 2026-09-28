@@ -15,12 +15,9 @@
 --   along with this program; if not, write to the
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 local C = ffi.load 'THORVG'
 
-local function camelCase(name)
-    return (name:gsub('_(%a)', function(c) return c:upper() end))
-end
+local function camelCase(name) return (name:gsub('_(%a)', function(c) return c:upper() end)) end
 
 -- Methods are generated from the C API, so e.g. tvg_shape_append_rect(shape, ...)
 -- becomes shape:appendRect(...). They return the raw Tvg_Result, where 0 means success.
@@ -34,40 +31,41 @@ local function makeMethods(prefix, names, methods)
 end
 
 local paintMethods = makeMethods('tvg_paint_', {
-    'duplicate', 'get_aabb', 'get_clip', 'get_data', 'get_id', 'get_mask_method', 'get_obb',
-    'get_opacity', 'get_parent', 'get_transform', 'get_type', 'get_visible', 'intersects',
-    'intersects_region', 'rotate', 'scale', 'set_blend_method', 'set_clip', 'set_data', 'set_id',
-    'set_mask_method', 'set_opacity', 'set_transform', 'set_visible', 'translate'
+    'duplicate', 'get_aabb', 'get_clip', 'get_data', 'get_id', 'get_mask_method', 'get_obb', 'get_opacity',
+    'get_parent', 'get_transform', 'get_type', 'get_visible', 'intersects', 'intersects_region', 'rotate', 'scale',
+    'set_blend_method', 'set_clip', 'set_data', 'set_id', 'set_mask_method', 'set_opacity', 'set_transform',
+    'set_visible', 'translate',
 })
 
 local shapeMethods = makeMethods('tvg_shape_', {
-    'append_circle', 'append_path', 'append_rect', 'close', 'cubic_to', 'get_fill_color',
-    'get_fill_rule', 'get_gradient', 'get_path', 'get_stroke_cap', 'get_stroke_color',
-    'get_stroke_dash', 'get_stroke_gradient', 'get_stroke_join', 'get_stroke_miterlimit',
-    'get_stroke_width', 'line_to', 'move_to', 'reset', 'set_fill_color', 'set_fill_rule',
-    'set_paint_order', 'set_stroke_cap', 'set_stroke_color', 'set_stroke_dash', 'set_stroke_join',
-    'set_stroke_miterlimit', 'set_stroke_width', 'set_trimpath'
+    'append_circle', 'append_path', 'append_rect', 'close', 'cubic_to', 'get_fill_color', 'get_fill_rule',
+    'get_gradient', 'get_path', 'get_stroke_cap', 'get_stroke_color', 'get_stroke_dash', 'get_stroke_gradient',
+    'get_stroke_join', 'get_stroke_miterlimit', 'get_stroke_width', 'line_to', 'move_to', 'reset', 'set_fill_color',
+    'set_fill_rule', 'set_paint_order', 'set_stroke_cap', 'set_stroke_color', 'set_stroke_dash', 'set_stroke_join',
+    'set_stroke_miterlimit', 'set_stroke_width', 'set_trimpath',
 })
 
 local sceneMethods = makeMethods('tvg_scene_', {
     'add', 'add_effect_drop_shadow', 'add_effect_fill', 'add_effect_gaussian_blur', 'add_effect_tint',
-    'add_effect_tritone', 'clear_effects', 'insert', 'remove'
+    'add_effect_tritone', 'clear_effects', 'insert', 'remove',
 })
 
 local pictureMethods = makeMethods('tvg_picture_', {
-    'get_origin', 'get_paint', 'get_size', 'load', 'load_data', 'load_raw', 'set_accessible',
-    'set_asset_resolver', 'set_filter', 'set_origin', 'set_size'
+    'get_origin', 'get_paint', 'get_size', 'load', 'load_data', 'load_raw', 'set_accessible', 'set_asset_resolver',
+    'set_filter', 'set_origin', 'set_size',
 })
 
 local textMethods = makeMethods('tvg_text_', {
-    'align', 'get_glyph_metrics', 'get_text', 'get_text_metrics', 'layout', 'line_count', 'set_color',
-    'set_font', 'set_italic', 'set_outline', 'set_size', 'set_text', 'spacing', 'wrap_mode'
+    'align', 'get_glyph_metrics', 'get_text', 'get_text_metrics', 'layout', 'line_count', 'set_color', 'set_font',
+    'set_italic', 'set_outline', 'set_size', 'set_text', 'spacing', 'wrap_mode',
 })
 
 function shapeMethods:appendRect(x, y, w, h, rx, ry, cw)
     return C.tvg_shape_append_rect(self, x, y, w, h, rx or 0, ry or rx or 0, cw ~= false)
 end
-function shapeMethods:appendCircle(cx, cy, rx, ry, cw) return C.tvg_shape_append_circle(self, cx, cy, rx, ry or rx, cw ~= false) end
+function shapeMethods:appendCircle(cx, cy, rx, ry, cw)
+    return C.tvg_shape_append_circle(self, cx, cy, rx, ry or rx, cw ~= false)
+end
 function shapeMethods:setFillColor(r, g, b, a) return C.tvg_shape_set_fill_color(self, r, g, b, a or 255) end
 function shapeMethods:setStrokeColor(r, g, b, a) return C.tvg_shape_set_stroke_color(self, r, g, b, a or 255) end
 
@@ -97,8 +95,7 @@ ffi.metatype('struct _Tvg_Paint', {
 })
 
 local gradientMethods = makeMethods('tvg_gradient_', {
-    'get_color_stops', 'get_spread', 'get_transform', 'get_type', 'set_color_stops', 'set_spread',
-    'set_transform'
+    'get_color_stops', 'get_spread', 'get_transform', 'get_type', 'set_color_stops', 'set_spread', 'set_transform',
 })
 gradientMethods.setLinear = function(self, ...) return C.tvg_linear_gradient_set(self, ...) end
 gradientMethods.getLinear = function(self, ...) return C.tvg_linear_gradient_get(self, ...) end
@@ -110,8 +107,9 @@ function gradientMethods:setColorStops(stops, count)
         count = #stops
         local array = ffi.new('Tvg_Color_Stop[?]', count)
         for i, stop in ipairs(stops) do
-            array[i - 1].offset, array[i - 1].r, array[i - 1].g, array[i - 1].b, array[i - 1].a =
-                stop[1], stop[2], stop[3], stop[4], stop[5] or 255
+            array[i - 1].offset, array[i - 1].r, array[i - 1].g, array[i - 1].b, array[i - 1].a = stop[1], stop[2],
+                                                                                                  stop[3], stop[4],
+                                                                                                  stop[5] or 255
         end
         stops = array
     end
@@ -120,13 +118,11 @@ end
 ffi.metatype('struct _Tvg_Gradient', { __index = gradientMethods })
 
 local animationMethods = makeMethods('tvg_animation_', {
-    'get_duration', 'get_frame', 'get_picture', 'get_segment', 'get_total_frame', 'set_frame',
-    'set_segment'
+    'get_duration', 'get_frame', 'get_picture', 'get_segment', 'get_total_frame', 'set_frame', 'set_segment',
 })
 makeMethods('tvg_lottie_animation_', {
-    'apply_slot', 'del_slot', 'expressions_supported', 'gen_slot', 'get_marker', 'get_marker_info',
-    'get_markers_cnt', 'get_volume', 'set_audio_resolver', 'set_marker', 'set_quality', 'set_volume',
-    'tween', 'tween_go', 'tween_to'
+    'apply_slot', 'del_slot', 'expressions_supported', 'gen_slot', 'get_marker', 'get_marker_info', 'get_markers_cnt',
+    'get_volume', 'set_audio_resolver', 'set_marker', 'set_quality', 'set_volume', 'tween', 'tween_go', 'tween_to',
 }, animationMethods)
 ffi.metatype('struct _Tvg_Animation', { __index = animationMethods })
 

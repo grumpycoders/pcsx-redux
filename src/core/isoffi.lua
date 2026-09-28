@@ -149,10 +149,7 @@ local function createIsoReaderWrapper(isoReader)
             local count = C.gapListCount(gapList)
             local result = {}
             for i = 0, count - 1 do
-                table.insert(result, {
-                    lba = C.gapEntryLBA(gapList, i),
-                    sectors = C.gapEntrySectors(gapList, i),
-                })
+                table.insert(result, { lba = C.gapEntryLBA(gapList, i), sectors = C.gapEntrySectors(gapList, i) })
             end
             return result
         end,
@@ -197,7 +194,7 @@ local function createIsoWrapper(wrapper)
 end
 
 -- High-level ISO builder (filesystem-aware)
-local pvdBuf = ffi.new('char[?]', 513)  -- max CString size (512 for ApplicationUse) + 1
+local pvdBuf = ffi.new('char[?]', 513) -- max CString size (512 for ApplicationUse) + 1
 
 local function createDirTreeWrapper(node)
     if node == nil then return nil end
@@ -230,20 +227,15 @@ local function createDirTreeWrapper(node)
         firstChild = function(self) return createDirTreeWrapper(C.dirTreeFirstChild(self._node)) end,
         nextSibling = function(self) return createDirTreeWrapper(C.dirTreeNextSibling(self._node)) end,
         setDate = function(self, year, month, day, hour, minute, second, offset)
-            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0,
-                           hour or 0, minute or 0, second or 0, offset or 0)
+            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0, hour or 0, minute or 0, second or 0,
+                             offset or 0)
         end,
     }
     return wrapper
 end
 
 -- Amount of data a raw sector write consumes, per mode. Modes absent from this table can't be written.
-local sectorDataSize = {
-    RAW = 2352,
-    M2_RAW = 2336,
-    M2_FORM1 = 2048,
-    M2_FORM2 = 2324,
-}
+local sectorDataSize = { RAW = 2352, M2_RAW = 2336, M2_FORM1 = 2048, M2_FORM2 = 2324 }
 
 -- Normalizes the (data[, size]) pair of the raw sector writers. Strings carry their own size; anything
 -- else is a pointer and needs one spelled out.
@@ -254,9 +246,7 @@ local function sectorData(data, size, mode)
     end
     local needed = sectorDataSize[mode]
     if needed == nil then error('sector mode ' .. tostring(mode) .. ' cannot be written') end
-    if size < needed then
-        error('sector mode ' .. mode .. ' needs ' .. needed .. ' bytes of data, got ' .. size)
-    end
+    if size < needed then error('sector mode ' .. mode .. ' needs ' .. needed .. ' bytes of data, got ' .. size) end
     return ffi.cast('const uint8_t*', data), size
 end
 
@@ -273,14 +263,22 @@ local function createIsoBuilderWrapper(wrapper)
         getCurrentLBA = function(self) return C.isoBuilderGetCurrentLBA(self._wrapper) end,
         writeSector = function(self, data, a, b)
             local size, mode
-            if type(a) == 'number' then size, mode = a, b else size, mode = nil, a end
+            if type(a) == 'number' then
+                size, mode = a, b
+            else
+                size, mode = nil, a
+            end
             if mode == nil then mode = 'M2_FORM1' end
             local ptr, len = sectorData(data, size, mode)
             return C.isoBuilderWriteSector(self._wrapper, ptr, len, mode)
         end,
         writeSectorAt = function(self, data, a, b, c)
             local size, lba, mode
-            if type(b) == 'number' then size, lba, mode = a, b, c else size, lba, mode = nil, a, b end
+            if type(b) == 'number' then
+                size, lba, mode = a, b, c
+            else
+                size, lba, mode = nil, a, b
+            end
             if mode == nil then mode = 'M2_FORM1' end
             local ptr, len = sectorData(data, size, mode)
             return C.isoBuilderWriteSectorAt(self._wrapper, ptr, len, lba, mode)
@@ -322,9 +320,7 @@ local function createIsoBuilderWrapper(wrapper)
         createFile = function(self, parent, name, fileHandle)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
-        close = function(self, threadCount)
-            C.isoBuilderClose(self._wrapper, threadCount or 0)
-        end,
+        close = function(self, threadCount) C.isoBuilderClose(self._wrapper, threadCount or 0) end,
     }
     return builder
 end

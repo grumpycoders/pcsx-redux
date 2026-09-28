@@ -46,11 +46,11 @@ SOFTWARE.
 // Keep this in sync with the NRV2E grammar in n2e_d.c and the getbit cadence in
 // n2e-d.S. It deliberately does not depend on the vendored ucl sources.
 
+#include "supportpsx/ucl-utils.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
-
-#include "supportpsx/ucl-utils.h"
 
 size_t PCSX::UCLUtils::inPlaceOverlapMargin(const uint8_t *src, size_t srcLen, size_t expectedDstLen) {
     uint32_t bb = 0;
@@ -60,7 +60,8 @@ size_t PCSX::UCLUtils::inPlaceOverlapMargin(const uint8_t *src, size_t srcLen, s
     bool overrun = false;
 
     auto bad = []() -> void {
-        throw std::runtime_error("UCLUtils::inPlaceOverlapMargin: malformed NRV2E stream while measuring in-place overlap margin.");
+        throw std::runtime_error(
+            "UCLUtils::inPlaceOverlapMargin: malformed NRV2E stream while measuring in-place overlap margin.");
     };
 
     // getbit_8-equivalent: MSB-first, one source byte per 8 bits, refill when the

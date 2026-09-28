@@ -192,8 +192,8 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
     SDL_AudioSpec got;
     int gotFrames = 0;
     if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
-        g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n",
-                      SDL_GetCurrentAudioDriver(), got.freq, gotFrames);
+        g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n", SDL_GetCurrentAudioDriver(),
+                      got.freq, gotFrames);
     }
 
     // Devices come up in the resumed state; pause until execution actually starts so
@@ -259,10 +259,8 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
         for (uint32_t f = 0; f < chunk; f++) {
             float l = 0.0f, r = 0.0f;
             for (unsigned i = 0; i < STREAMS; i++) {
-                l += static_cast<float>(m_mixBuffers[i][f].L) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
-                r += static_cast<float>(m_mixBuffers[i][f].R) /
-                     static_cast<float>(std::numeric_limits<int16_t>::max());
+                l += static_cast<float>(m_mixBuffers[i][f].L) / static_cast<float>(std::numeric_limits<int16_t>::max());
+                r += static_cast<float>(m_mixBuffers[i][f].R) / static_cast<float>(std::numeric_limits<int16_t>::max());
             }
 
             if (mono) {

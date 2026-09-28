@@ -17,11 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <uv.h>
-
 #include "core/gdb-server.h"
 
 #include <assert.h>
+#include <uv.h>
 
 #include <magic_enum/magic_enum_all.hpp>
 

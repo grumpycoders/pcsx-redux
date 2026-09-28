@@ -223,7 +223,9 @@ PCSX = {
         getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
         startDump = function(file)
             if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
-            if type(file) ~= 'table' or file._type ~= 'File' then error('startDump: requires a File or a filename') end
+            if type(file) ~= 'table' or file._type ~= 'File' then
+                error('startDump: requires a File or a filename')
+            end
             C.startGPUDump(file._wrapper)
         end,
         stopDump = function() C.stopGPUDump() end,
@@ -233,7 +235,9 @@ PCSX = {
         DumpPlayer = {
             load = function(file)
                 if type(file) == 'string' then file = Support.File.open(file) end
-                if type(file) ~= 'table' or file._type ~= 'File' then error('load: requires a File or a filename') end
+                if type(file) ~= 'table' or file._type ~= 'File' then
+                    error('load: requires a File or a filename')
+                end
                 return C.loadGPUDumpPlayer(file._wrapper)
             end,
             unload = function() C.unloadGPUDumpPlayer() end,
