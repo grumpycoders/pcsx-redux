@@ -895,7 +895,7 @@ class CDRomImpl final : public PCSX::CDRom {
     // One sector of CD-DA playback: audio to the SPU, then the optional report.
     void playSector() {
         if (m_currentPosition >= m_iso->getTD(0)) {
-            // End of disc: INT4, and the motor stops.
+            // End of disc: an end cause, and the motor stops.
             stopPlaying();
             m_motorOn = false;
             return;
@@ -905,7 +905,7 @@ class CDRomImpl final : public PCSX::CDRom {
         if (haveQ) {
             if (m_playTrack == 0) m_playTrack = locP[0];
             if (m_autoPause && (locP[0] != m_playTrack)) {
-                // Autopause: INT4 on the SubQ track transition, staying where we are.
+                // Autopause: an end cause on the SubQ track transition, staying where we are.
                 stopPlaying();
                 return;
             }
