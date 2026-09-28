@@ -43,6 +43,7 @@
 #define LO_OFFSET ((uintptr_t) & m_regs.GPR.n.lo - (uintptr_t)this)
 #define HI_OFFSET ((uintptr_t) & m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t) & m_regs.cycle - (uintptr_t)this)
+#define MULDIV_READY_OFFSET ((uintptr_t) & m_regs.muldivReady - (uintptr_t)this)
 
 #undef _PC_
 #undef _Op_
@@ -115,7 +116,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;  // Recompiler PC
+    uint32_t m_pc;                // Recompiler PC
+    unsigned m_instructionCount;  // Instructions compiled so far in the current block
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
@@ -448,6 +450,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
+    void emitMuldivStall();
+    void emitMuldivStart(uint32_t latency);
+    void emitMultStart(uint32_t code, bool isSigned);
     void recMTLO(uint32_t code);
     void recMULT(uint32_t code);
     void recMULTU(uint32_t code);

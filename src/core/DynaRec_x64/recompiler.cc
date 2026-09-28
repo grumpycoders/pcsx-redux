@@ -405,6 +405,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         uint32_t code = m_regs.code = *ptr;
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
+        m_instructionCount = count;
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it

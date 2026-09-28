@@ -576,6 +576,7 @@ void InterpretedCPU::psxSLTU(uint32_t code) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 void InterpretedCPU::psxDIV(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ == 0) {
         _rHi_ = _rRs_;
         if (_rRs_ & 0x80000000) {
@@ -593,6 +594,7 @@ void InterpretedCPU::psxDIV(uint32_t code) {
 }
 
 void InterpretedCPU::psxDIVU(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ != 0) {
         _rLo_ = _rRs_ / _rRt_;
         _rHi_ = _rRs_ % _rRt_;
@@ -603,6 +605,7 @@ void InterpretedCPU::psxDIVU(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULT(uint32_t code) {
+    muldivStart(multLatency(_rRs_, true));
     uint64_t res = (int64_t)(int32_t)_rRs_ * (int64_t)(int32_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -610,6 +613,7 @@ void InterpretedCPU::psxMULT(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULTU(uint32_t code) {
+    muldivStart(multLatency(_rRs_, false));
     uint64_t res = (uint64_t)_rRs_ * (uint64_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -725,6 +729,7 @@ void InterpretedCPU::psxLUI(uint32_t code) {
  * Format:  OP rd                                         *
  *********************************************************/
 void InterpretedCPU::psxMFHI(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rHi_;
@@ -734,6 +739,7 @@ void InterpretedCPU::psxMFHI(uint32_t code) {
     _rRd_ = newValue;
 }  // Rd = Hi
 void InterpretedCPU::psxMFLO(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rLo_;
