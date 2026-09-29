@@ -491,7 +491,15 @@ runner.init({
 
             // And finally, main loop.
             while (!system->quitting()) {
-                if (system->running()) {
+                if (system->hasPendingSaveStateLoad()) {
+                    // Somebody asked for a save state from within a callback the
+                    // emulator itself made, so we deferred it to here, where the
+                    // emulation stack has unwound and nothing is holding values
+                    // from before the load.
+                    if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
+                        PCSX::g_system->message(_("Failed to load save state\n"));
+                    }
+                } else if (system->running()) {
                     // This will run until paused or interrupted somehow.
                     emulator->m_cpu->Execute();
                 } else {

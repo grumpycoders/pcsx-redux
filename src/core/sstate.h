@@ -329,7 +329,14 @@ typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Reg
 SaveState constructSaveState();
 
 std::string save();
+// Replaces the emulator state right now. Only safe with nothing of the
+// emulation left on the stack; use loadSafe() from anywhere else.
 bool load(std::string_view data);
+// Loads if it's safe to do so, queues it for the main loop otherwise. This is
+// what every user-facing entry point wants: the Lua bindings, the GUI menu and
+// hotkey, and the web server all reach for a load from callbacks that run in
+// the middle of Counters::update() and R3000Acpu::branchTest().
+void loadSafe(std::string &&data);
 }  // namespace SaveStates
 
 }  // namespace PCSX
