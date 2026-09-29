@@ -104,12 +104,14 @@ class SystemImpl final : public PCSX::System {
 
     virtual void softReset() final override {
         // debugger or UI is requesting a reset
+        cancelPendingSaveStateLoad();
         PCSX::g_emulator->m_cpu->psxReset();
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
     }
 
     virtual void hardReset() final override {
         // debugger or UI is requesting a reset
+        cancelPendingSaveStateLoad();
         PCSX::g_emulator->reset();
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
     }
@@ -501,7 +503,9 @@ runner.init({
                     }
                 } else if (system->running()) {
                     // This will run until paused or interrupted somehow.
+                    system->setInExecute(true);
                     emulator->m_cpu->Execute();
+                    system->setInExecute(false);
                 } else {
                     // The "update" method will be called periodically by the emulator while
                     // it's running, meaning if we want our UI to work, we have to manually

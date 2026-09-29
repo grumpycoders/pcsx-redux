@@ -191,6 +191,12 @@ class System {
         m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
     }
     void resume() {
+        if (m_hasPendingSaveStateLoad) {
+            // The CPU is unwinding for a deferred load; run once it's applied.
+            m_resumeAfterPendingLoad = true;
+            m_eventBus->signal(Events::ExecutionFlow::Run{});
+            return;
+        }
         if (m_running) return;
         m_running = true;
         m_eventBus->signal(Events::ExecutionFlow::Run{});
@@ -203,10 +209,24 @@ class System {
     // signal a pause, since the emulation isn't stopping, it's only unwinding.
     void scheduleSaveStateLoad(std::string &&data) {
         m_pendingSaveStateLoad = std::move(data);
+        // A second load in the same window replaces the first, and must not
+        // read the m_running the first one already cleared.
+        if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
         m_hasPendingSaveStateLoad = true;
-        m_resumeAfterPendingLoad = m_running;
         m_running = false;
     }
+    // A reset issued before the main loop applied a queued load wins over it.
+    void cancelPendingSaveStateLoad() {
+        if (!m_hasPendingSaveStateLoad) return;
+        m_hasPendingSaveStateLoad = false;
+        m_running = m_resumeAfterPendingLoad;
+        m_pendingSaveStateLoad.clear();
+    }
+    // True while the main loop is inside the CPU's Execute(). Anything that
+    // runs then, including a Pause listener fired from a breakpoint, is on the
+    // emulation stack, whether or not m_running is still set.
+    bool inExecute() const { return m_inExecute; }
+    void setInExecute(bool inExecute) { m_inExecute = inExecute; }
     bool hasPendingSaveStateLoad() const { return m_hasPendingSaveStateLoad; }
     // Hands over the queued save state and puts the emulation back the way it
     // was. Only ever call this from the main loop, with nothing of the
@@ -309,6 +329,7 @@ class System {
     // the main loop hasn't picked it up yet. See scheduleSaveStateLoad().
     bool m_hasPendingSaveStateLoad = false;
     bool m_resumeAfterPendingLoad = false;
+    bool m_inExecute = false;
     std::string m_pendingSaveStateLoad;
     int m_exitCode = 0;
     struct LocaleInfo {
