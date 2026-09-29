@@ -1561,7 +1561,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
                  can only work with a single input file.
   -b             outputs a big-endian ELF file.
   -c             enables use of ELF COMMON section;
-                 by default .comm symbols are converted to local BSS symbols.
+                 by default .comm symbols are converted to .bss symbols.
 )",
                    argv[0]);
         return -1;
