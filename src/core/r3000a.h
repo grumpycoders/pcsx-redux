@@ -327,15 +327,17 @@ class R3000Acpu {
     static constexpr uint32_t c_divLatency = 36;
     // Called when a mul/div issues, after the cycle counter was advanced for it.
     // The result can be read by an instruction issuing latency cycles later.
-    void muldivStart(uint32_t latency) {
-        muldivStall();
-        m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
-    }
-    // Called when hi/lo is read, or when a new mul/div issues: waits for the
-    // previous operation to complete.
+    // A mul/div issued while the unit is busy does not wait: it replaces the
+    // running operation.
+    void muldivStart(uint32_t latency) { m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS; }
+    // Called when hi/lo is read: waits for the running operation to complete.
     void muldivStall() {
         if (m_regs.cycle < m_regs.muldivReady) m_regs.cycle = m_regs.muldivReady;
     }
+    // Called by mthi/mtlo, which abort a running multiply and leave the other
+    // register partially computed; the partial value is not modelled. A
+    // running divide is cancelled the same way, which hasn't been measured.
+    void muldivCancel() { m_regs.muldivReady = 0; }
 
     psxRegisters m_regs;
     float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,

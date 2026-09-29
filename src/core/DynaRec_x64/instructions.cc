@@ -633,8 +633,16 @@ void DynaRecCPU::emitMuldivStall() {
     gen.L(noStall);
 }
 
+// Leaves the cycle at which the current instruction issues in rax.
+void DynaRecCPU::emitMuldivNow() {
+    gen.mov(rax, qword[contextPointer + CYCLE_OFFSET]);
+    gen.add(rax, m_instructionCount * PCSX::Emulator::BIAS);
+}
+
+// A mul/div issued while the unit is busy replaces the running operation, so
+// there is no stall here.
 void DynaRecCPU::emitMuldivStart(uint32_t latency) {
-    emitMuldivStall();
+    emitMuldivNow();
     gen.add(rax, latency + PCSX::Emulator::BIAS);
     gen.mov(qword[contextPointer + MULDIV_READY_OFFSET], rax);
 }
@@ -647,7 +655,7 @@ void DynaRecCPU::emitMultStart(uint32_t code, bool isSigned) {
 
     Label done;
     allocateReg(_Rs_);
-    emitMuldivStall();
+    emitMuldivNow();
     gen.mov(edx, m_gprs[_Rs_].allocatedReg);
     if (isSigned) {
         gen.mov(ecx, edx);
@@ -1908,6 +1916,7 @@ void DynaRecCPU::recMFHI(uint32_t code) {
 }
 
 void DynaRecCPU::recMTLO(uint32_t code) {
+    gen.mov(qword[contextPointer + MULDIV_READY_OFFSET], 0);  // mthi/mtlo abort a running mul/div
     if (m_gprs[_Rs_].isConst()) {
         gen.mov(dword[contextPointer + LO_OFFSET], m_gprs[_Rs_].val);
     } else {
@@ -1917,6 +1926,7 @@ void DynaRecCPU::recMTLO(uint32_t code) {
 }
 
 void DynaRecCPU::recMTHI(uint32_t code) {
+    gen.mov(qword[contextPointer + MULDIV_READY_OFFSET], 0);  // mthi/mtlo abort a running mul/div
     if (m_gprs[_Rs_].isConst()) {
         gen.mov(dword[contextPointer + HI_OFFSET], m_gprs[_Rs_].val);
     } else {
