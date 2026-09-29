@@ -488,9 +488,12 @@ PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
 void PadsImpl::scanGamepads() {
     // Close any currently-open handles so re-scans (e.g. after hotplug) don't
     // leak. m_gamepad pointers in each Pad become stale here; the caller is
-    // expected to follow up with map() to re-resolve them.
+    // expected to follow up with map() to re-resolve them. Stop the motors before
+    // closing, as in shutdown(); the pads keep their motor state, and the next
+    // refresh re-applies it to the re-opened handle.
     for (auto& g : m_gamepads) {
         if (g) {
+            SDL_RumbleGamepad(g, 0, 0, 0);
             SDL_CloseGamepad(g);
             g = nullptr;
         }
@@ -818,7 +821,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
     } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_cmd == magic_enum::enum_integer(PadCommands::Read) &&
-               (m_type == PadType::Digital || m_type == PadType::Analog)) {
+               m_type == PadType::Analog) {
         // Motor bytes of the read command: the 4th..9th byte of the transfer. read()
         // has already filled the reply buffer, so these are pure input, and what they
         // mean is whatever command 4Dh last said they mean.
