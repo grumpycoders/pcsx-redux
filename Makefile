@@ -13,7 +13,7 @@ PACKAGES := capstone freetype2 libavcodec libavformat libavutil libswresample li
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
 
-LOCALES := el es_ES fr ja pt_BR uk zh_CN
+LOCALES := el es_ES fr ja pt_BR sv uk zh_CN
 
 # One sentinel per submodule the build globs sources from. Checking imgui alone let a checkout
 # that had imgui but not implot report submodules present and then fail at compile time on a
