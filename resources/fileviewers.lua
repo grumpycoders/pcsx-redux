@@ -15,12 +15,13 @@
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
--- File viewers for the ISO browser: TIM images, and raw pixel data with a
--- user-supplied geometry. The ISO browser calls PCSX.FileViewers.open(file)
--- when the user asks to view a file, then calls draw() on the returned object
--- every frame inside its window, and close() once the window is closed.
+-- File viewers for the ISO browser: TIM images, raw pixel data with a
+-- user-supplied geometry, and sounds. The ISO browser calls
+-- PCSX.FileViewers.open(file) when the user asks to view a file, then calls
+-- draw() on the returned object every frame inside its window, and close()
+-- once the window is closed.
 --
--- Everything decodes into an RGBA buffer uploaded as a GL texture, re-uploaded
+-- Images decode into an RGBA buffer uploaded as a GL texture, re-uploaded
 -- only when a knob changes. Sub-byte pixels are taken low bits first, as the
 -- GPU stores them.
 
@@ -285,6 +286,166 @@ function PCSX.FileViewers.rawViewer(openFile)
     return v
 end
 
+local soundFormats = { 'SPU ADPCM', 'PCM 16 bits', 'PCM 8 bits' }
+
+-- Decodes the sound described by the viewer's knobs into one int16_t array
+-- per channel. Returns the arrays, the number of samples per channel, the
+-- bytes to hand to PCSX.SPU.playAudio, and an info string.
+local function decodeSound(file, v)
+    local available = math.max(0, file:size() - v.offset)
+    local length = v.length == 0 and available or math.min(v.length, available)
+    if v.format == 1 then
+        local blocks = math.floor(length / 16)
+        local data = file:readAt(blocks * 16, v.offset)
+        local endBlock
+        for i = 0, blocks - 1 do
+            if (data.data[i * 16 + 1] & 1) ~= 0 then
+                endBlock = i
+                break
+            end
+        end
+        if v.stopAtEnd and endBlock then blocks = endBlock + 1 end
+        local samples = ffi.new('int16_t[?]', blocks * 28 + 1)
+        local decoder = PCSX.Adpcm.NewDecoder()
+        for i = 0, blocks - 1 do decoder:decodeSPUBlock(data.data + i * 16, samples + i * 28) end
+        local info = string.format('%d blocks, end flag %s', blocks,
+            endBlock and ('on block ' .. endBlock) or 'not found')
+        data.size = blocks * 16
+        return { samples }, blocks * 28, data, info
+    end
+    local bytes = v.format == 2 and 2 or 1
+    local frame = bytes * v.channels
+    local count = math.floor(length / frame)
+    local data = file:readAt(count * frame, v.offset)
+    local src = data.data
+    local chans = {}
+    for c = 1, v.channels do chans[c] = ffi.new('int16_t[?]', count + 1) end
+    for i = 0, count - 1 do
+        for c = 1, v.channels do
+            local p = i * frame + (c - 1) * bytes
+            local s
+            if bytes == 2 then
+                s = src[p] + src[p + 1] * 256
+                if s >= 32768 then s = s - 65536 end
+            elseif v.signed then
+                s = src[p]
+                if s >= 128 then s = s - 256 end
+                s = s * 256
+            else
+                s = (src[p] - 128) * 256
+            end
+            chans[c][i] = s
+        end
+    end
+    return chans, count, data, string.format('%d bytes', count * frame)
+end
+
+-- Viewer for audio data: SPU ADPCM, or raw PCM, from a user-supplied offset.
+-- `opts` may preset format ('spu', 'pcm16' or 'pcm8'), offset, length and
+-- rate.
+function PCSX.FileViewers.soundViewer(openFile, opts)
+    opts = opts or {}
+    local formatIndex = { spu = 1, pcm16 = 2, pcm8 = 3 }
+    local v = {
+        name = 'Sound',
+        format = formatIndex[opts.format] or 1,
+        channels = 1,
+        signed = false,
+        offset = opts.offset or 0,
+        length = opts.length or 0,
+        rate = opts.rate or 22050,
+        stopAtEnd = true,
+        generation = 0,
+    }
+    local function stop()
+        if v.sound then v.sound:stop() end
+        v.sound = nil
+    end
+    function v.draw()
+        local dirty = not v.decoded
+        for i, name in ipairs(soundFormats) do
+            if i > 1 then imgui.SameLine() end
+            if imgui.RadioButton(name, v.format == i) and v.format ~= i then v.format, dirty = i, true end
+        end
+        if v.format == 1 then
+            local c, b = imgui.Checkbox('stop at the end flag', v.stopAtEnd)
+            if c then v.stopAtEnd, dirty = b, true end
+        else
+            if imgui.RadioButton('mono', v.channels == 1) and v.channels ~= 1 then v.channels, dirty = 1, true end
+            imgui.SameLine()
+            if imgui.RadioButton('stereo', v.channels == 2) and v.channels ~= 2 then v.channels, dirty = 2, true end
+            if v.format == 3 then
+                imgui.SameLine()
+                local c, b = imgui.Checkbox('signed', v.signed)
+                if c then v.signed, dirty = b, true end
+            end
+        end
+        imgui.PushItemWidth(200)
+        local c, n
+        c, n = imgui.InputInt('data offset', v.offset, 1, 16)
+        if c then v.offset, dirty = math.max(0, n), true end
+        c, n = imgui.InputInt('length (0 = to the end)', v.length, 1, 16)
+        if c then v.length, dirty = math.max(0, n), true end
+        c, n = imgui.InputInt('sample rate', v.rate, 100, 1000)
+        if c then
+            v.rate = math.max(1, math.min(v.format == 1 and 176400 or 384000, n))
+            v.generation = v.generation + 1
+        end
+        imgui.PopItemWidth()
+        if dirty then
+            stop()
+            local ok, chans, count, bytes, info = pcall(decodeSound, openFile(), v)
+            if ok then
+                v.chans, v.count, v.bytes, v.info, v.err = chans, count, bytes, info, nil
+            else
+                v.chans, v.err = nil, tostring(chans)
+            end
+            v.decoded = true
+            v.generation = v.generation + 1
+        end
+        if v.err then
+            imgui.TextUnformatted('Error: ' .. v.err)
+            return
+        end
+        if imgui.Button('Play') and v.count > 0 then
+            stop()
+            local ok, err = pcall(function()
+                local desc
+                if v.format == 1 then
+                    desc = { format = 'spu', rate = v.rate }
+                else
+                    desc = { format = 'pcm', bits = v.format == 2 and 16 or 8, channels = v.channels, rate = v.rate }
+                    if v.format == 3 then desc.signed = v.signed end
+                end
+                v.sound = PCSX.SPU.playAudio(v.bytes, desc)
+            end)
+            v.playErr = not ok and tostring(err) or nil
+        end
+        imgui.SameLine()
+        if imgui.Button('Stop') then stop() end
+        if v.sound and v.sound:isPlaying() then
+            imgui.SameLine()
+            imgui.TextUnformatted('playing')
+        end
+        if v.playErr then imgui.TextUnformatted('Error: ' .. v.playErr) end
+        imgui.TextUnformatted(string.format('%s, %d samples, %.3f seconds', v.info, v.count, v.count / v.rate))
+        if v.count == 0 then return end
+        if not implot then return end
+        -- The generation is part of the id, so a change of data or rate
+        -- refits the axes while leaving the user free to zoom otherwise.
+        implot.safe.BeginPlot('##waveform' .. v.generation, -1, 250, function()
+            implot.SetupAxes('seconds', '')
+            implot.SetupAxesLimits(0, v.count / v.rate, -32768, 32767)
+            for i, samples in ipairs(v.chans) do
+                implot.PlotLine(#v.chans == 1 and 'samples' or (i == 1 and 'left' or 'right'), samples, v.count,
+                    1 / v.rate, 0)
+            end
+        end)
+    end
+    function v.close() stop() end
+    return v
+end
+
 -- Entry point for the ISO browser. `file` is the LuaFile pointer it hands
 -- over. Returns an object with draw() and close().
 function PCSX.FileViewers.open(file)
@@ -294,6 +455,9 @@ function PCSX.FileViewers.open(file)
     local tim = PCSX.FileViewers.parseTim(file)
     if tim then viewers[#viewers + 1] = PCSX.FileViewers.timViewer(openFile, tim) end
     viewers[#viewers + 1] = PCSX.FileViewers.rawViewer(openFile)
+    if PCSX.Adpcm and PCSX.SPU and PCSX.SPU.playAudio then
+        viewers[#viewers + 1] = PCSX.FileViewers.soundViewer(openFile)
+    end
     local ret = {}
     function ret.draw()
         imgui.safe.BeginTabBar('viewers', function()
