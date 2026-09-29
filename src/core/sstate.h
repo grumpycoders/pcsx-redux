@@ -79,9 +79,10 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"),
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt64, 32, TYPESTRING("interrupt_targets"), 17> IntTargetsField;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("in_isr"), 18> InISR;
 typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("muldiv_ready"), 19> MulDivReady;
+typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("gte_ready"), 20> GteReady;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, Interrupt, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
-                          IntTargetsField, InISR, MulDivReady>
+                          IntTargetsField, InISR, MulDivReady, GteReady>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 

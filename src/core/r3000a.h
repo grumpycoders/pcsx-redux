@@ -194,6 +194,7 @@ struct psxRegisters {
     uint64_t intTargets[32];
     uint64_t lowestTarget;
     uint64_t muldivReady;  // cycle at which hi/lo can be read without stalling
+    uint64_t gteReady;     // cycle at which the GTE can be accessed without stalling
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
 };
@@ -314,6 +315,29 @@ class R3000Acpu {
         m_regs.interrupt |= (1 << interrupt);
         m_regs.intTargets[interrupt] = target;
         if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
+    }
+
+    // GTE command execution time, indexed by the command's function field.
+    // Zero for the function codes that aren't documented commands.
+    static uint32_t gteLatency(uint32_t funct) {
+        static constexpr uint8_t latencies[64] = {
+            0,  15, 0, 0,  0,  0, 8,  0, 0, 0, 0,  0,  6,  0, 0,  0,   // 00
+            8,  8,  8, 19, 13, 0, 44, 0, 0, 0, 0,  17, 11, 0, 14, 0,   // 10
+            30, 0,  0, 0,  0,  0, 0,  0, 5, 8, 17, 0,  0,  5, 6,  0,   // 20
+            23, 0,  0, 0,  0,  0, 0,  0, 0, 0, 0,  0,  0,  5, 5,  39,  // 30
+        };
+        return latencies[funct & 0x3f];
+    }
+    // Called when a GTE command issues, after the cycle counter was advanced
+    // for it. A new command waits for the previous one to finish.
+    void gteStart(uint32_t latency) {
+        gteStall();
+        m_regs.gteReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
+    }
+    // Called by mfc2, cfc2 and swc2, which wait for a running command to
+    // finish whichever register they access. mtc2, ctc2 and lwc2 don't wait.
+    void gteStall() {
+        if (m_regs.cycle < m_regs.gteReady) m_regs.cycle = m_regs.gteReady;
     }
 
     // Multiplier and divider result latency. A multiply takes 6, 9 or 13 cycles
