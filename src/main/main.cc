@@ -176,7 +176,8 @@ void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 // is checked here.
 static bool checkCommandLinePaths(const CommandLine::args &args) {
     bool ok = true;
-    auto checkPath = [&args, &ok](const char *name, bool directory) {
+    std::string messages;
+    auto checkPath = [&args, &ok, &messages](const char *name, bool directory) {
         for (auto value : args.values(name)) {
             if (value.empty()) continue;
             std::string str(value);
@@ -186,15 +187,25 @@ static bool checkCommandLinePaths(const CommandLine::args &args) {
                 directory ? std::filesystem::is_directory(path, ec) : std::filesystem::is_regular_file(path, ec);
             if (found) continue;
             ok = false;
+            std::string message;
             if (ec && ec != std::errc::no_such_file_or_directory && ec != std::errc::not_a_directory) {
-                fmt::print(stderr, "-{}: unable to access '{}': {}\n", name, str, ec.message());
+                message = fmt::format("-{}: unable to access '{}': {}\n", name, str, ec.message());
             } else {
-                fmt::print(stderr, "-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
+                message = fmt::format("-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
             }
+            fmt::print(stderr, "{}", message);
+            messages += message;
         }
     };
     for (auto name : {"bios", "iso", "loadiso", "disk", "loadexe", "exe", "archive"}) checkPath(name, false);
     checkPath("pcdrvbase", true);
+#if defined(_WIN32) || defined(_WIN64)
+    // A plain GUI launch (no -stdout / -no-ui / -cli) has no console, so the stderr output above
+    // goes nowhere and the process would otherwise just exit with no visible trace of why.
+    if (!ok && GetConsoleWindow() == NULL) {
+        MessageBoxA(NULL, messages.c_str(), "pcsx-redux", MB_ICONERROR | MB_OK);
+    }
+#endif
     return ok;
 }
 
