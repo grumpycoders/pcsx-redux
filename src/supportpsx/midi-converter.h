@@ -59,6 +59,7 @@ enum MidiMeta : uint8_t {
     MIDI_META_COPYRIGHT = 0x02,
     MIDI_META_TRACK_NAME = 0x03,
     MIDI_META_MARKER = 0x06,
+    MIDI_META_CUE_POINT = 0x07,
     MIDI_META_END_OF_TRACK = 0x2F,
     MIDI_META_TEMPO = 0x51,
 };
@@ -300,8 +301,8 @@ inline void MidiFile::parseTrack(PCSX::IO<PCSX::File> track) {
                 uint8_t b2 = track->byte();
                 ev.tempo = (b0 << 16) | (b1 << 8) | b2;
                 events.push_back(ev);
-            } else if (metaType == MIDI_META_MARKER || metaType == MIDI_META_TEXT || metaType == MIDI_META_TRACK_NAME ||
-                       metaType == MIDI_META_COPYRIGHT) {
+            } else if (metaType == MIDI_META_MARKER || metaType == MIDI_META_CUE_POINT || metaType == MIDI_META_TEXT ||
+                       metaType == MIDI_META_TRACK_NAME || metaType == MIDI_META_COPYRIGHT) {
                 // Text-based meta events
                 MidiEvent ev = {};
                 ev.absoluteTick = absTick;
