@@ -473,6 +473,8 @@ runner.init({
                 PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
+            auto luaexecs = args.values("exec");
+            if (!dofiles.empty() || !luaexecs.empty()) PCSX::System::setCrashReportTag("user_lua", "cmdline");
             L->load("return function(name) Support.extra.dofile(name) end", "internal:dofile.lua");
             for (auto &dofile : dofiles) {
                 L->copy(-1);
@@ -482,7 +484,6 @@ runner.init({
             L->pop();
 
             // Then run all of the Lua "exec" commands.
-            auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
                 L->load(std::string(luaexec), "cmdline:");
             }

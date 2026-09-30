@@ -246,6 +246,13 @@ class System {
     std::filesystem::path getPersistentDir() const;
     const VersionInfo &getVersion() const { return m_version; }
 
+    // Attaches a tag to any crash report sent from this point on. This is a no-op
+    // unless the platform's crash reporter installed a setter at startup.
+    static void setCrashReportTag(const char *key, const char *value) {
+        if (s_crashReportTagSetter) s_crashReportTagSetter(key, value);
+    }
+    static inline void (*s_crashReportTagSetter)(const char *key, const char *value) = nullptr;
+
     // needs to be odd, and is a replica of ImGui's range tables
     enum class Range {
         KOREAN = 1,
