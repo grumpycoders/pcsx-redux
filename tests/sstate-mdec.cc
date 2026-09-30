@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include "core/mdec.h"
 #include "core/sstate.h"
 #include "gtest/gtest.h"
 
@@ -56,4 +57,19 @@ TEST(SaveStateMDEC, NewStateHasQuantAndScaleTables) {
     EXPECT_EQ(loaded.get<MDECQTY>().count, 64u);
     EXPECT_EQ(loaded.get<MDECQTUV>().count, 64u);
     EXPECT_EQ(loaded.get<MDECScaleTable>().count, 64u);
+}
+
+// A state from before fields 12-15 only has the cached tables, so the raw quant
+// tables have to come back out of them. A non-standard table catches a loader
+// that substitutes the default one.
+TEST(SaveStateMDEC, QuantTableRecoversFromCachedTable) {
+    unsigned char qt[64], back[64];
+    for (unsigned i = 0; i < 64; i++) qt[i] = static_cast<unsigned char>((i * 37 + 11) & 0xff);
+    qt[0] = 0;
+    qt[1] = 255;
+    qt[2] = 16;
+    int iq[64];
+    PCSX::MDEC::iqtab_init(iq, qt);
+    PCSX::MDEC::qtab_fromIqtab(back, iq);
+    for (unsigned i = 0; i < 64; i++) EXPECT_EQ(back[i], qt[i]) << "entry " << i;
 }

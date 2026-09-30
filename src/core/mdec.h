@@ -46,6 +46,12 @@ class MDEC {
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
 
+    // An uploaded quant table as the AAN decoder caches it (each entry times
+    // its prescale factor), and back. The factors are all non-zero, so the
+    // reverse is an exact division.
+    static void iqtab_init(int *iqtab, const unsigned char *qt);
+    static void qtab_fromIqtab(unsigned char *qt, const int *iqtab);
+
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
      * That mean (PCSX::g_emulator->m_psxClockSpeed / MDEC_BIAS) B/s
@@ -121,7 +127,6 @@ class MDEC {
     void putlinebw15(uint16_t *image, int *Yblk);
     void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb);
     void yuv2rgb15(int *blk, unsigned short *image);
-    void iqtab_init(int *iqtab, unsigned char *iq_y);
     void scaletable_init();
     void standardTables_init();
     void real_idct(int *block);

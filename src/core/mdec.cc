@@ -312,9 +312,15 @@ void PCSX::MDEC::real_idct(int *block) {
     if (src != block) memcpy(block, src, sizeof(temp));
 }
 
-void PCSX::MDEC::iqtab_init(int *iqtab, unsigned char *iq_y) {
+void PCSX::MDEC::iqtab_init(int *iqtab, const unsigned char *qt) {
     for (int i = 0; i < DSIZE2; i++) {
-        iqtab[i] = (iq_y[i] * SCALER(aanscales[zscan[i]], AAN_PRESCALE_SCALE));
+        iqtab[i] = (qt[i] * SCALER(aanscales[zscan[i]], AAN_PRESCALE_SCALE));
+    }
+}
+
+void PCSX::MDEC::qtab_fromIqtab(unsigned char *qt, const int *iqtab) {
+    for (int i = 0; i < DSIZE2; i++) {
+        qt[i] = static_cast<unsigned char>(iqtab[i] / SCALER(aanscales[zscan[i]], AAN_PRESCALE_SCALE));
     }
 }
 

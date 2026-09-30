@@ -19,6 +19,9 @@
 
 #include "core/sstate.h"
 
+#include <algorithm>
+#include <iterator>
+
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -426,10 +429,14 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     }
     // Fields 12-15 were added without a version bump. A state from before them
     // deserialises zero elements into the repeated fields, which would otherwise
-    // leave all-zero quant tables and a zero scale matrix.
+    // leave all-zero quant tables and a zero scale matrix. Those emulators always
+    // decoded with the standard matrix; the raw quant tables are recovered from
+    // the cached ones, which do carry whatever the game uploaded.
     if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
         mdecSave.get<MDECScaleTable>().count == 0) {
         standardTables_init();
+        qtab_fromIqtab(qt_y, iq_y);
+        qtab_fromIqtab(qt_uv, iq_uv);
         return;
     }
     for (unsigned i = 0; i < 64; i++) {
@@ -438,6 +445,9 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
         scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
     }
     customScaleTable = mdecSave.get<MDECCustomScale>().value != 0;
+    // Not serialised: an all-zero matrix is what a console holds before MDEC(3).
+    scaleTableUploaded = std::any_of(std::begin(scaletable), std::end(scaletable), [](int16_t v) { return v != 0; });
+    warnedNoScaleTable = false;
 }
 
 void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
