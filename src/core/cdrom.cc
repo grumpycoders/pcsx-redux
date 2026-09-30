@@ -246,7 +246,7 @@ class CDRomImpl final : public PCSX::CDRom {
                     if (passToData) {
                         m_dataFIFOIndex = 0;
                         m_dataFIFOPending = size;
-                        if (m_dataRequested) m_dataFIFOSize = size;
+                        m_dataFIFOSize = m_dataRequested ? size : 0;
                     }
                     m_currentPosition++;
                     if (debug) {
@@ -434,6 +434,9 @@ class CDRomImpl final : public PCSX::CDRom {
             ret = 0;
         } else {
             ret = m_dataFIFO[m_dataFIFOIndex++];
+            // Draining the whole sector drops the data request: with BFRD left set, the next
+            // sector is not loaded into the fifo until the host writes BFRD again.
+            if (m_dataFIFOIndex == m_dataFIFOSize) m_dataRequested = false;
         }
 
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
@@ -711,6 +714,7 @@ class CDRomImpl final : public PCSX::CDRom {
         memFile->wSeek(madr);
         memFile->write(m_dataFIFO + m_dataFIFOIndex, size);
         m_dataFIFOIndex += size;
+        if ((size != 0) && (m_dataFIFOIndex == m_dataFIFOSize)) m_dataRequested = false;
         PCSX::g_emulator->m_cpu->Clear(madr, size / 4);
         PCSX::g_emulator->m_mem->msanDmaWrite(madr, size);
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
