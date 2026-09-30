@@ -36,6 +36,7 @@ static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120
                                           0x0126, 0x0127, 0x017b, 0x017c, 0};
 static const ImWchar c_polishRanges[] = {0x0020, 0x00ff, 0x0104, 0x0119, 0x0141, 0x0144,
                                          0x015a, 0x015b, 0x0179, 0x017c, 0};
+static const ImWchar c_swedishRanges[] = {0x0020, 0x00ff, 0x2013, 0x2013, 0x201c, 0x201d, 0};
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
@@ -88,6 +89,10 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     {
         "Português (Brasil)",
         {"pt_BR.po", {}, nullptr},
+    },
+    {
+        "Svenska",
+        {"sv.po", {}, c_swedishRanges},
     },
     {
         "Ukrainska",
