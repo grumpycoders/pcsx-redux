@@ -255,8 +255,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     GTE_WRAPPER(RTPS);
     GTE_WRAPPER(RTPT);
     GTE_WRAPPER(SQR);
-    GTE_WRAPPER(SWC2);
 #undef GTE_WRAPPER
+    void gteSWC2(uint32_t code) {
+        gteStall();
+        PCSX::g_emulator->m_gte->SWC2(code);
+    }
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
@@ -1100,12 +1103,14 @@ void InterpretedCPU::psxMTC0(uint32_t code) { MTC0(_Rd_, _u32(_rRt_)); }
 void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _u32(_rRt_)); }
 
 void InterpretedCPU::psxMFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->MFC2(code);
 }
 
 void InterpretedCPU::psxCFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->CFC2(code);
@@ -1138,6 +1143,7 @@ void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) 
 void InterpretedCPU::psxCOP2(uint32_t code) {
     if ((m_regs.CP0.n.Status & 0x40000000) == 0) return;
 
+    if (code & 0x02000000) gteStart(gteLatency(_Funct_));
     (*this.*(s_pPsxCP2[_Funct_]))(code);
 }
 

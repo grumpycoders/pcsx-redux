@@ -82,6 +82,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             IntTargetsField { g_emulator->m_cpu->m_regs.intTargets },
             InISR { g_emulator->m_cpu->m_inISR },
             MulDivReady { g_emulator->m_cpu->m_regs.muldivReady },
+            GteReady { g_emulator->m_cpu->m_regs.gteReady },
         },
         GPU {},
         SPU {},
