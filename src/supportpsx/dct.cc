@@ -696,6 +696,8 @@ void packBlock(const int16_t *blk, const uint8_t *qt, int qScale, std::vector<ui
 
 const uint8_t *PCSX::DCT::standardQuantTable() { return c_packStandardQuant; }
 
+namespace {
+
 // Reverse lookup for the code book, built once. 224 codes over lengths 2..17, so a
 // per-length table keyed by the accumulated bits is enough and needs no trie.
 struct VlcDecodeEntry {
@@ -778,6 +780,8 @@ static constexpr DcSizeCode c_dcSizeChroma[9] = {
     {0b00, 2},   {0b01, 2},     {0b10, 2},      {0b110, 3},      {0b1110, 4},
     {0b11110, 5}, {0b111110, 6}, {0b1111110, 7}, {0b11111110, 8},
 };
+
+}  // namespace
 
 PCSX::DCT::ContainerResult PCSX::DCT::toContainer(std::span<const uint16_t> rl, Container container,
                                                   std::vector<uint8_t> &out) {

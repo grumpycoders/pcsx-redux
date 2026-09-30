@@ -63,7 +63,9 @@
 #include <algorithm>
 #include <exception>
 #include <filesystem>
+#include <initializer_list>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "flags.h"
@@ -288,6 +290,8 @@ Usage: mdec rawdecode -i input.bin -o output.png -width W -height H [options]
   -width n    mandatory: width in pixels, multiple of 16.
   -height n   mandatory: height in pixels, multiple of 16.
   -t file     optional: JSON tables. Only "quant" and "scale" are used here.
+  -order      optional: raster | column. Default raster. Must match the order
+              the stream was encoded in (rawencode -order).
 
   The stream carries no dimensions, which is why they are mandatory rather than
   guessed. This decodes with psx-spx's real_idct_core against "scale", so a
@@ -603,6 +607,12 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
         usageRawDecode();
         return -1;
     }
+    const std::string order = args.get<std::string>("order").value_or("raster");
+    if (order != "raster" && order != "column") {
+        fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
+        return -1;
+    }
+    const bool column = order == "column";
 
     Tables tables;
     if (auto t = args.get<std::string>("t"); t.has_value()) {
@@ -626,8 +636,10 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
     const int mbx = w / 16, mby = h / 16;
     std::vector<uint8_t> image(static_cast<size_t>(w) * h * 3);
     size_t pos = 0;
-    for (int my = 0; my < mby; my++) {
-        for (int mx = 0; mx < mbx; mx++) {
+    for (int outer = 0; outer < (column ? mbx : mby); outer++) {
+        for (int inner = 0; inner < (column ? mby : mbx); inner++) {
+            const int mx = column ? outer : inner;
+            const int my = column ? inner : outer;
             int blocks[6][64];
             for (int b = 0; b < 6; b++) {
                 memset(blocks[b], 0, sizeof(blocks[b]));
@@ -714,11 +726,31 @@ int main(int argc, char **argv) {
     // non-zero. Measured with `-transform exact` on the same table as the control:
     // exit 0, encodes fine, so the abort was the symmetry check and not the table
     // loader.
+    // Rule 3 of the contract at the top of this file.
+    auto knows = [&](std::initializer_list<std::string_view> known) {
+        for (const auto &[name, value] : args.options()) {
+            if (name == "h") continue;
+            if (std::find(known.begin(), known.end(), name) == known.end()) {
+                fmt::print(stderr, "{}: unknown option -{}\n", command, name);
+                return false;
+            }
+        }
+        return true;
+    };
+    const std::initializer_list<std::string_view> encodeOptions = {"i",     "o",         "t",    "q",
+                                                                    "quality", "qscale", "order", "transform"};
+
     try {
-        if (command == "rawencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw);
-        if (command == "bsencode") return cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs);
-        if (command == "bsdecode") return cmdBsDecode(args, asksForHelp);
-        if (command == "rawdecode") return cmdRawDecode(args, asksForHelp);
+        if (command == "rawencode") {
+            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw) : -1;
+        }
+        if (command == "bsencode") {
+            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs) : -1;
+        }
+        if (command == "bsdecode") return knows({"i", "o"}) ? cmdBsDecode(args, asksForHelp) : -1;
+        if (command == "rawdecode") {
+            return knows({"i", "o", "t", "width", "height", "order"}) ? cmdRawDecode(args, asksForHelp) : -1;
+        }
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());
         return -1;
