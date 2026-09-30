@@ -121,6 +121,16 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         s_chan[i].data.get<Chan::IrqDone>().value = 0;
     }
 
+    // Rebuild the read-time ENVX active mask from the restored channels; the
+    // reconstruction cannot otherwise know which voices are still playing. Chan::On is
+    // part of the saved state, so this is exact, and the SPU thread is stopped for the
+    // whole load, so the store does not race it.
+    uint32_t activeMask = 0;
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        if (s_chan[i].data.get<Chan::On>().value) activeMask |= (1u << i);
+    }
+    m_voiceActiveMask = activeMask;
+
     spuAddr = spu.get<SaveStates::SPUAddr>().value;
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
     spuStat = spu.get<SaveStates::SPUStat>().value;

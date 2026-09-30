@@ -200,7 +200,7 @@ class impl final : public SPUInterface {
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
-    void StartSound(SPUCHAN *voice);
+    void StartSound(int ch, SPUCHAN *voice);
     // Read-time reconstruction. A CPU read of ENVX or of SPUSTAT bit 11 asks what
     // the SPU is doing at the reader's own cycle, which is a time the SPU thread
     // has not reached: it runs asynchronously in NSSIZE batches paced by sink free
@@ -270,6 +270,16 @@ class impl final : public SPUInterface {
     // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
     // ADPCM block carrying the end flag, cleared on key-on. Read-only.
     std::atomic<uint32_t> spuEndx = 0;
+
+    // Voices the mixer thread currently considers active (playing, or in the ADSR
+    // release phase). `reconstructEnvelope` walks the ADSR state from the key-on/key-off
+    // checkpoints and never sees a voice stop, so without this it keeps reporting a
+    // non-zero ENVX for a voice that already went silent - which guests poll to spot a
+    // finished one-shot. This is an atomic mirror of the non-atomic Chan::On, which the
+    // CPU thread cannot read directly; the SPU thread keeps it in step (set in
+    // StartSound, cleared when the voice stops), so the reconstruction only has to test
+    // it. Rebuilt from the saved Chan::On on savestate load.
+    std::atomic<uint32_t> m_voiceActiveMask = 0;
 
     // Storage for the PSX register values.
     // Both the register path and the mixer thread read-modify-write these, so every

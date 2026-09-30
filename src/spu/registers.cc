@@ -49,6 +49,11 @@ uint64_t PCSX::SPU::impl::cycleToSample(uint64_t cycle) const { return cycle / c
 // the whole gap in one call, which is a hitch and not unbounded growth.
 uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     auto &cp = m_envelopeCheckpoint[ch];
+    // A voice that is not active - never keyed on, stopped on its end flag, or done
+    // releasing - reads 0. The walk below is derived only from the key-on/key-off
+    // checkpoints and would otherwise keep reporting the last walked level for a voice
+    // the mixer already stopped.
+    if (!(m_voiceActiveMask.load(std::memory_order_relaxed) & (1u << ch))) return 0;
     // Never keyed on, or a read stamped before the key-on: hardware reads 0 here.
     if (!cp.keyedOn || cycle < cp.keyOnCycle) return 0;
     const uint64_t target = cycleToSample(cycle - cp.keyOnCycle);

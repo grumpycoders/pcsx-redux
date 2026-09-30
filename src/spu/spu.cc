@@ -51,7 +51,7 @@ constexpr int kMixSampleClamp = 32767;
 }  // namespace
 
 // Called by the main thread to set up a new sound on a channel.
-inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
+inline void PCSX::SPU::impl::StartSound(int ch, SPUCHAN *voice) {
     voice->adsr.keyOn();
     m_reverb.start(voice, spuCtrl);
 
@@ -67,6 +67,9 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
     voice->data.get<Chan::New>().value = false;
     voice->data.get<Chan::Stop>().value = false;
     voice->data.get<Chan::On>().value = true;
+    // Mirror the channel's active state for the read-time ENVX reconstruction. Kept on
+    // the SPU thread, which is where Chan::On lives, so the CPU thread only reads it.
+    m_voiceActiveMask.fetch_or(1u << ch, std::memory_order_relaxed);
 
     voice->interp.keyOn(settings.get<Interpolation>());
 }
@@ -279,7 +282,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 
     if (isNew) {
         // Start the new sound.
-        StartSound(voice);
+        StartSound(ch, voice);
         // Clear the new-channel bit.
         newChannelMask &= ~(1 << ch);
     }
@@ -328,6 +331,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
                 on = false;
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
+                // Mirror the stop for the read-time ENVX reconstruction, so it reads 0.
+                m_voiceActiveMask.fetch_and(~(1u << ch), std::memory_order_relaxed);
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns);
                 // Done with this channel.
                 return;
@@ -353,6 +358,10 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
         // Apply the ADSR envelope (hardware: sample*env>>15).
         int32_t mixedSample = (voice->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;
         sval = mixedSample;
+
+        // The envelope may have just finished its release; step() clears Chan::On, so
+        // mirror that for the read-time ENVX reconstruction too.
+        if (!on) m_voiceActiveMask.fetch_and(~(1u << ch), std::memory_order_relaxed);
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.
         mixedSample = std::clamp(mixedSample, kCaptureSampleMin, kCaptureSampleMax);
@@ -623,6 +632,7 @@ void PCSX::SPU::impl::wipeChannels() {
         s_chan[i].volume.reset();
         s_chan[i].data.reset();
     }
+    m_voiceActiveMask = 0;
     m_reverb.reset();
 }
 
