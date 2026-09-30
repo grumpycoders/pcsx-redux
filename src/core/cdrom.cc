@@ -969,7 +969,8 @@ class CDRomImpl : public PCSX::CDRom {
                 }
                 Find_CurTrack(m_setSectorPlay);
 
-                if ((m_mode & MODE_CDDA) && m_curTrack > 1) {
+                if ((m_mode & MODE_CDDA) && m_curTrack > 1 &&
+                    m_iso->getTrackType(m_curTrack) == PCSX::CDRIso::TrackType::CDDA) {
                     // Read* acts as play for cdda tracks in cdda mode
                     goto do_CdlPlay;
                 }
