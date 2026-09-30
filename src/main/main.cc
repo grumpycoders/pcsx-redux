@@ -382,6 +382,10 @@ int pcsxMain(int argc, char **argv) {
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();
+    auto wavDump = args.get<std::string>("wavdump", "");
+    if (!wavDump.empty() && !emulator->m_spu->setWavDump(PCSX::u8string(MAKEU8(wavDump.c_str())))) {
+        fmt::print(stderr, "-wavdump: unable to create '{}'\n", wavDump);
+    }
 
     // Make sure the Lua environment is set.
     bool luacovEnabled = false;

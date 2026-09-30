@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -560,6 +561,10 @@ void PCSX::SPU::impl::MainThread() {
                     return;
                 }
             }
+            if (m_wavDump) {
+                writeWavDump(reinterpret_cast<SDLAudio::Frame *>(spuBuffer),
+                             (((uint8_t *)pS) - ((uint8_t *)spuBuffer)) / sizeof(SDLAudio::Frame));
+            }
             pS = (int16_t *)spuBuffer;
             iCycle = 0;
         }
@@ -743,7 +748,53 @@ long PCSX::SPU::impl::close(void) {
     // No more streaming.
     RemoveStreams();
 
+    m_wavDump.reset();
+
     return 0;
+}
+
+// The mixer runs at 44.1kHz, the rate the pitch computation assumes, and the sink plays it
+// at that same rate. The header sizes are rewritten after every block, so the file is a
+// valid WAV at any point, however the emulator ends up exiting.
+bool PCSX::SPU::impl::setWavDump(const std::filesystem::path &path) {
+    static constexpr uint32_t kRate = 44100;
+    static constexpr uint16_t kChannels = 2;
+    static constexpr uint16_t kBits = 16;
+    static constexpr uint16_t kBlockAlign = kChannels * kBits / 8;
+
+    IO<File> file(new PosixFile(path, FileOps::TRUNCATE));
+    if (file->failed()) return false;
+    file->writeString("RIFF");
+    file->write<uint32_t>(36);
+    file->writeString("WAVE");
+    file->writeString("fmt ");
+    file->write<uint32_t>(16);
+    file->write<uint16_t>(1);
+    file->write<uint16_t>(kChannels);
+    file->write<uint32_t>(kRate);
+    file->write<uint32_t>(kRate * kBlockAlign);
+    file->write<uint16_t>(kBlockAlign);
+    file->write<uint16_t>(kBits);
+    file->writeString("data");
+    file->write<uint32_t>(0);
+    m_wavDump = file;
+    m_wavDumpBytes = 0;
+    return true;
+}
+
+void PCSX::SPU::impl::writeWavDump(const SDLAudio::Frame *frames, size_t count) {
+    static_assert(sizeof(SDLAudio::Frame) == 4);
+    if constexpr (std::endian::native == std::endian::little) {
+        m_wavDump->write(frames, count * sizeof(SDLAudio::Frame));
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            m_wavDump->write<int16_t>(frames[i].L);
+            m_wavDump->write<int16_t>(frames[i].R);
+        }
+    }
+    m_wavDumpBytes += count * sizeof(SDLAudio::Frame);
+    m_wavDump->writeAt<uint32_t>(36 + m_wavDumpBytes, 4);
+    m_wavDump->writeAt<uint32_t>(m_wavDumpBytes, 40);
 }
 
 // Called by the main emulator on final exit.
