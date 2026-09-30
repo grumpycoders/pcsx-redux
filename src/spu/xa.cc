@@ -20,138 +20,107 @@
 #include <algorithm>
 
 #include "spu/externals.h"
-#include "spu/gauss.h"
 #include "spu/interface.h"
 
-static uint16_t loword(uint32_t v) { return v & 0xffff; }
-static uint16_t hiword(uint32_t v) { return (v >> 16) & 0xffff; }
+
+// The CD decoder resamples 37.8 kHz to 44.1 kHz by writing each sample into a
+// 32-entry ring and, every 6 samples, producing 7 outputs through these zigzag
+// tables (psx-spx, "25-point Zigzag Interpolation"). 18.9 kHz audio goes
+// through the same path, with the midpoint of each pair of samples inserted.
+static const int16_t s_zigzag[7][29] = {
+    {0,       0,       0,       0,       0,       -0x0002, 0x000a,  -0x0022, 0x0041,  -0x0054,
+     0x0034,  0x0009,  -0x010a, 0x0400,  -0x0a78, 0x234c,  0x6794,  -0x1780, 0x0bcd,  -0x0623,
+     0x0350,  -0x016d, 0x006b,  0x000a,  -0x0010, 0x0011,  -0x0008, 0x0003,  -0x0001},
+    {0,       0,       0,       -0x0002, 0,       0x0003,  -0x0013, 0x003c,  -0x004b, 0x00a2,
+     -0x00e3, 0x0132,  -0x0043, -0x0267, 0x0c9d,  0x74bb,  -0x11b4, 0x09b8,  -0x05bf, 0x0372,
+     -0x01a8, 0x00a6,  -0x001b, 0x0005,  0x0006,  -0x0008, 0x0003,  -0x0001, 0},
+    {0,       0,       -0x0001, 0x0003,  -0x0002, -0x0005, 0x001f,  -0x004a, 0x00b3,  -0x0192,
+     0x02b1,  -0x039e, 0x04f8,  -0x05a6, 0x7939,  -0x05a6, 0x04f8,  -0x039e, 0x02b1,  -0x0192,
+     0x00b3,  -0x004a, 0x001f,  -0x0005, -0x0002, 0x0003,  -0x0001, 0,       0},
+    {0,       -0x0001, 0x0003,  -0x0008, 0x0006,  0x0005,  -0x001b, 0x00a6,  -0x01a8, 0x0372,
+     -0x05bf, 0x09b8,  -0x11b4, 0x74bb,  0x0c9d,  -0x0267, -0x0043, 0x0132,  -0x00e3, 0x00a2,
+     -0x004b, 0x003c,  -0x0013, 0x0003,  0,       -0x0002, 0,       0,       0},
+    {-0x0001, 0x0003,  -0x0008, 0x0011,  -0x0010, 0x000a,  0x006b,  -0x016d, 0x0350,  -0x0623,
+     0x0bcd,  -0x1780, 0x6794,  0x234c,  -0x0a78, 0x0400,  -0x010a, 0x0009,  0x0034,  -0x0054,
+     0x0041,  -0x0022, 0x000a,  -0x0001, 0,       0x0001,  0,       0,       0},
+    {0x0002,  -0x0008, 0x0010,  -0x0023, 0x002b,  0x001a,  -0x00eb, 0x027b,  -0x0548, 0x0afa,
+     -0x16fa, 0x53e0,  0x3c07,  -0x1249, 0x080e,  -0x0347, 0x015b,  -0x0044, -0x0017, 0x0046,
+     -0x0023, 0x0011,  -0x0005, 0,       0,       0,       0,       0,       0},
+    {-0x0005, 0x0011,  -0x0023, 0x0046,  -0x0017, -0x0044, 0x015b,  -0x0347, 0x080e,  -0x1249,
+     0x3c07,  0x53e0,  -0x16fa, 0x0afa,  -0x0548, 0x027b,  -0x00eb, 0x001a,  0x002b,  -0x0023,
+     0x0010,  -0x0008, 0x0002,  0,       0,       0,       0,       0,       0},
+};
+
+int16_t PCSX::SPU::impl::zigzag(const int16_t *ring, unsigned table) {
+    int32_t sum = 0;
+    for (unsigned i = 1; i <= 29; i++) {
+        sum += (int32_t(ring[(xaRingPos - i) & 0x1f]) * s_zigzag[table][i - 1]) >> 15;
+    }
+    return std::clamp(sum, int32_t(-0x8000), int32_t(0x7fff));
+}
 
 void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
-    int sinc, spos, i, iSize, vl, vr, voldiv = 4 - settings.get<Volume>();
-
-    SDLAudio::Frame XABuffer[32 * 1024];
-    SDLAudio::Frame *XAFeed = XABuffer;
+    int voldiv = 4 - settings.get<Volume>();
 
     if (!spuIsOpen) return;
 
     // Store the info for save states.
     xapGlobal = xap;
 
-    // Get the size.
-    iSize = ((44100 * xap->nsamples) / xap->freq);
-    // Emulation speed no longer scales the XA feed size here. The old Emulator::SettingScaler only ever
-    // adjusted this for sub-realtime (its min(100, scaler) meant fast-forward never touched XA at all),
-    // and it defaulted to 100 (== no change). XA speed-up now happens at the sink, which drains the XA
-    // stream (stream 1) at the same multiplier as the voices stream. Dropping it is a no-op at default.
-    // Nothing to feed.
-    if (!iSize) return;
-
-    assert(iSize <= 32 * 1024);
-
-    spos = 0x10000L;
-    // Calculate the frequency as sample count divided by size.
-    sinc = (xap->nsamples << 16) / iSize;
+    const int repeat = xap->freq == 18900 ? 2 : 1;
+    // 6 inputs make 7 outputs; size for the whole sector plus what is pending.
+    static constexpr size_t c_maxFrames = (4032 * 2 / 6 + 1) * 7;
+    SDLAudio::Frame XABuffer[c_maxFrames];
+    SDLAudio::Frame *XAFeed = XABuffer;
 
     // The lock is needed for the capture buffers and mixIrqAddress, both shared with the
     // mixer thread. Taken unconditionally: gating it on an unlocked read of mixIrqAddress
     // is itself a race, and could pair a skipped lock with a later unlock.
     std::unique_lock<std::mutex> cbLock(cbMtx);
 
-    if (xap->stereo) {
-        uint32_t *pS = (uint32_t *)xap->pcm;
-        uint32_t l = 0;
-
-        for (i = 0; i < iSize; i++) {
-            if (settings.get<Interpolation>() == 2) {
-                while (spos >= 0x10000L) {
-                    l = *pS++;
-                    gauss_window[gauss_ptr] = (int16_t)loword(l);
-                    gauss_window[4 + gauss_ptr] = (int16_t)hiword(l);
-                    gauss_ptr = (gauss_ptr + 1) & 3;
-                    spos -= 0x10000L;
-                }
-                vl = (spos >> 8) & 0xff;
-                vr = (Gauss::gauss512[0x0ff - vl] * gvall0()) >> 15;
-                vr += (Gauss::gauss512[0x1ff - vl] * gvall(1)) >> 15;
-                vr += (Gauss::gauss512[0x100 + vl] * gvall(2)) >> 15;
-                vr += (Gauss::gauss512[0x000 + vl] * gvall(3)) >> 15;
-                l = vr & 0xffff;
-                vr = (Gauss::gauss512[0x0ff - vl] * gvalr0()) >> 15;
-                vr += (Gauss::gauss512[0x1ff - vl] * gvalr(1)) >> 15;
-                vr += (Gauss::gauss512[0x100 + vl] * gvalr(2)) >> 15;
-                vr += (Gauss::gauss512[0x000 + vl] * gvalr(3)) >> 15;
-                l |= vr << 16;
-            } else {
-                while (spos >= 0x10000L) {
-                    l = *pS++;
-                    spos -= 0x10000L;
-                }
-            }
-
-            SDLAudio::Frame f;
-            int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
-            int16_t rawSampleR = static_cast<int16_t>(l >> 16);
-            if (mixIrqAddress) {
-                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
-                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;
-                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
-                if (captureBuffer.endIndex == captureBuffer.startIndex) {
-                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
-                }
-            }
-            f.L = rawSampleL / voldiv;
-            f.R = rawSampleR / voldiv;
-
-            *XAFeed++ = f;
-            spos += sinc;
+    for (int i = 0; i < xap->nsamples; i++) {
+        int16_t l, r;
+        if (xap->stereo) {
+            l = xap->pcm[i * 2];
+            r = xap->pcm[i * 2 + 1];
+        } else {
+            // Mono XA plays on both sides.
+            l = r = xap->pcm[i];
         }
-    } else {
-        uint16_t *pS = (uint16_t *)xap->pcm;
-        uint32_t l;
-        int16_t s = 0;
-
-        for (i = 0; i < iSize; i++) {
-            if (settings.get<Interpolation>() == 2) {
-                while (spos >= 0x10000L) {
-                    gauss_window[gauss_ptr] = (int16_t)*pS++;
-                    gauss_ptr = (gauss_ptr + 1) & 3;
-                    spos -= 0x10000L;
-                }
-                vl = (spos >> 8) & 0xff;
-                vr = (Gauss::gauss512[0x0ff - vl] * gvall0()) >> 15;
-                vr += (Gauss::gauss512[0x1ff - vl] * gvall(1)) >> 15;
-                vr += (Gauss::gauss512[0x100 + vl] * gvall(2)) >> 15;
-                vr += (Gauss::gauss512[0x000 + vl] * gvall(3)) >> 15;
-                l = s = vr;
-                l &= 0xffff;
-            } else {
-                while (spos >= 0x10000L) {
-                    s = *pS++;
-                    spos -= 0x10000L;
-                }
-                l = s;
+        for (int k = 0; k < repeat; k++) {
+            int16_t inL = l, inR = r;
+            if (repeat == 2 && k == 0) {
+                inL = (int32_t(xaLastL) + l) >> 1;
+                inR = (int32_t(xaLastR) + r) >> 1;
             }
-
-            SDLAudio::Frame f;
-            int16_t rawSampleL = static_cast<int16_t>(l & 0xffff);
-            int16_t rawSampleR = static_cast<int16_t>(l >> 16);
-            // Write the CD-XA samples (left/right) to a temporary buffer. Wrap around if necessary.
-            if (mixIrqAddress) {
-                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
-                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;
-                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
-                if (captureBuffer.endIndex == captureBuffer.startIndex) {
-                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+            xaRingL[xaRingPos & 0x1f] = inL;
+            xaRingR[xaRingPos & 0x1f] = inR;
+            xaRingPos++;
+            if (--xaSixStep > 0) continue;
+            xaSixStep = 6;
+            for (unsigned t = 0; t < 7; t++) {
+                int16_t rawSampleL = zigzag(xaRingL, t);
+                int16_t rawSampleR = zigzag(xaRingR, t);
+                if (mixIrqAddress) {
+                    captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
+                    captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;
+                    captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
+                    if (captureBuffer.endIndex == captureBuffer.startIndex) {
+                        g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+                    }
                 }
+                SDLAudio::Frame f;
+                f.L = rawSampleL / voldiv;
+                f.R = rawSampleR / voldiv;
+                *XAFeed++ = f;
             }
-
-            f.L = rawSampleL / voldiv;
-            f.R = rawSampleR / voldiv;
-            *XAFeed++ = f;
-            spos += sinc;
         }
+        xaLastL = l;
+        xaLastR = r;
     }
     cbLock.unlock();
 
-    m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+    if (XAFeed != XABuffer) {
+        m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+    }
 }
