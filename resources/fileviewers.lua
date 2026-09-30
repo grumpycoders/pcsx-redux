@@ -287,6 +287,8 @@ function PCSX.FileViewers.rawViewer(openFile)
 end
 
 local soundFormats = { 'SPU ADPCM', 'PCM 16 bits', 'PCM 8 bits' }
+local MAX_SOUND_BYTES = 16 * 1024 * 1024
+local MAX_PLOT_POINTS = 200000
 
 -- Decodes the sound described by the viewer's knobs into one int16_t array
 -- per channel. Returns the arrays, the number of samples per channel, the
@@ -294,6 +296,9 @@ local soundFormats = { 'SPU ADPCM', 'PCM 16 bits', 'PCM 8 bits' }
 local function decodeSound(file, v)
     local available = math.max(0, file:size() - v.offset)
     local length = v.length == 0 and available or math.min(v.length, available)
+    local capped = length > MAX_SOUND_BYTES
+    if capped then length = MAX_SOUND_BYTES end
+    local suffix = capped and ', first 16 MB only' or ''
     if v.format == 1 then
         local blocks = math.floor(length / 16)
         local data = file:readAt(blocks * 16, v.offset)
@@ -308,8 +313,16 @@ local function decodeSound(file, v)
         local samples = ffi.new('int16_t[?]', blocks * 28 + 1)
         local decoder = PCSX.Adpcm.NewDecoder()
         for i = 0, blocks - 1 do decoder:decodeSPUBlock(data.data + i * 16, samples + i * 28) end
-        local info = string.format('%d blocks, end flag %s', blocks,
-            endBlock and ('on block ' .. endBlock) or 'not found')
+        local loops = endBlock and (data.data[endBlock * 16 + 1] & 2) ~= 0
+        local info = string.format('%d blocks, end flag %s%s%s', blocks,
+            endBlock and ('on block ' .. endBlock) or 'not found', loops and ' (repeat)' or '', suffix)
+        -- Play exactly what is plotted, once: drop the end and repeat flags,
+        -- then end on the last block.
+        for i = 0, blocks - 1 do
+            local p = data.data + i * 16 + 1
+            p[0] = p[0] & ~3
+        end
+        if blocks > 0 then data.data[(blocks - 1) * 16 + 1] = data.data[(blocks - 1) * 16 + 1] | 1 end
         data.size = blocks * 16
         return { samples }, blocks * 28, data, info
     end
@@ -337,7 +350,26 @@ local function decodeSound(file, v)
             chans[c][i] = s
         end
     end
-    return chans, count, data, string.format('%d bytes', count * frame)
+    return chans, count, data, string.format('%d bytes%s', count * frame, suffix)
+end
+
+-- Returns the samples to plot and the number of samples each point covers.
+-- Long sounds are reduced to a min / max envelope.
+local function plotPoints(samples, count)
+    if count <= MAX_PLOT_POINTS then return samples, count, 1 end
+    local bucket = math.ceil(count * 2 / MAX_PLOT_POINTS)
+    local buckets = math.ceil(count / bucket)
+    local out = ffi.new('int16_t[?]', buckets * 2)
+    for b = 0, buckets - 1 do
+        local lo, hi = 32767, -32768
+        for i = b * bucket, math.min(count, (b + 1) * bucket) - 1 do
+            local s = samples[i]
+            if s < lo then lo = s end
+            if s > hi then hi = s end
+        end
+        out[b * 2], out[b * 2 + 1] = lo, hi
+    end
+    return out, buckets * 2, bucket / 2
 end
 
 -- Viewer for audio data: SPU ADPCM, or raw PCM, from a user-supplied offset.
@@ -388,6 +420,7 @@ function PCSX.FileViewers.soundViewer(openFile, opts)
         if c then v.length, dirty = math.max(0, n), true end
         c, n = imgui.InputInt('sample rate', v.rate, 100, 1000)
         if c then
+            stop()
             v.rate = math.max(1, math.min(v.format == 1 and 176400 or 384000, n))
             v.generation = v.generation + 1
         end
@@ -397,6 +430,8 @@ function PCSX.FileViewers.soundViewer(openFile, opts)
             local ok, chans, count, bytes, info = pcall(decodeSound, openFile(), v)
             if ok then
                 v.chans, v.count, v.bytes, v.info, v.err = chans, count, bytes, info, nil
+                v.plots = {}
+                for i, samples in ipairs(chans) do v.plots[i] = { plotPoints(samples, count) } end
             else
                 v.chans, v.err = nil, tostring(chans)
             end
@@ -436,9 +471,9 @@ function PCSX.FileViewers.soundViewer(openFile, opts)
         implot.safe.BeginPlot('##waveform' .. v.generation, -1, 250, function()
             implot.SetupAxes('seconds', '')
             implot.SetupAxesLimits(0, v.count / v.rate, -32768, 32767)
-            for i, samples in ipairs(v.chans) do
-                implot.PlotLine(#v.chans == 1 and 'samples' or (i == 1 and 'left' or 'right'), samples, v.count,
-                    1 / v.rate, 0)
+            for i, p in ipairs(v.plots) do
+                implot.PlotLine(#v.plots == 1 and 'samples' or (i == 1 and 'left' or 'right'), p[1], p[2],
+                    p[3] / v.rate, 0)
             end
         end)
     end
