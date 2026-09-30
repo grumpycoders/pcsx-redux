@@ -213,6 +213,8 @@ TEST(DctPack, dcAndAcClippingAreCountedSeparately) {
     std::vector<uint16_t> a, b;
     auto lowQ = PCSX::DCT::pack(t.coeffs, t.shape, tabs, 1, a);
     auto highQ = PCSX::DCT::pack(t.coeffs, t.shape, tabs, 63, b);
+    // Without real DC clipping the equality below is 0 == 0 and proves nothing.
+    ASSERT_GT(lowQ.clippedDc, 0u) << "the test frame does not overrun the DC field";
     // q_scale 63 against 1 must cut AC clipping hard and leave DC clipping alone.
     EXPECT_LT(highQ.clippedAc, lowQ.clippedAc);
     EXPECT_EQ(highQ.clippedDc, lowQ.clippedDc);
