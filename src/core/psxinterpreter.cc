@@ -753,8 +753,14 @@ void InterpretedCPU::psxMFLO(uint32_t code) {
  * Move to GPR to HI/LO & Register jump                   *
  * Format:  OP rs                                         *
  *********************************************************/
-void InterpretedCPU::psxMTHI(uint32_t code) { _rHi_ = _rRs_; }  // Hi = Rs
-void InterpretedCPU::psxMTLO(uint32_t code) { _rLo_ = _rRs_; }  // Lo = Rs
+void InterpretedCPU::psxMTHI(uint32_t code) {
+    muldivCancel();
+    _rHi_ = _rRs_;  // Hi = Rs
+}
+void InterpretedCPU::psxMTLO(uint32_t code) {
+    muldivCancel();
+    _rLo_ = _rRs_;  // Lo = Rs
+}
 
 /*********************************************************
  * Special purpose instructions                           *
