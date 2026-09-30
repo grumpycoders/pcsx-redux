@@ -686,6 +686,7 @@ void DynaRecCPU::recMULT(uint32_t code) {
             const uint64_t result = (int64_t)(int32_t)m_gprs[_Rt_].val * (int64_t)(int32_t)m_gprs[_Rs_].val;
             gen.mov(dword[contextPointer + LO_OFFSET], (uint32_t)result);
             gen.mov(dword[contextPointer + HI_OFFSET], (uint32_t)(result >> 32));
+            return;
         } else {
             allocateReg(_Rt_);
             gen.movsxd(rax, m_gprs[_Rt_].allocatedReg);
