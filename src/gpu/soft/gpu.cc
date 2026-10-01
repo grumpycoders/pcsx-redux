@@ -663,8 +663,8 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     char *pixels = reinterpret_cast<char *>(malloc(size));
     ss.data.acquire(pixels, size);
     if (m_softDisplay.RGB24) {
-        auto ptr = m_allocatedVRAM;
-        ptr += startX * 3 + startY * 1024 * 2;
+        auto ptr = m_vram;
+        ptr += startX * 2 + startY * 1024 * 2;
         for (int i = 0; i < height; i++) {
             std::memcpy(pixels, ptr, width * 3);
             ptr += 1024 * 2;
