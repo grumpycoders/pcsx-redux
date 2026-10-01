@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
+#include <vector>
 
 #include "spu/adsr.h"
 #include "spu/externals.h"
@@ -784,17 +785,42 @@ bool PCSX::SPU::impl::setWavDump(const std::filesystem::path &path) {
 
 void PCSX::SPU::impl::writeWavDump(const SDLAudio::Frame *frames, size_t count) {
     static_assert(sizeof(SDLAudio::Frame) == 4);
-    if constexpr (std::endian::native == std::endian::little) {
-        m_wavDump->write(frames, count * sizeof(SDLAudio::Frame));
-    } else {
-        for (size_t i = 0; i < count; i++) {
-            m_wavDump->write<int16_t>(frames[i].L);
-            m_wavDump->write<int16_t>(frames[i].R);
+    // The RIFF size fields are 32-bit, which caps a capture at about 6h45m.
+    constexpr uint64_t kMaxBytes = UINT32_MAX - 36;
+    uint64_t room = (kMaxBytes - m_wavDumpBytes) / sizeof(SDLAudio::Frame);
+    bool full = count > room;
+    if (full) count = room;
+    size_t size = count * sizeof(SDLAudio::Frame);
+    try {
+        ssize_t written;
+        if constexpr (std::endian::native == std::endian::little) {
+            written = m_wavDump->write(frames, size);
+        } else {
+            auto swap16 = [](int16_t v) { return int16_t(uint16_t(v) >> 8 | uint16_t(v) << 8); };
+            std::vector<int16_t> le(count * 2);
+            for (size_t i = 0; i < count; i++) {
+                le[i * 2] = swap16(frames[i].L);
+                le[i * 2 + 1] = swap16(frames[i].R);
+            }
+            written = m_wavDump->write(le.data(), size);
         }
+        if (written > 0) m_wavDumpBytes += written;
+        m_wavDump->writeAt<uint32_t>(36 + m_wavDumpBytes, 4);
+        m_wavDump->writeAt<uint32_t>(m_wavDumpBytes, 40);
+        if (written != (ssize_t)size) {
+            g_system->log(LogClass::SPU, "WAV dump: write failed, capture stopped\n");
+            m_wavDump.reset();
+            return;
+        }
+    } catch (const std::exception &e) {
+        g_system->log(LogClass::SPU, "WAV dump: %s, capture stopped\n", e.what());
+        m_wavDump.reset();
+        return;
     }
-    m_wavDumpBytes += count * sizeof(SDLAudio::Frame);
-    m_wavDump->writeAt<uint32_t>(36 + m_wavDumpBytes, 4);
-    m_wavDump->writeAt<uint32_t>(m_wavDumpBytes, 40);
+    if (full) {
+        g_system->log(LogClass::SPU, "WAV dump: reached the 4 GB WAV limit, capture stopped\n");
+        m_wavDump.reset();
+    }
 }
 
 // Called by the main emulator on final exit.
