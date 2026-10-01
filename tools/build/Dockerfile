@@ -86,6 +86,9 @@ RUN apt install -y libcurl4-openssl-dev
 RUN apt install -y libfreetype-dev
 # These used to come in with libsdl3-dev, and the Makefile links them directly.
 RUN apt install -y libgl-dev libx11-dev libxcb1-dev
+# Also came in with libsdl3-dev. The AppImage expects it from the host, and
+# nugget's CI runs the AppImage in this image.
+RUN apt install -y libasound2t64
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev
