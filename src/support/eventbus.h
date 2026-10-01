@@ -107,7 +107,9 @@ class EventBus {
         struct DispatchGuard {
             DispatchGuard(EventBus* bus) : bus(bus) { bus->m_dispatching++; }
             ~DispatchGuard() {
-                if (--bus->m_dispatching == 0) bus->m_graveyard.destroyAll();
+                // Stay nonzero while freeing: a closure's destructor may signal or drop listeners.
+                if (bus->m_dispatching == 1) bus->m_graveyard.destroyAll();
+                bus->m_dispatching--;
             }
             EventBus* bus;
         } guard(this);

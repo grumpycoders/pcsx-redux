@@ -99,3 +99,24 @@ TEST(EventBus, NestedSignalWithDestruction) {
     bus->signal(TestEvent{0});
     EXPECT_EQ(trace, "vxox");
 }
+
+TEST(EventBus, ClosureDestructorSignalsDuringCleanup) {
+    struct Signaller {
+        std::shared_ptr<PCSX::EventBus::EventBus> bus;
+        ~Signaller() { bus->signal(TestEvent{1}); }
+    };
+    auto bus = std::make_shared<PCSX::EventBus::EventBus>();
+    int count = 0;
+    PCSX::EventBus::Listener observer(bus);
+    observer.listen<TestEvent>([&count](const TestEvent& e) { count += e.value; });
+    auto victim = new PCSX::EventBus::Listener(bus);
+    std::shared_ptr<Signaller> signaller(new Signaller{bus});
+    victim->listen<TestEvent>([signaller, &victim](const TestEvent&) {
+        delete victim;
+        victim = nullptr;
+    });
+    signaller.reset();
+    bus->signal(TestEvent{0});
+    EXPECT_EQ(victim, nullptr);
+    EXPECT_EQ(count, 1);
+}
