@@ -748,7 +748,7 @@ class CDRomImpl final : public PCSX::CDRom {
         auto command = m_commandFifo.value;
         const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
-        if (!m_responseFifo[0].valueRead || !m_responseFifo[1].empty()) {
+        if (!m_responseFifo[0].valueEmpty() || !m_responseFifo[1].empty()) {
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: command %s (%i) pending, but response fifo full; won't start.\n",
