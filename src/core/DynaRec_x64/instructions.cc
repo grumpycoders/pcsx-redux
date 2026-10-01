@@ -684,8 +684,13 @@ void DynaRecCPU::recMULT(uint32_t code) {
     if (m_gprs[_Rs_].isConst()) {
         if (m_gprs[_Rt_].isConst()) {
             const uint64_t result = (int64_t)(int32_t)m_gprs[_Rt_].val * (int64_t)(int32_t)m_gprs[_Rs_].val;
-            gen.mov(dword[contextPointer + LO_OFFSET], (uint32_t)result);
-            gen.mov(dword[contextPointer + HI_OFFSET], (uint32_t)(result >> 32));
+            if ((int64_t)result == (int32_t)result) {
+                // A 64-bit store sign-extends its 32-bit immediate, which writes HI in the same go.
+                gen.mov(qword[contextPointer + LO_OFFSET], result);
+            } else {
+                gen.mov(dword[contextPointer + LO_OFFSET], (uint32_t)result);
+                gen.mov(dword[contextPointer + HI_OFFSET], (uint32_t)(result >> 32));
+            }
             return;
         } else {
             allocateReg(_Rt_);
