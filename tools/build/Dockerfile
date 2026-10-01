@@ -4,8 +4,17 @@
 # builds the mips toolchain using tools/linux-mips/spawn-compiler.sh:
 #
 #   docker build -f tools/build/Dockerfile -t ghcr.io/grumpycoders/pcsx-redux-build .
+#
+# BASE picks the Ubuntu release. The general image tracks the newest one, but
+# an AppImage needs the glibc it was built against, so the packaging job uses a
+# second tag built from the oldest LTS we want the AppImage to run on:
+#
+#   docker build -f tools/build/Dockerfile --build-arg BASE=ubuntu:24.04 \
+#     -t ghcr.io/grumpycoders/pcsx-redux-build:noble .
 
-FROM ubuntu:26.04 AS toolchain
+ARG BASE=ubuntu:26.04
+
+FROM ${BASE} AS toolchain
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV TZ Etc/GMT
@@ -21,7 +30,37 @@ WORKDIR /tmp/toolchain
 COPY tools/linux-mips/spawn-compiler.sh .
 RUN JOBS=$JOBS sh spawn-compiler.sh
 
-FROM ubuntu:26.04
+# SDL3 isn't packaged before 25.10, so it's built here on every base. The tag
+# follows the third_party/SDL submodule, so Linux ships the same SDL3 as the
+# MSVC build. The dependency list is the one in SDL's docs/README-linux.md,
+# plus what the Wayland backend needs.
+FROM ${BASE} AS sdl
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV TZ Etc/GMT
+
+ARG SDL_TAG=release-3.4.8
+ARG JOBS=
+
+RUN apt update
+RUN apt dist-upgrade -y
+RUN apt install -y git cmake ninja-build g++ pkg-config
+RUN apt install -y libasound2-dev libpulse-dev libaudio-dev libfribidi-dev \
+    libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev \
+    libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+    libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+    libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev
+RUN apt install -y libdecor-0-dev libpipewire-0.3-dev libwayland-dev \
+    wayland-protocols
+
+WORKDIR /tmp/sdl
+RUN git clone --depth 1 --branch $SDL_TAG https://github.com/libsdl-org/SDL.git .
+RUN cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib
+RUN cmake --build build ${JOBS:+-j $JOBS}
+RUN cmake --install build
+
+FROM ${BASE}
 
 # The tzdata package isn't docker-friendly, and something pulls it.
 ENV DEBIAN_FRONTEND noninteractive
@@ -45,7 +84,8 @@ RUN apt install -y libavutil-dev
 RUN apt install -y libcapstone-dev
 RUN apt install -y libcurl4-openssl-dev
 RUN apt install -y libfreetype-dev
-RUN apt install -y libsdl3-dev
+# These used to come in with libsdl3-dev, and the Makefile links them directly.
+RUN apt install -y libgl-dev libx11-dev libxcb1-dev
 RUN apt install -y libswresample-dev
 RUN apt install -y libuv1-dev
 RUN apt install -y zlib1g-dev
@@ -62,12 +102,16 @@ RUN apt install -y libfuse2t64
 RUN apt install -y fuse
 
 # AppImage tools
-RUN apt install -y imagemagick-7.q16 gtk-update-icon-cache appstream
+RUN apt install -y imagemagick gtk-update-icon-cache appstream
 RUN apt install -y squashfs-tools zip zsync
 
 # The mips toolchain, built from source in the first stage. Ubuntu dropped the
 # mipsel cross compilers, so there's no distribution package to install here.
 COPY --from=toolchain /usr/local /usr/local
+
+# SDL3, from the stage above.
+COPY --from=sdl /usr/local /usr/local
+RUN ldconfig
 
 # Both projects name their releases after uname's spelling of the architecture,
 # which is also the one the AppImage ends up carrying.
