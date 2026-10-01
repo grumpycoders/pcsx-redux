@@ -217,6 +217,16 @@ static bool checkCommandLinePaths(const CommandLine::args &args) {
     return ok;
 }
 
+// Returns nullptr when -tui is asked for without a terminal to draw on.
+static PCSX::UI *createUI(const CommandLine::args &args, std::vector<std::string> &favorites) {
+    if (args.get<bool>("tui")) {
+        if (!PCSX::TerminalUI::isTerminal()) return nullptr;
+        return new PCSX::TerminalUI();
+    }
+    if (args.get<bool>("no-ui") || args.get<bool>("cli")) return new PCSX::TUI();
+    return new PCSX::GUI(favorites);
+}
+
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     // Command line arguments are parsed after this point.
@@ -279,16 +289,10 @@ int pcsxMain(int argc, char **argv) {
     PCSX::g_emulator = emulator;
     auto &favorites = emulator->settings.get<PCSX::Emulator::SettingOpenDialogFavorites>().value;
 
-    if (args.get<bool>("tui")) {
-        if (!PCSX::TerminalUI::isTerminal()) {
-            fmt::print(stderr, "-tui needs a terminal on both stdin and stdout; use -no-ui for headless runs.\n");
-            return 1;
-        }
-        s_ui = new PCSX::TerminalUI();
-    } else if (args.get<bool>("no-ui") || args.get<bool>("cli")) {
-        s_ui = new PCSX::TUI();
-    } else {
-        s_ui = new PCSX::GUI(favorites);
+    s_ui = createUI(args, favorites);
+    if (!s_ui) {
+        fmt::print(stderr, "-tui needs a terminal on both stdin and stdout; use -no-ui for headless runs.\n");
+        return 1;
     }
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
