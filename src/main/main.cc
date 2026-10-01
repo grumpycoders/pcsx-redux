@@ -38,6 +38,7 @@
 #include "gui/gui.h"
 #include "lua/extra.h"
 #include "lua/luawrapper.h"
+#include "main/terminalui.h"
 #include "main/textui.h"
 #include "spu/interface.h"
 #include "support/binpath.h"
@@ -224,7 +225,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli")) {
+    if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli") || args.get<bool>("tui")) {
         if (AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
@@ -278,8 +279,17 @@ int pcsxMain(int argc, char **argv) {
     PCSX::g_emulator = emulator;
     auto &favorites = emulator->settings.get<PCSX::Emulator::SettingOpenDialogFavorites>().value;
 
-    s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
-                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(favorites));
+    if (args.get<bool>("tui")) {
+        if (!PCSX::TerminalUI::isTerminal()) {
+            fmt::print(stderr, "-tui needs a terminal on both stdin and stdout; use -no-ui for headless runs.\n");
+            return 1;
+        }
+        s_ui = new PCSX::TerminalUI();
+    } else if (args.get<bool>("no-ui") || args.get<bool>("cli")) {
+        s_ui = new PCSX::TUI();
+    } else {
+        s_ui = new PCSX::GUI(favorites);
+    }
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
         // Start tweaking / sanitizing settings a bit, while continuing to parse the command line
