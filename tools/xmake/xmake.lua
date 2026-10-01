@@ -44,9 +44,6 @@ local function get_binary_dep(target)
                         "target can only have one binary dependency, found '" ..
                         binary:name() .. "' and '" .. dep_target:name() .. "'"
                 end
-                if dep_target:get("plat") ~= "psx" then
-                    return nil, "target dependency '" .. dep_target:name() .. "' must be a psx target"
-                end
                 binary = dep_target
             end
         else
