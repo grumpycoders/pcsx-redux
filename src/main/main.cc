@@ -56,10 +56,16 @@ class SystemImpl final : public PCSX::System {
             m_putcharBuffer.clear();
         }
     }
+    // stdout is fully buffered when it is a pipe, and the tools that capture it
+    // want every line as soon as it is written.
+    static void writeStdout(const std::string &s) {
+        ::fputs(s.c_str(), stdout);
+        ::fflush(stdout);
+    }
     virtual void message(std::string &&s) final override {
         if (m_args.isGUILogsEnabled()) s_ui->addNotification(s.c_str());
         if (s_ui->addLog(PCSX::LogClass::UI, s)) {
-            if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+            if (m_args.isStdoutEnabled()) writeStdout(s);
             if (m_logfile) m_logfile->write(std::move(s));
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
@@ -69,7 +75,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(logClass, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
@@ -78,7 +84,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
@@ -93,6 +99,7 @@ class SystemImpl final : public PCSX::System {
                 fputc('\n', stderr);
             } else {
                 puts(s.c_str());
+                fflush(stdout);
             }
         }
     }
