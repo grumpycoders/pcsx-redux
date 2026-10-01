@@ -146,7 +146,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         auto offset = newPC - 4 * 4;
         std::vector<uint8_t> stub;
         if (options.resetstack) {
-            pushBytes(stub, lui(Reg::SP, 0x8001));
+            pushBytes(stub, lui(Reg::SP, 0x807f));
         } else {
             pushBytes(stub, addiu(Reg::T8, Reg::RA, 0));
         }
@@ -194,7 +194,7 @@ void PCSX::PS1Packer::pack(IO<File> src, IO<File> dest, uint32_t addr, uint32_t 
         // for the shell trick, since we're just going to reboot the machine.
         pushBytes(dataOut, addiu(Reg::T8, Reg::RA, 0));
     } else if (options.resetstack && !options.raw) {
-        pushBytes(dataOut, lui(Reg::SP, 0x8001));
+        pushBytes(dataOut, lui(Reg::SP, 0x807f));
     }
     // Kill interrupts by setting IMASK to 0.
     pushBytes(dataOut, lui(Reg::V1, 0x1f80));
