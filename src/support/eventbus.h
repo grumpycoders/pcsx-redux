@@ -62,6 +62,7 @@ typedef PCSX::Intrusive::List<ListenerElementBase> ListenerBaseListType;
 typedef PCSX::Intrusive::List<ListenerElementBase, ListenerElementBaseEventBusList> ListenerBaseEventBusList;
 struct ListenerElementBase : public ListenerBaseListType::Node, public ListenerBaseEventBusList::Node {
     virtual std::any getCB() = 0;
+    bool m_dead = false;
 };
 template <typename M>
 struct ListenerElement : public ListenerElementBase {
@@ -76,7 +77,7 @@ class EventBus;
 class Listener {
   public:
     Listener(std::shared_ptr<EventBus> bus) : m_bus(bus) {}
-    ~Listener() { m_listeners.destroyAll(); }
+    ~Listener();
     template <typename Event>
     void listen(typename ListenerElement<Event>::Functor&& cb);
 
@@ -100,7 +101,18 @@ class EventBus {
         using Functor = typename ListenerElement<Event>::Functor;
         auto list = m_table.find(PCSX_HASH_TYPE(Event));
         if (list == m_table.end()) return;
+        // A callback may destroy listeners, including its own. Those are only
+        // flagged while we are dispatching, and freed once the outermost
+        // signal returns, so the iteration and the running closure stay valid.
+        struct DispatchGuard {
+            DispatchGuard(EventBus* bus) : bus(bus) { bus->m_dispatching++; }
+            ~DispatchGuard() {
+                if (--bus->m_dispatching == 0) bus->m_graveyard.destroyAll();
+            }
+            EventBus* bus;
+        } guard(this);
         for (auto& listener : list->list) {
+            if (listener.m_dead) continue;
             std::any cb = listener.getCB();
             Functor* func = std::any_cast<Functor*>(cb);
             (*func)(event);
@@ -116,8 +128,22 @@ class EventBus {
         list->list.push_back(listenerElement);
     }
     ListenersHashTable m_table;
+    ListenerBaseListType m_graveyard;
+    unsigned m_dispatching = 0;
     friend class Listener;
 };
+
+inline Listener::~Listener() {
+    if (m_bus->m_dispatching == 0) {
+        m_listeners.destroyAll();
+        return;
+    }
+    while (!m_listeners.empty()) {
+        auto& element = *m_listeners.begin();
+        element.m_dead = true;
+        m_bus->m_graveyard.push_back(&element);
+    }
+}
 
 template <typename Event>
 void Listener::listen(typename ListenerElement<Event>::Functor&& cb) {
