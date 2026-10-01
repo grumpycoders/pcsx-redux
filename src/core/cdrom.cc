@@ -917,6 +917,21 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // CD-DA through the ATV matrix, with the levels a SCPH-7502 gives on its SPU CD capture:
+    // 0.950 before the 16-bit clamp and 0.973 after it. A full-scale sine at unity comes out
+    // at 0.924, and the clamped level sits at 31880.
+    void attenuateCDDA(int16_t *buf, int frames) {
+        const int ll = m_atv[0], lr = m_atv[1], rr = m_atv[2], rl = m_atv[3];
+        for (int i = 0; i < frames; i++) {
+            int64_t l = buf[i * 2];
+            int64_t r = buf[i * 2 + 1];
+            int outL = saturate(int(((l * ll + r * rl) * 31130) >> 22));
+            int outR = saturate(int(((r * rr + l * lr) * 31130) >> 22));
+            buf[i * 2] = (outL * 31880) >> 15;
+            buf[i * 2 + 1] = (outR * 31880) >> 15;
+        }
+    }
+
     void playXASector(uint8_t *subHeader, const PCSX::IEC60908b::SubHeaders &subHeaders) {
         if (m_xaEnded) return;
         if (m_subheaderFilter && ((subHeader[0] != m_filterFile) || (subHeader[1] != m_filterChannel))) return;
@@ -984,7 +999,7 @@ class CDRomImpl final : public PCSX::CDRom {
         if (!m_muted) {
             int16_t out[std::size(samples)];
             memcpy(out, samples, sizeof(out));
-            attenuate(out, std::size(out) / 2);
+            attenuateCDDA(out, std::size(out) / 2);
             PCSX::g_emulator->m_spu->playCDDAchannel(out, sizeof(out));
         }
 

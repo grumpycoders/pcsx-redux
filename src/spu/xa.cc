@@ -78,6 +78,31 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     // is itself a race, and could pair a skipped lock with a later unlock.
     std::unique_lock<std::mutex> cbLock(cbMtx);
 
+    if (xap->freq == 44100) {
+        // CD-DA is already at the output rate and skips the zigzag interpolator.
+        for (int i = 0; i < xap->nsamples; i++) {
+            int16_t l = xap->pcm[i * 2];
+            int16_t r = xap->pcm[i * 2 + 1];
+            if (mixIrqAddress) {
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)l;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)r;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
+                if (captureBuffer.endIndex == captureBuffer.startIndex) {
+                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+                }
+            }
+            SDLAudio::Frame f;
+            f.L = l / voldiv;
+            f.R = r / voldiv;
+            *XAFeed++ = f;
+        }
+        cbLock.unlock();
+        if (XAFeed != XABuffer) {
+            m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+        }
+        return;
+    }
+
     for (int i = 0; i < xap->nsamples; i++) {
         int16_t l, r;
         if (xap->stereo) {
