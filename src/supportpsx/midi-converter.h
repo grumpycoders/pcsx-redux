@@ -561,7 +561,9 @@ inline std::vector<tsf_region*> findRegions(tsf* sf2, int presetIndex, int note,
 inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSample>& samples,
                                std::map<SampleKey, size_t>& sampleMap, uint32_t& nextSpuAddr, uint32_t maxSpuAddr,
                                bool warnPitchCeiling) {
-    bool keyHasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
+    bool keyHasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN) &&
+                      region->loop_start >= region->offset && region->loop_end > region->loop_start &&
+                      region->loop_end < region->end;
     SampleKey key = {region->offset,
                      region->end,
                      keyHasLoop ? 1 : 0,
@@ -586,17 +588,14 @@ inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSamp
     }
 
     // Handle loop points
-    bool hasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
+    bool hasLoop = keyHasLoop;
     size_t loopStart = 0;
     double loopCents = 0.0;
-    if (hasLoop && region->loop_start >= region->offset && region->loop_end > region->loop_start &&
-        region->loop_end < region->end) {
+    if (hasLoop) {
         // tsf's loop_end is inclusive.
         size_t ls = region->loop_start - region->offset;
         size_t le = region->loop_end - region->offset + 1;
         pcm = alignLoop(pcm, ls, le, loopStart, loopCents);
-    } else {
-        hasLoop = false;
     }
 
     SpuSample sample;

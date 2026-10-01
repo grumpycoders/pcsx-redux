@@ -360,10 +360,15 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
     int fineTuneCents = (int)round((centerNote - adjustedCenter) * 100.0);
 
     // Clamp center to valid MIDI range
-    while (centerNote < 0 && fineTuneCents < 12700) { centerNote += 12; fineTuneCents -= 1200; }
-    while (centerNote > 127 && fineTuneCents > -12700) { centerNote -= 12; fineTuneCents += 1200; }
-    if (centerNote < 0) centerNote = 0;
-    if (centerNote > 127) centerNote = 127;
+    // Moving the center up by one semitone needs 100 more cents of shift to keep the pitch.
+    if (centerNote < 0) {
+        fineTuneCents -= centerNote * 100;
+        centerNote = 0;
+    }
+    if (centerNote > 127) {
+        fineTuneCents -= (centerNote - 127) * 100;
+        centerNote = 127;
+    }
 
     // Clamp fine tune to int8 range (-128 to +127 cents)
     if (fineTuneCents < -128) fineTuneCents = -128;
