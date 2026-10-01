@@ -135,7 +135,8 @@ struct SampleKey {
     unsigned int end;        // end index in fontSamples
     int hasLoop;             // loop flag (baked into the ADPCM block flags)
     unsigned int loopStart;  // loop start index when looping (affects the encoded loop point)
-    int rootKey;             // region pitch_keycenter (read back for the tone center note)
+    unsigned int loopEnd;    // loop end index when looping (sets the cut point and the loop pitch correction)
+    int rootKey;            // region pitch_keycenter (read back for the tone center note)
     int transpose;           // region coarse tune
     int tune;                // region fine tune (cents)
     bool operator<(const SampleKey& o) const {
@@ -143,6 +144,7 @@ struct SampleKey {
         if (end != o.end) return end < o.end;
         if (hasLoop != o.hasLoop) return hasLoop < o.hasLoop;
         if (loopStart != o.loopStart) return loopStart < o.loopStart;
+        if (loopEnd != o.loopEnd) return loopEnd < o.loopEnd;
         if (rootKey != o.rootKey) return rootKey < o.rootKey;
         if (transpose != o.transpose) return transpose < o.transpose;
         return tune < o.tune;
@@ -564,6 +566,7 @@ inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSamp
                      region->end,
                      keyHasLoop ? 1 : 0,
                      keyHasLoop ? region->loop_start : 0u,
+                     keyHasLoop ? region->loop_end : 0u,
                      (int)region->pitch_keycenter,
                      region->transpose,
                      region->tune};
