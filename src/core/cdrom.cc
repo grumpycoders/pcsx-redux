@@ -1043,6 +1043,11 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 6.
     bool cdlReadN(const QueueElement &command, bool start) {
+        // A read sent while a SeekP is still running takes over: the seek never completes.
+        if (!m_commandExecuting.empty() && (m_commandExecuting.value == 22)) {
+            PCSX::g_emulator->m_cpu->unschedule(PCSX::Schedule::CDRCOMMANDS);
+            m_commandExecuting.clear();
+        }
         m_setLocPending = false;
         resetXA();
         m_status = Status::Idle;
