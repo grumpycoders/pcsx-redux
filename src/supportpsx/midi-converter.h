@@ -135,7 +135,8 @@ struct SampleKey {
     unsigned int end;        // end index in fontSamples
     int hasLoop;             // loop flag (baked into the ADPCM block flags)
     unsigned int loopStart;  // loop start index when looping (affects the encoded loop point)
-    int rootKey;             // region pitch_keycenter (read back for the tone center note)
+    unsigned int loopEnd;    // loop end index when looping (sets the cut point and the loop pitch correction)
+    int rootKey;            // region pitch_keycenter (read back for the tone center note)
     int transpose;           // region coarse tune
     int tune;                // region fine tune (cents)
     bool operator<(const SampleKey& o) const {
@@ -143,6 +144,7 @@ struct SampleKey {
         if (end != o.end) return end < o.end;
         if (hasLoop != o.hasLoop) return hasLoop < o.hasLoop;
         if (loopStart != o.loopStart) return loopStart < o.loopStart;
+        if (loopEnd != o.loopEnd) return loopEnd < o.loopEnd;
         if (rootKey != o.rootKey) return rootKey < o.rootKey;
         if (transpose != o.transpose) return transpose < o.transpose;
         return tune < o.tune;
@@ -393,6 +395,61 @@ inline bool encodeSample(const int16_t* pcm, size_t sampleCount, bool loop, size
     return true;
 }
 
+// The SPU can only loop on 28-sample ADPCM block boundaries, and the loop always runs to the
+// end of the sample. Rebuild a looped sample so that it ends exactly at the loop end, the loop
+// starts on a block boundary, and the loop length is a whole number of blocks. The loop is
+// unrolled a few times when that brings its length closer to a block multiple, and the whole
+// sample is resampled to absorb the remainder. loopCents receives the pitch change caused by
+// the resampling, which the caller subtracts from the tone's tuning.
+inline std::vector<int16_t> alignLoop(const std::vector<int16_t>& pcm, size_t ls, size_t le, size_t& newLoopStart,
+                                      double& loopCents) {
+    size_t loopLen = le - ls;
+    size_t bestUnroll = 1, bestBlocks = 1;
+    double bestError = 1e9;
+    for (size_t unroll = 1; unroll <= 64 && (unroll == 1 || unroll * loopLen <= 4096); unroll++) {
+        size_t len = unroll * loopLen;
+        size_t blocks = std::max<size_t>(1, (len + 14) / 28);
+        double error = fabs(log2((double)(blocks * 28) / (double)len));
+        if (error < bestError - 1e-9) {
+            bestError = error;
+            bestUnroll = unroll;
+            bestBlocks = blocks;
+        }
+        if (error < 0.0005) break;  // under a cent
+    }
+    double srcLoop = (double)(bestUnroll * loopLen);
+    double dstLoop = (double)(bestBlocks * 28);
+    double ratio = dstLoop / srcLoop;
+    loopCents = 1200.0 * log2(ratio);
+
+    // Source reader that wraps inside the loop, so the loop is resampled as a periodic signal.
+    auto src = [&](long i) -> double {
+        if (i < 0) return 0.0;
+        if ((size_t)i >= le) i = (long)(ls + (i - ls) % loopLen);
+        return pcm[i];
+    };
+    auto interp = [&](double pos) -> double {
+        long i = (long)floor(pos);
+        double t = pos - i;
+        double p0 = src(i - 1), p1 = src(i), p2 = src(i + 1), p3 = src(i + 2);
+        return p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)));
+    };
+
+    // Loop start after resampling, moved forward to the next block boundary. The samples
+    // skipped over are loop material, so the loop simply starts a little later in its cycle.
+    size_t start = (size_t)ceil(ls * ratio);
+    newLoopStart = ((start + 27) / 28) * 28;
+    size_t total = newLoopStart + bestBlocks * 28;
+    std::vector<int16_t> out(total);
+    for (size_t j = 0; j < total; j++) {
+        double v = interp(j / ratio);
+        if (v > 32767.0) v = 32767.0;
+        if (v < -32768.0) v = -32768.0;
+        out[j] = (int16_t)lround(v);
+    }
+    return out;
+}
+
 inline double midiNoteToFreq(int note) { return 440.0 * pow(2.0, (note - 69) / 12.0); }
 
 inline uint8_t sf2AttackToSpu(float seconds) {
@@ -504,11 +561,14 @@ inline std::vector<tsf_region*> findRegions(tsf* sf2, int presetIndex, int note,
 inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSample>& samples,
                                std::map<SampleKey, size_t>& sampleMap, uint32_t& nextSpuAddr, uint32_t maxSpuAddr,
                                bool warnPitchCeiling) {
-    bool keyHasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
+    bool keyHasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN) &&
+                      region->loop_start >= region->offset && region->loop_end > region->loop_start &&
+                      region->loop_end < region->end;
     SampleKey key = {region->offset,
                      region->end,
                      keyHasLoop ? 1 : 0,
                      keyHasLoop ? region->loop_start : 0u,
+                     keyHasLoop ? region->loop_end : 0u,
                      (int)region->pitch_keycenter,
                      region->transpose,
                      region->tune};
@@ -528,17 +588,21 @@ inline size_t extractAndEncode(tsf* sf2, tsf_region* region, std::vector<SpuSamp
     }
 
     // Handle loop points
-    bool hasLoop = (region->loop_mode == TSF_LOOPMODE_CONTINUOUS || region->loop_mode == TSF_LOOPMODE_SUSTAIN);
+    bool hasLoop = keyHasLoop;
     size_t loopStart = 0;
-    if (hasLoop && region->loop_start >= region->offset && region->loop_end > region->loop_start) {
-        loopStart = region->loop_start - region->offset;
+    double loopCents = 0.0;
+    if (hasLoop) {
+        // tsf's loop_end is inclusive.
+        size_t ls = region->loop_start - region->offset;
+        size_t le = region->loop_end - region->offset + 1;
+        pcm = alignLoop(pcm, ls, le, loopStart, loopCents);
     }
 
     SpuSample sample;
     sample.sampleRate = region->sample_rate;
     sample.rootKey = region->pitch_keycenter;
     sample.transpose = region->transpose;
-    sample.tune = region->tune;
+    sample.tune = region->tune + (int)lround(loopCents);
     encodeSample(pcm.data(), pcm.size(), hasLoop, loopStart, sample);
 
     sample.spuAddr = nextSpuAddr;
