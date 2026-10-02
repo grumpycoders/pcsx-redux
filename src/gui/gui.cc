@@ -271,6 +271,7 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
     cfg.MergeMode = combine;
+    cfg.Flags |= ImFontFlags_NoLoadError;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
     g_system->findResource(
