@@ -115,20 +115,12 @@ let
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
   } ++ lib.optionals withOpenbios [
-    # nugget first: uC-sdk lands inside the tree this unpacks.
     ({
       owner = "pcsx-redux";
       repo = "nugget";
-      rev = "d93840921b5ad7ed515e95b0e414f1b1e2038b1a";
-      hash = "sha256-+THJqpj64/43NAuEERCdOXzrW/jykk4IoL8RCFax+Xs=";
+      rev = "7b61c63829aa42d1401989ebc63cc17cc08fdbac";
+      hash = "sha256-6oniMVLtlIXxPTgvaxEuYX1aT60GGytYcqI7BS3/bEM=";
       dest = "src/mips";
-    })
-    ({
-      owner = "grumpycoders";
-      repo = "uC-sdk";
-      rev = "69e06871824e2d62069487a7426ded09090ceb69";
-      hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
-      dest = "src/mips/third_party/uC-sdk";
     })
   ];
 
