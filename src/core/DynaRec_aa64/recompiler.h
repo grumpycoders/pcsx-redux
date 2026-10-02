@@ -91,6 +91,22 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
 static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
 static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+// LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
+static uint32_t lwlReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
+}
+static uint32_t lwrReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
+}
+static uint32_t unalignedStoreReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address, 0);
+}
+static void swlWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
+}
+static void swrWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
+}
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 

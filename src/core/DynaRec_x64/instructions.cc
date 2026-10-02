@@ -861,14 +861,13 @@ void DynaRecCPU::recLWL(uint32_t code) {
     if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
         if (m_gprs[_Rs_].isConst()) {
             const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-            gen.mov(arg2, address & ~3);  // Aligned address in arg2
+            gen.mov(arg1, address);  // Address in arg1
         } else {
             allocateReg(_Rs_);                                       // Allocate address reg
-            gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-            gen.and_(arg2, ~3);                                      // Force align it
+            gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         }
 
-        callMemoryFunc(&PCSX::Memory::read32);  // Read from the aligned address
+        call(lwlReadWrapper);  // Read from the aligned address
         return;
     }
 
@@ -879,13 +878,12 @@ void DynaRecCPU::recLWL(uint32_t code) {
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-        const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
         const auto shift = LWL_SHIFT[address & 3];
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
-        gen.mov(arg2, alignedAddress);  // Address in arg2
-        callMemoryFunc(&PCSX::Memory::read32);
+        gen.mov(arg1, address);  // Address in arg1
+        call(lwlReadWrapper);
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_gprs[_Rt_].setWriteback(true);
@@ -894,12 +892,11 @@ void DynaRecCPU::recLWL(uint32_t code) {
         gen.or_(m_gprs[_Rt_].allocatedReg, eax);                   // Or $rt with shifted value
     } else if (m_gprs[_Rs_].isConst()) {                           // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-        const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWL_MASK[address & 3];
         const auto shift = LWL_SHIFT[address & 3];
 
-        gen.mov(arg2, alignedAddress);  // Address in arg2
-        callMemoryFunc(&PCSX::Memory::read32);
+        gen.mov(arg1, address);  // Address in arg1
+        call(lwlReadWrapper);
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_gprs[_Rt_].setWriteback(true);
@@ -910,9 +907,8 @@ void DynaRecCPU::recLWL(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-        gen.and_(arg2, ~3);                                      // Force align it
-        callMemoryFunc(&PCSX::Memory::read32);                   // Read from the aligned address, result in eax
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        call(lwlReadWrapper);                                    // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -930,9 +926,8 @@ void DynaRecCPU::recLWL(uint32_t code) {
         gen.or_(m_gprs[_Rt_].allocatedReg, eax);                 // Merge with newly read value
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-        gen.and_(arg2, ~3);                                      // Force align it
-        callMemoryFunc(&PCSX::Memory::read32);                   // Read from the aligned address, result in eax
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        call(lwlReadWrapper);                                    // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -954,14 +949,13 @@ void DynaRecCPU::recLWR(uint32_t code) {
     if (_Rt_ == 0) {  // If $rt == 0, just execute the read in case it has side-effects, then return
         if (m_gprs[_Rs_].isConst()) {
             const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-            gen.mov(arg2, address & ~3);  // Aligned address in arg2
+            gen.mov(arg1, address);  // Address in arg1
         } else {
             allocateReg(_Rs_);                                       // Allocate address reg
-            gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-            gen.and_(arg2, ~3);                                      // Force align it
+            gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         }
 
-        callMemoryFunc(&PCSX::Memory::read32);  // Read from the aligned address
+        call(lwrReadWrapper);  // Read from the aligned address
         return;
     }
 
@@ -972,13 +966,12 @@ void DynaRecCPU::recLWR(uint32_t code) {
 
     if (m_gprs[_Rs_].isConst() && m_gprs[_Rt_].isConst()) {  // Both previous register value and address are constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-        const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWR_MASK[address & 3];
         const auto shift = LWR_SHIFT[address & 3];
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
-        gen.mov(arg2, alignedAddress);  // Address in arg2
-        callMemoryFunc(&PCSX::Memory::read32);
+        gen.mov(arg1, address);  // Address in arg1
+        call(lwrReadWrapper);
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_gprs[_Rt_].setWriteback(true);
@@ -987,12 +980,11 @@ void DynaRecCPU::recLWR(uint32_t code) {
         gen.or_(m_gprs[_Rt_].allocatedReg, eax);                   // Or $rt with shifted value
     } else if (m_gprs[_Rs_].isConst()) {                           // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
-        const uint32_t alignedAddress = address & ~3;
         const uint32_t mask = LWR_MASK[address & 3];
         const auto shift = LWR_SHIFT[address & 3];
 
-        gen.mov(arg2, alignedAddress);  // Address in arg2
-        callMemoryFunc(&PCSX::Memory::read32);
+        gen.mov(arg1, address);  // Address in arg1
+        call(lwrReadWrapper);
 
         allocateReg(_Rt_);  // Allocate $rt with writeback
         m_gprs[_Rt_].setWriteback(true);
@@ -1003,9 +995,8 @@ void DynaRecCPU::recLWR(uint32_t code) {
         const uint32_t previousValue = m_gprs[_Rt_].val;
 
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-        gen.and_(arg2, ~3);                                      // Force align it
-        callMemoryFunc(&PCSX::Memory::read32);                   // Read from the aligned address, result in eax
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        call(lwrReadWrapper);                                    // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -1023,9 +1014,8 @@ void DynaRecCPU::recLWR(uint32_t code) {
         gen.or_(m_gprs[_Rt_].allocatedReg, eax);                 // Merge with newly read value
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
-        gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg2
-        gen.and_(arg2, ~3);                                      // Force align it
-        callMemoryFunc(&PCSX::Memory::read32);                   // Read from the aligned address, result in eax
+        gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
+        call(lwrReadWrapper);                                    // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -1204,13 +1194,13 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32Wrapper);
+        call(unalignedStoreReadWrapper);
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val >> shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, alignedAddress);  // Address in arg2 again
+        gen.mov(arg1, address);         // Unaligned address in arg1
         gen.mov(arg2, eax);             // Address to write to in arg2
-        call(write32Wrapper);
+        call(swlWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1218,20 +1208,20 @@ void DynaRecCPU::recSWL(uint32_t code) {
         const auto shift = SWL_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32Wrapper);
+        call(unalignedStoreReadWrapper);
         gen.andImm(eax, eax, mask);  // Mask read value
 
-        gen.mov(arg1, alignedAddress);                           // Aligned address in arg1 again
+        gen.mov(arg1, address);                                  // Unaligned address in arg1
         allocateReg(_Rt_);                                       // Allocate $rt
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shr(arg2, shift);                                    // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                                    // Write back
+        call(swlWriteWrapper);                                   // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                                     // Read from the aligned address, result in eax
+        call(unalignedStoreReadWrapper);                         // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1239,10 +1229,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
 
         if constexpr (isWindows()) {  // On Windows, we'll have to corrupt arg1 (ecx) to do a variable-amount shift
             gen.mov(arg4, edx);       // So we use arg4 as a temporary (r9d)
-            gen.and_(arg4, ~3);       // Align address
         } else {
             gen.mov(arg1, edx);  // On System V, we can just use arg1 (edi)
-            gen.and_(arg1, ~3);  // Align address
         }
 
         gen.and_(edx, 3);                             // edx = low 2 bits of address
@@ -1260,12 +1248,12 @@ void DynaRecCPU::recSWL(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        call(swlWriteWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                                     // Read from the aligned address, result in eax
+        call(unalignedStoreReadWrapper);                         // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -1273,10 +1261,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
 
         if constexpr (isWindows()) {  // On Windows, we'll have to corrupt arg1 (ecx) to do a variable-amount shift
             gen.mov(arg4, edx);       // So we use arg4 as a temporary (r9d)
-            gen.and_(arg4, ~3);       // Align address
         } else {
             gen.mov(arg1, edx);  // On System V, we can just use arg1 (edi)
-            gen.and_(arg1, ~3);  // Align address
         }
 
         gen.and_(edx, 3);                             // edx = low 2 bits of address
@@ -1294,7 +1280,7 @@ void DynaRecCPU::recSWL(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        call(swlWriteWrapper);
     }
 }
 
@@ -1310,13 +1296,13 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32Wrapper);
+        call(unalignedStoreReadWrapper);
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val << shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, alignedAddress);  // Address in arg2 again
+        gen.mov(arg1, address);         // Unaligned address in arg1
         gen.mov(arg2, eax);             // Address to write to in arg2
-        call(write32Wrapper);
+        call(swrWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
         const uint32_t alignedAddress = address & ~3;
@@ -1324,20 +1310,20 @@ void DynaRecCPU::recSWR(uint32_t code) {
         const auto shift = SWR_SHIFT[address & 3];
 
         gen.mov(arg1, alignedAddress);  // Address in arg1
-        call(read32Wrapper);
+        call(unalignedStoreReadWrapper);
         gen.andImm(eax, eax, mask);  // Mask read value
 
-        gen.mov(arg1, alignedAddress);                           // Aligned address in arg1 again
+        gen.mov(arg1, address);                                  // Unaligned address in arg1
         allocateReg(_Rt_);                                       // Allocate $rt
         gen.mov(arg2, m_gprs[_Rt_].allocatedReg);                // Move rt to arg2
         gen.shlImm(arg2, shift);                                 // Shift rt value
         gen.or_(arg2, eax);                                      // Or with read value
-        call(write32Wrapper);                                    // Write back
+        call(swrWriteWrapper);                                   // Write back
     } else if (m_gprs[_Rt_].isConst()) {                         // Only previous rt value is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                                     // Read from the aligned address, result in eax
+        call(unalignedStoreReadWrapper);                         // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         allocateReg(_Rs_);
@@ -1345,10 +1331,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
 
         if constexpr (isWindows()) {  // On Windows, we'll have to corrupt arg1 (ecx) to do a variable-amount shift
             gen.mov(arg4, edx);       // So we use arg4 as a temporary (r9d)
-            gen.and_(arg4, ~3);       // Align address
         } else {
             gen.mov(arg1, edx);  // On System V, we can just use arg1 (edi)
-            gen.and_(arg1, ~3);  // Align address
         }
 
         gen.and_(edx, 3);                             // edx = low 2 bits of address
@@ -1366,12 +1350,12 @@ void DynaRecCPU::recSWR(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        call(swrWriteWrapper);
     } else {                                                     // Nothing is constant
         allocateReg(_Rs_);                                       // Allocate address reg
         gen.moveAndAdd(arg1, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address in arg1
         gen.and_(arg1, ~3);                                      // Force align it
-        call(read32Wrapper);                                     // Read from the aligned address, result in eax
+        call(unalignedStoreReadWrapper);                         // Read from the aligned address, result in eax
 
         // The call might have flushed $rs, so we need to allocate it again, and also allocate $rt
         alloc_rt_rs(code);
@@ -1379,10 +1363,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
 
         if constexpr (isWindows()) {  // On Windows, we'll have to corrupt arg1 (ecx) to do a variable-amount shift
             gen.mov(arg4, edx);       // So we use arg4 as a temporary (r9d)
-            gen.and_(arg4, ~3);       // Align address
         } else {
             gen.mov(arg1, edx);  // On System V, we can just use arg1 (edi)
-            gen.and_(arg1, ~3);  // Align address
         }
 
         gen.and_(edx, 3);                             // edx = low 2 bits of address
@@ -1400,7 +1382,7 @@ void DynaRecCPU::recSWR(uint32_t code) {
             gen.mov(arg1, arg4);
         }
 
-        call(write32Wrapper);
+        call(swrWriteWrapper);
     }
 }
 
