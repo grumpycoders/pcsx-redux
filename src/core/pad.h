@@ -62,6 +62,13 @@ class Pads {
     };
 
     static Pads* factory();
+
+    // Keyboard bindings used to be stored as GLFW_KEY_* codes, and are now SDL_Scancode values.
+    // Translates a single GLFW key code, yielding SDL_SCANCODE_UNKNOWN for anything unmappable.
+    static int glfwKeyToSdlScancode(int glfwKey);
+    // Rewrites the Keyboard_* entries of one serialized pad object in place if it looks like it
+    // was written by a GLFW-era build. Returns true if anything was migrated.
+    static bool migrateGlfwKeyboardBindings(json& padCfg);
 };
 
 }  // namespace PCSX

@@ -196,6 +196,11 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("PIOConnected")> SettingPIOConnected;
     typedef SettingPath<TYPESTRING("MapBrowsePath")> SettingMapBrowsePath;
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
+    // Version of the on-disk settings layout. Files predating this key read as 0; UI::loadSettings
+    // runs any needed migrations and bumps it to CURRENT_SETTINGS_VERSION, which is what gets saved.
+    // 1: pad keyboard bindings are SDL_Scancode values rather than GLFW_KEY_* codes.
+    static constexpr int CURRENT_SETTINGS_VERSION = 1;
+    typedef Setting<int, TYPESTRING("SettingsVersion"), 0> SettingSettingsVersion;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
              SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
@@ -204,7 +209,7 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingSettingsVersion>
         settings;
     class PcsxConfig {
       public:
