@@ -57,8 +57,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
                                     colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::Expanded)) {
                     colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::Expanded;
                 }
-                if (ImGui::MenuItem(_("HTML"), nullptr,
-                                    colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::HTML)) {
+                if (ImGui::MenuItem("HTML", nullptr, colorFormat == GPU::Logged::DrawLogSettings::ColorFormat::HTML)) {
                     colorFormat = GPU::Logged::DrawLogSettings::ColorFormat::HTML;
                 }
                 ImGui::EndMenu();
@@ -81,7 +80,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
           "and memory."));
     ImGui::Checkbox(_("Breakpoint on vsync"), &logger->m_breakOnVSync);
     ImGui::SameLine();
-    if (ImGui::Button(_("Resume"))) {
+    if (ImGui::Button(C_("Emulation", "Resume"))) {
         g_system->resume();
     }
     ImGui::Checkbox(_("Replay frame"), &m_replay);
@@ -245,7 +244,7 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title) 
                         break;
                 }
                 ImGui::SameLine();
-                ImGui::TextUnformatted(_("at PC = "));
+                ImGui::TextUnformatted(_("at PC ="));
                 ImGui::SameLine();
                 label = fmt::format("{:08x}", logged.pc);
                 if (ImGui::Button(label.c_str())) {

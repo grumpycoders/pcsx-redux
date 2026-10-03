@@ -58,20 +58,20 @@ void PCSX::Widgets::Handlers::draw(const uint32_t* psxMemory, const char* title)
         }
         while (infoAddr) {
             std::string buttonStr;
-            ImGui::TextUnformatted(_("Handler data at "));
+            ImGui::TextUnformatted(_("Handler data at"));
             ImGui::SameLine();
             buttonStr = fmt::format("{:08x}##{}", infoAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToMemory{infoAddr, 16});
             }
-            ImGui::TextUnformatted(_("  verifier: "));
+            ImGui::Text("  %s", _("verifier:"));
             ImGui::SameLine();
             uint32_t verifierAddr = memFile->readAt<uint32_t>(infoAddr + 8);
             buttonStr = fmt::format("{:08x}##{}", verifierAddr, counter++);
             if (ImGui::Button(buttonStr.c_str())) {
                 g_system->m_eventBus->signal(Events::GUI::JumpToPC{verifierAddr});
             }
-            ImGui::TextUnformatted(_("  handler: "));
+            ImGui::Text("  %s", _("handler:"));
             ImGui::SameLine();
             uint32_t handlerAddr = memFile->readAt<uint32_t>(infoAddr + 4);
             buttonStr = fmt::format("{:08x}##{}", handlerAddr, counter++);
