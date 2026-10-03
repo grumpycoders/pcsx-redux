@@ -320,6 +320,7 @@ class impl final : public SPUInterface {
         int32_t pos = 0;              // 16.16 pitch counter, same as Interpolator
         int32_t pitchStep = 0x10000;  // 16.16 pitch step
         bool ended = false;           // an end block without repeat stopped the voice
+        bool untracked = false;       // pitch-modulated since key-on, so the cursor is unknown
     };
     EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
     void resetAdpcmWalk(int ch);
