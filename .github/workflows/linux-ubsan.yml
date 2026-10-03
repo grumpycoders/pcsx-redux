@@ -29,7 +29,7 @@ jobs:
           make -C src/mips/openbios clean
           make -C src/mips/tests -j 2 PCSX_TESTS=true BUILD=Release
           cp ./openbios.bin src/mips/openbios/
-          make -C src/mips/monitor/hosts/retail -j 2 BUILD=Release
+          make -C src/mips/monitor/hosts/retail -j 2 BUILD=LTO
           xvfb-run ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
       - name: Test
         run: |
