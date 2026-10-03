@@ -102,37 +102,13 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
         releaseAt = off > delay ? off - delay : 0;
     }
 
-    // The ADPCM cursor advances exactly as synthesizeVoice drives it: before each
-    // envelope step, consume every sample the pitch counter owes, decoding the flag
-    // byte of each new block straight out of SPU RAM. Needing a sample after an end
-    // block without repeat is where the mixer turns the voice off, so it is where
-    // ENVX goes to 0. A pitch-modulated voice's rate depends on the voice below it
-    // and is not modelled; it keeps reading its envelope.
+    // A pitch-modulated voice's rate depends on the voice below it and is not
+    // modelled; it keeps reading its envelope.
     const bool walkAdpcm = s_chan[ch].data.get<Chan::FMod>().value != 1;
-    auto reachedStop = [&]() {
-        while (cp.pos >= 0x10000) {
-            if (cp.left == 0) {
-                if (cp.block == EnvelopeCheckpoint::kStopped) return true;
-                const uint8_t flags = spuRamBase[cp.block + 1];
-                uint32_t next = cp.block + 16;
-                if ((flags & 4) && !cp.ignoreLoop) cp.loop = cp.block;
-                if (flags & 1) {
-                    next = (flags != 3 || cp.loop == EnvelopeCheckpoint::kNoLoop) ? EnvelopeCheckpoint::kStopped
-                                                                                 : cp.loop;
-                }
-                if (next != EnvelopeCheckpoint::kStopped && next >= sizeof(spuMem)) next -= sizeof(spuMem);
-                cp.block = next;
-                cp.left = 28;
-            }
-            cp.left--;
-            cp.pos -= 0x10000;
-        }
-        return false;
-    };
 
     bool on = cp.cachedOn;
     for (uint64_t s = cp.cachedSample; s < steps; s++) {
-        if (walkAdpcm && reachedStop()) {
+        if (walkAdpcm && adpcmWalkReachedStop(cp)) {
             cp.ended = true;
             cp.cachedSample = steps;
             return 0;
@@ -147,6 +123,31 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     cp.cachedFraction = walk.ex().get<exEnvelopeVolF>().value;
     cp.cachedOn = on;
     return (uint16_t)cp.cachedVol;
+}
+
+// Advance the walk's ADPCM cursor the way synthesizeVoice does before an envelope
+// step: consume every sample the pitch counter owes, reading the flag byte of each
+// new block straight out of SPU RAM. Returns true when a sample is owed past an end
+// block without repeat, which is where the mixer turns the voice off.
+bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint &cp) {
+    while (cp.pos >= 0x10000) {
+        if (cp.left == 0) {
+            if (cp.block == EnvelopeCheckpoint::kStopped) return true;
+            const uint8_t flags = spuRamBase[cp.block + 1];
+            uint32_t next = cp.block + 16;
+            if ((flags & 4) && !cp.ignoreLoop) cp.loop = cp.block;
+            if (flags & 1) {
+                const bool repeat = flags == 3 && cp.loop != EnvelopeCheckpoint::kNoLoop;
+                next = repeat ? cp.loop : EnvelopeCheckpoint::kStopped;
+            }
+            if (next != EnvelopeCheckpoint::kStopped && next >= sizeof(spuMem)) next -= sizeof(spuMem);
+            cp.block = next;
+            cp.left = 28;
+        }
+        cp.left--;
+        cp.pos -= 0x10000;
+    }
+    return false;
 }
 
 // Put the ADPCM half of the walk back at KEY ON: the start address, an empty block,
