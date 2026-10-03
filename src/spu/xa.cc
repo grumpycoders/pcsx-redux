@@ -19,6 +19,8 @@
 
 #include <algorithm>
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -77,6 +79,32 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     // mixer thread. Taken unconditionally: gating it on an unlocked read of mixIrqAddress
     // is itself a race, and could pair a skipped lock with a later unlock.
     std::unique_lock<std::mutex> cbLock(cbMtx);
+    cdFeedCycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
+
+    if (xap->freq == 44100) {
+        // CD-DA is already at the output rate and skips the zigzag interpolator.
+        for (int i = 0; i < xap->nsamples; i++) {
+            int16_t l = xap->pcm[i * 2];
+            int16_t r = xap->pcm[i * 2 + 1];
+            if (mixIrqAddress) {
+                captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)l;
+                captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)r;
+                captureBuffer.endIndex = (captureBuffer.endIndex + 1) % CaptureBuffer::CB_SIZE;
+                if (captureBuffer.endIndex == captureBuffer.startIndex) {
+                    g_system->log(LogClass::SPU, "Capture buffer is overflowing. Increase CB_SIZE.\n");
+                }
+            }
+            SDLAudio::Frame f;
+            f.L = l / voldiv;
+            f.R = r / voldiv;
+            *XAFeed++ = f;
+        }
+        cbLock.unlock();
+        if (XAFeed != XABuffer) {
+            m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(XABuffer), (XAFeed - XABuffer), 1);
+        }
+        return;
+    }
 
     for (int i = 0; i < xap->nsamples; i++) {
         int16_t l, r;
@@ -99,8 +127,15 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             if (--xaSixStep > 0) continue;
             xaSixStep = 6;
             for (unsigned t = 0; t < 7; t++) {
-                int16_t rawSampleL = zigzag(xaRingL, t);
-                int16_t rawSampleR = zigzag(xaRingR, t);
+                int64_t zl = zigzag(xaRingL, t);
+                int64_t zr = zigzag(xaRingR, t);
+                // ATV matrix after the interpolator, then 1.026 before the 16-bit clamp and 0.973
+                // after it. On a SCPH-7502 the level rises linearly with ATV up to the clamp, and the
+                // clamped level sits at 31880, as with CD-DA.
+                int outL = std::clamp(int(((zl * xaAtv[0] + zr * xaAtv[3]) * 33617) >> 22), -0x8000, 0x7fff);
+                int outR = std::clamp(int(((zr * xaAtv[2] + zl * xaAtv[1]) * 33617) >> 22), -0x8000, 0x7fff);
+                int16_t rawSampleL = (outL * 31880) >> 15;
+                int16_t rawSampleR = (outR * 31880) >> 15;
                 if (mixIrqAddress) {
                     captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
                     captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;

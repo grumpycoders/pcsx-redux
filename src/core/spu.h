@@ -44,6 +44,8 @@ class SPUInterface {
     virtual void writeRegister(uint32_t, uint16_t) = 0;
     virtual void playCDDAchannel(int16_t *, int) = 0;
     virtual void playADPCMchannel(xa_decode_t *) = 0;
+    // CD audio volume matrix (ATV0..ATV3) for XA, applied after the interpolator.
+    virtual void setXAVolume(const uint8_t atv[4]) = 0;
     virtual void writeDMAMem(uint16_t *, int) = 0;
     virtual void readDMAMem(uint16_t *, int) = 0;
     virtual void lockSPURAM() = 0;
