@@ -40,6 +40,7 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <deque>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -177,6 +178,9 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
+    // Rewind: capture a snapshot every N frames (0 disables), keeping the last M snapshots.
+    typedef Setting<uint32_t, TYPESTRING("RewindInterval"), 0> SettingRewindInterval;
+    typedef Setting<uint32_t, TYPESTRING("RewindCount"), 60> SettingRewindCount;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
@@ -205,7 +209,8 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval,
+             SettingRewindCount>
         settings;
     class PcsxConfig {
       public:
@@ -215,8 +220,6 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        uint32_t RewindCount = 0;
-        uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
         uint32_t AltSpeed2 = 0;
         bool OverClock = false;  // enable overclocking
@@ -230,6 +233,9 @@ class Emulator {
 
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
+
+    // In-memory rewind ring; front() is oldest, back() is most recent.
+    std::deque<std::string> m_rewindStates;
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything
@@ -253,6 +259,13 @@ class Emulator {
     void shutdown();
     void vsync();
     void setPGXPMode(uint32_t pgxpMode);
+
+    // Rewind: ring of in-memory save states captured every RewindInterval frames,
+    // bounded to RewindCount entries. Naive first cut - full serialized snapshots,
+    // restored through the regular load() path (so the dynarec cache is reset for us).
+    void createRewindState();
+    bool rewindState();
+    size_t rewindStateCount() const { return m_rewindStates.size(); }
 
     void setLua();
 

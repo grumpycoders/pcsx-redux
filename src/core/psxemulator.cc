@@ -41,6 +41,7 @@
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
+#include "core/sstate.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
 #include "lua/extra.h"
@@ -173,6 +174,7 @@ void PCSX::Emulator::reset() {
     m_pads->reset();
     m_sio->reset();
     m_sio1->reset();
+    m_rewindStates.clear();
 }
 
 void PCSX::Emulator::shutdown() {
@@ -188,9 +190,30 @@ void PCSX::Emulator::vsync() {
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
 
-    if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        // CreateRewindState();
+    const uint32_t interval = settings.get<SettingRewindInterval>().value;
+    if (interval > 0 && !(++m_rewind_counter % interval)) {
+        createRewindState();
     }
+}
+
+void PCSX::Emulator::createRewindState() {
+    m_rewindStates.emplace_back(SaveStates::save());
+    // Bound the ring. RewindCount == 0 means unbounded (use with care).
+    const uint32_t count = settings.get<SettingRewindCount>().value;
+    if (count > 0) {
+        while (m_rewindStates.size() > count) {
+            m_rewindStates.pop_front();
+        }
+    }
+}
+
+bool PCSX::Emulator::rewindState() {
+    if (m_rewindStates.empty()) return false;
+    // Step back to the most recent snapshot and consume it, so successive calls
+    // walk further into the past. Restore rides the regular load() path.
+    bool ok = SaveStates::load(m_rewindStates.back());
+    m_rewindStates.pop_back();
+    return ok;
 }
 
 void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_cpu->psxSetPGXPMode(pgxpMode); }

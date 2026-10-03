@@ -1163,6 +1163,10 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
+    // Rewind: holding the key auto-repeats, stepping further back through the ring.
+    if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+        g_emulator->rewindState();
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -1422,6 +1426,9 @@ void PCSX::GUI::endFrame() {
                 }
                 if (ImGui::MenuItem(_("Hard Reset"), "Shift+F8")) {
                     g_system->hardReset();
+                }
+                if (ImGui::MenuItem(_("Rewind"), "Backspace", nullptr, g_emulator->rewindStateCount() > 0)) {
+                    g_emulator->rewindState();
                 }
                 ImGui::EndMenu();
             }
@@ -2258,6 +2265,26 @@ This is not recommended for normal use at the moment,
 as it is not fully implemented yet. It is recommended
 to use the software renderer instead. Requires a restart
 when changing this setting.)"));
+
+        ImGui::Separator();
+        {
+            int interval = settings.get<Emulator::SettingRewindInterval>().value;
+            if (ImGui::SliderInt(_("Rewind capture interval (frames; 0 = disabled)"), &interval, 0, 60)) {
+                settings.get<Emulator::SettingRewindInterval>().value = interval < 0 ? 0 : interval;
+                changed = true;
+            }
+            int count = settings.get<Emulator::SettingRewindCount>().value;
+            if (ImGui::SliderInt(_("Rewind history depth (snapshots)"), &count, 0, 600)) {
+                settings.get<Emulator::SettingRewindCount>().value = count < 0 ? 0 : count;
+                changed = true;
+            }
+            ImGuiHelpers::ShowHelpMarker(_(R"(Captures an in-memory save state every N frames
+and keeps the last M of them; press Backspace (or
+Emulation -> Rewind) to step backwards through them.
+Each snapshot is currently a full state (~18MB), so
+depth x 18MB is roughly the memory cost. Set the
+interval to 0 to disable.)"));
+        }
 
         if (memChanged) {
             changed = true;
