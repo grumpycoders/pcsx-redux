@@ -1653,6 +1653,36 @@ void InterpretedCPU::Execute() {
 
 PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64_t cycleBudget) {
     ZoneScoped;
+    /* Nesting would re-enter execBlock on top of a live one and shred the delayed-load
+       ping-pong underneath it. The dangerous caller is a breakpoint invoker, which runs from
+       Debug::process in the middle of execBlock's loop body; an ExecutionFlow event listener
+       is fine, since those fire from hasToRun() between blocks, which is the same point
+       UI::shellReached does its own wholesale register surgery from. */
+    if (m_inRunUntil) return RunUntilResult::Reentered;
+    m_inRunUntil = true;
+    /* Even at a clean boundary a branch may have left a delay slot pending, and the callee
+       must not inherit it. Park the bookkeeping and hand it back untouched. */
+    const bool savedNextIsDelaySlot = m_nextIsDelaySlot;
+    const bool savedInDelaySlot = m_inDelaySlot;
+    const unsigned savedCurrentDelayedLoad = m_currentDelayedLoad;
+    const auto savedDelayedLoad0 = m_delayedLoadInfo[0];
+    const auto savedDelayedLoad1 = m_delayedLoadInfo[1];
+    m_nextIsDelaySlot = false;
+    m_inDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    m_delayedLoadInfo[0].pcActive = false;
+    m_delayedLoadInfo[1].pcActive = false;
+
+    /* exception() honours the first-chance mask by printing a line and calling
+       g_system->pause(true), which stops the WHOLE emulator - including a -run that some
+       other part of the harness is relying on. A call that faults is a result here, not an
+       incident: we report the code, EPC and BadVAddr in the return value and leave the
+       machine alone. Park the mask for the duration. */
+    auto &debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    const uint32_t savedFirstChance = debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>();
+    debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = 0;
+
     const uint64_t deadline = m_regs.cycle + cycleBudget;
     /* m_inISR is how we hear about an exception: exception() sets it unconditionally, and
        it covers the cop0 vectors too, which enumerating the four vector addresses wouldn't.
@@ -1672,7 +1702,14 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
             break;
         }
     }
+    debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = savedFirstChance;
     m_inISR = wasInISR;
+    m_nextIsDelaySlot = savedNextIsDelaySlot;
+    m_inDelaySlot = savedInDelaySlot;
+    m_currentDelayedLoad = savedCurrentDelayedLoad;
+    m_delayedLoadInfo[0] = savedDelayedLoad0;
+    m_delayedLoadInfo[1] = savedDelayedLoad1;
+    m_inRunUntil = false;
     return result;
 }
 

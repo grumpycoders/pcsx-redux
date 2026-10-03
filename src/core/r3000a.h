@@ -263,6 +263,7 @@ class R3000Acpu {
         OutOfCycles, /* the budget ran out first */
         Exception,   /* the guest took an exception */
         Unsupported, /* this cpu can't do it */
+        Reentered,   /* called from inside another RunUntil */
     };
     /* Runs until pc reaches stopPC, the cycle budget is spent, or an exception is taken.
        Unlike Execute(), this doesn't run branchTest(), so counters, scheduled interrupts
@@ -391,6 +392,7 @@ class R3000Acpu {
         m_regs.scheduleMask = 0;
     }
     bool m_inISR = false;
+    bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
