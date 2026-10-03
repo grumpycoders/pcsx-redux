@@ -153,6 +153,13 @@ PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
 
 void quit(int code) { PCSX::g_system->quit(code); }
 
+/* Built on first use, since constructSaveState() binds references to live emulator members and
+   there is no point holding twenty megabytes of message for a session that never snapshots. */
+PCSX::SaveStates::SaveState& scratchState() {
+    static PCSX::SaveStates::SaveState state = PCSX::SaveStates::constructSaveState();
+    return state;
+}
+
 }  // namespace
 
 template <typename T, size_t S>
@@ -227,6 +234,23 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     L.push("execSlots");
     L.newtable();
     L.settable();
+    /* One reusable snapshot slot, so the measurement is of capture() and not of building a
+       20MB message. This is the shape isolate wants too: a harness snapshots into the same
+       place thousands of times. */
+    L.declareFunc(
+        "captureState",
+        [](lua_State* L_) -> int {
+            SaveStates::capture(scratchState());
+            return 0;
+        },
+        -1);
+    L.declareFunc(
+        "restoreState",
+        [](lua_State* L_) -> int {
+            SaveStates::restore(scratchState());
+            return 0;
+        },
+        -1);
     L.declareFunc(
         "callGuest",
         [](lua_State* L_) -> int {
