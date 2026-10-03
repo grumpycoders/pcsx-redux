@@ -2882,7 +2882,7 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     save.close();
     delete[] buff;
 
-    if (!error) SaveStates::load(os.str());
+    if (!error) SaveStates::loadSafe(os.str());
     return !error;
 }
 

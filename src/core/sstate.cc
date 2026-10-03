@@ -350,6 +350,21 @@ bool PCSX::SaveStates::load(std::string_view data) {
     return true;
 }
 
+void PCSX::SaveStates::loadSafe(std::string &&data) {
+    // Inside Execute(), we're being called from something the CPU reached: a
+    // Lua event listener (including a Pause listener fired by a breakpoint), an
+    // ImGui menu drawn during vsync, the web server polled on hsync.
+    // Counters::update() and branchTest() both cached
+    // values before that call and go on using them afterwards, so swapping the
+    // state here corrupts whatever those frames touch next. Let the main loop
+    // do it once they're gone.
+    if (g_system->inExecute()) {
+        g_system->scheduleSaveStateLoad(std::move(data));
+    } else {
+        load(data);
+    }
+}
+
 void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
     m_callstacks.destroyAll();
