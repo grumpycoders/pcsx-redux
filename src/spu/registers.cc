@@ -73,12 +73,21 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
 
     if (steps < cp.cachedSample) {
         // Cycles went backwards under us. Rebuild from key-on rather than trust it.
+        // Pitch changes since key-on are lost here, the walk replays the current one.
         walk.keyOn();
         cp.cachedSample = 0;
         cp.cachedState = walk.ex().get<exState>().value;
         cp.cachedVol = 0;
         cp.cachedFraction = 0;
         cp.cachedOn = true;
+        resetAdpcmWalk(ch);
+    }
+
+    // An end block without repeat stopped the voice: Release, envelope 0, and nothing
+    // the envelope does afterwards can bring it back short of another KEY ON.
+    if (cp.ended) {
+        cp.cachedSample = steps;
+        return 0;
     }
 
     walk.ex().get<exState>().value = cp.cachedState;
@@ -93,8 +102,20 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
         releaseAt = off > delay ? off - delay : 0;
     }
 
+    // A pitch-modulated voice's rate depends on the voice below it and is not
+    // modelled; it keeps reading its envelope.
+    const bool walkAdpcm = s_chan[ch].data.get<Chan::FMod>().value != 1;
+
     bool on = cp.cachedOn;
-    for (uint64_t s = cp.cachedSample; s < steps; s++) walk.step(s >= releaseAt, on);
+    for (uint64_t s = cp.cachedSample; s < steps; s++) {
+        if (walkAdpcm && adpcmWalkReachedStop(cp)) {
+            cp.ended = true;
+            cp.cachedSample = steps;
+            return 0;
+        }
+        walk.step(s >= releaseAt, on);
+        cp.pos += cp.pitchStep;
+    }
 
     cp.cachedSample = steps;
     cp.cachedState = walk.ex().get<exState>().value;
@@ -102,6 +123,46 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     cp.cachedFraction = walk.ex().get<exEnvelopeVolF>().value;
     cp.cachedOn = on;
     return (uint16_t)cp.cachedVol;
+}
+
+// Advance the walk's ADPCM cursor the way synthesizeVoice does before an envelope
+// step: consume every sample the pitch counter owes, reading the flag byte of each
+// new block straight out of SPU RAM. Returns true when a sample is owed past an end
+// block without repeat, which is where the mixer turns the voice off.
+bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint &cp) {
+    while (cp.pos >= 0x10000) {
+        if (cp.left == 0) {
+            if (cp.block == EnvelopeCheckpoint::kStopped) return true;
+            const uint8_t flags = spuRamBase[cp.block + 1];
+            uint32_t next = cp.block + 16;
+            if ((flags & 4) && !cp.ignoreLoop) cp.loop = cp.block;
+            if (flags & 1) {
+                const bool repeat = flags == 3 && cp.loop != EnvelopeCheckpoint::kNoLoop;
+                next = repeat ? cp.loop : EnvelopeCheckpoint::kStopped;
+            }
+            if (next != EnvelopeCheckpoint::kStopped && next >= sizeof(spuMem)) next -= sizeof(spuMem);
+            cp.block = next;
+            cp.left = 28;
+        }
+        cp.left--;
+        cp.pos -= 0x10000;
+    }
+    return false;
+}
+
+// Put the ADPCM half of the walk back at KEY ON: the start address, an empty block,
+// the pitch counter seeded the way Interpolator::keyOn seeds it, and the current pitch.
+void PCSX::SPU::impl::resetAdpcmWalk(int ch) {
+    auto &cp = m_envelopeCheckpoint[ch];
+    const uint8_t *start = s_chan[ch].adpcm.start();
+    const uint8_t *loop = s_chan[ch].adpcm.loop();
+    cp.block = start ? (uint32_t)(start - spuRamBase) : 0;
+    cp.loop = loop ? (uint32_t)(loop - spuRamBase) : EnvelopeCheckpoint::kNoLoop;
+    cp.ignoreLoop = false;
+    cp.left = 0;
+    cp.pos = settings.get<Interpolation>() >= 2 ? 0x30000 : 0x10000;
+    cp.pitchStep = std::max(1, s_chan[ch].data.get<Chan::RawPitch>().value << 4);
+    cp.ended = false;
 }
 
 // ADSR time values in milliseconds, by James Higgs; see the end of the adsr.c source for details. The original values
@@ -258,12 +319,19 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADSR Volume = %04x, unimplemented\n", ch, val);
                 break;
             // Loop address.
-            case 14:
+            case 14: {
                 // Align to a 16-byte boundary.
                 s_chan[ch].adpcm.setLoop(spuRamBase + ((uint32_t)((val << 3) & ~0xf)));
                 s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
+                // Bring the ENVX walk up to this write before it sees the new address.
+                auto &cp = m_envelopeCheckpoint[ch];
+                if (cp.keyedOn) {
+                    reconstructEnvelope(ch, readerCycle());
+                    cp.loop = (uint32_t)((val << 3) & ~0xf);
+                    cp.ignoreLoop = true;
+                }
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADPCM Repeat Address = %04x\n", ch, val);
-                break;
+            } break;
         }
 
         return;
@@ -661,6 +729,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
             cp.cachedVol = 0;
             cp.cachedFraction = 0;
             cp.cachedOn = true;
+            resetAdpcmWalk(ch);
             // Key-on clears this voice's ENDX bit.
             spuEndx &= ~(1u << ch);
             // Bitfield for faster testing.
@@ -732,6 +801,10 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
 
 // Set the pitch for voice ch.
 void PCSX::SPU::impl::SetPitch(int ch, uint16_t val) {
+    // The ENVX walk runs the old pitch up to this write and the new one after it.
+    auto &cp = m_envelopeCheckpoint[ch];
+    if (cp.keyedOn) reconstructEnvelope(ch, readerCycle());
+
     int NP;
     // Get the pitch value.
     if (val > 0x3fff) {
@@ -741,6 +814,7 @@ void PCSX::SPU::impl::SetPitch(int ch, uint16_t val) {
     }
 
     s_chan[ch].data.get<Chan::RawPitch>().value = NP;
+    cp.pitchStep = std::max(1, NP << 4);
 
     // Calculate the frequency.
     NP = (44100L * NP) / 4096L;
