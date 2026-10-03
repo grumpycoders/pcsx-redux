@@ -1364,8 +1364,9 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 }
                 auto buttons = m_pads[pad].m_data.buttonStatus;
                 auto overrides = m_pads[pad].m_data.overrides;
+                auto hostButtons = m_pads[pad].m_data.hostButtons;
                 unsigned button = L.checknumber(1);
-                L.push(((overrides & buttons) & (1 << button)) == 0);
+                L.push(((overrides & buttons & hostButtons) & (1 << button)) == 0);
                 return 1;
             },
             -1);
