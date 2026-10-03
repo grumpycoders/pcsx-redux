@@ -21,11 +21,9 @@ jobs:
         set-safe-directory: true
     - name: Fetch submodules
       run: ./.github/scripts/update-submodules.sh
-    - name: install dependencies
-      run: brew install --verbose nikitabobko/tap/brew-install-path
     - name: build mips binutils
-      run: brew install-path --verbose ./tools/macos-mips/mipsel-none-elf-binutils.rb
+      run: brew install --verbose pcsx-redux/mips/mipsel-none-elf-binutils
     - name: build mips gcc
-      run: brew install-path --verbose ./tools/macos-mips/mipsel-none-elf-gcc.rb
+      run: brew install --verbose pcsx-redux/mips/mipsel-none-elf-gcc
     - name: build openbios
       run: make -C ./src/mips/openbios
