@@ -40,6 +40,11 @@ HAS_SUBMODULES = false
 endif
 
 CXXFLAGS += -std=c++2b
+# The PocketStation ARM instruction LUT (src/pocketstation/cpu/tablegen.inl) nests
+# deeper than clang's default bracket limit (256); gcc has no such low cap.
+ifeq ($(CC_IS_CLANG),true)
+CXXFLAGS += -fbracket-depth=4096
+endif
 CPPFLAGS += -I.
 CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party

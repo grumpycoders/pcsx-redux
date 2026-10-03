@@ -21,26 +21,32 @@
 
 #include <stdint.h>
 
+#include <memory>
+
 #include "core/sstate.h"
 
 namespace PCSX {
 class SIO;
 
+namespace PocketStation {
+class PocketStation;
+}
+
 class MemoryCard {
   public:
-    MemoryCard() : m_sio(nullptr) { memset(m_mcdData, 0, c_cardSize); }
-    MemoryCard(SIO *parent) : m_sio(parent) { memset(m_mcdData, 0, c_cardSize); }
+    // Constructors and destructor are out-of-line (defined in memorycard.cc): the unique_ptr to
+    // the forward-declared PocketStation device needs the complete type to instantiate its
+    // destructor, which any inline ctor/dtor would otherwise force here.
+    MemoryCard();
+    MemoryCard(SIO *parent);
+    ~MemoryCard();
 
     // Hardware events
     void acknowledge();
-    void deselect() {
-        memset(&m_tempBuffer, 0, c_sectorSize);
-        m_currentCommand = Commands::None;
-        m_commandTicks = 0;
-        m_dataOffset = 0;
-        m_sector = 0;
-        m_spdr = Responses::IdleHighZ;
-    }
+    // Out-of-line (memorycard.cc): when a real PocketStation is docked, deselect also ends the
+    // in-progress COM command (re-arms FIQ-6 for the next one), which needs the complete device
+    // type. The POD reset is unchanged.
+    void deselect();
 
     // File system / data manipulation
     void commit(const PCSX::u8string path) {
@@ -50,8 +56,24 @@ class MemoryCard {
     }
     void createMcd(PCSX::u8string mcd);
     bool dataChanged() { return !m_savedToDisk; }
-    void disablePocketstation() { m_pocketstationEnabled = false; };
-    void enablePocketstation() { m_pocketstationEnabled = true; };
+    // Defined in memorycard.cc: enable creates+boots the device (kernel from the
+    // SettingPocketstationBios path, flash from this slot's m_mcdData); disable tears it down.
+    void disablePocketstation();
+    void enablePocketstation();
+    // Returns the docked PocketStation device, or nullptr if none (disabled, or no kernel image).
+    PocketStation::PocketStation *getPocketstation() { return m_pocketstation.get(); }
+    // Dock the device once its kernel has armed the dock interrupt, instead of waiting for the
+    // first card access. Called from the cycle-delta and wall-clock drivers; no-op without a
+    // device, once docked, or once the user has taken manual control. See memorycard.cc for why
+    // first access is too late.
+    void tickPocketstationDock();
+    // Explicit dock / undock, both directions. Taking this hands control to the user: the automatic
+    // dock and the first-access backstop both stand down for the life of the device, so an undock
+    // is not silently reversed by the very next emulation step.
+    void setPocketstationDocked(bool docked);
+    bool isPocketstationDocked() const { return m_pocketstationDocked; }
+    // Whether the user has overridden the automatic policy (for the UI to show, and for tests).
+    bool pocketstationDockIsManual() const { return m_pocketstationManualDock; }
     char *getMcdData() { return m_mcdData; }
     void loadMcd(PCSX::u8string mcd);
     void saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
@@ -126,7 +148,17 @@ class MemoryCard {
 
     // PocketStation Specific
     bool m_pocketstationEnabled = false;
+    bool m_pocketstationDocked = false;  // device has been docked (IRQ-11 fired) since creation.
+    // Set once the user works the dock control by hand. While set, the automatic dock and the
+    // first-access backstop both stand down, so a manual undock stays undocked.
+    bool m_pocketstationManualDock = false;
     uint16_t m_directoryIndex = 0;
+
+    // Owned ARM7 device, present only while pocketstation mode is enabled AND a valid kernel
+    // image is configured. Created/destroyed by enable/disablePocketstation().
+    std::unique_ptr<PocketStation::PocketStation> m_pocketstation;
+    // (Re)create + boot the device from the kernel-path setting and this slot's card image.
+    void createPocketstation();
 
     SIO *m_sio;
 };
