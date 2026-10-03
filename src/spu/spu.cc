@@ -24,6 +24,8 @@
 #include <thread>
 
 #include "spu/adsr.h"
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -571,10 +573,17 @@ void PCSX::SPU::impl::MainThread() {
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
     std::lock_guard<std::mutex> lock(cbMtx);
     if (mixIrqAddress) {
+        // CD audio arrives once per sector, 1/75 s apart in emulated time. Within a few
+        // sectors of the last one the CD is still feeding, and an empty buffer only means
+        // the emulation runs slower than the mixer: wait for it instead of writing silence.
+        // The mixer starts before the CPU exists.
+        const auto *cpu = PCSX::g_emulator->m_cpu.get();
+        const uint64_t feeding = PCSX::g_emulator->m_psxClockSpeed * 4 / 75;
+        const bool cdFeeding = cpu && (cpu->m_regs.cycle - cdFeedCycle < feeding);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
-                // If there are no samples left in the temp buffer,
-                // we still HAVE to keep writing to the capture buffer.
+                if (cdFeeding) break;
+                // Nothing is feeding the CD input: the capture records silence.
                 spuMem[captureBuffer.currIndex] = 0;
                 spuMem[captureBuffer.currIndex + 0x200] = 0;
             } else {

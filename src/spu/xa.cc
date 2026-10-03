@@ -19,6 +19,8 @@
 
 #include <algorithm>
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -77,6 +79,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
     // mixer thread. Taken unconditionally: gating it on an unlocked read of mixIrqAddress
     // is itself a race, and could pair a skipped lock with a later unlock.
     std::unique_lock<std::mutex> cbLock(cbMtx);
+    cdFeedCycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
 
     if (xap->freq == 44100) {
         // CD-DA is already at the output rate and skips the zigzag interpolator.
