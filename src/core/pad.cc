@@ -27,6 +27,7 @@
 #include <array>
 #include <cmath>
 #include <magic_enum/magic_enum_all.hpp>
+#include <utility>
 
 #include "core/psxemulator.h"
 #include "core/system.h"
@@ -214,6 +215,8 @@ class PadsImpl : public PCSX::Pads {
 
     std::array<Pad, 2> m_pads;
     unsigned m_selectedPadForConfig = 0;
+    // Set when GLFW-era bindings were migrated during setCfg, so the next configure() reports a change.
+    bool m_needsSave = false;
 };
 
 static PadsImpl* s_pads = nullptr;
@@ -433,6 +436,147 @@ static ImGuiKey SdlScancodeToImGuiKey(int scancode) {
         default:
             return ImGuiKey_None;
     }
+}
+
+// GLFW_KEY_* code -> SDL_Scancode, for every key the pre-SDL3 GlfwKeyToImGuiKey understood. GLFW key
+// codes are stable across GLFW 3.x, and GLFW headers are no longer part of the build, hence the literals.
+static constexpr std::pair<int, SDL_Scancode> c_glfwToSdlScancode[] = {
+    {32, SDL_SCANCODE_SPACE},          // GLFW_KEY_SPACE
+    {39, SDL_SCANCODE_APOSTROPHE},     // GLFW_KEY_APOSTROPHE
+    {44, SDL_SCANCODE_COMMA},          // GLFW_KEY_COMMA
+    {45, SDL_SCANCODE_MINUS},          // GLFW_KEY_MINUS
+    {46, SDL_SCANCODE_PERIOD},         // GLFW_KEY_PERIOD
+    {47, SDL_SCANCODE_SLASH},          // GLFW_KEY_SLASH
+    {48, SDL_SCANCODE_0},              // GLFW_KEY_0
+    {49, SDL_SCANCODE_1},              // GLFW_KEY_1
+    {50, SDL_SCANCODE_2},              // GLFW_KEY_2
+    {51, SDL_SCANCODE_3},              // GLFW_KEY_3
+    {52, SDL_SCANCODE_4},              // GLFW_KEY_4
+    {53, SDL_SCANCODE_5},              // GLFW_KEY_5
+    {54, SDL_SCANCODE_6},              // GLFW_KEY_6
+    {55, SDL_SCANCODE_7},              // GLFW_KEY_7
+    {56, SDL_SCANCODE_8},              // GLFW_KEY_8
+    {57, SDL_SCANCODE_9},              // GLFW_KEY_9
+    {59, SDL_SCANCODE_SEMICOLON},      // GLFW_KEY_SEMICOLON
+    {61, SDL_SCANCODE_EQUALS},         // GLFW_KEY_EQUAL
+    {65, SDL_SCANCODE_A},              // GLFW_KEY_A
+    {66, SDL_SCANCODE_B},              // GLFW_KEY_B
+    {67, SDL_SCANCODE_C},              // GLFW_KEY_C
+    {68, SDL_SCANCODE_D},              // GLFW_KEY_D
+    {69, SDL_SCANCODE_E},              // GLFW_KEY_E
+    {70, SDL_SCANCODE_F},              // GLFW_KEY_F
+    {71, SDL_SCANCODE_G},              // GLFW_KEY_G
+    {72, SDL_SCANCODE_H},              // GLFW_KEY_H
+    {73, SDL_SCANCODE_I},              // GLFW_KEY_I
+    {74, SDL_SCANCODE_J},              // GLFW_KEY_J
+    {75, SDL_SCANCODE_K},              // GLFW_KEY_K
+    {76, SDL_SCANCODE_L},              // GLFW_KEY_L
+    {77, SDL_SCANCODE_M},              // GLFW_KEY_M
+    {78, SDL_SCANCODE_N},              // GLFW_KEY_N
+    {79, SDL_SCANCODE_O},              // GLFW_KEY_O
+    {80, SDL_SCANCODE_P},              // GLFW_KEY_P
+    {81, SDL_SCANCODE_Q},              // GLFW_KEY_Q
+    {82, SDL_SCANCODE_R},              // GLFW_KEY_R
+    {83, SDL_SCANCODE_S},              // GLFW_KEY_S
+    {84, SDL_SCANCODE_T},              // GLFW_KEY_T
+    {85, SDL_SCANCODE_U},              // GLFW_KEY_U
+    {86, SDL_SCANCODE_V},              // GLFW_KEY_V
+    {87, SDL_SCANCODE_W},              // GLFW_KEY_W
+    {88, SDL_SCANCODE_X},              // GLFW_KEY_X
+    {89, SDL_SCANCODE_Y},              // GLFW_KEY_Y
+    {90, SDL_SCANCODE_Z},              // GLFW_KEY_Z
+    {91, SDL_SCANCODE_LEFTBRACKET},    // GLFW_KEY_LEFT_BRACKET
+    {92, SDL_SCANCODE_BACKSLASH},      // GLFW_KEY_BACKSLASH
+    {93, SDL_SCANCODE_RIGHTBRACKET},   // GLFW_KEY_RIGHT_BRACKET
+    {96, SDL_SCANCODE_GRAVE},          // GLFW_KEY_GRAVE_ACCENT
+    {256, SDL_SCANCODE_ESCAPE},        // GLFW_KEY_ESCAPE
+    {257, SDL_SCANCODE_RETURN},        // GLFW_KEY_ENTER
+    {258, SDL_SCANCODE_TAB},           // GLFW_KEY_TAB
+    {259, SDL_SCANCODE_BACKSPACE},     // GLFW_KEY_BACKSPACE
+    {260, SDL_SCANCODE_INSERT},        // GLFW_KEY_INSERT
+    {261, SDL_SCANCODE_DELETE},        // GLFW_KEY_DELETE
+    {262, SDL_SCANCODE_RIGHT},         // GLFW_KEY_RIGHT
+    {263, SDL_SCANCODE_LEFT},          // GLFW_KEY_LEFT
+    {264, SDL_SCANCODE_DOWN},          // GLFW_KEY_DOWN
+    {265, SDL_SCANCODE_UP},            // GLFW_KEY_UP
+    {266, SDL_SCANCODE_PAGEUP},        // GLFW_KEY_PAGE_UP
+    {267, SDL_SCANCODE_PAGEDOWN},      // GLFW_KEY_PAGE_DOWN
+    {268, SDL_SCANCODE_HOME},          // GLFW_KEY_HOME
+    {269, SDL_SCANCODE_END},           // GLFW_KEY_END
+    {280, SDL_SCANCODE_CAPSLOCK},      // GLFW_KEY_CAPS_LOCK
+    {281, SDL_SCANCODE_SCROLLLOCK},    // GLFW_KEY_SCROLL_LOCK
+    {282, SDL_SCANCODE_NUMLOCKCLEAR},  // GLFW_KEY_NUM_LOCK
+    {283, SDL_SCANCODE_PRINTSCREEN},   // GLFW_KEY_PRINT_SCREEN
+    {284, SDL_SCANCODE_PAUSE},         // GLFW_KEY_PAUSE
+    {290, SDL_SCANCODE_F1},            // GLFW_KEY_F1
+    {291, SDL_SCANCODE_F2},            // GLFW_KEY_F2
+    {292, SDL_SCANCODE_F3},            // GLFW_KEY_F3
+    {293, SDL_SCANCODE_F4},            // GLFW_KEY_F4
+    {294, SDL_SCANCODE_F5},            // GLFW_KEY_F5
+    {295, SDL_SCANCODE_F6},            // GLFW_KEY_F6
+    {296, SDL_SCANCODE_F7},            // GLFW_KEY_F7
+    {297, SDL_SCANCODE_F8},            // GLFW_KEY_F8
+    {298, SDL_SCANCODE_F9},            // GLFW_KEY_F9
+    {299, SDL_SCANCODE_F10},           // GLFW_KEY_F10
+    {300, SDL_SCANCODE_F11},           // GLFW_KEY_F11
+    {301, SDL_SCANCODE_F12},           // GLFW_KEY_F12
+    {320, SDL_SCANCODE_KP_0},          // GLFW_KEY_KP_0
+    {321, SDL_SCANCODE_KP_1},          // GLFW_KEY_KP_1
+    {322, SDL_SCANCODE_KP_2},          // GLFW_KEY_KP_2
+    {323, SDL_SCANCODE_KP_3},          // GLFW_KEY_KP_3
+    {324, SDL_SCANCODE_KP_4},          // GLFW_KEY_KP_4
+    {325, SDL_SCANCODE_KP_5},          // GLFW_KEY_KP_5
+    {326, SDL_SCANCODE_KP_6},          // GLFW_KEY_KP_6
+    {327, SDL_SCANCODE_KP_7},          // GLFW_KEY_KP_7
+    {328, SDL_SCANCODE_KP_8},          // GLFW_KEY_KP_8
+    {329, SDL_SCANCODE_KP_9},          // GLFW_KEY_KP_9
+    {330, SDL_SCANCODE_KP_PERIOD},     // GLFW_KEY_KP_DECIMAL
+    {331, SDL_SCANCODE_KP_DIVIDE},     // GLFW_KEY_KP_DIVIDE
+    {332, SDL_SCANCODE_KP_MULTIPLY},   // GLFW_KEY_KP_MULTIPLY
+    {333, SDL_SCANCODE_KP_MINUS},      // GLFW_KEY_KP_SUBTRACT
+    {334, SDL_SCANCODE_KP_PLUS},       // GLFW_KEY_KP_ADD
+    {335, SDL_SCANCODE_KP_ENTER},      // GLFW_KEY_KP_ENTER
+    {336, SDL_SCANCODE_KP_EQUALS},     // GLFW_KEY_KP_EQUAL
+    {340, SDL_SCANCODE_LSHIFT},        // GLFW_KEY_LEFT_SHIFT
+    {341, SDL_SCANCODE_LCTRL},         // GLFW_KEY_LEFT_CONTROL
+    {342, SDL_SCANCODE_LALT},          // GLFW_KEY_LEFT_ALT
+    {343, SDL_SCANCODE_LGUI},          // GLFW_KEY_LEFT_SUPER
+    {344, SDL_SCANCODE_RSHIFT},        // GLFW_KEY_RIGHT_SHIFT
+    {345, SDL_SCANCODE_RCTRL},         // GLFW_KEY_RIGHT_CONTROL
+    {346, SDL_SCANCODE_RALT},          // GLFW_KEY_RIGHT_ALT
+    {347, SDL_SCANCODE_RGUI},          // GLFW_KEY_RIGHT_SUPER
+    {348, SDL_SCANCODE_MENU},          // GLFW_KEY_MENU
+};
+
+int PCSX::Pads::glfwKeyToSdlScancode(int glfwKey) {
+    for (const auto& [glfw, sdl] : c_glfwToSdlScancode) {
+        if (glfw == glfwKey) return sdl;
+    }
+    // Includes GLFW_KEY_UNKNOWN (-1) and any key GlfwKeyToImGuiKey never handled.
+    return SDL_SCANCODE_UNKNOWN;
+}
+
+bool PCSX::Pads::migrateGlfwKeyboardBindings(json& padCfg) {
+    if (!padCfg.is_object()) return false;
+    // SDL scancodes are never negative, and GLFW_KEY_UNKNOWN (-1) was the GLFW-era default for the
+    // analog mode toggle. Configs written before that binding existed lack the key altogether, whereas
+    // SDL-era builds always serialize it, so a missing key alongside other bindings is also GLFW-era.
+    bool hasKeyboardBindings = false;
+    for (auto it = padCfg.begin(); it != padCfg.end(); ++it) {
+        if (it.key().starts_with("Keyboard_")) hasKeyboardBindings = true;
+    }
+    if (!hasKeyboardBindings) return false;
+    auto analogMode = padCfg.find("Keyboard_AnalogMode");
+    if (analogMode != padCfg.end() && !(analogMode->is_number_integer() && analogMode->get<int>() == -1)) {
+        return false;
+    }
+    for (auto it = padCfg.begin(); it != padCfg.end(); ++it) {
+        if (!it.key().starts_with("Keyboard_")) continue;
+        it.value() = it->is_number_integer() ? glfwKeyToSdlScancode(it->get<int>()) : SDL_SCANCODE_UNKNOWN;
+    }
+    // Always leave the sentinel behind so this can never run twice on the same data.
+    padCfg["Keyboard_AnalogMode"] = SDL_SCANCODE_UNKNOWN;
+    return true;
 }
 
 void PadsImpl::init() {
@@ -915,24 +1059,27 @@ uint8_t PadsImpl::Pad::read() {
 bool PadsImpl::configure(PCSX::GUI* gui) {
     // Check for analog mode toggle key
     for (auto& pad : m_pads) {
-        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != SDL_SCANCODE_UNKNOWN) {
-            const int key = pad.m_settings.get<Keyboard_AnalogMode>();
-
-            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(SdlScancodeToImGuiKey(key))) {
-                pad.m_analogMode = !pad.m_analogMode;
-            }
+        if (pad.m_type != PadType::Analog) continue;
+        // Convert before testing: any stored value without an ImGuiKey equivalent (including stale
+        // GLFW-era values such as -1) must never reach ImGui, which asserts on legacy key indices.
+        const ImGuiKey key = SdlScancodeToImGuiKey(pad.m_settings.get<Keyboard_AnalogMode>());
+        if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(key)) {
+            pad.m_analogMode = !pad.m_analogMode;
         }
     }
 
+    // Bindings migrated at load time need to be written back out.
+    const bool migrated = std::exchange(m_needsSave, false);
+
     if (!m_showCfg) {
-        return false;
+        return migrated;
     }
 
     ImGui::SetNextWindowPos(ImVec2(70, 90), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(_("Pad configuration"), &m_showCfg)) {
         ImGui::End();
-        return false;
+        return migrated;
     }
 
     static std::function<const char*()> const c_padNames[] = {
@@ -945,7 +1092,7 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
         init();
     }
 
-    bool changed = false;
+    bool changed = migrated;
     changed |= ImGui::Checkbox(_("Use raw input for mouse"), &gui->isRawMouseMotionEnabled());
     PCSX::ImGuiHelpers::ShowHelpMarker(
         _("When enabled, the cursor will be hidden and captured when the emulator is running. This is useful for games "
@@ -1248,6 +1395,14 @@ json PadsImpl::Pad::getCfg() { return m_settings.serialize(); }
 void PadsImpl::setCfg(const json& j) {
     if (j.count("pads") && j["pads"].is_array()) {
         auto padsCfg = j["pads"];
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingSettingsVersion>() < 1) {
+            for (auto& padCfg : padsCfg) {
+                if (migrateGlfwKeyboardBindings(padCfg)) {
+                    PCSX::g_system->log(PCSX::LogClass::UI, "Migrated GLFW-era pad keyboard bindings.\n");
+                    m_needsSave = true;
+                }
+            }
+        }
         if (padsCfg.size() >= 1) {
             m_pads[0].setCfg(padsCfg[0]);
         } else {

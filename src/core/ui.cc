@@ -48,10 +48,13 @@ bool PCSX::UI::loadSettings() {
         }
 
         PCSX::g_emulator->m_spu->setCfg(m_settingsJson);
+        // Migrations keyed off of SettingSettingsVersion happen in here, so bump it afterwards.
         PCSX::g_emulator->m_pads->setCfg(m_settingsJson);
+        emuSettings.get<Emulator::SettingSettingsVersion>() = Emulator::CURRENT_SETTINGS_VERSION;
         return true;
     } else {
         PCSX::g_emulator->m_pads->setDefaults();
+        emuSettings.get<Emulator::SettingSettingsVersion>() = Emulator::CURRENT_SETTINGS_VERSION;
         return false;
     }
 }
