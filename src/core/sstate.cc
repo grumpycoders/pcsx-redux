@@ -208,6 +208,81 @@ std::string PCSX::SaveStates::save() {
     return slice.finalize();
 }
 
+void PCSX::SaveStates::capture(SaveState& state) {
+    SaveStateWrapper wrapper(state);
+
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
+    state.get<SaveStateInfoField>().get<Version>().value = 4;
+
+    /* The manual-hook camp - GPU, SPU, counters, MDEC, call stacks - already pulls live state
+       into owned Field storage; that half was always snapshot-shaped and the byte encode was a
+       separate layer on top. */
+    g_emulator->m_gpu->serialize(&wrapper);
+    g_emulator->m_spu->save(state.get<SPUField>());
+
+    g_emulator->m_counters->serialize(&wrapper);
+    g_emulator->m_mdec->serialize(&wrapper);
+
+    state.get<PCdrvFilesField>().value.clear();
+    g_emulator->m_cpu->listAllPCdrvFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
+        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
+    });
+
+    g_emulator->m_callStacks->serialize(&wrapper);
+
+    /* And this is the half that never existed: the flat live -> copy for the ref/ptr fields. */
+    state.capture();
+}
+
+void PCSX::SaveStates::restore(SaveState& state) {
+    SaveStateWrapper wrapper(state);
+
+    state.commit();
+    g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
+    g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
+    g_emulator->m_cpu->m_regs.pc &= ~3;
+    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
+       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
+       translated from memory we just rewound out from under it. */
+    g_emulator->m_cpu->invalidateCache();
+    g_emulator->m_gpu->deserialize(&wrapper);
+    g_emulator->m_spu->load(state.get<SPUField>());
+    g_emulator->m_cdrom->load();
+
+    g_emulator->m_counters->deserialize(&wrapper);
+    g_emulator->m_mdec->deserialize(&wrapper);
+
+    auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
+
+    g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
+    g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
+    g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
+    g_emulator->m_cdrom->m_xa.stereo = xa.get<SaveStates::XAStereo>().value;
+    auto& left = xa.get<SaveStates::XAADPCMLeft>();
+    g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
+    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
+    xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
+    g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+
+    g_emulator->m_cpu->closeAllPCdrvFiles();
+    for (auto& file : state.get<PCdrvFilesField>().value) {
+        uint16_t fd = file.get<PCdrvFD>().value;
+        std::string filename = file.get<PCdrvFilename>().value;
+        bool create = file.get<PCdrvCreate>().value;
+        if (create) {
+            g_emulator->m_cpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
+        } else {
+            g_emulator->m_cpu->restorePCdrvFile(filename, fd);
+        }
+    }
+    g_emulator->m_callStacks->deserialize(&wrapper);
+
+    g_system->m_eventBus->signal(Events::ExecutionFlow::SaveStateLoaded{});
+}
+
 void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     using namespace SaveStates;
     auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
