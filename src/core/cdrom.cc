@@ -905,21 +905,10 @@ class CDRomImpl final : public PCSX::CDRom {
 
     static int16_t saturate(int v) { return v < -32768 ? -32768 : (v > 32767 ? 32767 : v); }
 
-    // Applies the ATV mixing matrix to interleaved stereo frames: ATV0 L->L, ATV1 L->R, ATV2 R->R,
-    // ATV3 R->L, 0x80 = unity.
-    void attenuate(int16_t *buf, int frames) {
-        const int ll = m_atv[0], lr = m_atv[1], rr = m_atv[2], rl = m_atv[3];
-        for (int i = 0; i < frames; i++) {
-            int l = buf[i * 2];
-            int r = buf[i * 2 + 1];
-            buf[i * 2] = saturate((l * ll + r * rl) >> 7);
-            buf[i * 2 + 1] = saturate((r * rr + l * lr) >> 7);
-        }
-    }
-
-    // CD-DA through the ATV matrix, with the levels a SCPH-7502 gives on its SPU CD capture:
-    // 0.950 before the 16-bit clamp and 0.973 after it. A full-scale sine at unity comes out
-    // at 0.924, and the clamped level sits at 31880.
+    // CD-DA through the ATV matrix (ATV0 L->L, ATV1 L->R, ATV2 R->R, ATV3 R->L, 0x80 = unity),
+    // with the levels a SCPH-7502 gives on its SPU CD capture: 0.950 before the 16-bit clamp and
+    // 0.973 after it. A full-scale sine at unity comes out at 0.924, and the clamped level sits
+    // at 31880.
     void attenuateCDDA(int16_t *buf, int frames) {
         const int ll = m_atv[0], lr = m_atv[1], rr = m_atv[2], rl = m_atv[3];
         for (int i = 0; i < frames; i++) {
@@ -950,7 +939,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 } else {
                     for (int i = 0; i < m_xa.nsamples; i++) m_xaOut.pcm[i * 2] = m_xaOut.pcm[i * 2 + 1] = m_xa.pcm[i];
                 }
-                attenuate(m_xaOut.pcm, m_xaOut.nsamples);
+                PCSX::g_emulator->m_spu->setXAVolume(m_atv);
                 PCSX::g_emulator->m_spu->playADPCMchannel(&m_xaOut);
             }
         }

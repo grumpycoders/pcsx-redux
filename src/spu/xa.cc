@@ -124,8 +124,15 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
             if (--xaSixStep > 0) continue;
             xaSixStep = 6;
             for (unsigned t = 0; t < 7; t++) {
-                int16_t rawSampleL = zigzag(xaRingL, t);
-                int16_t rawSampleR = zigzag(xaRingR, t);
+                int64_t zl = zigzag(xaRingL, t);
+                int64_t zr = zigzag(xaRingR, t);
+                // ATV matrix after the interpolator, then 1.026 before the 16-bit clamp and 0.973
+                // after it. On a SCPH-7502 the level rises linearly with ATV up to the clamp, and the
+                // clamped level sits at 31880, as with CD-DA.
+                int outL = std::clamp(int(((zl * xaAtv[0] + zr * xaAtv[3]) * 33617) >> 22), -0x8000, 0x7fff);
+                int outR = std::clamp(int(((zr * xaAtv[2] + zl * xaAtv[1]) * 33617) >> 22), -0x8000, 0x7fff);
+                int16_t rawSampleL = (outL * 31880) >> 15;
+                int16_t rawSampleR = (outR * 31880) >> 15;
                 if (mixIrqAddress) {
                     captureBuffer.CDCapLeft[captureBuffer.endIndex] = (uint16_t)rawSampleL;
                     captureBuffer.CDCapRight[captureBuffer.endIndex] = (uint16_t)rawSampleR;

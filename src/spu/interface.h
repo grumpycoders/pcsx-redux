@@ -86,6 +86,9 @@ class impl final : public SPUInterface {
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;
     virtual void playADPCMchannel(xa_decode_t *) final;
+    void setXAVolume(const uint8_t atv[4]) final {
+        for (unsigned i = 0; i < 4; i++) xaAtv[i] = atv[i];
+    }
 
     void save(SaveStates::SPU &) final;
     void load(const SaveStates::SPU &) final;
@@ -341,6 +344,7 @@ class impl final : public SPUInterface {
     unsigned xaRingPos = 0;
     int xaSixStep = 6;
     int16_t xaLastL = 0, xaLastR = 0;
+    uint8_t xaAtv[4] = {0x80, 0, 0x80, 0};
     int16_t zigzag(const int16_t *ring, unsigned table);
 
     SDLAudio m_audioOut = {settings};
