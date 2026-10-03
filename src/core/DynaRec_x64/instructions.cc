@@ -151,7 +151,7 @@ void DynaRecCPU::recSUBU(uint32_t code) {
                     gen.sub(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].val);
             }
         } else {
-            gen.lea(m_gprs[_Rd_].allocatedReg, dword[m_gprs[_Rs_].allocatedReg.cvt64() - m_gprs[_Rt_].val]);
+            gen.moveAndAdd(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, 0u - m_gprs[_Rt_].val);
         }
     } else {
         alloc_rt_rs_wb_rd(code);
