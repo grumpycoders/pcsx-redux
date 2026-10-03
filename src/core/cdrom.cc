@@ -341,9 +341,10 @@ class CDRomImpl final : public PCSX::CDRom {
 
     uint8_t getStatus(bool resetLid = false) {
         bool lidOpen = isLidOpen();
-        if (resetLid && !lidOpen) m_wasLidOpened = false;
         uint8_t v1 = m_motorOn && !lidOpen ? 0x02 : 0;
+        // The shell-open bit is reported by the GetStat that clears it (SCPH-7502).
         uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
+        if (resetLid && !lidOpen) m_wasLidOpened = false;
         uint8_t v567 = 0;
         switch (m_status) {
             case Status::ReadingData:
@@ -1112,6 +1113,18 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 28. SCPH-7502: acknowledges with no second response, then reports mode 0x20
+    // and the shell-open status bit, which stays set until a GetStat.
+    bool cdlReset(const QueueElement &command, bool start) {
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        applyMode(0x20);
+        m_wasLidOpened = true;
+        maybeScheduleNextCommand();
+        return false;
+    }
+
     // Command 30. Re-reads the table of contents. SCPH-7502: completes about 760 ms
     // after the acknowledge, with the motor still on.
     bool cdlReadTOC(const QueueElement &command, bool start) {
@@ -1230,7 +1243,15 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 14
     bool cdlSetMode(const QueueElement &command, bool start) {
-        uint8_t mode = command.payload[0];
+        applyMode(command.payload[0]);
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
+    void applyMode(uint8_t mode) {
         // TODO: add the rest of the mode bits.
         if (mode & 0x80) {
             if (m_speed == Speed::Simple) {
@@ -1267,11 +1288,6 @@ class CDRomImpl final : public PCSX::CDRom {
         // Bit 0 (CDDA) only matters for reading audio sectors as data, which is not modelled; keep it
         // for GetParam.
         m_mode = mode;
-        QueueElement response;
-        response.pushPayloadData(getStatus());
-        maybeTriggerIRQ(Cause::Acknowledge, response);
-        maybeScheduleNextCommand();
-        return false;
     }
 
     // Command 15.
@@ -1517,7 +1533,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlTest,
         &CDRomImpl::cdlID,
         &CDRomImpl::cdlReadS,  // 24
-        nullptr,
+        &CDRomImpl::cdlReset,
         nullptr,
         &CDRomImpl::cdlReadTOC,  // 28
 #endif
