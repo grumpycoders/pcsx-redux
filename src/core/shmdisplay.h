@@ -21,6 +21,8 @@
 
 #include <stdint.h>
 
+#include <atomic>
+
 #include "core/system.h"
 #include "support/eventbus.h"
 #include "support/sharedmem.h"
@@ -44,14 +46,15 @@ struct ShmDisplayHeader {
     uint32_t version;
     uint32_t headerSize;
     uint32_t vramOffset;
-    uint32_t sequence;
+    std::atomic<uint32_t> sequence;
     uint32_t frame;
     int32_t displayX, displayY, displayWidth, displayHeight;
     uint32_t displayDepth24;
     uint32_t displayEnabled;
-    uint32_t hostInput;
-    uint32_t hostPads[2];
+    std::atomic<uint32_t> hostInput;
+    std::atomic<uint32_t> hostPads[2];
 };
+static_assert(std::atomic<uint32_t>::is_always_lock_free && sizeof(std::atomic<uint32_t>) == 4);
 
 class ShmDisplay {
   public:

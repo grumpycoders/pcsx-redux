@@ -40,7 +40,7 @@ PCSX::ShmDisplay::ShmDisplay() : m_listener(g_system->m_eventBus) {
 }
 
 void PCSX::ShmDisplay::publish() {
-    std::atomic_ref<uint32_t> sequence(m_header->sequence);
+    auto& sequence = m_header->sequence;
     sequence.fetch_add(1, std::memory_order_acq_rel);
 
     auto& gpu = g_emulator->m_gpu;
@@ -59,8 +59,6 @@ void PCSX::ShmDisplay::publish() {
 }
 
 uint16_t PCSX::ShmDisplay::hostPad(int port) const {
-    std::atomic_ref<uint32_t> hostInput(m_header->hostInput);
-    if (hostInput.load(std::memory_order_acquire) == 0) return 0xffff;
-    std::atomic_ref<uint32_t> pad(m_header->hostPads[port]);
-    return pad.load(std::memory_order_relaxed);
+    if (m_header->hostInput.load(std::memory_order_acquire) == 0) return 0xffff;
+    return m_header->hostPads[port].load(std::memory_order_relaxed);
 }
