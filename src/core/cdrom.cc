@@ -1455,6 +1455,24 @@ class CDRomImpl final : public PCSX::CDRom {
                     maybeEnqueueError(1, 0x20);
                 }
                 break;
+            case 0x22: {
+                // Region string, plain text with no status byte. A SCPH-7502 answers "for Europe";
+                // follow the emulated video standard for the rest.
+                const bool pal = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() ==
+                                 PCSX::Emulator::PSX_TYPE_PAL;
+                QueueElement response;
+                response.pushPayloadData(pal ? std::string_view("for Europe") : std::string_view("for U/C"));
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
+            case 0x23:
+            case 0x24: {
+                // Servo amplifier and signal processor chip names; both "CXD2940Q" on a SCPH-7502.
+                QueueElement response;
+                response.pushPayloadData(std::string_view("CXD2940Q"));
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             default:
                 maybeEnqueueError(1, 0x10);
                 break;
