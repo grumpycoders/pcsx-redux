@@ -300,8 +300,31 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             }
             L.pop();
 
+            /* Full machine by default when isolation is asked for at all. "ram" is the lever
+               that says "I know this callee only touches memory" - cheaper, and blind to
+               anything else it turns out to touch. nonRamAccesses in the result is how you
+               check that claim rather than trusting it. */
+            enum { NoIsolation, FullIsolation, RamIsolation } isolation = NoIsolation;
             L.getfield("isolate", 1);
-            const bool isolate = L.toboolean();
+            if (L.isnumber()) {
+                return L.error("callGuest: isolate takes true, false, 'full' or 'ram'");
+            } else if (L.isstring()) {
+                auto mode = L.tostring();
+                if (mode == "ram") {
+                    isolation = RamIsolation;
+                } else if (mode == "full") {
+                    isolation = FullIsolation;
+                } else {
+                    L.pop();
+                    return L.error("callGuest: isolate takes true, false, 'full' or 'ram'");
+                }
+            } else if (L.toboolean()) {
+                isolation = FullIsolation;
+            }
+            L.pop();
+            const bool isolate = isolation == RamIsolation;
+            L.getfield("dirty", 1);
+            const bool wantDirty = L.toboolean();
             L.pop();
 
             /* Snapshot before anything mutates state. Memory::write32 bumps m_regs.cycle by
@@ -370,9 +393,12 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                touched and not an echo of the input we just placed. */
             /* Reused across calls: a harness makes thousands of these, and reallocating a
                couple of megabytes each time is pure waste. */
+            if (isolation == FullIsolation) SaveStates::capture(scratchState());
+            const uint64_t nonRamBefore = g_emulator->m_mem->m_nonRamAccesses;
+
             static std::vector<uint8_t> ramSnapshot;
             static std::vector<uint8_t> scratchSnapshot;
-            if (isolate) {
+            if (isolate || wantDirty) {
                 ramSnapshot.resize(ramSize);
                 scratchSnapshot.resize(0x400);
                 memcpy(ramSnapshot.data(), g_emulator->m_mem->m_wram, ramSize);
@@ -445,22 +471,28 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                anywhere it had no business writing", which for a routine with no destination
                bounds check is the whole question. The compare is a byte or two of work per
                page on top of a rollback that has to touch the memory anyway. */
+            const uint64_t nonRamAccesses = g_emulator->m_mem->m_nonRamAccesses - nonRamBefore;
+
             std::vector<uint32_t> dirty;
-            if (isolate) {
+            if (isolate || wantDirty) {
                 /* Compare and restore in one pass, and only touch the pages that actually
                    moved. A blanket restore of all of RAM costs the same whether the callee
                    wrote one page or every page, and it is nearly always one. */
                 for (uint32_t page = 0; page < ramSize; page += 0x10000) {
                     if (memcmp(g_emulator->m_mem->m_wram + page, ramSnapshot.data() + page, 0x10000) != 0) {
                         dirty.push_back(0x80000000 | page);
-                        memcpy(g_emulator->m_mem->m_wram + page, ramSnapshot.data() + page, 0x10000);
+                        if (isolate) memcpy(g_emulator->m_mem->m_wram + page, ramSnapshot.data() + page, 0x10000);
                     }
                 }
+            }
+            if (isolate) {
                 memcpy(g_emulator->m_mem->m_hard, scratchSnapshot.data(), 0x400);
                 for (const auto& [off, before] : stagedBefore) {
                     memcpy(g_emulator->m_mem->m_wram + off, before.data(), before.size());
                 }
                 g_emulator->m_cpu->invalidateCache();
+            } else if (isolation == FullIsolation) {
+                SaveStates::restore(scratchState());
             }
 
             regs.GPR = savedGPR;
@@ -509,6 +541,11 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                using this to check what a routine WROTE. */
             L.push("storesDropped");
             L.push(g_emulator->m_mem->m_writeLUT[0x8000] == nullptr);
+            L.settable();
+            /* Zero means the callee provably touched nothing but RAM, so isolate = 'ram' is
+               sound for it. Non-zero means it isn't, whatever the caller believed. */
+            L.push("nonRamAccesses");
+            L.push(lua_Number(nonRamAccesses));
             L.settable();
             L.push("out");
             L.newtable();
