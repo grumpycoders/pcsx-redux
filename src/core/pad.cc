@@ -1029,14 +1029,25 @@ bool PadsImpl::Pad::configure() {
         l_("Keyboard"),
     };
     static std::function<const char*()> const c_buttonNames[] = {
-        l_("╳"),  l_("□"),  l_("△"),  l_("◯"),  l_("Select"), l_("Start"),       l_("L1"),
-        l_("R1"), l_("L2"), l_("R2"), l_("L3"), l_("R3"),     l_("Analog Mode"),
+        []() { return "╳"; },
+        []() { return "□"; },
+        []() { return "△"; },
+        []() { return "◯"; },
+        lC_("Controller button", "Select"),
+        lC_("Controller button", "Start"),
+        []() { return "L1"; },
+        []() { return "R1"; },
+        []() { return "L2"; },
+        []() { return "R2"; },
+        []() { return "L3"; },
+        []() { return "R3"; },
+        l_("Analog Mode"),
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-        l_("↑"),
-        l_("→"),
-        l_("↓"),
-        l_("←"),
+        []() { return "↑"; },
+        []() { return "→"; },
+        []() { return "↓"; },
+        []() { return "←"; },
     };
     static std::function<const char*()> const c_controllerTypes[] = {
         l_("Digital"),

@@ -77,7 +77,7 @@ XA audio and audio tracks.)"));
                                          _("Cubic interpolation - better treble")};
     changed |= ImGui::Combo(_("Interpolation"), &settings.get<Interpolation>().value, interpolationValues,
                             IM_ARRAYSIZE(interpolationValues));
-    changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
+    changed |= ImGui::Checkbox(C_("Audio channels", "Mono"), &settings.get<Mono>().value);
     ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
     changed |= ImGui::InputInt(_("Speed multiplier"), &settings.get<Speed>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Emulation speed, applied at the audio sink (the master clock).
