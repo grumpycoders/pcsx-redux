@@ -45,7 +45,7 @@ struct CPUFeatures {
     bool ssse3 = false;
     bool sse41 = false;
     bool sse42 = false;
-    bool avx = false;   // implies OS XMM+YMM state
+    bool avx = false;  // implies OS XMM+YMM state
     bool fma = false;
     bool avx2 = false;  // implies avx
     bool avx512f = false;
