@@ -28,6 +28,7 @@ find a link to the vendored version itself.
  - [flags](https://github.com/sailormoon/flags) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/flags.h))
  - [fmt](https://github.com/fmtlib/fmt)
  - [FreeType](https://gitlab.freedesktop.org/freetype/freetype.git)
+ - [FTXUI](https://github.com/ArthurSonzogni/FTXUI)
  - [gl3w](https://github.com/skaslev/gl3w) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/gl3w/GL))
  - [SDL](https://www.libsdl.org)
  - [googletest](https://github.com/google/googletest)

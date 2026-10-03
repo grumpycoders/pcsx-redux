@@ -30,7 +30,9 @@
 
 namespace ftxui {
 class App;
+class ComponentBase;
 class Loop;
+struct Event;
 }  // namespace ftxui
 
 namespace PCSX {
@@ -50,14 +52,18 @@ class TerminalUI : public UI {
     void update(bool vsync = false) override;
     void addNotification(const std::string& notification) override;
 
-  private:
     struct Line {
         std::string text;
         bool error = false;
     };
+
+  private:
     void appendLines(std::deque<Line>& dest, std::string& pending, const std::string& msg, bool error);
     void execute(const std::string& cmd);
     void historyMove(int delta);
+    std::string formatResult(int index);
+    std::shared_ptr<ftxui::ComponentBase> buildLayout();
+    bool handleEvent(const ftxui::Event& event);
 
     std::mutex m_mutex;
     std::deque<Line> m_log;
@@ -70,6 +76,7 @@ class TerminalUI : public UI {
     std::string m_notification;
     std::chrono::steady_clock::time_point m_lastRedraw;
     std::unique_ptr<ftxui::App> m_app;
+    std::shared_ptr<ftxui::ComponentBase> m_layout;
     std::unique_ptr<ftxui::Loop> m_loop;
 };
 

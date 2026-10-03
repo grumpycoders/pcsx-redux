@@ -70,7 +70,7 @@ bool PCSX::TerminalUI::addLog(LogClass logClass, const std::string& msg) {
         appendLines(m_log, m_logPending, msg, false);
         while (m_log.size() > c_maxLogLines) m_log.pop_front();
     }
-    if (m_app) m_app->RequestAnimationFrame();
+    if (m_loop) m_app->RequestAnimationFrame();
     return true;
 }
 
@@ -81,7 +81,7 @@ void PCSX::TerminalUI::addLuaLog(const std::string& msg, bool error) {
         appendLines(m_lua, pending, msg + "\n", error);
         while (m_lua.size() > c_maxLuaLines) m_lua.pop_front();
     }
-    if (m_app) m_app->RequestAnimationFrame();
+    if (m_loop) m_app->RequestAnimationFrame();
 }
 
 void PCSX::TerminalUI::addNotification(const std::string& notification) {
@@ -89,7 +89,7 @@ void PCSX::TerminalUI::addNotification(const std::string& notification) {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_notification = notification;
     }
-    if (m_app) m_app->RequestAnimationFrame();
+    if (m_loop) m_app->RequestAnimationFrame();
 }
 
 void PCSX::TerminalUI::execute(const std::string& cmd) {
@@ -109,19 +109,29 @@ void PCSX::TerminalUI::execute(const std::string& cmd) {
             L.load(cmd, "console:", false);
         }
         int n = L.pcall();
-        for (int i = n; i > 0; i--) {
-            std::string value;
-            if (L.type(-i) == LUA_TNUMBER) {
-                value = fmt::format("{}", L.tonumber(-i));
-            } else {
-                value = L.tostring(-i);
-            }
-            addLuaLog(value, false);
-        }
+        int first = L.gettop() - n + 1;
+        for (int i = first; i < first + n; i++) addLuaLog(formatResult(i), false);
     } catch (std::exception& e) {
         addLuaLog(e.what(), true);
     }
     if (L.gettop() > top) L.pop(L.gettop() - top);
+}
+
+std::string PCSX::TerminalUI::formatResult(int index) {
+    auto L = *g_emulator->m_lua;
+    if (L.type(index) == LUA_TNUMBER) return fmt::format("{}", L.tonumber(index));
+    // Tables, functions and userdata have no string form of their own; ask Lua's tostring.
+    lua_State* s = L.getState();
+    lua_getglobal(s, "tostring");
+    lua_pushvalue(s, index);
+    std::string value = "(unprintable)";
+    if (lua_pcall(s, 1, 1, 0) == 0 && lua_isstring(s, -1)) {
+        size_t len;
+        const char* str = lua_tolstring(s, -1, &len);
+        value.assign(str, len);
+    }
+    lua_pop(s, 1);
+    return value;
 }
 
 void PCSX::TerminalUI::historyMove(int delta) {
@@ -136,11 +146,30 @@ void PCSX::TerminalUI::init(std::function<void()> applyArguments) {
     applyArguments();
     finishLoadSettings();
 
-    using namespace ftxui;
-    m_app = std::make_unique<App>(App::Fullscreen());
+    m_app = std::make_unique<ftxui::App>(ftxui::App::Fullscreen());
     m_app->TrackMouse(false);
     m_app->HandlePipedInput(false);
+    // The terminal is only taken over on the first update(), so a failure during the rest of
+    // startup leaves it untouched.
+    m_layout = buildLayout();
+}
 
+namespace {
+ftxui::Elements renderLines(const std::deque<PCSX::TerminalUI::Line>& lines, int height, int scroll) {
+    using namespace ftxui;
+    Elements out;
+    int end = static_cast<int>(lines.size()) - scroll;
+    int start = std::max(0, end - height);
+    for (int i = start; i < end; i++) {
+        auto t = text(lines[i].text);
+        out.push_back(lines[i].error ? t | color(Color::Red) : t);
+    }
+    return out;
+}
+}  // namespace
+
+std::shared_ptr<ftxui::ComponentBase> PCSX::TerminalUI::buildLayout() {
+    using namespace ftxui;
     InputOption inputOption;
     inputOption.multiline = false;
     inputOption.on_enter = [this]() {
@@ -150,25 +179,12 @@ void PCSX::TerminalUI::init(std::function<void()> applyArguments) {
     };
     auto input = Input(&m_input, "Lua", inputOption);
 
-    auto renderLines = [](const std::deque<Line>& lines, int height, int scroll) {
-        Elements out;
-        int end = static_cast<int>(lines.size()) - scroll;
-        int start = std::max(0, end - height);
-        for (int i = start; i < end; i++) {
-            auto t = text(lines[i].text);
-            out.push_back(lines[i].error ? t | color(Color::Red) : t);
-        }
-        return out;
-    };
-
-    auto layout = Renderer(input, [this, input, renderLines]() {
+    auto layout = Renderer(input, [this, input]() {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto dim = Terminal::Size();
         // Log gets everything left after the Lua pane, the separator, the input line and the status line.
-        int logHeight = std::max(1, dim.dimy - c_luaPaneHeight - 3);
-        bool running = g_system->running();
+        int logHeight = std::max(1, Terminal::Size().dimy - c_luaPaneHeight - 3);
         auto status = hbox({
-            text(running ? " RUNNING " : " PAUSED ") | inverted,
+            text(g_system->running() ? " RUNNING " : " PAUSED ") | inverted,
             text(fmt::format(" pc={:08x} ", g_emulator->m_cpu->m_regs.pc)),
             text(m_logScroll ? fmt::format(" scrolled -{} ", m_logScroll) : ""),
             filler(),
@@ -183,35 +199,29 @@ void PCSX::TerminalUI::init(std::function<void()> applyArguments) {
             status,
         });
     });
+    return CatchEvent(layout, [this](Event event) { return handleEvent(event); });
+}
 
-    layout = CatchEvent(layout, [this](Event event) {
-        if (event == Event::ArrowUp) {
-            historyMove(-1);
-            return true;
-        }
-        if (event == Event::ArrowDown) {
-            historyMove(1);
-            return true;
-        }
-        if (event == Event::PageUp || event == Event::PageDown) {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            int page = std::max(1, Terminal::Size().dimy / 2);
-            m_logScroll += event == Event::PageUp ? page : -page;
-            m_logScroll = std::clamp(m_logScroll, 0, std::max(0, static_cast<int>(m_log.size()) - 1));
-            return true;
-        }
-        if (event == Event::F5) {
-            if (g_system->running()) {
-                g_system->pause();
-            } else {
-                g_system->resume();
-            }
-            return true;
-        }
-        return false;
-    });
-
-    m_loop = std::make_unique<Loop>(m_app.get(), layout);
+bool PCSX::TerminalUI::handleEvent(const ftxui::Event& event) {
+    using ftxui::Event;
+    if (event == Event::ArrowUp || event == Event::ArrowDown) {
+        historyMove(event == Event::ArrowUp ? -1 : 1);
+        return true;
+    }
+    if (event == Event::PageUp || event == Event::PageDown) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        int page = std::max(1, ftxui::Terminal::Size().dimy / 2);
+        m_logScroll += event == Event::PageUp ? page : -page;
+        m_logScroll = std::clamp(m_logScroll, 0, std::max(0, static_cast<int>(m_log.size()) - 1));
+        return true;
+    }
+    if (event != Event::F5) return false;
+    if (g_system->running()) {
+        g_system->pause();
+    } else {
+        g_system->resume();
+    }
+    return true;
 }
 
 void PCSX::TerminalUI::setLua(Lua L) { setLuaCommon(L); }
@@ -219,11 +229,13 @@ void PCSX::TerminalUI::setLua(Lua L) { setLuaCommon(L); }
 void PCSX::TerminalUI::close() {
     // The loop owns the terminal state; destroying it restores the screen.
     m_loop.reset();
+    m_layout.reset();
     m_app.reset();
 }
 
 void PCSX::TerminalUI::update(bool vsync) {
     tick();
+    if (!m_loop && m_layout) m_loop = std::make_unique<ftxui::Loop>(m_app.get(), m_layout);
     if (m_loop) {
         // Nothing else asks for a redraw while the CPU runs, so the status line would sit still.
         auto now = std::chrono::steady_clock::now();

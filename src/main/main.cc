@@ -94,6 +94,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             s_ui->addLuaLog(s, error);
         }
+        if (m_args.isTuiEnabled()) return;
         if ((error && m_inStartup) || m_args.isLuaStdoutEnabled()) {
             if (error) {
                 fputs(s.c_str(), stderr);
