@@ -136,7 +136,7 @@ struct SampleKey {
     int hasLoop;             // loop flag (baked into the ADPCM block flags)
     unsigned int loopStart;  // loop start index when looping (affects the encoded loop point)
     unsigned int loopEnd;    // loop end index when looping (sets the cut point and the loop pitch correction)
-    int rootKey;            // region pitch_keycenter (read back for the tone center note)
+    int rootKey;             // region pitch_keycenter (read back for the tone center note)
     int transpose;           // region coarse tune
     int tune;                // region fine tune (cents)
     bool operator<(const SampleKey& o) const {
