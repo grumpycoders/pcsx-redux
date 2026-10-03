@@ -1112,6 +1112,28 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 30. Re-reads the table of contents. SCPH-7502: completes about 760 ms
+    // after the acknowledge, with the motor still on.
+    bool cdlReadTOC(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(760ms);
+            m_status = Status::Idle;
+            m_readingState = ReadingState::None;
+            m_readingType = ReadingType::None;
+            m_invalidLocL = true;
+            return true;
+        } else {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
     // Command 9.
     bool cdlPause(const QueueElement &command, bool start) {
         if (start) {
@@ -1497,7 +1519,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlReadS,  // 24
         nullptr,
         nullptr,
-        nullptr,  // 28
+        &CDRomImpl::cdlReadTOC,  // 28
 #endif
     };
 
