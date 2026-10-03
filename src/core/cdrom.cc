@@ -1065,6 +1065,53 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
+    // Command 7. Spins the motor up from stopped; on a spinning drive it is an error.
+    // SCPH-7502: completes about 2 s after the acknowledge.
+    bool cdlStandby(const QueueElement &command, bool start) {
+        if (start) {
+            if (m_motorOn) {
+                maybeEnqueueError(1, 0x20);
+                maybeScheduleNextCommand();
+                return false;
+            }
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(2000ms);
+            return true;
+        } else {
+            m_motorOn = true;
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 8. Stops reading or playing and the motor. SCPH-7502: completes about
+    // 400 ms after the acknowledge when spinning, under 2 ms when already stopped.
+    bool cdlStop(const QueueElement &command, bool start) {
+        if (start) {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            schedule(m_motorOn ? 400ms : 1700us);
+            m_status = Status::Idle;
+            m_readingState = ReadingState::None;
+            m_readingType = ReadingType::None;
+            m_invalidLocL = true;
+            m_motorOn = false;
+            return true;
+        } else {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
     // Command 9.
     bool cdlPause(const QueueElement &command, bool start) {
         if (start) {
@@ -1427,8 +1474,8 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlForward,
         &CDRomImpl::cdlBackward,
         &CDRomImpl::cdlReadN,
-        nullptr,  // 4
-        nullptr,
+        &CDRomImpl::cdlStandby,  // 4
+        &CDRomImpl::cdlStop,
         &CDRomImpl::cdlPause,
         &CDRomImpl::cdlInit,
         &CDRomImpl::cdlMute,  // 8
