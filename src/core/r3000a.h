@@ -190,6 +190,8 @@ struct psxRegisters {
     std::atomic<bool> spuInterrupt;
     uint64_t scheduleTargets[32];
     uint64_t lowestTarget;
+    uint64_t muldivReady;  // cycle at which hi/lo can be read without stalling
+    uint64_t gteReady;     // cycle at which the GTE can be accessed without stalling
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
     uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
@@ -316,6 +318,52 @@ class R3000Acpu {
         unsigned s = static_cast<unsigned>(s_);
         return (m_regs.scheduleMask & (1 << s)) != 0;
     }
+
+    // GTE command execution time, indexed by the command's function field.
+    // Zero for the function codes that aren't documented commands.
+    static uint32_t gteLatency(uint32_t funct) {
+        static constexpr uint8_t latencies[64] = {
+            0,  15, 0, 0,  0,  0, 8,  0, 0, 0, 0,  0,  6,  0, 0,  0,   // 00
+            8,  8,  8, 19, 13, 0, 44, 0, 0, 0, 0,  17, 11, 0, 14, 0,   // 10
+            30, 0,  0, 0,  0,  0, 0,  0, 5, 8, 17, 0,  0,  5, 6,  0,   // 20
+            23, 0,  0, 0,  0,  0, 0,  0, 0, 0, 0,  0,  0,  5, 5,  39,  // 30
+        };
+        return latencies[funct & 0x3f];
+    }
+    // Called when a GTE command issues, after the cycle counter was advanced
+    // for it. A new command waits for the previous one to finish.
+    void gteStart(uint32_t latency) {
+        gteStall();
+        m_regs.gteReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
+    }
+    // Called by mfc2, cfc2 and swc2, which wait for a running command to
+    // finish whichever register they access. mtc2, ctc2 and lwc2 don't wait.
+    void gteStall() {
+        if (m_regs.cycle < m_regs.gteReady) m_regs.cycle = m_regs.gteReady;
+    }
+
+    // Multiplier and divider result latency. A multiply takes 6, 9 or 13 cycles
+    // depending on the magnitude of rs only; a divide always takes 36.
+    static uint32_t multLatency(uint32_t rs, bool isSigned) {
+        if (isSigned && (int32_t(rs) < 0)) rs = ~rs;
+        if (rs < 0x800) return 6;
+        if (rs < 0x100000) return 9;
+        return 13;
+    }
+    static constexpr uint32_t c_divLatency = 36;
+    // Called when a mul/div issues, after the cycle counter was advanced for it.
+    // The result can be read by an instruction issuing latency cycles later.
+    // A mul/div issued while the unit is busy does not wait: it replaces the
+    // running operation.
+    void muldivStart(uint32_t latency) { m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS; }
+    // Called when hi/lo is read: waits for the running operation to complete.
+    void muldivStall() {
+        if (m_regs.cycle < m_regs.muldivReady) m_regs.cycle = m_regs.muldivReady;
+    }
+    // Called by mthi/mtlo, which abort a running multiply and leave the other
+    // register partially computed; the partial value is not modelled. A
+    // running divide is cancelled the same way, which hasn't been measured.
+    void muldivCancel() { m_regs.muldivReady = 0; }
 
     psxRegisters m_regs;
     float m_scheduleScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,

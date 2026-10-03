@@ -142,8 +142,8 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
     GUI* gui) {
     std::vector<std::pair<std::filesystem::path, std::string>> names;
 
-    // Get the filename prefix to use, which follows the typical save state format, excluding the separator between gameID and
-    // name
+    // Get the filename prefix to use, which follows the typical save state format, excluding the separator between
+    // gameID and name
     std::string prefix = gui->getSaveStatePrefix(false);
     std::string postfix = gui->getSaveStatePostfix();
 
@@ -155,8 +155,7 @@ std::vector<std::pair<std::filesystem::path, std::string>> PCSX::Widgets::NamedS
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().filename().string();
                 if (filename.rfind(postfix) == filename.length() - postfix.length()) {
-                    std::string niceName =
-                        filename.substr(0, filename.length() - (postfix.length()));
+                    std::string niceName = filename.substr(0, filename.length() - (postfix.length()));
                     // Only support names that fit within the character limit
                     if (niceName.length() < NAMED_SAVE_STATE_LENGTH_MAX) {
                         names.emplace_back(entry.path(), niceName);
@@ -185,7 +184,6 @@ bool PCSX::Widgets::NamedSaveStates::deleteSaveState(GUI* gui, std::filesystem::
 }
 
 std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* gui, std::string saveStateName) {
-
     // Check sub-folder for active game exists.
     std::error_code ec;
     std::string sub_folder = gui->getSaveStatePrefix(false);
@@ -193,9 +191,8 @@ std::filesystem::path PCSX::Widgets::NamedSaveStates::createSaveStatePath(GUI* g
     if (!std::filesystem::exists(base_path, ec)) {
         if (!std::filesystem::create_directory(base_path, ec)) {
             if (ec) {
-                g_system->log(LogClass::UI, "Failed to create save state folder '%s': %s\n",
-                               base_path.string().c_str(), ec.message().c_str());
-                
+                g_system->log(LogClass::UI, "Failed to create save state folder '%s': %s\n", base_path.string().c_str(),
+                              ec.message().c_str());
             }
         } else {
             g_system->log(LogClass::UI, "Created save state folder: %s\n", sub_folder.c_str());

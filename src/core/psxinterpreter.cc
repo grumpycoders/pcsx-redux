@@ -255,8 +255,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     GTE_WRAPPER(RTPS);
     GTE_WRAPPER(RTPT);
     GTE_WRAPPER(SQR);
-    GTE_WRAPPER(SWC2);
 #undef GTE_WRAPPER
+    void gteSWC2(uint32_t code) {
+        gteStall();
+        PCSX::g_emulator->m_gte->SWC2(code);
+    }
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
@@ -576,6 +579,7 @@ void InterpretedCPU::psxSLTU(uint32_t code) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 void InterpretedCPU::psxDIV(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ == 0) {
         _rHi_ = _rRs_;
         if (_rRs_ & 0x80000000) {
@@ -593,6 +597,7 @@ void InterpretedCPU::psxDIV(uint32_t code) {
 }
 
 void InterpretedCPU::psxDIVU(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ != 0) {
         _rLo_ = _rRs_ / _rRt_;
         _rHi_ = _rRs_ % _rRt_;
@@ -603,6 +608,7 @@ void InterpretedCPU::psxDIVU(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULT(uint32_t code) {
+    muldivStart(multLatency(_rRs_, true));
     uint64_t res = (int64_t)(int32_t)_rRs_ * (int64_t)(int32_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -610,6 +616,7 @@ void InterpretedCPU::psxMULT(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULTU(uint32_t code) {
+    muldivStart(multLatency(_rRs_, false));
     uint64_t res = (uint64_t)_rRs_ * (uint64_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -725,6 +732,7 @@ void InterpretedCPU::psxLUI(uint32_t code) {
  * Format:  OP rd                                         *
  *********************************************************/
 void InterpretedCPU::psxMFHI(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rHi_;
@@ -734,6 +742,7 @@ void InterpretedCPU::psxMFHI(uint32_t code) {
     _rRd_ = newValue;
 }  // Rd = Hi
 void InterpretedCPU::psxMFLO(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rLo_;
@@ -747,8 +756,14 @@ void InterpretedCPU::psxMFLO(uint32_t code) {
  * Move to GPR to HI/LO & Register jump                   *
  * Format:  OP rs                                         *
  *********************************************************/
-void InterpretedCPU::psxMTHI(uint32_t code) { _rHi_ = _rRs_; }  // Hi = Rs
-void InterpretedCPU::psxMTLO(uint32_t code) { _rLo_ = _rRs_; }  // Lo = Rs
+void InterpretedCPU::psxMTHI(uint32_t code) {
+    muldivCancel();
+    _rHi_ = _rRs_;  // Hi = Rs
+}
+void InterpretedCPU::psxMTLO(uint32_t code) {
+    muldivCancel();
+    _rLo_ = _rRs_;  // Lo = Rs
+}
 
 /*********************************************************
  * Special purpose instructions                           *
@@ -935,7 +950,7 @@ void InterpretedCPU::psxLW(uint32_t code) {
 void InterpretedCPU::psxLWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr & ~3, PCSX::Memory::leftByteMask(addr));
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -953,7 +968,7 @@ void InterpretedCPU::psxLWL(uint32_t code) {
 void InterpretedCPU::psxLWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr & ~3, PCSX::Memory::rightByteMask(addr));
 
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -998,15 +1013,11 @@ void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
+    // the preserved bytes aren't consumed, so msan doesn't check any of them
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr, 0);
 
-    PCSX::g_emulator->m_mem->write32(addr, ((_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32Masked(addr, ((_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]),
+                                           PCSX::Memory::leftByteMask(shift));
     /*
     Mem = 1234.  Reg = abcd
     0   123a   (reg >> 24) | (mem & 0xffffff00)
@@ -1020,15 +1031,11 @@ void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
+    // the preserved bytes aren't consumed, so msan doesn't check any of them
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr, 0);
 
-    PCSX::g_emulator->m_mem->write32(addr, ((_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32Masked(addr, ((_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]),
+                                           PCSX::Memory::rightByteMask(shift));
 
     /*
     Mem = 1234.  Reg = abcd
@@ -1088,12 +1095,14 @@ void InterpretedCPU::psxMTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
 void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
 
 void InterpretedCPU::psxMFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->MFC2(code);
 }
 
 void InterpretedCPU::psxCFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->CFC2(code);
@@ -1126,6 +1135,7 @@ void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) 
 void InterpretedCPU::psxCOP2(uint32_t code) {
     if ((m_regs.CP0.n.Status & 0x40000000) == 0) return;
 
+    if (code & 0x02000000) gteStart(gteLatency(_Funct_));
     (*this.*(s_pPsxCP2[_Funct_]))(code);
 }
 

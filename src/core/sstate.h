@@ -78,9 +78,11 @@ typedef Protobuf::MessageField<DelaySlotInfo, TYPESTRING("delay_slot_info_2"), 1
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("current_delayed_load"), 16> CurrentDelayedLoad;
 typedef Protobuf::RepeatedFieldRef<Protobuf::UInt64, 32, TYPESTRING("schedule_targets"), 17> ScheduleTargetsField;
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("in_isr"), 18> InISR;
+typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("muldiv_ready"), 19> MulDivReady;
+typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("gte_ready"), 20> GteReady;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, ScheduleMask, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
-                          ScheduleTargetsField, InISR>
+                          ScheduleTargetsField, InISR, MulDivReady, GteReady>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
@@ -215,8 +217,17 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("bcr"), 8> MDECDMABCR;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("chcr"), 9> MDECDMACHCR;
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("iq_y"), 10> MDECIQY;
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("iq_uv"), 11> MDECIQUV;
+// Added with MDEC(3) support. The raw quant tables are needed because the general
+// IDCT path must not use the AAN-prescaled ones, and the scale matrix is needed
+// because the hardware does not initialise it: a state restored without it would
+// decode every subsequent macroblock against a zero matrix.
+typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("qt_y"), 12> MDECQTY;
+typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("qt_uv"), 13> MDECQTUV;
+typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("scaletable"), 14> MDECScaleTable;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("custom_scale"), 15> MDECCustomScale;
 typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRlEnd, MDECBlockBufferPos,
-                          MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV>
+                          MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV, MDECQTY,
+                          MDECQTUV, MDECScaleTable, MDECCustomScale>
     MDEC;
 typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 

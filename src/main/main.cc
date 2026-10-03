@@ -56,10 +56,16 @@ class SystemImpl final : public PCSX::System {
             m_putcharBuffer.clear();
         }
     }
+    // stdout is fully buffered when it is a pipe, and the tools that capture it
+    // want every line as soon as it is written.
+    static void writeStdout(const std::string &s) {
+        ::fputs(s.c_str(), stdout);
+        ::fflush(stdout);
+    }
     virtual void message(std::string &&s) final override {
         if (m_args.isGUILogsEnabled()) s_ui->addNotification(s.c_str());
         if (s_ui->addLog(PCSX::LogClass::UI, s)) {
-            if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+            if (m_args.isStdoutEnabled()) writeStdout(s);
             if (m_logfile) m_logfile->write(std::move(s));
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
@@ -69,7 +75,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(logClass, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
@@ -78,7 +84,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
@@ -93,6 +99,7 @@ class SystemImpl final : public PCSX::System {
                 fputc('\n', stderr);
             } else {
                 puts(s.c_str());
+                fflush(stdout);
             }
         }
     }
@@ -176,7 +183,8 @@ void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 // is checked here.
 static bool checkCommandLinePaths(const CommandLine::args &args) {
     bool ok = true;
-    auto checkPath = [&args, &ok](const char *name, bool directory) {
+    std::string messages;
+    auto checkPath = [&args, &ok, &messages](const char *name, bool directory) {
         for (auto value : args.values(name)) {
             if (value.empty()) continue;
             std::string str(value);
@@ -186,15 +194,25 @@ static bool checkCommandLinePaths(const CommandLine::args &args) {
                 directory ? std::filesystem::is_directory(path, ec) : std::filesystem::is_regular_file(path, ec);
             if (found) continue;
             ok = false;
+            std::string message;
             if (ec && ec != std::errc::no_such_file_or_directory && ec != std::errc::not_a_directory) {
-                fmt::print(stderr, "-{}: unable to access '{}': {}\n", name, str, ec.message());
+                message = fmt::format("-{}: unable to access '{}': {}\n", name, str, ec.message());
             } else {
-                fmt::print(stderr, "-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
+                message = fmt::format("-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
             }
+            fmt::print(stderr, "{}", message);
+            messages += message;
         }
     };
     for (auto name : {"bios", "iso", "loadiso", "disk", "loadexe", "exe", "archive"}) checkPath(name, false);
     checkPath("pcdrvbase", true);
+#if defined(_WIN32) || defined(_WIN64)
+    // A plain GUI launch (no -stdout / -no-ui / -cli) has no console, so the stderr output above
+    // goes nowhere and the process would otherwise just exit with no visible trace of why.
+    if (!ok && GetConsoleWindow() == NULL) {
+        MessageBoxA(NULL, messages.c_str(), "pcsx-redux", MB_ICONERROR | MB_OK);
+    }
+#endif
     return ok;
 }
 
@@ -473,6 +491,8 @@ runner.init({
                 PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
+            auto luaexecs = args.values("exec");
+            if (!dofiles.empty() || !luaexecs.empty()) PCSX::System::setCrashReportTag("user_lua", "cmdline");
             L->load("return function(name) Support.extra.dofile(name) end", "internal:dofile.lua");
             for (auto &dofile : dofiles) {
                 L->copy(-1);
@@ -482,7 +502,6 @@ runner.init({
             L->pop();
 
             // Then run all of the Lua "exec" commands.
-            auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
                 L->load(std::string(luaexec), "cmdline:");
             }

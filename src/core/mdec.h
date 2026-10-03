@@ -46,6 +46,12 @@ class MDEC {
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
 
+    // An uploaded quant table as the AAN decoder caches it (each entry times
+    // its prescale factor), and back. The factors are all non-zero, so the
+    // reverse is an exact division.
+    static void iqtab_init(int *iqtab, const unsigned char *qt);
+    static void qtab_fromIqtab(unsigned char *qt, const int *iqtab);
+
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
      * That mean (PCSX::g_emulator->m_psxClockSpeed / MDEC_BIAS) B/s
@@ -78,6 +84,27 @@ class MDEC {
     } mdec;
 
     int iq_y[DSIZE2], iq_uv[DSIZE2];
+    // Raw quantization tables, without the AAN prescale folded in. The fast IDCT
+    // needs the prescaled form; real_idct_core must not have it (psx-spx annotates
+    // "val=val*scalezag[i]" as being for fast_idct_core only).
+    uint8_t qt_y[DSIZE2], qt_uv[DSIZE2];
+    // Scale matrix from MDEC(3). Defaults to the standard JPEG-derived constants,
+    // which is what every shipping game uploads. When something uploads anything
+    // else we have to stop pretending and run the general matrix multiply.
+    // The AAN prescale on its own, separate from the quant table it is normally
+    // folded into. psx-spx applies the 11-bit saturation to the raw dequantized
+    // value BEFORE "val = val * scalezag[i]", so the fast path has to be able to
+    // reach the two factors independently.
+    int aanPrescale[DSIZE2];
+    int16_t scaletable[DSIZE2];
+    bool customScaleTable = false;
+    // The hardware does NOT initialise the scale matrix: measured 2026-09-14 on
+    // real consoles, a decode with no MDEC(3) upload returns flat mid-grey for
+    // every pixel. We reproduce that rather than silently substituting the
+    // standard constants, and say so once in the log, because the alternative is
+    // homebrew that works here and shows a grey rectangle on console.
+    bool scaleTableUploaded = false;
+    bool warnedNoScaleTable = false;
 
     static inline const int zscan[DSIZE2] = {
         0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,   // 00
@@ -100,7 +127,9 @@ class MDEC {
     void putlinebw15(uint16_t *image, int *Yblk);
     void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb);
     void yuv2rgb15(int *blk, unsigned short *image);
-    void iqtab_init(int *iqtab, unsigned char *iq_y);
+    void scaletable_init();
+    void standardTables_init();
+    void real_idct(int *block);
     unsigned short *rl2blk(int *blk, unsigned short *mdec_rl);
 };
 

@@ -168,7 +168,7 @@ void DynaRecCPU::emitBlockLookup() {
         loadAddress(rax, m_recompilerLUT);
         gen.mov(rax, qword[rax + rcx * 8]);
     }
-    gen.jmp(qword[rax + rdx * 2]);  // Jump to block
+    gen.jmp(ptr[rax + rdx * 2]);  // Jump to block
 }
 
 void DynaRecCPU::emitDispatcher() {
@@ -407,6 +407,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
         if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
+        m_instructionCount = count;
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it

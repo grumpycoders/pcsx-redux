@@ -174,8 +174,12 @@ void PCSX::Counters::update() {
             g_emulator->m_cpu->m_regs.previousCycles = cycle;
             g_emulator->m_spu->waitForGoal(target);
             m_audioFrames = target;
-        } else if (framesDiff < -2000000000) {
-            m_audioFrames = newFrames;
+        } else if (framesDiff < -kMaxAudioLagFrames) {
+            // The host couldn't sustain the requested speed. Cap the debt, otherwise returning to 1x runs
+            // the CPU unthrottled until it has caught up. Resetting it to zero would stall every update on
+            // the next audio callback instead.
+            g_emulator->m_cpu->m_regs.previousCycles = cycle;
+            m_audioFrames = newFrames - kMaxAudioLagFrames;
         }
     }
 
@@ -272,9 +276,10 @@ void PCSX::Counters::recalculateRate(uint32_t index) {
                 uint32_t divider = dotclockDividers[static_cast<int>(hres)];
                 uint32_t videoCyclesPerScanline = (videoMode == GPU::CtrlDisplayMode::VM_PAL) ? 3406 : 3413;
                 uint32_t dotsPerScanline = videoCyclesPerScanline / divider;
-                uint32_t cpuCyclesPerScanline = (PCSX::g_emulator->m_psxClockSpeed /
-                    (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
-                     m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+                uint32_t cpuCyclesPerScanline =
+                    (PCSX::g_emulator->m_psxClockSpeed /
+                     (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                      m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
                 m_rcnts[index].rate = std::max<uint32_t>(cpuCyclesPerScanline / dotsPerScanline, 1);
             } else {
                 m_rcnts[index].rate = 1;

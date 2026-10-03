@@ -31,7 +31,7 @@ static float dpi_pixel_height_from_point_size(float pointSize, float pixelScaleY
 }
 
 PCSX::Widgets::ZepEditor::ZepEditor(const std::string& name)
-    : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::ZepPath(""),
+    : m_editor(std::make_unique<Zep::ZepEditor>(new Zep::ZepDisplay_ImGui(), Zep::fs::path(""),
                                                 Zep::ZepEditorFlags::DisableThreads)) {
     m_editor->RegisterCallback(this);
 
@@ -88,7 +88,19 @@ void PCSX::Widgets::ZepEditor::draw(GUI* gui) {
 
     // Display the editor inside this window
     m_editor->Display();
+
+    // Cover the editor with an item so ImGui doesn't treat clicks in it as clicks
+    // on empty window space, which would start dragging the window.
+    ImGui::SetCursorScreenPos(min);
+    ImGui::InvisibleButton("##zep", ImVec2(max.x - min.x, max.y - min.y),
+                           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+
     auto& io = ImGui::GetIO();
+
+    // Taking the wheel keeps a scrollable parent window from also scrolling.
+    if (ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY) && io.MouseWheel != 0.0f) {
+        m_editor->OnMouseWheel(Zep::toNVec2f(io.MousePos), io.MouseWheel);
+    }
 
     if (io.MouseDelta.x != 0 || io.MouseDelta.y != 0) {
         m_editor->OnMouseMove(Zep::toNVec2f(io.MousePos));

@@ -122,6 +122,7 @@ void PCSX::SIO1::sio1StateMachine() {
                     if (m_fifo->size() < messageSize) return;
                     decodeMessage();
                     m_decodeState = READ_SIZE;
+                    if (fifoError()) return;
             }
     }
 }

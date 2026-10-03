@@ -43,6 +43,8 @@
 #define LO_OFFSET ((uintptr_t) & m_regs.GPR.n.lo - (uintptr_t)this)
 #define HI_OFFSET ((uintptr_t) & m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t) & m_regs.cycle - (uintptr_t)this)
+#define MULDIV_READY_OFFSET ((uintptr_t) & m_regs.muldivReady - (uintptr_t)this)
+#define GTE_READY_OFFSET ((uintptr_t) & m_regs.gteReady - (uintptr_t)this)
 
 #undef _PC_
 #undef _Op_
@@ -85,6 +87,22 @@
 
 static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+// LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
+static uint32_t lwlReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
+}
+static uint32_t lwrReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
+}
+static uint32_t unalignedStoreReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address, 0);
+}
+static void swlWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
+}
+static void swrWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
+}
 static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
@@ -115,7 +133,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;  // Recompiler PC
+    uint32_t m_pc;                // Recompiler PC
+    unsigned m_instructionCount;  // Instructions compiled so far in the current block
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
@@ -448,6 +467,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
+    void emitStallUntil(uintptr_t readyOffset);
+    void emitMuldivStall();
+    void emitMuldivNow();
+    void emitMuldivStart(uint32_t latency);
+    void emitMultStart(uint32_t code, bool isSigned);
     void recMTLO(uint32_t code);
     void recMULT(uint32_t code);
     void recMULTU(uint32_t code);

@@ -158,9 +158,7 @@ struct Coroutine {
         From yield_value(From &&from) {
             return std::forward<From>(from);
         }
-        void return_value(T &&value) {
-            m_value = std::move(value);
-        }
+        void return_value(T &&value) { m_value = std::move(value); }
         T m_value;
         std::coroutine_handle<> m_awaitingCoroutine;
     };

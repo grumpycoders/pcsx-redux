@@ -24,7 +24,28 @@
 #define COP2_CONTROL_OFFSET(reg) ((uintptr_t) & m_regs.CP2C.r[(reg)] - (uintptr_t)this)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t) & m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
+// Waits until the cycle stored at readyOffset. Block cycles are only added to
+// the cycle counter at the end of a block, so the current cycle is computed
+// from the position of this instruction in the block. Leaves it in rax.
+void DynaRecCPU::emitStallUntil(uintptr_t readyOffset) {
+    Label noStall;
+    gen.mov(rax, qword[contextPointer + CYCLE_OFFSET]);
+    gen.add(rax, m_instructionCount * PCSX::Emulator::BIAS);
+    gen.mov(rcx, qword[contextPointer + readyOffset]);
+    gen.cmp(rax, rcx);
+    gen.jae(noStall);
+    gen.sub(rcx, rax);
+    gen.add(qword[contextPointer + CYCLE_OFFSET], rcx);
+    gen.add(rax, rcx);
+    gen.L(noStall);
+}
+
 void DynaRecCPU::recCOP2(uint32_t code) {
+    if (code & 0x02000000) {  // GTE command: wait for the previous one, then mark the GTE busy
+        emitStallUntil(GTE_READY_OFFSET);
+        gen.add(rax, gteLatency(code & 0x3f) + PCSX::Emulator::BIAS);
+        gen.mov(qword[contextPointer + GTE_READY_OFFSET], rax);
+    }
     const auto func = m_recGTE[m_regs.code & 0x3F];  // Look up the opcode in our decoding LUT
     (*this.*func)(code);                             // Jump into the handler to recompile it
 }
@@ -233,6 +254,7 @@ void DynaRecCPU::loadGTEDataRegister(Reg32 dest, int index) {
 }
 
 void DynaRecCPU::recMFC2(uint32_t code) {
+    emitStallUntil(GTE_READY_OFFSET);
     if (!_Rt_) return;
 
     const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
@@ -279,6 +301,7 @@ void DynaRecCPU::recMFC2(uint32_t code) {
 }
 
 void DynaRecCPU::recCFC2(uint32_t code) {
+    emitStallUntil(GTE_READY_OFFSET);
     if (!_Rt_) return;
 
     const auto loadDelayDependency = getLoadDelayDependencyType(_Rt_);
@@ -365,6 +388,7 @@ void DynaRecCPU::recLWC2(uint32_t code) {
 }
 
 void DynaRecCPU::recSWC2(uint32_t code) {
+    emitStallUntil(GTE_READY_OFFSET);
     loadGTEDataRegister(arg3, _Rt_);  // Load the register we'll write to memory in arg3
 
     // Address in arg2

@@ -228,7 +228,7 @@ void prepareM2RawFrame(uint8_t* frame, uint32_t lba, const uint8_t* data2336) {
 
 PCSX::ISO9660::DirTree* PCSX::ISO9660Builder::createRoot(unsigned sectorCount) {
     auto node = std::make_unique<ISO9660::DirTree>();
-    node->m_name = "\x01";  // root name in path table
+    node->m_name = std::string(1, '\x00');  // root name in path table
     node->m_isDir = true;
     node->m_dirSectorCount = sectorCount;
     node->m_hasXA = true;
@@ -336,7 +336,7 @@ uint32_t PCSX::ISO9660Builder::computePathTableSize() const {
     for (auto* dir : m_dirsInBFSOrder) {
         uint8_t nameLen;
         if (dir == m_root) {
-            nameLen = 1;  // root name is \x01
+            nameLen = 1;  // root name is \x00
         } else {
             nameLen = dir->m_name.size();
         }
@@ -413,9 +413,9 @@ void PCSX::ISO9660Builder::computeLayout() {
         if (!node->hasAnchorLBA()) return;
         uint32_t anchor = node->getAnchorLBA();
         if (anchor < currentSector) {
-            throw std::runtime_error(
-                "ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" + node->m_name +
-                "' is before current layout cursor " + std::to_string(currentSector));
+            throw std::runtime_error("ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" +
+                                     node->m_name + "' is before current layout cursor " +
+                                     std::to_string(currentSector));
         }
         if (anchor > currentSector) {
             m_anchorPaddingRanges.emplace_back(currentSector, anchor);
@@ -611,7 +611,7 @@ void PCSX::ISO9660Builder::serializePathTable(uint8_t* buf, uint32_t bufSize, bo
         const char* name;
         if (dir == m_root) {
             nameLen = 1;
-            name = "\x01";
+            name = "\x00";
         } else {
             nameLen = dir->m_name.size();
             name = dir->m_name.c_str();

@@ -28,8 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       # Most dependencies resolve to system packages, but fmt still comes from
       # xmake's own repository and gets built from source. Cache it so that
       # only happens when xmake.lua changes.
@@ -56,8 +57,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       # -P . is mandatory, and the space in it is load-bearing: xmake resolves
       # the project by walking up to the topmost xmake.lua, so without it this
       # builds the emulator from the repository root instead of the sample.

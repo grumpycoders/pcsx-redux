@@ -2,6 +2,7 @@
 #include <ctime>
 #include <stack>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 #include <functional>
@@ -14,6 +15,10 @@
 #define IFD_DIALOG_SAVE			2
 
 namespace ifd {
+	inline std::filesystem::path stringToU8Path(const std::string& str) {
+		return std::filesystem::path(std::u8string(str.begin(), str.end()));
+	}
+
 	class FileDialog {
 	public:
 		FileDialog();
@@ -55,7 +60,7 @@ namespace ifd {
 #endif
 
 			FileTreeNode(const std::string& path) {
-				Path = std::filesystem::u8path(path);
+				Path = stringToU8Path(path);
 				Read = false;
 			}
 
