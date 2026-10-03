@@ -314,6 +314,14 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             regs.pc = pc;
 
             auto outcome = g_emulator->m_cpu->RunUntil(ra, cycles);
+            if (outcome == R3000Acpu::RunUntilResult::Reentered) {
+                regs.GPR = savedGPR;
+                regs.pc = savedPC;
+                return L.error(
+                    "callGuest can't be nested: this one was called from inside another guest call, most likely from "
+                    "a breakpoint invoker that fired during it. An ExecutionFlow event listener is a fine place to "
+                    "call from; the middle of an instruction is not.");
+            }
             if (outcome == R3000Acpu::RunUntilResult::Unsupported) {
                 regs.GPR = savedGPR;
                 regs.pc = savedPC;
