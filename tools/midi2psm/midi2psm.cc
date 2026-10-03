@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -55,6 +56,7 @@ using PCSX::MidiConverter::MIDI_CC_VOLUME;
 using PCSX::MidiConverter::MIDI_DRUM_CHANNEL;
 using PCSX::MidiConverter::MIDI_META;
 using PCSX::MidiConverter::MIDI_META_COPYRIGHT;
+using PCSX::MidiConverter::MIDI_META_CUE_POINT;
 using PCSX::MidiConverter::MIDI_META_MARKER;
 using PCSX::MidiConverter::MIDI_META_TRACK_NAME;
 using PCSX::MidiConverter::MIDI_META_TEMPO;
@@ -92,6 +94,7 @@ enum PsmEventType : uint8_t {
     PSM_TEMPO_CHANGE = 0x0A,
     PSM_LOOP_POINT = 0x0B,
     PSM_END = 0x0C,
+    PSM_USER = 0x0D,
     PSM_LONG_WAIT = 0xFF,
 };
 
@@ -495,6 +498,26 @@ void ConvertContext::generate() {
         if (mev.type == MIDI_META && mev.data1 == MIDI_META_TEMPO) {
             currentTempo = mev.tempo;
             emitEvent(PSM_TEMPO_CHANGE, 0, computeTickRate(), mev.absoluteTick);
+            continue;
+        }
+
+        // A cue point whose text is "tag:payload" becomes a USER event for the program playing the song.
+        if (mev.type == MIDI_META && mev.data1 == MIDI_META_CUE_POINT) {
+            std::string_view text = mev.textData;
+            auto colon = text.find(':');
+            unsigned tag = 0;
+            uint32_t payload = 0;
+            if (colon != std::string_view::npos) {
+                auto end = text.data() + colon;
+                auto [p1, e1] = std::from_chars(text.data(), end, tag);
+                auto [p2, e2] = std::from_chars(end + 1, text.data() + text.size(), payload);
+                if (e1 == std::errc() && p1 == end && e2 == std::errc() && p2 == text.data() + text.size() &&
+                    tag <= 255) {
+                    emitEvent(PSM_USER, tag, payload, mev.absoluteTick);
+                    continue;
+                }
+            }
+            fmt::print(stderr, "Ignoring cue point \"{}\" at tick {}: expected tag:payload\n", text, mev.absoluteTick);
             continue;
         }
 
