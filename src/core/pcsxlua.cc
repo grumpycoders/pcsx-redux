@@ -19,6 +19,10 @@
 
 #include "core/pcsxlua.h"
 
+#include <algorithm>
+#include <vector>
+
+#include "core/callstacks.h"
 #include "core/debug.h"
 #include "core/gpu.h"
 #include "core/gpudump.h"
@@ -223,6 +227,177 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     L.push("execSlots");
     L.newtable();
     L.settable();
+    L.declareFunc(
+        "callGuest",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if ((L.gettop() != 1) || !L.istable(1)) {
+                return L.error("callGuest takes a single table argument");
+            }
+            auto field = [&L](const char* name, uint32_t def, bool* present = nullptr) -> uint32_t {
+                L.getfield(name, 1);
+                uint32_t ret = def;
+                if (L.isnumber()) {
+                    ret = uint32_t(int64_t(L.tonumber()));
+                    if (present) *present = true;
+                }
+                L.pop();
+                return ret;
+            };
+
+            bool hasPC = false;
+            const uint32_t pc = field("pc", 0, &hasPC);
+            if (!hasPC) return L.error("callGuest needs a pc to call");
+            if (pc & 3) return L.error("callGuest: pc 0x%08x isn't aligned", pc);
+            /* The sentinel only ever gets compared against, never fetched from, so it just
+               has to be aligned and somewhere the callee will never legitimately jump. */
+            const uint32_t ra = field("ra", 0x8f000000);
+            if (ra & 3) return L.error("callGuest: ra sentinel 0x%08x isn't aligned", ra);
+            const uint64_t cycles = field("cycles", 100000000);
+
+            auto& regs = g_emulator->m_cpu->m_regs;
+            /* Default to the top of RAM, which is where the BIOS leaves the stack anyway.
+               Callers with a live program should hand us something of their own. */
+            uint32_t sp = field("sp", ((g_emulator->getRamMask<1>() + 1) - 16) | 0x80000000);
+            if (sp & 7) return L.error("callGuest: sp 0x%08x isn't 8-byte aligned", sp);
+
+            std::vector<uint32_t> args;
+            L.getfield("args", 1);
+            if (L.istable()) {
+                size_t n = L.length();
+                for (size_t i = 1; i <= n; i++) {
+                    L.rawgeti(i);
+                    args.push_back(uint32_t(int64_t(L.tonumber())));
+                    L.pop();
+                }
+            } else if (!L.isnil()) {
+                L.pop();
+                return L.error("callGuest: args has to be a table");
+            }
+            L.pop();
+
+            /* Snapshot before anything mutates state. Memory::write32 bumps m_regs.cycle by
+               one per access, so staging the stack arguments first would leak into the
+               clock we're about to promise we left alone. */
+            const auto savedGPR = regs.GPR;
+            const auto savedCP0 = regs.CP0;
+            const auto savedCP2D = regs.CP2D;
+            const auto savedCP2C = regs.CP2C;
+            const uint32_t savedPC = regs.pc;
+            const uint32_t savedCode = regs.code;
+            const uint64_t savedCycle = regs.cycle;
+            /* Read-only peek at the callstack monitor. We deliberately don't drive it: a frame
+               is opened by the callee spilling $ra, not by us, and CallStacks::setSP has a
+               branch that destroys non-matching stacks, so a naive save/restore is unsafe. */
+            auto& callStacks = g_emulator->m_callStacks;
+            const unsigned depthBefore =
+                callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
+
+            /* o32: a0-a3 in registers, the rest on the stack, and the caller owes the callee
+               a 16-byte argument save area whether it uses it or not. Argument n lands at
+               sp + 4 * (n - 1), so the fifth is the first one that actually goes to memory. */
+            size_t frame = std::max<size_t>(16, args.size() * 4);
+            frame = (frame + 7) & ~size_t(7);
+            sp -= frame;
+            for (size_t i = 4; i < args.size(); i++) {
+                g_emulator->m_mem->write32(sp + i * 4, args[i]);
+            }
+
+            for (size_t i = 0; i < 4; i++) {
+                regs.GPR.r[4 + i] = i < args.size() ? args[i] : 0;
+            }
+            regs.GPR.n.sp = sp;
+            regs.GPR.n.ra = ra;
+            bool hasGP = false;
+            uint32_t gp = field("gp", 0, &hasGP);
+            if (hasGP) regs.GPR.n.gp = gp;
+            regs.pc = pc;
+
+            auto outcome = g_emulator->m_cpu->RunUntil(ra, cycles);
+            if (outcome == R3000Acpu::RunUntilResult::Unsupported) {
+                regs.GPR = savedGPR;
+                regs.pc = savedPC;
+                return L.error(
+                    "callGuest needs the interpreter: the recompilers emit no per-instruction checks, so they can't "
+                    "be stopped on an arbitrary pc. Start with -interpreter, or turn the dynarec off in Emulation "
+                    "settings and reboot the emulator.");
+            }
+
+            const uint32_t v0 = regs.GPR.n.v0;
+            const uint32_t v1 = regs.GPR.n.v1;
+            const uint64_t spent = regs.cycle - savedCycle;
+            const unsigned depthAfter =
+                callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
+            const uint32_t faultPC = regs.pc;
+            const uint32_t cause = regs.CP0.n.Cause;
+            const uint32_t epc = regs.CP0.n.EPC;
+            const uint32_t badVAddr = regs.CP0.n.BadVAddr;
+
+            regs.GPR = savedGPR;
+            regs.CP0 = savedCP0;
+            regs.CP2D = savedCP2D;
+            regs.CP2C = savedCP2C;
+            regs.pc = savedPC;
+            regs.code = savedCode;
+            regs.cycle = savedCycle;
+
+            L.newtable();
+            L.push("status");
+            switch (outcome) {
+                case R3000Acpu::RunUntilResult::Reached:
+                    L.push("returned");
+                    break;
+                case R3000Acpu::RunUntilResult::OutOfCycles:
+                    L.push("cycles");
+                    break;
+                case R3000Acpu::RunUntilResult::Exception:
+                    L.push("exception");
+                    break;
+                default:
+                    L.push("unknown");
+                    break;
+            }
+            L.settable();
+            L.push("v0");
+            L.push(lua_Number(v0));
+            L.settable();
+            L.push("v1");
+            L.push(lua_Number(v1));
+            L.settable();
+            L.push("cycles");
+            L.push(lua_Number(spent));
+            L.settable();
+            /* A leaf callee never spills $ra, so it never opens a frame and this stays 0.
+               A non-zero delta after a clean return means the callee unwound badly. */
+            L.push("depth");
+            L.push(lua_Number(int32_t(depthAfter) - int32_t(depthBefore)));
+            L.settable();
+            /* setLuts() nulls the whole RAM write LUT whenever the BIU says the caches are
+               isolated, which is also the state a cold emulator boots into. Every guest store
+               then vanishes, and the unknown-address log that would have said so is gated on
+               the same predicate, so it vanishes quietly. Worth saying out loud to anyone
+               using this to check what a routine WROTE. */
+            L.push("storesDropped");
+            L.push(g_emulator->m_mem->m_writeLUT[0x8000] == nullptr);
+            L.settable();
+            if (outcome == R3000Acpu::RunUntilResult::Exception) {
+                L.push("exceptionCode");
+                L.push(lua_Number((cause >> 2) & 0x1f));
+                L.settable();
+                L.push("epc");
+                L.push(lua_Number(epc));
+                L.settable();
+                L.push("badVAddr");
+                L.push(lua_Number(badVAddr));
+                L.settable();
+            } else if (outcome == R3000Acpu::RunUntilResult::OutOfCycles) {
+                L.push("pc");
+                L.push(lua_Number(faultPC));
+                L.settable();
+            }
+            return 1;
+        },
+        -1);
     L.declareFunc(
         "getSaveStateProtoSchema",
         [](lua_State* L_) -> int {

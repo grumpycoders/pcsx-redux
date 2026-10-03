@@ -104,6 +104,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
+    virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
@@ -128,7 +129,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
-    template <bool debug, bool trace>
+    template <bool debug, bool trace, bool detached = false>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
     uint32_t branchBase();
@@ -1650,6 +1651,31 @@ void InterpretedCPU::Execute() {
     }
 }
 
+PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64_t cycleBudget) {
+    ZoneScoped;
+    const uint64_t deadline = m_regs.cycle + cycleBudget;
+    /* m_inISR is how we hear about an exception: exception() sets it unconditionally, and
+       it covers the cop0 vectors too, which enumerating the four vector addresses wouldn't.
+       We own it for the duration and hand it back the way we found it. */
+    const bool wasInISR = m_inISR;
+    m_inISR = false;
+    auto result = RunUntilResult::OutOfCycles;
+    while (true) {
+        if (m_regs.pc == stopPC) {
+            result = RunUntilResult::Reached;
+            break;
+        }
+        if (m_regs.cycle >= deadline) break;
+        execBlock<false, false, true>();
+        if (m_inISR) {
+            result = RunUntilResult::Exception;
+            break;
+        }
+    }
+    m_inISR = wasInISR;
+    return result;
+}
+
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
     for (auto i = 0; i < Size; i += 4) {
         flushICacheLine(Addr);
@@ -1659,7 +1685,7 @@ void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
 
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
-template <bool debug, bool trace>
+template <bool debug, bool trace, bool detached>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
     do {
@@ -1700,14 +1726,23 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = false;
             ranDelaySlot = true;
             InterceptBIOS<true>(m_regs.pc);
-            branchTest();
+            /* A detached block runs the cpu with nothing else attached to it: no counters,
+               no scheduled interrupts, and in particular no Counters::update() -> SPU
+               waitForGoal(), which is a real-time sleep. RunUntil() wants the cpu alone. */
+            if constexpr (!detached) branchTest();
         }
         if constexpr (debug) {
             uint32_t newPC = m_regs.pc;
             uint32_t newCode = readICache(newPC);
             PCSX::g_emulator->m_debug->process(pc, newPC, code, newCode, fromLink);
         }
-    } while (!ranDelaySlot && !debug);
+        /* A detached block returns per instruction, like a debug one. Block granularity
+           looks tempting here and is wrong: this loop only ends on a retired delay slot, so
+           straight-line code with no branches never yields. Guest code that runs off into
+           blank RAM executes nops until it happens to meet a branch, which measured at
+           262113 instructions in one call - long past any cycle budget, and long past the
+           exception that sent it there. */
+    } while (!ranDelaySlot && !debug && !detached);
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {
