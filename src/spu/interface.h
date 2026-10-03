@@ -33,6 +33,7 @@
 #include "spu/reverb.h"
 #include "spu/sdlaudio.h"
 #include "spu/types.h"
+#include "support/file.h"
 #include "support/settings.h"
 
 namespace PCSX {
@@ -91,6 +92,7 @@ class impl final : public SPUInterface {
     void load(const SaveStates::SPU &) final;
 
     virtual void setLua(Lua L) override;
+    bool setWavDump(const std::filesystem::path &path) final;
 
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
@@ -344,6 +346,12 @@ class impl final : public SPUInterface {
     int16_t zigzag(const int16_t *ring, unsigned table);
 
     SDLAudio m_audioOut = {settings};
+
+    // Optional capture of the mix, see setWavDump. Only the mixer thread writes to it
+    // once it is running.
+    void writeWavDump(const SDLAudio::Frame *frames, size_t count);
+    IO<File> m_wavDump;
+    uint32_t m_wavDumpBytes = 0;
     xa_decode_t m_cdda;
 
     // Debug window.
