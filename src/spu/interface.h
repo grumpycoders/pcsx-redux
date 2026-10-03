@@ -209,6 +209,7 @@ class impl final : public SPUInterface {
     // against the reader's cycle instead and the thread's position stops being an
     // input. The mixer is untouched and keeps using its own live envelope.
     uint16_t reconstructEnvelope(int ch, uint64_t cycle);
+    void resetAdpcmWalk(int ch);
     // Samples elapsed at a CPU cycle, on the hardware 768 cycles/sample ratio.
     uint64_t cycleToSample(uint64_t cycle) const;
     // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
@@ -309,6 +310,17 @@ class impl final : public SPUInterface {
         int32_t cachedVol = 0;
         int32_t cachedFraction = 0;
         bool cachedOn = true;
+        // The ADPCM cursor, walked alongside the envelope so the walk knows the sample
+        // where an end block without repeat stops the voice. Offsets into SPU RAM.
+        static constexpr uint32_t kNoLoop = UINT32_MAX;
+        static constexpr uint32_t kStopped = UINT32_MAX - 1;
+        uint32_t block = 0;           // next block to decode, or kStopped
+        uint32_t loop = kNoLoop;      // repeat address, or kNoLoop
+        bool ignoreLoop = false;      // the repeat address was written by the CPU
+        int left = 0;                 // samples left in the current block
+        int32_t pos = 0;              // 16.16 pitch counter, same as Interpolator
+        int32_t pitchStep = 0x10000;  // 16.16 pitch step
+        bool ended = false;           // an end block without repeat stopped the voice
     };
     EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
 
