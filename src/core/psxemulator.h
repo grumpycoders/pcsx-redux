@@ -234,8 +234,9 @@ class Emulator {
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
 
-    // In-memory rewind ring; front() is oldest, back() is most recent.
-    std::deque<std::string> m_rewindStates;
+    // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
+    struct RewindRing;
+    std::unique_ptr<RewindRing> m_rewindRing;
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything
@@ -260,12 +261,12 @@ class Emulator {
     void vsync();
     void setPGXPMode(uint32_t pgxpMode);
 
-    // Rewind: ring of in-memory save states captured every RewindInterval frames,
-    // bounded to RewindCount entries. Naive first cut - full serialized snapshots,
-    // restored through the regular load() path (so the dynarec cache is reset for us).
+    // Rewind: ring of in-memory snapshots taken every RewindInterval frames, bounded to
+    // RewindCount entries. Entries are SaveStates::capture()d messages, restored with
+    // SaveStates::restore(), so neither direction goes through the protobuf encoding.
     void createRewindState();
     bool rewindState();
-    size_t rewindStateCount() const { return m_rewindStates.size(); }
+    size_t rewindStateCount() const;
 
     void setLua();
 
