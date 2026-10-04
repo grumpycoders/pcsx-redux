@@ -309,8 +309,22 @@ class impl final : public SPUInterface {
         int32_t cachedVol = 0;
         int32_t cachedFraction = 0;
         bool cachedOn = true;
+        // The ADPCM cursor, walked alongside the envelope so the walk knows the sample
+        // where an end block without repeat stops the voice. Offsets into SPU RAM.
+        static constexpr uint32_t kNoLoop = UINT32_MAX;
+        static constexpr uint32_t kStopped = UINT32_MAX - 1;
+        uint32_t block = 0;           // next block to decode, or kStopped
+        uint32_t loop = kNoLoop;      // repeat address, or kNoLoop
+        bool ignoreLoop = false;      // the repeat address was written by the CPU
+        int left = 0;                 // samples left in the current block
+        int32_t pos = 0;              // 16.16 pitch counter, same as Interpolator
+        int32_t pitchStep = 0x10000;  // 16.16 pitch step
+        bool ended = false;           // an end block without repeat stopped the voice
+        bool untracked = false;       // pitch-modulated since key-on, so the cursor is unknown
     };
     EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
+    void resetAdpcmWalk(int ch);
+    bool adpcmWalkReachedStop(EnvelopeCheckpoint &cp);
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 

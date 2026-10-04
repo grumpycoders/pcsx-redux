@@ -32,6 +32,17 @@ TEST(SPU, Endx) {
     EXPECT_EQ(ret, 0);
 }
 
+// A voice that plays an ADPCM block flagged end-without-repeat goes to Release with its
+// envelope forced to 0, without any KEY OFF, and games poll ENVX for exactly that. The
+// guest checks when ENVX first reads 0 against the SPUSTAT bit 11 clock, at a constant
+// pitch and across a mid-sample pitch change, with a looping voice as the control.
+TEST(SPU, EndMute) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu-endmute/spu-endmute.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
 // Two things psx-spx documents about SPU IRQ9: the SPU disables its own interrupt when
 // the address matches, and a voice keeps reading SPU RAM after it has been keyed off and
 // its envelope has fallen to zero. The guest asserts both against a playing voice first,
