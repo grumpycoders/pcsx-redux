@@ -146,7 +146,7 @@ class CDRomImpl final : public PCSX::CDRom {
         if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1].clear();
-            PCSX::g_emulator->m_mem->setIRQ(4);
+            raiseIRQIfUnmasked();
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
@@ -307,15 +307,23 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
+    // HINTMSK gates the interrupt line, not the cause: a masked cause still lands in HINTSTS,
+    // and the interrupt fires when the mask lets it through. The mask applies to the bits of
+    // the cause value: on a SCPH-7502, cause 3 is held back by 1Ch and goes through 1Bh.
+    void raiseIRQIfUnmasked() {
+        if (!m_responseFifo[0].valueEmpty() && (m_responseFifo[0].value & m_interruptCauseMask)) {
+            PCSX::g_emulator->m_mem->setIRQ(4);
+        }
+    }
+
     void maybeTriggerIRQ(Cause cause, QueueElement &element) {
         uint8_t causeValue = static_cast<uint8_t>(cause);
-        uint8_t bit = 1 << (causeValue - 1);
-        if (m_interruptCauseMask & bit) {
+        {
             element.setValue(cause);
             bool actuallyTriggering = false;
             if (maybeEnqueueResponse(element)) {
-                PCSX::g_emulator->m_mem->setIRQ(4);
-                actuallyTriggering = true;
+                raiseIRQIfUnmasked();
+                actuallyTriggering = (causeValue & m_interruptCauseMask) != 0;
             }
             const bool debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>();
@@ -326,15 +334,9 @@ class CDRomImpl final : public PCSX::CDRom {
                                         regs.pc, regs.cycle, causeValue);
                 } else {
                     PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                        "CD-Rom: %08x.%08x] wanted to trigger IRQ with cause %d, but queue is full\n",
+                                        "CD-Rom: %08x.%08x] cause %d queued or masked, no IRQ yet\n",
                                         regs.pc, regs.cycle, causeValue);
                 }
-            }
-        } else {
-            if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-                    .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
-                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: wanted to trigger IRQ but cause %d is masked...\n",
-                                    causeValue);
             }
         }
     }
@@ -570,6 +572,7 @@ class CDRomImpl final : public PCSX::CDRom {
             case 1: {
                 // HINT MSK (host interrupt mask)
                 m_interruptCauseMask = value;
+                raiseIRQIfUnmasked();
             } break;
             case 2: {
                 // ATV0 Left-to-Left
