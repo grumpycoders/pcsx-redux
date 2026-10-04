@@ -770,9 +770,15 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
                 if (s_chan[ch].data.get<Chan::FMod>().value != 1) {
                     PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i Pitch Modulation ON\n", ch);
                 }
-                // Sound channel. Its ADPCM position stops being knowable to the ENVX walk.
+                // Sound channel. Its ADPCM position stops being knowable to the ENVX walk,
+                // so bring the walk up to this write first: an end block reached before it
+                // still stops the voice.
+                auto &cp = m_envelopeCheckpoint[ch];
+                if (cp.keyedOn && !cp.untracked && s_chan[ch].data.get<Chan::FMod>().value != 1) {
+                    reconstructEnvelope(ch, readerCycle());
+                }
                 s_chan[ch].data.get<Chan::FMod>().value = 1;
-                if (m_envelopeCheckpoint[ch].keyedOn) m_envelopeCheckpoint[ch].untracked = true;
+                if (cp.keyedOn) cp.untracked = true;
                 // Frequency channel.
                 s_chan[ch - 1].data.get<Chan::FMod>().value = 2;
             }
