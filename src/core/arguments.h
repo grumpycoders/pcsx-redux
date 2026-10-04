@@ -41,8 +41,11 @@ class Arguments {
     bool isStdoutEnabled() const { return m_stdoutEnabled; }
 
     // Returns true if Lua should be displaying its console output to stdout.
-    // Enabled with the flags -lua_stdout, -no-ui, or -cli.
+    // Enabled with the flags -lua_stdout, -no-ui, or -cli, but never with -tui.
     bool isLuaStdoutEnabled() const { return m_luaStdoutEnabled; }
+
+    // Enabled with the flag -tui. The terminal belongs to the UI, so nothing may write to it directly.
+    bool isTuiEnabled() const { return m_tuiEnabled; }
 
     // Returns true if the GUI logs window should be enabled.
     // Disabled with -testmode or -no-gui-log.
@@ -89,6 +92,7 @@ class Arguments {
   private:
     std::string m_portablePath = "";
     bool m_luaStdoutEnabled = false;
+    bool m_tuiEnabled = false;
     bool m_stdoutEnabled = false;
     bool m_guiLogsEnabled = true;
     bool m_testModeEnabled = false;
