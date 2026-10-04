@@ -215,12 +215,11 @@ void PCSX::Memory::reset() {
         m_bios[index++] = w & 0xff;
         w >>= 8;
     }
-    strcpy((char *)m_bios + index, _(R"(
-                   No BIOS loaded, emulation halted.
-
-Set a BIOS file into the configuration, and do a hard reset of the emulator.
-The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
-)"));
+    std::string nobiosMessage = fmt::format("\n{:19}{}\n\n{}\n", "", _("No BIOS loaded, emulation halted."),
+                                            _("Set a BIOS file into the configuration, and do a hard reset of the "
+                                              "emulator.\nThe distributed OpenBIOS.bin file can be an appropriate "
+                                              "BIOS replacement."));
+    strcpy((char *)m_bios + index, nobiosMessage.c_str());
 
     uint32_t nobioscrc = crc32(0L, Z_NULL, 0);
     nobioscrc = crc32(nobioscrc, m_bios, bios_size);

@@ -308,3 +308,8 @@ extern System *g_system;
 #define f_(str) fmt::runtime(PCSX::g_system->getStr(PCSX::djb::ctHash(str), str))
 // Lambda string lookup to use with static arrays of strings
 #define l_(str) []() { return PCSX::g_system->getStr(PCSX::djb::ctHash(str), str); }
+// Same as _() and l_(), with a translation context for strings whose meaning
+// depends on where they're used, e.g. C_("Menu", "Update"). The context shows up
+// as msgctxt in the .pot file, and both arguments need to be string literals.
+#define C_(ctx, str) PCSX::g_system->getStr(PCSX::djb::ctHash(ctx "\004" str), str)
+#define lC_(ctx, str) []() { return PCSX::g_system->getStr(PCSX::djb::ctHash(ctx "\004" str), str); }

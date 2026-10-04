@@ -804,7 +804,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_parallelPortEditor.title = l_("Parallel Port");
     m_scratchPadEditor.title = l_("Scratch Pad");
     m_hwrEditor.title = l_("Hardware Registers");
-    m_biosEditor.title = l_("BIOS");
+    m_biosEditor.title = []() { return "BIOS"; };
     m_vramEditor.title = l_("VRAM");
     auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
@@ -1490,7 +1490,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                if (ImGui::BeginMenu(_("Lua"))) {
+                if (ImGui::BeginMenu("Lua")) {
                     ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
                     ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
                     ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
@@ -1620,7 +1620,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::TextUnformatted(_("Idle"));
+                ImGui::TextUnformatted(C_("Audio status", "Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -2010,7 +2010,7 @@ the update and manually apply it.)")));
             }
             ImGui::ProgressBar(m_update.progress());
             if (!m_updateDownloading) {
-                if (ImGui::Button(_("Update"))) {
+                if (ImGui::Button(C_("Update dialog button", "Update"))) {
                     m_updateDownloading = true;
                     bool started = m_update.downloadAndApplyUpdate(
                         g_system->getVersion(),
@@ -2033,7 +2033,7 @@ the update and manually apply it.)")));
                     }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button(_("Download"))) {
+                if (ImGui::Button(C_("Update dialog button", "Download"))) {
                     m_updateDownloading = true;
                     bool started = m_update.getDownloadUrl(
                         g_system->getVersion(),
@@ -2563,7 +2563,7 @@ bool PCSX::GUI::about() {
                     if (version.buildId.has_value()) {
                         ImGui::Text(_("Build: %i"), version.buildId.value());
                     }
-                    ImGui::TextUnformatted(_("Changeset: "));
+                    ImGui::TextUnformatted(_("Changeset:"));
                     ImGui::SameLine();
                     if (ImGui::SmallButton(version.changeset.c_str())) {
                         openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
