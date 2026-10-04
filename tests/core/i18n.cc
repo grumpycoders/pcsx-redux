@@ -81,10 +81,10 @@ TEST(I18n, Context) {
         out << c_poFile;
     }
     TestSystem system;
-    auto* oldSystem = PCSX::g_system;
-    PCSX::g_system = &system;
     ASSERT_TRUE(system.loadLocale("Test", path));
     system.activateLocale("Test");
+    auto* oldSystem = PCSX::g_system;
+    PCSX::g_system = &system;
     EXPECT_STREQ(_("Mono"), "Mono-fr");
     EXPECT_STREQ(C_("Audio channels", "Mono"), "Mono-audio");
     EXPECT_STREQ(C_("Multiline", "Split string"), "Split-ctx");
