@@ -29,6 +29,7 @@
 #include <magic_enum/magic_enum_all.hpp>
 
 #include "core/psxemulator.h"
+#include "core/shmdisplay.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
@@ -149,6 +150,9 @@ class PadsImpl : public PCSX::Pads {
 
         // overriding from Lua
         uint16_t overrides = 0xffff;
+
+        // input from a host application, see ShmDisplay
+        uint16_t hostButtons = 0xffff;
 
         // Analog stick values in range (0 - 255) where 128 = center
         uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
@@ -717,6 +721,8 @@ void PadsImpl::Pad::getButtons() {
 uint8_t PadsImpl::startPoll(Port port) {
     int index = magic_enum::enum_integer(port);
     m_pads[index].getButtons();
+    auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
+    m_pads[index].m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
     return m_pads[index].startPoll();
 }
 
@@ -843,7 +849,7 @@ uint8_t PadsImpl::Pad::startPoll() {
 
 uint8_t PadsImpl::Pad::read() {
     const PadData& pad = m_data;
-    uint16_t buttonStatus = pad.buttonStatus & pad.overrides;
+    uint16_t buttonStatus = pad.buttonStatus & pad.overrides & pad.hostButtons;
     if (!m_settings.get<SettingConnected>()) {
         m_bufferLen = 0;
         return 0xff;
@@ -1358,8 +1364,9 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 }
                 auto buttons = m_pads[pad].m_data.buttonStatus;
                 auto overrides = m_pads[pad].m_data.overrides;
+                auto hostButtons = m_pads[pad].m_data.hostButtons;
                 unsigned button = L.checknumber(1);
-                L.push(((overrides & buttons) & (1 << button)) == 0);
+                L.push(((overrides & buttons & hostButtons) & (1 << button)) == 0);
                 return 1;
             },
             -1);

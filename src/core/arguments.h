@@ -77,6 +77,10 @@ class Arguments {
     // Toggled with the flags -viewports / -no-viewports.
     bool isViewportsEnabled() const { return m_viewportsEnabled; }
 
+    // Returns true if the display and pad input should be shared with a host application.
+    // Enabled with the flag -shmdisplay.
+    bool isShmDisplayEnabled() const { return m_shmDisplayEnabled; }
+
     // Returns the path to the portable directory. Set with the flag -portable, or
     // to the executable's directory when that is where the pcsx.json was found.
     // Empty means the current directory.
@@ -93,6 +97,7 @@ class Arguments {
     bool m_uiResetRequested = false;
     bool m_shadersDisabled = false;
     bool m_updateDisabled = false;
+    bool m_shmDisplayEnabled = false;
 #ifdef __linux__
     bool m_viewportsEnabled = false;
 #else
