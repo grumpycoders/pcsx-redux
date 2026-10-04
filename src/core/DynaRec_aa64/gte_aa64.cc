@@ -25,6 +25,10 @@
 #define COP2_DATA_OFFSET(reg) ((uintptr_t) & m_regs.CP2D.r[(reg)] - (uintptr_t)this)
 
 void DynaRecCPU::recCOP2(uint32_t code) {
+    if (_Rs_ == 8) {
+        recBCz(code);
+        return;
+    }
     const auto func = m_recGTE[code & 0x3f];  // Look up the opcode in our decoding LUT
     (*this.*func)(code);                      // Jump into the handler to recompile it
 }

@@ -261,6 +261,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\copbranch.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
