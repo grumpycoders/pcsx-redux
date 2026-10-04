@@ -1441,9 +1441,9 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 25.
     bool cdlTest(const QueueElement &command, bool start) {
-        // A vC0 controller. Reporting a later version makes the retail BIOS issue ReadTOC while
-        // it has the CD interrupts masked, and the boot stalls there.
-        static constexpr uint8_t c_test20[] = {0x94, 0x09, 0x19, 0xc0};
+        // Controller date and version, from the SCPH-7502 the rest of this file is measured on
+        // (1 Feb 1999, vC3).
+        static constexpr uint8_t c_test20[] = {0x99, 0x02, 0x01, 0xc3};
         if (command.isPayloadEmpty()) {
             maybeEnqueueError(1, 0x20);
             maybeScheduleNextCommand();
@@ -1460,6 +1460,24 @@ class CDRomImpl final : public PCSX::CDRom {
                     maybeEnqueueError(1, 0x20);
                 }
                 break;
+            case 0x22: {
+                // Region string, plain text with no status byte. A SCPH-7502 answers "for Europe";
+                // follow the emulated video standard for the rest.
+                const bool pal = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() ==
+                                 PCSX::Emulator::PSX_TYPE_PAL;
+                QueueElement response;
+                response.pushPayloadData(pal ? std::string_view("for Europe") : std::string_view("for U/C"));
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
+            case 0x23:
+            case 0x24: {
+                // Servo amplifier and signal processor chip names; both "CXD2940Q" on a SCPH-7502.
+                QueueElement response;
+                response.pushPayloadData(std::string_view("CXD2940Q"));
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             default:
                 maybeEnqueueError(1, 0x10);
                 break;
