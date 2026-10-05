@@ -1,6 +1,8 @@
 # Breakpoints
 If the debugger is activated, and while using the interpreter, the Lua code can insert powerful breakpoints using the following API:
 
+Breakpoints added while the debugger is off are accepted, but won't trigger until it is turned on, either with the `-debugger` command line flag or from the configuration menu. `PCSX.addBreakpoint` prints a warning in that case.
+
 ```lua
 PCSX.addBreakpoint(address, type, width, cause, invoker)
 ```
