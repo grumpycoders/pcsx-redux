@@ -1204,8 +1204,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val >> shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, address);         // Unaligned address in arg1
-        gen.mov(arg2, eax);             // Address to write to in arg2
+        gen.mov(arg1, address);  // Unaligned address in arg1
+        gen.mov(arg2, eax);      // Address to write to in arg2
         call(swlWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
@@ -1306,8 +1306,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val << shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, address);         // Unaligned address in arg1
-        gen.mov(arg2, eax);             // Address to write to in arg2
+        gen.mov(arg1, address);  // Unaligned address in arg1
+        gen.mov(arg2, eax);      // Address to write to in arg2
         call(swrWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;

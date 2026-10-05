@@ -295,8 +295,8 @@ typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("qt_uv"), 13> MD
 typedef Protobuf::RepeatedField<Protobuf::Int32, 64, TYPESTRING("scaletable"), 14> MDECScaleTable;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("custom_scale"), 15> MDECCustomScale;
 typedef Protobuf::Message<TYPESTRING("MDEC"), MDECReg0, MDECReg1, MDECRl, MDECRlEnd, MDECBlockBufferPos,
-                          MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV, MDECQTY,
-                          MDECQTUV, MDECScaleTable, MDECCustomScale>
+                          MDECBlockBuffer, MDECDMAADR, MDECDMABCR, MDECDMACHCR, MDECIQY, MDECIQUV, MDECQTY, MDECQTUV,
+                          MDECScaleTable, MDECCustomScale>
     MDEC;
 typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 
