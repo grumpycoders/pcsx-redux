@@ -1131,6 +1131,11 @@ void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
     if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
         m_regs.pc -= 4;
         exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
+        if (m_inDelaySlot) {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            if (!delayedLoad.pcActive) abort();
+            delayedLoad.pcActive = false;
+        }
         return;
     }
     if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);
