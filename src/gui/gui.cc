@@ -2135,6 +2135,7 @@ the update and manually apply it.)")));
         L.pop();
     }
     m_notifier.draw();
+    m_passiveNotifier.draw();
 
     if (m_showResetSettings) {
         ImGui::OpenPopup(_("Reset settings"));
@@ -2856,6 +2857,11 @@ bool PCSX::GUI::saveSaveState(std::filesystem::path filename) {
     bool success = !save.failed();
     if (success) save.writeString(SaveStates::save());
     save.close();
+    if (success) {
+        addNotice(fmt::format(f_("State saved to {}"), filename.filename().string()));
+    } else {
+        addNotice(fmt::format(f_("Failed to save state to {}"), filename.filename().string()));
+    }
     return success;
 }
 
@@ -2864,7 +2870,10 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
         filename = g_system->getPersistentDir() / filename;
     }
     ZReader save(new PosixFile(filename));
-    if (save.failed()) return false;
+    if (save.failed()) {
+        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()));
+        return false;
+    }
     std::ostringstream os;
     constexpr unsigned buff_size = 1 << 16;
     char* buff = new char[buff_size];
@@ -2883,8 +2892,61 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     save.close();
     delete[] buff;
 
-    if (!error) SaveStates::load(os.str());
+    if (error) {
+        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()));
+    } else {
+        SaveStates::load(os.str());
+        addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()));
+    }
     return !error;
+}
+
+void PCSX::GUI::PassiveNotifier::draw() {
+    constexpr double c_duration = 3.0;
+    constexpr double c_fadeTime = 0.5;
+    constexpr size_t c_maxShown = 4;
+
+    const double now = ImGui::GetTime();
+    while (!m_shown.empty() && (now - m_shown.front().shownAt) >= c_duration) m_shown.pop_front();
+    while (!m_pending.empty() && (m_shown.size() < c_maxShown)) {
+        m_shown.push_back(std::move(m_pending.front()));
+        m_shown.back().shownAt = now;
+        m_pending.pop_front();
+    }
+    if (m_shown.empty()) return;
+
+    // The foreground draw list sits above every window, including the full window render, and isn't a window
+    // itself, so it can't grab focus or inputs.
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImDrawList* drawList = ImGui::GetForegroundDrawList(const_cast<ImGuiViewport*>(viewport));
+    const ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
+    const float fontSize = ImGui::GetFontSize();
+    const float wrapWidth = viewport->WorkSize.x * 0.8f;
+    const ImVec2 padding = style.WindowPadding;
+    const ImVec4 bgColor = style.Colors[ImGuiCol_PopupBg];
+    const ImVec4 textColor = style.Colors[ImGuiCol_Text];
+
+    // Newest at the bottom, older ones stacked above it.
+    float bottom = viewport->WorkPos.y + viewport->WorkSize.y - padding.y * 2.0f;
+    for (auto it = m_shown.rbegin(); it != m_shown.rend(); it++) {
+        const double remaining = c_duration - (now - it->shownAt);
+        const float alpha = remaining < c_fadeTime ? float(remaining / c_fadeTime) : 1.0f;
+        const char* text = it->message.c_str();
+        const ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, wrapWidth, text);
+        const ImVec2 boxSize = ImVec2(textSize.x + padding.x * 2.0f, textSize.y + padding.y * 2.0f);
+        const ImVec2 boxMin =
+            ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - boxSize.x) / 2.0f, bottom - boxSize.y);
+        const ImVec2 boxMax = ImVec2(boxMin.x + boxSize.x, bottom);
+        drawList->AddRectFilled(
+            boxMin, boxMax, ImGui::ColorConvertFloat4ToU32(ImVec4(bgColor.x, bgColor.y, bgColor.z, bgColor.w * alpha)),
+            style.WindowRounding);
+        drawList->AddText(
+            font, fontSize, ImVec2(boxMin.x + padding.x, boxMin.y + padding.y),
+            ImGui::ColorConvertFloat4ToU32(ImVec4(textColor.x, textColor.y, textColor.z, textColor.w * alpha)), text,
+            nullptr, wrapWidth);
+        bottom = boxMin.y - style.ItemSpacing.y;
+    }
 }
 
 bool PCSX::GUI::deleteSaveState(std::filesystem::path filename) {
