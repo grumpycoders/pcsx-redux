@@ -309,7 +309,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // HINTMSK gates the interrupt line, not the cause: a masked cause still lands in HINTSTS,
     // and the interrupt fires when the mask lets it through. The mask applies to the bits of
-    // the cause value: on a SCPH-7502, cause 3 is held back by 1Ch and goes through 1Bh.
+    // the cause value: on a SCPH-9002, cause 3 is held back by 1Ch and goes through 1Bh.
     void raiseIRQIfUnmasked() {
         if (!m_responseFifo[0].valueEmpty() && (m_responseFifo[0].value & m_interruptCauseMask)) {
             PCSX::g_emulator->m_mem->setIRQ(4);
@@ -344,7 +344,7 @@ class CDRomImpl final : public PCSX::CDRom {
     uint8_t getStatus(bool resetLid = false) {
         bool lidOpen = isLidOpen();
         uint8_t v1 = m_motorOn && !lidOpen ? 0x02 : 0;
-        // The shell-open bit is reported by the GetStat that clears it (SCPH-7502).
+        // The shell-open bit is reported by the GetStat that clears it (SCPH-9002).
         uint8_t v4 = m_wasLidOpened ? 0x10 : 0;
         if (resetLid && !lidOpen) m_wasLidOpened = false;
         uint8_t v567 = 0;
@@ -910,7 +910,7 @@ class CDRomImpl final : public PCSX::CDRom {
     static int16_t saturate(int v) { return v < -32768 ? -32768 : (v > 32767 ? 32767 : v); }
 
     // CD-DA through the ATV matrix (ATV0 L->L, ATV1 L->R, ATV2 R->R, ATV3 R->L, 0x80 = unity),
-    // with the levels a SCPH-7502 gives on its SPU CD capture: 0.950 before the 16-bit clamp and
+    // with the levels a SCPH-9002 gives on its SPU CD capture: 0.950 before the 16-bit clamp and
     // 0.973 after it. A full-scale sine at unity comes out at 0.924, and the clamped level sits
     // at 31880.
     void attenuateCDDA(int16_t *buf, int frames) {
@@ -1070,7 +1070,7 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     // Command 7. Spins the motor up from stopped; on a spinning drive it is an error.
-    // SCPH-7502: completes about 2 s after the acknowledge.
+    // SCPH-9002: completes about 2 s after the acknowledge.
     bool cdlStandby(const QueueElement &command, bool start) {
         if (start) {
             if (m_motorOn) {
@@ -1093,7 +1093,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    // Command 8. Stops reading or playing and the motor. SCPH-7502: completes about
+    // Command 8. Stops reading or playing and the motor. SCPH-9002: completes about
     // 400 ms after the acknowledge when spinning, under 2 ms when already stopped.
     bool cdlStop(const QueueElement &command, bool start) {
         if (start) {
@@ -1116,7 +1116,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
-    // Command 28. SCPH-7502: acknowledges with no second response, then reports mode 0x20
+    // Command 28. SCPH-9002: acknowledges with no second response, then reports mode 0x20
     // and the shell-open status bit, which stays set until a GetStat.
     bool cdlReset(const QueueElement &command, bool start) {
         QueueElement response;
@@ -1128,7 +1128,7 @@ class CDRomImpl final : public PCSX::CDRom {
         return false;
     }
 
-    // Command 30. Re-reads the table of contents. SCPH-7502: completes about 760 ms
+    // Command 30. Re-reads the table of contents. SCPH-9002: completes about 760 ms
     // after the acknowledge, with the motor still on.
     bool cdlReadTOC(const QueueElement &command, bool start) {
         if (start) {
@@ -1441,7 +1441,7 @@ class CDRomImpl final : public PCSX::CDRom {
 
     // Command 25.
     bool cdlTest(const QueueElement &command, bool start) {
-        // Controller date and version, from the SCPH-7502 the rest of this file is measured on
+        // Controller date and version, from the SCPH-9002 the rest of this file is measured on
         // (1 Feb 1999, vC3).
         static constexpr uint8_t c_test20[] = {0x99, 0x02, 0x01, 0xc3};
         if (command.isPayloadEmpty()) {
@@ -1461,7 +1461,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 }
                 break;
             case 0x22: {
-                // Region string, plain text with no status byte. A SCPH-7502 answers "for Europe";
+                // Region string, plain text with no status byte. A SCPH-9002 answers "for Europe";
                 // follow the emulated video standard for the rest.
                 const bool pal = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() ==
                                  PCSX::Emulator::PSX_TYPE_PAL;
@@ -1472,7 +1472,7 @@ class CDRomImpl final : public PCSX::CDRom {
             }
             case 0x23:
             case 0x24: {
-                // Servo amplifier and signal processor chip names; both "CXD2940Q" on a SCPH-7502.
+                // Servo amplifier and signal processor chip names; both "CXD2940Q" on a SCPH-9002.
                 QueueElement response;
                 response.pushPayloadData(std::string_view("CXD2940Q"));
                 maybeTriggerIRQ(Cause::Acknowledge, response);

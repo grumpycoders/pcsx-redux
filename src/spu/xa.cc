@@ -130,7 +130,7 @@ void PCSX::SPU::impl::FeedXA(xa_decode_t *xap) {
                 int64_t zl = zigzag(xaRingL, t);
                 int64_t zr = zigzag(xaRingR, t);
                 // ATV matrix after the interpolator, then 1.026 before the 16-bit clamp and 0.973
-                // after it. On a SCPH-7502 the level rises linearly with ATV up to the clamp, and the
+                // after it. On a SCPH-9002 the level rises linearly with ATV up to the clamp, and the
                 // clamped level sits at 31880, as with CD-DA.
                 int outL = std::clamp(int(((zl * xaAtv[0] + zr * xaAtv[3]) * 33617) >> 22), -0x8000, 0x7fff);
                 int outR = std::clamp(int(((zr * xaAtv[2] + zl * xaAtv[1]) * 33617) >> 22), -0x8000, 0x7fff);
