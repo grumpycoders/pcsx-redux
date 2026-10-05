@@ -921,12 +921,11 @@ uint8_t PadsImpl::Pad::read() {
 bool PadsImpl::configure(PCSX::GUI* gui) {
     // Check for analog mode toggle key
     for (auto& pad : m_pads) {
-        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != SDL_SCANCODE_UNKNOWN) {
-            const int key = pad.m_settings.get<Keyboard_AnalogMode>();
-
-            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(SdlScancodeToImGuiKey(key))) {
-                pad.m_analogMode = !pad.m_analogMode;
-            }
+        if (pad.m_type != PadType::Analog) continue;
+        // Configs from before the SDL3 port hold GLFW key codes, which often have no ImGuiKey.
+        const ImGuiKey key = SdlScancodeToImGuiKey(pad.m_settings.get<Keyboard_AnalogMode>());
+        if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(key)) {
+            pad.m_analogMode = !pad.m_analogMode;
         }
     }
 
