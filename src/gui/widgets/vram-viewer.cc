@@ -405,6 +405,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_mousePos = ImGui::GetIO().MousePos;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
+    // The OpenGL backend binds its own sampler object, which overrides the texture's filter parameters.
+    drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest, nullptr);
     drawList->AddCallback(
         [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
             VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
