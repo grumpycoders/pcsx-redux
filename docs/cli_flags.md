@@ -40,7 +40,7 @@ You can launch `pcsx-redux` with the following command line parameters:
 | `-softgpu` | Use the software GPU renderer. Will change the saved setting. |
 | `-8mb` | Emulates 8MB of RAM instead of 2MB. Will change the saved setting. |
 | `-2mb` | Emulates 2MB of RAM. Will change the saved setting. |
-| `-debugger` | Activates the debugger. Will change the saved setting. |
+| `-debugger` | Activates the debugger. Breakpoints, whether set from the UI, Lua or GDB, only trigger while it is active. Will change the saved setting. |
 | `-no-debugger` | Deactivates the debugger. Will change the saved setting. |
 | `-fastboot` | Skips the BIOS logo and boot animation. Will change the saved setting. |
 | `-no-fastboot` | Shows the BIOS logo and boot animation. Will change the saved setting. |
