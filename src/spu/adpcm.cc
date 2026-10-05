@@ -24,7 +24,15 @@ void PCSX::SPU::AdpcmDecoder::saveTo(Protobuf::Int32 &history1, Protobuf::Int32 
                                      Protobuf::Int32 *sb, Protobuf::Int32 &sbPos) const {
     history1.value = m_s1;
     history2.value = m_s2;
-    auto storeOffset = [ramBase](uint8_t *ptr, Protobuf::Int32 &offset) { offset.value = ptr ? ptr - ramBase : -1; };
+    auto storeOffset = [ramBase](uint8_t *ptr, Protobuf::Int32 &offset) {
+        if (!ptr) {
+            offset.value = kNullOffset;
+        } else if (ptr == kStopped) {
+            offset.value = kStoppedOffset;
+        } else {
+            offset.value = ptr - ramBase;
+        }
+    };
     storeOffset(m_start, startOffset);
     storeOffset(m_curr, currOffset);
     storeOffset(m_loop, loopOffset);
@@ -38,8 +46,13 @@ void PCSX::SPU::AdpcmDecoder::loadFrom(const Protobuf::Int32 &history1, const Pr
                                        const Protobuf::Int32 &sbPos) {
     m_s1 = history1.value;
     m_s2 = history2.value;
+    // Anything outside sound RAM other than the null marker restores as stopped. That covers
+    // kStoppedOffset, and also states written before it existed, which stored kStopped as a
+    // truncated pointer difference.
     auto restore = [ramBase](const Protobuf::Int32 &offset) -> uint8_t * {
-        return offset.value == -1 ? nullptr : offset.value + ramBase;
+        if (offset.value == kNullOffset) return nullptr;
+        if (offset.value < 0 || offset.value >= kRamSize) return kStopped;
+        return offset.value + ramBase;
     };
     m_start = restore(startOffset);
     m_curr = restore(currOffset);
