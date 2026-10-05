@@ -94,8 +94,6 @@ enum class Transform {
     FastSymmetric,
 };
 
-
-
 // 64 signed Q14 coefficients, row-major. Row i column k is the weight of input k
 // in output i of a 1D 8-point transform.
 using Basis = std::array<int16_t, 64>;
@@ -186,8 +184,7 @@ class Encoder {
     // 2-socket Haswell box tops out at the physical core count and regresses hard
     // past it, so hardware_concurrency() (which counts SMT siblings) is a ceiling
     // and not a recommendation.
-    explicit Encoder(unsigned threads = 0, Transform transform = Transform::ExactMatrix,
-                     Basis basis = standardBasis());
+    explicit Encoder(unsigned threads = 0, Transform transform = Transform::ExactMatrix, Basis basis = standardBasis());
     ~Encoder();
 
     Encoder(const Encoder &) = delete;
