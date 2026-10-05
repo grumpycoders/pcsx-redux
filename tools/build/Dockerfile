@@ -10,7 +10,7 @@
 # second tag built from the oldest LTS we want the AppImage to run on:
 #
 #   docker build -f tools/build/Dockerfile --build-arg BASE=ubuntu:24.04 \
-#     -t ghcr.io/grumpycoders/pcsx-redux-build:noble .
+#     --build-arg GXX_VERSION=15 -t ghcr.io/grumpycoders/pcsx-redux-build:noble .
 
 ARG BASE=ubuntu:26.04
 
@@ -76,6 +76,22 @@ RUN apt install -y pkg-config
 
 # Compilers & base libraries
 RUN apt install -y g++
+
+# 24.04's g++ is 13, which runs the interpreter about 3% slower and the dynarec
+# about 5% slower than 15. The noble tag installs a newer g++ from the toolchain
+# PPA and makes it the default. Its libstdc++ is newer than 24.04's, so whatever
+# ships from this image has to link it statically.
+ARG GXX_VERSION=
+RUN if [ -n "$GXX_VERSION" ]; then \
+      apt install -y software-properties-common && \
+      add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+      apt update && \
+      apt install -y gcc-$GXX_VERSION g++-$GXX_VERSION && \
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$GXX_VERSION 100 && \
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-$GXX_VERSION 100 && \
+      update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-$GXX_VERSION 100 && \
+      update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-$GXX_VERSION 100; \
+    fi
 
 # Development packages
 RUN apt install -y libavcodec-dev
