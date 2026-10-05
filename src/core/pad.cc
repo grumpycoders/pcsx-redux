@@ -130,6 +130,7 @@ class PadsImpl : public PCSX::Pads {
     typedef PCSX::Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef PCSX::Setting<bool, TYPESTRING("Connected")> SettingConnected;
+    typedef PCSX::Setting<bool, TYPESTRING("Rumble"), true> SettingRumble;
     // Default sensitivity = 5/10 = 0.5
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
@@ -141,7 +142,8 @@ class PadsImpl : public PCSX::Pads {
         Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
         Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
         Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
-        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingRumble, SettingMouseSensitivityX,
+        SettingMouseSensitivityY>
         PadSettings;
 
     struct PadData {
@@ -204,6 +206,22 @@ class PadsImpl : public PCSX::Pads {
 
         bool m_configMode = false;
         bool m_analogMode = false;
+
+        // Rumble. m_motorMapping holds the six bytes last set by config command 4Dh.
+        // Each entry says what the matching byte of the 42h read command drives:
+        // 00h = right/small motor (bit0, on/off), 01h = left/large motor (bit0-7,
+        // analog), FFh = nothing. All FFh is the power-on state, in which the pad
+        // still honours the old one-motor method, until config commands are used at
+        // all -- after that the old method is gone for good.
+        uint8_t m_motorMapping[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        bool m_configCommandsUsed = false;
+        uint8_t m_motorSmall = 0, m_motorLarge = 0;
+        uint8_t m_oldMethodLatch = 0;
+        uint16_t m_rumbleAppliedSmall = 0, m_rumbleAppliedLarge = 0;
+        uint64_t m_rumbleRefreshedAt = 0;
+
+        void applyRumble(bool force);
+        void lockRumble();
 
         PadSettings m_settings;
 
@@ -450,6 +468,9 @@ void PadsImpl::init() {
 }
 
 void PadsImpl::shutdown() {
+    // Motors first: SDL_CloseGamepad on a rumbling pad leaves it buzzing on some
+    // backends, and the handles are still live here.
+    for (auto& pad : m_pads) pad.lockRumble();
     for (auto& g : m_gamepads) {
         if (g) {
             SDL_CloseGamepad(g);
@@ -501,6 +522,52 @@ void PadsImpl::Pad::reset() {
     m_currentByte = 0;
     m_data.buttonStatus = 0xffff;
     m_data.overrides = 0xffff;
+    lockRumble();
+    m_configCommandsUsed = false;
+}
+
+// The controller watchdog resets the pad, and hence stops and locks the motors,
+// after about a second without communication. Handing SDL that same deadline gets
+// us the same behaviour for free when the emulated machine stops polling, whether
+// it was paused, reset, or wedged mid-rumble. Refresh at half of it so an effect
+// that is still wanted never gets close to expiring.
+static constexpr uint32_t c_rumbleDurationMs = 1000;
+static constexpr uint64_t c_rumbleRefreshMs = 500;
+
+static bool gamepadHasRumble(SDL_Gamepad* gamepad) {
+    if (!gamepad) return false;
+    SDL_PropertiesID props = SDL_GetGamepadProperties(gamepad);
+    if (!props) return false;
+    return SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
+}
+
+void PadsImpl::Pad::lockRumble() {
+    std::memset(m_motorMapping, 0xff, sizeof(m_motorMapping));
+    m_oldMethodLatch = 0;
+    m_motorSmall = 0;
+    m_motorLarge = 0;
+    applyRumble(true);
+}
+
+void PadsImpl::Pad::applyRumble(bool force) {
+    if (!m_gamepad) return;
+    const bool enabled = m_settings.get<SettingRumble>() && m_settings.get<SettingConnected>();
+    // SDL's low frequency channel is the heavy/left motor, the high frequency one is
+    // the light/right motor. M1 is 0..255 analog, M2 is a single on/off bit.
+    const uint16_t low = enabled ? static_cast<uint16_t>(m_motorLarge * 0x101) : 0;
+    const uint16_t high = (enabled && m_motorSmall) ? 0xffff : 0;
+    const uint64_t now = SDL_GetTicks();
+    const bool unchanged = (low == m_rumbleAppliedLarge) && (high == m_rumbleAppliedSmall);
+    const bool idle = low == 0 && high == 0;
+
+    if (!force && unchanged && (idle || (now - m_rumbleRefreshedAt) < c_rumbleRefreshMs)) return;
+    // Stopping is worth issuing even to a pad with no actuator; it is a no-op there.
+    if (!idle && !gamepadHasRumble(m_gamepad)) return;
+
+    SDL_RumbleGamepad(m_gamepad, low, high, c_rumbleDurationMs);
+    m_rumbleAppliedLarge = low;
+    m_rumbleAppliedSmall = high;
+    m_rumbleRefreshedAt = now;
 }
 
 void PadsImpl::map() {
@@ -585,6 +652,7 @@ void PadsImpl::Pad::getButtons() {
     if (!m_settings.get<SettingConnected>()) {
         pad.buttonStatus = 0xffff;
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        applyRumble(false);  // an unplugged pad is a silent one
         return;
     }
 
@@ -621,6 +689,12 @@ void PadsImpl::Pad::getButtons() {
             s_pads->map();
         }
     }
+
+    // Push the motor state the last read command asked for. This runs here, once per
+    // poll and right after the pump, because SDL needs the pump to service an effect
+    // and because poll() sees the motor bytes one at a time -- doing it there would
+    // hand SDL half-updated pairs.
+    applyRumble(false);
 
     if (m_gamepad) {
         if (!SDL_GamepadConnected(m_gamepad)) {
@@ -749,10 +823,39 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
         }
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
+    } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_cmd == magic_enum::enum_integer(PadCommands::Read) &&
+               (m_type == PadType::Digital || m_type == PadType::Analog)) {
+        // Motor bytes of the read command: the 4th..9th byte of the transfer. read()
+        // has already filled the reply buffer, so these are pure input, and what they
+        // mean is whatever command 4Dh last said they mean.
+        const unsigned slot = m_currentByte - 2;
+        if (m_configCommandsUsed) {
+            switch (m_motorMapping[slot]) {
+                case 0x00:
+                    m_motorSmall = value & 1;
+                    break;
+                case 0x01:
+                    m_motorLarge = value;
+                    break;
+            }
+        } else if (slot == 0) {
+            // Old one-motor method, still live until config commands are used: xx has
+            // to be 40h..7Fh and yy has to have bit0 set. Latch xx, decide on yy.
+            m_oldMethodLatch = value;
+        } else if (slot == 1) {
+            m_motorSmall = (((m_oldMethodLatch & 0xc0) == 0x40) && (value & 1)) ? 1 : 0;
+        }
+    } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_configMode &&
+               m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble)) {
+        // 4Dh replies with the OLD mapping and installs the new one.
+        // doDualshockCommand() already copied the old mapping into the reply buffer,
+        // so overwriting it here cannot disturb what we send back.
+        m_motorMapping[m_currentByte - 2] = value;
     } else if (m_currentByte == 2 && m_type == PadType::Analog) {
         switch (m_cmd) {
             case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
+                if (m_configMode) m_configCommandsUsed = true;
                 break;
             case magic_enum::enum_integer(PadCommands::SetAnalogMode):
                 m_analogMode = value == 1;
@@ -809,9 +912,11 @@ uint8_t PadsImpl::Pad::doDualshockCommand(uint32_t& padState) {
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble) && m_configMode) {
-        static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-        std::memcpy(m_buf, reply, 8);
+        // 4Dh returns the mapping that was in effect before this command; poll() swaps
+        // in the new one byte by byte as the rest of the transfer arrives.
+        m_buf[0] = 0x00;
+        m_buf[1] = 0x5a;
+        std::memcpy(m_buf + 2, m_motorMapping, 6);
         return 0xf3;
     } else if (m_cmd == magic_enum::enum_integer(PadCommands::SetAnalogMode) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -1077,6 +1182,17 @@ bool PadsImpl::Pad::configure() {
 
     if (m_type != PadType::Analog) {
         ImGui::EndDisabled();
+    }
+
+    {
+        const bool capable = gamepadHasRumble(m_gamepad);
+        if (!capable) ImGui::BeginDisabled();
+        if (ImGui::Checkbox(_("Rumble"), &m_settings.get<SettingRumble>().value)) changed = true;
+        if (!capable) {
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::TextUnformatted(_("(no motors on this gamepad)"));
+        }
     }
 
     {
