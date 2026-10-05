@@ -22,6 +22,7 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <deque>
 #include <functional>
 #include <magic_enum/magic_enum_all.hpp>
 #include <map>
@@ -274,6 +275,23 @@ class GUI final : public UI {
     };
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
+    // Short-lived messages drawn at the bottom of the main viewport, which fade out on their own and never
+    // take focus. For confirmations that don't need acknowledging; errors that do should go to addNotification.
+    class PassiveNotifier {
+      public:
+        void notify(const std::string &message) { m_pending.push_back({message, 0.0}); }
+        void draw();
+
+      private:
+        struct Notice {
+            std::string message;
+            double shownAt;
+        };
+        std::deque<Notice> m_pending;
+        std::deque<Notice> m_shown;
+    };
+    void addNotice(const std::string &notice) { m_passiveNotifier.notify(notice); }
+
     void magicOpen(const char *path);
 
     static const char *glErrorToString(GLenum error) {
@@ -485,6 +503,7 @@ class GUI final : public UI {
     void oliveTheme();
 
     Notifier m_notifier = {l_("Notification")};
+    PassiveNotifier m_passiveNotifier;
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
