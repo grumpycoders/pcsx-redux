@@ -1120,6 +1120,45 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Command 18. Only single-session images are emulated. SCPH-9002 with a single-session
+    // disc: session 0 errors with 10h, session 1 completes about 2.6 s after the acknowledge,
+    // and session 2 acknowledges and sends nothing else for at least 8 s.
+    bool cdlSetSession(const QueueElement &command, bool start) {
+        if (start) {
+            auto session = command.payload[0];
+            if (session == 0) {
+                maybeEnqueueError(1, 0x10);
+                maybeScheduleNextCommand();
+                return false;
+            }
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            if (session != 1) {
+                maybeScheduleNextCommand();
+                return false;
+            }
+            schedule(2600ms);
+            return true;
+        } else {
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Complete, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
+    }
+
+    // Command 29. SCPH-9002 with the test disc: acknowledges, and no second response comes
+    // within 8 s for track 1, track 2 or the lead-out, so only the acknowledge is emulated.
+    bool cdlGetQ(const QueueElement &command, bool start) {
+        QueueElement response;
+        response.pushPayloadData(getStatus());
+        maybeTriggerIRQ(Cause::Acknowledge, response);
+        maybeScheduleNextCommand();
+        return false;
+    }
+
     // Command 28. SCPH-9002: acknowledges with no second response, then reports mode 0x20
     // and the shell-open status bit, which stays set until a GetStat.
     bool cdlReset(const QueueElement &command, bool start) {
@@ -1550,7 +1589,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlGetParam,  // 12
         &CDRomImpl::cdlGetLocL,
         &CDRomImpl::cdlGetLocP,
-        nullptr,
+        &CDRomImpl::cdlSetSession,
         &CDRomImpl::cdlGetTN,  // 16
         &CDRomImpl::cdlGetTD,
         &CDRomImpl::cdlSeekL,
@@ -1561,7 +1600,7 @@ class CDRomImpl final : public PCSX::CDRom {
         &CDRomImpl::cdlID,
         &CDRomImpl::cdlReadS,  // 24
         &CDRomImpl::cdlReset,
-        nullptr,
+        &CDRomImpl::cdlGetQ,
         &CDRomImpl::cdlReadTOC,  // 28
 #endif
     };
@@ -1574,7 +1613,7 @@ class CDRomImpl final : public PCSX::CDRom {
         0, 0,  1, 0,   // 16
         1, 0,  0, 0,   // 20
         0, -1, 0, 0,   // 24
-        0, 0,  0,      // 28
+        0, 2,  0,      // 28
     };
 
     void logCDROM(const QueueElement &command) {
