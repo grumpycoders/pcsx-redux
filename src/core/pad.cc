@@ -27,6 +27,7 @@
 #include <array>
 #include <cmath>
 #include <magic_enum/magic_enum_all.hpp>
+#include <optional>
 
 #include "core/psxemulator.h"
 #include "core/shmdisplay.h"
@@ -133,15 +134,18 @@ class PadsImpl : public PCSX::Pads {
     // Default sensitivity = 5/10 = 0.5
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
+    // Absent in configs from before keyboard bindings were stored as SDL scancodes.
+    typedef PCSX::Setting<int, TYPESTRING("KeyboardBindingsVersion"), 1> SettingKeyboardBindingsVersion;
 
-    typedef PCSX::Settings<
-        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
-        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
-        Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp,
-        Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
-        Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
-        Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
-        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+    typedef PCSX::Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
+                           Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
+                           Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadL3, Keyboard_PadR1,
+                           Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp, Controller_PadRight,
+                           Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
+                           Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart,
+                           Controller_PadL1, Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2,
+                           Controller_PadR3, SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected,
+                           SettingMouseSensitivityX, SettingMouseSensitivityY, SettingKeyboardBindingsVersion>
         PadSettings;
 
     struct PadData {
@@ -437,6 +441,158 @@ static ImGuiKey SdlScancodeToImGuiKey(int scancode) {
         default:
             return ImGuiKey_None;
     }
+}
+
+// GLFW key code -> SDL scancode, for configs written by the GLFW builds. GLFW
+// keys are physical keys named after the US layout, same as SDL scancodes.
+static std::optional<int> GlfwKeyToScancode(int key) {
+    if (key >= 65 && key <= 90) return SDL_SCANCODE_A + (key - 65);        // A-Z
+    if (key >= 49 && key <= 57) return SDL_SCANCODE_1 + (key - 49);        // 1-9
+    if (key >= 290 && key <= 301) return SDL_SCANCODE_F1 + (key - 290);    // F1-F12
+    if (key >= 302 && key <= 313) return SDL_SCANCODE_F13 + (key - 302);   // F13-F24
+    if (key >= 321 && key <= 329) return SDL_SCANCODE_KP_1 + (key - 321);  // KP_1-KP_9
+    switch (key) {
+        case -1:  // UNKNOWN
+            return SDL_SCANCODE_UNKNOWN;
+        case 32:  // SPACE
+            return SDL_SCANCODE_SPACE;
+        case 39:  // APOSTROPHE
+            return SDL_SCANCODE_APOSTROPHE;
+        case 44:  // COMMA
+            return SDL_SCANCODE_COMMA;
+        case 45:  // MINUS
+            return SDL_SCANCODE_MINUS;
+        case 46:  // PERIOD
+            return SDL_SCANCODE_PERIOD;
+        case 47:  // SLASH
+            return SDL_SCANCODE_SLASH;
+        case 48:  // 0
+            return SDL_SCANCODE_0;
+        case 59:  // SEMICOLON
+            return SDL_SCANCODE_SEMICOLON;
+        case 61:  // EQUAL
+            return SDL_SCANCODE_EQUALS;
+        case 91:  // LEFT_BRACKET
+            return SDL_SCANCODE_LEFTBRACKET;
+        case 92:  // BACKSLASH
+            return SDL_SCANCODE_BACKSLASH;
+        case 93:  // RIGHT_BRACKET
+            return SDL_SCANCODE_RIGHTBRACKET;
+        case 96:  // GRAVE_ACCENT
+            return SDL_SCANCODE_GRAVE;
+        // GLFW reports the ISO key left of Z as WORLD_2 on Windows and WORLD_1 elsewhere.
+        case 161:  // WORLD_1
+            return SDL_SCANCODE_NONUSBACKSLASH;
+        case 162:  // WORLD_2
+            return SDL_SCANCODE_NONUSBACKSLASH;
+        case 256:  // ESCAPE
+            return SDL_SCANCODE_ESCAPE;
+        case 257:  // ENTER
+            return SDL_SCANCODE_RETURN;
+        case 258:  // TAB
+            return SDL_SCANCODE_TAB;
+        case 259:  // BACKSPACE
+            return SDL_SCANCODE_BACKSPACE;
+        case 260:  // INSERT
+            return SDL_SCANCODE_INSERT;
+        case 261:  // DELETE
+            return SDL_SCANCODE_DELETE;
+        case 262:  // RIGHT
+            return SDL_SCANCODE_RIGHT;
+        case 263:  // LEFT
+            return SDL_SCANCODE_LEFT;
+        case 264:  // DOWN
+            return SDL_SCANCODE_DOWN;
+        case 265:  // UP
+            return SDL_SCANCODE_UP;
+        case 266:  // PAGE_UP
+            return SDL_SCANCODE_PAGEUP;
+        case 267:  // PAGE_DOWN
+            return SDL_SCANCODE_PAGEDOWN;
+        case 268:  // HOME
+            return SDL_SCANCODE_HOME;
+        case 269:  // END
+            return SDL_SCANCODE_END;
+        case 280:  // CAPS_LOCK
+            return SDL_SCANCODE_CAPSLOCK;
+        case 281:  // SCROLL_LOCK
+            return SDL_SCANCODE_SCROLLLOCK;
+        case 282:  // NUM_LOCK
+            return SDL_SCANCODE_NUMLOCKCLEAR;
+        case 283:  // PRINT_SCREEN
+            return SDL_SCANCODE_PRINTSCREEN;
+        case 284:  // PAUSE
+            return SDL_SCANCODE_PAUSE;
+        case 314:  // F25, no SDL equivalent
+            return SDL_SCANCODE_UNKNOWN;
+        case 320:  // KP_0
+            return SDL_SCANCODE_KP_0;
+        case 330:  // KP_DECIMAL
+            return SDL_SCANCODE_KP_PERIOD;
+        case 331:  // KP_DIVIDE
+            return SDL_SCANCODE_KP_DIVIDE;
+        case 332:  // KP_MULTIPLY
+            return SDL_SCANCODE_KP_MULTIPLY;
+        case 333:  // KP_SUBTRACT
+            return SDL_SCANCODE_KP_MINUS;
+        case 334:  // KP_ADD
+            return SDL_SCANCODE_KP_PLUS;
+        case 335:  // KP_ENTER
+            return SDL_SCANCODE_KP_ENTER;
+        case 336:  // KP_EQUAL
+            return SDL_SCANCODE_KP_EQUALS;
+        case 340:  // LEFT_SHIFT
+            return SDL_SCANCODE_LSHIFT;
+        case 341:  // LEFT_CONTROL
+            return SDL_SCANCODE_LCTRL;
+        case 342:  // LEFT_ALT
+            return SDL_SCANCODE_LALT;
+        case 343:  // LEFT_SUPER
+            return SDL_SCANCODE_LGUI;
+        case 344:  // RIGHT_SHIFT
+            return SDL_SCANCODE_RSHIFT;
+        case 345:  // RIGHT_CONTROL
+            return SDL_SCANCODE_RCTRL;
+        case 346:  // RIGHT_ALT
+            return SDL_SCANCODE_RALT;
+        case 347:  // RIGHT_SUPER
+            return SDL_SCANCODE_RGUI;
+        case 348:  // MENU
+            return SDL_SCANCODE_APPLICATION;
+        default:
+            return std::nullopt;
+    }
+}
+
+bool PCSX::Pads::migrateKeyboardBindings(json& pad) {
+    static constexpr const char* c_keys[] = {
+        "Keyboard_PadUp",       "Keyboard_PadRight",   "Keyboard_PadDown",   "Keyboard_PadLeft",   "Keyboard_PadCross",
+        "Keyboard_PadTriangle", "Keyboard_PadSquare",  "Keyboard_PadCircle", "Keyboard_PadSelect", "Keyboard_PadSstart",
+        "Keyboard_PadL1",       "Keyboard_PadL2",      "Keyboard_PadL3",     "Keyboard_PadR1",     "Keyboard_PadR2",
+        "Keyboard_PadR3",       "Keyboard_AnalogMode",
+    };
+    if (!pad.is_object() || pad.contains("KeyboardBindingsVersion")) return false;
+    pad["KeyboardBindingsVersion"] = 1;
+
+    // Unstamped configs come from GLFW builds, or from SDL builds that predate the
+    // stamp. GLFW wrote -1 for an unbound key and 256 and up for named keys like
+    // the arrows. SDL writes 0 for unbound, and its scancodes from 256 up are
+    // mode and media keys nobody binds to a pad. A value that is not a GLFW key
+    // at all can only be a scancode, so any of those leaves the config alone.
+    bool glfw = false;
+    for (auto key : c_keys) {
+        if (!pad.contains(key) || !pad[key].is_number_integer()) continue;
+        int value = pad[key].get<int>();
+        if (!GlfwKeyToScancode(value)) return false;
+        if (value < 0 || value >= 256) glfw = true;
+    }
+    if (!glfw) return false;
+
+    for (auto key : c_keys) {
+        if (!pad.contains(key) || !pad[key].is_number_integer()) continue;
+        pad[key] = *GlfwKeyToScancode(pad[key].get<int>());
+    }
+    return true;
 }
 
 void PadsImpl::init() {
@@ -1280,7 +1436,9 @@ void PadsImpl::setCfg(const json& j) {
 }
 
 void PadsImpl::Pad::setCfg(const json& j) {
-    m_settings.deserialize(j);
+    json cfg = j;
+    PCSX::Pads::migrateKeyboardBindings(cfg);
+    m_settings.deserialize(cfg);
     map();
 }
 
