@@ -782,9 +782,13 @@ class CDRomImpl final : public PCSX::CDRom {
         if (handler) {
             if ((this->*handler)(m_commandFifo, true)) m_commandExecuting = m_commandFifo;
         } else {
-            PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unsupported command %i (%s).\n", command,
-                                commandName(command));
-            PCSX::g_system->pause();
+            // 17h and 18h are unused opcodes and error out like 00h. Anything else without a
+            // handler is a real command that is not emulated yet.
+            if ((command != 0x17) && (command != 0x18)) {
+                PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Unsupported command %i (%s).\n", command,
+                                    commandName(command));
+                PCSX::g_system->pause();
+            }
             maybeEnqueueError(1, 0x40);
             maybeScheduleNextCommand();
         }
