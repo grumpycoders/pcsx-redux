@@ -225,6 +225,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     void psxCOP1(uint32_t code);
     void psxCOP2(uint32_t code);
     void psxCOP3(uint32_t code);
+    void psxBCz(uint32_t code, unsigned z);
     void gteMove(uint32_t code);
 
     /* GTE wrappers */
@@ -1122,9 +1123,37 @@ void InterpretedCPU::psxSPECIAL(uint32_t code) { (*this.*(s_pPsxSPC[_Funct_]))(c
 
 void InterpretedCPU::psxREGIMM(uint32_t code) { (*this.*(s_pPsxREG[_Rt_]))(code); }
 
-void InterpretedCPU::psxCOP0(uint32_t code) { (*this.*(s_pPsxCP0[_Rs_]))(code); }
+// BCzF / BCzT. None of the coprocessors drives the condition input, so BCzF
+// always branches and BCzT never does. Bit 1 of rt is ignored, and there is
+// no branch-likely nullification. With SR.CUz clear, the branch raises a
+// coprocessor unusable exception, COP0 included, even in kernel mode.
+void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
+    if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
+        m_regs.pc -= 4;
+        exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
+        if (m_inDelaySlot) {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            if (!delayedLoad.pcActive) abort();
+            delayedLoad.pcActive = false;
+        }
+        return;
+    }
+    if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);
+}
+
+void InterpretedCPU::psxCOP0(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 0);
+        return;
+    }
+    (*this.*(s_pPsxCP0[_Rs_]))(code);
+}
 
 void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) FPU
+    if (_Rs_ == 8) {
+        psxBCz(code, 1);
+        return;
+    }
     // TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
     // Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
     PCSX::g_system->log(PCSX::LogClass::CPU,
@@ -1133,6 +1162,10 @@ void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) 
 }
 
 void InterpretedCPU::psxCOP2(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 2);
+        return;
+    }
     if ((m_regs.CP0.n.Status & 0x40000000) == 0) return;
 
     if (code & 0x02000000) gteStart(gteLatency(_Funct_));
@@ -1140,6 +1173,10 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
 }
 
 void InterpretedCPU::psxCOP3(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 3);
+        return;
+    }
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted to access COP3 from 0x%08x. Ignored\n"), m_regs.pc - 4);
 }
 
@@ -1436,8 +1473,8 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSC[64] = {
     &InterpretedCPU::pgxpPsxSLTI, &InterpretedCPU::pgxpPsxSLTIU,  // 0a
     &InterpretedCPU::pgxpPsxANDI, &InterpretedCPU::pgxpPsxORI,    // 0c
     &InterpretedCPU::pgxpPsxXORI, &InterpretedCPU::pgxpPsxLUI,    // 0e
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,       // 10
-    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,       // 12
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxCOP1,       // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxCOP3,       // 12
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 14
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 16
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 18
@@ -1545,8 +1582,8 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSCMem[64] = {
     &InterpretedCPU::psxSLTI,     &InterpretedCPU::psxSLTIU,     // 0a
     &InterpretedCPU::psxANDI,     &InterpretedCPU::psxORI,       // 0c
     &InterpretedCPU::psxXORI,     &InterpretedCPU::psxLUI,       // 0e
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,      // 10
-    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,      // 12
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxCOP1,      // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxCOP3,      // 12
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 14
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 16
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 18
