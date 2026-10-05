@@ -38,7 +38,9 @@ jobs:
       - name: Fetch submodules
         run: ./.github/scripts/update-submodules.sh
       - run: |
-          make -j 2 all pcsx-redux-tests tools
+          # The noble image's g++ is newer than 24.04's libstdc++, so link it
+          # statically or the AppImage won't start on the systems it targets.
+          make -j 2 all pcsx-redux-tests tools LDFLAGS_Release="-static-libstdc++ -static-libgcc"
           make -C src/mips/tests -j 2 PCSX_TESTS=true
           # The tests above leave third_party/uC-sdk objects built with their own
           # flags, and openbios links a different subset of that same libc. Without
