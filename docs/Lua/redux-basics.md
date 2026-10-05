@@ -94,6 +94,8 @@ It's also possible to manipulate savestates using the following functions:
  - `PCSX.loadSaveState(slice)`
  - `PCSX.loadSaveState(file)`
 
+When called while the emulated CPU is running, for instance from a `GPU::Vsync` listener or a breakpoint callback, `PCSX.loadSaveState` doesn't load the state right away. The current CPU step finishes against the old state, and the load happens as soon as the CPU loop returns, before any further instruction is executed. Listen to the `ExecutionFlow::SaveStateLoaded` event to know when it happened. When the emulator is paused, the load is immediate.
+
 Additionally, the following function returns a string containing the .proto file used to serialize the savestate:
 
  - `PCSX.getSaveStateProtoSchema()`
