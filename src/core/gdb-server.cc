@@ -604,6 +604,14 @@ void PCSX::GdbClient::processCommand() {
             close();
             return;
         }
+        if ((action == Action::ADD) && (type <= 4) &&
+            !g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) {
+            // breakpoints are only checked when the debugger is enabled
+            g_system->printf(_("GDB server: refusing breakpoint at %08x, the debugger is disabled (use -debugger)\n"),
+                             addr);
+            write("E02");
+            return;
+        }
         if ((action == Action::ADD) && (type >= 2) && (type <= 4)) {
             // watchpoint ranges: reject empty ones and ones wrapping around the address space
             uint32_t start = addr & ~0xe0000000;
