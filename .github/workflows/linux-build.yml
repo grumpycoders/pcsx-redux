@@ -27,7 +27,7 @@ jobs:
             secret: APPDISTRIB_DEV_LINUX_ARM64
     runs-on: ${{ matrix.runner }}
     container:
-      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      image: ghcr.io/grumpycoders/pcsx-redux-build:noble
       options: --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined
       env:
         TEST_RESULTS: /tmp/test-results
