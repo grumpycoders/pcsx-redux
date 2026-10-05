@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/disr3000a.h"
 #include "gtest/gtest.h"
 #include "main/main.h"
 
@@ -25,4 +26,19 @@ TEST(COPBranch, Interpreter) {
                         "-debugger", "-luacov", "-loadexe", "src/mips/tests/cop-branch/cop-branch.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
+}
+
+TEST(COPBranch, Disassembler) {
+    static constexpr struct {
+        uint32_t code;
+        const char* mnemonic;
+    } cases[] = {
+        {0x41000004, "bc0f"}, {0x41010004, "bc0t"}, {0x45000004, "bc1f"}, {0x45030004, "bc1t"},
+        {0x49000004, "bc2f"}, {0x49010004, "bc2t"}, {0x4d020004, "bc3f"}, {0x4d010004, "bc3t"},
+    };
+    for (auto& c : cases) {
+        std::string s = PCSX::Disasm::asString(c.code, 0, 0x80010000);
+        EXPECT_NE(s.find(std::string(": ") + c.mnemonic + " "), std::string::npos) << s;
+        EXPECT_NE(s.find("0x80010014"), std::string::npos) << s;
+    }
 }
