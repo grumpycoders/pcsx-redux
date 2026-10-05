@@ -493,8 +493,8 @@ void PadsImpl::scanGamepads() {
     // Close any currently-open handles so re-scans (e.g. after hotplug) don't
     // leak. m_gamepad pointers in each Pad become stale here; the caller is
     // expected to follow up with map() to re-resolve them. Stop the motors before
-    // closing, as in shutdown(); the pads keep their motor state, and the next
-    // refresh re-applies it to the re-opened handle.
+    // closing, as in shutdown(); the pads keep their motor state, and map() makes
+    // the next refresh re-apply it to the re-opened handle.
     for (auto& g : m_gamepads) {
         if (g) {
             SDL_RumbleGamepad(g, 0, 0, 0);
@@ -582,6 +582,9 @@ void PadsImpl::Pad::map() {
     int id = m_settings.get<SettingControllerID>();
     const unsigned slots = sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]);
     m_gamepad = (id >= 0 && static_cast<unsigned>(id) < slots) ? s_pads->m_gamepads[id] : nullptr;
+    // The handle may be a freshly opened one that has never been sent anything.
+    m_rumbleAppliedSmall = m_rumbleAppliedLarge = 0;
+    m_rumbleRefreshedAt = 0;
     m_type = m_settings.get<SettingDeviceType>();
 
     // L3/R3 are only avalable on analog controllers
@@ -1054,8 +1057,21 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     };
 
     if (ImGui::Button(_("Rescan gamepads and re-read game controllers database"))) {
-        shutdown();
-        init();
+        // Only the host side restarts. The emulated pads keep their protocol state,
+        // so a game that set up its motors with 4Dh at boot keeps rumbling.
+        for (auto& g : m_gamepads) {
+            if (g) {
+                SDL_RumbleGamepad(g, 0, 0, 0);
+                SDL_CloseGamepad(g);
+                g = nullptr;
+            }
+        }
+        SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+        if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+            PCSX::g_system->log(PCSX::LogClass::UI, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s\n", SDL_GetError());
+        }
+        scanGamepads();
+        map();
     }
 
     bool changed = false;
