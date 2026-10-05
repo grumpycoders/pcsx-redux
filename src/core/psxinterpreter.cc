@@ -88,6 +88,16 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     InterpretedCPU() : R3000Acpu("Interpreted") {}
 
   private:
+    // An exception taken in a branch delay slot cancels the pending branch. While the delay slot
+    // executes, that branch sits in the other delayed load slot.
+    void exception(uint32_t code, bool bd, bool cop0 = false) {
+        R3000Acpu::exception(code, bd, cop0);
+        if (bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+    }
+    void exception(Exception e, bool bd, bool cop0 = false) {
+        exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    }
+
     virtual bool Implemented() final { return true; }
     virtual bool Init() override;
     virtual void Reset() override;
@@ -781,21 +791,11 @@ void InterpretedCPU::psxMTLO(uint32_t code) {
 void InterpretedCPU::psxBREAK(uint32_t code) {
     m_regs.pc -= 4;
     exception(Exception::Break, m_inDelaySlot);
-    if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (!delayedLoad.pcActive) abort();
-        delayedLoad.pcActive = false;
-    }
 }
 
 void InterpretedCPU::psxSYSCALL(uint32_t code) {
     m_regs.pc -= 4;
     exception(Exception::Syscall, m_inDelaySlot);
-    if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (!delayedLoad.pcActive) abort();
-        delayedLoad.pcActive = false;
-    }
 }
 
 void InterpretedCPU::psxRFE(uint32_t code) {
