@@ -33,6 +33,7 @@ jobs:
             base: ubuntu:26.04
           - tag: noble
             base: ubuntu:24.04
+            gxx: '15'
           - arch: amd64
             platform: linux/amd64
             runner: ubuntu-latest
@@ -60,7 +61,9 @@ jobs:
           context: .
           file: tools/build/Dockerfile
           platforms: ${{ matrix.platform }}
-          build-args: BASE=${{ matrix.base }}
+          build-args: |
+            BASE=${{ matrix.base }}
+            GXX_VERSION=${{ matrix.gxx }}
           cache-from: type=gha,scope=${{ matrix.tag }}-${{ matrix.platform }}
           cache-to: type=gha,mode=min,scope=${{ matrix.tag }}-${{ matrix.platform }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
