@@ -178,14 +178,63 @@ class System {
     int exitCode() { return m_exitCode; }
     bool emergencyExit() { return m_emergencyExit; }
     [[gnu::cold]] void pause(bool exception = false) {
+        if (m_hasPendingSaveStateLoad) {
+            // m_running is already false because a deferred save state load
+            // asked the CPU to unwind, but the emulator isn't meant to be
+            // stopped yet, so this pause is a real one and has to be honoured.
+            m_resumeAfterPendingLoad = false;
+            m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
+            return;
+        }
         if (!m_running) return;
         m_running = false;
         m_eventBus->signal(Events::ExecutionFlow::Pause{exception});
     }
     void resume() {
+        if (m_hasPendingSaveStateLoad) {
+            // The CPU is unwinding for a deferred load; run once it's applied.
+            m_resumeAfterPendingLoad = true;
+            m_eventBus->signal(Events::ExecutionFlow::Run{});
+            return;
+        }
         if (m_running) return;
         m_running = true;
         m_eventBus->signal(Events::ExecutionFlow::Run{});
+    }
+    // Queues a save state to be loaded by the main loop, and asks the CPU to
+    // return out of Execute(). Loading one directly from a callback that runs
+    // on the emulation stack, such as a Lua GPU::Vsync listener or the ImGui
+    // menu, replaces the emulator state underneath frames that are still
+    // holding pre-load values, and those frames then keep going. This doesn't
+    // signal a pause, since the emulation isn't stopping, it's only unwinding.
+    void scheduleSaveStateLoad(std::string &&data) {
+        m_pendingSaveStateLoad = std::move(data);
+        // A second load in the same window replaces the first, and must not
+        // read the m_running the first one already cleared.
+        if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
+        m_hasPendingSaveStateLoad = true;
+        m_running = false;
+    }
+    // A reset issued before the main loop applied a queued load wins over it.
+    void cancelPendingSaveStateLoad() {
+        if (!m_hasPendingSaveStateLoad) return;
+        m_hasPendingSaveStateLoad = false;
+        m_running = m_resumeAfterPendingLoad;
+        m_pendingSaveStateLoad.clear();
+    }
+    // True while the main loop is inside the CPU's Execute(). Anything that
+    // runs then, including a Pause listener fired from a breakpoint, is on the
+    // emulation stack, whether or not m_running is still set.
+    bool inExecute() const { return m_inExecute; }
+    void setInExecute(bool inExecute) { m_inExecute = inExecute; }
+    bool hasPendingSaveStateLoad() const { return m_hasPendingSaveStateLoad; }
+    // Hands over the queued save state and puts the emulation back the way it
+    // was. Only ever call this from the main loop, with nothing of the
+    // emulation left on the stack.
+    std::string takePendingSaveStateLoad() {
+        m_hasPendingSaveStateLoad = false;
+        m_running = m_resumeAfterPendingLoad;
+        return std::move(m_pendingSaveStateLoad);
     }
     virtual void testQuit(int code) = 0;
     // This needs to only mutate variables, as it requires to be signal-safe.
@@ -283,6 +332,12 @@ class System {
     // cause the two main loop to exit: the inner one being the emulator itself,
     // and the outer one being the main.cc loop.
     bool m_quitting = false;
+    // Set while a save state load has been queued from the emulation stack and
+    // the main loop hasn't picked it up yet. See scheduleSaveStateLoad().
+    bool m_hasPendingSaveStateLoad = false;
+    bool m_resumeAfterPendingLoad = false;
+    bool m_inExecute = false;
+    std::string m_pendingSaveStateLoad;
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;
