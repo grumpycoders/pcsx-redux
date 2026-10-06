@@ -259,6 +259,7 @@ class impl final : public SPUInterface {
     CaptureBuffer captureBuffer;
     // Emulated cycle of the last CD audio fed to the capture buffer. While the CD is
     // feeding, an empty buffer means the emulation is behind the mixer, not silence.
+    // 0 means the CD has not fed anything yet.
     std::atomic<uint64_t> cdFeedCycle = 0;
     // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;

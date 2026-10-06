@@ -579,7 +579,8 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
         // The mixer starts before the CPU exists.
         const auto *cpu = PCSX::g_emulator->m_cpu.get();
         const uint64_t feeding = PCSX::g_emulator->m_psxClockSpeed * 4 / 75;
-        const bool cdFeeding = cpu && (cpu->m_regs.cycle - cdFeedCycle < feeding);
+        const uint64_t lastFeed = cdFeedCycle;
+        const bool cdFeeding = cpu && (lastFeed != 0) && (cpu->m_regs.cycle - lastFeed < feeding);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
                 if (cdFeeding) break;
