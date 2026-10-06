@@ -28,6 +28,10 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
         m_luaStdoutEnabled = true;
     }
     if (args.get<bool>("stdout") && !args.get<bool>("tui")) m_stdoutEnabled = true;
+    if (args.get<bool>("tui")) {
+        m_tuiEnabled = true;
+        m_luaStdoutEnabled = false;
+    }
     if (args.get<bool>("no-ui") || args.get<bool>("cli")) m_stdoutEnabled = true;
     if (args.get<bool>("testmode") || args.get<bool>("no-gui-log")) m_guiLogsEnabled = false;
     if (args.get<bool>("testmode")) m_testModeEnabled = true;
@@ -55,6 +59,7 @@ PCSX::Arguments::Arguments(const CommandLine::args& args) {
     if (args.get<bool>("resetui")) m_uiResetRequested = true;
     if (args.get<bool>("noshaders")) m_shadersDisabled = true;
     if (args.get<bool>("noupdate")) m_updateDisabled = true;
+    if (args.get<bool>("shmdisplay")) m_shmDisplayEnabled = true;
     if (args.get<bool>("viewports")) m_viewportsEnabled = true;
     if (args.get<bool>("no-viewports")) m_viewportsEnabled = false;
 }

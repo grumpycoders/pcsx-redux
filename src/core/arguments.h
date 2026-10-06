@@ -41,8 +41,11 @@ class Arguments {
     bool isStdoutEnabled() const { return m_stdoutEnabled; }
 
     // Returns true if Lua should be displaying its console output to stdout.
-    // Enabled with the flags -lua_stdout, -no-ui, or -cli.
+    // Enabled with the flags -lua_stdout, -no-ui, or -cli, but never with -tui.
     bool isLuaStdoutEnabled() const { return m_luaStdoutEnabled; }
+
+    // Enabled with the flag -tui. The terminal belongs to the UI, so nothing may write to it directly.
+    bool isTuiEnabled() const { return m_tuiEnabled; }
 
     // Returns true if the GUI logs window should be enabled.
     // Disabled with -testmode or -no-gui-log.
@@ -77,6 +80,10 @@ class Arguments {
     // Toggled with the flags -viewports / -no-viewports.
     bool isViewportsEnabled() const { return m_viewportsEnabled; }
 
+    // Returns true if the display and pad input should be shared with a host application.
+    // Enabled with the flag -shmdisplay.
+    bool isShmDisplayEnabled() const { return m_shmDisplayEnabled; }
+
     // Returns the path to the portable directory. Set with the flag -portable, or
     // to the executable's directory when that is where the pcsx.json was found.
     // Empty means the current directory.
@@ -85,6 +92,7 @@ class Arguments {
   private:
     std::string m_portablePath = "";
     bool m_luaStdoutEnabled = false;
+    bool m_tuiEnabled = false;
     bool m_stdoutEnabled = false;
     bool m_guiLogsEnabled = true;
     bool m_testModeEnabled = false;
@@ -93,6 +101,7 @@ class Arguments {
     bool m_uiResetRequested = false;
     bool m_shadersDisabled = false;
     bool m_updateDisabled = false;
+    bool m_shmDisplayEnabled = false;
 #ifdef __linux__
     bool m_viewportsEnabled = false;
 #else

@@ -65,11 +65,12 @@ class AdpcmDecoder {
     // Cursor sentinel for a voice that decoded a stop/loop-end block with no loop
     // target: the next synthesis pass sees it in the cursor and turns the voice
     // off. It is a deliberately invalid, non-null pointer, distinct from the
-    // nullptr "wiped" state. Its exact all-ones bit pattern is what the savestate
-    // pointer-offset bridge stores and restores by plain arithmetic, so it must
-    // stay all-ones. (Was an inline (uint8_t *)-1 cast smuggled into the cursor.)
+    // nullptr "wiped" state. The savestate bridge stores it as kStoppedOffset.
     inline static uint8_t *const kStopped = reinterpret_cast<uint8_t *>(~uintptr_t(0));
     bool stopped() const { return m_curr == kStopped; }
+    static constexpr int32_t kNullOffset = -1;
+    static constexpr int32_t kStoppedOffset = -2;
+    static constexpr int32_t kRamSize = 512 * 1024;
 
     // Decode cursor accessors (raw pointers into sound RAM).
     uint8_t *start() const { return m_start; }
@@ -84,8 +85,7 @@ class AdpcmDecoder {
     // the per-channel savestate fields. The fields are passed in rather than the
     // whole channel message because adpcm.h cannot include types.h (it is
     // included by it). `ramBase` is spuRamBase; each cursor is stored as a byte
-    // offset, with -1 standing in for a null pointer. The kStopped sentinel is
-    // an all-ones (non-null) pointer, so it round-trips as raw offset arithmetic.
+    // offset, with kNullOffset for a null pointer and kStoppedOffset for kStopped.
     void saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
                 Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase, Protobuf::Int32 *sb,
                 Protobuf::Int32 &sbPos) const;

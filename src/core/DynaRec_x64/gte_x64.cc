@@ -41,6 +41,10 @@ void DynaRecCPU::emitStallUntil(uintptr_t readyOffset) {
 }
 
 void DynaRecCPU::recCOP2(uint32_t code) {
+    if (_Rs_ == 8) {
+        recBCz(code);
+        return;
+    }
     if (code & 0x02000000) {  // GTE command: wait for the previous one, then mark the GTE busy
         emitStallUntil(GTE_READY_OFFSET);
         gen.add(rax, gteLatency(code & 0x3f) + PCSX::Emulator::BIAS);

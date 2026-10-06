@@ -498,8 +498,8 @@ bool PCSX::Widgets::Assembly::draw(GUI* gui, psxRegisters* registers, Memory* me
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(_("Debug"))) {
-            if (ImGui::MenuItem(_("Pause"), "F6", nullptr, g_system->running())) g_system->pause();
-            if (ImGui::MenuItem(_("Resume"), "F5", nullptr, !g_system->running())) g_system->resume();
+            if (ImGui::MenuItem(C_("Emulation", "Pause"), "F6", nullptr, g_system->running())) g_system->pause();
+            if (ImGui::MenuItem(C_("Emulation", "Resume"), "F5", nullptr, !g_system->running())) g_system->resume();
             ImGui::Separator();
             if (ImGui::MenuItem(_("Step In"), "F11", nullptr, !g_system->running())) g_emulator->m_debug->stepIn();
             if (ImGui::MenuItem(_("Step Over"), "F10", nullptr, !g_system->running())) g_emulator->m_debug->stepOver();
@@ -574,9 +574,9 @@ settings, otherwise debugging features may not work.)");
     if (ImGui::Button(_("Jump to PC"))) {
         m_jumpToPC = m_registers->pc;
     }
-    DButton(_("Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
+    DButton(C_("Emulation", "Pause"), g_system->running(), [&]() mutable { g_system->pause(); });
     ImGui::SameLine();
-    DButton(_("Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
+    DButton(C_("Emulation", "Resume"), !g_system->running(), [&]() mutable { g_system->resume(); });
     ImGui::SameLine();
     DButton(_("Step In"), !g_system->running(), [&]() mutable { g_emulator->m_debug->stepIn(); });
     ImGui::SameLine();

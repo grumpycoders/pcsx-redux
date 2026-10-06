@@ -45,6 +45,7 @@ CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/ELFIO
 CPPFLAGS_pkg_fmt += -Ithird_party/fmt/include/
+CPPFLAGS += -Ithird_party/ftxui/include
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
@@ -177,6 +178,12 @@ THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,common renderer renderer/cpu_eng
 THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,loaders/svg loaders/png loaders/jpg loaders/lottie loaders/sfnt loaders/raw bindings/capi)
 THORVG_CPPFLAGS += -DTHORVG_GL_TARGET_GL=1
 SRCS += $(THORVG_SRCS)
+# FTXUI: every .cpp minus tests/fuzzers (gtest/libFuzzer) and component/loop.cpp, a leftover
+# that upstream's build files no longer list: Loop is now implemented in component/app.cpp,
+# so compiling both is a duplicate-symbol link error.
+FTXUI_SRCS := $(filter-out %_test.cpp %_fuzzer.cpp %/component/loop.cpp,$(call rwildcard,third_party/ftxui/src/,*.cpp))
+FTXUI_CPPFLAGS := -Ithird_party/ftxui/src
+SRCS += $(FTXUI_SRCS)
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
 SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
@@ -256,6 +263,9 @@ $(IMPLOT_OBJECTS): EXTRA_CPPFLAGS := $(IMPLOT_CPPFLAGS)
 THORVG_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(THORVG_SRCS)))
 $(THORVG_OBJECTS): EXTRA_CPPFLAGS := $(THORVG_CPPFLAGS)
 $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(THORVG_SRCS))): EXTRA_CPPFLAGS := $(THORVG_CPPFLAGS)
+FTXUI_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(FTXUI_SRCS)))
+$(FTXUI_OBJECTS): EXTRA_CPPFLAGS := $(FTXUI_CPPFLAGS)
+$(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(FTXUI_SRCS))): EXTRA_CPPFLAGS := $(FTXUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(TESTS_SRC)))
@@ -383,7 +393,7 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --from-code=utf-8 --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --from-code=utf-8 --keyword=_ --keyword=f_ --keyword=l_ --keyword=C_:1c,2 --keyword=lC_:1c,2 --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	find src -name *.lua | sort -u > pcsx-src-list.txt
 	xgettext --from-code=utf-8 --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot

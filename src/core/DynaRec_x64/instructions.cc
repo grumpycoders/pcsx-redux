@@ -151,7 +151,7 @@ void DynaRecCPU::recSUBU(uint32_t code) {
                     gen.sub(m_gprs[_Rd_].allocatedReg, m_gprs[_Rt_].val);
             }
         } else {
-            gen.lea(m_gprs[_Rd_].allocatedReg, dword[m_gprs[_Rs_].allocatedReg.cvt64() - m_gprs[_Rt_].val]);
+            gen.moveAndAdd(m_gprs[_Rd_].allocatedReg, m_gprs[_Rs_].allocatedReg, 0u - m_gprs[_Rt_].val);
         }
     } else {
         alloc_rt_rs_wb_rd(code);
@@ -1204,8 +1204,8 @@ void DynaRecCPU::recSWL(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val >> shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, address);         // Unaligned address in arg1
-        gen.mov(arg2, eax);             // Address to write to in arg2
+        gen.mov(arg1, address);  // Unaligned address in arg1
+        gen.mov(arg2, eax);      // Address to write to in arg2
         call(swlWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
@@ -1306,8 +1306,8 @@ void DynaRecCPU::recSWR(uint32_t code) {
         gen.andImm(eax, eax, mask);               // Mask read value
         gen.or_(eax, m_gprs[_Rt_].val << shift);  // Shift $rt and or with read value
 
-        gen.mov(arg1, address);         // Unaligned address in arg1
-        gen.mov(arg2, eax);             // Address to write to in arg2
+        gen.mov(arg1, address);  // Unaligned address in arg1
+        gen.mov(arg2, eax);      // Address to write to in arg2
         call(swrWriteWrapper);
     } else if (m_gprs[_Rs_].isConst()) {  // Only address is constant
         const uint32_t address = m_gprs[_Rs_].val + _Imm_;
@@ -1400,6 +1400,9 @@ void DynaRecCPU::recCOP0(uint32_t code) {
         case 4:
             recMTC0(code);
             break;
+        case 8:
+            recBCz(code);
+            break;
         case 16:
             recRFE(code);
             break;
@@ -1408,6 +1411,32 @@ void DynaRecCPU::recCOP0(uint32_t code) {
             recUnknown(code);
             break;
     }
+}
+
+// COP1 and COP3 don't exist, but their branches still decode
+void DynaRecCPU::recCOP1or3(uint32_t code) {
+    if (_Rs_ == 8) {
+        recBCz(code);
+    } else {
+        recUnknown(code);
+    }
+}
+
+// BCzF / BCzT. None of the coprocessors drives the condition input, so BCzF
+// always branches and BCzT never does. Bit 1 of rt is ignored. Like the rest
+// of the dynarec, this does not check SR.CUz.
+void DynaRecCPU::recBCz(uint32_t code) {
+    const auto target = _Imm_ * 4 + m_pc;
+    m_nextIsDelaySlot = true;
+
+    if ((_Rt_ & 1) || target == m_pc + 4) {
+        return;
+    }
+
+    m_pcWrittenBack = true;
+    m_stopCompiling = true;
+    gen.mov(dword[contextPointer + PC_OFFSET], target);
+    m_linkedPC = target;
 }
 
 void DynaRecCPU::recMFC0(uint32_t code) {

@@ -37,6 +37,7 @@
 #include "core/pio-cart.h"
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
+#include "core/shmdisplay.h"
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
@@ -155,6 +156,7 @@ int PCSX::Emulator::init() {
 
     m_gpu = settings.get<SettingHardwareRenderer>() ? GPU::getOpenGL() : GPU::getSoft();
     m_gpu->setDumper(m_gpuDumper.get());
+    if (args.isShmDisplayEnabled()) m_shmDisplay = std::make_unique<ShmDisplay>();
 
     setPGXPMode(m_config.PGXP_Mode);
     m_sio->init();

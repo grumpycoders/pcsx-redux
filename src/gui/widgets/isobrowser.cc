@@ -401,7 +401,7 @@ headers and subheader file boundary markers.)"));
                           ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
                                         ImGui::GetStyle().ItemSpacing.y))) {
         ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
-        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+        ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
         ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
         ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
@@ -508,13 +508,13 @@ headers and subheader file boundary markers.)"));
                     typeStr = _("Gap");
                     break;
                 case FlatEntry::HiddenM1:
-                    typeStr = _("M1");
+                    typeStr = "M1";
                     break;
                 case FlatEntry::HiddenM2F1:
-                    typeStr = _("M2F1");
+                    typeStr = "M2F1";
                     break;
                 case FlatEntry::HiddenM2F2:
-                    typeStr = _("M2F2");
+                    typeStr = "M2F2";
                     break;
                 case FlatEntry::System:
                     typeStr = _("System");
@@ -618,7 +618,7 @@ significantly by caching the files beforehand.)"));
     ImGui::TextUnformatted(str.c_str());
     if (ImGui::BeginTable("Tracks", 5, ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Track"));
-        ImGui::TableSetupColumn(_("Start"));
+        ImGui::TableSetupColumn(C_("Track position", "Start"));
         ImGui::TableSetupColumn(_("Length"));
         ImGui::TableSetupColumn(_("Pregap"));
         ImGui::TableSetupColumn("CRC32");
@@ -809,7 +809,7 @@ significantly by caching the files beforehand.)"));
                                   ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
                                                 ImGui::GetStyle().ItemSpacing.y))) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
                 ImGui::TableHeadersRow();
                 std::unordered_set<uint32_t> visitedDirs;

@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="ReleaseWithClangCL|x64">
+      <Configuration>ReleaseWithClangCL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseWithTracy|x64">
+      <Configuration>ReleaseWithTracy</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{fc48d7bd-e2d9-4ba9-8b2f-d28345048e83}</ProjectGuid>
+    <RootNamespace>ftxui</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\tracy.props" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ftxui\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ftxui\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithTracy|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ftxui\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithClangCL|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\third_party\ftxui\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\animation.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\app.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\button.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\catch_event.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\checkbox.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\collapsible.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\component.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\component_options.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\container.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\dropdown.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\event.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\hoverable.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\input.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\maybe.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\menu.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\modal.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\radiobox.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\renderer.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\resizable_split.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\slider.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\task.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\task_queue.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\task_runner.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\terminal_input_parser.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\util.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\component\window.cpp">
+      <ObjectFileName>$(IntDir)component_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\automerge.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\blink.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\bold.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\border.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\box_helper.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\canvas.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\clear_under.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\color.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\composite_decorator.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\dbox.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\dim.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\flex.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\flexbox.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\flexbox_config.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\flexbox_helper.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\focus.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\frame.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\gauge.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\graph.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\gridbox.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\hbox.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\hyperlink.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\inverted.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\italic.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\linear_gradient.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\node.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\node_decorator.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\paragraph.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\reflect.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\scroll_indicator.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\selection.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\selection_style.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\separator.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\size.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\spinner.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\strikethrough.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\table.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\text.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\underlined.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\underlined_double.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\util.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\dom\vbox.cpp">
+      <ObjectFileName>$(IntDir)dom_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\box.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\color.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\color_info.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\screen.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\string.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\surface.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\screen\terminal.cpp">
+      <ObjectFileName>$(IntDir)screen_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\ftxui\src\ftxui\util\ref.cpp">
+      <ObjectFileName>$(IntDir)util_%(Filename).obj</ObjectFileName>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\animation.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\app.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\captured_mouse.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\component.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\component_base.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\component_options.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\event.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\loop.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\mouse.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\receiver.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\screen_interactive.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\component\task.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\canvas.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\deprecated.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\direction.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\elements.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\flexbox_config.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\linear_gradient.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\node.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\requirement.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\selection.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\table.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\dom\take_any_args.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\ftxui.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\box.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\cell.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\color.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\color_info.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\deprecated.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\image.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\pixel.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\screen.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\string.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\surface.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\screen\terminal.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\util\autoreset.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\util\export.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\util\ref.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\include\ftxui\util\warn_windows_macro.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\component\multi_receiver_buffer.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\component\task_internal.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\component\task_queue.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\component\task_runner.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\component\terminal_input_parser.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\dom\box_helper.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\dom\flexbox_helper.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\dom\node_decorator.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\screen\string_internal.hpp" />
+    <ClInclude Include="..\..\third_party\ftxui\src\ftxui\screen\util.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

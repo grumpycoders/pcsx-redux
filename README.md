@@ -138,11 +138,9 @@ Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbio
 ### MacOS
 You need MacOS Catalina or later with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
 
-Compiling OpenBIOS will require a mips compiler, that you can generate using the following commands:
+Compiling OpenBIOS will require a mips compiler, which you can install from our [Homebrew tap](https://github.com/pcsx-redux/homebrew-mips):
 ```bash
-brew install nikitabobko/tap/brew-install-path
-brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install pcsx-redux/mips/mipsel-none-elf-gcc
 ```
 
 Then, you can compile OpenBIOS using `make -C ./src/mips/openbios`.

@@ -85,6 +85,7 @@ class Memory;
 class Pads;
 class PatchManager;
 class R3000Acpu;
+class ShmDisplay;
 class SIO;
 class SPUInterface;
 class System;
@@ -283,6 +284,7 @@ class Emulator {
     std::unique_ptr<SIO1> m_sio1;
     std::unique_ptr<SIO1Server> m_sio1Server;
     std::unique_ptr<SIO1Client> m_sio1Client;
+    std::unique_ptr<ShmDisplay> m_shmDisplay;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
 

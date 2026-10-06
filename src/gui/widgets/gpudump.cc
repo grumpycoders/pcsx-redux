@@ -107,10 +107,10 @@ void PCSX::Widgets::GPUDump::drawPlayer() {
     if (!player->comment().empty()) ImGui::Text(_("Comment: %s"), player->comment().c_str());
     ImGui::Text(_("Frame %llu"), static_cast<unsigned long long>(player->frame()));
 
-    if (ImGui::Button(m_playing ? _("Pause") : _("Play"))) m_playing = !m_playing;
+    if (ImGui::Button(m_playing ? C_("Playback", "Pause") : C_("Playback", "Play"))) m_playing = !m_playing;
     ImGui::SameLine();
     ImGui::BeginDisabled(m_playing);
-    if (ImGui::Button(_("Step"))) player->step();
+    if (ImGui::Button(C_("Playback", "Step"))) player->step();
     ImGui::EndDisabled();
     ImGui::SameLine();
     if (ImGui::Button(_("Rewind"))) player->rewind();

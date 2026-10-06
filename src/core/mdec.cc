@@ -26,8 +26,8 @@
 
 #include "core/debug.h"
 #include "core/logger.h"
-#include "core/system.h"
 #include "core/psxemulator.h"
+#include "core/system.h"
 #include "supportpsx/dct.h"
 
 #define AAN_CONST_BITS 12
@@ -358,8 +358,7 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
                 if (rl == MDEC_END_OF_DATA) break;
                 k += RLE_RUN(rl) + 1;
                 if (k > 63) break;
-                const int spec =
-                    q_scale == 0 ? RLE_VAL(rl) * 2 : (RLE_VAL(rl) * qtab[k] * q_scale + 4) / 8;
+                const int spec = q_scale == 0 ? RLE_VAL(rl) * 2 : (RLE_VAL(rl) * qtab[k] * q_scale + 4) / 8;
                 blk[q_scale == 0 ? k : zscan[k]] = std::clamp(spec, -0x400, 0x3ff);
             }
             real_idct(blk);
@@ -425,9 +424,8 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
                 // [-1024, +1022], inside [-400h, +3FFh] at both ends.
                 blk[dest] = SCALER(RLE_VAL(rl) * 2 * 8 * SCALER(aanscales[k], AAN_PRESCALE_SCALE), AAN_EXTRA);
             } else {
-                blk[dest] = SCALER(saturateAanAc(RLE_VAL(rl) * qtab[k] * q_scale) *
-                                       (iqtab[k] / (qtab[k] ? qtab[k] : 1)),
-                                   AAN_EXTRA);
+                blk[dest] = SCALER(
+                    saturateAanAc(RLE_VAL(rl) * qtab[k] * q_scale) * (iqtab[k] / (qtab[k] ? qtab[k] : 1)), AAN_EXTRA);
             }
             // keep track of used columns to speed up the idtc
             used_col |= (dest > 7) ? 1 << (dest & 7) : 0;

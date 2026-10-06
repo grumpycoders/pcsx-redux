@@ -78,7 +78,7 @@ void PCSX::Widgets::NamedSaveStates::draw(GUI* gui, const char* title) {
     float posY = ImGui::GetCursorPosY();
     ImGui::SetCursorPosY(posY + verticalAlignAdjust);
 
-    ImGui::TextUnformatted(_("Filename: "));
+    ImGui::TextUnformatted(_("Filename:"));
     ImGui::SameLine();
     ImGui::TextUnformatted(gui->getSaveStatePrefix(true).c_str());
     ImGui::SameLine(0.0f, 0.0f);

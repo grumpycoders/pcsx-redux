@@ -13,7 +13,7 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/cdrom/cdriso-ecm.cc:282
@@ -66,10 +66,6 @@ msgstr ""
 msgid "{}x MSAA"
 msgstr ""
 
-#: src/core/OpenGL_GPU/gpu_opengl.cc:481
-msgid "MSAA"
-msgstr ""
-
 #: src/core/OpenGL_GPU/gpu_opengl.cc:499 src/gpu/soft/gpu.cc:267
 msgid "Use linear filtering"
 msgstr ""
@@ -110,17 +106,17 @@ msgstr ""
 msgid "Clear VRAM"
 msgstr ""
 
-#: src/core/cdrom.cc:1724
+#: src/core/cdrom.cc:1725
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr ""
 
-#: src/core/cdrom.cc:1725
+#: src/core/cdrom.cc:1726
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr ""
 
-#: src/core/cdrom.cc:1726
+#: src/core/cdrom.cc:1727
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr ""
@@ -195,17 +191,18 @@ msgstr ""
 msgid "Step Out"
 msgstr ""
 
-#: src/core/debug.h:38
+#: src/core/debug.h:39
+msgctxt "Breakpoint type"
 msgid "Exec"
 msgstr ""
 
-#: src/core/debug.h:38 src/gui/widgets/gpulogger.cc:168
-#: src/gui/widgets/typed_debugger.cc:264
+#: src/core/debug.h:39
+msgctxt "Breakpoint type"
 msgid "Read"
 msgstr ""
 
-#: src/core/debug.h:38 src/gui/widgets/gpulogger.cc:170
-#: src/gui/widgets/typed_debugger.cc:266
+#: src/core/debug.h:39
+msgctxt "Breakpoint type"
 msgid "Write"
 msgstr ""
 
@@ -322,98 +319,97 @@ msgstr ""
 msgid "Dithering: %s"
 msgstr ""
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:437
-#: src/core/gpulogger.cc:500 src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
+#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
 msgid "No"
 msgstr ""
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:437
-#: src/core/gpulogger.cc:500 src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
+#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
 msgid "Yes"
 msgstr ""
 
-#: src/core/gpulogger.cc:437
-#, c-format
-msgid "  Set: %s, Check: %s"
+#: src/core/gpulogger.cc:438
+msgid "Set: {}, Check: {}"
 msgstr ""
 
-#: src/core/gpulogger.cc:446
+#: src/core/gpulogger.cc:447
 msgid "Display Enabled"
 msgstr ""
 
-#: src/core/gpulogger.cc:448
+#: src/core/gpulogger.cc:449
 msgid "Display Disabled"
 msgstr ""
 
-#: src/core/gpulogger.cc:455
+#: src/core/gpulogger.cc:456
 msgid "DMA Off"
 msgstr ""
 
-#: src/core/gpulogger.cc:458
+#: src/core/gpulogger.cc:459
 msgid "FIFO Query"
 msgstr ""
 
-#: src/core/gpulogger.cc:461
+#: src/core/gpulogger.cc:462
 msgid "DMA Read"
 msgstr ""
 
-#: src/core/gpulogger.cc:464
+#: src/core/gpulogger.cc:465
 msgid "DMA Write"
 msgstr ""
 
-#: src/core/gpulogger.cc:478
+#: src/core/gpulogger.cc:479
 msgid "Horizontal resolution:"
 msgstr ""
 
-#: src/core/gpulogger.cc:500
+#: src/core/gpulogger.cc:501
 #, c-format
 msgid "Extended width mode: %s"
 msgstr ""
 
-#: src/core/gpulogger.cc:501
+#: src/core/gpulogger.cc:502
 msgid "Vertical resolution:"
 msgstr ""
 
-#: src/core/gpulogger.cc:511
+#: src/core/gpulogger.cc:512
 #, c-format
 msgid "Output mode: %s"
 msgstr ""
 
-#: src/core/gpulogger.cc:512
+#: src/core/gpulogger.cc:513
 msgid "15 bits"
 msgstr ""
 
-#: src/core/gpulogger.cc:512
+#: src/core/gpulogger.cc:513
 msgid "24 bits"
-msgstr ""
-
-#: src/core/gpulogger.cc:512
-#, c-format
-msgid "Display depth: %s"
 msgstr ""
 
 #: src/core/gpulogger.cc:513
 #, c-format
+msgid "Display depth: %s"
+msgstr ""
+
+#: src/core/gpulogger.cc:514
+#, c-format
 msgid "Interlaced: %s"
 msgstr ""
 
-#: src/core/gpulogger.cc:519
+#: src/core/gpulogger.cc:520
 msgid "Texture Window"
 msgstr ""
 
-#: src/core/gpulogger.cc:522
+#: src/core/gpulogger.cc:523
 msgid "Draw Area Start"
 msgstr ""
 
-#: src/core/gpulogger.cc:525
+#: src/core/gpulogger.cc:526
 msgid "Draw Area End"
 msgstr ""
 
-#: src/core/gpulogger.cc:528
+#: src/core/gpulogger.cc:529
 msgid "Draw Offset"
 msgstr ""
 
-#: src/core/gpulogger.cc:531 src/gui/widgets/breakpoints.cc:50
+#: src/core/gpulogger.cc:532 src/gui/widgets/breakpoints.cc:50
 msgid "Unknown"
 msgstr ""
 
@@ -425,6 +421,13 @@ msgstr ""
 #: src/core/gte-transfer.cc:125
 #, c-format
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
+msgstr ""
+
+#: src/core/mdec.cc:682
+msgid ""
+"MDEC decode issued with no scale table uploaded. Real hardware has no "
+"default here and will decode this to flat grey; send MDEC(3) before "
+"MDEC(1).\n"
 msgstr ""
 
 #: src/core/memorycard.cc:350
@@ -451,243 +454,189 @@ msgstr ""
 msgid "Saving memory card %s\n"
 msgstr ""
 
-#: src/core/pad.cc:738 src/core/pad.cc:831
+#: src/core/pad.cc:744 src/core/pad.cc:837
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr ""
 
-#: src/core/pad.cc:933
+#: src/core/pad.cc:939
 msgid "Pad configuration"
 msgstr ""
 
-#: src/core/pad.cc:939
+#: src/core/pad.cc:945
 msgid "Pad 1"
 msgstr ""
 
-#: src/core/pad.cc:940
+#: src/core/pad.cc:946
 msgid "Pad 2"
 msgstr ""
 
-#: src/core/pad.cc:943
+#: src/core/pad.cc:949
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 
-#: src/core/pad.cc:949
+#: src/core/pad.cc:955
 msgid "Use raw input for mouse"
 msgstr ""
 
-#: src/core/pad.cc:951
+#: src/core/pad.cc:957
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
 
-#: src/core/pad.cc:953
+#: src/core/pad.cc:959
 msgid "Allow mouse capture toggle"
 msgstr ""
 
-#: src/core/pad.cc:955
+#: src/core/pad.cc:961
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 
-#: src/core/pad.cc:957
+#: src/core/pad.cc:963
 msgid "Pad"
 msgstr ""
 
-#: src/core/pad.cc:966
+#: src/core/pad.cc:972
 msgid "Set defaults"
 msgstr ""
 
-#: src/core/pad.cc:982
+#: src/core/pad.cc:988
 msgid "Keyboard Up"
 msgstr ""
 
-#: src/core/pad.cc:984
+#: src/core/pad.cc:990
 msgid "Keyboard Right"
 msgstr ""
 
-#: src/core/pad.cc:986
+#: src/core/pad.cc:992
 msgid "Keyboard Down"
 msgstr ""
 
-#: src/core/pad.cc:988
+#: src/core/pad.cc:994
 msgid "Keyboard Left"
 msgstr ""
 
-#: src/core/pad.cc:990
+#: src/core/pad.cc:996
 msgid "Keyboard Backspace"
 msgstr ""
 
-#: src/core/pad.cc:992
+#: src/core/pad.cc:998
 msgid "Keyboard Enter"
 msgstr ""
 
-#: src/core/pad.cc:994
+#: src/core/pad.cc:1000
 msgid "Keyboard Space"
 msgstr ""
 
-#: src/core/pad.cc:996
+#: src/core/pad.cc:1002
 msgid "Keyboard Escape"
 msgstr ""
 
-#: src/core/pad.cc:998
+#: src/core/pad.cc:1004
 msgid "Unbound"
 msgstr ""
 
-#: src/core/pad.cc:1003
+#: src/core/pad.cc:1009
 msgid "Unknown keyboard key {}"
 msgstr ""
 
-#: src/core/pad.cc:1008
+#: src/core/pad.cc:1014
 msgid "Keyboard {}"
 msgstr ""
 
-#: src/core/pad.cc:1027 src/gui/gui.cc:2266
+#: src/core/pad.cc:1033 src/gui/gui.cc:2268
 msgid "Auto"
 msgstr ""
 
-#: src/core/pad.cc:1028
+#: src/core/pad.cc:1034
 msgid "Controller"
 msgstr ""
 
-#: src/core/pad.cc:1029
+#: src/core/pad.cc:1035
 msgid "Keyboard"
 msgstr ""
 
-#: src/core/pad.cc:1032
-msgid "L1"
-msgstr ""
-
-#: src/core/pad.cc:1032
+#: src/core/pad.cc:1042
+msgctxt "Controller button"
 msgid "Select"
 msgstr ""
 
-#: src/core/pad.cc:1032 src/gui/widgets/isobrowser.cc:621
+#: src/core/pad.cc:1043
+msgctxt "Controller button"
 msgid "Start"
 msgstr ""
 
-#: src/core/pad.cc:1032
-msgid "╳"
-msgstr ""
-
-#: src/core/pad.cc:1032
-msgid "□"
-msgstr ""
-
-#: src/core/pad.cc:1032
-msgid "△"
-msgstr ""
-
-#: src/core/pad.cc:1032
-msgid "◯"
-msgstr ""
-
-#: src/core/pad.cc:1033
+#: src/core/pad.cc:1050
 msgid "Analog Mode"
 msgstr ""
 
-#: src/core/pad.cc:1033
-msgid "L2"
-msgstr ""
-
-#: src/core/pad.cc:1033
-msgid "L3"
-msgstr ""
-
-#: src/core/pad.cc:1033
-msgid "R1"
-msgstr ""
-
-#: src/core/pad.cc:1033
-msgid "R2"
-msgstr ""
-
-#: src/core/pad.cc:1033
-msgid "R3"
-msgstr ""
-
-#: src/core/pad.cc:1036
-msgid "↑"
-msgstr ""
-
-#: src/core/pad.cc:1037
-msgid "→"
-msgstr ""
-
-#: src/core/pad.cc:1038
-msgid "↓"
-msgstr ""
-
-#: src/core/pad.cc:1039
-msgid "←"
-msgstr ""
-
-#: src/core/pad.cc:1042
+#: src/core/pad.cc:1059
 msgid "Digital"
 msgstr ""
 
-#: src/core/pad.cc:1043
+#: src/core/pad.cc:1060
 msgid "Analog"
 msgstr ""
 
-#: src/core/pad.cc:1044
+#: src/core/pad.cc:1061
 msgid "Mouse"
 msgstr ""
 
-#: src/core/pad.cc:1045
+#: src/core/pad.cc:1062
 msgid "Negcon (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1046
+#: src/core/pad.cc:1063
 msgid "Gun (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1047
+#: src/core/pad.cc:1064
 msgid "Guncon (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1051 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1068 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr ""
 
-#: src/core/pad.cc:1060
+#: src/core/pad.cc:1077
 msgid "Analog mode"
 msgstr ""
 
-#: src/core/pad.cc:1068
+#: src/core/pad.cc:1085
 msgid "Controller Type"
 msgstr ""
 
-#: src/core/pad.cc:1084
+#: src/core/pad.cc:1101
 msgid "Device type"
 msgstr ""
 
-#: src/core/pad.cc:1095
+#: src/core/pad.cc:1112
 msgid "Mouse sensitivity X"
 msgstr ""
 
-#: src/core/pad.cc:1097
+#: src/core/pad.cc:1114
 msgid "Mouse sensitivity Y"
 msgstr ""
 
-#: src/core/pad.cc:1099
+#: src/core/pad.cc:1116
 msgid "Keyboard mapping"
 msgstr ""
 
-#: src/core/pad.cc:1101
+#: src/core/pad.cc:1118
 msgid "Computer button mapping"
 msgstr ""
 
-#: src/core/pad.cc:1102
+#: src/core/pad.cc:1119
 msgid "Gamepad button"
 msgstr ""
 
-#: src/core/pad.cc:1152
+#: src/core/pad.cc:1169
 msgid "No gamepad selected or connected"
 msgstr ""
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1193
 msgid "Gamepad"
 msgstr ""
 
@@ -711,235 +660,236 @@ msgstr ""
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:359
+#: src/core/psxinterpreter.cc:362
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:453
+#: src/core/psxinterpreter.cc:456
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:495
+#: src/core/psxinterpreter.cc:498
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:821
+#: src/core/psxinterpreter.cc:830
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:847
+#: src/core/psxinterpreter.cc:856
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:885
+#: src/core/psxinterpreter.cc:894
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:902
+#: src/core/psxinterpreter.cc:911
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:919
+#: src/core/psxinterpreter.cc:928
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:981
+#: src/core/psxinterpreter.cc:990
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:992
+#: src/core/psxinterpreter.cc:1001
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1113
+#: src/core/psxinterpreter.cc:1116
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1128
+#: src/core/psxinterpreter.cc:1131
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
 "Ignored.\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1139
+#: src/core/psxinterpreter.cc:1143
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr ""
 
-#: src/core/psxmem.cc:106
+#: src/core/psxmem.cc:109
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
 
-#: src/core/psxmem.cc:116
+#: src/core/psxmem.cc:119
 msgid "Error allocating memory!"
 msgstr ""
 
-#: src/core/psxmem.cc:160
+#: src/core/psxmem.cc:163
 #, c-format
 msgid "Could not open EXP1:\"%s\".\n"
 msgstr ""
 
-#: src/core/psxmem.cc:168
+#: src/core/psxmem.cc:171
 #, c-format
 msgid "Loaded %i bytes to EXP1 from file: %s\n"
 msgstr ""
 
-#: src/core/psxmem.cc:215
-msgid ""
-"\n"
-"                   No BIOS loaded, emulation halted.\n"
-"\n"
-"Set a BIOS file into the configuration, and do a hard reset of the "
-"emulator.\n"
-"The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.\n"
+#: src/core/psxmem.cc:218
+msgid "No BIOS loaded, emulation halted."
 msgstr ""
 
-#: src/core/psxmem.cc:230
+#: src/core/psxmem.cc:219
+msgid ""
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
+"The distributed OpenBIOS.bin file can be an appropriate BIOS replacement."
+msgstr ""
+
+#: src/core/psxmem.cc:232
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr ""
 
-#: src/core/psxmem.cc:240
+#: src/core/psxmem.cc:242
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
 "Add a valid BIOS in the configuration and hard reset.\n"
 msgstr ""
 
-#: src/core/psxmem.cc:255
+#: src/core/psxmem.cc:257
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr ""
 
-#: src/core/psxmem.cc:267
+#: src/core/psxmem.cc:269
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr ""
 
-#: src/core/psxmem.cc:269
+#: src/core/psxmem.cc:271
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
 msgstr ""
 
-#: src/core/psxmem.cc:271
+#: src/core/psxmem.cc:273
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
 msgstr ""
 
-#: src/core/psxmem.cc:304
+#: src/core/psxmem.cc:306
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:308
+#: src/core/psxmem.cc:310
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:337
+#: src/core/psxmem.cc:339
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:355
+#: src/core/psxmem.cc:357
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:359
+#: src/core/psxmem.cc:361
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:385
+#: src/core/psxmem.cc:387
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:403
+#: src/core/psxmem.cc:405 src/core/psxmem.cc:655
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:407
+#: src/core/psxmem.cc:409 src/core/psxmem.cc:659
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:435
+#: src/core/psxmem.cc:437
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:528
+#: src/core/psxmem.cc:530
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:547
+#: src/core/psxmem.cc:549
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:565
+#: src/core/psxmem.cc:567
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:585
+#: src/core/psxmem.cc:587
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:603
+#: src/core/psxmem.cc:605 src/core/psxmem.cc:674
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:632
+#: src/core/psxmem.cc:634
 #, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:641
+#: src/core/psxmem.cc:643
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:879
+#: src/core/psxmem.cc:915
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr ""
 
-#: src/core/psxmem.cc:904
+#: src/core/psxmem.cc:940
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr ""
 
-#: src/core/psxmem.cc:928 src/core/psxmem.cc:935
+#: src/core/psxmem.cc:964 src/core/psxmem.cc:971
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:957 src/core/psxmem.cc:964
+#: src/core/psxmem.cc:993 src/core/psxmem.cc:1000
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:1007
+#: src/core/psxmem.cc:1043
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr ""
@@ -957,6 +907,10 @@ msgstr ""
 #: src/core/r3000a.cc:52
 #, c-format
 msgid "CPU type: %s\n"
+msgstr ""
+
+#: src/core/shmdisplay.cc:31
+msgid "Failed to create the shared display memory block\n"
 msgstr ""
 
 #: src/core/sio.cc:368
@@ -1025,7 +979,7 @@ msgid ""
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
 
-#: src/gui/gui.cc:177 src/gui/gui.cc:1307 src/gui/widgets/isobrowser.cc:539
+#: src/gui/gui.cc:177 src/gui/gui.cc:1309 src/gui/widgets/isobrowser.cc:539
 #: src/gui/widgets/isobrowser.h:50
 msgid "Open Disk Image"
 msgstr ""
@@ -1046,588 +1000,581 @@ msgstr ""
 msgid "Select EXP1"
 msgstr ""
 
-#: src/gui/gui.cc:409
+#: src/gui/gui.cc:410
 msgid "One argument needed to the setText* functions"
 msgstr ""
 
-#: src/gui/gui.cc:427
+#: src/gui/gui.cc:428
 msgid ""
 "The argument to the setText* functions need to be convertible to a string, "
 "or be a File object"
 msgstr ""
 
-#: src/gui/gui.cc:432
+#: src/gui/gui.cc:433
 msgid "Error compiling new shader code: {}"
 msgstr ""
 
-#: src/gui/gui.cc:769
+#: src/gui/gui.cc:771
 msgid ""
 "Warning: OpenGL error reporting disabled. See About dialog for more "
 "information.\n"
 msgstr ""
 
-#: src/gui/gui.cc:782
+#: src/gui/gui.cc:784
 msgid "Main VRAM Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:783
+#: src/gui/gui.cc:785
 msgid "CLUT VRAM selector"
 msgstr ""
 
-#: src/gui/gui.cc:788
+#: src/gui/gui.cc:790
 msgid "Vram Viewer #"
 msgstr ""
 
-#: src/gui/gui.cc:797
+#: src/gui/gui.cc:799
 msgid "Memory Editor #"
 msgstr ""
 
-#: src/gui/gui.cc:802
+#: src/gui/gui.cc:804
 msgid "Parallel Port"
 msgstr ""
 
-#: src/gui/gui.cc:803
+#: src/gui/gui.cc:805
 msgid "Scratch Pad"
 msgstr ""
 
-#: src/gui/gui.cc:804
+#: src/gui/gui.cc:806
 msgid "Hardware Registers"
 msgstr ""
 
-#: src/gui/gui.cc:805
-msgid "BIOS"
-msgstr ""
-
-#: src/gui/gui.cc:806
+#: src/gui/gui.cc:808
 msgid "VRAM"
 msgstr ""
 
-#: src/gui/gui.cc:1269
+#: src/gui/gui.cc:1271
 msgid "Output"
 msgstr ""
 
-#: src/gui/gui.cc:1306 src/gui/widgets/assembly.cc:493
+#: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
 #: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:597
 msgid "File"
 msgstr ""
 
-#: src/gui/gui.cc:1309
+#: src/gui/gui.cc:1311
 msgid "Reload Disk Image"
 msgstr ""
 
-#: src/gui/gui.cc:1315 src/gui/widgets/isobrowser.cc:540
+#: src/gui/gui.cc:1317 src/gui/widgets/isobrowser.cc:540
 msgid "Close Disk Image"
 msgstr ""
 
-#: src/gui/gui.cc:1319
+#: src/gui/gui.cc:1321
 msgid "Load binary"
 msgstr ""
 
-#: src/gui/gui.cc:1322
+#: src/gui/gui.cc:1324
 msgid "Add Lua archive"
 msgstr ""
 
-#: src/gui/gui.cc:1326
+#: src/gui/gui.cc:1328
 msgid "Dump save state proto schema"
 msgstr ""
 
-#: src/gui/gui.cc:1331
+#: src/gui/gui.cc:1333
 msgid "global{}"
 msgstr ""
 
-#: src/gui/gui.cc:1333
+#: src/gui/gui.cc:1335
 msgid "Save state slots"
 msgstr ""
 
-#: src/gui/gui.cc:1334
+#: src/gui/gui.cc:1336
 msgid "Quick-save slot"
 msgstr ""
 
-#: src/gui/gui.cc:1339 src/gui/gui.cc:1360
+#: src/gui/gui.cc:1341 src/gui/gui.cc:1362
 msgid "Slot {}"
 msgstr ""
 
-#: src/gui/gui.cc:1346
+#: src/gui/gui.cc:1348
 msgid "Show named save states"
 msgstr ""
 
-#: src/gui/gui.cc:1351
+#: src/gui/gui.cc:1353
 msgid "Save global state"
 msgstr ""
 
-#: src/gui/gui.cc:1353
+#: src/gui/gui.cc:1355
 msgid "Load state slots"
 msgstr ""
 
-#: src/gui/gui.cc:1356
+#: src/gui/gui.cc:1358
 msgid "Quick-load slot"
 msgstr ""
 
-#: src/gui/gui.cc:1381
+#: src/gui/gui.cc:1383
 msgid "Load global state"
 msgstr ""
 
-#: src/gui/gui.cc:1385
+#: src/gui/gui.cc:1387
 msgid "Open LID"
 msgstr ""
 
-#: src/gui/gui.cc:1389
+#: src/gui/gui.cc:1391
 msgid "Close LID"
 msgstr ""
 
-#: src/gui/gui.cc:1393
+#: src/gui/gui.cc:1395
 msgid "Open and close LID"
 msgstr ""
 
-#: src/gui/gui.cc:1398
+#: src/gui/gui.cc:1400
 msgid "Reset settings..."
 msgstr ""
 
-#: src/gui/gui.cc:1402
+#: src/gui/gui.cc:1404
 msgid "Reboot"
 msgstr ""
 
-#: src/gui/gui.cc:1405
+#: src/gui/gui.cc:1407
 msgid "Quit"
 msgstr ""
 
-#: src/gui/gui.cc:1411 src/gui/gui.cc:1479
+#: src/gui/gui.cc:1413 src/gui/gui.cc:1481
 msgid "Emulation"
 msgstr ""
 
-#: src/gui/gui.cc:1412
+#: src/gui/gui.cc:1414
 msgid "Start emulation"
 msgstr ""
 
-#: src/gui/gui.cc:1415
+#: src/gui/gui.cc:1417
 msgid "Pause emulation"
 msgstr ""
 
-#: src/gui/gui.cc:1418
+#: src/gui/gui.cc:1420
 msgid "Soft Reset"
 msgstr ""
 
-#: src/gui/gui.cc:1421
+#: src/gui/gui.cc:1423
 msgid "Hard Reset"
 msgstr ""
 
-#: src/gui/gui.cc:1427 src/gui/widgets/cdrom-viewer.cc:364
+#: src/gui/gui.cc:1429 src/gui/widgets/cdrom-viewer.cc:364
 #: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:639
 msgid "Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:1428
+#: src/gui/gui.cc:1430
 msgid "Fullscreen"
 msgstr ""
 
-#: src/gui/gui.cc:1432
+#: src/gui/gui.cc:1434
 msgid "Full window render"
 msgstr ""
 
-#: src/gui/gui.cc:1438
+#: src/gui/gui.cc:1440
 msgid "Shader presets"
 msgstr ""
 
-#: src/gui/gui.cc:1439
+#: src/gui/gui.cc:1441
 msgid "Default shader"
 msgstr ""
 
-#: src/gui/gui.cc:1442
+#: src/gui/gui.cc:1444
 msgid "CRT-lottes shader"
 msgstr ""
 
-#: src/gui/gui.cc:1469
+#: src/gui/gui.cc:1471
 msgid "Configure Shaders"
 msgstr ""
 
-#: src/gui/gui.cc:1474
+#: src/gui/gui.cc:1476
 msgid "Controls"
 msgstr ""
 
-#: src/gui/gui.cc:1475
+#: src/gui/gui.cc:1477
 msgid "Manage Memory Cards"
 msgstr ""
 
-#: src/gui/gui.cc:1480 src/gui/gui.cc:1548
+#: src/gui/gui.cc:1482 src/gui/gui.cc:1550
 msgid "GPU"
 msgstr ""
 
-#: src/gui/gui.cc:1481 src/gui/gui.cc:1565
+#: src/gui/gui.cc:1483 src/gui/gui.cc:1567
 msgid "SPU"
 msgstr ""
 
-#: src/gui/gui.cc:1482
+#: src/gui/gui.cc:1484
 msgid "PIO Cartridge"
 msgstr ""
 
-#: src/gui/gui.cc:1484
+#: src/gui/gui.cc:1486
 msgid "UI"
 msgstr ""
 
-#: src/gui/gui.cc:1485 src/gui/widgets/isobrowser.cc:520
+#: src/gui/gui.cc:1487 src/gui/widgets/isobrowser.cc:520
 msgid "System"
 msgstr ""
 
-#: src/gui/gui.cc:1489 src/gui/widgets/assembly.cc:500
+#: src/gui/gui.cc:1491 src/gui/widgets/assembly.cc:500
 msgid "Debug"
 msgstr ""
 
-#: src/gui/gui.cc:1490
+#: src/gui/gui.cc:1492
 msgid "Show Logs"
 msgstr ""
 
-#: src/gui/gui.cc:1491
-msgid "Lua"
-msgstr ""
-
-#: src/gui/gui.cc:1492
+#: src/gui/gui.cc:1494
 msgid "Show Lua Console"
 msgstr ""
 
-#: src/gui/gui.cc:1493
+#: src/gui/gui.cc:1495
 msgid "Show Lua Inspector"
 msgstr ""
 
-#: src/gui/gui.cc:1494
+#: src/gui/gui.cc:1496
 msgid "Show Lua editor"
 msgstr ""
 
-#: src/gui/gui.cc:1498
+#: src/gui/gui.cc:1500
 msgid "CPU"
 msgstr ""
 
-#: src/gui/gui.cc:1499
+#: src/gui/gui.cc:1501
 msgid "Show Registers"
 msgstr ""
 
-#: src/gui/gui.cc:1500
+#: src/gui/gui.cc:1502
 msgid "Show Assembly"
 msgstr ""
 
-#: src/gui/gui.cc:1502 src/gui/gui.cc:1504
+#: src/gui/gui.cc:1504 src/gui/gui.cc:1506
 msgid "Show DynaRec Disassembly"
 msgstr ""
 
-#: src/gui/gui.cc:1506
+#: src/gui/gui.cc:1508
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
 
-#: src/gui/gui.cc:1509
+#: src/gui/gui.cc:1511
 msgid "Show Breakpoints"
 msgstr ""
 
-#: src/gui/gui.cc:1510
+#: src/gui/gui.cc:1512
 msgid "Show Callstacks"
 msgstr ""
 
-#: src/gui/gui.cc:1511
+#: src/gui/gui.cc:1513
 msgid "Memory Editors"
 msgstr ""
 
-#: src/gui/gui.cc:1522
+#: src/gui/gui.cc:1524
 msgid "Show Memory Observer"
 msgstr ""
 
-#: src/gui/gui.cc:1523
+#: src/gui/gui.cc:1525
 msgid "Show RAM viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1524
+#: src/gui/gui.cc:1526
 msgid "Show MSAN Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1525
+#: src/gui/gui.cc:1527
 msgid "Show Typed Debugger"
 msgstr ""
 
-#: src/gui/gui.cc:1526
+#: src/gui/gui.cc:1528
 msgid "Show Patches"
 msgstr ""
 
-#: src/gui/gui.cc:1527
+#: src/gui/gui.cc:1529
 msgid "Show Interrupts Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:1528
+#: src/gui/gui.cc:1530
 msgid "First Chance Exceptions"
 msgstr ""
 
-#: src/gui/gui.cc:1549
+#: src/gui/gui.cc:1551
 msgid "VRAM viewers"
 msgstr ""
 
-#: src/gui/gui.cc:1550
+#: src/gui/gui.cc:1552
 msgid "Show main VRAM viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1551
+#: src/gui/gui.cc:1553
 msgid "Show CLUT VRAM viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1554
+#: src/gui/gui.cc:1556
 msgid "Show VRAM viewer #"
 msgstr ""
 
-#: src/gui/gui.cc:1560
+#: src/gui/gui.cc:1562
 msgid "Show GPU logger"
 msgstr ""
 
-#: src/gui/gui.cc:1561
+#: src/gui/gui.cc:1563
 msgid "Show GPU dump recorder / player"
 msgstr ""
 
-#: src/gui/gui.cc:1562
+#: src/gui/gui.cc:1564
 msgid "Show GPU debug"
 msgstr ""
 
-#: src/gui/gui.cc:1566
+#: src/gui/gui.cc:1568
 msgid "Show SPU debug"
 msgstr ""
 
-#: src/gui/gui.cc:1569
+#: src/gui/gui.cc:1571
 msgid "CD-Rom"
 msgstr ""
 
-#: src/gui/gui.cc:1570
+#: src/gui/gui.cc:1572
 msgid "Show Iso Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1571
+#: src/gui/gui.cc:1573
 msgid "Show CD-ROM viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1574
+#: src/gui/gui.cc:1576
 msgid "Misc hardware"
 msgstr ""
 
-#: src/gui/gui.cc:1575
+#: src/gui/gui.cc:1577
 msgid "Show HW Registers"
 msgstr ""
 
-#: src/gui/gui.cc:1576
+#: src/gui/gui.cc:1578
 msgid "Show SIO1 debug"
 msgstr ""
 
-#: src/gui/gui.cc:1579
+#: src/gui/gui.cc:1581
 msgid "Show PSYQo heap viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1581
+#: src/gui/gui.cc:1583
 msgid "Kernel"
 msgstr ""
 
-#: src/gui/gui.cc:1582
+#: src/gui/gui.cc:1584
 msgid "Kernel Events"
 msgstr ""
 
-#: src/gui/gui.cc:1583
+#: src/gui/gui.cc:1585
 msgid "Kernel Handlers"
 msgstr ""
 
-#: src/gui/gui.cc:1584 src/gui/gui.cc:1748
+#: src/gui/gui.cc:1586 src/gui/gui.cc:1750
 msgid "Kernel Calls"
 msgstr ""
 
-#: src/gui/gui.cc:1587
+#: src/gui/gui.cc:1589
 msgid "Rendering"
 msgstr ""
 
-#: src/gui/gui.cc:1588
+#: src/gui/gui.cc:1590
 msgid "Show Output Shader Editor"
 msgstr ""
 
-#: src/gui/gui.cc:1589
+#: src/gui/gui.cc:1591
 msgid "Show Offscreen Shader Editor"
 msgstr ""
 
-#: src/gui/gui.cc:1590
+#: src/gui/gui.cc:1592
 msgid "Reset shaders"
 msgstr ""
 
-#: src/gui/gui.cc:1598
+#: src/gui/gui.cc:1600
 msgid "Help"
 msgstr ""
 
-#: src/gui/gui.cc:1599
+#: src/gui/gui.cc:1601
 msgid "Show ImGui Demo"
 msgstr ""
 
-#: src/gui/gui.cc:1600
+#: src/gui/gui.cc:1602
 msgid "Show ImPlot Demo"
 msgstr ""
 
-#: src/gui/gui.cc:1602
+#: src/gui/gui.cc:1604
 msgid "Show UvFile information"
 msgstr ""
 
-#: src/gui/gui.cc:1604 src/gui/gui.cc:2531
+#: src/gui/gui.cc:1606 src/gui/gui.cc:2533
 msgid "About"
 msgstr ""
 
-#: src/gui/gui.cc:1609
+#: src/gui/gui.cc:1611
 #, c-format
 msgid "CPU: %s"
 msgstr ""
 
-#: src/gui/gui.cc:1611 src/gui/widgets/isobrowser.cc:574
+#: src/gui/gui.cc:1613 src/gui/widgets/isobrowser.cc:574
 #, c-format
 msgid "GAME ID: %s"
 msgstr ""
 
-#: src/gui/gui.cc:1614
+#: src/gui/gui.cc:1616
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr ""
 
-#: src/gui/gui.cc:1616
+#: src/gui/gui.cc:1618
 #, c-format
 msgid "%.2f guest FPS"
 msgstr ""
 
-#: src/gui/gui.cc:1619
+#: src/gui/gui.cc:1621
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr ""
 
-#: src/gui/gui.cc:1621
+#: src/gui/gui.cc:1623
+msgctxt "Audio status"
 msgid "Idle"
 msgstr ""
 
-#: src/gui/gui.cc:1724
+#: src/gui/gui.cc:1726
 msgid "Logs"
 msgstr ""
 
-#: src/gui/gui.cc:1730
+#: src/gui/gui.cc:1732
 msgid "Lua Console"
 msgstr ""
 
-#: src/gui/gui.cc:1736
+#: src/gui/gui.cc:1738
 msgid "Lua Inspector"
 msgstr ""
 
-#: src/gui/gui.cc:1739
+#: src/gui/gui.cc:1741
 msgid "Lua Editor"
 msgstr ""
 
-#: src/gui/gui.cc:1742
+#: src/gui/gui.cc:1744
 msgid "Kernel events"
 msgstr ""
 
-#: src/gui/gui.cc:1745
+#: src/gui/gui.cc:1747
 msgid "Kernel handlers"
 msgstr ""
 
-#: src/gui/gui.cc:1751
+#: src/gui/gui.cc:1753
 msgid "Callstacks"
 msgstr ""
 
-#: src/gui/gui.cc:1823
+#: src/gui/gui.cc:1825
 msgid "Memory Card Manager"
 msgstr ""
 
-#: src/gui/gui.cc:1827 src/gui/widgets/registers.cc:84
+#: src/gui/gui.cc:1829 src/gui/widgets/registers.cc:84
 msgid "Registers"
 msgstr ""
 
-#: src/gui/gui.cc:1831
+#: src/gui/gui.cc:1833
 msgid "Assembly"
 msgstr ""
 
-#: src/gui/gui.cc:1835
+#: src/gui/gui.cc:1837
 msgid "DynaRec Disassembler"
 msgstr ""
 
-#: src/gui/gui.cc:1839 src/gui/widgets/typed_debugger.cc:832
+#: src/gui/gui.cc:1841 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
 msgstr ""
 
-#: src/gui/gui.cc:1843
+#: src/gui/gui.cc:1845
 msgid "Patches"
 msgstr ""
 
-#: src/gui/gui.cc:1847
+#: src/gui/gui.cc:1849
 msgid "Named Save States"
 msgstr ""
 
-#: src/gui/gui.cc:1851 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1853 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr ""
 
-#: src/gui/gui.cc:1855
+#: src/gui/gui.cc:1857
 msgid "MSAN Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1859 src/gui/widgets/typed_debugger.cc:1028
+#: src/gui/gui.cc:1861 src/gui/widgets/typed_debugger.cc:1028
 msgid "Typed Debugger"
 msgstr ""
 
-#: src/gui/gui.cc:1865
+#: src/gui/gui.cc:1867
 msgid "Output Video"
 msgstr ""
 
-#: src/gui/gui.cc:1870
+#: src/gui/gui.cc:1872
 msgid "Offscreen Render"
 msgstr ""
 
-#: src/gui/gui.cc:1876
+#: src/gui/gui.cc:1878
 msgid "PIO Cartridge Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:1880
+#: src/gui/gui.cc:1882
 msgid "HW Registers"
 msgstr ""
 
-#: src/gui/gui.cc:1884
+#: src/gui/gui.cc:1886
 msgid "SIO1 Debug"
 msgstr ""
 
-#: src/gui/gui.cc:1888
+#: src/gui/gui.cc:1890
 msgid "ISO Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1898
+#: src/gui/gui.cc:1900
 msgid "GPU Logger"
 msgstr ""
 
-#: src/gui/gui.cc:1899
+#: src/gui/gui.cc:1901
 msgid "GPU Dump"
 msgstr ""
 
-#: src/gui/gui.cc:1900
+#: src/gui/gui.cc:1902
 msgid "PSYQo Heap Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1903
+#: src/gui/gui.cc:1905
 msgid "UI Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:1909
+#: src/gui/gui.cc:1911
 msgid "Locale"
 msgstr ""
 
-#: src/gui/gui.cc:1924
+#: src/gui/gui.cc:1926
 msgid "Reload locales"
 msgstr ""
 
-#: src/gui/gui.cc:1929
+#: src/gui/gui.cc:1931
 msgid "Main Font Size"
 msgstr ""
 
-#: src/gui/gui.cc:1930
+#: src/gui/gui.cc:1932
 msgid "Mono Font Size"
 msgstr ""
 
-#: src/gui/gui.cc:1932
+#: src/gui/gui.cc:1934
 msgid "Use Widescreen Aspect Ratio"
 msgstr ""
 
-#: src/gui/gui.cc:1933
+#: src/gui/gui.cc:1935
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1642,23 +1589,23 @@ msgid ""
 "their TV set to match the aspect ratio of the game."
 msgstr ""
 
-#: src/gui/gui.cc:1952
+#: src/gui/gui.cc:1954
 msgid "System Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:1954
+#: src/gui/gui.cc:1956
 msgid "Preload Disk Image files"
 msgstr ""
 
-#: src/gui/gui.cc:1955
+#: src/gui/gui.cc:1957
 msgid "Enable Auto Update"
 msgstr ""
 
-#: src/gui/gui.cc:1962
+#: src/gui/gui.cc:1964
 msgid "Update configuration"
 msgstr ""
 
-#: src/gui/gui.cc:1963
+#: src/gui/gui.cc:1965
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1675,19 +1622,19 @@ msgid ""
 "Configuration -> System menu."
 msgstr ""
 
-#: src/gui/gui.cc:1976
+#: src/gui/gui.cc:1978
 msgid "Enable auto update"
 msgstr ""
 
-#: src/gui/gui.cc:1982
+#: src/gui/gui.cc:1984
 msgid "No thanks"
 msgstr ""
 
-#: src/gui/gui.cc:1991
+#: src/gui/gui.cc:1993
 msgid "Update available"
 msgstr ""
 
-#: src/gui/gui.cc:1993
+#: src/gui/gui.cc:1995
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1697,7 +1644,7 @@ msgid ""
 "the update and manually apply it."
 msgstr ""
 
-#: src/gui/gui.cc:2000
+#: src/gui/gui.cc:2002
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1709,61 +1656,63 @@ msgid ""
 "the update and manually apply it."
 msgstr ""
 
-#: src/gui/gui.cc:2011
+#: src/gui/gui.cc:2013
+msgctxt "Update dialog button"
 msgid "Update"
 msgstr ""
 
-#: src/gui/gui.cc:2023 src/gui/gui.cc:2028
+#: src/gui/gui.cc:2025 src/gui/gui.cc:2030
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
 msgstr ""
 
-#: src/gui/gui.cc:2034
+#: src/gui/gui.cc:2036
+msgctxt "Update dialog button"
 msgid "Download"
 msgstr ""
 
-#: src/gui/gui.cc:2044
+#: src/gui/gui.cc:2046
 msgid "An error has occured while downloading the update."
 msgstr ""
 
-#: src/gui/gui.cc:2050 src/gui/gui.cc:2153 src/gui/widgets/assembly.cc:1034
+#: src/gui/gui.cc:2052 src/gui/gui.cc:2155 src/gui/widgets/assembly.cc:1034
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr ""
 
-#: src/gui/gui.cc:2059
+#: src/gui/gui.cc:2061
 msgid "UvFiles"
-msgstr ""
-
-#: src/gui/gui.cc:2062
-#, c-format
-msgid "Read rate: %s"
 msgstr ""
 
 #: src/gui/gui.cc:2064
 #, c-format
-msgid "Write rate: %s"
+msgid "Read rate: %s"
 msgstr ""
 
 #: src/gui/gui.cc:2066
 #, c-format
-msgid "Download rate: %s"
+msgid "Write rate: %s"
 msgstr ""
 
 #: src/gui/gui.cc:2068
+#, c-format
+msgid "Download rate: %s"
+msgstr ""
+
+#: src/gui/gui.cc:2070
 msgid "Caching"
 msgstr ""
 
-#: src/gui/gui.cc:2069 src/gui/widgets/memcard_manager.cc:201
+#: src/gui/gui.cc:2071 src/gui/widgets/memcard_manager.cc:201
 msgid "Filename"
 msgstr ""
 
-#: src/gui/gui.cc:2138 src/gui/gui.cc:2141
+#: src/gui/gui.cc:2140 src/gui/gui.cc:2143
 msgid "Reset settings"
 msgstr ""
 
-#: src/gui/gui.cc:2143
+#: src/gui/gui.cc:2145
 msgid ""
 "This will restore every setting to its default value, including the window "
 "layout, the input bindings, the paths to the BIOS and the memory cards, and "
@@ -1774,36 +1723,36 @@ msgid ""
 "The emulator will reboot to complete the operation."
 msgstr ""
 
-#: src/gui/gui.cc:2148
+#: src/gui/gui.cc:2150
 msgid "Reset and reboot"
 msgstr ""
 
-#: src/gui/gui.cc:2213
+#: src/gui/gui.cc:2215
 msgid "Emulation Configuration"
 msgstr ""
 
-#: src/gui/gui.cc:2214
+#: src/gui/gui.cc:2216
 msgid "Idle Swap Interval"
 msgstr ""
 
 #. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
-#: src/gui/gui.cc:2220
+#: src/gui/gui.cc:2222
 msgid "Enable XA decoder"
 msgstr ""
 
-#: src/gui/gui.cc:2221
+#: src/gui/gui.cc:2223
 msgid "Always enable SPU IRQ"
 msgstr ""
 
-#: src/gui/gui.cc:2222
+#: src/gui/gui.cc:2224
 msgid "Decode MDEC videos in B&W"
 msgstr ""
 
-#: src/gui/gui.cc:2223
+#: src/gui/gui.cc:2225
 msgid "Dynarec CPU"
 msgstr ""
 
-#: src/gui/gui.cc:2231
+#: src/gui/gui.cc:2233
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -1813,22 +1762,22 @@ msgid ""
 "this setting may not have any effect for you."
 msgstr ""
 
-#: src/gui/gui.cc:2237
+#: src/gui/gui.cc:2239
 msgid "8MB"
 msgstr ""
 
-#: src/gui/gui.cc:2238
+#: src/gui/gui.cc:2240
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
 "with development binaries and games."
 msgstr ""
 
-#: src/gui/gui.cc:2241
+#: src/gui/gui.cc:2243
 msgid "Memory Fill Value"
 msgstr ""
 
-#: src/gui/gui.cc:2244
+#: src/gui/gui.cc:2246
 msgid ""
 "The SDRAM of the console will be\n"
 "filled with this value at startup.\n"
@@ -1839,11 +1788,11 @@ msgid ""
 "cause issues in some cases.\n"
 msgstr ""
 
-#: src/gui/gui.cc:2253
+#: src/gui/gui.cc:2255
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr ""
 
-#: src/gui/gui.cc:2254
+#: src/gui/gui.cc:2256
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -1852,23 +1801,23 @@ msgid ""
 "when changing this setting."
 msgstr ""
 
-#: src/gui/gui.cc:2266
+#: src/gui/gui.cc:2268
 msgid "NTSC"
 msgstr ""
 
-#: src/gui/gui.cc:2266
+#: src/gui/gui.cc:2268
 msgid "PAL"
 msgstr ""
 
-#: src/gui/gui.cc:2269
+#: src/gui/gui.cc:2271
 msgid "System Type"
 msgstr ""
 
-#: src/gui/gui.cc:2288
+#: src/gui/gui.cc:2290
 msgid "Fast boot"
 msgstr ""
 
-#: src/gui/gui.cc:2289
+#: src/gui/gui.cc:2291
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1876,37 +1825,37 @@ msgid ""
 "faster by not displaying the logo."
 msgstr ""
 
-#: src/gui/gui.cc:2294
+#: src/gui/gui.cc:2296
 msgid "BIOS file"
 msgstr ""
 
-#: src/gui/gui.cc:2298 src/gui/widgets/assembly.cc:557
+#: src/gui/gui.cc:2300 src/gui/widgets/assembly.cc:557
 msgid "Enable Debugger"
 msgstr ""
 
-#: src/gui/gui.cc:2305
+#: src/gui/gui.cc:2307
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
 "can slow down emulation to a noticeable extent."
 msgstr ""
 
-#: src/gui/gui.cc:2308
+#: src/gui/gui.cc:2310
 msgid "Enable GDB Server"
 msgstr ""
 
-#: src/gui/gui.cc:2317
+#: src/gui/gui.cc:2319
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
 "You also need to enable the debugger."
 msgstr ""
 
-#: src/gui/gui.cc:2321
+#: src/gui/gui.cc:2323
 msgid "GDB send manifest"
 msgstr ""
 
-#: src/gui/gui.cc:2322
+#: src/gui/gui.cc:2324
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -1914,181 +1863,181 @@ msgid ""
 "has a bug in its manifest parser."
 msgstr ""
 
-#: src/gui/gui.cc:2329
+#: src/gui/gui.cc:2331
 msgid "PCSX Logs to GDB"
 msgstr ""
 
-#: src/gui/gui.cc:2345
+#: src/gui/gui.cc:2347
 msgid "GDB Server Port"
 msgstr ""
 
-#: src/gui/gui.cc:2347
+#: src/gui/gui.cc:2349
 msgid "GDB Server Trace"
 msgstr ""
 
-#: src/gui/gui.cc:2348
+#: src/gui/gui.cc:2350
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
 "the gdb server system itself."
 msgstr ""
 
-#: src/gui/gui.cc:2351
+#: src/gui/gui.cc:2353
 msgid "Enable Web Server"
 msgstr ""
 
-#: src/gui/gui.cc:2360
+#: src/gui/gui.cc:2362
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
 "The debugger might be required in some cases."
 msgstr ""
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2366
 msgid "Web Server Port"
 msgstr ""
 
-#: src/gui/gui.cc:2365
+#: src/gui/gui.cc:2367
 msgid "Enable SIO1 Server"
 msgstr ""
 
-#: src/gui/gui.cc:2374
+#: src/gui/gui.cc:2376
 msgid ""
 "This will activate a tcp server, that will\n"
 "relay information between tcp and sio1.\n"
 "See the wiki for details."
 msgstr ""
 
-#: src/gui/gui.cc:2378
+#: src/gui/gui.cc:2380
 msgid "SIO1 Server Port"
 msgstr ""
 
-#: src/gui/gui.cc:2379
+#: src/gui/gui.cc:2381
 msgid "Enable SIO1 Client"
 msgstr ""
 
-#: src/gui/gui.cc:2392
+#: src/gui/gui.cc:2394
 msgid ""
 "This will activate a tcp client, that can connect\n"
 "to another PCSX-Redux server to relay information between tcp and sio1.\n"
 "See the wiki for details."
 msgstr ""
 
-#: src/gui/gui.cc:2396
+#: src/gui/gui.cc:2398
 msgid "SIO1 Client Host"
 msgstr ""
 
-#: src/gui/gui.cc:2399
+#: src/gui/gui.cc:2401
 msgid "SIO1 Client Port"
 msgstr ""
 
-#: src/gui/gui.cc:2403
+#: src/gui/gui.cc:2405
 msgid "Reset SIO"
 msgstr ""
 
-#: src/gui/gui.cc:2414
+#: src/gui/gui.cc:2416
 msgid "Reconnect"
 msgstr ""
 
-#: src/gui/gui.cc:2427
+#: src/gui/gui.cc:2429
 msgid "SIO1Mode"
 msgstr ""
 
-#: src/gui/gui.cc:2485
+#: src/gui/gui.cc:2487
 msgid "Interrupt Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:2486
+#: src/gui/gui.cc:2488
 msgid "Reset all"
 msgstr ""
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2504
 msgid "Cherry##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2504
 msgid "Classic##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2504
 msgid "Default theme##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2504
 msgid "Light##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2503
+#: src/gui/gui.cc:2505
 msgid "Dracula##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2503
+#: src/gui/gui.cc:2505
 msgid "Mono##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2503
+#: src/gui/gui.cc:2505
 msgid "Olive##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2508
+#: src/gui/gui.cc:2510
 msgid "Themes"
 msgstr ""
 
-#: src/gui/gui.cc:2539 src/gui/gui.cc:2628
+#: src/gui/gui.cc:2541 src/gui/gui.cc:2630
 msgid "Version"
 msgstr ""
 
-#: src/gui/gui.cc:2546
+#: src/gui/gui.cc:2548
 msgid ""
 "No version information.\n"
 "\n"
 "Probably built from source."
 msgstr ""
 
-#: src/gui/gui.cc:2548
+#: src/gui/gui.cc:2550
 msgid "Copy to clipboard"
 msgstr ""
 
-#: src/gui/gui.cc:2560 src/gui/gui.cc:2645
+#: src/gui/gui.cc:2562 src/gui/gui.cc:2647
 #, c-format
 msgid "Version: %s"
 msgstr ""
 
-#: src/gui/gui.cc:2562
+#: src/gui/gui.cc:2564
 #, c-format
 msgid "Build: %i"
 msgstr ""
 
-#: src/gui/gui.cc:2564
-msgid "Changeset: "
+#: src/gui/gui.cc:2566
+msgid "Changeset:"
 msgstr ""
 
-#: src/gui/gui.cc:2571
+#: src/gui/gui.cc:2573
 #, c-format
 msgid "Date & time: %s"
 msgstr ""
 
-#: src/gui/gui.cc:2580
+#: src/gui/gui.cc:2582
 msgid "Authors"
 msgstr ""
 
-#: src/gui/gui.cc:2588
+#: src/gui/gui.cc:2590
 msgid "Licenses"
 msgstr ""
 
-#: src/gui/gui.cc:2600
+#: src/gui/gui.cc:2602
 msgid "OpenGL information"
 msgstr ""
 
-#: src/gui/gui.cc:2602
+#: src/gui/gui.cc:2604
 msgid "OpenGL error reporting: enabled"
 msgstr ""
 
-#: src/gui/gui.cc:2604
+#: src/gui/gui.cc:2606
 msgid "OpenGL error reporting: disabled"
 msgstr ""
 
-#: src/gui/gui.cc:2607
+#: src/gui/gui.cc:2609
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
@@ -2098,79 +2047,79 @@ msgid ""
 "be able to properly report problems accurately."
 msgstr ""
 
-#: src/gui/gui.cc:2615
+#: src/gui/gui.cc:2617
 msgid "Enable OpenGL error reporting"
 msgstr ""
 
-#: src/gui/gui.cc:2618
+#: src/gui/gui.cc:2620
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
 
-#: src/gui/gui.cc:2622
+#: src/gui/gui.cc:2624
 msgid "OpenGL error reporting severity"
 msgstr ""
 
-#: src/gui/gui.cc:2625
+#: src/gui/gui.cc:2627
 #, c-format
 msgid "Core profile: %s"
 msgstr ""
 
-#: src/gui/gui.cc:2625 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2627 src/gui/widgets/assembly.cc:587
 msgid "no"
 msgstr ""
 
-#: src/gui/gui.cc:2625 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2627 src/gui/widgets/assembly.cc:587
 msgid "yes"
 msgstr ""
 
-#: src/gui/gui.cc:2626
+#: src/gui/gui.cc:2628
 msgid "Vendor"
 msgstr ""
 
-#: src/gui/gui.cc:2627
+#: src/gui/gui.cc:2629
 msgid "Renderer"
 msgstr ""
 
-#: src/gui/gui.cc:2629
+#: src/gui/gui.cc:2631
 msgid "Shading language version"
 msgstr ""
 
-#: src/gui/gui.cc:2632
+#: src/gui/gui.cc:2634
 #, c-format
 msgid "Texture units: %d"
 msgstr ""
 
-#: src/gui/gui.cc:2635
+#: src/gui/gui.cc:2637
 msgid "Extensions:"
 msgstr ""
 
-#: src/gui/gui.cc:2644
+#: src/gui/gui.cc:2646
 msgid "FFmpeg information"
 msgstr ""
 
-#: src/gui/gui.cc:2646
+#: src/gui/gui.cc:2648
 #, c-format
 msgid "License: %s"
 msgstr ""
 
-#: src/gui/gui.cc:2647
+#: src/gui/gui.cc:2649
 #, c-format
 msgid "Configuration: %s"
 msgstr ""
 
-#: src/gui/gui.cc:2650
+#: src/gui/gui.cc:2652
 msgid "List of supported formats:"
 msgstr ""
 
-#: src/gui/gui.cc:2668
+#: src/gui/gui.cc:2670
 msgid ""
 "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
 msgstr ""
 
-#: src/gui/gui.cc:2708
+#: src/gui/gui.cc:2710
 #, c-format
 msgid "%s codecs"
 msgstr ""
@@ -2236,12 +2185,13 @@ msgid "Reset symbols map"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:501 src/gui/widgets/assembly.cc:577
-#: src/gui/widgets/gpudump.cc:110
+msgctxt "Emulation"
 msgid "Pause"
 msgstr ""
 
 #: src/gui/widgets/assembly.cc:502 src/gui/widgets/assembly.cc:579
-#: src/gui/widgets/gpulogger.cc:84
+#: src/gui/widgets/gpulogger.cc:83
+msgctxt "Emulation"
 msgid "Resume"
 msgstr ""
 
@@ -2436,23 +2386,28 @@ msgstr ""
 msgid "Load Symbols"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:40 src/gui/widgets/breakpoints.cc:216
+#: src/gui/widgets/breakpoints.cc:40
+msgctxt "Breakpoint condition"
 msgid "Always"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:42
+msgctxt "Breakpoint condition"
 msgid "Greater"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:44
+msgctxt "Breakpoint condition"
 msgid "Less"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:46
+msgctxt "Breakpoint condition"
 msgid "Change"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:48
+msgctxt "Breakpoint condition"
 msgid "Equal"
 msgstr ""
 
@@ -2475,14 +2430,17 @@ msgid "Type"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:195
+msgctxt "Memory access width"
 msgid "Byte"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:196
+msgctxt "Memory access width"
 msgid "Half"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:197
+msgctxt "Memory access width"
 msgid "Word"
 msgstr ""
 
@@ -2492,6 +2450,10 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:201
 msgid "Byte Width"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:216
+msgid "Always"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:216
@@ -2523,15 +2485,15 @@ msgstr ""
 msgid "Breakpoint condition met! Type:%s reading:%d condVal:%d\n"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:96
+#: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:97
 msgid "Activate All"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:363 src/gui/widgets/patches.cc:101
+#: src/gui/widgets/breakpoints.cc:363 src/gui/widgets/patches.cc:102
 msgid "Deactivate All"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:107
+#: src/gui/widgets/breakpoints.cc:370 src/gui/widgets/patches.cc:108
 msgid "Delete All"
 msgstr ""
 
@@ -2558,55 +2520,55 @@ msgstr ""
 msgid "Map execution"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:391
-msgid "Map byte reads         "
-msgstr ""
-
 #: src/gui/widgets/breakpoints.cc:393
-msgid "Map half reads         "
+msgid "Map byte reads"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:395
-msgid "Map word reads         "
+msgid "Map half reads"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:396
-msgid "Map byte writes        "
+#: src/gui/widgets/breakpoints.cc:397
+msgid "Map word reads"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:398
-msgid "Map half writes        "
+#: src/gui/widgets/breakpoints.cc:399
+msgid "Map byte writes"
 msgstr ""
 
-#: src/gui/widgets/breakpoints.cc:400
-msgid "Map word writes        "
-msgstr ""
-
-#: src/gui/widgets/breakpoints.cc:402
-msgid "Break on execution map"
+#: src/gui/widgets/breakpoints.cc:401
+msgid "Map half writes"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:403
-msgid "Break on byte read map "
-msgstr ""
-
-#: src/gui/widgets/breakpoints.cc:405
-msgid "Break on half read map "
+msgid "Map word writes"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:407
-msgid "Break on word read map "
-msgstr ""
-
-#: src/gui/widgets/breakpoints.cc:408
-msgid "Break on byte write map"
+msgid "Break on execution map"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:410
-msgid "Break on half write map"
+msgid "Break on byte read map"
 msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:412
+msgid "Break on half read map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:414
+msgid "Break on word read map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:416
+msgid "Break on byte write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:418
+msgid "Break on half write map"
+msgstr ""
+
+#: src/gui/widgets/breakpoints.cc:420
 msgid "Break on word write map"
 msgstr ""
 
@@ -2740,10 +2702,6 @@ msgstr ""
 msgid "Code size: %.2fMB"
 msgstr ""
 
-#: src/gui/widgets/events.cc:38 src/gui/widgets/memcard_manager.cc:200
-msgid "ID"
-msgstr ""
-
 #: src/gui/widgets/events.cc:39
 msgid "Core"
 msgstr ""
@@ -2758,10 +2716,6 @@ msgstr ""
 
 #: src/gui/widgets/events.cc:42
 msgid "Flag"
-msgstr ""
-
-#: src/gui/widgets/events.cc:43
-msgid "CB"
 msgstr ""
 
 #: src/gui/widgets/gpudump.cc:31
@@ -2829,10 +2783,17 @@ msgid "Frame %llu"
 msgstr ""
 
 #: src/gui/widgets/gpudump.cc:110
+msgctxt "Playback"
+msgid "Pause"
+msgstr ""
+
+#: src/gui/widgets/gpudump.cc:110
+msgctxt "Playback"
 msgid "Play"
 msgstr ""
 
-#: src/gui/widgets/gpudump.cc:113 src/gui/widgets/memory_observer.cc:411
+#: src/gui/widgets/gpudump.cc:113
+msgctxt "Playback"
 msgid "Step"
 msgstr ""
 
@@ -2868,30 +2829,26 @@ msgstr ""
 msgid "Expanded"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:60
-msgid "HTML"
-msgstr ""
-
-#: src/gui/widgets/gpulogger.cc:71
+#: src/gui/widgets/gpulogger.cc:70
 msgid "GPU logging"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:79
+#: src/gui/widgets/gpulogger.cc:78
 msgid ""
 "Logs each frame's draw calls. When enabled, all the commands sent to the GPU "
 "will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:82
+#: src/gui/widgets/gpulogger.cc:81
 msgid "Breakpoint on vsync"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:87
+#: src/gui/widgets/gpulogger.cc:86
 msgid "Replay frame"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:89
+#: src/gui/widgets/gpulogger.cc:88
 msgid ""
 "When enabled, the framebuffer will be constantly redrawned using the "
 "selected commands, allowing to see the resulting output immediately. This "
@@ -2901,42 +2858,42 @@ msgid ""
 "select all commands for replay from the top and until this command."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:94
+#: src/gui/widgets/gpulogger.cc:93
 msgid "Show origins"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:96
+#: src/gui/widgets/gpulogger.cc:95
 msgid ""
 "When enabled, the logger display will also show where did the command come "
 "from, which can be useful to debug or reverse engineer, but will also "
 "clutter the logger view."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:109
+#: src/gui/widgets/gpulogger.cc:108
 msgid "Collapse all nodes"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:113
+#: src/gui/widgets/gpulogger.cc:112
 msgid "Keep collapsed"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:116
+#: src/gui/widgets/gpulogger.cc:115
 msgid "Expand all nodes"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:120
+#: src/gui/widgets/gpulogger.cc:119
 msgid "Keep expanded"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:124
+#: src/gui/widgets/gpulogger.cc:123
 msgid "Remove all highlight selections"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:127
+#: src/gui/widgets/gpulogger.cc:126
 msgid "Highlight on hover"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:129
+#: src/gui/widgets/gpulogger.cc:128
 msgid ""
 "When enabled, hovering a command in the logger view will highlight it in the "
 "vram display. Individual commands can be selected for highlight by using the "
@@ -2944,11 +2901,11 @@ msgid ""
 "specify the beginning and the end of a span of commands to highlight."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:132
+#: src/gui/widgets/gpulogger.cc:131
 msgid "Filter by pixel"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:134
+#: src/gui/widgets/gpulogger.cc:133
 msgid ""
 "When enabled, only the commands that are related to the specified pixel will "
 "be shown. The pixel location is specified in the next input fields. The "
@@ -2956,25 +2913,25 @@ msgid ""
 "clicking inside the VRAM viewer."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:137
+#: src/gui/widgets/gpulogger.cc:136
 msgid "Pixel location"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:138
+#: src/gui/widgets/gpulogger.cc:137
 msgid "Probe VRAM"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:142
+#: src/gui/widgets/gpulogger.cc:141
 msgid ""
 "When enabled, hovering then clicking inside the VRAM viewer will set the "
 "pixel location for the filtering."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:147
+#: src/gui/widgets/gpulogger.cc:146
 msgid "VRAM breakpoints"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:149
+#: src/gui/widgets/gpulogger.cc:148
 msgid ""
 "Pauses emulation when a command reads from or writes to one of these VRAM "
 "rectangles. Handy to catch the texture upload that stomped an area, since "
@@ -2984,86 +2941,94 @@ msgid ""
 "still counts as a write."
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:153
+#: src/gui/widgets/gpulogger.cc:152
 msgid "Add breakpoint"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:157
+#: src/gui/widgets/gpulogger.cc:156
 msgid "Enable, then X, Y, width, height:"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:172
+#: src/gui/widgets/gpulogger.cc:167 src/gui/widgets/typed_debugger.cc:264
+msgid "Read"
+msgstr ""
+
+#: src/gui/widgets/gpulogger.cc:169 src/gui/widgets/typed_debugger.cc:266
+msgid "Write"
+msgstr ""
+
+#: src/gui/widgets/gpulogger.cc:171
 msgid "Remove"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:182
+#: src/gui/widgets/gpulogger.cc:181
 msgid "Frame {}###FrameCounterNode"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:184
+#: src/gui/widgets/gpulogger.cc:183
 msgid "Reset frame counter"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:187
+#: src/gui/widgets/gpulogger.cc:186
 #, c-format
 msgid "%i primitives"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:192
+#: src/gui/widgets/gpulogger.cc:191
 #, c-format
 msgid "%i triangles"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:193
+#: src/gui/widgets/gpulogger.cc:192
 #, c-format
 msgid "%i textured triangles"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:194
+#: src/gui/widgets/gpulogger.cc:193
 #, c-format
 msgid "%i rectangles"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:195
+#: src/gui/widgets/gpulogger.cc:194
 #, c-format
 msgid "%i sprites"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:196
+#: src/gui/widgets/gpulogger.cc:195
 #, c-format
 msgid "%i pixel writes"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:197
+#: src/gui/widgets/gpulogger.cc:196
 #, c-format
 msgid "%i pixel reads"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:198
+#: src/gui/widgets/gpulogger.cc:197
 #, c-format
 msgid "%i texel reads"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:225
+#: src/gui/widgets/gpulogger.cc:224
 #, c-format
 msgid "Data port write: %08x"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:228
+#: src/gui/widgets/gpulogger.cc:227
 #, c-format
 msgid "Control port write: %08x"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:231
+#: src/gui/widgets/gpulogger.cc:230
 msgid "Direct DMA from"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:239
+#: src/gui/widgets/gpulogger.cc:238
 msgid "Chain DMA from"
 msgstr ""
 
-#: src/gui/widgets/gpulogger.cc:248
-msgid "at PC = "
+#: src/gui/widgets/gpulogger.cc:247
+msgid "at PC ="
 msgstr ""
 
 #: src/gui/widgets/handlers.cc:40
@@ -3084,15 +3049,15 @@ msgid "No handlers"
 msgstr ""
 
 #: src/gui/widgets/handlers.cc:61
-msgid "Handler data at "
+msgid "Handler data at"
 msgstr ""
 
 #: src/gui/widgets/handlers.cc:67
-msgid "  verifier: "
+msgid "verifier:"
 msgstr ""
 
 #: src/gui/widgets/handlers.cc:74
-msgid "  handler: "
+msgid "handler:"
 msgstr ""
 
 #: src/gui/widgets/hwregs.cc:197
@@ -3193,10 +3158,6 @@ msgstr ""
 msgid "Path"
 msgstr ""
 
-#: src/gui/widgets/isobrowser.cc:404 src/gui/widgets/isobrowser.cc:812
-msgid "LBA"
-msgstr ""
-
 #: src/gui/widgets/isobrowser.cc:405 src/gui/widgets/isobrowser.cc:813
 #: src/gui/widgets/typed_debugger.cc:829 src/gui/widgets/typed_debugger.cc:875
 msgid "Size"
@@ -3204,18 +3165,6 @@ msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:508
 msgid "Gap"
-msgstr ""
-
-#: src/gui/widgets/isobrowser.cc:511
-msgid "M1"
-msgstr ""
-
-#: src/gui/widgets/isobrowser.cc:514
-msgid "M2F1"
-msgstr ""
-
-#: src/gui/widgets/isobrowser.cc:517
-msgid "M2F2"
 msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:569
@@ -3252,6 +3201,11 @@ msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:620
 msgid "Track"
+msgstr ""
+
+#: src/gui/widgets/isobrowser.cc:621
+msgctxt "Track position"
+msgid "Start"
 msgstr ""
 
 #: src/gui/widgets/isobrowser.cc:622
@@ -3435,7 +3389,7 @@ msgid "Undo"
 msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:141
-msgid "Undo version: "
+msgid "Undo version:"
 msgstr ""
 
 #: src/gui/widgets/memcard_manager.cc:144
@@ -3653,7 +3607,7 @@ msgid "Pattern search"
 msgstr ""
 
 #: src/gui/widgets/memory_observer.cc:400
-msgid "Sequence size: "
+msgid "Sequence size:"
 msgstr ""
 
 #: src/gui/widgets/memory_observer.cc:402
@@ -3672,8 +3626,13 @@ msgstr ""
 msgid "Sequence"
 msgstr ""
 
+#: src/gui/widgets/memory_observer.cc:411
+msgctxt "Search increment"
+msgid "Step"
+msgstr ""
+
 #: src/gui/widgets/named_savestates.cc:81
-msgid "Filename: "
+msgid "Filename:"
 msgstr ""
 
 #. Ensure that we don't add invalid characters to the filename
@@ -3708,23 +3667,16 @@ msgid "Delete Patch?"
 msgstr ""
 
 #: src/gui/widgets/patches.cc:88
-msgid "NOP"
-msgstr ""
-
-#: src/gui/widgets/patches.cc:88
+msgctxt "Patch type"
 msgid "Return"
 msgstr ""
 
-#: src/gui/widgets/patches.cc:111
+#: src/gui/widgets/patches.cc:112
 msgid "Delete all Patches?"
 msgstr ""
 
-#: src/gui/widgets/patches.cc:112
+#: src/gui/widgets/patches.cc:113
 msgid "Delete##patches"
-msgstr ""
-
-#: src/gui/widgets/pio-cart.cc:36
-msgid "ROM"
 msgstr ""
 
 #: src/gui/widgets/pio-cart.cc:47
@@ -3939,11 +3891,6 @@ msgstr ""
 msgid "Disable##{}"
 msgstr ""
 
-#. Name.
-#: src/gui/widgets/typed_debugger.cc:360
-msgid "{}\t@ {:#x}##{}"
-msgstr ""
-
 #: src/gui/widgets/typed_debugger.cc:391 src/gui/widgets/typed_debugger.cc:435
 #: src/gui/widgets/typed_debugger.cc:459
 msgid "Show in memory editor##{}{}"
@@ -3951,12 +3898,6 @@ msgstr ""
 
 #: src/gui/widgets/typed_debugger.cc:408
 msgid "Add to Watch tab##{}{}"
-msgstr ""
-
-#: src/gui/widgets/typed_debugger.cc:563 src/gui/widgets/typed_debugger.cc:571
-#: src/gui/widgets/typed_debugger.cc:580 src/gui/widgets/typed_debugger.cc:587
-#: src/gui/widgets/typed_debugger.cc:596 src/gui/widgets/typed_debugger.cc:603
-msgid "##{}"
 msgstr ""
 
 #: src/gui/widgets/typed_debugger.cc:623
@@ -4013,20 +3954,12 @@ msgstr ""
 msgid "Watch"
 msgstr ""
 
-#: src/gui/widgets/typed_debugger.cc:784
-msgid "{}[{}]"
-msgstr ""
-
 #: src/gui/widgets/typed_debugger.cc:804 src/gui/widgets/typed_debugger.cc:851
 msgid "Clear breakpoints"
 msgstr ""
 
 #: src/gui/widgets/typed_debugger.cc:813
 msgid "Restore disabled instructions"
-msgstr ""
-
-#: src/gui/widgets/typed_debugger.cc:826
-msgid "WatchTable"
 msgstr ""
 
 #: src/gui/widgets/typed_debugger.cc:845 src/gui/widgets/typed_debugger.cc:928
@@ -4183,57 +4116,39 @@ msgid "Volume"
 msgstr ""
 
 #: src/spu/cfg.cc:75
-msgid ""
-"Attempts to make the CPU-to-SPU audio stream\n"
-"in sync, by changing its pitch. Consumes more CPU."
-msgstr ""
-
-#: src/spu/cfg.cc:77
-msgid ""
-"Suspends the SPU processing during an IRQ, waiting\n"
-"for the main CPU to acknowledge it. Fixes issues\n"
-"with some games, but slows SPU processing."
-msgstr ""
-
-#: src/spu/cfg.cc:80
 msgid "None - fastest"
 msgstr ""
 
-#: src/spu/cfg.cc:80
+#: src/spu/cfg.cc:75
 msgid "Simple interpolation"
 msgstr ""
 
-#: src/spu/cfg.cc:81
+#: src/spu/cfg.cc:76
 msgid "Gaussian interpolation - good quality"
 msgstr ""
 
-#: src/spu/cfg.cc:82
+#: src/spu/cfg.cc:77
 msgid "Cubic interpolation - better treble"
 msgstr ""
 
-#: src/spu/cfg.cc:83
+#: src/spu/cfg.cc:78
 msgid "Interpolation"
 msgstr ""
 
-#: src/spu/cfg.cc:85
+#: src/spu/cfg.cc:80
+msgctxt "Audio channels"
 msgid "Mono"
 msgstr ""
 
-#: src/spu/cfg.cc:86
+#: src/spu/cfg.cc:81
 msgid "Downmixes stereo to mono."
 msgstr ""
 
-#: src/spu/cfg.cc:88
-msgid ""
-"Activates SPU IRQs based on writes to the decode/capture buffer. This option "
-"is necessary for some games."
-msgstr ""
-
-#: src/spu/cfg.cc:89
+#: src/spu/cfg.cc:82
 msgid "Speed multiplier"
 msgstr ""
 
-#: src/spu/cfg.cc:90
+#: src/spu/cfg.cc:83
 msgid ""
 "Emulation speed, applied at the audio sink (the master clock).\n"
 "1 = realtime, N = N times faster. Frames are skipped, not resampled, so "
