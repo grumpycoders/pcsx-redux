@@ -433,7 +433,10 @@ bool PCSX::CDRIso::getLocP(const PCSX::IEC60908b::MSF msf, uint8_t locP[8]) {
 
     bool inPregap = false;
     IEC60908b::MSF nextPregapStart;
-    if (track != m_numtracks) {
+    if (msf < m_ti[track].start) {
+        // Before track 1 starts: its pregap, index 00, counting down.
+        inPregap = true;
+    } else if (track != m_numtracks) {
         if (msf >= (m_ti[track + 1].start - m_ti[track + 1].pregap)) {
             track++;
             inPregap = true;

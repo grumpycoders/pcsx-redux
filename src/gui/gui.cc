@@ -2480,6 +2480,7 @@ void PCSX::GUI::interruptsScaler() {
         "SIO",          "SIO1",    "CDR FIFO",    "CDR Command", "CDR Reads", "GPU DMA",
         "MDEC Out DMA", "SPU DMA", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",
     };
+    static_assert(std::size(names) == std::extent_v<decltype(R3000Acpu::m_scheduleScales)>);
     if (ImGui::Begin(_("Scheduler Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
             for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {

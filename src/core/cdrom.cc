@@ -78,7 +78,7 @@ class CDRomImpl final : public PCSX::CDRom {
     };
 
     std::string_view commandName(uint8_t command) {
-        if (command > c_cdCmdEnumCount) {
+        if (command >= c_cdCmdEnumCount) {
             return "Unknown";
         } else {
             return magic_enum::enum_names<Commands>()[command];
@@ -124,6 +124,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_muted = false;
         m_adpcmMuted = false;
         m_mode = 0;
+        m_readSpan = ReadSpan::S2048;
         m_filterFile = 0;
         m_filterChannel = 0;
         m_xaEnded = false;
@@ -1205,6 +1206,7 @@ class CDRomImpl final : public PCSX::CDRom {
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
             m_status = Status::Idle;
+            m_readingState = ReadingState::None;
             m_invalidLocL = true;
             return true;
         } else {
@@ -1678,7 +1680,7 @@ class CDRomImpl final : public PCSX::CDRom {
                                     regs.cycle, command.payload[0], ret.m, ret.s, ret.f);
             } break;
             default:
-                if (command.value > c_cdCmdEnumCount) {
+                if (command.value >= c_cdCmdEnumCount) {
                     PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: %08x.%08x] Command: CdlUnknown(0x%02X)\n",
                                         regs.pc, regs.cycle, command.value);
                 } else {

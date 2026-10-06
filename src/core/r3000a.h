@@ -196,7 +196,7 @@ struct psxRegisters {
     uint8_t iCacheCode[0x1000];
     uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
     std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
-        return std::chrono::nanoseconds(int32_t(futureCycle - cycle) * 1'000'000'000 / Emulator::m_psxClockSpeed);
+        return std::chrono::nanoseconds(int64_t(int32_t(futureCycle - cycle)) * 1'000'000'000 / Emulator::m_psxClockSpeed);
     }
     static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
         return duration.count() * Emulator::m_psxClockSpeed / 1'000'000'000;
@@ -300,7 +300,7 @@ class R3000Acpu {
         unsigned s = static_cast<unsigned>(s_);
         PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
         const uint64_t cycle = m_regs.cycle;
-        uint64_t target = uint64_t(cycle + eCycle * m_scheduleScales[s]);
+        uint64_t target = cycle + uint64_t(double(eCycle) * m_scheduleScales[s]);
         m_regs.scheduleMask |= (1 << s);
         m_regs.scheduleTargets[s] = target;
         int64_t lowest = m_regs.lowestTarget - cycle;
@@ -366,8 +366,8 @@ class R3000Acpu {
     void muldivCancel() { m_regs.muldivReady = 0; }
 
     psxRegisters m_regs;
-    float m_scheduleScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                  1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_scheduleScales[static_cast<unsigned>(Schedule::CDRDMA) + 1] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                                                          1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
