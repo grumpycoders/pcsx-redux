@@ -54,6 +54,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

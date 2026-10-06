@@ -1497,6 +1497,9 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
+    // The exception call below only runs on one path, but its spill updates the allocator for both. Spill here so
+    // the fall-through path writes back the same registers.
+    prepareForCall();
 
     if constexpr (loadSR) {
         gen.mov(eax, dword[contextPointer + COP0_OFFSET(12)]);  // eax = SR
