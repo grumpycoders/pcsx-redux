@@ -751,10 +751,13 @@ void DynaRecCPU::recMULTU(uint32_t code) {
 template <int size, bool signExtend>
 void DynaRecCPU::recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType type) {
     if (m_gprs[_Rs_].isConst()) {
-        gen.mov(arg2, m_gprs[_Rs_].val + _Imm_);
+        const uint32_t addr = m_gprs[_Rs_].val + _Imm_;
+        gen.mov(arg2, addr);
+        if (size == 32 && usesArgumentRegisters(addr, false)) syncArgumentRegisters();
     } else {
         allocateReg(_Rs_);
         gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);
+        if (size == 32) syncArgumentRegisters();
     }
 
     switch (size) {
@@ -822,9 +825,11 @@ void DynaRecCPU::recompileLoad(uint32_t code) {
         }
 
         gen.mov(arg2, addr);
+        if (size == 32 && usesArgumentRegisters(addr, false)) syncArgumentRegisters();
     } else {
         allocateReg(_Rs_);
         gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);
+        if (size == 32) syncArgumentRegisters();
     }
 
     switch (size) {
@@ -1171,6 +1176,7 @@ void DynaRecCPU::recSW(uint32_t code) {
         }
 
         gen.mov(arg2, addr);  // Address to write to in arg2   TODO: Optimize
+        if (usesArgumentRegisters(addr, true)) syncArgumentRegisters();
         callMemoryFunc(&PCSX::Memory::write32);
     }
 
@@ -1184,6 +1190,7 @@ void DynaRecCPU::recSW(uint32_t code) {
 
         allocateReg(_Rs_);
         gen.moveAndAdd(arg2, m_gprs[_Rs_].allocatedReg, _Imm_);  // Address to write to in arg2   TODO: Optimize
+        syncArgumentRegisters();
         callMemoryFunc(&PCSX::Memory::write32);
     }
 }

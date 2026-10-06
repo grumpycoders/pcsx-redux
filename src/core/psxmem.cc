@@ -31,9 +31,6 @@
 #include "support/file.h"
 #include "supportpsx/binloader.h"
 
-// Exit code for msan violations in test mode, matching a failing guest test's exit code.
-static constexpr int c_msanExitCode = 1;
-
 static const std::map<uint32_t, std::string_view> s_knownBioses = {
 #ifdef USE_ADLER
     {0x1002e6b5, "SCPH-1002 (EU)"},

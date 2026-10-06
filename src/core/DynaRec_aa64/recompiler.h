@@ -210,6 +210,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void flushRegs();
     void spillRegisterCache();
     void prepareForCall();
+    // The msan hardware registers take their arguments in $a0/$a1 (see psxhw.cc), so a 32-bit access to
+    // them, or to an address only known at runtime, needs syncArgumentRegisters first.
+    static bool usesArgumentRegisters(uint32_t addr, bool write) {
+        return addr == 0x1f802094 || (!write && (addr == 0x1f80208c || addr == 0x1f802090));
+    }
+    void syncArgumentRegisters();
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     // Check if we're executing from valid memory

@@ -85,25 +85,25 @@
 #define _ImmU_ _fImmU_(code)
 #define _ImmLU_ _fImmLU_(code)
 
-static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
-static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+inline uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+inline void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
 // LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
-static uint32_t lwlReadWrapper(uint32_t address) {
+inline uint32_t lwlReadWrapper(uint32_t address) {
     return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
 }
-static uint32_t lwrReadWrapper(uint32_t address) {
+inline uint32_t lwrReadWrapper(uint32_t address) {
     return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
 }
-static uint32_t unalignedStoreReadWrapper(uint32_t address) {
+inline uint32_t unalignedStoreReadWrapper(uint32_t address) {
     return PCSX::g_emulator->m_mem->read32Masked(address, 0);
 }
-static void swlWriteWrapper(uint32_t address, uint32_t value) {
+inline void swlWriteWrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
 }
-static void swrWriteWrapper(uint32_t address, uint32_t value) {
+inline void swrWriteWrapper(uint32_t address, uint32_t value) {
     PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
 }
-static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
+inline void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
@@ -214,6 +214,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     void prepareForCall();
+    // The msan hardware registers take their arguments in $a0/$a1 (see psxhw.cc), so a 32-bit access to
+    // them, or to an address only known at runtime, needs syncArgumentRegisters first.
+    static bool usesArgumentRegisters(uint32_t addr, bool write) {
+        return addr == 0x1f802094 || (!write && (addr == 0x1f80208c || addr == 0x1f802090));
+    }
+    void syncArgumentRegisters();
     void handleKernelCall();
     void emitDispatcher();
     void uncompileAll();

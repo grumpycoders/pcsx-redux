@@ -336,11 +336,11 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::OK:
                     header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
@@ -611,11 +611,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::OK:
                     break;

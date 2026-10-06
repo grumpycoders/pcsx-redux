@@ -356,6 +356,8 @@ class Memory {
     static constexpr uint32_t c_msanSize = 1'610'612'736;
     static constexpr uint32_t c_msanStart = 0x20000000;
     static constexpr uint32_t c_msanEnd = c_msanStart + c_msanSize;
+    // Exit code for msan violations in test mode, matching a failing guest test's exit code.
+    static constexpr int c_msanExitCode = 1;
     uint8_t *m_msanRAM = nullptr;
     uint8_t *m_msanUsableBitmap = nullptr;
     uint8_t *m_msanInitializedBitmap = nullptr;
