@@ -48,7 +48,7 @@ uint64_t PCSX::SPU::impl::cycleToSample(uint64_t cycle) const { return cycle / c
 // order as the mixer's own envelope work. A single read after a long silence walks
 // the whole gap in one call, which is a hitch and not unbounded growth.
 uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
-    auto &cp = m_envelopeCheckpoint[ch];
+    auto& cp = m_envelopeCheckpoint[ch];
     // Never keyed on, or a read stamped before the key-on: hardware reads 0 here.
     if (!cp.keyedOn || cycle < cp.keyOnCycle) return 0;
     const uint64_t target = cycleToSample(cycle - cp.keyOnCycle);
@@ -132,7 +132,7 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
 // step: consume every sample the pitch counter owes, reading the flag byte of each
 // new block straight out of SPU RAM. Returns true when a sample is owed past an end
 // block without repeat, which is where the mixer turns the voice off.
-bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint &cp) {
+bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint& cp) {
     while (cp.pos >= 0x10000) {
         if (cp.left == 0) {
             if (cp.block == EnvelopeCheckpoint::kStopped) return true;
@@ -156,9 +156,9 @@ bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint &cp) {
 // Put the ADPCM half of the walk back at KEY ON: the start address, an empty block,
 // the pitch counter seeded the way Interpolator::keyOn seeds it, and the current pitch.
 void PCSX::SPU::impl::resetAdpcmWalk(int ch) {
-    auto &cp = m_envelopeCheckpoint[ch];
-    const uint8_t *start = s_chan[ch].adpcm.start();
-    const uint8_t *loop = s_chan[ch].adpcm.loop();
+    auto& cp = m_envelopeCheckpoint[ch];
+    const uint8_t* start = s_chan[ch].adpcm.start();
+    const uint8_t* loop = s_chan[ch].adpcm.loop();
     cp.block = start ? (uint32_t)(start - spuRamBase) : 0;
     cp.loop = loop ? (uint32_t)(loop - spuRamBase) : EnvelopeCheckpoint::kNoLoop;
     cp.ignoreLoop = false;
@@ -328,7 +328,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].adpcm.setLoop(spuRamBase + ((uint32_t)((val << 3) & ~0xf)));
                 s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
                 // Bring the ENVX walk up to this write before it sees the new address.
-                auto &cp = m_envelopeCheckpoint[ch];
+                auto& cp = m_envelopeCheckpoint[ch];
                 if (cp.keyedOn) {
                     reconstructEnvelope(ch, readerCycle());
                     cp.loop = (uint32_t)((val << 3) & ~0xf);
@@ -480,7 +480,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
 
         case H_Reverb + 0:
-            m_reverb.rvb.FB_SRC_A = val;
+            m_reverb.rvb.FB_SRC_A = (int16_t)val;
 
             // Fake reverb: depending on the effect, more or less delay and repeats are applied.
             PCSX::PSXSPU_LOGGER::Log("SPU.write, dAPF1 = %04x\n", val);
@@ -724,7 +724,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
             // whenever the batch loop next notices Chan::New, so by then the CPU
             // cycle that caused it is gone. Everything the read-time reconstruction
             // does is measured from here.
-            auto &cp = m_envelopeCheckpoint[ch];
+            auto& cp = m_envelopeCheckpoint[ch];
             cp.keyOnCycle = readerCycle();
             cp.keyOffCycle = 0;
             cp.keyedOn = true;
@@ -754,7 +754,7 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
             // Release is a state transition at a known cycle, so the reconstruction
             // walk can cross it. First key-off after a key-on wins; a repeat is not
             // a second transition. SoundOn clears this.
-            auto &cp = m_envelopeCheckpoint[ch];
+            auto& cp = m_envelopeCheckpoint[ch];
             if (cp.keyedOn && cp.keyOffCycle == 0) cp.keyOffCycle = readerCycle();
         }
     }
@@ -773,7 +773,7 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
                 // Sound channel. Its ADPCM position stops being knowable to the ENVX walk,
                 // so bring the walk up to this write first: an end block reached before it
                 // still stops the voice.
-                auto &cp = m_envelopeCheckpoint[ch];
+                auto& cp = m_envelopeCheckpoint[ch];
                 if (cp.keyedOn && !cp.untracked && s_chan[ch].data.get<Chan::FMod>().value != 1) {
                     reconstructEnvelope(ch, readerCycle());
                 }
@@ -814,7 +814,7 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
 // Set the pitch for voice ch.
 void PCSX::SPU::impl::SetPitch(int ch, uint16_t val) {
     // The ENVX walk runs the old pitch up to this write and the new one after it.
-    auto &cp = m_envelopeCheckpoint[ch];
+    auto& cp = m_envelopeCheckpoint[ch];
     if (cp.keyedOn) reconstructEnvelope(ch, readerCycle());
 
     int NP;
