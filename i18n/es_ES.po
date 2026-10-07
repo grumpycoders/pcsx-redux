@@ -442,7 +442,7 @@ msgstr "Dirección sin alinear 0x%08x en LWC2 de 0x%08x\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Dirección sin alinear 0x%08x en SWC2 de 0x%08x\n"
 
-#: src/core/mdec.cc:682
+#: src/core/mdec.cc:680
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
@@ -473,32 +473,32 @@ msgstr "Cargando Memory Card %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Guardando Memory Card %s\n"
 
-#: src/core/pad.cc:744 src/core/pad.cc:837
+#: src/core/pad.cc:824 src/core/pad.cc:948
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando de mando desconocido: %02X\n"
 
-#: src/core/pad.cc:939
+#: src/core/pad.cc:1049
 msgid "Pad configuration"
 msgstr "Configuración de mandos"
 
-#: src/core/pad.cc:945
+#: src/core/pad.cc:1055
 msgid "Pad 1"
 msgstr "Mando 1"
 
-#: src/core/pad.cc:946
+#: src/core/pad.cc:1056
 msgid "Pad 2"
 msgstr "Mando 2"
 
-#: src/core/pad.cc:949
+#: src/core/pad.cc:1059
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Volver a buscar mandos y a leer la base de datos de mandos"
 
-#: src/core/pad.cc:955
+#: src/core/pad.cc:1078
 msgid "Use raw input for mouse"
 msgstr "Utilizar entrada sin procesar del ratón"
 
-#: src/core/pad.cc:957
+#: src/core/pad.cc:1080
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -506,162 +506,170 @@ msgstr ""
 "Al activar esta opción, se ocultará y capturará el ratón mientras el "
 "emulador esté en funcionamiento. Ideal para juegos que necesitan ratón."
 
-#: src/core/pad.cc:959
+#: src/core/pad.cc:1082
 msgid "Allow mouse capture toggle"
 msgstr "Habilitar alternancia de captura del ratón"
 
-#: src/core/pad.cc:961
+#: src/core/pad.cc:1084
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "Al activar esta opción, si pulsas CTRL y ALT podrás alternar la opción "
 "anterior con el modo de entrada sin procesar."
 
-#: src/core/pad.cc:963
+#: src/core/pad.cc:1086
 msgid "Pad"
 msgstr "Mando"
 
-#: src/core/pad.cc:972
+#: src/core/pad.cc:1095
 msgid "Set defaults"
 msgstr "Valores predeterminados"
 
-#: src/core/pad.cc:988
+#: src/core/pad.cc:1111
 msgid "Keyboard Up"
 msgstr "Teclado - Arriba"
 
-#: src/core/pad.cc:990
+#: src/core/pad.cc:1113
 msgid "Keyboard Right"
 msgstr "Teclado - Derecha"
 
-#: src/core/pad.cc:992
+#: src/core/pad.cc:1115
 msgid "Keyboard Down"
 msgstr "Teclado - Abajo"
 
-#: src/core/pad.cc:994
+#: src/core/pad.cc:1117
 msgid "Keyboard Left"
 msgstr "Teclado - Izquierda"
 
-#: src/core/pad.cc:996
+#: src/core/pad.cc:1119
 msgid "Keyboard Backspace"
 msgstr "Teclado - Retroceso"
 
-#: src/core/pad.cc:998
+#: src/core/pad.cc:1121
 msgid "Keyboard Enter"
 msgstr "Teclado - Intro"
 
-#: src/core/pad.cc:1000
+#: src/core/pad.cc:1123
 msgid "Keyboard Space"
 msgstr "Teclado - Espacio"
 
-#: src/core/pad.cc:1002
+#: src/core/pad.cc:1125
 msgid "Keyboard Escape"
 msgstr "Teclado - Esc"
 
-#: src/core/pad.cc:1004
+#: src/core/pad.cc:1127
 msgid "Unbound"
 msgstr "Sin asignar"
 
-#: src/core/pad.cc:1009
+#: src/core/pad.cc:1132
 msgid "Unknown keyboard key {}"
 msgstr "Tecla de teclado desconocida: {}"
 
-#: src/core/pad.cc:1014
+#: src/core/pad.cc:1137
 msgid "Keyboard {}"
 msgstr "Teclado {}"
 
-#: src/core/pad.cc:1033 src/gui/gui.cc:2268
+#: src/core/pad.cc:1156 src/gui/gui.cc:2268
 msgid "Auto"
 msgstr "Elegir automáticamente"
 
-#: src/core/pad.cc:1034
+#: src/core/pad.cc:1157
 msgid "Controller"
 msgstr "Mando"
 
-#: src/core/pad.cc:1035
+#: src/core/pad.cc:1158
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: src/core/pad.cc:1042
+#: src/core/pad.cc:1165
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "SELECT"
 
-#: src/core/pad.cc:1043
+#: src/core/pad.cc:1166
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "START"
 
-#: src/core/pad.cc:1050
+#: src/core/pad.cc:1173
 msgid "Analog Mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1182
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1060
+#: src/core/pad.cc:1183
 msgid "Analog"
 msgstr "ANALOG"
 
-#: src/core/pad.cc:1061
+#: src/core/pad.cc:1184
 msgid "Mouse"
 msgstr "Ratón"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1185
 msgid "Negcon (Unimplemented)"
 msgstr "NegCon (sin implementar)"
 
-#: src/core/pad.cc:1063
+#: src/core/pad.cc:1186
 msgid "Gun (Unimplemented)"
 msgstr "Lightgun (sin implementar)"
 
-#: src/core/pad.cc:1064
+#: src/core/pad.cc:1187
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (sin implementar)"
 
-#: src/core/pad.cc:1068 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1191 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Conectado"
 
-#: src/core/pad.cc:1077
+#: src/core/pad.cc:1200
 msgid "Analog mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1209
+msgid "Rumble"
+msgstr ""
+
+#: src/core/pad.cc:1213
+msgid "(no motors on this gamepad)"
+msgstr ""
+
+#: src/core/pad.cc:1219
 msgid "Controller Type"
 msgstr "Tipo de mando"
 
-#: src/core/pad.cc:1101
+#: src/core/pad.cc:1235
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:1112
+#: src/core/pad.cc:1246
 msgid "Mouse sensitivity X"
 msgstr "Sensibilidad X del ratón"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1248
 msgid "Mouse sensitivity Y"
 msgstr "Sensibilidad Y del ratón"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1250
 msgid "Keyboard mapping"
 msgstr "Asignaciones del teclado"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1252
 msgid "Computer button mapping"
 msgstr "Asignación del equipo"
 
-#: src/core/pad.cc:1119
+#: src/core/pad.cc:1253
 msgid "Gamepad button"
 msgstr "Botón de mando"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1303
 msgid "No gamepad selected or connected"
 msgstr "No se ha seleccionado o conectado un mando"
 
-#: src/core/pad.cc:1193
+#: src/core/pad.cc:1327
 msgid "Gamepad"
 msgstr "Mando"
 
@@ -689,64 +697,64 @@ msgstr ""
 "Se ha invocado a msanSetChainPtr con el puntero de cabecera no válido "
 "%8.8lx\n"
 
-#: src/core/psxinterpreter.cc:362
+#: src/core/psxinterpreter.cc:363
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion ADDI de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:456
+#: src/core/psxinterpreter.cc:457
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion ADD de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:498
+#: src/core/psxinterpreter.cc:499
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion SUB de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:830
+#: src/core/psxinterpreter.cc:831
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Intento de JR no alineada a 0x%08x desde 0x%08x, ¡provocando excepción!\n"
 
-#: src/core/psxinterpreter.cc:856
+#: src/core/psxinterpreter.cc:857
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Intento de JALR no alineada desde 0x%08x a 0x%08x, ¡provocando excepción!\n"
 
-#: src/core/psxinterpreter.cc:894
+#: src/core/psxinterpreter.cc:895
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LH de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:911
+#: src/core/psxinterpreter.cc:912
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LHU de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:928
+#: src/core/psxinterpreter.cc:929
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LW de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:990
+#: src/core/psxinterpreter.cc:991
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en SH de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1001
+#: src/core/psxinterpreter.cc:1002
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en SW de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1116
+#: src/core/psxinterpreter.cc:1117
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Encontrado un opcode reservado en 0x%08x, provocando excepción.\n"
 
-#: src/core/psxinterpreter.cc:1131
+#: src/core/psxinterpreter.cc:1160
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -755,7 +763,7 @@ msgstr ""
 "Se ha intentado utilizar una instrucción de coma flotante no válida desde "
 "0x%08x. Ignorando.\n"
 
-#: src/core/psxinterpreter.cc:1143
+#: src/core/psxinterpreter.cc:1180
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Se ha intentado acceder a COP3 desde 0x%08x. Ignorando.\n"
@@ -1123,7 +1131,7 @@ msgstr "Salida"
 
 #: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
-#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:597
+#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:601
 msgid "File"
 msgstr "Archivo"
 
@@ -1228,7 +1236,7 @@ msgid "Hard Reset"
 msgstr "Reinicio completo"
 
 #: src/gui/gui.cc:1429 src/gui/widgets/cdrom-viewer.cc:364
-#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:639
+#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:643
 msgid "Configuration"
 msgstr "Configuración"
 
@@ -2812,12 +2820,12 @@ msgstr "Visualizador de CD-ROM"
 
 #: src/gui/widgets/cdrom-viewer.cc:351 src/gui/widgets/isobrowser.cc:131
 #: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
-#: src/gui/widgets/vram-viewer.cc:601
+#: src/gui/widgets/vram-viewer.cc:605
 msgid "View"
 msgstr "Visualizar"
 
 #: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
-#: src/gui/widgets/vram-viewer.cc:602
+#: src/gui/widgets/vram-viewer.cc:606
 msgid "Reset view"
 msgstr "Restablecer vista"
 
@@ -2838,7 +2846,7 @@ msgid "Show seeks"
 msgstr "Mostrar búsquedas"
 
 #: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
-#: src/gui/widgets/vram-viewer.cc:633
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Show Shader Editor"
 msgstr "Mostrar editor de shaders"
 
@@ -2866,8 +2874,8 @@ msgstr "Selector de color de datos"
 #: src/gui/widgets/cdrom-viewer.cc:414 src/gui/widgets/ram-viewer.cc:541
 #: src/gui/widgets/ram-viewer.cc:549 src/gui/widgets/ram-viewer.cc:557
 #: src/gui/widgets/ram-viewer.cc:565 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:665 src/gui/widgets/vram-viewer.cc:677
-#: src/gui/widgets/vram-viewer.cc:689 src/gui/widgets/vram-viewer.cc:701
+#: src/gui/widgets/vram-viewer.cc:669 src/gui/widgets/vram-viewer.cc:681
+#: src/gui/widgets/vram-viewer.cc:693 src/gui/widgets/vram-viewer.cc:705
 msgid "OK"
 msgstr "Aceptar"
 
@@ -4014,7 +4022,7 @@ msgstr "Mostrar ejecuciones"
 msgid "Show greyscale"
 msgstr "Mostrar escala de grises"
 
-#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:628
+#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:632
 msgid "Show grid"
 msgstr "Mostrar cuadrícula"
 
@@ -4322,73 +4330,78 @@ msgstr "Alternar"
 msgid "Add breakpoint##{}"
 msgstr "Añadir punto de interrupción##{}"
 
-#: src/gui/widgets/vram-viewer.cc:495
+#: src/gui/widgets/vram-viewer.cc:499
 msgid "VRAM Shader Editor"
 msgstr "Editor de shaders de la VRAM"
 
-#: src/gui/widgets/vram-viewer.cc:605
+#: src/gui/widgets/vram-viewer.cc:609
 msgid "24 bits shift"
 msgstr "Variación para 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:606
+#: src/gui/widgets/vram-viewer.cc:610
 msgid "View VRAM in 24 bits"
 msgstr "Ver la VRAM en el modo a 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:610
+#: src/gui/widgets/vram-viewer.cc:614
 msgid "View VRAM in 16 bits"
 msgstr "Ver la VRAM en el modo a 16 bits"
 
-#: src/gui/widgets/vram-viewer.cc:614
+#: src/gui/widgets/vram-viewer.cc:618
 msgid "View VRAM in 8 bits"
 msgstr "Ver la VRAM en el modo a 8 bits"
 
-#: src/gui/widgets/vram-viewer.cc:618
+#: src/gui/widgets/vram-viewer.cc:622
 msgid "View VRAM in 4 bits"
 msgstr "Ver la VRAM en el modo a 4 bits"
 
-#: src/gui/widgets/vram-viewer.cc:623
+#: src/gui/widgets/vram-viewer.cc:627
 msgid "Select a CLUT"
 msgstr "Seleccionar un CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:625
+#: src/gui/widgets/vram-viewer.cc:629
 msgid "Enable Alpha channel view"
 msgstr "Mostrar canales alfa"
 
-#: src/gui/widgets/vram-viewer.cc:626
+#: src/gui/widgets/vram-viewer.cc:630
 msgid "Enable greyscale"
 msgstr "Activar escala de grises"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:633
 msgid "Select pixel grid color"
 msgstr "Seleccionar color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:630
+#: src/gui/widgets/vram-viewer.cc:634
 msgid "Select TPage grid color"
 msgstr "Seleccionar color de cuadrícula de TPage"
 
-#: src/gui/widgets/vram-viewer.cc:640
+#: src/gui/widgets/vram-viewer.cc:644
 msgid "Select read highlight color"
 msgstr "Seleccionar color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:641
+#: src/gui/widgets/vram-viewer.cc:645
 msgid "Select written highlight color"
 msgstr "Seleccionar color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:659 src/gui/widgets/vram-viewer.cc:661
+#: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
 msgid "Read Highlight Color Picker"
 msgstr "Selector de color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:671 src/gui/widgets/vram-viewer.cc:673
+#: src/gui/widgets/vram-viewer.cc:675 src/gui/widgets/vram-viewer.cc:677
 msgid "Written Highlight Color Picker"
 msgstr "Selector de color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:683 src/gui/widgets/vram-viewer.cc:685
+#: src/gui/widgets/vram-viewer.cc:687 src/gui/widgets/vram-viewer.cc:689
 msgid "Pixel Grid Color Picker"
 msgstr "Selector de color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:695 src/gui/widgets/vram-viewer.cc:697
+#: src/gui/widgets/vram-viewer.cc:699 src/gui/widgets/vram-viewer.cc:701
 msgid "TPage Grid Color Picker"
 msgstr "Selector de color de cuadrícula de TPage"
+
+#: src/main/main.cc:536
+#, fuzzy
+msgid "Failed to load save state\n"
+msgstr "Mostrar estados de guardado con nombres"
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"

@@ -276,6 +276,7 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\psyqo.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
   </ItemGroup>
   <ItemGroup>

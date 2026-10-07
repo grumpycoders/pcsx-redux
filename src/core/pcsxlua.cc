@@ -132,11 +132,11 @@ PCSX::Slice* createSaveState() {
     return new PCSX::Slice(std::move(ss));
 }
 
-void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::load(data->asStringView()); }
+void loadSaveStateFromSlice(PCSX::Slice* data) { PCSX::SaveStates::loadSafe(std::string(data->asStringView())); }
 
 void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
     auto data = file->file->readAt(64 * 1024 * 1024, 0);
-    PCSX::SaveStates::load(data.asStringView());
+    PCSX::SaveStates::loadSafe(std::string(data.asStringView()));
 }
 
 PCSX::LuaFFI::LuaFile* getMemoryAsFile() {

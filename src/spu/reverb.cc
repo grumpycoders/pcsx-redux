@@ -28,7 +28,7 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::start(SPUCHAN *voice, uint16_t spuCtrl) {
+void PCSX::SPU::ReverbUnit::start(SPUCHAN* voice, uint16_t spuCtrl) {
     voice->data.get<Chan::RVBActive>().value = voice->data.get<Chan::Reverb>().value && (spuCtrl & kReverbMasterEnable);
 }
 
@@ -39,7 +39,7 @@ void PCSX::SPU::ReverbUnit::init(int nssize) { memset(mixStart, 0, nssize * 2 * 
 
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::ReverbUnit::store(SPUCHAN *voice, int ns) {
+void PCSX::SPU::ReverbUnit::store(SPUCHAN* voice, int ns) {
     const int sendLeft = (voice->data.get<Chan::sval>().value * voice->volume.left()) / 0x4000;
     const int sendRight = (voice->data.get<Chan::sval>().value * voice->volume.right()) / 0x4000;
 
@@ -60,13 +60,13 @@ int PCSX::SPU::ReverbUnit::wrapOffset(int offset, int extraSample) const {
     return offset;
 }
 
-int PCSX::SPU::ReverbUnit::getBuffer(int offset, uint16_t *spuMem) const {
-    return reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, 0)];
+int PCSX::SPU::ReverbUnit::getBuffer(int offset, uint16_t* spuMem) const {
+    return reinterpret_cast<int16_t*>(spuMem)[wrapOffset(offset, 0)];
 }
 
 template <int ExtraSample>
-void PCSX::SPU::ReverbUnit::setBuffer(int offset, int value, uint16_t *spuMem) {
-    reinterpret_cast<int16_t *>(spuMem)[wrapOffset(offset, ExtraSample)] =
+void PCSX::SPU::ReverbUnit::setBuffer(int offset, int value, uint16_t* spuMem) {
+    reinterpret_cast<int16_t*>(spuMem)[wrapOffset(offset, ExtraSample)] =
         static_cast<int16_t>(std::clamp(value, -32768, 32767));
 }
 
@@ -120,12 +120,12 @@ inline int rdiv14(int64_t v) { return (int)(v >> 14); }
 // datapath whose registers are 16 bits wide rather than only clamping on the way to
 // memory.
 inline int sat16(int v) { return std::clamp(v, -32768, 32767); }
-inline int firDecimate(const int *h) {
+inline int firDecimate(const int* h) {
     int64_t a = 0;
     for (int i = 0; i < 39; i++) a += (int64_t)kFir[i] * h[i];
     return rdiv15(a);
 }
-inline int firInterp(const int *h, bool passthrough) {
+inline int firInterp(const int* h, bool passthrough) {
     if (passthrough) return h[10];
     int64_t a = 0;
     for (int i = 0; i < 39; i += 2) a += (int64_t)kFir[i] * h[i / 2];
@@ -136,11 +136,11 @@ inline int firInterp(const int *h, bool passthrough) {
 // The FIR histories and the L/R parity are reverb-unit state too; a reset that left
 // them would replay the previous tail through h22[9].
 void PCSX::SPU::ReverbUnit::reset() {
-    memset((void *)&rvb, 0, sizeof(REVERBInfo));
+    memset((void*)&rvb, 0, sizeof(REVERBInfo));
     resetFilterState();
 }
 
-int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
+int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t* spuMem, uint16_t spuCtrl) {
     // This function is called at 44.1 kHz.
     // Reverb is off.
     if (!rvb.StartAddr) {
@@ -154,7 +154,11 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
     // right". A complete 22.05kHz iteration is therefore two 44.1kHz cycles, each half
     // running the same formula against that channel's half of the register set, and the
     // work address advancing only once both have run.
-    if (spuCtrl & kReverbMasterEnable) {
+    // The unit keeps reading the work area and producing output even when the
+    // master enable bit is clear. That bit only gates writes into the buffer.
+    // Games that stream audio into the work area depend on this.
+    const bool writeEnabled = (spuCtrl & kReverbMasterEnable) != 0;
+    {
         firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
         altLeftTick = (callCount & 1) != 0;
         const int in = sat16(altLeftTick ? firDecimate(h44L) : firDecimate(h44R));
@@ -169,7 +173,7 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
         const int c4 = altLeftTick ? rvb.ACC_SRC_D0 : rvb.ACC_SRC_D1;
         const int mA = altLeftTick ? rvb.MIX_DEST_A0 : rvb.MIX_DEST_A1;
         const int mB = altLeftTick ? rvb.MIX_DEST_B0 : rvb.MIX_DEST_B1;
-        auto at = [&](int off, int extra) { return (int)reinterpret_cast<int16_t *>(spuMem)[wrapOffset(off, extra)]; };
+        auto at = [&](int off, int extra) { return (int)reinterpret_cast<int16_t*>(spuMem)[wrapOffset(off, extra)]; };
         const int iirSame =
             sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
         const int iirDiff =
@@ -177,14 +181,16 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
         // psx-spx stores the IIR result at [mLSAME] and reads the previous value back
         // from [mLSAME-2], i.e. the destination cell itself one 16-bit sample earlier -
         // hence the -1 extraSample on the read and none on the store.
-        setBuffer<0>(
-            dSame,
-            rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))),
-            spuMem);
-        setBuffer<0>(
-            dDiff,
-            rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))),
-            spuMem);
+        if (writeEnabled) {
+            setBuffer<0>(dSame,
+                         rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) +
+                             rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))),
+                         spuMem);
+            setBuffer<0>(dDiff,
+                         rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) +
+                             rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))),
+                         spuMem);
+        }
         int out = sat16(rdiv15((int64_t)(getBuffer(c1, spuMem) * rvb.ACC_COEF_A)) +
                         rdiv15((int64_t)(getBuffer(c2, spuMem) * rvb.ACC_COEF_B)) +
                         rdiv15((int64_t)(getBuffer(c3, spuMem) * rvb.ACC_COEF_C)) +
@@ -195,11 +201,11 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
         //   LeftOutput = Lout*vLOUT          (all products divided by 8000h)
         const int tapA = getBuffer(mA - rvb.FB_SRC_A, spuMem);
         out = sat16(out - rdiv15((int64_t)(tapA * rvb.FB_ALPHA)));
-        setBuffer<0>(mA, out, spuMem);
+        if (writeEnabled) setBuffer<0>(mA, out, spuMem);
         out = sat16(rdiv15((int64_t)(out * rvb.FB_ALPHA)) + tapA);
         const int tapB = getBuffer(mB - rvb.FB_SRC_B, spuMem);
         out = sat16(out - rdiv15((int64_t)(tapB * rvb.FB_X)));
-        setBuffer<0>(mB, out, spuMem);
+        if (writeEnabled) setBuffer<0>(mB, out, spuMem);
         out = sat16(rdiv15((int64_t)(out * rvb.FB_X)) + tapB);
         // vLOUT/vROUT are signed 16bit and their products divide by 8000h, not 4000h.
         // registers.cc assigns these from a uint16_t with no cast, unlike every other
@@ -225,21 +231,6 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t *spuMem, uint16_t spuCtrl) {
         // jitter the group delay between 19 and 21.
         return altLeftTick ? firInterp(h22L, false) : h22L[9];
     }
-
-    firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
-
-    // Reverb master is off. Per Neill's notes below the work address still advances once
-    // per 22.05kHz tick regardless, i.e. on every second 44.1kHz call.
-    if (callCount & 1) {
-        rvb.lastWetLeft = rvb.lastWetRight = rvb.wetLeft = rvb.wetRight = 0;
-
-        rvb.CurrAddr++;
-        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
-    }
-
-    // Nothing was computed this call, so the output is the passthrough phase of whatever
-    // the resampler history still holds.
-    return h22L[9];
 }
 
 ////////////////////////////////////////////////////////////////////////
