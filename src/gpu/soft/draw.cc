@@ -36,25 +36,28 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
         auto offset = (m_softDisplay.DisplayPosition.x * 2) % 3;
         textureID = m_vramTexture24;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 1024, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
     } else {
         textureID = m_vramTexture16;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vram16);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_vram16);
     }
 
     float xRatio = m_softDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
+    // The VRAM textures are a full 1024x1024 so the display (and the VRAM
+    // viewer) can address a framebuffer anywhere in VRAM, including the upper
+    // bank; normalize the display Y over the full height accordingly.
     float startX = m_softDisplay.DisplayPosition.x * xRatio;
-    float startY = m_softDisplay.DisplayPosition.y / 512.0f;
+    float startY = m_softDisplay.DisplayPosition.y / 1024.0f;
     float width = (m_softDisplay.DisplayEnd.x - m_softDisplay.DisplayPosition.x) / 1024.0f;
-    float height = (m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y) / 512.0f;
+    float height = (m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y) / 1024.0f;
 
     // Temporary workaround until we make our Display struct work with the sw backend
     // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
     if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
         width -= 1.f / 1024.f;
-        height -= 1.f / 512.f;
+        height -= 1.f / 1024.f;
     }
 
     gui->m_offscreenShaderEditor.render(gui, textureID, {startX, startY}, {width, height}, gui->getRenderSize());
@@ -80,7 +83,7 @@ void PCSX::SoftGPU::impl::clearVRAM() {
     if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);
     glBindTexture(GL_TEXTURE_2D, oldTex);
 }
 
@@ -102,7 +105,7 @@ void PCSX::SoftGPU::impl::initDisplay() {
     if (!gui) return;
     glGenTextures(1, &m_vramTexture24);
     glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -110,7 +113,7 @@ void PCSX::SoftGPU::impl::initDisplay() {
 
     glGenTextures(1, &m_vramTexture16);
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

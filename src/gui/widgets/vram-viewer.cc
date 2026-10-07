@@ -101,7 +101,7 @@ vec4 readTexture(in vec2 pos) {
     if (pos.y > 1.0f) return ret;
     if (pos.x < 0.0f) return ret;
     if (pos.y < 0.0f) return ret;
-    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 apos = vec2(1024.0f, 1024.0f) * pos;
     vec2 fpos = fract(apos);
     ivec2 ipos = ivec2(apos);
 
@@ -191,7 +191,7 @@ float sampleTexture(in sampler2D sampler, in ivec2 pos) {
 }
 
 float sum9(in sampler2D sampler, in vec2 pos) {
-    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 apos = vec2(1024.0f, 1024.0f) * pos;
     ivec2 ipos = ivec2(apos);
     float sum = 0.0;
     for (int y = -1; y <= 1; y++) {
@@ -212,7 +212,7 @@ void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
-    vec2 pixelPosLinear = vec2(1024.0f, 512.0f) * fragUV.st;
+    vec2 pixelPosLinear = vec2(1024.0f, 1024.0f) * fragUV.st;
     vec2 pixelPosFractional = fract(pixelPosLinear);
     ivec2 pixelPos = ivec2(pixelPosLinear);
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
@@ -228,7 +228,7 @@ void main() {
     vec4 writtenOutlineMagnify = outlineColor(u_writtenHighlight, u_writtenColor, magnifyPos);
     magnifyColor = mix(magnifyColor, writtenOutlineMagnify, writtenOutlineMagnify.a);
     vec2 mousePos = vec2(u_mousePos.x - u_origin.x * 2.0, u_resolution.y - u_mousePos.y);
-    ivec2 mousePixelPos = ivec2(vec2(1024.0f, 512.0f) * u_mouseUV);
+    ivec2 mousePixelPos = ivec2(vec2(1024.0f, 1024.0f) * u_mouseUV);
 #if 0
     if (mousePixelPos == pixelPos) {
         fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -236,12 +236,12 @@ void main() {
 #endif
     bool drawGrid = true;
     if (pixelPosLinear.x > 1024.0f) drawGrid = false;
-    if (pixelPosLinear.y > 512.0f) drawGrid = false;
+    if (pixelPosLinear.y > 1024.0f) drawGrid = false;
     if (pixelPosLinear.x < 0.0f) drawGrid = false;
     if (pixelPosLinear.y < 0.0f) drawGrid = false;
     bool drawTPageGrid = true;
     if (pixelPosLinear.x > 1030.0f) drawTPageGrid = false;
-    if (pixelPosLinear.y > 520.0f) drawTPageGrid = false;
+    if (pixelPosLinear.y > 1032.0f) drawTPageGrid = false;
     if (pixelPosLinear.x < 0.0f) drawTPageGrid = false;
     if (pixelPosLinear.y < 0.0f) drawTPageGrid = false;
 
@@ -282,7 +282,7 @@ void main() {
             fragColor = mix(fragColor, pixelGridColor, pixelGridVertLine * pixelGridBlend);
             fragColor = mix(fragColor, pixelGridColor, pixelGridHorzLine * pixelGridBlend);
         }
-        if (pixelPosLinear.y <= 512.0f) {
+        if (pixelPosLinear.y <= 1024.0f) {
             fragColor = mix(fragColor, tpageGridColor, tpageGridVertLine * tpageGridBlend);
         }
         if (pixelPosLinear.x <= 1024.0f) {
@@ -352,7 +352,7 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : ZoomableImage(show), m_liste
     m_listener.listen<PCSX::Events::GUI::SelectClut>([this](auto event) {
         if (m_hasClut) {
             m_clut.x = event.x / 1024.0f;
-            m_clut.y = event.y / 512.0f;
+            m_clut.y = event.y / 1024.0f;
         }
     });
     m_listener.listen<PCSX::Events::GUI::VRAMFocus>([this](auto event) {
@@ -447,7 +447,7 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     ImVec2 texSpan = texBR - texTL;
     if (hovered) {
         m_mouseUV = texTL + texSpan * (m_mousePos - m_origin) / m_resolution;
-        auto UV = m_mouseUV * ImVec2(1024.0f, 512.0f);
+        auto UV = m_mouseUV * ImVec2(1024.0f, 1024.0f);
         PCSX::Events::GUI::VRAMMode vramMode;
         switch (m_vramMode) {
             case VRAM_4BITS:
@@ -522,7 +522,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
     ImVec2 dimensions = (m_cornerBR - m_cornerTL) / m_DPI;
-    ImVec2 pixelScale = dimensions / ImVec2(512.0f / RATIOS[m_vramMode], 512.0f);
+    ImVec2 pixelScale = dimensions / ImVec2(512.0f / RATIOS[m_vramMode], 1024.0f);
     glUniform2f(m_attribLocationPixelScale, pixelScale.x, pixelScale.y);
     if (!m_hasClut && m_vramMode < 2) {
         glUniform1i(m_attribLocationGreyscale, 1);
@@ -577,7 +577,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glActiveTexture(GL_TEXTURE0);
 }
 
-ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 512.0f}; }
+ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 1024.0f}; }
 
 void PCSX::Widgets::VRAMViewer::resetView() {
     ZoomableImage::resetView();
@@ -650,10 +650,10 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             ImGui::Separator();
             float divisor = m_vramMode == VRAM_4BITS ? 4.0f : m_vramMode == VRAM_8BITS ? 2.0f : 1.0f;
             ImGui::Text("Cursor: %.2f : %.2f", std::floor(m_mouseUV.x * 1024.0f * divisor) / divisor,
-                        std::floor(m_mouseUV.y * 512.0f));
+                        std::floor(m_mouseUV.y * 1024.0f));
             if (m_hasClut) {
                 ImGui::Separator();
-                ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 512.0f));
+                ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 1024.0f));
             }
             ImGui::EndMenuBar();
         }
@@ -726,7 +726,7 @@ void PCSX::Widgets::VRAMViewer::modeChanged() {
 }
 
 void PCSX::Widgets::VRAMViewer::moveTo(ImVec2 pos) {
-    pos /= {-1024.0, -512.0};
+    pos /= {-1024.0, -1024.0};
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
@@ -747,8 +747,8 @@ void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
     }
     dimensions = m_resolution / dimensions;
     ImGuiHelpers::normalizeDimensions(dimensions, RATIOS[m_vramMode]);
-    m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 512.0f) * std::max(dimensions.x, dimensions.y);
+    m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 1024.0f) * std::max(dimensions.x, dimensions.y);
     moveTo(topLeft);
-    ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);
+    ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 1024.0f);
     zoom(0.9f, center);
 }
