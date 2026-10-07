@@ -456,6 +456,8 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     writeStatus(m_statusControl[7]);
     writeStatus(m_statusControl[5]);
     writeStatus(m_statusControl[4]);
+    // The replayed GP1(00h)/GP1(02h) above clear the IRQ1 flag; put back the saved one.
+    m_irq1Flag = gpu.get<GPUStatus>().value & 0x01000000;
 }
 
 void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {

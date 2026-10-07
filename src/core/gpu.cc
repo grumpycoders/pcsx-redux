@@ -35,6 +35,7 @@
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready
 #define GPUSTATUS_MODE 0x02000000  // Data request mode
+#define GPUSTATUS_IRQ1 0x01000000  // GP0(1Fh) / GP1(02h)
 
 namespace PCSX {
 
@@ -377,6 +378,7 @@ uint32_t PCSX::GPU::readStatus() {
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
 #endif
     if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
+    if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
     return ret;
@@ -670,6 +672,9 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
                         m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
+                    } break;
+                    case 0x1f: {  // interrupt request (IRQ1)
+                        m_gpu->requestIRQ1();
                     } break;
                     default: {
                         gotUnknown = true;

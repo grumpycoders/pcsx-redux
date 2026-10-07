@@ -98,12 +98,13 @@ class GPU {
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
-    // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
-    // when readStatus is called
+    // These set and clear the IRQ1 flag, which readStatus mirrors into GPUSTAT.24.
     void requestIRQ1() {
+        m_irq1Flag = true;
         if (!m_detached) g_emulator->m_mem->setIRQ(2);
     }
     void acknowledgeIRQ1() {
+        m_irq1Flag = false;
         if (!m_detached) g_emulator->m_mem->clearIRQ(2);
     }
 
@@ -166,6 +167,7 @@ class GPU {
     virtual void setDither(int setting) = 0;
     void reset() {
         resetBackend();
+        m_irq1Flag = false;
         m_dataRet = 0;
         m_readFifo->reset();
         m_processor->reset();
@@ -251,6 +253,7 @@ class GPU {
 
   private:
     uint32_t m_statusControl[256];
+    bool m_irq1Flag = false;
     uint32_t m_envRaw[7];
     bool m_detached = false;
     GPULogger *m_logger = nullptr;
