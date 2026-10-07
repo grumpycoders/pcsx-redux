@@ -79,7 +79,9 @@
 #define _rLo_ m_regs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+// A relative branch adds its offset to the PC register. In the delay slot of a taken branch, the PC
+// register already holds the first branch's target, so that is the base.
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + branchBase())
 
 class InterpretedCPU final : public PCSX::R3000Acpu {
   public:
@@ -117,6 +119,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     template <bool debug, bool trace>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
+    uint32_t branchBase();
 
     void MTC0(int reg, uint32_t val);
 
@@ -332,6 +335,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     static const intFunc_t s_pgxpPsxCP2BSC[32];
     static const intFunc_t s_pgxpPsxBSCMem[64];
 };
+
+inline uint32_t InterpretedCPU::branchBase() {
+    auto& pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    return pending.pcActive ? pending.pcValue : m_regs.pc;
+}
 
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
