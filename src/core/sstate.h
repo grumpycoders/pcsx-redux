@@ -88,7 +88,7 @@ typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersF
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("status"), 1> GPUStatus;
 typedef Protobuf::Field<Protobuf::FixedBytes<0x400>, TYPESTRING("control"), 2> GPUControl;
-typedef Protobuf::Field<Protobuf::FixedBytes<0x00100000>, TYPESTRING("vram"), 3> GPUVRam;
+typedef Protobuf::Field<Protobuf::FixedBytes<0x00200000>, TYPESTRING("vram"), 3> GPUVRam;
 typedef Protobuf::Message<TYPESTRING("GPU"), GPUStatus, GPUControl, GPUVRam> GPU;
 typedef Protobuf::MessageField<GPU, TYPESTRING("gpu"), 5> GPUField;
 

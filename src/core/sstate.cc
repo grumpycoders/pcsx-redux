@@ -217,8 +217,8 @@ std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
     SaveStateWrapper wrapper(state);
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
-    state.get<SaveStateInfoField>().get<Version>().value = 4;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v5";
+    state.get<SaveStateInfoField>().get<Version>().value = 5;
 
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
@@ -327,7 +327,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
         return false;
     }
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 4) {
+    if (state.get<SaveStateInfoField>().get<Version>().value != 5) {
         return false;
     }
 
@@ -437,7 +437,7 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     auto& gpu = w->state.get<GPUField>();
     restoreStatus(gpu.get<GPUStatus>().value);
     if (gpu.get<GPUVRam>().value) {
-        partialUpdateVRAM(0, 0, 1024, 512, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+        partialUpdateVRAM(0, 0, 1024, 1024, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
     } else {
         clearVRAM();
     }
