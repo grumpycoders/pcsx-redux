@@ -779,6 +779,10 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             raw.y = y;
             raw.w = w;
             raw.h = h;
+            // GP0(02h) parameter masking (psx-spx): Xpos ignores its low 4 bits,
+            // Xsiz rounds up to the next multiple of 16 within 0..400h.
+            x &= 0x3f0;
+            w = ((w & 0x3ff) + 0xf) & ~0xf;
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
