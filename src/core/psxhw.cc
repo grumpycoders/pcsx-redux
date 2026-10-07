@@ -387,7 +387,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
                 }
                 default: {
                     g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return 0xffffffff;
                 }
             }
@@ -848,7 +848,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
                 }
                 default: {
                     g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 }
             }
