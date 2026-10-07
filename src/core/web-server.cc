@@ -34,6 +34,7 @@
 #include "cdrom/file.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -241,14 +242,15 @@ class FlowExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/execution-flow";
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
-        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
-            auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+        auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+        bool debugEnabled = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
 
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             nlohmann::json j;
             j["running"] = PCSX::g_system->running();
             j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
             j["8mb"] = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
-            j["debugger"] = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
+            j["debugger"] = debugEnabled;
             write200(client, j);
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
@@ -271,6 +273,28 @@ class FlowExecutor : public PCSX::WebExecutor {
             }
             if (function.compare("resume") == 0) {
                 PCSX::g_system->resume();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            std::unordered_set<std::string> stepFunctions = {
+                "stepIn", "stepOver", "stepOut"
+            };
+            if (stepFunctions.contains(function) && !debugEnabled) {
+                client->write("HTTP/1.1 503 Debugger not enabled\r\n\r\n");
+                return false;
+            }
+            if (function.compare("stepIn") == 0) {
+                PCSX::g_emulator->m_debug->stepIn();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("stepOver") == 0) {
+                PCSX::g_emulator->m_debug->stepOver();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("stepOut") == 0) {
+                PCSX::g_emulator->m_debug->stepOut();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }
