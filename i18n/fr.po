@@ -193,7 +193,7 @@ msgstr "Step out (sans callstack)"
 #: src/core/debug.cc:316
 #, c-format
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
-msgstr "Point d'arrêt activé: PC=0x%08x - Cause: %s 3 %s\n"
+msgstr "Point d'arrêt activé: PC=0x%08x - Cause: %s %s\n"
 
 #: src/core/debug.cc:427 src/gui/widgets/assembly.cc:506
 #: src/gui/widgets/assembly.cc:585
@@ -671,7 +671,7 @@ msgstr "Manette"
 #: src/core/pio-cart.cc:214
 #, c-format
 msgid "Unknown 8-bit read in EXP1/PIO: %8.8lx\n"
-msgstr "Lecture 8 bits d'adresse inconnue dans EXP1/PIO: %8.8Ix\n"
+msgstr "Lecture 8 bits d'adresse inconnue dans EXP1/PIO: %8.8lx\n"
 
 #: src/core/pio-cart.cc:228
 #, c-format
@@ -4012,7 +4012,7 @@ msgstr "Divers"
 
 #: src/gui/widgets/shader-editor.cc:322
 msgid "Vertex Shader compilation error: {}\n"
-msgstr "Erreur de compilation du Vertex Shader :\n"
+msgstr "Erreur de compilation du Vertex Shader: {}\n"
 
 #: src/gui/widgets/shader-editor.cc:343
 msgid "Pixel Shader compilation error: {}\n"
