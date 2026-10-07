@@ -286,6 +286,8 @@ void PCSX::SaveStates::restore(SaveState& state) {
 void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     using namespace SaveStates;
     auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    // capture() reuses messages, so whatever an earlier capture left here must go.
+    callstacks.clear();
     for (auto& callstack : getCallstacks()) {
         SaveStates::CallStack sscallstack{};
         sscallstack.get<LowSP>().value = callstack.getLow();

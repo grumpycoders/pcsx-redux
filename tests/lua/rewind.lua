@@ -68,3 +68,43 @@ function TestRewind:test_ring_is_bounded_and_reuses_slots()
     lu.assertEquals(word[0], 11)
     lu.assertFalse(PCSX.rewindState())
 end
+
+-- Runs a few guest instructions that open a stack frame and spill ra, so the machine holds a
+-- real call stack, then parks the cpu in a loop.
+local function runIntoCallStack()
+    local code = ram32(0x100000)
+    code[0] = 0x27bdffe0 -- addiu sp, sp, -32
+    code[1] = 0xafbf001c -- sw ra, 28(sp)
+    code[2] = 0x08040002 -- j 0x80100008
+    code[3] = 0x00000000 -- nop
+    PCSX.invalidateCache()
+    local regs = PCSX.getRegisters()
+    regs.GPR.n.sp = 0x801fff00
+    regs.GPR.n.ra = 0x80100100
+    regs.pc = 0x80100000
+    local co = coroutine.running()
+    PCSX.nextTick(function()
+        PCSX.pauseEmulator()
+        coroutine.resume(co)
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+end
+
+-- Every capture into a recycled slot must replace what the slot held, not add to it. A slot
+-- that accumulates feeds itself back through restore and doubles on every round trip.
+function TestRewind:test_round_trips_on_recycled_slots_stay_flat()
+    if PCSX.settings.emulator.Dynarec then lu.skip('only the interpreter records call stacks') end
+    while PCSX.getRewindStateCount() > 0 do PCSX.rewindState() end
+    local before = PCSX.createSaveState().size
+    runIntoCallStack()
+    local size = PCSX.createSaveState().size
+    -- A few bytes of varint jitter between round trips are normal; a call stack is more.
+    local slack = 16
+    if size - before <= slack then lu.skip('no call stack was recorded, nothing could accumulate') end
+    for i = 1, 32 do
+        PCSX.createRewindState()
+        lu.assertTrue(PCSX.rewindState())
+        lu.assertTrue(math.abs(PCSX.createSaveState().size - size) <= slack, 'round trip ' .. i)
+    end
+end
