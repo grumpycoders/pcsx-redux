@@ -55,6 +55,9 @@ struct SoftRenderer {
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
+    // GP0(E6h) state, for the VRAM transfers that honour it outside the rasterizer.
+    bool getCheckMask() const { return m_checkMask; }
+    uint16_t getSetMask16() const { return m_setMask16; }
 
     bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
                      int16_t &y3);
