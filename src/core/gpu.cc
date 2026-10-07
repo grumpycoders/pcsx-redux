@@ -466,6 +466,26 @@ void PCSX::GPU::gpuInterrupt() {
     mem->dmaInterrupt<2>();
 }
 
+bool PCSX::GPU::vram2MBFitted() const { return g_emulator->settings.get<Emulator::Setting2MBVRAM>(); }
+
+unsigned PCSX::GPU::resolveVramY(unsigned y) const {
+    // Gate closed: Y wraps within the 1MB region (9-bit), regardless of fitment.
+    // This is retail-identical, and is the default for every existing game.
+    if (!m_vram2MBGateOpen) return y & 0x1ff;
+    // Gate open: full 10-bit Y honored.
+    return y & 0x3ff;
+}
+
+bool PCSX::GPU::vramOpenBus(unsigned y) const {
+    // Gate open but only 1MB fitted: an upper-half (Y>=512) access reads open
+    // bus where the second chip would be. This is the real mechanism behind the
+    // historical "texture disable" mislabel. Hardware-measured (retail 1MB,
+    // SCPH-1001 + SCPH-5501): the bus floats high, returning a constant 0xFFFF,
+    // independent of prior reads/writes; writes are dropped with no lower-bank
+    // aliasing. See kVramOpenBusValue.
+    return m_vram2MBGateOpen && !vram2MBFitted() && (y & 0x200);
+}
+
 void PCSX::GPU::writeStatus(uint32_t value) {
     uint32_t cmd = (value >> 24) & 0xff;
     bool gotUnknown = false;
@@ -527,6 +547,15 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             CtrlDisplayMode ctrl(value);
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
+        } break;
+        case 9: {
+            // GP1(09h) - VRAM size / second-bank gate. Bit 0 = 1 opens the upper
+            // 1MB bank for full 10-bit Y addressing; bit 0 = 0 is the retail
+            // default (all Y wraps within 1MB, regardless of fitment). Always
+            // present in the 208-pin GPU silicon; retail boards just leave the
+            // second 1MB chip unpopulated.
+            m_vram2MBGateOpen = value & 1;
+            vramConfigChanged();
         } break;
         case 16: {
             CtrlQuery ctrl(value);
@@ -779,10 +808,23 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             raw.y = y;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(x, y, w, h);
+            // GP0(02h) fill-size masking (psx-spx): Xsiz rounds UP to the next
+            // multiple of 16 within 0..400h, Ysiz is masked to 9 bits. A fill
+            // whose effective Xsiz or Ysiz is 0 does nothing at all - so a Ysiz
+            // that is a multiple of 512 (e.g. 512 -> 0) is silently rejected,
+            // and Param=400h is treated as Xsiz=0. This is pure command decode,
+            // independent of the bank gate / VRAM fitment; the 2MB Y reach is
+            // resolved downstream by resolveVramY, never masked away here.
+            w = ((w & 0x3ff) + 0xf) & ~0xf;
+            h = h & 0x1ff;
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
+            if (w == 0 || h == 0) return;  // Xsiz=0 or Ysiz=0: no fill
+            // Clip against the full 1024x1024 buffer so a fast-fill can target
+            // the upper bank; the soft fillArea still bounds the actual fill to
+            // the effective drawable height (512 unless 2MB + gate open).
+            clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
             m_gpu->write0(this);
             return;
     }
@@ -819,8 +861,27 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
             raw.dY = dY;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(sX, sY, w, h);
-            clipped |= GPU::clip(dX, dY, w, h);
+            // psx-spx "Masking for COPY Commands": effective transfer size is
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1, Ysiz_eff = ((Ysiz-1) AND 1FFh)+1.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
+            // Clip against the full 1024x1024 physical buffer, not the retail
+            // 512 height: an upper-bank (Y>=512) source or destination must
+            // survive decode so the bank-aware copy in write0 (which routes
+            // every row through resolveVramY) can run. With the default
+            // hMax=512 a copy touching the upper bank had its height clamped
+            // to 0 and was silently dropped. Matches the upload/readback clip.
+            // Gate open: both source and destination Y wrap mod-1024 (silicon
+            // WRAP for copy, transfer-wrap-y 2026-06-15; psx-spx: src/dst may
+            // straddle the Y=512 bank boundary cleanly). Clamp X only and let
+            // write0 route every row through resolveVramY. Gate closed: retail.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clipX<unsigned, 1024>(sX, w);
+                clipped |= GPU::clipX<unsigned, 1024>(dX, w);
+            } else {
+                clipped = GPU::clip<unsigned, 1024, 1024>(sX, sY, w, h);
+                clipped |= GPU::clip<unsigned, 1024, 1024>(dX, dY, w, h);
+            }
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
@@ -849,6 +910,19 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             value = buf.get();
             w = value & 0xffff;
             h = value >> 16;
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            // psx-spx "Masking for COPY Commands": the GPU transfers
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1 columns (1..1024) and
+            // Ysiz_eff = ((Ysiz-1) AND 1FFh)+1 rows (1..512). Inputs outside
+            // those ranges wrap, so the FIFO handshake (and the destination
+            // row loop) must use the effective counts. Using the raw value
+            // desyncs the transfer: too few words sent stalls the GPU forever
+            // waiting for the rest, too many corrupts the command stream.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
             size = (w * h + 1) / 2;
             m_data.clear();
             m_data.reserve(size * 4);
@@ -873,19 +947,40 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             break;
     }
     if (done) {
-        raw.x = x;
-        raw.y = y;
-        raw.w = w;
-        raw.h = h;
-        clipped = GPU::clip(x, y, w, h);
+        // raw.{x,y,w,h} captured at READ_HW before the COPY-size masking so
+        // the logger keeps the values the game actually sent.
+        // Gate open: Y wraps mod-1024 per row via resolveVramY (silicon-
+        // measured WRAP, transfer-wrap-y 2026-06-15), so clamp X only and let
+        // the per-row loop run the full height. Gate closed: retail clip.
+        if (m_gpu->vram2MBGateOpen()) {
+            clipped = GPU::clipX<unsigned, 1024>(x, w);
+        } else {
+            clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+        }
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
         m_gpu->m_logger->addNode(*this, origin, origvalue, length);
-        m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>(), PartialUpdateVram::Synchronous);
+        {
+            const uint16_t *src = data.data<uint16_t>();
+            for (int row = 0; row < h; row++) {
+                // Drop writes to an opened-but-unpopulated upper bank (1MB
+                // fitment): they hit floating bus and are lost.
+                if (m_gpu->vramOpenBus(y + row)) continue;
+                m_gpu->partialUpdateVRAM(x, m_gpu->resolveVramY(y + row), w, 1, src + row * w,
+                                         PartialUpdateVram::Synchronous);
+            }
+        }
     }
 }
 
-void PCSX::GPU::BlitRamVram::execute(GPU *gpu) { gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>()); }
+void PCSX::GPU::BlitRamVram::execute(GPU *gpu) {
+    const uint16_t *src = data.data<uint16_t>();
+    for (int row = 0; row < h; row++) {
+        // Drop writes to an opened-but-unpopulated upper bank (1MB fitment).
+        if (gpu->vramOpenBus(y + row)) continue;
+        gpu->partialUpdateVRAM(x, gpu->resolveVramY(y + row), w, 1, src + row * w);
+    }
+}
 
 void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
@@ -910,14 +1005,24 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             raw.y = y;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(x, y, w, h);
+            // psx-spx "Masking for COPY Commands": effective transfer size is
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1, Ysiz_eff = ((Ysiz-1) AND 1FFh)+1.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
+            // Gate open: Y wraps mod-1024 per row via resolveVramY (silicon
+            // WRAP, transfer-wrap-y 2026-06-15); clamp X only. Gate closed: retail.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clipX<unsigned, 1024>(x, w);
+            } else {
+                clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+            }
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
-                slice.borrow(m_gpu->m_vramReadSlice, (l * 1024 + x) * 2, w * 2);
+                slice.borrow(m_gpu->m_vramReadSlice, (m_gpu->resolveVramY(l) * 1024 + x) * 2, w * 2);
                 m_gpu->m_readFifo->pushSlice(std::move(slice));
             }
             return;
@@ -927,15 +1032,25 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
 PCSX::GPU::TPage::TPage(uint32_t value) {
     raw = value;
     tx = value & 0x0f;
-    ty = (value >> 4) & 1;
     blendFunction = magic_enum::enum_cast<BlendFunction>((value >> 5) & 3).value();
     auto depth = (value >> 7) & 3;
     texDepth = magic_enum::enum_cast<TexDepth>(depth == 3 ? 2 : depth).value();
     dither = (value >> 9) & 1;
     drawToDisplay = (value >> 10) & 1;
-    texDisable = (value >> 11) & 1;
     xflip = (value >> 12) & 1;
     yflip = (value >> 13) & 1;
+    // Texture-page Y base. Retail uses a single bit (bit 4 -> page row 0 or
+    // 256). With a 2MB bank fitted, bit 11 - the historical, inert "texture
+    // disable" bit - becomes the high bit of a 2-bit page selector, so the base
+    // can be 0/256/512/768 and texture pages can live in the upper bank. On 1MB
+    // that bit stays the (unused) texDisable flag and ty stays a single bit.
+    if (g_emulator->settings.get<Emulator::Setting2MBVRAM>().value) {
+        ty = ((value >> 4) & 1) | (((value >> 11) & 1) << 1);
+        texDisable = false;
+    } else {
+        ty = (value >> 4) & 1;
+        texDisable = (value >> 11) & 1;
+    }
 }
 
 PCSX::GPU::TWindow::TWindow(uint32_t value) {
@@ -949,14 +1064,17 @@ PCSX::GPU::TWindow::TWindow(uint32_t value) {
 
 PCSX::GPU::DrawingAreaStart::DrawingAreaStart(uint32_t value) {
     x = value & c_Coord10Mask;
-    y = (value >> c_DrawingAreaYShift) & c_Coord9Mask;
+    // Decode the full 10-bit Y the command carries (bit 19 is the upper-bank
+    // bit). The gate/fitment semantics are applied downstream via resolveVramY,
+    // not baked in here; on retail this bit is 0 so the value is unchanged.
+    y = (value >> c_DrawingAreaYShift) & c_Coord10Mask;
 
     raw = value;
 }
 
 PCSX::GPU::DrawingAreaEnd::DrawingAreaEnd(uint32_t value) {
     x = value & c_Coord10Mask;
-    y = (value >> c_DrawingAreaYShift) & c_Coord9Mask;
+    y = (value >> c_DrawingAreaYShift) & c_Coord10Mask;
 
     raw = value;
 }
@@ -984,6 +1102,32 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
     auto dY = prim->dY;
     auto w = prim->w;
     auto h = prim->h;
+
+    if (m_vram2MBGateOpen) {
+        // Bank-aware copy: source and destination Y each wrap mod-1024 per row
+        // (resolveVramY), matching silicon (transfer-wrap-y verdict=WRAP for
+        // copy, 2026-06-15). X was clamped at decode (clipX on both sX and dX)
+        // and h was capped to <=512 by the COPY Ysiz mask, so no further
+        // clamping is needed here. Snapshot the whole source first so an
+        // overlapping src/dst copy stays correct, then write each destination
+        // row, dropping rows that hit an unpopulated upper bank (open bus on a
+        // 1MB fitment); source reads of an unpopulated upper bank land on the
+        // 0xFFFF prefill, so no explicit source guard is needed.
+        if ((w == 0) || (h == 0)) return;
+        std::vector<uint16_t> rect;
+        rect.resize((size_t)h * w);
+        for (unsigned l = 0; l < h; l++) {
+            Slice slice;
+            slice.borrow(inSlice, ((size_t)resolveVramY(sY + l) * 1024 + sX) * sizeof(uint16_t), w * sizeof(uint16_t));
+            memcpy(rect.data() + (size_t)l * w, slice.data(), slice.size());
+        }
+        for (unsigned l = 0; l < h; l++) {
+            if (vramOpenBus(dY + l)) continue;
+            partialUpdateVRAM(dX, resolveVramY(dY + l), w, 1, rect.data() + (size_t)l * w,
+                              PartialUpdateVram::Synchronous);
+        }
+        return;
+    }
 
     if (sX > 1024) {
         w -= sX - 1024;
