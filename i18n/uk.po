@@ -439,7 +439,7 @@ msgstr "Нерівна адреса 0x%08x в LWC2 з 0x%08x.\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SWC2 з 0x%08x.\n"
 
-#: src/core/mdec.cc:682
+#: src/core/mdec.cc:680
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
@@ -470,32 +470,32 @@ msgstr "Завантаження карти пам'яті %s.\n"
 msgid "Saving memory card %s\n"
 msgstr "Збереження карти пам'яті %s.\n"
 
-#: src/core/pad.cc:744 src/core/pad.cc:837
+#: src/core/pad.cc:824 src/core/pad.cc:948
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Невідома команда джойстика: %02X.\n"
 
-#: src/core/pad.cc:939
+#: src/core/pad.cc:1049
 msgid "Pad configuration"
 msgstr "Конфігурація джойстика"
 
-#: src/core/pad.cc:945
+#: src/core/pad.cc:1055
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:946
+#: src/core/pad.cc:1056
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:949
+#: src/core/pad.cc:1059
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Пересканувати джойстики та перечитати базу даних ігрових контролерів"
 
-#: src/core/pad.cc:955
+#: src/core/pad.cc:1078
 msgid "Use raw input for mouse"
 msgstr "Використовувати неопрацьоване керування для миші"
 
-#: src/core/pad.cc:957
+#: src/core/pad.cc:1080
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -503,160 +503,168 @@ msgstr ""
 "Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із "
 "керуванням мишею."
 
-#: src/core/pad.cc:959
+#: src/core/pad.cc:1082
 msgid "Allow mouse capture toggle"
 msgstr "Дозволити захоплення миші"
 
-#: src/core/pad.cc:961
+#: src/core/pad.cc:1084
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr "Натиснення Control і Alt перемикає налаштування вище, початкові дані."
 
-#: src/core/pad.cc:963
+#: src/core/pad.cc:1086
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:972
+#: src/core/pad.cc:1095
 msgid "Set defaults"
 msgstr "Встановити типові"
 
-#: src/core/pad.cc:988
+#: src/core/pad.cc:1111
 msgid "Keyboard Up"
 msgstr "Клавіатура ↑"
 
-#: src/core/pad.cc:990
+#: src/core/pad.cc:1113
 msgid "Keyboard Right"
 msgstr "Клавіатура →"
 
-#: src/core/pad.cc:992
+#: src/core/pad.cc:1115
 msgid "Keyboard Down"
 msgstr "Клавіатура ↓"
 
-#: src/core/pad.cc:994
+#: src/core/pad.cc:1117
 msgid "Keyboard Left"
 msgstr "Клавіатура ←"
 
-#: src/core/pad.cc:996
+#: src/core/pad.cc:1119
 msgid "Keyboard Backspace"
 msgstr "Клавіатура Backspace"
 
-#: src/core/pad.cc:998
+#: src/core/pad.cc:1121
 msgid "Keyboard Enter"
 msgstr "Клавіатура Enter"
 
-#: src/core/pad.cc:1000
+#: src/core/pad.cc:1123
 msgid "Keyboard Space"
 msgstr "Клавіатура Space"
 
-#: src/core/pad.cc:1002
+#: src/core/pad.cc:1125
 msgid "Keyboard Escape"
 msgstr "Клавіатура Escape"
 
-#: src/core/pad.cc:1004
+#: src/core/pad.cc:1127
 msgid "Unbound"
 msgstr "Вільно"
 
-#: src/core/pad.cc:1009
+#: src/core/pad.cc:1132
 msgid "Unknown keyboard key {}"
 msgstr "Невідома кнопка клавіатури {}"
 
-#: src/core/pad.cc:1014
+#: src/core/pad.cc:1137
 msgid "Keyboard {}"
 msgstr "Клавіатура {}"
 
-#: src/core/pad.cc:1033 src/gui/gui.cc:2268
+#: src/core/pad.cc:1156 src/gui/gui.cc:2268
 msgid "Auto"
 msgstr "Автоматично"
 
-#: src/core/pad.cc:1034
+#: src/core/pad.cc:1157
 msgid "Controller"
 msgstr "Контролер"
 
-#: src/core/pad.cc:1035
+#: src/core/pad.cc:1158
 msgid "Keyboard"
 msgstr "Клавіатура"
 
-#: src/core/pad.cc:1042
+#: src/core/pad.cc:1165
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1043
+#: src/core/pad.cc:1166
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1050
+#: src/core/pad.cc:1173
 msgid "Analog Mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1182
 msgid "Digital"
 msgstr "Цифра"
 
-#: src/core/pad.cc:1060
+#: src/core/pad.cc:1183
 msgid "Analog"
 msgstr "Аналог"
 
-#: src/core/pad.cc:1061
+#: src/core/pad.cc:1184
 msgid "Mouse"
 msgstr "Миша"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1185
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (Не реалізовано)"
 
-#: src/core/pad.cc:1063
+#: src/core/pad.cc:1186
 msgid "Gun (Unimplemented)"
 msgstr "Gun (Не реалізовано)"
 
-#: src/core/pad.cc:1064
+#: src/core/pad.cc:1187
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (Не реалізовано)"
 
-#: src/core/pad.cc:1068 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1191 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "З'єднано"
 
-#: src/core/pad.cc:1077
+#: src/core/pad.cc:1200
 msgid "Analog mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1209
+msgid "Rumble"
+msgstr ""
+
+#: src/core/pad.cc:1213
+msgid "(no motors on this gamepad)"
+msgstr ""
+
+#: src/core/pad.cc:1219
 msgid "Controller Type"
 msgstr "Тип контролера"
 
-#: src/core/pad.cc:1101
+#: src/core/pad.cc:1235
 msgid "Device type"
 msgstr "Тип пристрою"
 
-#: src/core/pad.cc:1112
+#: src/core/pad.cc:1246
 msgid "Mouse sensitivity X"
 msgstr "Чутливість миші X"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1248
 msgid "Mouse sensitivity Y"
 msgstr "Чутливість миші Y"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1250
 msgid "Keyboard mapping"
 msgstr "Призначення клавіатури"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1252
 msgid "Computer button mapping"
 msgstr "Призначення кнопки комп'ютера"
 
-#: src/core/pad.cc:1119
+#: src/core/pad.cc:1253
 msgid "Gamepad button"
 msgstr "Кнопка джойстика"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1303
 msgid "No gamepad selected or connected"
 msgstr "Джойстик не вибрано та не з'єднано."
 
-#: src/core/pad.cc:1193
+#: src/core/pad.cc:1327
 msgid "Gamepad"
 msgstr "Джойстик"
 
@@ -680,62 +688,62 @@ msgstr "Викликано msanGetChainPtr із недійсним указів�
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxinterpreter.cc:362
+#: src/core/psxinterpreter.cc:363
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці негайного додавання (ADDI) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:456
+#: src/core/psxinterpreter.cc:457
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці додавання (ADD) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:498
+#: src/core/psxinterpreter.cc:499
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці віднімання (SUB) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:830
+#: src/core/psxinterpreter.cc:831
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:856
+#: src/core/psxinterpreter.cc:857
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JALR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:894
+#: src/core/psxinterpreter.cc:895
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:911
+#: src/core/psxinterpreter.cc:912
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LHU з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:928
+#: src/core/psxinterpreter.cc:929
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:990
+#: src/core/psxinterpreter.cc:991
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1001
+#: src/core/psxinterpreter.cc:1002
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1116
+#: src/core/psxinterpreter.cc:1117
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Виявлено зарезервований код операції з 0x%08x, викликано виняток.\n"
 
-#: src/core/psxinterpreter.cc:1131
+#: src/core/psxinterpreter.cc:1160
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -744,7 +752,7 @@ msgstr ""
 "Спроба використання недійсної вказівки з рухомою комою з 0x%08x. "
 "Проігноровано.\n"
 
-#: src/core/psxinterpreter.cc:1143
+#: src/core/psxinterpreter.cc:1180
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
@@ -1101,7 +1109,7 @@ msgstr "Вихід"
 
 #: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
-#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:597
+#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:601
 msgid "File"
 msgstr "Файл"
 
@@ -1208,7 +1216,7 @@ msgid "Hard Reset"
 msgstr "Апаратне перезавантаження"
 
 #: src/gui/gui.cc:1429 src/gui/widgets/cdrom-viewer.cc:364
-#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:639
+#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:643
 msgid "Configuration"
 msgstr "Конфігурація"
 
@@ -2758,12 +2766,12 @@ msgstr "VRAM-переглядачі"
 
 #: src/gui/widgets/cdrom-viewer.cc:351 src/gui/widgets/isobrowser.cc:131
 #: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
-#: src/gui/widgets/vram-viewer.cc:601
+#: src/gui/widgets/vram-viewer.cc:605
 msgid "View"
 msgstr "Переглянути"
 
 #: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
-#: src/gui/widgets/vram-viewer.cc:602
+#: src/gui/widgets/vram-viewer.cc:606
 msgid "Reset view"
 msgstr "Відновити вигляд"
 
@@ -2786,7 +2794,7 @@ msgid "Show seeks"
 msgstr "Показати регістри"
 
 #: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
-#: src/gui/widgets/vram-viewer.cc:633
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Show Shader Editor"
 msgstr "Показати редактор шейдерів"
 
@@ -2818,8 +2826,8 @@ msgstr "Вибір кольору TPage-сітки"
 #: src/gui/widgets/cdrom-viewer.cc:414 src/gui/widgets/ram-viewer.cc:541
 #: src/gui/widgets/ram-viewer.cc:549 src/gui/widgets/ram-viewer.cc:557
 #: src/gui/widgets/ram-viewer.cc:565 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:665 src/gui/widgets/vram-viewer.cc:677
-#: src/gui/widgets/vram-viewer.cc:689 src/gui/widgets/vram-viewer.cc:701
+#: src/gui/widgets/vram-viewer.cc:669 src/gui/widgets/vram-viewer.cc:681
+#: src/gui/widgets/vram-viewer.cc:693 src/gui/widgets/vram-viewer.cc:705
 msgid "OK"
 msgstr "OK"
 
@@ -3967,7 +3975,7 @@ msgstr "Виконання мапи"
 msgid "Show greyscale"
 msgstr "Відтінки сірого"
 
-#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:628
+#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:632
 msgid "Show grid"
 msgstr "Показати сітку"
 
@@ -4286,73 +4294,78 @@ msgstr "Перемкнути"
 msgid "Add breakpoint##{}"
 msgstr "Додати точку зупинки##{}"
 
-#: src/gui/widgets/vram-viewer.cc:495
+#: src/gui/widgets/vram-viewer.cc:499
 msgid "VRAM Shader Editor"
 msgstr "Редактор VRAM-шейдерів"
 
-#: src/gui/widgets/vram-viewer.cc:605
+#: src/gui/widgets/vram-viewer.cc:609
 msgid "24 bits shift"
 msgstr "24-бітний зсув"
 
-#: src/gui/widgets/vram-viewer.cc:606
+#: src/gui/widgets/vram-viewer.cc:610
 msgid "View VRAM in 24 bits"
 msgstr "Переглянути VRAM у 24 біт"
 
-#: src/gui/widgets/vram-viewer.cc:610
+#: src/gui/widgets/vram-viewer.cc:614
 msgid "View VRAM in 16 bits"
 msgstr "Переглянути VRAM у 16 біт"
 
-#: src/gui/widgets/vram-viewer.cc:614
+#: src/gui/widgets/vram-viewer.cc:618
 msgid "View VRAM in 8 bits"
 msgstr "Переглянути VRAM у 8 біт"
 
-#: src/gui/widgets/vram-viewer.cc:618
+#: src/gui/widgets/vram-viewer.cc:622
 msgid "View VRAM in 4 bits"
 msgstr "Переглянути VRAM у 4 біт"
 
-#: src/gui/widgets/vram-viewer.cc:623
+#: src/gui/widgets/vram-viewer.cc:627
 msgid "Select a CLUT"
 msgstr "Вибрати CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:625
+#: src/gui/widgets/vram-viewer.cc:629
 msgid "Enable Alpha channel view"
 msgstr "Увімкнути перегляд альфа-каналу"
 
-#: src/gui/widgets/vram-viewer.cc:626
+#: src/gui/widgets/vram-viewer.cc:630
 msgid "Enable greyscale"
 msgstr "Увімкнути відтінки сірого"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:633
 msgid "Select pixel grid color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:630
+#: src/gui/widgets/vram-viewer.cc:634
 msgid "Select TPage grid color"
 msgstr "Вибрати колір TPage-сітки"
 
-#: src/gui/widgets/vram-viewer.cc:640
+#: src/gui/widgets/vram-viewer.cc:644
 msgid "Select read highlight color"
 msgstr "Вибрати колір виділення читання"
 
-#: src/gui/widgets/vram-viewer.cc:641
+#: src/gui/widgets/vram-viewer.cc:645
 msgid "Select written highlight color"
 msgstr "Вибрати колір виділення запису"
 
-#: src/gui/widgets/vram-viewer.cc:659 src/gui/widgets/vram-viewer.cc:661
+#: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
 msgid "Read Highlight Color Picker"
 msgstr "Прочитане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:671 src/gui/widgets/vram-viewer.cc:673
+#: src/gui/widgets/vram-viewer.cc:675 src/gui/widgets/vram-viewer.cc:677
 msgid "Written Highlight Color Picker"
 msgstr "Записане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:683 src/gui/widgets/vram-viewer.cc:685
+#: src/gui/widgets/vram-viewer.cc:687 src/gui/widgets/vram-viewer.cc:689
 msgid "Pixel Grid Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:695 src/gui/widgets/vram-viewer.cc:697
+#: src/gui/widgets/vram-viewer.cc:699 src/gui/widgets/vram-viewer.cc:701
 msgid "TPage Grid Color Picker"
 msgstr "Вибір кольору TPage-сітки"
+
+#: src/main/main.cc:536
+#, fuzzy
+msgid "Failed to load save state\n"
+msgstr "Показати імена збережених станів"
 
 #: src/spu/cfg.cc:28
 msgid "SPU configuration"
