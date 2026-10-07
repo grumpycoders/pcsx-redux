@@ -231,6 +231,10 @@ void PCSX::Emulator::createRewindState() {
             ring.m_spare.push_back(std::move(ring.m_states.front()));
             ring.m_states.pop_front();
         }
+        // Never hold more messages than the ring can use, or lowering the count strands them.
+        while (!ring.m_spare.empty() && ring.m_states.size() + ring.m_spare.size() > count) {
+            ring.m_spare.pop_back();
+        }
     }
 }
 

@@ -1163,8 +1163,9 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
-    // Rewind: holding the key auto-repeats, stepping further back through the ring.
-    if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+    // Rewind: holding the key auto-repeats, stepping further back through the ring. Not while a
+    // text field has focus, where Backspace is just Backspace.
+    if (!io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
         g_emulator->rewindState();
     }
 }
