@@ -668,6 +668,9 @@ void PadsImpl::Pad::getButtons() {
 
     auto getKeyboardButtons = [this]() -> uint16_t {
         if (!ImGui::GetCurrentContext()) return 0xffff;
+        // Don't feed host keys into the emulated pad while ImGui text fields
+        // own the keyboard (typing in the UI would otherwise hit in-game).
+        if (ImGui::GetIO().WantTextInput) return 0xffff;
         uint16_t result = 0;
         for (unsigned i = 0; i < 16; i++) {
             auto key = SdlScancodeToImGuiKey(m_scancodes[i]);
