@@ -166,6 +166,13 @@ struct SoftRenderer {
     int m_useDither = 0;
     uint16_t *m_vram16;
     uint8_t *m_vram;
+    // Effective drawable VRAM height. Equals the full 1024-row buffer only when
+    // a 2MB bank is fitted AND the gate is open; otherwise the retail 512. Kept
+    // in sync by impl::vramConfigChanged() and used as the rasterizer's vertical
+    // bound so drawing/fills reach the upper bank only when it is genuinely
+    // addressable. Public (like m_vram16) so impl can sync it across the
+    // private SoftRenderer inheritance.
+    int m_vramHeight = VRAM_HEIGHT;
     SoftDisplay m_softDisplay;
     int32_t m_statusRet;
     bool m_disableTexturesInPolygons = false;

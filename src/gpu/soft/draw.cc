@@ -62,11 +62,23 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
+    // VRAM contents must be identical whether or not a GUI is attached, so the
+    // memset and the open-bus prefill run unconditionally; only the GL texture
+    // mirror below depends on the GUI.
+    std::memset(m_allocatedVRAM, 0x00, (VRAM_HEIGHT * 2) * 1024 + (1024 * 1024));
+
+    // The memset zeroes through the lower rows of the upper bank (the security
+    // offset puts m_vram16 row 0 partway into the cleared span). Under 1MB
+    // fitment the upper bank must stay at the open-bus 0xFFFF value, so restore
+    // the prefill here too - this keeps it pristine across GPU resets, matching
+    // the one-time fill in initBackend().
+    if (!vram2MBFitted()) {
+        for (size_t i = 512u * 1024u; i < 1024u * 1024u; i++) m_vram16[i] = kVramOpenBusValue;
+    }
+
     GUI *gui = dynamic_cast<GUI *>(m_ui);
     if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
-    std::memset(m_allocatedVRAM, 0x00, (VRAM_HEIGHT * 2) * 1024 + (1024 * 1024));
-
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, m_allocatedVRAM);
     glBindTexture(GL_TEXTURE_2D, oldTex);
