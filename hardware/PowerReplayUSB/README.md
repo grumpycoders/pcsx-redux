@@ -6,7 +6,7 @@ An FT232H mod for the Power Replay cart. The board solders onto the castellation
 
 The `GerberFiles` directory and the two CSV files are ready for JLCPCB's assembly service.
 
-- `GATES` is a 74LVC02 (C548044). The SN74AHC02PWR it replaces is close to out of stock at LCSC. The 7402 is powered from the cart's 5V rail, and LVC parts are rated up to 5.5V, so any TSSOP-14 74LVC02 fits.
+- `GATES` is a 74AHC02PW (C55190887). The SN74AHC02PWR it replaces is close to out of stock at LCSC. The 7402 is powered from the cart's 5V rail, so it needs a family specified for a 5V supply (AHC, HC). A 74LVC02 is not: its inputs tolerate 5.5V but its supply is specified up to 3.6V.
 - The schematic says 93LC76B for the EEPROM. The BOM's C190271 is a 93LC56B, the part FTDI's datasheet names.
 - The FT232HQ (C82158) is often low in stock. Check it before ordering.
 
