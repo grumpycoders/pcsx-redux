@@ -350,7 +350,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     return true;
 }
 
-void PCSX::SaveStates::loadSafe(std::string &&data) {
+void PCSX::SaveStates::loadSafe(std::string&& data) {
     // Inside Execute(), we're being called from something the CPU reached: a
     // Lua event listener (including a Pause listener fired by a breakpoint), an
     // ImGui menu drawn during vsync, the web server polled on hsync.
