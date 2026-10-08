@@ -91,6 +91,9 @@ void PCSX::CpuTrace::capture(uint32_t pc, uint32_t code) {
     // those an instruction touches.
     recorder.m_entry = &e;
     recorder.process(code, 0, pc, nullptr);
+    if (s_captureObserver) [[unlikely]] {
+        s_captureObserver(e);
+    }
 }
 
 PCSX::TraceEntry& PCSX::CpuTrace::alloc() {
