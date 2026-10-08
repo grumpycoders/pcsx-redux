@@ -396,6 +396,7 @@ void PCSX::R3000Acpu::branchTest() {
             if (!pending.pcActive) continue;
             pending.pcActive = false;
             pending.fromLink = false;
+            m_nextIsDelaySlot = false;
             m_regs.pc = pending.branchPC + 4;
             exception(0x400, true);
             return;
