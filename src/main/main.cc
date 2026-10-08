@@ -554,9 +554,13 @@ runner.init({
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.
             // This may cause data loss when writing files, but that's life when encountering
-            // a serious problem in a software.
-            system->setEmergencyExit();
-            uvThread.setEmergencyExit();
+            // a serious problem in a software. An error from the command-line archives or
+            // Lua scripts happens before anything is running, so that one still shuts down
+            // normally; skipping the uv thread's join there aborts the process on exit.
+            if (!system->m_inStartup) {
+                system->setEmergencyExit();
+                uvThread.setEmergencyExit();
+            }
             throw;
         }
     }
