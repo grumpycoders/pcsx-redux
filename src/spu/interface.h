@@ -173,8 +173,6 @@ class impl final : public SPUInterface {
     // Sound buffer sizes.
     // 400 ms complete sound buffer.
     static const size_t SOUNDSIZE = 70560;
-    // 137 ms test buffer. If less than this is buffered, a new upload happens.
-    static const size_t TESTSIZE = 24192;
 
     // Roughly 1 ms of data.
     static const size_t NSSIZE = 45;
@@ -339,9 +337,6 @@ class impl final : public SPUInterface {
     int noiseLevel[NSSIZE];
     int iCycle = 0;
     int16_t *pS;
-
-    // Secure start counter.
-    int secureStart = 0;
 
     // XA
     xa_decode_t *xapGlobal = 0;

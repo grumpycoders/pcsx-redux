@@ -136,7 +136,7 @@ class SDLAudio {
                 return false;
         }
     }
-    size_t getBytesBuffered(unsigned streamId = 0) {
+    size_t getFramesBuffered(unsigned streamId = 0) {
         switch (streamId) {
             case 0:
                 return m_voicesStream.buffered();
