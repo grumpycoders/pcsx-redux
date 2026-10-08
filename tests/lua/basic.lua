@@ -31,3 +31,9 @@ function TestBasic:test_coroutine()
     local r = coroutine.yield()
     lu.assertEquals(r, 42)
 end
+
+function TestBasic:test_unknown_event_name()
+    local ok, err = pcall(PCSX.Events.createEventListener, 'GPU::VSync', function() end)
+    lu.assertFalse(ok)
+    lu.assertStrContains(err, "'GPU::VSync'")
+end
