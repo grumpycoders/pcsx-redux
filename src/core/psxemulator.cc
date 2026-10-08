@@ -22,6 +22,7 @@
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
@@ -63,6 +64,7 @@ PCSX::Emulator::Emulator()
       m_cdrom(PCSX::CDRom::factory()),
       m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
+      m_cpuTrace(new PCSX::CpuTrace()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
       m_gpuDumper(new PCSX::GPUDumper()),

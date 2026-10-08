@@ -1508,6 +1508,7 @@ void PCSX::GUI::endFrame() {
                             R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
+                    ImGui::MenuItem(_("Show CPU Trace"), nullptr, &m_cpuTrace.m_show);
                     ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                     ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                     if (ImGui::BeginMenu(_("Memory Editors"))) {
@@ -1835,6 +1836,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
 
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
+    }
+
+    if (m_cpuTrace.m_show) {
+        m_cpuTrace.draw(this, _("CPU Trace"));
     }
 
     if (m_breakpoints.m_show) {

@@ -41,6 +41,7 @@
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/console.h"
+#include "gui/widgets/cputrace.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
@@ -116,6 +117,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
     typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
+    typedef Setting<bool, TYPESTRING("ShowCpuTrace")> ShowCpuTrace;
     typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
     typedef Setting<bool, TYPESTRING("ShowNamedSaveStates")> ShowNamedSaveStates;
     typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
@@ -174,15 +176,15 @@ class GUI final : public UI {
              WindowMaximized, IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer,
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
-             ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs,
-             MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
-             ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4,
-             ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor,
-             ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr,
-             MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr, MemoryEditor5Addr, MemoryEditor6Addr,
-             MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr, ScratchpadEditorAddr, HWRegsEditorAddr,
-             BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
+             ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
+             ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer,
+             ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
+             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
+             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
+             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -421,6 +423,7 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
+    Widgets::CpuTrace m_cpuTrace = {settings.get<ShowCpuTrace>().value};
     Widgets::FileDialog<> m_openIsoFileDialog;
     Widgets::FileDialog<> m_openBinaryDialog;
     Widgets::FileDialog<> m_openArchiveDialog;

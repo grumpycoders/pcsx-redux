@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/callstacks.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gte.h"
@@ -1670,8 +1671,7 @@ inline void InterpretedCPU::execBlock() {
         m_regs.code = code;
 
         if constexpr (trace) {
-            std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
-            PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins);
+            PCSX::g_emulator->m_cpuTrace->capture(pc, code);
         }
 
         m_regs.pc += 4;

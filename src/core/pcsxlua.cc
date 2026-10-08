@@ -19,7 +19,9 @@
 
 #include "core/pcsxlua.h"
 
+#include "core/cputrace.h"
 #include "core/debug.h"
+#include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
@@ -90,6 +92,32 @@ void jumpToMemory(uint32_t address, unsigned width) {
     PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
 }
 void invalidateCache() { PCSX::g_emulator->m_cpu->invalidateCache(); }
+
+uint64_t getCpuTraceSize() { return PCSX::g_emulator->m_cpuTrace->size(); }
+void clearCpuTrace() { PCSX::g_emulator->m_cpuTrace->clear(); }
+bool getCpuTraceEnabled() {
+    return PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        .get<PCSX::Emulator::DebugSettings::Trace>()
+        .value;
+}
+void setCpuTraceEnabled(bool enabled) {
+    PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        .get<PCSX::Emulator::DebugSettings::Trace>()
+        .value = enabled;
+}
+// Bulk-copy `count` fixed records starting at `start` into a caller-provided flat
+// buffer (an FFI PCSX_TraceEntry[]). The store is chunked, so this is the export
+// path that flattens it for Lua: alloc an array, pull a range, dump/diff/inspect.
+// Returns the number actually copied (clamped to what exists).
+uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count) {
+    auto& trace = *PCSX::g_emulator->m_cpuTrace;
+    uint64_t total = trace.size();
+    if (start >= total) return 0;
+    if (count > total - start) count = total - start;
+    auto* out = reinterpret_cast<PCSX::TraceEntry*>(dest);
+    for (uint64_t i = 0; i < count; i++) out[i] = trace[start + i];
+    return count;
+}
 
 struct LuaScreenShot {
     PCSX::Slice* data;
@@ -182,6 +210,11 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
     REGISTER(L, invalidateCache);
+    REGISTER(L, getCpuTraceSize);
+    REGISTER(L, clearCpuTrace);
+    REGISTER(L, getCpuTraceEnabled);
+    REGISTER(L, setCpuTraceEnabled);
+    REGISTER(L, readCpuTrace);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
     REGISTER(L, startGPUDump);
@@ -223,6 +256,24 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             std::ostringstream os;
             SaveStates::ProtoFile::dumpSchema(os);
             L.push(os.str());
+            return 1;
+        },
+        -1);
+    L.declareFunc(
+        "getCpuTraceLine",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (L.gettop() != 1) {
+                return L.error("Wrong number of arguments to getCpuTraceLine");
+            }
+            uint64_t idx = L.checknumber(1);
+            auto& trace = *g_emulator->m_cpuTrace;
+            if (idx >= trace.size()) {
+                return L.error("getCpuTraceLine: index out of range");
+            }
+            const TraceEntry& e = trace[idx];
+            PlaybackValueSource source(e);
+            L.push(Disasm::asString(e.code, 0, e.pc, nullptr, true, &source));
             return 1;
         },
         -1);
