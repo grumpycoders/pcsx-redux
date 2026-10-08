@@ -59,8 +59,10 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
             mdf.asA<UvFile>()->startCaching();
         }
         m_cdHandle = mdf;
-        m_ti[1].handle = mdf;
     }
+    // readCDDA reads tracks through m_ti[1].handle, and CDRIso::open only fills
+    // it in for multi-track images, so set it here for single-track ones too.
+    m_ti[1].handle = m_cdHandle;
 
     // get offset to session block
     fi->rSeek(0x50, SEEK_SET);
