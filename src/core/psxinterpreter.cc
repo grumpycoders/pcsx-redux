@@ -90,12 +90,14 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
   private:
     // An exception taken in a branch delay slot cancels the pending branch. While the delay slot
     // executes, that branch sits in the other delayed load slot.
-    void exception(uint32_t code, bool bd, bool cop0 = false) {
-        R3000Acpu::exception(code, bd, cop0);
-        if (bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+    // A BREAK that PCdrv handles takes no exception, so the branch stays pending.
+    bool exception(uint32_t code, bool bd, bool cop0 = false) {
+        bool taken = R3000Acpu::exception(code, bd, cop0);
+        if (taken && bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+        return taken;
     }
-    void exception(Exception e, bool bd, bool cop0 = false) {
-        exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    bool exception(Exception e, bool bd, bool cop0 = false) {
+        return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
 
     virtual bool Implemented() final { return true; }
