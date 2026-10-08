@@ -37,6 +37,27 @@ class Disasm {
     static const char *s_disRNameCP2C[];
     static const char *s_disRNameCP0[];
 
+    // Abstracts where operand values come from when disassembling "with values".
+    // The live source reads the running CPU/memory; a playback source can feed
+    // sparse values captured in a binary trace, so the exact same disassembly
+    // traversal renders an identical annotated line from recorded data.
+    struct ValueSource {
+        virtual ~ValueSource() = default;
+        virtual uint32_t gpr(uint8_t reg) = 0;
+        virtual uint32_t cp0(uint8_t reg) = 0;
+        virtual uint32_t cp2d(uint8_t reg) = 0;
+        virtual uint32_t cp2c(uint8_t reg) = 0;
+        virtual uint32_t hi() = 0;
+        virtual uint32_t lo() = 0;
+        virtual uint8_t mem8(uint32_t addr) = 0;
+        virtual uint16_t mem16(uint32_t addr) = 0;
+        virtual uint32_t mem32(uint32_t addr) = 0;
+    };
+    // The default source: reads live state from the running emulator. Used when
+    // withValues is requested but no explicit source is supplied, and reused by
+    // the trace recorder for its side-effect-free memory peeks.
+    static ValueSource &liveValueSource();
+
 #define declare(n) \
     void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool *delaySlotNext = nullptr)
 
@@ -52,7 +73,7 @@ class Disasm {
     }
 
     static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr,
-                                bool withValues = false);
+                                bool withValues = false, ValueSource *values = nullptr);
     virtual void reset() {}
 
   protected:

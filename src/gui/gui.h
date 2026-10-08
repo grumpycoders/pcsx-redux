@@ -38,6 +38,7 @@
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
+#include "gui/widgets/cputrace.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/console.h"
@@ -116,6 +117,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
     typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
+    typedef Setting<bool, TYPESTRING("ShowCpuTrace")> ShowCpuTrace;
     typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
     typedef Setting<bool, TYPESTRING("ShowNamedSaveStates")> ShowNamedSaveStates;
     typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
@@ -173,7 +175,7 @@ class GUI final : public UI {
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              WindowMaximized, IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer,
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
-             ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
+             ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly, ShowCpuTrace,
              ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
              ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer, ShowHWRegs,
              MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio,
@@ -421,6 +423,7 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
+    Widgets::CpuTrace m_cpuTrace = {settings.get<ShowCpuTrace>().value};
     Widgets::FileDialog<> m_openIsoFileDialog;
     Widgets::FileDialog<> m_openBinaryDialog;
     Widgets::FileDialog<> m_openArchiveDialog;

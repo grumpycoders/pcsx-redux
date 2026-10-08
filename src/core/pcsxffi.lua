@@ -73,6 +73,16 @@ void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
 void invalidateCache();
 
+typedef struct {
+    uint32_t pc, code, regRs, regRt, regRd, hilo, cop, memValue;
+} PCSX_TraceEntry;
+
+uint64_t getCpuTraceSize();
+void clearCpuTrace();
+bool getCpuTraceEnabled();
+void setCpuTraceEnabled(bool enabled);
+uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count);
+
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
 typedef struct {
@@ -202,6 +212,32 @@ PCSX = {
     invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
+    CPU = {
+        -- Binary CPU trace. Records are fixed PCSX_TraceEntry structs; the store is
+        -- unbounded and chunked, so read() flattens a range into a fresh FFI array
+        -- you can inspect, ffi.string(), or write to a File. getLine() renders the
+        -- same annotated disassembly the viewer shows, reconstructed from the record.
+        Trace = {
+            size = function() return tonumber(C.getCpuTraceSize()) end,
+            clear = function() C.clearCpuTrace() end,
+            enabled = function() return C.getCpuTraceEnabled() end,
+            enable = function() C.setCpuTraceEnabled(true) end,
+            disable = function() C.setCpuTraceEnabled(false) end,
+            getLine = function(idx)
+                if type(idx) ~= 'number' then error 'PCSX.CPU.Trace.getLine requires a numeric index' end
+                return PCSX.getCpuTraceLine(idx)
+            end,
+            read = function(start, count)
+                start = start or 0
+                local total = tonumber(C.getCpuTraceSize())
+                if count == nil then count = total - start end
+                if count <= 0 then return nil, 0 end
+                local arr = ffi.new('PCSX_TraceEntry[?]', count)
+                local got = tonumber(C.readCpuTrace(arr, start, count))
+                return arr, got
+            end,
+        },
+    },
     nextTick = function(f)
         local oldCleanup = AfterPollingCleanup
         AfterPollingCleanup = function()
