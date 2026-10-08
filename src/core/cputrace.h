@@ -53,8 +53,8 @@ static_assert(sizeof(TraceEntry) == 32, "TraceEntry must stay a fixed 32 bytes")
 // rs/rt/rd fields decoded from `code`; a register that fills two roles resolves
 // to the same value, so collisions are harmless.
 struct PlaybackValueSource : public Disasm::ValueSource {
-    const TraceEntry &e;
-    explicit PlaybackValueSource(const TraceEntry &entry) : e(entry) {}
+    const TraceEntry& e;
+    explicit PlaybackValueSource(const TraceEntry& entry) : e(entry) {}
     uint32_t gpr(uint8_t reg) override {
         if (reg == ((e.code >> 21) & 0x1f)) return e.regRs;
         if (reg == ((e.code >> 16) & 0x1f)) return e.regRt;
@@ -85,13 +85,11 @@ class CpuTrace {
 
     size_t size() const { return m_count; }
     bool empty() const { return m_count == 0; }
-    const TraceEntry &operator[](size_t idx) const {
-        return m_chunks[idx / kRecordsPerChunk][idx % kRecordsPerChunk];
-    }
+    const TraceEntry& operator[](size_t idx) const { return m_chunks[idx / kRecordsPerChunk][idx % kRecordsPerChunk]; }
     void clear();
 
   private:
-    TraceEntry &alloc();
+    TraceEntry& alloc();
     std::vector<std::unique_ptr<TraceEntry[]>> m_chunks;
     size_t m_count = 0;
 };
