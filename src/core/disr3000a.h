@@ -56,7 +56,7 @@ class Disasm {
     // The default source: reads live state from the running emulator. Used when
     // withValues is requested but no explicit source is supplied, and reused by
     // the trace recorder for its side-effect-free memory peeks.
-    static ValueSource &liveValueSource();
+    static ValueSource& liveValueSource();
 
 #define declare(n) \
     void n(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr, bool *delaySlotNext = nullptr)
@@ -72,8 +72,8 @@ class Disasm {
         (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
     }
 
-    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext = nullptr,
-                                bool withValues = false, ValueSource *values = nullptr);
+    static std::string asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext = nullptr,
+                                bool withValues = false, ValueSource* values = nullptr);
     virtual void reset() {}
 
   protected:

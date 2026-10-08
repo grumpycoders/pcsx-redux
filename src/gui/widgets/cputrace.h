@@ -42,8 +42,8 @@ class CpuTrace {
 
   private:
     char m_jumpString[16] = {0};
-    int64_t m_scrollTo = -1;     // row to scroll to on the next frame, or -1
-    bool m_followTail = false;   // keep the view pinned to the latest record
+    int64_t m_scrollTo = -1;    // row to scroll to on the next frame, or -1
+    bool m_followTail = false;  // keep the view pinned to the latest record
 };
 
 }  // namespace Widgets

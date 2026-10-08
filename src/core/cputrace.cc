@@ -31,10 +31,10 @@ namespace {
 // require opcode awareness. It builds no string - the disassembly traversal is
 // reused purely as an "operand enumerator".
 struct RecordingDisasm : public PCSX::Disasm {
-    PCSX::TraceEntry *m_entry = nullptr;
+    PCSX::TraceEntry* m_entry = nullptr;
 
     static uint32_t readMem(uint32_t addr, int size) {
-        auto &live = PCSX::Disasm::liveValueSource();
+        auto& live = PCSX::Disasm::liveValueSource();
         switch (size) {
             case 1:
                 return live.mem8(addr);
@@ -72,8 +72,8 @@ struct RecordingDisasm : public PCSX::Disasm {
 void PCSX::CpuTrace::capture(uint32_t pc, uint32_t code) {
     static RecordingDisasm recorder;
 
-    TraceEntry &e = alloc();
-    auto &regs = g_emulator->m_cpu->m_regs;
+    TraceEntry& e = alloc();
+    auto& regs = g_emulator->m_cpu->m_regs;
     e.pc = pc;
     e.code = code;
     // GPR slots: branchless from the bitfields. For instruction formats that do
@@ -93,7 +93,7 @@ void PCSX::CpuTrace::capture(uint32_t pc, uint32_t code) {
     recorder.process(code, 0, pc, nullptr);
 }
 
-PCSX::TraceEntry &PCSX::CpuTrace::alloc() {
+PCSX::TraceEntry& PCSX::CpuTrace::alloc() {
     size_t idx = m_count++;
     size_t chunk = idx / kRecordsPerChunk;
     if (chunk >= m_chunks.size()) {

@@ -86,7 +86,7 @@ namespace {
 // (side-effect-free, never touches the bus / MMIO).
 struct LiveValueSource : public PCSX::Disasm::ValueSource {
     const uint8_t *ptr(uint32_t addr) {
-        auto p = static_cast<const uint8_t *>(PCSX::g_emulator->m_mem->pointerRead(addr));
+        auto p = static_cast<const uint8_t*>(PCSX::g_emulator->m_mem->pointerRead(addr));
         if (p != nullptr) {
             return p;
         } else {
@@ -101,8 +101,8 @@ struct LiveValueSource : public PCSX::Disasm::ValueSource {
     uint32_t hi() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.hi; }
     uint32_t lo() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo; }
     uint8_t mem8(uint32_t addr) override { return *ptr(addr); }
-    uint16_t mem16(uint32_t addr) override { return SWAP_LE16(*(int16_t *)ptr(addr)); }
-    uint32_t mem32(uint32_t addr) override { return SWAP_LE32(*(int32_t *)ptr(addr)); }
+    uint16_t mem16(uint32_t addr) override { return SWAP_LE16(*(int16_t*)ptr(addr)); }
+    uint32_t mem32(uint32_t addr) override { return SWAP_LE32(*(int32_t*)ptr(addr)); }
 };
 
 struct StringDisasm : public PCSX::Disasm {
@@ -247,14 +247,12 @@ struct StringDisasm : public PCSX::Disasm {
     size_t m_len = 0;
     bool m_gotArg = false;
     bool m_withValues = false;
-    PCSX::Disasm::ValueSource *m_values = &PCSX::Disasm::liveValueSource();
+    PCSX::Disasm::ValueSource* m_values = &PCSX::Disasm::liveValueSource();
 
   public:
     std::string get() { return m_buf; }
     void setValues(bool withValues) { m_withValues = withValues; }
-    void setSource(PCSX::Disasm::ValueSource *values) {
-        m_values = values ? values : &PCSX::Disasm::liveValueSource();
-    }
+    void setSource(PCSX::Disasm::ValueSource* values) { m_values = values ? values : &PCSX::Disasm::liveValueSource(); }
 };
 }  // namespace
 
@@ -1138,13 +1136,13 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 3c
 };
 
-PCSX::Disasm::ValueSource &PCSX::Disasm::liveValueSource() {
+PCSX::Disasm::ValueSource& PCSX::Disasm::liveValueSource() {
     static LiveValueSource s_live;
     return s_live;
 }
 
-std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool *skipNext, bool withValues,
-                                   ValueSource *values) {
+std::string PCSX::Disasm::asString(uint32_t code, uint32_t nextCode, uint32_t pc, bool* skipNext, bool withValues,
+                                   ValueSource* values) {
     StringDisasm strd;
     strd.setValues(withValues);
     strd.setSource(values);
