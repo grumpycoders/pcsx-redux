@@ -110,10 +110,6 @@ bool PCSX::Widgets::Log::draw(GUI* gui, const char* title) {
                                        &debugSettings.get<Emulator::DebugSettings::LoggingCDROM>().value);
             changed |= ImGui::MenuItem(_("Log CD-ROM hardware access"), nullptr,
                                        &debugSettings.get<Emulator::DebugSettings::LoggingHWCDROM>().value);
-            changed |=
-                ImGui::MenuItem(_("CPU trace"), nullptr, &debugSettings.get<Emulator::DebugSettings::Trace>().value);
-            changed |= ImGui::MenuItem(_("Skip ISR during CPU traces"), nullptr,
-                                       &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
             changed |= ImGui::MenuItem(_("Log kernel calls"), nullptr,
                                        &debugSettings.get<Emulator::DebugSettings::KernelLog>().value);
             ImGui::PopItemFlag();
