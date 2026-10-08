@@ -248,15 +248,15 @@ Usage: mdec rawencode -i input.png -o output.bin [options]
               format tolerates rather than a default to improve on. Supply a
               genuinely different table with -t if you want one.
 
-  -order      optional: raster | column. Default raster.
-              raster walks the image row by row. column walks 16-pixel columns
-              top to bottom, which is what retail STR does; it makes each column
-              of the decoded output one contiguous run, so a player can upload a
-              whole column as a single VRAM rect instead of one transfer per
-              macroblock. The pixels are identical either way, only the order
-              the macroblocks arrive in changes, and a decoder that disagrees
-              with the stream about it renders bands of vertically-striped
-              blocks.
+  -order      optional: column | raster. Default column.
+              column walks 16-pixel columns top to bottom, which is what retail
+              STR does; it makes each column of the decoded output one
+              contiguous run, so a player can upload a whole column as a single
+              VRAM rect instead of one transfer per macroblock. raster walks the
+              image row by row. The pixels are identical either way, only the
+              order the macroblocks arrive in changes, and a decoder that
+              disagrees with the stream about it renders bands of
+              vertically-striped blocks.
 
   -transform  optional: exact | fast | symmetric. Default exact.
               exact     general basis, int32 accumulation, reference accurate
@@ -290,13 +290,20 @@ Usage: mdec rawdecode -i input.bin -o output.png -width W -height H [options]
   -width n    mandatory: width in pixels, multiple of 16.
   -height n   mandatory: height in pixels, multiple of 16.
   -t file     optional: JSON tables. Only "quant" and "scale" are used here.
-  -order      optional: raster | column. Default raster. Must match the order
-              the stream was encoded in (rawencode -order).
+  -order      optional: column | raster. Default column, which is what retail
+              STR frames use. Must match the order the stream was encoded in
+              (rawencode -order).
 
   The stream carries no dimensions, which is why they are mandatory rather than
   guessed. This decodes with psx-spx's real_idct_core against "scale", so a
   custom matrix is honoured exactly as the hardware honours it.
 )");
+}
+
+// The -order spelling of a macroblock order. The default comes from
+// PCSX::DCT::Frame, so the encoder and decoder cannot disagree about it.
+const char *orderName(PCSX::DCT::MacroblockOrder order) {
+    return order == PCSX::DCT::MacroblockOrder::Column ? "column" : "raster";
 }
 
 int clamp10(int v, unsigned &clipped) {
@@ -448,13 +455,15 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     frame.yStride = pw;
     frame.cStride = pw / 2;
 
-    // -order column walks 16-pixel columns top to bottom, the way retail STR
-    // does, so each decoded column is one contiguous run and a player can upload
-    // it as a single VRAM rect.
-    const std::string order = args.get<std::string>("order").value_or("raster");
+    // Frame's default order is column, the way retail STR walks macroblocks, so
+    // each decoded column is one contiguous run and a player can upload it as a
+    // single VRAM rect. -order raster is the explicit opt-out.
+    const std::string order = args.get<std::string>("order").value_or(orderName(frame.order));
     if (order == "column") {
         frame.order = PCSX::DCT::MacroblockOrder::Column;
-    } else if (order != "raster") {
+    } else if (order == "raster") {
+        frame.order = PCSX::DCT::MacroblockOrder::Raster;
+    } else {
         fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
         return -1;
     }
@@ -607,7 +616,7 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
         usageRawDecode();
         return -1;
     }
-    const std::string order = args.get<std::string>("order").value_or("raster");
+    const std::string order = args.get<std::string>("order").value_or(orderName(PCSX::DCT::Frame{}.order));
     if (order != "raster" && order != "column") {
         fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
         return -1;
