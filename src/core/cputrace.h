@@ -88,6 +88,12 @@ class CpuTrace {
     const TraceEntry& operator[](size_t idx) const { return m_chunks[idx / kRecordsPerChunk][idx % kRecordsPerChunk]; }
     void clear();
 
+    // Test hook: when set, called with each record right after it is filled, while
+    // the CPU is still in the exact pre-execution state the record was taken from.
+    // Null in normal operation. Must not call clear() or otherwise mutate the store.
+    using CaptureObserver = void (*)(const TraceEntry& entry);
+    static inline CaptureObserver s_captureObserver = nullptr;
+
   private:
     TraceEntry& alloc();
     std::vector<std::unique_ptr<TraceEntry[]>> m_chunks;
