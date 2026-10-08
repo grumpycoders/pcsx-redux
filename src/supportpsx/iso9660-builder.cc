@@ -105,7 +105,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             ptr[15] = 2;
             ptr[16] = ptr[20] = 0;
             ptr[17] = ptr[21] = 0;
-            ptr[18] = ptr[22] = 8;
+            ptr[18] = ptr[22] = 8 | 0x20;  // form 2 flag
             ptr[19] = ptr[23] = 0;
             memcpy(ptr + 24, sectorData, 2324);
             compute_edcecc(ptr);
