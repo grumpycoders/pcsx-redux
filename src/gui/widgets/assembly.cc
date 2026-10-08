@@ -563,7 +563,10 @@ settings, otherwise debugging features may not work.)");
         }
     }
     ImGui::SameLine();
-    ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
+    // Same setting as the Capture checkbox in the CPU Trace window.
+    ImGui::Checkbox(_("Capture CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
+    ImGui::SetItemTooltip(
+        "%s", _("Records executed instructions into the CPU Trace window. Interpreter only; nothing is logged."));
     ImGui::SameLine();
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
