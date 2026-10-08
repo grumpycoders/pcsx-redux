@@ -2293,7 +2293,7 @@ which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
         auto bios = settings.get<Emulator::SettingBios>().string();
-        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
+        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length() + 1,
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
