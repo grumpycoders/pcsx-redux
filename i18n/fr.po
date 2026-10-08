@@ -2,13 +2,13 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# 
+#
 # Translators:
 # Christophe Péguillat <cpeg-jeuxvideo@outlook.fr>, 2022
 # Schnappy, 2026
 # Nicolas Noble, 2026
 # Rix, 2026
-# 
+#
 #, fuzzy
 msgid ""
 msgstr ""
@@ -16,12 +16,14 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
 "Last-Translator: Rix, 2026\n"
-"Language-Team: French (https://app.transifex.com/grumpycoders/teams/99251/fr/)\n"
+"Language-Team: French (https://app.transifex.com/grumpycoders/teams/99251/"
+"fr/)\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: fr\n"
-"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % "
+"1000000 == 0 ? 1 : 2;\n"
 
 #: src/cdrom/cdriso-ecm.cc:282
 #, c-format
@@ -30,7 +32,8 @@ msgid ""
 "Detected ECM file with proper header and filename suffix.\n"
 msgstr ""
 "\n"
-"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier appropriés.\n"
+"Fichier ECM détecté avec l'en-tête et le suffixe du nom de fichier "
+"appropriés.\n"
 
 #: src/cdrom/cdriso-sbi.cc:41
 #, c-format
@@ -223,8 +226,8 @@ msgstr "Client GDB"
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
-"Le DMA du GPU a accédé à de la mémoire msan utilisable mais non initialisée "
-": %8.8lx\n"
+"Le DMA du GPU a accédé à de la mémoire msan utilisable mais non "
+"initialisée : %8.8lx\n"
 
 #: src/core/gpu.cc:342 src/core/gpu.cc:617 src/core/psxhw.h:88
 #, c-format
@@ -280,11 +283,11 @@ msgstr "lecture"
 #: src/core/gpulogger.cc:230
 #, c-format
 msgid ""
-"VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC"
-" = 0x%08x\n"
+"VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC "
+"= 0x%08x\n"
 msgstr ""
-"Breakpoint VRAM %i déclenché : %.*s a fait une %s intersectant %ix%i à %i,%i"
-" - PC = 0x%08x\n"
+"Breakpoint VRAM %i déclenché : %.*s a fait une %s intersectant %ix%i à %i,%i "
+"- PC = 0x%08x\n"
 
 #: src/core/gpulogger.cc:388
 #, c-format
@@ -745,7 +748,8 @@ msgstr "Adresse non alignée 0x%08x dans le champ SW à partir de 0x%08x\n"
 #: src/core/psxinterpreter.cc:1117
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
-msgstr "Opcode réservé rencontré depuis 0x%08x, déclenchement d'une exception\n"
+msgstr ""
+"Opcode réservé rencontré depuis 0x%08x, déclenchement d'une exception\n"
 
 #: src/core/psxinterpreter.cc:1160
 #, c-format
@@ -761,45 +765,47 @@ msgstr ""
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Tentative d'accès à COP3 depuis 0x%08x. Ignoré.\n"
 
-#: src/core/psxmem.cc:109
+#: src/core/psxmem.cc:106
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
 "SharedMem n'a pas pu partager la mémoire pour la wram, repli sur une "
 "allocation mémoire\n"
 
-#: src/core/psxmem.cc:119
+#: src/core/psxmem.cc:116
 msgid "Error allocating memory!"
 msgstr "Erreur d'allocation de mémoire !"
 
-#: src/core/psxmem.cc:163
+#: src/core/psxmem.cc:160
 #, c-format
 msgid "Could not open EXP1:\"%s\".\n"
 msgstr "Impossible d'ouvrir EXP1: \"%s\".\n"
 
-#: src/core/psxmem.cc:171
+#: src/core/psxmem.cc:168
 #, c-format
 msgid "Loaded %i bytes to EXP1 from file: %s\n"
 msgstr "Chargé %i octets pour EXP1 depuis le fichier: %s\n"
 
-#: src/core/psxmem.cc:218
+#: src/core/psxmem.cc:215
 msgid "No BIOS loaded, emulation halted."
 msgstr "Aucun BIOS chargé, émulation arrêtée."
 
-#: src/core/psxmem.cc:219
+#: src/core/psxmem.cc:216
 msgid ""
-"Set a BIOS file into the configuration, and do a hard reset of the emulator.\n"
+"Set a BIOS file into the configuration, and do a hard reset of the "
+"emulator.\n"
 "The distributed OpenBIOS.bin file can be an appropriate BIOS replacement."
 msgstr ""
-"Indiquez un fichier BIOS dans la configuration, puis redémarrez complètement l'émulateur (Éteindre et rallumer).\n"
+"Indiquez un fichier BIOS dans la configuration, puis redémarrez complètement "
+"l'émulateur (Éteindre et rallumer).\n"
 "Le fichier OpenBIOS.bin fourni peut servir de BIOS de remplacement."
 
-#: src/core/psxmem.cc:232
+#: src/core/psxmem.cc:229
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr "Impossible d'ouvrir le BIOS \"%s\". Nouvelle tentative avec OpenBIOS\n"
 
-#: src/core/psxmem.cc:242
+#: src/core/psxmem.cc:239
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
@@ -808,133 +814,133 @@ msgstr ""
 "Impossible d'ouvrir OpenBIOS. Ça ne marchera pas bien.\n"
 "Ajoutez un BIOS valide dans la configuration, et éteignez-rallumez.\n"
 
-#: src/core/psxmem.cc:257
+#: src/core/psxmem.cc:254
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr "BIOS chargé :%s\n"
 
-#: src/core/psxmem.cc:269
+#: src/core/psxmem.cc:266
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "Bios reconnu: %s (%08x)\n"
 
-#: src/core/psxmem.cc:271
+#: src/core/psxmem.cc:268
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
 msgstr "OpenBIOS détecté (%08x)\n"
 
-#: src/core/psxmem.cc:273
+#: src/core/psxmem.cc:270
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Bios inconnu chargé (%08x)\n"
 
-#: src/core/psxmem.cc:306
+#: src/core/psxmem.cc:303
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lecture 8 bits depuis de la mémoire msan utilisable mais non initialisée : "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:310
+#: src/core/psxmem.cc:307
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lecture 8 bits depuis de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:339
+#: src/core/psxmem.cc:336
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "Lecture 8 bits depuis une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:357
+#: src/core/psxmem.cc:354
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lecture 16 bits depuis de la mémoire msan utilisable mais non initialisée : "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:361
+#: src/core/psxmem.cc:358
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lecture 16 bits depuis de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:387
+#: src/core/psxmem.cc:384
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "Lecture 16 bits depuis une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:405 src/core/psxmem.cc:655
+#: src/core/psxmem.cc:402 src/core/psxmem.cc:652
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lecture 32 bits depuis de la mémoire msan utilisable mais non initialisée : "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:409 src/core/psxmem.cc:659
+#: src/core/psxmem.cc:406 src/core/psxmem.cc:656
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lecture 32 bits depuis de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:437
+#: src/core/psxmem.cc:434
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "Lecture 32 bits depuis une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:530
+#: src/core/psxmem.cc:527
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Écriture 8 bits vers de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:549
+#: src/core/psxmem.cc:546
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "Écriture 8 bits vers une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:567
+#: src/core/psxmem.cc:564
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Écriture 16 bits vers de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:587
+#: src/core/psxmem.cc:584
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "Écriture 16 bits vers une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:605 src/core/psxmem.cc:674
+#: src/core/psxmem.cc:602 src/core/psxmem.cc:671
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Écriture 32 bits vers de la mémoire msan inutilisable : %8.8lx\n"
 
-#: src/core/psxmem.cc:634
+#: src/core/psxmem.cc:631
 #, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr "Valeur BIU inconnue: %8.8lx\n"
 
-#: src/core/psxmem.cc:643
+#: src/core/psxmem.cc:640
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr "Écriture 32 bits vers une adresse inconnue : %8.8lx\n"
 
-#: src/core/psxmem.cc:915
+#: src/core/psxmem.cc:912
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr "Le système MSAN était déjà initialisé.\n"
 
-#: src/core/psxmem.cc:940
+#: src/core/psxmem.cc:937
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr "Mémoire épuisée dans MsanAlloc\n"
 
-#: src/core/psxmem.cc:964 src/core/psxmem.cc:971
+#: src/core/psxmem.cc:961 src/core/psxmem.cc:968
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr "Pointeur invalide passé à MsanFree : %08x\n"
 
-#: src/core/psxmem.cc:993 src/core/psxmem.cc:1000
+#: src/core/psxmem.cc:990 src/core/psxmem.cc:997
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr "Pointeur invalide passé à MsanRealloc : %08x\n"
 
-#: src/core/psxmem.cc:1043
+#: src/core/psxmem.cc:1040
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "En-tête de chaîne msan non enregistré à %08x\n"
@@ -1007,8 +1013,8 @@ msgid ""
 "Dithering tables are cached in memory for faster processing. Dithering will "
 "be done much faster, at the cost of a 512MB cache."
 msgstr ""
-"Les tables de tramage sont mises en cache en mémoire pour un traitement plus"
-" rapide. Le tramage sera beaucoup plus rapide, au prix d'un cache de 512 Mo."
+"Les tables de tramage sont mises en cache en mémoire pour un traitement plus "
+"rapide. Le tramage sera beaucoup plus rapide, au prix d'un cache de 512 Mo."
 
 #: src/gpu/soft/gpu.cc:273
 msgid "Disable textures for polygons"
@@ -1027,7 +1033,8 @@ msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
 msgstr ""
-"Les fonctions de debug ne sont pas encore prises en charge avec le rendu logiciel\n"
+"Les fonctions de debug ne sont pas encore prises en charge avec le rendu "
+"logiciel\n"
 "Essayez plutôt d'activer l'option GPU OpenGL."
 
 #: src/gui/gui.cc:177 src/gui/gui.cc:1309 src/gui/widgets/isobrowser.cc:539
@@ -1312,10 +1319,12 @@ msgstr "Afficher le désassemblage du DynaRec"
 
 #: src/gui/gui.cc:1508
 msgid ""
-"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]\n"
+"DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
+"[Dynarec CPU]\n"
 "in Configuration->Emulation, restart PCSX-Redux, then try again."
 msgstr ""
-"Le désassembleur DynaRec n'est pas disponible en mode CPU interprété. Essayez d'activer [CPU Dynarec]\n"
+"Le désassembleur DynaRec n'est pas disponible en mode CPU interprété. "
+"Essayez d'activer [CPU Dynarec]\n"
 "dans Configuration->Emulation, redémarrez PCSX-Redux, puis réessayez."
 
 #: src/gui/gui.cc:1511
@@ -1690,12 +1699,16 @@ msgid ""
 msgstr ""
 "PCSX-Redux peut se mettre à jour automatiquement.\n"
 "\n"
-"Si vous activez la mise à jour automatique, il vérifiera la présence de mises à jour\n"
-"au démarrage. Aucune donnée personnelle ni jeton identifiant n'est envoyé pour ce\n"
-"processus, mais Microsoft peut tout de même conserver et enregistrer des informations\n"
+"Si vous activez la mise à jour automatique, il vérifiera la présence de "
+"mises à jour\n"
+"au démarrage. Aucune donnée personnelle ni jeton identifiant n'est envoyé "
+"pour ce\n"
+"processus, mais Microsoft peut tout de même conserver et enregistrer des "
+"informations\n"
 "comme votre adresse IP.\n"
 "\n"
-"Si une mise à jour est disponible, il vous sera proposé de la télécharger et\n"
+"Si une mise à jour est disponible, il vous sera proposé de la télécharger "
+"et\n"
 "de l'installer. Vous pouvez toujours télécharger les versions de PCSX-Redux\n"
 "comme d'habitude depuis son site web.\n"
 "\n"
@@ -1770,8 +1783,7 @@ msgstr "Télécharger"
 
 #: src/gui/gui.cc:2046
 msgid "An error has occured while downloading the update."
-msgstr ""
-"Une erreur s'est produite pendant le téléchargement de la mise à jour."
+msgstr "Une erreur s'est produite pendant le téléchargement de la mise à jour."
 
 #: src/gui/gui.cc:2052 src/gui/gui.cc:2155 src/gui/widgets/assembly.cc:1034
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
@@ -1811,15 +1823,20 @@ msgstr "Réinitialiser les paramètres"
 
 #: src/gui/gui.cc:2145
 msgid ""
-"This will restore every setting to its default value, including the window layout, the input bindings, the paths to the BIOS and the memory cards, and the contents of the shader editors.\n"
+"This will restore every setting to its default value, including the window "
+"layout, the input bindings, the paths to the BIOS and the memory cards, and "
+"the contents of the shader editors.\n"
 "\n"
 "Save states and memory card contents are left alone.\n"
 "\n"
 "The emulator will reboot to complete the operation."
 msgstr ""
-"Tous les paramètres seront remis à leur valeur par défaut, y compris la disposition des fenêtres, les associations de touches, les chemins du BIOS et des cartes mémoire, et le contenu des éditeurs de shaders.\n"
+"Tous les paramètres seront remis à leur valeur par défaut, y compris la "
+"disposition des fenêtres, les associations de touches, les chemins du BIOS "
+"et des cartes mémoire, et le contenu des éditeurs de shaders.\n"
 "\n"
-"Les sauvegardes d'état et le contenu des cartes mémoire ne sont pas touchés.\n"
+"Les sauvegardes d'état et le contenu des cartes mémoire ne sont pas "
+"touchés.\n"
 "\n"
 "L'émulateur redémarrera pour terminer l'opération."
 
@@ -1835,8 +1852,7 @@ msgstr "Configuration de l'Emulation"
 msgid "Idle Swap Interval"
 msgstr "Intervalle de swap au repos"
 
-#. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU
-#. configuration window.
+#. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
 #: src/gui/gui.cc:2222
 msgid "Enable XA decoder"
 msgstr "Activer le décodeur XA"
@@ -1979,7 +1995,8 @@ msgid ""
 "connect to with any gdb-remote compliant client.\n"
 "You also need to enable the debugger."
 msgstr ""
-"Ceci activera un serveur GDB auquel n'importe quel client gdb conforme pourra se connecter.\n"
+"Ceci activera un serveur GDB auquel n'importe quel client gdb conforme "
+"pourra se connecter.\n"
 "Cette option nécessite l'activation du debugger."
 
 #: src/gui/gui.cc:2323
@@ -2065,7 +2082,8 @@ msgid ""
 "See the wiki for details."
 msgstr ""
 "Active un client TCP qui peut se connecter\n"
-"à un autre serveur PCSX-Redux pour relayer les informations entre TCP et SIO1.\n"
+"à un autre serveur PCSX-Redux pour relayer les informations entre TCP et "
+"SIO1.\n"
 "Voir le wiki pour les détails."
 
 #: src/gui/gui.cc:2398
@@ -2194,12 +2212,12 @@ msgid ""
 "performance of this software, but user code such as the shader editor won't "
 "be able to properly report problems accurately."
 msgstr ""
-"Le rapport d'erreurs OpenGL a été désactivé car votre pilote OpenGL est trop"
-" ancien. Le rapport d'erreurs nécessite au moins OpenGL 4.3. Veuillez mettre"
-" à jour vos pilotes graphiques, ou contacter le fabricant de votre GPU pour "
+"Le rapport d'erreurs OpenGL a été désactivé car votre pilote OpenGL est trop "
+"ancien. Le rapport d'erreurs nécessite au moins OpenGL 4.3. Veuillez mettre "
+"à jour vos pilotes graphiques, ou contacter le fabricant de votre GPU pour "
 "obtenir des pilotes OpenGL à jour. La désactivation du rapport d'erreurs "
-"OpenGL n'a aucun impact négatif sur les performances de ce logiciel, mais le"
-" code utilisateur, comme l'éditeur de shaders, ne pourra pas signaler "
+"OpenGL n'a aucun impact négatif sur les performances de ce logiciel, mais le "
+"code utilisateur, comme l'éditeur de shaders, ne pourra pas signaler "
 "correctement les problèmes."
 
 #: src/gui/gui.cc:2617
@@ -2213,8 +2231,8 @@ msgid ""
 "some computers. (Requires a restart of the emulator)"
 msgstr ""
 "Le rapport d'erreurs OpenGL est nécessaire pour signaler correctement les "
-"problèmes OpenGL. Il nécessite cependant OpenGL 4.3+ et peut avoir un impact"
-" sur les performances de certains ordinateurs. (Nécessite un redémarrage de "
+"problèmes OpenGL. Il nécessite cependant OpenGL 4.3+ et peut avoir un impact "
+"sur les performances de certains ordinateurs. (Nécessite un redémarrage de "
 "l'émulateur)"
 
 #: src/gui/gui.cc:2624
@@ -2408,8 +2426,7 @@ msgstr "Draw arrows for jumps"
 
 #: src/gui/widgets/assembly.cc:544
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
-msgstr ""
-"Display arrows for jumps. This might crowd the display a bit too much."
+msgstr "Display arrows for jumps. This might crowd the display a bit too much."
 
 #: src/gui/widgets/assembly.cc:548
 msgid "Columns"
@@ -2488,8 +2505,7 @@ msgstr "Assembler"
 #: src/gui/widgets/assembly.cc:970 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
-#: src/gui/widgets/memory_observer.cc:424
-#: src/gui/widgets/typed_debugger.cc:929
+#: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:929
 msgid "Address"
 msgstr "Adresse"
 
@@ -2930,8 +2946,7 @@ msgid "Start recording..."
 msgstr "Démarrer l'enregistrement..."
 
 #: src/gui/widgets/gpudump.cc:89
-msgid ""
-"The capture starts at the next vsync, with the full VRAM and GPU state."
+msgid "The capture starts at the next vsync, with the full VRAM and GPU state."
 msgstr ""
 "La capture commence à la prochaine vsync, avec la VRAM et l'état du GPU "
 "complets."
@@ -3012,14 +3027,14 @@ msgstr "Journalisation du GPU"
 
 #: src/gui/widgets/gpulogger.cc:78
 msgid ""
-"Logs each frame's draw calls. When enabled, all the commands sent to the GPU"
-" will be logged and displayed here. This will contain only a single frame "
+"Logs each frame's draw calls. When enabled, all the commands sent to the GPU "
+"will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
 "Journalise les appels de dessin de chaque image. Quand cette option est "
-"activée, toutes les commandes envoyées au GPU sont journalisées et affichées"
-" ici. Seules les commandes d'une seule image sont conservées. Cette fonction"
-" peut être assez gourmande en CPU et en mémoire."
+"activée, toutes les commandes envoyées au GPU sont journalisées et affichées "
+"ici. Seules les commandes d'une seule image sont conservées. Cette fonction "
+"peut être assez gourmande en CPU et en mémoire."
 
 #: src/gui/widgets/gpulogger.cc:81
 msgid "Breakpoint on vsync"
@@ -3033,18 +3048,18 @@ msgstr "Rejouer l'image"
 msgid ""
 "When enabled, the framebuffer will be constantly redrawned using the "
 "selected commands, allowing to see the resulting output immediately. This "
-"doesn't make sense to have this enabled when: (1) the CPU is running and (2)"
-" the GPU logging isn't enabled. Selection of which commands to replay is "
-"done using the first checkbox in the logger display below. The [T] button "
-"will select all commands for replay from the top and until this command."
+"doesn't make sense to have this enabled when: (1) the CPU is running and (2) "
+"the GPU logging isn't enabled. Selection of which commands to replay is done "
+"using the first checkbox in the logger display below. The [T] button will "
+"select all commands for replay from the top and until this command."
 msgstr ""
 "Quand cette option est activée, le framebuffer est redessiné en permanence "
 "avec les commandes sélectionnées, ce qui permet de voir immédiatement le "
-"résultat. Cela n'a pas de sens de l'activer quand : (1) le CPU tourne et (2)"
-" la journalisation du GPU n'est pas activée. Le choix des commandes à "
-"rejouer se fait avec la première case à cocher de l'affichage du logger ci-"
-"dessous. Le bouton [T] sélectionne pour la relecture toutes les commandes "
-"depuis le début jusqu'à celle-ci."
+"résultat. Cela n'a pas de sens de l'activer quand : (1) le CPU tourne et (2) "
+"la journalisation du GPU n'est pas activée. Le choix des commandes à rejouer "
+"se fait avec la première case à cocher de l'affichage du logger ci-dessous. "
+"Le bouton [T] sélectionne pour la relecture toutes les commandes depuis le "
+"début jusqu'à celle-ci."
 
 #: src/gui/widgets/gpulogger.cc:93
 msgid "Show origins"
@@ -3056,8 +3071,8 @@ msgid ""
 "from, which can be useful to debug or reverse engineer, but will also "
 "clutter the logger view."
 msgstr ""
-"Quand cette option est activée, l'affichage du logger montre aussi l'origine"
-" de chaque commande, ce qui peut être utile pour le debug ou la rétro-"
+"Quand cette option est activée, l'affichage du logger montre aussi l'origine "
+"de chaque commande, ce qui peut être utile pour le debug ou la rétro-"
 "ingénierie, mais encombre la vue du logger."
 
 #: src/gui/widgets/gpulogger.cc:108
@@ -3086,10 +3101,10 @@ msgstr "Surligner au survol"
 
 #: src/gui/widgets/gpulogger.cc:128
 msgid ""
-"When enabled, hovering a command in the logger view will highlight it in the"
-" vram display. Individual commands can be selected for highlight by using "
-"the second checkbox in the logger view. The [B] and [E] buttons can be used "
-"to specify the beginning and the end of a span of commands to highlight."
+"When enabled, hovering a command in the logger view will highlight it in the "
+"vram display. Individual commands can be selected for highlight by using the "
+"second checkbox in the logger view. The [B] and [E] buttons can be used to "
+"specify the beginning and the end of a span of commands to highlight."
 msgstr ""
 "Quand cette option est activée, survoler une commande dans le logger la met "
 "en surbrillance dans l'affichage de la VRAM. Des commandes individuelles "
@@ -3103,8 +3118,8 @@ msgstr "Filtrer par pixel"
 
 #: src/gui/widgets/gpulogger.cc:133
 msgid ""
-"When enabled, only the commands that are related to the specified pixel will"
-" be shown. The pixel location is specified in the next input fields. The "
+"When enabled, only the commands that are related to the specified pixel will "
+"be shown. The pixel location is specified in the next input fields. The "
 "[Probe VRAM] button can be used to set the pixel location by hovering and "
 "clicking inside the VRAM viewer."
 msgstr ""
@@ -3126,8 +3141,8 @@ msgid ""
 "When enabled, hovering then clicking inside the VRAM viewer will set the "
 "pixel location for the filtering."
 msgstr ""
-"Quand cette option est activée, survoler puis cliquer dans le visualiseur de"
-" VRAM règle la position du pixel pour le filtrage."
+"Quand cette option est activée, survoler puis cliquer dans le visualiseur de "
+"VRAM règle la position du pixel pour le filtrage."
 
 #: src/gui/widgets/gpulogger.cc:146
 msgid "VRAM breakpoints"
@@ -3138,8 +3153,8 @@ msgid ""
 "Pauses emulation when a command reads from or writes to one of these VRAM "
 "rectangles. Handy to catch the texture upload that stomped an area, since "
 "those are hard to spot in a frame that redraws everything. The command that "
-"triggered gets highlighted in the logger view below. Note the footprints are"
-" unclipped, so a primitive that ends up entirely outside the drawing area "
+"triggered gets highlighted in the logger view below. Note the footprints are "
+"unclipped, so a primitive that ends up entirely outside the drawing area "
 "still counts as a write."
 msgstr ""
 "Met l'émulation en pause quand une commande lit ou écrit dans l'un de ces "
@@ -3468,8 +3483,7 @@ msgstr "Remplacement ISO : impossible d'ouvrir le fichier de remplacement.\n"
 #: src/gui/widgets/isobrowser.cc:749
 #, c-format
 msgid ""
-"ISO replace: replacement file is larger than target (%zu > %u). "
-"Truncating.\n"
+"ISO replace: replacement file is larger than target (%zu > %u). Truncating.\n"
 msgstr ""
 "Remplacement ISO : le fichier de remplacement est plus grand que la cible "
 "(%zu > %u). Troncature.\n"
@@ -3625,8 +3639,7 @@ msgstr "Dernière"
 msgid "Clear Undo buffer"
 msgstr "Vider l'historique d'annulation"
 
-#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this
-#. happens as well.
+#. Insert or remove memory cards. Send a SIO IRQ to the emulator if this happens as well.
 #: src/gui/widgets/memcard_manager.cc:156
 msgid "Memory Card 1 inserted"
 msgstr "Carte mémoire 1 insérée"
@@ -3748,8 +3761,7 @@ msgstr "Recherche simple"
 msgid "Pattern"
 msgstr "Motif"
 
-#: src/gui/widgets/memory_observer.cc:99
-#: src/gui/widgets/memory_observer.cc:288
+#: src/gui/widgets/memory_observer.cc:99 src/gui/widgets/memory_observer.cc:288
 msgid "Hex"
 msgstr "Hexa"
 
@@ -4113,13 +4125,11 @@ msgstr "PauseÉcriture"
 msgid "Display log entries##{}{}"
 msgstr "Afficher les entrées du journal##{}{}"
 
-#: src/gui/widgets/typed_debugger.cc:315
-#: src/gui/widgets/typed_debugger.cc:1033
+#: src/gui/widgets/typed_debugger.cc:315 src/gui/widgets/typed_debugger.cc:1033
 msgid "Re-enable##{}"
 msgstr "Réactiver##{}"
 
-#: src/gui/widgets/typed_debugger.cc:316
-#: src/gui/widgets/typed_debugger.cc:1034
+#: src/gui/widgets/typed_debugger.cc:316 src/gui/widgets/typed_debugger.cc:1034
 msgid "Disable##{}"
 msgstr "Désactiver##{}"
 
@@ -4135,9 +4145,12 @@ msgstr "Ajouter à l'onglet Surveillance##{}{}"
 #: src/gui/widgets/typed_debugger.cc:623
 msgid ""
 "\n"
-"Data types can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will\n"
-"generate a redux_data_types.txt file in its folder, or from any text file where each line specifies the\n"
-"data type's name and fields, separated by semi-colons; fields are specified in type-name-size tuples\n"
+"Data types can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will\n"
+"generate a redux_data_types.txt file in its folder, or from any text file "
+"where each line specifies the\n"
+"data type's name and fields, separated by semi-colons; fields are specified "
+"in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -4148,9 +4161,12 @@ msgid ""
 "Arrays are specified as `type[number]` and pointers as `type *`."
 msgstr ""
 "\n"
-"Les types de données peuvent être importés depuis Ghidra avec tools/ghidra_scripts/export_redux.py, qui\n"
-"génère un fichier redux_data_types.txt dans son dossier, ou depuis n'importe quel fichier texte où chaque ligne indique\n"
-"le nom du type de données et ses champs, séparés par des points-virgules ; les champs sont donnés sous forme de triplets type-nom-taille\n"
+"Les types de données peuvent être importés depuis Ghidra avec tools/"
+"ghidra_scripts/export_redux.py, qui\n"
+"génère un fichier redux_data_types.txt dans son dossier, ou depuis n'importe "
+"quel fichier texte où chaque ligne indique\n"
+"le nom du type de données et ses champs, séparés par des points-virgules ; "
+"les champs sont donnés sous forme de triplets type-nom-taille\n"
 "dont les éléments sont séparés par des virgules.\n"
 "\n"
 "Par exemple :\n"
@@ -4163,9 +4179,12 @@ msgstr ""
 #: src/gui/widgets/typed_debugger.cc:653
 msgid ""
 "\n"
-"Functions can be imported from Ghidra using tools/ghidra_scripts/export_redux.py, which will generate\n"
-"a redux_funcs.txt file in its folder, or from any text file where each line specifies the function\n"
-"address, name and arguments, separated by semi-colons; arguments are specified in type-name-size tuples\n"
+"Functions can be imported from Ghidra using tools/ghidra_scripts/"
+"export_redux.py, which will generate\n"
+"a redux_funcs.txt file in its folder, or from any text file where each line "
+"specifies the function\n"
+"address, name and arguments, separated by semi-colons; arguments are "
+"specified in type-name-size tuples\n"
 "whose elements are separated by commas.\n"
 "\n"
 "For example:\n"
@@ -4176,9 +4195,12 @@ msgid ""
 "Arrays and pointers are specified as for data types"
 msgstr ""
 "\n"
-"Les fonctions peuvent être importées depuis Ghidra avec tools/ghidra_scripts/export_redux.py, qui génère\n"
-"un fichier redux_funcs.txt dans son dossier, ou depuis n'importe quel fichier texte où chaque ligne indique l'adresse\n"
-"de la fonction, son nom et ses arguments, séparés par des points-virgules ; les arguments sont donnés sous forme de triplets type-nom-taille\n"
+"Les fonctions peuvent être importées depuis Ghidra avec tools/ghidra_scripts/"
+"export_redux.py, qui génère\n"
+"un fichier redux_funcs.txt dans son dossier, ou depuis n'importe quel "
+"fichier texte où chaque ligne indique l'adresse\n"
+"de la fonction, son nom et ses arguments, séparés par des points-virgules ; "
+"les arguments sont donnés sous forme de triplets type-nom-taille\n"
 "dont les éléments sont séparés par des virgules.\n"
 "\n"
 "Par exemple :\n"
@@ -4410,11 +4432,13 @@ msgstr "Multiplicateur de vitesse"
 #: src/spu/cfg.cc:83
 msgid ""
 "Emulation speed, applied at the audio sink (the master clock).\n"
-"1 = realtime, N = N times faster. Frames are skipped, not resampled, so pitch is preserved.\n"
+"1 = realtime, N = N times faster. Frames are skipped, not resampled, so "
+"pitch is preserved.\n"
 "0 or less = unbounded: run as fast as the host allows."
 msgstr ""
 "Vitesse d'émulation, appliquée à la sortie audio (l'horloge maître).\n"
-"1 = temps réel, N = N fois plus rapide. Des trames sont sautées, sans rééchantillonnage, donc la hauteur du son est préservée.\n"
+"1 = temps réel, N = N fois plus rapide. Des trames sont sautées, sans "
+"rééchantillonnage, donc la hauteur du son est préservée.\n"
 "0 ou moins = sans limite : aussi vite que la machine le permet."
 
 #: src/spu/debug.cc:594

@@ -757,32 +757,32 @@ msgstr ""
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
 
-#: src/core/psxmem.cc:109
+#: src/core/psxmem.cc:106
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
 "Не вдалося поширити загальну пам'ять для wram, повернення до розподілу "
 "пам'яті.\n"
 
-#: src/core/psxmem.cc:119
+#: src/core/psxmem.cc:116
 msgid "Error allocating memory!"
 msgstr "Помилка розподілу пам'яті!"
 
-#: src/core/psxmem.cc:163
+#: src/core/psxmem.cc:160
 #, c-format
 msgid "Could not open EXP1:\"%s\".\n"
 msgstr "Неможливо відкрити EXP1: \"%s\".\n"
 
-#: src/core/psxmem.cc:171
+#: src/core/psxmem.cc:168
 #, c-format
 msgid "Loaded %i bytes to EXP1 from file: %s\n"
 msgstr "Завантажено %i байт до EXP1 з файлу: %s.\n"
 
-#: src/core/psxmem.cc:218
+#: src/core/psxmem.cc:215
 msgid "No BIOS loaded, emulation halted."
 msgstr ""
 
-#: src/core/psxmem.cc:219
+#: src/core/psxmem.cc:216
 #, fuzzy
 msgid ""
 "Set a BIOS file into the configuration, and do a hard reset of the "
@@ -796,12 +796,12 @@ msgstr ""
 "емулятора.\n"
 "Поширений OpenBIOS.bin може бути відповідною заміною BIOS.\n"
 
-#: src/core/psxmem.cc:232
+#: src/core/psxmem.cc:229
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr "Неможливо відкрити BIOS: \"%s\". Повторна спроба з OpenBIOS.\n"
 
-#: src/core/psxmem.cc:242
+#: src/core/psxmem.cc:239
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
@@ -810,127 +810,127 @@ msgstr ""
 "Неможливо відкрити резервний OpenBIOS. Усе працюватиме неналежно.\n"
 "Додай дійсний BIOS до конфігурації та перезавантаж апаратно.\n"
 
-#: src/core/psxmem.cc:257
+#: src/core/psxmem.cc:254
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr "Завантажено BIOS: %s.\n"
 
-#: src/core/psxmem.cc:269
+#: src/core/psxmem.cc:266
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "Виявлено відомий BIOS: %s (%08x).\n"
 
-#: src/core/psxmem.cc:271
+#: src/core/psxmem.cc:268
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
 msgstr "Виявлено OpenBIOS (%08x).\n"
 
-#: src/core/psxmem.cc:273
+#: src/core/psxmem.cc:270
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Завантажено невідомий BIOS (%08x).\n"
 
-#: src/core/psxmem.cc:306
+#: src/core/psxmem.cc:303
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "8-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:310
+#: src/core/psxmem.cc:307
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr "8-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:339
+#: src/core/psxmem.cc:336
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "8-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:357
+#: src/core/psxmem.cc:354
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "16-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:361
+#: src/core/psxmem.cc:358
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr "16-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:387
+#: src/core/psxmem.cc:384
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "16-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:405 src/core/psxmem.cc:655
+#: src/core/psxmem.cc:402 src/core/psxmem.cc:652
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "32-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:409 src/core/psxmem.cc:659
+#: src/core/psxmem.cc:406 src/core/psxmem.cc:656
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr "32-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:437
+#: src/core/psxmem.cc:434
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "32-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:530
+#: src/core/psxmem.cc:527
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr "8-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:549
+#: src/core/psxmem.cc:546
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "8-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:567
+#: src/core/psxmem.cc:564
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr "16-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:587
+#: src/core/psxmem.cc:584
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "16-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:605 src/core/psxmem.cc:674
+#: src/core/psxmem.cc:602 src/core/psxmem.cc:671
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr "32-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:634
+#: src/core/psxmem.cc:631
 #, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr "Невідоме значення BIU %8.8lx.\n"
 
-#: src/core/psxmem.cc:643
+#: src/core/psxmem.cc:640
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr "32-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:915
+#: src/core/psxmem.cc:912
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr "MSAN-систему визначено.\n"
 
-#: src/core/psxmem.cc:940
+#: src/core/psxmem.cc:937
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr "Недостатньо пам'яті в MsanAlloc.\n"
 
-#: src/core/psxmem.cc:964 src/core/psxmem.cc:971
+#: src/core/psxmem.cc:961 src/core/psxmem.cc:968
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr "Передано недійсний указівник до MsanFree: %08x.\n"
 
-#: src/core/psxmem.cc:993 src/core/psxmem.cc:1000
+#: src/core/psxmem.cc:990 src/core/psxmem.cc:997
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr "Передано недійсний указівник до MsanRealloc: %08x.\n"
 
-#: src/core/psxmem.cc:1043
+#: src/core/psxmem.cc:1040
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "Незареєстрований заголовок MSAN-ланцюжка у %08x.\n"

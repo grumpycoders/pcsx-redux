@@ -768,32 +768,32 @@ msgstr ""
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Se ha intentado acceder a COP3 desde 0x%08x. Ignorando.\n"
 
-#: src/core/psxmem.cc:109
+#: src/core/psxmem.cc:106
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
 "SharedMem no ha podido compartir memoria para la wram, utilizando asignación "
 "de memoria como método de reserva\n"
 
-#: src/core/psxmem.cc:119
+#: src/core/psxmem.cc:116
 msgid "Error allocating memory!"
 msgstr "¡Error al asignar memoria!"
 
-#: src/core/psxmem.cc:163
+#: src/core/psxmem.cc:160
 #, c-format
 msgid "Could not open EXP1:\"%s\".\n"
 msgstr "No se ha podido abrir EXP1:\"%s\".\n"
 
-#: src/core/psxmem.cc:171
+#: src/core/psxmem.cc:168
 #, c-format
 msgid "Loaded %i bytes to EXP1 from file: %s\n"
 msgstr "Se han cargado en EXP1 %i bytes del archivo: %s\n"
 
-#: src/core/psxmem.cc:218
+#: src/core/psxmem.cc:215
 msgid "No BIOS loaded, emulation halted."
 msgstr ""
 
-#: src/core/psxmem.cc:219
+#: src/core/psxmem.cc:216
 #, fuzzy
 msgid ""
 "Set a BIOS file into the configuration, and do a hard reset of the "
@@ -808,12 +808,12 @@ msgstr ""
 "El archivo distribuido OpenBIOS.bin podría ser una BIOS alternativa ideal.\n"
 "\n"
 
-#: src/core/psxmem.cc:232
+#: src/core/psxmem.cc:229
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr "No se ha podido abrir la BIOS «%s». Reintentando con OpenBIOS.\n"
 
-#: src/core/psxmem.cc:242
+#: src/core/psxmem.cc:239
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
@@ -824,133 +824,133 @@ msgstr ""
 "Introduce una BIOS válida en la configuración\n"
 "y haz un reinicio completo del emulador.\n"
 
-#: src/core/psxmem.cc:257
+#: src/core/psxmem.cc:254
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr "Se ha cargado la BIOS: %s\n"
 
-#: src/core/psxmem.cc:269
+#: src/core/psxmem.cc:266
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "Se ha detectado una BIOS conocida: %s (%08x)\n"
 
-#: src/core/psxmem.cc:271
+#: src/core/psxmem.cc:268
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
 msgstr "Se ha detectado una OpenBIOS (%08x)\n"
 
-#: src/core/psxmem.cc:273
+#: src/core/psxmem.cc:270
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Se ha cargado una BIOS desconocida (%08x)\n"
 
-#: src/core/psxmem.cc:306
+#: src/core/psxmem.cc:303
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lectura de 8 bits desde memoria msan utilizable, pero sin inicializar: "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:310
+#: src/core/psxmem.cc:307
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lectura de 8 bits desde memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:339
+#: src/core/psxmem.cc:336
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 8 bits desde dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:357
+#: src/core/psxmem.cc:354
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lectura de 16 bits desde memoria msan utilizable, pero sin inicializar: "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:361
+#: src/core/psxmem.cc:358
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lectura de 16 bits desde memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:387
+#: src/core/psxmem.cc:384
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 16 bits desde dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:405 src/core/psxmem.cc:655
+#: src/core/psxmem.cc:402 src/core/psxmem.cc:652
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Lectura de 32 bits desde memoria msan utilizable, pero sin inicializar: "
 "%8.8lx\n"
 
-#: src/core/psxmem.cc:409 src/core/psxmem.cc:659
+#: src/core/psxmem.cc:406 src/core/psxmem.cc:656
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr "Lectura de 32 bits desde memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:437
+#: src/core/psxmem.cc:434
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "Lectura de 32 bits desde dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:530
+#: src/core/psxmem.cc:527
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Escritura de 8 bits a memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:549
+#: src/core/psxmem.cc:546
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "Escritura de 8 bits a dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:567
+#: src/core/psxmem.cc:564
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Escritura de 16 bits a memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:587
+#: src/core/psxmem.cc:584
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "Escritura de 16 bits a dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:605 src/core/psxmem.cc:674
+#: src/core/psxmem.cc:602 src/core/psxmem.cc:671
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr "Escritura de 32 bits a memoria msan no utilizable: %8.8lx\n"
 
-#: src/core/psxmem.cc:634
+#: src/core/psxmem.cc:631
 #, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr "Valor BIU desconocido: %8.8lx\n"
 
-#: src/core/psxmem.cc:643
+#: src/core/psxmem.cc:640
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr "Escritura de 32 bits a dirección desconocida: %8.8lx\n"
 
-#: src/core/psxmem.cc:915
+#: src/core/psxmem.cc:912
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr "El sistema MSAN ya ha sido iniciado.\n"
 
-#: src/core/psxmem.cc:940
+#: src/core/psxmem.cc:937
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr "No queda memoria en MsanAlloc\n"
 
-#: src/core/psxmem.cc:964 src/core/psxmem.cc:971
+#: src/core/psxmem.cc:961 src/core/psxmem.cc:968
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr "Puntero no válido transmitido a MsanFree: %08x\n"
 
-#: src/core/psxmem.cc:993 src/core/psxmem.cc:1000
+#: src/core/psxmem.cc:990 src/core/psxmem.cc:997
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr "Puntero no válido transmitido a MsanRealloc: %08x\n"
 
-#: src/core/psxmem.cc:1043
+#: src/core/psxmem.cc:1040
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "Cabecera de cadena msan sin registrar en %08x\n"
