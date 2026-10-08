@@ -21,8 +21,10 @@
 
 #include <stdint.h>
 
+#include "core/alloc-tracker.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
+#include "core/guest-command.h"
 #include "core/gpu.h"
 #include "core/logger.h"
 #include "core/mdec.h"
@@ -834,6 +836,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         }
         case 0x1f8020a0: {
             g_emulator->m_mem->m_psyqoHeapMetadata = value;
+            break;
+        }
+        case 0x1f8020a4: {
+            GuestCommand::dispatch(value);
             break;
         }
         case 0x1f802094: {
