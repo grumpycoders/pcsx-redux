@@ -94,10 +94,21 @@ void PCSX::ADPCM::Encoder::findFilterAndShift(std::span<const double> input, std
         samples[1] = m_lastBlockSamples[channel][1];
         filteredMax[filter] = 0.0;
         auto inputPtr = input;
+        // The decoder doesn't predict from the source samples but from its own output, which is the source
+        // plus the quantization errors convert() carries in m_anomalies. convert() adds them back when
+        // quantizing, so the residual it actually has to fit for the first two samples includes the
+        // previous block's errors. Account for them here, or a block following a coarse one can pick a
+        // shift too fine for that residual and clip.
+        const auto& anomalies = m_anomalies[channel];
+        const double carry[2] = {
+            anomalies[0] * c_filters[filter][0] + anomalies[1] * c_filters[filter][1],
+            anomalies[0] * c_filters[filter][1],
+        };
         for (unsigned i = 0; i < 28; i++) {
             auto next = inputPtr[i];
             auto f = samples[0] * c_filters[filter][0] + samples[1] * c_filters[filter][1] + next;
             allFiltered[filter][i] = f;
+            if (i < 2) f += carry[i];
             if (f <= 0.0) f = -f;
             if (filteredMax[filter] < f) filteredMax[filter] = f;
             samples[1] = samples[0];
