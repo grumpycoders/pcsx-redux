@@ -426,35 +426,8 @@ void PCSX::SPU::impl::MainThread() {
     // Run until we are shutting down.
     while (!endThread) {
         int volumeDivisor = 4 - settings.get<Volume>();
-        //--------------------------------------------------//
-        // At the start of each pass, check whether there is enough free space in the audio output
-        // buffer to fill in new data, or whether there is a new channel to start. If neither, wait
-        // until free space is available or a new channel gets started.
-
-        // Should a new channel start immediately, that is, is at least one bit in 0..MAXCHANNEL
-        // set?
-        if (newChannelMask) {
-            // Set secureStart.
-            secureStart++;
-            if (secureStart > 5)
-                // If it has been set 5 times in a row, meaning a new sample has been started on 5
-                // tries in a row, reset it to give the sound update a chance.
-                secureStart = 0;
-        } else
-            // 0: no new channel should start.
-            secureStart = 0;
-
-        // No new start, no thread end, and still enough data in the sound buffer?
-        while (!secureStart && !endThread && (m_audioOut.getBytesBuffered() > TESTSIZE)) {
-            // Reset secureStart.
-            secureStart = 0;
-
-            using namespace std::chrono_literals;
-            std::this_thread::sleep_for(5ms);
-
-            // If a new channel kicks in, or the sound buffer runs low, leave the loop.
-            if (newChannelMask) secureStart = 1;
-        }
+        // Pacing comes from the blocking enqueue in feedStreamData at the bottom of the loop: the
+        // output ring only drains as the audio output consumes it.
 
         {
             // capBufVoiceIndex is reset from the emulation thread (resetCaptureBuffer).
