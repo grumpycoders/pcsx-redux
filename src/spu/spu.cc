@@ -162,13 +162,12 @@ void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_
 // explicit instantiations are needed.
 ////////////////////////////////////////////////////////////////////////
 
-// Raise SPU IRQ9. The SPU disables its own interrupt when it fires: SPUCNT bit 6 is
-// documented "IRQ9 Enable (0=Disabled/Acknowledge, 1=Enabled)", so the enable drops and
-// the SPUSTAT bit 6 flag latches, and it is software writing the enable back that
-// re-arms it. Without that, one armed address keeps re-firing every time any voice reads
-// it, which a streaming driver re-pointing IRQA per chunk sees as extra interrupts.
+// Raise SPU IRQ9. A match latches the SPUSTAT bit 6 flag and leaves SPUCNT bit 6 set;
+// while the flag is set, further matches raise nothing, however many times a voice
+// passes the address. Writing SPUCNT bit 6 = 0 is the acknowledge that clears the flag,
+// and the next match after the enable is written back to 1 fires again.
 void PCSX::SPU::impl::triggerIrq() {
-    spuCtrl &= ~ControlFlags::IRQEnable;
+    if (spuStat & StatusFlags::IRQFlag) return;
     spuStat |= StatusFlags::IRQFlag;
     // Notify the main emulator.
     scheduleInterrupt();
