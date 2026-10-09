@@ -1062,6 +1062,20 @@ class CDRomImpl final : public PCSX::CDRom {
             m_commandExecuting.clear();
         }
         m_setLocPending = false;
+        // A ReadN resent before the seek has started, or during a seek to the same target, leaves
+        // the read in flight. SCPH-9002: Setloc, ReadN and Nop resent every ~1.6 ms still reach
+        // INT1, in about the time a single ReadN takes.
+        bool reading = (m_readingType == ReadingType::Normal) || (m_readingType == ReadingType::Streaming);
+        if (reading && ((m_readingState == ReadingState::Seeking) ||
+                        ((m_readingState == ReadingState::Reading) &&
+                         (m_seekPosition.toLBA() == m_currentPosition.toLBA())))) {
+            m_readingType = ReadingType::Normal;
+            QueueElement response;
+            response.pushPayloadData(getStatus());
+            maybeTriggerIRQ(Cause::Acknowledge, response);
+            maybeScheduleNextCommand();
+            return false;
+        }
         resetXA();
         m_status = Status::Idle;
         scheduleRead(20ms);
