@@ -382,6 +382,7 @@ class R3000Acpu {
         uint32_t value = 0;
         uint32_t mask = 0;
         uint32_t pcValue = 0;
+        uint32_t branchPC = 0;
         bool active = false;
         bool pcActive = false;
         bool fromLink = false;
@@ -404,6 +405,7 @@ class R3000Acpu {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.pcActive = true;
         delayedLoad.pcValue = value;
+        delayedLoad.branchPC = m_regs.pc - 4;
         delayedLoad.fromLink = fromLink;
     }
     void flushCurrentDelayedLoad() {
