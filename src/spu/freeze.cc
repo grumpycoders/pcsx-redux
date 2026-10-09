@@ -136,6 +136,12 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);
     writeRegister(H_SPUrvolR, regArea[(H_SPUrvolR - 0xc00) >> 1]);
+    // A main volume of 0 in the register file is indistinguishable from one never written,
+    // and replaying it would mute a state saved before the game programmed it.
+    m_mainVolume.reset();
+    m_mainLeftWritten = m_mainRightWritten = false;
+    if (regArea[(H_SPUmvolL - 0xc00) >> 1]) writeRegister(H_SPUmvolL, regArea[(H_SPUmvolL - 0xc00) >> 1]);
+    if (regArea[(H_SPUmvolR - 0xc00) >> 1]) writeRegister(H_SPUmvolR, regArea[(H_SPUmvolR - 0xc00) >> 1]);
 
     writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
     writeRegister(H_SPUstat, regArea[(H_SPUstat - 0xc00) >> 1]);
