@@ -62,6 +62,7 @@ extern "C" {
 #include "core/sio1.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
+#include "core/screenshot.h"
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
@@ -1163,6 +1164,10 @@ void PCSX::GUI::startFrame() {
             g_system->softReset();
         }
     }
+
+    if (ImGui::IsKeyPressed(ImGuiKey_F12)) {
+        saveScreenShot();
+    }
 }
 
 void PCSX::GUI::setViewport() { glViewport(0, 0, m_renderSize.x, m_renderSize.y); }
@@ -1195,34 +1200,8 @@ void PCSX::GUI::endFrame() {
     auto& io = ImGui::GetIO();
     if (ImGui::IsKeyDown(ImGuiKey_PrintScreen) && io.KeyCtrl) {
         auto screenshot = g_emulator->m_gpu->takeScreenShot();
-        clip::image_spec spec;
-        spec.width = screenshot.width;
-        spec.height = screenshot.height;
-        if (screenshot.bpp == GPU::ScreenShot::BPP_16) {
-            spec.bits_per_pixel = 16;
-            spec.bytes_per_row = screenshot.width * 2;
-            spec.red_mask = 0x7c00;
-            spec.green_mask = 0x3e0;
-            spec.blue_mask = 0x1f;
-            spec.alpha_mask = 0;
-            spec.red_shift = 10;
-            spec.green_shift = 5;
-            spec.blue_shift = 0;
-            spec.alpha_shift = 0;
-        } else {
-            spec.bits_per_pixel = 24;
-            spec.bytes_per_row = screenshot.width * 3;
-            spec.red_mask = 0xff0000;
-            spec.green_mask = 0xff00;
-            spec.blue_mask = 0xff;
-            spec.alpha_mask = 0;
-            spec.red_shift = 16;
-            spec.green_shift = 8;
-            spec.blue_shift = 0;
-            spec.alpha_shift = 0;
-        }
-        clip::image img(screenshot.data.data(), spec);
-        clip::set_image(img.to_rgba8888());
+        clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
+        clip::set_image(img);
     }
     // bind back the output frame buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1419,6 +1398,9 @@ void PCSX::GUI::endFrame() {
                 }
                 if (ImGui::MenuItem(_("Hard Reset"), "Shift+F8")) {
                     g_system->hardReset();
+                }
+                if (ImGui::MenuItem(_("Take Screenshot"), "F12")) {
+                    saveScreenShot();
                 }
                 ImGui::EndMenu();
             }
@@ -3082,4 +3064,20 @@ void PCSX::GUI::changeScale(float scale) {
             ImGui::GetStyle().FontSizeBase = mainFont->LegacySize;
         }
     }
+}
+
+void PCSX::GUI::saveScreenShot() {
+    std::filesystem::path path =
+        g_system->getPersistentDir() / (getSaveStatePrefix(true) + PCSX::ScreenShot::getDateString() + ".png");
+    auto screenshot = g_emulator->m_gpu->takeScreenShot();
+    clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
+    bool success = PCSX::ScreenShot::writeImagePNG(path.string(), std::move(img));
+
+    if (success) {
+        auto successMsg = fmt::format(f_("Screenshot saved to {}\n"), path.string());
+        g_system->log(LogClass::UI, std::move(successMsg));
+    } else {
+        addNotification(_("Failed to save screenshot"));
+    }
+
 }
