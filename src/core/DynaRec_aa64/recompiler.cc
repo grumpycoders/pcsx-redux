@@ -413,6 +413,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         return true;
     };
 
+    // Target of the branch whose delay slot is compiled next, when it is known at compile time.
+    std::optional<uint32_t> slotBranchTarget;
+
     // Compile the instruction at m_pc. Returns false if it could not be fetched.
     auto compileInstruction = [&]() {
         m_inDelaySlot = m_nextIsDelaySlot;
@@ -427,6 +430,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         m_pc += 4;                         // Increment recompiler PC
         count++;                           // Increment instruction count
         if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
+        slotBranchTarget = staticBranchTarget(code, m_pc);
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it
@@ -472,7 +476,83 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     processDelayedLoad();
     m_firstInstruction = false;
 
+    // Ends the block: writes back the registers and the PC, adds the cycles, returns to the dispatcher.
+    const auto endBlock = [&]() {
+        flushRegs();
+        if (!m_pcWrittenBack) {
+            gen.Mov(w0, m_pc);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+        }
+        gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+        gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
+        gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+        jmp((void*)m_returnFromBlock);
+    };
+
     while (shouldContinue()) {
+        // A branch in the delay slot of a branch that may be taken. When the first branch is taken, the
+        // second one is relative to the first one's target, and its own delay slot is the instruction at
+        // that target. Compile that path separately, then fall through to the not-taken path, which is
+        // an ordinary branch with its delay slot after it.
+        auto* memory = PCSX::g_emulator->m_mem.get();
+        uint32_t* slotPtr =
+            m_nextIsDelaySlot && m_pcWrittenBack && slotBranchTarget ? memory->getPointer<uint32_t>(m_pc) : nullptr;
+        uint32_t* targetPtr = slotPtr ? memory->getPointer<uint32_t>(*slotBranchTarget) : nullptr;
+        if (slotPtr && targetPtr && isBranch(*slotPtr)) {
+            const uint32_t firstTarget = *slotBranchTarget;
+            const uint32_t slotPC = m_pc;
+            const auto savedLoads0 = m_delayedLoadInfo[0];
+            const auto savedLoads1 = m_delayedLoadInfo[1];
+            const auto savedCurrentLoad = m_currentDelayedLoad;
+            const auto savedCount = count;
+            const auto savedExtra = extra;
+            Label notTaken;
+
+            flushRegs();
+            gen.Ldr(w0, MemOperand(contextPointer, PC_OFFSET));
+            gen.Mov(w1, firstTarget);
+            gen.Cmp(w0, w1);
+            gen.B(&notTaken, ne);
+
+            // Taken: the second branch, based on the first branch's target.
+            m_inDelaySlot = true;
+            m_nextIsDelaySlot = false;
+            m_pcWrittenBack = false;
+            const uint32_t code = m_regs.code = *slotPtr;
+            m_pc = firstTarget;
+            count++;
+            if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
+            (*this.*m_recBSC[code >> 26])(code);
+            fixDelaySlotBranchLink(code, slotPC + 8);
+            if (!m_pcWrittenBack) {
+                gen.Mov(w0, firstTarget + 4);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_pcWrittenBack = true;
+            }
+            processDelayedLoad();
+            // Its delay slot is the instruction at the first branch's target.
+            m_nextIsDelaySlot = true;
+            if (!compileInstruction()) {
+                return m_invalidBlock;
+            }
+            processDelayedLoad();
+            m_pcWrittenBack = true;
+            endBlock();
+
+            // Not taken: back to the state before the taken path and compile it the ordinary way.
+            gen.L(notTaken);
+            m_delayedLoadInfo[0] = savedLoads0;
+            m_delayedLoadInfo[1] = savedLoads1;
+            m_currentDelayedLoad = savedCurrentLoad;
+            count = savedCount;
+            extra = savedExtra;
+            m_pc = slotPC;
+            m_inDelaySlot = false;
+            m_nextIsDelaySlot = true;
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            m_linkedPC = std::nullopt;
+        }
         if (!compileInstruction()) {
             return m_invalidBlock;
         }
