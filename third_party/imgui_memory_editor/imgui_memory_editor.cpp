@@ -6,15 +6,18 @@
 #include "fmt/format.h"
 #include "imgui_stdlib.h"
 
-#ifdef _MSC_VER
-#define _PRISizeT   "I"
+#if defined(_MSC_VER) && !defined(snprintf)
 #define ImSnprintf  _snprintf
 #else
-#define _PRISizeT   "z"
 #define ImSnprintf  snprintf
 #endif
+#if defined(_MSC_VER) && !defined(__clang__)
+#define _PRISizeT   "I"
+#else
+#define _PRISizeT   "z"
+#endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_UCRT)
 #pragma warning (push)
 #pragma warning (disable: 4996) // warning C4996: 'sprintf': This function or variable may be unsafe.
 #endif
@@ -34,13 +37,16 @@ MemoryEditor::MemoryEditor(bool& show, size_t base_addr, size_t &goto_addr) : Op
 	OptAddrDigitsCount = 0;
 	OptFooterExtraHeight = 0.0f;
 	HighlightColor = IM_COL32(255, 255, 255, 50);
-	HighlightFn = NULL;
+	HighlightFn = nullptr;
+	MouseHovered = false;
+	MouseHoveredAddr = 0;
 	// State/Internals
 	ContentsWidthChanged = false;
 	DataPreviewAddr = DataEditingAddr = (size_t)-1;
 	DataEditingTakeFocus = false;
+	GotoAddr = (size_t)-1;
 	HighlightMin = HighlightMax = (size_t)-1;
-	PreviewEndianess = 0;
+	PreviewEndianness = 0;
 	PreviewDataType = ImGuiDataType_S32;
         RestoreOffset = true;
 }
@@ -66,17 +72,17 @@ void MemoryEditor::CalcSizes(Sizes& s, size_t mem_size)
 	s.ByteSpacingWidth = (float)(int)(s.GlyphWidth * 0.5f);
 	s.HexCellWidth = (float)(int)((s.ByteWidth * (float)(int)DataTypeGetSize(PreviewDataType) + s.ByteSpacingWidth));             // "FF " we include trailing space in the width to easily catch clicks everywhere
 	s.SpacingBetweenMidCols = (float)(int)(s.HexCellWidth * 0.25f); // Every OptMidColsCount columns we add a bit of extra spacing
-	s.PosHexStart = (s.AddrDigitsCount + 2) * s.GlyphWidth;
-	s.PosHexEnd = s.PosHexStart + (s.HexCellWidth * (float)(int)(Cols / DataTypeGetSize(PreviewDataType)));
-	s.PosAsciiStart = s.PosAsciiEnd = s.PosHexEnd;
+	s.OffsetHexMinX = (s.AddrDigitsCount + 2) * s.GlyphWidth;
+	s.OffsetHexMaxX = s.OffsetHexMinX + (s.HexCellWidth * (float)(int)(Cols / DataTypeGetSize(PreviewDataType)));
+	s.OffsetAsciiMinX = s.OffsetAsciiMaxX = s.OffsetHexMaxX;
 	if (OptShowAscii)
 	{
-		s.PosAsciiStart = s.PosHexEnd + s.GlyphWidth * 1;
+		s.OffsetAsciiMinX = s.OffsetHexMaxX + s.GlyphWidth * 1;
 		if (OptMidColsCount > 0)
-			s.PosAsciiStart += (float)((Cols + OptMidColsCount - 1) / OptMidColsCount) * s.SpacingBetweenMidCols;
-		s.PosAsciiEnd = s.PosAsciiStart + Cols * s.GlyphWidth;
+			s.OffsetAsciiMinX += (float)((Cols + OptMidColsCount - 1) / OptMidColsCount) * s.SpacingBetweenMidCols;
+		s.OffsetAsciiMaxX = s.OffsetAsciiMinX + Cols * s.GlyphWidth;
 	}
-	s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
+	s.WindowWidth = s.OffsetAsciiMaxX + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
 	if (PushMonoFont) ImGui::PopFont();
 }
 
@@ -138,19 +144,22 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	// Draw vertical separator
 	ImVec2 window_pos = ImGui::GetWindowPos();
 	if (OptShowAscii)
-		draw_list->AddLine(ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
+		draw_list->AddLine(ImVec2(window_pos.x + s.OffsetAsciiMinX - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.OffsetAsciiMinX - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
 	// We are not really using the clipper API correctly here, because we rely on visible_start_addr/visible_end_addr for our scrolling function.
+	const ImVec2 avail_size = ImGui::GetContentRegionAvail();
 	const int line_total_count = (int)((mem_size + Cols - 1) / Cols);
 	ImGuiListClipper clipper;
 	clipper.Begin(line_total_count, s.LineHeight);
 
 	bool data_next = false;
 
-	if (ReadOnly || !WriteFn || DataEditingAddr >= mem_size)
+	// Without a WriteFn, behave as ReadOnly: bytes can still be selected and previewed, but not written.
+	const bool read_only = ReadOnly || !WriteFn;
+	if (DataEditingAddr >= mem_size)
 		DataEditingAddr = (size_t)-1;
 	if (DataPreviewAddr >= mem_size)
 		DataPreviewAddr = (size_t)-1;
@@ -182,30 +191,39 @@ void MemoryEditor::DrawContents(size_t mem_size)
 		return fmt::format(fmt::runtime(OptUpperCaseHex ? "{:02X}" : "{:02x}"), byte);
 	};
 
+	MouseHovered = false;
+	MouseHoveredAddr = 0;
+
 	while (clipper.Step())
 		for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
 		{
-			size_t addr = (size_t)(line_i * Cols);
+			size_t addr = (size_t)line_i * Cols;
 			ImGui::Text(format_address, s.AddrDigitsCount, BaseAddr + addr);
 
 			// Draw Hexadecimal
 			for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
 			{
-				float byte_pos_x = s.PosHexStart + s.ByteWidth * n + s.ByteSpacingWidth * (n / preview_data_type_size);
+				float byte_pos_x = s.OffsetHexMinX + s.ByteWidth * n + s.ByteSpacingWidth * (n / preview_data_type_size);
 				if (OptMidColsCount > 0)
 					byte_pos_x += (float)(n / OptMidColsCount) * s.SpacingBetweenMidCols;
 				ImGui::SameLine(byte_pos_x);
 
-				// Draw highlight
+				// Draw highlight or custom background color
 				size_t DataPreviewHighlightBase = DataPreviewAddr & ~(preview_data_type_size - 1);
 				bool is_highlight_from_user_range = (HighlightMin && addr >= HighlightMin && addr < HighlightMax);
 				bool is_highlight_from_user_func = (HighlightFn && HighlightFn(addr));
 				bool is_highlight_from_preview = (addr >= DataPreviewHighlightBase && addr < DataPreviewHighlightBase + preview_data_type_size);
+
+				ImU32 bg_color = 0;
 				if (is_highlight_from_user_range || is_highlight_from_user_func || is_highlight_from_preview)
+					bg_color = HighlightColor;
+				else if (BgColorFn)
+					bg_color = BgColorFn(addr);
+				if (bg_color != 0)
 				{
 					ImVec2 pos = ImGui::GetCursorScreenPos();
-					float highlight_width = s.ByteWidth;
-					draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
+					float bg_width = s.ByteWidth;
+					draw_list->AddRectFilled(pos, ImVec2(pos.x + bg_width, pos.y + s.LineHeight), bg_color);
 				}
 
 				if (DataEditingAddr == addr)
@@ -245,8 +263,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					};
 					UserData user_data;
 					user_data.CursorPos = -1;
-					sprintf(user_data.CurrentBufOverwrite, format_byte, ReadByte(addr));
+					ImSnprintf(user_data.CurrentBufOverwrite, 3, format_byte, ReadByte(addr));
 					ImGuiInputTextFlags flags = ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CallbackAlways;
+					if (read_only)
+						flags |= ImGuiInputTextFlags_ReadOnly;
 #if IMGUI_VERSION_NUM >= 18104
 					flags |= ImGuiInputTextFlags_AlwaysOverwrite;
 #else
@@ -263,12 +283,15 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					if (data_editing_addr_next != (size_t)-1)
 						data_write = data_next = false;
 					unsigned int data_input_value = 0;
-					if (data_write && sscanf(DataInputBuf.c_str(), "%X", &data_input_value) == 1)
+					if (!read_only && data_write && sscanf(DataInputBuf.c_str(), "%X", &data_input_value) == 1)
 					{
-						if (WriteFn) {
-							WriteFn(addr, (ImU8)data_input_value);
-							Cache.invalidate();
-						}
+						WriteFn(addr, (ImU8)data_input_value);
+						Cache.invalidate();
+					}
+					if (ImGui::IsItemHovered())
+					{
+						MouseHovered = true;
+						MouseHoveredAddr = addr;
 					}
 					ImGui::PopID();
 				}
@@ -295,10 +318,15 @@ void MemoryEditor::DrawContents(size_t mem_size)
 						else
 							ImGui::Text(format_byte_space, b);
 					}
-					if (!ReadOnly && WriteFn && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+					if (ImGui::IsItemHovered())
 					{
-						DataEditingTakeFocus = true;
-						data_editing_addr_next = addr;
+						MouseHovered = true;
+						MouseHoveredAddr = addr;
+						if (ImGui::IsMouseClicked(0))
+						{
+							DataEditingTakeFocus = true;
+							data_editing_addr_next = addr;
+						}
 					}
 				}
 			}
@@ -306,17 +334,23 @@ void MemoryEditor::DrawContents(size_t mem_size)
 			if (OptShowAscii)
 			{
 				// Draw ASCII values
-				ImGui::SameLine(s.PosAsciiStart);
+				ImGui::SameLine(s.OffsetAsciiMinX);
 				ImVec2 pos = ImGui::GetCursorScreenPos();
-				addr = line_i * Cols;
+				addr = (size_t)line_i * Cols;
+
+				const float mouse_off_x = ImGui::GetIO().MousePos.x - pos.x;
+				const size_t mouse_addr = (mouse_off_x >= 0.0f && mouse_off_x < s.OffsetAsciiMaxX - s.OffsetAsciiMinX) ? addr + (size_t)(mouse_off_x / s.GlyphWidth) : (size_t)-1;
+
 				ImGui::PushID(line_i);
-				if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
+				if (ImGui::InvisibleButton("ascii", ImVec2(s.OffsetAsciiMaxX - s.OffsetAsciiMinX, s.LineHeight)))
 				{
-					DataPreviewAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
-					if (!ReadOnly && WriteFn) {
-						DataEditingAddr = DataPreviewAddr;
-						DataEditingTakeFocus = true;
-					}
+					DataEditingAddr = DataPreviewAddr = mouse_addr;
+					DataEditingTakeFocus = true;
+				}
+				if (ImGui::IsItemHovered())
+				{
+					MouseHovered = true;
+					MouseHoveredAddr = mouse_addr;
 				}
 				ImGui::PopID();
 				for (int n = 0; n < Cols && addr < mem_size; n++, addr++)
@@ -325,6 +359,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 					{
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), ImGui::GetColorU32(ImGuiCol_FrameBg));
 						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), ImGui::GetColorU32(ImGuiCol_TextSelectedBg));
+					}
+					else if (BgColorFn)
+					{
+						draw_list->AddRectFilled(pos, ImVec2(pos.x + s.GlyphWidth, pos.y + s.LineHeight), BgColorFn(addr));
 					}
 					unsigned char c = ReadByte(addr);
 					char display_c = (c < 32 || c >= 128) ? '.' : c;
@@ -338,7 +376,10 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	ImGui::EndChild();
 
 	// Notify the main window of our ideal child content size (FIXME: we are missing an API to get the contents size from the child)
+	ImVec2 backup_pos = ImGui::GetCursorScreenPos();
 	ImGui::SetCursorPosX(s.WindowWidth);
+	ImGui::Dummy(ImVec2(0.0f, 0.0f));
+	ImGui::SetCursorScreenPos(backup_pos);
 
 	if (data_next && DataEditingAddr + 1 < mem_size)
 	{
@@ -367,6 +408,20 @@ void MemoryEditor::DrawContents(size_t mem_size)
 	{
 		ImGui::Separator();
 		DrawPreviewLine(s, mem_size);
+	}
+
+	if (GotoAddr != (size_t)-1)
+	{
+		if (GotoAddr < mem_size)
+		{
+			// s.LineHeight is measured with the mono font (see CalcSizes), matching the clipper's line height.
+			ImGui::BeginChild("##scrolling");
+			ImGui::SetScrollY((GotoAddr / Cols) * s.LineHeight - avail_size.y * 0.5f);
+			ImGui::EndChild();
+			DataEditingAddr = DataPreviewAddr = GotoAddr;
+			DataEditingTakeFocus = true;
+		}
+		GotoAddr = (size_t)-1;
 	}
 }
 
@@ -411,21 +466,6 @@ void MemoryEditor::DrawOptionsLine(const Sizes& s, size_t mem_size)
           }
     }
 
-    if (GotoAddr != (size_t)-1) {
-            if (GotoAddr < mem_size) {
-                    ImGui::BeginChild("##scrolling");
-                    if (PushMonoFont) PushMonoFont();
-                    ImGui::SetScrollFromPosY(
-                        ImGui::GetCursorStartPos().y +
-                        (GotoAddr / Cols) * ImGui::GetTextLineHeight());
-                    if (PushMonoFont) ImGui::PopFont();
-                    ImGui::EndChild();
-                    DataEditingAddr = DataPreviewAddr = GotoAddr;
-                    DataEditingTakeFocus = true;
-            }
-            GotoAddr = (size_t)-1;
-    }
-
     // Clear Input Address and reset to beginning of address space
     ImGui::SameLine();
     if (ImGui::Button("Clear Input")) {
@@ -450,16 +490,21 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 	ImGui::Text("Preview as:");
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth((s.GlyphWidth * 10.0f) + style.FramePadding.x * 2.0f + style.ItemInnerSpacing.x);
+
+	static const ImGuiDataType supported_data_types[] = { ImGuiDataType_S8, ImGuiDataType_U8, ImGuiDataType_S16, ImGuiDataType_U16, ImGuiDataType_S32, ImGuiDataType_U32, ImGuiDataType_S64, ImGuiDataType_U64, ImGuiDataType_Float, ImGuiDataType_Double, ImGuiDataType_Bool };
 	if (ImGui::BeginCombo("##combo_type", DataTypeGetDesc(PreviewDataType), ImGuiComboFlags_HeightLargest))
 	{
-		for (int n = 0; n < ImGuiDataType_COUNT; n++)
-			if (ImGui::Selectable(DataTypeGetDesc((ImGuiDataType)n), PreviewDataType == n))
-				PreviewDataType = (ImGuiDataType)n;
+		for (int n = 0; n < IM_ARRAYSIZE(supported_data_types); n++)
+		{
+			ImGuiDataType data_type = supported_data_types[n];
+			if (ImGui::Selectable(DataTypeGetDesc(data_type), PreviewDataType == data_type))
+				PreviewDataType = data_type;
+		}
 		ImGui::EndCombo();
 	}
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth((s.GlyphWidth * 6.0f) + style.FramePadding.x * 2.0f + style.ItemInnerSpacing.x);
-	ImGui::Combo("##combo_endianess", &PreviewEndianess, "LE\0BE\0\0");
+	ImGui::Combo("##combo_endianness", &PreviewEndianness, "LE\0BE\0\0");
 
 	char buf[128] = "";
 	float x = s.GlyphWidth * 6.0f;
@@ -476,18 +521,19 @@ void MemoryEditor::DrawPreviewLine(const Sizes& s, size_t mem_size)
 	ImGui::Text("Bin"); ImGui::SameLine(x); ImGui::TextUnformatted(has_value ? buf : "N/A");
 }
 
-// Utilities for Data Preview
+// Utilities for Data Preview (since we don't access imgui_internal.h)
+// FIXME: This technically depends on ImGuiDataType order.
 const char* MemoryEditor::DataTypeGetDesc(ImGuiDataType data_type) const
 {
 	const char* descs[] = { "Int8", "Uint8", "Int16", "Uint16", "Int32", "Uint32", "Int64", "Uint64", "Float", "Double", "Bool" };
-	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
+	IM_ASSERT(data_type >= 0 && data_type < IM_ARRAYSIZE(descs));
 	return descs[data_type];
 }
 
 size_t MemoryEditor::DataTypeGetSize(ImGuiDataType data_type) const
 {
 	const size_t sizes[] = { 1, 1, 2, 2, 4, 4, 8, 8, sizeof(float), sizeof(double), 1 };
-	IM_ASSERT(data_type >= 0 && data_type < ImGuiDataType_COUNT);
+	IM_ASSERT(data_type >= 0 && data_type < IM_ARRAYSIZE(sizes));
 	return sizes[data_type];
 }
 
@@ -500,18 +546,18 @@ const char* MemoryEditor::DataFormatGetDesc(DataFormat data_format) const
 
 bool MemoryEditor::IsBigEndian() const
 {
-	uint16_t x = 1;
+	ImU16 x = 1;
 	char c[2];
 	memcpy(c, &x, 2);
 	return c[0] != 0;
 }
 
-void* MemoryEditor::EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian)
+void* MemoryEditor::EndiannessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian)
 {
 	if (is_little_endian)
 	{
-		uint8_t* dst = (uint8_t*)_dst;
-		uint8_t* src = (uint8_t*)_src + s - 1;
+		ImU8* dst = (ImU8*)_dst;
+		ImU8* src = (ImU8*)_src + s - 1;
 		for (int i = 0, n = (int)s; i < n; ++i)
 			memcpy(dst++, src--, 1);
 		return _dst;
@@ -522,7 +568,7 @@ void* MemoryEditor::EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int
 	}
 }
 
-void* MemoryEditor::EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian)
+void* MemoryEditor::EndiannessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian)
 {
 	if (is_little_endian)
 	{
@@ -530,23 +576,23 @@ void* MemoryEditor::EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, 
 	}
 	else
 	{
-		uint8_t* dst = (uint8_t*)_dst;
-		uint8_t* src = (uint8_t*)_src + s - 1;
+		ImU8* dst = (ImU8*)_dst;
+		ImU8* src = (ImU8*)_src + s - 1;
 		for (int i = 0, n = (int)s; i < n; ++i)
 			memcpy(dst++, src--, 1);
 		return _dst;
 	}
 }
 
-void* MemoryEditor::EndianessCopy(void* dst, void* src, size_t size) const
+void* MemoryEditor::EndiannessCopy(void* dst, void* src, size_t size) const
 {
-	static void* (*fp)(void*, void*, size_t, int) = NULL;
-	if (fp == NULL)
-		fp = IsBigEndian() ? EndianessCopyBigEndian : EndianessCopyLittleEndian;
-	return fp(dst, src, size, PreviewEndianess);
+	static void* (*fp)(void*, void*, size_t, int) = nullptr;
+	if (fp == nullptr)
+		fp = IsBigEndian() ? EndiannessCopyBigEndian : EndiannessCopyLittleEndian;
+	return fp(dst, src, size, PreviewEndianness);
 }
 
-const char* MemoryEditor::FormatBinary(const uint8_t* buf, int width) const
+const char* MemoryEditor::FormatBinary(const ImU8* buf, int width) const
 {
 	IM_ASSERT(width <= 64);
 	size_t out_n = 0;
@@ -567,7 +613,7 @@ const char* MemoryEditor::FormatBinary(const uint8_t* buf, int width) const
 void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType data_type, DataFormat data_format, char* out_buf, size_t out_buf_size) const
 {
 	if (addr >= mem_size) { out_buf[0] = 0; return; }
-	uint8_t buf[8];
+	ImU8 buf[8];
 	size_t elem_size = DataTypeGetSize(data_type);
 	size_t size = addr + elem_size > mem_size ? mem_size - addr : elem_size;
 	for (int i = 0, n = (int)size; i < n; ++i)
@@ -575,8 +621,8 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 
 	if (data_format == DataFormat_Bin)
 	{
-		uint8_t binbuf[8];
-		EndianessCopy(binbuf, buf, size);
+		ImU8 binbuf[8];
+		EndiannessCopy(binbuf, buf, size);
 		ImSnprintf(out_buf, out_buf_size, "%s", FormatBinary(binbuf, (int)size * 8));
 		return;
 	}
@@ -586,94 +632,95 @@ void MemoryEditor::DrawPreviewData(size_t addr, size_t mem_size, ImGuiDataType d
 	{
 	case ImGuiDataType_S8:
 	{
-		int8_t int8 = 0;
-		EndianessCopy(&int8, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhd", int8); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", int8 & 0xFF); return; }
+		ImS8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhd", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", data & 0xFF); return; }
 		break;
 	}
 	case ImGuiDataType_U8:
 	{
-		uint8_t uint8 = 0;
-		EndianessCopy(&uint8, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhu", uint8); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", uint8 & 0XFF); return; }
+		ImU8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hhu", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%02x", data & 0XFF); return; }
 		break;
 	}
 	case ImGuiDataType_S16:
 	{
-		int16_t int16 = 0;
-		EndianessCopy(&int16, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hd", int16); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", int16 & 0xFFFF); return; }
+		ImS16 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hd", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", data & 0xFFFF); return; }
 		break;
 	}
 	case ImGuiDataType_U16:
 	{
-		uint16_t uint16 = 0;
-		EndianessCopy(&uint16, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hu", uint16); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", uint16 & 0xFFFF); return; }
+		ImU16 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%hu", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%04x", data & 0xFFFF); return; }
 		break;
 	}
 	case ImGuiDataType_S32:
 	{
-		int32_t int32 = 0;
-		EndianessCopy(&int32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%d", int32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", int32); return; }
+		ImS32 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%d", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", data); return; }
 		break;
 	}
 	case ImGuiDataType_U32:
 	{
-		uint32_t uint32 = 0;
-		EndianessCopy(&uint32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%u", uint32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", uint32); return; }
+		ImU32 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%u", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%08x", data); return; }
 		break;
 	}
 	case ImGuiDataType_S64:
 	{
-		int64_t int64 = 0;
-		EndianessCopy(&int64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%lld", (long long)int64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)int64); return; }
+		ImS64 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%lld", (long long)data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)data); return; }
 		break;
 	}
 	case ImGuiDataType_U64:
 	{
-		uint64_t uint64 = 0;
-		EndianessCopy(&uint64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%llu", (long long)uint64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)uint64); return; }
+		ImU64 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%llu", (long long)data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "0x%016llx", (long long)data); return; }
 		break;
 	}
 	case ImGuiDataType_Float:
 	{
-		float float32 = 0.0f;
-		EndianessCopy(&float32, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", float32); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", float32); return; }
+		float data = 0.0f;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", data); return; }
 		break;
 	}
 	case ImGuiDataType_Double:
 	{
-		double float64 = 0.0;
-		EndianessCopy(&float64, buf, size);
-		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", float64); return; }
-		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", float64); return; }
+		double data = 0.0;
+		EndiannessCopy(&data, buf, size);
+		if (data_format == DataFormat_Dec) { ImSnprintf(out_buf, out_buf_size, "%f", data); return; }
+		if (data_format == DataFormat_Hex) { ImSnprintf(out_buf, out_buf_size, "%a", data); return; }
 		break;
 	}
 	case ImGuiDataType_Bool:
 	{
-		int8_t int8 = 0;
-		EndianessCopy(&int8, buf, size);
-		if (int8 == 0)
+		ImS8 data = 0;
+		EndiannessCopy(&data, buf, size);
+		if (data == 0)
 			memcpy(out_buf, "false", 6);
 		else
 			memcpy(out_buf, "true", 5);
 		return;
 	}
+	default:
 	case ImGuiDataType_COUNT:
 		break;
 	} // Switch
