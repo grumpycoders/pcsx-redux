@@ -331,7 +331,7 @@ bool PCSX::CDRIso::open(IO<File> isoFile) {
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
         m_ti[1].pregap = IEC60908b::MSF(0, 0, 0);
         m_ti[1].handle = m_cdHandle;
-        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / 2352);
+        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / (m_isMode1ISO ? 2048 : 2352));
     }
 
     if (m_ppf.load(m_isoPath)) {
