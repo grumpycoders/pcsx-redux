@@ -337,7 +337,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 };
 
 inline uint32_t InterpretedCPU::branchBase() {
-    auto& pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    auto &pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
     return pending.pcActive ? pending.pcValue : m_regs.pc;
 }
 

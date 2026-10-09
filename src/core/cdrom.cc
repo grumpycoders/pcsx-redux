@@ -335,8 +335,8 @@ class CDRomImpl final : public PCSX::CDRom {
                                         regs.pc, regs.cycle, causeValue);
                 } else {
                     PCSX::g_system->log(PCSX::LogClass::CDROM,
-                                        "CD-Rom: %08x.%08x] cause %d queued or masked, no IRQ yet\n",
-                                        regs.pc, regs.cycle, causeValue);
+                                        "CD-Rom: %08x.%08x] cause %d queued or masked, no IRQ yet\n", regs.pc,
+                                        regs.cycle, causeValue);
                 }
             }
         }
@@ -861,8 +861,7 @@ class CDRomImpl final : public PCSX::CDRom {
             maybeTriggerIRQ(cause, response);
             m_seekPosition = maybeMSF.value();
             m_setLocPending = true;
-            PCSX::g_emulator->m_cdromLogger->recordAccess(m_seekPosition.toLBA(),
-                                                          PCSX::CDRomLogger::AccessType::Seek,
+            PCSX::g_emulator->m_cdromLogger->recordAccess(m_seekPosition.toLBA(), PCSX::CDRomLogger::AccessType::Seek,
                                                           PCSX::g_emulator->m_cpu->m_regs.cycle);
         } else {
             maybeEnqueueError(1, 0x10);
@@ -1066,9 +1065,9 @@ class CDRomImpl final : public PCSX::CDRom {
         // the read in flight. SCPH-9002: Setloc, ReadN and Nop resent every ~1.6 ms still reach
         // INT1, in about the time a single ReadN takes.
         bool reading = (m_readingType == ReadingType::Normal) || (m_readingType == ReadingType::Streaming);
-        if (reading && ((m_readingState == ReadingState::Seeking) ||
-                        ((m_readingState == ReadingState::Reading) &&
-                         (m_seekPosition.toLBA() == m_currentPosition.toLBA())))) {
+        if (reading &&
+            ((m_readingState == ReadingState::Seeking) ||
+             ((m_readingState == ReadingState::Reading) && (m_seekPosition.toLBA() == m_currentPosition.toLBA())))) {
             m_readingType = ReadingType::Normal;
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -1522,8 +1521,8 @@ class CDRomImpl final : public PCSX::CDRom {
             case 0x22: {
                 // Region string, plain text with no status byte. A SCPH-9002 answers "for Europe";
                 // follow the emulated video standard for the rest.
-                const bool pal = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() ==
-                                 PCSX::Emulator::PSX_TYPE_PAL;
+                const bool pal =
+                    PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>() == PCSX::Emulator::PSX_TYPE_PAL;
                 QueueElement response;
                 response.pushPayloadData(pal ? std::string_view("for Europe") : std::string_view("for U/C"));
                 maybeTriggerIRQ(Cause::Acknowledge, response);
