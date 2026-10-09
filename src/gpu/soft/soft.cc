@@ -193,10 +193,10 @@ void PCSX::SoftGPU::SoftRenderer::drawRect(int16_t x0, int16_t y0, int16_t x1, i
     x0 = std::max(x0, static_cast<int16_t>(m_drawX));
     y0 = std::max(y0, static_cast<int16_t>(m_drawY));
 
-    if (y0 >= VRAM_HEIGHT) return;
+    if (y0 >= m_vramHeight) return;
     if (x0 >= VRAM_WIDTH) return;
 
-    if (y1 > VRAM_HEIGHT) y1 = VRAM_HEIGHT;
+    if (y1 > m_vramHeight) y1 = m_vramHeight;
     if (x1 > VRAM_WIDTH) x1 = VRAM_WIDTH;
 
     dx = x1 - x0;
@@ -246,10 +246,10 @@ void PCSX::SoftGPU::SoftRenderer::fillArea(int16_t x0, int16_t y0, int16_t x1, i
     if (y0 > y1) return;
     if (x0 > x1) return;
 
-    if (y0 >= VRAM_HEIGHT) return;
+    if (y0 >= m_vramHeight) return;
     if (x0 >= VRAM_WIDTH) return;
 
-    if (y1 > VRAM_HEIGHT) y1 = VRAM_HEIGHT;
+    if (y1 > m_vramHeight) y1 = m_vramHeight;
     if (x1 > VRAM_WIDTH) x1 = VRAM_WIDTH;
 
     dx = x1 - x0;

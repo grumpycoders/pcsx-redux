@@ -65,13 +65,16 @@ static constexpr uint32_t c_PacketInfoMask = 0x00ffffff;
 // signed values (sign-extended after extraction); draw-area positions
 // pack as 10-bit X / 9-bit Y; horizontal display range as 12-bit X
 // pairs; CLUT selectors as 6-bit X / 9-bit Y; texture-window fields
-// as 5-bit selectors.
+// as 5-bit selectors. With a second VRAM bank the drawing-area,
+// display-start and CLUT Y fields carry a 10th bit (the upper-bank bit);
+// they are decoded full-width and the gate/fitment is resolved downstream
+// via resolveVramY rather than masked away at decode.
 static constexpr uint32_t c_Coord9Mask = 0x1ff;
 static constexpr uint32_t c_Coord10Mask = 0x3ff;
 static constexpr uint32_t c_Coord11Mask = 0x7ff;
 static constexpr uint32_t c_Coord12Mask = 0xfff;
 static constexpr uint32_t c_ClutXFieldMask = 0x3f;
-static constexpr uint32_t c_ClutYFieldMask = c_Coord9Mask;
+static constexpr uint32_t c_ClutYFieldMask = c_Coord10Mask;
 static constexpr uint32_t c_TWindowFieldMask = 0x1f;
 
 // Field shifts. The CLUT half-word packs X at bits 0..5 and Y at bits
@@ -97,6 +100,22 @@ class GPU {
     uint32_t readStatus();
     void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
+
+    // 2MB VRAM addressing. Two independent axes decide how an access resolves:
+    // the GP1(09h).0 bank gate (runtime, below) and the emulated VRAM fitment
+    // (1MB retail vs 2MB, a setting). resolveVramY() is the single chokepoint
+    // every VRAM Y-addressing site should route through.
+    bool vram2MBGateOpen() const { return m_vram2MBGateOpen; }
+    bool vram2MBFitted() const;
+    unsigned resolveVramY(unsigned y) const;
+    bool vramOpenBus(unsigned y) const;
+    // Value the GPU data bus floats to for an open-bus (unpopulated upper bank)
+    // read. Hardware-measured on retail 1MB boards (SCPH-1001, SCPH-5501).
+    static constexpr uint16_t kVramOpenBusValue = 0xFFFF;
+
+    // Called whenever the bank gate or fitment changes, so a backend can resync
+    // any derived state (e.g. the soft renderer's effective drawable height).
+    virtual void vramConfigChanged() {}
 
     // These functions do not touch GPUSTAT. GPU backends should mirror the IRQ status into GPUSTAT
     // when readStatus is called
@@ -309,6 +328,32 @@ class GPU {
     };
 
   public:
+    // X-only clip against the 1024-wide buffer. Used by the VRAM transfer
+    // paths when the bank gate is open: there the per-row Y counter WRAPS at
+    // the 10-bit boundary (resolveVramY -> y & 0x3ff) instead of clipping, so
+    // Y/h must be left untouched and only the X extent clamped. Hardware-
+    // measured on 573 silicon (transfer-wrap-y, 2026-06-15): a transfer that
+    // runs past Y=1023 wraps to Y=0 rather than dropping the overflow rows
+    // (verdict=WRAP for both upload and copy). psx-spx Wrapping note: Copy/Fill
+    // wrap to the opposite edge at the addressable VRAM size.
+    template <typename T, T wMax = 1024>
+    static bool clipX(T &x, T &w) {
+        bool clipped = false;
+        if (x >= wMax) {
+            x = wMax;
+            if (w != 0) {
+                w = 0;
+                return true;
+            }
+            return false;
+        }
+        if (x + w > wMax) {
+            clipped = true;
+            w = wMax - x;
+        }
+        return clipped;
+    }
+
     template <typename T, T wMax = 1024, T hMax = 512>
     static bool clip(T &x, T &y, T &w, T &h) {
         bool clipped = false;
@@ -802,7 +847,8 @@ class GPU {
         void generateStatsInfo() override {}
         void cumulateStats(GPUStats *) override {}
         void getVertices(AddTri &&, PixelOp) override {}
-        CtrlDisplayStart(uint32_t value) : x(value & c_Coord10Mask), y((value >> c_DrawingAreaYShift) & c_Coord9Mask) {}
+        CtrlDisplayStart(uint32_t value)
+            : x(value & c_Coord10Mask), y((value >> c_DrawingAreaYShift) & c_Coord10Mask) {}
         CtrlDisplayStart(const CtrlDisplayStart &other) = default;
         CtrlDisplayStart(CtrlDisplayStart &&other) = default;
         CtrlDisplayStart &operator=(const CtrlDisplayStart &other) = default;
@@ -928,6 +974,7 @@ class GPU {
     uint32_t m_drawingStartRaw = 0;
     uint32_t m_drawingEndRaw = 0;
     uint32_t m_drawingOffsetRaw = 0;
+    bool m_vram2MBGateOpen = false;  // GP1(09h).0: 1 opens the upper 1MB bank
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;

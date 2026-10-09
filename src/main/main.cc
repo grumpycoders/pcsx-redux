@@ -344,6 +344,14 @@ int pcsxMain(int argc, char **argv) {
         if (args.get<bool>("2mb")) {
             emuSettings.get<PCSX::Emulator::Setting8MB>() = false;
         }
+        // Note: -2mb/-8mb above select main RAM size; the VRAM fitment is a
+        // separate axis (1MB retail vs 2MB second-bank boards).
+        if (args.get<bool>("2mbvram")) {
+            emuSettings.get<PCSX::Emulator::Setting2MBVRAM>() = true;
+        }
+        if (args.get<bool>("1mbvram")) {
+            emuSettings.get<PCSX::Emulator::Setting2MBVRAM>() = false;
+        }
 
         if (args.get<bool>("fastboot")) {
             emuSettings.get<PCSX::Emulator::SettingFastBoot>() = true;

@@ -47,13 +47,30 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_doVSyncUpdate = true;
     initDisplay();
 
-    // always alloc one extra MB for soft drawing funcs security
-    m_allocatedVRAM = new uint8_t[(VRAM_HEIGHT * 2) * 1024 + (1024 * 1024)]();
+    // VRAM is always allocated at the full 2MB (1024x1024) size; the bank gate
+    // and fitment decide addressing semantics, not physical size. The extra 1MB
+    // is a security guard for soft drawing-func overruns.
+    m_allocatedVRAM = new uint8_t[1024 * 1024 * 2 + (1024 * 1024)]();
     if (!m_allocatedVRAM) return -1;
 
     //!!! ATTENTION !!!
     m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
     m_vram16 = (uint16_t *)m_vram;
+
+    // 1MB-fitment open-bus model: on a retail board the upper 1MB chip is
+    // unpopulated, so an opened upper bank (GP1(09h).1 on 1MB) reads back the
+    // floating bus - measured constant 0xFFFF, data-independent. Prefill the
+    // upper half (Y >= 512) with that value so reads need NO per-access branch
+    // on the hot path (scanout + texture sampling just read the buffer);
+    // upper-bank writes are dropped by the vramOpenBus() guards, keeping the
+    // region pristine. Under 2MB fitment the upper bank is real RAM (left
+    // zeroed by the allocation above).
+    if (!vram2MBFitted()) {
+        for (size_t i = 512u * 1024u; i < 1024u * 1024u; i++) m_vram16[i] = kVramOpenBusValue;
+    }
+
+    // Set the renderer's effective drawable height from the current fitment/gate.
+    vramConfigChanged();
 
     m_softDisplay.RGB24 = false;  // init some stuff
     m_softDisplay.Interlaced = false;
@@ -592,9 +609,13 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
         (imageX1 + imageSX) > 1024) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
+            // Drop rows written to an opened-but-unpopulated upper bank (1MB
+            // fitment): the destination floats and the write is lost. Source
+            // reads from such a region just return the prefilled 0xFFFF.
+            if (vramOpenBus(imageY1 + j)) continue;
             for (i = 0; i < imageSX; i++) {
-                m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)] =
-                    m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)];
+                m_vram16[(1024 * resolveVramY(imageY1 + j)) + ((imageX1 + i) & VRAM_X_MASK)] =
+                    m_vram16[(1024 * resolveVramY(imageY0 + j)) + ((imageX0 + i) & VRAM_X_MASK)];
             }
         }
 
