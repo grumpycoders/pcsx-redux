@@ -484,7 +484,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
         }
         gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));
-        gen.Add(x0, x0, count * PCSX::Emulator::BIAS);
+        gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
         gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));
         jmp((void*)m_returnFromBlock);
     };
@@ -505,6 +505,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             const auto savedLoads1 = m_delayedLoadInfo[1];
             const auto savedCurrentLoad = m_currentDelayedLoad;
             const auto savedCount = count;
+            const auto savedExtra = extra;
             Label notTaken;
 
             flushRegs();
@@ -520,6 +521,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             const uint32_t code = m_regs.code = *slotPtr;
             m_pc = firstTarget;
             count++;
+            if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
             (*this.*m_recBSC[code >> 26])(code);
             fixDelaySlotBranchLink(code, slotPC + 8);
             if (!m_pcWrittenBack) {
@@ -543,6 +545,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             m_delayedLoadInfo[1] = savedLoads1;
             m_currentDelayedLoad = savedCurrentLoad;
             count = savedCount;
+            extra = savedExtra;
             m_pc = slotPC;
             m_inDelaySlot = false;
             m_nextIsDelaySlot = true;

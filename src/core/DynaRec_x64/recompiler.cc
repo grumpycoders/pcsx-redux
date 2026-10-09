@@ -441,7 +441,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_firstInstruction = false;
 
     // Ends the block: writes back the registers and the PC, adds the cycles, returns to the dispatcher.
-    const auto endBlock = [this, &count]() {
+    const auto endBlock = [this, &count, &extra]() {
         flushRegs();
         if (!m_pcWrittenBack) {
             gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
@@ -449,7 +449,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         if constexpr (ENABLE_PROFILER) {
             endProfiling();
         }
-        gen.add(qword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);
+        gen.add(qword[contextPointer + CYCLE_OFFSET],
+                (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
         gen.jmp((void*)m_returnFromBlock);
     };
 
@@ -468,6 +469,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             const auto savedLoads1 = m_delayedLoadInfo[1];
             const auto savedCurrentLoad = m_currentDelayedLoad;
             const auto savedCount = count;
+            const auto savedExtra = extra;
             Label notTaken;
 
             flushRegs();
@@ -481,6 +483,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             const uint32_t code = m_regs.code = *slotPtr;
             m_pc = firstTarget;
             count++;
+            if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
             m_instructionCount = count;
             (*this.*m_recBSC[code >> 26])(code);
             fixDelaySlotBranchLink(code, slotPC + 8);
@@ -504,6 +507,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             m_delayedLoadInfo[1] = savedLoads1;
             m_currentDelayedLoad = savedCurrentLoad;
             count = savedCount;
+            extra = savedExtra;
             m_pc = slotPC;
             m_inDelaySlot = false;
             m_nextIsDelaySlot = true;
