@@ -246,10 +246,10 @@ void DynaRecCPU::emitDispatcher() {
         const auto indexOffset = (uintptr_t)&m_runtimeLoadDelay.index - (uintptr_t)this;
         const auto valueOffset = (uintptr_t)&m_runtimeLoadDelay.value - (uintptr_t)this;
 
-        gen.Ldr(w4, MemOperand(contextPointer, indexOffset));  // Index of the register that needs to be written
-        gen.Ldr(w5, MemOperand(contextPointer, valueOffset));  // Value it needs to be written with
-        gen.Add(x6, contextPointer, (int64_t)GPR_OFFSET(0));   // Base of the guest register file
-        gen.Str(w5, MemOperand(x6, x4, LSL, 2));               // Write the value
+        gen.Ldr(w4, MemOperand(contextPointer, indexOffset));       // Index of the register that needs to be written
+        gen.Ldr(w5, MemOperand(contextPointer, valueOffset));       // Value it needs to be written with
+        gen.Add(x6, contextPointer, (int64_t)GPR_OFFSET(0));        // Base of the guest register file
+        gen.Str(w5, MemOperand(x6, x4, LSL, 2));                    // Write the value
         gen.Strb(wzr, MemOperand(contextPointer, isActiveOffset));  // The load is no longer pending
         gen.Ret();
     }
@@ -354,8 +354,7 @@ DynaRecCPU::LoadDelayDependencyType DynaRecCPU::getLoadDelayDependencyType(int i
 
 // Compile a block, write address of compiled code to *callback
 // Returns the address of the compiled block
-DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align,
-                                      bool fullLoadDelayEmulation) {
+DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bool align, bool fullLoadDelayEmulation) {
     m_stopCompiling = false;
     m_inDelaySlot = false;
     m_nextIsDelaySlot = false;
@@ -368,7 +367,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
 
     const auto startingPC = m_pc;
-    int count = 0;  // How many instructions have we compiled?
+    unsigned count = 0;  // How many instructions have we compiled?
+    unsigned extra = 0;  // How many instructions from rom?
 
 #if defined(__APPLE__)
     gen.setRW();  // Mark code cache as readable/writeable before emitting code
@@ -413,6 +413,9 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         return true;
     };
 
+    // Target of the branch whose delay slot is compiled next, when it is known at compile time.
+    std::optional<uint32_t> slotBranchTarget;
+
     // Compile the instruction at m_pc. Returns false if it could not be fetched.
     auto compileInstruction = [&]() {
         m_inDelaySlot = m_nextIsDelaySlot;
@@ -426,6 +429,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
         uint32_t code = m_regs.code = *p;  // Actually read the instruction
         m_pc += 4;                         // Increment recompiler PC
         count++;                           // Increment instruction count
+        if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
+        slotBranchTarget = staticBranchTarget(code, m_pc);
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it
@@ -471,7 +476,83 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     processDelayedLoad();
     m_firstInstruction = false;
 
+    // Ends the block: writes back the registers and the PC, adds the cycles, returns to the dispatcher.
+    const auto endBlock = [&]() {
+        flushRegs();
+        if (!m_pcWrittenBack) {
+            gen.Mov(w0, m_pc);
+            gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+        }
+        gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+        gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
+        gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+        jmp((void*)m_returnFromBlock);
+    };
+
     while (shouldContinue()) {
+        // A branch in the delay slot of a branch that may be taken. When the first branch is taken, the
+        // second one is relative to the first one's target, and its own delay slot is the instruction at
+        // that target. Compile that path separately, then fall through to the not-taken path, which is
+        // an ordinary branch with its delay slot after it.
+        auto* memory = PCSX::g_emulator->m_mem.get();
+        uint32_t* slotPtr =
+            m_nextIsDelaySlot && m_pcWrittenBack && slotBranchTarget ? memory->getPointer<uint32_t>(m_pc) : nullptr;
+        uint32_t* targetPtr = slotPtr ? memory->getPointer<uint32_t>(*slotBranchTarget) : nullptr;
+        if (slotPtr && targetPtr && isBranch(*slotPtr)) {
+            const uint32_t firstTarget = *slotBranchTarget;
+            const uint32_t slotPC = m_pc;
+            const auto savedLoads0 = m_delayedLoadInfo[0];
+            const auto savedLoads1 = m_delayedLoadInfo[1];
+            const auto savedCurrentLoad = m_currentDelayedLoad;
+            const auto savedCount = count;
+            const auto savedExtra = extra;
+            Label notTaken;
+
+            flushRegs();
+            gen.Ldr(w0, MemOperand(contextPointer, PC_OFFSET));
+            gen.Mov(w1, firstTarget);
+            gen.Cmp(w0, w1);
+            gen.B(&notTaken, ne);
+
+            // Taken: the second branch, based on the first branch's target.
+            m_inDelaySlot = true;
+            m_nextIsDelaySlot = false;
+            m_pcWrittenBack = false;
+            const uint32_t code = m_regs.code = *slotPtr;
+            m_pc = firstTarget;
+            count++;
+            if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
+            (*this.*m_recBSC[code >> 26])(code);
+            fixDelaySlotBranchLink(code, slotPC + 8);
+            if (!m_pcWrittenBack) {
+                gen.Mov(w0, firstTarget + 4);
+                gen.Str(w0, MemOperand(contextPointer, PC_OFFSET));
+                m_pcWrittenBack = true;
+            }
+            processDelayedLoad();
+            // Its delay slot is the instruction at the first branch's target.
+            m_nextIsDelaySlot = true;
+            if (!compileInstruction()) {
+                return m_invalidBlock;
+            }
+            processDelayedLoad();
+            m_pcWrittenBack = true;
+            endBlock();
+
+            // Not taken: back to the state before the taken path and compile it the ordinary way.
+            gen.L(notTaken);
+            m_delayedLoadInfo[0] = savedLoads0;
+            m_delayedLoadInfo[1] = savedLoads1;
+            m_currentDelayedLoad = savedCurrentLoad;
+            count = savedCount;
+            extra = savedExtra;
+            m_pc = slotPC;
+            m_inDelaySlot = false;
+            m_nextIsDelaySlot = true;
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            m_linkedPC = std::nullopt;
+        }
         if (!compileInstruction()) {
             return m_invalidBlock;
         }
@@ -490,7 +571,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     }
 
     gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch cycle count from memory
-    gen.Add(x0, x0, count * PCSX::Emulator::BIAS);          // Add block cycles
+    gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);          // Add block cycles
     gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store cycles back to memory
 
     // Link block else return to dispatcher

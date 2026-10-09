@@ -93,7 +93,8 @@ struct prefix
 struct template_prefix_with_args : pegtl::seq<template_prefix, template_args> {};
 struct template_prefix : pegtl::sor<template_param, substitution> {};
 struct local_source_name : pegtl::seq<pegtl::one<'L'>, source_name, pegtl::opt<discriminator>> {};
-struct unqualified_name : pegtl::sor<operator_name, ctor_dtor_name, local_source_name, source_name, unnamed_type_name> {};
+struct unqualified_name : pegtl::sor<operator_name, ctor_dtor_name, local_source_name, source_name, unnamed_type_name> {
+};
 
 // Custom rule for length-prefixed source names (e.g., "3foo" -> "foo")
 struct source_name {
@@ -221,8 +222,8 @@ struct vendor_extended_type : pegtl::seq<pegtl::one<'U'>, source_name, type> {};
 struct pack_expansion_of_type : pegtl::seq<pegtl::string<'D', 'p'>, type> {};
 struct decltype_of_id_expression : pegtl::seq<pegtl::string<'D', 't'>, expression, pegtl::one<'E'>> {};
 struct decltype_of_expression : pegtl::seq<pegtl::string<'D', 'T'>, expression, pegtl::one<'E'>> {};
-struct type : pegtl::sor<builtin_type, function_type, name, array_type, pointer_to_member_type,
-                         template_type, template_param, substitution, CV_qualified_type, pointer_to_type, reference_to_type,
+struct type : pegtl::sor<builtin_type, function_type, name, array_type, pointer_to_member_type, template_type,
+                         template_param, substitution, CV_qualified_type, pointer_to_type, reference_to_type,
                          rvalue_reference_to_type, complex_pair_type, imaginary_type, vendor_extended_type,
                          pack_expansion_of_type, decltype_of_id_expression, decltype_of_expression> {};
 
@@ -372,5 +373,4 @@ struct std_name : pegtl::seq<pegtl::string<'S', 't'>, unqualified_name> {};
 
 // Required for PEGTL analysis of the custom source_name rule
 template <typename Name>
-struct TAO_PEGTL_NAMESPACE::analyze_traits<Name, PCSX::GNUDemangler::source_name>
-    : analyze_any_traits<> {};
+struct TAO_PEGTL_NAMESPACE::analyze_traits<Name, PCSX::GNUDemangler::source_name> : analyze_any_traits<> {};

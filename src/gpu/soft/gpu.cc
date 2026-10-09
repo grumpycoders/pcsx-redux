@@ -663,8 +663,8 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     char *pixels = reinterpret_cast<char *>(malloc(size));
     ss.data.acquire(pixels, size);
     if (m_softDisplay.RGB24) {
-        auto ptr = m_allocatedVRAM;
-        ptr += startX * 3 + startY * 1024 * 2;
+        auto ptr = m_vram;
+        ptr += startX * 2 + startY * 1024 * 2;
         for (int i = 0; i < height; i++) {
             std::memcpy(pixels, ptr, width * 3);
             ptr += 1024 * 2;
@@ -790,7 +790,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
     m_softDisplay.RGB24New = ctrl->depth == CtrlDisplayMode::CD_24BITS;
     m_softDisplay.InterlacedNew = ctrl->interlace;
 
-    if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+    if (!isDetached() && g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
         if (m_softDisplay.PAL) {
             g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
         } else {

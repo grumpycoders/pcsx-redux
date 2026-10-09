@@ -73,6 +73,8 @@ class Counters;
 class Debug;
 class GdbServer;
 class GPU;
+class GPUDumper;
+class GPUDumpPlayer;
 class GPULogger;
 class GTE;
 class RAMLogger;
@@ -83,6 +85,7 @@ class Memory;
 class Pads;
 class PatchManager;
 class R3000Acpu;
+class ShmDisplay;
 class SIO;
 class SPUInterface;
 class System;
@@ -111,6 +114,7 @@ class Emulator {
         typedef Setting<uint32_t, TYPESTRING("FirstChanceException"), 0x00001cf0> FirstChanceException;
         typedef Setting<bool, TYPESTRING("SkipISR")> SkipISR;
         typedef Setting<bool, TYPESTRING("LoggingCDROM"), false> LoggingCDROM;
+        typedef Setting<bool, TYPESTRING("LoggingHWCDROM"), false> LoggingHWCDROM;
         typedef Setting<bool, TYPESTRING("GdbServer"), false> GdbServer;
         typedef Setting<bool, TYPESTRING("GdbManifest"), true> GdbManifest;
         enum class GdbLog {
@@ -146,12 +150,12 @@ class Emulator {
             Raw,
         };
         typedef Setting<SIO1Mode, TYPESTRING("SIO1Mode"), SIO1Mode::Protobuf> SIO1ModeSetting;
-        typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, GdbServer, GdbManifest,
-                         GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort, KernelCallA0_00_1f,
-                         KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f, KernelCallA0_80_9f,
-                         KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f, KernelCallB0_40_5f,
-                         KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server, SIO1ServerPort, SIO1Client,
-                         SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
+        typedef Settings<Debug, Trace, KernelLog, FirstChanceException, SkipISR, LoggingCDROM, LoggingHWCDROM,
+                         GdbServer, GdbManifest, GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort,
+                         KernelCallA0_00_1f, KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f,
+                         KernelCallA0_80_9f, KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f,
+                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server,
+                         SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -196,13 +200,13 @@ class Emulator {
     typedef SettingVector<std::string, TYPESTRING("OpenDialogFavorites")> SettingOpenDialogFavorites;
 
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
-             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings,
-             SettingRCntFix, SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec,
-             Setting8MB, SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering,
-             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
-             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
-             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
-             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
+             SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec, Setting8MB,
+             SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
+             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
+             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
+             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
         settings;
     class PcsxConfig {
       public:
@@ -232,8 +236,9 @@ class Emulator {
     // Make the timing events trigger faster as we are currently assuming everything
     // takes one cycle, which is not the case on real hardware.
     // FIXME: Count the proper cycle and get rid of this
-    uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
-    enum { BIAS = 2 };
+    static constexpr uint32_t m_psxClockSpeed = 33868800 /* 33.8688 MHz */;
+    static constexpr uint32_t BIAS = 2;
+    static constexpr uint32_t ROM_EXTRA_BIAS = 10;
 
     template <unsigned alignment = 1>
         requires((alignment == 1) || (alignment == 4))
@@ -262,6 +267,8 @@ class Emulator {
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
+    std::unique_ptr<GPUDumper> m_gpuDumper;
+    std::unique_ptr<GPUDumpPlayer> m_gpuDumpPlayer;
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<RAMLogger> m_ramLogger;
@@ -277,6 +284,7 @@ class Emulator {
     std::unique_ptr<SIO1> m_sio1;
     std::unique_ptr<SIO1Server> m_sio1Server;
     std::unique_ptr<SIO1Client> m_sio1Client;
+    std::unique_ptr<ShmDisplay> m_shmDisplay;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
 

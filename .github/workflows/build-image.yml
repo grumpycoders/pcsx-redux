@@ -23,12 +23,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # latest is the general build image. noble is only for packaging: an
+        # AppImage needs the glibc it was built against, and 24.04 is the oldest
+        # release we want it to run on.
+        tag: [latest, noble]
+        arch: [amd64, arm64]
         include:
-          - platform: linux/amd64
-            arch: amd64
+          - tag: latest
+            base: ubuntu:26.04
+          - tag: noble
+            base: ubuntu:24.04
+            gxx: '15'
+          - arch: amd64
+            platform: linux/amd64
             runner: ubuntu-latest
-          - platform: linux/arm64
-            arch: arm64
+          - arch: arm64
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -51,8 +61,11 @@ jobs:
           context: .
           file: tools/build/Dockerfile
           platforms: ${{ matrix.platform }}
-          cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,mode=min,scope=${{ matrix.platform }}
+          build-args: |
+            BASE=${{ matrix.base }}
+            GXX_VERSION=${{ matrix.gxx }}
+          cache-from: type=gha,scope=${{ matrix.tag }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=min,scope=${{ matrix.tag }}-${{ matrix.platform }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
       - name: Export the digest
         run: |
@@ -61,12 +74,15 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
       - uses: actions/upload-artifact@v4
         with:
-          name: digest-${{ matrix.arch }}
+          name: digest-${{ matrix.tag }}-${{ matrix.arch }}
           path: /tmp/digests/*
           retention-days: 1
 
   manifest:
     needs: build
+    strategy:
+      matrix:
+        tag: [latest, noble]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -74,7 +90,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digest-*
+          pattern: digest-${{ matrix.tag }}-*
           merge-multiple: true
       - name: Log into ghcr.io
         uses: docker/login-action@v3
@@ -84,8 +100,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push the multi-arch tag
         run: |
-          docker buildx imagetools create -t $IMAGE:latest \
+          docker buildx imagetools create -t $IMAGE:${{ matrix.tag }} \
             $(cd /tmp/digests && printf "$IMAGE@sha256:%s " *)
       - name: Check what landed
         run: |
-          docker buildx imagetools inspect $IMAGE:latest
+          docker buildx imagetools inspect $IMAGE:${{ matrix.tag }}

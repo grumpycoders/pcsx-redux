@@ -19,6 +19,9 @@
 
 #include "core/sstate.h"
 
+#include <algorithm>
+#include <iterator>
+
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -31,69 +34,71 @@
 #include "spu/interface.h"
 
 PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
-    // clang-format off
-    return SaveState {
-        SaveStateInfo {
-            VersionString {},
-            Version {},
+    auto* cd = g_emulator->m_cdrom.get();
+    return SaveState{
+        SaveStateInfo{
+            VersionString{},
+            Version{},
         },
-        Thumbnail {},
-        Memory {
-            RAM { g_emulator->m_mem->m_wram },
-            ROM { g_emulator->m_mem->m_bios },
-            EXP1 { g_emulator->m_mem->m_exp1 },
-            HardwareMemory { g_emulator->m_mem->m_hard },
-            SRAM { g_emulator->m_mem->m_sram },
+        Thumbnail{},
+        Memory{
+            RAM{g_emulator->m_mem->m_wram},
+            ROM{g_emulator->m_mem->m_bios},
+            EXP1{g_emulator->m_mem->m_exp1},
+            HardwareMemory{g_emulator->m_mem->m_hard},
+            SRAM{g_emulator->m_mem->m_sram},
         },
-        Registers {
-            GPR { g_emulator->m_cpu->m_regs.GPR.r },
-            CP0 { g_emulator->m_cpu->m_regs.CP0.r },
-            CP2D { g_emulator->m_cpu->m_regs.CP2D.r },
-            CP2C { g_emulator->m_cpu->m_regs.CP2C.r },
-            PC { g_emulator->m_cpu->m_regs.pc },
-            Code { g_emulator->m_cpu->m_regs.code },
-            Cycle { g_emulator->m_cpu->m_regs.cycle },
-            Interrupt { g_emulator->m_cpu->m_regs.interrupt },
-            ICacheAddr { g_emulator->m_cpu->m_regs.iCacheAddr },
-            ICacheCode { g_emulator->m_cpu->m_regs.iCacheCode },
-            NextIsDelaySlot { g_emulator->m_cpu->m_nextIsDelaySlot },
-            DelaySlotInfo1 {
-                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[0].index },
-                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[0].value },
-                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[0].mask },
-                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[0].pcValue },
-                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[0].active },
-                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[0].pcActive },
-                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[0].fromLink }
+        Registers{
+            GPR{g_emulator->m_cpu->m_regs.GPR.r},
+            CP0{g_emulator->m_cpu->m_regs.CP0.r},
+            CP2D{g_emulator->m_cpu->m_regs.CP2D.r},
+            CP2C{g_emulator->m_cpu->m_regs.CP2C.r},
+            PC{g_emulator->m_cpu->m_regs.pc},
+            Code{g_emulator->m_cpu->m_regs.code},
+            Cycle{g_emulator->m_cpu->m_regs.cycle},
+            ScheduleMask{g_emulator->m_cpu->m_regs.scheduleMask},
+            ICacheAddr{g_emulator->m_cpu->m_regs.iCacheAddr},
+            ICacheCode{g_emulator->m_cpu->m_regs.iCacheCode},
+            NextIsDelaySlot{g_emulator->m_cpu->m_nextIsDelaySlot},
+            DelaySlotInfo1{
+                DelaySlotIndex{g_emulator->m_cpu->m_delayedLoadInfo[0].index},
+                DelaySlotValue{g_emulator->m_cpu->m_delayedLoadInfo[0].value},
+                DelaySlotMask{g_emulator->m_cpu->m_delayedLoadInfo[0].mask},
+                DelaySlotPcValue{g_emulator->m_cpu->m_delayedLoadInfo[0].pcValue},
+                DelaySlotActive{g_emulator->m_cpu->m_delayedLoadInfo[0].active},
+                DelaySlotPcActive{g_emulator->m_cpu->m_delayedLoadInfo[0].pcActive},
+                DelaySlotFromLink{g_emulator->m_cpu->m_delayedLoadInfo[0].fromLink},
             },
-            DelaySlotInfo2 {
-                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[1].index },
-                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[1].value },
-                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[1].mask },
-                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[1].pcValue },
-                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[1].active },
-                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[1].pcActive },
-                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[1].fromLink }
+            DelaySlotInfo2{
+                DelaySlotIndex{g_emulator->m_cpu->m_delayedLoadInfo[1].index},
+                DelaySlotValue{g_emulator->m_cpu->m_delayedLoadInfo[1].value},
+                DelaySlotMask{g_emulator->m_cpu->m_delayedLoadInfo[1].mask},
+                DelaySlotPcValue{g_emulator->m_cpu->m_delayedLoadInfo[1].pcValue},
+                DelaySlotActive{g_emulator->m_cpu->m_delayedLoadInfo[1].active},
+                DelaySlotPcActive{g_emulator->m_cpu->m_delayedLoadInfo[1].pcActive},
+                DelaySlotFromLink{g_emulator->m_cpu->m_delayedLoadInfo[1].fromLink},
             },
-            CurrentDelayedLoad { g_emulator->m_cpu->m_currentDelayedLoad },
-            IntTargetsField { g_emulator->m_cpu->m_regs.intTargets },
-            InISR { g_emulator->m_cpu->m_inISR },
+            CurrentDelayedLoad{g_emulator->m_cpu->m_currentDelayedLoad},
+            ScheduleTargetsField{g_emulator->m_cpu->m_regs.scheduleTargets},
+            InISR{g_emulator->m_cpu->m_inISR},
+            MulDivReady{g_emulator->m_cpu->m_regs.muldivReady},
+            GteReady{g_emulator->m_cpu->m_regs.gteReady},
         },
-        GPU {},
-        SPU {},
-        SIO {
-            SIOBuffer { g_emulator->m_sio->m_buffer },
-            SIOStatusReg { g_emulator->m_sio->m_regs.status },
-            SIOModeReg { g_emulator->m_sio->m_regs.mode },
-            SIOCtrlReg { g_emulator->m_sio->m_regs.control },
-            SIOBaudReg { g_emulator->m_sio->m_regs.baud },
-            SIOBufferMaxIndex { g_emulator->m_sio->m_maxBufferIndex },
-            SIOBufferIndex { g_emulator->m_sio->m_bufferIndex },
-            SIOPadState { g_emulator->m_sio->m_padState },
-            SIOCurrentDevice { g_emulator->m_sio->m_currentDevice },
-            SIOMCD1TempBuffer { g_emulator->m_sio->m_memoryCard[0].m_tempBuffer },
-            SIOMCD1DirectoryFlag { g_emulator->m_sio->m_memoryCard[0].m_directoryFlag },
-            SIOMCD1ChecksumIn{ g_emulator->m_sio->m_memoryCard[0].m_checksumIn},
+        GPU{},
+        SPU{},
+        SIO{
+            SIOBuffer{g_emulator->m_sio->m_buffer},
+            SIOStatusReg{g_emulator->m_sio->m_regs.status},
+            SIOModeReg{g_emulator->m_sio->m_regs.mode},
+            SIOCtrlReg{g_emulator->m_sio->m_regs.control},
+            SIOBaudReg{g_emulator->m_sio->m_regs.baud},
+            SIOBufferMaxIndex{g_emulator->m_sio->m_maxBufferIndex},
+            SIOBufferIndex{g_emulator->m_sio->m_bufferIndex},
+            SIOPadState{g_emulator->m_sio->m_padState},
+            SIOCurrentDevice{g_emulator->m_sio->m_currentDevice},
+            SIOMCD1TempBuffer{g_emulator->m_sio->m_memoryCard[0].m_tempBuffer},
+            SIOMCD1DirectoryFlag{g_emulator->m_sio->m_memoryCard[0].m_directoryFlag},
+            SIOMCD1ChecksumIn{g_emulator->m_sio->m_memoryCard[0].m_checksumIn},
             SIOMCD1ChecksumOut{g_emulator->m_sio->m_memoryCard[0].m_checksumOut},
             SIOMCD1CommandTicks{g_emulator->m_sio->m_memoryCard[0].m_commandTicks},
             SIOMCD1CurrentCommand{g_emulator->m_sio->m_memoryCard[0].m_currentCommand},
@@ -108,68 +113,97 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOMCD2Sector{g_emulator->m_sio->m_memoryCard[1].m_sector},
             SIOMCD2DataOffset{g_emulator->m_sio->m_memoryCard[1].m_dataOffset},
         },
-        CDRom {
-            CDReg1Mode { g_emulator->m_cdrom->m_reg1Mode },
-            CDReg2 { g_emulator->m_cdrom->m_reg2 },
-            CDCmdProcess { g_emulator->m_cdrom->m_cmdProcess },
-            CDCtrl { g_emulator->m_cdrom->m_ctrl },
-            CDStat { g_emulator->m_cdrom->m_stat },
-            CDStatP { g_emulator->m_cdrom->m_statP },
-            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_transfer) },
-            CDTransferIndex { g_emulator->m_cdrom->m_transferIndex },
-            CDPrev { g_emulator->m_cdrom->m_prev.data },
-            CDParam { g_emulator->m_cdrom->m_param },
-            CDResult { g_emulator->m_cdrom->m_result },
-            CDParamC { g_emulator->m_cdrom->m_paramC },
-            CDResultC { g_emulator->m_cdrom->m_resultC },
-            CDResultP { g_emulator->m_cdrom->m_resultP },
-            CDResultReady { g_emulator->m_cdrom->m_resultReady },
-            CDCmd { g_emulator->m_cdrom->m_cmd },
-            CDRead { g_emulator->m_cdrom->m_read },
-            CDSetLocPending { g_emulator->m_cdrom->m_setlocPending },
-            CDReading { g_emulator->m_cdrom->m_reading },
-            CDSetSectorPlay { g_emulator->m_cdrom->m_setSectorPlay.data },
-            CDSetSectorEnd { g_emulator->m_cdrom->m_setSectorEnd.data },
-            CDSetSector { g_emulator->m_cdrom->m_setSector.data },
-            CDTrack { g_emulator->m_cdrom->m_track },
-            CDPlay { g_emulator->m_cdrom->m_play },
-            CDMuted { g_emulator->m_cdrom->m_muted },
-            CDCurTrack { g_emulator->m_cdrom->m_curTrack },
-            CDMode { g_emulator->m_cdrom->m_mode },
-            CDFile { g_emulator->m_cdrom->m_file },
-            CDChannel { g_emulator->m_cdrom->m_channel },
-            CDSuceeded { g_emulator->m_cdrom->m_suceeded },
-            CDFirstSector { g_emulator->m_cdrom->m_firstSector },
-            CDIRQ { g_emulator->m_cdrom->m_irq },
-            CDIrqRepeated { g_emulator->m_cdrom->m_irqRepeated },
-            CDECycle { g_emulator->m_cdrom->m_eCycle },
-            CDSeeked { g_emulator->m_cdrom->m_seeked },
-            CDReadRescheduled { g_emulator->m_cdrom->m_readRescheduled },
-            CDDriveState { g_emulator->m_cdrom->m_driveState },
-            CDFastForward { g_emulator->m_cdrom->m_fastForward },
-            CDFastBackward { g_emulator->m_cdrom->m_fastBackward },
-            CDAttenuatorLeftToLeft { g_emulator->m_cdrom->m_attenuatorLeftToLeft },
-            CDAttenuatorLeftToRight { g_emulator->m_cdrom->m_attenuatorLeftToRight },
-            CDAttenuatorRightToRight { g_emulator->m_cdrom->m_attenuatorRightToRight },
-            CDAttenuatorRightToLeft { g_emulator->m_cdrom->m_attenuatorRightToLeft },
-            CDAttenuatorLeftToLeftT { g_emulator->m_cdrom->m_attenuatorLeftToLeftT },
-            CDAttenuatorLeftToRightT { g_emulator->m_cdrom->m_attenuatorLeftToRightT },
-            CDAttenuatorRightToRightT { g_emulator->m_cdrom->m_attenuatorRightToRightT },
-            CDAttenuatorRightToLeftT { g_emulator->m_cdrom->m_attenuatorRightToLeftT },
-            CDSubQTrack { g_emulator->m_cdrom->m_subq.track },
-            CDSubQIndex { g_emulator->m_cdrom->m_subq.index },
-            CDSubQRelative { g_emulator->m_cdrom->m_subq.relative },
-            CDSubQAbsolute { g_emulator->m_cdrom->m_subq.absolute },
-            CDTrackChanged { g_emulator->m_cdrom->m_trackChanged },
-            CDLocationChanged { g_emulator->m_cdrom->m_locationChanged },
+        Hardware{},
+        Counters{},
+        MDEC{},
+        PCdrvFilesField{},
+        CallStacks{},
+        CDRom{
+            CDDataFIFO{cd->m_dataFIFO},
+            CDDataFIFOIndex{cd->m_dataFIFOIndex},
+            CDDataFIFOSize{cd->m_dataFIFOSize},
+            CDDataFIFOPending{cd->m_dataFIFOPending},
+            CDRegisterAddress{cd->m_registerAddress},
+            CDMotorOn{cd->m_motorOn},
+            CDSpeedChanged{cd->m_speedChanged},
+            CDInvalidLocL{cd->m_invalidLocL},
+            CDDataRequested{cd->m_dataRequested},
+            CDSubheaderFilter{cd->m_subheaderFilter},
+            CDRealtime{cd->m_realtime},
+            CDReadingState{reinterpret_cast<uint8_t&>(cd->m_readingState)},
+            CDStartPlaying{cd->m_startPlaying},
+            CDReadingType{reinterpret_cast<uint8_t&>(cd->m_readingType)},
+            CDAutoPause{cd->m_autoPause},
+            CDReport{cd->m_report},
+            CDSetLocPending{cd->m_setLocPending},
+            CDMuted{cd->m_muted},
+            CDPeakFlag{cd->m_peakFlag},
+            CDPlayTrack{cd->m_playTrack},
+            CDPlayStartCycle{cd->m_playStartCycle},
+            CDStatus{reinterpret_cast<uint8_t&>(cd->m_status)},
+            CDSpeed{reinterpret_cast<uint8_t&>(cd->m_speed)},
+            CDReadSpan{reinterpret_cast<uint8_t&>(cd->m_readSpan)},
+            CDInterruptCauseMask{cd->m_interruptCauseMask},
+            CDATV{cd->m_atv},
+            CDATVPending{cd->m_atvPending},
+            CDADPCMMuted{cd->m_adpcmMuted},
+            CDMode{cd->m_mode},
+            CDFilterFile{cd->m_filterFile},
+            CDFilterChannel{cd->m_filterChannel},
+            CDXAEnded{cd->m_xaEnded},
+            CDXAFirstSector{cd->m_xaFirstSector},
+            CDSoundMapEnabled{cd->m_soundMapEnabled},
+            CDCurrentPosition{CDMSF{CDMSFMinute{cd->m_currentPosition.m}, CDMSFSecond{cd->m_currentPosition.s},
+                                     CDMSFFrame{cd->m_currentPosition.f}}},
+            CDSeekPosition{CDMSF{CDMSFMinute{cd->m_seekPosition.m}, CDMSFSecond{cd->m_seekPosition.s},
+                                  CDMSFFrame{cd->m_seekPosition.f}}},
+            CDLastLocP{cd->m_lastLocP},
+            CDLastLocL{cd->m_lastLocL},
+            CDSeed{cd->m_seed},
+            CDLidOpen{cd->m_lidOpen},
+            CDWasLidOpened{cd->m_wasLidOpened},
+            CDLidCloseScheduled{cd->m_lidCloseScheduled},
+            CDLidCloseAtCycles{cd->m_lidCloseAtCycles},
+            CDCommandFifo{CDQueueElement{
+                    CDQueuePayload{cd->m_commandFifo.payload},
+                    CDQueueValue{cd->m_commandFifo.value},
+                    CDQueueValueRead{cd->m_commandFifo.valueRead},
+                    CDQueueHasValue{cd->m_commandFifo.hasValue},
+                    CDQueueHitMax{cd->m_commandFifo.hitMax},
+                    CDQueuePayloadSize{cd->m_commandFifo.payloadSize},
+                    CDQueuePayloadIndex{cd->m_commandFifo.payloadIndex},
+                }},
+            CDCommandExecuting{CDQueueElement{
+                    CDQueuePayload{cd->m_commandExecuting.payload},
+                    CDQueueValue{cd->m_commandExecuting.value},
+                    CDQueueValueRead{cd->m_commandExecuting.valueRead},
+                    CDQueueHasValue{cd->m_commandExecuting.hasValue},
+                    CDQueueHitMax{cd->m_commandExecuting.hitMax},
+                    CDQueuePayloadSize{cd->m_commandExecuting.payloadSize},
+                    CDQueuePayloadIndex{cd->m_commandExecuting.payloadIndex},
+                }},
+            CDResponseFifo0{CDQueueElement{
+                    CDQueuePayload{cd->m_responseFifo[0].payload},
+                    CDQueueValue{cd->m_responseFifo[0].value},
+                    CDQueueValueRead{cd->m_responseFifo[0].valueRead},
+                    CDQueueHasValue{cd->m_responseFifo[0].hasValue},
+                    CDQueueHitMax{cd->m_responseFifo[0].hitMax},
+                    CDQueuePayloadSize{cd->m_responseFifo[0].payloadSize},
+                    CDQueuePayloadIndex{cd->m_responseFifo[0].payloadIndex},
+                }},
+            CDResponseFifo1{CDQueueElement{
+                    CDQueuePayload{cd->m_responseFifo[1].payload},
+                    CDQueueValue{cd->m_responseFifo[1].value},
+                    CDQueueValueRead{cd->m_responseFifo[1].valueRead},
+                    CDQueueHasValue{cd->m_responseFifo[1].hasValue},
+                    CDQueueHitMax{cd->m_responseFifo[1].hitMax},
+                    CDQueuePayloadSize{cd->m_responseFifo[1].payloadSize},
+                    CDQueuePayloadIndex{cd->m_responseFifo[1].payloadIndex},
+                }},
+            CDXALeft{CDADPCM{CDADPCMY0{cd->m_xa.left.y0}, CDADPCMY1{cd->m_xa.left.y1}}},
+            CDXARight{CDADPCM{CDADPCMY0{cd->m_xa.right.y0}, CDADPCMY1{cd->m_xa.right.y1}}},
         },
-        Hardware {},
-        Counters {},
-        MDEC {},
-        PCdrvFilesField {},
-        CallStacks {},
     };
-    // clang-format on
 }
 
 namespace PCSX {
@@ -258,7 +292,11 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     for (unsigned i = 0; i < 64; i++) {
         mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
         mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
+        mdecSave.get<MDECQTY>().value[i].value = qt_y[i];
+        mdecSave.get<MDECQTUV>().value[i].value = qt_uv[i];
+        mdecSave.get<MDECScaleTable>().value[i].value = scaletable[i];
     }
+    mdecSave.get<MDECCustomScale>().value = customScaleTable ? 1 : 0;
 }
 
 void PCSX::Counters::serialize(SaveStateWrapper* w) {
@@ -303,13 +341,16 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_emulator->m_cpu->m_regs.pc &= ~3;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
+#if 0
     g_emulator->m_cdrom->load();
+#endif
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
+#if 0
     g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
     g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
     g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
@@ -322,6 +363,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+#endif
 
     g_emulator->m_cpu->closeAllPCdrvFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {
@@ -339,6 +381,21 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_system->m_eventBus->signal(Events::ExecutionFlow::SaveStateLoaded{});
 
     return true;
+}
+
+void PCSX::SaveStates::loadSafe(std::string&& data) {
+    // Inside Execute(), we're being called from something the CPU reached: a
+    // Lua event listener (including a Pause listener fired by a breakpoint), an
+    // ImGui menu drawn during vsync, the web server polled on hsync.
+    // Counters::update() and branchTest() both cached
+    // values before that call and go on using them afterwards, so swapping the
+    // state here corrupts whatever those frames touch next. Let the main loop
+    // do it once they're gone.
+    if (g_system->inExecute()) {
+        g_system->scheduleSaveStateLoad(std::move(data));
+    } else {
+        load(data);
+    }
 }
 
 void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
@@ -420,6 +477,27 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
         iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
         iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
     }
+    // Fields 12-15 were added without a version bump. A state from before them
+    // deserialises zero elements into the repeated fields, which would otherwise
+    // leave all-zero quant tables and a zero scale matrix. Those emulators always
+    // decoded with the standard matrix; the raw quant tables are recovered from
+    // the cached ones, which do carry whatever the game uploaded.
+    if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
+        mdecSave.get<MDECScaleTable>().count == 0) {
+        standardTables_init();
+        qtab_fromIqtab(qt_y, iq_y);
+        qtab_fromIqtab(qt_uv, iq_uv);
+        return;
+    }
+    for (unsigned i = 0; i < 64; i++) {
+        qt_y[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
+        qt_uv[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
+        scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
+    }
+    customScaleTable = mdecSave.get<MDECCustomScale>().value != 0;
+    // Not serialised: an all-zero matrix is what a console holds before MDEC(3).
+    scaleTableUploaded = std::any_of(std::begin(scaletable), std::end(scaletable), [](int16_t v) { return v != 0; });
+    warnedNoScaleTable = false;
 }
 
 void PCSX::Counters::deserialize(const SaveStateWrapper* w) {

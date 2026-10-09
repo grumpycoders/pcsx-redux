@@ -6,6 +6,7 @@
 |--------|------------|--------|
 |Windows x64 build|[![Windows x64 CI](https://dev.azure.com/grumpycoders/pcsx-redux/_apis/build/status/grumpycoders.pcsx-redux?branchName=main)](https://dev.azure.com/grumpycoders/pcsx-redux/_build/latest?definitionId=1&branchName=main)|[Windows Intel 64-bits](https://distrib.app/pub/org/pcsx-redux/project/dev-win-x64)|
 |Linux x64 build|[![Linux x64 CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
+|Linux arm64 build|[![Linux arm64 CI](https://github.com/grumpycoders/pcsx-redux/workflows/Linux%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22Linux+CI%22+branch%3Amain)|[Linux Arm 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-arm64)|
 |macOS build|[![macOS CI](https://github.com/grumpycoders/pcsx-redux/workflows/macOS%20CI/badge.svg?branch=main)](https://github.com/grumpycoders/pcsx-redux/actions?query=workflow%3A%22macOS+CI%22+branch%3Amain)|[macOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
 
 To discuss this emulator specifically, please join our Discord server:
@@ -37,7 +38,10 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 |[Windows Intel 64-bits](https://distrib.app/pub/org/pcsx-redux/project/dev-win-x64)|
 |[Windows Intel 64-bits CLI](https://distrib.app/pub/org/pcsx-redux/project/dev-win-cli-x64)|
 |[Linux Intel 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-x64)|
+|[Linux Arm 64-bits (AppImage)](https://distrib.app/pub/org/pcsx-redux/project/dev-linux-arm64)|
 |[MacOS Arm](https://distrib.app/pub/org/pcsx-redux/project/dev-macos-arm)|
+
+All builds are 64-bit only, and need a GPU and driver that can create at least an OpenGL 3.0 context. The emulator asks for a 3.2 core profile first and falls back to 3.0 if that fails.
 
 ### Note:
 The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
@@ -134,11 +138,9 @@ Building OpenBIOS on Linux can be done with `./dockermake.sh -C src/mips/openbio
 ### MacOS
 You need MacOS Catalina or later with the latest XCode to build, as well as a few [homebrew](https://brew.sh/) packages. Run the [brew installation script](https://github.com/grumpycoders/pcsx-redux/blob/main/.github/scripts/install-brew-dependencies.sh) to get all the necessary dependencies. Simply run `make` to build.
 
-Compiling OpenBIOS will require a mips compiler, that you can generate using the following commands:
+Compiling OpenBIOS will require a mips compiler, which you can install from our [Homebrew tap](https://github.com/pcsx-redux/homebrew-mips):
 ```bash
-brew install nikitabobko/tap/brew-install-path
-brew install-path ./tools/macos-mips/mipsel-none-elf-binutils.rb
-brew install-path ./tools/macos-mips/mipsel-none-elf-gcc.rb
+brew install pcsx-redux/mips/mipsel-none-elf-gcc
 ```
 
 Then, you can compile OpenBIOS using `make -C ./src/mips/openbios`.

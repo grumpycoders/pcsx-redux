@@ -10,7 +10,10 @@ variables:
 
 steps:
 - checkout: self
-  submodules: recursive
+  submodules: false
+- task: Bash@3
+  inputs:
+    filePath: '.github/scripts/update-submodules.sh'
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
@@ -88,6 +91,7 @@ steps:
       !**\exe2elf.exe
       !**\exe2exe.exe
       !**\exe2iso.exe
+      !**\mdec.exe
       !**\modconv.exe
       !**\midi2psm.exe
       !**\midi2spd.exe

@@ -245,6 +245,9 @@
     <ProjectReference Include="..\..\uriparser\uriparser.vcxproj">
       <Project>{6acdc81a-f4d8-4c2d-8ccd-db72a88febed}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\ftxui\ftxui.vcxproj">
+      <Project>{fc48d7bd-e2d9-4ba9-8b2f-d28345048e83}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\zep\zep.vcxproj">
       <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
     </ProjectReference>
@@ -257,10 +260,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\cdrom.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\copbranch.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpudump.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
@@ -269,6 +275,8 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\pcdrv.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\psyqo.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
   </ItemGroup>
   <ItemGroup>

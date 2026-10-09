@@ -352,16 +352,23 @@ uint8_t ConvertContext::getOrAssignTone(uint8_t programIdx, int presetIndex, str
     // Compute adjusted center note: fold sample rate and transpose into center
     // so the player can assume 44100 Hz and just compute freq(note)/freq(center)*0x1000
     SpuSample& sample = samples[sampleIdx];
+    // The player computes 2^((note - center) / 12) * 2^(shift / 1200), so the fractional part of
+    // the center goes into the shift with its sign flipped, alongside the tuning.
     double semitonesAdj = 12.0 * log2(44100.0 / (double)sample.sampleRate);
-    double adjustedCenter = (double)sample.rootKey - sample.transpose + semitonesAdj;
+    double adjustedCenter = (double)sample.rootKey - sample.transpose + semitonesAdj - sample.tune / 100.0;
     int centerNote = (int)round(adjustedCenter);
-    int fineTuneCents = (int)round((adjustedCenter - centerNote) * 100.0) + sample.tune;
+    int fineTuneCents = (int)round((centerNote - adjustedCenter) * 100.0);
 
     // Clamp center to valid MIDI range
-    while (centerNote < 0 && fineTuneCents < 12700) { centerNote += 12; fineTuneCents -= 1200; }
-    while (centerNote > 127 && fineTuneCents > -12700) { centerNote -= 12; fineTuneCents += 1200; }
-    if (centerNote < 0) centerNote = 0;
-    if (centerNote > 127) centerNote = 127;
+    // Moving the center up by one semitone needs 100 more cents of shift to keep the pitch.
+    if (centerNote < 0) {
+        fineTuneCents -= centerNote * 100;
+        centerNote = 0;
+    }
+    if (centerNote > 127) {
+        fineTuneCents -= (centerNote - 127) * 100;
+        centerNote = 127;
+    }
 
     // Clamp fine tune to int8 range (-128 to +127 cents)
     if (fineTuneCents < -128) fineTuneCents = -128;

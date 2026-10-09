@@ -40,8 +40,8 @@ let
     ({
       owner = "grumpycoders";
       repo = "zep";
-      rev = "969ae7ea35ae583f215e6f3e724366e0815d58f9";
-      hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
+      rev = "1c107cbe1ed39e5d453cb5d9fb5811abfe644571";
+      hash = "sha256-n2N5/llbPAytHrXZLTjT7tA3q633Vz1i8yBj8WTlRmM=";
     })
     ({
       owner = "pcsx-redux";
@@ -109,6 +109,13 @@ let
       rev = "17f2c521ddf76466ef23db92b9fa2d7b933ca7ef";
       hash = "sha256-wBkLoznyekF+HGZagfOdQVyvkjqqgaFHIL1cIKqdLA4=";
     })
+    ({
+      owner = "ArthurSonzogni";
+      repo = "FTXUI";
+      rev = "f921fad208912747c17d129a8ef75ec7624b6eec"; # v7.0.3
+      hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
+      dest = "third_party/ftxui";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
@@ -119,8 +126,8 @@ let
     ({
       owner = "pcsx-redux";
       repo = "nugget";
-      rev = "d93840921b5ad7ed515e95b0e414f1b1e2038b1a";
-      hash = "sha256-+THJqpj64/43NAuEERCdOXzrW/jykk4IoL8RCFax+Xs=";
+      rev = "50464f050b105eb458af9b4386ffed87da2ea933";
+      hash = "sha256-6SKKkfs73of2y7B3bQc608Ymi57UQMleKOSaX6RW4i8=";
       dest = "src/mips";
     })
     ({

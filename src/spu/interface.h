@@ -86,6 +86,9 @@ class impl final : public SPUInterface {
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;
     virtual void playADPCMchannel(xa_decode_t *) final;
+    void setXAVolume(const uint8_t atv[4]) final {
+        for (unsigned i = 0; i < 4; i++) xaAtv[i] = atv[i];
+    }
 
     void save(SaveStates::SPU &) final;
     void load(const SaveStates::SPU &) final;
@@ -173,8 +176,6 @@ class impl final : public SPUInterface {
     // Sound buffer sizes.
     // 400 ms complete sound buffer.
     static const size_t SOUNDSIZE = 70560;
-    // 137 ms test buffer. If less than this is buffered, a new upload happens.
-    static const size_t TESTSIZE = 24192;
 
     // Roughly 1 ms of data.
     static const size_t NSSIZE = 45;
@@ -254,6 +255,10 @@ class impl final : public SPUInterface {
 
     // The temporary capture buffer for CD audio left/right.
     CaptureBuffer captureBuffer;
+    // Emulated cycle of the last CD audio fed to the capture buffer. While the CD is
+    // feeding, an empty buffer means the emulation is behind the mixer, not silence.
+    // 0 means the CD has not fed anything yet.
+    std::atomic<uint64_t> cdFeedCycle = 0;
     // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
 
@@ -309,8 +314,22 @@ class impl final : public SPUInterface {
         int32_t cachedVol = 0;
         int32_t cachedFraction = 0;
         bool cachedOn = true;
+        // The ADPCM cursor, walked alongside the envelope so the walk knows the sample
+        // where an end block without repeat stops the voice. Offsets into SPU RAM.
+        static constexpr uint32_t kNoLoop = UINT32_MAX;
+        static constexpr uint32_t kStopped = UINT32_MAX - 1;
+        uint32_t block = 0;           // next block to decode, or kStopped
+        uint32_t loop = kNoLoop;      // repeat address, or kNoLoop
+        bool ignoreLoop = false;      // the repeat address was written by the CPU
+        int left = 0;                 // samples left in the current block
+        int32_t pos = 0;              // 16.16 pitch counter, same as Interpolator
+        int32_t pitchStep = 0x10000;  // 16.16 pitch step
+        bool ended = false;           // an end block without repeat stopped the voice
+        bool untracked = false;       // pitch-modulated since key-on, so the cursor is unknown
     };
     EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
+    void resetAdpcmWalk(int ch);
+    bool adpcmWalkReachedStop(EnvelopeCheckpoint &cp);
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
@@ -326,22 +345,20 @@ class impl final : public SPUInterface {
     int iCycle = 0;
     int16_t *pS;
 
-    // Secure start counter.
-    int secureStart = 0;
-
     // XA
     xa_decode_t *xapGlobal = 0;
 
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;
 
-    int gauss_ptr = 0;
-    int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-    int &gvall0() { return gauss_window[gauss_ptr]; }
-    int &gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
-    int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
-    int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
+    // XA resampler ring (see FeedXA).
+    int16_t xaRingL[32] = {0};
+    int16_t xaRingR[32] = {0};
+    unsigned xaRingPos = 0;
+    int xaSixStep = 6;
+    int16_t xaLastL = 0, xaLastR = 0;
+    uint8_t xaAtv[4] = {0x80, 0, 0x80, 0};
+    int16_t zigzag(const int16_t *ring, unsigned table);
 
     SDLAudio m_audioOut = {settings};
     xa_decode_t m_cdda;

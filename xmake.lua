@@ -45,6 +45,21 @@ target("thorvg", function()
     add_defines("TVG_STATIC=1", { public = true })
 end)
 
+-- FTXUI: compiled from its sources, no CMake. The *_test.cpp / *_fuzzer.cpp
+-- files need gtest / libFuzzer and are not part of the library. component/loop.cpp
+-- is a leftover upstream no longer builds: Loop now lives in component/app.cpp.
+target("ftxui", function()
+    set_kind("static")
+    add_files("third_party/ftxui/src/**.cpp")
+    remove_files("third_party/ftxui/src/**_test.cpp", "third_party/ftxui/src/**_fuzzer.cpp",
+                 "third_party/ftxui/src/ftxui/component/loop.cpp")
+    add_includedirs("third_party/ftxui/src")
+    add_includedirs("third_party/ftxui/include", { public = true })
+    if is_plat("windows") then
+        add_defines("UNICODE", "_UNICODE")
+    end
+end)
+
 target("pcsx-redux", function()
     add_includedirs(
         ".",
@@ -74,8 +89,9 @@ target("pcsx-redux", function()
     )
 
     add_files("third_party/imgui/*.cpp", { cxxflags = "-include src/forced-includes/imgui.h" })
+    add_files("third_party/implot/*.cpp", { cxxflags = "-include src/forced-includes/implot.h" })
 
-    add_deps("luajit", "thorvg")
+    add_deps("luajit", "thorvg", "ftxui")
     add_packages("capstone", "fmt", "freetype", "libcurl", "libsdl3", "libuv", "zlib",
                  "pkgconfig::libavcodec", "pkgconfig::libavformat",
                  "pkgconfig::libavutil", "pkgconfig::libswresample")
@@ -96,7 +112,6 @@ target("pcsx-redux", function()
         "third_party/imgui_lua_bindings/imgui_lua_bindings.cpp",
         "third_party/imgui_md/imgui_md.cpp",
         "third_party/imgui_memory_editor/imgui_memory_editor.cpp",
-        "third_party/implot/*.cpp",
         "third_party/llhttp/*.c",
         "third_party/lpeg/*.c",
         "third_party/lua-protobuf/pb.c",

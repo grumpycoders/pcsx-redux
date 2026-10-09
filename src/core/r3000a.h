@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -162,22 +163,18 @@ typedef union {
     PAIR p[32];
 } psxCP2Ctrl;
 
-enum {
-    PSXINT_SIO = 0,
-    PSXINT_SIO1,
-    PSXINT_CDR,
-    PSXINT_CDREAD,
-    PSXINT_GPUDMA,
-    PSXINT_MDECOUTDMA,
-    PSXINT_SPUDMA,
-    PSXINT_GPUBUSY,
-    PSXINT_MDECINDMA,
-    PSXINT_GPUOTCDMA,
-    PSXINT_CDRDMA,
-    PSXINT_SPUASYNC,
-    PSXINT_CDRDBUF,
-    PSXINT_CDRLID,
-    PSXINT_CDRPLAY
+enum class Schedule : unsigned {
+    SIO = 0,
+    SIO1,
+    CDRFIFO,
+    CDRCOMMANDS,
+    CDREAD,
+    GPUDMA,
+    MDECOUTDMA,
+    SPUDMA,
+    MDECINDMA,
+    GPUOTCDMA,
+    CDRDMA,
 };
 
 struct psxRegisters {
@@ -189,29 +186,22 @@ struct psxRegisters {
     uint32_t code;    // The current instruction
     uint64_t cycle;
     uint64_t previousCycles;
-    uint32_t interrupt;
+    uint32_t scheduleMask;
     std::atomic<bool> spuInterrupt;
-    uint64_t intTargets[32];
+    uint64_t scheduleTargets[32];
     uint64_t lowestTarget;
+    uint64_t muldivReady;  // cycle at which hi/lo can be read without stalling
+    uint64_t gteReady;     // cycle at which the GTE can be accessed without stalling
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
+    uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
+    std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
+        return std::chrono::nanoseconds(int64_t(int32_t(futureCycle - cycle)) * 1'000'000'000 / Emulator::m_psxClockSpeed);
+    }
+    static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
+        return duration.count() * Emulator::m_psxClockSpeed / 1'000'000'000;
+    }
 };
-
-// U64 and S64 are used to wrap long integer constants.
-#define U64(val) val##ULL
-#define S64(val) val##LL
-
-#if defined(__BIGENDIAN__)
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#else
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#endif
 
 // R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
@@ -306,23 +296,83 @@ class R3000Acpu {
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
-    void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
-        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
+    void schedule(Schedule s_, uint32_t eCycle) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
         const uint64_t cycle = m_regs.cycle;
-        uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
-        m_regs.interrupt |= (1 << interrupt);
-        m_regs.intTargets[interrupt] = target;
-        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
+        uint64_t target = cycle + uint64_t(double(eCycle) * m_scheduleScales[s]);
+        m_regs.scheduleMask |= (1 << s);
+        m_regs.scheduleTargets[s] = target;
+        int64_t lowest = m_regs.lowestTarget - cycle;
+        int64_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
+    void unschedule(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Unscheduling callback %08x\n", s);
+        m_regs.scheduleMask &= ~(1 << s);
+    }
+
+    bool isScheduled(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        return (m_regs.scheduleMask & (1 << s)) != 0;
+    }
+
+    // GTE command execution time, indexed by the command's function field.
+    // Zero for the function codes that aren't documented commands.
+    static uint32_t gteLatency(uint32_t funct) {
+        static constexpr uint8_t latencies[64] = {
+            0,  15, 0, 0,  0,  0, 8,  0, 0, 0, 0,  0,  6,  0, 0,  0,   // 00
+            8,  8,  8, 19, 13, 0, 44, 0, 0, 0, 0,  17, 11, 0, 14, 0,   // 10
+            30, 0,  0, 0,  0,  0, 0,  0, 5, 8, 17, 0,  0,  5, 6,  0,   // 20
+            23, 0,  0, 0,  0,  0, 0,  0, 0, 0, 0,  0,  0,  5, 5,  39,  // 30
+        };
+        return latencies[funct & 0x3f];
+    }
+    // Called when a GTE command issues, after the cycle counter was advanced
+    // for it. A new command waits for the previous one to finish.
+    void gteStart(uint32_t latency) {
+        gteStall();
+        m_regs.gteReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
+    }
+    // Called by mfc2, cfc2 and swc2, which wait for a running command to
+    // finish whichever register they access. mtc2, ctc2 and lwc2 don't wait.
+    void gteStall() {
+        if (m_regs.cycle < m_regs.gteReady) m_regs.cycle = m_regs.gteReady;
+    }
+
+    // Multiplier and divider result latency. A multiply takes 6, 9 or 13 cycles
+    // depending on the magnitude of rs only; a divide always takes 36.
+    static uint32_t multLatency(uint32_t rs, bool isSigned) {
+        if (isSigned && (int32_t(rs) < 0)) rs = ~rs;
+        if (rs < 0x800) return 6;
+        if (rs < 0x100000) return 9;
+        return 13;
+    }
+    static constexpr uint32_t c_divLatency = 36;
+    // Called when a mul/div issues, after the cycle counter was advanced for it.
+    // The result can be read by an instruction issuing latency cycles later.
+    // A mul/div issued while the unit is busy does not wait: it replaces the
+    // running operation.
+    void muldivStart(uint32_t latency) { m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS; }
+    // Called when hi/lo is read: waits for the running operation to complete.
+    void muldivStall() {
+        if (m_regs.cycle < m_regs.muldivReady) m_regs.cycle = m_regs.muldivReady;
+    }
+    // Called by mthi/mtlo, which abort a running multiply and leave the other
+    // register partially computed; the partial value is not modelled. A
+    // running divide is cancelled the same way, which hasn't been measured.
+    void muldivCancel() { m_regs.muldivReady = 0; }
+
     psxRegisters m_regs;
-    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_scheduleScales[static_cast<unsigned>(Schedule::CDRDMA) + 1] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                                                          1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
         invalidateCache();
-        m_regs.interrupt = 0;
+        m_regs.scheduleMask = 0;
     }
     bool m_inISR = false;
     bool m_nextIsDelaySlot = false;
@@ -337,13 +387,14 @@ class R3000Acpu {
         bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
+    template <typename T = uint32_t>
+    T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
         delayedLoad.mask = mask;
-        return delayedLoad.value;
+        return reinterpret_cast<T &>(delayedLoad.value);
     }
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
         auto &ref = delayedLoadRef(reg, mask);

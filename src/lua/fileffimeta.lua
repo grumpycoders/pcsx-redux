@@ -32,9 +32,7 @@ local sliceMeta = {
         elseif index == 'size' then
             return tonumber(C.getSliceSize(slice._wrapper))
         elseif index == 'resize' then
-            return function(slice, size)
-                C.resizeSlice(slice._wrapper, size)
-            end
+            return function(slice, size) C.resizeSlice(slice._wrapper, size) end
         end
         error('Unknown index `' .. index .. '` for LuaSlice')
     end,
@@ -71,6 +69,10 @@ local bufferMeta = {
             end
         elseif index == 'pbSlice' then
             return Support._internal.createPBSliceFromBuffer(buffer)
+        elseif index == 'cast' then
+            return function(buffer, ctype)
+                return ffi.cast(ctype, buffer.data)
+            end
         end
         error('Unknown index `' .. index .. '` for LuaBuffer')
     end,

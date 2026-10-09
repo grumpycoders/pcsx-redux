@@ -67,12 +67,12 @@ class ReverbUnit {
     // in 32-bit units from CurrAddr, wrap at the top of RAM back to StartAddr, and
     // are the one piece of arithmetic every work-area access shares. ExtraSample is
     // the half-sample stagger the IIR destinations write at; it is a template
-    // parameter because it is always 0 since the reverb moved to the psx-spx IIR offsets and it selects the whole access.
+    // parameter because it is always 0 since the reverb moved to the psx-spx IIR offsets and it selects the whole
+    // access.
     int wrapOffset(int offset, int extraSample) const;
     int getBuffer(int offset, uint16_t *spuMem) const;
     template <int ExtraSample>
     void setBuffer(int offset, int value, uint16_t *spuMem);
-
 };
 
 }  // namespace SPU

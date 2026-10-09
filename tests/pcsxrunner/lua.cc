@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <stdexcept>
+
 #include "gtest/gtest.h"
 #include "main/main.h"
 
@@ -71,3 +73,14 @@ TEST(LuaAdpcm, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.adpcm"), 0); }
 TEST(LuaAudioPlayback, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.audioplayback"), 0); }
 TEST(LuaIsoBuilder, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.isobuilder"), 0); }
 TEST(LuaIsoBuilder, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.isobuilder"), 0); }
+TEST(LuaMds, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.mds"), 0); }
+
+TEST(LuaStartup, DofileError) {
+    MainInvoker failing("-no-ui", "-cli", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-dofile", "tests/lua/startup-error.lua");
+    EXPECT_THROW(failing.invoke(), std::runtime_error);
+    // The failed startup still has to shut down cleanly, or nothing else can start afterwards.
+    MainInvoker next("-no-ui", "-cli", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter", "-exec",
+                     "PCSX.quit(0)");
+    EXPECT_EQ(next.invoke(), 0);
+}

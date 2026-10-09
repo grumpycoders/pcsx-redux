@@ -66,6 +66,7 @@ extern "C" {
 #include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"
+#include "gui/luaimplot.h"
 #include "gui/luatvg.h"
 #include "gui/resources.h"
 #include "gui/shaders/crt-lottes.h"
@@ -75,18 +76,19 @@ extern "C" {
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "implot/implot.h"
+#include "implot/implot_internal.h"
 #include "json.hpp"
 #include "lua/extra.h"
 #include "lua/glffi.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
-#include "thorvg/inc/thorvg.h"
 #include "spu/interface.h"
 #include "support/bezier.h"
 #include "support/mem4g.h"
 #include "support/uvfile.h"
 #include "support/zfile.h"
 #include "supportpsx/binloader.h"
+#include "thorvg/inc/thorvg.h"
 #include "tracy/Tracy.hpp"
 
 unsigned PCSX::GUI::MarkDown::m_id = 0;
@@ -178,7 +180,8 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
       m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
-      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites) {
+      m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }
@@ -268,6 +271,7 @@ ImFont* PCSX::GUI::loadFont(const PCSX::u8string& name, int size, ImGuiIO& io, c
     std::swap(backup, s_imguiUserErrorFunctor);
     ImFontConfig cfg;
     cfg.MergeMode = combine;
+    cfg.Flags |= ImFontFlags_NoLoadError;
     ImFont* ret = nullptr;
     std::filesystem::path path = name;
     g_system->findResource(
@@ -370,6 +374,7 @@ void PCSX::GUI::setLua(Lua L) {
     setLuaCommon(L);
     LoadImguiBindings(L.getState());
     LuaFFI::open_imguiextra(this, L);
+    LuaFFI::open_implot(L);
     LuaFFI::open_gl(L);
     LuaFFI::open_tvg(this, L);
     {
@@ -526,6 +531,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_luaConsole.setCmdExec([this, luaStdout](const std::string& cmd) {
         ScopedOnlyLog scopedOnlyLog(this);
         try {
+            System::setCrashReportTag("user_lua", "console");
             g_emulator->m_lua->load(cmd, "console:", false);
             g_emulator->m_lua->pcall();
             for (const auto& error : m_glErrors) {
@@ -562,7 +568,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     });
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     m_hasCoreProfile = true;
@@ -576,13 +582,12 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     }
 
     // SDL splits window and GL context creation, so the 3.0 fallback has to
-    // cover both: a 3.2-core context can fail to materialize even after the
+    // cover both: a 3.3-core context can fail to materialize even after the
     // window itself succeeded. On platforms where the pixel format binds at
     // window creation (Win32 WGL is the strict case) a clean retry needs a
     // fresh window too, so we destroy and recreate both.
     if (!m_window || !m_glContext) {
-        g_system->log(LogClass::UI,
-                      "SDL failed to create OpenGL 3.2 core context, retrying with any 3.0 profile\n");
+        g_system->log(LogClass::UI, "SDL failed to create OpenGL 3.3 core context, retrying with any 3.0 profile\n");
         if (m_glContext) {
             SDL_GL_DestroyContext(m_glContext);
             m_glContext = nullptr;
@@ -799,7 +804,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_parallelPortEditor.title = l_("Parallel Port");
     m_scratchPadEditor.title = l_("Scratch Pad");
     m_hwrEditor.title = l_("Hardware Registers");
-    m_biosEditor.title = l_("BIOS");
+    m_biosEditor.title = []() { return "BIOS"; };
     m_vramEditor.title = l_("VRAM");
     auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
@@ -1009,9 +1014,9 @@ void PCSX::GUI::startFrame() {
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
                 const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
-                g_system->m_eventBus->signal(Events::Keyboard{
-                    static_cast<int>(event.key.key), static_cast<int>(event.key.scancode), action,
-                    static_cast<int>(event.key.mod)});
+                g_system->m_eventBus->signal(Events::Keyboard{static_cast<int>(event.key.key),
+                                                              static_cast<int>(event.key.scancode), action,
+                                                              static_cast<int>(event.key.mod)});
                 break;
             }
             default:
@@ -1306,12 +1311,12 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Reload Disk Image"), nullptr, nullptr, currentIso && !currentIso->failed())) {
                     PCSX::g_emulator->m_cdrom->clearIso();
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(currentIso->getIsoPath()));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                     g_system->hardReset();
                 }
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -1380,16 +1385,13 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->openLid();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->closeLid();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->scheduleCloseLid();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reset settings..."))) {
@@ -1485,7 +1487,7 @@ void PCSX::GUI::endFrame() {
             ImGui::Separator();
             if (ImGui::BeginMenu(_("Debug"))) {
                 ImGui::MenuItem(_("Show Logs"), nullptr, &m_log.m_show);
-                if (ImGui::BeginMenu(_("Lua"))) {
+                if (ImGui::BeginMenu("Lua")) {
                     ImGui::MenuItem(_("Show Lua Console"), nullptr, &m_luaConsole.m_show);
                     ImGui::MenuItem(_("Show Lua Inspector"), nullptr, &m_luaInspector.m_show);
                     ImGui::MenuItem(_("Show Lua editor"), nullptr, &m_luaEditor.m_show);
@@ -1555,6 +1557,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show GPU logger"), nullptr, &m_gpuLogger.m_show);
+                    ImGui::MenuItem(_("Show GPU dump recorder / player"), nullptr, &m_gpuDump.m_show);
                     ImGui::MenuItem(_("Show GPU debug"), nullptr, &PCSX::g_emulator->m_gpu->m_showDebug);
                     ImGui::EndMenu();
                 }
@@ -1614,7 +1617,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 uint32_t frameCount = g_emulator->m_spu->getFrameCount();
                 ImGui::Text(_("%.2f ms audio buffer (%i frames)"), 1000.0f * frameCount / 44100.0f, frameCount);
             } else {
-                ImGui::TextUnformatted(_("Idle"));
+                ImGui::TextUnformatted(C_("Audio status", "Idle"));
             }
 
             ImGui::EndMainMenuBar();
@@ -1635,7 +1638,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            PCSX::g_emulator->m_cdrom->check();
+            PCSX::g_emulator->m_cdrom->parseIso();
         }
     }
 
@@ -1892,6 +1895,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (g_emulator->m_gpu->m_showCfg) changed |= g_emulator->m_gpu->configure();
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
+    if (m_gpuDump.m_show) m_gpuDump.draw(_("GPU Dump"));
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
@@ -2003,7 +2007,7 @@ the update and manually apply it.)")));
             }
             ImGui::ProgressBar(m_update.progress());
             if (!m_updateDownloading) {
-                if (ImGui::Button(_("Update"))) {
+                if (ImGui::Button(C_("Update dialog button", "Update"))) {
                     m_updateDownloading = true;
                     bool started = m_update.downloadAndApplyUpdate(
                         g_system->getVersion(),
@@ -2026,7 +2030,7 @@ the update and manually apply it.)")));
                     }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button(_("Download"))) {
+                if (ImGui::Button(C_("Update dialog button", "Download"))) {
                     m_updateDownloading = true;
                     bool started = m_update.getDownloadUrl(
                         g_system->getVersion(),
@@ -2112,6 +2116,17 @@ the update and manually apply it.)")));
             L.push("DrawImguiFrame");
             L.push();
             L.settable(LUA_GLOBALSINDEX);
+        }
+        // A script that errors (or forgets to close) between ImPlot Begin* and End* leaves ImPlot's
+        // current plot/subplot set, and the next native BeginPlot would then throw its mismatch assert.
+        // Calling End* here is unsafe since the enclosing ImGui window may already be gone, so just drop
+        // the dangling state; ImGui's own error recovery takes care of the ID stack.
+        ImPlotContext* gp = ImPlot::GetCurrentContext();
+        if (gp && (gp->CurrentPlot || gp->CurrentSubplot || gp->CurrentAlignmentH || gp->CurrentAlignmentV)) {
+            ImPlot::ResetCtxForNextPlot(gp);
+            ImPlot::ResetCtxForNextSubplot(gp);
+            ImPlot::ResetCtxForNextAlignedPlots(gp);
+            gp->CurrentItems = nullptr;
         }
     } else {
         L.pop();
@@ -2275,7 +2290,7 @@ which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
         auto bios = settings.get<Emulator::SettingBios>().string();
-        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
+        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length() + 1,
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
@@ -2462,18 +2477,18 @@ of the emulator to take effect.)");
 
 void PCSX::GUI::interruptsScaler() {
     static const char* names[] = {
-        "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
-        "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
-        "CDR Play",
+        "SIO",          "SIO1",    "CDR FIFO",    "CDR Command", "CDR Reads", "GPU DMA",
+        "MDEC Out DMA", "SPU DMA", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",
     };
-    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+    static_assert(std::size(names) == std::extent_v<decltype(R3000Acpu::m_scheduleScales)>);
+    if (ImGui::Begin(_("Scheduler Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
@@ -2545,7 +2560,7 @@ bool PCSX::GUI::about() {
                     if (version.buildId.has_value()) {
                         ImGui::Text(_("Build: %i"), version.buildId.value());
                     }
-                    ImGui::TextUnformatted(_("Changeset: "));
+                    ImGui::TextUnformatted(_("Changeset:"));
                     ImGui::SameLine();
                     if (ImGui::SmallButton(version.changeset.c_str())) {
                         openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
@@ -2791,7 +2806,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     // Iso loader is last because its detection is the most broken at the moment.
     g_emulator->m_cdrom->setIso(new CDRIso(path));
-    g_emulator->m_cdrom->check();
+    g_emulator->m_cdrom->parseIso();
 }
 
 bool PCSX::GUI::getSaveStateExists(uint32_t slot) {
@@ -2865,7 +2880,7 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     save.close();
     delete[] buff;
 
-    if (!error) SaveStates::load(os.str());
+    if (!error) SaveStates::loadSafe(os.str());
     return !error;
 }
 

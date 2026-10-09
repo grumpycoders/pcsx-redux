@@ -43,6 +43,8 @@
 #define LO_OFFSET ((uintptr_t) & m_regs.GPR.n.lo - (uintptr_t)this)
 #define HI_OFFSET ((uintptr_t) & m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t) & m_regs.cycle - (uintptr_t)this)
+#define MULDIV_READY_OFFSET ((uintptr_t) & m_regs.muldivReady - (uintptr_t)this)
+#define GTE_READY_OFFSET ((uintptr_t) & m_regs.gteReady - (uintptr_t)this)
 
 #undef _PC_
 #undef _Op_
@@ -83,9 +85,25 @@
 #define _ImmU_ _fImmU_(code)
 #define _ImmLU_ _fImmLU_(code)
 
-static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
-static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
-static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
+inline uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+inline void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+// LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
+inline uint32_t lwlReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
+}
+inline uint32_t lwrReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
+}
+inline uint32_t unalignedStoreReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address, 0);
+}
+inline void swlWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
+}
+inline void swrWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
+}
+inline void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
@@ -115,7 +133,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;  // Recompiler PC
+    uint32_t m_pc;                // Recompiler PC
+    unsigned m_instructionCount;  // Instructions compiled so far in the current block
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
@@ -195,6 +214,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     void prepareForCall();
+    // The msan hardware registers take their arguments in $a0/$a1 (see psxhw.cc), so a 32-bit access to
+    // them, or to an address only known at runtime, needs syncArgumentRegisters first.
+    static bool usesArgumentRegisters(uint32_t addr, bool write) {
+        return addr == 0x1f802094 || (!write && (addr == 0x1f80208c || addr == 0x1f802090));
+    }
+    void syncArgumentRegisters();
     void handleKernelCall();
     void emitDispatcher();
     void uncompileAll();
@@ -372,6 +397,37 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
+    // True for every branch and jump: REGIMM, J, JAL, BEQ, BNE, BLEZ, BGTZ, JR and JALR.
+    static bool isBranch(uint32_t code) {
+        const uint32_t op = code >> 26;
+        if (op == 0) return (code & 0x3e) == 0x08;  // JR, JALR
+        return op >= 1 && op <= 7;
+    }
+
+    // Target of the branch or jump in `code` if it is taken, when it is known at compile time.
+    // `pc` is the address after the branch, which is the base of a relative branch.
+    std::optional<uint32_t> staticBranchTarget(uint32_t code, uint32_t pc) {
+        const uint32_t op = code >> 26;
+        if (op == 1 || (op >= 4 && op <= 7)) return (uint32_t)((int16_t)code * 4) + pc;
+        if (op == 2 || op == 3) return (pc & 0xf0000000) | ((code & 0x03ffffff) << 2);
+        if (op == 0 && (code & 0x3e) == 0x08) {
+            const unsigned rs = (code >> 21) & 0x1f;
+            if (m_gprs[rs].isConst()) return m_gprs[rs].val & ~3;
+        }
+        return std::nullopt;
+    }
+
+    // A linking branch compiled with a moved base still links to its own address + 8.
+    void fixDelaySlotBranchLink(uint32_t code, uint32_t link) {
+        const uint32_t op = code >> 26;
+        if (op == 3 || (op == 1 && ((code >> 17) & 0xf) == 8)) {
+            markConst(31, link);
+        } else if (op == 0 && (code & 0x3f) == 0x09) {
+            const unsigned rd = (code >> 11) & 0x1f;
+            if (rd) markConst(rd, link);
+        }
+    }
+
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align = true);
     void error();
@@ -425,6 +481,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recCFC2(uint32_t code);
     void recCOP0(uint32_t code);
     void recCOP2(uint32_t code);
+    void recCOP1or3(uint32_t code);
+    void recBCz(uint32_t code);
     void recCTC2(uint32_t code);
     void recDIV(uint32_t code);
     void recDIVU(uint32_t code);
@@ -448,6 +506,11 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
+    void emitStallUntil(uintptr_t readyOffset);
+    void emitMuldivStall();
+    void emitMuldivNow();
+    void emitMuldivStart(uint32_t latency);
+    void emitMultStart(uint32_t code, bool isSigned);
     void recMTLO(uint32_t code);
     void recMULT(uint32_t code);
     void recMULTU(uint32_t code);
@@ -531,7 +594,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
         &DynaRecCPU::recADDIU,   &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI,    &DynaRecCPU::recSLTIU,    // 08
         &DynaRecCPU::recANDI,    &DynaRecCPU::recORI,     &DynaRecCPU::recXORI,    &DynaRecCPU::recLUI,      // 0c
-        &DynaRecCPU::recCOP0,    &DynaRecCPU::recUnknown, &DynaRecCPU::recCOP2,    &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recCOP0,    &DynaRecCPU::recCOP1or3, &DynaRecCPU::recCOP2,    &DynaRecCPU::recCOP1or3,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c

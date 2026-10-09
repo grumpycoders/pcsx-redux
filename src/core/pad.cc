@@ -29,6 +29,7 @@
 #include <magic_enum/magic_enum_all.hpp>
 
 #include "core/psxemulator.h"
+#include "core/shmdisplay.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "gui/gui.h"
@@ -111,8 +112,7 @@ class PadsImpl : public PCSX::Pads {
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadDown"), SDL_GAMEPAD_BUTTON_DPAD_DOWN> Controller_PadDown;
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadLeft"), SDL_GAMEPAD_BUTTON_DPAD_LEFT> Controller_PadLeft;
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadCross"), SDL_GAMEPAD_BUTTON_SOUTH> Controller_PadCross;
-    typedef PCSX::Setting<int, TYPESTRING("Controller_PadTriangle"), SDL_GAMEPAD_BUTTON_NORTH>
-        Controller_PadTriangle;
+    typedef PCSX::Setting<int, TYPESTRING("Controller_PadTriangle"), SDL_GAMEPAD_BUTTON_NORTH> Controller_PadTriangle;
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadSquare"), SDL_GAMEPAD_BUTTON_WEST> Controller_PadSquare;
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadCircle"), SDL_GAMEPAD_BUTTON_EAST> Controller_PadCircle;
     typedef PCSX::Setting<int, TYPESTRING("Controller_PadSelect"), SDL_GAMEPAD_BUTTON_BACK> Controller_PadSelect;
@@ -130,18 +130,20 @@ class PadsImpl : public PCSX::Pads {
     typedef PCSX::Setting<int, TYPESTRING("ID")> SettingControllerID;
 
     typedef PCSX::Setting<bool, TYPESTRING("Connected")> SettingConnected;
+    typedef PCSX::Setting<bool, TYPESTRING("Rumble"), true> SettingRumble;
     // Default sensitivity = 5/10 = 0.5
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
 
-    typedef PCSX::Settings<
-        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
-        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
-        Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp,
-        Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
-        Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
-        Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
-        SettingDeviceType, SettingControllerID, SettingConnected, SettingMouseSensitivityX, SettingMouseSensitivityY>
+    typedef PCSX::Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
+                           Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
+                           Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadL3, Keyboard_PadR1,
+                           Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp, Controller_PadRight,
+                           Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
+                           Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart,
+                           Controller_PadL1, Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2,
+                           Controller_PadR3, SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected,
+                           SettingRumble, SettingMouseSensitivityX, SettingMouseSensitivityY>
         PadSettings;
 
     struct PadData {
@@ -150,6 +152,9 @@ class PadsImpl : public PCSX::Pads {
 
         // overriding from Lua
         uint16_t overrides = 0xffff;
+
+        // input from a host application, see ShmDisplay
+        uint16_t hostButtons = 0xffff;
 
         // Analog stick values in range (0 - 255) where 128 = center
         uint8_t rightJoyX, rightJoyY, leftJoyX, leftJoyY;
@@ -202,6 +207,22 @@ class PadsImpl : public PCSX::Pads {
         bool m_configMode = false;
         bool m_analogMode = false;
 
+        // Rumble. m_motorMapping holds the six bytes last set by config command 4Dh.
+        // Each entry says what the matching byte of the 42h read command drives:
+        // 00h = right/small motor (bit0, on/off), 01h = left/large motor (bit0-7,
+        // analog), FFh = nothing. All FFh is the power-on state, in which the pad
+        // still honours the old one-motor method, until config commands are used at
+        // all -- after that the old method is gone for good.
+        uint8_t m_motorMapping[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        bool m_configCommandsUsed = false;
+        uint8_t m_motorSmall = 0, m_motorLarge = 0;
+        uint8_t m_oldMethodLatch = 0;
+        uint16_t m_rumbleAppliedSmall = 0, m_rumbleAppliedLarge = 0;
+        uint64_t m_rumbleRefreshedAt = 0;
+
+        void applyRumble(bool force);
+        void lockRumble();
+
         PadSettings m_settings;
 
         uint8_t m_buf[256];
@@ -221,112 +242,218 @@ static PadsImpl* s_pads = nullptr;
 
 static ImGuiKey SdlScancodeToImGuiKey(int scancode) {
     switch (scancode) {
-        case SDL_SCANCODE_TAB: return ImGuiKey_Tab;
-        case SDL_SCANCODE_LEFT: return ImGuiKey_LeftArrow;
-        case SDL_SCANCODE_RIGHT: return ImGuiKey_RightArrow;
-        case SDL_SCANCODE_UP: return ImGuiKey_UpArrow;
-        case SDL_SCANCODE_DOWN: return ImGuiKey_DownArrow;
-        case SDL_SCANCODE_PAGEUP: return ImGuiKey_PageUp;
-        case SDL_SCANCODE_PAGEDOWN: return ImGuiKey_PageDown;
-        case SDL_SCANCODE_HOME: return ImGuiKey_Home;
-        case SDL_SCANCODE_END: return ImGuiKey_End;
-        case SDL_SCANCODE_INSERT: return ImGuiKey_Insert;
-        case SDL_SCANCODE_DELETE: return ImGuiKey_Delete;
-        case SDL_SCANCODE_BACKSPACE: return ImGuiKey_Backspace;
-        case SDL_SCANCODE_SPACE: return ImGuiKey_Space;
-        case SDL_SCANCODE_RETURN: return ImGuiKey_Enter;
-        case SDL_SCANCODE_ESCAPE: return ImGuiKey_Escape;
-        case SDL_SCANCODE_APOSTROPHE: return ImGuiKey_Apostrophe;
-        case SDL_SCANCODE_COMMA: return ImGuiKey_Comma;
-        case SDL_SCANCODE_MINUS: return ImGuiKey_Minus;
-        case SDL_SCANCODE_PERIOD: return ImGuiKey_Period;
-        case SDL_SCANCODE_SLASH: return ImGuiKey_Slash;
-        case SDL_SCANCODE_SEMICOLON: return ImGuiKey_Semicolon;
-        case SDL_SCANCODE_EQUALS: return ImGuiKey_Equal;
-        case SDL_SCANCODE_LEFTBRACKET: return ImGuiKey_LeftBracket;
-        case SDL_SCANCODE_BACKSLASH: return ImGuiKey_Backslash;
-        case SDL_SCANCODE_RIGHTBRACKET: return ImGuiKey_RightBracket;
-        case SDL_SCANCODE_GRAVE: return ImGuiKey_GraveAccent;
-        case SDL_SCANCODE_CAPSLOCK: return ImGuiKey_CapsLock;
-        case SDL_SCANCODE_SCROLLLOCK: return ImGuiKey_ScrollLock;
-        case SDL_SCANCODE_NUMLOCKCLEAR: return ImGuiKey_NumLock;
-        case SDL_SCANCODE_PRINTSCREEN: return ImGuiKey_PrintScreen;
-        case SDL_SCANCODE_PAUSE: return ImGuiKey_Pause;
-        case SDL_SCANCODE_KP_0: return ImGuiKey_Keypad0;
-        case SDL_SCANCODE_KP_1: return ImGuiKey_Keypad1;
-        case SDL_SCANCODE_KP_2: return ImGuiKey_Keypad2;
-        case SDL_SCANCODE_KP_3: return ImGuiKey_Keypad3;
-        case SDL_SCANCODE_KP_4: return ImGuiKey_Keypad4;
-        case SDL_SCANCODE_KP_5: return ImGuiKey_Keypad5;
-        case SDL_SCANCODE_KP_6: return ImGuiKey_Keypad6;
-        case SDL_SCANCODE_KP_7: return ImGuiKey_Keypad7;
-        case SDL_SCANCODE_KP_8: return ImGuiKey_Keypad8;
-        case SDL_SCANCODE_KP_9: return ImGuiKey_Keypad9;
-        case SDL_SCANCODE_KP_PERIOD: return ImGuiKey_KeypadDecimal;
-        case SDL_SCANCODE_KP_DIVIDE: return ImGuiKey_KeypadDivide;
-        case SDL_SCANCODE_KP_MULTIPLY: return ImGuiKey_KeypadMultiply;
-        case SDL_SCANCODE_KP_MINUS: return ImGuiKey_KeypadSubtract;
-        case SDL_SCANCODE_KP_PLUS: return ImGuiKey_KeypadAdd;
-        case SDL_SCANCODE_KP_ENTER: return ImGuiKey_KeypadEnter;
-        case SDL_SCANCODE_KP_EQUALS: return ImGuiKey_KeypadEqual;
-        case SDL_SCANCODE_LSHIFT: return ImGuiKey_LeftShift;
-        case SDL_SCANCODE_LCTRL: return ImGuiKey_LeftCtrl;
-        case SDL_SCANCODE_LALT: return ImGuiKey_LeftAlt;
-        case SDL_SCANCODE_LGUI: return ImGuiKey_LeftSuper;
-        case SDL_SCANCODE_RSHIFT: return ImGuiKey_RightShift;
-        case SDL_SCANCODE_RCTRL: return ImGuiKey_RightCtrl;
-        case SDL_SCANCODE_RALT: return ImGuiKey_RightAlt;
-        case SDL_SCANCODE_RGUI: return ImGuiKey_RightSuper;
-        case SDL_SCANCODE_MENU: return ImGuiKey_Menu;
-        case SDL_SCANCODE_0: return ImGuiKey_0;
-        case SDL_SCANCODE_1: return ImGuiKey_1;
-        case SDL_SCANCODE_2: return ImGuiKey_2;
-        case SDL_SCANCODE_3: return ImGuiKey_3;
-        case SDL_SCANCODE_4: return ImGuiKey_4;
-        case SDL_SCANCODE_5: return ImGuiKey_5;
-        case SDL_SCANCODE_6: return ImGuiKey_6;
-        case SDL_SCANCODE_7: return ImGuiKey_7;
-        case SDL_SCANCODE_8: return ImGuiKey_8;
-        case SDL_SCANCODE_9: return ImGuiKey_9;
-        case SDL_SCANCODE_A: return ImGuiKey_A;
-        case SDL_SCANCODE_B: return ImGuiKey_B;
-        case SDL_SCANCODE_C: return ImGuiKey_C;
-        case SDL_SCANCODE_D: return ImGuiKey_D;
-        case SDL_SCANCODE_E: return ImGuiKey_E;
-        case SDL_SCANCODE_F: return ImGuiKey_F;
-        case SDL_SCANCODE_G: return ImGuiKey_G;
-        case SDL_SCANCODE_H: return ImGuiKey_H;
-        case SDL_SCANCODE_I: return ImGuiKey_I;
-        case SDL_SCANCODE_J: return ImGuiKey_J;
-        case SDL_SCANCODE_K: return ImGuiKey_K;
-        case SDL_SCANCODE_L: return ImGuiKey_L;
-        case SDL_SCANCODE_M: return ImGuiKey_M;
-        case SDL_SCANCODE_N: return ImGuiKey_N;
-        case SDL_SCANCODE_O: return ImGuiKey_O;
-        case SDL_SCANCODE_P: return ImGuiKey_P;
-        case SDL_SCANCODE_Q: return ImGuiKey_Q;
-        case SDL_SCANCODE_R: return ImGuiKey_R;
-        case SDL_SCANCODE_S: return ImGuiKey_S;
-        case SDL_SCANCODE_T: return ImGuiKey_T;
-        case SDL_SCANCODE_U: return ImGuiKey_U;
-        case SDL_SCANCODE_V: return ImGuiKey_V;
-        case SDL_SCANCODE_W: return ImGuiKey_W;
-        case SDL_SCANCODE_X: return ImGuiKey_X;
-        case SDL_SCANCODE_Y: return ImGuiKey_Y;
-        case SDL_SCANCODE_Z: return ImGuiKey_Z;
-        case SDL_SCANCODE_F1: return ImGuiKey_F1;
-        case SDL_SCANCODE_F2: return ImGuiKey_F2;
-        case SDL_SCANCODE_F3: return ImGuiKey_F3;
-        case SDL_SCANCODE_F4: return ImGuiKey_F4;
-        case SDL_SCANCODE_F5: return ImGuiKey_F5;
-        case SDL_SCANCODE_F6: return ImGuiKey_F6;
-        case SDL_SCANCODE_F7: return ImGuiKey_F7;
-        case SDL_SCANCODE_F8: return ImGuiKey_F8;
-        case SDL_SCANCODE_F9: return ImGuiKey_F9;
-        case SDL_SCANCODE_F10: return ImGuiKey_F10;
-        case SDL_SCANCODE_F11: return ImGuiKey_F11;
-        case SDL_SCANCODE_F12: return ImGuiKey_F12;
-        default: return ImGuiKey_None;
+        case SDL_SCANCODE_TAB:
+            return ImGuiKey_Tab;
+        case SDL_SCANCODE_LEFT:
+            return ImGuiKey_LeftArrow;
+        case SDL_SCANCODE_RIGHT:
+            return ImGuiKey_RightArrow;
+        case SDL_SCANCODE_UP:
+            return ImGuiKey_UpArrow;
+        case SDL_SCANCODE_DOWN:
+            return ImGuiKey_DownArrow;
+        case SDL_SCANCODE_PAGEUP:
+            return ImGuiKey_PageUp;
+        case SDL_SCANCODE_PAGEDOWN:
+            return ImGuiKey_PageDown;
+        case SDL_SCANCODE_HOME:
+            return ImGuiKey_Home;
+        case SDL_SCANCODE_END:
+            return ImGuiKey_End;
+        case SDL_SCANCODE_INSERT:
+            return ImGuiKey_Insert;
+        case SDL_SCANCODE_DELETE:
+            return ImGuiKey_Delete;
+        case SDL_SCANCODE_BACKSPACE:
+            return ImGuiKey_Backspace;
+        case SDL_SCANCODE_SPACE:
+            return ImGuiKey_Space;
+        case SDL_SCANCODE_RETURN:
+            return ImGuiKey_Enter;
+        case SDL_SCANCODE_ESCAPE:
+            return ImGuiKey_Escape;
+        case SDL_SCANCODE_APOSTROPHE:
+            return ImGuiKey_Apostrophe;
+        case SDL_SCANCODE_COMMA:
+            return ImGuiKey_Comma;
+        case SDL_SCANCODE_MINUS:
+            return ImGuiKey_Minus;
+        case SDL_SCANCODE_PERIOD:
+            return ImGuiKey_Period;
+        case SDL_SCANCODE_SLASH:
+            return ImGuiKey_Slash;
+        case SDL_SCANCODE_SEMICOLON:
+            return ImGuiKey_Semicolon;
+        case SDL_SCANCODE_EQUALS:
+            return ImGuiKey_Equal;
+        case SDL_SCANCODE_LEFTBRACKET:
+            return ImGuiKey_LeftBracket;
+        case SDL_SCANCODE_BACKSLASH:
+            return ImGuiKey_Backslash;
+        case SDL_SCANCODE_RIGHTBRACKET:
+            return ImGuiKey_RightBracket;
+        case SDL_SCANCODE_GRAVE:
+            return ImGuiKey_GraveAccent;
+        case SDL_SCANCODE_CAPSLOCK:
+            return ImGuiKey_CapsLock;
+        case SDL_SCANCODE_SCROLLLOCK:
+            return ImGuiKey_ScrollLock;
+        case SDL_SCANCODE_NUMLOCKCLEAR:
+            return ImGuiKey_NumLock;
+        case SDL_SCANCODE_PRINTSCREEN:
+            return ImGuiKey_PrintScreen;
+        case SDL_SCANCODE_PAUSE:
+            return ImGuiKey_Pause;
+        case SDL_SCANCODE_KP_0:
+            return ImGuiKey_Keypad0;
+        case SDL_SCANCODE_KP_1:
+            return ImGuiKey_Keypad1;
+        case SDL_SCANCODE_KP_2:
+            return ImGuiKey_Keypad2;
+        case SDL_SCANCODE_KP_3:
+            return ImGuiKey_Keypad3;
+        case SDL_SCANCODE_KP_4:
+            return ImGuiKey_Keypad4;
+        case SDL_SCANCODE_KP_5:
+            return ImGuiKey_Keypad5;
+        case SDL_SCANCODE_KP_6:
+            return ImGuiKey_Keypad6;
+        case SDL_SCANCODE_KP_7:
+            return ImGuiKey_Keypad7;
+        case SDL_SCANCODE_KP_8:
+            return ImGuiKey_Keypad8;
+        case SDL_SCANCODE_KP_9:
+            return ImGuiKey_Keypad9;
+        case SDL_SCANCODE_KP_PERIOD:
+            return ImGuiKey_KeypadDecimal;
+        case SDL_SCANCODE_KP_DIVIDE:
+            return ImGuiKey_KeypadDivide;
+        case SDL_SCANCODE_KP_MULTIPLY:
+            return ImGuiKey_KeypadMultiply;
+        case SDL_SCANCODE_KP_MINUS:
+            return ImGuiKey_KeypadSubtract;
+        case SDL_SCANCODE_KP_PLUS:
+            return ImGuiKey_KeypadAdd;
+        case SDL_SCANCODE_KP_ENTER:
+            return ImGuiKey_KeypadEnter;
+        case SDL_SCANCODE_KP_EQUALS:
+            return ImGuiKey_KeypadEqual;
+        case SDL_SCANCODE_LSHIFT:
+            return ImGuiKey_LeftShift;
+        case SDL_SCANCODE_LCTRL:
+            return ImGuiKey_LeftCtrl;
+        case SDL_SCANCODE_LALT:
+            return ImGuiKey_LeftAlt;
+        case SDL_SCANCODE_LGUI:
+            return ImGuiKey_LeftSuper;
+        case SDL_SCANCODE_RSHIFT:
+            return ImGuiKey_RightShift;
+        case SDL_SCANCODE_RCTRL:
+            return ImGuiKey_RightCtrl;
+        case SDL_SCANCODE_RALT:
+            return ImGuiKey_RightAlt;
+        case SDL_SCANCODE_RGUI:
+            return ImGuiKey_RightSuper;
+        case SDL_SCANCODE_MENU:
+            return ImGuiKey_Menu;
+        case SDL_SCANCODE_0:
+            return ImGuiKey_0;
+        case SDL_SCANCODE_1:
+            return ImGuiKey_1;
+        case SDL_SCANCODE_2:
+            return ImGuiKey_2;
+        case SDL_SCANCODE_3:
+            return ImGuiKey_3;
+        case SDL_SCANCODE_4:
+            return ImGuiKey_4;
+        case SDL_SCANCODE_5:
+            return ImGuiKey_5;
+        case SDL_SCANCODE_6:
+            return ImGuiKey_6;
+        case SDL_SCANCODE_7:
+            return ImGuiKey_7;
+        case SDL_SCANCODE_8:
+            return ImGuiKey_8;
+        case SDL_SCANCODE_9:
+            return ImGuiKey_9;
+        case SDL_SCANCODE_A:
+            return ImGuiKey_A;
+        case SDL_SCANCODE_B:
+            return ImGuiKey_B;
+        case SDL_SCANCODE_C:
+            return ImGuiKey_C;
+        case SDL_SCANCODE_D:
+            return ImGuiKey_D;
+        case SDL_SCANCODE_E:
+            return ImGuiKey_E;
+        case SDL_SCANCODE_F:
+            return ImGuiKey_F;
+        case SDL_SCANCODE_G:
+            return ImGuiKey_G;
+        case SDL_SCANCODE_H:
+            return ImGuiKey_H;
+        case SDL_SCANCODE_I:
+            return ImGuiKey_I;
+        case SDL_SCANCODE_J:
+            return ImGuiKey_J;
+        case SDL_SCANCODE_K:
+            return ImGuiKey_K;
+        case SDL_SCANCODE_L:
+            return ImGuiKey_L;
+        case SDL_SCANCODE_M:
+            return ImGuiKey_M;
+        case SDL_SCANCODE_N:
+            return ImGuiKey_N;
+        case SDL_SCANCODE_O:
+            return ImGuiKey_O;
+        case SDL_SCANCODE_P:
+            return ImGuiKey_P;
+        case SDL_SCANCODE_Q:
+            return ImGuiKey_Q;
+        case SDL_SCANCODE_R:
+            return ImGuiKey_R;
+        case SDL_SCANCODE_S:
+            return ImGuiKey_S;
+        case SDL_SCANCODE_T:
+            return ImGuiKey_T;
+        case SDL_SCANCODE_U:
+            return ImGuiKey_U;
+        case SDL_SCANCODE_V:
+            return ImGuiKey_V;
+        case SDL_SCANCODE_W:
+            return ImGuiKey_W;
+        case SDL_SCANCODE_X:
+            return ImGuiKey_X;
+        case SDL_SCANCODE_Y:
+            return ImGuiKey_Y;
+        case SDL_SCANCODE_Z:
+            return ImGuiKey_Z;
+        case SDL_SCANCODE_F1:
+            return ImGuiKey_F1;
+        case SDL_SCANCODE_F2:
+            return ImGuiKey_F2;
+        case SDL_SCANCODE_F3:
+            return ImGuiKey_F3;
+        case SDL_SCANCODE_F4:
+            return ImGuiKey_F4;
+        case SDL_SCANCODE_F5:
+            return ImGuiKey_F5;
+        case SDL_SCANCODE_F6:
+            return ImGuiKey_F6;
+        case SDL_SCANCODE_F7:
+            return ImGuiKey_F7;
+        case SDL_SCANCODE_F8:
+            return ImGuiKey_F8;
+        case SDL_SCANCODE_F9:
+            return ImGuiKey_F9;
+        case SDL_SCANCODE_F10:
+            return ImGuiKey_F10;
+        case SDL_SCANCODE_F11:
+            return ImGuiKey_F11;
+        case SDL_SCANCODE_F12:
+            return ImGuiKey_F12;
+        default:
+            return ImGuiKey_None;
     }
 }
 
@@ -341,6 +468,9 @@ void PadsImpl::init() {
 }
 
 void PadsImpl::shutdown() {
+    // Motors first: SDL_CloseGamepad on a rumbling pad leaves it buzzing on some
+    // backends, and the handles are still live here.
+    for (auto& pad : m_pads) pad.lockRumble();
     for (auto& g : m_gamepads) {
         if (g) {
             SDL_CloseGamepad(g);
@@ -362,9 +492,12 @@ PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
 void PadsImpl::scanGamepads() {
     // Close any currently-open handles so re-scans (e.g. after hotplug) don't
     // leak. m_gamepad pointers in each Pad become stale here; the caller is
-    // expected to follow up with map() to re-resolve them.
+    // expected to follow up with map() to re-resolve them. Stop the motors before
+    // closing, as in shutdown(); the pads keep their motor state, and map() makes
+    // the next refresh re-apply it to the re-opened handle.
     for (auto& g : m_gamepads) {
         if (g) {
+            SDL_RumbleGamepad(g, 0, 0, 0);
             SDL_CloseGamepad(g);
             g = nullptr;
         }
@@ -392,6 +525,52 @@ void PadsImpl::Pad::reset() {
     m_currentByte = 0;
     m_data.buttonStatus = 0xffff;
     m_data.overrides = 0xffff;
+    lockRumble();
+    m_configCommandsUsed = false;
+}
+
+// The controller watchdog resets the pad, and hence stops and locks the motors,
+// after about a second without communication. Handing SDL that same deadline gets
+// us the same behaviour for free when the emulated machine stops polling, whether
+// it was paused, reset, or wedged mid-rumble. Refresh at half of it so an effect
+// that is still wanted never gets close to expiring.
+static constexpr uint32_t c_rumbleDurationMs = 1000;
+static constexpr uint64_t c_rumbleRefreshMs = 500;
+
+static bool gamepadHasRumble(SDL_Gamepad* gamepad) {
+    if (!gamepad) return false;
+    SDL_PropertiesID props = SDL_GetGamepadProperties(gamepad);
+    if (!props) return false;
+    return SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
+}
+
+void PadsImpl::Pad::lockRumble() {
+    std::memset(m_motorMapping, 0xff, sizeof(m_motorMapping));
+    m_oldMethodLatch = 0;
+    m_motorSmall = 0;
+    m_motorLarge = 0;
+    applyRumble(true);
+}
+
+void PadsImpl::Pad::applyRumble(bool force) {
+    if (!m_gamepad) return;
+    const bool enabled = m_settings.get<SettingRumble>() && m_settings.get<SettingConnected>();
+    // SDL's low frequency channel is the heavy/left motor, the high frequency one is
+    // the light/right motor. M1 is 0..255 analog, M2 is a single on/off bit.
+    const uint16_t low = enabled ? static_cast<uint16_t>(m_motorLarge * 0x101) : 0;
+    const uint16_t high = (enabled && m_motorSmall) ? 0xffff : 0;
+    const uint64_t now = SDL_GetTicks();
+    const bool unchanged = (low == m_rumbleAppliedLarge) && (high == m_rumbleAppliedSmall);
+    const bool idle = low == 0 && high == 0;
+
+    if (!force && unchanged && (idle || (now - m_rumbleRefreshedAt) < c_rumbleRefreshMs)) return;
+    // Stopping is worth issuing even to a pad with no actuator; it is a no-op there.
+    if (!idle && !gamepadHasRumble(m_gamepad)) return;
+
+    SDL_RumbleGamepad(m_gamepad, low, high, c_rumbleDurationMs);
+    m_rumbleAppliedLarge = low;
+    m_rumbleAppliedSmall = high;
+    m_rumbleRefreshedAt = now;
 }
 
 void PadsImpl::map() {
@@ -403,6 +582,9 @@ void PadsImpl::Pad::map() {
     int id = m_settings.get<SettingControllerID>();
     const unsigned slots = sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]);
     m_gamepad = (id >= 0 && static_cast<unsigned>(id) < slots) ? s_pads->m_gamepads[id] : nullptr;
+    // The handle may be a freshly opened one that has never been sent anything.
+    m_rumbleAppliedSmall = m_rumbleAppliedLarge = 0;
+    m_rumbleRefreshedAt = 0;
     m_type = m_settings.get<SettingDeviceType>();
 
     // L3/R3 are only avalable on analog controllers
@@ -476,6 +658,7 @@ void PadsImpl::Pad::getButtons() {
     if (!m_settings.get<SettingConnected>()) {
         pad.buttonStatus = 0xffff;
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
+        applyRumble(false);  // an unplugged pad is a silent one
         return;
     }
 
@@ -485,6 +668,9 @@ void PadsImpl::Pad::getButtons() {
 
     auto getKeyboardButtons = [this]() -> uint16_t {
         if (!ImGui::GetCurrentContext()) return 0xffff;
+        // Don't feed host keys into the emulated pad while ImGui text fields
+        // own the keyboard (typing in the UI would otherwise hit in-game).
+        if (ImGui::GetIO().WantTextInput) return 0xffff;
         uint16_t result = 0;
         for (unsigned i = 0; i < 16; i++) {
             auto key = SdlScancodeToImGuiKey(m_scancodes[i]);
@@ -512,6 +698,12 @@ void PadsImpl::Pad::getButtons() {
             s_pads->map();
         }
     }
+
+    // Push the motor state the last read command asked for. This runs here, once per
+    // poll and right after the pump, because SDL needs the pump to service an effect
+    // and because poll() sees the motor bytes one at a time -- doing it there would
+    // hand SDL half-updated pairs.
+    applyRumble(false);
 
     if (m_gamepad) {
         if (!SDL_GamepadConnected(m_gamepad)) {
@@ -612,6 +804,8 @@ void PadsImpl::Pad::getButtons() {
 uint8_t PadsImpl::startPoll(Port port) {
     int index = magic_enum::enum_integer(port);
     m_pads[index].getButtons();
+    auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
+    m_pads[index].m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
     return m_pads[index].startPoll();
 }
 
@@ -638,10 +832,39 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
         }
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
+    } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_cmd == magic_enum::enum_integer(PadCommands::Read) &&
+               m_type == PadType::Analog) {
+        // Motor bytes of the read command: the 4th..9th byte of the transfer. read()
+        // has already filled the reply buffer, so these are pure input, and what they
+        // mean is whatever command 4Dh last said they mean.
+        const unsigned slot = m_currentByte - 2;
+        if (m_configCommandsUsed) {
+            switch (m_motorMapping[slot]) {
+                case 0x00:
+                    m_motorSmall = value & 1;
+                    break;
+                case 0x01:
+                    m_motorLarge = value;
+                    break;
+            }
+        } else if (slot == 0) {
+            // Old one-motor method, still live until config commands are used: xx has
+            // to be 40h..7Fh and yy has to have bit0 set. Latch xx, decide on yy.
+            m_oldMethodLatch = value;
+        } else if (slot == 1) {
+            m_motorSmall = (((m_oldMethodLatch & 0xc0) == 0x40) && (value & 1)) ? 1 : 0;
+        }
+    } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_configMode &&
+               m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble)) {
+        // 4Dh replies with the OLD mapping and installs the new one.
+        // doDualshockCommand() already copied the old mapping into the reply buffer,
+        // so overwriting it here cannot disturb what we send back.
+        m_motorMapping[m_currentByte - 2] = value;
     } else if (m_currentByte == 2 && m_type == PadType::Analog) {
         switch (m_cmd) {
             case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
+                if (m_configMode) m_configCommandsUsed = true;
                 break;
             case magic_enum::enum_integer(PadCommands::SetAnalogMode):
                 m_analogMode = value == 1;
@@ -698,9 +921,11 @@ uint8_t PadsImpl::Pad::doDualshockCommand(uint32_t& padState) {
         std::memcpy(m_buf, reply, 8);
         return 0xf3;
     } else if (m_cmd == magic_enum::enum_integer(PadCommands::UnlockRumble) && m_configMode) {
-        static uint8_t reply[] = {0x00, 0x5a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-        std::memcpy(m_buf, reply, 8);
+        // 4Dh returns the mapping that was in effect before this command; poll() swaps
+        // in the new one byte by byte as the rest of the transfer arrives.
+        m_buf[0] = 0x00;
+        m_buf[1] = 0x5a;
+        std::memcpy(m_buf + 2, m_motorMapping, 6);
         return 0xf3;
     } else if (m_cmd == magic_enum::enum_integer(PadCommands::SetAnalogMode) && m_configMode) {
         static uint8_t reply[] = {0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -738,7 +963,7 @@ uint8_t PadsImpl::Pad::startPoll() {
 
 uint8_t PadsImpl::Pad::read() {
     const PadData& pad = m_data;
-    uint16_t buttonStatus = pad.buttonStatus & pad.overrides;
+    uint16_t buttonStatus = pad.buttonStatus & pad.overrides & pad.hostButtons;
     if (!m_settings.get<SettingConnected>()) {
         m_bufferLen = 0;
         return 0xff;
@@ -810,12 +1035,11 @@ uint8_t PadsImpl::Pad::read() {
 bool PadsImpl::configure(PCSX::GUI* gui) {
     // Check for analog mode toggle key
     for (auto& pad : m_pads) {
-        if (pad.m_type == PadType::Analog && pad.m_settings.get<Keyboard_AnalogMode>() != SDL_SCANCODE_UNKNOWN) {
-            const int key = pad.m_settings.get<Keyboard_AnalogMode>();
-
-            if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(SdlScancodeToImGuiKey(key))) {
-                pad.m_analogMode = !pad.m_analogMode;
-            }
+        if (pad.m_type != PadType::Analog) continue;
+        // Configs from before the SDL3 port hold GLFW key codes, which often have no ImGuiKey.
+        const ImGuiKey key = SdlScancodeToImGuiKey(pad.m_settings.get<Keyboard_AnalogMode>());
+        if ((key != ImGuiKey_None) && ImGui::IsKeyReleased(key)) {
+            pad.m_analogMode = !pad.m_analogMode;
         }
     }
 
@@ -836,8 +1060,21 @@ bool PadsImpl::configure(PCSX::GUI* gui) {
     };
 
     if (ImGui::Button(_("Rescan gamepads and re-read game controllers database"))) {
-        shutdown();
-        init();
+        // Only the host side restarts. The emulated pads keep their protocol state,
+        // so a game that set up its motors with 4Dh at boot keeps rumbling.
+        for (auto& g : m_gamepads) {
+            if (g) {
+                SDL_RumbleGamepad(g, 0, 0, 0);
+                SDL_CloseGamepad(g);
+                g = nullptr;
+            }
+        }
+        SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+        if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+            PCSX::g_system->log(PCSX::LogClass::UI, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s\n", SDL_GetError());
+        }
+        scanGamepads();
+        map();
     }
 
     bool changed = false;
@@ -924,14 +1161,25 @@ bool PadsImpl::Pad::configure() {
         l_("Keyboard"),
     };
     static std::function<const char*()> const c_buttonNames[] = {
-        l_("╳"),  l_("□"),  l_("△"),  l_("◯"),  l_("Select"), l_("Start"),       l_("L1"),
-        l_("R1"), l_("L2"), l_("R2"), l_("L3"), l_("R3"),     l_("Analog Mode"),
+        []() { return "╳"; },
+        []() { return "□"; },
+        []() { return "△"; },
+        []() { return "◯"; },
+        lC_("Controller button", "Select"),
+        lC_("Controller button", "Start"),
+        []() { return "L1"; },
+        []() { return "R1"; },
+        []() { return "L2"; },
+        []() { return "R2"; },
+        []() { return "L3"; },
+        []() { return "R3"; },
+        l_("Analog Mode"),
     };
     static std::function<const char*()> const c_dpadDirections[] = {
-        l_("↑"),
-        l_("→"),
-        l_("↓"),
-        l_("←"),
+        []() { return "↑"; },
+        []() { return "→"; },
+        []() { return "↓"; },
+        []() { return "←"; },
     };
     static std::function<const char*()> const c_controllerTypes[] = {
         l_("Digital"),
@@ -956,6 +1204,17 @@ bool PadsImpl::Pad::configure() {
 
     if (m_type != PadType::Analog) {
         ImGui::EndDisabled();
+    }
+
+    {
+        const bool capable = gamepadHasRumble(m_gamepad);
+        if (!capable) ImGui::BeginDisabled();
+        if (ImGui::Checkbox(_("Rumble"), &m_settings.get<SettingRumble>().value)) changed = true;
+        if (!capable) {
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::TextUnformatted(_("(no motors on this gamepad)"));
+        }
     }
 
     {
@@ -1046,10 +1305,10 @@ bool PadsImpl::Pad::configure() {
 
     const char* preview = _("No gamepad selected or connected");
     auto& id = m_settings.get<SettingControllerID>().value;
-    SDL_Gamepad* selected = (id >= 0 && static_cast<unsigned>(id) <
-                                            sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]))
-                                ? s_pads->m_gamepads[id]
-                                : nullptr;
+    SDL_Gamepad* selected =
+        (id >= 0 && static_cast<unsigned>(id) < sizeof(s_pads->m_gamepads) / sizeof(s_pads->m_gamepads[0]))
+            ? s_pads->m_gamepads[id]
+            : nullptr;
 
     // Slot index -> displayable name. Empty slots are skipped during render but
     // we keep the slot index so the user's saved SettingControllerID continues
@@ -1253,8 +1512,9 @@ void PadsImpl::setLua(PCSX::Lua L) {
                 }
                 auto buttons = m_pads[pad].m_data.buttonStatus;
                 auto overrides = m_pads[pad].m_data.overrides;
+                auto hostButtons = m_pads[pad].m_data.hostButtons;
                 unsigned button = L.checknumber(1);
-                L.push(((overrides & buttons) & (1 << button)) == 0);
+                L.push(((overrides & buttons & hostButtons) & (1 << button)) == 0);
                 return 1;
             },
             -1);

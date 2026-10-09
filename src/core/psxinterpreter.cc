@@ -79,7 +79,9 @@
 #define _rLo_ m_regs.GPR.n.lo  // The LO register
 
 #define _JumpTarget_ ((_Target_ * 4) + (_PC_ & 0xf0000000))  // Calculates the target during a jump instruction
-#define _BranchTarget_ ((int16_t)_Im_ * 4 + _PC_)            // Calculates the target during a branch instruction
+// A relative branch adds its offset to the PC register. In the delay slot of a taken branch, the PC
+// register already holds the first branch's target, so that is the base.
+#define _BranchTarget_ ((int16_t)_Im_ * 4 + branchBase())
 
 class InterpretedCPU final : public PCSX::R3000Acpu {
   public:
@@ -117,6 +119,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     template <bool debug, bool trace>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
+    uint32_t branchBase();
 
     void MTC0(int reg, uint32_t val);
 
@@ -225,6 +228,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     void psxCOP1(uint32_t code);
     void psxCOP2(uint32_t code);
     void psxCOP3(uint32_t code);
+    void psxBCz(uint32_t code, unsigned z);
     void gteMove(uint32_t code);
 
     /* GTE wrappers */
@@ -255,8 +259,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     GTE_WRAPPER(RTPS);
     GTE_WRAPPER(RTPT);
     GTE_WRAPPER(SQR);
-    GTE_WRAPPER(SWC2);
 #undef GTE_WRAPPER
+    void gteSWC2(uint32_t code) {
+        gteStall();
+        PCSX::g_emulator->m_gte->SWC2(code);
+    }
 
     static const intFunc_t s_psxBSC[64];
     static const intFunc_t s_psxSPC[64];
@@ -329,6 +336,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     static const intFunc_t s_pgxpPsxBSCMem[64];
 };
 
+inline uint32_t InterpretedCPU::branchBase() {
+    auto& pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    return pending.pcActive ? pending.pcValue : m_regs.pc;
+}
+
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
     delayedPCLoad(target, fromLink);
@@ -372,7 +384,7 @@ void InterpretedCPU::psxADDI(uint32_t code) {
 void InterpretedCPU::psxADDIU(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _u32(_rRs_) + _Imm_;
+    uint32_t newValue = _rRs_ + _Imm_;
     if (_Rt_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRt_, _Imm_);
@@ -386,7 +398,7 @@ void InterpretedCPU::psxADDIU(uint32_t code) {
 void InterpretedCPU::psxANDI(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _u32(_rRs_) & _ImmU_;
+    uint32_t newValue = _rRs_ & _ImmU_;
     if (_Rt_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRt_, newValue);
     }
@@ -395,7 +407,7 @@ void InterpretedCPU::psxANDI(uint32_t code) {
 void InterpretedCPU::psxORI(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _u32(_rRs_) | _ImmU_;
+    uint32_t newValue = _rRs_ | _ImmU_;
     if (_Rt_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRt_, newValue);
     }
@@ -404,7 +416,7 @@ void InterpretedCPU::psxORI(uint32_t code) {
 void InterpretedCPU::psxXORI(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _u32(_rRs_) ^ _ImmU_;
+    uint32_t newValue = _rRs_ ^ _ImmU_;
     if (_Rt_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRt_, newValue);
     }
@@ -413,7 +425,7 @@ void InterpretedCPU::psxXORI(uint32_t code) {
 void InterpretedCPU::psxSLTI(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _i32(_rRs_) < _Imm_;
+    uint32_t newValue = int32_t(_rRs_) < _Imm_;
     if (_Rt_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRt_, newValue);
     }
@@ -422,7 +434,7 @@ void InterpretedCPU::psxSLTI(uint32_t code) {
 void InterpretedCPU::psxSLTIU(uint32_t code) {
     if (!_Rt_) return;
     maybeCancelDelayedLoad(_Rt_);
-    uint32_t newValue = _u32(_rRs_) < ((uint32_t)_Imm_);
+    uint32_t newValue = _rRs_ < ((uint32_t)_Imm_);
     if (_Rt_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRt_, newValue);
     }
@@ -519,7 +531,7 @@ void InterpretedCPU::psxSUBU(uint32_t code) {
 void InterpretedCPU::psxAND(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) & _u32(_rRt_);
+    uint32_t newValue = _rRs_ & _rRt_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -528,7 +540,7 @@ void InterpretedCPU::psxAND(uint32_t code) {
 void InterpretedCPU::psxOR(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) | _u32(_rRt_);
+    uint32_t newValue = _rRs_ | _rRt_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -537,7 +549,7 @@ void InterpretedCPU::psxOR(uint32_t code) {
 void InterpretedCPU::psxXOR(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) ^ _u32(_rRt_);
+    uint32_t newValue = _rRs_ ^ _rRt_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -546,7 +558,7 @@ void InterpretedCPU::psxXOR(uint32_t code) {
 void InterpretedCPU::psxNOR(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = ~(_u32(_rRs_) | _u32(_rRt_));
+    uint32_t newValue = ~(_rRs_ | _rRt_);
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -555,7 +567,7 @@ void InterpretedCPU::psxNOR(uint32_t code) {
 void InterpretedCPU::psxSLT(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _i32(_rRs_) < _i32(_rRt_);
+    uint32_t newValue = int32_t(_rRs_) < int32_t(_rRt_);
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -564,7 +576,7 @@ void InterpretedCPU::psxSLT(uint32_t code) {
 void InterpretedCPU::psxSLTU(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRs_) < _u32(_rRt_);
+    uint32_t newValue = _rRs_ < _rRt_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -576,6 +588,7 @@ void InterpretedCPU::psxSLTU(uint32_t code) {
  * Format:  OP rs, rt                                     *
  *********************************************************/
 void InterpretedCPU::psxDIV(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ == 0) {
         _rHi_ = _rRs_;
         if (_rRs_ & 0x80000000) {
@@ -593,6 +606,7 @@ void InterpretedCPU::psxDIV(uint32_t code) {
 }
 
 void InterpretedCPU::psxDIVU(uint32_t code) {
+    muldivStart(c_divLatency);
     if (_rRt_ != 0) {
         _rLo_ = _rRs_ / _rRt_;
         _rHi_ = _rRs_ % _rRt_;
@@ -603,6 +617,7 @@ void InterpretedCPU::psxDIVU(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULT(uint32_t code) {
+    muldivStart(multLatency(_rRs_, true));
     uint64_t res = (int64_t)(int32_t)_rRs_ * (int64_t)(int32_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -610,6 +625,7 @@ void InterpretedCPU::psxMULT(uint32_t code) {
 }
 
 void InterpretedCPU::psxMULTU(uint32_t code) {
+    muldivStart(multLatency(_rRs_, false));
     uint64_t res = (uint64_t)_rRs_ * (uint64_t)_rRt_;
 
     m_regs.GPR.n.lo = (uint32_t)(res & 0xffffffff);
@@ -621,7 +637,7 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 #define RepZBranchi32(op)                \
-    if (_i32(_rRs_) op 0) {              \
+    if (int32_t(_rRs_) op 0) {           \
         doBranch(_BranchTarget_, false); \
     }
 #define RepZBranchLinki32(op)                                    \
@@ -649,7 +665,7 @@ void InterpretedCPU::psxBLTZAL(uint32_t code) { RepZBranchLinki32(<); }   // Bra
 void InterpretedCPU::psxSLL(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRt_) << _Sa_;
+    uint32_t newValue = _rRt_ << _Sa_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -658,7 +674,7 @@ void InterpretedCPU::psxSLL(uint32_t code) {
 void InterpretedCPU::psxSRA(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _i32(_rRt_) >> _Sa_;
+    uint32_t newValue = int32_t(_rRt_) >> _Sa_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -667,7 +683,7 @@ void InterpretedCPU::psxSRA(uint32_t code) {
 void InterpretedCPU::psxSRL(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRt_) >> _Sa_;
+    uint32_t newValue = _rRt_ >> _Sa_;
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -681,7 +697,7 @@ void InterpretedCPU::psxSRL(uint32_t code) {
 void InterpretedCPU::psxSLLV(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRt_) << (_u32(_rRs_) & 0x1f);
+    uint32_t newValue = _rRt_ << (_rRs_ & 0x1f);
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -690,7 +706,7 @@ void InterpretedCPU::psxSLLV(uint32_t code) {
 void InterpretedCPU::psxSRAV(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _i32(_rRt_) >> (_u32(_rRs_) & 0x1f);
+    uint32_t newValue = int32_t(_rRt_) >> (_rRs_ & 0x1f);
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -699,7 +715,7 @@ void InterpretedCPU::psxSRAV(uint32_t code) {
 void InterpretedCPU::psxSRLV(uint32_t code) {
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
-    uint32_t newValue = _u32(_rRt_) >> (_u32(_rRs_) & 0x1f);
+    uint32_t newValue = _rRt_ >> (_rRs_ & 0x1f);
     if (_Rd_ == 29) {
         PCSX::g_emulator->m_callStacks->setSP(_rRd_, newValue);
     }
@@ -725,6 +741,7 @@ void InterpretedCPU::psxLUI(uint32_t code) {
  * Format:  OP rd                                         *
  *********************************************************/
 void InterpretedCPU::psxMFHI(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rHi_;
@@ -734,6 +751,7 @@ void InterpretedCPU::psxMFHI(uint32_t code) {
     _rRd_ = newValue;
 }  // Rd = Hi
 void InterpretedCPU::psxMFLO(uint32_t code) {
+    muldivStall();
     if (!_Rd_) return;
     maybeCancelDelayedLoad(_Rd_);
     uint32_t newValue = _rLo_;
@@ -747,8 +765,14 @@ void InterpretedCPU::psxMFLO(uint32_t code) {
  * Move to GPR to HI/LO & Register jump                   *
  * Format:  OP rs                                         *
  *********************************************************/
-void InterpretedCPU::psxMTHI(uint32_t code) { _rHi_ = _rRs_; }  // Hi = Rs
-void InterpretedCPU::psxMTLO(uint32_t code) { _rLo_ = _rRs_; }  // Lo = Rs
+void InterpretedCPU::psxMTHI(uint32_t code) {
+    muldivCancel();
+    _rHi_ = _rRs_;  // Hi = Rs
+}
+void InterpretedCPU::psxMTLO(uint32_t code) {
+    muldivCancel();
+    _rLo_ = _rRs_;  // Lo = Rs
+}
 
 /*********************************************************
  * Special purpose instructions                           *
@@ -823,7 +847,7 @@ void InterpretedCPU::psxJR(uint32_t code) {
 }
 
 void InterpretedCPU::psxJALR(uint32_t code) {
-    uint32_t temp = _u32(_rRs_);
+    uint32_t temp = _rRs_;
     if (_Rd_) {
         maybeCancelDelayedLoad(_Rd_);
         uint32_t ra = m_regs.pc + 4;
@@ -852,12 +876,12 @@ void InterpretedCPU::psxJALR(uint32_t code) {
  * Format:  OP rt, offset(base)                           *
  *********************************************************/
 
-#define _oB_ (_u32(_rRs_) + _Imm_)
+#define _oB_ (_rRs_ + _Imm_)
 
 void InterpretedCPU::psxLB(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
-        _i32(delayedLoadRef(_Rt_)) = (int8_t)PCSX::g_emulator->m_mem->read8(_oB_);
+        delayedLoadRef<int32_t>(_Rt_) = (int8_t)PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
     }
@@ -866,7 +890,7 @@ void InterpretedCPU::psxLB(uint32_t code) {
 void InterpretedCPU::psxLBU(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
-        _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator->m_mem->read8(_oB_);
+        delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
     }
@@ -883,7 +907,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
     }
 
     if (_Rt_) {
-        _i32(delayedLoadRef(_Rt_)) = (short)PCSX::g_emulator->m_mem->read16(_oB_);
+        delayedLoadRef<int32_t>(_Rt_) = (short)PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
     }
@@ -900,7 +924,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
     }
 
     if (_Rt_) {
-        _u32(delayedLoadRef(_Rt_)) = PCSX::g_emulator->m_mem->read16(_oB_);
+        delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
     }
@@ -928,18 +952,18 @@ void InterpretedCPU::psxLW(uint32_t code) {
                 }
                 break;
         }
-        _u32(delayedLoadRef(_Rt_)) = val;
+        delayedLoadRef(_Rt_) = val;
     }
 }
 
 void InterpretedCPU::psxLWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr & ~3, PCSX::Memory::leftByteMask(addr));
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoadRef(_Rt_, LWL_MASK[shift])) = mem << LWL_SHIFT[shift];
+    delayedLoadRef(_Rt_, LWL_MASK[shift]) = mem << LWL_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -953,11 +977,11 @@ void InterpretedCPU::psxLWL(uint32_t code) {
 void InterpretedCPU::psxLWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
-    uint32_t mem = PCSX::g_emulator->m_mem->read32(addr & ~3);
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr & ~3, PCSX::Memory::rightByteMask(addr));
 
     // load delay = 1 latency
     if (!_Rt_) return;
-    _u32(delayedLoadRef(_Rt_, LWR_MASK[shift])) = mem >> LWR_SHIFT[shift];
+    delayedLoadRef(_Rt_, LWR_MASK[shift]) = mem >> LWR_SHIFT[shift];
 
     /*
     Mem = 1234.  Reg = abcd
@@ -998,15 +1022,11 @@ void InterpretedCPU::psxSWL(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
+    // the preserved bytes aren't consumed, so msan doesn't check any of them
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr, 0);
 
-    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32Masked(addr, ((_rRt_) >> SWL_SHIFT[shift]) | (mem & SWL_MASK[shift]),
+                                           PCSX::Memory::leftByteMask(shift));
     /*
     Mem = 1234.  Reg = abcd
     0   123a   (reg >> 24) | (mem & 0xffffff00)
@@ -1020,15 +1040,11 @@ void InterpretedCPU::psxSWR(uint32_t code) {
     uint32_t addr = _oB_;
     uint32_t shift = addr & 3;
     addr ^= shift;
-    uint32_t mem;
-    // special handling to avoid msan interpreting this as a read
-    if (PCSX::g_emulator->m_mem->msanInitialized() && PCSX::g_emulator->m_mem->inMsanRange(addr)) {
-        mem = *(uint32_t *)&PCSX::g_emulator->m_mem->m_msanRAM[addr - PCSX::Memory::c_msanStart];
-    } else {
-        mem = PCSX::g_emulator->m_mem->read32(addr);
-    }
+    // the preserved bytes aren't consumed, so msan doesn't check any of them
+    uint32_t mem = PCSX::g_emulator->m_mem->read32Masked(addr, 0);
 
-    PCSX::g_emulator->m_mem->write32(addr, (_u32(_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]));
+    PCSX::g_emulator->m_mem->write32Masked(addr, ((_rRt_) << SWR_SHIFT[shift]) | (mem & SWR_MASK[shift]),
+                                           PCSX::Memory::rightByteMask(shift));
 
     /*
     Mem = 1234.  Reg = abcd
@@ -1046,13 +1062,13 @@ void InterpretedCPU::psxSWR(uint32_t code) {
 void InterpretedCPU::psxMFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)m_regs.CP0.r[_Rd_];
+    delayedLoadRef<int32_t>(_Rt_) = (int)m_regs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxCFC0(uint32_t code) {
     // load delay = 1 latency
     if (!_Rt_) return;
-    _i32(delayedLoadRef(_Rt_)) = (int)m_regs.CP0.r[_Rd_];
+    delayedLoadRef<int32_t>(_Rt_) = (int)m_regs.CP0.r[_Rd_];
 }
 
 void InterpretedCPU::psxTestSWInts() {
@@ -1084,16 +1100,18 @@ inline void InterpretedCPU::MTC0(int reg, uint32_t val) {
     }
 }
 
-void InterpretedCPU::psxMTC0(uint32_t code) { MTC0(_Rd_, _u32(_rRt_)); }
-void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _u32(_rRt_)); }
+void InterpretedCPU::psxMTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
+void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
 
 void InterpretedCPU::psxMFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->MFC2(code);
 }
 
 void InterpretedCPU::psxCFC2(uint32_t code) {
+    gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
     delayedLoadRef(_Rt_) = PCSX::g_emulator->m_gte->CFC2(code);
@@ -1113,9 +1131,37 @@ void InterpretedCPU::psxSPECIAL(uint32_t code) { (*this.*(s_pPsxSPC[_Funct_]))(c
 
 void InterpretedCPU::psxREGIMM(uint32_t code) { (*this.*(s_pPsxREG[_Rt_]))(code); }
 
-void InterpretedCPU::psxCOP0(uint32_t code) { (*this.*(s_pPsxCP0[_Rs_]))(code); }
+// BCzF / BCzT. None of the coprocessors drives the condition input, so BCzF
+// always branches and BCzT never does. Bit 1 of rt is ignored, and there is
+// no branch-likely nullification. With SR.CUz clear, the branch raises a
+// coprocessor unusable exception, COP0 included, even in kernel mode.
+void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
+    if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
+        m_regs.pc -= 4;
+        exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
+        if (m_inDelaySlot) {
+            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            if (!delayedLoad.pcActive) abort();
+            delayedLoad.pcActive = false;
+        }
+        return;
+    }
+    if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);
+}
+
+void InterpretedCPU::psxCOP0(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 0);
+        return;
+    }
+    (*this.*(s_pPsxCP0[_Rs_]))(code);
+}
 
 void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) FPU
+    if (_Rs_ == 8) {
+        psxBCz(code, 1);
+        return;
+    }
     // TODO: Verify that COP1 doesn't throw a coprocessor unusable exception
     // Supposedly the COP1/COP3 ops don't fire RI, and they're NOPs
     PCSX::g_system->log(PCSX::LogClass::CPU,
@@ -1124,12 +1170,21 @@ void InterpretedCPU::psxCOP1(uint32_t code) {  // Accesses to the (nonexistent) 
 }
 
 void InterpretedCPU::psxCOP2(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 2);
+        return;
+    }
     if ((m_regs.CP0.n.Status & 0x40000000) == 0) return;
 
+    if (code & 0x02000000) gteStart(gteLatency(_Funct_));
     (*this.*(s_pPsxCP2[_Funct_]))(code);
 }
 
 void InterpretedCPU::psxCOP3(uint32_t code) {
+    if (_Rs_ == 8) {
+        psxBCz(code, 3);
+        return;
+    }
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted to access COP3 from 0x%08x. Ignored\n"), m_regs.pc - 4);
 }
 
@@ -1426,8 +1481,8 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSC[64] = {
     &InterpretedCPU::pgxpPsxSLTI, &InterpretedCPU::pgxpPsxSLTIU,  // 0a
     &InterpretedCPU::pgxpPsxANDI, &InterpretedCPU::pgxpPsxORI,    // 0c
     &InterpretedCPU::pgxpPsxXORI, &InterpretedCPU::pgxpPsxLUI,    // 0e
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,       // 10
-    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,       // 12
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxCOP1,       // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxCOP3,       // 12
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 14
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 16
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,       // 18
@@ -1535,8 +1590,8 @@ const InterpretedCPU::intFunc_t InterpretedCPU::s_pgxpPsxBSCMem[64] = {
     &InterpretedCPU::psxSLTI,     &InterpretedCPU::psxSLTIU,     // 0a
     &InterpretedCPU::psxANDI,     &InterpretedCPU::psxORI,       // 0c
     &InterpretedCPU::psxXORI,     &InterpretedCPU::psxLUI,       // 0e
-    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxNULL,      // 10
-    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxNULL,      // 12
+    &InterpretedCPU::psxCOP0,     &InterpretedCPU::psxCOP1,      // 10
+    &InterpretedCPU::psxCOP2,     &InterpretedCPU::psxCOP3,      // 12
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 14
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 16
     &InterpretedCPU::psxNULL,     &InterpretedCPU::psxNULL,      // 18
@@ -1629,6 +1684,7 @@ inline void InterpretedCPU::execBlock() {
 
         m_regs.pc += 4;
         m_regs.cycle += PCSX::Emulator::BIAS;
+        if ((m_regs.pc & 0xffc00000) == 0xbfc00000) m_regs.cycle += PCSX::Emulator::BIAS * 10;
 
         cIntFunc_t func = s_pPsxBSC[code >> 26];
         (*this.*func)(code);

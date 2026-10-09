@@ -94,6 +94,11 @@ void DynaRecCPU::makeSymbols() {
 
     REGISTER_FUNCTION(read32Wrapper, "read32_wrapper");
     REGISTER_FUNCTION(write32Wrapper, "write32_wrapper");
+    REGISTER_FUNCTION(lwlReadWrapper, "lwl_read_wrapper");
+    REGISTER_FUNCTION(lwrReadWrapper, "lwr_read_wrapper");
+    REGISTER_FUNCTION(unalignedStoreReadWrapper, "unaligned_store_read_wrapper");
+    REGISTER_FUNCTION(swlWriteWrapper, "swl_write_wrapper");
+    REGISTER_FUNCTION(swrWriteWrapper, "swr_write_wrapper");
 
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read8, "read8");
     REGISTER_CLASS_FUNCTION(PCSX::Memory::read16, "read16");

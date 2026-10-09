@@ -81,6 +81,7 @@
     <ClCompile Include="..\..\..\tests\supportpsx\ps1-packer-overlap.cc" />
     <ClCompile Include="..\..\..\tests\support\binstruct.cc" />
     <ClCompile Include="..\..\..\tests\support\circular.cc" />
+    <ClCompile Include="..\..\..\tests\support\eventbus.cc" />
     <ClCompile Include="..\..\..\tests\support\gnu-c++-demangler.cc" />
     <ClCompile Include="..\..\..\tests\support\hashtable.cc" />
     <ClCompile Include="..\..\..\tests\support\list.cc" />

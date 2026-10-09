@@ -91,6 +91,22 @@ static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
 static void write8Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write8(address, value); }
 static void write16Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write16(address, value); }
 static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+// LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
+static uint32_t lwlReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
+}
+static uint32_t lwrReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
+}
+static uint32_t unalignedStoreReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address, 0);
+}
+static void swlWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
+}
+static void swrWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
+}
 
 using DynarecCallback = void (*)();  // A function pointer to JIT-emitted code
 
@@ -194,10 +210,47 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void flushRegs();
     void spillRegisterCache();
     void prepareForCall();
+    // The msan hardware registers take their arguments in $a0/$a1 (see psxhw.cc), so a 32-bit access to
+    // them, or to an address only known at runtime, needs syncArgumentRegisters first.
+    static bool usesArgumentRegisters(uint32_t addr, bool write) {
+        return addr == 0x1f802094 || (!write && (addr == 0x1f80208c || addr == 0x1f802090));
+    }
+    void syncArgumentRegisters();
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
+
+    // True for every branch and jump: REGIMM, J, JAL, BEQ, BNE, BLEZ, BGTZ, JR and JALR.
+    static bool isBranch(uint32_t code) {
+        const uint32_t op = code >> 26;
+        if (op == 0) return (code & 0x3e) == 0x08;  // JR, JALR
+        return op >= 1 && op <= 7;
+    }
+
+    // Target of the branch or jump in `code` if it is taken, when it is known at compile time.
+    // `pc` is the address after the branch, which is the base of a relative branch.
+    std::optional<uint32_t> staticBranchTarget(uint32_t code, uint32_t pc) {
+        const uint32_t op = code >> 26;
+        if (op == 1 || (op >= 4 && op <= 7)) return (uint32_t)((int16_t)code * 4) + pc;
+        if (op == 2 || op == 3) return (pc & 0xf0000000) | ((code & 0x03ffffff) << 2);
+        if (op == 0 && (code & 0x3e) == 0x08) {
+            const unsigned rs = (code >> 21) & 0x1f;
+            if (m_gprs[rs].isConst()) return m_gprs[rs].val & ~3;
+        }
+        return std::nullopt;
+    }
+
+    // A linking branch compiled with a moved base still links to its own address + 8.
+    void fixDelaySlotBranchLink(uint32_t code, uint32_t link) {
+        const uint32_t op = code >> 26;
+        if (op == 3 || (op == 1 && ((code >> 17) & 0xf) == 8)) {
+            markConst(31, link);
+        } else if (op == 0 && (code & 0x3f) == 0x09) {
+            const unsigned rd = (code >> 11) & 0x1f;
+            if (rd) markConst(rd, link);
+        }
+    }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(DynarecCallback* callback, uint32_t pc, bool align = true,
@@ -416,6 +469,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recCFC2(uint32_t code);
     void recCOP0(uint32_t code);
     void recCOP2(uint32_t code);
+    void recCOP1or3(uint32_t code);
+    void recBCz(uint32_t code);
     void recCTC2(uint32_t code);
     void recDIV(uint32_t code);
     void recDIVU(uint32_t code);
@@ -514,7 +569,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
         &DynaRecCPU::recADDIU,   &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI,    &DynaRecCPU::recSLTIU,    // 08
         &DynaRecCPU::recANDI,    &DynaRecCPU::recORI,     &DynaRecCPU::recXORI,    &DynaRecCPU::recLUI,      // 0c
-        &DynaRecCPU::recCOP0,    &DynaRecCPU::recUnknown, &DynaRecCPU::recCOP2,    &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recCOP0,    &DynaRecCPU::recCOP1or3, &DynaRecCPU::recCOP2,    &DynaRecCPU::recCOP1or3,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c

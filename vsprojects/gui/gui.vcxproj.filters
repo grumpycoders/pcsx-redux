@@ -82,6 +82,9 @@
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\gpudump.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -104,6 +107,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\luaimplot.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\splash.cc">
@@ -204,6 +210,9 @@
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\gpudump.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
@@ -226,6 +235,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\luaimguiextra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\luaimplot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\patches.h">
@@ -265,6 +277,12 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguisafe.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotsafe.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

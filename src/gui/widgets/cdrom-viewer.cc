@@ -289,8 +289,7 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     glActiveTexture(GL_TEXTURE0);
 
     glEnableVertexAttribArray(m_locVtxPos);
-    glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)offsetof(ImDrawVert, pos));
+    glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)offsetof(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
     glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)offsetof(ImDrawVert, uv));
 }

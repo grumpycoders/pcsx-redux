@@ -405,6 +405,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_mousePos = ImGui::GetIO().MousePos;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
+    // The OpenGL backend binds its own sampler object, which overrides the texture's filter parameters.
+    drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest, nullptr);
     drawList->AddCallback(
         [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
             VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
@@ -437,6 +439,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     }
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+    // Without sampler objects, the backend's filter mode survives the reset.
+    drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
 
     const auto &io = ImGui::GetIO();
 
@@ -573,9 +577,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glActiveTexture(GL_TEXTURE0);
 }
 
-ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const {
-    return {512.0f / RATIOS[m_vramMode], 512.0f};
-}
+ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 512.0f}; }
 
 void PCSX::Widgets::VRAMViewer::resetView() {
     ZoomableImage::resetView();
@@ -750,4 +752,3 @@ void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
     ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);
     zoom(0.9f, center);
 }
-

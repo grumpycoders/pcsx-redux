@@ -38,6 +38,7 @@
 #include "gui/gui.h"
 #include "lua/extra.h"
 #include "lua/luawrapper.h"
+#include "main/terminalui.h"
 #include "main/textui.h"
 #include "spu/interface.h"
 #include "support/binpath.h"
@@ -56,10 +57,16 @@ class SystemImpl final : public PCSX::System {
             m_putcharBuffer.clear();
         }
     }
+    // stdout is fully buffered when it is a pipe, and the tools that capture it
+    // want every line as soon as it is written.
+    static void writeStdout(const std::string &s) {
+        ::fputs(s.c_str(), stdout);
+        ::fflush(stdout);
+    }
     virtual void message(std::string &&s) final override {
         if (m_args.isGUILogsEnabled()) s_ui->addNotification(s.c_str());
         if (s_ui->addLog(PCSX::LogClass::UI, s)) {
-            if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+            if (m_args.isStdoutEnabled()) writeStdout(s);
             if (m_logfile) m_logfile->write(std::move(s));
             m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UI, s});
         }
@@ -69,7 +76,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(logClass, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{logClass, s});
     }
@@ -78,7 +85,7 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             if (!s_ui->addLog(PCSX::LogClass::UNCATEGORIZED, s)) return;
         }
-        if (m_args.isStdoutEnabled()) ::fputs(s.c_str(), stdout);
+        if (m_args.isStdoutEnabled()) writeStdout(s);
         if (m_logfile) m_logfile->write(std::move(s));
         m_eventBus->signal(PCSX::Events::LogMessage{PCSX::LogClass::UNCATEGORIZED, s});
     }
@@ -87,12 +94,14 @@ class SystemImpl final : public PCSX::System {
         if (m_args.isGUILogsEnabled()) {
             s_ui->addLuaLog(s, error);
         }
+        if (m_args.isTuiEnabled()) return;
         if ((error && m_inStartup) || m_args.isLuaStdoutEnabled()) {
             if (error) {
                 fputs(s.c_str(), stderr);
                 fputc('\n', stderr);
             } else {
                 puts(s.c_str());
+                fflush(stdout);
             }
         }
     }
@@ -104,12 +113,14 @@ class SystemImpl final : public PCSX::System {
 
     virtual void softReset() final override {
         // debugger or UI is requesting a reset
+        cancelPendingSaveStateLoad();
         PCSX::g_emulator->m_cpu->psxReset();
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{});
     }
 
     virtual void hardReset() final override {
         // debugger or UI is requesting a reset
+        cancelPendingSaveStateLoad();
         PCSX::g_emulator->reset();
         m_eventBus->signal(PCSX::Events::ExecutionFlow::Reset{true});
     }
@@ -176,7 +187,8 @@ void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 // is checked here.
 static bool checkCommandLinePaths(const CommandLine::args &args) {
     bool ok = true;
-    auto checkPath = [&args, &ok](const char *name, bool directory) {
+    std::string messages;
+    auto checkPath = [&args, &ok, &messages](const char *name, bool directory) {
         for (auto value : args.values(name)) {
             if (value.empty()) continue;
             std::string str(value);
@@ -186,16 +198,36 @@ static bool checkCommandLinePaths(const CommandLine::args &args) {
                 directory ? std::filesystem::is_directory(path, ec) : std::filesystem::is_regular_file(path, ec);
             if (found) continue;
             ok = false;
+            std::string message;
             if (ec && ec != std::errc::no_such_file_or_directory && ec != std::errc::not_a_directory) {
-                fmt::print(stderr, "-{}: unable to access '{}': {}\n", name, str, ec.message());
+                message = fmt::format("-{}: unable to access '{}': {}\n", name, str, ec.message());
             } else {
-                fmt::print(stderr, "-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
+                message = fmt::format("-{}: {} '{}' not found\n", name, directory ? "directory" : "file", str);
             }
+            fmt::print(stderr, "{}", message);
+            messages += message;
         }
     };
     for (auto name : {"bios", "iso", "loadiso", "disk", "loadexe", "exe", "archive"}) checkPath(name, false);
     checkPath("pcdrvbase", true);
+#if defined(_WIN32) || defined(_WIN64)
+    // A plain GUI launch (no -stdout / -no-ui / -cli) has no console, so the stderr output above
+    // goes nowhere and the process would otherwise just exit with no visible trace of why.
+    if (!ok && GetConsoleWindow() == NULL) {
+        MessageBoxA(NULL, messages.c_str(), "pcsx-redux", MB_ICONERROR | MB_OK);
+    }
+#endif
     return ok;
+}
+
+// Returns nullptr when -tui is asked for without a terminal to draw on.
+static PCSX::UI *createUI(const CommandLine::args &args, std::vector<std::string> &favorites) {
+    if (args.get<bool>("tui")) {
+        if (!PCSX::TerminalUI::isTerminal()) return nullptr;
+        return new PCSX::TerminalUI();
+    }
+    if (args.get<bool>("no-ui") || args.get<bool>("cli")) return new PCSX::TUI();
+    return new PCSX::GUI(favorites);
 }
 
 int pcsxMain(int argc, char **argv) {
@@ -206,7 +238,7 @@ int pcsxMain(int argc, char **argv) {
     PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli")) {
+    if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli") || args.get<bool>("tui")) {
         if (AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
@@ -260,8 +292,11 @@ int pcsxMain(int argc, char **argv) {
     PCSX::g_emulator = emulator;
     auto &favorites = emulator->settings.get<PCSX::Emulator::SettingOpenDialogFavorites>().value;
 
-    s_ui = args.get<bool>("no-ui") || args.get<bool>("cli") ? reinterpret_cast<PCSX::UI *>(new PCSX::TUI())
-                                                            : reinterpret_cast<PCSX::UI *>(new PCSX::GUI(favorites));
+    s_ui = createUI(args, favorites);
+    if (!s_ui) {
+        fmt::print(stderr, "-tui needs a terminal on both stdin and stdout; use -no-ui for headless runs.\n");
+        return 1;
+    }
     // Settings will be loaded after this initialization.
     s_ui->init([&emulator, &args, &system]() {
         // Start tweaking / sanitizing settings a bit, while continuing to parse the command line
@@ -378,7 +413,7 @@ int pcsxMain(int argc, char **argv) {
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
     if (!isoToOpen.empty()) emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
-    emulator->m_cdrom->check();
+    emulator->m_cdrom->parseIso();
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();
@@ -473,6 +508,8 @@ runner.init({
                 PCSX::LuaFFI::addArchive(*L, file);
             }
             auto dofiles = args.values("dofile");
+            auto luaexecs = args.values("exec");
+            if (!dofiles.empty() || !luaexecs.empty()) PCSX::System::setCrashReportTag("user_lua", "cmdline");
             L->load("return function(name) Support.extra.dofile(name) end", "internal:dofile.lua");
             for (auto &dofile : dofiles) {
                 L->copy(-1);
@@ -482,7 +519,6 @@ runner.init({
             L->pop();
 
             // Then run all of the Lua "exec" commands.
-            auto luaexecs = args.values("exec");
             for (auto &luaexec : luaexecs) {
                 L->load(std::string(luaexec), "cmdline:");
             }
@@ -491,9 +527,19 @@ runner.init({
 
             // And finally, main loop.
             while (!system->quitting()) {
-                if (system->running()) {
+                if (system->hasPendingSaveStateLoad()) {
+                    // Somebody asked for a save state from within a callback the
+                    // emulator itself made, so we deferred it to here, where the
+                    // emulation stack has unwound and nothing is holding values
+                    // from before the load.
+                    if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
+                        PCSX::g_system->message(_("Failed to load save state\n"));
+                    }
+                } else if (system->running()) {
                     // This will run until paused or interrupted somehow.
+                    system->setInExecute(true);
                     emulator->m_cpu->Execute();
+                    system->setInExecute(false);
                 } else {
                     // The "update" method will be called periodically by the emulator while
                     // it's running, meaning if we want our UI to work, we have to manually
@@ -508,9 +554,13 @@ runner.init({
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.
             // This may cause data loss when writing files, but that's life when encountering
-            // a serious problem in a software.
-            system->setEmergencyExit();
-            uvThread.setEmergencyExit();
+            // a serious problem in a software. An error from the command-line archives or
+            // Lua scripts happens before anything is running, so that one still shuts down
+            // normally; skipping the uv thread's join there aborts the process on exit.
+            if (!system->m_inStartup) {
+                system->setEmergencyExit();
+                uvThread.setEmergencyExit();
+            }
             throw;
         }
     }
