@@ -20,7 +20,9 @@
 #include <algorithm>
 #include <cctype>
 #include <memory>
+#include <numeric>
 #include <string_view>
+#include <vector>
 
 #include "flags.h"
 #include "fmt/format.h"
@@ -52,6 +54,73 @@ typedef PCSX::BinStruct::Field<PCSX::BinStruct::CString<4>, TYPESTRING("Signatur
 typedef PCSX::BinStruct::Struct<TYPESTRING("ModFile"), ModTitle, ModSamples, Positions, RestartPosition, PatternTable,
                                 Signature>
     ModFile;
+
+namespace {
+
+// How a MOD sample is laid out in SPU memory. Lengths are in bytes of the MOD sample, which are also
+// samples, since MOD samples are 8 bits.
+//
+// One-shot samples skip the first word: ProTracker clears it on load, and uses it as the idle loop once a
+// non-looped sample is done playing, so it is silence and not part of the sound. The trailing silent loop
+// block plays that role on the SPU.
+//
+// The SPU can only loop on whole 28-sample blocks, so looped samples are laid out as:
+//   [pad zeros][sample start .. loop start][loop body] x unroll
+// - front zeros are padded so that the loop start lands exactly on a block boundary;
+// - the loop body is unrolled the smallest number of times so that it ends on a block boundary,
+//   which keeps the SPU loop period at exactly loopLength * unroll samples;
+// - anything after the loop end is never heard on a MOD player, so it is dropped.
+// The first word is skipped like for one-shot samples, unless the loop starts at word 0, in which case
+// it is part of the loop body and has to be kept.
+// modplayer derives skip and pad from the LoopStart field with the same formulas to compute 9xx sample
+// offsets, so they are part of the .hit contract.
+struct SampleLayout {
+    bool hasLoop = false;
+    unsigned loopStart = 0;   // bytes
+    unsigned loopLength = 0;  // bytes, one MOD loop period
+    unsigned skip = 2;
+    unsigned pad = 0;
+    unsigned unroll = 1;
+    unsigned body = 0;  // bytes of loop body written out
+    bool exact = true;
+    unsigned encodedLength = 0;
+};
+
+SampleLayout computeLayout(unsigned length, unsigned loopStart, unsigned loopLength, bool allowUnroll) {
+    SampleLayout l;
+    // MOD loop fields are in words. A repeat length of 0 or 1 word means "no loop"; a loop starting
+    // at word 0 is a regular loop, usually over the whole sample.
+    l.hasLoop = loopLength > 1;
+    // Some trackers write loops running past the end of the sample; clamp them to the sample end.
+    if (l.hasLoop && (loopStart >= length)) l.hasLoop = false;
+    if (l.hasLoop && ((loopStart + loopLength) > length)) {
+        loopLength = length - loopStart;
+        l.hasLoop = loopLength > 1;
+    }
+    if (length == 0) return l;
+    if (!l.hasLoop) {
+        l.encodedLength = ((length - 1) * 2 + 27) / 28 * 16 + 16;
+        return l;
+    }
+    l.loopStart = loopStart * 2;
+    l.loopLength = loopLength * 2;
+    l.skip = loopStart == 0 ? 0 : 2;
+    l.pad = (28 - (l.loopStart - l.skip) % 28) % 28;
+    const unsigned preLoop = l.pad + l.loopStart - l.skip;
+    l.unroll = 28 / std::gcd(l.loopLength, 28u);
+    l.body = l.loopLength * l.unroll;
+    if (!allowUnroll || ((preLoop + l.body) / 28 * 16 >= 65536)) {
+        // Unrolling is disabled or would overflow the 16 bits length field. Fall back to a single loop
+        // period rounded to the nearest whole block; the loop period is then off by at most 14 samples.
+        l.unroll = 1;
+        l.body = std::max(28u, (l.loopLength + 14) / 28 * 28);
+        l.exact = l.body == l.loopLength;
+    }
+    l.encodedLength = (preLoop + l.body) / 28 * 16;
+    return l;
+}
+
+}  // namespace
 
 int main(int argc, char** argv) {
     CommandLine::args args(argc, argv);
@@ -139,74 +208,97 @@ both the pattern and sample data.
 
     constexpr uint8_t silentLoopBlock[16] = {0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+    constexpr unsigned spuMemory = 512 * 1024 - 0x1010;
+
+    // Exact loops need unrolling, which can use a lot more SPU memory. If the exact layout doesn't fit,
+    // disable unrolling for the whole module, which rounds loop periods to whole blocks instead.
+    bool allowUnroll = true;
+    {
+        unsigned exactLength = 0;
+        for (unsigned i = 0; i < 31; i++) {
+            auto& sample = modFile.get<ModSamples>()[i];
+            exactLength += computeLayout(sample.get<SampleLength>().value, sample.get<SampleLoopStart>().value,
+                                         sample.get<SampleLoopLength>().value, true)
+                               .encodedLength;
+        }
+        if (exactLength >= spuMemory) {
+            fmt::print("Exact loops would need {} bytes of SPU memory; rounding loops to whole blocks instead.\n",
+                       exactLength);
+            allowUnroll = false;
+        }
+    }
+
     std::unique_ptr<PCSX::ADPCM::Encoder> encoder(new PCSX::ADPCM::Encoder);
     for (unsigned i = 0; i < 31; i++) {
         encoder->reset();
         auto& sample = modFile.get<ModSamples>()[i];
         fmt::print("Sample {:2} [{:22}] - ", i + 1, sample.get<SampleName>().value);
         auto length = sample.get<SampleLength>().value;
-        auto loopStart = sample.get<SampleLoopStart>().value;
-        auto loopLength = sample.get<SampleLoopLength>().value;
-        bool hasLoop = (loopStart > 0) && (loopLength > 1);
+        const auto layout = computeLayout(length, sample.get<SampleLoopStart>().value,
+                                          sample.get<SampleLoopLength>().value, allowUnroll);
         if (length == 0) {
             fmt::print("Empty\n");
             continue;
         }
         int16_t input[28];
         uint8_t spuBlock[16];
-        file->skip<uint16_t>();
-        length--;
-        length *= 2;
-        unsigned position = 2;
-        loopStart *= 2;
-        unsigned loopEnd = loopStart + loopLength * 2;
         unsigned encodedLength = 0;
-        while (length >= 28) {
-            for (unsigned j = 0; j < 28; j++) {
-                input[j] = int16_t(file->read<int8_t>()) * amplification;
-            }
-            length -= 28;
-            encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
-            uint8_t blockAttribute = 0;
-            if (length == 0) {
-                blockAttribute |= 1;
-            }
-            if (hasLoop && (loopStart <= position)) {
-                blockAttribute |= 2;
-                if (position < (loopStart + 28)) {
-                    blockAttribute |= 4;
+        if (!layout.hasLoop) {
+            file->skip<uint16_t>();
+            length--;
+            length *= 2;
+            while (length >= 28) {
+                for (unsigned j = 0; j < 28; j++) {
+                    input[j] = int16_t(file->read<int8_t>()) * amplification;
                 }
+                length -= 28;
+                encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
+                spuBlock[1] = length == 0 ? 1 : 0;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
             }
-            spuBlock[1] = blockAttribute;
-            position += 28;
-            encodedSamples->write(spuBlock, 16);
-            encodedLength += 16;
-        }
-        if (length != 0) {
-            for (unsigned j = 0; j < length; j++) {
-                input[j] = int16_t(file->read<int8_t>()) * amplification;
-            }
-            for (unsigned j = length; j < 28; j++) {
-                input[j] = 0;
-            }
-            encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
-            uint8_t blockAttribute = 0;
-            if (hasLoop) {
-                blockAttribute = 3;
-                if (position < (loopStart + 28)) {
-                    blockAttribute |= 4;
+            if (length != 0) {
+                for (unsigned j = 0; j < length; j++) {
+                    input[j] = int16_t(file->read<int8_t>()) * amplification;
                 }
+                for (unsigned j = length; j < 28; j++) {
+                    input[j] = 0;
+                }
+                encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
+                spuBlock[1] = 0;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
             }
-            spuBlock[1] = blockAttribute;
-            position += 28;
-            encodedSamples->write(spuBlock, 16);
-            encodedLength += 16;
-        }
-        if (!hasLoop) {
             encodedSamples->write(silentLoopBlock, 16);
             encodedLength += 16;
+            fmt::print("Size {} -> {}\n", sample.get<SampleLength>().value * 2 - 2, encodedLength);
+        } else {
+            std::vector<int16_t> source(length * 2);
+            for (auto& s : source) s = int16_t(file->read<int8_t>()) * amplification;
+            std::vector<int16_t> pcm(layout.pad, 0);
+            pcm.insert(pcm.end(), source.begin() + layout.skip, source.begin() + layout.loopStart);
+            const unsigned loopBlock = pcm.size() / 28;
+            for (unsigned j = 0; j < layout.body; j++) {
+                pcm.push_back(source[layout.loopStart + j % layout.loopLength]);
+            }
+            const unsigned blocks = pcm.size() / 28;
+            for (unsigned b = 0; b < blocks; b++) {
+                // The loop start block is forced to filter 0, so it decodes the same whether the SPU
+                // reaches it from the previous block or jumps to it from the loop end.
+                encoder->processSPUBlock(pcm.data() + b * 28, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot,
+                                         b == loopBlock);
+                uint8_t blockAttribute = 0;
+                if (b >= loopBlock) blockAttribute |= 2;
+                if (b == loopBlock) blockAttribute |= 4;
+                if (b == (blocks - 1)) blockAttribute |= 1;
+                spuBlock[1] = blockAttribute;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
+            }
+            fmt::print("Size {} -> {}, loop {}+{} bytes, pad {}, unroll {}{}\n", sample.get<SampleLength>().value * 2,
+                       encodedLength, layout.loopStart, layout.loopLength, layout.pad, layout.unroll,
+                       layout.exact ? "" : ", loop period rounded to a whole block");
         }
-        fmt::print("Size {} -> {}\n", sample.get<SampleLength>().value * 2 - 2, encodedLength);
         sample.get<SampleLength>().value = encodedLength;
         if (encodedLength >= 65536) {
             fmt::print("Sample too big.\n");
@@ -231,8 +323,6 @@ both the pattern and sample data.
         auto& sample = modFile.get<ModSamples>()[i];
         fullLength += sample.get<SampleLength>().value;
     }
-
-    constexpr unsigned spuMemory = 512 * 1024 - 0x1010;
 
     if (fullLength >= spuMemory) {
         fmt::print("Not enough SPU memory to store all samples; {} bytes required but only {} available.\n", fullLength,

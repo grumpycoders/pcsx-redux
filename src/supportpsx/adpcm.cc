@@ -86,7 +86,10 @@ void PCSX::ADPCM::Encoder::findFilterAndShift(std::span<const double> input, std
 
     *filterPtr = 0;
 
-    for (unsigned filter = 0; filter < 5; filter++) {
+    // With m_forceFilter0, only filter 0 is evaluated. The samples history below doesn't depend on the
+    // filter, so stopping after the first iteration still leaves it correct for the next block.
+    const unsigned filterCount = m_forceFilter0 ? 1 : 5;
+    for (unsigned filter = 0; filter < filterCount; filter++) {
         samples[0] = m_lastBlockSamples[channel][0];
         samples[1] = m_lastBlockSamples[channel][1];
         filteredMax[filter] = 0.0;
@@ -173,11 +176,14 @@ void PCSX::ADPCM::Encoder::blockTo8Bit(const int16_t* input, uint8_t* output) {
     }
 }
 
-void PCSX::ADPCM::Encoder::processSPUBlock(const int16_t* input, uint8_t* output, BlockAttribute blockAttribute) {
+void PCSX::ADPCM::Encoder::processSPUBlock(const int16_t* input, uint8_t* output, BlockAttribute blockAttribute,
+                                           bool forceFilter0) {
     uint8_t filter;
     uint8_t shift;
     int16_t encoded[28];
+    m_forceFilter0 = forceFilter0;
     processBlock(input, encoded, &filter, &shift);
+    m_forceFilter0 = false;
 
     uint8_t h1 = (shift & 0x0f) | ((filter & 0x0f) << 4);
     uint8_t h2 = 0;
