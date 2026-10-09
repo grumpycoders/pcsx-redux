@@ -1,4 +1,4 @@
---   Copyright (C) 2024 PCSX-Redux authors
+--   Copyright (C) 2026 PCSX-Redux authors
 --
 --   This program is free software; you can redistribute it and/or modify
 --   it under the terms of the GNU General Public License as published by
@@ -15,25 +15,4 @@
 --   Free Software Foundation, Inc.,
 --   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-local lu = require 'luaunit'
-
-TestBasic = {}
-
-function TestBasic:test_basic()
-    lu.assertEquals(1, 1)
-end
-
-function TestBasic:test_coroutine()
-    local testCoroutine = coroutine.running()
-    PCSX.nextTick(function()
-        coroutine.resume(testCoroutine, 42)
-    end)
-    local r = coroutine.yield()
-    lu.assertEquals(r, 42)
-end
-
-function TestBasic:test_unknown_event_name()
-    local ok, err = pcall(PCSX.Events.createEventListener, 'GPU::VSync', function() end)
-    lu.assertFalse(ok)
-    lu.assertStrContains(err, "'GPU::VSync'")
-end
+error('startup script error')
