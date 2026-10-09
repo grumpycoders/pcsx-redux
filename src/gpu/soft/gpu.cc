@@ -584,7 +584,8 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     imageSX = prim->w;
     imageSY = prim->h;
 
-    if ((imageX0 == imageX1) && (imageY0 == imageY1)) return;
+    // An in-place copy still rewrites every pixel, so it is only a no-op without set-mask.
+    if ((imageX0 == imageX1) && (imageY0 == imageY1) && !getSetMask16()) return;
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
