@@ -428,7 +428,10 @@ void PCSX::SPU::impl::publishHorizon(uint64_t cycle) {
     }
     m_lastHorizon = cycle;
     m_horizonCycle.store(cycle);
-    if (m_mixerWaiting.load()) {
+    // The mixer only works in whole NSSIZE batches unless the CPU is waiting on it, so there is
+    // nothing to wake it for until a batch is available. Waking it per scanline instead costs
+    // both threads a round trip for 2-3 samples of work.
+    if (m_mixerWaiting.load() && sampleAfter(cycle) >= m_mixedSamples.load() + NSSIZE) {
         std::lock_guard<std::mutex> lock(m_syncMutex);
         m_mixerWake.notify_one();
     }
@@ -505,7 +508,8 @@ void PCSX::SPU::impl::waitForWork() {
     // The timeout only bounds the cost of a missed wakeup; every producer notifies.
     m_mixerWake.wait_for(lock, std::chrono::milliseconds(10), [this]() {
         if (endThread.load()) return true;
-        if (sampleAfter(m_horizonCycle.load()) > m_mixPos) return true;
+        if (m_cpuWaiting.load()) return true;
+        if (sampleAfter(m_horizonCycle.load()) >= m_mixPos + NSSIZE) return true;
         const uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
         if (applied == m_eventsPushed.load()) return false;
         return m_events[applied & (kEventQueueSize - 1)].sample <= m_mixPos;
@@ -531,7 +535,8 @@ void PCSX::SPU::impl::MainThread() {
         // Read the horizon before the queue: every write stamped before this horizon is then
         // visible below, so the chunk cannot run past one.
         const uint64_t limit = sampleAfter(m_horizonCycle.load());
-        if (m_mixPos >= limit) {
+        // Mix in whole NSSIZE batches, and short of one only when the CPU is waiting to read.
+        if (m_mixPos >= limit || (limit - m_mixPos < NSSIZE && !m_cpuWaiting.load())) {
             // Caught up with the CPU. Hand over what is mixed and wait for it to move on.
             publishProgress();
             if (!flushOutput()) break;
