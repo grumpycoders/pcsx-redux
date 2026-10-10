@@ -64,12 +64,11 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     // prefix stays out of the cache and out of the key-off comparison.
     const uint64_t steps = target > delay ? target - delay : 0;
 
-    // Copy the live envelope for its CONFIGURATION only - attack/decay/sustain/
-    // release rates, the exponential flags, the sustain level. Those fields are
-    // written exclusively by the CPU thread, a few lines up in writeRegister, so
-    // reading them here is not a race. Every dynamic field is overwritten below,
-    // so a torn read of one cannot survive into the answer.
-    AdsrEnvelope walk = s_chan[ch].adsr;
+    // Copy the CPU-side shadow of the envelope for its CONFIGURATION only - attack/
+    // decay/sustain/release rates, the exponential flags, the sustain level - as of
+    // the last register write, which the mixer's own copy may not have applied yet.
+    // Every dynamic field is overwritten below.
+    AdsrEnvelope walk = m_adsrShadow[ch];
 
     if (steps < cp.cachedSample) {
         // Cycles went backwards under us. Rebuild from key-on rather than trust it.
@@ -106,7 +105,7 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     // modelled. Once a voice has been a modulation target since its key-on, its
     // cursor position is unknown, so it stops being walked and keeps reading its
     // envelope until the next KEY ON.
-    if (s_chan[ch].data.get<Chan::FMod>().value == 1) cp.untracked = true;
+    if (m_fmodShadow[ch] == 1) cp.untracked = true;
     const bool walkAdpcm = !cp.untracked;
 
     bool on = cp.cachedOn;
@@ -155,18 +154,17 @@ bool PCSX::SPU::impl::adpcmWalkReachedStop(EnvelopeCheckpoint& cp) {
 
 // Put the ADPCM half of the walk back at KEY ON: the start address, an empty block,
 // the pitch counter seeded the way Interpolator::keyOn seeds it, and the current pitch.
+// The addresses are the ones SoundOn recorded at the key-on write.
 void PCSX::SPU::impl::resetAdpcmWalk(int ch) {
     auto& cp = m_envelopeCheckpoint[ch];
-    const uint8_t* start = s_chan[ch].adpcm.start();
-    const uint8_t* loop = s_chan[ch].adpcm.loop();
-    cp.block = start ? (uint32_t)(start - spuRamBase) : 0;
-    cp.loop = loop ? (uint32_t)(loop - spuRamBase) : EnvelopeCheckpoint::kNoLoop;
+    cp.block = cp.keyOnBlock;
+    cp.loop = cp.keyOnLoop;
     cp.ignoreLoop = false;
     cp.left = 0;
     cp.pos = settings.get<Interpolation>() >= 2 ? 0x30000 : 0x10000;
-    cp.pitchStep = std::max(1, s_chan[ch].data.get<Chan::RawPitch>().value << 4);
+    cp.pitchStep = std::max(1, m_pitchShadow[ch] << 4);
     cp.ended = false;
-    cp.untracked = s_chan[ch].data.get<Chan::FMod>().value == 1;
+    cp.untracked = m_fmodShadow[ch] == 1;
 }
 
 // ADSR time values in milliseconds, by James Higgs; see the end of the adsr.c source for details. The original values
@@ -178,14 +176,219 @@ void PCSX::SPU::impl::resetAdpcmWalk(int ch) {
 #define SUSTAIN_MS 441L
 #define RELEASE_MS 437L
 
+// Decode the two ADSR configuration registers into an envelope. Shared by the mixer's
+// voice and the CPU-side shadow the ENVX walk reads.
+void PCSX::SPU::impl::decodeAdsrLow(AdsrEnvelope& adsr, uint16_t val) {
+    adsr.ex().get<exAttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
+    adsr.ex().get<exAttackRate>().value = (val & (ADSRFlags::AttackShiftMask | ADSRFlags::AttackStepMask)) >> 8;
+    adsr.ex().get<exDecayRate>().value = (val & ADSRFlags::DecayShiftMask) >> 4;
+    adsr.ex().get<exSustainLevel>().value = val & ADSRFlags::SustainLevelMask;
+
+    // The code below is only for debug mode.
+
+    adsr.legacy().get<AttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
+
+    // Attack time to run from 0 to 100% volume.
+    uint32_t lx = (val & ADSRFlags::AttackShiftMask) >> 10;
+    // No overflow on shift.
+    lx = std::min(31U, lx);
+    if (lx) {
+        lx = (1 << lx);
+        if (lx < 2147483) {
+            // Another overflow check.
+            lx = (lx * ATTACK_MS) / 10000L;
+        } else {
+            lx = (lx / 10000L) * ATTACK_MS;
+        }
+        if (!lx) {
+            lx = 1;
+        }
+    }
+    adsr.legacy().get<AttackTime>().value = lx;
+
+    // The ADSR volume runs from 0 to 1024, so scale the sustain level.
+    adsr.legacy().get<SustainLevel>().value = (1024 * (val & ADSRFlags::SustainLevelMask)) / 15;
+
+    // Decay.
+    lx = (val & ADSRFlags::DecayShiftMask) >> 4;
+    // The constant decay value is the time it takes to run from 100% to 0% of volume.
+    if (lx) {
+        lx = ((1 << (lx)) * DECAY_MS) / 10000L;
+        if (!lx) {
+            lx = 1;
+        }
+    }
+    // Calculate how long it takes to run from 100% to the wanted sustain level.
+    adsr.legacy().get<DecayTime>().value = (lx * (1024 - adsr.legacy().get<SustainLevel>().value)) / 1024;
+}
+
+void PCSX::SPU::impl::decodeAdsrHigh(AdsrEnvelope& adsr, uint16_t val) {
+    adsr.ex().get<exSustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
+    adsr.ex().get<exSustainIncrease>().value = (val & ADSRFlags::SustainDirection) ? 0 : 1;
+    adsr.ex().get<exSustainRate>().value = (val & (ADSRFlags::SustainShiftMask | ADSRFlags::SustainStepMask)) >> 6;
+    adsr.ex().get<exReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
+    adsr.ex().get<exReleaseRate>().value = val & ADSRFlags::ReleaseShiftMask;
+
+    // The code below is only for debug mode.
+
+    adsr.legacy().get<SustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
+    adsr.legacy().get<ReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
+
+    // Sustain time. Very high values are often used to hold the volume until a sound stop occurs. Due to
+    // the overflow checking below, the highest value reached is 94704 seconds, which is 1578 minutes, or
+    // 26 hours. That is assumed to be enough; a stop that does not come within that time span is not
+    // accounted for.
+    uint32_t lx = (val & ADSRFlags::SustainShiftMask) >> 8;
+    lx = std::min(31U, lx);
+    if (lx) {
+        lx = (1 << lx);
+        if (lx < 2147483) {
+            lx = (lx * SUSTAIN_MS) / 10000L;
+        } else {
+            lx = (lx / 10000L) * SUSTAIN_MS;
+        }
+        if (!lx) {
+            lx = 1;
+        }
+    }
+    adsr.legacy().get<SustainTime>().value = lx;
+
+    lx = (val & ADSRFlags::ReleaseShiftMask);
+    adsr.legacy().get<ReleaseVal>().value = lx;
+    // Release time from 100% to 0%. Note that the release time is adjusted when a stop is coming, so at
+    // that point the ADSR volume runs from the current volume to 0%.
+    if (lx) {
+        lx = (1 << lx);
+        if (lx < 2147483) {
+            lx = (lx * RELEASE_MS) / 10000L;
+        } else {
+            lx = (lx / 10000L) * RELEASE_MS;
+        }
+        if (!lx) {
+            lx = 1;
+        }
+    }
+    adsr.legacy().get<ReleaseTime>().value = lx;
+
+    // Add/decrement flag.
+    if (val & 0x4000) {
+        adsr.legacy().get<SustainModeDec>().value = -1;
+    } else {
+        adsr.legacy().get<SustainModeDec>().value = 1;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Write registers: called by the main emulator.
 ////////////////////////////////////////////////////////////////////////
 
+// The CPU-side half of a register write. Everything a later CPU read or the ENVX walk
+// needs is updated here, at the write's own cycle; the rest is queued for the mixer,
+// which applies it at the matching sample (applyRegister).
 void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
     const uint32_t r = reg & 0xfff;
+    const uint64_t cycle = readerCycle();
+    publishHorizon(cycle);
 
     regArea[(r - 0xc00) >> 1] = val;
+
+    if (r >= 0x0c00 && r < 0x0d80) {
+        const int ch = (r >> 4) - 0xc0;
+        switch (r & 0x0f) {
+            case 4:
+                SetPitch(ch, val, cycle);
+                break;
+            case 8:
+                decodeAdsrLow(m_adsrShadow[ch], val);
+                break;
+            case 10:
+                decodeAdsrHigh(m_adsrShadow[ch], val);
+                break;
+            case 14: {
+                // Bring the ENVX walk up to this write before it sees the new address.
+                auto& cp = m_envelopeCheckpoint[ch];
+                if (cp.keyedOn) {
+                    reconstructEnvelope(ch, cycle);
+                    cp.loop = (uint32_t)((val << 3) & ~0xf);
+                    cp.ignoreLoop = true;
+                }
+            } break;
+        }
+    } else {
+        switch (r) {
+            case H_SPUaddr:
+                spuAddr = (uint32_t)val * 8;
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Address = %04x\n", val);
+                return;
+
+            case H_SPUdata: {
+                // The mixer reads sound RAM as it plays, so it has to be exactly here when the
+                // word changes under it.
+                catchUp(cycle);
+                std::lock_guard<std::mutex> lock(cbMtx);
+                spuMem[spuAddr >> 1] = val;
+                spuAddr += 2;
+                if (spuAddr > 0x7ffff) {
+                    spuAddr = 0;
+                }
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Fifo = %04x\n", val);
+                return;
+            }
+
+            case H_SPUctrl:
+                m_ctrlShadow = val;
+                m_ctrlWritesPending++;
+                break;
+
+            case H_SPUirqAddr:
+                spuIrq = val;
+                break;
+
+            // CD audio volume feeds the XA path, which runs on the CPU thread.
+            case H_CDLeft:
+                iLeftXAVol = val & 0x7fff;
+                if (cddavCallback) {
+                    cddavCallback(0, val);
+                }
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x, unimplemented\n", val);
+                return;
+
+            case H_CDRight:
+                iRightXAVol = val & 0x7fff;
+                if (cddavCallback) {
+                    cddavCallback(1, val);
+                }
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x, unimplemented\n", val);
+                return;
+
+            case H_SPUon1:
+                SoundOn(0, 16, val, cycle);
+                break;
+            case H_SPUon2:
+                SoundOn(16, 24, val, cycle);
+                break;
+            case H_SPUoff1:
+                SoundOff(0, 16, val, cycle);
+                break;
+            case H_SPUoff2:
+                SoundOff(16, 24, val, cycle);
+                break;
+            case H_FMod1:
+                FModOn(0, 16, val, cycle);
+                break;
+            case H_FMod2:
+                FModOn(16, 24, val, cycle);
+                break;
+        }
+    }
+
+    pushEvent(cycle, r, val);
+}
+
+// The mixer-side half of a register write, run on the mixer thread when the write comes due
+// (or on the CPU thread with the mixer stopped).
+void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
+    const uint32_t r = reg & 0xfff;
 
     // Check if this is one of the voice configuration registers.
     if (r >= 0x0c00 && r < 0x0d80) {
@@ -204,7 +407,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 break;
             // Pitch.
             case 4:
-                SetPitch(ch, val);
+                SetPitchApply(ch, val);
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADPCM Sample Rate = %04x\n", ch, val);
                 break;
             // Sample start address.
@@ -214,110 +417,14 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 s_chan[ch].adpcm.setStart(spuRamBase + (uint32_t)((val << 3) & ~0xf));
                 break;
             // Attack/Decay/Sustain/Release (ADSR).
-            case 8: {
-                s_chan[ch].adsr.ex().get<exAttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
-                s_chan[ch].adsr.ex().get<exAttackRate>().value =
-                    (val & (ADSRFlags::AttackShiftMask | ADSRFlags::AttackStepMask)) >> 8;
-                s_chan[ch].adsr.ex().get<exDecayRate>().value = (val & ADSRFlags::DecayShiftMask) >> 4;
-                s_chan[ch].adsr.ex().get<exSustainLevel>().value = val & ADSRFlags::SustainLevelMask;
+            case 8:
+                decodeAdsrLow(s_chan[ch].adsr, val);
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADSR(lo) = %04x\n", ch, val);
-
-                // The code below is only for debug mode.
-
-                s_chan[ch].adsr.legacy().get<AttackModeExp>().value = (val & ADSRFlags::AttackMode) ? 1 : 0;
-
-                // Attack time to run from 0 to 100% volume.
-                uint32_t lx = (val & ADSRFlags::AttackShiftMask) >> 10;
-                // No overflow on shift.
-                lx = std::min(31U, lx);
-                if (lx) {
-                    lx = (1 << lx);
-                    if (lx < 2147483) {
-                        // Another overflow check.
-                        lx = (lx * ATTACK_MS) / 10000L;
-                    } else {
-                        lx = (lx / 10000L) * ATTACK_MS;
-                    }
-                    if (!lx) {
-                        lx = 1;
-                    }
-                }
-                s_chan[ch].adsr.legacy().get<AttackTime>().value = lx;
-
-                // The ADSR volume runs from 0 to 1024, so scale the sustain level.
-                s_chan[ch].adsr.legacy().get<SustainLevel>().value = (1024 * (val & ADSRFlags::SustainLevelMask)) / 15;
-
-                // Decay.
-                lx = (val & ADSRFlags::DecayShiftMask) >> 4;
-                // The constant decay value is the time it takes to run from 100% to 0% of volume.
-                if (lx) {
-                    lx = ((1 << (lx)) * DECAY_MS) / 10000L;
-                    if (!lx) {
-                        lx = 1;
-                    }
-                }
-                // Calculate how long it takes to run from 100% to the wanted sustain level.
-                s_chan[ch].adsr.legacy().get<DecayTime>().value =
-                    (lx * (1024 - s_chan[ch].adsr.legacy().get<SustainLevel>().value)) / 1024;
-            } break;
-            // ADSR times with pre-calculations.
-            case 10: {
-                s_chan[ch].adsr.ex().get<exSustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
-                s_chan[ch].adsr.ex().get<exSustainIncrease>().value = (val & ADSRFlags::SustainDirection) ? 0 : 1;
-                s_chan[ch].adsr.ex().get<exSustainRate>().value =
-                    (val & (ADSRFlags::SustainShiftMask | ADSRFlags::SustainStepMask)) >> 6;
-                s_chan[ch].adsr.ex().get<exReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
-                s_chan[ch].adsr.ex().get<exReleaseRate>().value = val & ADSRFlags::ReleaseShiftMask;
+                break;
+            case 10:
+                decodeAdsrHigh(s_chan[ch].adsr, val);
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADSR(hi) = %04x\n", ch, val);
-
-                // The code below is only for debug mode.
-
-                s_chan[ch].adsr.legacy().get<SustainModeExp>().value = (val & ADSRFlags::SustainMode) ? 1 : 0;
-                s_chan[ch].adsr.legacy().get<ReleaseModeExp>().value = (val & ADSRFlags::ReleaseMode) ? 1 : 0;
-
-                // Sustain time. Very high values are often used to hold the volume until a sound stop occurs. Due to
-                // the overflow checking below, the highest value reached is 94704 seconds, which is 1578 minutes, or
-                // 26 hours. That is assumed to be enough; a stop that does not come within that time span is not
-                // accounted for.
-                uint32_t lx = (val & ADSRFlags::SustainShiftMask) >> 8;
-                lx = std::min(31U, lx);
-                if (lx) {
-                    lx = (1 << lx);
-                    if (lx < 2147483) {
-                        lx = (lx * SUSTAIN_MS) / 10000L;
-                    } else {
-                        lx = (lx / 10000L) * SUSTAIN_MS;
-                    }
-                    if (!lx) {
-                        lx = 1;
-                    }
-                }
-                s_chan[ch].adsr.legacy().get<SustainTime>().value = lx;
-
-                lx = (val & ADSRFlags::ReleaseShiftMask);
-                s_chan[ch].adsr.legacy().get<ReleaseVal>().value = lx;
-                // Release time from 100% to 0%. Note that the release time is adjusted when a stop is coming, so at
-                // that point the ADSR volume runs from the current volume to 0%.
-                if (lx) {
-                    lx = (1 << lx);
-                    if (lx < 2147483) {
-                        lx = (lx * RELEASE_MS) / 10000L;
-                    } else {
-                        lx = (lx / 10000L) * RELEASE_MS;
-                    }
-                    if (!lx) {
-                        lx = 1;
-                    }
-                }
-                s_chan[ch].adsr.legacy().get<ReleaseTime>().value = lx;
-
-                // Add/decrement flag.
-                if (val & 0x4000) {
-                    s_chan[ch].adsr.legacy().get<SustainModeDec>().value = -1;
-                } else {
-                    s_chan[ch].adsr.legacy().get<SustainModeDec>().value = 1;
-                }
-            } break;
+                break;
             // TODO: emulate the ADSR volume.
             case 12:
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADSR Volume = %04x, unimplemented\n", ch, val);
@@ -327,13 +434,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 // Align to a 16-byte boundary.
                 s_chan[ch].adpcm.setLoop(spuRamBase + ((uint32_t)((val << 3) & ~0xf)));
                 s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
-                // Bring the ENVX walk up to this write before it sees the new address.
-                auto& cp = m_envelopeCheckpoint[ch];
-                if (cp.keyedOn) {
-                    reconstructEnvelope(ch, readerCycle());
-                    cp.loop = (uint32_t)((val << 3) & ~0xf);
-                    cp.ignoreLoop = true;
-                }
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADPCM Repeat Address = %04x\n", ch, val);
             } break;
         }
@@ -342,26 +442,13 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
     }
 
     switch (r) {
-        case H_SPUaddr:
-            spuAddr = (uint32_t)val * 8;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Address = %04x\n", val);
-            break;
-
-        case H_SPUdata:
-            spuMem[spuAddr >> 1] = val;
-            spuAddr += 2;
-            if (spuAddr > 0x7ffff) {
-                spuAddr = 0;
-            }
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Fifo = %04x\n", val);
-            break;
-
         case H_SPUctrl:
             // Writing IRQ9 Enable = 0 is the acknowledge: it is the only thing that clears
             // the SPUSTAT flag, and writing it back to 1 is what re-arms the interrupt.
             if (!(val & ControlFlags::IRQEnable)) spuStat &= ~StatusFlags::IRQFlag;
             spuCtrl = val;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
+            m_ctrlWritesPending--;
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
             break;
 
@@ -384,7 +471,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
 
         case H_SPUirqAddr:
-            spuIrq = val;
             irqAddress = spuRamBase + ((uint32_t)val << 3);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, IRQ Address = %04x\n", val);
             break;
@@ -424,43 +510,27 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
 
         case H_SPUon1:
-            SoundOn(0, 16, val);
+            SoundOnApply(0, 16, val);
             break;
 
         case H_SPUon2:
-            SoundOn(16, 24, val);
+            SoundOnApply(16, 24, val);
             break;
 
         case H_SPUoff1:
-            SoundOff(0, 16, val);
+            SoundOffApply(0, 16, val);
             break;
 
         case H_SPUoff2:
-            SoundOff(16, 24, val);
-            break;
-
-        case H_CDLeft:
-            iLeftXAVol = val & 0x7fff;
-            if (cddavCallback) {
-                cddavCallback(0, val);
-            }
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x, unimplemented\n", val);
-            break;
-
-        case H_CDRight:
-            iRightXAVol = val & 0x7fff;
-            if (cddavCallback) {
-                cddavCallback(1, val);
-            }
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x, unimplemented\n", val);
+            SoundOffApply(16, 24, val);
             break;
 
         case H_FMod1:
-            FModOn(0, 16, val);
+            FModOnApply(0, 16, val);
             break;
 
         case H_FMod2:
-            FModOn(16, 24, val);
+            FModOnApply(16, 24, val);
             break;
 
         case H_Noise1:
@@ -645,6 +715,8 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             // Get the loop address.
             case 14: {
                 const int ch = (r >> 4) - 0xc0;
+                // The mixer latches this from the sample data as it plays.
+                catchUp(readerCycle());
                 if (s_chan[ch].adpcm.loop() == nullptr) {
                     PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] ADPCM Repeat Address = 00000\n", ch);
                     return 0;
@@ -658,16 +730,21 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
 
     switch (r) {
         // ENDX low 16 voices (read-only).
+        // ENDX is latched by the mixer as each voice reads an end block.
         case H_SPUMute1:
+            catchUp(readerCycle());
             return (uint16_t)(spuEndx & 0xffff);
 
         // ENDX high 8 voices (read-only).
         case H_SPUMute2:
+            catchUp(readerCycle());
             return (uint16_t)((spuEndx >> 16) & 0xff);
 
-        case H_SPUctrl:
-            PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", spuCtrl.load());
-            return spuCtrl;
+        case H_SPUctrl: {
+            const uint16_t ctrl = readCtrl();
+            PCSX::PSXSPU_LOGGER::Log("SPU.read, CTRL = %04x\n", ctrl);
+            return ctrl;
+        }
 
         case H_SPUstat: {
             // Bit 11 (CBIndex) is reconstructed on the SAME clock as ENVX above, and
@@ -678,7 +755,7 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             // batch at a time (spu.cc, capBufVoiceIndex), so an edge it publishes can
             // sit up to 45 samples from the true 0x100-sample boundary.
             const uint64_t half = cycleToSample(readerCycle()) % kCaptureRegionSamples;
-            uint16_t stat = (spuStat & ~StatusFlags::SPUModeMask) | (spuCtrl & StatusFlags::SPUModeMask);
+            uint16_t stat = (spuStat & ~StatusFlags::SPUModeMask) | (readCtrl() & StatusFlags::SPUModeMask);
             if (half & kCaptureHalfMarker) {
                 stat |= StatusFlags::CBIndex;
             } else {
@@ -693,6 +770,8 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             return (uint16_t)(spuAddr >> 3);
 
         case H_SPUdata: {
+            catchUp(readerCycle());
+            std::lock_guard<std::mutex> lock(cbMtx);
             uint16_t s = spuMem[spuAddr >> 1];
             spuAddr += 2;
 
@@ -712,20 +791,23 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     return regArea[(r - 0xc00) >> 1];
 }
 
-// Start ADSR for voices [start, end] depending on val.
-void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
+// Start ADSR for voices [start, end] depending on val. CPU side: stamp the ENVX walk.
+void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val, uint64_t cycle) {
+    if ((val & ((1u << (end - start)) - 1)) == 0) return;
+    // The walk starts from the voice's start and repeat addresses as they stand at this
+    // write. The repeat address is latched by the mixer from the sample data, so bring the
+    // mixer up to here before reading either.
+    catchUp(cycle);
     for (int ch = start; ch < end; ch++, val >>= 1) {
         // The start address has to be set before key on.
         if ((val & 1) && s_chan[ch].adpcm.start()) {
-            s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
-            s_chan[ch].data.get<Chan::New>().value = true;
-            // Stamp the cycle the envelope starts at. This is the only place it is
-            // knowable: keyOn() itself runs from StartSound on the SPU thread,
-            // whenever the batch loop next notices Chan::New, so by then the CPU
-            // cycle that caused it is gone. Everything the read-time reconstruction
-            // does is measured from here.
+            // Everything the read-time reconstruction does is measured from this cycle.
             auto& cp = m_envelopeCheckpoint[ch];
-            cp.keyOnCycle = readerCycle();
+            const uint8_t* startAddr = s_chan[ch].adpcm.start();
+            const uint8_t* loopAddr = s_chan[ch].adpcm.loop();
+            cp.keyOnBlock = (uint32_t)(startAddr - spuRamBase);
+            cp.keyOnLoop = loopAddr ? (uint32_t)(loopAddr - spuRamBase) : EnvelopeCheckpoint::kNoLoop;
+            cp.keyOnCycle = cycle;
             cp.keyOffCycle = 0;
             cp.keyedOn = true;
             cp.cachedSample = 0;
@@ -734,6 +816,16 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
             cp.cachedFraction = 0;
             cp.cachedOn = true;
             resetAdpcmWalk(ch);
+        }
+    }
+}
+
+// Mixer side of KEY ON: the voice starts at this sample.
+void PCSX::SPU::impl::SoundOnApply(int start, int end, uint16_t val) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if ((val & 1) && s_chan[ch].adpcm.start()) {
+            s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
+            s_chan[ch].data.get<Chan::New>().value = true;
             // Key-on clears this voice's ENDX bit.
             spuEndx &= ~(1u << ch);
             // Bitfield for faster testing.
@@ -744,24 +836,55 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val) {
 }
 
 // Stop sound for voices [start, end] if the corresponding bit in val is set to 1.
-void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val) {
+void PCSX::SPU::impl::SoundOffApply(int start, int end, uint16_t val) {
     for (int ch = start; ch < end; ch++, val >>= 1) {
         if (val & 1) {
             if (s_chan[ch].data.get<Chan::Stop>().value != true) {
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i OFF\n", ch);
             }
             s_chan[ch].data.get<Chan::Stop>().value = true;
+        }
+    }
+}
+
+// CPU side of KEY OFF.
+void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val, uint64_t cycle) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) {
             // Release is a state transition at a known cycle, so the reconstruction
             // walk can cross it. First key-off after a key-on wins; a repeat is not
             // a second transition. SoundOn clears this.
             auto& cp = m_envelopeCheckpoint[ch];
-            if (cp.keyedOn && cp.keyOffCycle == 0) cp.keyOffCycle = readerCycle();
+            if (cp.keyedOn && cp.keyOffCycle == 0) cp.keyOffCycle = cycle;
         }
     }
 }
 
 // Set pitch modulation for voices [start, end] depending on val.
-void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
+// CPU side of pitch modulation: the shadow the ENVX walk reads.
+void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val, uint64_t cycle) {
+    for (int ch = start; ch < end; ch++, val >>= 1) {
+        if (val & 1) {
+            // Pitch modulation does not work for voice 0.
+            if (ch > 0) {
+                // Sound channel. Its ADPCM position stops being knowable to the ENVX walk,
+                // so bring the walk up to this write first: an end block reached before it
+                // still stops the voice.
+                auto& cp = m_envelopeCheckpoint[ch];
+                if (cp.keyedOn && !cp.untracked && m_fmodShadow[ch] != 1) reconstructEnvelope(ch, cycle);
+                m_fmodShadow[ch] = 1;
+                if (cp.keyedOn) cp.untracked = true;
+                m_fmodShadow[ch - 1] = 2;
+            }
+        } else {
+            // A target that was modulated during this play stays untracked until its next KEY ON.
+            m_fmodShadow[ch] = 0;
+        }
+    }
+}
+
+// Set pitch modulation for voices [start, end] depending on val.
+void PCSX::SPU::impl::FModOnApply(int start, int end, uint16_t val) {
     for (int ch = start; ch < end; ch++, val >>= 1) {
         // Check if modulation should be enabled for this voice.
         if (val & 1) {
@@ -770,15 +893,8 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
                 if (s_chan[ch].data.get<Chan::FMod>().value != 1) {
                     PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i Pitch Modulation ON\n", ch);
                 }
-                // Sound channel. Its ADPCM position stops being knowable to the ENVX walk,
-                // so bring the walk up to this write first: an end block reached before it
-                // still stops the voice.
-                auto& cp = m_envelopeCheckpoint[ch];
-                if (cp.keyedOn && !cp.untracked && s_chan[ch].data.get<Chan::FMod>().value != 1) {
-                    reconstructEnvelope(ch, readerCycle());
-                }
+                // Sound channel.
                 s_chan[ch].data.get<Chan::FMod>().value = 1;
-                if (cp.keyedOn) cp.untracked = true;
                 // Frequency channel.
                 s_chan[ch - 1].data.get<Chan::FMod>().value = 2;
             }
@@ -786,8 +902,7 @@ void PCSX::SPU::impl::FModOn(int start, int end, uint16_t val) {
             if (s_chan[ch].data.get<Chan::FMod>().value != 0) {
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i Pitch Modulation OFF\n", ch);
             }
-            // Turn off frequency modulation. A target that was modulated during this
-            // play stays untracked until its next KEY ON.
+            // Turn off frequency modulation.
             s_chan[ch].data.get<Chan::FMod>().value = 0;
         }
     }
@@ -811,22 +926,23 @@ void PCSX::SPU::impl::NoiseOn(int start, int end, uint16_t val) {
     }
 }
 
-// Set the pitch for voice ch.
-void PCSX::SPU::impl::SetPitch(int ch, uint16_t val) {
-    // The ENVX walk runs the old pitch up to this write and the new one after it.
+// Hardware saturates the pitch register at 3FFFh.
+static int clampPitch(uint16_t val) { return val > 0x3fff ? 0x3fff : val; }
+
+// CPU side of a pitch write. The ENVX walk runs the old pitch up to this write and the new
+// one after it.
+void PCSX::SPU::impl::SetPitch(int ch, uint16_t val, uint64_t cycle) {
     auto& cp = m_envelopeCheckpoint[ch];
-    if (cp.keyedOn) reconstructEnvelope(ch, readerCycle());
-
-    int NP;
-    // Get the pitch value.
-    if (val > 0x3fff) {
-        NP = 0x3fff;
-    } else {
-        NP = val;
-    }
-
-    s_chan[ch].data.get<Chan::RawPitch>().value = NP;
+    if (cp.keyedOn) reconstructEnvelope(ch, cycle);
+    const int NP = clampPitch(val);
+    m_pitchShadow[ch] = NP;
     cp.pitchStep = std::max(1, NP << 4);
+}
+
+// Set the pitch for voice ch.
+void PCSX::SPU::impl::SetPitchApply(int ch, uint16_t val) {
+    int NP = clampPitch(val);
+    s_chan[ch].data.get<Chan::RawPitch>().value = NP;
 
     // Calculate the frequency.
     NP = (44100L * NP) / 4096L;
@@ -854,4 +970,18 @@ void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val) {
             s_chan[ch].data.get<Chan::Reverb>().value = false;
         }
     }
+}
+
+// SPUCNT as the CPU sees it. While a CTRL write is still queued, that write is the answer;
+// once the mixer has applied every one, its copy is, because an IRQ clears the enable bit there.
+uint16_t PCSX::SPU::impl::readCtrl() { return m_ctrlWritesPending.load() ? m_ctrlShadow : spuCtrl.load(); }
+
+void PCSX::SPU::impl::rebuildShadows() {
+    for (unsigned ch = 0; ch < MAXCHAN; ch++) {
+        m_adsrShadow[ch] = s_chan[ch].adsr;
+        m_pitchShadow[ch] = s_chan[ch].data.get<Chan::RawPitch>().value;
+        m_fmodShadow[ch] = s_chan[ch].data.get<Chan::FMod>().value;
+    }
+    m_ctrlShadow = spuCtrl;
+    m_ctrlWritesPending = 0;
 }

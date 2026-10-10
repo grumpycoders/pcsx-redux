@@ -59,6 +59,10 @@ class SPUInterface {
     virtual void load(const SaveStates::SPU &) = 0;
     virtual uint32_t getCurrentFrames() = 0;
     virtual void waitForGoal(uint32_t goal) = 0;
+    // How many audio frames the CPU may run ahead of the audio device.
+    virtual uint32_t getLeadFrames() = 0;
+    // The CPU has reached `cycle`: the SPU may produce audio up to it.
+    virtual void advanceTo(uint64_t cycle) = 0;
     virtual uint32_t getFrameCount() = 0;
     virtual void setLua(Lua L) = 0;
 

@@ -158,6 +158,10 @@ void PCSX::Counters::reset(uint32_t index) {
 void PCSX::Counters::update() {
     const uint64_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
 
+    // The SPU mixes up to the CPU's cycle and no further, so let it have this one before
+    // possibly blocking on the audio device below.
+    g_emulator->m_spu->advanceTo(cycle);
+
     {
         uint64_t prev = g_emulator->m_cpu->m_regs.previousCycles;
         uint64_t diff = cycle - prev;
@@ -168,11 +172,14 @@ void PCSX::Counters::update() {
         diff *= 44100;
         diff /= g_emulator->m_psxClockSpeed;
         uint32_t target = m_audioFrames + diff;
-        uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
+        // The CPU runs this many frames ahead of what the device has played, so the SPU, which
+        // cannot mix past the CPU, has something buffered when the device asks for it.
+        const uint32_t lead = g_emulator->m_spu->getLeadFrames();
+        uint32_t newFrames = g_emulator->m_spu->getCurrentFrames() + lead;
         int32_t framesDiff = target - newFrames;
         if (framesDiff > 0) {
             g_emulator->m_cpu->m_regs.previousCycles = cycle;
-            g_emulator->m_spu->waitForGoal(target);
+            g_emulator->m_spu->waitForGoal(target - lead);
             m_audioFrames = target;
         } else if (framesDiff < -kMaxAudioLagFrames) {
             // The host couldn't sustain the requested speed. Cap the debt, otherwise returning to 1x runs
