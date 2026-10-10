@@ -792,7 +792,7 @@ void DynaRecCPU::recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType t
             gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
             gen.mov(dword[contextPointer + indexOffset], _Rt_);
         } else {
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
             delayedLoad.index = _Rt_;
             gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
