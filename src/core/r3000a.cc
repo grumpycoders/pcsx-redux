@@ -81,7 +81,7 @@ void PCSX::R3000Acpu::psxReset() {
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
-void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
+bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     unsigned ec = (code >> 2) & 0x1f;
@@ -102,14 +102,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x102: {  // PCcreat
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
@@ -127,14 +127,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = fd;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x103: {  // PCopen
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
@@ -158,7 +158,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = fd;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x104: {  // PCclose
                     fd = m_regs.GPR.n.a0;
@@ -174,7 +174,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_availableFDs.push_back(fd);
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x105: {  // PCread
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
@@ -182,21 +182,21 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     auto slice = file->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x106: {  // PCwrite
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
@@ -204,7 +204,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     auto slice = memFile->readAt(regs.a2, regs.a3);
@@ -214,7 +214,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x107: {  // PClseek
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a0);
@@ -222,7 +222,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     int wheel;
@@ -240,14 +240,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             regs.v0 = -1;
                             regs.v1 = -1;
                             m_regs.pc += 4;
-                            return;
+                            return false;
                     }
                     ssize_t ret = file->rSeek(regs.a2, wheel);
                     if (ret < 0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     if (file->writable()) {
                         file->wSeek(regs.a2, wheel);
@@ -261,7 +261,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = ret;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 default:
                     break;
@@ -298,6 +298,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     m_regs.CP0.n.Cause = code;
     // Set the Status
     m_regs.CP0.n.Status = (m_regs.CP0.n.Status & ~0x3f) | ((m_regs.CP0.n.Status & 0xf) << 2);
+    return true;
 }
 
 void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd) {

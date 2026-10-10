@@ -88,6 +88,18 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     InterpretedCPU() : R3000Acpu("Interpreted") {}
 
   private:
+    // An exception taken in a branch delay slot cancels the pending branch. While the delay slot
+    // executes, that branch sits in the other delayed load slot.
+    // A BREAK that PCdrv handles takes no exception, so the branch stays pending.
+    bool exception(uint32_t code, bool bd, bool cop0 = false) {
+        bool taken = R3000Acpu::exception(code, bd, cop0);
+        if (taken && bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+        return taken;
+    }
+    bool exception(Exception e, bool bd, bool cop0 = false) {
+        return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    }
+
     virtual bool Implemented() final { return true; }
     virtual bool Init() override;
     virtual void Reset() override;
@@ -781,21 +793,11 @@ void InterpretedCPU::psxMTLO(uint32_t code) {
 void InterpretedCPU::psxBREAK(uint32_t code) {
     m_regs.pc -= 4;
     exception(Exception::Break, m_inDelaySlot);
-    if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (!delayedLoad.pcActive) abort();
-        delayedLoad.pcActive = false;
-    }
 }
 
 void InterpretedCPU::psxSYSCALL(uint32_t code) {
     m_regs.pc -= 4;
     exception(Exception::Syscall, m_inDelaySlot);
-    if (m_inDelaySlot) {
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-        if (!delayedLoad.pcActive) abort();
-        delayedLoad.pcActive = false;
-    }
 }
 
 void InterpretedCPU::psxRFE(uint32_t code) {
@@ -1139,11 +1141,6 @@ void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
     if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
         m_regs.pc -= 4;
         exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
-        if (m_inDelaySlot) {
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
-            if (!delayedLoad.pcActive) abort();
-            delayedLoad.pcActive = false;
-        }
         return;
     }
     if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);

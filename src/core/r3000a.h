@@ -289,10 +289,10 @@ class R3000Acpu {
         CoprocessorUnusable = 11,
         ArithmeticOverflow = 12,
     };
-    void exception(Exception e, bool bd, bool cop0 = false) {
-        exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    bool exception(Exception e, bool bd, bool cop0 = false) {
+        return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
-    void exception(uint32_t code, bool bd, bool cop0 = false);
+    bool exception(uint32_t code, bool bd, bool cop0 = false);
     void branchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
