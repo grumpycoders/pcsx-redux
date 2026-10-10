@@ -35,6 +35,7 @@
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready
 #define GPUSTATUS_MODE 0x02000000  // Data request mode
+#define GPUSTATUS_IRQ1 0x01000000  // GP0(1Fh) / GP1(02h)
 
 namespace PCSX {
 
@@ -377,6 +378,7 @@ uint32_t PCSX::GPU::readStatus() {
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
 #endif
     if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
+    if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
     return ret;
@@ -671,6 +673,9 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         m_gpu->m_fastFill.setActive();
                         m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
                     } break;
+                    case 0x1f: {  // interrupt request (IRQ1)
+                        m_gpu->requestIRQ1();
+                    } break;
                     default: {
                         gotUnknown = true;
                     } break;
@@ -779,6 +784,10 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             raw.y = y;
             raw.w = w;
             raw.h = h;
+            // GP0(02h) parameter masking (psx-spx): Xpos ignores its low 4 bits,
+            // Xsiz rounds up to the next multiple of 16 within 0..400h.
+            x &= 0x3f0;
+            w = ((w & 0x3ff) + 0xf) & ~0xf;
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();

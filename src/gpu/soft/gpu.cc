@@ -584,17 +584,21 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     imageSX = prim->w;
     imageSY = prim->h;
 
-    if ((imageX0 == imageX1) && (imageY0 == imageY1)) return;
+    // An in-place copy still rewrites every pixel, so it is only a no-op without set-mask.
+    if ((imageX0 == imageX1) && (imageY0 == imageY1) && !getSetMask16()) return;
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
+    // The copy honours the GP0(E6h) mask settings, per halfword. The masked case takes
+    // this per-pixel path, which walks in the same order as the fast paths below.
     if ((imageY0 + imageSY) > VRAM_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > VRAM_HEIGHT ||
-        (imageX1 + imageSX) > 1024) {
+        (imageX1 + imageSX) > 1024 || getCheckMask() || getSetMask16()) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
             for (i = 0; i < imageSX; i++) {
-                m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)] =
-                    m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)];
+                uint16_t &dst = m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)];
+                if (getCheckMask() && (dst & 0x8000)) continue;
+                dst = m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)] | getSetMask16();
             }
         }
 

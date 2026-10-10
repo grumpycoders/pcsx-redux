@@ -158,79 +158,77 @@ int PCSX::SPU::ReverbUnit::mixLeft(int ns, uint16_t* spuMem, uint16_t spuCtrl) {
     // master enable bit is clear. That bit only gates writes into the buffer.
     // Games that stream audio into the work area depend on this.
     const bool writeEnabled = (spuCtrl & kReverbMasterEnable) != 0;
-    {
-        firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
-        altLeftTick = (callCount & 1) != 0;
-        const int in = sat16(altLeftTick ? firDecimate(h44L) : firDecimate(h44R));
-        const int sSame = altLeftTick ? rvb.IIR_SRC_A0 : rvb.IIR_SRC_A1;
-        const int dSame = altLeftTick ? rvb.IIR_DEST_A0 : rvb.IIR_DEST_A1;
-        const int sDiff = altLeftTick ? rvb.IIR_SRC_B0 : rvb.IIR_SRC_B1;
-        const int dDiff = altLeftTick ? rvb.IIR_DEST_B0 : rvb.IIR_DEST_B1;
-        const int inCoef = altLeftTick ? rvb.IN_COEF_L : rvb.IN_COEF_R;
-        const int c1 = altLeftTick ? rvb.ACC_SRC_A0 : rvb.ACC_SRC_A1;
-        const int c2 = altLeftTick ? rvb.ACC_SRC_B0 : rvb.ACC_SRC_B1;
-        const int c3 = altLeftTick ? rvb.ACC_SRC_C0 : rvb.ACC_SRC_C1;
-        const int c4 = altLeftTick ? rvb.ACC_SRC_D0 : rvb.ACC_SRC_D1;
-        const int mA = altLeftTick ? rvb.MIX_DEST_A0 : rvb.MIX_DEST_A1;
-        const int mB = altLeftTick ? rvb.MIX_DEST_B0 : rvb.MIX_DEST_B1;
-        auto at = [&](int off, int extra) { return (int)reinterpret_cast<int16_t*>(spuMem)[wrapOffset(off, extra)]; };
-        const int iirSame =
-            sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
-        const int iirDiff =
-            sat16(rdiv15((int64_t)(getBuffer(sDiff, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
-        // psx-spx stores the IIR result at [mLSAME] and reads the previous value back
-        // from [mLSAME-2], i.e. the destination cell itself one 16-bit sample earlier -
-        // hence the -1 extraSample on the read and none on the store.
-        if (writeEnabled) {
-            setBuffer<0>(dSame,
-                         rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) +
-                             rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))),
-                         spuMem);
-            setBuffer<0>(dDiff,
-                         rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) +
-                             rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))),
-                         spuMem);
-        }
-        int out = sat16(rdiv15((int64_t)(getBuffer(c1, spuMem) * rvb.ACC_COEF_A)) +
-                        rdiv15((int64_t)(getBuffer(c2, spuMem) * rvb.ACC_COEF_B)) +
-                        rdiv15((int64_t)(getBuffer(c3, spuMem) * rvb.ACC_COEF_C)) +
-                        rdiv15((int64_t)(getBuffer(c4, spuMem) * rvb.ACC_COEF_D)));
-        // psx-spx "SPU Reverb Formula", APF1 then APF2, three clauses each:
-        //   Lout=Lout-vAPF1*[mLAPF1-dAPF1], [mLAPF1]=Lout, Lout=Lout*vAPF1+[mLAPF1-dAPF1]
-        //   Lout=Lout-vAPF2*[mLAPF2-dAPF2], [mLAPF2]=Lout, Lout=Lout*vAPF2+[mLAPF2-dAPF2]
-        //   LeftOutput = Lout*vLOUT          (all products divided by 8000h)
-        const int tapA = getBuffer(mA - rvb.FB_SRC_A, spuMem);
-        out = sat16(out - rdiv15((int64_t)(tapA * rvb.FB_ALPHA)));
-        if (writeEnabled) setBuffer<0>(mA, out, spuMem);
-        out = sat16(rdiv15((int64_t)(out * rvb.FB_ALPHA)) + tapA);
-        const int tapB = getBuffer(mB - rvb.FB_SRC_B, spuMem);
-        out = sat16(out - rdiv15((int64_t)(tapB * rvb.FB_X)));
-        if (writeEnabled) setBuffer<0>(mB, out, spuMem);
-        out = sat16(rdiv15((int64_t)(out * rvb.FB_X)) + tapB);
-        // vLOUT/vROUT are signed 16bit and their products divide by 8000h, not 4000h.
-        // registers.cc assigns these from a uint16_t with no cast, unlike every other
-        // reverb coefficient there, so sign-extend at the point of use.
-        const int vol = altLeftTick ? (int)(int16_t)rvb.VolLeft : (int)(int16_t)rvb.VolRight;
-        const int wet = rdiv15((int64_t)out * vol);
-        if (altLeftTick) {
-            rvb.wetLeft = wet;
-            for (int i = 19; i > 0; i--) h22L[i] = h22L[i - 1];
-            h22L[0] = wet;
-        } else {
-            rvb.wetRight = wet;
-            for (int i = 19; i > 0; i--) h22R[i] = h22R[i - 1];
-            h22R[0] = wet;
-            // Address advances once per COMPLETE 22.05kHz iteration, after both halves.
-            rvb.CurrAddr++;
-            if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
-        }
-        // Emit the even (interpolating) polyphase on this channel's own compute cycle
-        // and the centre-tap passthrough on the other one, which puts the wet output one
-        // phase earlier than pairing them the obvious way round. h22[9] and not h22[10]:
-        // on the off cycle h22[10] is 21 ticks old, so the parity swap on its own would
-        // jitter the group delay between 19 and 21.
-        return altLeftTick ? firInterp(h22L, false) : h22L[9];
+    firPushIn(*(mixStart + (ns << 1)), *(mixStart + (ns << 1) + 1));
+    altLeftTick = (callCount & 1) != 0;
+    const int in = sat16(altLeftTick ? firDecimate(h44L) : firDecimate(h44R));
+    const int sSame = altLeftTick ? rvb.IIR_SRC_A0 : rvb.IIR_SRC_A1;
+    const int dSame = altLeftTick ? rvb.IIR_DEST_A0 : rvb.IIR_DEST_A1;
+    const int sDiff = altLeftTick ? rvb.IIR_SRC_B0 : rvb.IIR_SRC_B1;
+    const int dDiff = altLeftTick ? rvb.IIR_DEST_B0 : rvb.IIR_DEST_B1;
+    const int inCoef = altLeftTick ? rvb.IN_COEF_L : rvb.IN_COEF_R;
+    const int c1 = altLeftTick ? rvb.ACC_SRC_A0 : rvb.ACC_SRC_A1;
+    const int c2 = altLeftTick ? rvb.ACC_SRC_B0 : rvb.ACC_SRC_B1;
+    const int c3 = altLeftTick ? rvb.ACC_SRC_C0 : rvb.ACC_SRC_C1;
+    const int c4 = altLeftTick ? rvb.ACC_SRC_D0 : rvb.ACC_SRC_D1;
+    const int mA = altLeftTick ? rvb.MIX_DEST_A0 : rvb.MIX_DEST_A1;
+    const int mB = altLeftTick ? rvb.MIX_DEST_B0 : rvb.MIX_DEST_B1;
+    auto at = [&](int off, int extra) { return (int)reinterpret_cast<int16_t*>(spuMem)[wrapOffset(off, extra)]; };
+    const int iirSame =
+        sat16(rdiv15((int64_t)(getBuffer(sSame, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
+    const int iirDiff =
+        sat16(rdiv15((int64_t)(getBuffer(sDiff, spuMem) * rvb.IIR_COEF)) + rdiv15((int64_t)(in * inCoef)));
+    // psx-spx stores the IIR result at [mLSAME] and reads the previous value back
+    // from [mLSAME-2], i.e. the destination cell itself one 16-bit sample earlier -
+    // hence the -1 extraSample on the read and none on the store.
+    if (writeEnabled) {
+        setBuffer<0>(
+            dSame,
+            rdiv15((int64_t)(iirSame * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dSame, -1) * (32768L - rvb.IIR_ALPHA))),
+            spuMem);
+        setBuffer<0>(
+            dDiff,
+            rdiv15((int64_t)(iirDiff * rvb.IIR_ALPHA)) + rdiv15((int64_t)(at(dDiff, -1) * (32768L - rvb.IIR_ALPHA))),
+            spuMem);
     }
+    int out = sat16(rdiv15((int64_t)(getBuffer(c1, spuMem) * rvb.ACC_COEF_A)) +
+                    rdiv15((int64_t)(getBuffer(c2, spuMem) * rvb.ACC_COEF_B)) +
+                    rdiv15((int64_t)(getBuffer(c3, spuMem) * rvb.ACC_COEF_C)) +
+                    rdiv15((int64_t)(getBuffer(c4, spuMem) * rvb.ACC_COEF_D)));
+    // psx-spx "SPU Reverb Formula", APF1 then APF2, three clauses each:
+    //   Lout=Lout-vAPF1*[mLAPF1-dAPF1], [mLAPF1]=Lout, Lout=Lout*vAPF1+[mLAPF1-dAPF1]
+    //   Lout=Lout-vAPF2*[mLAPF2-dAPF2], [mLAPF2]=Lout, Lout=Lout*vAPF2+[mLAPF2-dAPF2]
+    //   LeftOutput = Lout*vLOUT          (all products divided by 8000h)
+    const int tapA = getBuffer(mA - rvb.FB_SRC_A, spuMem);
+    out = sat16(out - rdiv15((int64_t)(tapA * rvb.FB_ALPHA)));
+    if (writeEnabled) setBuffer<0>(mA, out, spuMem);
+    out = sat16(rdiv15((int64_t)(out * rvb.FB_ALPHA)) + tapA);
+    const int tapB = getBuffer(mB - rvb.FB_SRC_B, spuMem);
+    out = sat16(out - rdiv15((int64_t)(tapB * rvb.FB_X)));
+    if (writeEnabled) setBuffer<0>(mB, out, spuMem);
+    out = sat16(rdiv15((int64_t)(out * rvb.FB_X)) + tapB);
+    // vLOUT/vROUT are signed 16bit and their products divide by 8000h, not 4000h.
+    // registers.cc assigns these from a uint16_t with no cast, unlike every other
+    // reverb coefficient there, so sign-extend at the point of use.
+    const int vol = altLeftTick ? (int)(int16_t)rvb.VolLeft : (int)(int16_t)rvb.VolRight;
+    const int wet = rdiv15((int64_t)out * vol);
+    if (altLeftTick) {
+        rvb.wetLeft = wet;
+        for (int i = 19; i > 0; i--) h22L[i] = h22L[i - 1];
+        h22L[0] = wet;
+    } else {
+        rvb.wetRight = wet;
+        for (int i = 19; i > 0; i--) h22R[i] = h22R[i - 1];
+        h22R[0] = wet;
+        // Address advances once per COMPLETE 22.05kHz iteration, after both halves.
+        rvb.CurrAddr++;
+        if (rvb.CurrAddr > 0x3ffff) rvb.CurrAddr = rvb.StartAddr;
+    }
+    // Emit the even (interpolating) polyphase on this channel's own compute cycle
+    // and the centre-tap passthrough on the other one, which puts the wet output one
+    // phase earlier than pairing them the obvious way round. h22[9] and not h22[10]:
+    // on the off cycle h22[10] is 21 ticks old, so the parity swap on its own would
+    // jitter the group delay between 19 and 21.
+    return altLeftTick ? firInterp(h22L, false) : h22L[9];
 }
 
 ////////////////////////////////////////////////////////////////////////

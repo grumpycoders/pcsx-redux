@@ -331,7 +331,7 @@ bool PCSX::CDRIso::open(IO<File> isoFile) {
         m_ti[1].start = IEC60908b::MSF(0, 2, 0);
         m_ti[1].pregap = IEC60908b::MSF(0, 0, 0);
         m_ti[1].handle = m_cdHandle;
-        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / 2352);
+        m_ti[1].length = IEC60908b::MSF(m_ti[1].handle->size() / (m_isMode1ISO ? 2048 : 2352));
     }
 
     if (m_ppf.load(m_isoPath)) {
@@ -420,6 +420,56 @@ PCSX::IEC60908b::MSF PCSX::CDRIso::getPregap(uint8_t track) {
         return m_ti[track].pregap;
     }
     return IEC60908b::MSF(0, 2, 0);
+}
+
+bool PCSX::CDRIso::getLocP(const PCSX::IEC60908b::MSF msf, uint8_t locP[8]) {
+    // TODO: actually check subchannels from iso.
+    auto length = getTD(0) + IEC60908b::MSF{0, 2, 0};
+    if (msf >= length) return false;
+    unsigned track;
+    for (track = m_numtracks; track != 1; track--) {
+        if (m_ti[track].start <= msf) break;
+    }
+
+    bool inPregap = false;
+    IEC60908b::MSF nextPregapStart;
+    if (msf < m_ti[track].start) {
+        // Before track 1 starts: its pregap, index 00, counting down.
+        inPregap = true;
+    } else if (track != m_numtracks) {
+        if (msf >= (m_ti[track + 1].start - m_ti[track + 1].pregap)) {
+            track++;
+            inPregap = true;
+        }
+    }
+    locP[0] = IEC60908b::itob(track);
+    locP[1] = inPregap ? 0 : 1;
+    IEC60908b::MSF relative;
+    if (inPregap) {
+        relative = m_ti[track].start - msf;
+    } else {
+        relative = msf - m_ti[track].start;
+    }
+    relative.toBCD(locP + 2);
+    msf.toBCD(locP + 5);
+
+    return true;
+}
+
+unsigned PCSX::CDRIso::getTrack(const PCSX::IEC60908b::MSF msf) {
+    auto length = getTD(0) + IEC60908b::MSF{0, 2, 0};
+    if (msf >= length) return 0;
+    unsigned track;
+    for (track = m_numtracks; track != 1; track--) {
+        if (m_ti[track].start <= msf) break;
+    }
+    IEC60908b::MSF nextPregapStart;
+    if (track != m_numtracks) {
+        if (msf >= (m_ti[track + 1].start - m_ti[track + 1].pregap)) {
+            track++;
+        }
+    }
+    return track;
 }
 
 // Decode 'raw' subchannel data from being packed bitwise.

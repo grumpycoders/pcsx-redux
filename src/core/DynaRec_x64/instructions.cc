@@ -792,7 +792,7 @@ void DynaRecCPU::recompileLoadWithDelay(uint32_t code, LoadDelayDependencyType t
             gen.mov(Xbyak::util::byte[contextPointer + isActiveOffset], 1);
             gen.mov(dword[contextPointer + indexOffset], _Rt_);
         } else {
-            auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+            auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
             const auto delayedLoadValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
             delayedLoad.index = _Rt_;
             gen.mov(dword[contextPointer + delayedLoadValueOffset], eax);
@@ -1430,10 +1430,47 @@ void DynaRecCPU::recCOP1or3(uint32_t code) {
 }
 
 // BCzF / BCzT. None of the coprocessors drives the condition input, so BCzF
-// always branches and BCzT never does. Bit 1 of rt is ignored. Like the rest
-// of the dynarec, this does not check SR.CUz.
+// always branches and BCzT never does. Bit 1 of rt is ignored. With SR.CUz
+// clear, the branch raises a coprocessor unusable exception, COP0 included,
+// and leaves the block without running the delay slot.
 void DynaRecCPU::recBCz(uint32_t code) {
+    const unsigned z = (code >> 26) & 3;
     const auto target = _Imm_ * 4 + m_pc;
+    Label usable;
+
+    flushRegs();
+    gen.test(dword[contextPointer + COP0_OFFSET(12)], 0x10000000 << z);
+    gen.jnz(usable, Xbyak::CodeGenerator::T_NEAR);
+
+    // The load started by the previous instruction still lands
+    if (m_firstInstruction && m_fullLoadDelayEmulation) {
+        Label noDelayedLoad;
+        const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+        gen.cmp(Xbyak::util::byte[contextPointer + isActiveOffset], 0);
+        gen.je(noDelayedLoad);
+        gen.call((void*)m_loadDelayHandler);
+        gen.L(noDelayedLoad);
+    }
+    const auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    if (delayedLoad.active && delayedLoad.index != 0) {
+        const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+        gen.mov(eax, dword[contextPointer + delayedValueOffset]);
+        gen.mov(dword[contextPointer + GPR_OFFSET(delayedLoad.index)], eax);
+    }
+
+    loadThisPointer(arg1.cvt64());
+    gen.moveImm(arg2, (static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28));
+    gen.moveImm(arg3, (int32_t)m_inDelaySlot);
+    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);
+    call(exceptionWrapper);
+    if constexpr (ENABLE_PROFILER) {
+        endProfiling();
+    }
+    gen.add(qword[contextPointer + CYCLE_OFFSET],
+            (m_instructionCount + m_romInstructionCount * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
+    gen.jmp((void*)m_returnFromBlock);
+
+    gen.L(usable);
     m_nextIsDelaySlot = true;
 
     if ((_Rt_ & 1) || target == m_pc + 4) {
@@ -1468,7 +1505,9 @@ void DynaRecCPU::recMTC0(uint32_t code) {
     else {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
-            gen.and_(m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.mov(eax, m_gprs[_Rt_].allocatedReg);
+            gen.and_(eax, ~0xFC00);
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], eax);
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_gprs[_Rt_].allocatedReg);  // Write rt to the cop0 reg
         }

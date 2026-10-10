@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2023 PCSX-Redux authors                                 *
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,32 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#pragma once
+#include "gtest/gtest.h"
+#include "main/main.h"
 
-#include "core/psxemulator.h"
-#include "core/r3000a.h"
-
-static inline void scheduleGPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::GPUDMA, eCycle);
+// Boots the gpu-command guest suite headless under OpenBIOS. ret == 0 means
+// every GP0 env command's GPUSTAT reflection matched the soft GPU.
+TEST(GPUCommand, StatusAfterWrite) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-loadexe", "src/mips/tests/gpu-command/gpu-command.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
 }
-
-static inline void scheduleSPUDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::SPUDMA, eCycle);
-}
-
-static inline void scheduleMDECOUTDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::MDECOUTDMA, eCycle);
-}
-
-static inline void scheduleMDECINDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::MDECINDMA, eCycle);
-}
-
-static inline void scheduleGPUOTCDMAIRQ(uint32_t eCycle) {
-    PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::GPUOTCDMA, eCycle);
-}
-
-void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void dma6(uint32_t madr, uint32_t bcr, uint32_t chcr);
-void spuInterrupt();
-void gpuotcInterrupt();

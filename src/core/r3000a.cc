@@ -81,7 +81,7 @@ void PCSX::R3000Acpu::psxReset() {
 
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
-void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
+bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     unsigned ec = (code >> 2) & 0x1f;
@@ -102,14 +102,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     regs.v0 = 0;
                     regs.v1 = 0;
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x102: {  // PCcreat
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
@@ -127,14 +127,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = fd;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x103: {  // PCopen
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
@@ -158,7 +158,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = fd;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x104: {  // PCclose
                     fd = m_regs.GPR.n.a0;
@@ -174,7 +174,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_availableFDs.push_back(fd);
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x105: {  // PCread
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
@@ -182,21 +182,21 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     auto slice = file->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x106: {  // PCwrite
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a1);
@@ -204,7 +204,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     auto slice = memFile->readAt(regs.a2, regs.a3);
@@ -214,7 +214,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 case 0x107: {  // PClseek
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a0);
@@ -222,7 +222,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     IO<File> file = *filei;
                     int wheel;
@@ -240,14 +240,14 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                             regs.v0 = -1;
                             regs.v1 = -1;
                             m_regs.pc += 4;
-                            return;
+                            return false;
                     }
                     ssize_t ret = file->rSeek(regs.a2, wheel);
                     if (ret < 0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                         m_regs.pc += 4;
-                        return;
+                        return false;
                     }
                     if (file->writable()) {
                         file->wSeek(regs.a2, wheel);
@@ -261,7 +261,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v1 = ret;
                     }
                     m_regs.pc += 4;
-                    return;
+                    return false;
                 }
                 default:
                     break;
@@ -298,6 +298,7 @@ void PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     m_regs.CP0.n.Cause = code;
     // Set the Status
     m_regs.CP0.n.Status = (m_regs.CP0.n.Status & ~0x3f) | ((m_regs.CP0.n.Status & 0xf) << 2);
+    return true;
 }
 
 void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd) {
@@ -329,73 +330,49 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
 }
 
 void PCSX::R3000Acpu::branchTest() {
-#if 0
-    if( SPU_async )
-    {
-        static int init;
-        int elapsed;
-
-        if( init == 0 ) {
-            // 10 apu cycles
-            // - Final Fantasy Tactics (distorted - dropped sound effects)
-            m_regs.intCycle[PSXINT_SPUASYNC].cycle = g_emulator->m_psxClockSpeed / 44100 * 10;
-
-            init = 1;
-        }
-
-        elapsed = m_regs.cycle - m_regs.intCycle[PSXINT_SPUASYNC].sCycle;
-        if (elapsed >= m_regs.intCycle[PSXINT_SPUASYNC].cycle) {
-            SPU_async( elapsed );
-
-            m_regs.intCycle[PSXINT_SPUASYNC].sCycle = m_regs.cycle;
-        }
-    }
-#endif
-
     const uint64_t cycle = m_regs.cycle;
 
     if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();
 
     if (m_regs.spuInterrupt.exchange(false)) g_emulator->m_spu->interrupt();
 
-    const uint32_t interrupts = m_regs.interrupt;
+    const uint32_t scheduleMask = m_regs.scheduleMask;
 
     int32_t lowestDistance = std::numeric_limits<int64_t>::max();
     uint64_t lowestTarget = cycle;
-    uint64_t* targets = m_regs.intTargets;
+    uint64_t* targets = m_regs.scheduleTargets;
 
-    if ((interrupts != 0) && (m_regs.lowestTarget < cycle)) {
-#define checkAndUpdate(irq, act)                                                          \
-    {                                                                                     \
-        constexpr uint32_t mask = 1 << irq;                                               \
-        if ((interrupts & mask) != 0) {                                                   \
-            uint64_t target = targets[irq];                                               \
-            int64_t dist = target - cycle;                                                \
-            if (dist > 0) {                                                               \
-                if (lowestDistance > dist) {                                              \
-                    lowestDistance = dist;                                                \
-                    lowestTarget = target;                                                \
-                }                                                                         \
-            } else {                                                                      \
-                m_regs.interrupt &= ~mask;                                                \
-                PSXIRQ_LOG("Triggering interrupt %08x\n", magic_enum::enum_integer(irq)); \
-                act();                                                                    \
-            }                                                                             \
-        }                                                                                 \
+    if ((scheduleMask != 0) && (m_regs.lowestTarget < cycle)) {
+#define checkAndUpdate(irq_, act)                                     \
+    {                                                                 \
+        constexpr unsigned irq = static_cast<unsigned>(irq_);         \
+        constexpr uint32_t mask = 1 << irq;                           \
+        if ((scheduleMask & mask) != 0) {                             \
+            uint64_t target = targets[irq];                           \
+            int64_t dist = target - cycle;                            \
+            if (dist > 0) {                                           \
+                if (lowestDistance > dist) {                          \
+                    lowestDistance = dist;                            \
+                    lowestTarget = target;                            \
+                }                                                     \
+            } else {                                                  \
+                m_regs.scheduleMask &= ~mask;                         \
+                PSXIRQ_LOG("Calling scheduled callback %08x\n", irq); \
+                act();                                                \
+            }                                                         \
+        }                                                             \
     }
-        checkAndUpdate(PSXINT_SIO, g_emulator->m_sio->interrupt);
-        checkAndUpdate(PSXINT_SIO1, g_emulator->m_sio1->interrupt);
-        checkAndUpdate(PSXINT_CDR, g_emulator->m_cdrom->interrupt);
-        checkAndUpdate(PSXINT_CDREAD, g_emulator->m_cdrom->readInterrupt);
-        checkAndUpdate(PSXINT_GPUDMA, GPU::gpuInterrupt);
-        checkAndUpdate(PSXINT_MDECOUTDMA, g_emulator->m_mdec->mdec1Interrupt);
-        checkAndUpdate(PSXINT_SPUDMA, spuInterrupt);
-        checkAndUpdate(PSXINT_MDECINDMA, g_emulator->m_mdec->mdec0Interrupt);
-        checkAndUpdate(PSXINT_GPUOTCDMA, gpuotcInterrupt);
-        checkAndUpdate(PSXINT_CDRDMA, g_emulator->m_cdrom->dmaInterrupt);
-        checkAndUpdate(PSXINT_CDRPLAY, g_emulator->m_cdrom->playInterrupt);
-        checkAndUpdate(PSXINT_CDRDBUF, g_emulator->m_cdrom->decodedBufferInterrupt);
-        checkAndUpdate(PSXINT_CDRLID, g_emulator->m_cdrom->lidSeekInterrupt);
+        checkAndUpdate(Schedule::SIO, g_emulator->m_sio->scheduledCallback);
+        checkAndUpdate(Schedule::SIO1, g_emulator->m_sio1->scheduledCallback);
+        checkAndUpdate(Schedule::CDRFIFO, g_emulator->m_cdrom->fifoScheduledCallback);
+        checkAndUpdate(Schedule::CDRCOMMANDS, g_emulator->m_cdrom->commandsScheduledCallback);
+        checkAndUpdate(Schedule::CDREAD, g_emulator->m_cdrom->readScheduledCallback);
+        checkAndUpdate(Schedule::GPUDMA, GPU::gpuInterrupt);
+        checkAndUpdate(Schedule::MDECOUTDMA, g_emulator->m_mdec->scheduledCallback1);
+        checkAndUpdate(Schedule::SPUDMA, spuInterrupt);
+        checkAndUpdate(Schedule::MDECINDMA, g_emulator->m_mdec->scheduledCallback0);
+        checkAndUpdate(Schedule::GPUOTCDMA, gpuotcInterrupt);
+        checkAndUpdate(Schedule::CDRDMA, g_emulator->m_cdrom->scheduledDmaCallback);
         m_regs.lowestTarget = lowestTarget;
     }
     auto& mem = g_emulator->m_mem;
@@ -413,6 +390,18 @@ void PCSX::R3000Acpu::branchTest() {
         }
 
         PSXIRQ_LOG("Interrupt: %x %x\n", istat, imask);
+        // A branch in the delay slot of a taken branch leaves its own jump pending here, and the next
+        // instruction is that branch's delay slot. The interrupt is taken on that delay slot: EPC is the
+        // branch with BD set, and the pending jump is dropped, since returning runs the branch again.
+        for (auto& pending : m_delayedLoadInfo) {
+            if (!pending.pcActive) continue;
+            pending.pcActive = false;
+            pending.fromLink = false;
+            m_nextIsDelaySlot = false;
+            m_regs.pc = pending.branchPC + 4;
+            exception(0x400, true);
+            return;
+        }
         exception(0x400, 0);
     }
 }

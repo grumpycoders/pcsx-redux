@@ -291,10 +291,47 @@ void DynaRecCPU::recCOP1or3(uint32_t code) {
 }
 
 // BCzF / BCzT. None of the coprocessors drives the condition input, so BCzF
-// always branches and BCzT never does. Bit 1 of rt is ignored. Like the rest
-// of the dynarec, this does not check SR.CUz.
+// always branches and BCzT never does. Bit 1 of rt is ignored. With SR.CUz
+// clear, the branch raises a coprocessor unusable exception, COP0 included,
+// and leaves the block without running the delay slot.
 void DynaRecCPU::recBCz(uint32_t code) {
+    const unsigned z = (code >> 26) & 3;
     const auto target = _Imm_ * 4 + m_pc;
+    Label usable;
+
+    flushRegs();
+    gen.Ldr(w4, MemOperand(contextPointer, COP0_OFFSET(12)));
+    gen.Tbnz(w4, 28 + z, &usable);
+
+    // The load started by the previous instruction still lands
+    if (m_firstInstruction && m_fullLoadDelayEmulation) {
+        Label noDelayedLoad;
+        const auto isActiveOffset = (uintptr_t)&m_runtimeLoadDelay.active - (uintptr_t)this;
+        gen.Ldrb(w4, MemOperand(contextPointer, isActiveOffset));
+        gen.Cbz(w4, &noDelayedLoad);
+        call(m_loadDelayHandler);
+        gen.L(noDelayedLoad);
+    }
+    const auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    if (delayedLoad.active && delayedLoad.index != 0) {
+        const auto delayedValueOffset = (uintptr_t)&delayedLoad.value - (uintptr_t)this;
+        gen.Ldr(w4, MemOperand(contextPointer, delayedValueOffset));
+        gen.Str(w4, MemOperand(contextPointer, GPR_OFFSET(delayedLoad.index)));
+    }
+
+    loadThisPointer(arg1.X());
+    gen.Mov(arg2, (static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28));
+    gen.Mov(arg3, (int32_t)m_inDelaySlot);
+    gen.Mov(w3, m_pc - 4);
+    gen.Str(w3, MemOperand(contextPointer, PC_OFFSET));
+    call(exceptionWrapper);
+    gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+    gen.Add(x0, x0,
+            (m_instructionCount + m_romInstructionCount * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
+    gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));
+    jmp((void*)m_returnFromBlock);
+
+    gen.L(usable);
     m_nextIsDelaySlot = true;
 
     if ((_Rt_ & 1) || target == m_pc + 4) {
@@ -834,7 +871,8 @@ void DynaRecCPU::recMTC0(uint32_t code) {
     else {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
-            gen.And(m_gprs[_Rt_].allocatedReg, m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.And(w0, m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.Str(m_gprs[_Rt_].allocatedReg,
                     MemOperand(contextPointer, COP0_OFFSET(_Rd_)));  // Write rt to the cop0 reg

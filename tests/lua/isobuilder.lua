@@ -328,6 +328,96 @@ function TestIsoBuilder:test_m2RawRoundTrip()
     end
 end
 
+-- Payload size per sector for each sector mode, where that payload sits in the raw frame, and the form bit
+-- the builder has to put in the subheader for the modes where it synthesizes one.
+local sectorLayouts = {
+    { mode = 'RAW', size = 2352, offset = 0 },
+    { mode = 'M2_RAW', size = 2336, offset = 16 },
+    { mode = 'M2_FORM1', size = 2048, offset = 24, form = 0x00 },
+    { mode = 'M2_FORM2', size = 2324, offset = 24, form = 0x20 },
+}
+
+local function patternByte(i) return (i * 7 + 3) % 251 end
+
+local function patternData(size)
+    local data = ffi.new('uint8_t[?]', size)
+    for i = 0, size - 1 do data[i] = patternByte(i) end
+    return data
+end
+
+-- Counts the bytes of a read back payload that differ from the pattern, reporting the first one.
+local function assertPattern(file, base, size, what)
+    local bad, first = 0, nil
+    for i = 0, size - 1 do
+        if file:readU8At(base + i) ~= patternByte(i) then
+            bad = bad + 1
+            first = first or i
+        end
+    end
+    lu.assertEquals(bad, 0, string.format('%s: %d of %d payload bytes corrupted, first at byte %s', what, bad,
+                                          size, tostring(first)))
+end
+
+local function assertForm(file, base, form, what)
+    for _, offset in ipairs({ 18, 22 }) do
+        lu.assertEquals(bit.band(file:readU8At(base + offset), 0x20), form,
+            string.format('%s: wrong form bit in subheader byte %d', what, offset))
+    end
+end
+
+function TestIsoBuilder:test_writeSectorRoundTrip()
+    -- Every mode writeSectorAt takes must land the caller's payload in the frame untouched.
+    for _, layout in ipairs(sectorLayouts) do
+        local out = Support.File.buffer()
+        local builder = PCSX.isoBuilder(out)
+        for lba = 0, 1 do
+            builder:writeSectorAt(patternData(layout.size), layout.size, lba, layout.mode)
+        end
+        out:rSeek(0)
+        for lba = 0, 1 do
+            local what = string.format('writeSectorAt %s sector %d', layout.mode, lba)
+            assertPattern(out, lba * 2352 + layout.offset, layout.size, what)
+            if layout.form then assertForm(out, lba * 2352, layout.form, what) end
+        end
+    end
+end
+
+function TestIsoBuilder:test_closeRoundTrip()
+    -- Same for file content laid out by close(), through both the single threaded writer and the parallel one.
+    for _, layout in ipairs(sectorLayouts) do
+        for _, threads in ipairs({ 1, 4 }) do
+            local what = string.format('close(%d) %s', threads, layout.mode)
+            local size = 2 * layout.size
+            local payload = Support.File.buffer()
+            local data = ffi.new('uint8_t[?]', size)
+            for i = 0, size - 1 do data[i] = patternByte(i % layout.size) end
+            payload:write(ffi.cast('const char*', data), size)
+            payload:rSeek(0)
+
+            local out = Support.File.buffer()
+            local builder = PCSX.isoBuilder(out)
+            builder:writeLicense()
+            builder:setVolumeIdent('ROUNDTRIP')
+            local root = builder:createRoot(1)
+            local file = builder:createFile(root, 'PATTERN.BIN', payload)
+            file:setSectorMode(layout.mode)
+            builder:close(threads)
+
+            out:rSeek(0)
+            local iso = PCSX.openIso(out)
+            local lba = file:getLBA()
+            local rb = iso:open(lba, size, layout.mode)
+            for s = 0, 1 do
+                assertPattern(rb, s * layout.size, layout.size, what .. ' sector ' .. s)
+            end
+            if layout.form then
+                local raw = iso:open(lba, 2 * 2352, 'RAW')
+                for s = 0, 1 do assertForm(raw, s * 2352, layout.form, what .. ' sector ' .. s) end
+            end
+        end
+    end
+end
+
 function TestIsoBuilder:test_anchorErrorOnBackwardLBA()
     -- Anchoring to an LBA that's already passed must raise an error at close time.
     local out = Support.File.buffer()

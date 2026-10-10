@@ -117,17 +117,17 @@ msgstr "Очистити колір"
 msgid "Clear VRAM"
 msgstr "Очистити VRAM"
 
-#: src/core/cdrom.cc:1725
+#: src/core/cdrom.cc:1759
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Позначка CD-ROM: %.32s\n"
 
-#: src/core/cdrom.cc:1726
+#: src/core/cdrom.cc:1760
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM ID: %.9s\n"
 
-#: src/core/cdrom.cc:1727
+#: src/core/cdrom.cc:1761
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Ім'я CD-ROM EXE: %.255s\n"
@@ -224,50 +224,50 @@ msgstr "Запис"
 msgid "GDB client"
 msgstr "GDB-клієнт"
 
-#: src/core/gpu.cc:337 src/core/gpu.cc:612 src/core/psxhw.h:83
+#: src/core/gpu.cc:338 src/core/gpu.cc:614 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:342 src/core/gpu.cc:617 src/core/psxhw.h:88
+#: src/core/gpu.cc:343 src/core/gpu.cc:619 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:1052 src/core/gpu.cc:1136
+#: src/core/gpu.cc:1061 src/core/gpu.cc:1145
 msgid "Shading: Flat"
 msgstr "Затемнення: плоске"
 
-#: src/core/gpu.cc:1055 src/core/gpu.cc:1139
+#: src/core/gpu.cc:1064 src/core/gpu.cc:1148
 msgid "Shading: Gouraud"
 msgstr "Затемнення: Гуро"
 
-#: src/core/gpu.cc:1059
+#: src/core/gpu.cc:1068
 msgid "Textured"
 msgstr "Текстурний"
 
-#: src/core/gpu.cc:1062 src/core/gpu.cc:1142 src/core/gpu.cc:1184
+#: src/core/gpu.cc:1071 src/core/gpu.cc:1151 src/core/gpu.cc:1193
 msgid "Semi-transparency blending"
 msgstr "Напівпрозоре накладання"
 
-#: src/core/gpu.cc:1079
+#: src/core/gpu.cc:1088
 #, c-format
 msgid "Vertex %i"
 msgstr "Вершинний %i"
 
-#: src/core/gpu.cc:1103 src/core/gpu.cc:1167 src/core/gpu.cc:1197
+#: src/core/gpu.cc:1112 src/core/gpu.cc:1176 src/core/gpu.cc:1206
 msgid "Go to primitive##{}"
 msgstr "Перейти до первісного##{}"
 
-#: src/core/gpu.cc:1111 src/core/gpu.cc:1207
+#: src/core/gpu.cc:1120 src/core/gpu.cc:1216
 msgid "Go to texture##{}"
 msgstr "Перейти до текстури##{}"
 
-#: src/core/gpu.cc:1122 src/core/gpu.cc:1218
+#: src/core/gpu.cc:1131 src/core/gpu.cc:1227
 msgid "Go to CLUT##{}"
 msgstr "Перейти до таблиці пошуку кольорів (CLUT)##{}"
 
-#: src/core/gpu.cc:1148
+#: src/core/gpu.cc:1157
 #, c-format
 msgid "Line %i"
 msgstr "Лінія %i"
@@ -470,32 +470,32 @@ msgstr "Завантаження карти пам'яті %s.\n"
 msgid "Saving memory card %s\n"
 msgstr "Збереження карти пам'яті %s.\n"
 
-#: src/core/pad.cc:824 src/core/pad.cc:948
+#: src/core/pad.cc:827 src/core/pad.cc:951
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Невідома команда джойстика: %02X.\n"
 
-#: src/core/pad.cc:1049
+#: src/core/pad.cc:1052
 msgid "Pad configuration"
 msgstr "Конфігурація джойстика"
 
-#: src/core/pad.cc:1055
+#: src/core/pad.cc:1058
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:1056
+#: src/core/pad.cc:1059
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1062
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Пересканувати джойстики та перечитати базу даних ігрових контролерів"
 
-#: src/core/pad.cc:1078
+#: src/core/pad.cc:1081
 msgid "Use raw input for mouse"
 msgstr "Використовувати неопрацьоване керування для миші"
 
-#: src/core/pad.cc:1080
+#: src/core/pad.cc:1083
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -503,168 +503,168 @@ msgstr ""
 "Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із "
 "керуванням мишею."
 
-#: src/core/pad.cc:1082
+#: src/core/pad.cc:1085
 msgid "Allow mouse capture toggle"
 msgstr "Дозволити захоплення миші"
 
-#: src/core/pad.cc:1084
+#: src/core/pad.cc:1087
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr "Натиснення Control і Alt перемикає налаштування вище, початкові дані."
 
-#: src/core/pad.cc:1086
+#: src/core/pad.cc:1089
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:1095
+#: src/core/pad.cc:1098
 msgid "Set defaults"
 msgstr "Встановити типові"
 
-#: src/core/pad.cc:1111
+#: src/core/pad.cc:1114
 msgid "Keyboard Up"
 msgstr "Клавіатура ↑"
 
-#: src/core/pad.cc:1113
+#: src/core/pad.cc:1116
 msgid "Keyboard Right"
 msgstr "Клавіатура →"
 
-#: src/core/pad.cc:1115
+#: src/core/pad.cc:1118
 msgid "Keyboard Down"
 msgstr "Клавіатура ↓"
 
-#: src/core/pad.cc:1117
+#: src/core/pad.cc:1120
 msgid "Keyboard Left"
 msgstr "Клавіатура ←"
 
-#: src/core/pad.cc:1119
+#: src/core/pad.cc:1122
 msgid "Keyboard Backspace"
 msgstr "Клавіатура Backspace"
 
-#: src/core/pad.cc:1121
+#: src/core/pad.cc:1124
 msgid "Keyboard Enter"
 msgstr "Клавіатура Enter"
 
-#: src/core/pad.cc:1123
+#: src/core/pad.cc:1126
 msgid "Keyboard Space"
 msgstr "Клавіатура Space"
 
-#: src/core/pad.cc:1125
+#: src/core/pad.cc:1128
 msgid "Keyboard Escape"
 msgstr "Клавіатура Escape"
 
-#: src/core/pad.cc:1127
+#: src/core/pad.cc:1130
 msgid "Unbound"
 msgstr "Вільно"
 
-#: src/core/pad.cc:1132
+#: src/core/pad.cc:1135
 msgid "Unknown keyboard key {}"
 msgstr "Невідома кнопка клавіатури {}"
 
-#: src/core/pad.cc:1137
+#: src/core/pad.cc:1140
 msgid "Keyboard {}"
 msgstr "Клавіатура {}"
 
-#: src/core/pad.cc:1156 src/gui/gui.cc:2268
+#: src/core/pad.cc:1159 src/gui/gui.cc:2265
 msgid "Auto"
 msgstr "Автоматично"
 
-#: src/core/pad.cc:1157
+#: src/core/pad.cc:1160
 msgid "Controller"
 msgstr "Контролер"
 
-#: src/core/pad.cc:1158
+#: src/core/pad.cc:1161
 msgid "Keyboard"
 msgstr "Клавіатура"
 
-#: src/core/pad.cc:1165
+#: src/core/pad.cc:1168
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1166
+#: src/core/pad.cc:1169
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1173
+#: src/core/pad.cc:1176
 msgid "Analog Mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1182
+#: src/core/pad.cc:1185
 msgid "Digital"
 msgstr "Цифра"
 
-#: src/core/pad.cc:1183
+#: src/core/pad.cc:1186
 msgid "Analog"
 msgstr "Аналог"
 
-#: src/core/pad.cc:1184
+#: src/core/pad.cc:1187
 msgid "Mouse"
 msgstr "Миша"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1188
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (Не реалізовано)"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1189
 msgid "Gun (Unimplemented)"
 msgstr "Gun (Не реалізовано)"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1190
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (Не реалізовано)"
 
-#: src/core/pad.cc:1191 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "З'єднано"
 
-#: src/core/pad.cc:1200
+#: src/core/pad.cc:1203
 msgid "Analog mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1209
+#: src/core/pad.cc:1212
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1213
+#: src/core/pad.cc:1216
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1219
+#: src/core/pad.cc:1222
 msgid "Controller Type"
 msgstr "Тип контролера"
 
-#: src/core/pad.cc:1235
+#: src/core/pad.cc:1238
 msgid "Device type"
 msgstr "Тип пристрою"
 
-#: src/core/pad.cc:1246
+#: src/core/pad.cc:1249
 msgid "Mouse sensitivity X"
 msgstr "Чутливість миші X"
 
-#: src/core/pad.cc:1248
+#: src/core/pad.cc:1251
 msgid "Mouse sensitivity Y"
 msgstr "Чутливість миші Y"
 
-#: src/core/pad.cc:1250
+#: src/core/pad.cc:1253
 msgid "Keyboard mapping"
 msgstr "Призначення клавіатури"
 
-#: src/core/pad.cc:1252
+#: src/core/pad.cc:1255
 msgid "Computer button mapping"
 msgstr "Призначення кнопки комп'ютера"
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1256
 msgid "Gamepad button"
 msgstr "Кнопка джойстика"
 
-#: src/core/pad.cc:1303
+#: src/core/pad.cc:1306
 msgid "No gamepad selected or connected"
 msgstr "Джойстик не вибрано та не з'єднано."
 
-#: src/core/pad.cc:1327
+#: src/core/pad.cc:1330
 msgid "Gamepad"
 msgstr "Джойстик"
 
@@ -688,62 +688,62 @@ msgstr "Викликано msanGetChainPtr із недійсним указів�
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxinterpreter.cc:363
+#: src/core/psxinterpreter.cc:383
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці негайного додавання (ADDI) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:457
+#: src/core/psxinterpreter.cc:477
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці додавання (ADD) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:499
+#: src/core/psxinterpreter.cc:519
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці віднімання (SUB) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:831
+#: src/core/psxinterpreter.cc:841
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:857
+#: src/core/psxinterpreter.cc:867
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JALR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:895
+#: src/core/psxinterpreter.cc:905
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:912
+#: src/core/psxinterpreter.cc:922
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LHU з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:929
+#: src/core/psxinterpreter.cc:939
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:991
+#: src/core/psxinterpreter.cc:1001
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1002
+#: src/core/psxinterpreter.cc:1012
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1117
+#: src/core/psxinterpreter.cc:1127
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Виявлено зарезервований код операції з 0x%08x, викликано виняток.\n"
 
-#: src/core/psxinterpreter.cc:1160
+#: src/core/psxinterpreter.cc:1165
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -752,37 +752,37 @@ msgstr ""
 "Спроба використання недійсної вказівки з рухомою комою з 0x%08x. "
 "Проігноровано.\n"
 
-#: src/core/psxinterpreter.cc:1180
+#: src/core/psxinterpreter.cc:1185
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
 
-#: src/core/psxmem.cc:109
+#: src/core/psxmem.cc:106
 msgid ""
 "SharedMem failed to share memory for wram, falling back to memory alloc\n"
 msgstr ""
 "Не вдалося поширити загальну пам'ять для wram, повернення до розподілу "
 "пам'яті.\n"
 
-#: src/core/psxmem.cc:119
+#: src/core/psxmem.cc:116
 msgid "Error allocating memory!"
 msgstr "Помилка розподілу пам'яті!"
 
-#: src/core/psxmem.cc:163
+#: src/core/psxmem.cc:160
 #, c-format
 msgid "Could not open EXP1:\"%s\".\n"
 msgstr "Неможливо відкрити EXP1: \"%s\".\n"
 
-#: src/core/psxmem.cc:171
+#: src/core/psxmem.cc:168
 #, c-format
 msgid "Loaded %i bytes to EXP1 from file: %s\n"
 msgstr "Завантажено %i байт до EXP1 з файлу: %s.\n"
 
-#: src/core/psxmem.cc:218
+#: src/core/psxmem.cc:215
 msgid "No BIOS loaded, emulation halted."
 msgstr ""
 
-#: src/core/psxmem.cc:219
+#: src/core/psxmem.cc:216
 #, fuzzy
 msgid ""
 "Set a BIOS file into the configuration, and do a hard reset of the "
@@ -796,12 +796,12 @@ msgstr ""
 "емулятора.\n"
 "Поширений OpenBIOS.bin може бути відповідною заміною BIOS.\n"
 
-#: src/core/psxmem.cc:232
+#: src/core/psxmem.cc:229
 #, c-format
 msgid "Could not open BIOS:\"%s\". Retrying with the OpenBIOS\n"
 msgstr "Неможливо відкрити BIOS: \"%s\". Повторна спроба з OpenBIOS.\n"
 
-#: src/core/psxmem.cc:242
+#: src/core/psxmem.cc:239
 #, c-format
 msgid ""
 "Could not open OpenBIOS fallback. Things won't work properly.\n"
@@ -810,127 +810,127 @@ msgstr ""
 "Неможливо відкрити резервний OpenBIOS. Усе працюватиме неналежно.\n"
 "Додай дійсний BIOS до конфігурації та перезавантаж апаратно.\n"
 
-#: src/core/psxmem.cc:257
+#: src/core/psxmem.cc:254
 #, c-format
 msgid "Loaded BIOS: %s\n"
 msgstr "Завантажено BIOS: %s.\n"
 
-#: src/core/psxmem.cc:269
+#: src/core/psxmem.cc:266
 #, c-format
 msgid "Known BIOS detected: %s (%08x)\n"
 msgstr "Виявлено відомий BIOS: %s (%08x).\n"
 
-#: src/core/psxmem.cc:271
+#: src/core/psxmem.cc:268
 #, c-format
 msgid "OpenBIOS detected (%08x)\n"
 msgstr "Виявлено OpenBIOS (%08x).\n"
 
-#: src/core/psxmem.cc:273
+#: src/core/psxmem.cc:270
 #, c-format
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Завантажено невідомий BIOS (%08x).\n"
 
-#: src/core/psxmem.cc:306
+#: src/core/psxmem.cc:303
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "8-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:310
+#: src/core/psxmem.cc:307
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr "8-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:339
+#: src/core/psxmem.cc:336
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr "8-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:357
+#: src/core/psxmem.cc:354
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "16-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:361
+#: src/core/psxmem.cc:358
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr "16-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:387
+#: src/core/psxmem.cc:384
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr "16-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:405 src/core/psxmem.cc:655
+#: src/core/psxmem.cc:402 src/core/psxmem.cc:652
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr "32-бітне читання з придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:409 src/core/psxmem.cc:659
+#: src/core/psxmem.cc:406 src/core/psxmem.cc:656
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr "32-бітне читання з непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:437
+#: src/core/psxmem.cc:434
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr "32-бітне читання з невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:530
+#: src/core/psxmem.cc:527
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr "8-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:549
+#: src/core/psxmem.cc:546
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr "8-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:567
+#: src/core/psxmem.cc:564
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr "16-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:587
+#: src/core/psxmem.cc:584
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr "16-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:605 src/core/psxmem.cc:674
+#: src/core/psxmem.cc:602 src/core/psxmem.cc:671
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr "32-бітний запис із непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/psxmem.cc:634
+#: src/core/psxmem.cc:631
 #, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr "Невідоме значення BIU %8.8lx.\n"
 
-#: src/core/psxmem.cc:643
+#: src/core/psxmem.cc:640
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr "32-бітний запис із невідомої адреси: %8.8lx.\n"
 
-#: src/core/psxmem.cc:915
+#: src/core/psxmem.cc:912
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr "MSAN-систему визначено.\n"
 
-#: src/core/psxmem.cc:940
+#: src/core/psxmem.cc:937
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr "Недостатньо пам'яті в MsanAlloc.\n"
 
-#: src/core/psxmem.cc:964 src/core/psxmem.cc:971
+#: src/core/psxmem.cc:961 src/core/psxmem.cc:968
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr "Передано недійсний указівник до MsanFree: %08x.\n"
 
-#: src/core/psxmem.cc:993 src/core/psxmem.cc:1000
+#: src/core/psxmem.cc:990 src/core/psxmem.cc:997
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr "Передано недійсний указівник до MsanRealloc: %08x.\n"
 
-#: src/core/psxmem.cc:1043
+#: src/core/psxmem.cc:1040
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "Незареєстрований заголовок MSAN-ланцюжка у %08x.\n"
@@ -1109,7 +1109,7 @@ msgstr "Вихід"
 
 #: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
-#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:601
+#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:608
 msgid "File"
 msgstr "Файл"
 
@@ -1174,141 +1174,141 @@ msgstr "Завантажити глобальний стан"
 msgid "Open LID"
 msgstr "Відкрити LID"
 
-#: src/gui/gui.cc:1391
+#: src/gui/gui.cc:1390
 msgid "Close LID"
 msgstr "Закрити LID"
 
-#: src/gui/gui.cc:1395
+#: src/gui/gui.cc:1393
 msgid "Open and close LID"
 msgstr "Відкрити та закрити LID"
 
-#: src/gui/gui.cc:1400
+#: src/gui/gui.cc:1397
 #, fuzzy
 msgid "Reset settings..."
 msgstr "Відновити шейдери"
 
-#: src/gui/gui.cc:1404
+#: src/gui/gui.cc:1401
 msgid "Reboot"
 msgstr "Перезавантажити"
 
-#: src/gui/gui.cc:1407
+#: src/gui/gui.cc:1404
 msgid "Quit"
 msgstr "Вихід"
 
-#: src/gui/gui.cc:1413 src/gui/gui.cc:1481
+#: src/gui/gui.cc:1410 src/gui/gui.cc:1478
 msgid "Emulation"
 msgstr "Емуляція"
 
-#: src/gui/gui.cc:1414
+#: src/gui/gui.cc:1411
 msgid "Start emulation"
 msgstr "Розпочати емуляцію"
 
-#: src/gui/gui.cc:1417
+#: src/gui/gui.cc:1414
 msgid "Pause emulation"
 msgstr "Призупинити емуляцію"
 
-#: src/gui/gui.cc:1420
+#: src/gui/gui.cc:1417
 msgid "Soft Reset"
 msgstr "Програмне перезавантаження"
 
-#: src/gui/gui.cc:1423
+#: src/gui/gui.cc:1420
 msgid "Hard Reset"
 msgstr "Апаратне перезавантаження"
 
-#: src/gui/gui.cc:1429 src/gui/widgets/cdrom-viewer.cc:364
-#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:643
+#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:370
+#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
 msgid "Configuration"
 msgstr "Конфігурація"
 
-#: src/gui/gui.cc:1430
+#: src/gui/gui.cc:1427
 msgid "Fullscreen"
 msgstr "Опрацьовувач повного екрана"
 
-#: src/gui/gui.cc:1434
+#: src/gui/gui.cc:1431
 msgid "Full window render"
 msgstr "Опрацьовувач повного вікна"
 
-#: src/gui/gui.cc:1440
+#: src/gui/gui.cc:1437
 msgid "Shader presets"
 msgstr "Шаблони шейдерів"
 
-#: src/gui/gui.cc:1441
+#: src/gui/gui.cc:1438
 msgid "Default shader"
 msgstr "Типовий шейдер"
 
-#: src/gui/gui.cc:1444
+#: src/gui/gui.cc:1441
 msgid "CRT-lottes shader"
 msgstr "CRT-lottes-шейдер"
 
-#: src/gui/gui.cc:1471
+#: src/gui/gui.cc:1468
 msgid "Configure Shaders"
 msgstr "Налаштувати шейдери"
 
-#: src/gui/gui.cc:1476
+#: src/gui/gui.cc:1473
 msgid "Controls"
 msgstr "Керування"
 
-#: src/gui/gui.cc:1477
+#: src/gui/gui.cc:1474
 msgid "Manage Memory Cards"
 msgstr "Керувати картами пам'яті"
 
-#: src/gui/gui.cc:1482 src/gui/gui.cc:1550
+#: src/gui/gui.cc:1479 src/gui/gui.cc:1547
 msgid "GPU"
 msgstr "ГП"
 
-#: src/gui/gui.cc:1483 src/gui/gui.cc:1567
+#: src/gui/gui.cc:1480 src/gui/gui.cc:1564
 msgid "SPU"
 msgstr "СП"
 
-#: src/gui/gui.cc:1484
+#: src/gui/gui.cc:1481
 msgid "PIO Cartridge"
 msgstr "PIO-картридж"
 
-#: src/gui/gui.cc:1486
+#: src/gui/gui.cc:1483
 msgid "UI"
 msgstr "UI"
 
-#: src/gui/gui.cc:1487 src/gui/widgets/isobrowser.cc:520
+#: src/gui/gui.cc:1484 src/gui/widgets/isobrowser.cc:520
 msgid "System"
 msgstr "Система"
 
-#: src/gui/gui.cc:1491 src/gui/widgets/assembly.cc:500
+#: src/gui/gui.cc:1488 src/gui/widgets/assembly.cc:500
 msgid "Debug"
 msgstr "Налагодження"
 
-#: src/gui/gui.cc:1492
+#: src/gui/gui.cc:1489
 msgid "Show Logs"
 msgstr "Показати журнали"
 
-#: src/gui/gui.cc:1494
+#: src/gui/gui.cc:1491
 msgid "Show Lua Console"
 msgstr "Показати Lua-консоль"
 
-#: src/gui/gui.cc:1495
+#: src/gui/gui.cc:1492
 msgid "Show Lua Inspector"
 msgstr "Показати Lua-наглядач"
 
-#: src/gui/gui.cc:1496
+#: src/gui/gui.cc:1493
 msgid "Show Lua editor"
 msgstr "Показати Lua-редактор"
 
-#: src/gui/gui.cc:1500
+#: src/gui/gui.cc:1497
 msgid "CPU"
 msgstr "ЦП"
 
-#: src/gui/gui.cc:1501
+#: src/gui/gui.cc:1498
 msgid "Show Registers"
 msgstr "Показати регістри"
 
-#: src/gui/gui.cc:1502
+#: src/gui/gui.cc:1499
 msgid "Show Assembly"
 msgstr "Показати збір"
 
-#: src/gui/gui.cc:1504 src/gui/gui.cc:1506
+#: src/gui/gui.cc:1501 src/gui/gui.cc:1503
 msgid "Show DynaRec Disassembly"
 msgstr "Показати розбір динамічної перекомпіляції"
 
-#: src/gui/gui.cc:1508
+#: src/gui/gui.cc:1505
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
@@ -1319,328 +1319,328 @@ msgstr ""
 "перекомпіляція ЦП\" у Конфігурація → Емуляція,\n"
 "перезапусти PCSX-Redux, потім спробуй знову."
 
-#: src/gui/gui.cc:1511
+#: src/gui/gui.cc:1508
 msgid "Show Breakpoints"
 msgstr "Показати точки зупинки"
 
-#: src/gui/gui.cc:1512
+#: src/gui/gui.cc:1509
 msgid "Show Callstacks"
 msgstr "Показати стеки викликів"
 
-#: src/gui/gui.cc:1513
+#: src/gui/gui.cc:1510
 msgid "Memory Editors"
 msgstr "Редактори пам'яті"
 
-#: src/gui/gui.cc:1524
+#: src/gui/gui.cc:1521
 msgid "Show Memory Observer"
 msgstr "Показати спостерігач пам'яті"
 
-#: src/gui/gui.cc:1525
+#: src/gui/gui.cc:1522
 #, fuzzy
 msgid "Show RAM viewer"
 msgstr "Показати VRAM-переглядач #"
 
-#: src/gui/gui.cc:1526
+#: src/gui/gui.cc:1523
 #, fuzzy
 msgid "Show MSAN Viewer"
 msgstr "Показати VRAM-переглядач #"
 
-#: src/gui/gui.cc:1527
+#: src/gui/gui.cc:1524
 msgid "Show Typed Debugger"
 msgstr "Показати налагоджувач типів"
 
-#: src/gui/gui.cc:1528
+#: src/gui/gui.cc:1525
 msgid "Show Patches"
 msgstr "Показати виправлення"
 
-#: src/gui/gui.cc:1529
+#: src/gui/gui.cc:1526
 msgid "Show Interrupts Scaler"
 msgstr "Показати скалер переривань"
 
-#: src/gui/gui.cc:1530
+#: src/gui/gui.cc:1527
 msgid "First Chance Exceptions"
 msgstr "Винятки першої можливості"
 
-#: src/gui/gui.cc:1551
+#: src/gui/gui.cc:1548
 msgid "VRAM viewers"
 msgstr "VRAM-переглядачі"
 
-#: src/gui/gui.cc:1552
+#: src/gui/gui.cc:1549
 msgid "Show main VRAM viewer"
 msgstr "Показати головний VRAM-переглядач"
 
-#: src/gui/gui.cc:1553
+#: src/gui/gui.cc:1550
 msgid "Show CLUT VRAM viewer"
 msgstr "Показати CLUT VRAM-переглядач"
 
-#: src/gui/gui.cc:1556
+#: src/gui/gui.cc:1553
 msgid "Show VRAM viewer #"
 msgstr "Показати VRAM-переглядач #"
 
-#: src/gui/gui.cc:1562
+#: src/gui/gui.cc:1559
 msgid "Show GPU logger"
 msgstr "Показати ГП-реєстратор"
 
-#: src/gui/gui.cc:1563
+#: src/gui/gui.cc:1560
 msgid "Show GPU dump recorder / player"
 msgstr ""
 
-#: src/gui/gui.cc:1564
+#: src/gui/gui.cc:1561
 msgid "Show GPU debug"
 msgstr "Показати ГП-налагодження"
 
-#: src/gui/gui.cc:1568
+#: src/gui/gui.cc:1565
 msgid "Show SPU debug"
 msgstr "Показати СП-налагодження"
 
-#: src/gui/gui.cc:1571
+#: src/gui/gui.cc:1568
 msgid "CD-Rom"
 msgstr "CD-ROM"
 
-#: src/gui/gui.cc:1572
+#: src/gui/gui.cc:1569
 msgid "Show Iso Browser"
 msgstr "Показати ISO-браузер"
 
-#: src/gui/gui.cc:1573
+#: src/gui/gui.cc:1570
 #, fuzzy
 msgid "Show CD-ROM viewer"
 msgstr "Показати VRAM-переглядач #"
 
-#: src/gui/gui.cc:1576
+#: src/gui/gui.cc:1573
 msgid "Misc hardware"
 msgstr "Інше обладнання"
 
-#: src/gui/gui.cc:1577
+#: src/gui/gui.cc:1574
 #, fuzzy
 msgid "Show HW Registers"
 msgstr "Показати регістри"
 
-#: src/gui/gui.cc:1578
+#: src/gui/gui.cc:1575
 msgid "Show SIO1 debug"
 msgstr "Показати SIO1-налагодження"
 
-#: src/gui/gui.cc:1581
+#: src/gui/gui.cc:1578
 #, fuzzy
 msgid "Show PSYQo heap viewer"
 msgstr "Показати головний VRAM-переглядач"
 
-#: src/gui/gui.cc:1583
+#: src/gui/gui.cc:1580
 msgid "Kernel"
 msgstr "Ядро"
 
-#: src/gui/gui.cc:1584
+#: src/gui/gui.cc:1581
 msgid "Kernel Events"
 msgstr "Події ядра"
 
-#: src/gui/gui.cc:1585
+#: src/gui/gui.cc:1582
 msgid "Kernel Handlers"
 msgstr "Опрацьовувачі ядра"
 
-#: src/gui/gui.cc:1586 src/gui/gui.cc:1750
+#: src/gui/gui.cc:1583 src/gui/gui.cc:1747
 msgid "Kernel Calls"
 msgstr "Виклики ядра"
 
-#: src/gui/gui.cc:1589
+#: src/gui/gui.cc:1586
 msgid "Rendering"
 msgstr "Опрацювання"
 
-#: src/gui/gui.cc:1590
+#: src/gui/gui.cc:1587
 msgid "Show Output Shader Editor"
 msgstr "Показати редактор кінцевих шейдерів"
 
-#: src/gui/gui.cc:1591
+#: src/gui/gui.cc:1588
 msgid "Show Offscreen Shader Editor"
 msgstr "Показати редактор позакадрових шейдерів"
 
-#: src/gui/gui.cc:1592
+#: src/gui/gui.cc:1589
 msgid "Reset shaders"
 msgstr "Відновити шейдери"
 
-#: src/gui/gui.cc:1600
+#: src/gui/gui.cc:1597
 msgid "Help"
 msgstr "Довідка"
 
-#: src/gui/gui.cc:1601
+#: src/gui/gui.cc:1598
 msgid "Show ImGui Demo"
 msgstr "Показати демонстрацію Im-Gui"
 
-#: src/gui/gui.cc:1602
+#: src/gui/gui.cc:1599
 #, fuzzy
 msgid "Show ImPlot Demo"
 msgstr "Показати демонстрацію Im-Gui"
 
-#: src/gui/gui.cc:1604
+#: src/gui/gui.cc:1601
 msgid "Show UvFile information"
 msgstr "Показати відомості Uv-File"
 
-#: src/gui/gui.cc:1606 src/gui/gui.cc:2533
+#: src/gui/gui.cc:1603 src/gui/gui.cc:2530
 msgid "About"
 msgstr "Про додаток"
 
-#: src/gui/gui.cc:1611
+#: src/gui/gui.cc:1608
 #, c-format
 msgid "CPU: %s"
 msgstr "ЦП: %s"
 
-#: src/gui/gui.cc:1613 src/gui/widgets/isobrowser.cc:574
+#: src/gui/gui.cc:1610 src/gui/widgets/isobrowser.cc:574
 #, c-format
 msgid "GAME ID: %s"
 msgstr "ID гри: %s"
 
-#: src/gui/gui.cc:1616
+#: src/gui/gui.cc:1613
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.3f Гц (%.3f мсек)"
 
-#: src/gui/gui.cc:1618
+#: src/gui/gui.cc:1615
 #, c-format
 msgid "%.2f guest FPS"
 msgstr ""
 
-#: src/gui/gui.cc:1621
+#: src/gui/gui.cc:1618
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr "%.3f мсек аудіобуфер (%i кадрів)"
 
-#: src/gui/gui.cc:1623
+#: src/gui/gui.cc:1620
 #, fuzzy
 msgctxt "Audio status"
 msgid "Idle"
 msgstr "Неактивний"
 
-#: src/gui/gui.cc:1726
+#: src/gui/gui.cc:1723
 msgid "Logs"
 msgstr "Журнали"
 
-#: src/gui/gui.cc:1732
+#: src/gui/gui.cc:1729
 msgid "Lua Console"
 msgstr "Lua-консоль"
 
-#: src/gui/gui.cc:1738
+#: src/gui/gui.cc:1735
 msgid "Lua Inspector"
 msgstr "Lua-спостерігач"
 
-#: src/gui/gui.cc:1741
+#: src/gui/gui.cc:1738
 msgid "Lua Editor"
 msgstr "Lua-редактор"
 
-#: src/gui/gui.cc:1744
+#: src/gui/gui.cc:1741
 msgid "Kernel events"
 msgstr "Події ядра"
 
-#: src/gui/gui.cc:1747
+#: src/gui/gui.cc:1744
 msgid "Kernel handlers"
 msgstr "Опрацьовувачі ядра"
 
-#: src/gui/gui.cc:1753
+#: src/gui/gui.cc:1750
 msgid "Callstacks"
 msgstr "Стеки викликів"
 
-#: src/gui/gui.cc:1825
+#: src/gui/gui.cc:1822
 msgid "Memory Card Manager"
 msgstr "Менеджер карт пам'яті"
 
-#: src/gui/gui.cc:1829 src/gui/widgets/registers.cc:84
+#: src/gui/gui.cc:1826 src/gui/widgets/registers.cc:84
 msgid "Registers"
 msgstr "Регістри"
 
-#: src/gui/gui.cc:1833
+#: src/gui/gui.cc:1830
 msgid "Assembly"
 msgstr "Збір"
 
-#: src/gui/gui.cc:1837
+#: src/gui/gui.cc:1834
 msgid "DynaRec Disassembler"
 msgstr "Розбірник динамічної перекомпіляції"
 
-#: src/gui/gui.cc:1841 src/gui/widgets/typed_debugger.cc:832
+#: src/gui/gui.cc:1838 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
 msgstr "Точки зупинки"
 
-#: src/gui/gui.cc:1845
+#: src/gui/gui.cc:1842
 msgid "Patches"
 msgstr "Виправлення"
 
-#: src/gui/gui.cc:1849
+#: src/gui/gui.cc:1846
 msgid "Named Save States"
 msgstr "Імена збережених станів"
 
-#: src/gui/gui.cc:1853 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1850 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr "Спостерігач пам'яті"
 
-#: src/gui/gui.cc:1857
+#: src/gui/gui.cc:1854
 #, fuzzy
 msgid "MSAN Viewer"
 msgstr "Головний VRAM-переглядач"
 
-#: src/gui/gui.cc:1861 src/gui/widgets/typed_debugger.cc:1028
+#: src/gui/gui.cc:1858 src/gui/widgets/typed_debugger.cc:1028
 msgid "Typed Debugger"
 msgstr "Налагоджувач типів"
 
-#: src/gui/gui.cc:1867
+#: src/gui/gui.cc:1864
 msgid "Output Video"
 msgstr "Кінцеве відео"
 
-#: src/gui/gui.cc:1872
+#: src/gui/gui.cc:1869
 msgid "Offscreen Render"
 msgstr "Позакадрове опрацювання"
 
-#: src/gui/gui.cc:1878
+#: src/gui/gui.cc:1875
 msgid "PIO Cartridge Configuration"
 msgstr "Конфігурація PIO-картриджа"
 
-#: src/gui/gui.cc:1882
+#: src/gui/gui.cc:1879
 #, fuzzy
 msgid "HW Registers"
 msgstr "Регістри"
 
-#: src/gui/gui.cc:1886
+#: src/gui/gui.cc:1883
 msgid "SIO1 Debug"
 msgstr "SIO1-налагодження"
 
-#: src/gui/gui.cc:1890
+#: src/gui/gui.cc:1887
 msgid "ISO Browser"
 msgstr "ISO-браузер"
 
-#: src/gui/gui.cc:1900
+#: src/gui/gui.cc:1897
 msgid "GPU Logger"
 msgstr "ГП-реєстратор"
 
-#: src/gui/gui.cc:1901
+#: src/gui/gui.cc:1898
 msgid "GPU Dump"
 msgstr ""
 
-#: src/gui/gui.cc:1902
+#: src/gui/gui.cc:1899
 msgid "PSYQo Heap Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1905
+#: src/gui/gui.cc:1902
 msgid "UI Configuration"
 msgstr "Конфігурація UI"
 
-#: src/gui/gui.cc:1911
+#: src/gui/gui.cc:1908
 msgid "Locale"
 msgstr "Мова"
 
-#: src/gui/gui.cc:1926
+#: src/gui/gui.cc:1923
 msgid "Reload locales"
 msgstr "Перезавантажити мови"
 
-#: src/gui/gui.cc:1931
+#: src/gui/gui.cc:1928
 msgid "Main Font Size"
 msgstr "Розмір головного шрифту"
 
-#: src/gui/gui.cc:1932
+#: src/gui/gui.cc:1929
 msgid "Mono Font Size"
 msgstr "Розмір моношрифту"
 
-#: src/gui/gui.cc:1934
+#: src/gui/gui.cc:1931
 msgid "Use Widescreen Aspect Ratio"
 msgstr "Використовувати широкоекранне співвідношення сторін"
 
-#: src/gui/gui.cc:1935
+#: src/gui/gui.cc:1932
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1668,23 +1668,23 @@ msgstr ""
 "телевізора для збіжності зі співвідношеннями\n"
 "сторін гри."
 
-#: src/gui/gui.cc:1954
+#: src/gui/gui.cc:1951
 msgid "System Configuration"
 msgstr "Конфігурація системи"
 
-#: src/gui/gui.cc:1956
+#: src/gui/gui.cc:1953
 msgid "Preload Disk Image files"
 msgstr "Попереднє завантаження файлів образу диска"
 
-#: src/gui/gui.cc:1957
+#: src/gui/gui.cc:1954
 msgid "Enable Auto Update"
 msgstr "Увімкнути автооновлення"
 
-#: src/gui/gui.cc:1964
+#: src/gui/gui.cc:1961
 msgid "Update configuration"
 msgstr "Конфігурація оновлень"
 
-#: src/gui/gui.cc:1965
+#: src/gui/gui.cc:1962
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1713,19 +1713,19 @@ msgstr ""
 "Для зміни налаштування пізніше можна перейти до\n"
 "Конфігурація → Системне меню."
 
-#: src/gui/gui.cc:1978
+#: src/gui/gui.cc:1975
 msgid "Enable auto update"
 msgstr "Увімкнути автооновлення"
 
-#: src/gui/gui.cc:1984
+#: src/gui/gui.cc:1981
 msgid "No thanks"
 msgstr "Ні, дякую"
 
-#: src/gui/gui.cc:1993
+#: src/gui/gui.cc:1990
 msgid "Update available"
 msgstr "Доступне оновлення"
 
-#: src/gui/gui.cc:1995
+#: src/gui/gui.cc:1992
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1741,7 +1741,7 @@ msgstr ""
 "Натисни \"Завантажити\" для завантаження оновлення\n"
 "з браузера та ручного встановлення."
 
-#: src/gui/gui.cc:2002
+#: src/gui/gui.cc:1999
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1761,66 +1761,66 @@ msgstr ""
 "Натисни \"Завантажити\" для завантаження оновлення\n"
 "з браузера та ручного встановлення."
 
-#: src/gui/gui.cc:2013
+#: src/gui/gui.cc:2010
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Update"
 msgstr "Оновити"
 
-#: src/gui/gui.cc:2025 src/gui/gui.cc:2030
+#: src/gui/gui.cc:2022 src/gui/gui.cc:2027
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
 msgstr "Помилка завантаження та / або встановлення оновлення."
 
-#: src/gui/gui.cc:2036
+#: src/gui/gui.cc:2033
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Download"
 msgstr "Завантажити"
 
-#: src/gui/gui.cc:2046
+#: src/gui/gui.cc:2043
 msgid "An error has occured while downloading the update."
 msgstr "Помилка завантаження оновлення."
 
-#: src/gui/gui.cc:2052 src/gui/gui.cc:2155 src/gui/widgets/assembly.cc:1034
+#: src/gui/gui.cc:2049 src/gui/gui.cc:2152 src/gui/widgets/assembly.cc:1034
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "Скасувати"
 
-#: src/gui/gui.cc:2061
+#: src/gui/gui.cc:2058
 msgid "UvFiles"
 msgstr "Uv-файли"
 
-#: src/gui/gui.cc:2064
+#: src/gui/gui.cc:2061
 #, c-format
 msgid "Read rate: %s"
 msgstr "Швидкість читання: %s."
 
-#: src/gui/gui.cc:2066
+#: src/gui/gui.cc:2063
 #, c-format
 msgid "Write rate: %s"
 msgstr "Швидкість запису: %s."
 
-#: src/gui/gui.cc:2068
+#: src/gui/gui.cc:2065
 #, c-format
 msgid "Download rate: %s"
 msgstr "Швидкість завантаження: %s."
 
-#: src/gui/gui.cc:2070
+#: src/gui/gui.cc:2067
 msgid "Caching"
 msgstr "Кешування"
 
-#: src/gui/gui.cc:2071 src/gui/widgets/memcard_manager.cc:201
+#: src/gui/gui.cc:2068 src/gui/widgets/memcard_manager.cc:201
 msgid "Filename"
 msgstr "Ім'я файлу"
 
-#: src/gui/gui.cc:2140 src/gui/gui.cc:2143
+#: src/gui/gui.cc:2137 src/gui/gui.cc:2140
 #, fuzzy
 msgid "Reset settings"
 msgstr "Відновити шейдери"
 
-#: src/gui/gui.cc:2145
+#: src/gui/gui.cc:2142
 msgid ""
 "This will restore every setting to its default value, including the window "
 "layout, the input bindings, the paths to the BIOS and the memory cards, and "
@@ -1831,37 +1831,37 @@ msgid ""
 "The emulator will reboot to complete the operation."
 msgstr ""
 
-#: src/gui/gui.cc:2150
+#: src/gui/gui.cc:2147
 #, fuzzy
 msgid "Reset and reboot"
 msgstr "Відновити шейдери"
 
-#: src/gui/gui.cc:2215
+#: src/gui/gui.cc:2212
 msgid "Emulation Configuration"
 msgstr "Конфігурація емуляції"
 
-#: src/gui/gui.cc:2216
+#: src/gui/gui.cc:2213
 msgid "Idle Swap Interval"
 msgstr "Інтервал обміну неактивності"
 
 #. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
-#: src/gui/gui.cc:2222
+#: src/gui/gui.cc:2219
 msgid "Enable XA decoder"
 msgstr "Увімкнути XA-декодер"
 
-#: src/gui/gui.cc:2223
+#: src/gui/gui.cc:2220
 msgid "Always enable SPU IRQ"
 msgstr "Завжди вмикати СП IRQ"
 
-#: src/gui/gui.cc:2224
+#: src/gui/gui.cc:2221
 msgid "Decode MDEC videos in B&W"
 msgstr "Декодувати MDEC-відео до монохрому"
 
-#: src/gui/gui.cc:2225
+#: src/gui/gui.cc:2222
 msgid "Dynarec CPU"
 msgstr "Динамічна перекомпіляція ЦП"
 
-#: src/gui/gui.cc:2233
+#: src/gui/gui.cc:2230
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -1877,11 +1877,11 @@ msgstr ""
 "доступне не для всіх ЦП, тому налаштування може не мати\n"
 "жодного ефекту."
 
-#: src/gui/gui.cc:2239
+#: src/gui/gui.cc:2236
 msgid "8MB"
 msgstr "8 Мбайт"
 
-#: src/gui/gui.cc:2240
+#: src/gui/gui.cc:2237
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -1891,11 +1891,11 @@ msgstr ""
 "звичайних 2 Мбайт. Корисно для роботи\n"
 "з виробничими двійковими файлами й іграми."
 
-#: src/gui/gui.cc:2243
+#: src/gui/gui.cc:2240
 msgid "Memory Fill Value"
 msgstr ""
 
-#: src/gui/gui.cc:2246
+#: src/gui/gui.cc:2243
 msgid ""
 "The SDRAM of the console will be\n"
 "filled with this value at startup.\n"
@@ -1906,11 +1906,11 @@ msgid ""
 "cause issues in some cases.\n"
 msgstr ""
 
-#: src/gui/gui.cc:2255
+#: src/gui/gui.cc:2252
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr "ГП Open GL *АЛЬФА-СТАН*"
 
-#: src/gui/gui.cc:2256
+#: src/gui/gui.cc:2253
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -1924,23 +1924,23 @@ msgstr ""
 "використовувати програмний опрацьовувач.\n"
 "Необхідне перезавантаження при зміні налаштування."
 
-#: src/gui/gui.cc:2268
+#: src/gui/gui.cc:2265
 msgid "NTSC"
 msgstr "NTSC"
 
-#: src/gui/gui.cc:2268
+#: src/gui/gui.cc:2265
 msgid "PAL"
 msgstr "PAL"
 
-#: src/gui/gui.cc:2271
+#: src/gui/gui.cc:2268
 msgid "System Type"
 msgstr "Тип системи"
 
-#: src/gui/gui.cc:2290
+#: src/gui/gui.cc:2287
 msgid "Fast boot"
 msgstr "Швидке завантаження"
 
-#: src/gui/gui.cc:2291
+#: src/gui/gui.cc:2288
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1952,15 +1952,15 @@ msgstr ""
 "завантаження буде суттєво прискорено,\n"
 "оскільки логотип не буде відображено."
 
-#: src/gui/gui.cc:2296
+#: src/gui/gui.cc:2293
 msgid "BIOS file"
 msgstr "BIOS"
 
-#: src/gui/gui.cc:2300 src/gui/widgets/assembly.cc:557
+#: src/gui/gui.cc:2297 src/gui/widgets/assembly.cc:557
 msgid "Enable Debugger"
 msgstr "Увімкнути налагоджувач"
 
-#: src/gui/gui.cc:2307
+#: src/gui/gui.cc:2304
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
@@ -1969,11 +1969,11 @@ msgstr ""
 "Використання різних точок зупинки при виконанні\n"
 "MIPS-коду. Можливе значне сповільнення емуляції."
 
-#: src/gui/gui.cc:2310
+#: src/gui/gui.cc:2307
 msgid "Enable GDB Server"
 msgstr "Увімкнути GDB-сервер"
 
-#: src/gui/gui.cc:2319
+#: src/gui/gui.cc:2316
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
@@ -1983,11 +1983,11 @@ msgstr ""
 "будь-яким GDB-remote-сумісним клієнтом.\n"
 "Також необхідно увімкнути налагоджувач."
 
-#: src/gui/gui.cc:2323
+#: src/gui/gui.cc:2320
 msgid "GDB send manifest"
 msgstr "Маніфест надсилання GDB"
 
-#: src/gui/gui.cc:2324
+#: src/gui/gui.cc:2321
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -1998,19 +1998,19 @@ msgstr ""
 "Залиш увімкненим для нез'єднання IDA з сервером,\n"
 "оскільки він має помилку в аналізаторі маніфесту."
 
-#: src/gui/gui.cc:2331
+#: src/gui/gui.cc:2328
 msgid "PCSX Logs to GDB"
 msgstr "Журнали PCSX до GDB"
 
-#: src/gui/gui.cc:2347
+#: src/gui/gui.cc:2344
 msgid "GDB Server Port"
 msgstr "Порт GDB-сервера"
 
-#: src/gui/gui.cc:2349
+#: src/gui/gui.cc:2346
 msgid "GDB Server Trace"
 msgstr "Відстеження GDB-сервера"
 
-#: src/gui/gui.cc:2350
+#: src/gui/gui.cc:2347
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
@@ -2020,11 +2020,11 @@ msgstr ""
 "протоколу в журналах, що може бути корисним\n"
 "для налагодження самої системи GDB-сервера."
 
-#: src/gui/gui.cc:2353
+#: src/gui/gui.cc:2350
 msgid "Enable Web Server"
 msgstr "Увімкнути web-сервер"
 
-#: src/gui/gui.cc:2362
+#: src/gui/gui.cc:2359
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
@@ -2035,15 +2035,15 @@ msgstr ""
 "Докладно - Wikipedia. У деяких випадках\n"
 "необхідний налагоджувач."
 
-#: src/gui/gui.cc:2366
+#: src/gui/gui.cc:2363
 msgid "Web Server Port"
 msgstr "Порт web-сервера"
 
-#: src/gui/gui.cc:2367
+#: src/gui/gui.cc:2364
 msgid "Enable SIO1 Server"
 msgstr "Увімкнути SIO1-сервер"
 
-#: src/gui/gui.cc:2376
+#: src/gui/gui.cc:2373
 msgid ""
 "This will activate a tcp server, that will\n"
 "relay information between tcp and sio1.\n"
@@ -2052,15 +2052,15 @@ msgstr ""
 "Активація TCP-сервера для передачі\n"
 "відомостей між TCP і SIO1. Докладно - Wikipedia."
 
-#: src/gui/gui.cc:2380
+#: src/gui/gui.cc:2377
 msgid "SIO1 Server Port"
 msgstr "Порт SIO1-сервера"
 
-#: src/gui/gui.cc:2381
+#: src/gui/gui.cc:2378
 msgid "Enable SIO1 Client"
 msgstr "Увімкнути SIO1-клієнт"
 
-#: src/gui/gui.cc:2394
+#: src/gui/gui.cc:2391
 msgid ""
 "This will activate a tcp client, that can connect\n"
 "to another PCSX-Redux server to relay information between tcp and sio1.\n"
@@ -2070,71 +2070,72 @@ msgstr ""
 "сервером PCSX-Redux для передачі відомостей\n"
 "між TCP і SIO1. Докладно - Wikipedia."
 
-#: src/gui/gui.cc:2398
+#: src/gui/gui.cc:2395
 msgid "SIO1 Client Host"
 msgstr "Хост SIO1-клієнта"
 
-#: src/gui/gui.cc:2401
+#: src/gui/gui.cc:2398
 msgid "SIO1 Client Port"
 msgstr "Порт SIO1-клієнта"
 
-#: src/gui/gui.cc:2405
+#: src/gui/gui.cc:2402
 msgid "Reset SIO"
 msgstr "Перезавантажити SIO"
 
-#: src/gui/gui.cc:2416
+#: src/gui/gui.cc:2413
 msgid "Reconnect"
 msgstr "Перез'єднати"
 
-#: src/gui/gui.cc:2429
+#: src/gui/gui.cc:2426
 msgid "SIO1Mode"
 msgstr "SIO1-режим"
 
-#: src/gui/gui.cc:2487
-msgid "Interrupt Scaler"
-msgstr "Скалер переривань"
+#: src/gui/gui.cc:2484
+#, fuzzy
+msgid "Scheduler Scaler"
+msgstr "Відновити скалер"
 
-#: src/gui/gui.cc:2488
+#: src/gui/gui.cc:2485
 msgid "Reset all"
 msgstr "Відновити все"
 
-#: src/gui/gui.cc:2504
+#: src/gui/gui.cc:2501
 msgid "Cherry##Theme name"
 msgstr "Вишня##Ім'я теми"
 
-#: src/gui/gui.cc:2504
+#: src/gui/gui.cc:2501
 msgid "Classic##Theme name"
 msgstr "Класична##Ім'я теми"
 
-#: src/gui/gui.cc:2504
+#: src/gui/gui.cc:2501
 msgid "Default theme##Theme name"
 msgstr "Типова##Ім'я теми"
 
-#: src/gui/gui.cc:2504
+#: src/gui/gui.cc:2501
 msgid "Light##Theme name"
 msgstr "Світло##Ім'я теми"
 
-#: src/gui/gui.cc:2505
+#: src/gui/gui.cc:2502
 msgid "Dracula##Theme name"
 msgstr "Дракула##Ім'я теми"
 
-#: src/gui/gui.cc:2505
+#: src/gui/gui.cc:2502
 msgid "Mono##Theme name"
 msgstr "Моно##Ім'я теми"
 
-#: src/gui/gui.cc:2505
+#: src/gui/gui.cc:2502
 msgid "Olive##Theme name"
 msgstr "Олива##Ім'я теми"
 
-#: src/gui/gui.cc:2510
+#: src/gui/gui.cc:2507
 msgid "Themes"
 msgstr "Теми"
 
-#: src/gui/gui.cc:2541 src/gui/gui.cc:2630
+#: src/gui/gui.cc:2538 src/gui/gui.cc:2627
 msgid "Version"
 msgstr "Версія"
 
-#: src/gui/gui.cc:2548
+#: src/gui/gui.cc:2545
 msgid ""
 "No version information.\n"
 "\n"
@@ -2144,51 +2145,51 @@ msgstr ""
 "\n"
 "Імовірно, зібрано з джерела."
 
-#: src/gui/gui.cc:2550
+#: src/gui/gui.cc:2547
 msgid "Copy to clipboard"
 msgstr "Копіювати до буфера обміну"
 
-#: src/gui/gui.cc:2562 src/gui/gui.cc:2647
+#: src/gui/gui.cc:2559 src/gui/gui.cc:2644
 #, c-format
 msgid "Version: %s"
 msgstr "Версія: %s"
 
-#: src/gui/gui.cc:2564
+#: src/gui/gui.cc:2561
 #, c-format
 msgid "Build: %i"
 msgstr "Випуск: %i"
 
-#: src/gui/gui.cc:2566
+#: src/gui/gui.cc:2563
 #, fuzzy
 msgid "Changeset:"
 msgstr "Набір змін: "
 
-#: src/gui/gui.cc:2573
+#: src/gui/gui.cc:2570
 #, c-format
 msgid "Date & time: %s"
 msgstr "Дата та час: %s"
 
-#: src/gui/gui.cc:2582
+#: src/gui/gui.cc:2579
 msgid "Authors"
 msgstr "Автори"
 
-#: src/gui/gui.cc:2590
+#: src/gui/gui.cc:2587
 msgid "Licenses"
 msgstr "Ліцензії"
 
-#: src/gui/gui.cc:2602
+#: src/gui/gui.cc:2599
 msgid "OpenGL information"
 msgstr "Відомості Open GL"
 
-#: src/gui/gui.cc:2604
+#: src/gui/gui.cc:2601
 msgid "OpenGL error reporting: enabled"
 msgstr "Увімкнено звітність помилок Open GL."
 
-#: src/gui/gui.cc:2606
+#: src/gui/gui.cc:2603
 msgid "OpenGL error reporting: disabled"
 msgstr "Вимкнено звітність помилок Open GL."
 
-#: src/gui/gui.cc:2609
+#: src/gui/gui.cc:2606
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
@@ -2203,11 +2204,11 @@ msgstr ""
 "продуктивність програмного забезпечення, але код користувача, наприклад, "
 "редактор шейдерів, не зможе належно точно повідомляти проблеми."
 
-#: src/gui/gui.cc:2617
+#: src/gui/gui.cc:2614
 msgid "Enable OpenGL error reporting"
 msgstr "Увімкнути звітність помилок Open GL"
 
-#: src/gui/gui.cc:2620
+#: src/gui/gui.cc:2617
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
@@ -2217,70 +2218,70 @@ msgstr ""
 "необхідний Open GL 4.3+, і можливий вплив на продуктивність деяких "
 "комп'ютерів (необхідний перезапуск емулятора)."
 
-#: src/gui/gui.cc:2624
+#: src/gui/gui.cc:2621
 msgid "OpenGL error reporting severity"
 msgstr "Ретельність звітності помилок Open GL"
 
-#: src/gui/gui.cc:2627
+#: src/gui/gui.cc:2624
 #, c-format
 msgid "Core profile: %s"
 msgstr "Профіль ядра: %s."
 
-#: src/gui/gui.cc:2627 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2624 src/gui/widgets/assembly.cc:587
 msgid "no"
 msgstr "ні"
 
-#: src/gui/gui.cc:2627 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2624 src/gui/widgets/assembly.cc:587
 msgid "yes"
 msgstr "так"
 
-#: src/gui/gui.cc:2628
+#: src/gui/gui.cc:2625
 msgid "Vendor"
 msgstr "Виробник"
 
-#: src/gui/gui.cc:2629
+#: src/gui/gui.cc:2626
 msgid "Renderer"
 msgstr "Опрацьовувач"
 
-#: src/gui/gui.cc:2631
+#: src/gui/gui.cc:2628
 msgid "Shading language version"
 msgstr "Версія мови шейдера"
 
-#: src/gui/gui.cc:2634
+#: src/gui/gui.cc:2631
 #, c-format
 msgid "Texture units: %d"
 msgstr "Блоки текстур: %d"
 
-#: src/gui/gui.cc:2637
+#: src/gui/gui.cc:2634
 msgid "Extensions:"
 msgstr "Розширення:"
 
-#: src/gui/gui.cc:2646
+#: src/gui/gui.cc:2643
 msgid "FFmpeg information"
 msgstr "FFmpeg-відомості"
 
-#: src/gui/gui.cc:2648
+#: src/gui/gui.cc:2645
 #, c-format
 msgid "License: %s"
 msgstr "Ліцензія: %s."
 
-#: src/gui/gui.cc:2649
+#: src/gui/gui.cc:2646
 #, c-format
 msgid "Configuration: %s"
 msgstr "Конфігурація: %s."
 
-#: src/gui/gui.cc:2652
+#: src/gui/gui.cc:2649
 msgid "List of supported formats:"
 msgstr "Перелік підтримуваних форматів:"
 
-#: src/gui/gui.cc:2670
+#: src/gui/gui.cc:2667
 msgid ""
 "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
 msgstr ""
 "Перелік підтримуваних кодеків: (D: Декодер, E: Кодувальник, L: Утратно, S: "
 "Без утрат)"
 
-#: src/gui/gui.cc:2710
+#: src/gui/gui.cc:2707
 #, c-format
 msgid "%s codecs"
 msgstr "%s-кодеки"
@@ -2414,7 +2415,7 @@ msgstr "Відображення стрілок переходів. Може п�
 msgid "Columns"
 msgstr "Стовпці"
 
-#: src/gui/widgets/assembly.cc:566 src/gui/widgets/log.cc:112
+#: src/gui/widgets/assembly.cc:566 src/gui/widgets/log.cc:114
 msgid "CPU trace"
 msgstr "Відстеження ЦП"
 
@@ -2523,7 +2524,7 @@ msgstr "Зібрати код для адреси 0x%08x:"
 
 #. Clear items button
 #: src/gui/widgets/assembly.cc:1069 src/gui/widgets/console.cc:39
-#: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:129
+#: src/gui/widgets/dynarec_disassembly.cc:90 src/gui/widgets/log.cc:131
 #: src/gui/widgets/pio-cart.cc:41 src/gui/widgets/typed_debugger.cc:795
 msgid "Clear"
 msgstr "Очистити"
@@ -2759,89 +2760,89 @@ msgstr "Зупинка запису мапи половинами"
 msgid "Break on word write map"
 msgstr "Зупинка запису мапи словами"
 
-#: src/gui/widgets/cdrom-viewer.cc:344
+#: src/gui/widgets/cdrom-viewer.cc:350
 #, fuzzy
 msgid "CD-ROM Viewer"
 msgstr "VRAM-переглядачі"
 
-#: src/gui/widgets/cdrom-viewer.cc:351 src/gui/widgets/isobrowser.cc:131
-#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
-#: src/gui/widgets/vram-viewer.cc:605
+#: src/gui/widgets/cdrom-viewer.cc:357 src/gui/widgets/isobrowser.cc:131
+#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:492
+#: src/gui/widgets/vram-viewer.cc:612
 msgid "View"
 msgstr "Переглянути"
 
-#: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
-#: src/gui/widgets/vram-viewer.cc:606
+#: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
+#: src/gui/widgets/vram-viewer.cc:613
 msgid "Reset view"
 msgstr "Відновити вигляд"
 
-#: src/gui/widgets/cdrom-viewer.cc:354
+#: src/gui/widgets/cdrom-viewer.cc:360
 msgid "Polar disc layout"
 msgstr ""
 
-#: src/gui/widgets/cdrom-viewer.cc:356
+#: src/gui/widgets/cdrom-viewer.cc:362
 #, fuzzy
 msgid "Show data reads"
 msgstr "Показати виправлення"
 
-#: src/gui/widgets/cdrom-viewer.cc:357
+#: src/gui/widgets/cdrom-viewer.cc:363
 msgid "Show audio (CDDA)"
 msgstr ""
 
-#: src/gui/widgets/cdrom-viewer.cc:358
+#: src/gui/widgets/cdrom-viewer.cc:364
 #, fuzzy
 msgid "Show seeks"
 msgstr "Показати регістри"
 
-#: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
-#: src/gui/widgets/vram-viewer.cc:637
+#: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/vram-viewer.cc:644
 msgid "Show Shader Editor"
 msgstr "Показати редактор шейдерів"
 
-#: src/gui/widgets/cdrom-viewer.cc:365
+#: src/gui/widgets/cdrom-viewer.cc:371
 #, fuzzy
 msgid "Select data color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:366
+#: src/gui/widgets/cdrom-viewer.cc:372
 #, fuzzy
 msgid "Select audio color"
 msgstr "Вибрати колір TPage-сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:367
+#: src/gui/widgets/cdrom-viewer.cc:373
 #, fuzzy
 msgid "Select seek color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:371 src/gui/widgets/ram-viewer.cc:508
+#: src/gui/widgets/cdrom-viewer.cc:377 src/gui/widgets/ram-viewer.cc:515
 msgid "Decay half-life (ms)"
 msgstr ""
 
-#: src/gui/widgets/cdrom-viewer.cc:393 src/gui/widgets/cdrom-viewer.cc:394
+#: src/gui/widgets/cdrom-viewer.cc:399 src/gui/widgets/cdrom-viewer.cc:400
 #, fuzzy
 msgid "Data Color Picker"
 msgstr "Вибір кольору TPage-сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:398 src/gui/widgets/cdrom-viewer.cc:406
-#: src/gui/widgets/cdrom-viewer.cc:414 src/gui/widgets/ram-viewer.cc:541
-#: src/gui/widgets/ram-viewer.cc:549 src/gui/widgets/ram-viewer.cc:557
-#: src/gui/widgets/ram-viewer.cc:565 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:669 src/gui/widgets/vram-viewer.cc:681
-#: src/gui/widgets/vram-viewer.cc:693 src/gui/widgets/vram-viewer.cc:705
+#: src/gui/widgets/cdrom-viewer.cc:404 src/gui/widgets/cdrom-viewer.cc:412
+#: src/gui/widgets/cdrom-viewer.cc:420 src/gui/widgets/ram-viewer.cc:548
+#: src/gui/widgets/ram-viewer.cc:556 src/gui/widgets/ram-viewer.cc:564
+#: src/gui/widgets/ram-viewer.cc:572 src/gui/widgets/sio1.cc:191
+#: src/gui/widgets/vram-viewer.cc:676 src/gui/widgets/vram-viewer.cc:688
+#: src/gui/widgets/vram-viewer.cc:700 src/gui/widgets/vram-viewer.cc:712
 msgid "OK"
 msgstr "OK"
 
-#: src/gui/widgets/cdrom-viewer.cc:401 src/gui/widgets/cdrom-viewer.cc:402
+#: src/gui/widgets/cdrom-viewer.cc:407 src/gui/widgets/cdrom-viewer.cc:408
 #, fuzzy
 msgid "Audio Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:409 src/gui/widgets/cdrom-viewer.cc:410
+#: src/gui/widgets/cdrom-viewer.cc:415 src/gui/widgets/cdrom-viewer.cc:416
 #, fuzzy
 msgid "Seek Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/cdrom-viewer.cc:420
+#: src/gui/widgets/cdrom-viewer.cc:426
 #, fuzzy
 msgid "CD-ROM Shader Editor"
 msgstr "Редактор VRAM-шейдерів"
@@ -2851,7 +2852,7 @@ msgid "Close Console"
 msgstr "Закрити консоль"
 
 #: src/gui/widgets/console.cc:41 src/gui/widgets/dynarec_disassembly.cc:95
-#: src/gui/widgets/log.cc:131
+#: src/gui/widgets/log.cc:133
 msgid "Copy"
 msgstr "Копіювати"
 
@@ -2860,7 +2861,7 @@ msgid "Auto-scroll"
 msgstr "Автогортання"
 
 #: src/gui/widgets/console.cc:48 src/gui/widgets/dynarec_disassembly.cc:100
-#: src/gui/widgets/log.cc:127
+#: src/gui/widgets/log.cc:129
 msgid "Monospace"
 msgstr "Моноширина"
 
@@ -3588,15 +3589,20 @@ msgstr "Особливі"
 msgid "Log CD-ROM commands"
 msgstr "Журнал CD-ROM-команд"
 
-#: src/gui/widgets/log.cc:113
+#: src/gui/widgets/log.cc:111
+#, fuzzy
+msgid "Log CD-ROM hardware access"
+msgstr "Журнал CD-ROM-команд"
+
+#: src/gui/widgets/log.cc:115
 msgid "Skip ISR during CPU traces"
 msgstr "Пропустити ISR упродовж відстежень ЦП"
 
-#: src/gui/widgets/log.cc:115
+#: src/gui/widgets/log.cc:117
 msgid "Log kernel calls"
 msgstr "Журнал викликів ядра"
 
-#: src/gui/widgets/log.cc:125
+#: src/gui/widgets/log.cc:127
 msgid "Follow"
 msgstr "Відстежити"
 
@@ -3604,7 +3610,7 @@ msgstr "Відстежити"
 msgid "Auto run"
 msgstr "Автозапуск"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:492
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:504
 msgid "Auto save"
 msgstr "Автозбереження"
 
@@ -3950,82 +3956,82 @@ msgstr "Вимкнути"
 msgid "On"
 msgstr "Увімкнути"
 
-#: src/gui/widgets/ram-viewer.cc:478
+#: src/gui/widgets/ram-viewer.cc:485
 #, fuzzy
 msgid "RAM Viewer"
 msgstr "VRAM-переглядачі"
 
-#: src/gui/widgets/ram-viewer.cc:488
+#: src/gui/widgets/ram-viewer.cc:495
 #, fuzzy
 msgid "Show reads"
 msgstr "Показати сітку"
 
-#: src/gui/widgets/ram-viewer.cc:489
+#: src/gui/widgets/ram-viewer.cc:496
 #, fuzzy
 msgid "Show writes"
 msgstr "Показати регістри"
 
-#: src/gui/widgets/ram-viewer.cc:490
+#: src/gui/widgets/ram-viewer.cc:497
 #, fuzzy
 msgid "Show execution"
 msgstr "Виконання мапи"
 
-#: src/gui/widgets/ram-viewer.cc:491
+#: src/gui/widgets/ram-viewer.cc:498
 #, fuzzy
 msgid "Show greyscale"
 msgstr "Відтінки сірого"
 
-#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:632
+#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:639
 msgid "Show grid"
 msgstr "Показати сітку"
 
-#: src/gui/widgets/ram-viewer.cc:494
+#: src/gui/widgets/ram-viewer.cc:501
 #, fuzzy
 msgid "Show hex values"
 msgstr "Показати все"
 
-#: src/gui/widgets/ram-viewer.cc:495
+#: src/gui/widgets/ram-viewer.cc:502
 #, fuzzy
 msgid "Select grid color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/ram-viewer.cc:502
+#: src/gui/widgets/ram-viewer.cc:509
 #, fuzzy
 msgid "Select read color"
 msgstr "Вибрати колір виділення читання"
 
-#: src/gui/widgets/ram-viewer.cc:503
+#: src/gui/widgets/ram-viewer.cc:510
 #, fuzzy
 msgid "Select write color"
 msgstr "Вибрати колір виділення запису"
 
-#: src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/ram-viewer.cc:511
 #, fuzzy
 msgid "Select exec color"
 msgstr "Вибрати колір піксельної сітки"
 
 #. Color pickers
-#: src/gui/widgets/ram-viewer.cc:536 src/gui/widgets/ram-viewer.cc:537
+#: src/gui/widgets/ram-viewer.cc:543 src/gui/widgets/ram-viewer.cc:544
 #, fuzzy
 msgid "Read Color Picker"
 msgstr "Прочитане виділення підбірника кольору"
 
-#: src/gui/widgets/ram-viewer.cc:544 src/gui/widgets/ram-viewer.cc:545
+#: src/gui/widgets/ram-viewer.cc:551 src/gui/widgets/ram-viewer.cc:552
 #, fuzzy
 msgid "Write Color Picker"
 msgstr "Записане виділення підбірника кольору"
 
-#: src/gui/widgets/ram-viewer.cc:552 src/gui/widgets/ram-viewer.cc:553
+#: src/gui/widgets/ram-viewer.cc:559 src/gui/widgets/ram-viewer.cc:560
 #, fuzzy
 msgid "Exec Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/ram-viewer.cc:560 src/gui/widgets/ram-viewer.cc:561
+#: src/gui/widgets/ram-viewer.cc:567 src/gui/widgets/ram-viewer.cc:568
 #, fuzzy
 msgid "Grid Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/ram-viewer.cc:571
+#: src/gui/widgets/ram-viewer.cc:578
 #, fuzzy
 msgid "RAM Shader Editor"
 msgstr "Редактор VRAM-шейдерів"
@@ -4054,43 +4060,43 @@ msgstr "Показати закріплені точки"
 msgid "Misc"
 msgstr "Інше"
 
-#: src/gui/widgets/shader-editor.cc:322
+#: src/gui/widgets/shader-editor.cc:334
 msgid "Vertex Shader compilation error: {}\n"
 msgstr "Помилка компіляції вершинного шейдера: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:343
+#: src/gui/widgets/shader-editor.cc:355
 msgid "Pixel Shader compilation error: {}\n"
 msgstr "Помилка компіляції піксельного шейдера: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:365
+#: src/gui/widgets/shader-editor.cc:377
 msgid "Link error: {}\n"
 msgstr "Помилка зв'язку: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:377
+#: src/gui/widgets/shader-editor.cc:389
 msgid "Missing attribute {} in shader program"
 msgstr "Відсутній атрибут {} у програмі шейдера."
 
-#: src/gui/widgets/shader-editor.cc:490
+#: src/gui/widgets/shader-editor.cc:502
 msgid "Auto compile"
 msgstr "Автокомпіляція"
 
-#: src/gui/widgets/shader-editor.cc:494
+#: src/gui/widgets/shader-editor.cc:506
 msgid "Show all"
 msgstr "Показати все"
 
-#: src/gui/widgets/shader-editor.cc:496
+#: src/gui/widgets/shader-editor.cc:508
 msgid "Configure shader"
 msgstr "Налаштувати шейдер"
 
-#: src/gui/widgets/shader-editor.cc:521
+#: src/gui/widgets/shader-editor.cc:533
 msgid "Vertex Shader"
 msgstr "Вершинний шейдер"
 
-#: src/gui/widgets/shader-editor.cc:527
+#: src/gui/widgets/shader-editor.cc:539
 msgid "Pixel Shader"
 msgstr "Піксельний шейдер"
 
-#: src/gui/widgets/shader-editor.cc:533
+#: src/gui/widgets/shader-editor.cc:545
 msgid "Lua Invoker"
 msgstr "Lua-викликач"
 
@@ -4294,71 +4300,71 @@ msgstr "Перемкнути"
 msgid "Add breakpoint##{}"
 msgstr "Додати точку зупинки##{}"
 
-#: src/gui/widgets/vram-viewer.cc:499
+#: src/gui/widgets/vram-viewer.cc:506
 msgid "VRAM Shader Editor"
 msgstr "Редактор VRAM-шейдерів"
 
-#: src/gui/widgets/vram-viewer.cc:609
+#: src/gui/widgets/vram-viewer.cc:616
 msgid "24 bits shift"
 msgstr "24-бітний зсув"
 
-#: src/gui/widgets/vram-viewer.cc:610
+#: src/gui/widgets/vram-viewer.cc:617
 msgid "View VRAM in 24 bits"
 msgstr "Переглянути VRAM у 24 біт"
 
-#: src/gui/widgets/vram-viewer.cc:614
+#: src/gui/widgets/vram-viewer.cc:621
 msgid "View VRAM in 16 bits"
 msgstr "Переглянути VRAM у 16 біт"
 
-#: src/gui/widgets/vram-viewer.cc:618
+#: src/gui/widgets/vram-viewer.cc:625
 msgid "View VRAM in 8 bits"
 msgstr "Переглянути VRAM у 8 біт"
 
-#: src/gui/widgets/vram-viewer.cc:622
+#: src/gui/widgets/vram-viewer.cc:629
 msgid "View VRAM in 4 bits"
 msgstr "Переглянути VRAM у 4 біт"
 
-#: src/gui/widgets/vram-viewer.cc:627
+#: src/gui/widgets/vram-viewer.cc:634
 msgid "Select a CLUT"
 msgstr "Вибрати CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:636
 msgid "Enable Alpha channel view"
 msgstr "Увімкнути перегляд альфа-каналу"
 
-#: src/gui/widgets/vram-viewer.cc:630
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Enable greyscale"
 msgstr "Увімкнути відтінки сірого"
 
-#: src/gui/widgets/vram-viewer.cc:633
+#: src/gui/widgets/vram-viewer.cc:640
 msgid "Select pixel grid color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:634
+#: src/gui/widgets/vram-viewer.cc:641
 msgid "Select TPage grid color"
 msgstr "Вибрати колір TPage-сітки"
 
-#: src/gui/widgets/vram-viewer.cc:644
+#: src/gui/widgets/vram-viewer.cc:651
 msgid "Select read highlight color"
 msgstr "Вибрати колір виділення читання"
 
-#: src/gui/widgets/vram-viewer.cc:645
+#: src/gui/widgets/vram-viewer.cc:652
 msgid "Select written highlight color"
 msgstr "Вибрати колір виділення запису"
 
-#: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
+#: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
 msgid "Read Highlight Color Picker"
 msgstr "Прочитане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:675 src/gui/widgets/vram-viewer.cc:677
+#: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
 msgid "Written Highlight Color Picker"
 msgstr "Записане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:687 src/gui/widgets/vram-viewer.cc:689
+#: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
 msgid "Pixel Grid Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:699 src/gui/widgets/vram-viewer.cc:701
+#: src/gui/widgets/vram-viewer.cc:706 src/gui/widgets/vram-viewer.cc:708
 msgid "TPage Grid Color Picker"
 msgstr "Вибір кольору TPage-сітки"
 
@@ -4476,6 +4482,9 @@ msgstr ""
 msgid "SPU Debug"
 msgstr "СП-налагодження"
 
+#~ msgid "Interrupt Scaler"
+#~ msgstr "Скалер переривань"
+
 #~ msgid "MSAA"
 #~ msgstr "MSAA"
 
@@ -4578,9 +4587,6 @@ msgstr "СП-налагодження"
 #~ msgstr ""
 #~ "Активація СП IRQ на основі запису до буфера декодування / захоплення. "
 #~ "Необхідно для деяких ігор."
-
-#~ msgid "Reset Scaler"
-#~ msgstr "Відновити скалер"
 
 #~ msgid "Pause SPU waiting for CPU IRQ"
 #~ msgstr "Призупинити СП очікуванням ЦП IRQ"

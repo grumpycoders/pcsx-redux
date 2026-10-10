@@ -88,6 +88,7 @@ struct MemoryEditor
     float           OptFooterExtraHeight;                       // = 0      // space to reserve at the bottom of the widget to add custom widgets
     ImU32           HighlightColor;                             //          // background color of highlighted bytes.
     bool            (*HighlightFn)(size_t off);                 // = 0      // optional handler to return Highlight property (to support non-contiguous highlighting).
+    std::function<ImU32(size_t off)> BgColorFn = nullptr;       // optional handler to return custom background color of individual bytes.
     std::function<void()> PushMonoFont = nullptr;
     size_t&          OffsetAddr; // referenced from PCSX-Redux Settings
 
@@ -134,6 +135,10 @@ struct MemoryEditor
 
     mutable ReadCache Cache;
 
+    // Public read-only data
+    bool            MouseHovered;                               // set when mouse is hovering a value.
+    size_t          MouseHoveredAddr;                           // the address currently being hovered if MouseHovered is set.
+
 private:
     // [Internal State]
     bool            ContentsWidthChanged;
@@ -144,7 +149,7 @@ private:
     std::string     AddrInputBuf;
     size_t          GotoAddr;
     size_t          HighlightMin, HighlightMax;
-    int             PreviewEndianess;
+    int             PreviewEndianness;
     bool            RestoreOffset;
     const size_t    BaseAddr;
 
@@ -156,18 +161,18 @@ public:
 
     struct Sizes
     {
-        int     AddrDigitsCount;
-        float   LineHeight;
-        float   GlyphWidth;
-        float   ByteWidth;
-        float   ByteSpacingWidth;
-        float   HexCellWidth;
-        float   SpacingBetweenMidCols;
-        float   PosHexStart;
-        float   PosHexEnd;
-        float   PosAsciiStart;
-        float   PosAsciiEnd;
-        float   WindowWidth;
+        int     AddrDigitsCount;            // Number of digits required to represent maximum address.
+        float   LineHeight;                 // Height of each line (no spacing), measured with the mono font.
+        float   GlyphWidth;                 // Glyph width (assume mono-space).
+        float   ByteWidth;                  // Width of a single byte "FF" ~2.0f * GlyphWidth.
+        float   ByteSpacingWidth;           // Spacing after each preview-type group of bytes ~0.5f * GlyphWidth.
+        float   HexCellWidth;               // Width of a hex edit cell (one preview-type group of bytes plus trailing spacing).
+        float   SpacingBetweenMidCols;      // Spacing between each columns section (OptMidColsCount).
+        float   OffsetHexMinX;
+        float   OffsetHexMaxX;
+        float   OffsetAsciiMinX;
+        float   OffsetAsciiMaxX;
+        float   WindowWidth;                // Ideal window width.
 
         Sizes() { memset(this, 0, sizeof(*this)); }
     };
@@ -184,10 +189,10 @@ public:
     size_t DataTypeGetSize(ImGuiDataType data_type) const;
     const char* DataFormatGetDesc(DataFormat data_format) const;
     bool IsBigEndian() const;
-    static void* EndianessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian);
-    static void* EndianessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian);
-    void* EndianessCopy(void* dst, void* src, size_t size) const;
-    const char* FormatBinary(const uint8_t* buf, int width) const;
+    static void* EndiannessCopyBigEndian(void* _dst, void* _src, size_t s, int is_little_endian);
+    static void* EndiannessCopyLittleEndian(void* _dst, void* _src, size_t s, int is_little_endian);
+    void* EndiannessCopy(void* dst, void* src, size_t size) const;
+    const char* FormatBinary(const ImU8* buf, int width) const;
 
 private:
     // [Internal]

@@ -568,7 +568,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     });
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     m_hasCoreProfile = true;
@@ -582,12 +582,12 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     }
 
     // SDL splits window and GL context creation, so the 3.0 fallback has to
-    // cover both: a 3.2-core context can fail to materialize even after the
+    // cover both: a 3.3-core context can fail to materialize even after the
     // window itself succeeded. On platforms where the pixel format binds at
     // window creation (Win32 WGL is the strict case) a clean retry needs a
     // fresh window too, so we destroy and recreate both.
     if (!m_window || !m_glContext) {
-        g_system->log(LogClass::UI, "SDL failed to create OpenGL 3.2 core context, retrying with any 3.0 profile\n");
+        g_system->log(LogClass::UI, "SDL failed to create OpenGL 3.3 core context, retrying with any 3.0 profile\n");
         if (m_glContext) {
             SDL_GL_DestroyContext(m_glContext);
             m_glContext = nullptr;
@@ -1316,12 +1316,12 @@ void PCSX::GUI::endFrame() {
                 if (ImGui::MenuItem(_("Reload Disk Image"), nullptr, nullptr, currentIso && !currentIso->failed())) {
                     PCSX::g_emulator->m_cdrom->clearIso();
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(currentIso->getIsoPath()));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                     g_system->hardReset();
                 }
                 if (ImGui::MenuItem(_("Close Disk Image"))) {
                     PCSX::g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
-                    PCSX::g_emulator->m_cdrom->check();
+                    PCSX::g_emulator->m_cdrom->parseIso();
                 }
                 if (ImGui::MenuItem(_("Load binary"))) {
                     showOpenBinaryDialog = true;
@@ -1390,16 +1390,13 @@ void PCSX::GUI::endFrame() {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Open LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(-1);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->openLid();
                 }
                 if (ImGui::MenuItem(_("Close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime(0);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->closeLid();
                 }
                 if (ImGui::MenuItem(_("Open and close LID"))) {
-                    PCSX::g_emulator->m_cdrom->setLidOpenTime((int64_t)time(nullptr) + 2);
-                    PCSX::g_emulator->m_cdrom->lidInterrupt();
+                    PCSX::g_emulator->m_cdrom->scheduleCloseLid();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem(_("Reset settings..."))) {
@@ -1649,7 +1646,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             PCSX::g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            PCSX::g_emulator->m_cdrom->check();
+            PCSX::g_emulator->m_cdrom->parseIso();
         }
     }
 
@@ -2321,8 +2318,8 @@ which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
         auto bios = settings.get<Emulator::SettingBios>().string();
-        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())), bios.length(),
-                         ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())),
+                         bios.length() + 1, ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectBiosDialog = ImGui::Button("...");
         if (ImGui::Checkbox(_("Enable Debugger"), &debugSettings.get<Emulator::DebugSettings::Debug>().value)) {
@@ -2508,18 +2505,18 @@ of the emulator to take effect.)");
 
 void PCSX::GUI::interruptsScaler() {
     static const char* names[] = {
-        "SIO",      "SIO1",        "CDR",         "CDR Read", "GPU DMA", "MDEC Out DMA",       "SPU DMA",
-        "GPU Busy", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",  "SPU",     "CDR Decoded Buffer", "CDR Lid Seek",
-        "CDR Play",
+        "SIO",          "SIO1",    "CDR FIFO",    "CDR Command", "CDR Reads", "GPU DMA",
+        "MDEC Out DMA", "SPU DMA", "MDEC In DMA", "GPU OTC DMA", "CDR DMA",
     };
-    if (ImGui::Begin(_("Interrupt Scaler"), &m_showInterruptsScaler)) {
+    static_assert(std::size(names) == std::extent_v<decltype(R3000Acpu::m_scheduleScales)>);
+    if (ImGui::Begin(_("Scheduler Scaler"), &m_showInterruptsScaler)) {
         if (ImGui::Button(_("Reset all"))) {
-            for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+            for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
                 scale = 1.0f;
             }
         }
         unsigned counter = 0;
-        for (auto& scale : g_emulator->m_cpu->m_interruptScales) {
+        for (auto& scale : g_emulator->m_cpu->m_scheduleScales) {
             ImGui::SliderFloat(names[counter], &scale, 0.0f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             counter++;
         }
@@ -2837,7 +2834,7 @@ void PCSX::GUI::magicOpen(const char* pathStr) {
 
     // Iso loader is last because its detection is the most broken at the moment.
     g_emulator->m_cdrom->setIso(new CDRIso(path));
-    g_emulator->m_cdrom->check();
+    g_emulator->m_cdrom->parseIso();
 }
 
 bool PCSX::GUI::getSaveStateExists(uint32_t slot) {

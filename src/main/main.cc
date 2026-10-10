@@ -413,7 +413,7 @@ int pcsxMain(int argc, char **argv) {
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
     if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
     if (!isoToOpen.empty()) emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
-    emulator->m_cdrom->check();
+    emulator->m_cdrom->parseIso();
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();
@@ -557,9 +557,13 @@ runner.init({
             // This will ensure we don't do certain cleanups that are awaiting other tasks,
             // which could result in deadlocks on exit in case we encountered a serious problem.
             // This may cause data loss when writing files, but that's life when encountering
-            // a serious problem in a software.
-            system->setEmergencyExit();
-            uvThread.setEmergencyExit();
+            // a serious problem in a software. An error from the command-line archives or
+            // Lua scripts happens before anything is running, so that one still shuts down
+            // normally; skipping the uv thread's join there aborts the process on exit.
+            if (!system->m_inStartup) {
+                system->setEmergencyExit();
+                uvThread.setEmergencyExit();
+            }
             throw;
         }
     }

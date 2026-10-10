@@ -206,7 +206,7 @@ void PCSX::LuaBindings::open_events(Lua L) {
             } else if (name == "Memory::SetLuts") {
                 createListener<Events::Memory::SetLuts>(L);
             } else {
-                return L.error("createListener: unknown event name");
+                return L.error("createEventListener: unknown event name '%s'", name.c_str());
             }
             return 1;
         },

@@ -133,8 +133,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;                // Recompiler PC
-    unsigned m_instructionCount;  // Instructions compiled so far in the current block
+    uint32_t m_pc;                   // Recompiler PC
+    unsigned m_instructionCount;     // Instructions compiled so far in the current block
+    unsigned m_romInstructionCount;  // How many of those were fetched from ROM
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
@@ -396,6 +397,37 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
 
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
+
+    // True for every branch and jump: REGIMM, J, JAL, BEQ, BNE, BLEZ, BGTZ, JR and JALR.
+    static bool isBranch(uint32_t code) {
+        const uint32_t op = code >> 26;
+        if (op == 0) return (code & 0x3e) == 0x08;  // JR, JALR
+        return op >= 1 && op <= 7;
+    }
+
+    // Target of the branch or jump in `code` if it is taken, when it is known at compile time.
+    // `pc` is the address after the branch, which is the base of a relative branch.
+    std::optional<uint32_t> staticBranchTarget(uint32_t code, uint32_t pc) {
+        const uint32_t op = code >> 26;
+        if (op == 1 || (op >= 4 && op <= 7)) return (uint32_t)((int16_t)code * 4) + pc;
+        if (op == 2 || op == 3) return (pc & 0xf0000000) | ((code & 0x03ffffff) << 2);
+        if (op == 0 && (code & 0x3e) == 0x08) {
+            const unsigned rs = (code >> 21) & 0x1f;
+            if (m_gprs[rs].isConst()) return m_gprs[rs].val & ~3;
+        }
+        return std::nullopt;
+    }
+
+    // A linking branch compiled with a moved base still links to its own address + 8.
+    void fixDelaySlotBranchLink(uint32_t code, uint32_t link) {
+        const uint32_t op = code >> 26;
+        if (op == 3 || (op == 1 && ((code >> 17) & 0xf) == 8)) {
+            markConst(31, link);
+        } else if (op == 0 && (code & 0x3f) == 0x09) {
+            const unsigned rd = (code >> 11) & 0x1f;
+            if (rd) markConst(rd, link);
+        }
+    }
 
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align = true);
