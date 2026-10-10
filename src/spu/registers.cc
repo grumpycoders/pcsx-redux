@@ -337,6 +337,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
             case H_SPUctrl:
                 m_ctrlShadow = val;
+                m_ctrlWritesPending++;
                 break;
 
             case H_SPUirqAddr:
@@ -446,6 +447,7 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
             // the SPUSTAT flag, and writing it back to 1 is what re-arms the interrupt.
             if (!(val & ControlFlags::IRQEnable)) spuStat &= ~StatusFlags::IRQFlag;
             spuCtrl = val;
+            m_ctrlWritesPending--;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
             break;
@@ -752,6 +754,10 @@ uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
             // another. The SPU thread's own copy of this bit advances a whole NSSIZE
             // batch at a time (spu.cc, capBufVoiceIndex), so an edge it publishes can
             // sit up to 45 samples from the true 0x100-sample boundary.
+            // Bit 6 (the IRQ9 flag) is the mixer's. If a CTRL write, which may be the acknowledge
+            // that clears it, has not reached the mixer yet, wait for it. Otherwise SPUSTAT is
+            // polled freely.
+            if (m_ctrlWritesPending.load()) catchUp(readerCycle());
             const uint64_t half = cycleToSample(readerCycle()) % kCaptureRegionSamples;
             uint16_t stat = (spuStat & ~StatusFlags::SPUModeMask) | (readCtrl() & StatusFlags::SPUModeMask);
             if (half & kCaptureHalfMarker) {
@@ -980,4 +986,5 @@ void PCSX::SPU::impl::rebuildShadows() {
         m_fmodShadow[ch] = s_chan[ch].data.get<Chan::FMod>().value;
     }
     m_ctrlShadow = spuCtrl;
+    m_ctrlWritesPending = 0;
 }

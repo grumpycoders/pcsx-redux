@@ -293,6 +293,9 @@ class impl final : public SPUInterface {
     // SPUCNT as last written by the CPU, which is what a CPU read returns. The mixer's spuCtrl
     // may not have applied the write yet.
     uint16_t m_ctrlShadow = 0;
+    // CTRL writes queued and not yet applied by the mixer. While any is, the mixer's SPUSTAT
+    // bit 6 may predate an acknowledge the CPU has already written.
+    std::atomic<uint32_t> m_ctrlWritesPending = 0;
     // The ENVX walk runs on the CPU thread and needs the voice configuration as of the
     // reader's cycle, which the mixer's copy may not have reached yet.
     AdsrEnvelope m_adsrShadow[MAXCHAN];
