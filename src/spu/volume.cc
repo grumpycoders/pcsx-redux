@@ -78,8 +78,9 @@ void PCSX::SPU::VoiceVolume::stepTrack(Track &track, uint16_t raw) {
 }
 
 void PCSX::SPU::VoiceVolume::advanceReader(Side &side, uint64_t nowSample) {
+    // A reset, a load or a jump back in time restarts the reader's clock where
+    // it stands; its level is already that of the last write.
     if (!side.readerValid || nowSample < side.readerSample) {
-        side.reader = side.mix;
         side.readerSample = nowSample;
         side.readerValid = true;
         return;
@@ -118,10 +119,18 @@ void PCSX::SPU::VoiceVolume::write(Side &side, int16_t raw, uint64_t nowSample) 
     side.raw = static_cast<uint16_t>(raw);
     if (side.raw & kSweepMode) {
         // A sweep starts from the current level.
-        side.mix.fraction = 0;
         side.reader.fraction = 0;
     } else {
-        side.mix = side.reader = Track{decodeFixed(side.raw), 0};
+        side.reader = Track{decodeFixed(side.raw), 0};
+    }
+}
+
+void PCSX::SPU::VoiceVolume::apply(Side &side, int16_t raw) {
+    side.mixRaw = static_cast<uint16_t>(raw);
+    if (side.mixRaw & kSweepMode) {
+        side.mix.fraction = 0;
+    } else {
+        side.mix = Track{decodeFixed(side.mixRaw), 0};
     }
 }
 
