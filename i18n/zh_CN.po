@@ -112,17 +112,17 @@ msgstr "清理色彩"
 msgid "Clear VRAM"
 msgstr "清理显存（VRAM）"
 
-#: src/core/cdrom.cc:1757
+#: src/core/cdrom.cc:1759
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM 标签：%.32s\n"
 
-#: src/core/cdrom.cc:1758
+#: src/core/cdrom.cc:1760
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM ID: %.9s\n"
 
-#: src/core/cdrom.cc:1759
+#: src/core/cdrom.cc:1761
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE 名字：%.255s\n"
