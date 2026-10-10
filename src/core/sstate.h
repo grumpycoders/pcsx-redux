@@ -359,6 +359,15 @@ bool load(std::string_view data);
 // hotkey, and the web server all reach for a load from callbacks that run in
 // the middle of Counters::update() and R3000Acpu::branchTest().
 void loadSafe(std::string &&data);
+
+/* The in-memory pair. capture()/restore() are save()/load() with the protobuf encode and
+   decode taken out: the message already owns a copy of every field, and commit() has always
+   pushed those copies live, so the only missing direction was pulling live state into them.
+   restore() deliberately does NOT call m_cpu->Reset() the way load() does, so a caller that
+   wants a transparent snapshot keeps its icache and delayed-load state - which also means it
+   owes the code cache an invalidation for anything it rewound. */
+void capture(SaveState &state);
+void restore(SaveState &state);
 }  // namespace SaveStates
 
 }  // namespace PCSX

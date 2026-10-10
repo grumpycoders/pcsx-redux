@@ -41,6 +41,7 @@
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
+#include "core/sstate.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
 #include "lua/extra.h"
@@ -57,6 +58,28 @@ extern "C" {
 #include "supportpsx/binlua.h"
 
 extern "C" int luaopen_lpeg(lua_State* L);
+
+struct PCSX::Emulator::RewindRing {
+    // front() is the oldest snapshot, back() the most recent. Entries popped off the ring are
+    // parked in m_spare and reused, so steady-state capture does not reallocate the messages.
+    std::deque<std::unique_ptr<SaveStates::SaveState>> m_states;
+    std::vector<std::unique_ptr<SaveStates::SaveState>> m_spare;
+
+    std::unique_ptr<SaveStates::SaveState> acquire() {
+        if (!m_spare.empty()) {
+            auto state = std::move(m_spare.back());
+            m_spare.pop_back();
+            return state;
+        }
+        return std::unique_ptr<SaveStates::SaveState>(new SaveStates::SaveState(SaveStates::constructSaveState()));
+    }
+    void clear() {
+        while (!m_states.empty()) {
+            m_spare.push_back(std::move(m_states.back()));
+            m_states.pop_back();
+        }
+    }
+};
 
 PCSX::Emulator::Emulator()
     : m_callStacks(new PCSX::CallStacks),
@@ -82,7 +105,8 @@ PCSX::Emulator::Emulator()
       m_sio1Server(new PCSX::SIO1Server()),
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
-      m_webServer(new PCSX::WebServer()) {
+      m_webServer(new PCSX::WebServer()),
+      m_rewindRing(new RewindRing()) {
     auto L = *m_lua;
     L.openlibs();
 }
@@ -173,6 +197,7 @@ void PCSX::Emulator::reset() {
     m_pads->reset();
     m_sio->reset();
     m_sio1->reset();
+    m_rewindRing->clear();
 }
 
 void PCSX::Emulator::shutdown() {
@@ -188,9 +213,64 @@ void PCSX::Emulator::vsync() {
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
 
-    if (m_config.RewindInterval > 0 && !(++m_rewind_counter % m_config.RewindInterval)) {
-        // CreateRewindState();
+    const uint32_t interval = settings.get<SettingRewindInterval>().value;
+    if (interval > 0 && !(++m_rewind_counter % interval)) {
+        createRewindState();
     }
+}
+
+void PCSX::Emulator::createRewindState() {
+    // A queued rewind is about to throw this state away, and would land on this very snapshot
+    // rather than the one it was asked for.
+    if (g_system->pendingRewinds()) return;
+    auto& ring = *m_rewindRing;
+    auto state = ring.acquire();
+    SaveStates::capture(*state);
+    ring.m_states.push_back(std::move(state));
+    // Bound the ring. RewindCount == 0 means unbounded (use with care).
+    const uint32_t count = settings.get<SettingRewindCount>().value;
+    if (count > 0) {
+        while (ring.m_states.size() > count) {
+            ring.m_spare.push_back(std::move(ring.m_states.front()));
+            ring.m_states.pop_front();
+        }
+        // Never hold more messages than the ring can use, or lowering the count strands them.
+        while (!ring.m_spare.empty() && ring.m_states.size() + ring.m_spare.size() > count) {
+            ring.m_spare.pop_back();
+        }
+    }
+}
+
+bool PCSX::Emulator::rewindState() {
+    if (!g_system->inExecute()) return rewindStateNow();
+    // Same as SaveStates::loadSafe(): the Lua bindings, the menu and the hotkey all get here from
+    // callbacks in the middle of Counters::update() and branchTest(), so restoring now would
+    // swap the state under them. Each queued step holds on to a snapshot, see rewindStateCount().
+    if (rewindStateCount() == 0) return false;
+    g_system->scheduleRewind();
+    return true;
+}
+
+bool PCSX::Emulator::rewindStateNow(unsigned steps) {
+    auto& ring = *m_rewindRing;
+    if (ring.m_states.empty() || steps == 0) return false;
+    // Each step consumes a snapshot, but only the one we land on needs restoring.
+    while (--steps && ring.m_states.size() > 1) {
+        ring.m_spare.push_back(std::move(ring.m_states.back()));
+        ring.m_states.pop_back();
+    }
+    // Step back to the most recent snapshot and consume it, so successive calls walk further
+    // into the past. restore() invalidates the code cache itself, since it does not reset the cpu.
+    SaveStates::restore(*ring.m_states.back());
+    ring.m_spare.push_back(std::move(ring.m_states.back()));
+    ring.m_states.pop_back();
+    return true;
+}
+
+size_t PCSX::Emulator::rewindStateCount() const {
+    const size_t size = m_rewindRing->m_states.size();
+    const size_t pending = g_system->pendingRewinds();
+    return size > pending ? size - pending : 0;
 }
 
 void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_cpu->psxSetPGXPMode(pgxpMode); }

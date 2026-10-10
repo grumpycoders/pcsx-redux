@@ -139,6 +139,10 @@ void loadSaveStateFromFile(PCSX::LuaFFI::LuaFile* file) {
     PCSX::SaveStates::loadSafe(std::string(data.asStringView()));
 }
 
+void createRewindState() { PCSX::g_emulator->createRewindState(); }
+bool rewindState() { return PCSX::g_emulator->rewindState(); }
+uint32_t getRewindStateCount() { return static_cast<uint32_t>(PCSX::g_emulator->rewindStateCount()); }
+
 PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
     return new PCSX::LuaFFI::LuaFile(PCSX::g_emulator->m_mem->getMemoryAsFile());
 }
@@ -199,6 +203,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, createSaveState);
     REGISTER(L, loadSaveStateFromSlice);
     REGISTER(L, loadSaveStateFromFile);
+    REGISTER(L, createRewindState);
+    REGISTER(L, rewindState);
+    REGISTER(L, getRewindStateCount);
     REGISTER(L, getMemoryAsFile);
     REGISTER(L, quit);
     L.settable();

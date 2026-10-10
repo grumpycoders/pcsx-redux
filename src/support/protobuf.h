@@ -412,6 +412,7 @@ struct Field<FieldType, irqus::typestring<C...>, fieldNumberValue> : public Fiel
                << std::endl;
     }
     constexpr void commit() {}
+    constexpr void capture() {}
 };
 
 template <typename FieldType, typename name, uint64_t fieldNumberValue>
@@ -440,6 +441,7 @@ struct FieldRef<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     }
     constexpr void reset() {}
     constexpr void commit() { ref = copy; }
+    constexpr void capture() { copy = ref; }
     constexpr bool hasData() const {
         const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
         return field->hasData();
@@ -477,6 +479,10 @@ struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     constexpr void commit() {
         FieldType *field = reinterpret_cast<FieldType *>(&ref);
         field->copyFrom(copy.value);
+    }
+    constexpr void capture() {
+        const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
+        copy.copyFrom(field->value);
     }
     constexpr bool hasData() const {
         const FieldType *field = reinterpret_cast<const FieldType *>(&ref);
@@ -543,6 +549,7 @@ struct RepeatedField<FieldType, amount, irqus::typestring<C...>, fieldNumberValu
     }
     constexpr bool hasData() const { return !value.empty(); }
     constexpr void commit() {}
+    constexpr void capture() {}
 
   private:
     void deserializeOne(InSlice *slice, unsigned wireType) {
@@ -614,6 +621,7 @@ struct RepeatedFieldRef<FieldType, amount, irqus::typestring<C...>, fieldNumberV
     }
     constexpr bool hasData() const { return true; }
     constexpr void commit() { memcpy(ref, copy, amount * sizeof(innerType)); }
+    constexpr void capture() { memcpy(copy, ref, amount * sizeof(innerType)); }
 
   private:
     void deserializeOne(InSlice *slice, unsigned wireType) {
@@ -680,6 +688,7 @@ struct RepeatedVariableField<FieldType, irqus::typestring<C...>, fieldNumberValu
     }
     constexpr bool hasData() const { return !value.empty(); }
     constexpr void commit() {}
+    constexpr void capture() {}
 
   private:
     void deserializeOne(InSlice *slice, unsigned wireType) {
@@ -770,6 +779,10 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
     }
     constexpr bool hasData() const { return hasData<0, fields...>(); }
     constexpr void commit() { commit<0, fields...>(); }
+    /* The mirror of commit(): pull live state INTO the message's owned copies, with no
+       serialization anywhere. commit() has always existed because loading needs copy -> live;
+       this is the direction an in-memory snapshot needs, and it was simply never written. */
+    constexpr void capture() { capture<0, fields...>(); }
 
   private:
     template <size_t index>
@@ -870,6 +883,14 @@ class Message<irqus::typestring<C...>, fields...> : private std::tuple<fields...
         field.commit();
         commit<index + 1, nestedFields...>();
     }
+    template <size_t index>
+    constexpr void capture() {}
+    template <size_t index, typename FieldType, typename... nestedFields>
+    constexpr void capture() {
+        FieldType &field = std::get<index>(*this);
+        field.capture();
+        capture<index + 1, nestedFields...>();
+    }
 };
 
 template <typename name>
@@ -893,6 +914,7 @@ class EmptyMessage<irqus::typestring<C...>> {
     constexpr void deserialize(InSlice *slice, unsigned wireType) {}
     constexpr bool hasData() const { return false; }
     constexpr void commit() {}
+    constexpr void capture() {}
 };
 
 template <typename... fields>
