@@ -72,8 +72,9 @@ namespace {
 // - anything after the loop end is never heard on a MOD player, so it is dropped.
 // The first word is skipped like for one-shot samples, unless the loop starts at word 0, in which case
 // it is part of the loop body and has to be kept.
-// modplayer derives skip and pad from the LoopStart field with the same formulas to compute 9xx sample
-// offsets, so they are part of the .hit contract.
+// The loop fields written to the .hit file are the clamped loop, 0 and 1 for one-shot samples. modplayer
+// derives skip and pad from them with the same formulas to compute 9xx sample offsets, so they are part
+// of the .hit contract.
 struct SampleLayout {
     bool hasLoop = false;
     unsigned loopStart = 0;   // bytes
@@ -300,6 +301,10 @@ both the pattern and sample data.
                        layout.exact ? "" : ", loop period rounded to a whole block");
         }
         sample.get<SampleLength>().value = encodedLength;
+        // Write back the loop that was actually encoded, after clamping, so that the player's 9xx
+        // offsets wrap against the same loop.
+        sample.get<SampleLoopStart>().value = layout.hasLoop ? layout.loopStart / 2 : 0;
+        sample.get<SampleLoopLength>().value = layout.hasLoop ? layout.loopLength / 2 : 1;
         if (encodedLength >= 65536) {
             fmt::print("Sample too big.\n");
             return -1;
