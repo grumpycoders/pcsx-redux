@@ -113,17 +113,17 @@ msgstr "Klar färg"
 msgid "Clear VRAM"
 msgstr "Rensa VRAM"
 
-#: src/core/cdrom.cc:1758
+#: src/core/cdrom.cc:1757
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM-etikett: %.32s\n"
 
-#: src/core/cdrom.cc:1759
+#: src/core/cdrom.cc:1758
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM-ID: %.9s\n"
 
-#: src/core/cdrom.cc:1760
+#: src/core/cdrom.cc:1759
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE-namn: %.255s\n"
@@ -687,63 +687,63 @@ msgstr "Anropade msanGetChainPtr med ogiltig rubrikpekare %8.8lx\n"
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Anropade msanSetChainPtr med ogiltig rubrikpekare %8.8lx\n"
 
-#: src/core/psxinterpreter.cc:371
+#: src/core/psxinterpreter.cc:383
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i ADDI-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:465
+#: src/core/psxinterpreter.cc:477
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i ADD-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:507
+#: src/core/psxinterpreter.cc:519
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i SUB-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:839
+#: src/core/psxinterpreter.cc:841
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Försök till ojusterad JR till 0x%08x från 0x%08x, utlöser undantag!\n"
 
-#: src/core/psxinterpreter.cc:865
+#: src/core/psxinterpreter.cc:867
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Försök till ojusterad JALR till 0x%08x från 0x%08x, utlöser undantag!\n"
 
-#: src/core/psxinterpreter.cc:903
+#: src/core/psxinterpreter.cc:905
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LH från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:920
+#: src/core/psxinterpreter.cc:922
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LHU från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:937
+#: src/core/psxinterpreter.cc:939
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LW från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:999
+#: src/core/psxinterpreter.cc:1001
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i SH från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1010
+#: src/core/psxinterpreter.cc:1012
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i SW från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1125
+#: src/core/psxinterpreter.cc:1127
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Stötte på reserverad opkod från 0x%08x, utlöser ett undantag\n"
 
-#: src/core/psxinterpreter.cc:1168
+#: src/core/psxinterpreter.cc:1165
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -751,7 +751,7 @@ msgid ""
 msgstr ""
 "Försökte använda en ogiltig flyttalsinstruktion från 0x%08x. Ignorerades.\n"
 
-#: src/core/psxinterpreter.cc:1188
+#: src/core/psxinterpreter.cc:1185
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Försökte komma åt COP3 från 0x%08x. Ignorerades\n"
