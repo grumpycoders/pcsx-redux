@@ -246,7 +246,8 @@ uint16_t PCSX::HW::read16(uint32_t add) {
             break;
 
         default:
-            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+            // SPU registers, plus the per-voice current volume block at 1f801e00h.
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e60)) {
                 hard = g_emulator->m_spu->readRegister(add);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[add & 0xffff];
