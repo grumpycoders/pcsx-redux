@@ -120,7 +120,8 @@ class SDLAudio {
     // The most frames the device takes in one go: the period it negotiated at open, raised to
     // the largest single callback request seen since. 0 until the device is open.
     uint32_t getPeriodFrames() { return m_periodFrames.load(); }
-    // Drops up to n of the oldest queued SPU frames, returning how many were dropped.
+    // Drops up to n of the oldest queued SPU frames, returning how many were dropped. Called from the
+    // SPU thread while the device callback dequeues too; Circular locks around every access.
     size_t dropVoiceFrames(size_t n) {
         Frame scratch[256];
         size_t dropped = 0;

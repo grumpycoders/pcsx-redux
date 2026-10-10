@@ -574,7 +574,7 @@ bool PCSX::SPU::impl::flushOutput() {
     // once it holds more than the lead plus a device period.
     const size_t lead = getLeadFrames();
     const size_t buffered = m_audioOut.getFramesBuffered(0);
-    if (buffered + frames > lead + m_audioOut.getPeriodFrames()) {
+    if (buffered + frames > lead + devicePeriodFrames()) {
         m_audioOut.dropVoiceFrames(buffered + frames - lead);
     }
     // Blocks while the device ring is full, which is what paces this thread when the CPU is

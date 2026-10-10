@@ -129,9 +129,12 @@ class impl final : public SPUInterface {
     // batches, because the mixer waits for whole batches before mixing, and the user's latency
     // margin for host jitter. Before the device has opened, assume a 1024-frame period.
     uint32_t getLeadFrames() override {
-        const uint32_t period = m_audioOut.getPeriodFrames();
         const int marginMs = std::max(0, settings.get<LatencyMargin>().value);
-        return (period ? period : 1024) + 2 * NSSIZE + marginMs * 441 / 10;
+        return devicePeriodFrames() + 2 * NSSIZE + marginMs * 441 / 10;
+    }
+    uint32_t devicePeriodFrames() {
+        const uint32_t period = m_audioOut.getPeriodFrames();
+        return period ? period : 1024;
     }
     void advanceTo(uint64_t cycle) override { publishHorizon(cycle); }
 
