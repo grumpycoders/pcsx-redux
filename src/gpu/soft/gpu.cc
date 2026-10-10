@@ -596,7 +596,7 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
             for (i = 0; i < imageSX; i++) {
-                uint16_t& dst = m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)];
+                uint16_t &dst = m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)];
                 if (getCheckMask() && (dst & 0x8000)) continue;
                 dst = m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)] | getSetMask16();
             }
