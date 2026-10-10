@@ -871,7 +871,8 @@ void DynaRecCPU::recMTC0(uint32_t code) {
     else {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
-            gen.And(m_gprs[_Rt_].allocatedReg, m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.And(w0, m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.Str(w0, MemOperand(contextPointer, COP0_OFFSET(_Rd_)));
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.Str(m_gprs[_Rt_].allocatedReg,
                     MemOperand(contextPointer, COP0_OFFSET(_Rd_)));  // Write rt to the cop0 reg
