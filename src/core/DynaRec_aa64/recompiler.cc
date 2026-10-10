@@ -571,7 +571,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     }
 
     gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Fetch cycle count from memory
-    gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);          // Add block cycles
+    gen.Add(x0, x0, (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);  // Add block cycles
     gen.Str(x0, MemOperand(contextPointer, CYCLE_OFFSET));  // Store cycles back to memory
 
     // Link block else return to dispatcher

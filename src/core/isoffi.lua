@@ -192,12 +192,8 @@ local function createIsoWrapper(wrapper)
             if mode == nil then mode = 'GUESS' end
             return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
         end,
-        getTD = function(self, tn)
-            return C.getIsoTD(self._wrapper, tn)
-        end,
-        getTN = function(self)
-            return C.getIsoTN(self._wrapper)
-        end,
+        getTD = function(self, tn) return C.getIsoTD(self._wrapper, tn) end,
+        getTN = function(self) return C.getIsoTN(self._wrapper) end,
     }
     return iso
 end

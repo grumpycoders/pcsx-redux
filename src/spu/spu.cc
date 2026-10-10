@@ -23,9 +23,9 @@
 #include <cstdlib>
 #include <thread>
 
-#include "spu/adsr.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "spu/adsr.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 

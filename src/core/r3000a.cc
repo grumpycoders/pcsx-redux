@@ -392,7 +392,7 @@ void PCSX::R3000Acpu::branchTest() {
         // A branch in the delay slot of a taken branch leaves its own jump pending here, and the next
         // instruction is that branch's delay slot. The interrupt is taken on that delay slot: EPC is the
         // branch with BD set, and the pending jump is dropped, since returning runs the branch again.
-        for (auto &pending : m_delayedLoadInfo) {
+        for (auto& pending : m_delayedLoadInfo) {
             if (!pending.pcActive) continue;
             pending.pcActive = false;
             pending.fromLink = false;

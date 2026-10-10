@@ -266,8 +266,8 @@ typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("has_value"), 4> CDQueueHa
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("hit_max"), 5> CDQueueHitMax;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("payload_size"), 6> CDQueuePayloadSize;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("payload_index"), 7> CDQueuePayloadIndex;
-typedef Protobuf::Message<TYPESTRING("CDQueueElement"), CDQueuePayload, CDQueueValue, CDQueueValueRead,
-                          CDQueueHasValue, CDQueueHitMax, CDQueuePayloadSize, CDQueuePayloadIndex>
+typedef Protobuf::Message<TYPESTRING("CDQueueElement"), CDQueuePayload, CDQueueValue, CDQueueValueRead, CDQueueHasValue,
+                          CDQueueHitMax, CDQueuePayloadSize, CDQueuePayloadIndex>
     CDQueueElement;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("m"), 1> CDMSFMinute;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("s"), 2> CDMSFSecond;
@@ -329,11 +329,11 @@ typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaRight"), 49> CDXARight;
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDDataFIFO, CDDataFIFOIndex, CDDataFIFOSize, CDDataFIFOPending, CDRegisterAddress, CDMotorOn,
     CDSpeedChanged, CDInvalidLocL, CDDataRequested, CDSubheaderFilter, CDRealtime, CDReadingState, CDStartPlaying,
-    CDReadingType, CDAutoPause, CDReport, CDSetLocPending, CDMuted, CDPeakFlag, CDPlayTrack, CDPlayStartCycle,
-    CDStatus, CDSpeed, CDReadSpan, CDInterruptCauseMask, CDATV, CDATVPending, CDADPCMMuted, CDMode, CDFilterFile,
-    CDFilterChannel, CDXAEnded, CDXAFirstSector, CDSoundMapEnabled, CDCurrentPosition, CDSeekPosition, CDLastLocP,
-    CDLastLocL, CDSeed, CDLidOpen, CDWasLidOpened, CDLidCloseScheduled, CDLidCloseAtCycles, CDCommandFifo,
-    CDCommandExecuting, CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight>
+    CDReadingType, CDAutoPause, CDReport, CDSetLocPending, CDMuted, CDPeakFlag, CDPlayTrack, CDPlayStartCycle, CDStatus,
+    CDSpeed, CDReadSpan, CDInterruptCauseMask, CDATV, CDATVPending, CDADPCMMuted, CDMode, CDFilterFile, CDFilterChannel,
+    CDXAEnded, CDXAFirstSector, CDSoundMapEnabled, CDCurrentPosition, CDSeekPosition, CDLastLocP, CDLastLocL, CDSeed,
+    CDLidOpen, CDWasLidOpened, CDLidCloseScheduled, CDLidCloseAtCycles, CDCommandFifo, CDCommandExecuting,
+    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
@@ -344,7 +344,8 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
+                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
+                            CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

@@ -196,7 +196,8 @@ struct psxRegisters {
     uint8_t iCacheCode[0x1000];
     uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
     std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
-        return std::chrono::nanoseconds(int64_t(int32_t(futureCycle - cycle)) * 1'000'000'000 / Emulator::m_psxClockSpeed);
+        return std::chrono::nanoseconds(int64_t(int32_t(futureCycle - cycle)) * 1'000'000'000 /
+                                        Emulator::m_psxClockSpeed);
     }
     static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
         return duration.count() * Emulator::m_psxClockSpeed / 1'000'000'000;
@@ -367,7 +368,7 @@ class R3000Acpu {
 
     psxRegisters m_regs;
     float m_scheduleScales[static_cast<unsigned>(Schedule::CDRDMA) + 1] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                                                          1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+                                                                           1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
 
     virtual void Reset() {
