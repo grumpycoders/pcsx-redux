@@ -220,6 +220,9 @@ void PCSX::Emulator::vsync() {
 }
 
 void PCSX::Emulator::createRewindState() {
+    // A queued rewind is about to throw this state away, and would land on this very snapshot
+    // rather than the one it was asked for.
+    if (g_system->pendingRewinds()) return;
     auto& ring = *m_rewindRing;
     auto state = ring.acquire();
     SaveStates::capture(*state);
@@ -239,8 +242,23 @@ void PCSX::Emulator::createRewindState() {
 }
 
 bool PCSX::Emulator::rewindState() {
+    if (!g_system->inExecute()) return rewindStateNow();
+    // Same as SaveStates::loadSafe(): the Lua bindings, the menu and the hotkey all get here from
+    // callbacks in the middle of Counters::update() and branchTest(), so restoring now would
+    // swap the state under them. Each queued step holds on to a snapshot, see rewindStateCount().
+    if (rewindStateCount() == 0) return false;
+    g_system->scheduleRewind();
+    return true;
+}
+
+bool PCSX::Emulator::rewindStateNow(unsigned steps) {
     auto& ring = *m_rewindRing;
-    if (ring.m_states.empty()) return false;
+    if (ring.m_states.empty() || steps == 0) return false;
+    // Each step consumes a snapshot, but only the one we land on needs restoring.
+    while (--steps && ring.m_states.size() > 1) {
+        ring.m_spare.push_back(std::move(ring.m_states.back()));
+        ring.m_states.pop_back();
+    }
     // Step back to the most recent snapshot and consume it, so successive calls walk further
     // into the past. restore() invalidates the code cache itself, since it does not reset the cpu.
     SaveStates::restore(*ring.m_states.back());
@@ -249,7 +267,11 @@ bool PCSX::Emulator::rewindState() {
     return true;
 }
 
-size_t PCSX::Emulator::rewindStateCount() const { return m_rewindRing->m_states.size(); }
+size_t PCSX::Emulator::rewindStateCount() const {
+    const size_t size = m_rewindRing->m_states.size();
+    const size_t pending = g_system->pendingRewinds();
+    return size > pending ? size - pending : 0;
+}
 
 void PCSX::Emulator::setPGXPMode(uint32_t pgxpMode) { m_cpu->psxSetPGXPMode(pgxpMode); }
 

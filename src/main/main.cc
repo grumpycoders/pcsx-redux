@@ -531,8 +531,11 @@ runner.init({
                     // Somebody asked for a save state from within a callback the
                     // emulator itself made, so we deferred it to here, where the
                     // emulation stack has unwound and nothing is holding values
-                    // from before the load.
-                    if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
+                    // from before the load. Rewinds come through here too.
+                    if (unsigned rewinds = system->pendingRewinds()) {
+                        system->takePendingSaveStateLoad();
+                        emulator->rewindStateNow(rewinds);
+                    } else if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
                         PCSX::g_system->message(_("Failed to load save state\n"));
                     }
                 } else if (system->running()) {

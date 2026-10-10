@@ -209,8 +209,21 @@ class System {
     // signal a pause, since the emulation isn't stopping, it's only unwinding.
     void scheduleSaveStateLoad(std::string &&data) {
         m_pendingSaveStateLoad = std::move(data);
+        // A load also replaces any rewind queued before it.
+        m_pendingRewinds = 0;
         // A second load in the same window replaces the first, and must not
         // read the m_running the first one already cleared.
+        if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
+        m_hasPendingSaveStateLoad = true;
+        m_running = false;
+    }
+    // Same thing for a step back through the emulator's rewind ring, which
+    // replaces the state just as much as a load does. Rewinds queued in the same
+    // window add up, one snapshot each, while a rewind queued after a load
+    // replaces it, like a second load would.
+    void scheduleRewind() {
+        m_pendingSaveStateLoad.clear();
+        m_pendingRewinds++;
         if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
         m_hasPendingSaveStateLoad = true;
         m_running = false;
@@ -221,6 +234,7 @@ class System {
         m_hasPendingSaveStateLoad = false;
         m_running = m_resumeAfterPendingLoad;
         m_pendingSaveStateLoad.clear();
+        m_pendingRewinds = 0;
     }
     // True while the main loop is inside the CPU's Execute(). Anything that
     // runs then, including a Pause listener fired from a breakpoint, is on the
@@ -228,12 +242,15 @@ class System {
     bool inExecute() const { return m_inExecute; }
     void setInExecute(bool inExecute) { m_inExecute = inExecute; }
     bool hasPendingSaveStateLoad() const { return m_hasPendingSaveStateLoad; }
+    // When non-zero, the queued load is this many rewinds rather than a save state.
+    unsigned pendingRewinds() const { return m_pendingRewinds; }
     // Hands over the queued save state and puts the emulation back the way it
     // was. Only ever call this from the main loop, with nothing of the
     // emulation left on the stack.
     std::string takePendingSaveStateLoad() {
         m_hasPendingSaveStateLoad = false;
         m_running = m_resumeAfterPendingLoad;
+        m_pendingRewinds = 0;
         return std::move(m_pendingSaveStateLoad);
     }
     virtual void testQuit(int code) = 0;
@@ -338,6 +355,7 @@ class System {
     bool m_resumeAfterPendingLoad = false;
     bool m_inExecute = false;
     std::string m_pendingSaveStateLoad;
+    unsigned m_pendingRewinds = 0;
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;

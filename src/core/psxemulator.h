@@ -264,8 +264,13 @@ class Emulator {
     // Rewind: ring of in-memory snapshots taken every RewindInterval frames, bounded to
     // RewindCount entries. Entries are SaveStates::capture()d messages, restored with
     // SaveStates::restore(), so neither direction goes through the protobuf encoding.
+    // rewindState() steps back right away when nothing of the emulation is on the stack, and
+    // queues the step for the main loop otherwise, like SaveStates::loadSafe(). Either way it
+    // returns whether there was a snapshot to step back to. rewindStateNow() is the unsafe half
+    // the main loop applies a queue with, and rewindStateCount() leaves out queued steps.
     void createRewindState();
     bool rewindState();
+    bool rewindStateNow(unsigned steps = 1);
     size_t rewindStateCount() const;
 
     void setLua();

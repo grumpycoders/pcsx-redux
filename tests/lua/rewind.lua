@@ -69,6 +69,17 @@ function TestRewind:test_ring_is_bounded_and_reuses_slots()
     lu.assertFalse(PCSX.rewindState())
 end
 
+-- Hands control back to a test from the main loop, once the cpu has unwound out of Execute().
+-- Resuming straight from a listener leaves the rest of the suite on the emulation stack, where a
+-- rewind is only queued.
+local function resumeFromMainLoop(co)
+    local timer = luv.new_timer()
+    timer:start(0, 0, function()
+        timer:close()
+        coroutine.resume(co)
+    end)
+end
+
 -- Runs a few guest instructions that open a stack frame and spill ra, so the machine holds a
 -- real call stack, then parks the cpu in a loop.
 local function runIntoCallStack()
@@ -85,7 +96,7 @@ local function runIntoCallStack()
     local co = coroutine.running()
     PCSX.nextTick(function()
         PCSX.pauseEmulator()
-        coroutine.resume(co)
+        resumeFromMainLoop(co)
     end)
     PCSX.resumeEmulator()
     coroutine.yield()
@@ -107,4 +118,68 @@ function TestRewind:test_round_trips_on_recycled_slots_stay_flat()
         lu.assertTrue(PCSX.rewindState())
         lu.assertTrue(math.abs(PCSX.createSaveState().size - size) <= slack, 'round trip ' .. i)
     end
+end
+
+-- A rewind asked for from a vsync listener runs in the middle of Counters::update(). It has to
+-- wait for the main loop, then land, and the machine has to keep going from the snapshot.
+function TestRewind:test_vsync_rewind_waits_for_the_main_loop()
+    while PCSX.getRewindStateCount() > 0 do PCSX.rewindState() end
+    -- The guest counts in t1; registers come back with a rewind like the rest of the machine.
+    local code = ram32(0x100200)
+    code[0] = 0x25290001 -- addiu t1, t1, 1
+    code[1] = 0x08040080 -- j 0x80100200
+    code[2] = 0x00000000 -- nop
+    PCSX.invalidateCache()
+    local regs = PCSX.getRegisters()
+    regs.GPR.n.t1 = 0
+    regs.pc = 0x80100200
+    local counter = function() return regs.GPR.n.t1 end
+
+    local co = coroutine.running()
+    local cycles = function() return tonumber(PCSX.getCPUCycles()) end
+    local vsyncs, inListener = 0, false
+    local r = { loadedInListener = false }
+    local loaded = PCSX.Events.createEventListener('ExecutionFlow::SaveStateLoaded', function()
+        r.loadedInListener = r.loadedInListener or inListener
+        r.loadedCounter, r.loadedCycle = counter(), cycles()
+    end)
+    local vsync
+    vsync = PCSX.Events.createEventListener('GPU::Vsync', function()
+        vsyncs = vsyncs + 1
+        if vsyncs == 2 then
+            PCSX.createRewindState()
+            r.firstCounter, r.firstCycle = counter(), cycles()
+        elseif vsyncs == 3 then
+            PCSX.createRewindState()
+            r.frameCycles = cycles() - r.firstCycle
+        elseif vsyncs == 5 then
+            r.beforeCounter = counter()
+            inListener = true
+            r.rewinds = { PCSX.rewindState(), PCSX.rewindState(), PCSX.rewindState() }
+            inListener = false
+            r.counterAfterCall, r.countAfterCall = counter(), PCSX.getRewindStateCount()
+        elseif vsyncs == 6 then
+            r.nextCycle, r.finalCounter = cycles(), counter()
+            vsync:remove()
+            loaded:remove()
+            PCSX.pauseEmulator()
+            resumeFromMainLoop(co)
+        end
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+
+    -- Two snapshots, so the third rewind in the same window has nothing left to step back to.
+    lu.assertEquals(r.rewinds, { true, true, false })
+    lu.assertEquals(r.countAfterCall, 0)
+    lu.assertFalse(r.loadedInListener, 'state replaced under the vsync listener')
+    lu.assertEquals(r.counterAfterCall, r.beforeCounter)
+    -- Both queued rewinds were applied, landing on the older snapshot.
+    lu.assertEquals(r.loadedCounter, r.firstCounter)
+    lu.assertEquals(r.loadedCycle, r.firstCycle)
+    -- And the machine ran on from it, on its clock: the next vsync came a frame later.
+    lu.assertTrue(r.finalCounter > r.firstCounter)
+    lu.assertTrue(r.finalCounter < r.beforeCounter)
+    lu.assertTrue(math.abs(r.nextCycle - r.firstCycle - r.frameCycles) < 64,
+                  'frame after rewind: ' .. (r.nextCycle - r.firstCycle) .. ' vs ' .. r.frameCycles)
 end
