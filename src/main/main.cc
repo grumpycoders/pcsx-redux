@@ -239,7 +239,11 @@ int pcsxMain(int argc, char **argv) {
 
 #if defined(_WIN32) || defined(_WIN64)
     if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli") || args.get<bool>("tui")) {
-        if (AllocConsole()) {
+        // A parent that captures our output hands us a pipe or a file; keep it
+        // instead of opening a console window nobody reads.
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        bool redirected = out && out != INVALID_HANDLE_VALUE && GetFileType(out) != FILE_TYPE_UNKNOWN;
+        if (!redirected && AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
             freopen("CONOUT$", "w", stderr);
