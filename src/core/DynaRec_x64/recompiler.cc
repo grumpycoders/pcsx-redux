@@ -411,6 +411,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         count++;    // Increment instruction count
         if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
         m_instructionCount = count;
+        m_romInstructionCount = extra;
         slotBranchTarget = staticBranchTarget(code, m_pc);
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
@@ -485,6 +486,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             count++;
             if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
             m_instructionCount = count;
+            m_romInstructionCount = extra;
             (*this.*m_recBSC[code >> 26])(code);
             fixDelaySlotBranchLink(code, slotPC + 8);
             if (!m_pcWrittenBack) {

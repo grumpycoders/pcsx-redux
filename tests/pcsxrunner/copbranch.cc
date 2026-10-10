@@ -28,6 +28,13 @@ TEST(COPBranch, Interpreter) {
     EXPECT_EQ(ret, 0);
 }
 
+TEST(COPBranch, Dynarec) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec", "-luacov",
+                        "-loadexe", "src/mips/tests/cop-branch/cop-branch.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
 TEST(COPBranch, Disassembler) {
     static constexpr struct {
         uint32_t code;
