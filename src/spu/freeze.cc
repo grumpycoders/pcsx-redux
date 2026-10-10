@@ -90,7 +90,6 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     if (running) RemoveThread();
     // Writes still queued from before the load belong to the state being replaced.
     m_eventsApplied = m_eventsPushed.load();
-    m_ctrlWritesPending = 0;
     // The CPU registers are already restored: restart the mixer clock at their cycle.
     resync(PCSX::g_emulator->m_cpu->m_regs.cycle);
 
