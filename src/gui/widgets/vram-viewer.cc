@@ -52,6 +52,8 @@ void main() {
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
+precision highp sampler2D;
+precision highp usampler2D;
 
 uniform int u_24shift;
 uniform bool u_alpha;
