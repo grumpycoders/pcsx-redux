@@ -276,13 +276,16 @@ void PCSX::SaveStates::restore(SaveState& state) {
     g_emulator->m_cpu->invalidateCache();
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
+#if 0
     g_emulator->m_cdrom->load();
+#endif
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
+#if 0
     g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
     g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
     g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
@@ -295,6 +298,7 @@ void PCSX::SaveStates::restore(SaveState& state) {
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+#endif
 
     g_emulator->m_cpu->closeAllPCdrvFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {
