@@ -118,17 +118,17 @@ msgstr "Couleur de remplissage"
 msgid "Clear VRAM"
 msgstr "Effacer la VRAM"
 
-#: src/core/cdrom.cc:1757
+#: src/core/cdrom.cc:1759
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Titre du CD-ROM : %.32s\n"
 
-#: src/core/cdrom.cc:1758
+#: src/core/cdrom.cc:1760
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "ID du CD-ROM : %.9s\n"
 
-#: src/core/cdrom.cc:1759
+#: src/core/cdrom.cc:1761
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Nom de l'EXE du CD-ROM : %.255s\n"
