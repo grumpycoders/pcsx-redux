@@ -408,11 +408,15 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             break;
 
         case H_SPUmvolL:
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x, unimplemented\n", val);
+            m_mainVolume.setLeft(val);
+            m_mainLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
             break;
 
         case H_SPUmvolR:
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x, unimplemented\n", val);
+            m_mainVolume.setRight(val);
+            m_mainRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
             break;
 
         // Voice 0..23 ON/OFF (status) (ENDX), read-only.

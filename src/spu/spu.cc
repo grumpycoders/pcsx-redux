@@ -471,12 +471,19 @@ void PCSX::SPU::impl::MainThread() {
         ///////////////////////////////////////////////////////
         // Mix all channels, including reverb, into one buffer.
 
+        // Main volume scales linearly in value/0x4000 (SCPH-1001: 0x3800 -> -1.16 dB,
+        // 0x2000 -> -6.02 dB against 0x3fff). Measured with reverb off, so where the reverb
+        // output joins relative to it is not settled; it is applied to the sum here.
+        const int64_t mainLeft = m_mainLeftWritten ? m_mainVolume.left() : kVoiceVolumeUnity;
+        const int64_t mainRight = m_mainRightWritten ? m_mainVolume.right() : kVoiceVolumeUnity;
         for (ns = 0; ns < NSSIZE; ns++) {
             SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
+            SSumL[ns] = static_cast<int>(SSumL[ns] * mainLeft / kVoiceVolumeUnity);
             *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumL[ns] = 0;
 
             SSumR[ns] += m_reverb.mixRight();
+            SSumR[ns] = static_cast<int>(SSumR[ns] * mainRight / kVoiceVolumeUnity);
             *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
             SSumR[ns] = 0;
         }
@@ -696,6 +703,8 @@ bool PCSX::SPU::impl::open() {
     spuRamBase = (uint8_t *)spuMem;
     mixIrqAddress = 0;
     wipeChannels();
+    m_mainVolume.reset();
+    m_mainLeftWritten = m_mainRightWritten = false;
     irqAddress = 0;
     spuStat &= ~StatusFlags::IRQFlag;
 

@@ -272,6 +272,13 @@ class impl final : public SPUInterface {
 
     NoiseGenerator m_noise;  // global noise generator: LFSR + shift/step clock
 
+    // Main volume (1F801D80h/1D82h), decoded like a voice volume and applied to the whole
+    // mix. Each side stays at unity until software first writes it, so a program that never
+    // programs main volume (or a BIOS that leaves it to the game) sounds as it always did.
+    VoiceVolume m_mainVolume;
+    bool m_mainLeftWritten = false;
+    bool m_mainRightWritten = false;
+
     // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
     // ADPCM block carrying the end flag, cleared on key-on. Read-only.
     std::atomic<uint32_t> spuEndx = 0;

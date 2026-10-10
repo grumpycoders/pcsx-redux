@@ -34,10 +34,8 @@ namespace SPU {
 // Extracted out of the SPU impl's SetVolumeL/SetVolumeR register handlers and
 // the SPUCHAN per-voice struct; the arithmetic is unchanged.
 //
-// Note: the PS1's global main L/R volume is not emulated (those register writes
-// are logged only, no state is kept), so unlike the noise generator there is no
-// global counterpart to fold in here - this type is purely per-voice, like the
-// ADSR envelope and the ADPCM decoder.
+// The SPU impl also keeps one instance for the global main L/R volume, which
+// shares this register format.
 class VoiceVolume {
   public:
     // Decode a left/right volume register write (was impl::SetVolumeL and
