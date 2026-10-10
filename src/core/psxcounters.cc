@@ -178,7 +178,10 @@ void PCSX::Counters::update() {
         uint32_t newFrames = g_emulator->m_spu->getCurrentFrames() + lead;
         int32_t framesDiff = target - newFrames;
         if (framesDiff > 0) {
-            g_emulator->m_cpu->m_regs.previousCycles = cycle;
+            // Consume only the cycles the whole frames above stand for. Dropping the fraction on
+            // every wait ran the emulation slightly faster than realtime, and with the SPU unable
+            // to mix ahead of the CPU, that surplus piles up in the audio queue as extra delay.
+            g_emulator->m_cpu->m_regs.previousCycles = prev + diff * g_emulator->m_psxClockSpeed / 44100;
             g_emulator->m_spu->waitForGoal(target - lead);
             m_audioFrames = target;
         } else if (framesDiff < -kMaxAudioLagFrames) {
