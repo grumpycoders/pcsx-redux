@@ -133,8 +133,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;                // Recompiler PC
-    unsigned m_instructionCount;  // Instructions compiled so far in the current block
+    uint32_t m_pc;                   // Recompiler PC
+    unsigned m_instructionCount;     // Instructions compiled so far in the current block
     unsigned m_romInstructionCount;  // How many of those were fetched from ROM
 
     bool m_stopCompiling;  // Should we stop compiling code?
