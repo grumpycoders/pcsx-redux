@@ -47,6 +47,12 @@ void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
 LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type, unsigned width, const char* cause,
                              bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label) {
+    if (!PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+             .get<PCSX::Emulator::DebugSettings::Debug>()) {
+        PCSX::g_system->luaMessage(
+            "Warning: the debugger is disabled, this breakpoint will not trigger until it is enabled (use -debugger)",
+            true);
+    }
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
         address, type, width, std::string("Lua Breakpoint"), cause,
