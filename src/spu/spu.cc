@@ -837,7 +837,6 @@ bool PCSX::SPU::impl::open() {
     m_mixPos = 0;
     m_lastHorizon = 0;
     m_ctrlShadow = 0;
-    m_ctrlWritesPending = 0;
 
     // Prepare streaming.
     SetupStreams();

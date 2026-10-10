@@ -337,7 +337,6 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
             case H_SPUctrl:
                 m_ctrlShadow = val;
-                m_ctrlWritesPending++;
                 break;
 
             case H_SPUirqAddr:
@@ -448,7 +447,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
             if (!(val & ControlFlags::IRQEnable)) spuStat &= ~StatusFlags::IRQFlag;
             spuCtrl = val;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
-            m_ctrlWritesPending--;
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
             break;
 
@@ -972,9 +970,8 @@ void PCSX::SPU::impl::ReverbOn(int start, int end, uint16_t val) {
     }
 }
 
-// SPUCNT as the CPU sees it. While a CTRL write is still queued, that write is the answer;
-// once the mixer has applied every one, its copy is, because an IRQ clears the enable bit there.
-uint16_t PCSX::SPU::impl::readCtrl() { return m_ctrlWritesPending.load() ? m_ctrlShadow : spuCtrl.load(); }
+// SPUCNT as the CPU sees it: the last value written. Nothing on the SPU side changes it.
+uint16_t PCSX::SPU::impl::readCtrl() { return m_ctrlShadow; }
 
 void PCSX::SPU::impl::rebuildShadows() {
     for (unsigned ch = 0; ch < MAXCHAN; ch++) {
@@ -983,5 +980,4 @@ void PCSX::SPU::impl::rebuildShadows() {
         m_fmodShadow[ch] = s_chan[ch].data.get<Chan::FMod>().value;
     }
     m_ctrlShadow = spuCtrl;
-    m_ctrlWritesPending = 0;
 }

@@ -286,10 +286,9 @@ class impl final : public SPUInterface {
     std::mutex m_syncMutex;
     std::condition_variable m_mixerWake;
     std::condition_variable m_cpuWake;
-    // SPUCNT as last written by the CPU. Read back while a CTRL write is still queued;
-    // afterwards spuCtrl is authoritative, since an IRQ clears its enable bit on the mixer.
+    // SPUCNT as last written by the CPU, which is what a CPU read returns. The mixer's spuCtrl
+    // may not have applied the write yet.
     uint16_t m_ctrlShadow = 0;
-    std::atomic<uint32_t> m_ctrlWritesPending = 0;
     // The ENVX walk runs on the CPU thread and needs the voice configuration as of the
     // reader's cycle, which the mixer's copy may not have reached yet.
     AdsrEnvelope m_adsrShadow[MAXCHAN];
@@ -361,8 +360,7 @@ class impl final : public SPUInterface {
     std::atomic<uint32_t> spuEndx = 0;
 
     // Storage for the PSX register values.
-    // Both the register path and the mixer thread read-modify-write these, so every
-    // update is an atomic RMW.
+    // The mixer thread writes these; the CPU thread reads SPUSTAT, so they stay atomic.
     std::atomic<uint16_t> spuCtrl = 0;
     std::atomic<uint16_t> spuStat = 0;
     uint16_t spuIrq = 0;
