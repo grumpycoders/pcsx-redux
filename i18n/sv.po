@@ -220,50 +220,50 @@ msgstr "Skriv"
 msgid "GDB client"
 msgstr "GDB-klient"
 
-#: src/core/gpu.cc:337 src/core/gpu.cc:612 src/core/psxhw.h:83
+#: src/core/gpu.cc:338 src/core/gpu.cc:614 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr "GPU DMA gick in i användbart men oinitierat msan-minne: %8.8lx\n"
 
-#: src/core/gpu.cc:342 src/core/gpu.cc:617 src/core/psxhw.h:88
+#: src/core/gpu.cc:343 src/core/gpu.cc:619 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "GPU DMA gick in i oanvändbart msan-minne: %8.8lx\n"
 
-#: src/core/gpu.cc:1052 src/core/gpu.cc:1136
+#: src/core/gpu.cc:1061 src/core/gpu.cc:1145
 msgid "Shading: Flat"
 msgstr "Skuggning: Platt"
 
-#: src/core/gpu.cc:1055 src/core/gpu.cc:1139
+#: src/core/gpu.cc:1064 src/core/gpu.cc:1148
 msgid "Shading: Gouraud"
 msgstr "Skuggning: Gouraud"
 
-#: src/core/gpu.cc:1059
+#: src/core/gpu.cc:1068
 msgid "Textured"
 msgstr "Strukturerad"
 
-#: src/core/gpu.cc:1062 src/core/gpu.cc:1142 src/core/gpu.cc:1184
+#: src/core/gpu.cc:1071 src/core/gpu.cc:1151 src/core/gpu.cc:1193
 msgid "Semi-transparency blending"
 msgstr "Halvtransparent blandning"
 
-#: src/core/gpu.cc:1079
+#: src/core/gpu.cc:1088
 #, c-format
 msgid "Vertex %i"
 msgstr "Vertex %i"
 
-#: src/core/gpu.cc:1103 src/core/gpu.cc:1167 src/core/gpu.cc:1197
+#: src/core/gpu.cc:1112 src/core/gpu.cc:1176 src/core/gpu.cc:1206
 msgid "Go to primitive##{}"
 msgstr "Gå till primitiv##{}"
 
-#: src/core/gpu.cc:1111 src/core/gpu.cc:1207
+#: src/core/gpu.cc:1120 src/core/gpu.cc:1216
 msgid "Go to texture##{}"
 msgstr "Gå till textur##{}"
 
-#: src/core/gpu.cc:1122 src/core/gpu.cc:1218
+#: src/core/gpu.cc:1131 src/core/gpu.cc:1227
 msgid "Go to CLUT##{}"
 msgstr "Gå till CLUT##{}"
 
-#: src/core/gpu.cc:1148
+#: src/core/gpu.cc:1157
 #, c-format
 msgid "Line %i"
 msgstr "Rad %i"
@@ -1109,7 +1109,7 @@ msgstr "Utmatning"
 
 #: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
-#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:601
+#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:608
 msgid "File"
 msgstr "Arkiv"
 
@@ -1213,8 +1213,8 @@ msgstr "Mjuk omstart"
 msgid "Hard Reset"
 msgstr "Hård omstart"
 
-#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:364
-#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:643
+#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:370
+#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
 msgid "Configuration"
 msgstr "Konfiguration"
 
@@ -2768,80 +2768,80 @@ msgstr "Bryt på halvskrivningskarta"
 msgid "Break on word write map"
 msgstr "Bryt på word-skrivningskarta"
 
-#: src/gui/widgets/cdrom-viewer.cc:344
+#: src/gui/widgets/cdrom-viewer.cc:350
 msgid "CD-ROM Viewer"
 msgstr "CD-ROM-visare"
 
-#: src/gui/widgets/cdrom-viewer.cc:351 src/gui/widgets/isobrowser.cc:131
-#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
-#: src/gui/widgets/vram-viewer.cc:605
+#: src/gui/widgets/cdrom-viewer.cc:357 src/gui/widgets/isobrowser.cc:131
+#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:492
+#: src/gui/widgets/vram-viewer.cc:612
 msgid "View"
 msgstr "Visa"
 
-#: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
-#: src/gui/widgets/vram-viewer.cc:606
+#: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
+#: src/gui/widgets/vram-viewer.cc:613
 msgid "Reset view"
 msgstr "Återställ vy"
 
-#: src/gui/widgets/cdrom-viewer.cc:354
+#: src/gui/widgets/cdrom-viewer.cc:360
 msgid "Polar disc layout"
 msgstr "Polär skivlayout"
 
-#: src/gui/widgets/cdrom-viewer.cc:356
+#: src/gui/widgets/cdrom-viewer.cc:362
 msgid "Show data reads"
 msgstr "Visa dataläsningar"
 
-#: src/gui/widgets/cdrom-viewer.cc:357
+#: src/gui/widgets/cdrom-viewer.cc:363
 msgid "Show audio (CDDA)"
 msgstr "Visa ljud (CDDA)"
 
-#: src/gui/widgets/cdrom-viewer.cc:358
+#: src/gui/widgets/cdrom-viewer.cc:364
 msgid "Show seeks"
 msgstr "Visa sökningar"
 
-#: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
-#: src/gui/widgets/vram-viewer.cc:637
+#: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/vram-viewer.cc:644
 msgid "Show Shader Editor"
 msgstr "Visa Shader Editor"
 
-#: src/gui/widgets/cdrom-viewer.cc:365
+#: src/gui/widgets/cdrom-viewer.cc:371
 msgid "Select data color"
 msgstr "Välj datafärg"
 
-#: src/gui/widgets/cdrom-viewer.cc:366
+#: src/gui/widgets/cdrom-viewer.cc:372
 msgid "Select audio color"
 msgstr "Välj ljudfärg"
 
-#: src/gui/widgets/cdrom-viewer.cc:367
+#: src/gui/widgets/cdrom-viewer.cc:373
 msgid "Select seek color"
 msgstr "Välj sökfärg"
 
-#: src/gui/widgets/cdrom-viewer.cc:371 src/gui/widgets/ram-viewer.cc:508
+#: src/gui/widgets/cdrom-viewer.cc:377 src/gui/widgets/ram-viewer.cc:515
 msgid "Decay half-life (ms)"
 msgstr "Halveringstid för avklingning (ms)"
 
-#: src/gui/widgets/cdrom-viewer.cc:393 src/gui/widgets/cdrom-viewer.cc:394
+#: src/gui/widgets/cdrom-viewer.cc:399 src/gui/widgets/cdrom-viewer.cc:400
 msgid "Data Color Picker"
 msgstr "Färgväljare för data"
 
-#: src/gui/widgets/cdrom-viewer.cc:398 src/gui/widgets/cdrom-viewer.cc:406
-#: src/gui/widgets/cdrom-viewer.cc:414 src/gui/widgets/ram-viewer.cc:541
-#: src/gui/widgets/ram-viewer.cc:549 src/gui/widgets/ram-viewer.cc:557
-#: src/gui/widgets/ram-viewer.cc:565 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:669 src/gui/widgets/vram-viewer.cc:681
-#: src/gui/widgets/vram-viewer.cc:693 src/gui/widgets/vram-viewer.cc:705
+#: src/gui/widgets/cdrom-viewer.cc:404 src/gui/widgets/cdrom-viewer.cc:412
+#: src/gui/widgets/cdrom-viewer.cc:420 src/gui/widgets/ram-viewer.cc:548
+#: src/gui/widgets/ram-viewer.cc:556 src/gui/widgets/ram-viewer.cc:564
+#: src/gui/widgets/ram-viewer.cc:572 src/gui/widgets/sio1.cc:191
+#: src/gui/widgets/vram-viewer.cc:676 src/gui/widgets/vram-viewer.cc:688
+#: src/gui/widgets/vram-viewer.cc:700 src/gui/widgets/vram-viewer.cc:712
 msgid "OK"
 msgstr "OK"
 
-#: src/gui/widgets/cdrom-viewer.cc:401 src/gui/widgets/cdrom-viewer.cc:402
+#: src/gui/widgets/cdrom-viewer.cc:407 src/gui/widgets/cdrom-viewer.cc:408
 msgid "Audio Color Picker"
 msgstr "Färgväljare för ljud"
 
-#: src/gui/widgets/cdrom-viewer.cc:409 src/gui/widgets/cdrom-viewer.cc:410
+#: src/gui/widgets/cdrom-viewer.cc:415 src/gui/widgets/cdrom-viewer.cc:416
 msgid "Seek Color Picker"
 msgstr "Färgväljare för sökning"
 
-#: src/gui/widgets/cdrom-viewer.cc:420
+#: src/gui/widgets/cdrom-viewer.cc:426
 msgid "CD-ROM Shader Editor"
 msgstr "Skuggredigerare för CD-ROM"
 
@@ -3608,7 +3608,7 @@ msgstr "Följ"
 msgid "Auto run"
 msgstr "Automatisk körning"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:492
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:504
 msgid "Auto save"
 msgstr "Automatisk sparning"
 
@@ -3955,68 +3955,68 @@ msgstr "Av"
 msgid "On"
 msgstr "På"
 
-#: src/gui/widgets/ram-viewer.cc:478
+#: src/gui/widgets/ram-viewer.cc:485
 msgid "RAM Viewer"
 msgstr "RAM-visare"
 
-#: src/gui/widgets/ram-viewer.cc:488
+#: src/gui/widgets/ram-viewer.cc:495
 msgid "Show reads"
 msgstr "Visa läsningar"
 
-#: src/gui/widgets/ram-viewer.cc:489
+#: src/gui/widgets/ram-viewer.cc:496
 msgid "Show writes"
 msgstr "Visa skrivningar"
 
-#: src/gui/widgets/ram-viewer.cc:490
+#: src/gui/widgets/ram-viewer.cc:497
 msgid "Show execution"
 msgstr "Visa körning"
 
-#: src/gui/widgets/ram-viewer.cc:491
+#: src/gui/widgets/ram-viewer.cc:498
 msgid "Show greyscale"
 msgstr "Visa gråskala"
 
-#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:632
+#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:639
 msgid "Show grid"
 msgstr "Visa rutnät"
 
-#: src/gui/widgets/ram-viewer.cc:494
+#: src/gui/widgets/ram-viewer.cc:501
 msgid "Show hex values"
 msgstr "Visa hexadecimala värden"
 
-#: src/gui/widgets/ram-viewer.cc:495
+#: src/gui/widgets/ram-viewer.cc:502
 msgid "Select grid color"
 msgstr "Välj rutnätsfärg"
 
-#: src/gui/widgets/ram-viewer.cc:502
+#: src/gui/widgets/ram-viewer.cc:509
 msgid "Select read color"
 msgstr "Välj läsfärg"
 
-#: src/gui/widgets/ram-viewer.cc:503
+#: src/gui/widgets/ram-viewer.cc:510
 msgid "Select write color"
 msgstr "Välj skrivfärg"
 
-#: src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/ram-viewer.cc:511
 msgid "Select exec color"
 msgstr "Välj körningsfärg"
 
 #. Color pickers
-#: src/gui/widgets/ram-viewer.cc:536 src/gui/widgets/ram-viewer.cc:537
+#: src/gui/widgets/ram-viewer.cc:543 src/gui/widgets/ram-viewer.cc:544
 msgid "Read Color Picker"
 msgstr "Färgväljare för läsning"
 
-#: src/gui/widgets/ram-viewer.cc:544 src/gui/widgets/ram-viewer.cc:545
+#: src/gui/widgets/ram-viewer.cc:551 src/gui/widgets/ram-viewer.cc:552
 msgid "Write Color Picker"
 msgstr "Färgväljare för skrivning"
 
-#: src/gui/widgets/ram-viewer.cc:552 src/gui/widgets/ram-viewer.cc:553
+#: src/gui/widgets/ram-viewer.cc:559 src/gui/widgets/ram-viewer.cc:560
 msgid "Exec Color Picker"
 msgstr "Färgväljare för körning"
 
-#: src/gui/widgets/ram-viewer.cc:560 src/gui/widgets/ram-viewer.cc:561
+#: src/gui/widgets/ram-viewer.cc:567 src/gui/widgets/ram-viewer.cc:568
 msgid "Grid Color Picker"
 msgstr "Färgväljare för rutnät"
 
-#: src/gui/widgets/ram-viewer.cc:571
+#: src/gui/widgets/ram-viewer.cc:578
 msgid "RAM Shader Editor"
 msgstr "Skuggredigerare för RAM"
 
@@ -4044,43 +4044,43 @@ msgstr "Visa fast punkt"
 msgid "Misc"
 msgstr "Övrigt"
 
-#: src/gui/widgets/shader-editor.cc:322
+#: src/gui/widgets/shader-editor.cc:334
 msgid "Vertex Shader compilation error: {}\n"
 msgstr "Vertex Shader-kompileringsfel: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:343
+#: src/gui/widgets/shader-editor.cc:355
 msgid "Pixel Shader compilation error: {}\n"
 msgstr "Pixel Shader-kompileringsfel: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:365
+#: src/gui/widgets/shader-editor.cc:377
 msgid "Link error: {}\n"
 msgstr "Länkfel: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:377
+#: src/gui/widgets/shader-editor.cc:389
 msgid "Missing attribute {} in shader program"
 msgstr "Saknat attribut {} i shaderprogrammet"
 
-#: src/gui/widgets/shader-editor.cc:490
+#: src/gui/widgets/shader-editor.cc:502
 msgid "Auto compile"
 msgstr "Automatisk kompilering"
 
-#: src/gui/widgets/shader-editor.cc:494
+#: src/gui/widgets/shader-editor.cc:506
 msgid "Show all"
 msgstr "Visa alla"
 
-#: src/gui/widgets/shader-editor.cc:496
+#: src/gui/widgets/shader-editor.cc:508
 msgid "Configure shader"
 msgstr "Konfigurera shader"
 
-#: src/gui/widgets/shader-editor.cc:521
+#: src/gui/widgets/shader-editor.cc:533
 msgid "Vertex Shader"
 msgstr "Vertex-shader"
 
-#: src/gui/widgets/shader-editor.cc:527
+#: src/gui/widgets/shader-editor.cc:539
 msgid "Pixel Shader"
 msgstr "Pixel Shader"
 
-#: src/gui/widgets/shader-editor.cc:533
+#: src/gui/widgets/shader-editor.cc:545
 msgid "Lua Invoker"
 msgstr "Lua Invoker"
 
@@ -4284,71 +4284,71 @@ msgstr "Växla"
 msgid "Add breakpoint##{}"
 msgstr "Lägg till brytpunkt##{}"
 
-#: src/gui/widgets/vram-viewer.cc:499
+#: src/gui/widgets/vram-viewer.cc:506
 msgid "VRAM Shader Editor"
 msgstr "VRAM Shader Editor"
 
-#: src/gui/widgets/vram-viewer.cc:609
+#: src/gui/widgets/vram-viewer.cc:616
 msgid "24 bits shift"
 msgstr "24-bitarsförskjutning"
 
-#: src/gui/widgets/vram-viewer.cc:610
+#: src/gui/widgets/vram-viewer.cc:617
 msgid "View VRAM in 24 bits"
 msgstr "Visa VRAM i 24 bitar"
 
-#: src/gui/widgets/vram-viewer.cc:614
+#: src/gui/widgets/vram-viewer.cc:621
 msgid "View VRAM in 16 bits"
 msgstr "Visa VRAM i 16 bitar"
 
-#: src/gui/widgets/vram-viewer.cc:618
+#: src/gui/widgets/vram-viewer.cc:625
 msgid "View VRAM in 8 bits"
 msgstr "Visa VRAM i 8 bitar"
 
-#: src/gui/widgets/vram-viewer.cc:622
+#: src/gui/widgets/vram-viewer.cc:629
 msgid "View VRAM in 4 bits"
 msgstr "Visa VRAM i 4 bitar"
 
-#: src/gui/widgets/vram-viewer.cc:627
+#: src/gui/widgets/vram-viewer.cc:634
 msgid "Select a CLUT"
 msgstr "Välj en CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:636
 msgid "Enable Alpha channel view"
 msgstr "Aktivera visning av alfakanal"
 
-#: src/gui/widgets/vram-viewer.cc:630
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Enable greyscale"
 msgstr "Aktivera gråskala"
 
-#: src/gui/widgets/vram-viewer.cc:633
+#: src/gui/widgets/vram-viewer.cc:640
 msgid "Select pixel grid color"
 msgstr "Välj färg för pixelrutnätet"
 
-#: src/gui/widgets/vram-viewer.cc:634
+#: src/gui/widgets/vram-viewer.cc:641
 msgid "Select TPage grid color"
 msgstr "Välj TPage-rutnätsfärg"
 
-#: src/gui/widgets/vram-viewer.cc:644
+#: src/gui/widgets/vram-viewer.cc:651
 msgid "Select read highlight color"
 msgstr "Välj färg för markering av läsning"
 
-#: src/gui/widgets/vram-viewer.cc:645
+#: src/gui/widgets/vram-viewer.cc:652
 msgid "Select written highlight color"
 msgstr "Välj färg för skriftliga markeringar"
 
-#: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
+#: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
 msgid "Read Highlight Color Picker"
 msgstr "Läs markeringsfärgväljaren"
 
-#: src/gui/widgets/vram-viewer.cc:675 src/gui/widgets/vram-viewer.cc:677
+#: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
 msgid "Written Highlight Color Picker"
 msgstr "Skriftlig markeringsfärgväljare"
 
-#: src/gui/widgets/vram-viewer.cc:687 src/gui/widgets/vram-viewer.cc:689
+#: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
 msgid "Pixel Grid Color Picker"
 msgstr "Pixelrutnätets färgväljare"
 
-#: src/gui/widgets/vram-viewer.cc:699 src/gui/widgets/vram-viewer.cc:701
+#: src/gui/widgets/vram-viewer.cc:706 src/gui/widgets/vram-viewer.cc:708
 msgid "TPage Grid Color Picker"
 msgstr "Färgväljare för TPage-rutnät"
 

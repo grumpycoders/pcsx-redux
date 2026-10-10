@@ -224,52 +224,52 @@ msgstr "Escritura"
 msgid "GDB client"
 msgstr "Cliente GDB"
 
-#: src/core/gpu.cc:337 src/core/gpu.cc:612 src/core/psxhw.h:83
+#: src/core/gpu.cc:338 src/core/gpu.cc:614 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Un DMA de la GPU ha ido a memoria de msan utilizable, pero sin inicializar: "
 "%8.8lx\n"
 
-#: src/core/gpu.cc:342 src/core/gpu.cc:617 src/core/psxhw.h:88
+#: src/core/gpu.cc:343 src/core/gpu.cc:619 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "Un DMA de la GPU ha ido a memoria de msan no utilizable: %8.8lx\n"
 
-#: src/core/gpu.cc:1052 src/core/gpu.cc:1136
+#: src/core/gpu.cc:1061 src/core/gpu.cc:1145
 msgid "Shading: Flat"
 msgstr "Sombreado: plano"
 
-#: src/core/gpu.cc:1055 src/core/gpu.cc:1139
+#: src/core/gpu.cc:1064 src/core/gpu.cc:1148
 msgid "Shading: Gouraud"
 msgstr "Sombreado: Gouraud"
 
-#: src/core/gpu.cc:1059
+#: src/core/gpu.cc:1068
 msgid "Textured"
 msgstr "Texturización"
 
-#: src/core/gpu.cc:1062 src/core/gpu.cc:1142 src/core/gpu.cc:1184
+#: src/core/gpu.cc:1071 src/core/gpu.cc:1151 src/core/gpu.cc:1193
 msgid "Semi-transparency blending"
 msgstr "Mezcla de semitransparencias"
 
-#: src/core/gpu.cc:1079
+#: src/core/gpu.cc:1088
 #, c-format
 msgid "Vertex %i"
 msgstr "Vértice %i"
 
-#: src/core/gpu.cc:1103 src/core/gpu.cc:1167 src/core/gpu.cc:1197
+#: src/core/gpu.cc:1112 src/core/gpu.cc:1176 src/core/gpu.cc:1206
 msgid "Go to primitive##{}"
 msgstr "Ir a primitivo##{}"
 
-#: src/core/gpu.cc:1111 src/core/gpu.cc:1207
+#: src/core/gpu.cc:1120 src/core/gpu.cc:1216
 msgid "Go to texture##{}"
 msgstr "Ir a textura##{}"
 
-#: src/core/gpu.cc:1122 src/core/gpu.cc:1218
+#: src/core/gpu.cc:1131 src/core/gpu.cc:1227
 msgid "Go to CLUT##{}"
 msgstr "Ir a CLUT##{}"
 
-#: src/core/gpu.cc:1148
+#: src/core/gpu.cc:1157
 #, c-format
 msgid "Line %i"
 msgstr "Línea %i"
@@ -1131,7 +1131,7 @@ msgstr "Salida"
 
 #: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
-#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:601
+#: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:608
 msgid "File"
 msgstr "Archivo"
 
@@ -1235,8 +1235,8 @@ msgstr "Reinicio rápido"
 msgid "Hard Reset"
 msgstr "Reinicio completo"
 
-#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:364
-#: src/gui/widgets/ram-viewer.cc:501 src/gui/widgets/vram-viewer.cc:643
+#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:370
+#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
 msgid "Configuration"
 msgstr "Configuración"
 
@@ -2814,80 +2814,80 @@ msgstr "Interrumpir al escribir HWORDs del mapa"
 msgid "Break on word write map"
 msgstr "Interrumpir al escribir WORDs del mapa"
 
-#: src/gui/widgets/cdrom-viewer.cc:344
+#: src/gui/widgets/cdrom-viewer.cc:350
 msgid "CD-ROM Viewer"
 msgstr "Visualizador de CD-ROM"
 
-#: src/gui/widgets/cdrom-viewer.cc:351 src/gui/widgets/isobrowser.cc:131
-#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
-#: src/gui/widgets/vram-viewer.cc:605
+#: src/gui/widgets/cdrom-viewer.cc:357 src/gui/widgets/isobrowser.cc:131
+#: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:492
+#: src/gui/widgets/vram-viewer.cc:612
 msgid "View"
 msgstr "Visualizar"
 
-#: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
-#: src/gui/widgets/vram-viewer.cc:606
+#: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
+#: src/gui/widgets/vram-viewer.cc:613
 msgid "Reset view"
 msgstr "Restablecer vista"
 
-#: src/gui/widgets/cdrom-viewer.cc:354
+#: src/gui/widgets/cdrom-viewer.cc:360
 msgid "Polar disc layout"
 msgstr "Distribución polar del disco"
 
-#: src/gui/widgets/cdrom-viewer.cc:356
+#: src/gui/widgets/cdrom-viewer.cc:362
 msgid "Show data reads"
 msgstr "Mostrar lecturas de datos"
 
-#: src/gui/widgets/cdrom-viewer.cc:357
+#: src/gui/widgets/cdrom-viewer.cc:363
 msgid "Show audio (CDDA)"
 msgstr "Mostrar audio (CDDA)"
 
-#: src/gui/widgets/cdrom-viewer.cc:358
+#: src/gui/widgets/cdrom-viewer.cc:364
 msgid "Show seeks"
 msgstr "Mostrar búsquedas"
 
-#: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
-#: src/gui/widgets/vram-viewer.cc:637
+#: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/vram-viewer.cc:644
 msgid "Show Shader Editor"
 msgstr "Mostrar editor de shaders"
 
-#: src/gui/widgets/cdrom-viewer.cc:365
+#: src/gui/widgets/cdrom-viewer.cc:371
 msgid "Select data color"
 msgstr "Seleccionar color de datos"
 
-#: src/gui/widgets/cdrom-viewer.cc:366
+#: src/gui/widgets/cdrom-viewer.cc:372
 msgid "Select audio color"
 msgstr "Seleccionar color de audio"
 
-#: src/gui/widgets/cdrom-viewer.cc:367
+#: src/gui/widgets/cdrom-viewer.cc:373
 msgid "Select seek color"
 msgstr "Seleccionar color de búsquedas"
 
-#: src/gui/widgets/cdrom-viewer.cc:371 src/gui/widgets/ram-viewer.cc:508
+#: src/gui/widgets/cdrom-viewer.cc:377 src/gui/widgets/ram-viewer.cc:515
 msgid "Decay half-life (ms)"
 msgstr "Vida media (ms)"
 
-#: src/gui/widgets/cdrom-viewer.cc:393 src/gui/widgets/cdrom-viewer.cc:394
+#: src/gui/widgets/cdrom-viewer.cc:399 src/gui/widgets/cdrom-viewer.cc:400
 msgid "Data Color Picker"
 msgstr "Selector de color de datos"
 
-#: src/gui/widgets/cdrom-viewer.cc:398 src/gui/widgets/cdrom-viewer.cc:406
-#: src/gui/widgets/cdrom-viewer.cc:414 src/gui/widgets/ram-viewer.cc:541
-#: src/gui/widgets/ram-viewer.cc:549 src/gui/widgets/ram-viewer.cc:557
-#: src/gui/widgets/ram-viewer.cc:565 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:669 src/gui/widgets/vram-viewer.cc:681
-#: src/gui/widgets/vram-viewer.cc:693 src/gui/widgets/vram-viewer.cc:705
+#: src/gui/widgets/cdrom-viewer.cc:404 src/gui/widgets/cdrom-viewer.cc:412
+#: src/gui/widgets/cdrom-viewer.cc:420 src/gui/widgets/ram-viewer.cc:548
+#: src/gui/widgets/ram-viewer.cc:556 src/gui/widgets/ram-viewer.cc:564
+#: src/gui/widgets/ram-viewer.cc:572 src/gui/widgets/sio1.cc:191
+#: src/gui/widgets/vram-viewer.cc:676 src/gui/widgets/vram-viewer.cc:688
+#: src/gui/widgets/vram-viewer.cc:700 src/gui/widgets/vram-viewer.cc:712
 msgid "OK"
 msgstr "Aceptar"
 
-#: src/gui/widgets/cdrom-viewer.cc:401 src/gui/widgets/cdrom-viewer.cc:402
+#: src/gui/widgets/cdrom-viewer.cc:407 src/gui/widgets/cdrom-viewer.cc:408
 msgid "Audio Color Picker"
 msgstr "Selector de color de audio"
 
-#: src/gui/widgets/cdrom-viewer.cc:409 src/gui/widgets/cdrom-viewer.cc:410
+#: src/gui/widgets/cdrom-viewer.cc:415 src/gui/widgets/cdrom-viewer.cc:416
 msgid "Seek Color Picker"
 msgstr "Selector de color de búsquedas"
 
-#: src/gui/widgets/cdrom-viewer.cc:420
+#: src/gui/widgets/cdrom-viewer.cc:426
 msgid "CD-ROM Shader Editor"
 msgstr "Editor de shaders del CD-ROM"
 
@@ -3660,7 +3660,7 @@ msgstr "Seguir"
 msgid "Auto run"
 msgstr "Ejecutar automáticamente"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:492
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:504
 msgid "Auto save"
 msgstr "Autoguardado"
 
@@ -4007,68 +4007,68 @@ msgstr "Apagado"
 msgid "On"
 msgstr "Encendido"
 
-#: src/gui/widgets/ram-viewer.cc:478
+#: src/gui/widgets/ram-viewer.cc:485
 msgid "RAM Viewer"
 msgstr "Visualizador de RAM"
 
-#: src/gui/widgets/ram-viewer.cc:488
+#: src/gui/widgets/ram-viewer.cc:495
 msgid "Show reads"
 msgstr "Mostrar lecturas"
 
-#: src/gui/widgets/ram-viewer.cc:489
+#: src/gui/widgets/ram-viewer.cc:496
 msgid "Show writes"
 msgstr "Mostrar escrituras"
 
-#: src/gui/widgets/ram-viewer.cc:490
+#: src/gui/widgets/ram-viewer.cc:497
 msgid "Show execution"
 msgstr "Mostrar ejecuciones"
 
-#: src/gui/widgets/ram-viewer.cc:491
+#: src/gui/widgets/ram-viewer.cc:498
 msgid "Show greyscale"
 msgstr "Mostrar escala de grises"
 
-#: src/gui/widgets/ram-viewer.cc:493 src/gui/widgets/vram-viewer.cc:632
+#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:639
 msgid "Show grid"
 msgstr "Mostrar cuadrícula"
 
-#: src/gui/widgets/ram-viewer.cc:494
+#: src/gui/widgets/ram-viewer.cc:501
 msgid "Show hex values"
 msgstr "Mostrar valores hexadecimales"
 
-#: src/gui/widgets/ram-viewer.cc:495
+#: src/gui/widgets/ram-viewer.cc:502
 msgid "Select grid color"
 msgstr "Seleccionar color de cuadrícula"
 
-#: src/gui/widgets/ram-viewer.cc:502
+#: src/gui/widgets/ram-viewer.cc:509
 msgid "Select read color"
 msgstr "Seleccionar color de lecturas"
 
-#: src/gui/widgets/ram-viewer.cc:503
+#: src/gui/widgets/ram-viewer.cc:510
 msgid "Select write color"
 msgstr "Seleccionar color de escrituras"
 
-#: src/gui/widgets/ram-viewer.cc:504
+#: src/gui/widgets/ram-viewer.cc:511
 msgid "Select exec color"
 msgstr "Seleccionar color de ejecuciones"
 
 #. Color pickers
-#: src/gui/widgets/ram-viewer.cc:536 src/gui/widgets/ram-viewer.cc:537
+#: src/gui/widgets/ram-viewer.cc:543 src/gui/widgets/ram-viewer.cc:544
 msgid "Read Color Picker"
 msgstr "Selector de color de lecturas"
 
-#: src/gui/widgets/ram-viewer.cc:544 src/gui/widgets/ram-viewer.cc:545
+#: src/gui/widgets/ram-viewer.cc:551 src/gui/widgets/ram-viewer.cc:552
 msgid "Write Color Picker"
 msgstr "Selector de color de escrituras"
 
-#: src/gui/widgets/ram-viewer.cc:552 src/gui/widgets/ram-viewer.cc:553
+#: src/gui/widgets/ram-viewer.cc:559 src/gui/widgets/ram-viewer.cc:560
 msgid "Exec Color Picker"
 msgstr "Selector de color de ejecuciones"
 
-#: src/gui/widgets/ram-viewer.cc:560 src/gui/widgets/ram-viewer.cc:561
+#: src/gui/widgets/ram-viewer.cc:567 src/gui/widgets/ram-viewer.cc:568
 msgid "Grid Color Picker"
 msgstr "Selector de color de cuadrícula"
 
-#: src/gui/widgets/ram-viewer.cc:571
+#: src/gui/widgets/ram-viewer.cc:578
 msgid "RAM Shader Editor"
 msgstr "Editor de shaders de la RAM"
 
@@ -4096,43 +4096,43 @@ msgstr "Mostrar valor de punto fijo"
 msgid "Misc"
 msgstr "Otros"
 
-#: src/gui/widgets/shader-editor.cc:322
+#: src/gui/widgets/shader-editor.cc:334
 msgid "Vertex Shader compilation error: {}\n"
 msgstr "Error de compilación de Vertex Shader: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:343
+#: src/gui/widgets/shader-editor.cc:355
 msgid "Pixel Shader compilation error: {}\n"
 msgstr "Error de compilación de Pixel Shader: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:365
+#: src/gui/widgets/shader-editor.cc:377
 msgid "Link error: {}\n"
 msgstr "Error de vínculo: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:377
+#: src/gui/widgets/shader-editor.cc:389
 msgid "Missing attribute {} in shader program"
 msgstr "Falta el atributo {} en la programación del shader"
 
-#: src/gui/widgets/shader-editor.cc:490
+#: src/gui/widgets/shader-editor.cc:502
 msgid "Auto compile"
 msgstr "Compilar automáticamente"
 
-#: src/gui/widgets/shader-editor.cc:494
+#: src/gui/widgets/shader-editor.cc:506
 msgid "Show all"
 msgstr "Mostrar todo"
 
-#: src/gui/widgets/shader-editor.cc:496
+#: src/gui/widgets/shader-editor.cc:508
 msgid "Configure shader"
 msgstr "Configurar shader"
 
-#: src/gui/widgets/shader-editor.cc:521
+#: src/gui/widgets/shader-editor.cc:533
 msgid "Vertex Shader"
 msgstr "Vertex Shader"
 
-#: src/gui/widgets/shader-editor.cc:527
+#: src/gui/widgets/shader-editor.cc:539
 msgid "Pixel Shader"
 msgstr "Pixel Shader"
 
-#: src/gui/widgets/shader-editor.cc:533
+#: src/gui/widgets/shader-editor.cc:545
 msgid "Lua Invoker"
 msgstr "Invocador de Lua"
 
@@ -4335,71 +4335,71 @@ msgstr "Alternar"
 msgid "Add breakpoint##{}"
 msgstr "Añadir punto de interrupción##{}"
 
-#: src/gui/widgets/vram-viewer.cc:499
+#: src/gui/widgets/vram-viewer.cc:506
 msgid "VRAM Shader Editor"
 msgstr "Editor de shaders de la VRAM"
 
-#: src/gui/widgets/vram-viewer.cc:609
+#: src/gui/widgets/vram-viewer.cc:616
 msgid "24 bits shift"
 msgstr "Variación para 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:610
+#: src/gui/widgets/vram-viewer.cc:617
 msgid "View VRAM in 24 bits"
 msgstr "Ver la VRAM en el modo a 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:614
+#: src/gui/widgets/vram-viewer.cc:621
 msgid "View VRAM in 16 bits"
 msgstr "Ver la VRAM en el modo a 16 bits"
 
-#: src/gui/widgets/vram-viewer.cc:618
+#: src/gui/widgets/vram-viewer.cc:625
 msgid "View VRAM in 8 bits"
 msgstr "Ver la VRAM en el modo a 8 bits"
 
-#: src/gui/widgets/vram-viewer.cc:622
+#: src/gui/widgets/vram-viewer.cc:629
 msgid "View VRAM in 4 bits"
 msgstr "Ver la VRAM en el modo a 4 bits"
 
-#: src/gui/widgets/vram-viewer.cc:627
+#: src/gui/widgets/vram-viewer.cc:634
 msgid "Select a CLUT"
 msgstr "Seleccionar un CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:636
 msgid "Enable Alpha channel view"
 msgstr "Mostrar canales alfa"
 
-#: src/gui/widgets/vram-viewer.cc:630
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Enable greyscale"
 msgstr "Activar escala de grises"
 
-#: src/gui/widgets/vram-viewer.cc:633
+#: src/gui/widgets/vram-viewer.cc:640
 msgid "Select pixel grid color"
 msgstr "Seleccionar color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:634
+#: src/gui/widgets/vram-viewer.cc:641
 msgid "Select TPage grid color"
 msgstr "Seleccionar color de cuadrícula de TPage"
 
-#: src/gui/widgets/vram-viewer.cc:644
+#: src/gui/widgets/vram-viewer.cc:651
 msgid "Select read highlight color"
 msgstr "Seleccionar color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:645
+#: src/gui/widgets/vram-viewer.cc:652
 msgid "Select written highlight color"
 msgstr "Seleccionar color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
+#: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
 msgid "Read Highlight Color Picker"
 msgstr "Selector de color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:675 src/gui/widgets/vram-viewer.cc:677
+#: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
 msgid "Written Highlight Color Picker"
 msgstr "Selector de color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:687 src/gui/widgets/vram-viewer.cc:689
+#: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
 msgid "Pixel Grid Color Picker"
 msgstr "Selector de color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:699 src/gui/widgets/vram-viewer.cc:701
+#: src/gui/widgets/vram-viewer.cc:706 src/gui/widgets/vram-viewer.cc:708
 msgid "TPage Grid Color Picker"
 msgstr "Selector de color de cuadrícula de TPage"
 
