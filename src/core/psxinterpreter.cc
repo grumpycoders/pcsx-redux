@@ -250,15 +250,12 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     GTE_WRAPPER(AVSZ4);
     GTE_WRAPPER(CC);
     GTE_WRAPPER(CDP);
-    GTE_WRAPPER(CTC2);
     GTE_WRAPPER(DCPL);
     GTE_WRAPPER(DPCS);
     GTE_WRAPPER(DPCT);
     GTE_WRAPPER(GPF);
     GTE_WRAPPER(GPL);
     GTE_WRAPPER(INTPL);
-    GTE_WRAPPER(LWC2);
-    GTE_WRAPPER(MTC2);
     GTE_WRAPPER(MVMVA);
     GTE_WRAPPER(NCCS);
     GTE_WRAPPER(NCCT);
@@ -273,8 +270,56 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     GTE_WRAPPER(SQR);
 #undef GTE_WRAPPER
     void gteSWC2(uint32_t code) {
+        gteDrainIfStalling();
         gteStall();
         PCSX::g_emulator->m_gte->SWC2(code);
+    }
+
+    // A write to a GTE register (MTC2, CTC2, LWC2) only becomes visible to the third instruction
+    // after it: a GTE command, MFC2, CFC2 or SWC2 issued by either of the next two instructions
+    // still sees the old value. The write is queued with the value taken at issue and committed
+    // through GTE::MTC2 / GTE::CTC2 once two more instructions have run.
+    struct GTEPendingWrite {
+        uint32_t value;
+        uint8_t reg;
+        bool ctrl;
+        uint8_t countdown;
+    };
+    GTEPendingWrite m_gtePending[3];
+    unsigned m_gtePendingCount = 0;
+    void gteQueueWrite(bool ctrl, unsigned reg, uint32_t value) {
+        if (m_gtePendingCount == 3) gteCommitOldest();
+        m_gtePending[m_gtePendingCount++] = {value, static_cast<uint8_t>(reg), ctrl, 3};
+    }
+    void gteCommitOldest() {
+        auto &w = m_gtePending[0];
+        if (w.ctrl) {
+            PCSX::g_emulator->m_gte->CTC2(w.value, w.reg);
+        } else {
+            PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
+        }
+        for (unsigned i = 1; i < m_gtePendingCount; i++) m_gtePending[i - 1] = m_gtePending[i];
+        m_gtePendingCount--;
+    }
+    void gteTickWrites() {
+        for (unsigned i = 0; i < m_gtePendingCount; i++) m_gtePending[i].countdown--;
+        while (m_gtePendingCount && m_gtePending[0].countdown == 0) gteCommitOldest();
+    }
+    // An access that waits for a running GTE command gives queued writes time to complete.
+    void gteDrainIfStalling() {
+        if (m_regs.cycle < m_regs.gteReady) {
+            while (m_gtePendingCount) gteCommitOldest();
+        }
+    }
+    void gteMTC2(uint32_t code) { gteQueueWrite(false, _Rd_, m_regs.GPR.r[_Rt_]); }
+    void gteCTC2(uint32_t code) { gteQueueWrite(true, _Rd_, m_regs.GPR.r[_Rt_]); }
+    void gteLWC2(uint32_t code) {
+        uint32_t addr = m_regs.GPR.r[_Rs_] + _Imm_;
+        if (addr & 3) {
+            PCSX::g_emulator->m_gte->LWC2(code);
+            return;
+        }
+        gteQueueWrite(false, _Rt_, PCSX::g_emulator->m_mem->read32(addr));
     }
 
     static const intFunc_t s_psxBSC[64];
@@ -1106,6 +1151,7 @@ void InterpretedCPU::psxMTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
 void InterpretedCPU::psxCTC0(uint32_t code) { MTC0(_Rd_, _rRt_); }
 
 void InterpretedCPU::psxMFC2(uint32_t code) {
+    gteDrainIfStalling();
     gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -1113,6 +1159,7 @@ void InterpretedCPU::psxMFC2(uint32_t code) {
 }
 
 void InterpretedCPU::psxCFC2(uint32_t code) {
+    gteDrainIfStalling();
     gteStall();
     // load delay = 1 latency
     if (!_Rt_) return;
@@ -1173,8 +1220,41 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
     }
     if ((m_regs.CP0.n.Status & 0x40000000) == 0) return;
 
-    if (code & 0x02000000) gteStart(gteLatency(_Funct_));
+    if ((code & 0x02000000) == 0) {
+        (*this.*(s_pPsxCP2[_Funct_]))(code);
+        return;
+    }
+    gteDrainIfStalling();
+    gteStart(gteLatency(_Funct_));
+    // A command reads the registers as they are at issue. A queued write on its last instruction
+    // completes while the command runs, before the command's results, so a register the command
+    // writes keeps the result. A queued write with two instructions to go completes after the
+    // results. Fitted to SQR on IR1 (nugget tests/gte-store-delay), the only pair measured.
+    GTEPendingWrite late[3];
+    uint32_t before[3];
+    unsigned nLate = 0;
+    unsigned keep = 0;
+    for (unsigned i = 0; i < m_gtePendingCount; i++) {
+        auto &w = m_gtePending[i];
+        if (w.countdown == 1) {
+            before[nLate] = w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg];
+            late[nLate++] = w;
+        } else {
+            m_gtePending[keep++] = w;
+        }
+    }
+    m_gtePendingCount = keep;
     (*this.*(s_pPsxCP2[_Funct_]))(code);
+    for (unsigned i = 0; i < nLate; i++) {
+        auto &w = late[i];
+        uint32_t now = w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg];
+        if (now != before[i]) continue;
+        if (w.ctrl) {
+            PCSX::g_emulator->m_gte->CTC2(w.value, w.reg);
+        } else {
+            PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
+        }
+    }
 }
 
 void InterpretedCPU::psxCOP3(uint32_t code) {
@@ -1624,6 +1704,7 @@ void InterpretedCPU::Reset() {
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
     m_delayedLoadInfo[1].pcActive = false;
+    m_gtePendingCount = 0;
 }
 void InterpretedCPU::Execute() {
     ZoneScoped;
@@ -1688,6 +1769,7 @@ inline void InterpretedCPU::execBlock() {
 
         m_currentDelayedLoad ^= 1;
         flushCurrentDelayedLoad();
+        if (m_gtePendingCount) gteTickWrites();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         bool fromLink = false;
         if (delayedLoad.pcActive) {
