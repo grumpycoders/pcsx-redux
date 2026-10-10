@@ -1468,7 +1468,9 @@ void DynaRecCPU::recMTC0(uint32_t code) {
     else {
         allocateReg(_Rt_);
         if (_Rd_ == 13) {
-            gen.and_(m_gprs[_Rt_].allocatedReg, ~0xFC00);
+            gen.mov(eax, m_gprs[_Rt_].allocatedReg);
+            gen.and_(eax, ~0xFC00);
+            gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], eax);
         } else if (_Rd_ != 6 && _Rd_ != 14 && _Rd_ != 15) {  // Don't write to JUMPDEST, EPC or PRID
             gen.mov(dword[contextPointer + COP0_OFFSET(_Rd_)], m_gprs[_Rt_].allocatedReg);  // Write rt to the cop0 reg
         }
