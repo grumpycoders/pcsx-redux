@@ -83,6 +83,10 @@ XA audio and audio tracks.)"));
     ImGuiHelpers::ShowHelpMarker(_(R"(Emulation speed, applied at the audio sink (the master clock).
 1 = realtime, N = N times faster. Frames are skipped, not resampled, so pitch is preserved.
 0 or less = unbounded: run as fast as the host allows.)"));
+    changed |= ImGui::SliderInt(_("Latency margin (ms)"), &settings.get<LatencyMargin>().value, 0, 100);
+    ImGuiHelpers::ShowHelpMarker(_(R"(How far the emulation runs ahead of the audio device, on top of
+one device period: this is how late the sound is behind the picture.
+Lower it for less delay; if the sound crackles, raise it.)"));
 
     ImGui::End();
     return changed;

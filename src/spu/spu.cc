@@ -567,6 +567,16 @@ void PCSX::SPU::impl::MainThread() {
 bool PCSX::SPU::impl::flushOutput() {
     const size_t frames = (((uint8_t*)pS) - ((uint8_t*)spuBuffer)) / sizeof(SDLAudio::Frame);
     if (frames == 0) return true;
+    // When the host emulates a stretch slower than realtime, the device plays silence until the
+    // CPU catches up, and the CPU then runs the same lead ahead of the device as before: what was
+    // mixed during the hitch stays queued, and the sound would stay that much later than the
+    // picture from then on. Normally the queue holds at most the lead, so drop the oldest frames
+    // once it holds more than the lead plus a device period.
+    const size_t lead = getLeadFrames();
+    const size_t buffered = m_audioOut.getFramesBuffered(0);
+    if (buffered + frames > lead + m_audioOut.getPeriodFrames()) {
+        m_audioOut.dropVoiceFrames(buffered + frames - lead);
+    }
     // Blocks while the device ring is full, which is what paces this thread when the CPU is
     // further ahead than the ring holds.
     while (!m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame*>(spuBuffer), frames)) {

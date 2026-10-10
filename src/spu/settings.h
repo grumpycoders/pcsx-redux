@@ -44,7 +44,13 @@ typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
 // it is the latency itself or is absorbing a rounding error in cycleToSample() is still open. It applies
 // to the mixer and to the reconstructed ENVX alike; override via Lua to characterize the offset.
 typedef Setting<int, TYPESTRING("KeyOnDelay"), 6> KeyOnDelay;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, KeyOnDelay>
+// How far ahead of the audio device the emulation runs, in milliseconds, on top of one device
+// period. This is the audio's delay behind the picture. Too small for the host and the emulation
+// cannot keep the device fed, so it plays silence. 20 kept a heavily loaded test machine free of
+// underruns; a quiet machine can go lower.
+typedef Setting<int, TYPESTRING("LatencyMargin"), 20> LatencyMargin;
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, KeyOnDelay,
+                 LatencyMargin>
     SettingsType;
 
 }  // namespace SPU
