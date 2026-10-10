@@ -221,7 +221,7 @@ class CDRom {
     QueueElement m_commandFifo;
     QueueElement m_commandExecuting;
     QueueElement m_responseFifo[2];
-    bool responseFifoFull() { return !m_responseFifo[0].empty() && !m_responseFifo[1].empty(); }
+    bool responseFifoFull() { return !m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty(); }
 
   private:
     friend class Widgets::IsoBrowser;

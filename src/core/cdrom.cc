@@ -293,13 +293,15 @@ class CDRomImpl final : public PCSX::CDRom {
     void scheduleDMA(uint32_t cycles) { PCSX::g_emulator->m_cpu->schedule(PCSX::Schedule::CDRDMA, cycles); }
     void scheduleDMA(std::chrono::nanoseconds delay) { scheduleDMA(PCSX::psxRegisters::durationToCycles(delay)); }
 
+    // An acknowledged response no longer holds its slot: its unread bytes stay readable
+    // until the next response replaces them.
     bool maybeEnqueueResponse(QueueElement &response) {
         if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1] = response;
             return true;
         }
-        if (m_responseFifo[0].empty()) {
+        if (m_responseFifo[0].valueEmpty()) {
             m_responseFifo[0] = response;
             return true;
         } else if (m_responseFifo[1].empty()) {
