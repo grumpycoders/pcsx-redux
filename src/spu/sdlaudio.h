@@ -24,6 +24,7 @@
 
 #include <array>
 #include <atomic>
+#include <iterator>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -116,6 +117,22 @@ class SDLAudio {
     SDLAudio(SettingsType& settings);
     ~SDLAudio() { uninit(); }
     uint32_t getFrameCount() { return m_frameCount.load(); }
+    // The most frames the device takes in one go: the period it negotiated at open, raised to
+    // the largest single callback request seen since. 0 until the device is open.
+    uint32_t getPeriodFrames() { return m_periodFrames.load(); }
+    // Drops up to n of the oldest queued SPU frames, returning how many were dropped.
+    size_t dropVoiceFrames(size_t n) {
+        Frame scratch[256];
+        size_t dropped = 0;
+        while (n > 0) {
+            const size_t want = std::min(n, std::size(scratch));
+            const size_t got = m_voicesStream.dequeue(scratch, want);
+            dropped += got;
+            n -= want;
+            if (got < want) break;
+        }
+        return dropped;
+    }
     void reinit() {
         uninit();
         init();
@@ -225,6 +242,7 @@ class SDLAudio {
     std::vector<std::string> m_devices;
 
     std::atomic<uint32_t> m_frameCount{0};
+    std::atomic<uint32_t> m_periodFrames{0};
 };
 
 }  // namespace SPU

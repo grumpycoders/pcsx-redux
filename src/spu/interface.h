@@ -125,10 +125,14 @@ class impl final : public SPUInterface {
     uint32_t getCurrentFrames() override { return m_audioOut.getCurrentFrames(); }
     void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
     // The mixer cannot run past the CPU, so the CPU has to run ahead of the audio device by at
-    // least one device callback, or every callback finds the ring empty. 1536 frames is 34.8ms,
-    // in the range the ring used to sit at when the mixer free-ran ahead of the CPU. Not tuned:
-    // a device that asks for more than this per callback will underrun.
-    uint32_t getLeadFrames() override { return 1536; }
+    // least one device period, or the device finds the ring short. On top of that: two NSSIZE
+    // batches, because the mixer waits for whole batches before mixing, and the user's latency
+    // margin for host jitter. Before the device has opened, assume a 1024-frame period.
+    uint32_t getLeadFrames() override {
+        const uint32_t period = m_audioOut.getPeriodFrames();
+        const int marginMs = std::max(0, settings.get<LatencyMargin>().value);
+        return (period ? period : 1024) + 2 * NSSIZE + marginMs * 441 / 10;
+    }
     void advanceTo(uint64_t cycle) override { publishHorizon(cycle); }
 
   private:
