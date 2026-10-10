@@ -190,7 +190,7 @@ class impl final : public SPUInterface {
     static const size_t SOUNDSIZE = 70560;
 
     // Roughly 1 ms of data.
-    static const size_t NSSIZE = 45;
+    static constexpr size_t NSSIZE = 45;
 
     // SPU.
     void MainThread();
