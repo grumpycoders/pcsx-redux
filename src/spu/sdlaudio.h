@@ -117,7 +117,8 @@ class SDLAudio {
     SDLAudio(SettingsType& settings);
     ~SDLAudio() { uninit(); }
     uint32_t getFrameCount() { return m_frameCount.load(); }
-    // The most frames the device takes in one go: the period it negotiated at open, raised to
+    // The most frames the device takes in one go, in 44.1 kHz stream frames: the period it
+    // negotiated at open, converted from the device rate and raised to
     // the largest single callback request seen since. 0 until the device is open.
     uint32_t getPeriodFrames() { return m_periodFrames.load(); }
     // Drops up to n of the oldest queued SPU frames, returning how many were dropped. Called from the
