@@ -125,9 +125,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\gui\gui.cc">
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui.cc" />
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc" />
     <ClCompile Include="..\..\src\gui\luaimplot.cc" />
     <ClCompile Include="..\..\src\gui\luatvg.cc" />
