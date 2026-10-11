@@ -569,7 +569,7 @@ msgstr "Touche clavier inconnue {}"
 msgid "Keyboard {}"
 msgstr "Touche {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2265
+#: src/core/pad.cc:1159 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Automatique"
 
@@ -1037,7 +1037,7 @@ msgstr ""
 "logiciel\n"
 "Essayez plutôt d'activer l'option GPU OpenGL."
 
-#: src/gui/gui.cc:177 src/gui/gui.cc:1309 src/gui/widgets/isobrowser.cc:539
+#: src/gui/gui.cc:177 src/gui/gui.cc:1314 src/gui/widgets/isobrowser.cc:539
 #: src/gui/widgets/isobrowser.h:50
 msgid "Open Disk Image"
 msgstr "Ouvrir une image disque"
@@ -1114,210 +1114,214 @@ msgstr "Registres Matériel"
 msgid "VRAM"
 msgstr "VRAM"
 
-#: src/gui/gui.cc:1271
+#: src/gui/gui.cc:1276
 msgid "Output"
 msgstr "Sortie"
 
-#: src/gui/gui.cc:1308 src/gui/widgets/assembly.cc:493
+#: src/gui/gui.cc:1313 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:502 src/gui/widgets/isobrowser.cc:538
 #: src/gui/widgets/memcard_manager.cc:63 src/gui/widgets/vram-viewer.cc:608
 msgid "File"
 msgstr "Fichier"
 
-#: src/gui/gui.cc:1311
+#: src/gui/gui.cc:1316
 msgid "Reload Disk Image"
 msgstr "Recharger l'image disque"
 
-#: src/gui/gui.cc:1317 src/gui/widgets/isobrowser.cc:540
+#: src/gui/gui.cc:1322 src/gui/widgets/isobrowser.cc:540
 msgid "Close Disk Image"
 msgstr "Fermer l'image disque"
 
-#: src/gui/gui.cc:1321
+#: src/gui/gui.cc:1326
 msgid "Load binary"
 msgstr "Chargement d'un fichier binaire"
 
-#: src/gui/gui.cc:1324
+#: src/gui/gui.cc:1329
 msgid "Add Lua archive"
 msgstr "Ajouter une archive Lua"
 
-#: src/gui/gui.cc:1328
+#: src/gui/gui.cc:1333
 msgid "Dump save state proto schema"
 msgstr "Exporter le proto-schéma de l'état sauvegardé."
 
-#: src/gui/gui.cc:1333
+#: src/gui/gui.cc:1338
 msgid "global{}"
 msgstr "global{}"
 
-#: src/gui/gui.cc:1335
+#: src/gui/gui.cc:1340
 msgid "Save state slots"
 msgstr "Emplacements de sauvegarde"
 
-#: src/gui/gui.cc:1336
+#: src/gui/gui.cc:1341
 msgid "Quick-save slot"
 msgstr "Emplacement de sauvegarde rapide"
 
-#: src/gui/gui.cc:1341 src/gui/gui.cc:1362
+#: src/gui/gui.cc:1346 src/gui/gui.cc:1367
 msgid "Slot {}"
 msgstr "Emplacement {}"
 
-#: src/gui/gui.cc:1348
+#: src/gui/gui.cc:1353
 msgid "Show named save states"
 msgstr "Afficher les sauvegardes nommées"
 
-#: src/gui/gui.cc:1353
+#: src/gui/gui.cc:1358
 msgid "Save global state"
 msgstr "Sauvegarder l'état global"
 
-#: src/gui/gui.cc:1355
+#: src/gui/gui.cc:1360
 msgid "Load state slots"
 msgstr "Emplacements de chargement"
 
-#: src/gui/gui.cc:1358
+#: src/gui/gui.cc:1363
 msgid "Quick-load slot"
 msgstr "Emplacement de chargement rapide"
 
-#: src/gui/gui.cc:1383
+#: src/gui/gui.cc:1388
 msgid "Load global state"
 msgstr "Charger l'état global"
 
-#: src/gui/gui.cc:1387
+#: src/gui/gui.cc:1392
 msgid "Open LID"
 msgstr "Ouvrir le CAPOT"
 
-#: src/gui/gui.cc:1390
+#: src/gui/gui.cc:1395
 msgid "Close LID"
 msgstr "Fermer le CAPOT"
 
-#: src/gui/gui.cc:1393
+#: src/gui/gui.cc:1398
 msgid "Open and close LID"
 msgstr "Ouvrir et refermer le CAPOT"
 
-#: src/gui/gui.cc:1397
+#: src/gui/gui.cc:1402
 msgid "Reset settings..."
 msgstr "Réinitialiser les paramètres..."
 
-#: src/gui/gui.cc:1401
+#: src/gui/gui.cc:1406
 msgid "Reboot"
 msgstr "Redémarrer"
 
-#: src/gui/gui.cc:1404
+#: src/gui/gui.cc:1409
 msgid "Quit"
 msgstr "Quitter"
 
-#: src/gui/gui.cc:1410 src/gui/gui.cc:1478
+#: src/gui/gui.cc:1415 src/gui/gui.cc:1486
 msgid "Emulation"
 msgstr "Emulation"
 
-#: src/gui/gui.cc:1411
+#: src/gui/gui.cc:1416
 msgid "Start emulation"
 msgstr "Démarrer l'émulation"
 
-#: src/gui/gui.cc:1414
+#: src/gui/gui.cc:1419
 msgid "Pause emulation"
 msgstr "Mettre l'émulation en pause"
 
-#: src/gui/gui.cc:1417
+#: src/gui/gui.cc:1422
 msgid "Soft Reset"
 msgstr "Bouton 'Reset'"
 
-#: src/gui/gui.cc:1420
+#: src/gui/gui.cc:1425
 msgid "Hard Reset"
 msgstr "Éteindre et rallumer"
 
-#: src/gui/gui.cc:1426 src/gui/widgets/cdrom-viewer.cc:370
+#: src/gui/gui.cc:1428 src/gui/widgets/gpudump.cc:116
+msgid "Rewind"
+msgstr "Rembobiner"
+
+#: src/gui/gui.cc:1434 src/gui/widgets/cdrom-viewer.cc:370
 #: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
 msgid "Configuration"
 msgstr "Configuration"
 
-#: src/gui/gui.cc:1427
+#: src/gui/gui.cc:1435
 msgid "Fullscreen"
 msgstr "Plein écran"
 
-#: src/gui/gui.cc:1431
+#: src/gui/gui.cc:1439
 msgid "Full window render"
 msgstr "Rendu sur toute la fenêtre"
 
-#: src/gui/gui.cc:1437
+#: src/gui/gui.cc:1445
 msgid "Shader presets"
 msgstr "Préréglages de shaders"
 
-#: src/gui/gui.cc:1438
+#: src/gui/gui.cc:1446
 msgid "Default shader"
 msgstr "Shader par défaut"
 
-#: src/gui/gui.cc:1441
+#: src/gui/gui.cc:1449
 msgid "CRT-lottes shader"
 msgstr "Shader CRT-lottes"
 
-#: src/gui/gui.cc:1468
+#: src/gui/gui.cc:1476
 msgid "Configure Shaders"
 msgstr "Configurer les shaders"
 
-#: src/gui/gui.cc:1473
+#: src/gui/gui.cc:1481
 msgid "Controls"
 msgstr "Contrôles"
 
-#: src/gui/gui.cc:1474
+#: src/gui/gui.cc:1482
 msgid "Manage Memory Cards"
 msgstr "Gérer les cartes mémoire"
 
-#: src/gui/gui.cc:1479 src/gui/gui.cc:1547
+#: src/gui/gui.cc:1487 src/gui/gui.cc:1555
 msgid "GPU"
 msgstr "GPU"
 
-#: src/gui/gui.cc:1480 src/gui/gui.cc:1564
+#: src/gui/gui.cc:1488 src/gui/gui.cc:1572
 msgid "SPU"
 msgstr "SPU"
 
-#: src/gui/gui.cc:1481
+#: src/gui/gui.cc:1489
 msgid "PIO Cartridge"
 msgstr "Cartouche PIO"
 
-#: src/gui/gui.cc:1483
+#: src/gui/gui.cc:1491
 msgid "UI"
 msgstr "Interface utilisateur"
 
-#: src/gui/gui.cc:1484 src/gui/widgets/isobrowser.cc:520
+#: src/gui/gui.cc:1492 src/gui/widgets/isobrowser.cc:520
 msgid "System"
 msgstr "Système"
 
-#: src/gui/gui.cc:1488 src/gui/widgets/assembly.cc:500
+#: src/gui/gui.cc:1496 src/gui/widgets/assembly.cc:500
 msgid "Debug"
 msgstr "Débug"
 
-#: src/gui/gui.cc:1489
+#: src/gui/gui.cc:1497
 msgid "Show Logs"
 msgstr "Afficher les journaux"
 
-#: src/gui/gui.cc:1491
+#: src/gui/gui.cc:1499
 msgid "Show Lua Console"
 msgstr "Montrer la console Lua"
 
-#: src/gui/gui.cc:1492
+#: src/gui/gui.cc:1500
 msgid "Show Lua Inspector"
 msgstr "Montrer l'inspecteur Lua"
 
-#: src/gui/gui.cc:1493
+#: src/gui/gui.cc:1501
 msgid "Show Lua editor"
 msgstr "Montrer l'éditeur Lua"
 
-#: src/gui/gui.cc:1497
+#: src/gui/gui.cc:1505
 msgid "CPU"
 msgstr "CPU"
 
-#: src/gui/gui.cc:1498
+#: src/gui/gui.cc:1506
 msgid "Show Registers"
 msgstr "Afficher les Registres"
 
-#: src/gui/gui.cc:1499
+#: src/gui/gui.cc:1507
 msgid "Show Assembly"
 msgstr "Afficher l'Assembleur"
 
-#: src/gui/gui.cc:1501 src/gui/gui.cc:1503
+#: src/gui/gui.cc:1509 src/gui/gui.cc:1511
 msgid "Show DynaRec Disassembly"
 msgstr "Afficher le désassemblage du DynaRec"
 
-#: src/gui/gui.cc:1505
+#: src/gui/gui.cc:1513
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
@@ -1327,319 +1331,319 @@ msgstr ""
 "Essayez d'activer [CPU Dynarec]\n"
 "dans Configuration->Emulation, redémarrez PCSX-Redux, puis réessayez."
 
-#: src/gui/gui.cc:1508
+#: src/gui/gui.cc:1516
 msgid "Show Breakpoints"
 msgstr "Afficher les Breakpoints"
 
-#: src/gui/gui.cc:1509
+#: src/gui/gui.cc:1517
 msgid "Show Callstacks"
 msgstr "Afficher les callstacks"
 
-#: src/gui/gui.cc:1510
+#: src/gui/gui.cc:1518
 msgid "Memory Editors"
 msgstr "Editeurs de Mémoire"
 
-#: src/gui/gui.cc:1521
+#: src/gui/gui.cc:1529
 msgid "Show Memory Observer"
 msgstr "Ouvrir l'observateur de mémoire"
 
-#: src/gui/gui.cc:1522
+#: src/gui/gui.cc:1530
 msgid "Show RAM viewer"
 msgstr "Ouvrir le visualisateur de mémoire"
 
-#: src/gui/gui.cc:1523
+#: src/gui/gui.cc:1531
 msgid "Show MSAN Viewer"
 msgstr "Afficher le visualiseur MSAN"
 
-#: src/gui/gui.cc:1524
+#: src/gui/gui.cc:1532
 msgid "Show Typed Debugger"
 msgstr "Afficher le debugger typé"
 
-#: src/gui/gui.cc:1525
+#: src/gui/gui.cc:1533
 msgid "Show Patches"
 msgstr "Afficher les patches"
 
-#: src/gui/gui.cc:1526
+#: src/gui/gui.cc:1534
 msgid "Show Interrupts Scaler"
 msgstr "Afficher le scaler d'interruptions"
 
-#: src/gui/gui.cc:1527
+#: src/gui/gui.cc:1535
 msgid "First Chance Exceptions"
 msgstr "Exceptions de première chance"
 
-#: src/gui/gui.cc:1548
+#: src/gui/gui.cc:1556
 msgid "VRAM viewers"
 msgstr "Visualiseurs de VRAM"
 
-#: src/gui/gui.cc:1549
+#: src/gui/gui.cc:1557
 msgid "Show main VRAM viewer"
 msgstr "Ouvrir le visualiseur de la VRAM principale"
 
-#: src/gui/gui.cc:1550
+#: src/gui/gui.cc:1558
 msgid "Show CLUT VRAM viewer"
 msgstr "Ouvrir le visualiseur du CLUT de la VRAM"
 
-#: src/gui/gui.cc:1553
+#: src/gui/gui.cc:1561
 msgid "Show VRAM viewer #"
 msgstr "Ouvrir le visualiseur de VRAM #"
 
-#: src/gui/gui.cc:1559
+#: src/gui/gui.cc:1567
 msgid "Show GPU logger"
 msgstr "Afficher le logger du GPU"
 
-#: src/gui/gui.cc:1560
+#: src/gui/gui.cc:1568
 msgid "Show GPU dump recorder / player"
 msgstr "Afficher l'enregistreur / lecteur de dumps GPU"
 
-#: src/gui/gui.cc:1561
+#: src/gui/gui.cc:1569
 msgid "Show GPU debug"
 msgstr "Afficher le debug du GPU"
 
-#: src/gui/gui.cc:1565
+#: src/gui/gui.cc:1573
 msgid "Show SPU debug"
 msgstr "Ouvrir le debug du SPU"
 
-#: src/gui/gui.cc:1568
+#: src/gui/gui.cc:1576
 msgid "CD-Rom"
 msgstr "CD-Rom"
 
-#: src/gui/gui.cc:1569
+#: src/gui/gui.cc:1577
 msgid "Show Iso Browser"
 msgstr "Afficher le navigateur d'ISO"
 
-#: src/gui/gui.cc:1570
+#: src/gui/gui.cc:1578
 msgid "Show CD-ROM viewer"
 msgstr "Ouvrir la visualisation du CD-Rom"
 
-#: src/gui/gui.cc:1573
+#: src/gui/gui.cc:1581
 msgid "Misc hardware"
 msgstr "Matériel divers"
 
-#: src/gui/gui.cc:1574
+#: src/gui/gui.cc:1582
 msgid "Show HW Registers"
 msgstr "Afficher les registres matériel"
 
-#: src/gui/gui.cc:1575
+#: src/gui/gui.cc:1583
 msgid "Show SIO1 debug"
 msgstr "Afficher le debug du SIO1"
 
-#: src/gui/gui.cc:1578
+#: src/gui/gui.cc:1586
 msgid "Show PSYQo heap viewer"
 msgstr "Afficher le visualiseur du tas PSYQo"
 
-#: src/gui/gui.cc:1580
+#: src/gui/gui.cc:1588
 msgid "Kernel"
 msgstr "Noyau"
 
-#: src/gui/gui.cc:1581
+#: src/gui/gui.cc:1589
 msgid "Kernel Events"
 msgstr "Évènements noyau"
 
-#: src/gui/gui.cc:1582
+#: src/gui/gui.cc:1590
 msgid "Kernel Handlers"
 msgstr "Handlers du noyau"
 
-#: src/gui/gui.cc:1583 src/gui/gui.cc:1747
+#: src/gui/gui.cc:1591 src/gui/gui.cc:1755
 msgid "Kernel Calls"
 msgstr "Appels noyau"
 
-#: src/gui/gui.cc:1586
+#: src/gui/gui.cc:1594
 msgid "Rendering"
 msgstr "Rendu"
 
-#: src/gui/gui.cc:1587
+#: src/gui/gui.cc:1595
 msgid "Show Output Shader Editor"
 msgstr "Afficher l'éditeur du shader de sortie"
 
-#: src/gui/gui.cc:1588
+#: src/gui/gui.cc:1596
 msgid "Show Offscreen Shader Editor"
 msgstr "Afficher l'éditeur du shader hors écran"
 
-#: src/gui/gui.cc:1589
+#: src/gui/gui.cc:1597
 msgid "Reset shaders"
 msgstr "Réinitialiser les shaders"
 
-#: src/gui/gui.cc:1597
+#: src/gui/gui.cc:1605
 msgid "Help"
 msgstr "Aide"
 
-#: src/gui/gui.cc:1598
+#: src/gui/gui.cc:1606
 msgid "Show ImGui Demo"
 msgstr "Afficher la démo du ImGui"
 
-#: src/gui/gui.cc:1599
+#: src/gui/gui.cc:1607
 msgid "Show ImPlot Demo"
 msgstr "Afficher la démo ImPlot"
 
-#: src/gui/gui.cc:1601
+#: src/gui/gui.cc:1609
 msgid "Show UvFile information"
 msgstr "Afficher les informations UvFile"
 
-#: src/gui/gui.cc:1603 src/gui/gui.cc:2530
+#: src/gui/gui.cc:1611 src/gui/gui.cc:2558
 msgid "About"
 msgstr "À propos de PCSX-Redux"
 
-#: src/gui/gui.cc:1608
+#: src/gui/gui.cc:1616
 #, c-format
 msgid "CPU: %s"
 msgstr "CPU: %s"
 
-#: src/gui/gui.cc:1610 src/gui/widgets/isobrowser.cc:574
+#: src/gui/gui.cc:1618 src/gui/widgets/isobrowser.cc:574
 #, c-format
 msgid "GAME ID: %s"
 msgstr "ID DU JEUX: %s"
 
-#: src/gui/gui.cc:1613
+#: src/gui/gui.cc:1621
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f FPS (%.2f ms)"
 
-#: src/gui/gui.cc:1615
+#: src/gui/gui.cc:1623
 #, c-format
 msgid "%.2f guest FPS"
 msgstr "%.2f FPS émulé"
 
-#: src/gui/gui.cc:1618
+#: src/gui/gui.cc:1626
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr "%.2f ms buffer audio (%i images)"
 
-#: src/gui/gui.cc:1620
+#: src/gui/gui.cc:1628
 msgctxt "Audio status"
 msgid "Idle"
 msgstr "Inactif"
 
-#: src/gui/gui.cc:1723
+#: src/gui/gui.cc:1731
 msgid "Logs"
 msgstr "Journaux"
 
-#: src/gui/gui.cc:1729
+#: src/gui/gui.cc:1737
 msgid "Lua Console"
 msgstr "Console Lua"
 
-#: src/gui/gui.cc:1735
+#: src/gui/gui.cc:1743
 msgid "Lua Inspector"
 msgstr "Inspecteur Lua"
 
-#: src/gui/gui.cc:1738
+#: src/gui/gui.cc:1746
 msgid "Lua Editor"
 msgstr "Éditeur Lua"
 
-#: src/gui/gui.cc:1741
+#: src/gui/gui.cc:1749
 msgid "Kernel events"
 msgstr "Évènements noyau"
 
-#: src/gui/gui.cc:1744
+#: src/gui/gui.cc:1752
 msgid "Kernel handlers"
 msgstr "Handlers du noyau"
 
-#: src/gui/gui.cc:1750
+#: src/gui/gui.cc:1758
 msgid "Callstacks"
 msgstr "Callstacks"
 
-#: src/gui/gui.cc:1822
+#: src/gui/gui.cc:1830
 msgid "Memory Card Manager"
 msgstr "Gestionnaire de cartes mémoire"
 
-#: src/gui/gui.cc:1826 src/gui/widgets/registers.cc:84
+#: src/gui/gui.cc:1834 src/gui/widgets/registers.cc:84
 msgid "Registers"
 msgstr "Registres"
 
-#: src/gui/gui.cc:1830
+#: src/gui/gui.cc:1838
 msgid "Assembly"
 msgstr "Assembleur"
 
-#: src/gui/gui.cc:1834
+#: src/gui/gui.cc:1842
 msgid "DynaRec Disassembler"
 msgstr "Désassembleur DynaRec"
 
-#: src/gui/gui.cc:1838 src/gui/widgets/typed_debugger.cc:832
+#: src/gui/gui.cc:1846 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
 msgstr "Breakpoints"
 
-#: src/gui/gui.cc:1842
+#: src/gui/gui.cc:1850
 msgid "Patches"
 msgstr "Patches"
 
-#: src/gui/gui.cc:1846
+#: src/gui/gui.cc:1854
 msgid "Named Save States"
 msgstr "Sauvegardes nommées"
 
-#: src/gui/gui.cc:1850 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1858 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr "Observateur de mémoire"
 
-#: src/gui/gui.cc:1854
+#: src/gui/gui.cc:1862
 msgid "MSAN Viewer"
 msgstr "Visualiseur MSAN"
 
-#: src/gui/gui.cc:1858 src/gui/widgets/typed_debugger.cc:1028
+#: src/gui/gui.cc:1866 src/gui/widgets/typed_debugger.cc:1028
 msgid "Typed Debugger"
 msgstr "Debugger typé"
 
-#: src/gui/gui.cc:1864
+#: src/gui/gui.cc:1872
 msgid "Output Video"
 msgstr "Sortie vidéo"
 
-#: src/gui/gui.cc:1869
+#: src/gui/gui.cc:1877
 msgid "Offscreen Render"
 msgstr "Rendu hors écran"
 
-#: src/gui/gui.cc:1875
+#: src/gui/gui.cc:1883
 msgid "PIO Cartridge Configuration"
 msgstr "Configuration de la cartouche PIO"
 
-#: src/gui/gui.cc:1879
+#: src/gui/gui.cc:1887
 msgid "HW Registers"
 msgstr "Registres matériel"
 
-#: src/gui/gui.cc:1883
+#: src/gui/gui.cc:1891
 msgid "SIO1 Debug"
 msgstr "Débug SIO1"
 
-#: src/gui/gui.cc:1887
+#: src/gui/gui.cc:1895
 msgid "ISO Browser"
 msgstr "Navigateur d'ISO"
 
-#: src/gui/gui.cc:1897
+#: src/gui/gui.cc:1905
 msgid "GPU Logger"
 msgstr "Logger du GPU"
 
-#: src/gui/gui.cc:1898
+#: src/gui/gui.cc:1906
 msgid "GPU Dump"
 msgstr "Dump GPU"
 
-#: src/gui/gui.cc:1899
+#: src/gui/gui.cc:1907
 msgid "PSYQo Heap Viewer"
 msgstr "Visualiseur du tas PSYQo"
 
-#: src/gui/gui.cc:1902
+#: src/gui/gui.cc:1910
 msgid "UI Configuration"
 msgstr "Configuration de l'interface utilisateur"
 
-#: src/gui/gui.cc:1908
+#: src/gui/gui.cc:1916
 msgid "Locale"
 msgstr "Langue"
 
-#: src/gui/gui.cc:1923
+#: src/gui/gui.cc:1931
 msgid "Reload locales"
 msgstr "Recharger les langues"
 
-#: src/gui/gui.cc:1928
+#: src/gui/gui.cc:1936
 msgid "Main Font Size"
 msgstr "Taille de la police principale"
 
-#: src/gui/gui.cc:1929
+#: src/gui/gui.cc:1937
 msgid "Mono Font Size"
 msgstr "Taille de la police à chasse fixe"
 
-#: src/gui/gui.cc:1931
+#: src/gui/gui.cc:1939
 msgid "Use Widescreen Aspect Ratio"
 msgstr "Utiliser le format d'image 16:9"
 
-#: src/gui/gui.cc:1932
+#: src/gui/gui.cc:1940
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1665,23 +1669,23 @@ msgstr ""
 "et qui demande à l'utilisateur de régler son\n"
 "téléviseur sur le format d'image du jeu."
 
-#: src/gui/gui.cc:1951
+#: src/gui/gui.cc:1959
 msgid "System Configuration"
 msgstr "Configuration Système"
 
-#: src/gui/gui.cc:1953
+#: src/gui/gui.cc:1961
 msgid "Preload Disk Image files"
 msgstr "Pré-chargement Des Fichiers Images"
 
-#: src/gui/gui.cc:1954
+#: src/gui/gui.cc:1962
 msgid "Enable Auto Update"
 msgstr "Mise À Jour Automatique"
 
-#: src/gui/gui.cc:1961
+#: src/gui/gui.cc:1969
 msgid "Update configuration"
 msgstr "Configuration des mises à jour"
 
-#: src/gui/gui.cc:1962
+#: src/gui/gui.cc:1970
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1715,19 +1719,19 @@ msgstr ""
 "Pour modifier ce réglage plus tard, allez dans le menu\n"
 "Configuration -> Système."
 
-#: src/gui/gui.cc:1975
+#: src/gui/gui.cc:1983
 msgid "Enable auto update"
 msgstr "Activer la mise à jour automatique"
 
-#: src/gui/gui.cc:1981
+#: src/gui/gui.cc:1989
 msgid "No thanks"
 msgstr "Non merci"
 
-#: src/gui/gui.cc:1990
+#: src/gui/gui.cc:1998
 msgid "Update available"
 msgstr "Mise à jour disponible"
 
-#: src/gui/gui.cc:1992
+#: src/gui/gui.cc:2000
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1743,7 +1747,7 @@ msgstr ""
 "Cliquez sur « Télécharger » pour télécharger la mise à jour\n"
 "avec votre navigateur et l'appliquer manuellement."
 
-#: src/gui/gui.cc:1999
+#: src/gui/gui.cc:2007
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1763,12 +1767,12 @@ msgstr ""
 "Cliquez sur « Télécharger » pour télécharger la mise à jour\n"
 "avec votre navigateur et l'appliquer manuellement."
 
-#: src/gui/gui.cc:2010
+#: src/gui/gui.cc:2018
 msgctxt "Update dialog button"
 msgid "Update"
 msgstr "Mettre à jour"
 
-#: src/gui/gui.cc:2022 src/gui/gui.cc:2027
+#: src/gui/gui.cc:2030 src/gui/gui.cc:2035
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
@@ -1776,52 +1780,52 @@ msgstr ""
 "Une erreur s'est produite pendant\n"
 "le téléchargement ou la mise à jour."
 
-#: src/gui/gui.cc:2033
+#: src/gui/gui.cc:2041
 msgctxt "Update dialog button"
 msgid "Download"
 msgstr "Télécharger"
 
-#: src/gui/gui.cc:2043
+#: src/gui/gui.cc:2051
 msgid "An error has occured while downloading the update."
 msgstr "Une erreur s'est produite pendant le téléchargement de la mise à jour."
 
-#: src/gui/gui.cc:2049 src/gui/gui.cc:2152 src/gui/widgets/assembly.cc:1034
+#: src/gui/gui.cc:2057 src/gui/gui.cc:2160 src/gui/widgets/assembly.cc:1034
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "Annuler"
 
-#: src/gui/gui.cc:2058
+#: src/gui/gui.cc:2066
 msgid "UvFiles"
 msgstr "UvFiles"
 
-#: src/gui/gui.cc:2061
+#: src/gui/gui.cc:2069
 #, c-format
 msgid "Read rate: %s"
 msgstr "Vitesse de lecture: %s"
 
-#: src/gui/gui.cc:2063
+#: src/gui/gui.cc:2071
 #, c-format
 msgid "Write rate: %s"
 msgstr "Vitesse d'écriture: %s"
 
-#: src/gui/gui.cc:2065
+#: src/gui/gui.cc:2073
 #, c-format
 msgid "Download rate: %s"
 msgstr "Vitesse de téléchargement: %s"
 
-#: src/gui/gui.cc:2067
+#: src/gui/gui.cc:2075
 msgid "Caching"
 msgstr "Mise en cache"
 
-#: src/gui/gui.cc:2068 src/gui/widgets/memcard_manager.cc:201
+#: src/gui/gui.cc:2076 src/gui/widgets/memcard_manager.cc:201
 msgid "Filename"
 msgstr "Nom du fichier"
 
-#: src/gui/gui.cc:2137 src/gui/gui.cc:2140
+#: src/gui/gui.cc:2145 src/gui/gui.cc:2148
 msgid "Reset settings"
 msgstr "Réinitialiser les paramètres"
 
-#: src/gui/gui.cc:2142
+#: src/gui/gui.cc:2150
 msgid ""
 "This will restore every setting to its default value, including the window "
 "layout, the input bindings, the paths to the BIOS and the memory cards, and "
@@ -1840,36 +1844,36 @@ msgstr ""
 "\n"
 "L'émulateur redémarrera pour terminer l'opération."
 
-#: src/gui/gui.cc:2147
+#: src/gui/gui.cc:2155
 msgid "Reset and reboot"
 msgstr "Réinitialiser et redémarrer"
 
-#: src/gui/gui.cc:2212
+#: src/gui/gui.cc:2220
 msgid "Emulation Configuration"
 msgstr "Configuration de l'Emulation"
 
-#: src/gui/gui.cc:2213
+#: src/gui/gui.cc:2221
 msgid "Idle Swap Interval"
 msgstr "Intervalle de swap au repos"
 
 #. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
-#: src/gui/gui.cc:2219
+#: src/gui/gui.cc:2227
 msgid "Enable XA decoder"
 msgstr "Activer le décodeur XA"
 
-#: src/gui/gui.cc:2220
+#: src/gui/gui.cc:2228
 msgid "Always enable SPU IRQ"
 msgstr "Toujours activer l'IRQ du SPU"
 
-#: src/gui/gui.cc:2221
+#: src/gui/gui.cc:2229
 msgid "Decode MDEC videos in B&W"
 msgstr "Décoder les vidéos MDEC en N&B"
 
-#: src/gui/gui.cc:2222
+#: src/gui/gui.cc:2230
 msgid "Dynarec CPU"
 msgstr "CPU Dynarec"
 
-#: src/gui/gui.cc:2230
+#: src/gui/gui.cc:2238
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -1885,11 +1889,11 @@ msgstr ""
 "Le coeur dynarec n'est pas disponible pour tous les CPU, donc\n"
 "ce réglage peut n'avoir aucun effet chez vous."
 
-#: src/gui/gui.cc:2236
+#: src/gui/gui.cc:2244
 msgid "8MB"
 msgstr "8MO"
 
-#: src/gui/gui.cc:2237
+#: src/gui/gui.cc:2245
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -1899,11 +1903,11 @@ msgstr ""
 "au lieu des 2Mo normaux. Utile pour travailler\n"
 "avec les binaires de développement."
 
-#: src/gui/gui.cc:2240
+#: src/gui/gui.cc:2248
 msgid "Memory Fill Value"
 msgstr "Valeur de remplissage de la mémoire"
 
-#: src/gui/gui.cc:2243
+#: src/gui/gui.cc:2251
 msgid ""
 "The SDRAM of the console will be\n"
 "filled with this value at startup.\n"
@@ -1921,11 +1925,11 @@ msgstr ""
 "pour détecter des lectures de mémoire non initialisée\n"
 "qui peuvent poser problème dans certains cas.\n"
 
-#: src/gui/gui.cc:2252
+#: src/gui/gui.cc:2260
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr "GPU OpenGL *VERSION ALPHA*"
 
-#: src/gui/gui.cc:2253
+#: src/gui/gui.cc:2261
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -1939,23 +1943,41 @@ msgstr ""
 "d'utiliser le rendu logiciel à la place. Nécessite un redémarrage\n"
 "après modification de ce réglage."
 
-#: src/gui/gui.cc:2265
+#: src/gui/gui.cc:2270
+msgid "Rewind capture interval (frames; 0 = disabled)"
+msgstr ""
+
+#: src/gui/gui.cc:2275
+msgid "Rewind history depth (snapshots)"
+msgstr ""
+
+#: src/gui/gui.cc:2279
+msgid ""
+"Captures an in-memory save state every N frames\n"
+"and keeps the last M of them; press Backspace (or\n"
+"Emulation -> Rewind) to step backwards through them.\n"
+"Each snapshot is currently a full state (~18MB), so\n"
+"depth x 18MB is roughly the memory cost. Set the\n"
+"interval to 0 to disable."
+msgstr ""
+
+#: src/gui/gui.cc:2293
 msgid "NTSC"
 msgstr "NTSC"
 
-#: src/gui/gui.cc:2265
+#: src/gui/gui.cc:2293
 msgid "PAL"
 msgstr "PAL"
 
-#: src/gui/gui.cc:2268
+#: src/gui/gui.cc:2296
 msgid "System Type"
 msgstr "Type de système"
 
-#: src/gui/gui.cc:2287
+#: src/gui/gui.cc:2315
 msgid "Fast boot"
 msgstr "Démarrage rapide"
 
-#: src/gui/gui.cc:2288
+#: src/gui/gui.cc:2316
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -1967,15 +1989,15 @@ msgstr ""
 "Le démarrage sera aussi nettement\n"
 "plus rapide, sans affichage du logo."
 
-#: src/gui/gui.cc:2293
+#: src/gui/gui.cc:2321
 msgid "BIOS file"
 msgstr "Fichier du BIOS"
 
-#: src/gui/gui.cc:2297 src/gui/widgets/assembly.cc:557
+#: src/gui/gui.cc:2325 src/gui/widgets/assembly.cc:557
 msgid "Enable Debugger"
 msgstr "Activer le debugger."
 
-#: src/gui/gui.cc:2304
+#: src/gui/gui.cc:2332
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
@@ -1985,11 +2007,11 @@ msgstr ""
 "pendant l'exécution du code MIPS. L'activer\n"
 "peut ralentir l'émulation de façon notable."
 
-#: src/gui/gui.cc:2307
+#: src/gui/gui.cc:2335
 msgid "Enable GDB Server"
 msgstr "Activer le serveur GDB."
 
-#: src/gui/gui.cc:2316
+#: src/gui/gui.cc:2344
 msgid ""
 "This will activate a gdb-server that you can\n"
 "connect to with any gdb-remote compliant client.\n"
@@ -1999,11 +2021,11 @@ msgstr ""
 "pourra se connecter.\n"
 "Cette option nécessite l'activation du debugger."
 
-#: src/gui/gui.cc:2320
+#: src/gui/gui.cc:2348
 msgid "GDB send manifest"
 msgstr "Envoi du manifest GDB"
 
-#: src/gui/gui.cc:2321
+#: src/gui/gui.cc:2349
 msgid ""
 "Enables sending the processor's manifest\n"
 "from the gdb server. Keep this enabled, unless\n"
@@ -2014,19 +2036,19 @@ msgstr ""
 "Laisser activer à moins de vouloir connecter IDA à ce serveur.\n"
 "(Présence d'un bug dans l'analyseur syntaxique du manifest.)"
 
-#: src/gui/gui.cc:2328
+#: src/gui/gui.cc:2356
 msgid "PCSX Logs to GDB"
 msgstr "Journaux PCSX vers GDB"
 
-#: src/gui/gui.cc:2344
+#: src/gui/gui.cc:2372
 msgid "GDB Server Port"
 msgstr "Port du serveur GDB"
 
-#: src/gui/gui.cc:2346
+#: src/gui/gui.cc:2374
 msgid "GDB Server Trace"
 msgstr "Trace du serveur GDB"
 
-#: src/gui/gui.cc:2347
+#: src/gui/gui.cc:2375
 msgid ""
 "The GDB server will start tracing its\n"
 "protocol into the logs, which can be helpful to debug\n"
@@ -2035,11 +2057,11 @@ msgstr ""
 "Le serveur GDB inscrira son protocole dans les journaux, ce qui peut être "
 "utile pour débugger le serveur GDB lui-même."
 
-#: src/gui/gui.cc:2350
+#: src/gui/gui.cc:2378
 msgid "Enable Web Server"
 msgstr "Activer le serveur web."
 
-#: src/gui/gui.cc:2359
+#: src/gui/gui.cc:2387
 msgid ""
 "This will activate a web-server, that you can\n"
 "query using a REST api. See the wiki for details.\n"
@@ -2049,15 +2071,15 @@ msgstr ""
 "Voir le wiki pour plus de détails.\n"
 "Cette option peut nécessiter l'activation du debugger dans certains cas."
 
-#: src/gui/gui.cc:2363
+#: src/gui/gui.cc:2391
 msgid "Web Server Port"
 msgstr "Port du serveur web"
 
-#: src/gui/gui.cc:2364
+#: src/gui/gui.cc:2392
 msgid "Enable SIO1 Server"
 msgstr "Activer le serveur SIO1"
 
-#: src/gui/gui.cc:2373
+#: src/gui/gui.cc:2401
 msgid ""
 "This will activate a tcp server, that will\n"
 "relay information between tcp and sio1.\n"
@@ -2067,15 +2089,15 @@ msgstr ""
 "les informations entre TCP et SIO1.\n"
 "Voir le wiki pour les détails."
 
-#: src/gui/gui.cc:2377
+#: src/gui/gui.cc:2405
 msgid "SIO1 Server Port"
 msgstr "Port du serveur SIO1"
 
-#: src/gui/gui.cc:2378
+#: src/gui/gui.cc:2406
 msgid "Enable SIO1 Client"
 msgstr "Activer le client SIO1"
 
-#: src/gui/gui.cc:2391
+#: src/gui/gui.cc:2419
 msgid ""
 "This will activate a tcp client, that can connect\n"
 "to another PCSX-Redux server to relay information between tcp and sio1.\n"
@@ -2086,71 +2108,71 @@ msgstr ""
 "SIO1.\n"
 "Voir le wiki pour les détails."
 
-#: src/gui/gui.cc:2395
+#: src/gui/gui.cc:2423
 msgid "SIO1 Client Host"
 msgstr "Hôte du client SIO1"
 
-#: src/gui/gui.cc:2398
+#: src/gui/gui.cc:2426
 msgid "SIO1 Client Port"
 msgstr "Port du client SIO1"
 
-#: src/gui/gui.cc:2402
+#: src/gui/gui.cc:2430
 msgid "Reset SIO"
 msgstr "Réinitialiser le SIO"
 
-#: src/gui/gui.cc:2413
+#: src/gui/gui.cc:2441
 msgid "Reconnect"
 msgstr "Reconnecter"
 
-#: src/gui/gui.cc:2426
+#: src/gui/gui.cc:2454
 msgid "SIO1Mode"
 msgstr "Mode SIO1"
 
-#: src/gui/gui.cc:2484
+#: src/gui/gui.cc:2512
 msgid "Scheduler Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:2485
+#: src/gui/gui.cc:2513
 msgid "Reset all"
 msgstr "Tout réinitialiser"
 
-#: src/gui/gui.cc:2501
+#: src/gui/gui.cc:2529
 msgid "Cherry##Theme name"
 msgstr "Cerise##Theme name"
 
-#: src/gui/gui.cc:2501
+#: src/gui/gui.cc:2529
 msgid "Classic##Theme name"
 msgstr "Classique##Theme name"
 
-#: src/gui/gui.cc:2501
+#: src/gui/gui.cc:2529
 msgid "Default theme##Theme name"
 msgstr "Thème par défaut##Theme name"
 
-#: src/gui/gui.cc:2501
+#: src/gui/gui.cc:2529
 msgid "Light##Theme name"
 msgstr "Clair##Theme name"
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2530
 msgid "Dracula##Theme name"
 msgstr "Dracula##Theme name"
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2530
 msgid "Mono##Theme name"
 msgstr "Mono##Theme name"
 
-#: src/gui/gui.cc:2502
+#: src/gui/gui.cc:2530
 msgid "Olive##Theme name"
 msgstr "Olive##Theme name"
 
-#: src/gui/gui.cc:2507
+#: src/gui/gui.cc:2535
 msgid "Themes"
 msgstr "Thèmes"
 
-#: src/gui/gui.cc:2538 src/gui/gui.cc:2627
+#: src/gui/gui.cc:2566 src/gui/gui.cc:2655
 msgid "Version"
 msgstr "Version"
 
-#: src/gui/gui.cc:2545
+#: src/gui/gui.cc:2573
 msgid ""
 "No version information.\n"
 "\n"
@@ -2160,50 +2182,50 @@ msgstr ""
 "\n"
 "Probablement compilé depuis la source."
 
-#: src/gui/gui.cc:2547
+#: src/gui/gui.cc:2575
 msgid "Copy to clipboard"
 msgstr "Copier dans le presse-papiers"
 
-#: src/gui/gui.cc:2559 src/gui/gui.cc:2644
+#: src/gui/gui.cc:2587 src/gui/gui.cc:2672
 #, c-format
 msgid "Version: %s"
 msgstr "Version: %s"
 
-#: src/gui/gui.cc:2561
+#: src/gui/gui.cc:2589
 #, c-format
 msgid "Build: %i"
 msgstr "Build: %i"
 
-#: src/gui/gui.cc:2563
+#: src/gui/gui.cc:2591
 msgid "Changeset:"
 msgstr "Changeset:"
 
-#: src/gui/gui.cc:2570
+#: src/gui/gui.cc:2598
 #, c-format
 msgid "Date & time: %s"
 msgstr "Date & heure: %s"
 
-#: src/gui/gui.cc:2579
+#: src/gui/gui.cc:2607
 msgid "Authors"
 msgstr "Auteurs"
 
-#: src/gui/gui.cc:2587
+#: src/gui/gui.cc:2615
 msgid "Licenses"
 msgstr "Licences"
 
-#: src/gui/gui.cc:2599
+#: src/gui/gui.cc:2627
 msgid "OpenGL information"
 msgstr "Information sur l'OpenGL"
 
-#: src/gui/gui.cc:2601
+#: src/gui/gui.cc:2629
 msgid "OpenGL error reporting: enabled"
 msgstr "Rapport d'erreurs OpenGL : activé"
 
-#: src/gui/gui.cc:2603
+#: src/gui/gui.cc:2631
 msgid "OpenGL error reporting: disabled"
 msgstr "Rapport d'erreurs OpenGL : désactivé"
 
-#: src/gui/gui.cc:2606
+#: src/gui/gui.cc:2634
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
@@ -2220,11 +2242,11 @@ msgstr ""
 "code utilisateur, comme l'éditeur de shaders, ne pourra pas signaler "
 "correctement les problèmes."
 
-#: src/gui/gui.cc:2614
+#: src/gui/gui.cc:2642
 msgid "Enable OpenGL error reporting"
 msgstr "Activer le rapport d'erreurs OpenGL"
 
-#: src/gui/gui.cc:2617
+#: src/gui/gui.cc:2645
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
@@ -2235,70 +2257,70 @@ msgstr ""
 "sur les performances de certains ordinateurs. (Nécessite un redémarrage de "
 "l'émulateur)"
 
-#: src/gui/gui.cc:2621
+#: src/gui/gui.cc:2649
 msgid "OpenGL error reporting severity"
 msgstr "Sévérité du rapport d'erreurs OpenGL"
 
-#: src/gui/gui.cc:2624
+#: src/gui/gui.cc:2652
 #, c-format
 msgid "Core profile: %s"
 msgstr "Profil du coeur: %s"
 
-#: src/gui/gui.cc:2624 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2652 src/gui/widgets/assembly.cc:587
 msgid "no"
 msgstr "non"
 
-#: src/gui/gui.cc:2624 src/gui/widgets/assembly.cc:587
+#: src/gui/gui.cc:2652 src/gui/widgets/assembly.cc:587
 msgid "yes"
 msgstr "oui"
 
-#: src/gui/gui.cc:2625
+#: src/gui/gui.cc:2653
 msgid "Vendor"
 msgstr "Fabriquant "
 
-#: src/gui/gui.cc:2626
+#: src/gui/gui.cc:2654
 msgid "Renderer"
 msgstr "Carte graphique"
 
-#: src/gui/gui.cc:2628
+#: src/gui/gui.cc:2656
 msgid "Shading language version"
 msgstr "Version du langage de shader"
 
-#: src/gui/gui.cc:2631
+#: src/gui/gui.cc:2659
 #, c-format
 msgid "Texture units: %d"
 msgstr "Unités de texture : %d"
 
-#: src/gui/gui.cc:2634
+#: src/gui/gui.cc:2662
 msgid "Extensions:"
 msgstr "Extensions:"
 
-#: src/gui/gui.cc:2643
+#: src/gui/gui.cc:2671
 msgid "FFmpeg information"
 msgstr "Informations sur FFmpeg"
 
-#: src/gui/gui.cc:2645
+#: src/gui/gui.cc:2673
 #, c-format
 msgid "License: %s"
 msgstr "Licence: %s"
 
-#: src/gui/gui.cc:2646
+#: src/gui/gui.cc:2674
 #, c-format
 msgid "Configuration: %s"
 msgstr "Configuration: %s"
 
-#: src/gui/gui.cc:2649
+#: src/gui/gui.cc:2677
 msgid "List of supported formats:"
 msgstr "Liste des formats pris en charge :"
 
-#: src/gui/gui.cc:2667
+#: src/gui/gui.cc:2695
 msgid ""
 "List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"
 msgstr ""
 "Liste des codecs pris en charge : (D : décodeur, E : encodeur, L : avec "
 "perte, S : sans perte)"
 
-#: src/gui/gui.cc:2707
+#: src/gui/gui.cc:2735
 #, c-format
 msgid "%s codecs"
 msgstr "%s codecs"
@@ -2988,10 +3010,6 @@ msgstr "Lecture"
 msgctxt "Playback"
 msgid "Step"
 msgstr "Pas à pas"
-
-#: src/gui/widgets/gpudump.cc:116
-msgid "Rewind"
-msgstr "Rembobiner"
 
 #: src/gui/widgets/gpudump.cc:118
 msgid "Loop"
@@ -4335,7 +4353,7 @@ msgstr "Sélecteur de couleur de la grille des pixels"
 msgid "TPage Grid Color Picker"
 msgstr "Sélecteur de couleur de la grille des TPages"
 
-#: src/main/main.cc:536
+#: src/main/main.cc:539
 msgid "Failed to load save state\n"
 msgstr "Impossible de charger l'état sauvegardé\n"
 
