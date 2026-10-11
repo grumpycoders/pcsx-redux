@@ -83,6 +83,25 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             InISR{g_emulator->m_cpu->m_inISR},
             MulDivReady{g_emulator->m_cpu->m_regs.muldivReady},
             GteReady{g_emulator->m_cpu->m_regs.gteReady},
+            GtePending1{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[0].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[0].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[0].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[0].countdown},
+            },
+            GtePending2{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[1].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[1].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[1].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[1].countdown},
+            },
+            GtePending3{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[2].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[2].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[2].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[2].countdown},
+            },
+            GtePendingCount{g_emulator->m_cpu->m_gtePendingCount},
         },
         GPU{},
         SPU{},
@@ -339,6 +358,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
     g_emulator->m_cpu->m_regs.pc &= ~3;
+    if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0

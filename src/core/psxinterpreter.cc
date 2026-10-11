@@ -279,17 +279,9 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     // after it: a GTE command, MFC2, CFC2 or SWC2 issued by either of the next two instructions
     // still sees the old value. The write is queued with the value taken at issue and committed
     // through GTE::MTC2 / GTE::CTC2 once two more instructions have run.
-    struct GTEPendingWrite {
-        uint32_t value;
-        uint8_t reg;
-        bool ctrl;
-        uint8_t countdown;
-    };
-    GTEPendingWrite m_gtePending[3];
-    unsigned m_gtePendingCount = 0;
     void gteQueueWrite(bool ctrl, unsigned reg, uint32_t value) {
         if (m_gtePendingCount == 3) gteCommitOldest();
-        m_gtePending[m_gtePendingCount++] = {value, static_cast<uint8_t>(reg), ctrl, 3};
+        m_gtePending[m_gtePendingCount++] = {value, reg, ctrl, 3};
     }
     void gteCommit(const GTEPendingWrite &w) {
         if (w.ctrl) {
@@ -1717,7 +1709,6 @@ void InterpretedCPU::Reset() {
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
     m_delayedLoadInfo[1].pcActive = false;
-    m_gtePendingCount = 0;
 }
 void InterpretedCPU::Execute() {
     ZoneScoped;
