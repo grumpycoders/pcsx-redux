@@ -374,3 +374,45 @@ TEST(DctContainer, bsRoundTripsAndRefusesWhatItCannotExpress) {
         EXPECT_TRUE(out.empty());
     }
 }
+
+// Retail STR walks 16-pixel columns top to bottom, so that is the default, and
+// stream macroblock n is column n / rows, row n % rows. On this 2x2 frame the
+// two orders agree on macroblocks 0 and 3 and swap 1 and 2, so the comparison
+// is between those two, and it is checked first that they differ at all.
+TEST(DctOrder, theDefaultIsColumnMajor) {
+    EXPECT_EQ(PCSX::DCT::Frame{}.order, PCSX::DCT::MacroblockOrder::Column);
+
+    auto encode = [](PCSX::DCT::MacroblockOrder order) {
+        TestFrame tf;
+        tf.frame.order = order;
+        std::vector<int16_t> coeffs(PCSX::DCT::requiredCoefficientCount(32, 32));
+        PCSX::DCT::Encoder enc(1);
+        auto shape = enc.submit(tf.frame, coeffs).get();
+        EXPECT_FALSE(shape.failed);
+        return coeffs;
+    };
+    auto byDefault = [] {
+        TestFrame tf;
+        std::vector<int16_t> coeffs(PCSX::DCT::requiredCoefficientCount(32, 32));
+        PCSX::DCT::Encoder enc(1);
+        auto shape = enc.submit(tf.frame, coeffs).get();
+        EXPECT_FALSE(shape.failed);
+        return coeffs;
+    }();
+    const auto raster = encode(PCSX::DCT::MacroblockOrder::Raster);
+    const auto column = encode(PCSX::DCT::MacroblockOrder::Column);
+
+    constexpr size_t mb = 6 * 64;  // int16 per macroblock
+    auto macroblock = [](const std::vector<int16_t> &c, size_t n) {
+        return std::vector<int16_t>(c.begin() + n * mb, c.begin() + (n + 1) * mb);
+    };
+    ASSERT_NE(macroblock(raster, 1), macroblock(raster, 2));
+
+    // Column macroblock 1 is (col 0, row 1), which raster puts at index 2.
+    EXPECT_EQ(macroblock(column, 1), macroblock(raster, 2));
+    EXPECT_EQ(macroblock(column, 2), macroblock(raster, 1));
+    EXPECT_EQ(macroblock(column, 0), macroblock(raster, 0));
+    EXPECT_EQ(macroblock(column, 3), macroblock(raster, 3));
+    EXPECT_EQ(byDefault, column);
+    EXPECT_NE(byDefault, raster);
+}
