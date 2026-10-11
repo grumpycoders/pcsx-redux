@@ -119,6 +119,24 @@ uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count) {
     return count;
 }
 
+bool exportCpuTraceText(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
+    if (file->failed()) return false;
+    PCSX::g_emulator->m_cpuTrace->exportText(file);
+    return true;
+}
+bool saveCpuTrace(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
+    if (file->failed()) return false;
+    PCSX::g_emulator->m_cpuTrace->save(file);
+    return true;
+}
+bool loadCpuTrace(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path);
+    if (file->failed()) return false;
+    return PCSX::g_emulator->m_cpuTrace->load(file);
+}
+
 struct LuaScreenShot {
     PCSX::Slice* data;
     uint16_t width, height;
@@ -215,6 +233,9 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getCpuTraceEnabled);
     REGISTER(L, setCpuTraceEnabled);
     REGISTER(L, readCpuTrace);
+    REGISTER(L, exportCpuTraceText);
+    REGISTER(L, saveCpuTrace);
+    REGISTER(L, loadCpuTrace);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
     REGISTER(L, startGPUDump);

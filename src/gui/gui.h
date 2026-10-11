@@ -423,7 +423,7 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
-    Widgets::CpuTrace m_cpuTrace = {settings.get<ShowCpuTrace>().value};
+    Widgets::CpuTrace m_cpuTrace;
     Widgets::FileDialog<> m_openIsoFileDialog;
     Widgets::FileDialog<> m_openBinaryDialog;
     Widgets::FileDialog<> m_openArchiveDialog;

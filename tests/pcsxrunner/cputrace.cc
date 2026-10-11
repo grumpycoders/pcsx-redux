@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <string>
 #include <vector>
@@ -259,4 +260,112 @@ TEST(CpuTrace, PlaybackMatchesLive) {
     for (int i = 0; i < C_COUNT; i++) {
         EXPECT_GT(coverage[i], 0u) << "no instruction of class " << s_categoryNames[i] << " was traced";
     }
+}
+
+namespace {
+
+// Save, load and text export, checked from inside the run so the emulator that
+// owns the live store is still up. Once kRecords records exist, the live store is
+// saved, loaded into a second store, saved again, and both files must match byte
+// for byte; the loaded store's text export must match the live annotated lines
+// collected as each record was captured.
+constexpr size_t kRecords = 200'000;
+
+struct RoundTrip {
+    std::vector<std::string> liveLines;
+    bool done = false;
+    bool loaded = false;
+    bool sameBytes = false;
+    size_t loadedSize = 0;
+    size_t textMismatches = 0;
+    size_t textLines = 0;
+    std::string firstMismatch;
+};
+
+RoundTrip* s_roundTrip = nullptr;
+
+void roundTripObserver(const PCSX::TraceEntry& e) {
+    RoundTrip& r = *s_roundTrip;
+    if (r.done) return;
+    r.liveLines.push_back(PCSX::Disasm::asString(e.code, 0, e.pc, nullptr, true));
+    if (r.liveLines.size() < kRecords) return;
+    r.done = true;
+    PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        .get<PCSX::Emulator::DebugSettings::Trace>()
+        .value = false;
+
+    PCSX::IO<PCSX::BufferFile> saved = new PCSX::BufferFile(PCSX::FileOps::READWRITE);
+    PCSX::g_emulator->m_cpuTrace->save(saved);
+    saved->rSeek(0, SEEK_SET);
+    PCSX::CpuTrace copy;
+    r.loaded = copy.load(saved);
+    r.loadedSize = copy.size();
+    PCSX::IO<PCSX::BufferFile> resaved = new PCSX::BufferFile(PCSX::FileOps::READWRITE);
+    copy.save(resaved);
+    auto a = saved->borrow();
+    auto b = resaved->borrow();
+    r.sameBytes = a.size() == b.size() && memcmp(a.data(), b.data(), a.size()) == 0;
+
+    PCSX::IO<PCSX::BufferFile> text = new PCSX::BufferFile(PCSX::FileOps::READWRITE);
+    copy.exportText(text);
+    auto t = text->borrow();
+    std::string all(reinterpret_cast<const char*>(t.data()), t.size());
+    size_t pos = 0;
+    while (pos < all.size()) {
+        size_t nl = all.find('\n', pos);
+        if (nl == std::string::npos) nl = all.size();
+        std::string line = all.substr(pos, nl - pos);
+        if (r.textLines >= r.liveLines.size() || line != r.liveLines[r.textLines]) {
+            if (r.textMismatches++ == 0) r.firstMismatch = line;
+        }
+        r.textLines++;
+        pos = nl + 1;
+    }
+}
+
+size_t s_limitCalls = 0;
+void limitObserver(const PCSX::TraceEntry&) {
+    if (s_limitCalls++ == 0) PCSX::g_emulator->m_cpuTrace->setLimit(1000);
+}
+
+}  // namespace
+
+TEST(CpuTrace, SaveLoadAndTextExport) {
+    RoundTrip r;
+    s_roundTrip = &r;
+    PCSX::CpuTrace::s_captureObserver = roundTripObserver;
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-trace", "-loadexe", "src/mips/tests/cpu/cpu.ps-exe");
+    int ret = invoker.invoke();
+    PCSX::CpuTrace::s_captureObserver = nullptr;
+    s_roundTrip = nullptr;
+    EXPECT_EQ(ret, 0);
+    ASSERT_TRUE(r.done);
+    EXPECT_TRUE(r.loaded);
+    EXPECT_EQ(r.loadedSize, kRecords);
+    EXPECT_TRUE(r.sameBytes);
+    EXPECT_EQ(r.textLines, kRecords);
+    EXPECT_EQ(r.textMismatches, 0u) << "first mismatching line: " << r.firstMismatch;
+    fprintf(stderr, "[cputrace] round trip: %zu records, %zu text lines, %zu mismatches\n", r.loadedSize, r.textLines,
+            r.textMismatches);
+}
+
+TEST(CpuTrace, LoadRejectsGarbage) {
+    PCSX::IO<PCSX::BufferFile> junk = new PCSX::BufferFile(PCSX::FileOps::READWRITE);
+    junk->writeString("this is not a trace file at all");
+    junk->rSeek(0, SEEK_SET);
+    PCSX::CpuTrace trace;
+    EXPECT_FALSE(trace.load(junk));
+    EXPECT_EQ(trace.size(), 0u);
+}
+
+TEST(CpuTrace, CaptureStopsAtLimit) {
+    s_limitCalls = 0;
+    PCSX::CpuTrace::s_captureObserver = limitObserver;
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-trace", "-loadexe", "src/mips/tests/cpu/cpu.ps-exe");
+    int ret = invoker.invoke();
+    PCSX::CpuTrace::s_captureObserver = nullptr;
+    EXPECT_EQ(ret, 0);
+    EXPECT_EQ(s_limitCalls, 1000u);
 }

@@ -82,6 +82,9 @@ void clearCpuTrace();
 bool getCpuTraceEnabled();
 void setCpuTraceEnabled(bool enabled);
 uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count);
+bool exportCpuTraceText(const char* path);
+bool saveCpuTrace(const char* path);
+bool loadCpuTrace(const char* path);
 
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
@@ -214,7 +217,7 @@ PCSX = {
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
     CPU = {
         -- Binary CPU trace. Records are fixed PCSX_TraceEntry structs; the store is
-        -- unbounded and chunked, so read() flattens a range into a fresh FFI array
+        -- chunked, so read() flattens a range into a fresh FFI array
         -- you can inspect, ffi.string(), or write to a File. getLine() renders the
         -- same annotated disassembly the viewer shows, reconstructed from the record.
         Trace = {
@@ -230,12 +233,18 @@ PCSX = {
             read = function(start, count)
                 start = start or 0
                 local total = tonumber(C.getCpuTraceSize())
-                if count == nil then count = total - start end
+                if count == nil then
+                    if start >= total then return nil, 0 end
+                    count = total - start
+                end
                 if count <= 0 then return nil, 0 end
                 local arr = ffi.new('PCSX_TraceEntry[?]', count)
                 local got = tonumber(C.readCpuTrace(arr, start, count))
                 return arr, got
             end,
+            exportText = function(path) return C.exportCpuTraceText(path) end,
+            save = function(path) return C.saveCpuTrace(path) end,
+            load = function(path) return C.loadCpuTrace(path) end,
         },
     },
     nextTick = function(f)
