@@ -17,11 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
 // SPU RAM -> Main RAM DMA.
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
+    // The mixer writes the capture and reverb areas as it plays, and it runs behind the CPU:
+    // bring it up to this cycle first.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
     // Always lock: the mixer thread writes the capture areas of spuMem under cbMtx,
     // and deciding from an unlocked read of mixIrqAddress would itself be a race.
     std::lock_guard<std::mutex> lock(cbMtx);
@@ -49,14 +54,16 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     mixIrqAddress = spuRamBase;
     memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
     memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
-    captureBuffer.currIndex = 0;
     captureBuffer.endIndex = 0;
     captureBuffer.startIndex = 0;
-    capBufVoiceIndex = 0;
+    // The capture write positions follow the mixer's sample clock and are not reset here.
 }
 
 // Main RAM -> SPU RAM DMA.
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
+    // The mixer reads sound RAM as it plays: it has to have played everything before this
+    // cycle from the old contents.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
     std::lock_guard<std::mutex> lock(cbMtx);
 
     for (int i = 0; i < size; i++) {

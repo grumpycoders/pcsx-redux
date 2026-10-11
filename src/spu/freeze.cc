@@ -17,12 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 #include "spu/registers.h"
 
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
-    RemoveThread();
+    // Mix up to the CPU's cycle so every queued write is applied: the saved voice state is
+    // then the state at that cycle, and the queue itself never needs saving.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    const bool running = m_mixerRunning;
+    if (running) RemoveThread();
 
     // Capture buffer.
     spu.get<SaveStates::CBCDLeft>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
@@ -75,12 +81,17 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
 
-    SetupThread();
+    if (running) SetupThread();
 }
 
 void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     // Processing is stopped while the state is restored.
-    RemoveThread();
+    const bool running = m_mixerRunning;
+    if (running) RemoveThread();
+    // Writes still queued from before the load belong to the state being replaced.
+    m_eventsApplied = m_eventsPushed.load();
+    // The CPU registers are already restored: restart the mixer clock at their cycle.
+    resync(PCSX::g_emulator->m_cpu->m_regs.cycle);
 
     spu.get<SaveStates::CBCDLeft>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
     spu.get<SaveStates::CBCDRight>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
@@ -153,6 +164,10 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         }
     }
 
+    // The replays above were queued: apply them now, with the mixer stopped.
+    drainEventsNow();
+    rebuildShadows();
+
     // Start sound processing again.
-    SetupThread();
+    if (running) SetupThread();
 }
