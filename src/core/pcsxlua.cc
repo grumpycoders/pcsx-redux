@@ -154,10 +154,14 @@ PCSX::LuaFFI::LuaFile* getMemoryAsFile() {
 void quit(int code) { PCSX::g_system->quit(code); }
 
 /* Built on first use, since constructSaveState() binds references to live emulator members and
-   there is no point holding twenty megabytes of message for a session that never snapshots. */
+   there is no point holding twenty megabytes of message for a session that never snapshots.
+   Those references die with the emulator, so open_pcsx() drops it for each new Lua state. */
+std::unique_ptr<PCSX::SaveStates::SaveState> s_scratchState;
 PCSX::SaveStates::SaveState& scratchState() {
-    static PCSX::SaveStates::SaveState state = PCSX::SaveStates::constructSaveState();
-    return state;
+    if (!s_scratchState) {
+        s_scratchState.reset(new PCSX::SaveStates::SaveState(PCSX::SaveStates::constructSaveState()));
+    }
+    return *s_scratchState;
 }
 
 }  // namespace
@@ -229,6 +233,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
 #include "core/pcsxffi.lua"
     );
     registerAllSymbols(L);
+    s_scratchState.reset();
     L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.push("execSlots");
@@ -240,6 +245,11 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     L.declareFunc(
         "captureState",
         [](lua_State* L_) -> int {
+            // The slot is what a queued restoreState() is going to bring back.
+            if (g_system->hasPendingRestore()) {
+                Lua L(L_);
+                return L.error("captureState: a restoreState() is still waiting for the main loop");
+            }
             SaveStates::capture(scratchState());
             return 0;
         },
@@ -247,7 +257,13 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     L.declareFunc(
         "restoreState",
         [](lua_State* L_) -> int {
-            SaveStates::restore(scratchState());
+            // Same as SaveStates::loadSafe(): from a callback on the emulation stack, restoring
+            // now would swap the state under the frames that called it, so the main loop does it.
+            if (g_system->inExecute()) {
+                g_system->scheduleRestore([]() { SaveStates::restore(scratchState()); });
+            } else {
+                SaveStates::restore(scratchState());
+            }
             return 0;
         },
         -1);
