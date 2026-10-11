@@ -782,7 +782,8 @@ void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
-    m_display.set(ctrl);
+    // Display::set also switches the PAL/NTSC setting, which a detached GPU must not touch.
+    if (!isDetached()) m_display.set(ctrl);
     m_softDisplay.DisplayModeNew.x = s_displayWidths[magic_enum::enum_integer(ctrl->hres)];
 
     if (ctrl->vres == CtrlDisplayMode::VR_480) {
