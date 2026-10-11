@@ -260,10 +260,13 @@ bool PCSX::Emulator::rewindStateNow(unsigned steps) {
         ring.m_states.pop_back();
     }
     // Step back to the most recent snapshot and consume it, so successive calls walk further
-    // into the past. restore() invalidates the code cache itself, since it does not reset the cpu.
-    SaveStates::restore(*ring.m_states.back());
-    ring.m_spare.push_back(std::move(ring.m_states.back()));
+    // into the past. Take it off the ring first: restore() signals SaveStateLoaded, and a
+    // listener that rewinds again has to step past this snapshot, not land on it a second time.
+    // restore() invalidates the code cache itself, since it does not reset the cpu.
+    auto state = std::move(ring.m_states.back());
     ring.m_states.pop_back();
+    SaveStates::restore(*state);
+    ring.m_spare.push_back(std::move(state));
     return true;
 }
 
