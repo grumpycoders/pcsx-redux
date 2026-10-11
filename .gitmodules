@@ -81,7 +81,7 @@
 	url = https://github.com/uriparser/uriparser.git
 [submodule "third_party/PEGTL"]
 	path = third_party/PEGTL
-	url = https://github.com/taocpp/PEGTL.git
+	url = https://github.com/pcsx-redux/PEGTL.git
 [submodule "third_party/SDL"]
 	path = third_party/SDL
 	url = https://github.com/libsdl-org/SDL.git
