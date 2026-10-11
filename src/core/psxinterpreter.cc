@@ -1689,6 +1689,21 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
        We own it for the duration and hand it back the way we found it. */
     const bool wasInISR = m_inISR;
     m_inISR = false;
+    /* Handed back on every way out, including an exception thrown by a Lua memory callback
+       from inside execBlock, or the next call would see m_inRunUntil still set. */
+    struct HandBack {
+        std::function<void()> f;
+        ~HandBack() { f(); }
+    } handBack{[&]() {
+        debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = savedFirstChance;
+        m_inISR = wasInISR;
+        m_nextIsDelaySlot = savedNextIsDelaySlot;
+        m_inDelaySlot = savedInDelaySlot;
+        m_currentDelayedLoad = savedCurrentDelayedLoad;
+        m_delayedLoadInfo[0] = savedDelayedLoad0;
+        m_delayedLoadInfo[1] = savedDelayedLoad1;
+        m_inRunUntil = false;
+    }};
     auto result = RunUntilResult::OutOfCycles;
     while (true) {
         if (m_regs.pc == stopPC) {
@@ -1702,14 +1717,6 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
             break;
         }
     }
-    debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = savedFirstChance;
-    m_inISR = wasInISR;
-    m_nextIsDelaySlot = savedNextIsDelaySlot;
-    m_inDelaySlot = savedInDelaySlot;
-    m_currentDelayedLoad = savedCurrentDelayedLoad;
-    m_delayedLoadInfo[0] = savedDelayedLoad0;
-    m_delayedLoadInfo[1] = savedDelayedLoad1;
-    m_inRunUntil = false;
     return result;
 }
 
