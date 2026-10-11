@@ -9,6 +9,9 @@ on:
     - cron: '17 6 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   gcc:
     runs-on: ubuntu-latest
@@ -58,6 +61,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+    # One report at a time across runs, so two that pass together can't both open the issue.
+    concurrency:
+      group: reflection-probe-report
+      cancel-in-progress: false
     steps:
     - run: |
         echo "gcc=${{ needs.gcc.outputs.ok }} msvc=${{ needs.msvc.outputs.ok }} appleclang=${{ needs.appleclang.outputs.ok }}"
@@ -67,6 +74,7 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
         title="C++26 reflection now builds on GCC, MSVC and Apple Clang"
-        if [ -z "$(gh issue list --state all --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
+        existing=$(gh issue list --state all --search "in:title \"$title\"" --json number --jq '.[].number') || exit 1
+        if [ -z "$existing" ]; then
           gh issue create --title "$title" --body "The reflection probe passed on all three platforms in ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The bespoke reflection systems (savestates, settings, binstruct, bitfield) can move to std::meta."
         fi
