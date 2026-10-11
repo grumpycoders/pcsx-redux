@@ -194,12 +194,12 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
         switch (r & 0x0f) {
             // Left volume.
             case 0:
-                s_chan[ch].volume.setLeft(val);
+                s_chan[ch].volume.setLeft(val, cycleToSample(readerCycle()));
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] Set Volume L = %04x\n", ch, val);
                 break;
             // Right volume.
             case 2:
-                s_chan[ch].volume.setRight(val);
+                s_chan[ch].volume.setRight(val, cycleToSample(readerCycle()));
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] Set Volume R = %04x\n", ch, val);
                 break;
             // Pitch.
@@ -619,6 +619,15 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
 uint16_t PCSX::SPU::impl::readRegister(uint32_t reg) {
     const uint32_t r = reg & 0xfff;
+
+    // VOLXL/VOLXR: the current per-voice volume, answered at the reader's cycle.
+    if (r >= 0x0e00 && r < 0x0e60) {
+        const int ch = (r - 0x0e00) >> 2;
+        const uint64_t now = cycleToSample(readerCycle());
+        const uint16_t volx = (r & 2) ? s_chan[ch].volume.currentRight(now) : s_chan[ch].volume.currentLeft(now);
+        PCSX::PSXSPU_LOGGER::Log("SPU.read, Voice[%02i] Current Volume %c = %04x\n", ch, (r & 2) ? 'R' : 'L', volx);
+        return volx;
+    }
 
     if (r >= 0x0c00 && r < 0x0d80) {
         switch (r & 0x0f) {
