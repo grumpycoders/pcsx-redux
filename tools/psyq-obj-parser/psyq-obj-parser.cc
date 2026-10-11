@@ -1295,11 +1295,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 sectionData[offset + 1] = (uint8_t)(lo >> 8);
                 break;
             }
-            case PsyqRelocType::GPREL16: {
-                sectionData[offset + 0] = 0;
-                sectionData[offset + 1] = 0;
-                break;
-            }
+            case PsyqRelocType::GPREL16:
             case PsyqRelocType::GPREL16_LE: {
                 uint16_t lo = symbolOffset & 0xFFFF;
                 sectionData[offset + 0] = (uint8_t)(lo >> 0);
