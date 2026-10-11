@@ -46,9 +46,9 @@ typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
 typedef Setting<int, TYPESTRING("KeyOnDelay"), 6> KeyOnDelay;
 // How far ahead of the audio device the emulation runs, in milliseconds, on top of one device
 // period. This is the audio's delay behind the picture. Too small for the host and the emulation
-// cannot keep the device fed, so it plays silence. 20 kept a heavily loaded test machine free of
-// underruns; a quiet machine can go lower.
-typedef Setting<int, TYPESTRING("LatencyMargin"), 20> LatencyMargin;
+// cannot keep the device fed, so it plays silence. On a laptop, 10 played clean and 5 crackled once
+// the machine was busy; 15 stays under a 60Hz frame with 3x headroom over that.
+typedef Setting<int, TYPESTRING("LatencyMargin"), 15> LatencyMargin;
 typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, KeyOnDelay,
                  LatencyMargin>
     SettingsType;
