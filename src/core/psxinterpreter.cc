@@ -1707,6 +1707,10 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
     auto result = RunUntilResult::OutOfCycles;
     while (true) {
         if (m_regs.pc == stopPC) {
+            /* A load in the return jump's delay slot is still in flight here; retire it, or
+               the caller reads the register before it lands and the hand back drops it. */
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
             result = RunUntilResult::Reached;
             break;
         }

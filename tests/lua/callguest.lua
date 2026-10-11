@@ -100,6 +100,16 @@ function TestCallGuest:test_fifth_argument_goes_on_the_stack()
     lu.assertEquals(r.v0, 0xcafe)
 end
 
+-- A load in the return jump's delay slot lands one instruction late, after the callee is done.
+function TestCallGuest:test_load_in_the_return_delay_slot_lands()
+    if not interpreter() then lu.skip('needs the interpreter') end
+    ram32(SRC)[0] = 0xbeef
+    poke(CODE, { 0x03e00008, 0x8c820000 }) -- jr ra ; lw v0,0(a0)
+    local r = PCSX.callGuest { pc = CODE, args = { SRC } }
+    lu.assertEquals(r.status, 'returned')
+    lu.assertEquals(r.v0, 0xbeef)
+end
+
 function TestCallGuest:test_runaway_callee_runs_out_of_cycles()
     if not interpreter() then lu.skip('needs the interpreter') end
     local regs = PCSX.getRegisters()
