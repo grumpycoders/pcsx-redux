@@ -192,12 +192,14 @@ function TestCallGuest:test_ram_isolation_rolls_back_writes_and_staging()
     lu.assertEquals(ffi.string(ram8(SRC), 256), srcBefore)
 end
 
-function TestCallGuest:test_full_isolation_rolls_back_writes()
+function TestCallGuest:test_full_isolation_rolls_back_writes_and_staging()
     if not interpreter() then lu.skip('needs the interpreter') end
     enableStores()
     poke(CODE, COPIER)
     local data = payload(64)
+    local srcBefore = string.rep('G', 64)
     local dstBefore = string.rep('F', 64)
+    ffi.copy(ram8(SRC), srcBefore, 64)
     ffi.copy(ram8(DST), dstBefore, 64)
     local r = PCSX.callGuest {
         pc = CODE, args = { SRC, DST, #data }, isolate = 'full',
@@ -207,6 +209,42 @@ function TestCallGuest:test_full_isolation_rolls_back_writes()
     lu.assertEquals(r.status, 'returned')
     lu.assertEquals(r.out[1], data)
     lu.assertEquals(ffi.string(ram8(DST), 64), dstBefore)
+    lu.assertEquals(ffi.string(ram8(SRC), 64), srcBefore)
+end
+
+-- The fifth argument goes on the stack; isolation has to take it back off.
+function TestCallGuest:test_isolation_rolls_back_stack_arguments()
+    if not interpreter() then lu.skip('needs the interpreter') end
+    enableStores()
+    poke(CODE, { 0x8fa20010, 0x00000000, 0x03e00008, 0x00000000 }) -- lw v0,16(sp) ; nop ; jr ra ; nop
+    -- A 24-byte frame under sp = 0x801ffe00 puts the fifth argument at 0x801ffdf8.
+    local slot = ram32(0x801ffdf8)
+    for _, mode in ipairs({ 'ram', 'full' }) do
+        slot[0] = 0x12345678
+        local r = PCSX.callGuest { pc = CODE, sp = 0x801ffe00, args = { 1, 2, 3, 4, 0xcafe }, isolate = mode }
+        lu.assertEquals(r.v0, 0xcafe, mode)
+        lu.assertEquals(slot[0], 0x12345678, mode)
+    end
+end
+
+-- A bad fetch range is caught before the guest runs, not after, when nothing would roll it back.
+function TestCallGuest:test_bad_fetch_leaves_the_machine_alone()
+    if not interpreter() then lu.skip('needs the interpreter') end
+    enableStores()
+    poke(CODE, COPIER)
+    local srcBefore = string.rep('H', 16)
+    local dstBefore = string.rep('I', 16)
+    ffi.copy(ram8(SRC), srcBefore, 16)
+    ffi.copy(ram8(DST), dstBefore, 16)
+    local ok, err = pcall(PCSX.callGuest, {
+        pc = CODE, args = { SRC, DST, 16 }, isolate = 'ram',
+        stage = { { addr = SRC, data = payload(16) } },
+        fetch = { { addr = 0x801ffff0, size = 0x100 } },
+    })
+    lu.assertFalse(ok)
+    lu.assertStrContains(tostring(err), 'runs off the end of RAM')
+    lu.assertEquals(ffi.string(ram8(SRC), 16), srcBefore)
+    lu.assertEquals(ffi.string(ram8(DST), 16), dstBefore)
 end
 
 function TestCallGuest:test_hardware_access_is_counted()
@@ -221,6 +259,27 @@ function TestCallGuest:test_hardware_access_is_counted()
     poke(CODE, { 0x3c011f80, 0x8c220010, 0x00000000, 0x03e00008, 0x00000000 })
     r = PCSX.callGuest { pc = CODE, isolate = 'ram' }
     lu.assertEquals(r.nonRamAccesses, 0)
+end
+
+-- There is nothing to bring back before the first capture, and an empty slot would zero the machine.
+function TestCallGuest:test_restore_state_needs_a_capture()
+    local ok, err = pcall(PCSX.restoreState)
+    lu.assertFalse(ok)
+    lu.assertStrContains(tostring(err), 'call captureState() first')
+end
+
+-- A fully isolated guest call snapshots too, but not into the slot captureState() filled.
+function TestCallGuest:test_restore_state_survives_a_guest_call()
+    local word = ram32(0x801f0014)
+    word[0] = 0x33333333
+    PCSX.captureState()
+    word[0] = 0x44444444
+    if interpreter() then
+        poke(CODE, { 0x03e00008, 0x00000000 }) -- jr ra ; nop
+        lu.assertEquals(PCSX.callGuest({ pc = CODE, isolate = 'full' }).status, 'returned')
+    end
+    PCSX.restoreState()
+    lu.assertEquals(word[0], 0x33333333)
 end
 
 -- restoreState() from a vsync listener runs in the middle of Counters::update(). Like a save

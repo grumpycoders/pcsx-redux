@@ -157,11 +157,21 @@ void quit(int code) { PCSX::g_system->quit(code); }
    there is no point holding twenty megabytes of message for a session that never snapshots.
    Those references die with the emulator, so open_pcsx() drops it for each new Lua state. */
 std::unique_ptr<PCSX::SaveStates::SaveState> s_scratchState;
+// Whether captureState() has filled the slot yet: restoring the empty message would zero the machine.
+bool s_scratchStateCaptured = false;
 PCSX::SaveStates::SaveState& scratchState() {
     if (!s_scratchState) {
         s_scratchState.reset(new PCSX::SaveStates::SaveState(PCSX::SaveStates::constructSaveState()));
     }
     return *s_scratchState;
+}
+// callGuest's full isolation has its own, so a guest call doesn't replace what captureState() took.
+std::unique_ptr<PCSX::SaveStates::SaveState> s_guestState;
+PCSX::SaveStates::SaveState& guestState() {
+    if (!s_guestState) {
+        s_guestState.reset(new PCSX::SaveStates::SaveState(PCSX::SaveStates::constructSaveState()));
+    }
+    return *s_guestState;
 }
 
 }  // namespace
@@ -234,6 +244,8 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
     );
     registerAllSymbols(L);
     s_scratchState.reset();
+    s_scratchStateCaptured = false;
+    s_guestState.reset();
     L.load(pcsxFFI, "src:core/pcsxffi.lua");
     L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
     L.push("execSlots");
@@ -251,12 +263,17 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                 return L.error("captureState: a restoreState() is still waiting for the main loop");
             }
             SaveStates::capture(scratchState());
+            s_scratchStateCaptured = true;
             return 0;
         },
         -1);
     L.declareFunc(
         "restoreState",
         [](lua_State* L_) -> int {
+            if (!s_scratchStateCaptured) {
+                Lua L(L_);
+                return L.error("restoreState: nothing to restore, call captureState() first");
+            }
             // Same as SaveStates::loadSafe(): from a callback on the emulation stack, restoring
             // now would swap the state under the frames that called it, so the main loop does it.
             if (g_system->inExecute()) {
@@ -367,16 +384,10 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             size_t frame = std::max<size_t>(16, args.size() * 4);
             frame = (frame + 7) & ~size_t(7);
             sp -= frame;
-            for (size_t i = 4; i < args.size(); i++) {
-                g_emulator->m_mem->write32(sp + i * 4, args[i]);
-            }
 
-            /* Stage inputs straight into wram rather than through write32: this is the host
-               placing a buffer, not the guest storing to one, so it has no business being
-               gated on the guest's cache-isolation state. Keep each range's previous contents
-               so the rollback can undo the staging too - otherwise "the machine comes back
-               clear" would quietly mean "clear except for whatever I just put in it". */
-            std::vector<std::pair<uint32_t, std::string>> stagedBefore;
+            /* Check every stage and fetch range before touching anything, so a bad one can't
+               leave half the inputs in place, or a guest run that no rollback follows. */
+            std::vector<std::pair<uint32_t, std::string>> stages;
             L.getfield("stage", 1);
             if (L.istable()) {
                 size_t n = L.length();
@@ -394,22 +405,70 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                         L.pop();
                         return L.error("callGuest: stage at 0x%08x runs off the end of RAM", addr);
                     }
-                    auto* wram = g_emulator->m_mem->m_wram;
-                    if (isolate) {
-                        stagedBefore.emplace_back(off, std::string(reinterpret_cast<const char*>(wram + off),
-                                                                   data.size()));
-                    }
-                    memcpy(wram + off, data.data(), data.size());
+                    stages.emplace_back(off, std::move(data));
                 }
             }
             L.pop();
-            g_emulator->m_cpu->invalidateCache();
+            std::vector<std::pair<uint32_t, uint32_t>> fetches;
+            L.getfield("fetch", 1);
+            if (L.istable()) {
+                size_t n = L.length();
+                for (size_t i = 1; i <= n; i++) {
+                    L.rawgeti(i);
+                    L.getfield("addr");
+                    uint32_t addr = uint32_t(int64_t(L.tonumber()));
+                    L.pop();
+                    L.getfield("size");
+                    uint32_t size = uint32_t(int64_t(L.tonumber()));
+                    L.pop();
+                    L.pop();
+                    uint32_t off = addr & (ramSize - 1);
+                    if (uint64_t(off) + size > ramSize) {
+                        L.pop();
+                        return L.error("callGuest: fetch at 0x%08x runs off the end of RAM", addr);
+                    }
+                    fetches.emplace_back(off, size);
+                }
+            }
+            L.pop();
 
-            /* Snapshot AFTER staging, so the dirty-page report is purely what the CALLEE
-               touched and not an echo of the input we just placed. */
-            /* Reused across calls: a harness makes thousands of these, and reallocating a
-               couple of megabytes each time is pure waste. */
-            if (isolation == FullIsolation) SaveStates::capture(scratchState());
+            /* Full isolation snapshots before the inputs go in, so the restore takes them back
+               out along with whatever the callee did. */
+            if (isolation == FullIsolation) SaveStates::capture(guestState());
+
+            std::vector<uint32_t> stackBefore;
+            for (size_t i = 4; i < args.size(); i++) {
+                stackBefore.push_back(g_emulator->m_mem->read32(sp + i * 4));
+                g_emulator->m_mem->write32(sp + i * 4, args[i]);
+            }
+
+            /* Stage inputs straight into wram rather than through write32: this is the host
+               placing a buffer, not the guest storing to one, so it has no business being
+               gated on the guest's cache-isolation state. Keep each range's previous contents
+               so the rollback can undo the staging too - otherwise "the machine comes back
+               clear" would quietly mean "clear except for whatever I just put in it". */
+            std::vector<std::pair<uint32_t, std::string>> stagedBefore;
+            auto* wram = g_emulator->m_mem->m_wram;
+            for (const auto& [off, data] : stages) {
+                stagedBefore.emplace_back(off, std::string(reinterpret_cast<const char*>(wram + off), data.size()));
+                memcpy(wram + off, data.data(), data.size());
+            }
+            g_emulator->m_cpu->invalidateCache();
+            /* Takes the inputs back out, newest first since stage ranges may overlap. */
+            auto undoInputs = [&]() {
+                for (auto it = stagedBefore.rbegin(); it != stagedBefore.rend(); it++) {
+                    memcpy(wram + it->first, it->second.data(), it->second.size());
+                }
+                for (size_t i = 0; i < stackBefore.size(); i++) {
+                    g_emulator->m_mem->write32(sp + (i + 4) * 4, stackBefore[i]);
+                }
+                g_emulator->m_cpu->invalidateCache();
+            };
+
+            /* Snapshot RAM AFTER staging, so the dirty-page report is purely what the CALLEE
+               touched and not an echo of the input we just placed. Reused across calls: a
+               harness makes thousands of these, and reallocating a couple of megabytes each
+               time is pure waste. */
             const uint64_t nonRamBefore = g_emulator->m_mem->m_nonRamAccesses;
 
             static std::vector<uint8_t> ramSnapshot;
@@ -433,16 +492,20 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
 
             auto outcome = g_emulator->m_cpu->RunUntil(ra, cycles);
             if (outcome == R3000Acpu::RunUntilResult::Reentered) {
+                undoInputs();
                 regs.GPR = savedGPR;
                 regs.pc = savedPC;
+                regs.cycle = savedCycle;
                 return L.error(
                     "callGuest can't be nested: this one was called from inside another guest call, most likely from "
                     "a breakpoint invoker that fired during it. An ExecutionFlow event listener is a fine place to "
                     "call from; the middle of an instruction is not.");
             }
             if (outcome == R3000Acpu::RunUntilResult::Unsupported) {
+                undoInputs();
                 regs.GPR = savedGPR;
                 regs.pc = savedPC;
+                regs.cycle = savedCycle;
                 return L.error(
                     "callGuest needs the interpreter: the recompilers emit no per-instruction checks, so they can't "
                     "be stopped on an arbitrary pc. Start with -interpreter, or turn the dynarec off in Emulation "
@@ -461,27 +524,9 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
 
             /* Read outputs out before the rollback, or isolation would eat the answer. */
             std::vector<std::string> fetched;
-            L.getfield("fetch", 1);
-            if (L.istable()) {
-                size_t n = L.length();
-                for (size_t i = 1; i <= n; i++) {
-                    L.rawgeti(i);
-                    L.getfield("addr");
-                    uint32_t addr = uint32_t(int64_t(L.tonumber()));
-                    L.pop();
-                    L.getfield("size");
-                    uint32_t size = uint32_t(int64_t(L.tonumber()));
-                    L.pop();
-                    L.pop();
-                    uint32_t off = addr & (ramSize - 1);
-                    if (uint64_t(off) + size > ramSize) {
-                        L.pop();
-                        return L.error("callGuest: fetch at 0x%08x runs off the end of RAM", addr);
-                    }
-                    fetched.emplace_back(reinterpret_cast<const char*>(g_emulator->m_mem->m_wram + off), size);
-                }
+            for (const auto& [off, size] : fetches) {
+                fetched.emplace_back(reinterpret_cast<const char*>(wram + off), size);
             }
-            L.pop();
 
             /* The changed-page list is the interesting half: it answers "did the callee write
                anywhere it had no business writing", which for a routine with no destination
@@ -503,12 +548,9 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             }
             if (isolate) {
                 memcpy(g_emulator->m_mem->m_hard, scratchSnapshot.data(), 0x400);
-                for (const auto& [off, before] : stagedBefore) {
-                    memcpy(g_emulator->m_mem->m_wram + off, before.data(), before.size());
-                }
-                g_emulator->m_cpu->invalidateCache();
+                undoInputs();
             } else if (isolation == FullIsolation) {
-                SaveStates::restore(scratchState());
+                SaveStates::restore(guestState());
             }
 
             regs.GPR = savedGPR;
