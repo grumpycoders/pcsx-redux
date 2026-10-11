@@ -4421,7 +4421,7 @@ msgstr "Selector de color de cuadrícula de píxeles"
 msgid "TPage Grid Color Picker"
 msgstr "Selector de color de cuadrícula de TPage"
 
-#: src/main/main.cc:539
+#: src/main/main.cc:543
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Mostrar estados de guardado con nombres"
