@@ -222,3 +222,54 @@ function TestCallGuest:test_hardware_access_is_counted()
     r = PCSX.callGuest { pc = CODE, isolate = 'ram' }
     lu.assertEquals(r.nonRamAccesses, 0)
 end
+
+-- restoreState() from a vsync listener runs in the middle of Counters::update(). Like a save
+-- state load, it has to wait for the main loop rather than swap the state under that frame.
+function TestCallGuest:test_restore_state_waits_for_the_main_loop()
+    local loop = CODE + 0x200
+    poke(loop, { 0x08000000 + ((loop & 0x0fffffff) >> 2), 0x00000000 }) -- j loop ; nop
+    PCSX.invalidateCache()
+    PCSX.getRegisters().pc = loop
+    local word = ram32(0x801f0010)
+    word[0] = 0x11111111
+    PCSX.captureState()
+    word[0] = 0x22222222
+
+    local co = coroutine.running()
+    local r = { inListener = false }
+    local loaded = PCSX.Events.createEventListener('ExecutionFlow::SaveStateLoaded', function()
+        r.loadedInListener = r.inListener
+        r.loaded = true
+    end)
+    local vsync
+    vsync = PCSX.Events.createEventListener('GPU::Vsync', function()
+        if not r.asked then
+            r.asked = true
+            r.inListener = true
+            PCSX.restoreState()
+            r.inListener = false
+            r.wordAfterCall = word[0]
+            r.captureError = select(2, pcall(PCSX.captureState))
+        elseif r.loaded then
+            vsync:remove()
+            loaded:remove()
+            PCSX.pauseEmulator()
+            -- The first event loop tick after a vsync pause still runs on the emulation stack.
+            local timer, ticks = luv.new_timer(), 0
+            timer:start(0, 1, function()
+                ticks = ticks + 1
+                if ticks < 2 then return end
+                timer:stop()
+                timer:close()
+                coroutine.resume(co)
+            end)
+        end
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+
+    lu.assertEquals(r.wordAfterCall, 0x22222222)
+    lu.assertStrContains(tostring(r.captureError), 'still waiting for the main loop')
+    lu.assertFalse(r.loadedInListener, 'state replaced under the vsync listener')
+    lu.assertEquals(word[0], 0x11111111)
+end
