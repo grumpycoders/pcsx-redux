@@ -117,6 +117,8 @@ class CDRom {
     bool m_motorOn = false;
     bool m_speedChanged = false;
     bool m_invalidLocL = false;
+    // Set once a data sector has been read since the last seek; m_currentPosition is then one past it.
+    bool m_sectorReadSinceSeek = false;
     bool m_dataRequested = false;
     bool m_subheaderFilter = false;
     bool m_realtime = false;

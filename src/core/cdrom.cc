@@ -121,6 +121,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_autoPause = false;
         m_report = false;
         m_setLocPending = false;
+        m_sectorReadSinceSeek = false;
         m_muted = false;
         m_adpcmMuted = false;
         m_mode = 0;
@@ -175,6 +176,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 seekDelay += 650ms;
             }
             m_currentPosition = m_seekPosition;
+            m_sectorReadSinceSeek = false;
             scheduleRead(seekDelay + computeReadDelay());
             m_readingState = ReadingState::Reading;
             return;
@@ -250,6 +252,7 @@ class CDRomImpl final : public PCSX::CDRom {
                         m_dataFIFOSize = m_dataRequested ? size : 0;
                     }
                     m_currentPosition++;
+                    m_sectorReadSinceSeek = true;
                     if (debug) {
                         std::string msfFormat = fmt::format("{}", m_currentPosition);
                         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: advancing to %s.\n",
@@ -1082,6 +1085,13 @@ class CDRomImpl final : public PCSX::CDRom {
             maybeScheduleNextCommand();
             return false;
         }
+        // With no new Setloc, a read after Pause resumes one sector before the last one delivered,
+        // not at the old Setloc target. SCPH-9002: 00:02:20 after 00:02:21, four runs out of four.
+        if (!setLocPending && m_sectorReadSinceSeek) {
+            m_seekPosition = m_currentPosition;
+            --m_seekPosition;
+            --m_seekPosition;
+        }
         resetXA();
         m_status = Status::Idle;
         scheduleRead(20ms);
@@ -1254,6 +1264,7 @@ class CDRomImpl final : public PCSX::CDRom {
             m_seekPosition.reset();
             m_seekPosition.s = 2;
             m_invalidLocL = false;
+            m_sectorReadSinceSeek = false;
             m_speed = Speed::Simple;
             m_status = Status::Idle;
             m_interruptCauseMask = 0x1f;
@@ -1452,6 +1463,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             m_status = Status::Idle;
             m_currentPosition = m_seekPosition;
+            m_sectorReadSinceSeek = false;
             unsigned track = m_iso->getTrack(m_seekPosition);
             if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
                 maybeEnqueueError(4, 4);
