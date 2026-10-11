@@ -344,6 +344,20 @@ class Memory {
 
     // hopefully this should become private eventually, with only certain classes having direct access.
   public:
+    /* Counts accesses to anything that isn't plain RAM or BIOS ROM, with the scratchpad
+       excluded because a RAM-scoped snapshot covers that too. Zero of these across a stretch
+       of guest execution is positive evidence that the code touched nothing but memory - which
+       turns "this routine is safe to snapshot RAM-only" from an assertion into something with
+       an answer. Keyed on the READ LUT deliberately: the write LUT is nulled wholesale
+       whenever the BIU says the caches are isolated, so keying on it would call every RAM
+       store on a cold machine a hardware access. */
+    uint64_t m_nonRamAccesses = 0;
+    void countNonRamAccess(uint32_t address, uint32_t page) {
+        if (m_readLUT[page] != nullptr) return;
+        if ((page == 0x1f80 || page == 0x9f80 || page == 0xbf80) && ((address & 0xffff) < 0x400)) return;
+        m_nonRamAccesses++;
+    }
+
     uint8_t *m_wram = nullptr;  // Kernel & User Memory (8 Meg)
     uint8_t *m_exp1 = nullptr;  // Expansion Region 1 (ROM/RAM) / Parallel Port (8 Meg buffer; up to 256K loaded)
     uint8_t *m_bios = nullptr;  // BIOS ROM (512K)

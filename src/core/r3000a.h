@@ -257,6 +257,22 @@ class R3000Acpu {
     }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
+
+    enum class RunUntilResult {
+        Reached,     /* pc landed on stopPC */
+        OutOfCycles, /* the budget ran out first */
+        Exception,   /* the guest took an exception */
+        Unsupported, /* this cpu can't do it */
+        Reentered,   /* called from inside another RunUntil */
+    };
+    /* Runs until pc reaches stopPC, the cycle budget is spent, or an exception is taken.
+       Unlike Execute(), this doesn't run branchTest(), so counters, scheduled interrupts
+       and the audio-driven frame throttle are all inert for the duration - the caller gets
+       the cpu on its own, with no wall clock attached. Only the interpreter implements it;
+       the recompilers can't stop on an arbitrary pc, since they emit no per-instruction
+       checks and linked blocks jump straight past the dispatcher. */
+    virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) { return RunUntilResult::Unsupported; }
+
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -376,6 +392,7 @@ class R3000Acpu {
         m_regs.scheduleMask = 0;
     }
     bool m_inISR = false;
+    bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {

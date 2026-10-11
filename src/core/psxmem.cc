@@ -294,6 +294,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -345,6 +346,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -393,6 +395,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     if (readType == ReadType::Data) g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -517,6 +520,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -554,6 +558,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -592,6 +597,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {

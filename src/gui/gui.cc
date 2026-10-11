@@ -2272,8 +2272,8 @@ when changing this setting.)"));
                 changed = true;
             }
             int count = settings.get<Emulator::SettingRewindCount>().value;
-            if (ImGui::SliderInt(_("Rewind history depth (snapshots)"), &count, 0, 600)) {
-                settings.get<Emulator::SettingRewindCount>().value = count < 0 ? 0 : count;
+            if (ImGui::SliderInt(_("Rewind history depth (snapshots)"), &count, 1, 600)) {
+                settings.get<Emulator::SettingRewindCount>().value = count < 1 ? 1 : count;
                 changed = true;
             }
             ImGuiHelpers::ShowHelpMarker(_(R"(Captures an in-memory save state every N frames

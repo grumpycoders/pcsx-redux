@@ -104,6 +104,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
+    virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
     virtual void SetPGXPMode(uint32_t pgxpMode) override;
@@ -128,7 +129,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     cIntFunc_t *s_pPsxCP2 = NULL;
     cIntFunc_t *s_pPsxCP2BSC = NULL;
 
-    template <bool debug, bool trace>
+    template <bool debug, bool trace, bool detached = false>
     void execBlock();
     void doBranch(uint32_t target, bool fromLink);
     uint32_t branchBase();
@@ -1650,6 +1651,79 @@ void InterpretedCPU::Execute() {
     }
 }
 
+PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64_t cycleBudget) {
+    ZoneScoped;
+    /* Nesting would re-enter execBlock on top of a live one and shred the delayed-load
+       ping-pong underneath it. The dangerous caller is a breakpoint invoker, which runs from
+       Debug::process in the middle of execBlock's loop body; an ExecutionFlow event listener
+       is fine, since those fire from hasToRun() between blocks, which is the same point
+       UI::shellReached does its own wholesale register surgery from. */
+    if (m_inRunUntil) return RunUntilResult::Reentered;
+    m_inRunUntil = true;
+    /* Even at a clean boundary a branch may have left a delay slot pending, and the callee
+       must not inherit it. Park the bookkeeping and hand it back untouched. */
+    const bool savedNextIsDelaySlot = m_nextIsDelaySlot;
+    const bool savedInDelaySlot = m_inDelaySlot;
+    const unsigned savedCurrentDelayedLoad = m_currentDelayedLoad;
+    const auto savedDelayedLoad0 = m_delayedLoadInfo[0];
+    const auto savedDelayedLoad1 = m_delayedLoadInfo[1];
+    m_nextIsDelaySlot = false;
+    m_inDelaySlot = false;
+    m_delayedLoadInfo[0].active = false;
+    m_delayedLoadInfo[1].active = false;
+    m_delayedLoadInfo[0].pcActive = false;
+    m_delayedLoadInfo[1].pcActive = false;
+
+    /* exception() honours the first-chance mask by printing a line and calling
+       g_system->pause(true), which stops the WHOLE emulator - including a -run that some
+       other part of the harness is relying on. A call that faults is a result here, not an
+       incident: we report the code, EPC and BadVAddr in the return value and leave the
+       machine alone. Park the mask for the duration. */
+    auto &debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    const uint32_t savedFirstChance = debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>();
+    debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = 0;
+
+    const uint64_t deadline = m_regs.cycle + cycleBudget;
+    /* m_inISR is how we hear about an exception: exception() sets it unconditionally, and
+       it covers the cop0 vectors too, which enumerating the four vector addresses wouldn't.
+       We own it for the duration and hand it back the way we found it. */
+    const bool wasInISR = m_inISR;
+    m_inISR = false;
+    /* Handed back on every way out, including an exception thrown by a Lua memory callback
+       from inside execBlock, or the next call would see m_inRunUntil still set. */
+    struct HandBack {
+        std::function<void()> f;
+        ~HandBack() { f(); }
+    } handBack{[&]() {
+        debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = savedFirstChance;
+        m_inISR = wasInISR;
+        m_nextIsDelaySlot = savedNextIsDelaySlot;
+        m_inDelaySlot = savedInDelaySlot;
+        m_currentDelayedLoad = savedCurrentDelayedLoad;
+        m_delayedLoadInfo[0] = savedDelayedLoad0;
+        m_delayedLoadInfo[1] = savedDelayedLoad1;
+        m_inRunUntil = false;
+    }};
+    auto result = RunUntilResult::OutOfCycles;
+    while (true) {
+        if (m_regs.pc == stopPC) {
+            /* A load in the return jump's delay slot is still in flight here; retire it, or
+               the caller reads the register before it lands and the hand back drops it. */
+            m_currentDelayedLoad ^= 1;
+            flushCurrentDelayedLoad();
+            result = RunUntilResult::Reached;
+            break;
+        }
+        if (m_regs.cycle >= deadline) break;
+        execBlock<false, false, true>();
+        if (m_inISR) {
+            result = RunUntilResult::Exception;
+            break;
+        }
+    }
+    return result;
+}
+
 void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
     for (auto i = 0; i < Size; i += 4) {
         flushICacheLine(Addr);
@@ -1659,7 +1733,7 @@ void InterpretedCPU::Clear(uint32_t Addr, uint32_t Size) {
 
 void InterpretedCPU::Shutdown() {}
 // interpreter execution
-template <bool debug, bool trace>
+template <bool debug, bool trace, bool detached>
 inline void InterpretedCPU::execBlock() {
     bool ranDelaySlot = false;
     do {
@@ -1700,14 +1774,23 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = false;
             ranDelaySlot = true;
             InterceptBIOS<true>(m_regs.pc);
-            branchTest();
+            /* A detached block runs the cpu with nothing else attached to it: no counters,
+               no scheduled interrupts, and in particular no Counters::update() -> SPU
+               waitForGoal(), which is a real-time sleep. RunUntil() wants the cpu alone. */
+            if constexpr (!detached) branchTest();
         }
         if constexpr (debug) {
             uint32_t newPC = m_regs.pc;
             uint32_t newCode = readICache(newPC);
             PCSX::g_emulator->m_debug->process(pc, newPC, code, newCode, fromLink);
         }
-    } while (!ranDelaySlot && !debug);
+        /* A detached block returns per instruction, like a debug one. Block granularity
+           looks tempting here and is wrong: this loop only ends on a retired delay slot, so
+           straight-line code with no branches never yields. Guest code that runs off into
+           blank RAM executes nops until it happens to meet a branch, which measured at
+           262113 instructions in one call - long past any cycle budget, and long past the
+           exception that sent it there. */
+    } while (!ranDelaySlot && !debug && !detached);
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {
