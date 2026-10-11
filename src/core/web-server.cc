@@ -28,6 +28,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include "GL/gl3w.h"
 #include "cdrom/cdriso.h"
@@ -49,6 +50,10 @@
 #include "uriparser/Uri.h"
 
 namespace {
+
+static const std::unordered_set<std::string> stepFunctions = {
+    "stepIn", "stepOver", "stepOut"
+};
 
 class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
@@ -276,9 +281,6 @@ class FlowExecutor : public PCSX::WebExecutor {
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }
-            std::unordered_set<std::string> stepFunctions = {
-                "stepIn", "stepOver", "stepOut"
-            };
             if (stepFunctions.contains(function) && !debugEnabled) {
                 client->write("HTTP/1.1 503 Debugger not enabled\r\n\r\n");
                 return false;
