@@ -4345,7 +4345,7 @@ msgstr ""
 msgid "TPage Grid Color Picker"
 msgstr ""
 
-#: src/main/main.cc:539
+#: src/main/main.cc:543
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "找不到%s解码器\n"

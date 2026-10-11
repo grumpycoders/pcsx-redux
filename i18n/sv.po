@@ -4370,7 +4370,7 @@ msgstr "Pixelrutnätets färgväljare"
 msgid "TPage Grid Color Picker"
 msgstr "Färgväljare för TPage-rutnät"
 
-#: src/main/main.cc:539
+#: src/main/main.cc:543
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Visa namngivna sparningslägen"

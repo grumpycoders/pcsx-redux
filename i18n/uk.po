@@ -4386,7 +4386,7 @@ msgstr "Вибір кольору піксельної сітки"
 msgid "TPage Grid Color Picker"
 msgstr "Вибір кольору TPage-сітки"
 
-#: src/main/main.cc:539
+#: src/main/main.cc:543
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Показати імена збережених станів"
