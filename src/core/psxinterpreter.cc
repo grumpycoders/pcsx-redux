@@ -291,13 +291,17 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         if (m_gtePendingCount == 3) gteCommitOldest();
         m_gtePending[m_gtePendingCount++] = {value, static_cast<uint8_t>(reg), ctrl, 3};
     }
-    void gteCommitOldest() {
-        auto &w = m_gtePending[0];
+    void gteCommit(const GTEPendingWrite &w) {
         if (w.ctrl) {
             PCSX::g_emulator->m_gte->CTC2(w.value, w.reg);
         } else {
             PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
         }
+    }
+    uint32_t gteRegValue(const GTEPendingWrite &w) { return w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg]; }
+    void gteRunCommand(uint32_t code);
+    void gteCommitOldest() {
+        gteCommit(m_gtePending[0]);
         for (unsigned i = 1; i < m_gtePendingCount; i++) m_gtePending[i - 1] = m_gtePending[i];
         m_gtePendingCount--;
     }
@@ -1226,10 +1230,16 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
     }
     gteDrainIfStalling();
     gteStart(gteLatency(_Funct_));
-    // A command reads the registers as they are at issue. A queued write on its last instruction
-    // completes while the command runs, before the command's results, so a register the command
-    // writes keeps the result. A queued write with two instructions to go completes after the
-    // results. Fitted to SQR on IR1 (nugget tests/gte-store-delay), the only pair measured.
+    gteRunCommand(code);
+}
+
+// A command reads the registers as they are at issue. A queued write on its last instruction
+// completes while the command runs, before the command's results, so a register the command
+// writes keeps the result. A queued write with two instructions to go completes after the
+// results. Fitted to SQR on IR1 (nugget tests/gte-store-delay), the only pair measured.
+// Whether the command wrote a register is inferred from its value changing, so a result equal to
+// the register's previous value is taken as no write and the queued value wins.
+void InterpretedCPU::gteRunCommand(uint32_t code) {
     GTEPendingWrite late[3];
     uint32_t before[3];
     unsigned nLate = 0;
@@ -1237,7 +1247,7 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
     for (unsigned i = 0; i < m_gtePendingCount; i++) {
         auto &w = m_gtePending[i];
         if (w.countdown == 1) {
-            before[nLate] = w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg];
+            before[nLate] = gteRegValue(w);
             late[nLate++] = w;
         } else {
             m_gtePending[keep++] = w;
@@ -1246,14 +1256,7 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
     m_gtePendingCount = keep;
     (*this.*(s_pPsxCP2[_Funct_]))(code);
     for (unsigned i = 0; i < nLate; i++) {
-        auto &w = late[i];
-        uint32_t now = w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg];
-        if (now != before[i]) continue;
-        if (w.ctrl) {
-            PCSX::g_emulator->m_gte->CTC2(w.value, w.reg);
-        } else {
-            PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
-        }
+        if (gteRegValue(late[i]) == before[i]) gteCommit(late[i]);
     }
 }
 
