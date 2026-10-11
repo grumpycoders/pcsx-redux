@@ -104,6 +104,8 @@ class VoiceVolume {
     static int32_t decodeFixed(uint16_t raw);
     // One output sample of the sweep envelope. No-op in fixed mode.
     static void stepTrack(Track &track, uint16_t raw);
+    // `samples` output samples of the sweep envelope at once.
+    static void advanceTrack(Track &track, uint16_t raw, uint64_t samples);
     static void advanceReader(Side &side, uint64_t nowSample);
     static void write(Side &side, int16_t raw, uint64_t nowSample);
     static uint16_t readAt(Side &side, uint64_t nowSample);

@@ -29,9 +29,6 @@ constexpr uint16_t kSweepNegative = 1 << 12;     // 12 0=Positive, 1=Negative ph
 constexpr int32_t kLevelMin = -0x8000;
 constexpr int32_t kLevelMax = 0x7fff;
 constexpr int32_t kExponentialKnee = 0x6000;
-// A read long after the last access walks the gap one sample at a time. Past
-// this many samples (about 95s) every sweep has long since settled.
-constexpr uint64_t kMaxReaderWalk = 1u << 22;
 }  // namespace
 
 // Fixed mode: bits 0-14 are the level/2, bit 14 the sign.
@@ -87,11 +84,33 @@ void PCSX::SPU::VoiceVolume::advanceReader(Side &side, uint64_t nowSample) {
         side.readerValid = true;
         return;
     }
-    const uint64_t gap = std::min(nowSample - side.readerSample, kMaxReaderWalk);
-    if (side.raw & kSweepMode) {
-        for (uint64_t i = 0; i < gap; i++) stepTrack(side.reader, side.raw);
-    }
+    advanceTrack(side.reader, side.raw, nowSample - side.readerSample);
     side.readerSample = nowSample;
+}
+
+// Same result as calling stepTrack `samples` times, one step boundary per
+// iteration instead of one sample. The slowest rate steps every 1 << 20
+// samples, so a read hours after the write still has to land on the right
+// step. A step that leaves the level unchanged means it is clamped or parked,
+// and nothing later can move it until the register is written again.
+void PCSX::SPU::VoiceVolume::advanceTrack(Track &track, uint16_t raw, uint64_t samples) {
+    if (!(raw & kSweepMode)) return;
+    if (((raw >> 2) & 31) == 31 && (raw & 3) == 3) return;
+    while (samples) {
+        int shift = (raw >> 2) & 31;
+        if ((raw & kSweepExponential) && !(raw & kSweepDecrease) && track.level >= kExponentialKnee) shift += 2;
+        const int32_t interval = shift > 11 ? 1 << (shift - 11) : 1;
+        const uint64_t need = track.fraction < interval ? interval - track.fraction : 1;
+        if (samples < need) {
+            track.fraction += static_cast<int32_t>(samples);
+            return;
+        }
+        samples -= need;
+        const int32_t before = track.level;
+        track.fraction = interval - 1;
+        stepTrack(track, raw);
+        if (track.level == before) return;
+    }
 }
 
 void PCSX::SPU::VoiceVolume::write(Side &side, int16_t raw, uint64_t nowSample) {
