@@ -298,7 +298,15 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
             PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
         }
     }
-    uint32_t gteRegValue(const GTEPendingWrite &w) { return w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg]; }
+    // The registers a queued write sets. A data write to 28 (IRGB) sets IR1-IR3.
+    struct GTEWriteTarget {
+        uint32_t r[3];
+        bool operator==(const GTEWriteTarget &) const = default;
+    };
+    GTEWriteTarget gteTargetValue(const GTEPendingWrite &w) {
+        if (!w.ctrl && w.reg == 28) return {{m_regs.CP2D.r[9], m_regs.CP2D.r[10], m_regs.CP2D.r[11]}};
+        return {{w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg], 0, 0}};
+    }
     void gteRunCommand(uint32_t code);
     void gteCommitOldest() {
         gteCommit(m_gtePending[0]);
@@ -1241,13 +1249,13 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
 // the register's previous value is taken as no write and the queued value wins.
 void InterpretedCPU::gteRunCommand(uint32_t code) {
     GTEPendingWrite late[3];
-    uint32_t before[3];
+    GTEWriteTarget before[3];
     unsigned nLate = 0;
     unsigned keep = 0;
     for (unsigned i = 0; i < m_gtePendingCount; i++) {
         auto &w = m_gtePending[i];
         if (w.countdown == 1) {
-            before[nLate] = gteRegValue(w);
+            before[nLate] = gteTargetValue(w);
             late[nLate++] = w;
         } else {
             m_gtePending[keep++] = w;
@@ -1256,7 +1264,7 @@ void InterpretedCPU::gteRunCommand(uint32_t code) {
     m_gtePendingCount = keep;
     (*this.*(s_pPsxCP2[_Funct_]))(code);
     for (unsigned i = 0; i < nLate; i++) {
-        if (gteRegValue(late[i]) == before[i]) gteCommit(late[i]);
+        if (gteTargetValue(late[i]) == before[i]) gteCommit(late[i]);
     }
 }
 
