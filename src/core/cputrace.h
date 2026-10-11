@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "core/disr3000a.h"
+#include "support/file.h"
 
 namespace PCSX {
 
@@ -71,7 +72,7 @@ struct PlaybackValueSource : public Disasm::ValueSource {
     uint32_t mem32(uint32_t) override { return e.memValue; }
 };
 
-// Unbounded, bulk-allocated, fixed-record trace store. Records live in chained
+// Bulk-allocated, fixed-record trace store. Records live in chained
 // fixed-size chunks; index N is at chunk N/kRecordsPerChunk, slot N%..., so both
 // append and random access are O(1) with no auxiliary index. Capture is gated at
 // the interpreter call site (the Trace debug setting), so this object is pure
@@ -88,6 +89,19 @@ class CpuTrace {
     const TraceEntry& operator[](size_t idx) const { return m_chunks[idx / kRecordsPerChunk][idx % kRecordsPerChunk]; }
     void clear();
 
+    // Capture stops once the store holds this many records. 0 means no limit.
+    void setLimit(size_t records) { m_limit = records; }
+    size_t limit() const { return m_limit; }
+    bool full() const { return m_limit != 0 && m_count >= m_limit; }
+
+    // One annotated disassembly line per record, the same text the CPU log used to
+    // get, so traces can be read, searched and compared in a text editor.
+    void exportText(IO<File> file, size_t start = 0, size_t count = SIZE_MAX) const;
+    // Raw records behind a small header. load() replaces the contents, and returns
+    // false, leaving the store empty, on a file that is not a trace.
+    void save(IO<File> file) const;
+    bool load(IO<File> file);
+
     // Test hook: when set, called with each record right after it is filled, while
     // the CPU is still in the exact pre-execution state the record was taken from.
     // Null in normal operation. Must not call clear() or otherwise mutate the store.
@@ -98,6 +112,11 @@ class CpuTrace {
     TraceEntry& alloc();
     std::vector<std::unique_ptr<TraceEntry[]>> m_chunks;
     size_t m_count = 0;
+    size_t m_limit = kDefaultLimit;
+
+  public:
+    // 1 GiB of records.
+    static constexpr size_t kDefaultLimit = 32 * 1024 * 1024;
 };
 
 }  // namespace PCSX

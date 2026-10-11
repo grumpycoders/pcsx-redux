@@ -19,6 +19,11 @@
 
 #include "core/cputrace.h"
 
+#include <string.h>
+
+#include <algorithm>
+#include <string>
+
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
 
@@ -72,6 +77,8 @@ struct RecordingDisasm : public PCSX::Disasm {
 void PCSX::CpuTrace::capture(uint32_t pc, uint32_t code) {
     static RecordingDisasm recorder;
 
+    if (full()) [[unlikely]]
+        return;
     TraceEntry& e = alloc();
     auto& regs = g_emulator->m_cpu->m_regs;
     e.pc = pc;
@@ -108,4 +115,61 @@ PCSX::TraceEntry& PCSX::CpuTrace::alloc() {
 void PCSX::CpuTrace::clear() {
     m_chunks.clear();
     m_count = 0;
+}
+
+namespace {
+constexpr char kMagic[8] = {'P', 'C', 'S', 'X', 'T', 'R', 'C', 0};
+constexpr uint32_t kVersion = 1;
+}  // namespace
+
+void PCSX::CpuTrace::exportText(IO<File> file, size_t start, size_t count) const {
+    if (start >= m_count) return;
+    if (count > m_count - start) count = m_count - start;
+    std::string out;
+    for (size_t i = start; i < start + count; i++) {
+        const TraceEntry& e = (*this)[i];
+        PlaybackValueSource source(e);
+        out += Disasm::asString(e.code, 0, e.pc, nullptr, true, &source);
+        out += '\n';
+        if (out.size() >= 1024 * 1024) {
+            file->writeString(out);
+            out.clear();
+        }
+    }
+    file->writeString(out);
+}
+
+void PCSX::CpuTrace::save(IO<File> file) const {
+    file->write(kMagic, sizeof(kMagic));
+    file->write<uint32_t>(kVersion);
+    file->write<uint32_t>(sizeof(TraceEntry));
+    file->write<uint64_t>(m_count);
+    size_t left = m_count;
+    for (auto& chunk : m_chunks) {
+        size_t n = std::min(left, kRecordsPerChunk);
+        file->write(chunk.get(), n * sizeof(TraceEntry));
+        left -= n;
+        if (left == 0) break;
+    }
+}
+
+bool PCSX::CpuTrace::load(IO<File> file) {
+    clear();
+    char magic[sizeof(kMagic)];
+    if (file->read(magic, sizeof(magic)) != sizeof(magic)) return false;
+    if (memcmp(magic, kMagic, sizeof(kMagic)) != 0) return false;
+    if (file->read<uint32_t>() != kVersion) return false;
+    if (file->read<uint32_t>() != sizeof(TraceEntry)) return false;
+    uint64_t count = file->read<uint64_t>();
+    while (m_count < count) {
+        size_t n = std::min<uint64_t>(count - m_count, kRecordsPerChunk);
+        m_chunks.emplace_back(std::make_unique<TraceEntry[]>(kRecordsPerChunk));
+        ssize_t got = file->read(m_chunks.back().get(), n * sizeof(TraceEntry));
+        if (got != static_cast<ssize_t>(n * sizeof(TraceEntry))) {
+            clear();
+            return false;
+        }
+        m_count += n;
+    }
+    return true;
 }
