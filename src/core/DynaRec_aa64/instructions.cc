@@ -900,6 +900,7 @@ void DynaRecCPU::testSoftwareInterrupt() {
     }
 
     m_stopCompiling = true;
+    m_linkedPC = std::nullopt;  // The exception replaces the PC that a branch before us linked to
     // The exception call below only runs on one path, but its spill updates the allocator for both. Spill here so
     // the fall-through path writes back the same registers.
     prepareForCall();
@@ -1691,6 +1692,7 @@ void DynaRecCPU::recXORI(uint32_t code) {
 void DynaRecCPU::recException(Exception e) {
     m_pcWrittenBack = true;
     m_stopCompiling = true;
+    m_linkedPC = std::nullopt;  // The exception replaces the PC that a branch before us linked to
 
     loadThisPointer(arg1.X());                                                  // Pointer to this object in arg1
     gen.Mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Exception type in arg2
