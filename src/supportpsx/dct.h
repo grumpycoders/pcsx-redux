@@ -334,7 +334,8 @@ void scaleQuantTable(const uint8_t *in, uint8_t *out, int quality);
 // curve is monotonic.
 int qualityToQScale(int quality);
 
-// The standard MDEC quant table, the one every shipping encoder uses.
+// The standard MDEC quant table, the one every shipping encoder uses, in the
+// order MDEC(2) receives it: zigzag, entry k for stream coefficient k.
 const uint8_t *standardQuantTable();
 
 // What the run-level stream gets wrapped in for delivery. Everything upstream of
