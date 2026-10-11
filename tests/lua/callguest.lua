@@ -142,6 +142,8 @@ function TestCallGuest:test_rejects_bad_arguments()
     lu.assertFalse(pcall(PCSX.callGuest, { pc = CODE, isolate = 1 }))
     lu.assertFalse(pcall(PCSX.callGuest, { pc = CODE, isolate = 'disk' }))
     lu.assertFalse(pcall(PCSX.callGuest, { pc = CODE, args = 3 }))
+    -- Five arguments put a frame on the stack, and 0x1f801100 is the timers, not memory.
+    lu.assertFalse(pcall(PCSX.callGuest, { pc = CODE, sp = 0x1f801120, args = { 1, 2, 3, 4, 5 } }))
 end
 
 -- memcpy(a1, a0, a2) a byte at a time.

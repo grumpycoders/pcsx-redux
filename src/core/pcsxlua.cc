@@ -384,6 +384,16 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             size_t frame = std::max<size_t>(16, args.size() * 4);
             frame = (frame + 7) & ~size_t(7);
             sp -= frame;
+            /* Arguments past the fourth go through the bus, so the frame has to sit in RAM or
+               the scratchpad; anywhere else those writes would land on hardware registers. */
+            if (args.size() > 4) {
+                const uint32_t phys = sp & 0x1fffffff;
+                const bool inRam = uint64_t(phys) + frame <= 0x00800000;
+                const bool inScratchpad = phys >= 0x1f800000 && uint64_t(phys) + frame <= 0x1f800400;
+                if (!inRam && !inScratchpad) {
+                    return L.error("callGuest: stack frame at 0x%08x isn't in RAM or the scratchpad", sp);
+                }
+            }
 
             /* Check every stage and fetch range before touching anything, so a bad one can't
                leave half the inputs in place, or a guest run that no rollback follows. */
