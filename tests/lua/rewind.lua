@@ -71,10 +71,15 @@ end
 
 -- Hands control back to a test from the main loop, once the cpu has unwound out of Execute().
 -- Resuming straight from a listener leaves the rest of the suite on the emulation stack, where a
--- rewind is only queued.
+-- rewind is only queued. A vsync polls the event loop too, so the first tick after a pause from
+-- a vsync listener still runs on that stack; the cpu has unwound by the second one.
 local function resumeFromMainLoop(co)
     local timer = luv.new_timer()
-    timer:start(0, 0, function()
+    local ticks = 0
+    timer:start(0, 1, function()
+        ticks = ticks + 1
+        if ticks < 2 then return end
+        timer:stop()
         timer:close()
         coroutine.resume(co)
     end)
@@ -94,7 +99,11 @@ local function runIntoCallStack()
     regs.GPR.n.ra = 0x80100100
     regs.pc = 0x80100000
     local co = coroutine.running()
-    PCSX.nextTick(function()
+    -- Pause on a vsync, which is certain to come after the guest ran: a nextTick queued from a
+    -- test that was itself resumed by an event loop callback fires before the cpu starts.
+    local vsync
+    vsync = PCSX.Events.createEventListener('GPU::Vsync', function()
+        vsync:remove()
         PCSX.pauseEmulator()
         resumeFromMainLoop(co)
     end)
@@ -118,6 +127,68 @@ function TestRewind:test_round_trips_on_recycled_slots_stay_flat()
         lu.assertTrue(PCSX.rewindState())
         lu.assertTrue(math.abs(PCSX.createSaveState().size - size) <= slack, 'round trip ' .. i)
     end
+end
+
+-- Queues a rewind from a vsync listener and lets the main loop land it. restore() signals
+-- SaveStateLoaded before rewindStateNow() returns, and the listener rewinds once more from there:
+-- it is off the emulation stack, so that one runs straight away, while the outer step is still
+-- in flight. Returns what the nested call returned.
+local function rewindTwiceFromTheMainLoop()
+    local co = coroutine.running()
+    local r = {}
+    -- One shot, and gone before it rewinds: the nested restore signals SaveStateLoaded too, and
+    -- that must not call back into Lua from inside the rewindState() call.
+    local loaded
+    loaded = PCSX.Events.createEventListener('ExecutionFlow::SaveStateLoaded', function()
+        loaded:remove()
+        r.loads = true
+        r.nested = PCSX.rewindState()
+    end)
+    local vsyncs = 0
+    local vsync
+    vsync = PCSX.Events.createEventListener('GPU::Vsync', function()
+        vsyncs = vsyncs + 1
+        if vsyncs == 1 then
+            r.queued = PCSX.rewindState()
+        elseif r.loads then
+            vsync:remove()
+            PCSX.pauseEmulator()
+            resumeFromMainLoop(co)
+        end
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+    lu.assertTrue(r.queued)
+    return r.nested
+end
+
+-- The nested rewind has to step past the snapshot the outer one is landing on, not land on it
+-- a second time.
+function TestRewind:test_rewind_from_a_load_listener()
+    while PCSX.getRewindStateCount() > 0 do PCSX.rewindState() end
+    -- Park the cpu in a loop before taking the snapshots, so it runs on from there after a rewind.
+    local code = ram32(0x100300)
+    code[0] = 0x080400c0 -- j 0x80100300
+    code[1] = 0x00000000 -- nop
+    PCSX.invalidateCache()
+    PCSX.getRegisters().pc = 0x80100300
+    local word = ram32(0x1f0008)
+    word[0] = 0x11111111
+    PCSX.createRewindState()
+    word[0] = 0x22222222
+    PCSX.createRewindState()
+    word[0] = 0x33333333
+    lu.assertTrue(rewindTwiceFromTheMainLoop())
+    lu.assertEquals(word[0], 0x11111111)
+    lu.assertEquals(PCSX.getRewindStateCount(), 0)
+
+    -- With the last snapshot in flight there is nothing left for the listener to step back to.
+    word[0] = 0x44444444
+    PCSX.createRewindState()
+    word[0] = 0x55555555
+    lu.assertFalse(rewindTwiceFromTheMainLoop())
+    lu.assertEquals(word[0], 0x44444444)
+    lu.assertEquals(PCSX.getRewindStateCount(), 0)
 end
 
 -- A rewind asked for from a vsync listener runs in the middle of Counters::update(). It has to
