@@ -3152,7 +3152,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:152
 msgid "Add breakpoint"
-msgstr "Ajouter point d'arrêt"
+msgstr "Ajouter un point d'arrêt"
 
 #: src/gui/widgets/gpulogger.cc:156
 msgid "Enable, then X, Y, width, height:"
