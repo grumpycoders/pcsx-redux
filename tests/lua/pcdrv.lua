@@ -164,3 +164,16 @@ function TestPCdrvSaveState:test_load_keeps_the_read_position_of_a_read_only_fil
     write(fd, 'X')
     lu.assertEquals(hostFile(), '0123456789')
 end
+
+-- A file deleted since the save comes back, with the guest still writing where it was.
+function TestPCdrvSaveState:test_load_recreates_a_deleted_file()
+    local fd = prepare()
+    local state = PCSX.createSaveState()
+    lu.assertEquals(close(fd), 0)
+    os.remove(FILENAME)
+    PCSX.loadSaveState(state)
+    plantStubs()
+    lu.assertEquals(write(fd, 'DD'), 2)
+    lu.assertEquals(close(fd), 0)
+    lu.assertEquals(hostFile(), '\0\0\0\0DD')
+end

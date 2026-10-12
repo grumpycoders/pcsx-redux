@@ -312,8 +312,10 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
         // Neither truncate nor append: the guest's writes go where its write position says.
         file = new PCdrvFile(path, FileOps::READWRITE);
         if ((*file)->failed()) {
-            // Gone since the save, so there is nothing left to truncate.
             delete file;
+            // Only recreate a file that is gone: one that merely failed to open keeps its contents.
+            std::error_code ec;
+            if (std::filesystem::exists(path, ec) || ec) return;
             file = new PCdrvFile(path, FileOps::TRUNCATE);
         }
     } else {
