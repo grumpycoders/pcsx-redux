@@ -1,0 +1,109 @@
+# Publishes the test builds of a pull request to the pr-* AppDistrib projects and
+# links them on the PR. Runs from main with the base repo's secrets, after the PR's
+# own CI finished, so it never checks out or runs code from the PR: the build
+# artifact is only downloaded, zipped and uploaded.
+name: PR builds
+
+on:
+  workflow_run:
+    workflows: ["Linux CI", "macOS CI"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ci: Linux CI
+            artifact: AppImage-linux-x86_64
+            project: pr-linux-x64
+            secret: APPDISTRIB_PR_LINUX_X64
+            label: Linux x86_64
+          - ci: Linux CI
+            artifact: AppImage-linux-aarch64
+            project: pr-linux-arm64
+            secret: APPDISTRIB_PR_LINUX_ARM64
+            label: Linux aarch64
+          - ci: macOS CI
+            artifact: Dmg-arm
+            project: pr-macos-arm
+            secret: APPDISTRIB_PR_MACOS_ARM
+            label: macOS arm64
+    # Build ids are max+1 on the server, so uploads to one project must not overlap.
+    concurrency:
+      group: pr-builds-${{ matrix.project }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - name: Find the pull request
+        id: pr
+        if: github.event.workflow_run.name == matrix.ci
+        run: |
+          pr=$(gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f head="$HEAD_OWNER:$HEAD_BRANCH" \
+            --jq "map(select(.head.sha == \"$HEAD_SHA\")) | .[0].number // empty")
+          if ! [[ "$pr" =~ ^[0-9]+$ ]]; then
+            echo "No open PR has head $HEAD_SHA; nothing to publish."
+            exit 0
+          fi
+          echo "number=$pr" >> "$GITHUB_OUTPUT"
+      - name: Download the build
+        id: dl
+        if: steps.pr.outputs.number
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-node@v4
+        if: steps.dl.outcome == 'success'
+        with:
+          node-version: '22.6.0'
+      - name: Publish
+        id: publish
+        if: steps.dl.outcome == 'success'
+        env:
+          APPDISTRIB_TOKEN: ${{ secrets[matrix.secret] }}
+          APPDISTRIB_ORGANIZATION: pcsx-redux
+          APPDISTRIB_PROJECT: ${{ matrix.project }}
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          short=${HEAD_SHA:0:8}
+          name="PCSX-Redux-PR$PR-$short-${{ matrix.project }}.zip"
+          (cd build && zip -r "../$name" .)
+          npx @appdistrib/cli buildid > buildid.json
+          id=$(jq -r .buildid buildid.json)
+          jq -n --arg v "$short" --argjson b "$id" --arg c "$HEAD_SHA" --argjson t "$(date +%s)" --argjson pr "$PR" \
+            '{version: $v, buildId: $b, changeset: $c, timestamp: $t, channel: "pr", pullRequest: $pr, updateInfo: []}' > manifest.json
+          npx @appdistrib/cli -l buildId -m manifest.json upload "$name"
+          path=$(curl -sf "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest-$id.json" | jq -r .path)
+          echo "url=https://distrib.app$path" >> "$GITHUB_OUTPUT"
+      - name: Comment
+        if: steps.publish.outcome == 'success'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          URL: ${{ steps.publish.outputs.url }}
+        run: |
+          marker="<!-- pr-builds:${{ matrix.project }} -->"
+          body="$marker
+          ${{ matrix.label }} test build for ${HEAD_SHA:0:8}: $URL"
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body"
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body"
+          fi

@@ -287,6 +287,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     }
 
     if (!on) {
+        // The volume sweep runs whether or not the voice is playing.
+        for (int ns = 0; ns < NSSIZE; ns++) voice->volume.step();
         // Silent is not stopped. "All voices are permanently reading data from SPU RAM -
         // even in Noise mode, even if the Voice Volume is zero, and even if the ADSR
         // pattern has finished the Release period - so even inaudible voices can trigger
@@ -304,6 +306,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // Collect 1 ms of this channel's audio.
     for (int ns = 0; ns < NSSIZE; ns++) {
         int rawSample;
+
+        voice->volume.step();
 
         // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
         // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
@@ -331,6 +335,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns);
+                // The sweep keeps running for the rest of the batch.
+                for (int rest = ns + 1; rest < NSSIZE; rest++) voice->volume.step();
                 // Done with this channel.
                 return;
             }

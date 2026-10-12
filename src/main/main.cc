@@ -239,7 +239,11 @@ int pcsxMain(int argc, char **argv) {
 
 #if defined(_WIN32) || defined(_WIN64)
     if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli") || args.get<bool>("tui")) {
-        if (AllocConsole()) {
+        // A parent that captures our output hands us a pipe or a file; keep it
+        // instead of opening a console window nobody reads.
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        bool redirected = out && out != INVALID_HANDLE_VALUE && GetFileType(out) != FILE_TYPE_UNKNOWN;
+        if (!redirected && AllocConsole()) {
             freopen("CONIN$", "r", stdin);
             freopen("CONOUT$", "w", stdout);
             freopen("CONOUT$", "w", stderr);
@@ -531,8 +535,13 @@ runner.init({
                     // Somebody asked for a save state from within a callback the
                     // emulator itself made, so we deferred it to here, where the
                     // emulation stack has unwound and nothing is holding values
-                    // from before the load.
-                    if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
+                    // from before the load. Rewinds come through here too.
+                    if (system->hasPendingRestore()) {
+                        system->takePendingRestore()();
+                    } else if (unsigned rewinds = system->pendingRewinds()) {
+                        system->takePendingSaveStateLoad();
+                        emulator->rewindStateNow(rewinds);
+                    } else if (!PCSX::SaveStates::load(system->takePendingSaveStateLoad())) {
                         PCSX::g_system->message(_("Failed to load save state\n"));
                     }
                 } else if (system->running()) {

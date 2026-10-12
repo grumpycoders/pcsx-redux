@@ -28,6 +28,7 @@ typedef struct uv_loop_s uv_loop_t;
 
 #include <chrono>
 #include <filesystem>
+#include <functional>
 #include <limits>
 #include <map>
 #include <string>
@@ -209,8 +210,33 @@ class System {
     // signal a pause, since the emulation isn't stopping, it's only unwinding.
     void scheduleSaveStateLoad(std::string &&data) {
         m_pendingSaveStateLoad = std::move(data);
+        m_pendingRestore = nullptr;
+        // A load also replaces any rewind queued before it.
+        m_pendingRewinds = 0;
         // A second load in the same window replaces the first, and must not
         // read the m_running the first one already cleared.
+        if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
+        m_hasPendingSaveStateLoad = true;
+        m_running = false;
+    }
+    // Same thing for a step back through the emulator's rewind ring, which
+    // replaces the state just as much as a load does. Rewinds queued in the same
+    // window add up, one snapshot each, while a rewind queued after a load
+    // replaces it, like a second load would.
+    void scheduleRewind() {
+        m_pendingSaveStateLoad.clear();
+        m_pendingRestore = nullptr;
+        m_pendingRewinds++;
+        if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
+        m_hasPendingSaveStateLoad = true;
+        m_running = false;
+    }
+    // And for a snapshot already in memory, such as the one Lua's restoreState()
+    // brings back. It replaces anything queued before it, like a load would.
+    void scheduleRestore(std::function<void()> &&restore) {
+        m_pendingSaveStateLoad.clear();
+        m_pendingRewinds = 0;
+        m_pendingRestore = std::move(restore);
         if (!m_hasPendingSaveStateLoad) m_resumeAfterPendingLoad = m_running;
         m_hasPendingSaveStateLoad = true;
         m_running = false;
@@ -221,6 +247,8 @@ class System {
         m_hasPendingSaveStateLoad = false;
         m_running = m_resumeAfterPendingLoad;
         m_pendingSaveStateLoad.clear();
+        m_pendingRewinds = 0;
+        m_pendingRestore = nullptr;
     }
     // True while the main loop is inside the CPU's Execute(). Anything that
     // runs then, including a Pause listener fired from a breakpoint, is on the
@@ -228,13 +256,25 @@ class System {
     bool inExecute() const { return m_inExecute; }
     void setInExecute(bool inExecute) { m_inExecute = inExecute; }
     bool hasPendingSaveStateLoad() const { return m_hasPendingSaveStateLoad; }
+    // When non-zero, the queued load is this many rewinds rather than a save state.
+    unsigned pendingRewinds() const { return m_pendingRewinds; }
+    // When set, the queued load is this restore rather than a save state.
+    bool hasPendingRestore() const { return static_cast<bool>(m_pendingRestore); }
     // Hands over the queued save state and puts the emulation back the way it
     // was. Only ever call this from the main loop, with nothing of the
     // emulation left on the stack.
     std::string takePendingSaveStateLoad() {
         m_hasPendingSaveStateLoad = false;
         m_running = m_resumeAfterPendingLoad;
+        m_pendingRewinds = 0;
+        m_pendingRestore = nullptr;
         return std::move(m_pendingSaveStateLoad);
+    }
+    // Same, for a queued restore. Main loop only, like takePendingSaveStateLoad().
+    std::function<void()> takePendingRestore() {
+        auto restore = std::move(m_pendingRestore);
+        takePendingSaveStateLoad();
+        return restore;
     }
     virtual void testQuit(int code) = 0;
     // This needs to only mutate variables, as it requires to be signal-safe.
@@ -338,6 +378,8 @@ class System {
     bool m_resumeAfterPendingLoad = false;
     bool m_inExecute = false;
     std::string m_pendingSaveStateLoad;
+    unsigned m_pendingRewinds = 0;
+    std::function<void()> m_pendingRestore;
     int m_exitCode = 0;
     struct LocaleInfo {
         const std::string filename;

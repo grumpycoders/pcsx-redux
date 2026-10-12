@@ -40,6 +40,7 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <deque>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -178,6 +179,9 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
+    // Rewind: capture a snapshot every N frames (0 disables), keeping the last M snapshots.
+    typedef Setting<uint32_t, TYPESTRING("RewindInterval"), 0> SettingRewindInterval;
+    typedef Setting<uint32_t, TYPESTRING("RewindCount"), 60> SettingRewindCount;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
@@ -206,7 +210,8 @@ class Emulator {
              SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
              SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
              SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites>
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval,
+             SettingRewindCount>
         settings;
     class PcsxConfig {
       public:
@@ -216,8 +221,6 @@ class Emulator {
         bool HideCursor = false;
         bool SaveWindowPos = false;
         int32_t WindowPos[2] = {0, 0};
-        uint32_t RewindCount = 0;
-        uint32_t RewindInterval = 0;
         uint32_t AltSpeed1 = 0;  // Percent relative to natural speed.
         uint32_t AltSpeed2 = 0;
         bool OverClock = false;  // enable overclocking
@@ -231,6 +234,10 @@ class Emulator {
 
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
+
+    // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
+    struct RewindRing;
+    std::unique_ptr<RewindRing> m_rewindRing;
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything
@@ -255,6 +262,18 @@ class Emulator {
     void shutdown();
     void vsync();
     void setPGXPMode(uint32_t pgxpMode);
+
+    // Rewind: ring of in-memory snapshots taken every RewindInterval frames, bounded to
+    // RewindCount entries. Entries are SaveStates::capture()d messages, restored with
+    // SaveStates::restore(), so neither direction goes through the protobuf encoding.
+    // rewindState() steps back right away when nothing of the emulation is on the stack, and
+    // queues the step for the main loop otherwise, like SaveStates::loadSafe(). Either way it
+    // returns whether there was a snapshot to step back to. rewindStateNow() is the unsafe half
+    // the main loop applies a queue with, and rewindStateCount() leaves out queued steps.
+    void createRewindState();
+    bool rewindState();
+    bool rewindStateNow(unsigned steps = 1);
+    size_t rewindStateCount() const;
 
     void setLua();
 

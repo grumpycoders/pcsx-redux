@@ -67,3 +67,12 @@ TEST(SPU, Accuracy) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// Voice volume sweep, read back through VOLXL. The guest checks 14 sweep settings
+// against a trace taken on an SCPH-1001, two envelope steps of tolerance.
+TEST(SPU, VolSweep) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu-volsweep/spu-volsweep.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}

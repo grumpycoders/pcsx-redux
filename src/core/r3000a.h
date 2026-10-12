@@ -257,6 +257,22 @@ class R3000Acpu {
     }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
+
+    enum class RunUntilResult {
+        Reached,     /* pc landed on stopPC */
+        OutOfCycles, /* the budget ran out first */
+        Exception,   /* the guest took an exception */
+        Unsupported, /* this cpu can't do it */
+        Reentered,   /* called from inside another RunUntil */
+    };
+    /* Runs until pc reaches stopPC, the cycle budget is spent, or an exception is taken.
+       Unlike Execute(), this doesn't run branchTest(), so counters, scheduled interrupts
+       and the audio-driven frame throttle are all inert for the duration - the caller gets
+       the cpu on its own, with no wall clock attached. Only the interpreter implements it;
+       the recompilers can't stop on an arbitrary pc, since they emit no per-instruction
+       checks and linked blocks jump straight past the dispatcher. */
+    virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) { return RunUntilResult::Unsupported; }
+
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -377,6 +393,7 @@ class R3000Acpu {
         m_gtePendingCount = 0;
     }
     bool m_inISR = false;
+    bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
     struct {
@@ -606,13 +623,15 @@ Formula One 2001
             m_availableFDs.push_back(i);
         }
     }
-    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable());
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(),
+                   (*iter)->wTell());
         }
     }
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, FileOps::Create);
+    // A negative position means the end of the file.
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, bool writable, ssize_t readPosition,
+                          ssize_t writePosition);
 };
 
 class Cpus {

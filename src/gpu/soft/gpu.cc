@@ -688,6 +688,7 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
+    m_display.reset();
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -718,6 +719,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDmaSetting *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
+    m_display.set(ctrl);
     m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
     m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
 
@@ -754,6 +756,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.x0 = ctrl->x0;
     m_softDisplay.Range.x1 = ctrl->x1;
     m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
@@ -761,6 +764,7 @@ void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.y0 = ctrl->y0;
     m_softDisplay.Range.y1 = ctrl->y1;
 
@@ -778,6 +782,8 @@ void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
+    // Display::set also switches the PAL/NTSC setting, which a detached GPU must not touch.
+    if (!isDetached()) m_display.set(ctrl);
     m_softDisplay.DisplayModeNew.x = s_displayWidths[magic_enum::enum_integer(ctrl->hres)];
 
     if (ctrl->vres == CtrlDisplayMode::VR_480) {

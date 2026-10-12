@@ -31,7 +31,10 @@ class Counters {
   private:
     static inline void setIrq(uint32_t irq) { g_emulator->m_mem->setIRQ(irq); }
     uint32_t readCounterInternal(uint32_t index);
-    void writeCounterInternal(uint32_t index, uint32_t value);
+    void writeCounterInternal(uint32_t index, uint32_t value, int64_t startAdjust = 0);
+    // Cycles a counter sits at 0 after a reset on target before counting again. Measured as 2 on
+    // the system clock for Timer 2 (period target + 2); 0 on sysclock/8. Timers 0 and 1 unmeasured.
+    uint32_t resetDwell(uint32_t index) const { return (index == 2 && m_rcnts[index].rate == 1) ? 2 : 0; }
 
     void set();
     void reset(uint32_t index);

@@ -248,7 +248,13 @@ typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("fd"), 1> PCdrvFD;
 typedef Protobuf::Field<Protobuf::String, TYPESTRING("filename"), 2> PCdrvFilename;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("create"), 3> PCdrvCreate;
-typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate> PCdrvFile;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("read_position"), 4> PCdrvReadPosition;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("write_position"), 5> PCdrvWritePosition;
+// Older saves have neither position: their files resume reading at 0 and writing at the end.
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("has_positions"), 6> PCdrvHasPositions;
+typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate, PCdrvReadPosition,
+                          PCdrvWritePosition, PCdrvHasPositions>
+    PCdrvFile;
 typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdrvFilesField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
@@ -371,6 +377,15 @@ bool load(std::string_view data);
 // hotkey, and the web server all reach for a load from callbacks that run in
 // the middle of Counters::update() and R3000Acpu::branchTest().
 void loadSafe(std::string &&data);
+
+/* The in-memory pair. capture()/restore() are save()/load() with the protobuf encode and
+   decode taken out: the message already owns a copy of every field, and commit() has always
+   pushed those copies live, so the only missing direction was pulling live state into them.
+   restore() deliberately does NOT call m_cpu->Reset() the way load() does, so a caller that
+   wants a transparent snapshot keeps its icache and delayed-load state - which also means it
+   owes the code cache an invalidation for anything it rewound. */
+void capture(SaveState &state);
+void restore(SaveState &state);
 }  // namespace SaveStates
 
 }  // namespace PCSX

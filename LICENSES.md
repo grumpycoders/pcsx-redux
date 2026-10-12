@@ -60,7 +60,6 @@ find a link to the vendored version itself.
  - [thorvg](https://github.com/thorvg/thorvg) ([vendored](https://github.com/pcsx-redux/thorvg))
  - [tracy](https://github.com/wolfpld/tracy)
  - [typestring](https://github.com/irrequietus/typestring) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/typestring.hh))
- - [uC-sdk](https://github.com/grumpycoders/uC-sdk)
  - [ucl](https://github.com/Distrotech/ucl)
  - [uriparser](https://github.com/uriparser/uriparser)
  - [vixl](https://github.com/Linaro/vixl) ([vendored](https://github.com/grumpycoders/vixl))

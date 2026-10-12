@@ -100,6 +100,10 @@ LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
 
+void createRewindState();
+bool rewindState();
+uint32_t getRewindStateCount();
+
 LuaFile* getMemoryAsFile();
 
 void quit(int code);
@@ -262,6 +266,9 @@ PCSX = {
         end
     end,
     getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    createRewindState = function() C.createRewindState() end,
+    rewindState = function() return C.rewindState() end,
+    getRewindStateCount = function() return C.getRewindStateCount() end,
     quit = function(code) C.quit(code or 0) end,
 }
 
