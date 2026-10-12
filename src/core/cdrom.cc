@@ -1528,6 +1528,17 @@ class CDRomImpl final : public PCSX::CDRom {
         }
 
         switch (command.payload[0]) {
+            case 0x05: {
+                // SCEx counters (total, success). A stock SCPH-7001 answers 01 01 with a disc and
+                // drives with no readable disc 00 00. GetID reports every disc as licensed, so
+                // this does too.
+                const uint8_t count = isLidOpen() || !m_iso || m_iso->failed() ? 0 : 1;
+                QueueElement response;
+                response.pushPayloadData(count);
+                response.pushPayloadData(count);
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             case 0x20:
                 if (command.payloadSize == 1) {
                     QueueElement response;
@@ -1547,9 +1558,20 @@ class CDRomImpl final : public PCSX::CDRom {
                 maybeTriggerIRQ(Cause::Acknowledge, response);
                 break;
             }
+            case 0x21: {
+                // Switches: bit 0 is the sled at its inner limit (POS0), bit 1 the lid open. A
+                // SCPH-9002 spinning a disc answers 00h, a SCPH-1001 with the lid open 02h, and
+                // idle drives 01h. The head position is not modelled, so bit 0 stays clear.
+                QueueElement response;
+                response.pushPayloadData(isLidOpen() ? 0x02 : 0x00);
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             case 0x23:
-            case 0x24: {
-                // Servo amplifier and signal processor chip names; both "CXD2940Q" on a SCPH-9002.
+            case 0x24:
+            case 0x25: {
+                // Servo amplifier, signal processor and decoder chip names; all "CXD2940Q" on a
+                // SCPH-9002.
                 QueueElement response;
                 response.pushPayloadData(std::string_view("CXD2940Q"));
                 maybeTriggerIRQ(Cause::Acknowledge, response);
