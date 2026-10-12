@@ -390,6 +390,7 @@ class R3000Acpu {
     virtual void Reset() {
         invalidateCache();
         m_regs.scheduleMask = 0;
+        m_gtePendingCount = 0;
     }
     bool m_inISR = false;
     bool m_inRunUntil = false;
@@ -406,6 +407,15 @@ class R3000Acpu {
         bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
+    // GTE register writes not yet visible to the GTE, oldest first.
+    struct GTEPendingWrite {
+        uint32_t value;
+        uint32_t reg;
+        bool ctrl;
+        uint32_t countdown;
+    };
+    GTEPendingWrite m_gtePending[3] = {};
+    uint32_t m_gtePendingCount = 0;
     template <typename T = uint32_t>
     T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();

@@ -80,9 +80,21 @@ typedef Protobuf::RepeatedFieldRef<Protobuf::UInt64, 32, TYPESTRING("schedule_ta
 typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("in_isr"), 18> InISR;
 typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("muldiv_ready"), 19> MulDivReady;
 typedef Protobuf::FieldRef<Protobuf::UInt64, TYPESTRING("gte_ready"), 20> GteReady;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("reg"), 1> GtePendingReg;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("value"), 2> GtePendingValue;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("ctrl"), 3> GtePendingCtrl;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("countdown"), 4> GtePendingCountdown;
+typedef Protobuf::Message<TYPESTRING("GtePendingWrite"), GtePendingReg, GtePendingValue, GtePendingCtrl,
+                          GtePendingCountdown>
+    GtePendingWriteInfo;
+typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_1"), 21> GtePending1;
+typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_2"), 22> GtePending2;
+typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_3"), 23> GtePending3;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("gte_pending_count"), 24> GtePendingCount;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, ScheduleMask, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
-                          ScheduleTargetsField, InISR, MulDivReady, GteReady>
+                          ScheduleTargetsField, InISR, MulDivReady, GteReady, GtePending1, GtePending2,
+                          GtePending3, GtePendingCount>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
