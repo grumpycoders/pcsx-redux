@@ -110,17 +110,17 @@ msgstr "Limpar a cor"
 msgid "Clear VRAM"
 msgstr "Limpar VRAM"
 
-#: src/core/cdrom.cc:1759
+#: src/core/cdrom.cc:1776
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Rótulo do CD-ROM: %.32s\n"
 
-#: src/core/cdrom.cc:1760
+#: src/core/cdrom.cc:1777
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "ID do CD-ROM: %.9s\n"
 
-#: src/core/cdrom.cc:1761
+#: src/core/cdrom.cc:1778
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Nome do EXE do CD-ROM: %.255s\n"
@@ -678,74 +678,74 @@ msgstr ""
 msgid "Unknown 8-bit write in EXP1/PIO: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxhw.cc:389
+#: src/core/psxhw.cc:390
 #, c-format
 msgid "Called msanGetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 
-#: src/core/psxhw.cc:850
+#: src/core/psxhw.cc:851
 #, c-format
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:383
+#: src/core/psxinterpreter.cc:384
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução ADDI do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:477
+#: src/core/psxinterpreter.cc:478
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução ADD do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:519
+#: src/core/psxinterpreter.cc:520
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução SUB do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:841
+#: src/core/psxinterpreter.cc:842
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
 
-#: src/core/psxinterpreter.cc:867
+#: src/core/psxinterpreter.cc:868
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Tentativa de JALR desalinhado pro 0x%08x do 0x%08x, disparando exceção!\n"
 
-#: src/core/psxinterpreter.cc:905
+#: src/core/psxinterpreter.cc:906
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em LH do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:922
+#: src/core/psxinterpreter.cc:923
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em LHU do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:939
+#: src/core/psxinterpreter.cc:940
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no LW do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1001
+#: src/core/psxinterpreter.cc:1002
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em SH do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1012
+#: src/core/psxinterpreter.cc:1013
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no SW do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1127
+#: src/core/psxinterpreter.cc:1128
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Encontrou um opcode reservado do 0x%08x, disparando uma exceção\n"
 
-#: src/core/psxinterpreter.cc:1165
+#: src/core/psxinterpreter.cc:1166
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -754,7 +754,7 @@ msgstr ""
 "Tentativa de usar uma instrução de ponto flutuante inválida do 0x%08x. "
 "Ignorado.\n"
 
-#: src/core/psxinterpreter.cc:1185
+#: src/core/psxinterpreter.cc:1186
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Tentativa de acessar a COP3 do 0x%08x. Ignorado\n"
@@ -834,107 +834,107 @@ msgstr "OpenBIOS detectada (%08x)\n"
 msgid "Unknown bios loaded (%08x)\n"
 msgstr "Bios desconhecida carregada (%08x)\n"
 
-#: src/core/psxmem.cc:303
+#: src/core/psxmem.cc:304
 #, c-format
 msgid "8-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:307
+#: src/core/psxmem.cc:308
 #, c-format
 msgid "8-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:336
+#: src/core/psxmem.cc:337
 #, c-format
 msgid "8-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:354
+#: src/core/psxmem.cc:356
 #, c-format
 msgid "16-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:358
+#: src/core/psxmem.cc:360
 #, c-format
 msgid "16-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:384
+#: src/core/psxmem.cc:386
 #, c-format
 msgid "16-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:402 src/core/psxmem.cc:652
+#: src/core/psxmem.cc:405 src/core/psxmem.cc:658
 #, c-format
 msgid "32-bit read from usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:406 src/core/psxmem.cc:656
+#: src/core/psxmem.cc:409 src/core/psxmem.cc:662
 #, c-format
 msgid "32-bit read from unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:434
+#: src/core/psxmem.cc:437
 #, c-format
 msgid "32-bit read from unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:527
+#: src/core/psxmem.cc:531
 #, c-format
 msgid "8-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:546
+#: src/core/psxmem.cc:550
 #, c-format
 msgid "8-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:564
+#: src/core/psxmem.cc:569
 #, c-format
 msgid "16-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:584
+#: src/core/psxmem.cc:589
 #, c-format
 msgid "16-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:602 src/core/psxmem.cc:671
+#: src/core/psxmem.cc:608 src/core/psxmem.cc:677
 #, c-format
 msgid "32-bit write to unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:631
+#: src/core/psxmem.cc:637
 #, fuzzy, c-format
 msgid "Unknown BIU value: %8.8lx\n"
 msgstr "Bios desconhecida carregada (%08x)\n"
 
-#: src/core/psxmem.cc:640
+#: src/core/psxmem.cc:646
 #, c-format
 msgid "32-bit write to unknown address: %8.8lx\n"
 msgstr ""
 
-#: src/core/psxmem.cc:912
+#: src/core/psxmem.cc:918
 #, c-format
 msgid "MSAN system was already initialized.\n"
 msgstr ""
 
-#: src/core/psxmem.cc:937
+#: src/core/psxmem.cc:943
 #, c-format
 msgid "Out of memory in MsanAlloc\n"
 msgstr ""
 
-#: src/core/psxmem.cc:961 src/core/psxmem.cc:968
+#: src/core/psxmem.cc:967 src/core/psxmem.cc:974
 #, c-format
 msgid "Invalid pointer passed to MsanFree: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:990 src/core/psxmem.cc:997
+#: src/core/psxmem.cc:996 src/core/psxmem.cc:1003
 #, c-format
 msgid "Invalid pointer passed to MsanRealloc: %08x\n"
 msgstr ""
 
-#: src/core/psxmem.cc:1040
+#: src/core/psxmem.cc:1046
 #, c-format
 msgid "Unregistered msan chain header at %08x\n"
 msgstr ""
@@ -4391,7 +4391,7 @@ msgstr ""
 msgid "TPage Grid Color Picker"
 msgstr ""
 
-#: src/main/main.cc:543
+#: src/main/main.cc:545
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Falhou em achar o codec %s\n"
