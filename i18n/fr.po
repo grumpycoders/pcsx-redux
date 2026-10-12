@@ -3131,7 +3131,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:146
 msgid "VRAM breakpoints"
-msgstr "Breakpoints VRAM"
+msgstr "Points d'arrêts VRAM"
 
 #: src/gui/widgets/gpulogger.cc:148
 msgid ""
