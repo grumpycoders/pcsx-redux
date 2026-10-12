@@ -4206,7 +4206,7 @@ msgstr "Surveillance"
 
 #: src/gui/widgets/typed_debugger.cc:804 src/gui/widgets/typed_debugger.cc:851
 msgid "Clear breakpoints"
-msgstr "Effacer les breakpoints"
+msgstr "Effacer les points d'arrêts"
 
 #: src/gui/widgets/typed_debugger.cc:813
 msgid "Restore disabled instructions"
