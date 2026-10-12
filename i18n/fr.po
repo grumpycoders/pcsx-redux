@@ -6,8 +6,8 @@
 # Translators:
 # Christophe Péguillat <cpeg-jeuxvideo@outlook.fr>, 2022
 # Schnappy, 2026
-# Rix, 2026
 # Nicolas Noble, 2026
+# Rix, 2026
 # 
 #, fuzzy
 msgid ""
@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Nicolas Noble, 2026\n"
+"Last-Translator: Rix, 2026\n"
 "Language-Team: French (https://app.transifex.com/grumpycoders/teams/99251/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -434,7 +434,7 @@ msgstr "Adresse non alignée 0x%08x dans le champ LWC2 depuis 0x%08x\n"
 #: src/core/gte-transfer.cc:125
 #, c-format
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ SWC2 à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans SWC2 depuis 0x%08x\n"
 
 #: src/core/mdec.cc:680
 msgid ""
@@ -720,27 +720,27 @@ msgstr ""
 #: src/core/psxinterpreter.cc:895
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ LH à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans LH depuis 0x%08x\n"
 
 #: src/core/psxinterpreter.cc:912
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ LHU à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans LHU depuis 0x%08x\n"
 
 #: src/core/psxinterpreter.cc:929
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ LW à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans LW depuis 0x%08x\n"
 
 #: src/core/psxinterpreter.cc:991
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ SH à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans SH depuis 0x%08x\n"
 
 #: src/core/psxinterpreter.cc:1002
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ SW à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans SW depuis 0x%08x\n"
 
 #: src/core/psxinterpreter.cc:1117
 #, c-format
@@ -4238,7 +4238,7 @@ msgstr "Basculer"
 
 #: src/gui/widgets/typed_debugger.cc:947
 msgid "Add breakpoint##{}"
-msgstr "Ajouter un breakpoint##{}"
+msgstr "Ajouter un point d'arrêt##{}"
 
 #: src/gui/widgets/vram-viewer.cc:499
 msgid "VRAM Shader Editor"
