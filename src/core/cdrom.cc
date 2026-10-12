@@ -121,6 +121,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_autoPause = false;
         m_report = false;
         m_setLocPending = false;
+        m_sectorReadSinceSeek = false;
         m_muted = false;
         m_adpcmMuted = false;
         m_mode = 0;
@@ -175,6 +176,7 @@ class CDRomImpl final : public PCSX::CDRom {
                 seekDelay += 650ms;
             }
             m_currentPosition = m_seekPosition;
+            m_sectorReadSinceSeek = false;
             scheduleRead(seekDelay + computeReadDelay());
             m_readingState = ReadingState::Reading;
             return;
@@ -250,6 +252,7 @@ class CDRomImpl final : public PCSX::CDRom {
                         m_dataFIFOSize = m_dataRequested ? size : 0;
                     }
                     m_currentPosition++;
+                    m_sectorReadSinceSeek = true;
                     if (debug) {
                         std::string msfFormat = fmt::format("{}", m_currentPosition);
                         PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: readInterrupt: advancing to %s.\n",
@@ -1062,20 +1065,32 @@ class CDRomImpl final : public PCSX::CDRom {
             PCSX::g_emulator->m_cpu->unschedule(PCSX::Schedule::CDRCOMMANDS);
             m_commandExecuting.clear();
         }
+        bool setLocPending = m_setLocPending;
         m_setLocPending = false;
         // A ReadN resent before the seek has started, or during a seek to the same target, leaves
         // the read in flight. SCPH-9002: Setloc, ReadN and Nop resent every ~1.6 ms still reach
         // INT1, in about the time a single ReadN takes.
+        // A read sent while sectors are already flowing, with no new Setloc since, keeps reading
+        // from where the head is: the old Setloc target was consumed by the read in progress.
         bool reading = (m_readingType == ReadingType::Normal) || (m_readingType == ReadingType::Streaming);
+        bool flowing = !setLocPending && (m_readingState == ReadingState::None) && (m_status == Status::ReadingData);
         if (reading &&
             ((m_readingState == ReadingState::Seeking) ||
-             ((m_readingState == ReadingState::Reading) && (m_seekPosition.toLBA() == m_currentPosition.toLBA())))) {
+             ((m_readingState == ReadingState::Reading) && (m_seekPosition.toLBA() == m_currentPosition.toLBA())) ||
+             flowing)) {
             m_readingType = ReadingType::Normal;
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
             maybeScheduleNextCommand();
             return false;
+        }
+        // With no new Setloc, a read after Pause resumes one sector before the last one delivered,
+        // not at the old Setloc target. SCPH-9002: 00:02:20 after 00:02:21, four runs out of four.
+        if (!setLocPending && m_sectorReadSinceSeek) {
+            m_seekPosition = m_currentPosition;
+            --m_seekPosition;
+            --m_seekPosition;
         }
         resetXA();
         m_status = Status::Idle;
@@ -1249,6 +1264,7 @@ class CDRomImpl final : public PCSX::CDRom {
             m_seekPosition.reset();
             m_seekPosition.s = 2;
             m_invalidLocL = false;
+            m_sectorReadSinceSeek = false;
             m_speed = Speed::Simple;
             m_status = Status::Idle;
             m_interruptCauseMask = 0x1f;
@@ -1447,6 +1463,7 @@ class CDRomImpl final : public PCSX::CDRom {
         } else {
             m_status = Status::Idle;
             m_currentPosition = m_seekPosition;
+            m_sectorReadSinceSeek = false;
             unsigned track = m_iso->getTrack(m_seekPosition);
             if (m_iso->getTrackType(track) == PCSX::CDRIso::TrackType::CDDA) {
                 maybeEnqueueError(4, 4);
