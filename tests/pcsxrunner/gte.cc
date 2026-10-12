@@ -35,16 +35,16 @@ TEST(GTE, Dynarec) {
 }
 
 // A GTE register write still in flight survives a save state. Code poked into RAM queues
-// MTC2 IR1 in a jump's delay slot and reads it back three instructions later, storing to
-// 0x80100100 on a mismatch. The state is saved at a vsync where the write has not landed,
-// then loaded again; the readback must still match.
+// MTC2 IR1 in the delay slot of a register jump, which ends a dynarec block, and reads it back
+// three instructions later, storing to 0x80100100 on a mismatch. The state is saved at a vsync
+// where the write has not landed, then loaded again; the readback must still match.
 static const char c_pendingWriteSaveState[] = R"(
 local ram = ffi.cast('uint32_t*', PCSX.getMemPtr())
 local base = 0x100000 / 4
 local out = 0x100100 / 4
 local code = {
-    -- 0x80100000: toggle t0, jump with MTC2 t0, IR1 in the delay slot
-    0x39080001, 0x08040004, 0x48884800, 0x00000000,
+    -- 0x80100000: toggle t0, jr t2 with MTC2 t0, IR1 in the delay slot
+    0x39080001, 0x01400008, 0x48884800, 0x00000000,
     -- 0x80100010: MFC2 t1, IR1 three instructions after the write, loop if it matches
     0x00000000, 0x00000000, 0x48094800, 0x00000000,
     0x15280004, 0x00000000, 0x08040000, 0x00000000,
@@ -60,6 +60,7 @@ GtePendingListener = PCSX.Events.createEventListener('GPU::Vsync', function()
         for i, w in ipairs(code) do ram[base + i - 1] = w end
         ram[out] = sentinel
         r.GPR.n.t0 = 0x10
+        r.GPR.n.t2 = 0x80100010
         r.pc = 0x80100000
     elseif frames > 121 and not state then
         tries = tries + 1
@@ -78,6 +79,13 @@ end)
 
 TEST(GTE, PendingWriteSaveState) {
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-exec", c_pendingWriteSaveState);
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+TEST(GTE, PendingWriteSaveStateDynarec) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
                         "-exec", c_pendingWriteSaveState);
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);

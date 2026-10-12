@@ -151,6 +151,27 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         uint32_t value;
     } m_runtimeLoadDelay;
 
+    // GTE register writes (MTC2, CTC2, LWC2) compiled in the current block that have not reached the GTE yet,
+    // oldest first. A write lands once two more instructions have run, as in the interpreter. Between blocks,
+    // writes still in flight live in R3000Acpu::m_gtePending.
+    struct GTEQueuedWrite {
+        uint32_t value;  // The value, when isConst
+        uint8_t reg;
+        uint8_t slot;  // Index into m_gteWriteValues and bit in m_gteWriteLive
+        uint8_t countdown;
+        bool ctrl;
+        bool isConst;
+        // A stall may already have committed it at runtime, which its bit in m_gteWriteLive tells
+        bool uncertain;
+    };
+    struct {
+        GTEQueuedWrite writes[3];
+        unsigned count;
+    } m_gteQueue;
+    uint32_t m_gteWriteValues[3];  // Values of the queued writes, captured at issue
+    uint8_t m_gteWriteLive;        // Bit n set: the write in slot n is still in flight
+    uint32_t m_gteTargetBefore[3][3];
+
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
@@ -507,7 +528,19 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
-    void emitStallUntil(uintptr_t readyOffset);
+    void emitGTEStall();
+    void emitGTEWrite(bool ctrl, unsigned reg);
+    void emitGTECommit(const GTEQueuedWrite& write, bool checkLive);
+    void emitGTEFlushQueue(bool commitAll);
+    void makeRoomForGTEWrite();
+    void queueGTEWrite(bool ctrl, unsigned reg, bool isConst, uint32_t value, Xbyak::Reg32 src);
+    void tickGTEWrites();
+    uintptr_t gteTargetOffset(const GTEQueuedWrite& write, unsigned index);
+    static unsigned gteTargetCount(const GTEQueuedWrite& write) {
+        return !write.ctrl && (write.reg == 15 || write.reg == 28) ? 3 : 1;
+    }
+    void drainGTEWrites();
+    static void drainGTEWritesWrapper(DynaRecCPU* that) { that->drainGTEWrites(); }
     void emitMuldivStall();
     void emitMuldivNow();
     void emitMuldivStart(uint32_t latency);

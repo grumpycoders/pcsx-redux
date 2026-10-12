@@ -1457,6 +1457,7 @@ void DynaRecCPU::recBCz(uint32_t code) {
         gen.mov(eax, dword[contextPointer + delayedValueOffset]);
         gen.mov(dword[contextPointer + GPR_OFFSET(delayedLoad.index)], eax);
     }
+    emitGTEFlushQueue(true);
 
     loadThisPointer(arg1.cvt64());
     gen.moveImm(arg2, (static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28));
