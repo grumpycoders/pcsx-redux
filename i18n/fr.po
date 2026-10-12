@@ -429,7 +429,7 @@ msgstr "Inconnu"
 #: src/core/gte-transfer.cc:112
 #, c-format
 msgid "Unaligned address 0x%08x in LWC2 from 0x%08x\n"
-msgstr "Adresse non alignée 0x%08x dans le champ LWC2 à partir de 0x%08x\n"
+msgstr "Adresse non alignée 0x%08x dans le champ LWC2 depuis 0x%08x\n"
 
 #: src/core/gte-transfer.cc:125
 #, c-format
