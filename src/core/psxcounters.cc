@@ -127,9 +127,11 @@ void PCSX::Counters::reset(uint32_t index) {
             // unmeasured and get no dwell.
             const uint64_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_rcnts[index].cycleStart;
             const uint64_t over = elapsed - uint64_t(m_rcnts[index].target) * m_rcnts[index].rate;
-            const int64_t dwell = resetDwell(index);
-            count = over / m_rcnts[index].rate;
-            writeCounterInternal(index, count, dwell - int64_t(over % m_rcnts[index].rate));
+            const uint64_t dwell = resetDwell(index);
+            // The count the next event is chosen from is the one after the dwell: a reset
+            // that runs late but still inside the dwell leaves the counter at 0, not at `over`.
+            count = over > dwell ? (over - dwell) / m_rcnts[index].rate : 0;
+            writeCounterInternal(index, count, int64_t(dwell) - int64_t(over) + int64_t(count * m_rcnts[index].rate));
         } else {
             count = readCounterInternal(index);
             writeCounterInternal(index, count);
