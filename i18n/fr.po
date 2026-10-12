@@ -2458,11 +2458,11 @@ msgstr "Exécuter jusqu'au curseur"
 
 #: src/gui/widgets/assembly.cc:794
 msgid "Toggle Breakpoint"
-msgstr "Basculer le breakpoint"
+msgstr "Basculer le point d'arrêt"
 
 #: src/gui/widgets/assembly.cc:798 src/gui/widgets/assembly.cc:803
 msgid "Remove Breakpoint"
-msgstr "Supprimer le breakpoint"
+msgstr "Supprimer le point d'arrêt"
 
 #: src/gui/widgets/assembly.cc:810
 msgid "Patch in Return"
