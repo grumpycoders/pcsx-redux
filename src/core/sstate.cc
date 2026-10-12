@@ -226,9 +226,11 @@ std::string PCSX::SaveStates::save() {
     g_emulator->m_counters->serialize(&wrapper);
     g_emulator->m_mdec->serialize(&wrapper);
 
-    g_emulator->m_cpu->listAllPCdrvFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
-        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
-    });
+    g_emulator->m_cpu->listAllPCdrvFiles(
+        [&state](uint16_t fd, std::filesystem::path filename, bool create, size_t readPosition, size_t writePosition) {
+            state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create, readPosition, writePosition,
+                                                            true);
+        });
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
@@ -253,9 +255,11 @@ void PCSX::SaveStates::capture(SaveState& state) {
     g_emulator->m_mdec->serialize(&wrapper);
 
     state.get<PCdrvFilesField>().value.clear();
-    g_emulator->m_cpu->listAllPCdrvFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
-        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
-    });
+    g_emulator->m_cpu->listAllPCdrvFiles(
+        [&state](uint16_t fd, std::filesystem::path filename, bool create, size_t readPosition, size_t writePosition) {
+            state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create, readPosition, writePosition,
+                                                            true);
+        });
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
@@ -305,11 +309,13 @@ void PCSX::SaveStates::restore(SaveState& state) {
         uint16_t fd = file.get<PCdrvFD>().value;
         std::string filename = file.get<PCdrvFilename>().value;
         bool create = file.get<PCdrvCreate>().value;
-        if (create) {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
-        } else {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd);
+        ssize_t readPosition = 0;
+        ssize_t writePosition = -1;
+        if (file.get<PCdrvHasPositions>().value) {
+            readPosition = file.get<PCdrvReadPosition>().value;
+            writePosition = file.get<PCdrvWritePosition>().value;
         }
+        g_emulator->m_cpu->restorePCdrvFile(filename, fd, create, readPosition, writePosition);
     }
     g_emulator->m_callStacks->deserialize(&wrapper);
 
@@ -451,11 +457,13 @@ bool PCSX::SaveStates::load(std::string_view data) {
         uint16_t fd = file.get<PCdrvFD>().value;
         std::string filename = file.get<PCdrvFilename>().value;
         bool create = file.get<PCdrvCreate>().value;
-        if (create) {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
-        } else {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd);
+        ssize_t readPosition = 0;
+        ssize_t writePosition = -1;
+        if (file.get<PCdrvHasPositions>().value) {
+            readPosition = file.get<PCdrvReadPosition>().value;
+            writePosition = file.get<PCdrvWritePosition>().value;
         }
+        g_emulator->m_cpu->restorePCdrvFile(filename, fd, create, readPosition, writePosition);
     }
     g_emulator->m_callStacks->deserialize(&wrapper);
 

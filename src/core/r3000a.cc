@@ -301,26 +301,42 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     return true;
 }
 
-void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd) {
+void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, bool writable,
+                                       ssize_t readPosition, ssize_t writePosition) {
     auto& emuSettings = g_emulator->settings;
     auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-    m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename));
-    for (auto f = m_availableFDs.begin(); f != m_availableFDs.end(); f++) {
-        if (*f == fd) {
-            m_availableFDs.erase(f);
-            break;
+    auto path = basepath / filename;
+    PCdrvFile* file;
+    if (writable) {
+        // Neither truncate nor append: the guest's writes go where its write position says.
+        file = new PCdrvFile(path, FileOps::READWRITE);
+        if ((*file)->failed()) {
+            // Gone since the save, so there is nothing left to truncate.
+            delete file;
+            file = new PCdrvFile(path, FileOps::TRUNCATE);
+        }
+    } else {
+        file = new PCdrvFile(path);
+    }
+    if ((*file)->failed()) {
+        delete file;
+        return;
+    }
+    file->m_relativeFilename = filename.string();
+    if (readPosition < 0) {
+        (*file)->rSeek(0, SEEK_END);
+    } else {
+        (*file)->rSeek(readPosition, SEEK_SET);
+    }
+    if (writable) {
+        if (writePosition < 0) {
+            (*file)->wSeek(0, SEEK_END);
+        } else {
+            (*file)->wSeek(writePosition, SEEK_SET);
         }
     }
-}
-
-void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, uint16_t fd, FileOps::Create) {
-    auto& emuSettings = g_emulator->settings;
-    auto& debugSettings = emuSettings.get<Emulator::SettingDebugSettings>();
-    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
-    auto f = new PCdrvFile(basepath / filename, FileOps::CREATE);
-    (*f)->wSeek(0, SEEK_END);
-    m_pcdrvFiles.insert(fd, f);
+    m_pcdrvFiles.insert(fd, file);
     for (auto f = m_availableFDs.begin(); f != m_availableFDs.end(); f++) {
         if (*f == fd) {
             m_availableFDs.erase(f);

@@ -613,13 +613,15 @@ Formula One 2001
             m_availableFDs.push_back(i);
         }
     }
-    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable());
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(),
+                   (*iter)->wTell());
         }
     }
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, FileOps::Create);
+    // A negative position means the end of the file.
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, bool writable, ssize_t readPosition,
+                          ssize_t writePosition);
 };
 
 class Cpus {
