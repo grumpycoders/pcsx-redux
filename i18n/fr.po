@@ -171,7 +171,7 @@ msgstr "Vérificateur du Kernel : lecture de %08x depuis %08x\n"
 #: src/core/debug.cc:249
 #, c-format
 msgid "Kernel checker: Writing to %08x from %08x\n"
-msgstr "Vérificateur du noyau : écriture vers %08x depuis %08x\n"
+msgstr "Vérificateur du Kernel : écriture vers %08x depuis %08x\n"
 
 #: src/core/debug.cc:267
 msgid "Step in"
