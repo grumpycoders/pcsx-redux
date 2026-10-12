@@ -236,7 +236,13 @@ typedef Protobuf::MessageField<MDEC, TYPESTRING("mdec"), 11> MDECField;
 typedef Protobuf::Field<Protobuf::UInt16, TYPESTRING("fd"), 1> PCdrvFD;
 typedef Protobuf::Field<Protobuf::String, TYPESTRING("filename"), 2> PCdrvFilename;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("create"), 3> PCdrvCreate;
-typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate> PCdrvFile;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("read_position"), 4> PCdrvReadPosition;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("write_position"), 5> PCdrvWritePosition;
+// Older saves have neither position: their files resume reading at 0 and writing at the end.
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("has_positions"), 6> PCdrvHasPositions;
+typedef Protobuf::Message<TYPESTRING("PCdrvFile"), PCdrvFD, PCdrvFilename, PCdrvCreate, PCdrvReadPosition,
+                          PCdrvWritePosition, PCdrvHasPositions>
+    PCdrvFile;
 typedef Protobuf::RepeatedVariableField<PCdrvFile, TYPESTRING("files"), 13> PCdrvFilesField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("ra"), 1> CallRA;
