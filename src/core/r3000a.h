@@ -625,8 +625,7 @@ Formula One 2001
     }
     void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(),
-                   (*iter)->wTell());
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(), (*iter)->wTell());
         }
     }
     // A negative position means the end of the file.
