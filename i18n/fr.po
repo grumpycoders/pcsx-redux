@@ -137,7 +137,7 @@ msgstr "Map d’exécution"
 #: src/core/debug.cc:179
 #, c-format
 msgid "Kernel checker: Jump from 0x%08x to 0x%08x\n"
-msgstr "Vérificateur du noyau : saut de 0x%08x vers 0x%08x\n"
+msgstr "Vérificateur du Kernel : saut de 0x%08x vers 0x%08x\n"
 
 #: src/core/debug.cc:189
 msgid "Read 8 map"
