@@ -166,7 +166,7 @@ msgstr "Map d'écriture 32"
 #: src/core/debug.cc:246
 #, c-format
 msgid "Kernel checker: Reading %08x from %08x\n"
-msgstr "Vérificateur du noyau : lecture de %08x depuis %08x\n"
+msgstr "Vérificateur du Kernel : lecture de %08x depuis %08x\n"
 
 #: src/core/debug.cc:249
 #, c-format
