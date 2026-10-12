@@ -2652,7 +2652,7 @@ msgstr "Condition du point d'arrêt remplie ! Type:%s écriture:%d condVal:%d\n"
 #: src/gui/widgets/breakpoints.cc:311
 #, c-format
 msgid "Breakpoint condition met! Type:%s reading:%d condVal:%d\n"
-msgstr "Condition du breakpoint remplie ! Type:%s lecture:%d condVal:%d\n"
+msgstr "Condition du point d'arrêt remplie ! Type:%s lecture:%d condVal:%d\n"
 
 #: src/gui/widgets/breakpoints.cc:356 src/gui/widgets/patches.cc:97
 msgid "Activate All"
