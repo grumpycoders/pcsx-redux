@@ -89,7 +89,7 @@ void PCSX::SIO::stepPocketstation() {
         m_psxArmAccum[i] += psxDelta * armHz;
         const uint64_t armCycles = m_psxArmAccum[i] / kPsxClockHz;
         m_psxArmAccum[i] -= armCycles * kPsxClockHz;
-        if (armCycles) devs[i]->runCycles(armCycles);
+        if (armCycles) m_memoryCard[i].runPocketstation(armCycles);
     }
 }
 
@@ -148,7 +148,7 @@ void PCSX::SIO::stepPocketstationWallClock() {
         const uint64_t armCycles = m_wallClockRemainderNs[i] * armHz / 1'000'000'000ull;
         if (armCycles == 0) continue;  // sub-1-ARM-cycle delta; keep the remainder and grow it.
         m_wallClockRemainderNs[i] -= armCycles * 1'000'000'000ull / armHz;
-        devs[i]->runCycles(armCycles);
+        m_memoryCard[i].runPocketstation(armCycles);
     }
 }
 
@@ -415,6 +415,11 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_memoryCard[0].deselect();
         m_memoryCard[1].deselect();
         m_bufferIndex = 0;
+    }
+
+    if (selected) {
+        // /SEL is shared by the pad and the card of a port; a PocketStation sees every select.
+        m_memoryCard[(value & ControlFlags::WHICH_PORT) ? 1 : 0].selectPocketstation();
     }
 
     if (m_regs.control & ControlFlags::RESET_ERR) {

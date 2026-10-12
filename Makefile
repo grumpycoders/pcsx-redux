@@ -134,6 +134,7 @@ SRCS += $(call rwildcard,src/,*.cc)
 # src/mips is the nugget submodule, built by its own makefiles with the MIPS
 # toolchain. Globbing it here compiles its sources for the host as well.
 SRCS := $(filter-out src/mips/%,$(SRCS))
+SRCS := $(filter-out src/pocketstation/tests/%,$(SRCS))
 SRCS_pkg_fmt += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
 IMPLOT_SRCS += $(wildcard third_party/implot/*.cpp)

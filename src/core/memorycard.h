@@ -74,6 +74,12 @@ class MemoryCard {
     bool isPocketstationDocked() const { return m_pocketstationDocked; }
     // Whether the user has overridden the automatic policy (for the UI to show, and for tests).
     bool pocketstationDockIsManual() const { return m_pocketstationManualDock; }
+    // /SEL asserted on this slot's port. The line is shared with the pad, as on hardware, so the
+    // device sees every selection of its port, not only card commands.
+    void selectPocketstation();
+    // Advances the device by armCycles, less the cycles transceive() already ran ahead of the
+    // R3000A to collect an acknowledge.
+    void runPocketstation(uint64_t armCycles);
     char *getMcdData() { return m_mcdData; }
     void loadMcd(PCSX::u8string mcd);
     void saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);
@@ -122,6 +128,12 @@ class MemoryCard {
     static constexpr size_t c_sectorSize = 8 * 16;
     static constexpr size_t c_blockSize = 8192;
     static constexpr size_t c_cardSize = 1024 * c_sectorSize;
+    // PocketStation link timing, in ARM7 cycles at the docked 3.997696MHz clock: the PS1 selects
+    // ~60us before the first byte completes; the kernel acknowledges within a few hundred cycles,
+    // so the budget is a timeout, not a cost.
+    static constexpr uint64_t c_pocketstationSelectLead = 250;
+    static constexpr uint64_t c_pocketstationAckStep = 64;
+    static constexpr uint64_t c_pocketstationAckBudget = 4096;
 
     // State machine / handlers
     uint8_t transceive(uint8_t value);
@@ -152,6 +164,9 @@ class MemoryCard {
     // Set once the user works the dock control by hand. While set, the automatic dock and the
     // first-access backstop both stand down, so a manual undock stays undocked.
     bool m_pocketstationManualDock = false;
+    bool m_pocketstationSelected = false;     // /SEL held on this slot's port.
+    bool m_pocketstationLeadPending = false;  // no byte yet since the select.
+    uint64_t m_pocketstationPrepaid = 0;      // ARM7 cycles run ahead of the R3000A by transceive().
     uint16_t m_directoryIndex = 0;
 
     // Owned ARM7 device, present only while pocketstation mode is enabled AND a valid kernel

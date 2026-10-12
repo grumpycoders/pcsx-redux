@@ -74,7 +74,11 @@ void PCSX::MemoryCard::setPocketstationDocked(bool docked) {
     if (!m_pocketstation) return;
     m_pocketstationManualDock = true;
     if (docked == m_pocketstationDocked) return;
-    if (!docked) m_pocketstation->comDeselect();
+    if (!docked && m_pocketstationSelected) {
+        m_pocketstation->comSetSelected(false);
+        m_pocketstationSelected = false;
+        m_pocketstationLeadPending = false;
+    }
     m_pocketstation->setDocked(docked);
     m_pocketstationDocked = docked;
 }
@@ -88,13 +92,33 @@ void PCSX::MemoryCard::deselect() {
     m_spdr = Responses::IdleHighZ;
     // /SEL inactive ends any in-progress COM command so the next byte re-arms FIQ-6. The device
     // stays docked (deselect is the chip-select line, not undocking).
-    if (m_pocketstation) m_pocketstation->comDeselect();
+    if (m_pocketstation && m_pocketstationSelected) m_pocketstation->comSetSelected(false);
+    m_pocketstationSelected = false;
+    m_pocketstationLeadPending = false;
+}
+
+void PCSX::MemoryCard::selectPocketstation() {
+    if (!m_pocketstation || !m_pocketstationDocked || m_pocketstationSelected) return;
+    m_pocketstation->comSetSelected(true);
+    m_pocketstationSelected = true;
+    m_pocketstationLeadPending = true;
+}
+
+void PCSX::MemoryCard::runPocketstation(uint64_t armCycles) {
+    if (!m_pocketstation) return;
+    const uint64_t repay = std::min(armCycles, m_pocketstationPrepaid);
+    m_pocketstationPrepaid -= repay;
+    armCycles -= repay;
+    if (armCycles) m_pocketstation->runCycles(armCycles);
 }
 
 void PCSX::MemoryCard::createPocketstation() {
     m_pocketstation.reset();
     m_pocketstationDocked = false;
     m_pocketstationManualDock = false;
+    m_pocketstationSelected = false;
+    m_pocketstationLeadPending = false;
+    m_pocketstationPrepaid = 0;
 
     // The ARM7 needs a 16 KiB PocketStation BIOS dump, configured via SettingPocketstationBios.
     // If it is unset or unreadable, leave the device absent rather than crashing.
@@ -144,8 +168,31 @@ uint8_t PCSX::MemoryCard::transceive(uint8_t value) {
             m_pocketstationDocked = true;
         }
         if (!m_pocketstationDocked) return Responses::IdleHighZ;  // out of the slot: nothing answers
-        uint8_t reply = m_pocketstation->comExchange(value);
-        acknowledge();  // keep SIO byte pacing identical to a normal card
+        // The kernel answers each byte from its FIQ handler and drives /ACK when it has loaded the
+        // next reply. Bring the device up to the R3000A first, then run it ahead until it
+        // acknowledges or the budget runs out; runPocketstation() pays those cycles back. No
+        // acknowledge means the command is complete (or the device is not answering), exactly as
+        // on hardware.
+        g_emulator->m_sio->stepPocketstation();
+        if (!m_pocketstationSelected) selectPocketstation();
+        uint64_t ran = 0;
+        if (m_pocketstationLeadPending) {
+            // The kernel's FIQ starts at the select and clears any stale Ready before it polls,
+            // so the first byte must land after it has started (~60us on a PS1).
+            m_pocketstation->runCycles(c_pocketstationSelectLead);
+            ran += c_pocketstationSelectLead;
+            m_pocketstationLeadPending = false;
+        }
+        m_pocketstation->comBeginTransfer(value);
+        while (ran < c_pocketstationAckBudget && !m_pocketstation->comAcked()) {
+            m_pocketstation->runCycles(c_pocketstationAckStep);
+            ran += c_pocketstationAckStep;
+        }
+        const bool acked = m_pocketstation->comAcked();
+        const uint8_t reply = m_pocketstation->comTakeReply();
+        m_pocketstation->comEndTransfer();
+        m_pocketstationPrepaid += ran;
+        if (acked) acknowledge();
         return reply;
     }
 
