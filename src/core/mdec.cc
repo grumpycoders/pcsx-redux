@@ -443,23 +443,17 @@ unsigned short *PCSX::MDEC::rl2blk(int *blk, unsigned short *mdec_rl) {
     return mdec_rl;
 }
 
-// The colour matrix, at 2^10. These were a generic full-scale JPEG set, and the
-// blue term was MEASURED WRONG on silicon 2026-09-18: arms YUVCB / YUVCBN /
-// YUVCBBIG, on three different consoles (BIOS 2.1, 3.0 and 4.1) at chroma planes
-// +50, -50 and +63, return blue offsets of 89, -89 and 112. 1807/1024 = 1.7646
-// predicts 88, -88, 111 - one LSB low, every time, in the same direction. psx-spx
-// prints 1.772 for this term and that is what silicon answers, so MULB is
-// round(1.772 * 1024) = 1814.
-//
-// ⛔ MULR and MULG2 are NOT changed, because those same arms do not discriminate:
-// 1434/1024 and psx-spx's 1.402 predict the identical integer at every magnitude
-// measured, and so do 351/728 against 0.3437/0.7143. Changing them would be
-// tidying, not measuring. psx-spx's own note that the fixed point RESOLUTION is
-// unknown still stands - many denominators fit these three magnitudes, and
-// pinning the width needs a sweep that walks the rounding steps.
-#define MULR(a) ((1434 * (a)))
-#define MULB(a) ((1814 * (a)))
-#define MULG2(a, b) ((-351 * (a) - 728 * (b)))
+// The colour matrix, at 2^10. Measured on silicon with flat-chroma captures (one chroma plane per
+// capture, four luma levels), each chroma plane taken between 37 and 101 in magnitude and of both
+// signs. Under the
+// MDEC's round-half-down output these fit, at 1/1024: R 1435-1438, G from Cr 729-733, G from Cb
+// 350-359, B 1817-1819. B is about 1.7754, not the JPEG 1.772: at Cb +64 the console adds 114 to
+// blue, and 1.772 gives 113.4. 728 for G from Cr lands exactly on 45.5 at plane 64, where half-down
+// gives 45 and the console 46. The coarsest grid that fits every term is 1/512, so the hardware
+// carries at least 9 fractional bits here; its actual width is not measured.
+#define MULR(a) ((1436 * (a)))
+#define MULB(a) ((1818 * (a)))
+#define MULG2(a, b) ((-352 * (a) - 731 * (b)))
 #define MULY(a) ((a) << 10)
 
 #define MAKERGB15(r, g, b, a) (SWAP_LE16(a | ((b) << 10) | ((g) << 5) | (r)))
