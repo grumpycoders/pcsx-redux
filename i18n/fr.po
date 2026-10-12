@@ -3830,7 +3830,7 @@ msgstr "Ajouter un point d'arrêt de lecture##{}"
 
 #: src/gui/widgets/memory_observer.cc:385
 msgid "Add write breakpoint##{}"
-msgstr "Ajouter un breakpoint d'écriture##{}"
+msgstr "Ajouter un point d'arrêt d'écriture##{}"
 
 #: src/gui/widgets/memory_observer.cc:398
 msgid "Pattern search"
