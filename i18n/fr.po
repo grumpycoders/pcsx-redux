@@ -4094,7 +4094,7 @@ msgstr "Journaliser les lectures et écritures##{}{}"
 
 #: src/gui/widgets/typed_debugger.cc:271
 msgid "Add read breakpoint##{}{}"
-msgstr "Ajouter un breakpoint de lecture##{}{}"
+msgstr "Ajouter un point d'arrêt de lecture##{}{}"
 
 #: src/gui/widgets/typed_debugger.cc:274
 msgid "ReadPause"
@@ -4102,7 +4102,7 @@ msgstr "PauseLecture"
 
 #: src/gui/widgets/typed_debugger.cc:278
 msgid "Add write breakpoint##{}{}"
-msgstr "Ajouter un breakpoint d'écriture##{}{}"
+msgstr "Ajouter un point d'arrêt d'écriture##{}{}"
 
 #: src/gui/widgets/typed_debugger.cc:281
 msgid "WritePause"
