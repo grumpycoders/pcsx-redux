@@ -101,20 +101,6 @@ constexpr int16_t c_standardScale[64] = {
     0x18F8, (int16_t)0xB8E3, 0x6A6D, (int16_t)0x8275, 0x7D8A, (int16_t)0x9592, 0x471C, (int16_t)0xE707,
 };
 
-// Sony's Qtab, FileFormat47 p.1-11, verified identical entry for entry. Their
-// matrix is drawn "x 1/16", so the printed integers are what goes here and the
-// 16 in their quantization formula is what cancels it.
-//
-// It is the DEFAULT here rather than an all-ones table: an
-// unquantized DC for a bright 8x8 block lands around 1150, and the run-level
-// field is signed TEN BITS. An identity quant table therefore clips the DC of
-// any block brighter than about mid-grey, which is not a tuning problem, it is
-// the reason the format carries a quant table at all.
-constexpr uint8_t c_standardQuant[64] = {
-    2,  16, 19, 22, 26, 27, 29, 34, 16, 16, 22, 24, 27, 29, 34, 37, 19, 22, 26, 27, 29, 34,
-    34, 38, 22, 22, 26, 27, 29, 34, 37, 40, 22, 26, 27, 29, 32, 35, 40, 48, 26, 27, 29, 32,
-    35, 40, 48, 58, 26, 27, 29, 34, 38, 46, 56, 69, 27, 29, 35, 38, 46, 56, 69, 83,
-};
 
 struct Tables {
     uint8_t quantY[64];
@@ -125,8 +111,8 @@ struct Tables {
     bool forwardFromFile = false;
 
     Tables() {
-        memcpy(quantY, c_standardQuant, sizeof(quantY));
-        memcpy(quantUV, c_standardQuant, sizeof(quantUV));
+        memcpy(quantY, PCSX::DCT::standardQuantTable(), sizeof(quantY));
+        memcpy(quantUV, PCSX::DCT::standardQuantTable(), sizeof(quantUV));
         memcpy(scale, c_standardScale, sizeof(scale));
         forward = PCSX::DCT::standardBasis();
     }
@@ -278,6 +264,8 @@ JSON tables, every member optional, absent members keep their defaults:
   all-ones table looks appealing because it makes dequantization the identity,
   but the run-level DC field is signed TEN BITS and an unquantized DC runs to
   about 1150, so identity quant clips every block brighter than mid-grey.
+  Quant arrays are in the order MDEC(2) receives them: zigzag, entry k being
+  the divisor for coefficient k of the stream, not the raster position.
 )");
 }
 

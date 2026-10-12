@@ -707,17 +707,21 @@ constexpr int c_packZscan[64] = {
     30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 };
 
-// Sony's Qtab, FileFormat47 p.1-11, verified identical entry for entry. Their
-// matrix is drawn "x 1/16", so the printed integers are what goes here and the
-// 16 in their quantization formula is what cancels it.
+// Sony's Qtab, FileFormat47 p.1-11, in the order MDEC(2) receives it: zigzag,
+// entry k being the divisor for stream coefficient k. FileFormat47 prints the
+// matrix in raster order and its encoder indexes it by raster position; the
+// MDEC indexes the uploaded table by stream position, and the copy of this
+// table found in retail executables is this zigzag permutation of the print.
+// Their matrix is drawn "x 1/16", so the printed integers are what goes here
+// and the 16 in their quantization formula is what cancels it.
 //
 // Not an all-ones table: the run-level DC field is signed TEN BITS and an
 // unquantized DC runs to about 1150, so identity quant clips every block
 // brighter than mid-grey.
 constexpr uint8_t c_packStandardQuant[64] = {
-    2,  16, 19, 22, 26, 27, 29, 34, 16, 16, 22, 24, 27, 29, 34, 37, 19, 22, 26, 27, 29, 34,
-    34, 38, 22, 22, 26, 27, 29, 34, 37, 40, 22, 26, 27, 29, 32, 35, 40, 48, 26, 27, 29, 32,
-    35, 40, 48, 58, 26, 27, 29, 34, 38, 46, 56, 69, 27, 29, 35, 38, 46, 56, 69, 83,
+    2,  16, 16, 19, 16, 19, 22, 22, 22, 22, 22, 22, 26, 24, 26, 27, 27, 27, 26, 26, 26, 26,
+    27, 27, 27, 29, 29, 29, 34, 34, 34, 29, 29, 29, 27, 27, 29, 29, 32, 32, 34, 34, 37, 38,
+    37, 35, 35, 34, 35, 38, 38, 40, 40, 40, 48, 48, 46, 46, 56, 56, 58, 69, 69, 83,
 };
 
 int clampField10(int v, uint32_t &clipped) {

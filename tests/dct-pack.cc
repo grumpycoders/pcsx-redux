@@ -168,6 +168,19 @@ TEST(DctPack, shortCoefficientSpanFailsRatherThanReadingPastTheEnd) {
     EXPECT_EQ(out.size(), 0u);
 }
 
+// The bytes retail executables carry for the standard table, in the order they
+// upload it with MDEC(2). Every round-trip test here is blind to the order,
+// since the encoder and decoder share the table, so this pins it.
+TEST(ScaleQuantTable, standardTableIsInUploadOrder) {
+    static constexpr uint8_t c_retail[64] = {
+        2,  16, 16, 19, 16, 19, 22, 22, 22, 22, 22, 22, 26, 24, 26, 27, 27, 27, 26, 26, 26, 26,
+        27, 27, 27, 29, 29, 29, 34, 34, 34, 29, 29, 29, 27, 27, 29, 29, 32, 32, 34, 34, 37, 38,
+        37, 35, 35, 34, 35, 38, 38, 40, 40, 40, 48, 48, 46, 46, 56, 56, 58, 69, 69, 83,
+    };
+    const uint8_t *std8 = PCSX::DCT::standardQuantTable();
+    for (int i = 0; i < 64; i++) EXPECT_EQ(std8[i], c_retail[i]) << "entry " << i;
+}
+
 TEST(ScaleQuantTable, fiftyIsTheIdentityAndTheCurveIsMonotonic) {
     const uint8_t *std8 = PCSX::DCT::standardQuantTable();
     uint8_t at50[64], at1[64], at100[64];
