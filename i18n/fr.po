@@ -2582,7 +2582,7 @@ msgstr "Égal"
 
 #: src/gui/widgets/breakpoints.cc:129
 msgid "Delete Breakpoint?"
-msgstr "Supprimer le breakpoint ?"
+msgstr "Supprimer le point d'arrêt ?"
 
 #: src/gui/widgets/breakpoints.cc:130 src/gui/widgets/breakpoints.cc:375
 #: src/gui/widgets/patches.cc:69
@@ -2591,7 +2591,7 @@ msgstr "Supprimer"
 
 #: src/gui/widgets/breakpoints.cc:176
 msgid "Add Breakpoint..."
-msgstr "Ajouter un breakpoint..."
+msgstr "Ajouter un point d'arrêt..."
 
 #: src/gui/widgets/breakpoints.cc:183 src/gui/widgets/isobrowser.cc:406
 #: src/gui/widgets/typed_debugger.cc:828 src/gui/widgets/typed_debugger.cc:874
@@ -2647,7 +2647,7 @@ msgstr "Libellé"
 #: src/gui/widgets/breakpoints.cc:280
 #, c-format
 msgid "Breakpoint condition met! Type:%s writing:%d condVal:%d\n"
-msgstr "Condition du breakpoint remplie ! Type:%s écriture:%d condVal:%d\n"
+msgstr "Condition du point d'arrêt remplie ! Type:%s écriture:%d condVal:%d\n"
 
 #: src/gui/widgets/breakpoints.cc:311
 #, c-format
