@@ -2668,7 +2668,7 @@ msgstr "Tout supprimer"
 
 #: src/gui/widgets/breakpoints.cc:374
 msgid "Delete all Breakpoints?"
-msgstr "Supprimer tous les breakpoints ?"
+msgstr "Supprimer tous les points d'arrêts ?"
 
 #: src/gui/widgets/breakpoints.cc:383
 msgid "Execution Map"
