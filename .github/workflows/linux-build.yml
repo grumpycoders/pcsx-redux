@@ -72,20 +72,33 @@ jobs:
           echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
           echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
           echo '  "timestamp": '`date '+%s'`',' >> version.json
-          echo '  "channel": "dev",' >> version.json
-          echo '  "updateInfo": [' >> version.json
-          echo '    {' >> version.json
-          echo '      "channel": "dev",' >> version.json
-          echo '      "method": "appdistrib",' >> version.json
-          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest.json",' >> version.json
-          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/",' >> version.json
-          echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
-          echo '    }' >> version.json
-          echo '  ]' >> version.json
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            # PR test builds carry no update info, so they never offer to replace themselves with dev.
+            echo '  "channel": "pr",' >> version.json
+            echo '  "updateInfo": []' >> version.json
+          else
+            echo '  "channel": "dev",' >> version.json
+            echo '  "updateInfo": [' >> version.json
+            echo '    {' >> version.json
+            echo '      "channel": "dev",' >> version.json
+            echo '      "method": "appdistrib",' >> version.json
+            echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest.json",' >> version.json
+            echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/",' >> version.json
+            echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
+            echo '    }' >> version.json
+            echo '  ]' >> version.json
+          fi
           echo '}' >> version.json
           cp version.json AppDir/usr/share/pcsx-redux/resources
           linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
           mv PCSX-Redux-${{ matrix.arch }}.AppImage PCSX-Redux-HEAD-${{ matrix.arch }}.AppImage
+      - name: Upload PR build
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppImage-linux-${{ matrix.arch }}
+          path: PCSX-Redux-HEAD-${{ matrix.arch }}.AppImage
+          retention-days: 7
       - run: |
           cp src/mips/openbios/openbios.bin .
           make -C src/mips/openbios clean
