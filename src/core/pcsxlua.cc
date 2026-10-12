@@ -55,7 +55,7 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
              .get<PCSX::Emulator::DebugSettings::Debug>()) {
         PCSX::g_system->luaMessage(
             "Warning: the debugger is disabled, this breakpoint will not trigger until it is enabled (use -debugger)",
-            true);
+            false);
     }
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
