@@ -1320,7 +1320,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1511
 msgid "Show Breakpoints"
-msgstr "Afficher les Breakpoints"
+msgstr "Afficher les points d'arrêts"
 
 #: src/gui/gui.cc:1512
 msgid "Show Callstacks"
@@ -1547,7 +1547,7 @@ msgstr "Désassembleur DynaRec"
 #: src/gui/gui.cc:1841 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
-msgstr "Breakpoints"
+msgstr "Points d'arrêts"
 
 #: src/gui/gui.cc:1845
 msgid "Patches"
