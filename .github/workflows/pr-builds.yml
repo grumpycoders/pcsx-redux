@@ -83,6 +83,8 @@ jobs:
         run: |
           short=${HEAD_SHA:0:8}
           name="PCSX-Redux-PR$PR-$short-${{ matrix.project }}.zip"
+          # Artifacts lose the executable bit; restore it so the AppImage runs straight out of the zip.
+          find build -name '*.AppImage' -exec chmod +x {} +
           (cd build && zip -r "../$name" .)
           npx @appdistrib/cli buildid > buildid.json
           id=$(jq -r .buildid buildid.json)
