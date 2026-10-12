@@ -2311,7 +2311,7 @@ msgstr "Aller à l'éditeur de mémoire #{}"
 
 #: src/gui/widgets/assembly.cc:351
 msgid "Create Memory Read Breakpoint"
-msgstr "Créer un breakpoint de lecture mémoire"
+msgstr "Créer un point d'arrêt de lecture mémoire"
 
 #: src/gui/widgets/assembly.cc:352 src/gui/widgets/assembly.cc:355
 #: src/gui/widgets/assembly.cc:761 src/gui/widgets/assembly.cc:787
@@ -2321,7 +2321,7 @@ msgstr "GUI"
 
 #: src/gui/widgets/assembly.cc:354
 msgid "Create Memory Write Breakpoint"
-msgstr "Créer un breakpoint d'écriture mémoire"
+msgstr "Créer un point d'arrêt d'écriture mémoire"
 
 #: src/gui/widgets/assembly.cc:361
 msgid "Go to in Memory Editor..."
