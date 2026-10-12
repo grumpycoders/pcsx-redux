@@ -439,7 +439,7 @@ msgstr "Нерівна адреса 0x%08x в LWC2 з 0x%08x.\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SWC2 з 0x%08x.\n"
 
-#: src/core/mdec.cc:680
+#: src/core/mdec.cc:674
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
@@ -688,62 +688,62 @@ msgstr "Викликано msanGetChainPtr із недійсним указів�
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxinterpreter.cc:384
+#: src/core/psxinterpreter.cc:435
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці негайного додавання (ADDI) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:478
+#: src/core/psxinterpreter.cc:529
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці додавання (ADD) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:520
+#: src/core/psxinterpreter.cc:571
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці віднімання (SUB) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:842
+#: src/core/psxinterpreter.cc:893
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:868
+#: src/core/psxinterpreter.cc:919
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JALR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:906
+#: src/core/psxinterpreter.cc:957
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:923
+#: src/core/psxinterpreter.cc:974
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LHU з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:940
+#: src/core/psxinterpreter.cc:991
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1002
+#: src/core/psxinterpreter.cc:1053
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1013
+#: src/core/psxinterpreter.cc:1064
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1128
+#: src/core/psxinterpreter.cc:1181
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Виявлено зарезервований код операції з 0x%08x, викликано виняток.\n"
 
-#: src/core/psxinterpreter.cc:1166
+#: src/core/psxinterpreter.cc:1219
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -752,7 +752,7 @@ msgstr ""
 "Спроба використання недійсної вказівки з рухомою комою з 0x%08x. "
 "Проігноровано.\n"
 
-#: src/core/psxinterpreter.cc:1186
+#: src/core/psxinterpreter.cc:1271
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
