@@ -34,7 +34,7 @@ void verboseLog(int32_t level, const char *str, const Args &...args) {
     PSXHW_LOG(str, args...);
 }
 
-inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value) {
+inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value, int64_t startAdjust) {
     if (value > 0xffff) {
         verboseLog(1, "[RCNT %i] writeCounter > 0xffff: %x\n", index, value);
         value &= 0xffff;
@@ -42,6 +42,8 @@ inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value)
 
     m_rcnts[index].cycleStart = PCSX::g_emulator->m_cpu->m_regs.cycle;
     m_rcnts[index].cycleStart -= value * m_rcnts[index].rate;
+    // A positive adjust puts cycleStart in the future: the counter reads 0 until then.
+    m_rcnts[index].cycleStart += startAdjust;
 
     // Hardware tested (SCPH-5501): counter reaches target value briefly before
     // resetting. Fast reads can observe the target value; slow reads (printf) cannot.
@@ -68,7 +70,21 @@ inline uint32_t PCSX::Counters::readCounterInternal(uint32_t index) {
     uint64_t count;
 
     count = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    if (count < m_rcnts[index].cycleStart) return 0;  // still in the post-reset dwell
     count -= m_rcnts[index].cycleStart;
+
+    // The reset event is only processed between blocks, so a read can land after the
+    // counter reached its target but before reset() ran. Report what the hardware shows
+    // there: the target for that one cycle, then the dwell, then the new count.
+    if (m_rcnts[index].counterState == CountToTarget && (m_rcnts[index].mode & RcCountToTarget)) {
+        const uint64_t span = uint64_t(m_rcnts[index].target) * m_rcnts[index].rate;
+        if (count > span) {
+            const uint64_t over = count - span;
+            const uint64_t dwell = resetDwell(index);
+            if (over < dwell) return 0;
+            return ((over - dwell) / m_rcnts[index].rate) & 0xffff;
+        }
+    }
     count /= m_rcnts[index].rate;
 
     if (count > 0xffff) {
@@ -104,15 +120,22 @@ void PCSX::Counters::reset(uint32_t index) {
 
     if (m_rcnts[index].counterState == CountToTarget) {
         if (m_rcnts[index].mode & RcCountToTarget) {
-            count = PCSX::g_emulator->m_cpu->m_regs.cycle;
-            count -= m_rcnts[index].cycleStart;
-            count /= m_rcnts[index].rate;
-            count -= m_rcnts[index].target;
+            // Restart from the cycle the target was reached, keeping the sub-tick phase so a
+            // late event does not stretch the period. On the system clock the counter then sits
+            // at 0 for 2 more cycles, making the period target + 2 (measured on SCPH-1000, 5501
+            // and 7001 for Timer 2; the /8 source stays exactly 8 * target). Timers 0 and 1 are
+            // unmeasured and get no dwell.
+            const uint64_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_rcnts[index].cycleStart;
+            const uint64_t over = elapsed - uint64_t(m_rcnts[index].target) * m_rcnts[index].rate;
+            const uint64_t dwell = resetDwell(index);
+            // The count the next event is chosen from is the one after the dwell: a reset
+            // that runs late but still inside the dwell leaves the counter at 0, not at `over`.
+            count = over > dwell ? (over - dwell) / m_rcnts[index].rate : 0;
+            writeCounterInternal(index, count, int64_t(dwell) - int64_t(over) + int64_t(count * m_rcnts[index].rate));
         } else {
             count = readCounterInternal(index);
+            writeCounterInternal(index, count);
         }
-
-        writeCounterInternal(index, count);
 
         if (m_rcnts[index].mode & RcIrqOnTarget) {
             if ((m_rcnts[index].mode & RcIrqRegenerate) || (!m_rcnts[index].irqState)) {
@@ -124,12 +147,11 @@ void PCSX::Counters::reset(uint32_t index) {
 
         m_rcnts[index].mode |= RcCountEqTarget;
     } else if (m_rcnts[index].counterState == CountToOverflow) {
-        count = PCSX::g_emulator->m_cpu->m_regs.cycle;
-        count -= m_rcnts[index].cycleStart;
-        count /= m_rcnts[index].rate;
-        count -= 0xffff;
-
-        writeCounterInternal(index, count);
+        // Keep the sub-tick phase across the wrap, as for the target reset above.
+        const uint64_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_rcnts[index].cycleStart;
+        const uint64_t over = elapsed - uint64_t(0xffff) * m_rcnts[index].rate;
+        count = over / m_rcnts[index].rate;
+        writeCounterInternal(index, count, -int64_t(over % m_rcnts[index].rate));
 
         if (m_rcnts[index].mode & RcIrqOnOverflow) {
             if ((m_rcnts[index].mode & RcIrqRegenerate) || (!m_rcnts[index].irqState)) {
@@ -184,21 +206,21 @@ void PCSX::Counters::update() {
     }
 
     // rcnt 0.
-    if (cycle - m_rcnts[0].cycleStart >= m_rcnts[0].cycle) {
+    if (int64_t(cycle - m_rcnts[0].cycleStart) >= int64_t(m_rcnts[0].cycle)) {
         reset(0);
     }
 
     // rcnt 1.
-    if (cycle - m_rcnts[1].cycleStart >= m_rcnts[1].cycle) {
+    if (int64_t(cycle - m_rcnts[1].cycleStart) >= int64_t(m_rcnts[1].cycle)) {
         reset(1);
     }
 
     // rcnt 2.
-    if (cycle - m_rcnts[2].cycleStart >= m_rcnts[2].cycle) {
+    if (int64_t(cycle - m_rcnts[2].cycleStart) >= int64_t(m_rcnts[2].cycle)) {
         reset(2);
     }
     // rcnt base.
-    if (cycle - m_rcnts[3].cycleStart >= m_rcnts[3].cycle) {
+    if (int64_t(cycle - m_rcnts[3].cycleStart) >= int64_t(m_rcnts[3].cycle)) {
         reset(3);
 
         m_hSyncCount++;
