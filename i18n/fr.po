@@ -3814,11 +3814,11 @@ msgstr "Valeur recherchée"
 
 #: src/gui/widgets/memory_observer.cc:332
 msgid "Read breakpoint"
-msgstr "Breakpoint de lecture"
+msgstr "Point d'arrêt de lecture"
 
 #: src/gui/widgets/memory_observer.cc:333
 msgid "Write breakpoint"
-msgstr "Breakpoint d'écriture"
+msgstr "Point d'arrêt d'écriture"
 
 #: src/gui/widgets/memory_observer.cc:362
 msgid "Freeze##{}"
