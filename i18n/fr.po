@@ -1965,7 +1965,7 @@ msgid ""
 "throughout the execution of mips code. Enabling this\n"
 "can slow down emulation to a noticeable extent."
 msgstr ""
-"Active l'utilisation de différents breakpoints\n"
+"Active l'utilisation de différents points d'arrêts\n"
 "pendant l'exécution du code MIPS. L'activer\n"
 "peut ralentir l'émulation de façon notable."
 
