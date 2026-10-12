@@ -1320,7 +1320,7 @@ msgstr ""
 
 #: src/gui/gui.cc:1511
 msgid "Show Breakpoints"
-msgstr "Afficher les points d'arrêts"
+msgstr "Afficher les points d'arrêt"
 
 #: src/gui/gui.cc:1512
 msgid "Show Callstacks"
@@ -1547,7 +1547,7 @@ msgstr "Désassembleur DynaRec"
 #: src/gui/gui.cc:1841 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
-msgstr "Points d'arrêts"
+msgstr "Points d'arrêt"
 
 #: src/gui/gui.cc:1845
 msgid "Patches"
@@ -1965,7 +1965,7 @@ msgid ""
 "throughout the execution of mips code. Enabling this\n"
 "can slow down emulation to a noticeable extent."
 msgstr ""
-"Active l'utilisation de différents points d'arrêts\n"
+"Active l'utilisation de différents points d'arrêt\n"
 "pendant l'exécution du code MIPS. L'activer\n"
 "peut ralentir l'émulation de façon notable."
 
@@ -2668,7 +2668,7 @@ msgstr "Tout supprimer"
 
 #: src/gui/widgets/breakpoints.cc:374
 msgid "Delete all Breakpoints?"
-msgstr "Supprimer tous les points d'arrêts ?"
+msgstr "Supprimer tous les points d'arrêt ?"
 
 #: src/gui/widgets/breakpoints.cc:383
 msgid "Execution Map"
@@ -3131,7 +3131,7 @@ msgstr ""
 
 #: src/gui/widgets/gpulogger.cc:146
 msgid "VRAM breakpoints"
-msgstr "Points d'arrêts VRAM"
+msgstr "Points d'arrêt VRAM"
 
 #: src/gui/widgets/gpulogger.cc:148
 msgid ""
@@ -4206,7 +4206,7 @@ msgstr "Surveillance"
 
 #: src/gui/widgets/typed_debugger.cc:804 src/gui/widgets/typed_debugger.cc:851
 msgid "Clear breakpoints"
-msgstr "Effacer les points d'arrêts"
+msgstr "Effacer les points d'arrêt"
 
 #: src/gui/widgets/typed_debugger.cc:813
 msgid "Restore disabled instructions"
