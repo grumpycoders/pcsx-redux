@@ -375,8 +375,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
                is opened by the callee spilling $ra, not by us, and CallStacks::setSP has a
                branch that destroys non-matching stacks, so a naive save/restore is unsafe. */
             auto& callStacks = g_emulator->m_callStacks;
-            const unsigned depthBefore =
-                callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
+            const unsigned depthBefore = callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
 
             /* o32: a0-a3 in registers, the rest on the stack, and the caller owes the callee
                a 16-byte argument save area whether it uses it or not. Argument n lands at
@@ -525,8 +524,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             const uint32_t v0 = regs.GPR.n.v0;
             const uint32_t v1 = regs.GPR.n.v1;
             const uint64_t spent = regs.cycle - savedCycle;
-            const unsigned depthAfter =
-                callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
+            const unsigned depthAfter = callStacks->hasCurrent() ? callStacks->getCurrent().calls.size() : 0;
             const uint32_t faultPC = regs.pc;
             const uint32_t cause = regs.CP0.n.Cause;
             const uint32_t epc = regs.CP0.n.EPC;
