@@ -3826,7 +3826,7 @@ msgstr "Geler##{}"
 
 #: src/gui/widgets/memory_observer.cc:379
 msgid "Add read breakpoint##{}"
-msgstr "Ajouter un breakpoint de lecture##{}"
+msgstr "Ajouter un point d'arrêt de lecture##{}"
 
 #: src/gui/widgets/memory_observer.cc:385
 msgid "Add write breakpoint##{}"
