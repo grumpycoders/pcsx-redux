@@ -159,7 +159,9 @@ class Client : public Endpoint {
     IO<File> connection() { return m_connection; }
 
   protected:
-    virtual void onStarting() {}
+    // Called before the connection is created, for whatever the endpoint needs to
+    // set up first or check, and to veto the attempt by returning false.
+    virtual bool onStarting() { return false; }
     // The outgoing connection was created. It may still be connecting; check
     // status() rather than assuming this means connected.
     virtual void onStarted(IO<File> connection) {}

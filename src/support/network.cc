@@ -150,7 +150,7 @@ void Client::start(uv_loop_t* loop, std::string_view host, int port) {
     m_loop = loop;
     m_host = host;
     m_port = port;
-    onStarting();
+    if (!onStarting()) return;
     auto fifo = new UvFifo(host, port);
     m_fifo = fifo;
     m_connection = IO<File>(fifo);

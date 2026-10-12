@@ -82,7 +82,7 @@ PCSX::SIO1Client::SIO1Client() : Network::Client("SIO1 Client"), m_listener(g_sy
     });
 }
 
-void PCSX::SIO1Client::onStarting() {
+bool PCSX::SIO1Client::onStarting() {
     auto mode = currentSIO1Mode();
     g_emulator->m_sio1->m_sio1Mode = mode;
     if (mode == SIO1::SIO1Mode::Raw) {
@@ -90,9 +90,10 @@ void PCSX::SIO1Client::onStarting() {
         // checkbox callback. It is a configuration the client does not support,
         // not an exceptional condition, so say so and leave the endpoint alone.
         g_system->printf("%s", _("SIO1 client does not support raw mode\n"));
-        return;
+        return false;
     }
     g_emulator->m_counters->m_pollSIO1 = true;
+    return true;
 }
 
 void PCSX::SIO1Client::onStarted(IO<File> connection) { g_emulator->m_sio1->setFifo(connection); }

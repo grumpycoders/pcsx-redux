@@ -50,7 +50,7 @@ class SIO1Client : public Network::Client {
     void reconnect(std::string_view address, unsigned port);
 
   protected:
-    void onStarting() override;
+    bool onStarting() override;
     void onStarted(IO<File> connection) override;
     void onStopped() override;
     int configuredPort() const override;
