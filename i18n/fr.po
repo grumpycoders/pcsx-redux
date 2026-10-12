@@ -283,8 +283,8 @@ msgid ""
 "VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC"
 " = 0x%08x\n"
 msgstr ""
-"Breakpoint VRAM %i déclenché : %.*s a fait une %s intersectant %ix%i à %i,%i"
-" - PC = 0x%08x\n"
+"Point d'arrêt VRAM %i déclenché : %.*s a fait une %s intersectant %ix%i à "
+"%i,%i - PC = 0x%08x\n"
 
 #: src/core/gpulogger.cc:388
 #, c-format
