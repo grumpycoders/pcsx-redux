@@ -112,17 +112,17 @@ msgstr "清理色彩"
 msgid "Clear VRAM"
 msgstr "清理显存（VRAM）"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM 标签：%.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM ID: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE 名字：%.255s\n"
@@ -480,200 +480,200 @@ msgstr "正在读取记忆卡：%s\n"
 msgid "Saving memory card %s\n"
 msgstr "%s记忆卡保存中\n"
 
-#: src/core/pad.cc:1011 src/core/pad.cc:1135
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "未知的手柄命令：%02X\n"
 
-#: src/core/pad.cc:1236
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "手柄配置"
 
-#: src/core/pad.cc:1242
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "手柄 1"
 
-#: src/core/pad.cc:1243
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "手柄 2"
 
-#: src/core/pad.cc:1246
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "重新扫描游戏手柄并重新读取游戏手柄数据库"
 
-#: src/core/pad.cc:1265
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr "使用鼠标原生输入"
 
-#: src/core/pad.cc:1267
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
 
-#: src/core/pad.cc:1269
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr ""
 
-#: src/core/pad.cc:1271
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 
-#: src/core/pad.cc:1273
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "手柄"
 
-#: src/core/pad.cc:1282
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "恢复默认值"
 
-#: src/core/pad.cc:1298
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr "键盘 上"
 
-#: src/core/pad.cc:1300
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr "键盘 右"
 
-#: src/core/pad.cc:1302
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr "键盘 下"
 
-#: src/core/pad.cc:1304
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr "键盘 左"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr "键盘 Backspace键"
 
-#: src/core/pad.cc:1308
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr "键盘 Enter键"
 
-#: src/core/pad.cc:1310
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr "键盘 空格键"
 
-#: src/core/pad.cc:1312
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr "键盘 ESC键"
 
-#: src/core/pad.cc:1314
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr "未绑定"
 
-#: src/core/pad.cc:1319
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr "未知键盘按键{0}"
 
-#: src/core/pad.cc:1324
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "键盘{0}"
 
-#: src/core/pad.cc:1343 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "自动"
 
-#: src/core/pad.cc:1344
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "手柄"
 
-#: src/core/pad.cc:1345
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "键盘"
 
-#: src/core/pad.cc:1352
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1353
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1360
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "模拟模式"
 
-#: src/core/pad.cc:1369
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "数字"
 
-#: src/core/pad.cc:1370
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "模拟"
 
-#: src/core/pad.cc:1371
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "鼠标"
 
-#: src/core/pad.cc:1372
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr "南梦宫 Negcon (暂不支持)"
 
-#: src/core/pad.cc:1373
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr "光枪（暂不支持）"
 
-#: src/core/pad.cc:1374
+#: src/core/pad.cc:1373
 #, fuzzy
 msgid "Guncon (Unimplemented)"
 msgstr "南梦宫 Guncon（暂不支持）"
 
-#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "已连接"
 
-#: src/core/pad.cc:1387
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "模拟模式"
 
-#: src/core/pad.cc:1396
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1400
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1406
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "控制器类型"
 
-#: src/core/pad.cc:1422
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "设备标签"
 
-#: src/core/pad.cc:1433
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr "鼠标灵敏度 X轴"
 
-#: src/core/pad.cc:1435
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr "鼠标灵敏度 Y轴"
 
-#: src/core/pad.cc:1437
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr "键盘布局"
 
-#: src/core/pad.cc:1439
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr "电脑按键布局"
 
-#: src/core/pad.cc:1440
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr "手柄按键"
 
-#: src/core/pad.cc:1490
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr "没有已连接或被选中的手柄"
 
-#: src/core/pad.cc:1514
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr "手柄"
 

@@ -117,17 +117,17 @@ msgstr "Eliminar color"
 msgid "Clear VRAM"
 msgstr "Borrar VRAM"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Etiqueta de CD-ROM: %.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "ID de CD-ROM: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Nombre de ejecutable del CD-ROM: %.255s\n"
@@ -481,32 +481,32 @@ msgstr "Cargando Memory Card %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Guardando Memory Card %s\n"
 
-#: src/core/pad.cc:1011 src/core/pad.cc:1135
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando de mando desconocido: %02X\n"
 
-#: src/core/pad.cc:1236
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "Configuración de mandos"
 
-#: src/core/pad.cc:1242
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "Mando 1"
 
-#: src/core/pad.cc:1243
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "Mando 2"
 
-#: src/core/pad.cc:1246
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Volver a buscar mandos y a leer la base de datos de mandos"
 
-#: src/core/pad.cc:1265
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr "Utilizar entrada sin procesar del ratón"
 
-#: src/core/pad.cc:1267
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -514,170 +514,170 @@ msgstr ""
 "Al activar esta opción, se ocultará y capturará el ratón mientras el "
 "emulador esté en funcionamiento. Ideal para juegos que necesitan ratón."
 
-#: src/core/pad.cc:1269
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr "Habilitar alternancia de captura del ratón"
 
-#: src/core/pad.cc:1271
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "Al activar esta opción, si pulsas CTRL y ALT podrás alternar la opción "
 "anterior con el modo de entrada sin procesar."
 
-#: src/core/pad.cc:1273
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "Mando"
 
-#: src/core/pad.cc:1282
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "Valores predeterminados"
 
-#: src/core/pad.cc:1298
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr "Teclado - Arriba"
 
-#: src/core/pad.cc:1300
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr "Teclado - Derecha"
 
-#: src/core/pad.cc:1302
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr "Teclado - Abajo"
 
-#: src/core/pad.cc:1304
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr "Teclado - Izquierda"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr "Teclado - Retroceso"
 
-#: src/core/pad.cc:1308
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr "Teclado - Intro"
 
-#: src/core/pad.cc:1310
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr "Teclado - Espacio"
 
-#: src/core/pad.cc:1312
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr "Teclado - Esc"
 
-#: src/core/pad.cc:1314
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr "Sin asignar"
 
-#: src/core/pad.cc:1319
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr "Tecla de teclado desconocida: {}"
 
-#: src/core/pad.cc:1324
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "Teclado {}"
 
-#: src/core/pad.cc:1343 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Elegir automáticamente"
 
-#: src/core/pad.cc:1344
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "Mando"
 
-#: src/core/pad.cc:1345
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: src/core/pad.cc:1352
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "SELECT"
 
-#: src/core/pad.cc:1353
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "START"
 
-#: src/core/pad.cc:1360
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1369
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1370
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "ANALOG"
 
-#: src/core/pad.cc:1371
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "Ratón"
 
-#: src/core/pad.cc:1372
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr "NegCon (sin implementar)"
 
-#: src/core/pad.cc:1373
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr "Lightgun (sin implementar)"
 
-#: src/core/pad.cc:1374
+#: src/core/pad.cc:1373
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (sin implementar)"
 
-#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Conectado"
 
-#: src/core/pad.cc:1387
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1396
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1400
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1406
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "Tipo de mando"
 
-#: src/core/pad.cc:1422
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:1433
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr "Sensibilidad X del ratón"
 
-#: src/core/pad.cc:1435
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr "Sensibilidad Y del ratón"
 
-#: src/core/pad.cc:1437
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr "Asignaciones del teclado"
 
-#: src/core/pad.cc:1439
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr "Asignación del equipo"
 
-#: src/core/pad.cc:1440
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr "Botón de mando"
 
-#: src/core/pad.cc:1490
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr "No se ha seleccionado o conectado un mando"
 
-#: src/core/pad.cc:1514
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr "Mando"
 
