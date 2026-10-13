@@ -6,8 +6,8 @@
 # Translators:
 # Christophe Péguillat <cpeg-jeuxvideo@outlook.fr>, 2022
 # Schnappy, 2026
-# Rix, 2026
 # Nicolas Noble, 2026
+# Rix, 2026
 # 
 #, fuzzy
 msgid ""
@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2021-03-27 04:53+0000\n"
-"Last-Translator: Nicolas Noble, 2026\n"
+"Last-Translator: Rix, 2026\n"
 "Language-Team: French (https://app.transifex.com/grumpycoders/teams/99251/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2237,7 +2237,7 @@ msgstr "oui"
 
 #: src/gui/gui.cc:2628
 msgid "Vendor"
-msgstr "Fabriquant "
+msgstr "Fabricant"
 
 #: src/gui/gui.cc:2629
 msgid "Renderer"
@@ -3093,7 +3093,7 @@ msgid ""
 "the second checkbox in the logger view. The [B] and [E] buttons can be used "
 "to specify the beginning and the end of a span of commands to highlight."
 msgstr ""
-"Quand cette option est activée, survoler une commande dans le logger la met "
+"Quand cette option est activée, survoler une commande dans le logger la "
 "surligne dans l'affichage de la VRAM. Des commandes individuelles peuvent "
 "être sélectionnées pour le surlignage avec la deuxième case à cocher du "
 "logger. Les boutons [B] et [E] permettent d'indiquer le début et la fin "
