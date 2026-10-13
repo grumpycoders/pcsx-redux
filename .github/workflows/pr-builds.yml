@@ -27,10 +27,11 @@ jobs:
       # Only the platforms the triggering workflow builds, so no idle job enters a concurrency group.
       matrix:
         include: ${{ fromJSON(github.event.workflow_run.name == 'Linux CI' && '[{"artifact":"AppImage-linux-x86_64","project":"pr-linux-x64","secret":"APPDISTRIB_PR_LINUX_X64","label":"Linux x86_64"},{"artifact":"AppImage-linux-aarch64","project":"pr-linux-arm64","secret":"APPDISTRIB_PR_LINUX_ARM64","label":"Linux aarch64"}]' || '[{"artifact":"Dmg-arm","project":"pr-macos-arm","secret":"APPDISTRIB_PR_MACOS_ARM","label":"macOS arm64"}]') }}
-    # A newer push to the same PR supersedes a pending or running publish.
+    # One publish per PR runs at a time; a newer pending one replaces an older pending one,
+    # and a running publish is never cancelled by a late older run.
     concurrency:
       group: pr-builds-${{ matrix.project }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     env:
       GH_TOKEN: ${{ github.token }}
       RUN_ID: ${{ github.event.workflow_run.id }}
