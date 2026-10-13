@@ -95,6 +95,4 @@ $ nc localhost 6699
 
 Anything typed in netcat is sent back by the program.
 
-In Raw mode, the server stops delivering received bytes to the program as soon as the remote side closes its sending direction, even if the connection is still open the other way. Piping a fixed input into a client that closes its side at the end of the input, such as `printf 'text' | nc -q2 localhost 6699`, gets nothing back. Keep the sending side open for as long as replies are expected.
-
 The emulator relays the bytes regardless of the configured baud rate, which only affects the timing of the SIO1 interrupts.
