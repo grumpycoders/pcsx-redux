@@ -1421,7 +1421,7 @@ msgstr "Afficher le visualiseur du tas PSYQo"
 
 #: src/gui/gui.cc:1583
 msgid "Kernel"
-msgstr "Noyau"
+msgstr "Kernel"
 
 #: src/gui/gui.cc:1584
 msgid "Kernel Events"
