@@ -1425,7 +1425,7 @@ msgstr "Kernel"
 
 #: src/gui/gui.cc:1584
 msgid "Kernel Events"
-msgstr "Évènements noyau"
+msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1585
 msgid "Kernel Handlers"
