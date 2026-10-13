@@ -2674,7 +2674,7 @@ msgstr "Supprimer tous les points d'arrêt ?"
 
 #: src/gui/widgets/breakpoints.cc:383
 msgid "Execution Map"
-msgstr "Map d'exécution"
+msgstr "Carte d'exécution"
 
 #: src/gui/widgets/breakpoints.cc:384
 msgid "Clear maps"
