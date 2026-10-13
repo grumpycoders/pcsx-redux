@@ -2405,7 +2405,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:540
 msgid "Draw arrows for jumps"
-msgstr "Draw arrows for jumps"
+msgstr "Dessiner des flèches pour les sauts"
 
 #: src/gui/widgets/assembly.cc:544
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
