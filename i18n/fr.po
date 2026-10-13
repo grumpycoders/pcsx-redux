@@ -4288,11 +4288,11 @@ msgstr "Choisir la couleur de la grille des TPages"
 
 #: src/gui/widgets/vram-viewer.cc:644
 msgid "Select read highlight color"
-msgstr "Choisir la couleur de surbrillance des lectures"
+msgstr "Choisir la couleur de surlignage des lectures"
 
 #: src/gui/widgets/vram-viewer.cc:645
 msgid "Select written highlight color"
-msgstr "Choisir la couleur de surbrillance des écritures"
+msgstr "Choisir la couleur de surlignage des écritures"
 
 #: src/gui/widgets/vram-viewer.cc:663 src/gui/widgets/vram-viewer.cc:665
 msgid "Read Highlight Color Picker"
