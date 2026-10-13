@@ -217,7 +217,15 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Écriture"
 
-#: src/core/gdb-server.cc:617
+#. breakpoints are only checked when the debugger is enabled
+#: src/core/gdb-server.cc:610
+#, c-format
+msgid ""
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
+"debugger)\n"
+msgstr ""
+
+#: src/core/gdb-server.cc:625
 msgid "GDB client"
 msgstr "Client GDB"
 
@@ -472,32 +480,32 @@ msgstr "Chargement de la carte mémoire %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Sauvegarde de la carte mémoire %s\n"
 
-#: src/core/pad.cc:827 src/core/pad.cc:951
+#: src/core/pad.cc:1011 src/core/pad.cc:1135
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Commande inconnue pour le pad: %02X\n"
 
-#: src/core/pad.cc:1052
+#: src/core/pad.cc:1236
 msgid "Pad configuration"
 msgstr "Configuration de la manette"
 
-#: src/core/pad.cc:1058
+#: src/core/pad.cc:1242
 msgid "Pad 1"
 msgstr "Manette 1"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1243
 msgid "Pad 2"
 msgstr "Manette 2"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1246
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Rechercher des manettes et relire la base de données des contrôleurs."
 
-#: src/core/pad.cc:1081
+#: src/core/pad.cc:1265
 msgid "Use raw input for mouse"
 msgstr "Entrée brute pour la souris"
 
-#: src/core/pad.cc:1083
+#: src/core/pad.cc:1267
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -505,168 +513,168 @@ msgstr ""
 "Une fois activée, le curseur sera caché et capturé lorsque l'émulateur "
 "fonctionne. Cela est utile pour les jeux qui nécessitent une souris."
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1269
 msgid "Allow mouse capture toggle"
 msgstr "Permet le basculage de la capture de souris"
 
-#: src/core/pad.cc:1087
+#: src/core/pad.cc:1271
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "Une fois activée, appuyer sur CTRL et ALT basculera la configuration ci-"
 "dessus, \"Entrée brute\""
 
-#: src/core/pad.cc:1089
+#: src/core/pad.cc:1273
 msgid "Pad"
 msgstr "Manette"
 
-#: src/core/pad.cc:1098
+#: src/core/pad.cc:1282
 msgid "Set defaults"
 msgstr "Réinitialise les options par défaut"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1298
 msgid "Keyboard Up"
 msgstr "Clavier haut"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1300
 msgid "Keyboard Right"
 msgstr "Clavier droite"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1302
 msgid "Keyboard Down"
 msgstr "Clavier bas"
 
-#: src/core/pad.cc:1120
+#: src/core/pad.cc:1304
 msgid "Keyboard Left"
 msgstr "Clavier gauche"
 
-#: src/core/pad.cc:1122
+#: src/core/pad.cc:1306
 msgid "Keyboard Backspace"
 msgstr "Clavier retour arrière"
 
-#: src/core/pad.cc:1124
+#: src/core/pad.cc:1308
 msgid "Keyboard Enter"
 msgstr "Clavier entrée"
 
-#: src/core/pad.cc:1126
+#: src/core/pad.cc:1310
 msgid "Keyboard Space"
 msgstr "Clavier barre d'espace"
 
-#: src/core/pad.cc:1128
+#: src/core/pad.cc:1312
 msgid "Keyboard Escape"
 msgstr "Touche Echap"
 
-#: src/core/pad.cc:1130
+#: src/core/pad.cc:1314
 msgid "Unbound"
 msgstr "Non assigné"
 
-#: src/core/pad.cc:1135
+#: src/core/pad.cc:1319
 msgid "Unknown keyboard key {}"
 msgstr "Touche clavier inconnue {}"
 
-#: src/core/pad.cc:1140
+#: src/core/pad.cc:1324
 msgid "Keyboard {}"
 msgstr "Touche {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2293
+#: src/core/pad.cc:1343 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Automatique"
 
-#: src/core/pad.cc:1160
+#: src/core/pad.cc:1344
 msgid "Controller"
 msgstr "Manette"
 
-#: src/core/pad.cc:1161
+#: src/core/pad.cc:1345
 msgid "Keyboard"
 msgstr "Clavier"
 
-#: src/core/pad.cc:1168
+#: src/core/pad.cc:1352
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1353
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1360
 msgid "Analog Mode"
 msgstr "Mode Analogue"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1369
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1370
 msgid "Analog"
 msgstr "Analogue"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1371
 msgid "Mouse"
 msgstr "Souris"
 
-#: src/core/pad.cc:1188
+#: src/core/pad.cc:1372
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (non implémenté)"
 
-#: src/core/pad.cc:1189
+#: src/core/pad.cc:1373
 msgid "Gun (Unimplemented)"
 msgstr "Pistolet (non implémenté)"
 
-#: src/core/pad.cc:1190
+#: src/core/pad.cc:1374
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (non implémenté)"
 
-#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Connecté"
 
-#: src/core/pad.cc:1203
+#: src/core/pad.cc:1387
 msgid "Analog mode"
 msgstr "Mode analogue"
 
-#: src/core/pad.cc:1212
+#: src/core/pad.cc:1396
 msgid "Rumble"
 msgstr "Vibration"
 
-#: src/core/pad.cc:1216
+#: src/core/pad.cc:1400
 msgid "(no motors on this gamepad)"
 msgstr "(pas de moteurs sur cette manette)"
 
-#: src/core/pad.cc:1222
+#: src/core/pad.cc:1406
 msgid "Controller Type"
 msgstr "Type de controlleur"
 
-#: src/core/pad.cc:1238
+#: src/core/pad.cc:1422
 msgid "Device type"
 msgstr "Type de périphérique"
 
-#: src/core/pad.cc:1249
+#: src/core/pad.cc:1433
 msgid "Mouse sensitivity X"
 msgstr "Sensitivé horizontale de la souris"
 
-#: src/core/pad.cc:1251
+#: src/core/pad.cc:1435
 msgid "Mouse sensitivity Y"
 msgstr "Sensitivé verticale de la souris"
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1437
 msgid "Keyboard mapping"
 msgstr "Configuration des touches clavier"
 
-#: src/core/pad.cc:1255
+#: src/core/pad.cc:1439
 msgid "Computer button mapping"
 msgstr "Configuration des touches ordinateur"
 
-#: src/core/pad.cc:1256
+#: src/core/pad.cc:1440
 msgid "Gamepad button"
 msgstr "Boutton de la manette"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1490
 msgid "No gamepad selected or connected"
 msgstr "Aucune manette connectée ou sélectionnée"
 
-#: src/core/pad.cc:1330
+#: src/core/pad.cc:1514
 msgid "Gamepad"
 msgstr "Manette"
 
