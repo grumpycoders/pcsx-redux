@@ -2686,7 +2686,7 @@ msgid ""
 "explanation. See the documentation website for more details, in the Misc "
 "Features subsection of the Debugging section."
 msgstr ""
-"La fonction de mapping est un concept simple, mais demande quelques "
+"La fonction de cartographie est un concept simple, mais demande quelques "
 "explications. Voir le site de documentation pour plus de détails, dans la "
 "sous-section Misc Features de la section Debugging."
 
