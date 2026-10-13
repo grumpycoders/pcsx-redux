@@ -473,11 +473,11 @@ msgstr "Sauvegarde de la carte mémoire %s\n"
 #: src/core/pad.cc:824 src/core/pad.cc:948
 #, c-format
 msgid "Unknown command for pad: %02X\n"
-msgstr "Commande inconnue pour le controleur: %02X\n"
+msgstr "Commande inconnue pour le contrôleur: %02X\n"
 
 #: src/core/pad.cc:1049
 msgid "Pad configuration"
-msgstr "Configuration de la manette"
+msgstr "Configuration du contrôleur"
 
 #: src/core/pad.cc:1055
 msgid "Pad 1"
