@@ -1461,7 +1461,7 @@ msgstr "Afficher la démo d'ImGui"
 
 #: src/gui/gui.cc:1602
 msgid "Show ImPlot Demo"
-msgstr "Afficher la démo ImPlot"
+msgstr "Afficher la démo d'ImPlot"
 
 #: src/gui/gui.cc:1604
 msgid "Show UvFile information"
