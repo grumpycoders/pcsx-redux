@@ -2344,7 +2344,7 @@ msgstr "Charger la carte de symboles"
 
 #: src/gui/widgets/assembly.cc:495
 msgid "Reset symbols map"
-msgstr "Réinitialiser la map des symboles"
+msgstr "Réinitialiser la carte des symboles"
 
 #: src/gui/widgets/assembly.cc:501 src/gui/widgets/assembly.cc:577
 msgctxt "Emulation"
