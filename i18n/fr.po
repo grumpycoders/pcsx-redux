@@ -2724,7 +2724,7 @@ msgstr "Point d'arrêt sur la carte d'exécution"
 
 #: src/gui/widgets/breakpoints.cc:410
 msgid "Break on byte read map"
-msgstr "Break on byte read map"
+msgstr "Point d'arrêt sur la carte de lecture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:412
 msgid "Break on half read map"
