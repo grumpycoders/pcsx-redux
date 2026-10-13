@@ -489,7 +489,8 @@ msgstr "Contrôleur 2"
 
 #: src/core/pad.cc:1059
 msgid "Rescan gamepads and re-read game controllers database"
-msgstr "Rechercher des manettes et relire la base de données des contrôleurs."
+msgstr ""
+"Rechercher les contrôleurs et relire la base de données des contrôleurs."
 
 #: src/core/pad.cc:1078
 msgid "Use raw input for mouse"
