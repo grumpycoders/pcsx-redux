@@ -3569,7 +3569,7 @@ msgstr "Ignorer les ISR pendant les traces CPU"
 
 #: src/gui/widgets/log.cc:115
 msgid "Log kernel calls"
-msgstr "Journaliser les appels noyau"
+msgstr "Journaliser les appels kernel"
 
 #: src/gui/widgets/log.cc:125
 msgid "Follow"
