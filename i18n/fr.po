@@ -1457,7 +1457,7 @@ msgstr "Aide"
 
 #: src/gui/gui.cc:1601
 msgid "Show ImGui Demo"
-msgstr "Afficher la démo du ImGui"
+msgstr "Afficher la démo d'ImGui"
 
 #: src/gui/gui.cc:1602
 msgid "Show ImPlot Demo"
