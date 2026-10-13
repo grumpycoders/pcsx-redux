@@ -2740,7 +2740,7 @@ msgstr "Break on byte write map"
 
 #: src/gui/widgets/breakpoints.cc:418
 msgid "Break on half write map"
-msgstr "Break on half write map"
+msgstr "Point d'arrêt sur la carte d'écriture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:420
 msgid "Break on word write map"
