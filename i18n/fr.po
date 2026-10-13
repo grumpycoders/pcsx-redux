@@ -2728,11 +2728,11 @@ msgstr "Point d'arrêt sur la carte de lecture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:412
 msgid "Break on half read map"
-msgstr "Break on half read map"
+msgstr "Point d'arrêt sur la carte de lecture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:414
 msgid "Break on word read map"
-msgstr "Break on word read map"
+msgstr "Point d'arrêt sur la carte de lecture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:416
 msgid "Break on byte write map"
