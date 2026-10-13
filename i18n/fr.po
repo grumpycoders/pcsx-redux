@@ -2792,7 +2792,7 @@ msgstr "Choisir la couleur de l'audio"
 
 #: src/gui/widgets/cdrom-viewer.cc:367
 msgid "Select seek color"
-msgstr "Choisir la couleur des seeks"
+msgstr "Choisir la couleur des positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:371 src/gui/widgets/ram-viewer.cc:508
 msgid "Decay half-life (ms)"
@@ -2817,7 +2817,7 @@ msgstr "Sélecteur de couleur de l'audio"
 
 #: src/gui/widgets/cdrom-viewer.cc:409 src/gui/widgets/cdrom-viewer.cc:410
 msgid "Seek Color Picker"
-msgstr "Sélecteur de couleur des seeks"
+msgstr "Sélecteur de couleur des positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:420
 msgid "CD-ROM Shader Editor"
