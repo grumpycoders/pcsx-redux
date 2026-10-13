@@ -220,7 +220,15 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Escritura"
 
-#: src/core/gdb-server.cc:617
+#. breakpoints are only checked when the debugger is enabled
+#: src/core/gdb-server.cc:610
+#, c-format
+msgid ""
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
+"debugger)\n"
+msgstr ""
+
+#: src/core/gdb-server.cc:625
 msgid "GDB client"
 msgstr "Cliente GDB"
 
@@ -473,32 +481,32 @@ msgstr "Cargando Memory Card %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Guardando Memory Card %s\n"
 
-#: src/core/pad.cc:827 src/core/pad.cc:951
+#: src/core/pad.cc:1011 src/core/pad.cc:1135
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando de mando desconocido: %02X\n"
 
-#: src/core/pad.cc:1052
+#: src/core/pad.cc:1236
 msgid "Pad configuration"
 msgstr "Configuración de mandos"
 
-#: src/core/pad.cc:1058
+#: src/core/pad.cc:1242
 msgid "Pad 1"
 msgstr "Mando 1"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1243
 msgid "Pad 2"
 msgstr "Mando 2"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1246
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Volver a buscar mandos y a leer la base de datos de mandos"
 
-#: src/core/pad.cc:1081
+#: src/core/pad.cc:1265
 msgid "Use raw input for mouse"
 msgstr "Utilizar entrada sin procesar del ratón"
 
-#: src/core/pad.cc:1083
+#: src/core/pad.cc:1267
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -506,170 +514,170 @@ msgstr ""
 "Al activar esta opción, se ocultará y capturará el ratón mientras el "
 "emulador esté en funcionamiento. Ideal para juegos que necesitan ratón."
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1269
 msgid "Allow mouse capture toggle"
 msgstr "Habilitar alternancia de captura del ratón"
 
-#: src/core/pad.cc:1087
+#: src/core/pad.cc:1271
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "Al activar esta opción, si pulsas CTRL y ALT podrás alternar la opción "
 "anterior con el modo de entrada sin procesar."
 
-#: src/core/pad.cc:1089
+#: src/core/pad.cc:1273
 msgid "Pad"
 msgstr "Mando"
 
-#: src/core/pad.cc:1098
+#: src/core/pad.cc:1282
 msgid "Set defaults"
 msgstr "Valores predeterminados"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1298
 msgid "Keyboard Up"
 msgstr "Teclado - Arriba"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1300
 msgid "Keyboard Right"
 msgstr "Teclado - Derecha"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1302
 msgid "Keyboard Down"
 msgstr "Teclado - Abajo"
 
-#: src/core/pad.cc:1120
+#: src/core/pad.cc:1304
 msgid "Keyboard Left"
 msgstr "Teclado - Izquierda"
 
-#: src/core/pad.cc:1122
+#: src/core/pad.cc:1306
 msgid "Keyboard Backspace"
 msgstr "Teclado - Retroceso"
 
-#: src/core/pad.cc:1124
+#: src/core/pad.cc:1308
 msgid "Keyboard Enter"
 msgstr "Teclado - Intro"
 
-#: src/core/pad.cc:1126
+#: src/core/pad.cc:1310
 msgid "Keyboard Space"
 msgstr "Teclado - Espacio"
 
-#: src/core/pad.cc:1128
+#: src/core/pad.cc:1312
 msgid "Keyboard Escape"
 msgstr "Teclado - Esc"
 
-#: src/core/pad.cc:1130
+#: src/core/pad.cc:1314
 msgid "Unbound"
 msgstr "Sin asignar"
 
-#: src/core/pad.cc:1135
+#: src/core/pad.cc:1319
 msgid "Unknown keyboard key {}"
 msgstr "Tecla de teclado desconocida: {}"
 
-#: src/core/pad.cc:1140
+#: src/core/pad.cc:1324
 msgid "Keyboard {}"
 msgstr "Teclado {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2293
+#: src/core/pad.cc:1343 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Elegir automáticamente"
 
-#: src/core/pad.cc:1160
+#: src/core/pad.cc:1344
 msgid "Controller"
 msgstr "Mando"
 
-#: src/core/pad.cc:1161
+#: src/core/pad.cc:1345
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: src/core/pad.cc:1168
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "SELECT"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1353
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "START"
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1360
 msgid "Analog Mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1369
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1370
 msgid "Analog"
 msgstr "ANALOG"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1371
 msgid "Mouse"
 msgstr "Ratón"
 
-#: src/core/pad.cc:1188
+#: src/core/pad.cc:1372
 msgid "Negcon (Unimplemented)"
 msgstr "NegCon (sin implementar)"
 
-#: src/core/pad.cc:1189
+#: src/core/pad.cc:1373
 msgid "Gun (Unimplemented)"
 msgstr "Lightgun (sin implementar)"
 
-#: src/core/pad.cc:1190
+#: src/core/pad.cc:1374
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (sin implementar)"
 
-#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Conectado"
 
-#: src/core/pad.cc:1203
+#: src/core/pad.cc:1387
 msgid "Analog mode"
 msgstr "Modo analógico"
 
-#: src/core/pad.cc:1212
+#: src/core/pad.cc:1396
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1216
+#: src/core/pad.cc:1400
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1222
+#: src/core/pad.cc:1406
 msgid "Controller Type"
 msgstr "Tipo de mando"
 
-#: src/core/pad.cc:1238
+#: src/core/pad.cc:1422
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:1249
+#: src/core/pad.cc:1433
 msgid "Mouse sensitivity X"
 msgstr "Sensibilidad X del ratón"
 
-#: src/core/pad.cc:1251
+#: src/core/pad.cc:1435
 msgid "Mouse sensitivity Y"
 msgstr "Sensibilidad Y del ratón"
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1437
 msgid "Keyboard mapping"
 msgstr "Asignaciones del teclado"
 
-#: src/core/pad.cc:1255
+#: src/core/pad.cc:1439
 msgid "Computer button mapping"
 msgstr "Asignación del equipo"
 
-#: src/core/pad.cc:1256
+#: src/core/pad.cc:1440
 msgid "Gamepad button"
 msgstr "Botón de mando"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1490
 msgid "No gamepad selected or connected"
 msgstr "No se ha seleccionado o conectado un mando"
 
-#: src/core/pad.cc:1330
+#: src/core/pad.cc:1514
 msgid "Gamepad"
 msgstr "Mando"
 

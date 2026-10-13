@@ -213,7 +213,15 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Gravação"
 
-#: src/core/gdb-server.cc:617
+#. breakpoints are only checked when the debugger is enabled
+#: src/core/gdb-server.cc:610
+#, c-format
+msgid ""
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
+"debugger)\n"
+msgstr ""
+
+#: src/core/gdb-server.cc:625
 msgid "GDB client"
 msgstr "Cliente GDB"
 
@@ -470,201 +478,201 @@ msgstr "Carregando o memory card %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Salvando o memory card %s\n"
 
-#: src/core/pad.cc:827 src/core/pad.cc:951
+#: src/core/pad.cc:1011 src/core/pad.cc:1135
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Comando desconhecido pro pad: %02X\n"
 
-#: src/core/pad.cc:1052
+#: src/core/pad.cc:1236
 msgid "Pad configuration"
 msgstr "Configuração do pad"
 
-#: src/core/pad.cc:1058
+#: src/core/pad.cc:1242
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1243
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1246
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 "Re-escanear os gamepads e reler o banco de dados dos controles dos jogos"
 
-#: src/core/pad.cc:1081
+#: src/core/pad.cc:1265
 msgid "Use raw input for mouse"
 msgstr "Usar entrada bruta pro mouse"
 
-#: src/core/pad.cc:1083
+#: src/core/pad.cc:1267
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1269
 msgid "Allow mouse capture toggle"
 msgstr ""
 
-#: src/core/pad.cc:1087
+#: src/core/pad.cc:1271
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 
-#: src/core/pad.cc:1089
+#: src/core/pad.cc:1273
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:1098
+#: src/core/pad.cc:1282
 msgid "Set defaults"
 msgstr "Definir padrões"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1298
 msgid "Keyboard Up"
 msgstr "Teclado Pra Cima"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1300
 msgid "Keyboard Right"
 msgstr "Teclado Direita"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1302
 msgid "Keyboard Down"
 msgstr "Teclado Pra Baixo"
 
-#: src/core/pad.cc:1120
+#: src/core/pad.cc:1304
 msgid "Keyboard Left"
 msgstr "Teclado Esquerda"
 
-#: src/core/pad.cc:1122
+#: src/core/pad.cc:1306
 msgid "Keyboard Backspace"
 msgstr "Backspace do Teclado"
 
-#: src/core/pad.cc:1124
+#: src/core/pad.cc:1308
 msgid "Keyboard Enter"
 msgstr "Teclado Enter"
 
-#: src/core/pad.cc:1126
+#: src/core/pad.cc:1310
 msgid "Keyboard Space"
 msgstr "Teclado Barra de Espaço"
 
-#: src/core/pad.cc:1128
+#: src/core/pad.cc:1312
 msgid "Keyboard Escape"
 msgstr "Teclado Escape"
 
-#: src/core/pad.cc:1130
+#: src/core/pad.cc:1314
 msgid "Unbound"
 msgstr "Sem Limites"
 
-#: src/core/pad.cc:1135
+#: src/core/pad.cc:1319
 msgid "Unknown keyboard key {}"
 msgstr "Tecla do teclado desconhecida {}"
 
-#: src/core/pad.cc:1140
+#: src/core/pad.cc:1324
 msgid "Keyboard {}"
 msgstr "Teclado {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2293
+#: src/core/pad.cc:1343 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Auto"
 
-#: src/core/pad.cc:1160
+#: src/core/pad.cc:1344
 msgid "Controller"
 msgstr "Controle"
 
-#: src/core/pad.cc:1161
+#: src/core/pad.cc:1345
 msgid "Keyboard"
 msgstr "Teclado"
 
-#: src/core/pad.cc:1168
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Selecionar"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1353
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1360
 msgid "Analog Mode"
 msgstr "Modo Analógico"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1369
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1370
 msgid "Analog"
 msgstr "Analógico"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1371
 msgid "Mouse"
 msgstr "Mouse"
 
-#: src/core/pad.cc:1188
+#: src/core/pad.cc:1372
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (Não Implementado)"
 
-#: src/core/pad.cc:1189
+#: src/core/pad.cc:1373
 msgid "Gun (Unimplemented)"
 msgstr "Arma (Não Implementada)"
 
-#: src/core/pad.cc:1190
+#: src/core/pad.cc:1374
 #, fuzzy
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (Não Implementado)"
 
-#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Conectado"
 
-#: src/core/pad.cc:1203
+#: src/core/pad.cc:1387
 msgid "Analog mode"
 msgstr "Modo Analógico"
 
-#: src/core/pad.cc:1212
+#: src/core/pad.cc:1396
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1216
+#: src/core/pad.cc:1400
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1222
+#: src/core/pad.cc:1406
 msgid "Controller Type"
 msgstr "Tipo de Controle"
 
-#: src/core/pad.cc:1238
+#: src/core/pad.cc:1422
 msgid "Device type"
 msgstr "Tipo de dispositivo"
 
-#: src/core/pad.cc:1249
+#: src/core/pad.cc:1433
 msgid "Mouse sensitivity X"
 msgstr "Sensibilidade do mouse X"
 
-#: src/core/pad.cc:1251
+#: src/core/pad.cc:1435
 msgid "Mouse sensitivity Y"
 msgstr "Sensibilidade do mouse Y"
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1437
 msgid "Keyboard mapping"
 msgstr "Mapeamento do teclado"
 
-#: src/core/pad.cc:1255
+#: src/core/pad.cc:1439
 msgid "Computer button mapping"
 msgstr "Mapeamento do botão do computador"
 
-#: src/core/pad.cc:1256
+#: src/core/pad.cc:1440
 msgid "Gamepad button"
 msgstr "Botão do Gamepad"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1490
 msgid "No gamepad selected or connected"
 msgstr "Nenhum gamepad selecionado ou conectado"
 
-#: src/core/pad.cc:1330
+#: src/core/pad.cc:1514
 msgid "Gamepad"
 msgstr "Gamepad"
 
