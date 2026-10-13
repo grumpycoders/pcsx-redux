@@ -206,6 +206,8 @@ struct args {
     return parser_.positional_arguments();
   }
 
+  const detail::argument_map& options() const { return parser_.options(); }
+
   std::vector<std::string_view> values(const std::string_view& option) const {
       return detail::get_values(parser_.options(), option);
   }

@@ -969,6 +969,17 @@ declare(disCTC0) {
 }
 
 /*********************************************************
+ * Coprocessor branches                                   *
+ * Format:  OP offset                                     *
+ *********************************************************/
+declare(disBCz) {
+    if (delaySlotNext) *delaySlotNext = true;
+    unsigned z = (code >> 26) & 3;
+    dOpCode(fmt::format("bc{}{}", z, (_Rt_ & 1) ? 't' : 'f'));
+    dBranch();
+}
+
+/*********************************************************
  * Unknow instruction (would generate an exception)       *
  * Format:  ?                                             *
  *********************************************************/
@@ -1023,7 +1034,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
     // Subset of disCOP0
     &Disasm::disMFC0, &Disasm::disNULL, &Disasm::disCFC0, &Disasm::disNULL,  // 00
     &Disasm::disMTC0, &Disasm::disNULL, &Disasm::disCTC0, &Disasm::disNULL,  // 04
-    &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
+    &Disasm::disBCz,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 08
     &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 0c
     &Disasm::disRFE,  &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 10
     &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL, &Disasm::disNULL,  // 14
@@ -1034,6 +1045,15 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP0[] = {
 declare(disCOP0) {
     cTdisR3000AF ptr = s_disR3000A_COP0[_Rs_];
     (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
+}
+
+// COP1 and COP3 have no registers on the PS1; only their branches decode.
+declare(disCOPn) {
+    if (_Rs_ == 8) {
+        disBCz(code, nextCode, pc, skipNext, delaySlotNext);
+    } else {
+        disNULL(code, nextCode, pc, skipNext, delaySlotNext);
+    }
 }
 
 const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_BASIC[] = {
@@ -1074,6 +1094,10 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A_COP2[] = {
 };
 
 declare(disCOP2) {
+    if (_Rs_ == 8) {
+        disBCz(code, nextCode, pc, skipNext, delaySlotNext);
+        return;
+    }
     cTdisR3000AF ptr = s_disR3000A_COP2[_Funct_];
     (*this.*ptr)(code, nextCode, pc, skipNext, delaySlotNext);
 }
@@ -1083,7 +1107,7 @@ const PCSX::Disasm::TdisR3000AF PCSX::Disasm::s_disR3000A[] = {
     &Disasm::disBEQ,     &Disasm::disBNE,   &Disasm::disBLEZ, &Disasm::disBGTZ,   // 04
     &Disasm::disADDI,    &Disasm::disADDIU, &Disasm::disSLTI, &Disasm::disSLTIU,  // 08
     &Disasm::disANDI,    &Disasm::disORI,   &Disasm::disXORI, &Disasm::disLUI,    // 0c
-    &Disasm::disCOP0,    &Disasm::disNULL,  &Disasm::disCOP2, &Disasm::disNULL,   // 10
+    &Disasm::disCOP0,    &Disasm::disCOPn,  &Disasm::disCOP2, &Disasm::disCOPn,   // 10
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 14
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 18
     &Disasm::disNULL,    &Disasm::disNULL,  &Disasm::disNULL, &Disasm::disNULL,   // 1c

@@ -105,7 +105,7 @@ PCSX::IEC60908b::MSF PCSX::ISO9660Builder::writeSectorAt(const uint8_t* sectorDa
             ptr[15] = 2;
             ptr[16] = ptr[20] = 0;
             ptr[17] = ptr[21] = 0;
-            ptr[18] = ptr[22] = 8;
+            ptr[18] = ptr[22] = 8 | 0x20;  // form 2 flag
             ptr[19] = ptr[23] = 0;
             memcpy(ptr + 24, sectorData, 2324);
             compute_edcecc(ptr);
@@ -412,9 +412,9 @@ void PCSX::ISO9660Builder::computeLayout() {
         if (!node->hasAnchorLBA()) return;
         uint32_t anchor = node->getAnchorLBA();
         if (anchor < currentSector) {
-            throw std::runtime_error(
-                "ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" + node->m_name +
-                "' is before current layout cursor " + std::to_string(currentSector));
+            throw std::runtime_error("ISO9660Builder: anchor LBA " + std::to_string(anchor) + " for entry '" +
+                                     node->m_name + "' is before current layout cursor " +
+                                     std::to_string(currentSector));
         }
         if (anchor > currentSector) {
             m_anchorPaddingRanges.emplace_back(currentSector, anchor);

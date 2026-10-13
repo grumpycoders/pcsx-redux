@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <SDL3/SDL.h>
 #include <stdint.h>
 
 #include <array>
@@ -31,8 +32,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-#include <SDL3/SDL.h>
 
 #include "lua/luawrapper.h"
 #include "spu/settings.h"
@@ -137,7 +136,7 @@ class SDLAudio {
                 return false;
         }
     }
-    size_t getBytesBuffered(unsigned streamId = 0) {
+    size_t getFramesBuffered(unsigned streamId = 0) {
         switch (streamId) {
             case 0:
                 return m_voicesStream.buffered();

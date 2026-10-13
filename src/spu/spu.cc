@@ -23,6 +23,8 @@
 #include <cstdlib>
 #include <thread>
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/adsr.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
@@ -285,6 +287,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     }
 
     if (!on) {
+        // The volume sweep runs whether or not the voice is playing.
+        for (int ns = 0; ns < NSSIZE; ns++) voice->volume.step();
         // Silent is not stopped. "All voices are permanently reading data from SPU RAM -
         // even in Noise mode, even if the Voice Volume is zero, and even if the ADSR
         // pattern has finished the Release period - so even inaudible voices can trigger
@@ -302,6 +306,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     // Collect 1 ms of this channel's audio.
     for (int ns = 0; ns < NSSIZE; ns++) {
         int rawSample;
+
+        voice->volume.step();
 
         // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
         // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
@@ -329,6 +335,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns);
+                // The sweep keeps running for the rest of the batch.
+                for (int rest = ns + 1; rest < NSSIZE; rest++) voice->volume.step();
                 // Done with this channel.
                 return;
             }
@@ -424,35 +432,8 @@ void PCSX::SPU::impl::MainThread() {
     // Run until we are shutting down.
     while (!endThread) {
         int volumeDivisor = 4 - settings.get<Volume>();
-        //--------------------------------------------------//
-        // At the start of each pass, check whether there is enough free space in the audio output
-        // buffer to fill in new data, or whether there is a new channel to start. If neither, wait
-        // until free space is available or a new channel gets started.
-
-        // Should a new channel start immediately, that is, is at least one bit in 0..MAXCHANNEL
-        // set?
-        if (newChannelMask) {
-            // Set secureStart.
-            secureStart++;
-            if (secureStart > 5)
-                // If it has been set 5 times in a row, meaning a new sample has been started on 5
-                // tries in a row, reset it to give the sound update a chance.
-                secureStart = 0;
-        } else
-            // 0: no new channel should start.
-            secureStart = 0;
-
-        // No new start, no thread end, and still enough data in the sound buffer?
-        while (!secureStart && !endThread && (m_audioOut.getBytesBuffered() > TESTSIZE)) {
-            // Reset secureStart.
-            secureStart = 0;
-
-            using namespace std::chrono_literals;
-            std::this_thread::sleep_for(5ms);
-
-            // If a new channel kicks in, or the sound buffer runs low, leave the loop.
-            if (newChannelMask) secureStart = 1;
-        }
+        // Pacing comes from the blocking enqueue in feedStreamData at the bottom of the loop: the
+        // output ring only drains as the audio output consumes it.
 
         {
             // capBufVoiceIndex is reset from the emulation thread (resetCaptureBuffer).
@@ -571,10 +552,18 @@ void PCSX::SPU::impl::MainThread() {
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
     std::lock_guard<std::mutex> lock(cbMtx);
     if (mixIrqAddress) {
+        // CD audio arrives once per sector, 1/75 s apart in emulated time. Within a few
+        // sectors of the last one the CD is still feeding, and an empty buffer only means
+        // the emulation runs slower than the mixer: wait for it instead of writing silence.
+        // The mixer starts before the CPU exists.
+        const auto *cpu = PCSX::g_emulator->m_cpu.get();
+        const uint64_t feeding = PCSX::g_emulator->m_psxClockSpeed * 4 / 75;
+        const uint64_t lastFeed = cdFeedCycle;
+        const bool cdFeeding = cpu && (lastFeed != 0) && (cpu->m_regs.cycle - lastFeed < feeding);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
-                // If there are no samples left in the temp buffer,
-                // we still HAVE to keep writing to the capture buffer.
+                if (cdFeeding) break;
+                // Nothing is feeding the CD input: the capture records silence.
                 spuMem[captureBuffer.currIndex] = 0;
                 spuMem[captureBuffer.currIndex + 0x200] = 0;
             } else {
@@ -588,7 +577,6 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
         // expected to track each other and end up equal.
     }
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 // XA audio.

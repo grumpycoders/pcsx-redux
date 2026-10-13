@@ -35,6 +35,7 @@
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready
 #define GPUSTATUS_MODE 0x02000000  // Data request mode
+#define GPUSTATUS_IRQ1 0x01000000  // GP0(1Fh) / GP1(02h)
 
 namespace PCSX {
 
@@ -231,19 +232,18 @@ namespace {
 template <size_t Index>
 auto *polyCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Poly<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                         (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri,
-                         (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
+    return new GPU::Poly < (Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+           (Index & 0x08) ? GPU::Shape::Quad : GPU::Shape::Tri, (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+           (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On > ();
 }
 
 template <size_t Index>
 auto *lineCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Line<(Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
-                         (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off>();
+    return new GPU::Line < (Index & 0x10) ? GPU::Shading::Gouraud : GPU::Shading::Flat,
+           (Index & 0x08) ? GPU::LineType::Poly : GPU::LineType::Simple,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off > ();
 }
 
 template <size_t Index>
@@ -262,9 +262,9 @@ consteval GPU::Size rectSize() {
 template <size_t Index>
 auto *rectCommand() {
     // One instance per GPU: the commands hold a pointer back to the GPU that owns them.
-    return new GPU::Rect<rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
-                         (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
-                         (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On>();
+    return new GPU::Rect < rectSize<Index>(), (Index & 0x04) ? GPU::Textured::Yes : GPU::Textured::No,
+           (Index & 0x02) ? GPU::Blend::Semi : GPU::Blend::Off,
+           (Index & 0x01) ? GPU::Modulation::Off : GPU::Modulation::On > ();
 }
 
 }  // namespace
@@ -337,11 +337,11 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::OK:
                     header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
@@ -378,6 +378,7 @@ uint32_t PCSX::GPU::readStatus() {
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
 #endif
     if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
+    if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
     return ret;
@@ -612,11 +613,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::OK:
                     break;
@@ -671,6 +672,9 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
                         m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
+                    } break;
+                    case 0x1f: {  // interrupt request (IRQ1)
+                        m_gpu->requestIRQ1();
                     } break;
                     default: {
                         gotUnknown = true;
@@ -780,6 +784,10 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             raw.y = y;
             raw.w = w;
             raw.h = h;
+            // GP0(02h) parameter masking (psx-spx): Xpos ignores its low 4 bits,
+            // Xsiz rounds up to the next multiple of 16 within 0..400h.
+            x &= 0x3f0;
+            w = ((w & 0x3ff) + 0xf) & ~0xf;
             clipped = GPU::clip(x, y, w, h);
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
@@ -1404,7 +1412,7 @@ bool PCSX::GPU::Logged::isInsideLine(int x, int y, int x1, int y1, int x2, int y
     return o1 == 0;
 }
 
-void PCSX::GPU::getRestoreSequence(std::vector<uint32_t>& gp0, std::vector<uint32_t>& gp1) const {
+void PCSX::GPU::getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const {
     gp1.clear();
     gp1.push_back(0x00000000);
     for (unsigned cmd : {3, 8, 6, 7, 5, 4}) gp1.push_back(m_statusControl[cmd]);

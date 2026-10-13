@@ -138,7 +138,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
         g_emulator->m_sio->saveMcd(1);
         g_emulator->m_sio->saveMcd(2);
     }
-    ImGui::TextUnformatted(_("Undo version: "));
+    ImGui::TextUnformatted(_("Undo version:"));
     ImGui::SameLine();
     if (isLatest) {
         ImGui::TextUnformatted(_("Latest"));
@@ -197,7 +197,7 @@ bool PCSX::Widgets::MemcardManager::draw(GUI* gui, const char* title) {
             ImGui::TableSetupColumn(_("Block number"));
             ImGui::TableSetupColumn(_("Icon"));
             ImGui::TableSetupColumn(_("Title"));
-            ImGui::TableSetupColumn(_("ID"));
+            ImGui::TableSetupColumn("ID");
             ImGui::TableSetupColumn(_("Filename"));
             ImGui::TableSetupColumn(_("Action"));
             ImGui::TableHeadersRow();

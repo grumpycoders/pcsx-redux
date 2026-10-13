@@ -44,6 +44,13 @@ std::string_view PCSX::Shaders::CrtLottes::Output::frag() {
 // from Timothy Lottes
 
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+#endif
+
 uniform sampler2D Texture;
 
 uniform vec2 u_srcSize;
@@ -149,6 +156,12 @@ std::string_view PCSX::Shaders::CrtLottes::Offscreen::frag() {
 // from Timothy Lottes
 
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+#endif
 
 uniform sampler2D Texture;
 in vec2 Frag_UV;

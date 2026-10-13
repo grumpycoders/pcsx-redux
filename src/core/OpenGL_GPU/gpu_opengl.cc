@@ -478,7 +478,7 @@ bool PCSX::OpenGL_GPU::configure() {
         int msaaSampleCount = g_emulator->settings.get<Emulator::SettingMSAA>();
         const auto msaaString = msaaSampleCount == 1 ? _("No MSAA") : fmt::format(f_("{}x MSAA"), msaaSampleCount);
 
-        if (ImGui::BeginCombo(_("MSAA"), msaaString.c_str())) {
+        if (ImGui::BeginCombo("MSAA", msaaString.c_str())) {
             const int maxMSAA = OpenGL::maxSamples();
 
             if (ImGui::Selectable(_("No MSAA"))) {

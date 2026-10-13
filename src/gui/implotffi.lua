@@ -225,9 +225,7 @@ local implot = implot
 local AUTO = implot.AUTO
 local constant = implot.constant
 
-local function check(name, err)
-    if err ~= nil then error(name .. ': ' .. ffi.string(err), 3) end
-end
+local function check(name, err) if err ~= nil then error(name .. ': ' .. ffi.string(err), 3) end end
 
 local function str(name, v, what)
     if type(v) ~= 'string' then error(name .. ': ' .. what .. ' must be a string', 3) end
@@ -276,7 +274,9 @@ local function colorTable(buf) return { r = buf[0], g = buf[1], b = buf[2], a = 
 
 -- Element types accepted for data arrays, in the order of dispatch() in
 -- luaimplot.cc. Keys are LuaJIT's canonical spelling of each type.
-local dataTypes = { 'int8_t', 'uint8_t', 'int16_t', 'uint16_t', 'int32_t', 'uint32_t', 'int64_t', 'uint64_t', 'float', 'double' }
+local dataTypes = {
+    'int8_t', 'uint8_t', 'int16_t', 'uint16_t', 'int32_t', 'uint32_t', 'int64_t', 'uint64_t', 'float', 'double',
+}
 local DOUBLE = 9
 local typeCodes = {}
 local arrayTypes = {}
@@ -338,9 +338,12 @@ local function resolve(name, count, spec, ...)
             local c, ctname = elementType(v)
             if c == nil then
                 error(name .. ': unsupported data type ' .. ctname ..
-                    ', expected a pointer or array of int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float or double', 3)
+                          ', expected a pointer or array of int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float or double',
+                      3)
             end
-            if code ~= nil and code ~= c then error(name .. ': all cdata arguments must have the same element type', 3) end
+            if code ~= nil and code ~= c then
+                error(name .. ': all cdata arguments must have the same element type', 3)
+            end
             code = c
         elseif t == 'table' then
             hasTable = true
@@ -356,16 +359,22 @@ local function resolve(name, count, spec, ...)
         end
     else
         count = tonumber(count)
-        if count == nil or count < 0 or count ~= math.floor(count) then error(name .. ': count must be a non-negative integer', 3) end
+        if count == nil or count < 0 or count ~= math.floor(count) then
+            error(name .. ': count must be a non-negative integer', 3)
+        end
     end
     code = code or DOUBLE
     if hasTable then
-        if spec ~= nil and spec.Stride ~= AUTO then error(name .. ': Stride can only be used with cdata arguments', 3) end
+        if spec ~= nil and spec.Stride ~= AUTO then
+            error(name .. ': Stride can only be used with cdata arguments', 3)
+        end
         local ct = arrayTypes[code]
         for i = 1, n do
             local t = args[i]
             if type(t) == 'table' then
-                if #t < count then error(name .. ': table argument has fewer than ' .. count .. ' elements', 3) end
+                if #t < count then
+                    error(name .. ': table argument has fewer than ' .. count .. ' elements', 3)
+                end
                 local a = ffi.new(ct, count > 0 and count or 1)
                 for j = 1, count do a[j - 1] = t[j] end
                 args[i] = a
@@ -391,12 +400,23 @@ local function strings(name, t, n, what)
 end
 
 local specFields = {
-    LineColor = 'color', LineColors = 'colors', LineWeight = 'number',
-    FillColor = 'color', FillColors = 'colors', FillAlpha = 'number',
-    Marker = 'number', MarkerSize = 'number', MarkerSizes = 'sizes',
-    MarkerLineColor = 'color', MarkerLineColors = 'colors',
-    MarkerFillColor = 'color', MarkerFillColors = 'colors',
-    Size = 'number', Offset = 'number', Stride = 'number', Flags = 'number',
+    LineColor = 'color',
+    LineColors = 'colors',
+    LineWeight = 'number',
+    FillColor = 'color',
+    FillColors = 'colors',
+    FillAlpha = 'number',
+    Marker = 'number',
+    MarkerSize = 'number',
+    MarkerSizes = 'sizes',
+    MarkerLineColor = 'color',
+    MarkerLineColors = 'colors',
+    MarkerFillColor = 'color',
+    MarkerFillColors = 'colors',
+    Size = 'number',
+    Offset = 'number',
+    Stride = 'number',
+    Flags = 'number',
 }
 -- Keeps arrays referenced by pointer fields alive as long as their spec.
 local specAnchors = setmetatable({}, { __mode = 'k' })
@@ -414,7 +434,9 @@ function buildSpec(tbl, level)
         local kind = specFields[k]
         if kind == nil then error('implot.Spec: unknown field ' .. tostring(k), level) end
         if kind == 'color' then
-            if type(v) ~= 'table' then error('implot.Spec: ' .. k .. ' must be a table with r, g, b, a fields', level) end
+            if type(v) ~= 'table' then
+                error('implot.Spec: ' .. k .. ' must be a table with r, g, b, a fields', level)
+            end
             local f = s[k]
             f.x, f.y, f.z, f.w = v.r or 0, v.g or 0, v.b or 0, v.a or 1
         elseif kind == 'number' then
@@ -444,9 +466,7 @@ end
 function implot.BeginPlot(title, w, h, flags)
     return C.implotBeginPlot(str('BeginPlot', title, 'title'), w or -1, h or 0, flags or 0)
 end
-function implot.EndPlot()
-    C.implotEndPlot()
-end
+function implot.EndPlot() C.implotEndPlot() end
 
 -- Ratio tables are updated in place when the user resizes the subplots.
 local function ratios(name, r, n)
@@ -463,21 +483,18 @@ end
 function implot.BeginSubplots(title, rows, cols, w, h, flags, rowRatios, colRatios)
     local rr = ratios('BeginSubplots', rowRatios, rows)
     local cr = ratios('BeginSubplots', colRatios, cols)
-    local ret = C.implotBeginSubplots(str('BeginSubplots', title, 'title'), rows, cols, w or -1, h or 0, flags or 0, rr, cr)
+    local ret = C.implotBeginSubplots(str('BeginSubplots', title, 'title'), rows, cols, w or -1, h or 0, flags or 0, rr,
+                                      cr)
     writeBack(rowRatios, rr, rows)
     writeBack(colRatios, cr, cols)
     return ret
 end
-function implot.EndSubplots()
-    C.implotEndSubplots()
-end
+function implot.EndSubplots() C.implotEndSubplots() end
 function implot.BeginAlignedPlots(id, vertical)
     if vertical == nil then vertical = true end
     return C.implotBeginAlignedPlots(str('BeginAlignedPlots', id, 'group_id'), vertical)
 end
-function implot.EndAlignedPlots()
-    C.implotEndAlignedPlots()
-end
+function implot.EndAlignedPlots() C.implotEndAlignedPlots() end
 function implot.BeginLegendPopup(label, button)
     return C.implotBeginLegendPopup(str('BeginLegendPopup', label, 'label'), button or 1)
 end
@@ -545,9 +562,7 @@ function implot.SetupAxisTicks(axis, a, b, c, d, e)
         local n, labels, keep = c, d, e
         if type(n) ~= 'number' then error('SetupAxisTicks: n_ticks must be a number', 2) end
         local arr, anchor
-        if labels ~= nil then
-            arr, anchor = strings('SetupAxisTicks', labels, n, 'labels')
-        end
+        if labels ~= nil then arr, anchor = strings('SetupAxisTicks', labels, n, 'labels') end
         C.implotSetupAxisTicksRange(axis, a, b, n, arr, not not keep)
     else
         local labels, keep = c, d
@@ -570,21 +585,13 @@ function implot.SetupAxisZoomConstraints(axis, zMin, zMax)
     check('SetupAxisZoomConstraints', C.implotCheckAxis(axis))
     C.implotSetupAxisZoomConstraints(axis, zMin, zMax)
 end
-function implot.SetupAxes(xLabel, yLabel, xFlags, yFlags)
-    C.implotSetupAxes(xLabel, yLabel, xFlags or 0, yFlags or 0)
-end
+function implot.SetupAxes(xLabel, yLabel, xFlags, yFlags) C.implotSetupAxes(xLabel, yLabel, xFlags or 0, yFlags or 0) end
 function implot.SetupAxesLimits(xMin, xMax, yMin, yMax, cond)
     C.implotSetupAxesLimits(xMin, xMax, yMin, yMax, cond or constant.Cond.Once)
 end
-function implot.SetupLegend(location, flags)
-    C.implotSetupLegend(location, flags or 0)
-end
-function implot.SetupMouseText(location, flags)
-    C.implotSetupMouseText(location, flags or 0)
-end
-function implot.SetupFinish()
-    C.implotSetupFinish()
-end
+function implot.SetupLegend(location, flags) C.implotSetupLegend(location, flags or 0) end
+function implot.SetupMouseText(location, flags) C.implotSetupMouseText(location, flags or 0) end
+function implot.SetupFinish() C.implotSetupFinish() end
 function implot.SetNextAxisLimits(axis, vMin, vMax, cond)
     check('SetNextAxisLimits', C.implotCheckAxis(axis))
     C.implotSetNextAxisLimits(axis, vMin, vMax, cond or constant.Cond.Once)
@@ -596,15 +603,9 @@ end
 function implot.SetNextAxesLimits(xMin, xMax, yMin, yMax, cond)
     C.implotSetNextAxesLimits(xMin, xMax, yMin, yMax, cond or constant.Cond.Once)
 end
-function implot.SetNextAxesToFit()
-    C.implotSetNextAxesToFit()
-end
-function implot.SetAxis(axis)
-    C.implotSetAxis(axis)
-end
-function implot.SetAxes(x, y)
-    C.implotSetAxes(x, y)
-end
+function implot.SetNextAxesToFit() C.implotSetNextAxesToFit() end
+function implot.SetAxis(axis) C.implotSetAxis(axis) end
+function implot.SetAxes(x, y) C.implotSetAxes(x, y) end
 -- )EOF" R"EOF(--
 
 -- Plot items. Data arguments are Lua tables of numbers (copied) or cdata
@@ -764,20 +765,21 @@ function implot.PlotHeatmap(label, values, rows, cols, scaleMin, scaleMax, fmt, 
     local code, n, pvalues = resolve('PlotHeatmap', rows * cols, s, values)
     if fmt == nil then fmt = '%.1f' end
     C.implotPlotHeatmap(str('PlotHeatmap', label, 'label'), code, pvalues, rows, cols, scaleMin or 0, scaleMax or 0,
-        checkFormat('PlotHeatmap', fmt), minX or 0, minY or 0, maxX or 1, maxY or 1, s)
+                        checkFormat('PlotHeatmap', fmt), minX or 0, minY or 0, maxX or 1, maxY or 1, s)
 end
 -- Leaving rangeMin and rangeMax at 0 uses the data extents.
 function implot.PlotHistogram(label, values, count, bins, barScale, rangeMin, rangeMax, spec)
     local s = toSpec('PlotHistogram', spec)
     local code, n, pvalues = resolve('PlotHistogram', count, s, values)
     return C.implotPlotHistogram(str('PlotHistogram', label, 'label'), code, pvalues, n, bins or constant.Bin.Sturges,
-        barScale or 1, rangeMin or 0, rangeMax or 0, s)
+                                 barScale or 1, rangeMin or 0, rangeMax or 0, s)
 end
 function implot.PlotHistogram2D(label, xs, ys, count, xBins, yBins, xMin, xMax, yMin, yMax, spec)
     local s = toSpec('PlotHistogram2D', spec)
     local code, n, pxs, pys = resolve('PlotHistogram2D', count, s, xs, ys)
     return C.implotPlotHistogram2D(str('PlotHistogram2D', label, 'label'), code, pxs, pys, n,
-        xBins or constant.Bin.Sturges, yBins or constant.Bin.Sturges, xMin or 0, xMax or 0, yMin or 0, yMax or 0, s)
+                                   xBins or constant.Bin.Sturges, yBins or constant.Bin.Sturges, xMin or 0, xMax or 0,
+                                   yMin or 0, yMax or 0, s)
 end
 function implot.PlotDigital(label, xs, ys, count, spec)
     local s = toSpec('PlotDigital', spec)
@@ -787,9 +789,7 @@ end
 function implot.PlotText(text, x, y, offX, offY, spec)
     C.implotPlotText(str('PlotText', text, 'text'), x, y, offX or 0, offY or 0, toSpec('PlotText', spec))
 end
-function implot.PlotDummy(label, spec)
-    C.implotPlotDummy(str('PlotDummy', label, 'label'), toSpec('PlotDummy', spec))
-end
+function implot.PlotDummy(label, spec) C.implotPlotDummy(str('PlotDummy', label, 'label'), toSpec('PlotDummy', spec)) end
 -- )EOF" R"EOF(--
 
 -- Tools. Pointer arguments become plain values in and multiple returns out.
@@ -878,22 +878,14 @@ function implot.GetPlotSelection(xAxis, yAxis)
     C.implotGetPlotSelection(xAxis, yAxis, outD)
     return rect()
 end
-function implot.IsPlotHovered()
-    return C.implotIsPlotHovered()
-end
+function implot.IsPlotHovered() return C.implotIsPlotHovered() end
 function implot.IsAxisHovered(axis)
     check('IsAxisHovered', C.implotCheckAxis(axis))
     return C.implotIsAxisHovered(axis)
 end
-function implot.IsSubplotsHovered()
-    return C.implotIsSubplotsHovered()
-end
-function implot.IsPlotSelected()
-    return C.implotIsPlotSelected()
-end
-function implot.CancelPlotSelection()
-    C.implotCancelPlotSelection()
-end
+function implot.IsSubplotsHovered() return C.implotIsSubplotsHovered() end
+function implot.IsPlotSelected() return C.implotIsPlotSelected() end
+function implot.CancelPlotSelection() C.implotCancelPlotSelection() end
 function implot.HideNextItem(hidden, cond)
     if hidden == nil then hidden = true end
     C.implotHideNextItem(hidden, cond or constant.Cond.Once)
@@ -937,9 +929,7 @@ function implot.GetStyleColorName(idx)
     return ffi.string(C.implotGetStyleColorName(idx))
 end
 function implot.GetMarkerName(idx) return ffi.string(C.implotGetMarkerName(idx)) end
-function implot.NextMarker()
-    return C.implotNextMarker()
-end
+function implot.NextMarker() return C.implotNextMarker() end
 
 -- Colormaps. cmap arguments default to the current colormap.
 -- colors is a table of r, g, b, a tables or ImU32 numbers.
@@ -952,8 +942,10 @@ function implot.AddColormap(name, colors, qual)
         local c = colors[i]
         local o = (i - 1) * 4
         if type(c) == 'number' then
-            cols[o], cols[o + 1], cols[o + 2], cols[o + 3] = bit.band(c, 0xff) / 255, bit.band(bit.rshift(c, 8), 0xff) / 255,
-                bit.band(bit.rshift(c, 16), 0xff) / 255, bit.band(bit.rshift(c, 24), 0xff) / 255
+            cols[o], cols[o + 1], cols[o + 2], cols[o + 3] = bit.band(c, 0xff) / 255,
+                                                             bit.band(bit.rshift(c, 8), 0xff) / 255,
+                                                             bit.band(bit.rshift(c, 16), 0xff) / 255,
+                                                             bit.band(bit.rshift(c, 24), 0xff) / 255
         elseif type(c) == 'table' then
             cols[o], cols[o + 1], cols[o + 2], cols[o + 3] = c.r or 0, c.g or 0, c.b or 0, c.a or 1
         else
@@ -997,13 +989,13 @@ function implot.SampleColormap(t, cmap)
 end
 function implot.ColormapScale(label, scaleMin, scaleMax, w, h, fmt, flags, cmap)
     C.implotColormapScale(str('ColormapScale', label, 'label'), scaleMin, scaleMax, w or 0, h or 0,
-        checkFormat('ColormapScale', fmt or '%g'), flags or 0, cmap or AUTO)
+                          checkFormat('ColormapScale', fmt or '%g'), flags or 0, cmap or AUTO)
 end
 -- Returns changed, t, and the sampled color.
 function implot.ColormapSlider(label, t, fmt, cmap)
     local pt = ffi.new('float[1]', t or 0)
     local changed = C.implotColormapSlider(str('ColormapSlider', label, 'label'), pt, outF,
-        checkFormat('ColormapSlider', fmt or ''), cmap or AUTO)
+                                           checkFormat('ColormapSlider', fmt or ''), cmap or AUTO)
     return changed, pt[0], colorTable(outF)
 end
 function implot.ColormapButton(label, w, h, cmap)
@@ -1021,19 +1013,19 @@ function implot.ItemIcon(col)
         C.implotItemIconVec4(color('ItemIcon', col) or error('ItemIcon: color is required', 2))
     end
 end
-function implot.ColormapIcon(cmap)
-    C.implotColormapIcon(cmap)
-end
-function implot.PushPlotClipRect(expand)
-    C.implotPushPlotClipRect(expand or 0)
-end
+function implot.ColormapIcon(cmap) C.implotColormapIcon(cmap) end
+function implot.PushPlotClipRect(expand) C.implotPushPlotClipRect(expand or 0) end
 function implot.PopPlotClipRect()
     check('PopPlotClipRect', C.implotCheckPlot())
     C.implotPopPlotClipRect()
 end
 function implot.ShowStyleSelector(label) return C.implotShowStyleSelector(str('ShowStyleSelector', label, 'label')) end
-function implot.ShowColormapSelector(label) return C.implotShowColormapSelector(str('ShowColormapSelector', label, 'label')) end
-function implot.ShowInputMapSelector(label) return C.implotShowInputMapSelector(str('ShowInputMapSelector', label, 'label')) end
+function implot.ShowColormapSelector(label)
+    return C.implotShowColormapSelector(str('ShowColormapSelector', label, 'label'))
+end
+function implot.ShowInputMapSelector(label)
+    return C.implotShowInputMapSelector(str('ShowInputMapSelector', label, 'label'))
+end
 implot.ShowStyleEditor = C.implotShowStyleEditor
 implot.ShowUserGuide = C.implotShowUserGuide
 

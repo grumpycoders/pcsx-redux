@@ -109,26 +109,25 @@ let
       rev = "17f2c521ddf76466ef23db92b9fa2d7b933ca7ef";
       hash = "sha256-wBkLoznyekF+HGZagfOdQVyvkjqqgaFHIL1cIKqdLA4=";
     })
+    ({
+      owner = "ArthurSonzogni";
+      repo = "FTXUI";
+      rev = "f921fad208912747c17d129a8ef75ec7624b6eec"; # v7.0.3
+      hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
+      dest = "third_party/ftxui";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
   } ++ lib.optionals withOpenbios [
-    # nugget first: uC-sdk lands inside the tree this unpacks.
     ({
       owner = "pcsx-redux";
       repo = "nugget";
-      rev = "d93840921b5ad7ed515e95b0e414f1b1e2038b1a";
-      hash = "sha256-+THJqpj64/43NAuEERCdOXzrW/jykk4IoL8RCFax+Xs=";
+      rev = "8ba57815cb56f6acf451d036587a7c9c9fafe7ff";
+      hash = "sha256-8F6ZVMk7pwtoFo4CkX1Kg7tjLOtzwIcainWOKvvyfTs=";
       dest = "src/mips";
-    })
-    ({
-      owner = "grumpycoders";
-      repo = "uC-sdk";
-      rev = "69e06871824e2d62069487a7426ded09090ceb69";
-      hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
-      dest = "src/mips/third_party/uC-sdk";
     })
   ];
 

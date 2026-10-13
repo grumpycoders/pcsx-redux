@@ -584,17 +584,21 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     imageSX = prim->w;
     imageSY = prim->h;
 
-    if ((imageX0 == imageX1) && (imageY0 == imageY1)) return;
+    // An in-place copy still rewrites every pixel, so it is only a no-op without set-mask.
+    if ((imageX0 == imageX1) && (imageY0 == imageY1) && !getSetMask16()) return;
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
+    // The copy honours the GP0(E6h) mask settings, per halfword. The masked case takes
+    // this per-pixel path, which walks in the same order as the fast paths below.
     if ((imageY0 + imageSY) > VRAM_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > VRAM_HEIGHT ||
-        (imageX1 + imageSX) > 1024) {
+        (imageX1 + imageSX) > 1024 || getCheckMask() || getSetMask16()) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
             for (i = 0; i < imageSX; i++) {
-                m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)] =
-                    m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)];
+                uint16_t &dst = m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)];
+                if (getCheckMask() && (dst & 0x8000)) continue;
+                dst = m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)] | getSetMask16();
             }
         }
 
@@ -663,8 +667,8 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     char *pixels = reinterpret_cast<char *>(malloc(size));
     ss.data.acquire(pixels, size);
     if (m_softDisplay.RGB24) {
-        auto ptr = m_allocatedVRAM;
-        ptr += startX * 3 + startY * 1024 * 2;
+        auto ptr = m_vram;
+        ptr += startX * 2 + startY * 1024 * 2;
         for (int i = 0; i < height; i++) {
             std::memcpy(pixels, ptr, width * 3);
             ptr += 1024 * 2;
@@ -684,6 +688,7 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
+    m_display.reset();
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -714,6 +719,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDmaSetting *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
+    m_display.set(ctrl);
     m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
     m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
 
@@ -750,6 +756,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.x0 = ctrl->x0;
     m_softDisplay.Range.x1 = ctrl->x1;
     m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
@@ -757,6 +764,7 @@ void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.y0 = ctrl->y0;
     m_softDisplay.Range.y1 = ctrl->y1;
 
@@ -774,6 +782,8 @@ void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
+    // Display::set also switches the PAL/NTSC setting, which a detached GPU must not touch.
+    if (!isDetached()) m_display.set(ctrl);
     m_softDisplay.DisplayModeNew.x = s_displayWidths[magic_enum::enum_integer(ctrl->hres)];
 
     if (ctrl->vres == CtrlDisplayMode::VR_480) {

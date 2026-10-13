@@ -100,6 +100,10 @@ LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
 
+void createRewindState();
+bool rewindState();
+uint32_t getRewindStateCount();
+
 LuaFile* getMemoryAsFile();
 
 void quit(int code);
@@ -223,7 +227,9 @@ PCSX = {
         getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
         startDump = function(file)
             if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
-            if type(file) ~= 'table' or file._type ~= 'File' then error('startDump: requires a File or a filename') end
+            if type(file) ~= 'table' or file._type ~= 'File' then
+                error('startDump: requires a File or a filename')
+            end
             C.startGPUDump(file._wrapper)
         end,
         stopDump = function() C.stopGPUDump() end,
@@ -233,7 +239,9 @@ PCSX = {
         DumpPlayer = {
             load = function(file)
                 if type(file) == 'string' then file = Support.File.open(file) end
-                if type(file) ~= 'table' or file._type ~= 'File' then error('load: requires a File or a filename') end
+                if type(file) ~= 'table' or file._type ~= 'File' then
+                    error('load: requires a File or a filename')
+                end
                 return C.loadGPUDumpPlayer(file._wrapper)
             end,
             unload = function() C.unloadGPUDumpPlayer() end,
@@ -258,6 +266,9 @@ PCSX = {
         end
     end,
     getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    createRewindState = function() C.createRewindState() end,
+    rewindState = function() return C.rewindState() end,
+    getRewindStateCount = function() return C.getRewindStateCount() end,
     quit = function(code) C.quit(code or 0) end,
 }
 

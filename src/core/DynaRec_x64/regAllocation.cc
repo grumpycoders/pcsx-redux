@@ -67,6 +67,18 @@ void DynaRecCPU::flushRegs() {
     m_allocatedRegisters = 0;
 }
 
+// Write $a0 and $a1 to the guest registers, leaving their allocation as is. The msan hardware registers
+// read their arguments from there, and neither constant propagation nor prepareForCall keeps them current.
+void DynaRecCPU::syncArgumentRegisters() {
+    for (int i = 4; i <= 5; i++) {
+        if (m_gprs[i].isConst()) {
+            gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_gprs[i].val);
+        } else if (m_gprs[i].isAllocated() && m_gprs[i].writeback) {
+            gen.mov(dword[contextPointer + GPR_OFFSET(i)], m_gprs[i].allocatedReg);
+        }
+    }
+}
+
 // Spill the volatile allocated registers into guest registers in preparation for a call to a C++ function
 void DynaRecCPU::prepareForCall() {
     if (m_allocatedRegisters > ALLOCATEABLE_NON_VOLATILE_COUNT) {  // Check if there's any allocated volatiles to flush
