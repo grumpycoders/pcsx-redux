@@ -1971,8 +1971,8 @@ their TV set to match the aspect ratio of the game.)"));
 
 If you enable the auto update option, it will check for new updates
 on startup. No personal data nor identifiable token is sent for this
-process, but Microsoft might still keep and record information such
-as your IP address.
+process. The update server is run by the PCSX-Redux project behind
+Cloudflare, which can see your IP address like any CDN.
 
 If an update is available, you will get prompted to download and
 install it. You can still download versions of PCSX-Redux as usual
