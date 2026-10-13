@@ -2176,7 +2176,7 @@ msgstr "Licences"
 
 #: src/gui/gui.cc:2602
 msgid "OpenGL information"
-msgstr "Information sur l'OpenGL"
+msgstr "Informations OpenGL"
 
 #: src/gui/gui.cc:2604
 msgid "OpenGL error reporting: enabled"
