@@ -221,8 +221,8 @@ msgstr "Écriture"
 #: src/core/gdb-server.cc:610
 #, c-format
 msgid ""
-"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
-"debugger)\n"
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use "
+"-debugger)\n"
 msgstr ""
 
 #: src/core/gdb-server.cc:625
@@ -452,9 +452,9 @@ msgid ""
 "default here and will decode this to flat grey; send MDEC(3) before "
 "MDEC(1).\n"
 msgstr ""
-"Décodage MDEC lancé sans table d'échelle chargée. Le vrai matériel n'a pas "
-"de valeur par défaut ici et décodera un gris uniforme ; envoyez MDEC(3) "
-"avant MDEC(1).\n"
+"Décodage MDEC lancé sans table d'échelle chargée. La console n'a pas de "
+"valeur par défaut ici et décodera un gris uniforme ; envoyez MDEC(3) avant "
+"MDEC(1).\n"
 
 #: src/core/memorycard.cc:350
 #, c-format
@@ -483,23 +483,24 @@ msgstr "Sauvegarde de la carte mémoire %s\n"
 #: src/core/pad.cc:1011 src/core/pad.cc:1135
 #, c-format
 msgid "Unknown command for pad: %02X\n"
-msgstr "Commande inconnue pour le pad: %02X\n"
+msgstr "Commande inconnue pour le contrôleur: %02X\n"
 
 #: src/core/pad.cc:1236
 msgid "Pad configuration"
-msgstr "Configuration de la manette"
+msgstr "Configuration du contrôleur"
 
 #: src/core/pad.cc:1242
 msgid "Pad 1"
-msgstr "Manette 1"
+msgstr "Contrôleur 1"
 
 #: src/core/pad.cc:1243
 msgid "Pad 2"
-msgstr "Manette 2"
+msgstr "Contrôleur 2"
 
 #: src/core/pad.cc:1246
 msgid "Rescan gamepads and re-read game controllers database"
-msgstr "Rechercher des manettes et relire la base de données des contrôleurs."
+msgstr ""
+"Rechercher les contrôleurs et relire la base de données des contrôleurs."
 
 #: src/core/pad.cc:1265
 msgid "Use raw input for mouse"
@@ -526,7 +527,7 @@ msgstr ""
 
 #: src/core/pad.cc:1273
 msgid "Pad"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pad.cc:1282
 msgid "Set defaults"
@@ -582,7 +583,7 @@ msgstr "Automatique"
 
 #: src/core/pad.cc:1344
 msgid "Controller"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pad.cc:1345
 msgid "Keyboard"
@@ -640,11 +641,11 @@ msgstr "Vibration"
 
 #: src/core/pad.cc:1400
 msgid "(no motors on this gamepad)"
-msgstr "(pas de moteurs sur cette manette)"
+msgstr "(pas de moteurs sur ce contrôleur)"
 
 #: src/core/pad.cc:1406
 msgid "Controller Type"
-msgstr "Type de controlleur"
+msgstr "Type de contrôleur"
 
 #: src/core/pad.cc:1422
 msgid "Device type"
@@ -668,15 +669,15 @@ msgstr "Configuration des touches ordinateur"
 
 #: src/core/pad.cc:1440
 msgid "Gamepad button"
-msgstr "Boutton de la manette"
+msgstr "Bouton du contrôleur"
 
 #: src/core/pad.cc:1490
 msgid "No gamepad selected or connected"
-msgstr "Aucune manette connectée ou sélectionnée"
+msgstr "Aucun contrôleur connecté ou sélectionné"
 
 #: src/core/pad.cc:1514
 msgid "Gamepad"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pio-cart.cc:214
 #, c-format
@@ -1189,15 +1190,15 @@ msgstr "Charger l'état global"
 
 #: src/gui/gui.cc:1392
 msgid "Open LID"
-msgstr "Ouvrir le CAPOT"
+msgstr "Ouvrir le couvercle"
 
 #: src/gui/gui.cc:1395
 msgid "Close LID"
-msgstr "Fermer le CAPOT"
+msgstr "Fermer le couvercle"
 
 #: src/gui/gui.cc:1398
 msgid "Open and close LID"
-msgstr "Ouvrir et refermer le CAPOT"
+msgstr "Ouvrir et refermer le couvercle"
 
 #: src/gui/gui.cc:1402
 msgid "Reset settings..."
@@ -1440,19 +1441,19 @@ msgstr "Afficher le visualiseur du tas PSYQo"
 
 #: src/gui/gui.cc:1588
 msgid "Kernel"
-msgstr "Noyau"
+msgstr "Kernel"
 
 #: src/gui/gui.cc:1589
 msgid "Kernel Events"
-msgstr "Évènements noyau"
+msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1590
 msgid "Kernel Handlers"
-msgstr "Handlers du noyau"
+msgstr "Handlers du kernel"
 
 #: src/gui/gui.cc:1591 src/gui/gui.cc:1755
 msgid "Kernel Calls"
-msgstr "Appels noyau"
+msgstr "Appels kernel"
 
 #: src/gui/gui.cc:1594
 msgid "Rendering"
@@ -1476,11 +1477,11 @@ msgstr "Aide"
 
 #: src/gui/gui.cc:1606
 msgid "Show ImGui Demo"
-msgstr "Afficher la démo du ImGui"
+msgstr "Afficher la démo d'ImGui"
 
 #: src/gui/gui.cc:1607
 msgid "Show ImPlot Demo"
-msgstr "Afficher la démo ImPlot"
+msgstr "Afficher la démo d'ImPlot"
 
 #: src/gui/gui.cc:1609
 msgid "Show UvFile information"
@@ -1498,7 +1499,7 @@ msgstr "CPU: %s"
 #: src/gui/gui.cc:1618 src/gui/widgets/isobrowser.cc:574
 #, c-format
 msgid "GAME ID: %s"
-msgstr "ID DU JEUX: %s"
+msgstr "ID du jeu: %s"
 
 #: src/gui/gui.cc:1621
 #, c-format
@@ -1538,11 +1539,11 @@ msgstr "Éditeur Lua"
 
 #: src/gui/gui.cc:1749
 msgid "Kernel events"
-msgstr "Évènements noyau"
+msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1752
 msgid "Kernel handlers"
-msgstr "Handlers du noyau"
+msgstr "Handlers du kernel"
 
 #: src/gui/gui.cc:1758
 msgid "Callstacks"
@@ -1682,11 +1683,11 @@ msgstr "Configuration Système"
 
 #: src/gui/gui.cc:1961
 msgid "Preload Disk Image files"
-msgstr "Pré-chargement Des Fichiers Images"
+msgstr "Pré-chargement des Fichiers Images"
 
 #: src/gui/gui.cc:1962
 msgid "Enable Auto Update"
-msgstr "Mise À Jour Automatique"
+msgstr "Mise à Jour Automatique"
 
 #: src/gui/gui.cc:1969
 msgid "Update configuration"
@@ -1712,8 +1713,7 @@ msgstr ""
 "\n"
 "Si vous activez la mise à jour automatique, il vérifiera la présence de "
 "mises à jour\n"
-"au démarrage. Aucune donnée personnelle ni jeton identifiant n'est envoyé "
-"pour ce\n"
+"au démarrage. Aucune donnée personnelle ni identifiant n'est envoyé pour ce\n"
 "processus, mais Microsoft peut tout de même conserver et enregistrer des "
 "informations\n"
 "comme votre adresse IP.\n"
@@ -1898,7 +1898,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2244
 msgid "8MB"
-msgstr "8MO"
+msgstr "8Mo"
 
 #: src/gui/gui.cc:2245
 msgid ""
@@ -1926,7 +1926,7 @@ msgid ""
 msgstr ""
 "La SDRAM de la console sera\n"
 "remplie avec cette valeur au démarrage.\n"
-"Sur le vrai matériel, le contenu de la SDRAM se dégrade avec le temps,\n"
+"Sur la vraie console, le contenu de la SDRAM se dégrade avec le temps,\n"
 "et il n'est pas forcément à 0 au démarrage à froid.\n"
 "Ce réglage est utile pour le debug,\n"
 "pour détecter des lectures de mémoire non initialisée\n"
@@ -2222,7 +2222,7 @@ msgstr "Licences"
 
 #: src/gui/gui.cc:2627
 msgid "OpenGL information"
-msgstr "Information sur l'OpenGL"
+msgstr "Informations OpenGL"
 
 #: src/gui/gui.cc:2629
 msgid "OpenGL error reporting: enabled"
@@ -2271,7 +2271,7 @@ msgstr "Sévérité du rapport d'erreurs OpenGL"
 #: src/gui/gui.cc:2652
 #, c-format
 msgid "Core profile: %s"
-msgstr "Profil du coeur: %s"
+msgstr "Profil OpenGL: %s"
 
 #: src/gui/gui.cc:2652 src/gui/widgets/assembly.cc:587
 msgid "no"
@@ -2283,7 +2283,7 @@ msgstr "oui"
 
 #: src/gui/gui.cc:2653
 msgid "Vendor"
-msgstr "Fabriquant "
+msgstr "Fabricant"
 
 #: src/gui/gui.cc:2654
 msgid "Renderer"
@@ -2334,7 +2334,7 @@ msgstr "%s codecs"
 
 #: src/gui/gui.h:261
 msgid "Ok"
-msgstr "OK"
+msgstr "Ok"
 
 #: src/gui/gui.h:487
 msgid "Notification"
@@ -2386,11 +2386,11 @@ msgstr "Aller à l'éditeur de mémoire #%u"
 
 #: src/gui/widgets/assembly.cc:494
 msgid "Load symbols map"
-msgstr "Charger les symboles de la map"
+msgstr "Charger la carte de symboles"
 
 #: src/gui/widgets/assembly.cc:495
 msgid "Reset symbols map"
-msgstr "Réinitialiser la map des symboles"
+msgstr "Réinitialiser la carte des symboles"
 
 #: src/gui/widgets/assembly.cc:501 src/gui/widgets/assembly.cc:577
 msgctxt "Emulation"
@@ -2439,7 +2439,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:531
 msgid "Delay slot notch"
-msgstr "Delay slot notch"
+msgstr "Décalage du créneau de retard"
 
 #: src/gui/widgets/assembly.cc:536
 msgid ""
@@ -2447,15 +2447,17 @@ msgid ""
 "slot of a branch."
 msgstr ""
 "Ajouter un indicateur visuel pour signaler les instructions qui se trouvent "
-"à l'emplacement d'un Delay Slot."
+"à l'emplacement d'un créneau de retard."
 
 #: src/gui/widgets/assembly.cc:540
 msgid "Draw arrows for jumps"
-msgstr "Draw arrows for jumps"
+msgstr "Dessiner des flèches pour les sauts"
 
 #: src/gui/widgets/assembly.cc:544
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
-msgstr "Display arrows for jumps. This might crowd the display a bit too much."
+msgstr ""
+"Affiche des flèches pour les sauts. Ceci peut encombrer l'affichage un peu "
+"trop."
 
 #: src/gui/widgets/assembly.cc:548
 msgid "Columns"
@@ -2717,11 +2719,11 @@ msgstr "Supprimer tous les points d'arrêt ?"
 
 #: src/gui/widgets/breakpoints.cc:383
 msgid "Execution Map"
-msgstr "Map d'exécution"
+msgstr "Carte d'exécution"
 
 #: src/gui/widgets/breakpoints.cc:384
 msgid "Clear maps"
-msgstr "Effacer les maps"
+msgstr "Effacer les cartes"
 
 #: src/gui/widgets/breakpoints.cc:388
 msgid ""
@@ -2729,65 +2731,65 @@ msgid ""
 "explanation. See the documentation website for more details, in the Misc "
 "Features subsection of the Debugging section."
 msgstr ""
-"La fonction de mapping est un concept simple, mais demande quelques "
+"La fonction de cartographie est un concept simple, mais demande quelques "
 "explications. Voir le site de documentation pour plus de détails, dans la "
 "sous-section Misc Features de la section Debugging."
 
 #: src/gui/widgets/breakpoints.cc:390
 msgid "Map execution"
-msgstr "Map execution"
+msgstr "Cartographie l'exécution"
 
 #: src/gui/widgets/breakpoints.cc:393
 msgid "Map byte reads"
-msgstr "Map byte reads"
+msgstr "Cartographie la lecture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:395
 msgid "Map half reads"
-msgstr "Map half reads"
+msgstr "Cartographie la lecture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:397
 msgid "Map word reads"
-msgstr "Map word reads"
+msgstr "Cartographie la lecture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:399
 msgid "Map byte writes"
-msgstr "Map byte writes"
+msgstr "Cartographie l'écriture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:401
 msgid "Map half writes"
-msgstr "Map half writes"
+msgstr "Cartographie l'écriture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:403
 msgid "Map word writes"
-msgstr "Map word writes"
+msgstr "Cartographie l'écriture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:407
 msgid "Break on execution map"
-msgstr "Break on execution map"
+msgstr "Point d'arrêt sur la carte d'exécution"
 
 #: src/gui/widgets/breakpoints.cc:410
 msgid "Break on byte read map"
-msgstr "Break on byte read map"
+msgstr "Point d'arrêt sur la carte de lecture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:412
 msgid "Break on half read map"
-msgstr "Break on half read map"
+msgstr "Point d'arrêt sur la carte de lecture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:414
 msgid "Break on word read map"
-msgstr "Break on word read map"
+msgstr "Point d'arrêt sur la carte de lecture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:416
 msgid "Break on byte write map"
-msgstr "Break on byte write map"
+msgstr "Point d'arrêt sur la carte d'écriture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:418
 msgid "Break on half write map"
-msgstr "Break on half write map"
+msgstr "Point d'arrêt sur la carte d'écriture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:420
 msgid "Break on word write map"
-msgstr "Break on word write map"
+msgstr "Point d'arrêt sur la carte d'écriture 32 bits"
 
 #: src/gui/widgets/cdrom-viewer.cc:350
 msgid "CD-ROM Viewer"
@@ -2797,7 +2799,7 @@ msgstr "Visualiseur du CD-ROM"
 #: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:492
 #: src/gui/widgets/vram-viewer.cc:612
 msgid "View"
-msgstr "Voir"
+msgstr "Vue"
 
 #: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
 #: src/gui/widgets/vram-viewer.cc:613
@@ -2818,7 +2820,7 @@ msgstr "Afficher l'audio (CDDA)"
 
 #: src/gui/widgets/cdrom-viewer.cc:364
 msgid "Show seeks"
-msgstr "Afficher les seeks"
+msgstr "Afficher les positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
 #: src/gui/widgets/vram-viewer.cc:644
@@ -2835,7 +2837,7 @@ msgstr "Choisir la couleur de l'audio"
 
 #: src/gui/widgets/cdrom-viewer.cc:373
 msgid "Select seek color"
-msgstr "Choisir la couleur des seeks"
+msgstr "Choisir la couleur des positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:377 src/gui/widgets/ram-viewer.cc:515
 msgid "Decay half-life (ms)"
@@ -2860,7 +2862,7 @@ msgstr "Sélecteur de couleur de l'audio"
 
 #: src/gui/widgets/cdrom-viewer.cc:415 src/gui/widgets/cdrom-viewer.cc:416
 msgid "Seek Color Picker"
-msgstr "Sélecteur de couleur des seeks"
+msgstr "Sélecteur de couleur des positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:426
 msgid "CD-ROM Shader Editor"
@@ -2923,7 +2925,7 @@ msgstr "Taille du code : %.2f Mo"
 
 #: src/gui/widgets/events.cc:39
 msgid "Core"
-msgstr "Coeur"
+msgstr "Core"
 
 #: src/gui/widgets/events.cc:40
 msgid "Spec"
@@ -3056,7 +3058,7 @@ msgid ""
 "will be logged and displayed here. This will contain only a single frame "
 "worth of commands. The feature can be pretty demanding in CPU and memory."
 msgstr ""
-"Journalise les appels de dessin de chaque image. Quand cette option est "
+"Enregistre les appels de dessin de chaque image. Quand cette option est "
 "activée, toutes les commandes envoyées au GPU sont journalisées et affichées "
 "ici. Seules les commandes d'une seule image sont conservées. Cette fonction "
 "peut être assez gourmande en CPU et en mémoire."
@@ -3118,7 +3120,7 @@ msgstr "Garder déplié"
 
 #: src/gui/widgets/gpulogger.cc:123
 msgid "Remove all highlight selections"
-msgstr "Retirer toutes les sélections de surbrillance"
+msgstr "Retirer toutes les sélections de surlignage"
 
 #: src/gui/widgets/gpulogger.cc:126
 msgid "Highlight on hover"
@@ -3131,11 +3133,11 @@ msgid ""
 "second checkbox in the logger view. The [B] and [E] buttons can be used to "
 "specify the beginning and the end of a span of commands to highlight."
 msgstr ""
-"Quand cette option est activée, survoler une commande dans le logger la met "
-"en surbrillance dans l'affichage de la VRAM. Des commandes individuelles "
-"peuvent être sélectionnées pour la surbrillance avec la deuxième case à "
-"cocher du logger. Les boutons [B] et [E] permettent d'indiquer le début et "
-"la fin d'une plage de commandes à mettre en surbrillance."
+"Quand cette option est activée, survoler une commande dans le logger la "
+"surligne dans l'affichage de la VRAM. Des commandes individuelles peuvent "
+"être sélectionnées pour le surlignage avec la deuxième case à cocher du "
+"logger. Les boutons [B] et [E] permettent d'indiquer le début et la fin "
+"d'une plage de commandes à mettre en surlignage."
 
 #: src/gui/widgets/gpulogger.cc:131
 msgid "Filter by pixel"
@@ -3185,10 +3187,10 @@ msgstr ""
 "Met l'émulation en pause quand une commande lit ou écrit dans l'un de ces "
 "rectangles de VRAM. Pratique pour attraper l'upload de texture qui a écrasé "
 "une zone, ce qui est difficile à repérer dans une image qui redessine tout. "
-"La commande qui a déclenché l'arrêt est mise en surbrillance dans le logger "
-"ci-dessous. Notez que les empreintes ne sont pas clippées : une primitive "
-"qui finit entièrement hors de la zone de dessin compte quand même comme une "
-"écriture."
+"La commande qui a déclenché l'arrêt est mise en surlignage dans le logger ci-"
+"dessous. Notez que les empreintes de primitives ne sont pas coupées : une "
+"primitive qui finit entièrement hors de la zone de dessin compte quand même "
+"comme une écriture."
 
 #: src/gui/widgets/gpulogger.cc:152
 msgid "Add breakpoint"
@@ -3365,7 +3367,7 @@ msgstr "<caché {} f={} ch={} {} secteurs>"
 
 #: src/gui/widgets/isobrowser.cc:315
 msgid "<License/System Area>"
-msgstr "<License/System Area>"
+msgstr "<License/Zone Système>"
 
 #: src/gui/widgets/isobrowser.cc:319
 msgid "<Volume Descriptors>"
@@ -3393,7 +3395,7 @@ msgstr "<Root Directory>"
 
 #: src/gui/widgets/isobrowser.cc:382
 msgid "Scan gaps for hidden files"
-msgstr "Rechercher des fichiers cachés dans les trous"
+msgstr "Rechercher les fichiers cachés"
 
 #: src/gui/widgets/isobrowser.cc:389
 msgid ""
@@ -3402,10 +3404,11 @@ msgid ""
 "directory but still have intact Mode 1/2 sector\n"
 "headers and subheader file boundary markers."
 msgstr ""
-"Lit les en-têtes de secteur dans les trous pour détecter\n"
-"les fichiers cachés retirés du répertoire ISO9660\n"
-"mais dont les en-têtes de secteur Mode 1/2 et les\n"
-"marqueurs de limite de fichier du sous-en-tête sont intacts."
+"Lit les en-têtes de secteur des zones intercalaires\n"
+"pour détecter les fichiers cachés retirés du\n"
+"répertoire ISO9660 mais dont les en-têtes de secteur\n"
+"Mode 1/2 et les marqueurs de limite de fichier du\n"
+"sous-en-tête sont intacts."
 
 #: src/gui/widgets/isobrowser.cc:403
 msgid "Path"
@@ -3427,7 +3430,7 @@ msgstr "Aucune ISO chargée, ou ISO invalide."
 #: src/gui/widgets/isobrowser.cc:575
 #, c-format
 msgid "GAME Label: %s"
-msgstr "Titre du JEU: %s"
+msgstr "Titre du Jeu: %s"
 
 #: src/gui/widgets/isobrowser.cc:591
 msgid "Cache files"
@@ -3449,7 +3452,7 @@ msgid ""
 msgstr ""
 "Calcule le CRC32 de chaque piste et du\n"
 "disque entier. Le CRC32 est calculé sur les données brutes,\n"
-"après décompression des pistes. C'est utile pour\n"
+"après décompression des pistes. Ceci est utile pour\n"
 "vérifier l'image disque avec les informations de redump.\n"
 "\n"
 "Le calcul peut être lent, et peut être nettement accéléré\n"
@@ -3578,7 +3581,7 @@ msgstr "Tout activer."
 
 #: src/gui/widgets/log.cc:74
 msgid "Disable all"
-msgstr "Tout désactivé"
+msgstr "Tout désactiver"
 
 #: src/gui/widgets/log.cc:87
 msgid "Displayed"
@@ -3611,7 +3614,7 @@ msgstr "Ignorer les ISR pendant les traces CPU"
 
 #: src/gui/widgets/log.cc:117
 msgid "Log kernel calls"
-msgstr "Journaliser les appels noyau"
+msgstr "Journaliser les appels kernel"
 
 #: src/gui/widgets/log.cc:127
 msgid "Follow"
@@ -3741,7 +3744,7 @@ msgstr "Effacer##{}"
 
 #: src/gui/widgets/memcard_manager.cc:248
 msgid "Erased file {}({}) off card {}"
-msgstr "Effacé le fichier {}({}) de la carte {}"
+msgstr "Fichier {}({}) de la carte {} effacé"
 
 #: src/gui/widgets/memcard_manager.cc:254
 msgid "Copy##{}"
@@ -3749,7 +3752,7 @@ msgstr "Copier##{}"
 
 #: src/gui/widgets/memcard_manager.cc:264
 msgid "Copied file {}({}) from card {} to card {}"
-msgstr "Copié le fichier {}({}) depuis la carte {} vers la carte {}"
+msgstr "Fichier {}({}) depuis la carte {} vers la carte {} copié"
 
 #: src/gui/widgets/memcard_manager.cc:276
 msgid "Move##{}"
@@ -3757,7 +3760,7 @@ msgstr "Déplacer##{}"
 
 #: src/gui/widgets/memcard_manager.cc:287
 msgid "Moved file {}({}) from card {} to card {}"
-msgstr "Déplacé le fichier {}({}) depuis la carte {} vers la carte {}"
+msgstr "Fichier {}({}) depuis la carte {} vers la carte {} déplacé"
 
 #: src/gui/widgets/memcard_manager.cc:300
 msgid "Export PNG##{}"
@@ -4338,19 +4341,19 @@ msgstr "Choisir la couleur de la grille des TPages"
 
 #: src/gui/widgets/vram-viewer.cc:651
 msgid "Select read highlight color"
-msgstr "Choisir la couleur de surbrillance des lectures"
+msgstr "Choisir la couleur de surlignage des lectures"
 
 #: src/gui/widgets/vram-viewer.cc:652
 msgid "Select written highlight color"
-msgstr "Choisir la couleur de surbrillance des écritures"
+msgstr "Choisir la couleur de surlignage des écritures"
 
 #: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
 msgid "Read Highlight Color Picker"
-msgstr "Sélecteur de couleur de surbrillance des lectures"
+msgstr "Sélecteur de couleur de surlignage des lectures"
 
 #: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
 msgid "Written Highlight Color Picker"
-msgstr "Sélecteur de couleur de surbrillance des écritures"
+msgstr "Sélecteur de couleur de surlignage des écritures"
 
 #: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
 msgid "Pixel Grid Color Picker"
@@ -4476,4 +4479,4 @@ msgid "SPU Debug"
 msgstr "Débug SPU"
 
 #~ msgid "Interrupt Scaler"
-#~ msgstr "Scaler d'interruptions"
+#~ msgstr "Échelle d'interruptions"
