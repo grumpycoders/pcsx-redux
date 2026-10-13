@@ -481,11 +481,11 @@ msgstr "Configuration du contrôleur"
 
 #: src/core/pad.cc:1055
 msgid "Pad 1"
-msgstr "Manette 1"
+msgstr "Contrôleur 1"
 
 #: src/core/pad.cc:1056
 msgid "Pad 2"
-msgstr "Manette 2"
+msgstr "Contrôleur 2"
 
 #: src/core/pad.cc:1059
 msgid "Rescan gamepads and re-read game controllers database"
