@@ -1523,7 +1523,7 @@ msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1747
 msgid "Kernel handlers"
-msgstr "Handlers du noyau"
+msgstr "Handlers du kernel"
 
 #: src/gui/gui.cc:1753
 msgid "Callstacks"
