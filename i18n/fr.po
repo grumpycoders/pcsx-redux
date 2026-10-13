@@ -1479,7 +1479,7 @@ msgstr "CPU: %s"
 #: src/gui/gui.cc:1613 src/gui/widgets/isobrowser.cc:574
 #, c-format
 msgid "GAME ID: %s"
-msgstr "ID DU JEUX: %s"
+msgstr "ID du jeu: %s"
 
 #: src/gui/gui.cc:1616
 #, c-format
