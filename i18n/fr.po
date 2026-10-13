@@ -2340,7 +2340,7 @@ msgstr "Aller à l'éditeur de mémoire #%u"
 
 #: src/gui/widgets/assembly.cc:494
 msgid "Load symbols map"
-msgstr "Charger les symboles de la map"
+msgstr "Charger la carte de symboles"
 
 #: src/gui/widgets/assembly.cc:495
 msgid "Reset symbols map"
