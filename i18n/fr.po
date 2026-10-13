@@ -3080,7 +3080,7 @@ msgstr "Garder déplié"
 
 #: src/gui/widgets/gpulogger.cc:123
 msgid "Remove all highlight selections"
-msgstr "Retirer toutes les sélections de surbrillance"
+msgstr "Retirer toutes les sélections de surlignage"
 
 #: src/gui/widgets/gpulogger.cc:126
 msgid "Highlight on hover"
