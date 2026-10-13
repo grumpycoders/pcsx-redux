@@ -375,8 +375,10 @@ bool load(std::string_view data);
 // Loads if it's safe to do so, queues it for the main loop otherwise. This is
 // what every user-facing entry point wants: the Lua bindings, the GUI menu and
 // hotkey, and the web server all reach for a load from callbacks that run in
-// the middle of Counters::update() and R3000Acpu::branchTest().
-void loadSafe(std::string &&data);
+// the middle of Counters::update() and R3000Acpu::branchTest(). Returns false
+// only if a load done right away failed; a queued load reports its own failure
+// from the main loop.
+bool loadSafe(std::string &&data);
 
 /* The in-memory pair. capture()/restore() are save()/load() with the protobuf encode and
    decode taken out: the message already owns a copy of every field, and commit() has always

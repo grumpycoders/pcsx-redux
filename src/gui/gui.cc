@@ -2917,13 +2917,12 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     save.close();
     delete[] buff;
 
-    if (error) {
+    if (error || !SaveStates::loadSafe(os.str())) {
         addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()));
-    } else {
-        SaveStates::loadSafe(os.str());
-        addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()));
+        return false;
     }
-    return !error;
+    addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()));
+    return true;
 }
 
 void PCSX::GUI::PassiveNotifier::draw() {
