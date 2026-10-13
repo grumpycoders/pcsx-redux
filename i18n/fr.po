@@ -659,7 +659,7 @@ msgstr "Configuration des touches ordinateur"
 
 #: src/core/pad.cc:1253
 msgid "Gamepad button"
-msgstr "Boutton de la manette"
+msgstr "Bouton du contrôleur"
 
 #: src/core/pad.cc:1303
 msgid "No gamepad selected or connected"
