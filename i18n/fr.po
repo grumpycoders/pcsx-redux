@@ -2678,7 +2678,7 @@ msgstr "Map d'exécution"
 
 #: src/gui/widgets/breakpoints.cc:384
 msgid "Clear maps"
-msgstr "Effacer les maps"
+msgstr "Effacer les cartes"
 
 #: src/gui/widgets/breakpoints.cc:388
 msgid ""
