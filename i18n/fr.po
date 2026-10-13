@@ -3716,7 +3716,7 @@ msgstr "Déplacer##{}"
 
 #: src/gui/widgets/memcard_manager.cc:287
 msgid "Moved file {}({}) from card {} to card {}"
-msgstr "Déplacé le fichier {}({}) depuis la carte {} vers la carte {}"
+msgstr "Fichier {}({}) depuis la carte {} vers la carte {} déplacé"
 
 #: src/gui/widgets/memcard_manager.cc:300
 msgid "Export PNG##{}"
