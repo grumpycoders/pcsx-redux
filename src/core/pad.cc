@@ -138,16 +138,15 @@ class PadsImpl : public PCSX::Pads {
     // Absent in configs from before keyboard bindings were stored as SDL scancodes.
     typedef PCSX::Setting<int, TYPESTRING("KeyboardBindingsVersion"), 1> SettingKeyboardBindingsVersion;
 
-    typedef PCSX::Settings<Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross,
-                           Keyboard_PadTriangle, Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect,
-                           Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2, Keyboard_PadL3, Keyboard_PadR1,
-                           Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp, Controller_PadRight,
-                           Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
-                           Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart,
-                           Controller_PadL1, Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2,
-                           Controller_PadR3, SettingInputType, SettingDeviceType, SettingControllerID, SettingConnected,
-                           SettingRumble, SettingMouseSensitivityX, SettingMouseSensitivityY,
-                           SettingKeyboardBindingsVersion>
+    typedef PCSX::Settings<
+        Keyboard_PadUp, Keyboard_PadRight, Keyboard_PadDown, Keyboard_PadLeft, Keyboard_PadCross, Keyboard_PadTriangle,
+        Keyboard_PadSquare, Keyboard_PadCircle, Keyboard_PadSelect, Keyboard_PadStart, Keyboard_PadL1, Keyboard_PadL2,
+        Keyboard_PadL3, Keyboard_PadR1, Keyboard_PadR2, Keyboard_PadR3, Keyboard_AnalogMode, Controller_PadUp,
+        Controller_PadRight, Controller_PadDown, Controller_PadLeft, Controller_PadCross, Controller_PadTriangle,
+        Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
+        Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
+        SettingDeviceType, SettingControllerID, SettingConnected, SettingRumble, SettingMouseSensitivityX,
+        SettingMouseSensitivityY, SettingKeyboardBindingsVersion>
         PadSettings;
 
     struct PadData {
