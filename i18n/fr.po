@@ -2091,7 +2091,7 @@ msgstr "Mode SIO1"
 
 #: src/gui/gui.cc:2487
 msgid "Interrupt Scaler"
-msgstr "Scaler d'interruptions"
+msgstr "Échelle d'interruptions"
 
 #: src/gui/gui.cc:2488
 msgid "Reset all"
