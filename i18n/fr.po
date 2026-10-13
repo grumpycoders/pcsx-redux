@@ -3389,7 +3389,7 @@ msgstr "Aucune ISO chargée, ou ISO invalide."
 #: src/gui/widgets/isobrowser.cc:575
 #, c-format
 msgid "GAME Label: %s"
-msgstr "Titre du JEU: %s"
+msgstr "Titre du Jeu: %s"
 
 #: src/gui/widgets/isobrowser.cc:591
 msgid "Cache files"
