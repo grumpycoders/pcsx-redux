@@ -1872,7 +1872,7 @@ msgstr ""
 
 #: src/gui/gui.cc:2239
 msgid "8MB"
-msgstr "8MO"
+msgstr "8Mo"
 
 #: src/gui/gui.cc:2240
 msgid ""
