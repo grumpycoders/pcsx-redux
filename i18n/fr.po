@@ -3355,7 +3355,7 @@ msgstr "<Root Directory>"
 
 #: src/gui/widgets/isobrowser.cc:382
 msgid "Scan gaps for hidden files"
-msgstr "Rechercher des fichiers cachés dans les trous"
+msgstr "Rechercher les fichiers cachés"
 
 #: src/gui/widgets/isobrowser.cc:389
 msgid ""
