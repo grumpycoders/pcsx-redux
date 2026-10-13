@@ -3327,7 +3327,7 @@ msgstr "<caché {} f={} ch={} {} secteurs>"
 
 #: src/gui/widgets/isobrowser.cc:315
 msgid "<License/System Area>"
-msgstr "<License/System Area>"
+msgstr "<License/Zone Système>"
 
 #: src/gui/widgets/isobrowser.cc:319
 msgid "<Volume Descriptors>"
