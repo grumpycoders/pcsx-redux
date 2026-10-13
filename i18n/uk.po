@@ -117,17 +117,17 @@ msgstr "Очистити колір"
 msgid "Clear VRAM"
 msgstr "Очистити VRAM"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Позначка CD-ROM: %.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM ID: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Ім'я CD-ROM EXE: %.255s\n"
@@ -478,32 +478,32 @@ msgstr "Завантаження карти пам'яті %s.\n"
 msgid "Saving memory card %s\n"
 msgstr "Збереження карти пам'яті %s.\n"
 
-#: src/core/pad.cc:1011 src/core/pad.cc:1135
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Невідома команда джойстика: %02X.\n"
 
-#: src/core/pad.cc:1236
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "Конфігурація джойстика"
 
-#: src/core/pad.cc:1242
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:1243
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:1246
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Пересканувати джойстики та перечитати базу даних ігрових контролерів"
 
-#: src/core/pad.cc:1265
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr "Використовувати неопрацьоване керування для миші"
 
-#: src/core/pad.cc:1267
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -511,168 +511,168 @@ msgstr ""
 "Курсор буде приховано та захоплено при роботі емулятора. Корисно для ігор із "
 "керуванням мишею."
 
-#: src/core/pad.cc:1269
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr "Дозволити захоплення миші"
 
-#: src/core/pad.cc:1271
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr "Натиснення Control і Alt перемикає налаштування вище, початкові дані."
 
-#: src/core/pad.cc:1273
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:1282
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "Встановити типові"
 
-#: src/core/pad.cc:1298
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr "Клавіатура ↑"
 
-#: src/core/pad.cc:1300
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr "Клавіатура →"
 
-#: src/core/pad.cc:1302
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr "Клавіатура ↓"
 
-#: src/core/pad.cc:1304
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr "Клавіатура ←"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr "Клавіатура Backspace"
 
-#: src/core/pad.cc:1308
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr "Клавіатура Enter"
 
-#: src/core/pad.cc:1310
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr "Клавіатура Space"
 
-#: src/core/pad.cc:1312
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr "Клавіатура Escape"
 
-#: src/core/pad.cc:1314
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr "Вільно"
 
-#: src/core/pad.cc:1319
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr "Невідома кнопка клавіатури {}"
 
-#: src/core/pad.cc:1324
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "Клавіатура {}"
 
-#: src/core/pad.cc:1343 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Автоматично"
 
-#: src/core/pad.cc:1344
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "Контролер"
 
-#: src/core/pad.cc:1345
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "Клавіатура"
 
-#: src/core/pad.cc:1352
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1353
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1360
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1369
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "Цифра"
 
-#: src/core/pad.cc:1370
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "Аналог"
 
-#: src/core/pad.cc:1371
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "Миша"
 
-#: src/core/pad.cc:1372
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (Не реалізовано)"
 
-#: src/core/pad.cc:1373
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr "Gun (Не реалізовано)"
 
-#: src/core/pad.cc:1374
+#: src/core/pad.cc:1373
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (Не реалізовано)"
 
-#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "З'єднано"
 
-#: src/core/pad.cc:1387
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "Аналоговий режим"
 
-#: src/core/pad.cc:1396
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1400
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1406
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "Тип контролера"
 
-#: src/core/pad.cc:1422
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "Тип пристрою"
 
-#: src/core/pad.cc:1433
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr "Чутливість миші X"
 
-#: src/core/pad.cc:1435
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr "Чутливість миші Y"
 
-#: src/core/pad.cc:1437
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr "Призначення клавіатури"
 
-#: src/core/pad.cc:1439
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr "Призначення кнопки комп'ютера"
 
-#: src/core/pad.cc:1440
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr "Кнопка джойстика"
 
-#: src/core/pad.cc:1490
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr "Джойстик не вибрано та не з'єднано."
 
-#: src/core/pad.cc:1514
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr "Джойстик"
 

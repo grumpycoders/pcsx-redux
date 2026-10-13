@@ -113,17 +113,17 @@ msgstr "Klar färg"
 msgid "Clear VRAM"
 msgstr "Rensa VRAM"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM-etikett: %.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM-ID: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE-namn: %.255s\n"
@@ -475,32 +475,32 @@ msgstr "Läser in minneskortet %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Sparar minneskortet %s\n"
 
-#: src/core/pad.cc:1011 src/core/pad.cc:1135
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Okänd kommando för pad: %02X\n"
 
-#: src/core/pad.cc:1236
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "Pad-konfiguration"
 
-#: src/core/pad.cc:1242
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:1243
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:1246
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Skanna om spelkontroller och läs om databasen för spelkontroller"
 
-#: src/core/pad.cc:1265
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr "Använd rå inmatning för musen"
 
-#: src/core/pad.cc:1267
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -508,170 +508,170 @@ msgstr ""
 "När denna funktion är aktiverad döljs markören och fångas upp när emulatorn "
 "körs. Detta är användbart för spel som kräver musinmatning."
 
-#: src/core/pad.cc:1269
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr "Tillåt musfångst"
 
-#: src/core/pad.cc:1271
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "När funktionen är aktiverad växlar du mellan inställningarna ovan genom att "
 "trycka på CTRL och ALT. rå inmatning"
 
-#: src/core/pad.cc:1273
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:1282
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "Ställ in standardvärden"
 
-#: src/core/pad.cc:1298
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr "Tangentbord upp"
 
-#: src/core/pad.cc:1300
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr "Tangentbord höger"
 
-#: src/core/pad.cc:1302
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr "Tangentbord ned"
 
-#: src/core/pad.cc:1304
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr "Tangentbord vänster"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr "Tangentbordets bakåtknapp"
 
-#: src/core/pad.cc:1308
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr "Tangentbord Enter"
 
-#: src/core/pad.cc:1310
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr "Tangentbordets mellanslagstangent"
 
-#: src/core/pad.cc:1312
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr "Tangentbord Escape"
 
-#: src/core/pad.cc:1314
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr "Obundet"
 
-#: src/core/pad.cc:1319
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr "Okänd tangent {}"
 
-#: src/core/pad.cc:1324
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "Tangentbord {}"
 
-#: src/core/pad.cc:1343 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Auto"
 
-#: src/core/pad.cc:1344
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "Kontroller"
 
-#: src/core/pad.cc:1345
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "Tangentbord"
 
-#: src/core/pad.cc:1352
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Välj"
 
-#: src/core/pad.cc:1353
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1360
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "Analogt läge"
 
-#: src/core/pad.cc:1369
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1370
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "Analog"
 
-#: src/core/pad.cc:1371
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "Mus"
 
-#: src/core/pad.cc:1372
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (inte implementerat)"
 
-#: src/core/pad.cc:1373
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr "Pistol (inte implementerad)"
 
-#: src/core/pad.cc:1374
+#: src/core/pad.cc:1373
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (inte implementerat)"
 
-#: src/core/pad.cc:1378 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Ansluten"
 
-#: src/core/pad.cc:1387
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "Analogt läge"
 
-#: src/core/pad.cc:1396
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1400
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1406
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "Typ av kontroll"
 
-#: src/core/pad.cc:1422
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "Enhetstyp"
 
-#: src/core/pad.cc:1433
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr "Musens känslighet X"
 
-#: src/core/pad.cc:1435
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr "Musens känslighet Y"
 
-#: src/core/pad.cc:1437
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr "Tangentbordskartläggning"
 
-#: src/core/pad.cc:1439
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr "Mappning av datorknappar"
 
-#: src/core/pad.cc:1440
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr "Gamepad-knapp"
 
-#: src/core/pad.cc:1490
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr "Ingen gamepad vald eller ansluten"
 
-#: src/core/pad.cc:1514
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr "Handkontroll"
 
