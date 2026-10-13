@@ -2744,7 +2744,7 @@ msgstr "Break on half write map"
 
 #: src/gui/widgets/breakpoints.cc:420
 msgid "Break on word write map"
-msgstr "Break on word write map"
+msgstr "Point d'arrêt sur la carte d'écriture 32 bits"
 
 #: src/gui/widgets/cdrom-viewer.cc:344
 msgid "CD-ROM Viewer"
