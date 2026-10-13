@@ -834,6 +834,7 @@ void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
             UvFifo *fifo = reinterpret_cast<UvFifo *>(client->data);
             if (nread <= 0) {
                 free(fifo->m_buffer);
+                fifo->m_buffer = nullptr;
                 if (nread < 0) {
                     fifo->m_closed = true;
                 }
