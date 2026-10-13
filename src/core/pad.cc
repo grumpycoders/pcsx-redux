@@ -456,6 +456,34 @@ static ImGuiKey SdlScancodeToImGuiKey(int scancode) {
             return ImGuiKey_F11;
         case SDL_SCANCODE_F12:
             return ImGuiKey_F12;
+        case SDL_SCANCODE_F13:
+            return ImGuiKey_F13;
+        case SDL_SCANCODE_F14:
+            return ImGuiKey_F14;
+        case SDL_SCANCODE_F15:
+            return ImGuiKey_F15;
+        case SDL_SCANCODE_F16:
+            return ImGuiKey_F16;
+        case SDL_SCANCODE_F17:
+            return ImGuiKey_F17;
+        case SDL_SCANCODE_F18:
+            return ImGuiKey_F18;
+        case SDL_SCANCODE_F19:
+            return ImGuiKey_F19;
+        case SDL_SCANCODE_F20:
+            return ImGuiKey_F20;
+        case SDL_SCANCODE_F21:
+            return ImGuiKey_F21;
+        case SDL_SCANCODE_F22:
+            return ImGuiKey_F22;
+        case SDL_SCANCODE_F23:
+            return ImGuiKey_F23;
+        case SDL_SCANCODE_F24:
+            return ImGuiKey_F24;
+        case SDL_SCANCODE_APPLICATION:
+            return ImGuiKey_Menu;
+        case SDL_SCANCODE_NONUSBACKSLASH:
+            return ImGuiKey_Oem102;
         default:
             return ImGuiKey_None;
     }
