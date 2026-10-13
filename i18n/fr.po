@@ -2225,7 +2225,7 @@ msgstr "Sévérité du rapport d'erreurs OpenGL"
 #: src/gui/gui.cc:2627
 #, c-format
 msgid "Core profile: %s"
-msgstr "Profil du coeur: %s"
+msgstr "Profil OpenGL: %s"
 
 #: src/gui/gui.cc:2627 src/gui/widgets/assembly.cc:587
 msgid "no"
