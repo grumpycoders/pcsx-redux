@@ -2704,7 +2704,7 @@ msgstr "Cartographie la lecture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:397
 msgid "Map word reads"
-msgstr "Map word reads"
+msgstr "Cartographie la lecture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:399
 msgid "Map byte writes"
