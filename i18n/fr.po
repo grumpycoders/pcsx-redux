@@ -1519,7 +1519,7 @@ msgstr "Éditeur Lua"
 
 #: src/gui/gui.cc:1744
 msgid "Kernel events"
-msgstr "Évènements noyau"
+msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1747
 msgid "Kernel handlers"
