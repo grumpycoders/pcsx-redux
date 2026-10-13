@@ -573,7 +573,7 @@ msgstr "Automatique"
 
 #: src/core/pad.cc:1157
 msgid "Controller"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pad.cc:1158
 msgid "Keyboard"
