@@ -2288,7 +2288,7 @@ msgstr "%s codecs"
 
 #: src/gui/gui.h:261
 msgid "Ok"
-msgstr "OK"
+msgstr "Ok"
 
 #: src/gui/gui.h:487
 msgid "Notification"
