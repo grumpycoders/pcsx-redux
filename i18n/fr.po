@@ -2880,7 +2880,7 @@ msgstr "Taille du code : %.2f Mo"
 
 #: src/gui/widgets/events.cc:39
 msgid "Core"
-msgstr "Coeur"
+msgstr "Core"
 
 #: src/gui/widgets/events.cc:40
 msgid "Spec"
