@@ -667,7 +667,7 @@ msgstr "Aucun contrôleur connecté ou sélectionné"
 
 #: src/core/pad.cc:1327
 msgid "Gamepad"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pio-cart.cc:214
 #, c-format
