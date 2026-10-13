@@ -1176,15 +1176,15 @@ msgstr "Charger l'état global"
 
 #: src/gui/gui.cc:1387
 msgid "Open LID"
-msgstr "Ouvrir le CAPOT"
+msgstr "Ouvrir le couvercle"
 
 #: src/gui/gui.cc:1391
 msgid "Close LID"
-msgstr "Fermer le CAPOT"
+msgstr "Fermer le couvercle"
 
 #: src/gui/gui.cc:1395
 msgid "Open and close LID"
-msgstr "Ouvrir et refermer le CAPOT"
+msgstr "Ouvrir et refermer le couvercle"
 
 #: src/gui/gui.cc:1400
 msgid "Reset settings..."
