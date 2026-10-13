@@ -631,7 +631,7 @@ msgstr "Vibration"
 
 #: src/core/pad.cc:1213
 msgid "(no motors on this gamepad)"
-msgstr "(pas de moteurs sur cette manette)"
+msgstr "(pas de moteurs sur ce contrôleur)"
 
 #: src/core/pad.cc:1219
 msgid "Controller Type"
