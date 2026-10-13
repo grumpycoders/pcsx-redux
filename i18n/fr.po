@@ -2410,7 +2410,8 @@ msgstr "Dessiner des flèches pour les sauts"
 #: src/gui/widgets/assembly.cc:544
 msgid "Display arrows for jumps. This might crowd the display a bit too much."
 msgstr ""
-"Display arrows for jumps. This might crowd the display a bit too much."
+"Affiche des flèches pour les sauts. Ceci peut encombrer l'affichage un peu "
+"trop."
 
 #: src/gui/widgets/assembly.cc:548
 msgid "Columns"
