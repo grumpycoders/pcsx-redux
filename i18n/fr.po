@@ -2708,11 +2708,11 @@ msgstr "Cartographie la lecture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:399
 msgid "Map byte writes"
-msgstr "Map byte writes"
+msgstr "Cartographie l'écriture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:401
 msgid "Map half writes"
-msgstr "Map half writes"
+msgstr "Cartographie l'écriture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:403
 msgid "Map word writes"
