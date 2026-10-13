@@ -3541,7 +3541,7 @@ msgstr "Tout activer."
 
 #: src/gui/widgets/log.cc:74
 msgid "Disable all"
-msgstr "Tout désactivé"
+msgstr "Tout désactiver"
 
 #: src/gui/widgets/log.cc:87
 msgid "Displayed"
