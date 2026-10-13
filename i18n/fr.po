@@ -2692,7 +2692,7 @@ msgstr ""
 
 #: src/gui/widgets/breakpoints.cc:390
 msgid "Map execution"
-msgstr "Map execution"
+msgstr "Cartographie l'exécution"
 
 #: src/gui/widgets/breakpoints.cc:393
 msgid "Map byte reads"
