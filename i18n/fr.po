@@ -3700,7 +3700,7 @@ msgstr "Effacer##{}"
 
 #: src/gui/widgets/memcard_manager.cc:248
 msgid "Erased file {}({}) off card {}"
-msgstr "Effacé le fichier {}({}) de la carte {}"
+msgstr "Fichier {}({}) de la carte {} effacé"
 
 #: src/gui/widgets/memcard_manager.cc:254
 msgid "Copy##{}"
@@ -3708,7 +3708,7 @@ msgstr "Copier##{}"
 
 #: src/gui/widgets/memcard_manager.cc:264
 msgid "Copied file {}({}) from card {} to card {}"
-msgstr "Copié le fichier {}({}) depuis la carte {} vers la carte {}"
+msgstr "Fichier {}({}) depuis la carte {} vers la carte {} copié"
 
 #: src/gui/widgets/memcard_manager.cc:276
 msgid "Move##{}"
