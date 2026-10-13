@@ -3147,9 +3147,9 @@ msgstr ""
 "Met l'émulation en pause quand une commande lit ou écrit dans l'un de ces "
 "rectangles de VRAM. Pratique pour attraper l'upload de texture qui a écrasé "
 "une zone, ce qui est difficile à repérer dans une image qui redessine tout. "
-"La commande qui a déclenché l'arrêt est mise en surbrillance dans le logger "
-"ci-dessous. Notez que les empreintes ne sont pas clippées : une primitive "
-"qui finit entièrement hors de la zone de dessin compte quand même comme une "
+"La commande qui a déclenché l'arrêt est mise en surlignage dans le logger "
+"ci-dessous. Notez que les empreintes ne sont pas coupées : une primitive qui"
+" finit entièrement hors de la zone de dessin compte quand même comme une "
 "écriture."
 
 #: src/gui/widgets/gpulogger.cc:152
