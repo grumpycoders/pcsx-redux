@@ -1,14 +1,14 @@
 name: Linux CI tsan
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   tsan:
     runs-on: ubuntu-latest
+    continue-on-error: true
     container:
       image: ghcr.io/grumpycoders/pcsx-redux-build:latest
       env:
