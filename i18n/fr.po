@@ -2775,7 +2775,7 @@ msgstr "Afficher l'audio (CDDA)"
 
 #: src/gui/widgets/cdrom-viewer.cc:358
 msgid "Show seeks"
-msgstr "Afficher les seeks"
+msgstr "Afficher les positionnements"
 
 #: src/gui/widgets/cdrom-viewer.cc:360 src/gui/widgets/ram-viewer.cc:497
 #: src/gui/widgets/vram-viewer.cc:637
