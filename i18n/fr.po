@@ -663,7 +663,7 @@ msgstr "Bouton du contrôleur"
 
 #: src/core/pad.cc:1303
 msgid "No gamepad selected or connected"
-msgstr "Aucune manette connectée ou sélectionnée"
+msgstr "Aucun contrôleur connecté ou sélectionné"
 
 #: src/core/pad.cc:1327
 msgid "Gamepad"
