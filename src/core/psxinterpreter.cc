@@ -291,18 +291,6 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
             PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
         }
     }
-    // The registers a queued write sets that a command can also write. A data write to 15 (SXYP)
-    // shifts SXY0-SXY2, and a data write to 28 (IRGB) sets IR1-IR3.
-    struct GTEWriteTarget {
-        uint32_t r[3];
-        bool operator==(const GTEWriteTarget &) const = default;
-    };
-    GTEWriteTarget gteTargetValue(const GTEPendingWrite &w) {
-        if (!w.ctrl && w.reg == 15) return {{m_regs.CP2D.r[12], m_regs.CP2D.r[13], m_regs.CP2D.r[14]}};
-        if (!w.ctrl && w.reg == 28) return {{m_regs.CP2D.r[9], m_regs.CP2D.r[10], m_regs.CP2D.r[11]}};
-        return {{w.ctrl ? m_regs.CP2C.r[w.reg] : m_regs.CP2D.r[w.reg], 0, 0}};
-    }
-    void gteRunCommand(uint32_t code);
     void gteCommitOldest() {
         gteCommit(m_gtePending[0]);
         for (unsigned i = 1; i < m_gtePendingCount; i++) m_gtePending[i - 1] = m_gtePending[i];
@@ -1231,36 +1219,13 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
         (*this.*(s_pPsxCP2[_Funct_]))(code);
         return;
     }
-    gteDrainIfStalling();
+    // A command sees every queued write. Sony's libgte MulMatrix issues MVMVA one instruction
+    // after mtc2 VZ0 and relies on the new value; nugget tests/gte-store-delay measures SQR reading
+    // IR1 the other way, so the read point depends on the command, and only the transfer side of
+    // the delay is modelled until the commands are measured.
+    while (m_gtePendingCount) gteCommitOldest();
     gteStart(gteLatency(_Funct_));
-    gteRunCommand(code);
-}
-
-// A command reads the registers as they are at issue. A queued write on its last instruction
-// completes while the command runs, before the command's results, so a register the command
-// writes keeps the result. A queued write with two instructions to go completes after the
-// results. Fitted to SQR on IR1 (nugget tests/gte-store-delay), the only pair measured.
-// Whether the command wrote a register is inferred from its value changing, so a result equal to
-// the register's previous value is taken as no write and the queued value wins.
-void InterpretedCPU::gteRunCommand(uint32_t code) {
-    GTEPendingWrite late[3];
-    GTEWriteTarget before[3];
-    unsigned nLate = 0;
-    unsigned keep = 0;
-    for (unsigned i = 0; i < m_gtePendingCount; i++) {
-        auto &w = m_gtePending[i];
-        if (w.countdown == 1) {
-            before[nLate] = gteTargetValue(w);
-            late[nLate++] = w;
-        } else {
-            m_gtePending[keep++] = w;
-        }
-    }
-    m_gtePendingCount = keep;
     (*this.*(s_pPsxCP2[_Funct_]))(code);
-    for (unsigned i = 0; i < nLate; i++) {
-        if (gteTargetValue(late[i]) == before[i]) gteCommit(late[i]);
-    }
 }
 
 void InterpretedCPU::psxCOP3(uint32_t code) {
