@@ -1663,11 +1663,11 @@ msgstr "Configuration Système"
 
 #: src/gui/gui.cc:1956
 msgid "Preload Disk Image files"
-msgstr "Pré-chargement Des Fichiers Images"
+msgstr "Pré-chargement des Fichiers Images"
 
 #: src/gui/gui.cc:1957
 msgid "Enable Auto Update"
-msgstr "Mise À Jour Automatique"
+msgstr "Mise à Jour Automatique"
 
 #: src/gui/gui.cc:1964
 msgid "Update configuration"
