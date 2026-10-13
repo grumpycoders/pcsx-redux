@@ -517,7 +517,7 @@ msgstr ""
 
 #: src/core/pad.cc:1086
 msgid "Pad"
-msgstr "Manette"
+msgstr "Contrôleur"
 
 #: src/core/pad.cc:1095
 msgid "Set defaults"
