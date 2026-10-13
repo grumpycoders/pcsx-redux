@@ -2696,11 +2696,11 @@ msgstr "Cartographie l'exécution"
 
 #: src/gui/widgets/breakpoints.cc:393
 msgid "Map byte reads"
-msgstr "Cartographie la lecture d'octets"
+msgstr "Cartographie la lecture 8 bits"
 
 #: src/gui/widgets/breakpoints.cc:395
 msgid "Map half reads"
-msgstr "Map half reads"
+msgstr "Cartographie la lecture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:397
 msgid "Map word reads"
