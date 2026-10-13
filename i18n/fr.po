@@ -2716,7 +2716,7 @@ msgstr "Cartographie l'écriture 16 bits"
 
 #: src/gui/widgets/breakpoints.cc:403
 msgid "Map word writes"
-msgstr "Map word writes"
+msgstr "Cartographie l'écriture 32 bits"
 
 #: src/gui/widgets/breakpoints.cc:407
 msgid "Break on execution map"
