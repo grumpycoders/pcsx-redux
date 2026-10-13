@@ -1429,11 +1429,11 @@ msgstr "Évènements kernel"
 
 #: src/gui/gui.cc:1585
 msgid "Kernel Handlers"
-msgstr "Handlers du noyau"
+msgstr "Handlers du kernel"
 
 #: src/gui/gui.cc:1586 src/gui/gui.cc:1750
 msgid "Kernel Calls"
-msgstr "Appels noyau"
+msgstr "Appels kernel"
 
 #: src/gui/gui.cc:1589
 msgid "Rendering"
