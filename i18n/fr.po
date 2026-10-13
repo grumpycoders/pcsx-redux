@@ -2754,7 +2754,7 @@ msgstr "Visualiseur du CD-ROM"
 #: src/gui/widgets/isobrowser.cc:485 src/gui/widgets/ram-viewer.cc:485
 #: src/gui/widgets/vram-viewer.cc:605
 msgid "View"
-msgstr "Voir"
+msgstr "Vue"
 
 #: src/gui/widgets/cdrom-viewer.cc:352 src/gui/widgets/ram-viewer.cc:486
 #: src/gui/widgets/vram-viewer.cc:606
