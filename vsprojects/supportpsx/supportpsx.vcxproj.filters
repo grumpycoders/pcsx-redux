@@ -66,6 +66,9 @@
     <ClCompile Include="..\..\src\supportpsx\dct.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\mdec-decoder.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\supportpsx\binffi.lua">
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\dct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\mdec-decoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -396,13 +396,13 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     mdecSave.get<MDECDMABCR>().value = mdec.pending_dma1.bcr;
     mdecSave.get<MDECDMACHCR>().value = mdec.pending_dma1.chcr;
     for (unsigned i = 0; i < 64; i++) {
-        mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
-        mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
-        mdecSave.get<MDECQTY>().value[i].value = qt_y[i];
-        mdecSave.get<MDECQTUV>().value[i].value = qt_uv[i];
-        mdecSave.get<MDECScaleTable>().value[i].value = scaletable[i];
+        mdecSave.get<MDECIQY>().value[i].value = m_tables.iqY[i];
+        mdecSave.get<MDECIQUV>().value[i].value = m_tables.iqUV[i];
+        mdecSave.get<MDECQTY>().value[i].value = m_tables.qtY[i];
+        mdecSave.get<MDECQTUV>().value[i].value = m_tables.qtUV[i];
+        mdecSave.get<MDECScaleTable>().value[i].value = m_tables.scale[i];
     }
-    mdecSave.get<MDECCustomScale>().value = customScaleTable ? 1 : 0;
+    mdecSave.get<MDECCustomScale>().value = m_tables.customScale ? 1 : 0;
 }
 
 void PCSX::Counters::serialize(SaveStateWrapper* w) {
@@ -607,8 +607,8 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     mdec.pending_dma1.bcr = mdecSave.get<MDECDMABCR>().value;
     mdec.pending_dma1.chcr = mdecSave.get<MDECDMACHCR>().value;
     for (unsigned i = 0; i < 64; i++) {
-        iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
-        iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+        m_tables.iqY[i] = mdecSave.get<MDECIQY>().value[i].value;
+        m_tables.iqUV[i] = mdecSave.get<MDECIQUV>().value[i].value;
     }
     // Fields 12-15 were added without a version bump. A state from before them
     // deserialises zero elements into the repeated fields, which would otherwise
@@ -618,18 +618,19 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
         mdecSave.get<MDECScaleTable>().count == 0) {
         standardTables_init();
-        qtab_fromIqtab(qt_y, iq_y);
-        qtab_fromIqtab(qt_uv, iq_uv);
+        qtab_fromIqtab(m_tables.qtY, m_tables.iqY);
+        qtab_fromIqtab(m_tables.qtUV, m_tables.iqUV);
         return;
     }
     for (unsigned i = 0; i < 64; i++) {
-        qt_y[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
-        qt_uv[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
-        scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
+        m_tables.qtY[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
+        m_tables.qtUV[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
+        m_tables.scale[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
     }
-    customScaleTable = mdecSave.get<MDECCustomScale>().value != 0;
+    m_tables.customScale = mdecSave.get<MDECCustomScale>().value != 0;
     // Not serialised: an all-zero matrix is what a console holds before MDEC(3).
-    scaleTableUploaded = std::any_of(std::begin(scaletable), std::end(scaletable), [](int16_t v) { return v != 0; });
+    scaleTableUploaded =
+        std::any_of(std::begin(m_tables.scale), std::end(m_tables.scale), [](int16_t v) { return v != 0; });
     warnedNoScaleTable = false;
 }
 
