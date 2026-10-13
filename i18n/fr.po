@@ -635,7 +635,7 @@ msgstr "(pas de moteurs sur ce contrôleur)"
 
 #: src/core/pad.cc:1219
 msgid "Controller Type"
-msgstr "Type de controlleur"
+msgstr "Type de contrôleur"
 
 #: src/core/pad.cc:1235
 msgid "Device type"
