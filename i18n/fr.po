@@ -2393,7 +2393,7 @@ msgstr ""
 
 #: src/gui/widgets/assembly.cc:531
 msgid "Delay slot notch"
-msgstr "Delay slot notch"
+msgstr "Décalage du créneau de retard"
 
 #: src/gui/widgets/assembly.cc:536
 msgid ""
@@ -2401,7 +2401,7 @@ msgid ""
 "slot of a branch."
 msgstr ""
 "Ajouter un indicateur visuel pour signaler les instructions qui se trouvent "
-"à l'emplacement d'un Delay Slot."
+"à l'emplacement d'un créneau de retard."
 
 #: src/gui/widgets/assembly.cc:540
 msgid "Draw arrows for jumps"
