@@ -129,3 +129,53 @@ TEST(GTE, MoveFromLoadDelayDynarec) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// Sony's libgte MulMatrix writes VZ0 with mtc2 and issues MVMVA one instruction later, relying
+// on the new value. Code poked into RAM writes VZ0 = 0x100, waits, writes VZ0 = 0x200, runs N nops
+// (N = 0, 1, 2), then MVMVA with RT = identity, storing IR3 to 0x80110000 + 4 * N. Interrupts are
+// off. 0x600d at 0x8011000c marks the end.
+static const char c_mvmvaAfterMtc2[] = R"(
+local ram = ffi.cast('uint32_t*', PCSX.getMemPtr())
+local base = 0x100000 / 4
+local out = 0x110000 / 4
+local code = {
+    0x40096000, 0x00000000, 0x240afffe, 0x012a4824, 0x3c0a4000, 0x012a4825,
+    0x40896000, 0x00000000, 0x00000000, 0x3c108011, 0x34081000, 0x48c80000,
+    0x48c00800, 0x48c81000, 0x48c01800, 0x48c82000, 0x48800000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x34090100, 0x48890800, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x34090200, 0x48890800, 0x4a486012,
+    0x480a5800, 0x00000000, 0xae0a0000, 0x34090100, 0x48890800, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x34090200, 0x48890800, 0x00000000,
+    0x4a486012, 0x480a5800, 0x00000000, 0xae0a0004, 0x34090100, 0x48890800,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x34090200, 0x48890800,
+    0x00000000, 0x00000000, 0x4a486012, 0x480a5800, 0x00000000, 0xae0a0008,
+    0x3409600d, 0xae09000c, 0x0804003e, 0x00000000
+}
+local frames = 0
+GteMvmvaListener = PCSX.Events.createEventListener('GPU::Vsync', function()
+    frames = frames + 1
+    if frames == 120 then
+        for i, w in ipairs(code) do ram[base + i - 1] = w end
+        for i = 0, 3 do ram[out + i] = 0 end
+        PCSX.getRegisters().pc = 0x80100000
+    elseif frames > 120 and ram[out + 3] == 0x600d then
+        if ram[out + 1] == 0x200 and ram[out + 2] == 0x200 then PCSX.quit(0) else PCSX.quit(1) end
+    elseif frames > 400 then
+        PCSX.quit(2)
+    end
+end)
+)";
+
+TEST(GTE, MvmvaAfterMtc2) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-exec", c_mvmvaAfterMtc2);
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+TEST(GTE, MvmvaAfterMtc2Dynarec) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
+                        "-exec", c_mvmvaAfterMtc2);
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
