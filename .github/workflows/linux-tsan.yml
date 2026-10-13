@@ -5,6 +5,10 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tsan:
     runs-on: ubuntu-latest
@@ -15,13 +19,11 @@ jobs:
         TEST_RESULTS: /tmp/test-results
         BUILD: tsan
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
-      - uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       - run: |
           make -j 2 all pcsx-redux-tests
           make -C src/mips/openbios -j 2 BUILD=Release
@@ -29,6 +31,10 @@ jobs:
           make -C src/mips/openbios clean
           make -C src/mips/tests -j 2 PCSX_TESTS=true BUILD=Release
           cp ./openbios.bin src/mips/openbios/
+          make -C src/mips/monitor/hosts/retail -j 2 BUILD=LTO
+          DBUS_SESSION_BUS_ADDRESS="disabled:" xvfb-run ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
       - name: Test
+        env:
+          DBUS_SESSION_BUS_ADDRESS: "disabled:"
         run: |
           xvfb-run ./pcsx-redux-tests
