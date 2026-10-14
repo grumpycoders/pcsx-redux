@@ -198,6 +198,7 @@ void PCSX::Emulator::reset() {
     m_sio->reset();
     m_sio1->reset();
     m_rewindRing->clear();
+    m_vsyncPending = false;
 }
 
 void PCSX::Emulator::shutdown() {
@@ -210,6 +211,16 @@ void PCSX::Emulator::shutdown() {
 void PCSX::Emulator::vsync() {
     m_gpuDumper->vsync(m_gpu.get(), m_cpu->m_regs.cycle);
     m_gpu->vblank();
+    // vsync() can be reached from inside an instruction, through a root counter read or write
+    // calling Counters::update(). There, the recompilers haven't written back m_regs.pc yet, and
+    // the end of the block overwrites whatever a listener puts in it. The listeners and everything
+    // else that may touch the cpu state run from branchTest() instead, between blocks.
+    m_vsyncPending = true;
+}
+
+void PCSX::Emulator::dispatchVSync() {
+    if (!m_vsyncPending) return;
+    m_vsyncPending = false;
     g_system->m_eventBus->signal<Events::GPU::VSync>({});
     g_system->update(true);
 
