@@ -89,7 +89,9 @@ PCSX.Assembler.Internals.gteInstructions = {
         if #args ~= 5 then error('mvmva takes zero or five arguments') end
         local limits = { 1, 3, 3, 3, 1 }
         for i, v in ipairs(args) do
-            if type(v) ~= 'number' or v ~= math.floor(v) or v < 0 or v > limits[i] then error('Invalid mvmva argument ' .. i) end
+            if type(v) ~= 'number' or v ~= math.floor(v) or v < 0 or v > limits[i] then
+                error('Invalid mvmva argument ' .. i)
+            end
         end
         local sf, mx, v, cv, lm = args[1], args[2], args[3], args[4], args[5]
         return {
