@@ -460,7 +460,8 @@ class R3000Acpu {
     // Writes a register from outside the instruction stream. Paused right after a load, the
     // loaded value is still pending and would land over the new one on the next step.
     void setGPR(unsigned index, uint32_t value) {
-        m_regs.GPR.r[index] = value;
+        if (index >= 34) return;
+        m_regs.GPR.r[index] = index == 0 ? 0 : value;
         for (auto &delayedLoad : m_delayedLoadInfo) {
             if (delayedLoad.index == index) delayedLoad.active = false;
         }

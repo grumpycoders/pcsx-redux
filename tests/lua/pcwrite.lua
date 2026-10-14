@@ -129,13 +129,14 @@ function TestPCWrite:test_gpr_write_drops_pending_load()
     regs.pc = CODE
 
     local co = coroutine.running()
-    PCSX.addBreakpoint(CODE + 8, 'Exec', 4, 'load delay slot', function()
+    local bp = PCSX.addBreakpoint(CODE + 8, 'Exec', 4, 'load delay slot', function()
         PCSX.pauseEmulator()
         resumeFromMainLoop(co)
         return false
     end)
     PCSX.resumeEmulator()
     coroutine.yield()
+    bp:remove()
     lu.assertEquals(regs.pc, CODE + 8)
 
     PCSX.setGPR(8, 0x12345678)
