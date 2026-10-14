@@ -47,6 +47,7 @@ void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
 void setPC(uint32_t pc) { PCSX::g_emulator->m_cpu->setPC(pc); }
+void setGPR(unsigned index, uint32_t value) { PCSX::g_emulator->m_cpu->setGPR(index, value); }
 void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
 void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
@@ -203,6 +204,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
     REGISTER(L, setPC);
+    REGISTER(L, setGPR);
     REGISTER(L, getReadLUT);
     REGISTER(L, getWriteLUT);
     REGISTER(L, addBreakpoint);
