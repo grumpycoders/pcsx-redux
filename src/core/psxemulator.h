@@ -235,8 +235,8 @@ class Emulator {
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
 
-    // Set by vsync(), cleared by dispatchVSync().
-    bool m_vsyncPending = false;
+    // Vsyncs raised by vsync() and not yet dispatched by dispatchVSync().
+    uint32_t m_vsyncPending = 0;
 
     // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
     struct RewindRing;
