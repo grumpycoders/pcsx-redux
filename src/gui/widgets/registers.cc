@@ -164,6 +164,26 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             contextMenu("##pc", registers->pc, 16);
             ImGui::PopItemWidth();
 
+
+            // What the next step still commits: a load or a branch whose delay slot is next.
+            // The recompilers keep neither between blocks, so there is nothing to show there.
+            auto& cpu = g_emulator->m_cpu;
+            if (!cpu->isDynarec()) {
+                for (auto& pending : cpu->m_delayedLoadInfo) {
+                    if (pending.active) {
+                        uint32_t value = (registers->GPR.r[pending.index] & pending.mask) | pending.value;
+                        ImGui::TextUnformatted(
+                            fmt::format(f_("load: {} <- {:08x}"), PCSX::Disasm::s_disRNameGPR[pending.index], value)
+                                .c_str());
+                        ImGui::SetItemTooltip("%s", _("Still in flight: the next step writes it to the register."));
+                    }
+                    if (pending.pcActive) {
+                        ImGui::TextUnformatted(fmt::format(f_("branch: -> {:08x}"), pending.pcValue).c_str());
+                        ImGui::SetItemTooltip("%s", _("Taken after the next step, which is its delay slot."));
+                    }
+                }
+            }
+
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("CP0")) {
