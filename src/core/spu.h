@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include "core/decode_xa.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -61,6 +63,9 @@ class SPUInterface {
     virtual void waitForGoal(uint32_t goal) = 0;
     virtual uint32_t getFrameCount() = 0;
     virtual void setLua(Lua L) = 0;
+    // Writes the SPU mix to a 16-bit stereo WAV file, as it leaves the mixer and before the
+    // audio sink converts it. Returns false if the file could not be created.
+    virtual bool setWavDump(const std::filesystem::path &path) = 0;
 
     bool m_showDebug = false;
     bool m_showCfg = false;
