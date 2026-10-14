@@ -69,7 +69,7 @@ void PCSX::R3000Acpu::psxReset() {
     m_currentDelayedLoad = false;
     closeAllPCdrvFiles();
 
-    m_regs.pc = 0xbfc00000;  // Start in bootstrap
+    m_regs.pc.raw() = 0xbfc00000;  // Start in bootstrap
 
     g_emulator->m_debug->updatedPC(0xbfc00000);
 
@@ -101,14 +101,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     closeAllPCdrvFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x102: {  // PCcreat
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -126,14 +126,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = fd;
                     }
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x103: {  // PCopen
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -157,7 +157,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = fd;
                     }
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x104: {  // PCclose
@@ -173,7 +173,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         delete &*file;
                         m_availableFDs.push_back(fd);
                     }
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x105: {  // PCread
@@ -181,21 +181,21 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     IO<File> file = *filei;
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     auto slice = file->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x106: {  // PCwrite
@@ -203,7 +203,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     IO<File> file = *filei;
@@ -213,7 +213,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                     }
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 case 0x107: {  // PClseek
@@ -221,7 +221,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     IO<File> file = *filei;
@@ -239,14 +239,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         default:
                             regs.v0 = -1;
                             regs.v1 = -1;
-                            m_regs.pc += 4;
+                            m_regs.pc.raw() += 4;
                             return false;
                     }
                     ssize_t ret = file->rSeek(regs.a2, wheel);
                     if (ret < 0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
-                        m_regs.pc += 4;
+                        m_regs.pc.raw() += 4;
                         return false;
                     }
                     if (file->writable()) {
@@ -260,7 +260,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                     }
-                    m_regs.pc += 4;
+                    m_regs.pc.raw() += 4;
                     return false;
                 }
                 default:
@@ -287,12 +287,12 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
     }
 
     if (m_regs.CP0.n.Status & 0x400000) {
-        m_regs.pc = 0xbfc00180;
+        m_regs.pc.raw() = 0xbfc00180;
     } else {
-        m_regs.pc = 0x80000080;
+        m_regs.pc.raw() = 0x80000080;
     }
 
-    if (cop0) m_regs.pc -= 0x40;
+    if (cop0) m_regs.pc.raw() -= 0x40;
 
     // Set the Cause
     m_regs.CP0.n.Cause = code;
@@ -417,7 +417,7 @@ void PCSX::R3000Acpu::branchTest() {
             pending.pcActive = false;
             pending.fromLink = false;
             m_nextIsDelaySlot = false;
-            m_regs.pc = pending.branchPC + 4;
+            m_regs.pc.raw() = pending.branchPC + 4;
             exception(0x400, true);
             return;
         }
