@@ -198,6 +198,7 @@ void PCSX::Emulator::reset() {
     m_sio->reset();
     m_sio1->reset();
     m_rewindRing->clear();
+    m_vsyncPending = 0;
 }
 
 void PCSX::Emulator::shutdown() {
@@ -210,12 +211,24 @@ void PCSX::Emulator::shutdown() {
 void PCSX::Emulator::vsync() {
     m_gpuDumper->vsync(m_gpu.get(), m_cpu->m_regs.cycle);
     m_gpu->vblank();
-    g_system->m_eventBus->signal<Events::GPU::VSync>({});
-    g_system->update(true);
+    // vsync() can be reached from inside an instruction, through a root counter read or write
+    // calling Counters::update(). There, the recompilers haven't written back m_regs.pc yet, and
+    // the end of the block overwrites whatever a listener puts in it. The listeners and everything
+    // else that may touch the cpu state run from branchTest() instead, between blocks. Linked
+    // blocks skip branchTest(), so more than one vsync can be pending by the time it runs.
+    m_vsyncPending++;
+}
 
-    const uint32_t interval = settings.get<SettingRewindInterval>().value;
-    if (interval > 0 && !(++m_rewind_counter % interval)) {
-        createRewindState();
+void PCSX::Emulator::dispatchVSync() {
+    while (m_vsyncPending) {
+        m_vsyncPending--;
+        g_system->m_eventBus->signal<Events::GPU::VSync>({});
+        g_system->update(true);
+
+        const uint32_t interval = settings.get<SettingRewindInterval>().value;
+        if (interval > 0 && !(++m_rewind_counter % interval)) {
+            createRewindState();
+        }
     }
 }
 
