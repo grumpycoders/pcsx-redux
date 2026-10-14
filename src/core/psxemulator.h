@@ -235,6 +235,9 @@ class Emulator {
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
 
+    // Set by vsync(), cleared by dispatchVSync().
+    bool m_vsyncPending = false;
+
     // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
     struct RewindRing;
     std::unique_ptr<RewindRing> m_rewindRing;
@@ -261,6 +264,9 @@ class Emulator {
     void reset();
     void shutdown();
     void vsync();
+    // Runs what vsync() deferred: the VSync event, the system update and the rewind snapshot.
+    // Called from R3000Acpu::branchTest(), where m_regs.pc is the real next pc.
+    void dispatchVSync();
     void setPGXPMode(uint32_t pgxpMode);
 
     // Rewind: ring of in-memory snapshots taken every RewindInterval frames, bounded to
