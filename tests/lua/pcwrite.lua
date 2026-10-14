@@ -77,13 +77,15 @@ function TestPCWrite:test_write_in_delay_slot_drops_pending_branch()
     regs.pc = CODE
 
     local co = coroutine.running()
-    PCSX.addBreakpoint(CODE + 4, 'Exec', 4, 'delay slot', function()
+    -- Held until it fires: a collected handle removes its breakpoint.
+    local bp = PCSX.addBreakpoint(CODE + 4, 'Exec', 4, 'delay slot', function()
         PCSX.pauseEmulator()
         resumeFromMainLoop(co)
         return false
     end)
     PCSX.resumeEmulator()
     coroutine.yield()
+    bp:remove()
     lu.assertEquals(regs.pc, CODE + 4)
 
     regs.pc = ALT
