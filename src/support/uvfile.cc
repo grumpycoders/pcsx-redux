@@ -885,6 +885,15 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
     return ret;
 }
 
+void PCSX::UvFifo::writeFailed(uv_stream_t *stream) {
+    // Once closing, the fifo may already be gone, and cancelled writes are expected anyway.
+    if (uv_is_closing(reinterpret_cast<uv_handle_t *>(stream))) return;
+    UvFifo *fifo = reinterpret_cast<UvFifo *>(stream->data);
+    // Some platforms refuse writes until the connection completes; that is not a broken socket.
+    if (fifo->m_connecting.test()) return;
+    fifo->m_failed.test_and_set();
+}
+
 ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
     struct Info {
         uv_buf_t buf;
@@ -898,10 +907,16 @@ ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
     info->buf.len = size;
     request([info, tcp = m_tcp](auto loop) {
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+        auto stream = reinterpret_cast<uv_stream_t *>(tcp);
+        int result = uv_write(&info->req, stream, &info->buf, 1, [](uv_write_t *req, int status) {
             auto info = reinterpret_cast<Info *>(req->data);
+            if (status < 0) writeFailed(req->handle);
             delete info;
         });
+        if (result != 0) {
+            writeFailed(stream);
+            delete info;
+        }
     });
     return size;
 }
@@ -919,10 +934,16 @@ void PCSX::UvFifo::write(Slice &&slice) {
     info->slice = std::move(slice);
     request([info, tcp = m_tcp](auto loop) {
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+        auto stream = reinterpret_cast<uv_stream_t *>(tcp);
+        int result = uv_write(&info->req, stream, &info->buf, 1, [](uv_write_t *req, int status) {
             auto info = reinterpret_cast<Info *>(req->data);
+            if (status < 0) writeFailed(req->handle);
             delete info;
         });
+        if (result != 0) {
+            writeFailed(stream);
+            delete info;
+        }
     });
 }
 
