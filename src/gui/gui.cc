@@ -2885,7 +2885,7 @@ bool PCSX::GUI::saveSaveState(std::filesystem::path filename) {
     if (success) {
         addNotice(fmt::format(f_("State saved to {}"), filename.filename().string()));
     } else {
-        addNotice(fmt::format(f_("Failed to save state to {}"), filename.filename().string()));
+        addNotice(fmt::format(f_("Failed to save state to {}"), filename.filename().string()), NoticeKind::Error);
     }
     return success;
 }
@@ -2896,7 +2896,7 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     }
     ZReader save(new PosixFile(filename));
     if (save.failed()) {
-        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()));
+        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()), NoticeKind::Error);
         return false;
     }
     std::ostringstream os;
@@ -2918,7 +2918,7 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
     delete[] buff;
 
     if (error || !SaveStates::loadSafe(os.str())) {
-        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()));
+        addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()), NoticeKind::Error);
         return false;
     }
     addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()));
@@ -2950,6 +2950,13 @@ void PCSX::GUI::PassiveNotifier::draw() {
     const ImVec2 padding = style.WindowPadding;
     const ImVec4 bgColor = style.Colors[ImGuiCol_PopupBg];
     const ImVec4 textColor = style.Colors[ImGuiCol_Text];
+    // Indexed by NoticeKind: Info, Warning, Error.
+    static const ImVec4 c_barColors[] = {
+        ImVec4(0.26f, 0.59f, 0.98f, 1.0f),
+        ImVec4(0.95f, 0.70f, 0.15f, 1.0f),
+        ImVec4(0.90f, 0.25f, 0.25f, 1.0f),
+    };
+    const float barWidth = std::max(4.0f, fontSize * 0.25f);
 
     // Newest at the bottom, older ones stacked above it.
     float bottom = viewport->WorkPos.y + viewport->WorkSize.y - padding.y * 2.0f;
@@ -2958,15 +2965,19 @@ void PCSX::GUI::PassiveNotifier::draw() {
         const float alpha = remaining < c_fadeTime ? float(remaining / c_fadeTime) : 1.0f;
         const char* text = it->message.c_str();
         const ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, wrapWidth, text);
-        const ImVec2 boxSize = ImVec2(textSize.x + padding.x * 2.0f, textSize.y + padding.y * 2.0f);
+        const ImVec2 boxSize = ImVec2(barWidth + textSize.x + padding.x * 2.0f, textSize.y + padding.y * 2.0f);
         const ImVec2 boxMin =
             ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - boxSize.x) / 2.0f, bottom - boxSize.y);
         const ImVec2 boxMax = ImVec2(boxMin.x + boxSize.x, bottom);
         drawList->AddRectFilled(
             boxMin, boxMax, ImGui::ColorConvertFloat4ToU32(ImVec4(bgColor.x, bgColor.y, bgColor.z, bgColor.w * alpha)),
             style.WindowRounding);
+        const ImVec4 barColor = c_barColors[static_cast<size_t>(it->kind)];
+        drawList->AddRectFilled(boxMin, ImVec2(boxMin.x + barWidth, boxMax.y),
+                                ImGui::ColorConvertFloat4ToU32(ImVec4(barColor.x, barColor.y, barColor.z, alpha)),
+                                style.WindowRounding, ImDrawFlags_RoundCornersLeft);
         drawList->AddText(
-            font, fontSize, ImVec2(boxMin.x + padding.x, boxMin.y + padding.y),
+            font, fontSize, ImVec2(boxMin.x + barWidth + padding.x, boxMin.y + padding.y),
             ImGui::ColorConvertFloat4ToU32(ImVec4(textColor.x, textColor.y, textColor.z, textColor.w * alpha)), text,
             nullptr, wrapWidth);
         bottom = boxMin.y - style.ItemSpacing.y;

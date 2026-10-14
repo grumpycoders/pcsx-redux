@@ -276,21 +276,27 @@ class GUI final : public UI {
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
     // Short-lived messages drawn at the bottom of the main viewport, which fade out on their own and never
-    // take focus. For confirmations that don't need acknowledging; errors that do should go to addNotification.
+    // take focus. Use them for anything the user doesn't have to act on, failures included: a state that
+    // couldn't be saved is an Error notice. The kind only picks the colour of the bar on the left. If the
+    // user has to do something about it, use addNotification instead.
+    enum class NoticeKind { Info, Warning, Error };
     class PassiveNotifier {
       public:
-        void notify(const std::string &message) { m_pending.push_back({message, 0.0}); }
+        void notify(const std::string &message, NoticeKind kind) { m_pending.push_back({message, kind, 0.0}); }
         void draw();
 
       private:
         struct Notice {
             std::string message;
+            NoticeKind kind;
             double shownAt;
         };
         std::deque<Notice> m_pending;
         std::deque<Notice> m_shown;
     };
-    void addNotice(const std::string &notice) { m_passiveNotifier.notify(notice); }
+    void addNotice(const std::string &notice, NoticeKind kind = NoticeKind::Info) {
+        m_passiveNotifier.notify(notice, kind);
+    }
 
     void magicOpen(const char *path);
 
