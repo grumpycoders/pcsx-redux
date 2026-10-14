@@ -187,6 +187,8 @@ class GPU {
     void reset() {
         resetBackend();
         m_irq1Flag = false;
+        m_vram2MBGateOpen = false;
+        vramConfigChanged();
         m_dataRet = 0;
         m_readFifo->reset();
         m_processor->reset();

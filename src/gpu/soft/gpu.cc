@@ -161,10 +161,11 @@ void PCSX::SoftGPU::impl::changeDispOffsetsX() {
 void PCSX::SoftGPU::impl::changeDispOffsetsY() {
     int iT, iO = m_previousDisplay.Range.y0;
     int iOldYOffset = m_previousDisplay.DisplayModeNew.y;
+    const int scanoutHeight = vram2MBGateOpen() ? VRAM_HEIGHT * 2 : VRAM_HEIGHT;
 
-    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > VRAM_HEIGHT) {
-        int dy1 = VRAM_HEIGHT - m_previousDisplay.DisplayModeNew.x;
-        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - VRAM_HEIGHT;
+    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > scanoutHeight) {
+        int dy1 = scanoutHeight - m_previousDisplay.DisplayModeNew.x;
+        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - scanoutHeight;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;
@@ -739,7 +740,12 @@ void PCSX::SoftGPU::impl::write1(CtrlDmaSetting *ctrl) {
     m_statusRet |= magic_enum::enum_integer(ctrl->dma) << 29;
 }
 
-void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
+void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *raw) {
+    // The decoded Y keeps the upper-bank bit; with the gate closed it folds
+    // into the lower 512 rows like any other VRAM access.
+    CtrlDisplayStart resolved = *raw;
+    resolved.y = resolveVramY(raw->y);
+    auto ctrl = &resolved;
     m_display.set(ctrl);
     m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
     m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
@@ -750,9 +756,10 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
     // store the same val in some helper var, we need it on later compares
     m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
 
-    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > VRAM_HEIGHT) {
-        int dy1 = VRAM_HEIGHT - m_softDisplay.DisplayPosition.y;
-        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - VRAM_HEIGHT;
+    const int scanoutHeight = vram2MBGateOpen() ? VRAM_HEIGHT * 2 : VRAM_HEIGHT;
+    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > scanoutHeight) {
+        int dy1 = scanoutHeight - m_softDisplay.DisplayPosition.y;
+        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - scanoutHeight;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;

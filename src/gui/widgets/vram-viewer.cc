@@ -726,7 +726,8 @@ void PCSX::Widgets::VRAMViewer::modeChanged() {
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     float focusX = texTL.x + (texBR.x - texTL.x) / 2.0f;
-    float newX = dimensions.y / RATIOS[m_vramMode];
+    // Same aspect as defaultViewSize(): 1024 rows against a 512 / ratio width.
+    float newX = dimensions.y * 0.5f / RATIOS[m_vramMode];
     float deltaX = newX - dimensions.x;
     m_cornerTL.x = m_cornerTL.x - deltaX * focusX;
     m_cornerBR.x = m_cornerTL.x + newX;

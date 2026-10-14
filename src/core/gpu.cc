@@ -828,10 +828,15 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             if (w == 0 || h == 0) return;  // Xsiz=0 or Ysiz=0: no fill
-            // Clip against the full 1024x1024 buffer so a fast-fill can target
-            // the upper bank; the soft fillArea still bounds the actual fill to
-            // the effective drawable height (512 unless 2MB + gate open).
-            clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+            // Gate open: clip against the full 1024x1024 buffer so a fast-fill
+            // can target the upper bank; the soft fillArea still bounds the
+            // actual fill to the effective drawable height (512 unless 2MB).
+            // Gate closed: retail, Y folds into the lower 512 rows.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+            } else {
+                clipped = GPU::clip(x, y, w, h);
+            }
             m_gpu->write0(this);
             return;
     }
@@ -1029,6 +1034,18 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
+                if (m_gpu->vramOpenBus(l)) {
+                    // Not every backend keeps the unpopulated bank prefilled, so
+                    // produce the floating-bus words here.
+                    static const std::array<uint16_t, 1024> openBus = [] {
+                        std::array<uint16_t, 1024> a;
+                        a.fill(kVramOpenBusValue);
+                        return a;
+                    }();
+                    slice.borrow(openBus.data(), w * 2);
+                    m_gpu->m_readFifo->pushSlice(std::move(slice));
+                    continue;
+                }
                 slice.borrow(m_gpu->m_vramReadSlice, (m_gpu->resolveVramY(l) * 1024 + x) * 2, w * 2);
                 m_gpu->m_readFifo->pushSlice(std::move(slice));
             }

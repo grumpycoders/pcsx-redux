@@ -464,6 +464,9 @@ bool PCSX::OpenGL_GPU::configure() {
             m_texWindowLoc = OpenGL::uniformLocation(m_program, "u_texWindow");
             m_blendFactorsLoc = OpenGL::uniformLocation(m_program, "u_blendFactors");
             m_blendFactorsIfOpaqueLoc = OpenGL::uniformLocation(m_program, "u_blendFactorsIfOpaque");
+            m_vramMaskYLoc = OpenGL::uniformLocation(m_program, "u_vramMaskY");
+            m_texpage2MBLoc = OpenGL::uniformLocation(m_program, "u_texpage2MB");
+            m_vramConfigDirty = true;
 
             const auto vramSamplerLoc = OpenGL::uniformLocation(m_program, "u_vramTex");
             glUniform1i(vramSamplerLoc, 0);  // Make the fragment shader read from currently bound texture
@@ -1052,7 +1055,13 @@ void PCSX::OpenGL_GPU::write1(CtrlDisplayEnable *ctrl) { setDisplayEnable(ctrl->
 
 void PCSX::OpenGL_GPU::write1(CtrlDmaSetting *) {}
 
-void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) { m_display.set(ctrl); }
+void PCSX::OpenGL_GPU::write1(CtrlDisplayStart *ctrl) {
+    // The decoded Y keeps the upper-bank bit; with the gate closed it folds
+    // into the lower 512 rows like any other VRAM access.
+    CtrlDisplayStart resolved = *ctrl;
+    resolved.y = resolveVramY(ctrl->y);
+    m_display.set(&resolved);
+}
 void PCSX::OpenGL_GPU::write1(CtrlHorizontalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlVerticalDisplayRange *ctrl) { m_display.set(ctrl); }
 void PCSX::OpenGL_GPU::write1(CtrlDisplayMode *ctrl) { m_display.set(ctrl); }
