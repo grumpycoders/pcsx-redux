@@ -23,7 +23,13 @@
 
 #include "core/r3000a.h"
 
+#include <chrono>
 #include <magic_enum/magic_enum_all.hpp>
+#include <thread>
+
+#if !defined(_WIN32) && !defined(_WIN64)
+#include <netdb.h>
+#endif
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -35,6 +41,7 @@
 #include "core/sio1.h"
 #include "core/spu.h"
 #include "fmt/format.h"
+#include "support/uvfile.h"
 #include "supportpsx/memory.h"
 
 int PCSX::R3000Acpu::psxInit() {
@@ -79,6 +86,93 @@ void PCSX::R3000Acpu::psxReset() {
     PCSX::g_emulator->m_hw->reset();
 }
 
+namespace {
+
+// How long PCopen("tcp://...") waits for the connection before giving up.
+constexpr auto c_pcdrvConnectTimeout = std::chrono::seconds(5);
+
+// Lets the PCdrv code queue work on the UV thread, so that a socket is only ever
+// freed there, after its uv_close: a read callback can't then land on a dead object.
+struct PCdrvUvAccess : public PCSX::UvFifo {
+    using PCSX::UvThreadOp::request;
+};
+
+bool startsWith(std::string_view str, std::string_view prefix) { return str.substr(0, prefix.size()) == prefix; }
+
+// "xxx://" at the start of the name, with xxx made of URI scheme characters.
+bool hasScheme(std::string_view name) {
+    auto pos = name.find("://");
+    if (pos == std::string_view::npos || pos == 0) return false;
+    for (auto c : name.substr(0, pos)) {
+        if (!isalnum(static_cast<unsigned char>(c)) && (c != '+') && (c != '-') && (c != '.')) return false;
+    }
+    return true;
+}
+
+bool pcdrvNetAllowed(std::string_view allowList, std::string_view hostPort) {
+    if (allowList.empty()) return true;
+    while (!allowList.empty()) {
+        auto comma = allowList.find(',');
+        auto entry = allowList.substr(0, comma);
+        while (!entry.empty() && isspace(static_cast<unsigned char>(entry.front()))) entry.remove_prefix(1);
+        while (!entry.empty() && isspace(static_cast<unsigned char>(entry.back()))) entry.remove_suffix(1);
+        if (entry == hostPort) return true;
+        if (comma == std::string_view::npos) break;
+        allowList.remove_prefix(comma + 1);
+    }
+    return false;
+}
+
+// Connects "host:port" and returns the stream, or an empty handle on any failure or after
+// c_pcdrvConnectTimeout. The connection itself happens on the UV thread; this thread
+// only polls its state.
+PCSX::IO<PCSX::File> pcdrvConnect(std::string_view hostPort) {
+    auto colon = hostPort.rfind(':');
+    if (colon == std::string_view::npos || colon == 0) return {};
+    std::string host(hostPort.substr(0, colon));
+    auto portStr = hostPort.substr(colon + 1);
+    if (portStr.empty() || portStr.size() > 5) return {};
+    unsigned port = 0;
+    for (auto c : portStr) {
+        if (c < '0' || c > '9') return {};
+        port = port * 10 + (c - '0');
+    }
+    if (port == 0 || port > 65535) return {};
+
+    // UvFifo only takes IPv4 literals: resolve the name here.
+    struct addrinfo hints = {};
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo* res = nullptr;
+    if (getaddrinfo(host.c_str(), nullptr, &hints, &res) != 0 || !res) return {};
+    char address[64] = {};
+    int r = uv_ip4_name(reinterpret_cast<const struct sockaddr_in*>(res->ai_addr), address, sizeof(address));
+    freeaddrinfo(res);
+    if (r != 0) return {};
+
+    PCSX::IO<PCSX::UvFifo> fifo(new PCSX::UvFifo(address, port));
+    auto deadline = std::chrono::steady_clock::now() + c_pcdrvConnectTimeout;
+    while (fifo->isConnecting() && !fifo->failed() && (std::chrono::steady_clock::now() < deadline)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    if (fifo->isConnecting() || fifo->failed()) {
+        fifo->close();
+        PCdrvUvAccess::request([fifo](uv_loop_t*) {});
+        return {};
+    }
+    return fifo;
+}
+
+}  // namespace
+
+PCSX::R3000Acpu::PCdrvFile::~PCdrvFile() {
+    if (m_kind != Kind::Socket) return;
+    // Close now, but drop the last reference on the UV thread, once the uv_close is queued there.
+    IO<File> keep(*static_cast<IO<File>*>(this));
+    keep->close();
+    PCdrvUvAccess::request([keep](uv_loop_t*) {});
+}
+
 void PCSX::R3000Acpu::psxShutdown() { Shutdown(); }
 
 bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
@@ -111,9 +205,15 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc += 4;
                         return false;
                     }
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
+                    if (startsWith(filename, "tcp://") || startsWith(filename, "probe:")) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc += 4;
+                        return false;
+                    }
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     fd = m_availableFDs.front();
                     auto file = m_pcdrvFiles.insert(fd, new PCdrvFile(basepath / filename, FileOps::TRUNCATE));
                     file->m_relativeFilename = filename;
@@ -136,9 +236,40 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         m_regs.pc += 4;
                         return false;
                     }
-                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
+                    if (startsWith(filename, "probe:") || hasScheme(filename)) {
+                        // Network names never become file paths.
+                        IO<File> stream;
+                        PCdrvFile::Kind kind = PCdrvFile::Kind::Socket;
+                        bool net = debugSettings.get<Emulator::DebugSettings::PCdrvNet>();
+                        if (net && (filename == "probe:net")) {
+                            static uint8_t empty;
+                            stream.setFile(new BufferFile(&empty, 0));
+                            kind = PCdrvFile::Kind::Probe;
+                        } else if (net && startsWith(filename, "tcp://")) {
+                            std::string_view hostPort = filename;
+                            hostPort.remove_prefix(6);
+                            if (pcdrvNetAllowed(debugSettings.get<Emulator::DebugSettings::PCdrvNetAllow>().value,
+                                                hostPort)) {
+                                stream = pcdrvConnect(hostPort);
+                            }
+                        }
+                        if (!stream) {
+                            regs.v0 = -1;
+                            regs.v1 = -1;
+                        } else {
+                            fd = m_availableFDs.front();
+                            m_availableFDs.pop_front();
+                            auto file = m_pcdrvFiles.insert(fd, new PCdrvFile(std::move(stream), kind));
+                            file->m_relativeFilename = filename;
+                            regs.v0 = 0;
+                            regs.v1 = fd;
+                        }
+                        m_regs.pc += 4;
+                        return false;
+                    }
+                    std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
                     PCdrvFiles::iterator file;
                     auto path = basepath / filename;
                     fd = m_availableFDs.front();
@@ -185,6 +316,29 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return false;
                     }
                     IO<File> file = *filei;
+                    if (filei->m_kind == PCdrvFile::Kind::Probe) {
+                        regs.v0 = 0;
+                        regs.v1 = 0;
+                        m_regs.pc += 4;
+                        return false;
+                    }
+                    if (filei->m_kind == PCdrvFile::Kind::Socket) {
+                        // Never blocks: whatever has arrived, up to a2 bytes; 0 if nothing yet.
+                        if (file->failed() || file->eof()) {
+                            regs.v0 = -1;
+                            regs.v1 = -1;
+                            m_regs.pc += 4;
+                            return false;
+                        }
+                        size_t available = std::min(static_cast<size_t>(regs.a2), file->size());
+                        Slice slice;
+                        if (available) slice = file->read(available);
+                        regs.v0 = 0;
+                        regs.v1 = slice.size();
+                        if (slice.size()) memFile->writeAt(std::move(slice), regs.a3);
+                        m_regs.pc += 4;
+                        return false;
+                    }
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
@@ -207,6 +361,13 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         return false;
                     }
                     IO<File> file = *filei;
+                    if ((filei->m_kind == PCdrvFile::Kind::Probe) ||
+                        ((filei->m_kind == PCdrvFile::Kind::Socket) && file->failed())) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc += 4;
+                        return false;
+                    }
                     auto slice = memFile->readAt(regs.a2, regs.a3);
                     if ((regs.v1 = file->write(slice.data(), slice.size())) < 0) {
                         regs.v0 = -1;
@@ -219,6 +380,12 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                 case 0x107: {  // PClseek
                     auto filei = m_pcdrvFiles.find(m_regs.GPR.n.a0);
                     if (filei == m_pcdrvFiles.end()) {
+                        regs.v0 = -1;
+                        regs.v1 = -1;
+                        m_regs.pc += 4;
+                        return false;
+                    }
+                    if (filei->m_kind != PCdrvFile::Kind::File) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc += 4;

@@ -801,6 +801,12 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
         connect->data = this;
         result = uv_tcp_connect(connect, m_tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
                                 [](uv_connect_t *connect, int status) {
+                                    // The handle was closed while connecting: the fifo may be
+                                    // gone already, so don't touch it.
+                                    if (status == UV_ECANCELED) {
+                                        delete connect;
+                                        return;
+                                    }
                                     UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
                                     if (status < 0) {
                                         fifo->m_failed.test_and_set();
