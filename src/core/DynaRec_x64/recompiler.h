@@ -196,6 +196,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     Register m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
+    // Address of the branch whose delay slot is being compiled. It is the previous word, except for the
+    // instruction at a taken branch's target when that branch had another branch in its slot: that
+    // second branch owns it, and an exception there reports it in EPC.
+    uint32_t m_slotBranchPC = 0;
+    std::optional<uint32_t> m_nestedSlotBranchPC = std::nullopt;
+    // The PC to hand the exception handler: the excepting instruction, or the branch it is the delay slot of plus 4
+    // so that the handler's EPC = PC - 4 for BD lands on that branch.
+    uint32_t exceptionPC() const { return m_inDelaySlot ? m_slotBranchPC + 4 : m_pc - 4; }
 
     template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);

@@ -402,6 +402,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     const auto compileInstruction = [this, &count, &memory, &extra, &slotBranchTarget]() -> bool {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
+        m_slotBranchPC = m_nestedSlotBranchPC.value_or(m_pc - 4);
+        m_nestedSlotBranchPC = std::nullopt;
 
         // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
         uint32_t* ptr = memory->getPointer<uint32_t>(m_pc);
@@ -481,6 +483,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
             m_pcWrittenBack = false;
+            m_slotBranchPC = slotPC - 4;
             const uint32_t code = m_regs.code = *slotPtr;
             m_pc = firstTarget;
             count++;
@@ -496,6 +499,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             processDelayedLoad();
             // Its delay slot is the instruction at the first branch's target.
             m_nextIsDelaySlot = true;
+            m_nestedSlotBranchPC = slotPC;
             if (!compileInstruction()) {
                 return m_invalidBlock;
             }
