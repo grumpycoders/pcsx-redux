@@ -269,6 +269,7 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\cputrace.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpudump.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-threaded.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc" />

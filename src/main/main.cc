@@ -425,6 +425,13 @@ int pcsxMain(int argc, char **argv) {
             emuSettings.get<PCSX::Emulator::SettingHardwareRenderer>() = false;
         }
 
+        if (args.get<bool>("softgputhreaded")) {
+            emuSettings.get<PCSX::Emulator::SettingSoftGPUThreaded>() = true;
+        }
+        if (args.get<bool>("no-softgputhreaded")) {
+            emuSettings.get<PCSX::Emulator::SettingSoftGPUThreaded>() = false;
+        }
+
         if (args.get<bool>("kiosk")) {
             emuSettings.get<PCSX::Emulator::SettingKioskMode>() = true;
         }

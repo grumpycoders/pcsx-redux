@@ -133,6 +133,8 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
+    m_queue.sync();
+
     // VRAM contents must be identical whether or not a GUI is attached, so the
     // memset and the open-bus prefill run unconditionally; only the GL texture
     // mirror below depends on the GUI.

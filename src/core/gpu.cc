@@ -558,6 +558,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             // default (all Y wraps within 1MB, regardless of fitment). Always
             // present in the 208-pin GPU silicon; retail boards just leave the
             // second 1MB chip unpopulated.
+            drainRenderer();
             m_vram2MBGateOpen = value & 1;
             vramConfigChanged();
         } break;

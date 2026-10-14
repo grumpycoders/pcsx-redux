@@ -564,6 +564,7 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
 
     // GP1(09h) is not replayed through writeStatus below: an unwritten slot
     // reads 0, which would decode as GP1(00h). Restore the bank gate directly.
+    drainRenderer();
     m_vram2MBGateOpen = m_statusControl[9] & 1;
     vramConfigChanged();
 

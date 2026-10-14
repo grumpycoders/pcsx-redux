@@ -38,25 +38,42 @@
         EXPECT_EQ(ret, 0);                                                                                \
     }
 
-GPU_RASTER_TEST(1)
-GPU_RASTER_TEST(2)
-GPU_RASTER_TEST(3)
-GPU_RASTER_TEST(4)
-GPU_RASTER_TEST(5)
-GPU_RASTER_TEST(6)
-GPU_RASTER_TEST(7)
-GPU_RASTER_TEST(8)
-GPU_RASTER_TEST(9)
-GPU_RASTER_TEST(10)
-GPU_RASTER_TEST(11)
-GPU_RASTER_TEST(12)
-GPU_RASTER_TEST(13)
-GPU_RASTER_TEST(14)
-GPU_RASTER_TEST(15)
-GPU_RASTER_TEST(16)
-GPU_RASTER_TEST(17)
-GPU_RASTER_TEST(18)
-GPU_RASTER_TEST(19)
-GPU_RASTER_TEST(20)
-GPU_RASTER_TEST(21)
-GPU_RASTER_TEST(22)
+// The same phases with the soft GPU rasterizing on its worker thread. Every
+// probe reads VRAM back through GPUREAD, so these also check that readbacks
+// wait for the draws queued ahead of them.
+#define GPU_RASTER_THREADED_TEST(phase)                                                                   \
+    TEST(GPURasterThreaded, Phase##phase) {                                                               \
+        MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",     \
+                            "-interpreter", "-softgputhreaded", "-loadexe",                               \
+                            "src/mips/tests/gpu-raster-phase" #phase "/gpu-raster-phase" #phase           \
+                            ".ps-exe");                                                                   \
+        int ret = invoker.invoke();                                                                       \
+        EXPECT_EQ(ret, 0);                                                                                \
+    }
+
+#define GPU_RASTER_BOTH(phase) \
+    GPU_RASTER_TEST(phase)     \
+    GPU_RASTER_THREADED_TEST(phase)
+
+GPU_RASTER_BOTH(1)
+GPU_RASTER_BOTH(2)
+GPU_RASTER_BOTH(3)
+GPU_RASTER_BOTH(4)
+GPU_RASTER_BOTH(5)
+GPU_RASTER_BOTH(6)
+GPU_RASTER_BOTH(7)
+GPU_RASTER_BOTH(8)
+GPU_RASTER_BOTH(9)
+GPU_RASTER_BOTH(10)
+GPU_RASTER_BOTH(11)
+GPU_RASTER_BOTH(12)
+GPU_RASTER_BOTH(13)
+GPU_RASTER_BOTH(14)
+GPU_RASTER_BOTH(15)
+GPU_RASTER_BOTH(16)
+GPU_RASTER_BOTH(17)
+GPU_RASTER_BOTH(18)
+GPU_RASTER_BOTH(19)
+GPU_RASTER_BOTH(20)
+GPU_RASTER_BOTH(21)
+GPU_RASTER_BOTH(22)

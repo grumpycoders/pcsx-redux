@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <atomic>
+
 #include "core/gpu.h"
+#include "gpu/soft/async.h"
 #include "gpu/soft/soft.h"
 #include "support/opengl.h"
 
@@ -37,12 +40,16 @@ class impl final : public GPU, private SoftRenderer {
     bool configure() override;
     void debug() override;
 
-    void setDither(int setting) override { m_useDither = setting; }
+    void setDither(int setting) override {
+        m_queue.sync();
+        m_useDither = setting;
+    }
     void clearVRAM() override;
     void resetBackend() override {
         clearVRAM();
         m_display.reset();
     }
+    void drainRenderer() override { m_queue.sync(); }
     void vramConfigChanged() override {
         // The upper bank is only drawable when a 2MB bank is physically fitted
         // and the gate is open; otherwise the renderer stays bounded to the
@@ -60,6 +67,7 @@ class impl final : public GPU, private SoftRenderer {
     GLuint getVRAMTexture() override { return m_vramTextureResolved.handle(); }
     void setLinearFiltering() override;
     void setCachedDithering(bool value) override {
+        m_queue.sync();
         if (value) {
             enableCachedDithering();
         } else {
@@ -78,8 +86,11 @@ class impl final : public GPU, private SoftRenderer {
     void updateDisplayIfChanged();
 
     Slice getVRAM(Ownership ownership) override {
+        m_queue.sync();
         Slice ret;
-        if (ownership == Ownership::BORROW) {
+        // A borrowed pointer would be read while the renderer thread keeps drawing, so the threaded
+        // renderer always hands out a snapshot.
+        if (ownership == Ownership::BORROW && !m_queue.running()) {
             ret.borrow(m_vram16, 1024 * 1024 * 2);
         } else {
             ret.copy(m_vram16, 1024 * 1024 * 2);
@@ -88,6 +99,15 @@ class impl final : public GPU, private SoftRenderer {
     }
 
     void partialUpdateVRAM(int x, int y, int w, int h, const uint16_t *pixels, PartialUpdateVram) override {
+        if (m_queue.running()) {
+            m_queue.push(std::make_unique<VramWriteOp>(x, y, w, h, pixels));
+        } else {
+            vramWrite(x, y, w, h, pixels);
+        }
+    }
+
+    friend struct VramWriteOp;
+    void vramWrite(int x, int y, int w, int h, const uint16_t *pixels) {
         auto ptr = m_vram16;
         ptr += y * 1024 + x;
         for (int i = 0; i < h; i++) {
@@ -115,7 +135,7 @@ class impl final : public GPU, private SoftRenderer {
 
     UI *m_ui;
 
-    bool m_doVSyncUpdate = false;
+    std::atomic<bool> m_doVSyncUpdate = false;
     SoftDisplay m_previousDisplay;
     unsigned char *m_allocatedVRAM;
     static constexpr int16_t s_displayWidths[] = {256, 320, 512, 640, 368, 384};
@@ -123,8 +143,44 @@ class impl final : public GPU, private SoftRenderer {
     void write0(ClearCache *) override;
     void write0(FastFill *) override;
 
+    // Threaded rendering. While the queue runs, the renderer thread owns VRAM and every piece of render state;
+    // the emulation thread only pushes ops and calls m_queue.sync() before reading them. GPUSTAT stays on the
+    // emulation thread, so the status side effects of a primitive are applied at push time.
+    template <typename Prim>
+    friend struct PrimOp;
+    OpQueue m_queue;
+    void setThreaded(bool threaded);
+    template <typename Prim>
+    void dispatch(Prim *prim) {
+        if (m_queue.running()) {
+            m_queue.push(std::make_unique<PrimOp<Prim>>(*prim));
+        } else {
+            exec(prim);
+        }
+    }
     template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
-    void polyExec(Poly<shading, shape, textured, blend, modulation> *);
+    void dispatchPoly(Poly<shading, shape, textured, blend, modulation> *);
+    void texturePageStatus(GPU::TPage &tpage);
+    void maskBitStatus(const GPU::MaskBit &mask);
+    // The emulation thread's copy of SoftRenderer::m_ditherMode, which decides whether a textured polygon's
+    // texpage gets its dither bit forced. It follows the same rule over the same texpage sequence.
+    bool m_statusDitherMode = false;
+
+    void exec(FastFill *);
+    void exec(BlitVramVram *);
+    void exec(TPage *prim) { texturePage(prim); }
+    void exec(TWindow *prim) { twindow(prim); }
+    void exec(DrawingAreaStart *prim) { drawingAreaStart(prim); }
+    void exec(DrawingAreaEnd *prim) { drawingAreaEnd(prim); }
+    void exec(DrawingOffset *prim) { drawingOffset(prim); }
+    void exec(MaskBit *prim) { maskBit(prim); }
+    template <Shading shading, Shape shape, Textured textured, Blend blend, Modulation modulation>
+    void exec(Poly<shading, shape, textured, blend, modulation> *);
+    template <Shading shading, LineType lineType, Blend blend>
+    void exec(Line<shading, lineType, blend> *);
+    template <Size size, Textured textured, Blend blend, Modulation modulation>
+    void exec(Rect<size, textured, blend, modulation> *);
+
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *) override;
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *) override;
     void write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Semi, Modulation::Off> *) override;
@@ -158,8 +214,6 @@ class impl final : public GPU, private SoftRenderer {
     void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *) override;
     void write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *) override;
 
-    template <Shading shading, LineType lineType, Blend blend>
-    void lineExec(Line<shading, lineType, blend> *);
     void write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *) override;
     void write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *) override;
     void write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *) override;
@@ -169,8 +223,6 @@ class impl final : public GPU, private SoftRenderer {
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *) override;
     void write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *) override;
 
-    template <Size size, Textured textured, Blend blend, Modulation modulation>
-    void rectExec(Rect<size, textured, blend, modulation> *);
     void write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *) override;
     void write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *) override;
     void write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *) override;

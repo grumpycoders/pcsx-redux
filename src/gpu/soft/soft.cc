@@ -86,9 +86,6 @@ void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
     m_globalTextTP = prim->texDepth;
 
     m_globalTextABR = prim->blendFunction;
-
-    m_statusRet &= ~0x07ff;               // Clear the necessary bits
-    m_statusRet |= (prim->raw & 0x07ff);  // set the necessary bits
 }
 
 void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
@@ -160,19 +157,12 @@ void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
 }
 
 void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
-    m_statusRet &= ~0x1800;
-
     if (prim->set) {
         m_setMask16 = 0x8000;
         m_setMask32 = 0x80008000;
-        m_statusRet |= 0x0800;
     } else {
         m_setMask16 = 0;
         m_setMask32 = 0;
-    }
-
-    if (prim->check) {
-        m_statusRet |= 0x1000;
     }
     m_checkMask = prim->check;
 }
