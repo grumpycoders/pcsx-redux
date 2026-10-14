@@ -117,7 +117,9 @@ static bool outputsAreDistinct(const std::optional<std::string>& output, const s
     }
     for (size_t i = 0; i < outputs.size(); i++) {
         for (size_t j = i + 1; j < outputs.size(); j++) {
-            if (outputs[i] == outputs[j]) {
+            std::error_code ec;
+            const bool sameFile = std::filesystem::equivalent(outputs[i], outputs[j], ec);
+            if (outputs[i] == outputs[j] || (!ec && sameFile)) {
                 fmt::print("Output files must be distinct: {}\n", outputs[i].string());
                 return false;
             }
