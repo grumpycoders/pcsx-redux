@@ -22,7 +22,9 @@
 
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <vector>
 
@@ -71,26 +73,10 @@ static bool writeFile(const std::string& name, const uint8_t* data, size_t size)
     return true;
 }
 
-int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
-    auto even = args.get<std::string>("even");
-    auto odd = args.get<std::string>("odd");
-    const bool pad = args.get<bool>("pad").value_or(false);
+static constexpr size_t c_bankSize = 0x400000;
 
+static void printUsage(const char* program) {
     fmt::print(R"(
-exe2sys573
-https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2sys573/
-)");
-
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
-    const bool hasSplit = even.has_value() && odd.has_value();
-    const bool halfSplit = even.has_value() != odd.has_value();
-    const bool hasOutput = output.has_value() || hasSplit;
-    const bool oneInput = inputs.size() == 1;
-    if (asksForHelp || !oneInput || !hasOutput || halfSplit) {
-        fmt::print(R"(
 Usage: {} input.ps-exe [-h] [-o output.bin] [-even even.bin -odd odd.bin] [-pad]
   input.ps-exe   mandatory: specify the input binary file.
   -o output.bin  name of the output flash image.
@@ -113,13 +99,14 @@ Valid input binary files can be in the following formats:
  - PSF
  - MiniPSF
 )",
-                   argv[0]);
-        return -1;
-    }
+               program);
+}
 
+static bool outputsAreDistinct(const std::optional<std::string>& output, const std::optional<std::string>& even,
+                               const std::optional<std::string>& odd) {
     std::vector<std::filesystem::path> outputs;
     if (output.has_value()) outputs.push_back(output.value());
-    if (hasSplit) {
+    if (even.has_value() && odd.has_value()) {
         outputs.push_back(even.value());
         outputs.push_back(odd.value());
     }
@@ -132,16 +119,23 @@ Valid input binary files can be in the following formats:
         for (size_t j = i + 1; j < outputs.size(); j++) {
             if (outputs[i] == outputs[j]) {
                 fmt::print("Output files must be distinct: {}\n", outputs[i].string());
-                return -1;
+                return false;
             }
         }
     }
+    return true;
+}
 
-    auto& input = inputs[0];
+struct Executable {
+    uint32_t pc, gp, sp, tload, size;
+    std::vector<uint8_t> exe;
+};
+
+static bool loadExecutable(std::string_view input, Executable& out) {
     PCSX::IO<PCSX::File> file(new PCSX::PosixFile(input));
     if (file->failed()) {
         fmt::print("Unable to open file: {}\n", input);
-        return -1;
+        return false;
     }
 
     PCSX::BinaryLoader::Info info;
@@ -150,11 +144,11 @@ Valid input binary files can be in the following formats:
     bool success = PCSX::BinaryLoader::load(file, memory, info, symbols);
     if (!success) {
         fmt::print("Unable to load file: {}\n", input);
-        return -1;
+        return false;
     }
     if (!info.pc.has_value()) {
         fmt::print("File {} is invalid.\n", input);
-        return -1;
+        return false;
     }
 
     uint32_t tload = memory->lowestAddress();
@@ -164,17 +158,16 @@ Valid input binary files can be in the following formats:
 
     if ((tload & 3) || (pc & 3) || (gp & 3) || (sp & 3)) {
         fmt::print("File {} is invalid: tload, pc, gp and sp must be aligned to 4 bytes.\n", input);
-        return -1;
+        return false;
     }
 
     uint32_t size = memory->actualSize();
     size = (size + 2047) & ~2047;
 
     // The shell only maps the first 4MB bank of the flash.
-    constexpr size_t bankSize = 0x400000;
-    if (0x24 + 2048 + size > bankSize) {
+    if (0x24 + 2048 + size > c_bankSize) {
         fmt::print("File {} is too large: the image must fit in 4MB.\n", input);
-        return -1;
+        return false;
     }
 
     std::vector<uint8_t> exe(2048 + size, 0);
@@ -187,39 +180,72 @@ Valid input binary files can be in the following formats:
     auto data = memory.asA<PCSX::File>()->readAt(size, tload);
     if (data.size() != size) {
         fmt::print("File {} is invalid: the payload runs past the end of the address space.\n", input);
-        return -1;
+        return false;
     }
     memcpy(exe.data() + 2048, data.data(), size);
 
-    uint32_t crc = crc573(exe, size);
+    out = {pc, gp, sp, tload, size, std::move(exe)};
+    return true;
+}
+
+static bool writeSplit(std::vector<uint8_t>& image, bool pad, const std::string& even, const std::string& odd) {
+    if (pad) {
+        image.resize(c_bankSize, 0xff);
+    } else if (image.size() & 1) {
+        image.push_back(0xff);
+    }
+    std::vector<uint8_t> evenBytes, oddBytes;
+    for (size_t i = 0; i < image.size(); i += 2) {
+        evenBytes.push_back(image[i]);
+        oddBytes.push_back(image[i + 1]);
+    }
+    return writeFile(even, evenBytes.data(), evenBytes.size()) && writeFile(odd, oddBytes.data(), oddBytes.size());
+}
+
+int main(int argc, char** argv) {
+    CommandLine::args args(argc, argv);
+    auto output = args.get<std::string>("o");
+    auto even = args.get<std::string>("even");
+    auto odd = args.get<std::string>("odd");
+    const bool pad = args.get<bool>("pad").value_or(false);
+
+    fmt::print(R"(
+exe2sys573
+https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2sys573/
+)");
+
+    const auto inputs = args.positional();
+    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const bool hasSplit = even.has_value() && odd.has_value();
+    const bool halfSplit = even.has_value() != odd.has_value();
+    const bool hasOutput = output.has_value() || hasSplit;
+    const bool oneInput = inputs.size() == 1;
+    if (asksForHelp || !oneInput || !hasOutput || halfSplit) {
+        printUsage(argv[0]);
+        return -1;
+    }
+
+    if (!outputsAreDistinct(output, even, odd)) return -1;
+
+    auto& input = inputs[0];
+    Executable executable;
+    if (!loadExecutable(input, executable)) return -1;
+
+    uint32_t crc = crc573(executable.exe, executable.size);
 
     std::vector<uint8_t> image(0x24, 0xff);
     put32(image, 0x20, crc);
-    image.insert(image.end(), exe.begin(), exe.end());
+    image.insert(image.end(), executable.exe.begin(), executable.exe.end());
 
     fmt::print(R"(
 Input file: {}
 pc: 0x{:08x}  gp: 0x{:08x}  sp: 0x{:08x}  crc: 0x{:08x}
 
 )",
-               input, pc, gp, sp, crc);
+               input, executable.pc, executable.gp, executable.sp, crc);
 
     if (output.has_value() && !writeFile(output.value(), image.data(), image.size())) return -1;
-
-    if (hasSplit) {
-        if (pad) {
-            image.resize(bankSize, 0xff);
-        } else if (image.size() & 1) {
-            image.push_back(0xff);
-        }
-        std::vector<uint8_t> evenBytes, oddBytes;
-        for (size_t i = 0; i < image.size(); i += 2) {
-            evenBytes.push_back(image[i]);
-            oddBytes.push_back(image[i + 1]);
-        }
-        if (!writeFile(even.value(), evenBytes.data(), evenBytes.size())) return -1;
-        if (!writeFile(odd.value(), oddBytes.data(), oddBytes.size())) return -1;
-    }
+    if (hasSplit && !writeSplit(image, pad, even.value(), odd.value())) return -1;
 
     fmt::print("All done.\n");
 
