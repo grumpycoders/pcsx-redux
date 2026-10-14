@@ -117,9 +117,15 @@ void PCSX::Widgets::CpuTrace::draw(GUI* gui, const char* title) {
         }
     }
 
-    for (auto it = m_loaded.begin(); it != m_loaded.end();) {
+    int index = 0;
+    for (auto it = m_loaded.begin(); it != m_loaded.end(); index++) {
         auto& loaded = *it;
         std::string windowTitle = fmt::format("{}: {}###cputrace{}", title, loaded.name, static_cast<void*>(&loaded));
+        // New windows open side by side, so two traces start out comparable.
+        const ImVec2 origin = ImGui::GetMainViewport()->Pos;
+        ImGui::SetNextWindowPos(ImVec2(origin.x + 40.0f + 620.0f * (index % 2), origin.y + 80.0f + 30.0f * (index / 2)),
+                                ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(windowTitle.c_str(), &loaded.show)) {
             drawView(gui, loaded.trace, loaded.view, false);
         }
@@ -177,20 +183,25 @@ void PCSX::Widgets::CpuTrace::drawView(GUI* gui, const PCSX::CpuTrace& trace, Vi
         if (view.scrollTo >= 0) {
             ImGui::SetScrollY(static_cast<float>(view.scrollTo) * lineHeight);
             if (view.sync) m_syncRow = view.scrollTo;
-            view.lastTop = view.scrollTo;
+            // The jump lands next frame, possibly clamped, so do not read it as a move.
+            view.lastTop = -1;
             view.scrollTo = -1;
         } else if (view.followTail) {
             ImGui::SetScrollY(ImGui::GetScrollMaxY());
         } else if (view.sync) {
-            // A synced view that moved since last frame leads; the others follow it.
+            // A synced view the user scrolled since last frame leads; the others
+            // follow it. A view whose last position is unknown (just opened, or just
+            // moved by us) only follows.
             int64_t top = static_cast<int64_t>(ImGui::GetScrollY() / lineHeight);
-            if (top != view.lastTop) {
+            if (view.lastTop >= 0 && top != view.lastTop) {
                 m_syncRow = top;
+                view.lastTop = top;
             } else if (m_syncRow >= 0 && m_syncRow != top) {
                 ImGui::SetScrollY(static_cast<float>(m_syncRow) * lineHeight);
-                top = m_syncRow;
+                view.lastTop = -1;
+            } else {
+                view.lastTop = top;
             }
-            view.lastTop = top;
         }
     }
 
