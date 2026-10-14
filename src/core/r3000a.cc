@@ -23,13 +23,11 @@
 
 #include "core/r3000a.h"
 
+#include <atomic>
 #include <chrono>
 #include <magic_enum/magic_enum_all.hpp>
+#include <memory>
 #include <thread>
-
-#if !defined(_WIN32) && !defined(_WIN64)
-#include <netdb.h>
-#endif
 
 #include "core/cdrom.h"
 #include "core/debug.h"
@@ -123,10 +121,22 @@ bool pcdrvNetAllowed(std::string_view allowList, std::string_view hostPort) {
     return false;
 }
 
+// A name resolution running on the UV thread. Shared between the emulator thread and the
+// uv_getaddrinfo callback, so a callback landing after the deadline touches nothing freed.
+struct PCdrvResolve {
+    enum { Pending, Done, Failed };
+    std::atomic<int> state = Pending;
+    char address[64] = {};
+    // Only ever touched on the UV thread.
+    uv_getaddrinfo_t req = {};
+    bool active = false;
+};
+
 // Connects "host:port" and returns the stream, or an empty handle on any failure or after
-// c_pcdrvConnectTimeout. The connection itself happens on the UV thread; this thread
-// only polls its state.
+// c_pcdrvConnectTimeout, which covers both the name resolution and the connection. Both
+// happen on the UV thread; this thread only polls their state.
 PCSX::IO<PCSX::File> pcdrvConnect(std::string_view hostPort) {
+    auto deadline = std::chrono::steady_clock::now() + c_pcdrvConnectTimeout;
     auto colon = hostPort.rfind(':');
     if (colon == std::string_view::npos || colon == 0) return {};
     std::string host(hostPort.substr(0, colon));
@@ -139,19 +149,50 @@ PCSX::IO<PCSX::File> pcdrvConnect(std::string_view hostPort) {
     }
     if (port == 0 || port > 65535) return {};
 
-    // UvFifo only takes IPv4 literals: resolve the name here.
-    struct addrinfo hints = {};
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    struct addrinfo* res = nullptr;
-    if (getaddrinfo(host.c_str(), nullptr, &hints, &res) != 0 || !res) return {};
-    char address[64] = {};
-    int r = uv_ip4_name(reinterpret_cast<const struct sockaddr_in*>(res->ai_addr), address, sizeof(address));
-    freeaddrinfo(res);
-    if (r != 0) return {};
+    // UvFifo only takes IPv4 literals: resolve the name first, IPv4 only.
+    auto resolve = std::make_shared<PCdrvResolve>();
+    PCdrvUvAccess::request([resolve, host](uv_loop_t* loop) {
+        struct addrinfo hints = {};
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        // The request holds its own reference until its callback runs, cancelled or not.
+        resolve->req.data = new std::shared_ptr<PCdrvResolve>(resolve);
+        int r = uv_getaddrinfo(
+            loop, &resolve->req,
+            [](uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+                auto holder = reinterpret_cast<std::shared_ptr<PCdrvResolve>*>(req->data);
+                auto resolve = *holder;
+                delete holder;
+                resolve->active = false;
+                bool ok = (status == 0) && res &&
+                          (uv_ip4_name(reinterpret_cast<const struct sockaddr_in*>(res->ai_addr), resolve->address,
+                                       sizeof(resolve->address)) == 0);
+                if (res) uv_freeaddrinfo(res);
+                resolve->state.store(ok ? PCdrvResolve::Done : PCdrvResolve::Failed, std::memory_order_release);
+            },
+            host.c_str(), nullptr, &hints);
+        if (r != 0) {
+            delete reinterpret_cast<std::shared_ptr<PCdrvResolve>*>(resolve->req.data);
+            resolve->state.store(PCdrvResolve::Failed, std::memory_order_release);
+            return;
+        }
+        resolve->active = true;
+    });
+    while ((resolve->state.load(std::memory_order_acquire) == PCdrvResolve::Pending) &&
+           (std::chrono::steady_clock::now() < deadline)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    auto state = resolve->state.load(std::memory_order_acquire);
+    if (state == PCdrvResolve::Pending) {
+        // Too slow. Cancelling may come too late; the shared state covers that.
+        PCdrvUvAccess::request([resolve](uv_loop_t*) {
+            if (resolve->active) uv_cancel(reinterpret_cast<uv_req_t*>(&resolve->req));
+        });
+        return {};
+    }
+    if (state != PCdrvResolve::Done) return {};
 
-    PCSX::IO<PCSX::UvFifo> fifo(new PCSX::UvFifo(address, port));
-    auto deadline = std::chrono::steady_clock::now() + c_pcdrvConnectTimeout;
+    PCSX::IO<PCSX::UvFifo> fifo(new PCSX::UvFifo(resolve->address, port));
     while (fifo->isConnecting() && !fifo->failed() && (std::chrono::steady_clock::now() < deadline)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
