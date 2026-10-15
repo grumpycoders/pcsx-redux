@@ -148,7 +148,7 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseVal"), 18> SPUNoiseVa
 // ENDX latch, one bit per voice
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("endx"), 19> SPUEndx;
 
-// main volume sides written by software: bit 0 left, bit 1 right
+// main volume sides written by software: bit 0 left, bit 1 right; bit 2 marks the field present
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mainVolWritten"), 20> SPUMainVolWritten;
 
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
