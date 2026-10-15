@@ -21,10 +21,12 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "gui/widgets/fileviewers.h"
 #include "imgui/imgui.h"
+#include "json.hpp"
 #include "support/file.h"
 
 namespace PCSX {
@@ -55,6 +57,11 @@ class Dalos {
         virtual IO<File> computeOutput(Dalos&, unsigned pin) { return {}; }
         // Draws the node's settings. Returns true if anything changed.
         virtual bool body(Dalos&) { return false; }
+        // Nodes that can be saved as a new node type name their kind, and
+        // round-trip their settings through JSON.
+        virtual const char* kind() { return nullptr; }
+        virtual nlohmann::json save() { return {}; }
+        virtual void load(const nlohmann::json&) {}
 
         IO<File> output(Dalos&, unsigned pin);
         IO<File> input(Dalos&, unsigned pin);
@@ -75,6 +82,9 @@ class Dalos {
     template <typename T>
     T* addNode(const std::string& name, ImVec2 pos);
     void deleteNode(Node* node);
+    Node* addNodeOfKind(std::string_view kind, const std::string& name, ImVec2 pos);
+    void loadSavedTypes();
+    void writeSavedTypes();
     bool reaches(Node* from, Node* target);
     void drawBackground(ImVec2 canvasMin, ImVec2 canvasSize);
     void drawAddMenu();
@@ -86,6 +96,8 @@ class Dalos {
     static bool anyMouseDragging();
     static bool rightClickedInPlace();
     void drawLinks(ImDrawList* dl);
+    void drawSavedTypesMenu();
+    void drawSavePopup();
     ImVec2 inputPinPos(Node* node, unsigned pin);
     ImVec2 outputPinPos(Node* node, unsigned pin);
 
@@ -96,6 +108,18 @@ class Dalos {
     unsigned m_nextId = 1;
     Node* m_selected = nullptr;
     Link m_dragging;
+
+    // Node setups saved under a name, offered in the add menu next to the
+    // built-in kinds. Kept in dalos.json in the persistent directory.
+    struct SavedType {
+        std::string kind;
+        std::string name;
+        nlohmann::json data;
+    };
+    std::vector<SavedType> m_savedTypes;
+    bool m_savedTypesLoaded = false;
+    Node* m_saving = nullptr;
+    std::string m_savingName;
     ImVec2 m_popupPos;
     bool m_focus = false;
 };
