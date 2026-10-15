@@ -96,9 +96,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
         if (ImGui::BeginTabItem(_("Plain search"))) {
             bool gotEnter = ImGui::InputText(
-                _("Pattern"), &m_plainSearchString,
-                ImGuiInputTextFlags_EnterReturnsTrue |
-                    (m_plainHex ? ImGuiInputTextFlags_CharsHexadecimal : ImGuiInputTextFlags_CharsDecimal));
+                _("Pattern"), &m_plainSearchString, ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::Checkbox(_("Hex"), &m_plainHex);
             auto needleSize = 0;
             std::string needle;
@@ -177,6 +175,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_plainAddresses.size());
+                int rowToRemove = -1;
                 while (clipper.Step()) {
                     for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                         const auto& currentAddress = m_plainAddresses[row];
@@ -194,13 +193,14 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         ImGui::TableSetColumnIndex(2);
                         auto removeButtonName = fmt::format(f_("╳##{}"), row);
                         if (ImGui::Button(removeButtonName.c_str())) {
-                            m_plainAddresses.erase(m_plainAddresses.begin() + row);
-                            clipper.Begin(m_plainAddresses.size());
-                            break;
+                            rowToRemove = row;
                         }
                     }
                 }
                 ImGui::EndTable();
+                if (rowToRemove != -1) {
+                    m_plainAddresses.erase(m_plainAddresses.begin() + rowToRemove);
+                }
             }
             ImGui::EndTabItem();
         }
@@ -385,6 +385,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
                 ImGuiListClipper clipper;
                 clipper.Begin(m_addressValuePairs.size());
+                int rowToRemove = -1;
                 while (clipper.Step()) {
                     for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                         auto& addressValuePair = m_addressValuePairs[row];
@@ -435,13 +436,14 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
                         ImGui::TableSetColumnIndex(6);
                         auto removeButtonName = fmt::format(f_("╳##{}"), row);
                         if (ImGui::Button(removeButtonName.c_str())) {
-                            m_addressValuePairs.erase(m_addressValuePairs.begin() + row);
-                            clipper.Begin(m_addressValuePairs.size());
-                            break;
+                            rowToRemove = row;
                         }
                     }
                 }
                 ImGui::EndTable();
+                if (rowToRemove != -1) {
+                    m_addressValuePairs.erase(m_addressValuePairs.begin() + rowToRemove);
+                }
             }
 
             ImGui::EndTabItem();
