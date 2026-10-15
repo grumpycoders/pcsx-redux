@@ -42,19 +42,6 @@
 // layer and no STR framing; `bsencode` is the same stream VLC coded into Sony's
 // legacy BS. STR framing gets its own command when it lands, rather than a flag
 // on either of these, so that each one keeps meaning what it means today.
-//
-// ⛔ THERE IS NO COMPRESSING COMMAND AND THAT IS A MEASURED DECISION, not a gap.
-// A ucl-nrv2e path existed here briefly and was removed 2026-09-18: measured over
-// 245 real 320x240 video frames, per frame, BS is smaller on EVERY ONE of them at
-// every q_scale, by 30-54%. It still wins by 4.6% against ucl given the whole
-// sequence as one stream, which is not even a deployable shape. The decode-cost
-// argument that might have rescued it does not survive either - Sony shipped games
-// that decode BS at full rate on real hardware, so the VLC pass is affordable by
-// existence proof.
-//
-// If compression ever comes back, it belongs on THIS side of the line and not in
-// supportpsx: this tool is GPLv2, the library is MIT, and ucl's compressor is
-// GPLv2. The library emits Container::Raw and stops for that reason.
 // ---------------------------------------------------------------------------
 
 #include <stdint.h>
