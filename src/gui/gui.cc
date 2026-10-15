@@ -2883,7 +2883,7 @@ bool PCSX::GUI::saveSaveState(std::filesystem::path filename) {
     if (success) save.writeString(SaveStates::save());
     save.close();
     if (success) {
-        addNotice(fmt::format(f_("State saved to {}"), filename.filename().string()));
+        addNotice(fmt::format(f_("State saved to {}"), filename.filename().string()), NoticeKind::Info);
     } else {
         addNotice(fmt::format(f_("Failed to save state to {}"), filename.filename().string()), NoticeKind::Error);
     }
@@ -2921,7 +2921,7 @@ bool PCSX::GUI::loadSaveState(std::filesystem::path filename) {
         addNotice(fmt::format(f_("Failed to load state from {}"), filename.filename().string()), NoticeKind::Error);
         return false;
     }
-    addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()));
+    addNotice(fmt::format(f_("State loaded from {}"), filename.filename().string()), NoticeKind::Info);
     return true;
 }
 

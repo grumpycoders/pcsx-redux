@@ -294,7 +294,7 @@ class GUI final : public UI {
         std::deque<Notice> m_pending;
         std::deque<Notice> m_shown;
     };
-    void addNotice(const std::string &notice, NoticeKind kind = NoticeKind::Info) {
+    void addNotice(const std::string &notice, NoticeKind kind) {
         m_passiveNotifier.notify(notice, kind);
     }
 
