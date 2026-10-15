@@ -508,7 +508,6 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
     void emitStallUntil(uintptr_t readyOffset);
-    void emitMuldivStall();
     void emitMuldivNow();
     void emitMuldivStart(uint32_t latency);
     void emitMultStart(uint32_t code, bool isSigned);

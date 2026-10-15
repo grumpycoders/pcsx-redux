@@ -617,22 +617,6 @@ void DynaRecCPU::recSRLV(uint32_t code) {
     }
 }
 
-// Waits for the previous mul/div to complete. Block cycles are only added to
-// the cycle counter at the end of a block, so the current cycle is computed
-// from the position of this instruction in the block. Leaves it in rax.
-void DynaRecCPU::emitMuldivStall() {
-    Label noStall;
-    gen.mov(rax, qword[contextPointer + CYCLE_OFFSET]);
-    gen.add(rax, m_instructionCount * PCSX::Emulator::BIAS);
-    gen.mov(rcx, qword[contextPointer + MULDIV_READY_OFFSET]);
-    gen.cmp(rax, rcx);
-    gen.jae(noStall);
-    gen.sub(rcx, rax);
-    gen.add(qword[contextPointer + CYCLE_OFFSET], rcx);
-    gen.add(rax, rcx);
-    gen.L(noStall);
-}
-
 // Leaves the cycle at which the current instruction issues in rax.
 void DynaRecCPU::emitMuldivNow() {
     gen.mov(rax, qword[contextPointer + CYCLE_OFFSET]);
@@ -1960,7 +1944,7 @@ void DynaRecCPU::recDIVU(uint32_t code) {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFLO(uint32_t code) {
-    emitMuldivStall();
+    emitStallUntil(MULDIV_READY_OFFSET);
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);
@@ -1972,7 +1956,7 @@ void DynaRecCPU::recMFLO(uint32_t code) {
 
 // TODO: Constant propagation for MFLO/HI, read the result from eax/edx if possible instead of reading memory again
 void DynaRecCPU::recMFHI(uint32_t code) {
-    emitMuldivStall();
+    emitStallUntil(MULDIV_READY_OFFSET);
     BAILZERO(_Rd_);
 
     maybeCancelDelayedLoad(_Rd_);
