@@ -22,13 +22,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <fstream>
 #include <unordered_set>
 #include <vector>
 
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "fmt/format.h"
 #include "imgui/imgui_internal.h"
 #include "imgui_stdlib.h"
+#include "lua/luafile.h"
+#include "lua/luawrapper.h"
 #include "support/imgui-helpers.h"
 
 namespace {
@@ -116,6 +121,275 @@ struct ViewerNode : public PCSX::Widgets::Dalos::Node {
     }
 };
 
+// Reads a fixed layout of fields out of its input, starting at an offset. The
+// output carries the bytes of the field picked in the list.
+struct StructNode : public PCSX::Widgets::Dalos::Node {
+    enum Type { U8, S8, U16, S16, U32, S32, U64, S64, F32, F64, Chars, TypeCount };
+    static constexpr const char* c_typeNames[TypeCount] = {"u8",  "s8",  "u16", "s16", "u32", "s32",
+                                                           "u64", "s64", "f32", "f64", "char"};
+    static constexpr unsigned c_typeSizes[TypeCount] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8, 1};
+    struct Field {
+        std::string name;
+        int type = U32;
+        int count = 1;
+    };
+    std::vector<Field> m_fields = {{"field", U32, 1}};
+    uint64_t m_offset = 0;
+    int m_picked = -1;
+    bool m_editing = false;
+
+    StructNode() { m_inputs.resize(1); }
+    unsigned inputs() override { return 1; }
+    unsigned outputs() override { return 1; }
+    const char* kind() override { return "Struct"; }
+
+    static size_t fieldSize(const Field& f) { return size_t(c_typeSizes[f.type]) * size_t(std::max(f.count, 1)); }
+    size_t fieldOffset(unsigned idx) {
+        size_t offset = 0;
+        for (unsigned i = 0; i < idx; i++) offset += fieldSize(m_fields[i]);
+        return offset;
+    }
+    size_t structSize() { return fieldOffset(m_fields.size()); }
+
+    PCSX::IO<PCSX::File> computeOutput(PCSX::Widgets::Dalos& dalos, unsigned) override {
+        if (m_picked < 0 || m_picked >= int(m_fields.size())) return {};
+        auto in = input(dalos, 0);
+        if (!in) return {};
+        size_t offset = m_offset + fieldOffset(m_picked);
+        size_t size = fieldSize(m_fields[m_picked]);
+        if (offset + size > in->size()) return {};
+        return PCSX::IO<PCSX::File>(new PCSX::SubFile(in, offset, size));
+    }
+
+    // The PS1 is little endian, and so is everything this reads.
+    static uint64_t readLE(const uint8_t* p, unsigned size) {
+        uint64_t v = 0;
+        for (unsigned i = 0; i < size; i++) v |= uint64_t(p[i]) << (i * 8);
+        return v;
+    }
+    static std::string formatOne(const uint8_t* p, int type) {
+        uint64_t v = readLE(p, c_typeSizes[type]);
+        switch (type) {
+            case U8:
+            case U16:
+            case U32:
+                return fmt::format("{} (0x{:x})", v, v);
+            case U64:
+                return fmt::format("0x{:x}", v);
+            case S8:
+                return fmt::format("{}", int8_t(v));
+            case S16:
+                return fmt::format("{}", int16_t(v));
+            case S32:
+                return fmt::format("{}", int32_t(v));
+            case S64:
+                return fmt::format("{}", int64_t(v));
+            case F32: {
+                uint32_t bits = uint32_t(v);
+                float f;
+                memcpy(&f, &bits, sizeof(f));
+                return fmt::format("{}", f);
+            }
+            case F64: {
+                double d;
+                memcpy(&d, &v, sizeof(d));
+                return fmt::format("{}", d);
+            }
+        }
+        return {};
+    }
+    static std::string formatField(const uint8_t* p, const Field& f) {
+        if (f.type == Chars) {
+            std::string str;
+            for (int i = 0; i < f.count && p[i]; i++) str += (p[i] >= 32 && p[i] < 127) ? char(p[i]) : '.';
+            return fmt::format("\"{}\"", str);
+        }
+        if (f.count <= 1) return formatOne(p, f.type);
+        std::string str = "[";
+        constexpr int c_shown = 4;
+        for (int i = 0; i < std::min(f.count, c_shown); i++) {
+            if (i) str += ", ";
+            str += formatOne(p + i * c_typeSizes[f.type], f.type);
+        }
+        if (f.count > c_shown) str += ", ...";
+        return str + "]";
+    }
+
+    bool body(PCSX::Widgets::Dalos& dalos) override {
+        bool changed = ImGui::InputScalar(_("Offset (hex)"), ImGuiDataType_U64, &m_offset, nullptr, nullptr, "%llx",
+                                          ImGuiInputTextFlags_CharsHexadecimal);
+        ImGui::Checkbox(_("Edit fields"), &m_editing);
+        if (m_editing) {
+            int toRemove = -1;
+            for (unsigned i = 0; i < m_fields.size(); i++) {
+                auto& f = m_fields[i];
+                ImGui::PushID(i);
+                ImGui::SetNextItemWidth(c_bodyWidth * 0.4f);
+                changed |= ImGui::InputText("##name", &f.name);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(c_bodyWidth * 0.3f);
+                changed |= ImGui::Combo("##type", &f.type, c_typeNames, TypeCount);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(c_bodyWidth * 0.2f);
+                if (ImGui::InputInt("##count", &f.count, 0)) {
+                    f.count = std::clamp(f.count, 1, 65536);
+                    changed = true;
+                }
+                ImGui::SameLine();
+                if (ImGui::SmallButton("x")) toRemove = i;
+                ImGui::PopID();
+            }
+            if (toRemove >= 0) {
+                m_fields.erase(m_fields.begin() + toRemove);
+                if (m_picked >= int(m_fields.size())) m_picked = -1;
+                changed = true;
+            }
+            if (ImGui::Button(_("Add field"))) {
+                m_fields.push_back({fmt::format("field{}", m_fields.size()), U32, 1});
+                changed = true;
+            }
+            ImGui::TextUnformatted(_("A count above 1 makes an array; for char it is the string length."));
+            return changed;
+        }
+
+        auto in = input(dalos, 0);
+        std::vector<uint8_t> data(structSize());
+        bool complete = in && in->readAt(data.data(), data.size(), m_offset) == ssize_t(data.size());
+        if (!complete) ImGui::TextUnformatted(in ? _("The input is too short.") : _("No input"));
+        for (unsigned i = 0; i < m_fields.size(); i++) {
+            auto& f = m_fields[i];
+            auto value = complete ? formatField(data.data() + fieldOffset(i), f) : std::string("-");
+            auto label = fmt::format("{} {} = {}##{}", c_typeNames[f.type], f.name, value, i);
+            if (ImGui::Selectable(label.c_str(), m_picked == int(i))) {
+                m_picked = m_picked == int(i) ? -1 : int(i);
+                changed = true;
+            }
+        }
+        ImGui::Text(_("%zu bytes"), data.size());
+        return changed;
+    }
+
+    nlohmann::json save() override {
+        nlohmann::json fields = nlohmann::json::array();
+        for (auto& f : m_fields)
+            fields.push_back({{"name", f.name}, {"type", c_typeNames[f.type]}, {"count", f.count}});
+        return {{"offset", m_offset}, {"fields", fields}};
+    }
+    void load(const nlohmann::json& j) override {
+        m_offset = j.value("offset", uint64_t(0));
+        m_fields.clear();
+        m_picked = -1;
+        if (!j.contains("fields") || !j["fields"].is_array()) return;
+        for (auto& f : j["fields"]) {
+            Field field;
+            field.name = f.value("name", std::string("field"));
+            auto type = f.value("type", std::string("u32"));
+            for (int t = 0; t < TypeCount; t++) {
+                if (type == c_typeNames[t]) field.type = t;
+            }
+            field.count = std::clamp(f.value("count", 1), 1, 65536);
+            m_fields.push_back(field);
+        }
+    }
+};
+
+// Runs a piece of Lua over its input. The code gets the input as a File in
+// `...` and returns a File, or a string that gets wrapped into a buffer.
+struct LuaFilterNode : public PCSX::Widgets::Dalos::Node {
+    std::string m_code =
+        "-- The input file is the first argument. Return a File,\n"
+        "-- or a string, which becomes a buffer.\n"
+        "local input = ...\n"
+        "return input\n";
+    PCSX::IO<PCSX::File> m_output;
+    std::string m_error;
+    bool m_ran = false;
+
+    LuaFilterNode() { m_inputs.resize(1); }
+    unsigned inputs() override { return 1; }
+    unsigned outputs() override { return 1; }
+    const char* kind() override { return "Lua filter"; }
+
+    PCSX::IO<PCSX::File> computeOutput(PCSX::Widgets::Dalos& dalos, unsigned) override {
+        if (!m_ran) run(dalos);
+        return share(m_output);
+    }
+
+    void run(PCSX::Widgets::Dalos& dalos) {
+        m_ran = true;
+        m_output = {};
+        m_error.clear();
+        if (!PCSX::g_emulator->m_lua) {
+            m_error = _("Lua is not available.");
+            return;
+        }
+        auto in = input(dalos, 0);
+        auto L = *PCSX::g_emulator->m_lua;
+        int top = L.gettop();
+        try {
+            // The user code runs under its own pcall, so its errors come back
+            // as a message for the node instead of going to the console.
+            L.load(R"(
+local code, raw = ...
+local input
+if raw then input = Support.File._createFileWrapper(ffi.cast('LuaFile*', raw)) end
+local fn, err = loadstring(code, '=Dalos Lua filter')
+if not fn then return false, err end
+local ok, out = pcall(fn, input)
+if not ok then return false, tostring(out) end
+if type(out) == 'string' then
+    local buf = Support.File.buffer()
+    buf:write(out)
+    out = buf
+end
+if type(out) ~= 'table' or out._type ~= 'File' then return false, 'the filter returned neither a File nor a string' end
+return true, out
+)",
+                   "internal:dalos-luafilter.lua", false);
+            L.push(std::string_view(m_code));
+            if (in) {
+                L.push(static_cast<void*>(new PCSX::LuaFFI::LuaFile(in)));
+            } else {
+                L.push();
+            }
+            L.pcall(2);
+            if (L.toboolean(top + 1)) {
+                L.getfield("_wrapper", top + 2);
+                m_output = (*L.topointer<PCSX::LuaFFI::LuaFile*>(-1))->file;
+            } else {
+                auto err = L.tostring(top + 2);
+                m_error = err.empty() ? std::string(_("The filter failed.")) : err;
+            }
+        } catch (...) {
+            m_error = _("The filter failed, see the Lua console.");
+        }
+        while (L.gettop() > top) L.pop();
+    }
+
+    bool body(PCSX::Widgets::Dalos& dalos) override {
+        bool changed =
+            ImGui::InputTextMultiline("##code", &m_code, ImVec2(c_bodyWidth * 1.6f, ImGui::GetTextLineHeight() * 8));
+        if (ImGui::Button(_("Run"))) {
+            run(dalos);
+            changed = true;
+        }
+        if (!m_error.empty()) {
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + c_bodyWidth * 1.6f);
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_error.c_str());
+            ImGui::PopTextWrapPos();
+        } else if (m_output) {
+            ImGui::Text(_("%zu bytes"), m_output->size());
+        }
+        return changed;
+    }
+
+    nlohmann::json save() override { return {{"code", m_code}}; }
+    void load(const nlohmann::json& j) override {
+        m_code = j.value("code", m_code);
+        m_ran = false;
+    }
+};
+
 }  // namespace
 
 PCSX::IO<PCSX::File> PCSX::Widgets::Dalos::Node::output(Dalos& dalos, unsigned pin) {
@@ -162,7 +436,36 @@ void PCSX::Widgets::Dalos::deleteNode(Node* node) {
     }
     if (m_selected == node) m_selected = nullptr;
     if (m_dragging.node == node) m_dragging = {};
+    if (m_saving == node) m_saving = nullptr;
     std::erase_if(m_nodes, [node](auto& n) { return n.get() == node; });
+}
+
+PCSX::Widgets::Dalos::Node* PCSX::Widgets::Dalos::addNodeOfKind(std::string_view kind, const std::string& name,
+                                                                ImVec2 pos) {
+    if (kind == "Struct") return addNode<StructNode>(name, pos);
+    if (kind == "Lua filter") return addNode<LuaFilterNode>(name, pos);
+    return nullptr;
+}
+
+void PCSX::Widgets::Dalos::loadSavedTypes() {
+    if (m_savedTypesLoaded) return;
+    m_savedTypesLoaded = true;
+    std::ifstream in(g_system->getPersistentDir() / "dalos.json");
+    if (!in) return;
+    auto j = nlohmann::json::parse(in, nullptr, false);
+    if (j.is_discarded() || !j.contains("nodes") || !j["nodes"].is_array()) return;
+    for (auto& n : j["nodes"]) {
+        if (!n.is_object()) continue;
+        m_savedTypes.push_back(
+            {n.value("kind", std::string()), n.value("name", std::string()), n.value("data", nlohmann::json())});
+    }
+}
+
+void PCSX::Widgets::Dalos::writeSavedTypes() {
+    nlohmann::json nodes = nlohmann::json::array();
+    for (auto& t : m_savedTypes) nodes.push_back({{"kind", t.kind}, {"name", t.name}, {"data", t.data}});
+    std::ofstream out(g_system->getPersistentDir() / "dalos.json");
+    out << nlohmann::json{{"nodes", nodes}}.dump(4);
 }
 
 // True if `target` is `from` or feeds into it. Linking `from` into `target`
@@ -237,6 +540,31 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
         if (ImGui::MenuItem(_("File"))) addNode<FileNode>(_("File"), m_popupPos);
         if (ImGui::MenuItem(_("Slice"))) addNode<SliceNode>(_("Slice"), m_popupPos);
         if (ImGui::MenuItem(_("Viewer"))) addNode<ViewerNode>(_("Viewer"), m_popupPos);
+        if (ImGui::MenuItem(_("Struct"))) addNode<StructNode>(_("Struct"), m_popupPos);
+        if (ImGui::MenuItem(_("Lua filter"))) addNode<LuaFilterNode>(_("Lua filter"), m_popupPos);
+        loadSavedTypes();
+        if (!m_savedTypes.empty()) {
+            ImGui::Separator();
+            for (auto& type : m_savedTypes) {
+                auto label = fmt::format("{}: {}", type.kind, type.name);
+                if (ImGui::MenuItem(label.c_str())) {
+                    auto node = addNodeOfKind(type.kind, type.name, m_popupPos);
+                    if (node) node->load(type.data);
+                }
+            }
+            if (ImGui::BeginMenu(_("Forget a saved node"))) {
+                int toForget = -1;
+                for (unsigned i = 0; i < m_savedTypes.size(); i++) {
+                    auto label = fmt::format("{}: {}", m_savedTypes[i].kind, m_savedTypes[i].name);
+                    if (ImGui::MenuItem(label.c_str())) toForget = i;
+                }
+                if (toForget >= 0) {
+                    m_savedTypes.erase(m_savedTypes.begin() + toForget);
+                    writeSavedTypes();
+                }
+                ImGui::EndMenu();
+            }
+        }
         ImGui::EndPopup();
     }
 
@@ -280,6 +608,10 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
             node->m_pos += io.MouseDelta;
         }
         if (ImGui::BeginPopupContextItem("node")) {
+            if (node->kind() && ImGui::MenuItem(_("Save as a new node..."))) {
+                m_saving = node;
+                m_savingName = node->m_name;
+            }
             if (ImGui::MenuItem(_("Delete"))) toDelete = node;
             ImGui::EndPopup();
         }
@@ -341,6 +673,28 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
         toDelete = m_selected;
     }
     if (toDelete) deleteNode(toDelete);
+
+    if (m_saving && !ImGui::IsPopupOpen("save")) ImGui::OpenPopup("save");
+    if (ImGui::BeginPopupModal("save", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(_("Save this node's setup under a name. It then shows up in the add menu."));
+        if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+        bool save = ImGui::InputText(_("Name"), &m_savingName, ImGuiInputTextFlags_EnterReturnsTrue);
+        save |= ImGui::Button(_("Save"));
+        ImGui::SameLine();
+        bool cancel = ImGui::Button(_("Cancel")) || !m_saving;
+        if (save && m_saving && !m_savingName.empty()) {
+            std::string kind = m_saving->kind();
+            std::erase_if(m_savedTypes, [&](auto& t) { return t.kind == kind && t.name == m_savingName; });
+            m_savedTypes.push_back({kind, m_savingName, m_saving->save()});
+            writeSavedTypes();
+            cancel = true;
+        }
+        if (cancel) {
+            m_saving = nullptr;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 
     ImGui::EndChild();
     ImGui::End();
