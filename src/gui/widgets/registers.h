@@ -38,6 +38,7 @@ class Registers {
   private:
     void contextMenu(const char* name, uint32_t reg, uint32_t radix);
     void updateRegisterValue(PCSX::psxRegisters* registers, const std::string& val, int reg, int radix);
+    void drawPending(PCSX::psxRegisters* registers);
     template <size_t Fract = 12>
     static float fixedToFloat(int32_t value) {
         return static_cast<float>(value) / static_cast<float>(1 << Fract);
