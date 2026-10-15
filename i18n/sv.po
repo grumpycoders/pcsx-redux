@@ -113,17 +113,17 @@ msgstr "Klar färg"
 msgid "Clear VRAM"
 msgstr "Rensa VRAM"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM-etikett: %.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM-ID: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE-namn: %.255s\n"
@@ -216,7 +216,15 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Skriv"
 
-#: src/core/gdb-server.cc:617
+#. breakpoints are only checked when the debugger is enabled
+#: src/core/gdb-server.cc:610
+#, c-format
+msgid ""
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
+"debugger)\n"
+msgstr ""
+
+#: src/core/gdb-server.cc:625
 msgid "GDB client"
 msgstr "GDB-klient"
 
@@ -467,32 +475,32 @@ msgstr "Läser in minneskortet %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Sparar minneskortet %s\n"
 
-#: src/core/pad.cc:827 src/core/pad.cc:951
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Okänd kommando för pad: %02X\n"
 
-#: src/core/pad.cc:1052
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "Pad-konfiguration"
 
-#: src/core/pad.cc:1058
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "Pad 1"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "Pad 2"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr "Skanna om spelkontroller och läs om databasen för spelkontroller"
 
-#: src/core/pad.cc:1081
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr "Använd rå inmatning för musen"
 
-#: src/core/pad.cc:1083
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
@@ -500,170 +508,170 @@ msgstr ""
 "När denna funktion är aktiverad döljs markören och fångas upp när emulatorn "
 "körs. Detta är användbart för spel som kräver musinmatning."
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr "Tillåt musfångst"
 
-#: src/core/pad.cc:1087
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 "När funktionen är aktiverad växlar du mellan inställningarna ovan genom att "
 "trycka på CTRL och ALT. rå inmatning"
 
-#: src/core/pad.cc:1089
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "Pad"
 
-#: src/core/pad.cc:1098
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "Ställ in standardvärden"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr "Tangentbord upp"
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr "Tangentbord höger"
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr "Tangentbord ned"
 
-#: src/core/pad.cc:1120
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr "Tangentbord vänster"
 
-#: src/core/pad.cc:1122
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr "Tangentbordets bakåtknapp"
 
-#: src/core/pad.cc:1124
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr "Tangentbord Enter"
 
-#: src/core/pad.cc:1126
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr "Tangentbordets mellanslagstangent"
 
-#: src/core/pad.cc:1128
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr "Tangentbord Escape"
 
-#: src/core/pad.cc:1130
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr "Obundet"
 
-#: src/core/pad.cc:1135
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr "Okänd tangent {}"
 
-#: src/core/pad.cc:1140
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "Tangentbord {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Auto"
 
-#: src/core/pad.cc:1160
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "Kontroller"
 
-#: src/core/pad.cc:1161
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "Tangentbord"
 
-#: src/core/pad.cc:1168
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Välj"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "Analogt läge"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "Digital"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "Analog"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "Mus"
 
-#: src/core/pad.cc:1188
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr "Negcon (inte implementerat)"
 
-#: src/core/pad.cc:1189
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr "Pistol (inte implementerad)"
 
-#: src/core/pad.cc:1190
+#: src/core/pad.cc:1373
 msgid "Guncon (Unimplemented)"
 msgstr "Guncon (inte implementerat)"
 
-#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Ansluten"
 
-#: src/core/pad.cc:1203
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "Analogt läge"
 
-#: src/core/pad.cc:1212
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1216
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1222
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "Typ av kontroll"
 
-#: src/core/pad.cc:1238
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "Enhetstyp"
 
-#: src/core/pad.cc:1249
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr "Musens känslighet X"
 
-#: src/core/pad.cc:1251
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr "Musens känslighet Y"
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr "Tangentbordskartläggning"
 
-#: src/core/pad.cc:1255
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr "Mappning av datorknappar"
 
-#: src/core/pad.cc:1256
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr "Gamepad-knapp"
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr "Ingen gamepad vald eller ansluten"
 
-#: src/core/pad.cc:1330
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr "Handkontroll"
 
@@ -687,63 +695,63 @@ msgstr "Anropade msanGetChainPtr med ogiltig rubrikpekare %8.8lx\n"
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Anropade msanSetChainPtr med ogiltig rubrikpekare %8.8lx\n"
 
-#: src/core/psxinterpreter.cc:435
+#: src/core/psxinterpreter.cc:423
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i ADDI-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:529
+#: src/core/psxinterpreter.cc:517
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i ADD-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:571
+#: src/core/psxinterpreter.cc:559
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Signerat överflöde i SUB-instruktion från 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:893
+#: src/core/psxinterpreter.cc:881
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Försök till ojusterad JR till 0x%08x från 0x%08x, utlöser undantag!\n"
 
-#: src/core/psxinterpreter.cc:919
+#: src/core/psxinterpreter.cc:907
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Försök till ojusterad JALR till 0x%08x från 0x%08x, utlöser undantag!\n"
 
-#: src/core/psxinterpreter.cc:957
+#: src/core/psxinterpreter.cc:945
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LH från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:974
+#: src/core/psxinterpreter.cc:962
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LHU från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:991
+#: src/core/psxinterpreter.cc:979
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i LW från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1053
+#: src/core/psxinterpreter.cc:1041
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i SH från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1064
+#: src/core/psxinterpreter.cc:1052
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Ojusterad adress 0x%08x i SW från 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1181
+#: src/core/psxinterpreter.cc:1169
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Stötte på reserverad opkod från 0x%08x, utlöser ett undantag\n"
 
-#: src/core/psxinterpreter.cc:1219
+#: src/core/psxinterpreter.cc:1207
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -751,7 +759,7 @@ msgid ""
 msgstr ""
 "Försökte använda en ogiltig flyttalsinstruktion från 0x%08x. Ignorerades.\n"
 
-#: src/core/psxinterpreter.cc:1271
+#: src/core/psxinterpreter.cc:1236
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Försökte komma åt COP3 från 0x%08x. Ignorerades\n"

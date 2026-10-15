@@ -137,6 +137,15 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
         m_settings.get<Device>().reset();
     }
 
+#ifdef __EMSCRIPTEN__
+    // SDL3's emscripten audio backend defaults to a 128-frame buffer, and the
+    // Web Audio ScriptProcessorNode it drives rejects anything that is not a
+    // power of two between 256 and 16384 - it throws IndexSizeError during
+    // device open, which surfaces as an uncaught JS exception rather than an
+    // SDL error. 1024 frames is ~21 ms at 48 kHz, comfortably inside the range
+    // and still low enough not to add audible latency.
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024");
+#endif
     SDL_AudioSpec spec;
     spec.format = SDL_AUDIO_F32;
     spec.channels = kChannels;
@@ -191,7 +200,13 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
     // guessing at it from the outside costs hours.
     SDL_AudioSpec got;
     int gotFrames = 0;
+    m_periodFrames.store(0);
     if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
+        // The period is counted in device frames; everything that uses it counts stream frames.
+        if (gotFrames > 0 && got.freq > 0) {
+            m_periodFrames.store(static_cast<uint32_t>(
+                (static_cast<uint64_t>(gotFrames) * kSampleRate + got.freq - 1) / got.freq));
+        }
         g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n", SDL_GetCurrentAudioDriver(),
                       got.freq, gotFrames);
     }
@@ -235,6 +250,7 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
     constexpr int kFrameSizeBytes = sizeof(float) * kChannels;
     int requested = additionalBytes / kFrameSizeBytes;
     if (requested <= 0) return;
+    if (static_cast<uint32_t>(requested) > m_periodFrames.load()) m_periodFrames.store(requested);
 
     const bool mono = m_settings.get<Mono>();
     const bool muted = m_settings.get<Mute>();

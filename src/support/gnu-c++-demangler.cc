@@ -24,6 +24,9 @@ SOFTWARE.
 
 */
 
+// PEGTL does not build under libc++; gnu-c++-demangler-none.cc stands in on wasm.
+#ifndef __EMSCRIPTEN__
+
 #include <cctype>
 #include <iostream>
 #include <string>
@@ -682,3 +685,5 @@ std::string PCSX::GNUDemangler::demangle(std::string_view mangled) {
     }
     return std::string(mangled);
 }
+
+#endif

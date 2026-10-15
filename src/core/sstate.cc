@@ -236,8 +236,8 @@ std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
     SaveStateWrapper wrapper(state);
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
-    state.get<SaveStateInfoField>().get<Version>().value = 4;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v5";
+    state.get<SaveStateInfoField>().get<Version>().value = 5;
 
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
@@ -431,7 +431,7 @@ static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& s
     } catch (...) {
         return false;
     }
-    return state.get<SaveStateInfoField>().get<Version>().value == 4;
+    return state.get<SaveStateInfoField>().get<Version>().value == 5;
 }
 
 bool PCSX::SaveStates::load(std::string_view data) {
@@ -550,15 +550,21 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     reset();
     auto& gpu = w->state.get<GPUField>();
     restoreStatus(gpu.get<GPUStatus>().value);
-    if (gpu.get<GPUVRam>().value) {
-        partialUpdateVRAM(0, 0, 1024, 512, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
-    } else {
-        clearVRAM();
-    }
     const auto control = gpu.get<GPUControl>().value;
 
     for (unsigned i = 0; i < 256; i++) {
         m_statusControl[i] = getU32(control + i * 4);
+    }
+
+    // GP1(09h) is not replayed through writeStatus below: an unwritten slot
+    // reads 0, which would decode as GP1(00h). Restore the bank gate directly.
+    m_vram2MBGateOpen = m_statusControl[9] & 1;
+    vramConfigChanged();
+
+    if (gpu.get<GPUVRam>().value) {
+        partialUpdateVRAM(0, 0, 1024, 1024, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+    } else {
+        clearVRAM();
     }
 
     writeStatus(m_statusControl[0]);

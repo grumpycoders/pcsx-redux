@@ -28,11 +28,6 @@
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
 #include <assert.h>
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-}
 
 #include <algorithm>
 #include <cmath>
@@ -50,7 +45,6 @@ extern "C" {
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
 #include "core/debug.h"
-#include "core/gdb-server.h"
 #include "core/gpu.h"
 #include "core/gpulogger.h"
 #include "core/pad.h"
@@ -58,12 +52,11 @@ extern "C" {
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
-#include "core/sio1-server.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
-#include "core/web-server.h"
 #include "flags.h"
 #include "fmt/chrono.h"
+#include "gui/gui-platform.h"
 #include "gui/gui.h"
 #include "gui/luaimguiextra.h"
 #include "gui/luaimplot.h"
@@ -174,6 +167,7 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_typedDebugger(settings.get<ShowTypedDebugger>().value, favorites),
       m_memcardManager(settings.get<ShowMemcardManager>().value, favorites),
       m_assembly(settings.get<ShowAssembly>().value, favorites),
+      m_cpuTrace(settings.get<ShowCpuTrace>().value, favorites),
       m_openIsoFileDialog(l_("Open Disk Image"), favorites),
       m_openBinaryDialog(l_("Open Binary"), favorites),
       m_openArchiveDialog(l_("Open Archive"), favorites),
@@ -1186,7 +1180,7 @@ void PCSX::GUI::flip() {
     glDrawBuffers(1, DrawBuffers);  // "1" is the size of DrawBuffers
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0, 0, 0, 0);
-    glClearDepth(0.0);
+    GUIPlatform::clearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     m_currentTexture ^= 1;
@@ -1513,6 +1507,7 @@ void PCSX::GUI::endFrame() {
                             R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
+                    ImGui::MenuItem(_("Show CPU Trace"), nullptr, &m_cpuTrace.m_show);
                     ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                     ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                     if (ImGui::BeginMenu(_("Memory Editors"))) {
@@ -1841,6 +1836,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
+
+    m_cpuTrace.draw(this, _("CPU Trace"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
@@ -2171,7 +2168,7 @@ the update and manually apply it.)")));
     } else {
         glClearColor(m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z, m_backgroundColor.w);
     }
-    glClearDepth(0.0);
+    GUIPlatform::clearDepth(0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -2192,7 +2189,7 @@ the update and manually apply it.)")));
         }
         SDL_GL_MakeCurrent(m_window, m_glContext);
     }
-    SDL_GL_SwapWindow(m_window);
+    GUIPlatform::presentFrame(m_window);
     // Per-frame paints are dropped whether or not their viewport got rendered this frame.
     for (auto& [id, vp] : m_tvgViewports) vp.transient->remove();
 
@@ -2213,6 +2210,7 @@ bool PCSX::GUI::configure() {
     bool selectEXP1Dialog = false;
     bool showDynarecDebugWarning = false;
     bool showDynarecWarning = false;
+    bool show2MBVRAMHardwareWarning = false;
     auto& settings = g_emulator->settings;
     auto& debugSettings = settings.get<Emulator::SettingDebugSettings>();
 
@@ -2257,13 +2255,29 @@ This setting is useful for debugging purposes,
 to detect uninitialized memory reads that may
 cause issues in some cases.
 )"));
-        changed |=
-            ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value);
+        if (ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingHardwareRenderer>() && settings.get<Emulator::Setting2MBVRAM>()) {
+                show2MBVRAMHardwareWarning = true;
+            }
+        }
         ImGuiHelpers::ShowHelpMarker(_(R"(Enables the OpenGL GPU renderer.
 This is not recommended for normal use at the moment,
 as it is not fully implemented yet. It is recommended
 to use the software renderer instead. Requires a restart
 when changing this setting.)"));
+        if (ImGui::Checkbox(_("2MB VRAM"), &settings.get<Emulator::Setting2MBVRAM>().value)) {
+            changed = true;
+            if (settings.get<Emulator::SettingHardwareRenderer>() && settings.get<Emulator::Setting2MBVRAM>()) {
+                show2MBVRAMHardwareWarning = true;
+            }
+        }
+        ImGuiHelpers::ShowHelpMarker(_(R"(Emulates a console fitted with 2MB of VRAM
+instead of the stock 1MB, exposing the upper bank through
+GP1(09h). Found on a handful of modded consoles and on
+some arcade boards. Only the software renderer supports
+it; the OpenGL GPU does not. Requires a restart when
+changing this setting.)"));
 
         ImGui::Separator();
         {
@@ -2333,125 +2347,14 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-        if (ImGui::Checkbox(_("Enable GDB Server"), &debugSettings.get<Emulator::DebugSettings::GdbServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::GdbServer>()) {
-                g_emulator->m_gdbServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::GdbServerPort>());
-            } else {
-                g_emulator->m_gdbServer->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a gdb-server that you can
-connect to with any gdb-remote compliant client.
-You also need to enable the debugger.)"));
-        changed |=
-            ImGui::Checkbox(_("GDB send manifest"), &debugSettings.get<Emulator::DebugSettings::GdbManifest>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(Enables sending the processor's manifest
-from the gdb server. Keep this enabled, unless
-you want to connect IDA to this server, as it
-has a bug in its manifest parser.)"));
-        auto& currentGdbLog = debugSettings.get<Emulator::DebugSettings::GdbLogSetting>().value;
-        auto currentName = magic_enum::enum_name(currentGdbLog);
-
-        if (ImGui::BeginCombo(_("PCSX Logs to GDB"), currentName.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::GdbLog>()) {
-                bool selected = (v == currentGdbLog);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentGdbLog = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        changed |=
-            ImGui::InputInt(_("GDB Server Port"), &debugSettings.get<Emulator::DebugSettings::GdbServerPort>().value);
-        changed |=
-            ImGui::Checkbox(_("GDB Server Trace"), &debugSettings.get<Emulator::DebugSettings::GdbServerTrace>().value);
-        ImGuiHelpers::ShowHelpMarker(_(R"(The GDB server will start tracing its
-protocol into the logs, which can be helpful to debug
-the gdb server system itself.)"));
-        if (ImGui::Checkbox(_("Enable Web Server"), &debugSettings.get<Emulator::DebugSettings::WebServer>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::WebServer>()) {
-                g_emulator->m_webServer->startServer(g_system->getLoop(),
-                                                     debugSettings.get<Emulator::DebugSettings::WebServerPort>());
-            } else {
-                g_emulator->m_webServer->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
-query using a REST api. See the wiki for details.
-The debugger might be required in some cases.)"));
-        changed |=
-            ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
-        if (ImGui::Checkbox(_("Enable SIO1 Server"), &debugSettings.get<Emulator::DebugSettings::SIO1Server>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Server>()) {
-                g_emulator->m_sio1Server->startServer(g_system->getLoop(),
-                                                      debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>());
-            } else {
-                g_emulator->m_sio1Server->stopServer();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
-relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
-        if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
-            changed = true;
-            if (debugSettings.get<Emulator::DebugSettings::SIO1Client>()) {
-                g_emulator->m_sio1Client->startClient(
-                    std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                         .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                         .value),
-                    g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                        .get<Emulator::DebugSettings::SIO1ClientPort>());
-            } else {
-                g_emulator->m_sio1Client->stopClient();
-            }
-        }
-        ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
-to another PCSX-Redux server to relay information between tcp and sio1.
-See the wiki for details.)"));
-        changed |=
-            ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
-                             ImGuiInputTextFlags_CharsDecimal);
-        changed |=
-            ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
-
+        changed |= debugServersUI();
         auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
         auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
         if (ImGui::Button(_("Reset SIO"))) {
             g_emulator->m_sio1->reset();
         }
 
-        const bool enableReconnect = debugSettings.get<Emulator::DebugSettings::SIO1Client>() &&
-                                     !g_emulator->m_sio1->connecting() && g_emulator->m_sio1->fifoError();
-
-        if (!enableReconnect) {
-            ImGui::BeginDisabled();
-        }
-
-        if (ImGui::Button(_("Reconnect"))) {
-            g_emulator->m_sio1Client->reconnect(
-                std::string_view(g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                                     .get<Emulator::DebugSettings::SIO1ClientHost>()
-                                     .value),
-                g_emulator->settings.get<Emulator::SettingDebugSettings>()
-                    .get<Emulator::DebugSettings::SIO1ClientPort>());
-        }
-
-        if (!enableReconnect) {
-            ImGui::EndDisabled();
-        }
-
+        changed |= sio1ReconnectUI();
         if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
             for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
                 bool selected = (v == currentSIO1Mode);
@@ -2500,6 +2403,12 @@ debugging features may not work.)");
     } else if (showDynarecWarning) {
         addNotification(R"(Toggling the Dynarec option requires a restart
 of the emulator to take effect.)");
+    }
+    if (show2MBVRAMHardwareWarning) {
+        addNotification(R"(2MB VRAM is enabled together with the OpenGL GPU.
+The OpenGL renderer does not support the upper VRAM
+bank yet - only the software renderer does. Switch to
+the software renderer to make use of 2MB VRAM.)");
     }
     return changed;
 }
@@ -2669,84 +2578,7 @@ bool PCSX::GUI::about() {
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem(_("FFmpeg information"))) {
-                ImGui::Text(_("Version: %s"), av_version_info());
-                ImGui::Text(_("License: %s"), avutil_license());
-                ImGui::TextWrapped(_("Configuration: %s"), avutil_configuration());
-                ImGui::Separator();
-
-                ImGui::TextUnformatted(_("List of supported formats:"));
-                const AVInputFormat* format = nullptr;
-                void* opaque = nullptr;
-                std::vector<const AVInputFormat*> formats;
-                unsigned nb_formats = 0;
-                while ((format = av_demuxer_iterate(&opaque))) nb_formats++;
-                formats.reserve(nb_formats);
-                opaque = nullptr;
-                while ((format = av_demuxer_iterate(&opaque))) formats.push_back(format);
-                std::sort(formats.begin(), formats.end(),
-                          [](auto& a, auto& b) { return strcmp(a->name, b->name) < 0; });
-                useMonoFont();
-                for (auto& format : formats) {
-                    ImGui::Text("  %-25s %s", format->name, format->long_name);
-                }
-                ImGui::PopFont();
-                ImGui::Separator();
-
-                ImGui::TextUnformatted(_("List of supported codecs: (D: Decoder, E: Encoder, L: Lossy, S: Lossless)"));
-                const AVCodecDescriptor* codec = nullptr;
-                std::vector<const AVCodecDescriptor*> codecs;
-                unsigned nb_codecs = 0;
-                while ((codec = avcodec_descriptor_next(codec))) nb_codecs++;
-                codecs.reserve(nb_codecs);
-                codec = nullptr;
-                while ((codec = avcodec_descriptor_next(codec))) codecs.push_back(codec);
-                std::sort(codecs.begin(), codecs.end(), [](auto& a, auto& b) {
-                    if (a->type == b->type) {
-                        return strcmp(a->name, b->name) < 0;
-                    }
-                    return a->type < b->type;
-                });
-
-                auto getMediaType = [](AVMediaType type) -> const char* {
-                    switch (type) {
-                        case AVMEDIA_TYPE_VIDEO:
-                            return "Video";
-                        case AVMEDIA_TYPE_AUDIO:
-                            return "Audio";
-                        case AVMEDIA_TYPE_DATA:
-                            return "Data";
-                        case AVMEDIA_TYPE_SUBTITLE:
-                            return "Subtitle";
-                        case AVMEDIA_TYPE_ATTACHMENT:
-                            return "Attachment";
-                        default:
-                            return "Unknown";
-                    }
-                };
-
-                auto previousType = AVMEDIA_TYPE_UNKNOWN;
-
-                useMonoFont();
-                for (auto& codec : codecs) {
-                    auto type = codec->type;
-                    if (type != previousType) {
-                        ImGui::Separator();
-                        useMainFont();
-                        ImGui::Text(_("%s codecs"), getMediaType(type));
-                        ImGui::PopFont();
-                        previousType = type;
-                    }
-                    std::string_view name = codec->name;
-                    if (StringsHelpers::endsWith(name, "_deprecated")) continue;
-                    ImGui::Text("  %c%c%c%c %-20s %s", avcodec_find_decoder(codec->id) ? 'D' : '.',
-                                avcodec_find_encoder(codec->id) ? 'E' : '.',
-                                (codec->props & AV_CODEC_PROP_LOSSY) ? 'L' : '.',
-                                (codec->props & AV_CODEC_PROP_LOSSLESS) ? 'S' : '.', codec->name, codec->long_name);
-                }
-                ImGui::PopFont();
-                ImGui::EndTabItem();
-            }
+            aboutFFmpegTab();
             ImGui::EndTabBar();
         }
     }

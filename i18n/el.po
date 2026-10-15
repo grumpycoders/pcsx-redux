@@ -113,17 +113,17 @@ msgstr "Εκκαθάριση χρώματος"
 msgid "Clear VRAM"
 msgstr "Εκκαθάριση VRAM"
 
-#: src/core/cdrom.cc:1776
+#: src/core/cdrom.cc:1798
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "Ετικέτα CD-ROM: %.32s\n"
 
-#: src/core/cdrom.cc:1777
+#: src/core/cdrom.cc:1799
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "Ταυτότητα CD-ROM: %.9s\n"
 
-#: src/core/cdrom.cc:1778
+#: src/core/cdrom.cc:1800
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "Ονομα εκτελέσιμου αρχείου: %.255s\n"
@@ -214,7 +214,15 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Χάρτης γραφής 8"
 
-#: src/core/gdb-server.cc:617
+#. breakpoints are only checked when the debugger is enabled
+#: src/core/gdb-server.cc:610
+#, c-format
+msgid ""
+"GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
+"debugger)\n"
+msgstr ""
+
+#: src/core/gdb-server.cc:625
 msgid "GDB client"
 msgstr ""
 
@@ -462,201 +470,201 @@ msgstr "Φόρτωση κάρτας μνήμης %s\n"
 msgid "Saving memory card %s\n"
 msgstr "Αποθήκευση κάρτας μνήμης %s\n"
 
-#: src/core/pad.cc:827 src/core/pad.cc:951
+#: src/core/pad.cc:1010 src/core/pad.cc:1134
 #, c-format
 msgid "Unknown command for pad: %02X\n"
 msgstr "Άγνωστη εντολή χειριστηρίου: %02X\n"
 
-#: src/core/pad.cc:1052
+#: src/core/pad.cc:1235
 msgid "Pad configuration"
 msgstr "Ρύθμιση χειριστηρίων"
 
-#: src/core/pad.cc:1058
+#: src/core/pad.cc:1241
 msgid "Pad 1"
 msgstr "Χειριστήριο 1"
 
-#: src/core/pad.cc:1059
+#: src/core/pad.cc:1242
 msgid "Pad 2"
 msgstr "Χειριστήριο 2"
 
-#: src/core/pad.cc:1062
+#: src/core/pad.cc:1245
 msgid "Rescan gamepads and re-read game controllers database"
 msgstr ""
 "Επανασκανάρισμα για χειριστήριο και επανανάγνωση της βάσης δεδομένων "
 "χειριστηρίων"
 
-#: src/core/pad.cc:1081
+#: src/core/pad.cc:1264
 msgid "Use raw input for mouse"
 msgstr ""
 
-#: src/core/pad.cc:1083
+#: src/core/pad.cc:1266
 msgid ""
 "When enabled, the cursor will be hidden and captured when the emulator is "
 "running. This is useful for games that require mouse input."
 msgstr ""
 
-#: src/core/pad.cc:1085
+#: src/core/pad.cc:1268
 msgid "Allow mouse capture toggle"
 msgstr ""
 
-#: src/core/pad.cc:1087
+#: src/core/pad.cc:1270
 msgid ""
 "When enabled, pressing CTRL and ALT will toggle the setting above, raw input"
 msgstr ""
 
-#: src/core/pad.cc:1089
+#: src/core/pad.cc:1272
 msgid "Pad"
 msgstr "Χειριστήριο"
 
-#: src/core/pad.cc:1098
+#: src/core/pad.cc:1281
 msgid "Set defaults"
 msgstr "Επαναφορά"
 
-#: src/core/pad.cc:1114
+#: src/core/pad.cc:1297
 msgid "Keyboard Up"
 msgstr ""
 
-#: src/core/pad.cc:1116
+#: src/core/pad.cc:1299
 msgid "Keyboard Right"
 msgstr ""
 
-#: src/core/pad.cc:1118
+#: src/core/pad.cc:1301
 msgid "Keyboard Down"
 msgstr ""
 
-#: src/core/pad.cc:1120
+#: src/core/pad.cc:1303
 msgid "Keyboard Left"
 msgstr ""
 
-#: src/core/pad.cc:1122
+#: src/core/pad.cc:1305
 msgid "Keyboard Backspace"
 msgstr ""
 
-#: src/core/pad.cc:1124
+#: src/core/pad.cc:1307
 msgid "Keyboard Enter"
 msgstr ""
 
-#: src/core/pad.cc:1126
+#: src/core/pad.cc:1309
 msgid "Keyboard Space"
 msgstr ""
 
-#: src/core/pad.cc:1128
+#: src/core/pad.cc:1311
 msgid "Keyboard Escape"
 msgstr ""
 
-#: src/core/pad.cc:1130
+#: src/core/pad.cc:1313
 msgid "Unbound"
 msgstr ""
 
-#: src/core/pad.cc:1135
+#: src/core/pad.cc:1318
 msgid "Unknown keyboard key {}"
 msgstr ""
 
-#: src/core/pad.cc:1140
+#: src/core/pad.cc:1323
 msgid "Keyboard {}"
 msgstr "Πληκτρολόγιο {}"
 
-#: src/core/pad.cc:1159 src/gui/gui.cc:2293
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Αυτόματο"
 
-#: src/core/pad.cc:1160
+#: src/core/pad.cc:1343
 msgid "Controller"
 msgstr "Χειριστήριο"
 
-#: src/core/pad.cc:1161
+#: src/core/pad.cc:1344
 msgid "Keyboard"
 msgstr "Πληκτρολόγιο"
 
-#: src/core/pad.cc:1168
+#: src/core/pad.cc:1351
 #, fuzzy
 msgctxt "Controller button"
 msgid "Select"
 msgstr "Select"
 
-#: src/core/pad.cc:1169
+#: src/core/pad.cc:1352
 #, fuzzy
 msgctxt "Controller button"
 msgid "Start"
 msgstr "Start"
 
-#: src/core/pad.cc:1176
+#: src/core/pad.cc:1359
 msgid "Analog Mode"
 msgstr "Αναλογική λειτουργία"
 
-#: src/core/pad.cc:1185
+#: src/core/pad.cc:1368
 msgid "Digital"
 msgstr "Ψηφιακό"
 
-#: src/core/pad.cc:1186
+#: src/core/pad.cc:1369
 msgid "Analog"
 msgstr "Αναλογικό"
 
-#: src/core/pad.cc:1187
+#: src/core/pad.cc:1370
 msgid "Mouse"
 msgstr "Ποντίκι"
 
-#: src/core/pad.cc:1188
+#: src/core/pad.cc:1371
 msgid "Negcon (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1189
+#: src/core/pad.cc:1372
 msgid "Gun (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1190
+#: src/core/pad.cc:1373
 msgid "Guncon (Unimplemented)"
 msgstr ""
 
-#: src/core/pad.cc:1194 src/gui/widgets/pio-cart.cc:55
+#: src/core/pad.cc:1377 src/gui/widgets/pio-cart.cc:55
 msgid "Connected"
 msgstr "Συνδεδεμένο"
 
-#: src/core/pad.cc:1203
+#: src/core/pad.cc:1386
 msgid "Analog mode"
 msgstr "Αναλογική λειτουργία"
 
-#: src/core/pad.cc:1212
+#: src/core/pad.cc:1395
 msgid "Rumble"
 msgstr ""
 
-#: src/core/pad.cc:1216
+#: src/core/pad.cc:1399
 msgid "(no motors on this gamepad)"
 msgstr ""
 
-#: src/core/pad.cc:1222
+#: src/core/pad.cc:1405
 msgid "Controller Type"
 msgstr "Είδος χειριστηρίου"
 
-#: src/core/pad.cc:1238
+#: src/core/pad.cc:1421
 msgid "Device type"
 msgstr "Είδος συσκευής"
 
-#: src/core/pad.cc:1249
+#: src/core/pad.cc:1432
 msgid "Mouse sensitivity X"
 msgstr ""
 
-#: src/core/pad.cc:1251
+#: src/core/pad.cc:1434
 msgid "Mouse sensitivity Y"
 msgstr ""
 
-#: src/core/pad.cc:1253
+#: src/core/pad.cc:1436
 msgid "Keyboard mapping"
 msgstr ""
 
-#: src/core/pad.cc:1255
+#: src/core/pad.cc:1438
 msgid "Computer button mapping"
 msgstr ""
 
-#: src/core/pad.cc:1256
+#: src/core/pad.cc:1439
 msgid "Gamepad button"
 msgstr ""
 
-#: src/core/pad.cc:1306
+#: src/core/pad.cc:1489
 msgid "No gamepad selected or connected"
 msgstr ""
 
-#: src/core/pad.cc:1330
+#: src/core/pad.cc:1513
 msgid "Gamepad"
 msgstr ""
 
@@ -680,63 +688,63 @@ msgstr ""
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:435
+#: src/core/psxinterpreter.cc:423
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:529
+#: src/core/psxinterpreter.cc:517
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:571
+#: src/core/psxinterpreter.cc:559
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:893
+#: src/core/psxinterpreter.cc:881
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:919
+#: src/core/psxinterpreter.cc:907
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:957
+#: src/core/psxinterpreter.cc:945
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:974
+#: src/core/psxinterpreter.cc:962
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:991
+#: src/core/psxinterpreter.cc:979
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1053
+#: src/core/psxinterpreter.cc:1041
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1064
+#: src/core/psxinterpreter.cc:1052
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:1181
+#: src/core/psxinterpreter.cc:1169
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr ""
 "Συναντήθηκε δεσμευμένη εντολή στην διεύθυνση 0x%08x, ενεργοποίηση exception\n"
 
-#: src/core/psxinterpreter.cc:1219
+#: src/core/psxinterpreter.cc:1207
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -745,7 +753,7 @@ msgstr ""
 "Απόπειρα χρήσης μιάς μη-έγκυρης εντολής floating point στην διεύθυνση "
 "0x%08x. Αγνοήθηκε\n"
 
-#: src/core/psxinterpreter.cc:1271
+#: src/core/psxinterpreter.cc:1236
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Απόπειρα πρόσβασεις του COP3 στην διεύθυνση 0x%08x. Αγνοήθηκε\n"

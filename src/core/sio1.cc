@@ -19,6 +19,8 @@
 
 #include "core/sio1.h"
 
+#include "support/uvfile.h"
+
 PCSX::SIOPayload PCSX::SIO1::makeFlowControlMessage() {
     return SIOPayload{
         DataTransfer{},
@@ -33,6 +35,13 @@ PCSX::SIOPayload PCSX::SIO1::makeDataMessage(std::string &&data) {
         },
         FlowControl{},
     };
+}
+
+bool PCSX::SIO1::connecting() {
+    // m_fifo is an IO<File> and is only ever a UvFifo once a socket backend has
+    // handed one over, so asA can legitimately come back empty.
+    auto fifo = m_fifo.asA<UvFifo>();
+    return fifo && fifo->isConnecting();
 }
 
 void PCSX::SIO1::transmitMessage(std::string &&message) {
@@ -228,7 +237,8 @@ void PCSX::SIO1::transmitData() {
             sendDataMessage();
             break;
         case SIO1Mode::Raw:
-            if (!m_sio1fifo || m_sio1fifo->eof()) return;
+            // Running out of incoming data does not stop the peer from reading what we send.
+            if (!m_sio1fifo || m_sio1fifo->failed()) return;
             m_sio1fifo->write<uint8_t>(m_regs.data);
             break;
     }
@@ -248,7 +258,7 @@ bool PCSX::SIO1::isTransmitReady() {
 }
 
 void PCSX::SIO1::updateStat() {
-    if (fifoError()) return;
+    if (m_sio1Mode == SIO1Mode::Raw ? !m_sio1fifo : fifoError()) return;
     if (m_sio1fifo->size() > 0) {
         m_regs.status |= SR_RXRDY;
     } else {

@@ -71,6 +71,7 @@ class CallStacks;
 class CDRom;
 class CDRomLogger;
 class Counters;
+class CpuTrace;
 class Debug;
 class GdbServer;
 class GPU;
@@ -182,6 +183,7 @@ class Emulator {
     // Rewind: capture a snapshot every N frames (0 disables), keeping the last M snapshots.
     typedef Setting<uint32_t, TYPESTRING("RewindInterval"), 0> SettingRewindInterval;
     typedef Setting<uint32_t, TYPESTRING("RewindCount"), 60> SettingRewindCount;
+    typedef Setting<bool, TYPESTRING("2MBVRAM"), false> Setting2MBVRAM;
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
@@ -206,12 +208,12 @@ class Emulator {
     Settings<SettingMcd1, SettingMcd2, SettingBios, SettingPpfDir, SettingPsxExe, SettingXa, SettingSpuIrq,
              SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
              SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec, Setting8MB,
-             SettingMemoryFillValue, SettingGUITheme, SettingDither, SettingCachedDithering, SettingGLErrorReporting,
-             SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer, SettingShownAutoUpdateConfig,
-             SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation,
-             SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
-             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval,
-             SettingRewindCount>
+             SettingMemoryFillValue, Setting2MBVRAM, SettingGUITheme, SettingDither, SettingCachedDithering,
+             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
+             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
+             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
+             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites,
+             SettingRewindInterval, SettingRewindCount>
         settings;
     class PcsxConfig {
       public:
@@ -234,6 +236,9 @@ class Emulator {
 
     // It is safe if these overflow
     uint32_t m_rewind_counter = 0;
+
+    // Vsyncs raised by vsync() and not yet dispatched by dispatchVSync().
+    uint32_t m_vsyncPending = 0;
 
     // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
     struct RewindRing;
@@ -261,6 +266,9 @@ class Emulator {
     void reset();
     void shutdown();
     void vsync();
+    // Runs what vsync() deferred: the VSync event, the system update and the rewind snapshot.
+    // Called from R3000Acpu::branchTest(), where m_regs.pc is the real next pc.
+    void dispatchVSync();
     void setPGXPMode(uint32_t pgxpMode);
 
     // Rewind: ring of in-memory snapshots taken every RewindInterval frames, bounded to
@@ -283,6 +291,7 @@ class Emulator {
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
+    std::unique_ptr<CpuTrace> m_cpuTrace;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;

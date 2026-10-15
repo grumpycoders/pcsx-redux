@@ -351,6 +351,7 @@ void PCSX::R3000Acpu::branchTest() {
     const uint64_t cycle = m_regs.cycle;
 
     if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();
+    g_emulator->dispatchVSync();
 
     if (m_regs.spuInterrupt.exchange(false)) g_emulator->m_spu->interrupt();
 
@@ -437,7 +438,9 @@ std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::Interpreted() {
 
 std::unique_ptr<PCSX::R3000Acpu> PCSX::Cpus::DynaRec() {
     std::unique_ptr<PCSX::R3000Acpu> cpu = getDynaRec();
-    if (cpu->Implemented()) return cpu;
+    // An architecture with no dynarec at all returns nullptr here, which is not
+    // the same as one whose dynarec reports itself unimplemented.
+    if (cpu && cpu->Implemented()) return cpu;
     return nullptr;
 }
 

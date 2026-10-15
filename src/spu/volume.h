@@ -33,24 +33,29 @@ namespace SPU {
 // per output sample.
 //
 // The level is kept twice. The mix track is stepped by the SPU thread, one
-// sample at a time, and is what the mixer and reverb multiply by. The reader
-// track belongs to the CPU thread: it is advanced lazily to the sample clock
-// of the access on every register read or write, so a VOLX read answers at
-// the reader's cycle rather than wherever the SPU thread's batch loop is.
+// sample at a time, and is what the mixer and reverb multiply by; register
+// writes reach it from the event queue at the sample they were stamped with.
+// The reader track belongs to the CPU thread: it takes each write as the CPU
+// makes it and is advanced lazily to the sample clock of the access, so a VOLX
+// read answers at the reader's cycle. Neither thread touches the other's track.
 // Both tracks run the same step function from the same writes.
 //
 // Note: the PS1's global main L/R volume is not emulated (those register writes
 // are logged only, no state is kept), so this type is purely per-voice.
 class VoiceVolume {
   public:
-    // A left/right volume register write, at SPU sample `nowSample`.
+    // CPU thread: a left/right volume register write, at SPU sample `nowSample`.
     void setLeft(int16_t raw, uint64_t nowSample) { write(m_left, raw, nowSample); }
     void setRight(int16_t raw, uint64_t nowSample) { write(m_right, raw, nowSample); }
 
+    // SPU thread: the same write, applied to the mix track at its sample.
+    void applyLeft(int16_t raw) { apply(m_left, raw); }
+    void applyRight(int16_t raw) { apply(m_right, raw); }
+
     // SPU thread: advance both sides by one output sample.
     void step() {
-        stepTrack(m_left.mix, m_left.raw);
-        stepTrack(m_right.mix, m_right.raw);
+        stepTrack(m_left.mix, m_left.mixRaw);
+        stepTrack(m_right.mix, m_right.mixRaw);
     }
 
     // Effective -0x4000..0x3fff volume the mixer and reverb stages apply.
@@ -74,15 +79,15 @@ class VoiceVolume {
                 Protobuf::Int32 &rightRaw) const {
         left.value = this->left();
         right.value = this->right();
-        leftRaw.value = m_left.raw;
-        rightRaw.value = m_right.raw;
+        leftRaw.value = m_left.mixRaw;
+        rightRaw.value = m_right.mixRaw;
     }
     void loadFrom(const Protobuf::Int32 &left, const Protobuf::Int32 &right, const Protobuf::Int32 &leftRaw,
                   const Protobuf::Int32 &rightRaw) {
         m_left = Side{};
         m_right = Side{};
-        m_left.raw = leftRaw.value;
-        m_right.raw = rightRaw.value;
+        m_left.raw = m_left.mixRaw = leftRaw.value;
+        m_right.raw = m_right.mixRaw = rightRaw.value;
         m_left.mix.level = m_left.reader.level = left.value * 2;
         m_right.mix.level = m_right.reader.level = right.value * 2;
     }
@@ -93,7 +98,8 @@ class VoiceVolume {
         int32_t fraction = 0;  // samples since the last sweep step
     };
     struct Side {
-        uint16_t raw = 0;
+        uint16_t raw = 0;     // last write the CPU made, drives the reader track
+        uint16_t mixRaw = 0;  // last write the SPU thread applied, drives the mix track
         Track mix;
         Track reader;
         uint64_t readerSample = 0;
@@ -108,6 +114,7 @@ class VoiceVolume {
     static void advanceTrack(Track &track, uint16_t raw, uint64_t samples);
     static void advanceReader(Side &side, uint64_t nowSample);
     static void write(Side &side, int16_t raw, uint64_t nowSample);
+    static void apply(Side &side, int16_t raw);
     static uint16_t readAt(Side &side, uint64_t nowSample);
 
     Side m_left;

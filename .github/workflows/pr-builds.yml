@@ -15,30 +15,22 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.workflow_run.event == 'pull_request'
+    # Skip runs that were cancelled (superseded by a newer push) and pushes made by bots
+    # such as the translation sync, which would otherwise flood the pr-* projects.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled' &&
+      github.event.workflow_run.actor.type != 'Bot'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Only the platforms the triggering workflow builds, so no idle job enters a concurrency group.
       matrix:
-        include:
-          - ci: Linux CI
-            artifact: AppImage-linux-x86_64
-            project: pr-linux-x64
-            secret: APPDISTRIB_PR_LINUX_X64
-            label: Linux x86_64
-          - ci: Linux CI
-            artifact: AppImage-linux-aarch64
-            project: pr-linux-arm64
-            secret: APPDISTRIB_PR_LINUX_ARM64
-            label: Linux aarch64
-          - ci: macOS CI
-            artifact: Dmg-arm
-            project: pr-macos-arm
-            secret: APPDISTRIB_PR_MACOS_ARM
-            label: macOS arm64
-    # Build ids are max+1 on the server, so uploads to one project must not overlap.
+        include: ${{ fromJSON(github.event.workflow_run.name == 'Linux CI' && '[{"artifact":"AppImage-linux-x86_64","project":"pr-linux-x64","secret":"APPDISTRIB_PR_LINUX_X64","label":"Linux x86_64"},{"artifact":"AppImage-linux-aarch64","project":"pr-linux-arm64","secret":"APPDISTRIB_PR_LINUX_ARM64","label":"Linux aarch64"}]' || '[{"artifact":"Dmg-arm","project":"pr-macos-arm","secret":"APPDISTRIB_PR_MACOS_ARM","label":"macOS arm64"}]') }}
+    # One publish per PR runs at a time; a newer pending one replaces an older pending one,
+    # and a running publish is never cancelled by a late older run.
     concurrency:
-      group: pr-builds-${{ matrix.project }}
+      group: pr-builds-${{ matrix.project }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
       cancel-in-progress: false
     env:
       GH_TOKEN: ${{ github.token }}
@@ -49,7 +41,6 @@ jobs:
     steps:
       - name: Find the pull request
         id: pr
-        if: github.event.workflow_run.name == matrix.ci
         run: |
           pr=$(gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f head="$HEAD_OWNER:$HEAD_BRANCH" \
             --jq "map(select(.head.sha == \"$HEAD_SHA\")) | .[0].number // empty")
@@ -83,12 +74,20 @@ jobs:
         run: |
           short=${HEAD_SHA:0:8}
           name="PCSX-Redux-PR$PR-$short-${{ matrix.project }}.zip"
+          # Artifacts lose the executable bit; restore it so the AppImage runs straight out of the zip.
+          find build -name '*.AppImage' -exec chmod +x {} +
           (cd build && zip -r "../$name" .)
-          npx @appdistrib/cli buildid > buildid.json
-          id=$(jq -r .buildid buildid.json)
-          jq -n --arg v "$short" --argjson b "$id" --arg c "$HEAD_SHA" --argjson t "$(date +%s)" --argjson pr "$PR" \
-            '{version: $v, buildId: $b, changeset: $c, timestamp: $t, channel: "pr", pullRequest: $pr, updateInfo: []}' > manifest.json
-          npx @appdistrib/cli -l buildId -m manifest.json upload "$name"
+          # Build ids are max+1 on the server, so two PRs publishing at once can collide;
+          # the losing upload is rejected and retried with a fresh id.
+          for attempt in 1 2 3; do
+            npx @appdistrib/cli buildid > buildid.json
+            id=$(jq -r .buildid buildid.json)
+            jq -n --arg v "$short" --argjson b "$id" --arg c "$HEAD_SHA" --argjson t "$(date +%s)" --argjson pr "$PR" \
+              '{version: $v, buildId: $b, changeset: $c, timestamp: $t, channel: "pr", pullRequest: $pr, updateInfo: []}' > manifest.json
+            if npx @appdistrib/cli -l buildId -m manifest.json upload "$name"; then break; fi
+            [ "$attempt" = 3 ] && exit 1
+            sleep $((attempt * 20))
+          done
           path=$(curl -sf "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest-$id.json" | jq -r .path)
           echo "url=https://distrib.app$path" >> "$GITHUB_OUTPUT"
       - name: Comment
