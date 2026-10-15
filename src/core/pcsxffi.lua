@@ -44,7 +44,7 @@ typedef struct {
     psxCP0Regs CP0;
     psxCP2Data CP2D;
     psxCP2Ctrl CP2C;
-    uint32_t rawPC;
+    const uint32_t rawPC;
 } psxRegisters;
 
 enum BreakpointType { Exec, Read, Write };

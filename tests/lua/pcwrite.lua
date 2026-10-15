@@ -102,3 +102,11 @@ function TestPCWrite:test_write_in_delay_slot_drops_pending_branch()
     lu.assertEquals(regs.GPR.n.t1, 0)
     lu.assertTrue(regs.pc == ALT + 4 or regs.pc == ALT + 8, string.format('pc = 0x%08x', regs.pc))
 end
+
+-- The backing field is read-only, so a script can't store past setPC by accident.
+function TestPCWrite:test_raw_pc_field_is_read_only()
+    local regs = PCSX.getRegisters()
+    local before = regs.pc
+    lu.assertFalse(pcall(function() regs.rawPC = 0x80100000 end))
+    lu.assertEquals(regs.pc, before)
+end
