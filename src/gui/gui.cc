@@ -2401,7 +2401,7 @@ The debugger might be required in some cases.)"));
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
 relay information between tcp and sio1.
-See the documentation at https://pcsx-redux.consoledev.net
+See https://pcsx-redux.consoledev.net/sio1_networking/
 for details.)"));
         changed |=
             ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
@@ -2420,7 +2420,7 @@ for details.)"));
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
 to another PCSX-Redux server to relay information between tcp and sio1.
-See the documentation at https://pcsx-redux.consoledev.net
+See https://pcsx-redux.consoledev.net/sio1_networking/
 for details.)"));
         changed |=
             ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
