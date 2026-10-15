@@ -1,3 +1,7 @@
+#if !defined(__cpp_impl_reflection)
+#error "__cpp_impl_reflection is not defined"
+#endif
+
 #include <meta>
 
 struct Probe {
