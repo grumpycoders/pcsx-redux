@@ -101,6 +101,11 @@ target("ftxui", function()
     if is_plat("windows") then
         add_defines("UNICODE", "_UNICODE")
     end
+    if is_plat("wasm") then
+        -- Same flags as the pcsx-redux target: wasm-ld refuses to link
+        -- non-atomics objects into a --shared-memory module.
+        add_cxflags("-fwasm-exceptions", "-pthread", {force = true})
+    end
 end)
 
 target("pcsx-redux", function()
