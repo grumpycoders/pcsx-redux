@@ -315,12 +315,19 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
             av_packet_unref(m_priv->packet);
             int eagain = AVERROR(EAGAIN);
             int eof = AVERROR_EOF;
-            if ((ret == eagain) || (ret == eof)) {
+            if (ret == eagain) {
+                continue;  // decoder needs more input (e.g. Vorbis headers): feed it the next packet
+            } else if (ret == eof) {
                 return dataRead;
             } else if (ret < 0) {
                 return -1;
             }
             inFrame = m_priv->decodedFrame;
+            // pcm_* decoders report an unspecified channel order; swr_init() normalizes it to the default layout, so
+            // newer swr_convert_frame() fails with AVERROR_INPUT_CHANGED on every frame unless we do the same.
+            if (inFrame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC && inFrame->ch_layout.nb_channels > 0) {
+                av_channel_layout_default(&inFrame->ch_layout, inFrame->ch_layout.nb_channels);
+            }
         }
     }
 
