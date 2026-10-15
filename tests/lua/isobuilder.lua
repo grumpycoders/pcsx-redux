@@ -418,6 +418,33 @@ function TestIsoBuilder:test_closeRoundTrip()
     end
 end
 
+function TestIsoBuilder:test_closeM1()
+    -- M1 file content is laid out at 2048 bytes per sector, and both writers have to put it on the disc.
+    for _, threads in ipairs({ 1, 4 }) do
+        local what = string.format('close(%d) M1', threads)
+        local size = 2 * 2048
+        local payload = Support.File.buffer()
+        local data = ffi.new('uint8_t[?]', size)
+        for i = 0, size - 1 do data[i] = patternByte(i % 2048) end
+        payload:write(ffi.cast('const char*', data), size)
+        payload:rSeek(0)
+
+        local out = Support.File.buffer()
+        local builder = PCSX.isoBuilder(out)
+        builder:writeLicense()
+        builder:setVolumeIdent('ROUNDTRIP')
+        local root = builder:createRoot(1)
+        local file = builder:createFile(root, 'PATTERN.BIN', payload)
+        file:setSectorMode('M1')
+        builder:close(threads)
+
+        out:rSeek(0)
+        local iso = PCSX.openIso(out)
+        local rb = iso:open(file:getLBA(), size, 'M2_FORM1')
+        for s = 0, 1 do assertPattern(rb, s * 2048, 2048, what .. ' sector ' .. s) end
+    end
+end
+
 function TestIsoBuilder:test_anchorErrorOnBackwardLBA()
     -- Anchoring to an LBA that's already passed must raise an error at close time.
     local out = Support.File.buffer()
