@@ -174,6 +174,7 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_typedDebugger(settings.get<ShowTypedDebugger>().value, favorites),
       m_memcardManager(settings.get<ShowMemcardManager>().value, favorites),
       m_assembly(settings.get<ShowAssembly>().value, favorites),
+      m_cpuTrace(settings.get<ShowCpuTrace>().value, favorites),
       m_openIsoFileDialog(l_("Open Disk Image"), favorites),
       m_openBinaryDialog(l_("Open Binary"), favorites),
       m_openArchiveDialog(l_("Open Archive"), favorites),
@@ -1513,6 +1514,7 @@ void PCSX::GUI::endFrame() {
                             R"(DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling [Dynarec CPU]
 in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     }
+                    ImGui::MenuItem(_("Show CPU Trace"), nullptr, &m_cpuTrace.m_show);
                     ImGui::MenuItem(_("Show Breakpoints"), nullptr, &m_breakpoints.m_show);
                     ImGui::MenuItem(_("Show Callstacks"), nullptr, &m_callstacks.m_show);
                     if (ImGui::BeginMenu(_("Memory Editors"))) {
@@ -1841,6 +1843,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_disassembly.m_show && g_emulator->m_cpu->isDynarec()) {
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
+
+    m_cpuTrace.draw(this, _("CPU Trace"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));
