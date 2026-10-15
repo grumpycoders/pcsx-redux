@@ -148,8 +148,9 @@ end)
 )";
 
 TEST(SaveStateV4, LoadsIntoLowerBank) {
+    // The open-bus check is a software-GPU property, so do not inherit a persisted renderer.
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
-                        "-1mbvram", "-exec", c_v4SaveState);
+                        "-softgpu", "-1mbvram", "-exec", c_v4SaveState);
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
