@@ -122,6 +122,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
+    bool cop0Armed() const { return (m_regs.CP0.n.DCIC & 0x80800000) == 0x80800000; }
     virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
@@ -1703,7 +1704,9 @@ void InterpretedCPU::Execute() {
                                 .get<PCSX::Emulator::DebugSettings::Trace>();
         const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                   .get<PCSX::Emulator::DebugSettings::SkipISR>();
-        if (debug) {
+        // The cop0 debug unit is always live on silicon: a guest that arms DCIC (TR|DE) gets the
+        // debug path whether or not the debugger is enabled.
+        if (debug || cop0Armed()) {
             if (!trace || (skipISR && m_inISR)) {
                 execBlock<true, false>();
             } else {
@@ -1871,7 +1874,7 @@ inline void InterpretedCPU::execBlock() {
            blank RAM executes nops until it happens to meet a branch, which measured at
            262113 instructions in one call - long past any cycle budget, and long past the
            exception that sent it there. */
-    } while (!ranDelaySlot && !debug && !detached);
+    } while (!ranDelaySlot && !debug && !detached && !cop0Armed());
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {
