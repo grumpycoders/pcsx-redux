@@ -20,12 +20,11 @@
 // v1 wasm has no libuv, so no web server.
 #ifndef __EMSCRIPTEN__
 
-#include <uv.h>
-
 #include "core/web-server.h"
 
 #include <llhttp.h>
 #include <multipart_parser.h>
+#include <uv.h>
 
 #include <charconv>
 #include <magic_enum/magic_enum_all.hpp>

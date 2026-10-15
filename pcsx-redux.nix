@@ -40,8 +40,8 @@ let
     ({
       owner = "grumpycoders";
       repo = "zep";
-      rev = "969ae7ea35ae583f215e6f3e724366e0815d58f9";
-      hash = "sha256-iblFvaBzZL8lRhAzYh9bmoBW4GzSaMyl35dHpGoyJlw=";
+      rev = "1c107cbe1ed39e5d453cb5d9fb5811abfe644571";
+      hash = "sha256-n2N5/llbPAytHrXZLTjT7tA3q633Vz1i8yBj8WTlRmM=";
     })
     ({
       owner = "pcsx-redux";
@@ -80,6 +80,12 @@ let
       hash = "sha256-PknWLxYuXQ73TCFN+eKOJDNLGbg/ZqKSF6mFxkJG6vI=";
     })
     ({
+      owner = "epezent";
+      repo = "implot";
+      rev = "d65a2bef53d32502407de3a4be80f191e2f412d7";
+      hash = "sha256-s7URArbirN8uiInhi95eQW7aoq5Clc67NzUCzcslAi8=";
+    })
+    ({
       owner = "taocpp";
       repo = "PEGTL";
       rev = "d7b821b1e5ed6ab321625f50427c4ae0b78909d5";
@@ -103,26 +109,25 @@ let
       rev = "17f2c521ddf76466ef23db92b9fa2d7b933ca7ef";
       hash = "sha256-wBkLoznyekF+HGZagfOdQVyvkjqqgaFHIL1cIKqdLA4=";
     })
+    ({
+      owner = "ArthurSonzogni";
+      repo = "FTXUI";
+      rev = "f921fad208912747c17d129a8ef75ec7624b6eec"; # v7.0.3
+      hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
+      dest = "third_party/ftxui";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
   } ++ lib.optionals withOpenbios [
-    # nugget first: uC-sdk lands inside the tree this unpacks.
     ({
       owner = "pcsx-redux";
       repo = "nugget";
-      rev = "77adff516017044f2c6d9b21f66c124b9593959a";
-      hash = "sha256-N6FmNautSbIGNfsfNDdmy4jqj6dco8dXj5GBdKadQkI=";
+      rev = "624f7e553f12a549656c5bebd894b7ff3f0cc730";
+      hash = "sha256-pMFi/4ZbPA1l4Vlx6jD5oMUqhbrL+ZELITE74SwtKbw=";
       dest = "src/mips";
-    })
-    ({
-      owner = "grumpycoders";
-      repo = "uC-sdk";
-      rev = "69e06871824e2d62069487a7426ded09090ceb69";
-      hash = "sha256-VamLhNtXxilcvd6ch76ronhB7DcKfw2eL7CuLwHFbp8=";
-      dest = "src/mips/third_party/uC-sdk";
     })
   ];
 

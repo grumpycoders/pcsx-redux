@@ -20,9 +20,9 @@
 // v1 wasm has no libuv, so no SIO1 TCP server.
 #ifndef __EMSCRIPTEN__
 
-#include <uv.h>
-
 #include "core/sio1-server.h"
+
+#include <uv.h>
 
 #include "core/psxemulator.h"
 #include "core/sio1.h"

@@ -24,7 +24,7 @@ SOFTWARE.
 
 */
 
-// PEGTL does not build under libc++ (board #428), and the demangler is PEGTL's
+// PEGTL does not build under libc++, and the demangler is PEGTL's
 // only consumer, so gnu-c++-demangler.cc is disabled on wasm. Its two callers -
 // the assembly and callstacks widgets - are debugger UI that still compiles and
 // links, so they need a definition.

@@ -96,7 +96,8 @@ the gdb server system itself.)"));
         }
     }
     ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
-query using a REST api. See the wiki for details.
+query using a REST api. See
+https://pcsx-redux.consoledev.net/web_server/ for details.
 The debugger might be required in some cases.)"));
     changed |=
         ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
@@ -111,7 +112,8 @@ The debugger might be required in some cases.)"));
     }
     ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
 relay information between tcp and sio1.
-See the wiki for details.)"));
+See https://pcsx-redux.consoledev.net/sio1_networking/
+for details.)"));
     changed |=
         ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
     if (ImGui::Checkbox(_("Enable SIO1 Client"), &debugSettings.get<Emulator::DebugSettings::SIO1Client>().value)) {
@@ -129,7 +131,8 @@ See the wiki for details.)"));
     }
     ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp client, that can connect
 to another PCSX-Redux server to relay information between tcp and sio1.
-See the wiki for details.)"));
+See https://pcsx-redux.consoledev.net/sio1_networking/
+for details.)"));
     changed |=
         ImGui::InputText(_("SIO1 Client Host"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value,
                          ImGuiInputTextFlags_CharsDecimal);

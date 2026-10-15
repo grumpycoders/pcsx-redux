@@ -27,23 +27,41 @@
 
 #if (defined(_WIN32) || defined(_WIN64)) && defined(_M_AMD64)
 #define USE_SENTRY
+#include <filesystem>
+
+#include "core/system.h"
 #include "sentry.h"
+#include "support/binpath.h"
+#include "support/file.h"
+#include "support/version-info.h"
 #endif
 
 static void setupSentry() {
 #ifdef USE_SENTRY
+    PCSX::VersionInfo version;
+    try {
+        std::filesystem::path binDir = std::filesystem::absolute(PCSX::BinPath::getExecutablePath()).parent_path();
+        version.loadFromFile(new PCSX::PosixFile(binDir / "version.json"));
+    } catch (...) {
+        version.clear();
+    }
+    std::string release = "pcsx-redux@" + (version.failed() ? std::string("head") : version.version);
+
     sentry_options_t *options = sentry_options_new();
     sentry_options_set_dsn(options,
                            "https://6c203a041de14d57a454889f50151f0f@o502319.ingest.sentry.io/4504971395858432");
     sentry_options_set_database_path(options, ".sentry-native");
-    sentry_options_set_release(options, "pcsx-redux@head");
+    sentry_options_set_release(options, release.c_str());
     sentry_options_set_debug(options, 0);
     sentry_init(options);
+    if (!version.changeset.empty()) sentry_set_tag("changeset", version.changeset.c_str());
+    PCSX::System::s_crashReportTagSetter = sentry_set_tag;
 #endif
 }
 
 static void closeSentry() {
 #ifdef USE_SENTRY
+    PCSX::System::s_crashReportTagSetter = nullptr;
     sentry_close();
 #endif
 }

@@ -13,12 +13,30 @@ PACKAGES := capstone freetype2 libavcodec libavformat libavutil libswresample li
 OPTIONAL_PACKAGES := md4c fmt libllhttp libluv liburiparser
 OPTIONAL_LIBRARIES := multipart ucl
 
-LOCALES := el es_ES fr ja pt_BR uk zh_CN
+LOCALES := el es_ES fr ja pt_BR sv uk zh_CN
 
-ifeq ($(wildcard third_party/imgui/imgui.h),)
-HAS_SUBMODULES = false
-else
+# One sentinel per submodule the build globs sources from. Checking imgui alone let a checkout
+# that had imgui but not implot report submodules present and then fail at compile time on a
+# missing implot/implot.h, which is a much worse place to find out.
+#
+# Only list things the Nix build also populates. It does not use git submodules: pcsx-redux.nix
+# fetches a hand-maintained list into third_party/ and takes the rest from nixpkgs, so googletest
+# and uriparser are simply not there. Listing those made HAS_SUBMODULES false under Nix, which
+# drops the -include $(DEPS) below, which is what carries luajit.h as a prerequisite - and the
+# build died on a missing luajit.h with nothing pointing back here.
+# Kept to the two that gui.cc includes directly and that both environments demonstrably have.
+# Adding more is easy and is how this broke: a sentinel that is missing anywhere this Makefile
+# runs silently disables the dependency files rather than reporting a missing submodule.
+SUBMODULE_SENTINELS := \
+    third_party/imgui/imgui.h \
+    third_party/implot/implot.h
+
+MISSING_SUBMODULES := $(strip $(foreach s,$(SUBMODULE_SENTINELS),$(if $(wildcard $(s)),,$(s))))
+
+ifeq ($(MISSING_SUBMODULES),)
 HAS_SUBMODULES = true
+else
+HAS_SUBMODULES = false
 endif
 
 CXXFLAGS += -std=c++2b
@@ -27,6 +45,7 @@ CPPFLAGS += -Isrc
 CPPFLAGS += -Ithird_party
 CPPFLAGS += -Ithird_party/ELFIO
 CPPFLAGS_pkg_fmt += -Ithird_party/fmt/include/
+CPPFLAGS += -Ithird_party/ftxui/include
 CPPFLAGS += -Ithird_party/gl3w
 CPPFLAGS += -Ithird_party/googletest/googletest/include
 CPPFLAGS += -Ithird_party/imgui
@@ -54,6 +73,7 @@ CPPFLAGS += -DZEP_FEATURE_CPP_FILE_SYSTEM
 CPPFLAGS += -DTVG_STATIC=1
 CPPFLAGS += -DPB_STATIC_API
 IMGUI_CPPFLAGS += -include src/forced-includes/imgui.h
+IMPLOT_CPPFLAGS += -include src/forced-includes/implot.h
 
 CPPFLAGS_Release += -O3
 CPPFLAGS_Debug += -O0
@@ -64,6 +84,7 @@ else
     CPPFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 CPPFLAGS_asan += -O1 -fsanitize=address -fno-omit-frame-pointer
+CPPFLAGS_tsan += -O3 -fsanitize=thread -fno-omit-frame-pointer
 CPPFLAGS_ubsan += -O1 -fsanitize=undefined -fno-omit-frame-pointer
 CPPFLAGS_lto += -O3 -flto=auto -fno-fat-lto-objects -flto-partition=one
 CPPFLAGS_ReleaseWithTracy += -O3 -DTRACY_ENABLE
@@ -97,6 +118,7 @@ else
     LDFLAGS_Coverage += -fprofile-arcs -ftest-coverage
 endif
 LDFLAGS_asan += -fsanitize=address
+LDFLAGS_tsan += -fsanitize=thread
 LDFLAGS_ubsan += -fsanitize=undefined
 LDFLAGS_lto += -O3 -flto=auto -flto-partition=one
 
@@ -112,8 +134,10 @@ SRCS += $(call rwildcard,src/,*.cc)
 SRCS := $(filter-out src/mips/%,$(SRCS))
 SRCS_pkg_fmt += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 IMGUI_SRCS += $(wildcard third_party/imgui/*.cpp)
+IMPLOT_SRCS += $(wildcard third_party/implot/*.cpp)
 VIXL_SRCS := $(call rwildcard, third_party/vixl/src,*.cc)
 SRCS += $(IMGUI_SRCS)
+SRCS += $(IMPLOT_SRCS)
 SRCS += $(wildcard third_party/libelfin/*.cc)
 SRCS += third_party/cq/reclaimer.cc
 SRCS += third_party/clip/clip.cpp
@@ -156,10 +180,15 @@ THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,common renderer renderer/cpu_eng
 THORVG_CPPFLAGS += $(addprefix -I$(THORVG_DIR)/,loaders/svg loaders/png loaders/jpg loaders/lottie loaders/sfnt loaders/raw bindings/capi)
 THORVG_CPPFLAGS += -DTHORVG_GL_TARGET_GL=1
 SRCS += $(THORVG_SRCS)
+# FTXUI: every .cpp minus tests/fuzzers (gtest/libFuzzer) and component/loop.cpp, a leftover
+# that upstream's build files no longer list: Loop is now implemented in component/app.cpp,
+# so compiling both is a duplicate-symbol link error.
+FTXUI_SRCS := $(filter-out %_test.cpp %_fuzzer.cpp %/component/loop.cpp,$(call rwildcard,third_party/ftxui/src/,*.cpp))
+FTXUI_CPPFLAGS := -Ithird_party/ftxui/src
+SRCS += $(FTXUI_SRCS)
 SRCS_ReleaseWithTracy += third_party/tracy/public/TracyClient.cpp
 SRCS_lib_ucl += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SRCS += $(wildcard third_party/uriparser/src/*.c)
-SRCS += third_party/zep/extensions/repl/mode_repl.cpp
 SRCS += $(wildcard third_party/zep/src/*.cpp)
 SRCS += third_party/zep/src/mcommon/animation/timer.cpp
 SRCS += third_party/zep/src/mcommon/file/path.cpp
@@ -179,14 +208,14 @@ ifeq ($(UNAME_M),arm64)
         CPPFLAGS += -DVIXL_INCLUDE_TARGET_AARCH64 -DVIXL_CODE_BUFFER_MMAP
         CPPFLAGS += -Ithird_party/vixl/src -Ithird_party/vixl/src/aarch64
 endif
-SUPPORT_SRCS := src/support/container-file.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
-SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc src/supportpsx/ucl-utils.cc
+SUPPORT_SRCS := src/support/container-file.cc src/support/cpu-features.cc src/support/file.cc src/support/mem4g.cc src/support/zfile.cc
+SUPPORT_SRCS += src/supportpsx/adpcm.cc src/supportpsx/binloader.cc src/supportpsx/dct.cc src/supportpsx/iec-60908b.cc src/supportpsx/iso9660-builder.cc src/supportpsx/ps1-packer.cc src/supportpsx/ucl-utils.cc
 SUPPORT_SRCS += third_party/fmt/src/os.cc third_party/fmt/src/format.cc
 SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_party/ucl/src/n2e_ds.c
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
-TOOLS = authoring exe2elf exe2exe exe2iso midi2psm midi2spd modconv ps1-packer psyq-obj-parser
+TOOLS = authoring exe2elf exe2exe exe2iso mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
 
@@ -231,9 +260,14 @@ NONMAIN_OBJECTS := $(filter-out objs/$(BUILD)/src/main/mainthunk.o,$(OBJECTS))
 IMGUI_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(IMGUI_SRCS))))
 VIXL_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(filter %.cc,$(VIXL_SRCS))))
 $(IMGUI_OBJECTS): EXTRA_CPPFLAGS := $(IMGUI_CPPFLAGS)
+IMPLOT_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(filter %.cpp,$(IMPLOT_SRCS))))
+$(IMPLOT_OBJECTS): EXTRA_CPPFLAGS := $(IMPLOT_CPPFLAGS)
 THORVG_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(THORVG_SRCS)))
 $(THORVG_OBJECTS): EXTRA_CPPFLAGS := $(THORVG_CPPFLAGS)
 $(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(THORVG_SRCS))): EXTRA_CPPFLAGS := $(THORVG_CPPFLAGS)
+FTXUI_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cpp,%.o,$(FTXUI_SRCS)))
+$(FTXUI_OBJECTS): EXTRA_CPPFLAGS := $(FTXUI_CPPFLAGS)
+$(addprefix deps/$(BUILD)/,$(patsubst %.cpp,%.dep,$(FTXUI_SRCS))): EXTRA_CPPFLAGS := $(FTXUI_CPPFLAGS)
 
 TESTS_SRC := $(call rwildcard,tests/,*.cc)
 TESTS_OBJECTS := $(addprefix objs/$(BUILD)/,$(patsubst %.cc,%.o,$(TESTS_SRC)))
@@ -259,6 +293,7 @@ check_submodules:
 else
 check_submodules:
 	@echo "You need to clone this repository recursively, in order to get its submodules."
+	@echo "Missing: $(MISSING_SUBMODULES)"
 	@false
 endif
 
@@ -360,7 +395,7 @@ endef
 
 regen-i18n:
 	find src -name *.cc -or -name *.c -or -name *.h | sort -u > pcsx-src-list.txt
-	xgettext --from-code=utf-8 --keyword=_ --keyword=f_ --keyword=l_ --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
+	xgettext --from-code=utf-8 --keyword=_ --keyword=f_ --keyword=l_ --keyword=C_:1c,2 --keyword=lC_:1c,2 --language=C++ --add-comments --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	find src -name *.lua | sort -u > pcsx-src-list.txt
 	xgettext --from-code=utf-8 --keyword=t_ --language=Lua --join-existing --sort-by-file -o i18n/pcsx-redux.pot -f pcsx-src-list.txt
 	sed '/POT-Creation-Date/d' -i i18n/pcsx-redux.pot

@@ -103,7 +103,9 @@ class Disasm {
     declare(disXORI);
     declare(disLUI);
     declare(disCOP0);
+    declare(disCOPn);
     declare(disCOP2);
+    declare(disBCz);
 
     declare(disLB);
     declare(disLH);

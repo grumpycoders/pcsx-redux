@@ -36,6 +36,7 @@ static const ImWchar c_malteseRanges[] = {0x0020, 0x00ff, 0x010a, 0x010b, 0x0120
                                           0x0126, 0x0127, 0x017b, 0x017c, 0};
 static const ImWchar c_polishRanges[] = {0x0020, 0x00ff, 0x0104, 0x0119, 0x0141, 0x0144,
                                          0x015a, 0x015b, 0x0179, 0x017c, 0};
+static const ImWchar c_swedishRanges[] = {0x0020, 0x00ff, 0x2013, 0x2013, 0x201c, 0x201d, 0};
 
 // locale names have to be written in basic latin or extended latin, in order
 // to be properly displayed in the UI with the default range
@@ -46,7 +47,7 @@ PCSX::System::~System() {
     delete m_loop;
 }
 
-uv_loop_t *PCSX::System::getLoop() { return m_loop; }
+uv_loop_t* PCSX::System::getLoop() { return m_loop; }
 
 const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
     {
@@ -90,6 +91,10 @@ const std::map<std::string, PCSX::System::LocaleInfo> PCSX::System::LOCALES = {
         {"pt_BR.po", {}, nullptr},
     },
     {
+        "Svenska",
+        {"sv.po", {}, c_swedishRanges},
+    },
+    {
         "Ukrainska",
         {"uk.po", {}, reinterpret_cast<const ImWchar*>(Range::CYRILLIC)},
     },
@@ -114,25 +119,31 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
     unsigned inlineIndex = 0;
     unsigned shift = 0;
     uint8_t inlined = 0;
-    enum : int {
+    enum {
         WAITING_MSGIDTOKEN,
+        WAITING_MSGCTXT,
+        WAITING_MSGIDTOKEN_AFTER_CTXT,
         WAITING_MSGID,
         WAITING_MSGSTRTOKEN,
         WAITING_MSGSTR,
-        STATE_MAX
     } state = WAITING_MSGIDTOKEN;
     uint64_t hashValue;
+    std::string context;
+    bool hasContext = false;
     std::map<uint64_t, std::string> locale;
 
     if (in->failed()) return false;
 
     std::string comment;
+    // The flags comment comes before the entry it applies to, which is only stored
+    // once the next entry starts, so it is kept per entry.
     bool fuzzy = false;
+    bool entryFuzzy = false;
 
     while ((c = in->getc()) >= 0) {
         if (c == '\n' || c == '\r') {
             if (inString) return false;
-            if (inComment) fuzzy = comment.find(", fuzzy") != std::string::npos;
+            if (inComment && comment.find(", fuzzy") != std::string::npos) fuzzy = true;
             inComment = false;
             newLine = true;
             comment.clear();
@@ -149,7 +160,10 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                 continue;
             }
             if (c == '\"') {
-                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGSTRTOKEN) return false;
+                if (state != WAITING_MSGIDTOKEN && state != WAITING_MSGIDTOKEN_AFTER_CTXT &&
+                    state != WAITING_MSGSTRTOKEN) {
+                    return false;
+                }
                 inString = true;
                 continue;
             }
@@ -224,25 +238,42 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
         } else {
             if (c == ' ' || c == '\t') continue;
             switch (state) {
+                case WAITING_MSGCTXT:
                 case WAITING_MSGID:
                 case WAITING_MSGSTR:
-                    if (c == '\"') {
-                        inString = true;
-                        (*reinterpret_cast<int*>(&state))++;
-                        if (state == STATE_MAX) state = WAITING_MSGIDTOKEN;
-                    } else {
-                        return false;
+                    if (c != '\"') return false;
+                    inString = true;
+                    switch (state) {
+                        case WAITING_MSGCTXT:
+                            state = WAITING_MSGIDTOKEN_AFTER_CTXT;
+                            break;
+                        case WAITING_MSGID:
+                            state = WAITING_MSGSTRTOKEN;
+                            break;
+                        default:
+                            state = WAITING_MSGIDTOKEN;
+                            break;
                     }
                     break;
                 case WAITING_MSGIDTOKEN:
+                case WAITING_MSGIDTOKEN_AFTER_CTXT:
                 case WAITING_MSGSTRTOKEN:
                     if (token.empty()) {
                         switch (state) {
                             case WAITING_MSGIDTOKEN:
-                                if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
+                                if (!currentString.empty() && !entryFuzzy) locale[hashValue] = currentString;
+                                entryFuzzy = fuzzy;
+                                fuzzy = false;
                                 break;
-                            case WAITING_MSGSTRTOKEN:
-                                hashValue = djb::hash(currentString);
+                            case WAITING_MSGIDTOKEN_AFTER_CTXT:
+                                context = currentString;
+                                hasContext = true;
+                                break;
+                            default:
+                                // A string with a context is looked up as "context\004string",
+                                // the same key gettext uses for msgctxt entries.
+                                hashValue = djb::hash(hasContext ? context + '\004' + currentString : currentString);
+                                hasContext = false;
                                 break;
                         }
                         currentString = "";
@@ -250,19 +281,26 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
                     token += c;
                     switch (state) {
                         case WAITING_MSGIDTOKEN:
+                            if (token == "msgid") {
+                                token = "";
+                                state = WAITING_MSGID;
+                            } else if (token == "msgctxt") {
+                                token = "";
+                                state = WAITING_MSGCTXT;
+                            } else if (token.length() >= 7) {
+                                return false;
+                            }
+                            break;
+                        case WAITING_MSGIDTOKEN_AFTER_CTXT:
                             if (token.length() == 5) {
-                                if (token != "msgid") {
-                                    return false;
-                                }
+                                if (token != "msgid") return false;
                                 token = "";
                                 state = WAITING_MSGID;
                             }
                             break;
-                        case WAITING_MSGSTRTOKEN:
+                        default:
                             if (token.length() == 6) {
-                                if (token != "msgstr") {
-                                    return false;
-                                }
+                                if (token != "msgstr") return false;
                                 token = "";
                                 state = WAITING_MSGSTR;
                             }
@@ -275,7 +313,7 @@ bool PCSX::System::loadLocale(const std::string& name, const std::filesystem::pa
 
     if (inString || (state != WAITING_MSGIDTOKEN)) return false;
 
-    if (!currentString.empty() && !fuzzy) locale[hashValue] = currentString;
+    if (!currentString.empty() && !entryFuzzy) locale[hashValue] = currentString;
     m_locales[name] = locale;
     return true;
 }

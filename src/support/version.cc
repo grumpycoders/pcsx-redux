@@ -27,9 +27,9 @@ SOFTWARE.
 // v1 wasm has no updater; version-wasm.cc supplies the stubs.
 #ifndef __EMSCRIPTEN__
 
-#include <uv.h>
-
 #include "support/version.h"
+
+#include <uv.h>
 
 #include "support/uvfile.h"
 

@@ -43,6 +43,13 @@ class impl final : public GPU, private SoftRenderer {
         clearVRAM();
         m_display.reset();
     }
+    void vramConfigChanged() override {
+        // The upper bank is only drawable when a 2MB bank is physically fitted
+        // and the gate is open; otherwise the renderer stays bounded to the
+        // retail 512 rows (gate-closed mirrors and 1MB open-bus are handled by
+        // resolveVramY / the open-bus prefill, not by drawing into row 512+).
+        m_vramHeight = (vram2MBFitted() && vram2MBGateOpen()) ? (VRAM_HEIGHT * 2) : VRAM_HEIGHT;
+    }
     // The RESOLVED texture, not the raw one. The VRAM viewer takes whatever
     // this returns from either backend, and the OpenGL backend hands it a
     // GL_RGBA8 - so a caller cannot know which format it is holding, and the
@@ -73,9 +80,9 @@ class impl final : public GPU, private SoftRenderer {
     Slice getVRAM(Ownership ownership) override {
         Slice ret;
         if (ownership == Ownership::BORROW) {
-            ret.borrow(m_vram16, 1024 * 512 * 2);
+            ret.borrow(m_vram16, 1024 * 1024 * 2);
         } else {
-            ret.copy(m_vram16, 1024 * 512 * 2);
+            ret.copy(m_vram16, 1024 * 1024 * 2);
         }
         return ret;
     }

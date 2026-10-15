@@ -83,10 +83,26 @@ typedef struct {
 
 LuaScreenShot takeScreenShot();
 double getGuestFPS();
+void startGPUDump(LuaFile*);
+void stopGPUDump();
+bool isGPUDumpArmed();
+bool isGPUDumpRecording();
+uint64_t getGPUDumpFrames();
+bool loadGPUDumpPlayer(LuaFile*);
+void unloadGPUDumpPlayer();
+bool stepGPUDumpPlayer();
+void rewindGPUDumpPlayer();
+uint64_t getGPUDumpPlayerFrame();
+LuaSlice* getGPUDumpPlayerVRAM();
+LuaSlice* getVRAM();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
+
+void createRewindState();
+bool rewindState();
+uint32_t getRewindStateCount();
 
 LuaFile* getMemoryAsFile();
 
@@ -208,6 +224,32 @@ PCSX = {
             }
         end,
         getGuestFPS = function() return C.getGuestFPS() end,
+        getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
+        startDump = function(file)
+            if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
+            if type(file) ~= 'table' or file._type ~= 'File' then
+                error('startDump: requires a File or a filename')
+            end
+            C.startGPUDump(file._wrapper)
+        end,
+        stopDump = function() C.stopGPUDump() end,
+        isDumpArmed = function() return C.isGPUDumpArmed() end,
+        isDumping = function() return C.isGPUDumpRecording() end,
+        getDumpFrames = function() return tonumber(C.getGPUDumpFrames()) end,
+        DumpPlayer = {
+            load = function(file)
+                if type(file) == 'string' then file = Support.File.open(file) end
+                if type(file) ~= 'table' or file._type ~= 'File' then
+                    error('load: requires a File or a filename')
+                end
+                return C.loadGPUDumpPlayer(file._wrapper)
+            end,
+            unload = function() C.unloadGPUDumpPlayer() end,
+            step = function() return C.stepGPUDumpPlayer() end,
+            rewind = function() C.rewindGPUDumpPlayer() end,
+            getFrame = function() return tonumber(C.getGPUDumpPlayerFrame()) end,
+            getVRAM = function() return Support.File._createSliceWrapper(C.getGPUDumpPlayerVRAM()) end,
+        },
     },
     createSaveState = function()
         local slice = C.createSaveState()
@@ -224,6 +266,9 @@ PCSX = {
         end
     end,
     getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    createRewindState = function() C.createRewindState() end,
+    rewindState = function() return C.rewindState() end,
+    getRewindStateCount = function() return C.getRewindStateCount() end,
     quit = function(code) C.quit(code or 0) end,
 }
 

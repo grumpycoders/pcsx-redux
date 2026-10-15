@@ -45,7 +45,6 @@ typedef struct uv_loop_s uv_loop_t;
 
 namespace PCSX {
 
-
 class Update {
   public:
     bool downloadUpdateInfo(const VersionInfo&, std::function<void(bool)> callback, uv_loop_t* loop);

@@ -72,7 +72,7 @@ void PCSX::SoftGPU::impl::resolveVRAM() {
     const auto oldScissor = OpenGL::scissorEnabled();
 
     m_resolveFBO.bind(OpenGL::DrawAndReadFramebuffer);
-    glViewport(0, 0, 1024, 512);
+    glViewport(0, 0, 1024, 1024);
     glDisable(GL_BLEND);
     glDisable(GL_SCISSOR_TEST);
     glUseProgram(m_resolveProgram.handle());
@@ -100,10 +100,10 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
         auto offset = (m_softDisplay.DisplayPosition.x * 2) % 3;
         textureID = m_vramTexture24;
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 1024, GL_RGB, GL_UNSIGNED_BYTE, m_vram + offset);
     } else {
         glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RED_INTEGER, GL_UNSIGNED_SHORT, m_vram16);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RED_INTEGER, GL_UNSIGNED_SHORT, m_vram16);
         // What leaves here is RGBA8, not the raw words, so every downstream
         // consumer - the user's offscreen shader, CRT-Lottes, the 24bpp path
         // above - is unchanged by the storage format underneath.
@@ -113,16 +113,19 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
 
     float xRatio = m_softDisplay.RGB24 ? ((1.0f / 1.5f) * (1.0f / 1024.0f)) : (1.0f / 1024.0f);
 
+    // The VRAM textures are a full 1024x1024 so the display (and the VRAM
+    // viewer) can address a framebuffer anywhere in VRAM, including the upper
+    // bank; normalize the display Y over the full height accordingly.
     float startX = m_softDisplay.DisplayPosition.x * xRatio;
-    float startY = m_softDisplay.DisplayPosition.y / 512.0f;
+    float startY = m_softDisplay.DisplayPosition.y / 1024.0f;
     float width = (m_softDisplay.DisplayEnd.x - m_softDisplay.DisplayPosition.x) / 1024.0f;
-    float height = (m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y) / 512.0f;
+    float height = (m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y) / 1024.0f;
 
     // Temporary workaround until we make our Display struct work with the sw backend
     // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
     if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
         width -= 1.f / 1024.f;
-        height -= 1.f / 512.f;
+        height -= 1.f / 1024.f;
     }
 
     gui->m_offscreenShaderEditor.render(gui, textureID, {startX, startY}, {width, height}, gui->getRenderSize());
@@ -130,13 +133,23 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
 }
 
 void PCSX::SoftGPU::impl::clearVRAM() {
+    // VRAM contents must be identical whether or not a GUI is attached, so the
+    // memset and the open-bus prefill run unconditionally; only the GL texture
+    // mirror below depends on the GUI.
+    std::memset(m_allocatedVRAM, 0x00, 1024 * 1024 * 2 + (1024 * 1024));
+
+    // Under 1MB fitment the upper bank must stay at the open-bus 0xFFFF value,
+    // so restore the prefill here too, matching the one-time fill in
+    // initBackend().
+    if (!vram2MBFitted()) {
+        for (size_t i = 512u * 1024u; i < 1024u * 1024u; i++) m_vram16[i] = kVramOpenBusValue;
+    }
+
     GUI *gui = dynamic_cast<GUI *>(m_ui);
     if (!gui) return;
     const auto oldTex = OpenGL::getTex2D();
-    std::memset(m_allocatedVRAM, 0x00, (VRAM_HEIGHT * 2) * 1024 + (1024 * 1024));
-
     glBindTexture(GL_TEXTURE_2D, m_vramTexture16);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RED_INTEGER, GL_UNSIGNED_SHORT, m_allocatedVRAM);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RED_INTEGER, GL_UNSIGNED_SHORT, m_vram16);
     glBindTexture(GL_TEXTURE_2D, oldTex);
 }
 
@@ -173,7 +186,7 @@ void PCSX::SoftGPU::impl::initDisplay() {
     if (!gui) return;
     glGenTextures(1, &m_vramTexture24);
     glBindTexture(GL_TEXTURE_2D, m_vramTexture24);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -187,16 +200,16 @@ void PCSX::SoftGPU::impl::initDisplay() {
     // _REV puts red in the low bits, matching the PS1's X1B5G5R5 word, while
     // 5_5_5_1 puts it in the high bits. Handing the shader the untouched word
     // and unpacking there is exact on every platform and needs no swizzle.
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, 1024, 512, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, 1024, 1024, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // The resolve target. RGBA8 because that is what every downstream consumer
-    // is built to sample, and 1024x512 so that every UV the display code
+    // is built to sample, and 1024x1024 so that every UV the display code
     // computes against VRAM dimensions stays valid without a single change.
-    m_vramTextureResolved.create(1024, 512, GL_RGBA8);
+    m_vramTextureResolved.create(1024, 1024, GL_RGBA8);
     m_vramTextureResolved.bind();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
