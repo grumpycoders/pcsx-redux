@@ -1014,7 +1014,7 @@ void PCSX::GUI::startFrame() {
                 break;
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
-                const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
+                const int action = event.type == SDL_EVENT_KEY_UP ? 0 : event.key.repeat ? 2 : 1;
                 g_system->m_eventBus->signal(Events::Keyboard{static_cast<int>(event.key.key),
                                                               static_cast<int>(event.key.scancode), action,
                                                               static_cast<int>(event.key.mod)});
