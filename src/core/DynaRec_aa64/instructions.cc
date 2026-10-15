@@ -322,7 +322,7 @@ void DynaRecCPU::recBCz(uint32_t code) {
     loadThisPointer(arg1.X());
     gen.Mov(arg2, (static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28));
     gen.Mov(arg3, (int32_t)m_inDelaySlot);
-    gen.Mov(w3, m_pc - 4);
+    gen.Mov(w3, exceptionPC());
     gen.Str(w3, MemOperand(contextPointer, PC_OFFSET));
     call(exceptionWrapper);
     gen.Ldr(x0, MemOperand(contextPointer, CYCLE_OFFSET));
@@ -919,10 +919,10 @@ void DynaRecCPU::testSoftwareInterrupt() {
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.X());
-    gen.Mov(arg3, (int32_t)m_inDelaySlot);               // Store whether we're in a delay slot in arg3
-    gen.Mov(pc, m_pc - 4);                               // PC for exception handler to use
-    gen.Str(pc, MemOperand(contextPointer, PC_OFFSET));  // Store the PC
-    call(exceptionWrapper);                              // Call the exception wrapper function
+    // The interrupt is taken before the next instruction in execution order, which is the PC written back above, and
+    // BD is clear: in a delay slot, the slot completes first and EPC is the branch target.
+    gen.Mov(arg3, 0);
+    call(exceptionWrapper);  // Call the exception wrapper function
 
     gen.L(label);  // Execution will jump here if interrupts not enabled
 }
@@ -1697,7 +1697,7 @@ void DynaRecCPU::recException(Exception e) {
     loadThisPointer(arg1.X());                                                  // Pointer to this object in arg1
     gen.Mov(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Exception type in arg2
     gen.Mov(arg3, (int32_t)m_inDelaySlot);  // Store whether we're in a delay slot in arg3
-    gen.Mov(w3, m_pc - 4);
+    gen.Mov(w3, exceptionPC());
     gen.Str(w3, MemOperand(contextPointer, PC_OFFSET));  // PC for exception handler to use
 
     call(exceptionWrapper);  // Call the exception wrapper
