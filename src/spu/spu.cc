@@ -563,7 +563,7 @@ void PCSX::SPU::impl::MainThread() {
         m_mixPos += n;
         publishProgress();
 
-        const size_t buffered = (((uint8_t*)pS) - ((uint8_t*)spuBuffer)) / sizeof(SDLAudio::Frame);
+        const size_t buffered = (reinterpret_cast<uint8_t*>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
         if (buffered >= NSSIZE && !flushOutput()) break;
     }
 
@@ -571,7 +571,7 @@ void PCSX::SPU::impl::MainThread() {
 }
 
 bool PCSX::SPU::impl::flushOutput() {
-    const size_t frames = (((uint8_t*)pS) - ((uint8_t*)spuBuffer)) / sizeof(SDLAudio::Frame);
+    const size_t frames = (reinterpret_cast<uint8_t*>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
     if (frames == 0) return true;
     // When the host emulates a stretch slower than realtime, the device plays silence until the
     // CPU catches up, and the CPU then runs the same lead ahead of the device as before: what was
