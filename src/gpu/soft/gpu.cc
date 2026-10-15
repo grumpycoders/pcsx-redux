@@ -47,13 +47,30 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
     m_doVSyncUpdate = true;
     initDisplay();
 
-    // always alloc one extra MB for soft drawing funcs security
-    m_allocatedVRAM = new uint8_t[(VRAM_HEIGHT * 2) * 1024 + (1024 * 1024)]();
+    // VRAM is always allocated at the full 2MB (1024x1024) size; the bank gate
+    // and fitment decide addressing semantics, not physical size. The extra 1MB
+    // is a security guard for soft drawing-func overruns.
+    m_allocatedVRAM = new uint8_t[1024 * 1024 * 2 + (1024 * 1024)]();
     if (!m_allocatedVRAM) return -1;
 
     //!!! ATTENTION !!!
     m_vram = m_allocatedVRAM + 512 * 1024;  // security offset into double sized psx vram!
     m_vram16 = (uint16_t *)m_vram;
+
+    // 1MB-fitment open-bus model: on a retail board the upper 1MB chip is
+    // unpopulated, so an opened upper bank (GP1(09h).1 on 1MB) reads back the
+    // floating bus - measured constant 0xFFFF, data-independent. Prefill the
+    // upper half (Y >= 512) with that value so reads need NO per-access branch
+    // on the hot path (scanout + texture sampling just read the buffer);
+    // upper-bank writes are dropped by the vramOpenBus() guards, keeping the
+    // region pristine. Under 2MB fitment the upper bank is real RAM (left
+    // zeroed by the allocation above).
+    if (!vram2MBFitted()) {
+        for (size_t i = 512u * 1024u; i < 1024u * 1024u; i++) m_vram16[i] = kVramOpenBusValue;
+    }
+
+    // Set the renderer's effective drawable height from the current fitment/gate.
+    vramConfigChanged();
 
     m_softDisplay.RGB24 = false;  // init some stuff
     m_softDisplay.Interlaced = false;
@@ -144,10 +161,11 @@ void PCSX::SoftGPU::impl::changeDispOffsetsX() {
 void PCSX::SoftGPU::impl::changeDispOffsetsY() {
     int iT, iO = m_previousDisplay.Range.y0;
     int iOldYOffset = m_previousDisplay.DisplayModeNew.y;
+    const int scanoutHeight = vram2MBGateOpen() ? VRAM_HEIGHT * 2 : VRAM_HEIGHT;
 
-    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > VRAM_HEIGHT) {
-        int dy1 = VRAM_HEIGHT - m_previousDisplay.DisplayModeNew.x;
-        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - VRAM_HEIGHT;
+    if ((m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) > scanoutHeight) {
+        int dy1 = scanoutHeight - m_previousDisplay.DisplayModeNew.x;
+        int dy2 = (m_previousDisplay.DisplayModeNew.x + m_softDisplay.DisplayModeNew.y) - scanoutHeight;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;
@@ -584,17 +602,25 @@ void PCSX::SoftGPU::impl::write0(BlitVramVram *prim) {
     imageSX = prim->w;
     imageSY = prim->h;
 
-    if ((imageX0 == imageX1) && (imageY0 == imageY1)) return;
+    // An in-place copy still rewrites every pixel, so it is only a no-op without set-mask.
+    if ((imageX0 == imageX1) && (imageY0 == imageY1) && !getSetMask16()) return;
     if (imageSX <= 0) return;
     if (imageSY <= 0) return;
 
+    // The copy honours the GP0(E6h) mask settings, per halfword. The masked case takes
+    // this per-pixel path, which walks in the same order as the fast paths below.
     if ((imageY0 + imageSY) > VRAM_HEIGHT || (imageX0 + imageSX) > 1024 || (imageY1 + imageSY) > VRAM_HEIGHT ||
-        (imageX1 + imageSX) > 1024) {
+        (imageX1 + imageSX) > 1024 || getCheckMask() || getSetMask16()) {
         int i, j;
         for (j = 0; j < imageSY; j++) {
+            // Drop rows written to an opened-but-unpopulated upper bank (1MB
+            // fitment): the destination floats and the write is lost. Source
+            // reads from such a region just return the prefilled 0xFFFF.
+            if (vramOpenBus(imageY1 + j)) continue;
             for (i = 0; i < imageSX; i++) {
-                m_vram16[(1024 * ((imageY1 + j) & VRAM_Y_MASK)) + ((imageX1 + i) & VRAM_X_MASK)] =
-                    m_vram16[(1024 * ((imageY0 + j) & VRAM_Y_MASK)) + ((imageX0 + i) & VRAM_X_MASK)];
+                uint16_t &dst = m_vram16[(1024 * resolveVramY(imageY1 + j)) + ((imageX1 + i) & VRAM_X_MASK)];
+                if (getCheckMask() && (dst & 0x8000)) continue;
+                dst = m_vram16[(1024 * resolveVramY(imageY0 + j)) + ((imageX0 + i) & VRAM_X_MASK)] | getSetMask16();
             }
         }
 
@@ -663,8 +689,8 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     char *pixels = reinterpret_cast<char *>(malloc(size));
     ss.data.acquire(pixels, size);
     if (m_softDisplay.RGB24) {
-        auto ptr = m_allocatedVRAM;
-        ptr += startX * 3 + startY * 1024 * 2;
+        auto ptr = m_vram;
+        ptr += startX * 2 + startY * 1024 * 2;
         for (int i = 0; i < height; i++) {
             std::memcpy(pixels, ptr, width * 3);
             ptr += 1024 * 2;
@@ -684,6 +710,7 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
+    m_display.reset();
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
     m_softDisplay.DrawOffset.x = m_softDisplay.DrawOffset.y = 0;
@@ -713,7 +740,13 @@ void PCSX::SoftGPU::impl::write1(CtrlDmaSetting *ctrl) {
     m_statusRet |= magic_enum::enum_integer(ctrl->dma) << 29;
 }
 
-void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
+void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *raw) {
+    // The decoded Y keeps the upper-bank bit; with the gate closed it folds
+    // into the lower 512 rows like any other VRAM access.
+    CtrlDisplayStart resolved = *raw;
+    resolved.y = resolveVramY(raw->y);
+    auto ctrl = &resolved;
+    m_display.set(ctrl);
     m_previousDisplay.DisplayPosition.x = m_softDisplay.DisplayPosition.x;
     m_previousDisplay.DisplayPosition.y = m_softDisplay.DisplayPosition.y;
 
@@ -723,9 +756,10 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
     // store the same val in some helper var, we need it on later compares
     m_previousDisplay.DisplayModeNew.x = m_softDisplay.DisplayPosition.y;
 
-    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > VRAM_HEIGHT) {
-        int dy1 = VRAM_HEIGHT - m_softDisplay.DisplayPosition.y;
-        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - VRAM_HEIGHT;
+    const int scanoutHeight = vram2MBGateOpen() ? VRAM_HEIGHT * 2 : VRAM_HEIGHT;
+    if ((m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) > scanoutHeight) {
+        int dy1 = scanoutHeight - m_softDisplay.DisplayPosition.y;
+        int dy2 = (m_softDisplay.DisplayPosition.y + m_softDisplay.DisplayMode.y) - scanoutHeight;
 
         if (dy1 >= dy2) {
             m_previousDisplay.DisplayModeNew.y = -dy2;
@@ -750,6 +784,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayStart *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.x0 = ctrl->x0;
     m_softDisplay.Range.x1 = ctrl->x1;
     m_softDisplay.Range.x1 -= m_softDisplay.Range.x0;
@@ -757,6 +792,7 @@ void PCSX::SoftGPU::impl::write1(CtrlHorizontalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
+    m_display.set(ctrl);
     m_softDisplay.Range.y0 = ctrl->y0;
     m_softDisplay.Range.y1 = ctrl->y1;
 
@@ -774,6 +810,8 @@ void PCSX::SoftGPU::impl::write1(CtrlVerticalDisplayRange *ctrl) {
 }
 
 void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
+    // Display::set also switches the PAL/NTSC setting, which a detached GPU must not touch.
+    if (!isDetached()) m_display.set(ctrl);
     m_softDisplay.DisplayModeNew.x = s_displayWidths[magic_enum::enum_integer(ctrl->hres)];
 
     if (ctrl->vres == CtrlDisplayMode::VR_480) {
@@ -790,7 +828,7 @@ void PCSX::SoftGPU::impl::write1(CtrlDisplayMode *ctrl) {
     m_softDisplay.RGB24New = ctrl->depth == CtrlDisplayMode::CD_24BITS;
     m_softDisplay.InterlacedNew = ctrl->interlace;
 
-    if (g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
+    if (!isDetached() && g_emulator->settings.get<PCSX::Emulator::SettingAutoVideo>()) {
         if (m_softDisplay.PAL) {
             g_emulator->settings.get<Emulator::SettingVideo>() = Emulator::PSX_TYPE_PAL;
         } else {

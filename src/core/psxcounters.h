@@ -31,7 +31,10 @@ class Counters {
   private:
     static inline void setIrq(uint32_t irq) { g_emulator->m_mem->setIRQ(irq); }
     uint32_t readCounterInternal(uint32_t index);
-    void writeCounterInternal(uint32_t index, uint32_t value);
+    void writeCounterInternal(uint32_t index, uint32_t value, int64_t startAdjust = 0);
+    // Cycles a counter sits at 0 after a reset on target before counting again. Measured as 2 on
+    // the system clock for Timer 2 (period target + 2); 0 on sysclock/8. Timers 0 and 1 unmeasured.
+    uint32_t resetDwell(uint32_t index) const { return (index == 2 && m_rcnts[index].rate == 1) ? 2 : 0; }
 
     void set();
     void reset(uint32_t index);
@@ -42,7 +45,7 @@ class Counters {
         uint16_t mode, target;
         uint32_t rate, irq, counterState, irqState;
         uint64_t cycle, cycleStart;
-        uint32_t gateStarted;   // Gate mode 3: first blank has occurred, counter is free running
+        uint32_t gateStarted;  // Gate mode 3: first blank has occurred, counter is free running
     };
 
     // Gate mode helpers - derived from mode register, not stored
@@ -79,7 +82,6 @@ class Counters {
 
     static inline const uint32_t FrameRate[] = {60, 50};
     static inline const uint32_t VBlankStart[] = {243, 256};
-    static inline const uint32_t SpuUpdInterval[] = {23, 22};
 
     static const uint16_t JITTER_FLAGS = (Rc2OneEighthClock | RcIrqRegenerate | RcCountToTarget);
 
@@ -87,7 +89,8 @@ class Counters {
 
     uint32_t m_hSyncCount = 0;
     uint32_t m_audioFrames = 0;
-    int32_t m_spuSyncCountdown = 0;
+    // How far the CPU may trail the audio clock, in 44.1kHz frames (250ms).
+    static constexpr int32_t kMaxAudioLagFrames = 44100 / 4;
 
     uint32_t m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL + 1];  // 2
   public:

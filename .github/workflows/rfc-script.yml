@@ -1,0 +1,14 @@
+name: RFC script
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/rfc*'
+      - '.github/rfc-stakeholders'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test .github/scripts/rfc.test.js

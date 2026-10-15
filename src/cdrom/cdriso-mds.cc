@@ -30,7 +30,7 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
 
     // copy name of the iso and change extension from .mdf to .mds
     mdsname = isofile;
-    isofile.replace_extension("mds");
+    mdsname.replace_extension("mds");
 
     IO<File> fi(new UvFile(mdsname));
     if (fi->failed()) return false;
@@ -48,6 +48,21 @@ bool PCSX::CDRIso::parsemds(const char *isofileString) {
         // not an valid mds file
         return false;
     }
+
+    // if we were given the .mds itself, the sectors are in the .mdf
+    if (isofile == mdsname) {
+        std::filesystem::path mdfname = isofile;
+        mdfname.replace_extension("mdf");
+        IO<File> mdf(new UvFile(mdfname));
+        if (mdf->failed()) return false;
+        if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {
+            mdf.asA<UvFile>()->startCaching();
+        }
+        m_cdHandle = mdf;
+    }
+    // readCDDA reads tracks through m_ti[1].handle, and CDRIso::open only fills
+    // it in for multi-track images, so set it here for single-track ones too.
+    m_ti[1].handle = m_cdHandle;
 
     // get offset to session block
     fi->rSeek(0x50, SEEK_SET);

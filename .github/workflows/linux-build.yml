@@ -27,19 +27,22 @@ jobs:
             secret: APPDISTRIB_DEV_LINUX_ARM64
     runs-on: ${{ matrix.runner }}
     container:
-      image: ghcr.io/grumpycoders/pcsx-redux-build:latest
+      image: ghcr.io/grumpycoders/pcsx-redux-build:noble
       options: --device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor:unconfined
       env:
         TEST_RESULTS: /tmp/test-results
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       - run: |
-          make -j 2 all pcsx-redux-tests tools
+          # The noble image's g++ is newer than 24.04's libstdc++, so link it
+          # statically or the AppImage won't start on the systems it targets.
+          make -j 2 all pcsx-redux-tests tools LDFLAGS_Release="-static-libstdc++ -static-libgcc"
           make -C src/mips/tests -j 2 PCSX_TESTS=true
-          make -C src/mips/openbios -j 2 clean all
+          make -C src/mips/openbios -j 2 all
       - name: Install node
         uses: actions/setup-node@v4
         with:
@@ -63,20 +66,41 @@ jobs:
           echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
           echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
           echo '  "timestamp": '`date '+%s'`',' >> version.json
-          echo '  "channel": "dev",' >> version.json
-          echo '  "updateInfo": [' >> version.json
-          echo '    {' >> version.json
-          echo '      "channel": "dev",' >> version.json
-          echo '      "method": "appdistrib",' >> version.json
-          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest.json",' >> version.json
-          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/",' >> version.json
-          echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
-          echo '    }' >> version.json
-          echo '  ]' >> version.json
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            # PR test builds carry no update info, so they never offer to replace themselves with dev.
+            echo '  "channel": "pr",' >> version.json
+            echo '  "updateInfo": []' >> version.json
+          else
+            echo '  "channel": "dev",' >> version.json
+            echo '  "updateInfo": [' >> version.json
+            echo '    {' >> version.json
+            echo '      "channel": "dev",' >> version.json
+            echo '      "method": "appdistrib",' >> version.json
+            echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest.json",' >> version.json
+            echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/",' >> version.json
+            echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
+            echo '    }' >> version.json
+            echo '  ]' >> version.json
+          fi
           echo '}' >> version.json
           cp version.json AppDir/usr/share/pcsx-redux/resources
           linuxdeploy -v 3 --appdir=AppDir -e AppDir/usr/bin/pcsx-redux -d AppDir/usr/share/applications/pcsx-redux.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/pcsx-redux.png -o appimage
           mv PCSX-Redux-${{ matrix.arch }}.AppImage PCSX-Redux-HEAD-${{ matrix.arch }}.AppImage
+      - name: Upload PR build
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppImage-linux-${{ matrix.arch }}
+          path: PCSX-Redux-HEAD-${{ matrix.arch }}.AppImage
+          retention-days: 7
+      - run: |
+          cp src/mips/openbios/openbios.bin .
+          make -C src/mips/openbios clean
+          make -C src/mips/tests -j 2 PCSX_TESTS=true
+          cp ./openbios.bin src/mips/openbios/
+      - run: |
+          make -C src/mips/monitor/hosts/retail -j 2
+          xvfb-run catchsegv ./pcsx-redux -stdout -lua_stdout -testmode -no-gui-logs -exec "dofile 'src/mips/tests/cdrom/create-test-iso.lua'"
       - name: Test
         run: |
           export GTEST_OUTPUT=xml:${TEST_RESULTS}/

@@ -37,15 +37,15 @@ static uint32_t getValueAboutToWrite(PCSX::R3000Acpu& cpu) {
 static const char* getBreakpointConditionName(PCSX::Debug::BreakpointCondition condition) {
     switch (condition) {
         case PCSX::Debug::BreakpointCondition::Always:
-            return _("Always");
+            return C_("Breakpoint condition", "Always");
         case PCSX::Debug::BreakpointCondition::Greater:
-            return _("Greater");
+            return C_("Breakpoint condition", "Greater");
         case PCSX::Debug::BreakpointCondition::Less:
-            return _("Less");
+            return C_("Breakpoint condition", "Less");
         case PCSX::Debug::BreakpointCondition::Change:
-            return _("Change");
+            return C_("Breakpoint condition", "Change");
         case PCSX::Debug::BreakpointCondition::Equal:
-            return _("Equal");
+            return C_("Breakpoint condition", "Equal");
     }
     return _("Unknown");
 }
@@ -192,9 +192,9 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
         static int range = 8;
         static int width = 1;
         if (m_breakpointType != (int)Debug::BreakpointType::Exec) {
-            ImGui::RadioButton(_("Byte"), &width, 1);
-            ImGui::RadioButton(_("Half"), &width, 2);
-            ImGui::RadioButton(_("Word"), &width, 4);
+            ImGui::RadioButton(C_("Memory access width", "Byte"), &width, 1);
+            ImGui::RadioButton(C_("Memory access width", "Half"), &width, 2);
+            ImGui::RadioButton(C_("Memory access width", "Word"), &width, 4);
             ImGui::RadioButton(_("Range"), &width, 0);
 
             if (width == 0) {
@@ -388,28 +388,38 @@ void PCSX::Widgets::Breakpoints::draw(const char* title) {
             _("The mapping feature is a simple concept, but requires some amount of explanation. See the documentation "
               "website for more details, in the Misc Features subsection of the Debugging section."));
         ImGui::Checkbox(_("Map execution"), &debugger->m_mapping_e);
-        ImGui::Checkbox(_("Map byte reads         "), &debugger->m_mapping_r8);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Map half reads         "), &debugger->m_mapping_r16);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Map word reads         "), &debugger->m_mapping_r32);
-        ImGui::Checkbox(_("Map byte writes        "), &debugger->m_mapping_w8);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Map half writes        "), &debugger->m_mapping_w16);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Map word writes        "), &debugger->m_mapping_w32);
+        if (ImGui::BeginTable("MapFlags", 3, ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map byte reads"), &debugger->m_mapping_r8);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map half reads"), &debugger->m_mapping_r16);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map word reads"), &debugger->m_mapping_r32);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map byte writes"), &debugger->m_mapping_w8);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map half writes"), &debugger->m_mapping_w16);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Map word writes"), &debugger->m_mapping_w32);
+            ImGui::EndTable();
+        }
         ImGui::Separator();
         ImGui::Checkbox(_("Break on execution map"), &debugger->m_breakmp_e);
-        ImGui::Checkbox(_("Break on byte read map "), &debugger->m_breakmp_r8);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Break on half read map "), &debugger->m_breakmp_r16);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Break on word read map "), &debugger->m_breakmp_r32);
-        ImGui::Checkbox(_("Break on byte write map"), &debugger->m_breakmp_w8);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Break on half write map"), &debugger->m_breakmp_w16);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Break on word write map"), &debugger->m_breakmp_w32);
+        if (ImGui::BeginTable("BreakFlags", 3, ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on byte read map"), &debugger->m_breakmp_r8);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on half read map"), &debugger->m_breakmp_r16);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on word read map"), &debugger->m_breakmp_r32);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on byte write map"), &debugger->m_breakmp_w8);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on half write map"), &debugger->m_breakmp_w16);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox(_("Break on word write map"), &debugger->m_breakmp_w32);
+            ImGui::EndTable();
+        }
         ImGui::TreePop();
     }
 

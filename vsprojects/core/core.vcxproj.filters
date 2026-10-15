@@ -4,6 +4,9 @@
     <ClCompile Include="..\..\src\core\callstacks.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\shmdisplay.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\cdrom.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -126,6 +129,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
       <Filter>Source Files\OpenGL GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\cputrace.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\gpudump.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\gpulogger.cc">
       <Filter>Source Files</Filter>
@@ -264,6 +273,9 @@
     <ClInclude Include="..\..\src\core\callstacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\shmdisplay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\sio1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -293,6 +305,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
       <Filter>Header Files\OpenGL GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\cputrace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\gpudump.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gpulogger.h">
       <Filter>Header Files</Filter>

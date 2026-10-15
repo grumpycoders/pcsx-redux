@@ -21,6 +21,9 @@
 
 #include <stdint.h>
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 
 #include "core/decode_xa.h"
@@ -28,6 +31,8 @@
 #include "core/sstate.h"
 #include "json.hpp"
 #include "spu/adsr.h"
+#include "spu/noise.h"
+#include "spu/reverb.h"
 #include "spu/sdlaudio.h"
 #include "spu/types.h"
 #include "support/settings.h"
@@ -36,16 +41,42 @@ namespace PCSX {
 
 namespace SPU {
 
+// Compile-time mode axes for the per-voice synthesis loop. Both are per-voice
+// mode flags set by register writes. They are resolved into template arguments
+// ONCE, at the top of each mixed chunk. The mixer splits its chunks at every
+// queued register write, so a write to either flag still takes effect at the
+// sample it was stamped with.
+//
+// FModRole - this voice's part in frequency modulation. The values match the
+//   Chan::FMod encoding, which registers.cc writes in PAIRS: setting the
+//   pitch-mod bit for voice N makes N the Target and N-1 the Source. Hoisting
+//   this hoists the ROLE only; the modulation data itself (fmodInput[ns]) stays
+//   per-sample.
+enum class FModRole { None = 0, Target = 1, Source = 2 };
+
+// SampleSource - where the pre-envelope sample comes from. Note that a Noise
+//   voice still runs the ADPCM decode loop: the decoded samples are discarded,
+//   but the cursor advance, the IRQ address check and the ENDX latch all hang
+//   off it.
+enum class SampleSource { Adpcm, Noise };
+
+// Two further per-voice flags were considered as axes and deliberately left as
+// runtime branches. Chan::Mute/Chan::Solo are the debugger's mute, not
+// something a game drives, and Chan::RVBActive gates a single call; each guards
+// one statement, so templating them would double the instantiation matrix twice
+// over to remove a pair of well-predicted compares. Adding either is a code-size
+// decision, not a correctness one - the same call polys.cc records for its ABR
+// axis.
+
 class impl final : public SPUInterface {
   public:
     using json = nlohmann::json;
     bool open() final;
-    // SPU Functions
+    // SPU functions.
     long init(void) final;
     long shutdown(void) final;
     long close(void) final;
     void wipeChannels();
-    // void playSample(uint8_t);
     void writeRegister(uint32_t, uint16_t) final;
     uint16_t readRegister(uint32_t) final;
     void lockSPURAM() final;
@@ -54,21 +85,29 @@ class impl final : public SPUInterface {
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;
     virtual void playADPCMchannel(xa_decode_t *) final;
+    void setXAVolume(const uint8_t atv[4]) final {
+        for (unsigned i = 0; i < 4; i++) xaAtv[i] = atv[i];
+    }
 
     void save(SaveStates::SPU &) final;
     void load(const SaveStates::SPU &) final;
 
     virtual void setLua(Lua L) override;
 
-    void async(uint32_t) final;
     void playCDDAchannel(int16_t *, int) final;
     void registerCDDAVolume(void (*CDDAVcallback)(uint16_t, uint16_t));
 
-    // num of channels
+    // Number of channels.
     static const size_t MAXCHAN = 24;
-    // number of characters for a channel tag
+
+    // The per-voice capture mirrors are 0x200 samples each and the write pointer
+    // wraps every 0x200; SPUSTAT bit 11 says which half it is in. Both the SPU
+    // thread's own advance and the SPUSTAT read-time reconstruction key off these.
+    static constexpr int kCaptureRegionSamples = 0x200;
+    static constexpr int kCaptureHalfMarker = kCaptureRegionSamples / 2;  // 0x100
+    // Number of characters for a channel tag.
     static constexpr unsigned CHANNEL_TAG = 32;
-    // number of samples for debugger wave plot
+    // Number of samples for the debugger wave plot.
     static const unsigned DEBUG_SAMPLES = 1024;
 
     uint32_t getFrameCount() override { return m_audioOut.getFrameCount(); }
@@ -85,6 +124,19 @@ class impl final : public SPUInterface {
     }
     uint32_t getCurrentFrames() override { return m_audioOut.getCurrentFrames(); }
     void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
+    // The mixer cannot run past the CPU, so the CPU has to run ahead of the audio device by at
+    // least one device period, or the device finds the ring short. On top of that: two NSSIZE
+    // batches, because the mixer waits for whole batches before mixing, and the user's latency
+    // margin for host jitter. Before the device has opened, assume a 1024-frame period.
+    uint32_t getLeadFrames() override {
+        const int marginMs = std::max(0, settings.get<LatencyMargin>().value);
+        return devicePeriodFrames() + 2 * NSSIZE + marginMs * 441 / 10;
+    }
+    uint32_t devicePeriodFrames() {
+        const uint32_t period = m_audioOut.getPeriodFrames();
+        return period ? period : 1024;
+    }
+    void advanceTo(uint64_t cycle) override { publishHorizon(cycle); }
 
   private:
     struct ADSRFlags {
@@ -94,7 +146,7 @@ class impl final : public SPUInterface {
             AttackStepMask = 0x300,    // 9-8 0..3 = "+7,+6,+5,+4"
             DecayShiftMask = 0xf0,     // 7-4 0..0Fh = Fast..Slow
             SustainLevelMask = 0xf,    // 3-0 0..0Fh  ;Level=(N+1)*800h
-            // Flags for upper 16-bits of reg, shifted right 16-bits
+            // Flags for the upper 16 bits of the register, shifted right by 16 bits.
             SustainMode = 1 << 15,       // 31 0=Linear, 1=Exponential
             SustainDirection = 1 << 14,  // 30  0=Increase, 1=Decrease (until Key OFF flag)
             SustainShiftMask = 0x1f00,   // 28-24 0..1Fh = Fast..Slow
@@ -128,82 +180,159 @@ class impl final : public SPUInterface {
             DMAWriteRequest = 1 << 8,  // 8 Data Transfer DMA Write Request (0=No, 1=Yes)
             DMAReadRequest = 1 << 9,   // 9 Data Transfer DMA Read Request (0=No, 1=Yes)
             DMABusy = 1 << 10,         // 10 Data Transfer Busy Flag (0=Ready, 1=Busy)
-            CBIndex = 11 << 11,        // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
+            CBIndex = 1 << 11,         // 11 Writing to First/Second half of Capture Buffers (0=First, 1=Second)
             // 15-12 Unknown/Unused (seems to be usually zero)
         };
     };
 
-    struct VolumeFlags {
-        enum : uint16_t {
-            VolumeMode = 1 << 15,      // 15 1=Sweep Mode
-            SweepMode = 1 << 14,       // 14 0=Linear, 1=Exponential
-            SweepDirection = 1 << 13,  // 13 0=Increase, 1=Decrease
-            SweepPhase = 1 << 12,      // 12 0=Positive, 1=Negative
-            Unknown = 0xf80,           // 7-11 Not used? (should be zero)
-            SweepShiftMask = 0x7c,     // 6-2 0..1Fh = Fast..Slow
-            SweepStepMask = 0x3        // 1-0 0..3 = "+7,+6,+5,+4" or "-8,-7,-6,-5") (inc/dec)
-
-        };
-    };
-
-    // sound buffer sizes
-    // 400 ms complete sound buffer
+    // Sound buffer sizes.
+    // 400 ms complete sound buffer.
     static const size_t SOUNDSIZE = 70560;
-    // 137 ms test buffer... if less than that is buffered, a new upload will happen
-    static const size_t TESTSIZE = 24192;
 
-    // ~ 1 ms of data
-    static const size_t NSSIZE = 45;
+    // Roughly 1 ms of data.
+    static constexpr size_t NSSIZE = 45;
 
-    // spu
+    // SPU.
     void MainThread();
+    // Mixes n (1..NSSIZE) samples starting at m_mixPos and appends them to the output buffer.
+    void mixChunk(int n);
+    // Reads the voice's two mode flags once and calls the matching
+    // synthesizeVoice instantiation. This is the only place the runtime flags
+    // are turned into compile-time axes.
+    void synthesizeChannel(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    template <FModRole Role, SampleSource Src>
+    void synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    // Decodes the next ADPCM block for a voice, together with the IRQ check and the
+    // loop/stop flag handling that hang off the block boundary. Returns false when the
+    // voice has run past the end of its sample and must stop being synthesized.
+    bool decodeNextBlock(int ch, SPUCHAN *voice);
+    void triggerIrq();
+    void walkSilentVoice(int ch, SPUCHAN* voice, int n);
+    void captureVoiceSilence(int ch, int32_t& capVoice1Index, int32_t& capVoice3Index, int fromSample, int n);
+    void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
+    // Hands the mixed frames to the audio device. Blocks while the device ring is full; returns
+    // false if the thread was asked to end while blocked.
+    bool flushOutput();
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
-    void StartSound(SPUCHAN *pChannel);
-    void VoiceChangeFrequency(SPUCHAN *pChannel);
-    void FModChangeFrequency(SPUCHAN *pChannel, int ns);
-    int iGetNoiseVal(SPUCHAN *pChannel);
-    void StoreInterpolationVal(SPUCHAN *pChannel, int fa);
-    int iGetInterpolationVal(SPUCHAN *pChannel);
-    void NoiseClock();
+    void StartSound(SPUCHAN *voice);
+    // Read-time reconstruction. A CPU read of ENVX or of SPUSTAT bit 11 asks what
+    // the SPU is doing at the reader's own cycle, which the mixer thread, running
+    // behind the CPU, may not have reached. Guests poll both, so waiting for the
+    // mixer on each read (catchUp) would cost a thread round trip per sample of
+    // polling. Both quantities are pure functions of elapsed samples, so evaluate
+    // them against the reader's cycle on the CPU side instead. The mixer keeps
+    // using its own live envelope.
+    uint16_t reconstructEnvelope(int ch, uint64_t cycle);
+    // Samples elapsed at a CPU cycle, on the hardware 768 cycles/sample ratio.
+    uint64_t cycleToSample(uint64_t cycle) const;
+    // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
+    void setPitchStep(SPUCHAN *voice, int32_t step);
+    void VoiceChangeFrequency(SPUCHAN *voice);
+    void FModChangeFrequency(SPUCHAN *voice, int ns);
 
-    // registers
-    void SoundOn(int start, int end, uint16_t val);
-    void SoundOff(int start, int end, uint16_t val);
-    void FModOn(int start, int end, uint16_t val);
+    // Emulated time.
+    //
+    // The mixer thread advances in emulated time, not in wall-clock time. The CPU thread
+    // publishes how far it has run (m_horizonCycle) and the mixer never mixes a sample the CPU
+    // has not reached. Every register write is stamped with the CPU cycle it happened at and
+    // queued; the mixer applies it at that sample, splitting its batch there. So the mixer
+    // always runs BEHIND the CPU, and a CPU read of anything the mixer owns (ENDX, SPU RAM,
+    // the latched repeat address) first waits for the mixer to reach the reader's cycle
+    // (catchUp). ENVX and SPUSTAT bit 11 are still reconstructed on the CPU side without
+    // waiting, because guests poll them.
+    //
+    // Sample index s is the s-th output sample since the clock started, produced at cycle
+    // s * 768. sampleAfter(c) is the first sample produced strictly after cycle c, which is
+    // both where a write at c takes effect and how far the mixer may run once the CPU is at c.
+    struct RegisterEvent {
+        uint64_t sample;
+        uint32_t reg;
+        uint16_t value;
+    };
+    static constexpr size_t kEventQueueSize = 16384;
+    static_assert((kEventQueueSize & (kEventQueueSize - 1)) == 0);
+    uint64_t sampleAfter(uint64_t cycle) const { return cycleToSample(cycle) + 1; }
+    // CPU thread. Lets the mixer run up to `cycle`. A jump backwards (reset) or far forwards
+    // re-bases the mixer clock instead.
+    void publishHorizon(uint64_t cycle);
+    // CPU thread. Returns once every sample up to `cycle` is mixed and every queued write
+    // applied. A no-op while the mixer thread is not running.
+    void catchUp(uint64_t cycle);
+    // CPU thread. Stops the mixer, applies whatever is queued, and restarts it at `cycle`.
+    void resync(uint64_t cycle);
+    void pushEvent(uint64_t cycle, uint32_t reg, uint16_t value);
+    // Applies every queued write regardless of its stamp. Only with the mixer stopped.
+    void drainEventsNow();
+    // Mixer thread.
+    void applyDueEvents();
+    void waitForWork();
+    void publishProgress();
+    // The mixer-side half of a register write: everything the voices and the mix see.
+    // writeRegister is the CPU-side half, which stamps and queues it.
+    void applyRegister(uint32_t reg, uint16_t val);
+    // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
+    void rebuildShadows();
+    uint16_t readCtrl();
+    void decodeAdsrLow(AdsrEnvelope& adsr, uint16_t val);
+    void decodeAdsrHigh(AdsrEnvelope& adsr, uint16_t val);
+
+    RegisterEvent m_events[kEventQueueSize];
+    std::atomic<uint64_t> m_eventsPushed = 0;   // written by the CPU thread only
+    std::atomic<uint64_t> m_eventsApplied = 0;  // written by the mixer thread only
+    std::atomic<uint64_t> m_horizonCycle = 0;   // written by the CPU thread only
+    std::atomic<uint64_t> m_mixedSamples = 0;   // written by the mixer thread only
+    uint64_t m_mixPos = 0;                      // mixer thread: samples [0, m_mixPos) are mixed
+    uint64_t m_lastHorizon = 0;                 // CPU thread
+    std::atomic<bool> m_mixerRunning = false;
+    std::atomic<bool> m_mixerWaiting = false;
+    std::atomic<bool> m_cpuWaiting = false;
+    std::mutex m_syncMutex;
+    std::condition_variable m_mixerWake;
+    std::condition_variable m_cpuWake;
+    // SPUCNT as last written by the CPU, which is what a CPU read returns. The mixer's spuCtrl
+    // may not have applied the write yet.
+    uint16_t m_ctrlShadow = 0;
+    // CTRL writes queued and not yet applied by the mixer. While any is, the mixer's SPUSTAT
+    // bit 6 may predate an acknowledge the CPU has already written.
+    std::atomic<uint32_t> m_ctrlWritesPending = 0;
+    // The ENVX walk runs on the CPU thread and needs the voice configuration as of the
+    // reader's cycle, which the mixer's copy may not have reached yet.
+    AdsrEnvelope m_adsrShadow[MAXCHAN];
+    uint16_t m_pitchShadow[MAXCHAN] = {};
+    uint8_t m_fmodShadow[MAXCHAN] = {};
+
+    // Registers. Each has a CPU-side half (bookkeeping for reads, the ENVX walk) and a
+    // mixer-side half (Apply), run when the queued write comes due.
+    void SoundOn(int start, int end, uint16_t val, uint64_t cycle);
+    void SoundOnApply(int start, int end, uint16_t val);
+    void SoundOff(int start, int end, uint16_t val, uint64_t cycle);
+    void SoundOffApply(int start, int end, uint16_t val);
+    void FModOn(int start, int end, uint16_t val, uint64_t cycle);
+    void FModOnApply(int start, int end, uint16_t val);
     void NoiseOn(int start, int end, uint16_t val);
-    void SetVolumeL(uint8_t ch, int16_t vol);
-    void SetVolumeR(uint8_t ch, int16_t vol);
-    void SetPitch(int ch, uint16_t val);
+    void SetPitch(int ch, uint16_t val, uint64_t cycle);
+    void SetPitchApply(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
-    // reverb
-    int g_buffer(int iOff);              // get_buffer content helper: takes care about wraps
-    void s_buffer(int iOff, int iVal);   // set_buffer content helper: takes care about wraps and clipping
-    void s_buffer1(int iOff, int iVal);  // set_buffer (+1 sample) content helper: takes care about wraps and clipping
-    void InitREVERB();
-    void SetREVERB(uint16_t val);
-    void StartREVERB(SPUCHAN *pChannel);
-    void StoreREVERB(SPUCHAN *pChannel, int ns);
-    int MixREVERBLeft(int ns);
-    int MixREVERBRight();
-
-    // xa
+    // XA.
     void FeedXA(xa_decode_t *xap);
 
-    int bSPUIsOpen;
+    int spuIsOpen;
 
-    // psx buffer / addresses
+    // PSX buffer and addresses.
     uint16_t regArea[10000];
     // Note that SPU ram is a uint16_t, so total size is 512KB.
     uint16_t spuMem[256 * 1024];
-    uint8_t *spuMemC;
-    uint8_t *pSpuIrq = 0;
-    uint8_t *pSpuBuffer;
-    uint8_t *pMixIrq = 0;
+    // Byte-addressable view of spuMem; the base for every sound-RAM pointer and
+    // for the offset math that stores/restores those pointers (e.g. savestates).
+    uint8_t *spuRamBase;
+    uint8_t *irqAddress = 0;
+    uint8_t *spuBuffer;
+    uint8_t *mixIrqAddress = 0;
 
     struct CaptureBuffer {
         static const int CB_SIZE = 1024 * 16;
@@ -217,58 +346,95 @@ class impl final : public SPUInterface {
     };
     std::mutex cbMtx;
 
-    // The temporary cap buffer for CD Audio left/right.
+    // The temporary capture buffer for CD audio left/right.
     CaptureBuffer captureBuffer;
-    // The cap buffer index for voice 1 and voice 3.
+    // Emulated cycle of the last CD audio fed to the capture buffer. While the CD is
+    // feeding, an empty buffer means the emulation is behind the mixer, not silence.
+    // 0 means the CD has not fed anything yet.
+    std::atomic<uint64_t> cdFeedCycle = 0;
+    // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
 
-    // user settings
+    // User settings.
     SettingsType settings;
 
-    // MAIN infos struct for each channel
+    // Main info struct for each channel.
 
     SPUCHAN s_chan[MAXCHAN + 1];  // channel + 1 infos (1 is security for fmod handling)
-    REVERBInfo rvb;
+    ReverbUnit m_reverb;          // global reverb unit: work state + Pete/Neill reverb DSP
 
-    uint32_t m_noiseClock = 0;  // global noise generator
-    uint32_t m_noiseCount = 0;  // global noise generator
-    uint32_t m_noiseVal = 1;    // global noise generator
+    NoiseGenerator m_noise;  // global noise generator: LFSR + shift/step clock
 
-    uint16_t spuCtrl = 0;  // some vars to store psx reg infos
-    uint16_t spuStat = 0;
+    // ENDX (1F801D9C/1D9E): one bit per voice, set when the voice consumes an
+    // ADPCM block carrying the end flag, cleared on key-on. Read-only.
+    std::atomic<uint32_t> spuEndx = 0;
+
+    // Storage for the PSX register values.
+    // The mixer thread writes these; the CPU thread reads SPUSTAT, so they stay atomic.
+    std::atomic<uint16_t> spuCtrl = 0;
+    std::atomic<uint16_t> spuStat = 0;
     uint16_t spuIrq = 0;
-    uint32_t spuAddr = 0xffffffff;  // address into spu mem
-    int bEndThread = 0;             // thread handlers
-    int bThreadEnded = 0;
+    // Address into SPU memory.
+    uint32_t spuAddr = 0xffffffff;
+    // Thread handling.
+    std::atomic<int> endThread = 0;
+    std::atomic<int> threadEnded = 0;
     int bSpuInit = 0;
 
     std::thread hMainThread;
-    uint32_t dwNewChannel = 0;  // flags for faster testing, if new channel starts
+    // Flags for faster testing of whether a new channel starts.
+    uint32_t newChannelMask = 0;
+
+    // Per-voice envelope reconstruction state, owned by the CPU thread. Not
+    // serialized: it is rebuilt from the next key-on, and a savestate that resumed
+    // without it would only lose the walk cache, not correctness.
+    //
+    // The walk starts from the KEY ON write's cycle, stamped by SoundOn on the CPU
+    // side. The mixer applies the same key-on at sampleAfter() of that cycle.
+    struct EnvelopeCheckpoint {
+        uint64_t keyOnCycle = 0;   // CPU cycle of the KEY ON write
+        uint64_t keyOffCycle = 0;  // CPU cycle of the KEY OFF write, 0 while none
+        bool keyedOn = false;
+        // Walk cache. Reads arrive in increasing cycle order (the guest polls), so
+        // stepping forward from the last answer makes each read O(1) amortised
+        // instead of O(samples since key-on).
+        uint64_t cachedSample = 0;
+        int32_t cachedState = 0;
+        int32_t cachedVol = 0;
+        int32_t cachedFraction = 0;
+        bool cachedOn = true;
+        // The ADPCM cursor, walked alongside the envelope so the walk knows the sample
+        // where an end block without repeat stops the voice. Offsets into SPU RAM.
+        static constexpr uint32_t kNoLoop = UINT32_MAX;
+        static constexpr uint32_t kStopped = UINT32_MAX - 1;
+        uint32_t block = 0;           // next block to decode, or kStopped
+        uint32_t loop = kNoLoop;      // repeat address, or kNoLoop
+        bool ignoreLoop = false;      // the repeat address was written by the CPU
+        int left = 0;                 // samples left in the current block
+        int32_t pos = 0;              // 16.16 pitch counter, same as Interpolator
+        int32_t pitchStep = 0x10000;  // 16.16 pitch step
+        bool ended = false;           // an end block without repeat stopped the voice
+        bool untracked = false;       // pitch-modulated since key-on, so the cursor is unknown
+        // Where the cursor and the repeat address were at KEY ON, for a walk rebuilt from it.
+        uint32_t keyOnBlock = 0;
+        uint32_t keyOnLoop = kNoLoop;
+    };
+    EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
+    void resetAdpcmWalk(int ch);
+    bool adpcmWalkReachedStop(EnvelopeCheckpoint &cp);
 
     void (*cddavCallback)(uint16_t, uint16_t) = 0;
 
-    // certain globals (were local before, but with the new timeproc I need em global)
+    // These were local variables before, but the timer procedure requires them to be global.
 
-    const int f[5][2] = {{0, 0}, {60, 0}, {115, -52}, {98, -55}, {122, -60}};
     int SSumR[NSSIZE];
     int SSumL[NSSIZE];
-    int iFMod[NSSIZE];
-    int iCycle = 0;
+    int fmodInput[NSSIZE];
+    // The shared noise level for each sample of the batch. The LFSR is one per SPU and
+    // steps once per output sample, but voices are mixed channel-major, so MainThread
+    // steps it NSSIZE times up front and noise voices read their sample's level here.
+    int noiseLevel[NSSIZE];
     int16_t *pS;
-
-    int lastch = -1;       // last channel processed on spu irq in timer mode
-    int lastns = 0;        // last ns pos
-    int iSecureStart = 0;  // secure start counter
-    int iSpuAsyncWait = 0;
-
-    // REVERB info and timing vars...
-
-    int *sRVBPlay = 0;
-    int *sRVBEnd = 0;
-    int *sRVBStart = 0;
-    int iReverbOff = -1;  // some delay factor for reverb
-    int iReverbRepeat = 0;
-    int iReverbNum = 1;
 
     // XA
     xa_decode_t *xapGlobal = 0;
@@ -276,19 +442,19 @@ class impl final : public SPUInterface {
     int iLeftXAVol = 32767;
     int iRightXAVol = 32767;
 
-    int gauss_ptr = 0;
-    int gauss_window[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    // XA resampler ring (see FeedXA).
+    int16_t xaRingL[32] = {0};
+    int16_t xaRingR[32] = {0};
+    unsigned xaRingPos = 0;
+    int xaSixStep = 6;
+    int16_t xaLastL = 0, xaLastR = 0;
+    uint8_t xaAtv[4] = {0x80, 0, 0x80, 0};
+    int16_t zigzag(const int16_t *ring, unsigned table);
 
-    int &gvall0() { return gauss_window[gauss_ptr]; }
-    int &gvall(int pos) { return gauss_window[(gauss_ptr + pos) & 3]; }
-    int &gvalr0() { return gauss_window[4 + gauss_ptr]; }
-    int &gvalr(int pos) { return gauss_window[4 + ((gauss_ptr + pos) & 3)]; }
-
-    ADSR m_adsr;
     SDLAudio m_audioOut = {settings};
     xa_decode_t m_cdda;
 
-    // debug window
+    // Debug window.
     unsigned m_selectedChannel = 0;
     std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated;
     enum { EMPTY = 0, DATA, NOISE, FMOD1, FMOD2, IRQ, MUTED } m_channelDebugTypes[MAXCHAN][DEBUG_SAMPLES];

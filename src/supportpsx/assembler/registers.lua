@@ -88,12 +88,12 @@ local gpr = {
 }
 
 local gteRegistersSet0 = {
-    vxz0 = 0,
+    vxy0 = 0,
     vz0 = 1,
     vxy1 = 2,
-    vyz1 = 3,
-    vxz1 = 4,
-    vz1 = 5,
+    vz1 = 3,
+    vxy2 = 4,
+    vz2 = 5,
     rgb = 6,
     otz = 7,
     ir0 = 8,
@@ -160,7 +160,7 @@ local gteRegistersSet1 = {
 local cop0Registers = {
     bpc = 3,
     bda = 5,
-    dcic = 12,
+    dcic = 7,
     badv = 8,
     bdam = 9,
     bpcm = 11,

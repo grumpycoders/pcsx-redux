@@ -4,3 +4,4 @@
 *.sln text
 *.po text
 *.pot text
+.github/scripts/*.sh text eol=lf
