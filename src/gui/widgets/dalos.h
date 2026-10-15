@@ -67,12 +67,15 @@ class Dalos {
         bool m_evaluating = false;
     };
 
+    // The viewers opened from the canvas, drawn by the caller every frame so
+    // they stay up while the canvas itself is closed.
     FileViewers& fileViewers() { return m_fileViewers; }
 
   private:
     template <typename T>
     T* addNode(const std::string& name, ImVec2 pos);
     void deleteNode(Node* node);
+    bool reaches(Node* from, Node* target);
     ImVec2 inputPinPos(Node* node, unsigned pin);
     ImVec2 outputPinPos(Node* node, unsigned pin);
 
