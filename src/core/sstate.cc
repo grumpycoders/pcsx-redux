@@ -423,19 +423,20 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
 }
 
-bool PCSX::SaveStates::load(std::string_view data) {
-    SaveState state = constructSaveState();
-
-    Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& state) {
+    using namespace PCSX::SaveStates;
+    PCSX::Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     try {
         state.deserialize(&slice, 0);
     } catch (...) {
         return false;
     }
+    return state.get<SaveStateInfoField>().get<Version>().value == 5;
+}
 
-    if (state.get<SaveStateInfoField>().get<Version>().value != 5) {
-        return false;
-    }
+bool PCSX::SaveStates::load(std::string_view data) {
+    SaveState state = constructSaveState();
+    if (!parseSaveState(data, state)) return false;
 
     SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_cpu->Reset();
@@ -492,7 +493,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     return true;
 }
 
-void PCSX::SaveStates::loadSafe(std::string&& data) {
+bool PCSX::SaveStates::loadSafe(std::string&& data) {
     // Inside Execute(), we're being called from something the CPU reached: a
     // Lua event listener (including a Pause listener fired by a breakpoint), an
     // ImGui menu drawn during vsync, the web server polled on hsync.
@@ -501,10 +502,14 @@ void PCSX::SaveStates::loadSafe(std::string&& data) {
     // state here corrupts whatever those frames touch next. Let the main loop
     // do it once they're gone.
     if (g_system->inExecute()) {
+        // Parse it now so a corrupt or foreign state is refused here, where the
+        // caller can still report it, and not later from the main loop.
+        SaveState state = constructSaveState();
+        if (!parseSaveState(data, state)) return false;
         g_system->scheduleSaveStateLoad(std::move(data));
-    } else {
-        load(data);
+        return true;
     }
+    return load(data);
 }
 
 void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {

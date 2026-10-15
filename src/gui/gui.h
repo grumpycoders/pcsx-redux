@@ -22,6 +22,7 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <deque>
 #include <functional>
 #include <magic_enum/magic_enum_all.hpp>
 #include <map>
@@ -276,6 +277,29 @@ class GUI final : public UI {
     };
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
+    // Short-lived messages drawn at the bottom of the main viewport, which fade out on their own and never
+    // take focus. Use them for anything the user doesn't have to act on, failures included: a state that
+    // couldn't be saved is an Error notice. The kind only picks the colour of the bar on the left. If the
+    // user has to do something about it, use addNotification instead.
+    enum class NoticeKind { Info, Warning, Error };
+    class PassiveNotifier {
+      public:
+        void notify(const std::string &message, NoticeKind kind) { m_pending.push_back({message, kind, 0.0}); }
+        void draw();
+
+      private:
+        struct Notice {
+            std::string message;
+            NoticeKind kind;
+            double shownAt;
+        };
+        std::deque<Notice> m_pending;
+        std::deque<Notice> m_shown;
+    };
+    void addNotice(const std::string &notice, NoticeKind kind) {
+        m_passiveNotifier.notify(notice, kind);
+    }
+
     void magicOpen(const char *path);
 
     static const char *glErrorToString(GLenum error) {
@@ -491,6 +515,7 @@ class GUI final : public UI {
     void oliveTheme();
 
     Notifier m_notifier = {l_("Notification")};
+    PassiveNotifier m_passiveNotifier;
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
