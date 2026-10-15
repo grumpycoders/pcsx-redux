@@ -1904,6 +1904,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_dalos.m_show) {
         m_dalos.draw(_("Dalos Canvas"));
     }
+    m_dalos.fileViewers().draw();
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();

@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
+#include <vector>
 
 #include "core/system.h"
 #include "fmt/format.h"
@@ -163,6 +165,23 @@ void PCSX::Widgets::Dalos::deleteNode(Node* node) {
     std::erase_if(m_nodes, [node](auto& n) { return n.get() == node; });
 }
 
+// True if `target` is `from` or feeds into it. Linking `from` into `target`
+// would then close a loop, so the canvas refuses it.
+bool PCSX::Widgets::Dalos::reaches(Node* from, Node* target) {
+    std::vector<Node*> stack = {from};
+    std::unordered_set<Node*> seen;
+    while (!stack.empty()) {
+        auto node = stack.back();
+        stack.pop_back();
+        if (node == target) return true;
+        if (!seen.insert(node).second) continue;
+        for (auto& link : node->m_inputs) {
+            if (link.node) stack.push_back(link.node);
+        }
+    }
+    return false;
+}
+
 ImVec2 PCSX::Widgets::Dalos::inputPinPos(Node* node, unsigned pin) {
     auto pos = m_origin + node->m_pos;
     return ImVec2(pos.x, pos.y + node->m_size.y * float(pin + 1) / float(node->inputs() + 1));
@@ -181,7 +200,6 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
     }
     if (!ImGui::Begin(title, &m_show)) {
         ImGui::End();
-        m_fileViewers.draw();
         return;
     }
 
@@ -294,7 +312,9 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
             bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) node->m_inputs[i] = {};
             ImGui::PopID();
-            if (hovered && released && m_dragging.node && m_dragging.node != node) node->m_inputs[i] = m_dragging;
+            if (hovered && released && m_dragging.node && !reaches(m_dragging.node, node)) {
+                node->m_inputs[i] = m_dragging;
+            }
             dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 180, 220, 255));
         }
         ImGui::PopID();
@@ -324,5 +344,4 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
 
     ImGui::EndChild();
     ImGui::End();
-    m_fileViewers.draw();
 }
