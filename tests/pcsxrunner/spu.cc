@@ -43,6 +43,18 @@ TEST(SPU, EndMute) {
     EXPECT_EQ(ret, 0);
 }
 
+// After an end block the readout jumps to the repeat address whether or not the repeat flag
+// is set; without it the voice is only silenced. The guest redirects a one-shot sample to a
+// silent loop elsewhere in SPU RAM and waits for IRQ9 at an address inside that loop, with an
+// end+repeat block as the control.
+TEST(SPU, EndRedirect) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe",
+                        "src/mips/tests/spu-endredirect/spu-endredirect.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
 // Two things about SPU IRQ9, checked on silicon: an address match latches SPUSTAT bit 6
 // and leaves the SPUCNT bit 6 enable set until software writes it to 0, and a voice keeps
 // reading SPU RAM after it has been keyed off and its envelope has fallen to zero. The guest asserts both against a playing voice first,

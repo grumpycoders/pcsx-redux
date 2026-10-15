@@ -178,12 +178,18 @@ void PCSX::SPU::impl::triggerIrq() {
 // the voice's 28-sample buffer, then the two things that hang off that boundary - the IRQ
 // address check, and the loop/stop flag that decides where the cursor goes next. Split out
 // of synthesizeChannel because it is the only part of the pitch loop that is not per-sample.
-// Returns false when the cursor is already parked at kStopped, i.e. the voice ended on a
-// previous pass and the caller must stop synthesizing it.
+// Returns false when the voice ended on a previous pass and the caller must stop synthesizing
+// it. Once it is silent, the readout carries on from the repeat address.
 bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
     // Current decode position.
     uint8_t *cursor = voice->adpcm.curr();
-    if (cursor == AdpcmDecoder::kStopped) return false;
+    if (cursor == AdpcmDecoder::kStopped) {
+        // kStopped after an end block is a mute still owed to an audible voice. Once the voice
+        // is silent the cursor goes to the repeat address, as it does on hardware for every end
+        // block: the readout never stops, and a silent voice still raises IRQ9.
+        if (voice->data.get<Chan::On>().value || voice->adpcm.loop() == nullptr) return false;
+        cursor = voice->adpcm.loop();
+    }
 
     auto &irqDone = voice->data.get<Chan::IrqDone>().value;
     auto &ignoreLoop = voice->data.get<Chan::IgnoreLoop>().value;
@@ -214,9 +220,11 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         // ENDX latches on the end flag.
         spuEndx |= 1u << ch;
 
-        // Only loop when the flag byte is exactly 3 (loop-end + repeat) and a loop address was
-        // latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
-        // avoids following an address that was never set.
+        // Keep playing only when the flag byte is exactly 3 (loop-end + repeat) and a loop address
+        // was latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
+        // avoids following an address that was never set. Anything else mutes the voice once this
+        // block has played, and kStopped holds that until it does; the jump to the repeat address
+        // happens at the top of the next call.
         cursor = (blockFlags != 3 || voice->adpcm.loop() == nullptr) ? AdpcmDecoder::kStopped : voice->adpcm.loop();
     }
 
@@ -235,12 +243,8 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
 // is wanted is the block boundary, where the IRQ address check and the ENDX latch live.
 // A voice with no pitch programmed never advances, which is the one way psx-spx suggests
 // the readout can actually be stopped ("except, probably they CAN be stopped, by setting
-// the sample rate to zero?").
-//
-// Known remaining divergence: a cursor parked at kStopped stays parked and reads nothing.
-// Hardware has no parked state - a voice that consumed an end block without a repeat flag
-// keeps re-reading from its loop address forever - but modelling that means picking an
-// address psx-spx does not pin down, so it is left alone rather than guessed at.
+// the sample rate to zero?"). A voice silenced by an end block resumes here from its repeat
+// address, see decodeNextBlock.
 void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN* voice, int n) {
     for (int ns = 0; ns < n; ns++) {
         while (voice->interp.owesSample()) {
@@ -333,8 +337,9 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns, n);
-                // The sweep keeps running for the rest of the chunk.
+                // The sweep keeps running for the rest of the chunk, and so does the readout.
                 for (int rest = ns + 1; rest < n; rest++) voice->volume.step();
+                walkSilentVoice(ch, voice, n - ns);
                 // Done with this channel.
                 return;
             }
