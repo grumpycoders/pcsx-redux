@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no libuv, so no web server.
+#ifndef __EMSCRIPTEN__
+
 #include "core/web-server.h"
 
 #include <llhttp.h>
@@ -1237,3 +1240,5 @@ void PCSX::WebServer::onNewConnection(int status) {
         delete client;
     }
 }
+
+#endif

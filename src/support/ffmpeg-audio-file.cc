@@ -23,13 +23,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+
+// v1 wasm drops FFmpeg; compressed CD audio tracks lose sound.
+#ifndef __EMSCRIPTEN__
+
 #include "support/ffmpeg-audio-file.h"
 
 #include <stdint.h>
 
 #include <bit>
 
-AVSampleFormat PCSX::FFmpegAudioFile::getSampleFormat() const {
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/frame.h>
+#include <libavutil/mem.h>
+#include <libswresample/swresample.h>
+}
+
+struct PCSX::FFmpegAudioFile::Private {
+    AVFormatContext* formatContext = nullptr;
+    AVIOContext* ioContext = nullptr;
+    AVFrame* decodedFrame = nullptr;
+    AVFrame* resampledFrame = nullptr;
+    AVPacket* packet = nullptr;
+    AVCodecContext* codecContext = nullptr;
+    SwrContext* resamplerContext = nullptr;
+};
+
+int PCSX::FFmpegAudioFile::getSampleFormat() const {
     switch (m_sampleFormat) {
         case SampleFormat::U8:
             return AV_SAMPLE_FMT_U8;
@@ -66,12 +88,13 @@ unsigned PCSX::FFmpegAudioFile::getSampleSize() const {
 PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endianness endianess,
                                        SampleFormat sampleFormat, unsigned frequency)
     : File(RO_SEEKABLE), m_file(file), m_channels(channels), m_endianess(endianess), m_sampleFormat(sampleFormat) {
+    m_priv = new Private();
     av_log_set_level(AV_LOG_QUIET);
 
     unsigned char *buffer = reinterpret_cast<unsigned char *>(av_malloc(4096));
     int ret;
 
-    m_ioContext = avio_alloc_context(
+    m_priv->ioContext = avio_alloc_context(
         buffer, 4096, 0, this,
         [](void *opaque, uint8_t *buf, int bufSize) -> int {
             FFmpegAudioFile *f = reinterpret_cast<FFmpegAudioFile *>(opaque);
@@ -95,60 +118,60 @@ PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endiann
             return ret;
         });
 
-    if (!m_ioContext) {
+    if (!m_priv->ioContext) {
         av_freep(&buffer);
         m_failed = true;
         return;
     }
 
-    m_formatContext = avformat_alloc_context();
-    if (!m_formatContext) {
+    m_priv->formatContext = avformat_alloc_context();
+    if (!m_priv->formatContext) {
         m_failed = true;
         return;
     }
 
-    m_formatContext->pb = m_ioContext;
-    if (avformat_open_input(&m_formatContext, nullptr, nullptr, nullptr) < 0) {
+    m_priv->formatContext->pb = m_priv->ioContext;
+    if (avformat_open_input(&m_priv->formatContext, nullptr, nullptr, nullptr) < 0) {
         m_failed = true;
         return;
     }
 
-    if (avformat_find_stream_info(m_formatContext, nullptr) < 0) {
+    if (avformat_find_stream_info(m_priv->formatContext, nullptr) < 0) {
         m_failed = true;
         return;
     }
-    double duration = ((double)m_formatContext->duration) / ((double)AV_TIME_BASE);
+    double duration = ((double)m_priv->formatContext->duration) / ((double)AV_TIME_BASE);
     unsigned sampleSize = getSampleSize();
     if (channels == Channels::Stereo) sampleSize *= 2;
     m_size = ceil(duration * frequency * sampleSize);
 
-    m_packet = av_packet_alloc();
-    m_decodedFrame = av_frame_alloc();
-    m_resampledFrame = av_frame_alloc();
-    m_resampledFrame->sample_rate = frequency;
-    m_resampledFrame->format = getSampleFormat();
-    m_resampledFrame->ch_layout.nb_channels = channels == Channels::Stereo ? 2 : 1;
-    m_resampledFrame->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
-    m_resampledFrame->ch_layout.u.mask = channels == Channels::Stereo ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
-    m_resampledFrame->nb_samples = 0;
+    m_priv->packet = av_packet_alloc();
+    m_priv->decodedFrame = av_frame_alloc();
+    m_priv->resampledFrame = av_frame_alloc();
+    m_priv->resampledFrame->sample_rate = frequency;
+    m_priv->resampledFrame->format = static_cast<AVSampleFormat>(getSampleFormat());
+    m_priv->resampledFrame->ch_layout.nb_channels = channels == Channels::Stereo ? 2 : 1;
+    m_priv->resampledFrame->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+    m_priv->resampledFrame->ch_layout.u.mask = channels == Channels::Stereo ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
+    m_priv->resampledFrame->nb_samples = 0;
     const AVCodec *codec;
-    ret = av_find_best_stream(m_formatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
+    ret = av_find_best_stream(m_priv->formatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 
-    if (!m_packet || !m_decodedFrame || !m_resampledFrame || (ret < 0)) {
+    if (!m_priv->packet || !m_priv->decodedFrame || !m_priv->resampledFrame || (ret < 0)) {
         m_failed = true;
         return;
     }
     m_audioStreamIndex = ret;
 
-    m_codecContext = avcodec_alloc_context3(codec);
-    if (!m_codecContext) {
+    m_priv->codecContext = avcodec_alloc_context3(codec);
+    if (!m_priv->codecContext) {
         m_failed = true;
         return;
     }
 
-    avcodec_parameters_to_context(m_codecContext, m_formatContext->streams[m_audioStreamIndex]->codecpar);
+    avcodec_parameters_to_context(m_priv->codecContext, m_priv->formatContext->streams[m_audioStreamIndex]->codecpar);
 
-    if (avcodec_open2(m_codecContext, codec, nullptr) < 0) {
+    if (avcodec_open2(m_priv->codecContext, codec, nullptr) < 0) {
         m_failed = true;
         return;
     }
@@ -159,32 +182,35 @@ PCSX::FFmpegAudioFile::FFmpegAudioFile(IO<File> file, Channels channels, Endiann
     } else {
         layout = AV_CHANNEL_LAYOUT_MONO;
     }
-    if (swr_alloc_set_opts2(&m_resamplerContext, &layout, getSampleFormat(), frequency, &m_codecContext->ch_layout,
-                            m_codecContext->sample_fmt, m_codecContext->sample_rate, 0, nullptr) < 0) {
+    if (swr_alloc_set_opts2(&m_priv->resamplerContext, &layout, static_cast<AVSampleFormat>(getSampleFormat()),
+                            frequency, &m_priv->codecContext->ch_layout, m_priv->codecContext->sample_fmt,
+                            m_priv->codecContext->sample_rate, 0, nullptr) < 0) {
         m_failed = true;
         return;
     }
 
-    swr_init(m_resamplerContext);
-    if (!swr_is_initialized(m_resamplerContext)) {
+    swr_init(m_priv->resamplerContext);
+    if (!swr_is_initialized(m_priv->resamplerContext)) {
         m_failed = true;
         return;
     }
 
-    m_failed = av_seek_frame(m_formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0;
+    m_failed = av_seek_frame(m_priv->formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0;
 }
 
+PCSX::FFmpegAudioFile::~FFmpegAudioFile() { delete m_priv; }
+
 void PCSX::FFmpegAudioFile::closeInternal() {
-    if (m_ioContext) {
-        av_freep(&m_ioContext->buffer);
-        avio_context_free(&m_ioContext);
+    if (m_priv->ioContext) {
+        av_freep(&m_priv->ioContext->buffer);
+        avio_context_free(&m_priv->ioContext);
     }
-    if (m_formatContext) avformat_free_context(m_formatContext);
-    if (m_packet) av_packet_free(&m_packet);
-    if (m_decodedFrame) av_frame_free(&m_decodedFrame);
-    if (m_resampledFrame) av_frame_free(&m_resampledFrame);
-    if (m_codecContext) avcodec_free_context(&m_codecContext);
-    if (m_resamplerContext) swr_free(&m_resamplerContext);
+    if (m_priv->formatContext) avformat_free_context(m_priv->formatContext);
+    if (m_priv->packet) av_packet_free(&m_priv->packet);
+    if (m_priv->decodedFrame) av_frame_free(&m_priv->decodedFrame);
+    if (m_priv->resampledFrame) av_frame_free(&m_priv->resampledFrame);
+    if (m_priv->codecContext) avcodec_free_context(&m_priv->codecContext);
+    if (m_priv->resamplerContext) swr_free(&m_priv->resamplerContext);
 }
 
 ssize_t PCSX::FFmpegAudioFile::rSeek(ssize_t pos, int wheel) {
@@ -210,7 +236,7 @@ ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
         dumpDelta = m_filePtr;
         m_filePtr = 0;
         m_hitEOF = false;
-        if (av_seek_frame(m_formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0) return -1;
+        if (av_seek_frame(m_priv->formatContext, m_audioStreamIndex, 0, AVSEEK_FLAG_BYTE) < 0) return -1;
         m_totalOut = 0;
     }
     if (m_hitEOF) return -1;
@@ -242,7 +268,7 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
     if (m_channels == Channels::Stereo) sampleSize *= 2;
     ssize_t dataRead = 0;
     uint8_t *dest = reinterpret_cast<uint8_t *>(dest_);
-    ssize_t available = m_resampledFrame->nb_samples * sampleSize - m_packetPtr;
+    ssize_t available = m_priv->resampledFrame->nb_samples * sampleSize - m_packetPtr;
     AVFrame *inFrame = nullptr;
 
     while (true) {
@@ -250,11 +276,11 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
         if (toCopy) {
             if (((std::endian::native == std::endian::little) && (m_endianess == Endianness::Little)) ||
                 ((std::endian::native == std::endian::big) && (m_endianess == Endianness::Big))) {
-                memcpy(dest, m_resampledFrame->data[0] + m_packetPtr, toCopy);
+                memcpy(dest, m_priv->resampledFrame->data[0] + m_packetPtr, toCopy);
             } else {
                 for (ssize_t i = 0; i < toCopy; i += sampleSize) {
                     for (unsigned j = 0; j < sampleSize; ++j) {
-                        dest[i + j] = m_resampledFrame->data[0][m_packetPtr + i + sampleSize - j - 1];
+                        dest[i + j] = m_priv->resampledFrame->data[0][m_packetPtr + i + sampleSize - j - 1];
                     }
                 }
             }
@@ -269,24 +295,24 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
 
         m_packetPtr = 0;
 
-        if (swr_convert_frame(m_resamplerContext, m_resampledFrame, inFrame) < 0) return -1;
-        available = m_resampledFrame->nb_samples * sampleSize;
+        if (swr_convert_frame(m_priv->resamplerContext, m_priv->resampledFrame, inFrame) < 0) return -1;
+        available = m_priv->resampledFrame->nb_samples * sampleSize;
         inFrame = nullptr;
         if (available == 0) {
             while (true) {
-                if (av_read_frame(m_formatContext, m_packet) < 0) {
+                if (av_read_frame(m_priv->formatContext, m_priv->packet) < 0) {
                     m_hitEOF = true;
                     return dataRead;
                 }
-                if (m_packet->stream_index != m_audioStreamIndex) {
-                    av_packet_unref(m_packet);
+                if (m_priv->packet->stream_index != m_audioStreamIndex) {
+                    av_packet_unref(m_priv->packet);
                     continue;
                 }
                 break;
             }
-            if (avcodec_send_packet(m_codecContext, m_packet) < 0) return -1;
-            int ret = avcodec_receive_frame(m_codecContext, m_decodedFrame);
-            av_packet_unref(m_packet);
+            if (avcodec_send_packet(m_priv->codecContext, m_priv->packet) < 0) return -1;
+            int ret = avcodec_receive_frame(m_priv->codecContext, m_priv->decodedFrame);
+            av_packet_unref(m_priv->packet);
             int eagain = AVERROR(EAGAIN);
             int eof = AVERROR_EOF;
             if ((ret == eagain) || (ret == eof)) {
@@ -294,9 +320,11 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
             } else if (ret < 0) {
                 return -1;
             }
-            inFrame = m_decodedFrame;
+            inFrame = m_priv->decodedFrame;
         }
     }
 
     return -1;
 }
+
+#endif
