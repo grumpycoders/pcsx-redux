@@ -22,6 +22,8 @@
 #include <stdint.h>
 
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 
 #include "core/decode_xa.h"
@@ -40,13 +42,10 @@ namespace PCSX {
 namespace SPU {
 
 // Compile-time mode axes for the per-voice synthesis loop. Both are per-voice
-// mode flags that the register thread can write while a batch is being mixed.
-// They are resolved into template arguments ONCE, at the top of the voice's
-// batch, so a mid-batch write now lands on the next batch instead of the next
-// sample. That is the one thing in this loop that is not behaviour-preserving
-// by construction: a batch is NSSIZE = 45 samples = 1.02ms, against the 16.7ms
-// (60Hz) or 33.3ms (30Hz) frame clock that already quantises whatever event -
-// player input, an on-screen hit - drove the driver to write the flag.
+// mode flags set by register writes. They are resolved into template arguments
+// ONCE, at the top of each mixed chunk. The mixer splits its chunks at every
+// queued register write, so a write to either flag still takes effect at the
+// sample it was stamped with.
 //
 // FModRole - this voice's part in frequency modulation. The values match the
 //   Chan::FMod encoding, which registers.cc writes in PAIRS: setting the
@@ -125,6 +124,19 @@ class impl final : public SPUInterface {
     }
     uint32_t getCurrentFrames() override { return m_audioOut.getCurrentFrames(); }
     void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
+    // The mixer cannot run past the CPU, so the CPU has to run ahead of the audio device by at
+    // least one device period, or the device finds the ring short. On top of that: two NSSIZE
+    // batches, because the mixer waits for whole batches before mixing, and the user's latency
+    // margin for host jitter. Before the device has opened, assume a 1024-frame period.
+    uint32_t getLeadFrames() override {
+        const int marginMs = std::max(0, settings.get<LatencyMargin>().value);
+        return devicePeriodFrames() + 2 * NSSIZE + marginMs * 441 / 10;
+    }
+    uint32_t devicePeriodFrames() {
+        const uint32_t period = m_audioOut.getPeriodFrames();
+        return period ? period : 1024;
+    }
+    void advanceTo(uint64_t cycle) override { publishHorizon(cycle); }
 
   private:
     struct ADSRFlags {
@@ -178,37 +190,42 @@ class impl final : public SPUInterface {
     static const size_t SOUNDSIZE = 70560;
 
     // Roughly 1 ms of data.
-    static const size_t NSSIZE = 45;
+    static constexpr size_t NSSIZE = 45;
 
     // SPU.
     void MainThread();
+    // Mixes n (1..NSSIZE) samples starting at m_mixPos and appends them to the output buffer.
+    void mixChunk(int n);
     // Reads the voice's two mode flags once and calls the matching
     // synthesizeVoice instantiation. This is the only place the runtime flags
     // are turned into compile-time axes.
-    void synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    void synthesizeChannel(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
     template <FModRole Role, SampleSource Src>
-    void synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index);
+    void synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
     // Decodes the next ADPCM block for a voice, together with the IRQ check and the
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.
     bool decodeNextBlock(int ch, SPUCHAN *voice);
     void triggerIrq();
-    void walkSilentVoice(int ch, SPUCHAN *voice);
-    void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample);
+    void walkSilentVoice(int ch, SPUCHAN* voice, int n);
+    void captureVoiceSilence(int ch, int32_t& capVoice1Index, int32_t& capVoice3Index, int fromSample, int n);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
+    // Hands the mixed frames to the audio device. Blocks while the device ring is full; returns
+    // false if the thread was asked to end while blocked.
+    bool flushOutput();
     void SetupStreams();
     void RemoveStreams();
     void SetupThread();
     void RemoveThread();
     void StartSound(SPUCHAN *voice);
     // Read-time reconstruction. A CPU read of ENVX or of SPUSTAT bit 11 asks what
-    // the SPU is doing at the reader's own cycle, which is a time the SPU thread
-    // has not reached: it runs asynchronously in NSSIZE batches paced by sink free
-    // space. Answering from the live value hands back wherever that thread happened
-    // to be. Both quantities are pure functions of elapsed samples, so evaluate them
-    // against the reader's cycle instead and the thread's position stops being an
-    // input. The mixer is untouched and keeps using its own live envelope.
+    // the SPU is doing at the reader's own cycle, which the mixer thread, running
+    // behind the CPU, may not have reached. Guests poll both, so waiting for the
+    // mixer on each read (catchUp) would cost a thread round trip per sample of
+    // polling. Both quantities are pure functions of elapsed samples, so evaluate
+    // them against the reader's cycle on the CPU side instead. The mixer keeps
+    // using its own live envelope.
     uint16_t reconstructEnvelope(int ch, uint64_t cycle);
     // Samples elapsed at a CPU cycle, on the hardware 768 cycles/sample ratio.
     uint64_t cycleToSample(uint64_t cycle) const;
@@ -217,12 +234,88 @@ class impl final : public SPUInterface {
     void VoiceChangeFrequency(SPUCHAN *voice);
     void FModChangeFrequency(SPUCHAN *voice, int ns);
 
-    // Registers.
-    void SoundOn(int start, int end, uint16_t val);
-    void SoundOff(int start, int end, uint16_t val);
-    void FModOn(int start, int end, uint16_t val);
+    // Emulated time.
+    //
+    // The mixer thread advances in emulated time, not in wall-clock time. The CPU thread
+    // publishes how far it has run (m_horizonCycle) and the mixer never mixes a sample the CPU
+    // has not reached. Every register write is stamped with the CPU cycle it happened at and
+    // queued; the mixer applies it at that sample, splitting its batch there. So the mixer
+    // always runs BEHIND the CPU, and a CPU read of anything the mixer owns (ENDX, SPU RAM,
+    // the latched repeat address) first waits for the mixer to reach the reader's cycle
+    // (catchUp). ENVX and SPUSTAT bit 11 are still reconstructed on the CPU side without
+    // waiting, because guests poll them.
+    //
+    // Sample index s is the s-th output sample since the clock started, produced at cycle
+    // s * 768. sampleAfter(c) is the first sample produced strictly after cycle c, which is
+    // both where a write at c takes effect and how far the mixer may run once the CPU is at c.
+    struct RegisterEvent {
+        uint64_t sample;
+        uint32_t reg;
+        uint16_t value;
+    };
+    static constexpr size_t kEventQueueSize = 16384;
+    static_assert((kEventQueueSize & (kEventQueueSize - 1)) == 0);
+    uint64_t sampleAfter(uint64_t cycle) const { return cycleToSample(cycle) + 1; }
+    // CPU thread. Lets the mixer run up to `cycle`. A jump backwards (reset) or far forwards
+    // re-bases the mixer clock instead.
+    void publishHorizon(uint64_t cycle);
+    // CPU thread. Returns once every sample up to `cycle` is mixed and every queued write
+    // applied. A no-op while the mixer thread is not running.
+    void catchUp(uint64_t cycle);
+    // CPU thread. Stops the mixer, applies whatever is queued, and restarts it at `cycle`.
+    void resync(uint64_t cycle);
+    void pushEvent(uint64_t cycle, uint32_t reg, uint16_t value);
+    // Applies every queued write regardless of its stamp. Only with the mixer stopped.
+    void drainEventsNow();
+    // Mixer thread.
+    void applyDueEvents();
+    void waitForWork();
+    void publishProgress();
+    // The mixer-side half of a register write: everything the voices and the mix see.
+    // writeRegister is the CPU-side half, which stamps and queues it.
+    void applyRegister(uint32_t reg, uint16_t val);
+    // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
+    void rebuildShadows();
+    uint16_t readCtrl();
+    void decodeAdsrLow(AdsrEnvelope& adsr, uint16_t val);
+    void decodeAdsrHigh(AdsrEnvelope& adsr, uint16_t val);
+
+    RegisterEvent m_events[kEventQueueSize];
+    std::atomic<uint64_t> m_eventsPushed = 0;   // written by the CPU thread only
+    std::atomic<uint64_t> m_eventsApplied = 0;  // written by the mixer thread only
+    std::atomic<uint64_t> m_horizonCycle = 0;   // written by the CPU thread only
+    std::atomic<uint64_t> m_mixedSamples = 0;   // written by the mixer thread only
+    uint64_t m_mixPos = 0;                      // mixer thread: samples [0, m_mixPos) are mixed
+    uint64_t m_lastHorizon = 0;                 // CPU thread
+    std::atomic<bool> m_mixerRunning = false;
+    std::atomic<bool> m_mixerWaiting = false;
+    std::atomic<bool> m_cpuWaiting = false;
+    std::mutex m_syncMutex;
+    std::condition_variable m_mixerWake;
+    std::condition_variable m_cpuWake;
+    // SPUCNT as last written by the CPU, which is what a CPU read returns. The mixer's spuCtrl
+    // may not have applied the write yet.
+    uint16_t m_ctrlShadow = 0;
+    // CTRL writes queued and not yet applied by the mixer. While any is, the mixer's SPUSTAT
+    // bit 6 may predate an acknowledge the CPU has already written.
+    std::atomic<uint32_t> m_ctrlWritesPending = 0;
+    // The ENVX walk runs on the CPU thread and needs the voice configuration as of the
+    // reader's cycle, which the mixer's copy may not have reached yet.
+    AdsrEnvelope m_adsrShadow[MAXCHAN];
+    uint16_t m_pitchShadow[MAXCHAN] = {};
+    uint8_t m_fmodShadow[MAXCHAN] = {};
+
+    // Registers. Each has a CPU-side half (bookkeeping for reads, the ENVX walk) and a
+    // mixer-side half (Apply), run when the queued write comes due.
+    void SoundOn(int start, int end, uint16_t val, uint64_t cycle);
+    void SoundOnApply(int start, int end, uint16_t val);
+    void SoundOff(int start, int end, uint16_t val, uint64_t cycle);
+    void SoundOffApply(int start, int end, uint16_t val);
+    void FModOn(int start, int end, uint16_t val, uint64_t cycle);
+    void FModOnApply(int start, int end, uint16_t val);
     void NoiseOn(int start, int end, uint16_t val);
-    void SetPitch(int ch, uint16_t val);
+    void SetPitch(int ch, uint16_t val, uint64_t cycle);
+    void SetPitchApply(int ch, uint16_t val);
     void ReverbOn(int start, int end, uint16_t val);
 
     // XA.
@@ -277,8 +370,7 @@ class impl final : public SPUInterface {
     std::atomic<uint32_t> spuEndx = 0;
 
     // Storage for the PSX register values.
-    // Both the register path and the mixer thread read-modify-write these, so every
-    // update is an atomic RMW.
+    // The mixer thread writes these; the CPU thread reads SPUSTAT, so they stay atomic.
     std::atomic<uint16_t> spuCtrl = 0;
     std::atomic<uint16_t> spuStat = 0;
     uint16_t spuIrq = 0;
@@ -297,11 +389,8 @@ class impl final : public SPUInterface {
     // serialized: it is rebuilt from the next key-on, and a savestate that resumed
     // without it would only lose the walk cache, not correctness.
     //
-    // KEY-ON IS APPLIED ON THE SPU THREAD - SoundOn only sets Chan::New, and
-    // AdsrEnvelope::keyOn() runs from StartSound inside synthesizeVoice, i.e.
-    // wherever the batch loop next notices the flag, up to NSSIZE samples later.
-    // So the cycle the envelope started at is not recoverable after the fact and
-    // has to be stamped here, at the register write, where the CPU still owns it.
+    // The walk starts from the KEY ON write's cycle, stamped by SoundOn on the CPU
+    // side. The mixer applies the same key-on at sampleAfter() of that cycle.
     struct EnvelopeCheckpoint {
         uint64_t keyOnCycle = 0;   // CPU cycle of the KEY ON write
         uint64_t keyOffCycle = 0;  // CPU cycle of the KEY OFF write, 0 while none
@@ -326,6 +415,9 @@ class impl final : public SPUInterface {
         int32_t pitchStep = 0x10000;  // 16.16 pitch step
         bool ended = false;           // an end block without repeat stopped the voice
         bool untracked = false;       // pitch-modulated since key-on, so the cursor is unknown
+        // Where the cursor and the repeat address were at KEY ON, for a walk rebuilt from it.
+        uint32_t keyOnBlock = 0;
+        uint32_t keyOnLoop = kNoLoop;
     };
     EnvelopeCheckpoint m_envelopeCheckpoint[MAXCHAN];
     void resetAdpcmWalk(int ch);
@@ -342,7 +434,6 @@ class impl final : public SPUInterface {
     // steps once per output sample, but voices are mixed channel-major, so MainThread
     // steps it NSSIZE times up front and noise voices read their sample's level here.
     int noiseLevel[NSSIZE];
-    int iCycle = 0;
     int16_t *pS;
 
     // XA

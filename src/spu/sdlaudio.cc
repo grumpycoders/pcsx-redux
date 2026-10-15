@@ -191,7 +191,13 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
     // guessing at it from the outside costs hours.
     SDL_AudioSpec got;
     int gotFrames = 0;
+    m_periodFrames.store(0);
     if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
+        // The period is counted in device frames; everything that uses it counts stream frames.
+        if (gotFrames > 0 && got.freq > 0) {
+            m_periodFrames.store(static_cast<uint32_t>(
+                (static_cast<uint64_t>(gotFrames) * kSampleRate + got.freq - 1) / got.freq));
+        }
         g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n", SDL_GetCurrentAudioDriver(),
                       got.freq, gotFrames);
     }
@@ -235,6 +241,7 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
     constexpr int kFrameSizeBytes = sizeof(float) * kChannels;
     int requested = additionalBytes / kFrameSizeBytes;
     if (requested <= 0) return;
+    if (static_cast<uint32_t>(requested) > m_periodFrames.load()) m_periodFrames.store(requested);
 
     const bool mono = m_settings.get<Mono>();
     const bool muted = m_settings.get<Mute>();
