@@ -1844,9 +1844,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_disassembly.draw(this, _("DynaRec Disassembler"));
     }
 
-    if (m_cpuTrace.m_show) {
-        m_cpuTrace.draw(this, _("CPU Trace"));
-    }
+    m_cpuTrace.draw(this, _("CPU Trace"));
 
     if (m_breakpoints.m_show) {
         m_breakpoints.draw(_("Breakpoints"));

@@ -96,10 +96,10 @@ class CpuTrace {
 
     // One annotated disassembly line per record, the same text the CPU log used to
     // get, so traces can be read, searched and compared in a text editor.
-    void exportText(IO<File> file, size_t start = 0, size_t count = SIZE_MAX) const;
+    bool exportText(IO<File> file, size_t start = 0, size_t count = SIZE_MAX) const;
     // Raw records behind a small header. load() replaces the contents, and returns
     // false, leaving the store empty, on a file that is not a trace.
-    void save(IO<File> file) const;
+    bool save(IO<File> file) const;
     bool load(IO<File> file);
 
     // Test hook: when set, called with each record right after it is filled, while

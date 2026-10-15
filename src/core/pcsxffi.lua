@@ -237,10 +237,8 @@ PCSX = {
             read = function(start, count)
                 start = start or 0
                 local total = tonumber(C.getCpuTraceSize())
-                if count == nil then
-                    if start >= total then return nil, 0 end
-                    count = total - start
-                end
+                if start >= total then return nil, 0 end
+                if count == nil or count > total - start then count = total - start end
                 if count <= 0 then return nil, 0 end
                 local arr = ffi.new('PCSX_TraceEntry[?]', count)
                 local got = tonumber(C.readCpuTrace(arr, start, count))

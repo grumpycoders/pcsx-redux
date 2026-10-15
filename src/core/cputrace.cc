@@ -122,9 +122,12 @@ constexpr char kMagic[8] = {'P', 'C', 'S', 'X', 'T', 'R', 'C', 0};
 constexpr uint32_t kVersion = 1;
 }  // namespace
 
-void PCSX::CpuTrace::exportText(IO<File> file, size_t start, size_t count) const {
-    if (start >= m_count) return;
+bool PCSX::CpuTrace::exportText(IO<File> file, size_t start, size_t count) const {
+    if (start >= m_count) return true;
     if (count > m_count - start) count = m_count - start;
+    auto put = [&file](const std::string& s) {
+        return file->write(s.data(), s.size()) == static_cast<ssize_t>(s.size());
+    };
     std::string out;
     for (size_t i = start; i < start + count; i++) {
         const TraceEntry& e = (*this)[i];
@@ -132,25 +135,30 @@ void PCSX::CpuTrace::exportText(IO<File> file, size_t start, size_t count) const
         out += Disasm::asString(e.code, 0, e.pc, nullptr, true, &source);
         out += '\n';
         if (out.size() >= 1024 * 1024) {
-            file->writeString(out);
+            if (!put(out)) return false;
             out.clear();
         }
     }
-    file->writeString(out);
+    return put(out);
 }
 
-void PCSX::CpuTrace::save(IO<File> file) const {
-    file->write(kMagic, sizeof(kMagic));
-    file->write<uint32_t>(kVersion);
-    file->write<uint32_t>(sizeof(TraceEntry));
-    file->write<uint64_t>(m_count);
+bool PCSX::CpuTrace::save(IO<File> file) const {
+    auto put = [&file](const void* data, size_t size) { return file->write(data, size) == static_cast<ssize_t>(size); };
+    uint32_t version = kVersion;
+    uint32_t recordSize = sizeof(TraceEntry);
+    uint64_t count = m_count;
+    if (!put(kMagic, sizeof(kMagic)) || !put(&version, sizeof(version)) || !put(&recordSize, sizeof(recordSize)) ||
+        !put(&count, sizeof(count))) {
+        return false;
+    }
     size_t left = m_count;
     for (auto& chunk : m_chunks) {
-        size_t n = std::min(left, kRecordsPerChunk);
-        file->write(chunk.get(), n * sizeof(TraceEntry));
-        left -= n;
         if (left == 0) break;
+        size_t n = std::min(left, kRecordsPerChunk);
+        if (!put(chunk.get(), n * sizeof(TraceEntry))) return false;
+        left -= n;
     }
+    return true;
 }
 
 bool PCSX::CpuTrace::load(IO<File> file) {

@@ -39,44 +39,47 @@ PCSX::Widgets::CpuTrace::CpuTrace(bool& show, std::vector<std::string>& favorite
       m_loadDialog(l_("Load CPU trace"), favorites) {}
 
 void PCSX::Widgets::CpuTrace::draw(GUI* gui, const char* title) {
-    if (ImGui::Begin(title, &m_show)) {
-        auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        auto& trace = *g_emulator->m_cpuTrace;
+    // Loaded traces keep their own windows open when this one is closed.
+    if (m_show) {
+        if (ImGui::Begin(title, &m_show)) {
+            auto& debugSettings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
+            auto& trace = *g_emulator->m_cpuTrace;
 
-        // Capture controls. The Trace debug setting is the single enable - the
-        // interpreter only writes records while it is on. SkipISR keeps the existing
-        // semantics: instructions executed inside an interrupt service routine are
-        // not captured.
-        ImGui::Checkbox(_("Capture"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
-        ImGui::SameLine();
-        ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
-        ImGui::SameLine();
-        if (ImGui::Button(_("Clear"))) {
-            trace.clear();
-            m_live.followTail = false;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(_("Export text..."))) m_exportTextDialog.openDialog();
-        ImGui::SameLine();
-        if (ImGui::Button(_("Save..."))) m_saveDialog.openDialog();
-        ImGui::SameLine();
-        if (ImGui::Button(_("Load..."))) m_loadDialog.openDialog();
-
-        int limitMiB = static_cast<int>(trace.limit() * sizeof(TraceEntry) / (1024 * 1024));
-        ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::InputInt(_("Limit (MiB, 0 = none)"), &limitMiB, 0)) {
-            if (limitMiB < 0) limitMiB = 0;
-            trace.setLimit(static_cast<size_t>(limitMiB) * 1024 * 1024 / sizeof(TraceEntry));
-        }
-        if (trace.full()) {
+            // Capture controls. The Trace debug setting is the single enable - the
+            // interpreter only writes records while it is on. SkipISR keeps the existing
+            // semantics: instructions executed inside an interrupt service routine are
+            // not captured.
+            ImGui::Checkbox(_("Capture"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
             ImGui::SameLine();
-            ImGui::TextUnformatted(_("Limit reached, capture stopped."));
-        }
-        if (!m_error.empty()) ImGui::TextUnformatted(m_error.c_str());
+            ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
+            ImGui::SameLine();
+            if (ImGui::Button(_("Clear"))) {
+                trace.clear();
+                m_live.followTail = false;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(_("Export text..."))) m_exportTextDialog.openDialog();
+            ImGui::SameLine();
+            if (ImGui::Button(_("Save..."))) m_saveDialog.openDialog();
+            ImGui::SameLine();
+            if (ImGui::Button(_("Load..."))) m_loadDialog.openDialog();
 
-        drawView(gui, trace, m_live, true);
+            int limitMiB = static_cast<int>(trace.limit() * sizeof(TraceEntry) / (1024 * 1024));
+            ImGui::SetNextItemWidth(120.0f);
+            if (ImGui::InputInt(_("Limit (MiB, 0 = none)"), &limitMiB, 0)) {
+                if (limitMiB < 0) limitMiB = 0;
+                trace.setLimit(static_cast<size_t>(limitMiB) * 1024 * 1024 / sizeof(TraceEntry));
+            }
+            if (trace.full()) {
+                ImGui::SameLine();
+                ImGui::TextUnformatted(_("Limit reached, capture stopped."));
+            }
+            if (!m_error.empty()) ImGui::TextUnformatted(m_error.c_str());
+
+            drawView(gui, trace, m_live, true);
+        }
+        ImGui::End();
     }
-    ImGui::End();
 
     if (m_exportTextDialog.draw()) {
         auto& selected = m_exportTextDialog.selected();
@@ -85,8 +88,11 @@ void PCSX::Widgets::CpuTrace::draw(GUI* gui, const char* title) {
             if (file->failed()) {
                 m_error = _("Unable to open the file for writing.");
             } else {
-                g_emulator->m_cpuTrace->exportText(file);
-                m_error.clear();
+                if (g_emulator->m_cpuTrace->exportText(file)) {
+                    m_error.clear();
+                } else {
+                    m_error = _("Writing the file failed.");
+                }
             }
         }
     }
@@ -97,8 +103,11 @@ void PCSX::Widgets::CpuTrace::draw(GUI* gui, const char* title) {
             if (file->failed()) {
                 m_error = _("Unable to open the file for writing.");
             } else {
-                g_emulator->m_cpuTrace->save(file);
-                m_error.clear();
+                if (g_emulator->m_cpuTrace->save(file)) {
+                    m_error.clear();
+                } else {
+                    m_error = _("Writing the file failed.");
+                }
             }
         }
     }

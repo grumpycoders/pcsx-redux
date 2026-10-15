@@ -132,14 +132,12 @@ uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count) {
 bool exportCpuTraceText(const char* path) {
     PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
     if (file->failed()) return false;
-    PCSX::g_emulator->m_cpuTrace->exportText(file);
-    return true;
+    return PCSX::g_emulator->m_cpuTrace->exportText(file);
 }
 bool saveCpuTrace(const char* path) {
     PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
     if (file->failed()) return false;
-    PCSX::g_emulator->m_cpuTrace->save(file);
-    return true;
+    return PCSX::g_emulator->m_cpuTrace->save(file);
 }
 bool loadCpuTrace(const char* path) {
     PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path);
