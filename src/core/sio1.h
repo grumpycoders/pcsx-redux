@@ -121,7 +121,9 @@ class SIO1 {
 
     bool fifoError() {
         if (m_sio1Mode == SIO1Mode::Raw) {
-            return (!m_sio1fifo || m_sio1fifo->failed() || m_sio1fifo->eof() || m_sio1fifo->isClosed());
+            // A peer that only shut down its sending side still closes the fifo, but the bytes
+            // it sent before that stay readable until eof().
+            return (!m_sio1fifo || m_sio1fifo->failed() || m_sio1fifo->eof());
         } else {
             return (!m_fifo || m_fifo->failed() || m_fifo->eof() || m_fifo->isClosed());
         }

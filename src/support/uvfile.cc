@@ -783,8 +783,8 @@ PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
 }
 
 PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File::FileType::RW_STREAM) {
-    m_failed.clear();
-    m_connecting.test_and_set();
+    m_state->failed.clear();
+    m_state->connecting.test_and_set();
     // something to parse uri here
     uv_tcp_t *tcp = new uv_tcp_t();
     tcp->data = this;
@@ -794,7 +794,7 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
         struct sockaddr_in connectAddr;
         int result = uv_ip4_addr(host.c_str(), port, &connectAddr);
         if (result != 0) {
-            m_failed.test_and_set();
+            m_state->failed.test_and_set();
             return;
         }
         uv_connect_t *connect = new uv_connect_t();
@@ -803,15 +803,15 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
                                 [](uv_connect_t *connect, int status) {
                                     UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
                                     if (status < 0) {
-                                        fifo->m_failed.test_and_set();
+                                        fifo->m_state->failed.test_and_set();
                                         delete connect;
                                         return;
                                     }
-                                    fifo->m_connecting.clear();
+                                    fifo->m_state->connecting.clear();
                                     fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
                                 });
         if (result != 0) {
-            m_failed.test_and_set();
+            m_state->failed.test_and_set();
             delete connect;
             return;
         }
@@ -886,23 +886,37 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
     return ret;
 }
 
+void PCSX::UvFifo::writeFailed(State &state) {
+    // Some platforms refuse writes until the connection completes; that is not a broken socket.
+    if (state.connecting.test()) return;
+    state.failed.test_and_set();
+}
+
 ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
     struct Info {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<State> state;
     };
     auto info = new Info();
     info->req.data = info;
+    info->state = m_state;
     info->slice.copy(src, size);
     info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
     info->buf.len = size;
     request([info, tcp = m_tcp](auto loop) {
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+        auto stream = reinterpret_cast<uv_stream_t *>(tcp);
+        int result = uv_write(&info->req, stream, &info->buf, 1, [](uv_write_t *req, int status) {
             auto info = reinterpret_cast<Info *>(req->data);
+            if (status < 0) writeFailed(*info->state);
             delete info;
         });
+        if (result != 0) {
+            writeFailed(*info->state);
+            delete info;
+        }
     });
     return size;
 }
@@ -912,18 +926,26 @@ void PCSX::UvFifo::write(Slice &&slice) {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<State> state;
     };
     auto size = slice.size();
     auto info = new Info();
     info->req.data = info;
+    info->state = m_state;
     info->buf.len = size;
     info->slice = std::move(slice);
     request([info, tcp = m_tcp](auto loop) {
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
+        auto stream = reinterpret_cast<uv_stream_t *>(tcp);
+        int result = uv_write(&info->req, stream, &info->buf, 1, [](uv_write_t *req, int status) {
             auto info = reinterpret_cast<Info *>(req->data);
+            if (status < 0) writeFailed(*info->state);
             delete info;
         });
+        if (result != 0) {
+            writeFailed(*info->state);
+            delete info;
+        }
     });
 }
 
