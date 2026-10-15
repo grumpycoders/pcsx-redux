@@ -142,6 +142,8 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("DemangledSymbols"), true> DemangledSymbols;
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
+        typedef Setting<bool, TYPESTRING("PCdrvNet"), false> PCdrvNet;
+        typedef SettingString<TYPESTRING("PCdrvNetAllow")> PCdrvNetAllow;
         typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
         typedef Setting<int, TYPESTRING("SIO1ServerPort"), 6699> SIO1ServerPort;
         typedef Setting<bool, TYPESTRING("SIO1Client"), false> SIO1Client;
@@ -156,8 +158,9 @@ class Emulator {
                          GdbServer, GdbManifest, GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort,
                          KernelCallA0_00_1f, KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f,
                          KernelCallA0_80_9f, KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f,
-                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server,
-                         SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
+                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, PCdrvNet,
+                         PCdrvNetAllow, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort,
+                         SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;

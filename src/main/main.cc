@@ -409,6 +409,13 @@ int pcsxMain(int argc, char **argv) {
         if (argPCdrvBase.has_value()) {
             debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvBase>() = argPCdrvBase.value();
         }
+        if (args.get<bool>("pcdrvnet")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvNet>() = true;
+        }
+        auto argPCdrvNetAllow = args.get<std::string>("pcdrvnetallow");
+        if (argPCdrvNetAllow.has_value()) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvNetAllow>() = argPCdrvNetAllow.value();
+        }
 
         if (args.get<bool>("dynarec")) {
             emuSettings.get<PCSX::Emulator::SettingDynarec>() = true;
