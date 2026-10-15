@@ -2257,8 +2257,7 @@ This setting is useful for debugging purposes,
 to detect uninitialized memory reads that may
 cause issues in some cases.
 )"));
-        if (ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"),
-                            &settings.get<Emulator::SettingHardwareRenderer>().value)) {
+        if (ImGui::Checkbox(_("OpenGL GPU *ALPHA STATE*"), &settings.get<Emulator::SettingHardwareRenderer>().value)) {
             changed = true;
             if (settings.get<Emulator::SettingHardwareRenderer>() && settings.get<Emulator::Setting2MBVRAM>()) {
                 show2MBVRAMHardwareWarning = true;
