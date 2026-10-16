@@ -119,6 +119,7 @@ class UvFifoListener : public UvThreadOp {
     UvFifoListener() {}
     void start(unsigned port, uv_loop_t* loop, void* async, std::function<void(UvFifo*)>&& cb) {}
     void stop() {}
+    const char* lastError() const { return ""; }
 };
 
 }  // namespace PCSX

@@ -66,6 +66,9 @@ void Endpoint::settled() {
     restartNow(m_loop, m_port);
 }
 
+// No sockets on wasm: Server and Client come from network-none.cc there.
+#ifndef __EMSCRIPTEN__
+
 //
 // Server
 //
@@ -176,5 +179,7 @@ Status Client::status() const {
 }
 
 const char* Client::lastError() const { return m_fifo ? m_fifo->connectError() : ""; }
+
+#endif
 
 }  // namespace PCSX::Network
