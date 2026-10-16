@@ -1461,7 +1461,7 @@ void DynaRecCPU::recBCz(uint32_t code) {
     loadThisPointer(arg1.cvt64());
     gen.moveImm(arg2, (static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28));
     gen.moveImm(arg3, (int32_t)m_inDelaySlot);
-    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);
+    gen.mov(dword[contextPointer + PC_OFFSET], exceptionPC());
     call(exceptionWrapper);
     if constexpr (ENABLE_PROFILER) {
         endProfiling();
@@ -1562,9 +1562,10 @@ void DynaRecCPU::testSoftwareInterrupt() {
     // Fire the interrupt if it was triggered
     // This object in arg1. Exception code is already in arg2 from before (will be masked by exception handler)
     loadThisPointer(arg1.cvt64());
-    gen.moveImm(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
-    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
-    call(exceptionWrapper);                                // Call the exception wrapper function
+    // The interrupt is taken before the next instruction in execution order, which is the PC written back above, and
+    // BD is clear: in a delay slot, the slot completes first and EPC is the branch target.
+    gen.moveImm(arg3, 0);
+    call(exceptionWrapper);  // Call the exception wrapper function
 
     gen.L(label);
 }
@@ -2009,8 +2010,8 @@ void DynaRecCPU::recException(Exception e) {
 
     loadThisPointer(arg1.cvt64());                                                  // Pointer to this object in arg1
     gen.moveImm(arg2, static_cast<std::underlying_type<Exception>::type>(e) << 2);  // Exception type in arg2
-    gen.moveImm(arg3, (int32_t)m_inDelaySlot);             // Store whether we're in a delay slot in arg3
-    gen.mov(dword[contextPointer + PC_OFFSET], m_pc - 4);  // PC for exception handler to use
+    gen.moveImm(arg3, (int32_t)m_inDelaySlot);                  // Store whether we're in a delay slot in arg3
+    gen.mov(dword[contextPointer + PC_OFFSET], exceptionPC());  // PC for exception handler to use
 
     call(exceptionWrapper);  // Call the exception wrapper
 }

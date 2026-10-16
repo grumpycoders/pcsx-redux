@@ -123,7 +123,28 @@ class impl final : public SPUInterface {
         }
     }
     uint32_t getCurrentFrames() override { return m_audioOut.getCurrentFrames(); }
-    void waitForGoal(uint32_t goal) override { m_audioOut.waitForGoal(goal); }
+    void waitForGoal(uint32_t goal) override {
+#ifdef __EMSCRIPTEN__
+        // This is the emulator's real-time throttle: run ahead of the audio
+        // device, then block until it has drained enough frames. It is called
+        // from psxcounters, i.e. from inside Execute(), and blocking there is
+        // exactly what a browser's main thread may not do - it is a futex wait,
+        // and it is the reason this build used to need PROXY_TO_PTHREAD.
+        //
+        // In a browser the pacing belongs to the frame callback instead: the
+        // main loop delivers ~60 calls a second and Execute() unwinds after one
+        // emulated frame, so the rate is set by requestAnimationFrame rather
+        // than by the audio clock. The caller advances m_audioFrames either way.
+        //
+        // Known imperfection rather than an oversight: that ties emulation speed
+        // to the display refresh, so a PAL title or a 144 Hz monitor will not
+        // pace correctly. Fixing that means driving from the audio callback,
+        // which is a bigger change than moving the loop.
+        (void)goal;
+#else
+        m_audioOut.waitForGoal(goal);
+#endif
+    }
     // The mixer cannot run past the CPU, so the CPU has to run ahead of the audio device by at
     // least one device period, or the device finds the ring short. On top of that: two NSSIZE
     // batches, because the mixer waits for whole batches before mixing, and the user's latency
@@ -199,16 +220,16 @@ class impl final : public SPUInterface {
     // Reads the voice's two mode flags once and calls the matching
     // synthesizeVoice instantiation. This is the only place the runtime flags
     // are turned into compile-time axes.
-    void synthesizeChannel(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    void synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n);
     template <FModRole Role, SampleSource Src>
-    void synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    void synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n);
     // Decodes the next ADPCM block for a voice, together with the IRQ check and the
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.
     bool decodeNextBlock(int ch, SPUCHAN *voice);
     void triggerIrq();
-    void walkSilentVoice(int ch, SPUCHAN* voice, int n);
-    void captureVoiceSilence(int ch, int32_t& capVoice1Index, int32_t& capVoice3Index, int fromSample, int n);
+    void walkSilentVoice(int ch, SPUCHAN *voice, int n);
+    void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample, int n);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
     // Hands the mixed frames to the audio device. Blocks while the device ring is full; returns
@@ -277,8 +298,8 @@ class impl final : public SPUInterface {
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
     uint16_t readCtrl();
-    void decodeAdsrLow(AdsrEnvelope& adsr, uint16_t val);
-    void decodeAdsrHigh(AdsrEnvelope& adsr, uint16_t val);
+    void decodeAdsrLow(AdsrEnvelope &adsr, uint16_t val);
+    void decodeAdsrHigh(AdsrEnvelope &adsr, uint16_t val);
 
     RegisterEvent m_events[kEventQueueSize];
     std::atomic<uint64_t> m_eventsPushed = 0;   // written by the CPU thread only

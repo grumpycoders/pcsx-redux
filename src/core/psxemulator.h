@@ -40,6 +40,7 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <atomic>
 #include <deque>
 #include <filesystem>
 #include <memory>
@@ -71,6 +72,7 @@ class CallStacks;
 class CDRom;
 class CDRomLogger;
 class Counters;
+class CpuTrace;
 class Debug;
 class GdbServer;
 class GPU;
@@ -286,10 +288,15 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
+    // Turbo multiplies the SPU::Speed sink multiplier; see SPU::SDLAudio::effectiveSpeed.
+    void setTurbo(bool on) { m_turboFactor.store(on ? 2 : 1, std::memory_order_relaxed); }
+    int getTurboFactor() const { return m_turboFactor.load(std::memory_order_relaxed); }
+
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
+    std::unique_ptr<CpuTrace> m_cpuTrace;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
@@ -316,6 +323,7 @@ class Emulator {
 
   private:
     PcsxConfig m_config;
+    std::atomic<int> m_turboFactor{1};
 };
 
 }  // namespace PCSX

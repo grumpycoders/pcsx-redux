@@ -21,6 +21,7 @@
 #include <array>
 
 #include "core/callstacks.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gte.h"
@@ -95,11 +96,30 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     // An exception taken in a branch delay slot cancels the pending branch. While the delay slot
     // executes, that branch sits in the other delayed load slot.
     // A BREAK that PCdrv handles takes no exception, so the branch stays pending.
+    // Cause.BD and EPC follow the branch whose slot this is, taken or not, and that branch is not
+    // always the previous word: a branch in a taken branch's slot owns the target as its slot.
     bool exception(uint32_t code, bool bd, bool cop0 = false) {
+        bd = bd || m_inBranchSlot;
         bool taken = R3000Acpu::exception(code, bd, cop0);
-        if (taken && bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+        if (taken && bd) {
+            m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+            m_regs.CP0.n.EPC = m_slotBranchPC;
+        }
         return taken;
     }
+    // Set by every branch and jump as it executes, taken or not; m_inBranchSlot covers exactly the
+    // next instruction, m_slotBranchPC is the address of that branch.
+    void markBranch() {
+        m_nextIsBranchSlot = true;
+        m_nextSlotBranchPC = m_regs.pc - 4;
+    }
+    bool m_nextIsBranchSlot = false;
+    bool m_inBranchSlot = false;
+    uint32_t m_nextSlotBranchPC = 0;
+    uint32_t m_slotBranchPC = 0;
+    // A software interrupt raised in a branch slot is taken once the slot completes, at the next
+    // instruction in execution order, with BD clear.
+    bool m_pendingSWInt = false;
     bool exception(Exception e, bool bd, bool cop0 = false) {
         return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
@@ -400,6 +420,7 @@ inline uint32_t InterpretedCPU::branchBase() {
 
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
+    markBranch();
     delayedPCLoad(target, fromLink);
 }
 
@@ -694,12 +715,14 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 #define RepZBranchi32(op)                \
+    markBranch();                        \
     if (int32_t(_rRs_) op 0) {           \
         doBranch(_BranchTarget_, false); \
     }
 #define RepZBranchLinki32(op)                                    \
     {                                                            \
         uint32_t ra = m_regs.pc + 4;                             \
+        markBranch();                                            \
         if ((int32_t)_rRs_ op 0) {                               \
             uint32_t sp = m_regs.GPR.n.sp;                       \
             doBranch(_BranchTarget_, true);                      \
@@ -857,6 +880,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
+    markBranch();        \
     if ((int32_t)_rRs_ op(int32_t) _rRt_) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
@@ -1119,12 +1143,12 @@ void InterpretedCPU::psxCFC0(uint32_t code) {
 }
 
 void InterpretedCPU::psxTestSWInts() {
-    // the next code is untested, if u know please
-    // tell me if it works ok or not (linuzappz)
     if (m_regs.CP0.n.Cause & m_regs.CP0.n.Status & 0x0300 && m_regs.CP0.n.Status & 0x1) {
-        bool inDelaySlot = m_inDelaySlot;
-        m_inDelaySlot = false;
-        exception(m_regs.CP0.n.Cause, inDelaySlot);
+        if (m_inBranchSlot) {
+            m_pendingSWInt = true;
+            return;
+        }
+        exception(m_regs.CP0.n.Cause, false);
     }
 }
 
@@ -1190,6 +1214,7 @@ void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
         exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
         return;
     }
+    markBranch();
     if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);
 }
 
@@ -1815,6 +1840,9 @@ void InterpretedCPU::Reset() {
     R3000Acpu::Reset();
     m_nextIsDelaySlot = false;
     m_inDelaySlot = false;
+    m_nextIsBranchSlot = false;
+    m_inBranchSlot = false;
+    m_pendingSWInt = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
@@ -1858,11 +1886,14 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
        must not inherit it. Park the bookkeeping and hand it back untouched. */
     const bool savedNextIsDelaySlot = m_nextIsDelaySlot;
     const bool savedInDelaySlot = m_inDelaySlot;
+    const bool savedNextIsBranchSlot = m_nextIsBranchSlot;
+    const uint32_t savedNextSlotBranchPC = m_nextSlotBranchPC;
     const unsigned savedCurrentDelayedLoad = m_currentDelayedLoad;
     const auto savedDelayedLoad0 = m_delayedLoadInfo[0];
     const auto savedDelayedLoad1 = m_delayedLoadInfo[1];
     m_nextIsDelaySlot = false;
     m_inDelaySlot = false;
+    m_nextIsBranchSlot = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
@@ -1893,6 +1924,8 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
         m_inISR = wasInISR;
         m_nextIsDelaySlot = savedNextIsDelaySlot;
         m_inDelaySlot = savedInDelaySlot;
+        m_nextIsBranchSlot = savedNextIsBranchSlot;
+        m_nextSlotBranchPC = savedNextSlotBranchPC;
         m_currentDelayedLoad = savedCurrentDelayedLoad;
         m_delayedLoadInfo[0] = savedDelayedLoad0;
         m_delayedLoadInfo[1] = savedDelayedLoad1;
@@ -1935,6 +1968,9 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
         }
+        m_inBranchSlot = m_nextIsBranchSlot;
+        m_slotBranchPC = m_nextSlotBranchPC;
+        m_nextIsBranchSlot = false;
         // TODO: throw an exception here if pc is out of range
         const uint32_t pc = m_regs.pc;
         // TODO: throw an exception here if we don't have a pointer
@@ -1943,8 +1979,7 @@ inline void InterpretedCPU::execBlock() {
         m_regs.code = code;
 
         if constexpr (trace) {
-            std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
-            PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins);
+            PCSX::g_emulator->m_cpuTrace->capture(pc, code);
         }
 
         m_regs.pc += 4;
@@ -1964,6 +1999,11 @@ inline void InterpretedCPU::execBlock() {
             fromLink = delayedLoad.fromLink;
             delayedLoad.pcActive = false;
             delayedLoad.fromLink = false;
+        }
+        m_inBranchSlot = false;
+        if (m_pendingSWInt) {
+            m_pendingSWInt = false;
+            psxTestSWInts();
         }
         if (m_inDelaySlot) {
             m_inDelaySlot = false;

@@ -118,7 +118,7 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *voice, int ns) {
 // across channels, so they are passed by reference.
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t& capVoice1Index, int32_t& capVoice3Index, int fromSample,
+void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample,
                                           int n) {
     if (ch != 1 && ch != 3) return;
     std::lock_guard<std::mutex> lock(cbMtx);
@@ -178,12 +178,18 @@ void PCSX::SPU::impl::triggerIrq() {
 // the voice's 28-sample buffer, then the two things that hang off that boundary - the IRQ
 // address check, and the loop/stop flag that decides where the cursor goes next. Split out
 // of synthesizeChannel because it is the only part of the pitch loop that is not per-sample.
-// Returns false when the cursor is already parked at kStopped, i.e. the voice ended on a
-// previous pass and the caller must stop synthesizing it.
+// Returns false when the voice ended on a previous pass and the caller must stop synthesizing
+// it. Once it is silent, the readout carries on from the repeat address.
 bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
     // Current decode position.
     uint8_t *cursor = voice->adpcm.curr();
-    if (cursor == AdpcmDecoder::kStopped) return false;
+    if (cursor == AdpcmDecoder::kStopped) {
+        // kStopped after an end block is a mute still owed to an audible voice. Once the voice
+        // is silent the cursor goes to the repeat address, as it does on hardware for every end
+        // block: the readout never stops, and a silent voice still raises IRQ9.
+        if (voice->data.get<Chan::On>().value || voice->adpcm.loop() == nullptr) return false;
+        cursor = voice->adpcm.loop();
+    }
 
     auto &irqDone = voice->data.get<Chan::IrqDone>().value;
     auto &ignoreLoop = voice->data.get<Chan::IgnoreLoop>().value;
@@ -214,9 +220,11 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         // ENDX latches on the end flag.
         spuEndx |= 1u << ch;
 
-        // Only loop when the flag byte is exactly 3 (loop-end + repeat) and a loop address was
-        // latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
-        // avoids following an address that was never set.
+        // Keep playing only when the flag byte is exactly 3 (loop-end + repeat) and a loop address
+        // was latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
+        // avoids following an address that was never set. Anything else mutes the voice once this
+        // block has played, and kStopped holds that until it does; the jump to the repeat address
+        // happens at the top of the next call.
         cursor = (blockFlags != 3 || voice->adpcm.loop() == nullptr) ? AdpcmDecoder::kStopped : voice->adpcm.loop();
     }
 
@@ -235,13 +243,9 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
 // is wanted is the block boundary, where the IRQ address check and the ENDX latch live.
 // A voice with no pitch programmed never advances, which is the one way psx-spx suggests
 // the readout can actually be stopped ("except, probably they CAN be stopped, by setting
-// the sample rate to zero?").
-//
-// Known remaining divergence: a cursor parked at kStopped stays parked and reads nothing.
-// Hardware has no parked state - a voice that consumed an end block without a repeat flag
-// keeps re-reading from its loop address forever - but modelling that means picking an
-// address psx-spx does not pin down, so it is left alone rather than guessed at.
-void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN* voice, int n) {
+// the sample rate to zero?"). A voice silenced by an end block resumes here from its repeat
+// address, see decodeNextBlock.
+void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN *voice, int n) {
     for (int ns = 0; ns < n; ns++) {
         while (voice->interp.owesSample()) {
             if (voice->adpcm.bufferExhausted() && !decodeNextBlock(ch, voice)) return;
@@ -254,7 +258,7 @@ void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN* voice, int n) {
 }
 
 template <PCSX::SPU::FModRole Role, PCSX::SPU::SampleSource Src>
-void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n) {
+void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n) {
     // Being the frequency-modulator SOURCE decides three things at once: the
     // voice bypasses the resampler, it skips the volume and reverb stage, and
     // its output goes to fmodInput rather than the stereo mix.
@@ -333,8 +337,9 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
                 captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns, n);
-                // The sweep keeps running for the rest of the chunk.
+                // The sweep keeps running for the rest of the chunk, and so does the readout.
                 for (int rest = ns + 1; rest < n; rest++) voice->volume.step();
+                walkSilentVoice(ch, voice, n - ns);
                 // Done with this channel.
                 return;
             }
@@ -390,7 +395,7 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1
 // sees them as template arguments. Anything other than 1 or 2 in the FMod field
 // means the voice is not part of a modulation pair, which is exactly what the
 // per-sample equality tests this replaced did with it.
-void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index,
+void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index,
                                         int n) {
     const bool noise = voice->data.get<Chan::Noise>().value;
 
@@ -479,7 +484,7 @@ void PCSX::SPU::impl::pushEvent(uint64_t cycle, uint32_t reg, uint16_t value) {
             drainEventsNow();
         }
     }
-    auto& event = m_events[pushed & (kEventQueueSize - 1)];
+    auto &event = m_events[pushed & (kEventQueueSize - 1)];
     event.sample = sampleAfter(cycle);
     event.reg = reg;
     event.value = value;
@@ -490,7 +495,7 @@ void PCSX::SPU::impl::drainEventsNow() {
     uint64_t applied = m_eventsApplied.load();
     const uint64_t pushed = m_eventsPushed.load();
     for (; applied != pushed; applied++) {
-        const auto& event = m_events[applied & (kEventQueueSize - 1)];
+        const auto &event = m_events[applied & (kEventQueueSize - 1)];
         applyRegister(event.reg, event.value);
     }
     m_eventsApplied.store(applied);
@@ -500,7 +505,7 @@ void PCSX::SPU::impl::applyDueEvents() {
     uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
     const uint64_t pushed = m_eventsPushed.load(std::memory_order_acquire);
     while (applied != pushed) {
-        const auto& event = m_events[applied & (kEventQueueSize - 1)];
+        const auto &event = m_events[applied & (kEventQueueSize - 1)];
         if (event.sample > m_mixPos) break;
         applyRegister(event.reg, event.value);
         applied++;
@@ -563,7 +568,7 @@ void PCSX::SPU::impl::MainThread() {
         m_mixPos += n;
         publishProgress();
 
-        const size_t buffered = (reinterpret_cast<uint8_t*>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
+        const size_t buffered = (reinterpret_cast<uint8_t *>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
         if (buffered >= NSSIZE && !flushOutput()) break;
     }
 
@@ -571,7 +576,7 @@ void PCSX::SPU::impl::MainThread() {
 }
 
 bool PCSX::SPU::impl::flushOutput() {
-    const size_t frames = (reinterpret_cast<uint8_t*>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
+    const size_t frames = (reinterpret_cast<uint8_t *>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
     if (frames == 0) return true;
     // When the host emulates a stretch slower than realtime, the device plays silence until the
     // CPU catches up, and the CPU then runs the same lead ahead of the device as before: what was
@@ -585,10 +590,10 @@ bool PCSX::SPU::impl::flushOutput() {
     }
     // Blocks while the device ring is full, which is what paces this thread when the CPU is
     // further ahead than the ring holds.
-    while (!m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame*>(spuBuffer), frames)) {
+    while (!m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(spuBuffer), frames)) {
         if (endThread) return false;
     }
-    pS = (int16_t*)spuBuffer;
+    pS = (int16_t *)spuBuffer;
     return true;
 }
 

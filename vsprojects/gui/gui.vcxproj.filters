@@ -4,6 +4,12 @@
     <ClCompile Include="..\..\src\gui\gui.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-about-ffmpeg.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-platform-desktop.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
       <Filter>Source Files\themes</Filter>
     </ClCompile>
@@ -82,6 +88,9 @@
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\cputrace.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\gpudump.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -92,6 +101,9 @@
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\network.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc">
@@ -208,6 +220,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\cputrace.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\gpudump.h">

@@ -24,6 +24,9 @@ SOFTWARE.
 
 */
 
+// v1 wasm has no updater; version-wasm.cc supplies the stubs.
+#ifndef __EMSCRIPTEN__
+
 #include "support/version.h"
 
 #include <uv.h>
@@ -32,6 +35,7 @@ SOFTWARE.
 
 #include "json.hpp"
 #include "support/container-file.h"
+#include "support/uvfile.h"
 
 void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     clear();
@@ -65,6 +69,12 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     updateCatalog = getString("updateCatalog");
     updateInfoBase = getString("updateInfoBase");
     updateStorageUrl = getString("updateStorageUrl");
+}
+
+float PCSX::Update::progress() {
+    auto download = m_download.asA<UvFile>();
+    if (download && !download->failed()) return download->cacheProgress();
+    return 0.0f;
 }
 
 bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::function<void(bool)> callback,
@@ -272,4 +282,6 @@ bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
     throw std::runtime_error("No platform support for updates");
     return false;
 }
+#endif
+
 #endif

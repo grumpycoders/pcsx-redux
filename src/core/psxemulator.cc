@@ -22,6 +22,7 @@
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/eventslua.h"
 #include "core/gdb-server.h"
@@ -47,11 +48,9 @@
 #include "lua/extra.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
+#include "lua/luv-glue.h"
 #include "lua/zlibffi.h"
 #include "luafilesystem/src/lfs.h"
-extern "C" {
-#include <luv.h>
-}
 #include "spu/interface.h"
 #include "supportpsx/adpcmlua.h"
 #include "supportpsx/assembler.h"
@@ -86,6 +85,7 @@ PCSX::Emulator::Emulator()
       m_cdrom(PCSX::CDRom::factory()),
       m_cdromLogger(new PCSX::CDRomLogger()),
       m_counters(new PCSX::Counters()),
+      m_cpuTrace(new PCSX::CpuTrace()),
       m_debug(new PCSX::Debug()),
       m_gdbServer(new PCSX::GdbServer()),
       m_gpuDumper(new PCSX::GPUDumper()),
@@ -126,11 +126,34 @@ void PCSX::Emulator::setLua() {
         return 1;
     });
     L.load("ffi = require('ffi')", "internal:setffi.lua");
+    // Before anything that consumes `bit`. src/core/pcsxffi.lua defines
+    // bit.extract at file scope, so on a backend without the LuaJIT bit library
+    // that is an index of a nil value and the whole chunk dies at startup.
+    // No-op where `bit` already exists.
+    {
+        // The lualoader / paren dance is load-bearing: the .lua file is valid
+        // Lua AND a C++ raw string literal at once, and the leading `--` of its
+        // first line becomes a pre-decrement discarded by the comma operator.
+        // Without the parentheses it is a syntax error, not a string.
+        static int lualoader = 1;
+        static const char* bitshim = (
+#include "lua/bitshim.lua"
+        );
+        L.load(bitshim, "src:lua/bitshim.lua");
+    }
+
+    // The _CLIBS adapter, before ANY ffi file: it wraps ffi.cdef to accumulate
+    // declarations, and a library cdef'd before the wrapper is installed would
+    // be invisible to it. No-op on LuaJIT, where lj_clib.c does this in C.
+    {
+        static int lualoader = 1;
+        static const char* clibs = (
+#include "lua/clibs.lua"
+        );
+        L.load(clibs, "src:lua/clibs.lua");
+    }
     LuaFFI::open_zlib(L);
-    luv_set_loop(L.getState(), g_system->getLoop());
-    L.push("luv");
-    luaopen_luv(L.getState());
-    L.settable(LUA_GLOBALSINDEX);
+    openLuv(L);
     luaopen_lfs(L.getState());
     L.pop(3);
     luaopen_lpeg(L.getState());
@@ -224,6 +247,11 @@ void PCSX::Emulator::dispatchVSync() {
         m_vsyncPending--;
         g_system->m_eventBus->signal<Events::GPU::VSync>({});
         g_system->update(true);
+        // A frame has been produced, so let Execute() unwind at the next block
+        // boundary. Unconditional rather than wasm-only: on desktop this costs one
+        // extra return and re-entry per frame against a few million instruction
+        // dispatches, and one code path is worth more than that.
+        m_cpu->m_frameDone = true;
 
         const uint32_t interval = settings.get<SettingRewindInterval>().value;
         if (interval > 0 && !(++m_rewind_counter % interval)) {
