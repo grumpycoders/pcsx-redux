@@ -31,7 +31,6 @@ SOFTWARE.
 #include "support/uvfile-wasm.h"
 #else
 
-
 #include <curl/curl.h>
 #include <uv.h>
 

@@ -52,7 +52,6 @@
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
 #include "gui/widgets/isobrowser.h"
-#include "gui/widgets/network.h"
 #include "gui/widgets/kernellog.h"
 #include "gui/widgets/log.h"
 #include "gui/widgets/luaeditor.h"
@@ -60,6 +59,7 @@
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/named_savestates.h"
+#include "gui/widgets/network.h"
 #include "gui/widgets/patches.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/ram-viewer.h"
@@ -180,8 +180,8 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
-             ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer,
-             ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer,
+             ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
              EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
@@ -298,9 +298,7 @@ class GUI final : public UI {
         std::deque<Notice> m_pending;
         std::deque<Notice> m_shown;
     };
-    void addNotice(const std::string &notice, NoticeKind kind) {
-        m_passiveNotifier.notify(notice, kind);
-    }
+    void addNotice(const std::string &notice, NoticeKind kind) { m_passiveNotifier.notify(notice, kind); }
 
     void magicOpen(const char *path);
 

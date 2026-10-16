@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-
 #pragma once
 
 // The wasm build has no libuv, no curl and no worker thread, so uvfile.cc is not

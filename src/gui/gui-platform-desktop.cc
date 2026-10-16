@@ -26,10 +26,10 @@ SOFTWARE.
 
 #ifndef __EMSCRIPTEN__
 
-#include "gui/gui-platform.h"
-
 #include <GL/gl3w.h>
 #include <SDL3/SDL.h>
+
+#include "gui/gui-platform.h"
 
 namespace PCSX {
 namespace GUIPlatform {

@@ -28,7 +28,6 @@
 -- adapter has to remember them: ffi.cdef is wrapped to accumulate its source,
 -- and ffi.load builds the proxy from everything cdef'd so far. That is why this
 -- must load BEFORE any of the ffi files, not merely before first use.
-
 local ffi = require 'ffi'
 
 local M = {}
@@ -40,10 +39,10 @@ local M = {}
 -- missing from the proxy would surface later as a nil call in unrelated code.
 local function declToTypedef(decl)
     -- name is the identifier immediately before the argument list's open paren
-    local ret, name, args = decl:match("^%s*(.-)([%a_][%w_]*)%s*(%b())%s*$")
+    local ret, name, args = decl:match('^%s*(.-)([%a_][%w_]*)%s*(%b())%s*$')
     if not (ret and name and args) then return nil end
-    if ret:find("typedef") or ret == "" then return nil end
-    return string.format("typedef %s(*__clib_%s)%s;", ret, name, args), name
+    if ret:find('typedef') or ret == '' then return nil end
+    return string.format('typedef %s(*__clib_%s)%s;', ret, name, args), name
 end
 
 -- Pull top-level function declarations out of a cdef block. Skips anything
@@ -54,14 +53,17 @@ function M.declarations(cdefSrc)
     local buf = {}
     for i = 1, #cdefSrc do
         local ch = cdefSrc:sub(i, i)
-        if ch == "{" then depth = depth + 1 end
-        if ch == "}" then depth = depth - 1 end
-        if ch == ";" and depth == 0 then
+        if ch == '{' then depth = depth + 1 end
+        if ch == '}' then depth = depth - 1 end
+        if ch == ';' and depth == 0 then
             local decl = table.concat(buf)
             buf = {}
             local td, name = declToTypedef(decl)
-            if td then out[name] = td; order[#order + 1] = name end
-        elseif ch ~= ";" then
+            if td then
+                out[name] = td;
+                order[#order + 1] = name
+            end
+        elseif ch ~= ';' then
             buf[#buf + 1] = ch
         else
             buf = {}
@@ -79,16 +81,16 @@ function M.load(libname, cdefSrc)
 
     local reg = debug.getregistry()
     local clibs = reg._CLIBS
-    if not clibs then error("_CLIBS is not in the Lua registry", 2) end
+    if not clibs then error('_CLIBS is not in the Lua registry', 2) end
     local syms = clibs[libname]
-    if not syms then error("_CLIBS has no library named " .. tostring(libname), 2) end
+    if not syms then error('_CLIBS has no library named ' .. tostring(libname), 2) end
 
     -- LAZY, like LuaJIT's ffi.load: resolve on first access, not up front.
     -- Not an optimisation for its own sake - Redux's GL binding declares 980
     -- functions across four cdef files while a shader touches four of them, so
     -- eager cdef+cast would pay for 976 it never calls, and would also force a
     -- decision about the ~all-declared-but-unregistered symbols at load time.
-    local report = {declared = #order, withAddress = 0, addressNoDeclaration = {}}
+    local report = { declared = #order, withAddress = 0, addressNoDeclaration = {} }
     for name in pairs(syms) do
         if typedefs[name] == nil then
             report.addressNoDeclaration[#report.addressNoDeclaration + 1] = name
@@ -118,16 +120,15 @@ function M.load(libname, cdefSrc)
                     rawset(t, k, cv)
                     return cv
                 end
-                error(string.format(
-                    "_CLIBS[%q].%s: no declaration in the cdef block, and not a cdef'd constant",
-                    libname, tostring(k)), 2)
+                error(string.format('_CLIBS[%q].%s: no declaration in the cdef block, and not a cdef\'d constant',
+                                    libname, tostring(k)), 2)
             end
             if addr == nil then
-                error(string.format("_CLIBS[%q].%s: declared but never registered from C", libname, tostring(k)), 2)
+                error(string.format('_CLIBS[%q].%s: declared but never registered from C', libname, tostring(k)), 2)
             end
             ffi.cdef(td)
             -- THE DOUBLE HOP. ffi.cast(fnptr, addr) alone dereferences addr.
-            local fn = ffi.cast("__clib_" .. k, ffi.cast("uintptr_t", addr))
+            local fn = ffi.cast('__clib_' .. k, ffi.cast('uintptr_t', addr))
             bound[k] = fn
             rawset(t, k, fn)
             return fn
@@ -136,22 +137,21 @@ function M.load(libname, cdefSrc)
     return proxy, report
 end
 
-
 -- ---- installation ------------------------------------------------------
 
 function M.install()
     local reg = debug.getregistry()
-    if not reg._CLIBS then return false, "no _CLIBS in the registry" end
+    if not reg._CLIBS then return false, 'no _CLIBS in the registry' end
     -- If ffi.load already resolves a known virtual library, this is the LuaJIT
     -- build and the C path is doing the job. Probed, not assumed from `jit`.
     local ok = pcall(function() return ffi.load('PCSX') end)
-    if ok then return false, "ffi.load already resolves _CLIBS (LuaJIT)" end
+    if ok then return false, 'ffi.load already resolves _CLIBS (LuaJIT)' end
 
     local cdefSoFar = {}
     local realCdef, realLoad = ffi.cdef, ffi.load
 
     ffi.cdef = function(src, ...)
-        if type(src) == "string" then cdefSoFar[#cdefSoFar + 1] = src end
+        if type(src) == 'string' then cdefSoFar[#cdefSoFar + 1] = src end
         return realCdef(src, ...)
     end
 
@@ -159,7 +159,7 @@ function M.install()
     ffi.load = function(name, ...)
         if reg._CLIBS[name] ~= nil then
             if cache[name] then return cache[name] end
-            local proxy = M.load(name, table.concat(cdefSoFar, "\n"))
+            local proxy = M.load(name, table.concat(cdefSoFar, '\n'))
             cache[name] = proxy
             return proxy
         end
@@ -171,7 +171,5 @@ end
 -- Self-installing, and returns nothing: Redux's L.load leaves a chunk's return
 -- values on the Lua stack, and the emulator expects it empty once setLua is done.
 local ok, why = M.install()
-if not ok then
-    print("_CLIBS adapter not installed: " .. tostring(why))
-end
+if not ok then print('_CLIBS adapter not installed: ' .. tostring(why)) end
 -- )EOF"

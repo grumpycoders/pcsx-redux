@@ -183,8 +183,8 @@ next restart of the server.)"));
 relay information between tcp and sio1.
 See https://pcsx-redux.consoledev.net/sio1_networking/
 for details.)"));
-        changed |= ImGui::InputInt(_("SIO1 Server Port"),
-                                   &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
+        changed |=
+            ImGui::InputInt(_("SIO1 Server Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
 
         ImGui::Separator();
 
@@ -204,8 +204,8 @@ for details.)"));
         // typed into the hostname field.
         changed |= ImGui::InputText(_("SIO1 Client Host"),
                                     &debugSettings.get<Emulator::DebugSettings::SIO1ClientHost>().value);
-        changed |= ImGui::InputInt(_("SIO1 Client Port"),
-                                   &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
+        changed |=
+            ImGui::InputInt(_("SIO1 Client Port"), &debugSettings.get<Emulator::DebugSettings::SIO1ClientPort>().value);
 
         if (ImGui::Button(_("Reset SIO"))) {
             g_emulator->m_sio1->reset();

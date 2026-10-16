@@ -207,8 +207,8 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
     if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
         // The period is counted in device frames; everything that uses it counts stream frames.
         if (gotFrames > 0 && got.freq > 0) {
-            m_periodFrames.store(static_cast<uint32_t>(
-                (static_cast<uint64_t>(gotFrames) * kSampleRate + got.freq - 1) / got.freq));
+            m_periodFrames.store(
+                static_cast<uint32_t>((static_cast<uint64_t>(gotFrames) * kSampleRate + got.freq - 1) / got.freq));
         }
         g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n", SDL_GetCurrentAudioDriver(),
                       got.freq, gotFrames);

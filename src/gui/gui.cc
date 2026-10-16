@@ -52,9 +52,9 @@
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/ramlogger.h"
+#include "core/screenshot.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
-#include "core/screenshot.h"
 #include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui-platform.h"
@@ -3009,5 +3009,4 @@ void PCSX::GUI::saveScreenShot() {
     } else {
         addNotification(_("Failed to save screenshot"));
     }
-
 }

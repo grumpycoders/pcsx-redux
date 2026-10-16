@@ -979,8 +979,7 @@ void PCSX::UvFifo::closeInternal() {
         control->m_linger.data = control.get();
         control->m_lingerSelf = control;
         uv_timer_start(
-            &control->m_linger,
-            [](uv_timer_t *timer) { reinterpret_cast<Control *>(timer->data)->closeNow(); },
+            &control->m_linger, [](uv_timer_t *timer) { reinterpret_cast<Control *>(timer->data)->closeNow(); },
             Control::c_lingerTimeoutMs, 0);
         if (control->m_pending.load(std::memory_order_acquire) == 0) control->shutdown();
     });
