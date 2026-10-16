@@ -263,6 +263,14 @@ ssize_t PCSX::FFmpegAudioFile::read(void *dest_, size_t size) {
     return ret;
 }
 
+// pcm_* decoders report an unspecified channel order; swr_init() normalizes it to the default layout, so
+// swr_convert_frame() fails with AVERROR_INPUT_CHANGED on every frame unless the frame gets the same layout.
+static void normalizeChannelLayout(AVFrame *frame) {
+    if (frame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC && frame->ch_layout.nb_channels > 0) {
+        av_channel_layout_default(&frame->ch_layout, frame->ch_layout.nb_channels);
+    }
+}
+
 ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
     unsigned sampleSize = getSampleSize();
     if (m_channels == Channels::Stereo) sampleSize *= 2;
@@ -323,11 +331,7 @@ ssize_t PCSX::FFmpegAudioFile::decompSome(void *dest_, ssize_t size) {
                 return -1;
             }
             inFrame = m_priv->decodedFrame;
-            // pcm_* decoders report an unspecified channel order; swr_init() normalizes it to the default layout, so
-            // newer swr_convert_frame() fails with AVERROR_INPUT_CHANGED on every frame unless we do the same.
-            if (inFrame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC && inFrame->ch_layout.nb_channels > 0) {
-                av_channel_layout_default(&inFrame->ch_layout, inFrame->ch_layout.nb_channels);
-            }
+            normalizeChannelLayout(inFrame);
         }
     }
 
