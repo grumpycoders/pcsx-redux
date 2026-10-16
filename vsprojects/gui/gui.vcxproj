@@ -128,7 +128,6 @@
     <ClCompile Include="..\..\src\gui\gui.cc" />
     <ClCompile Include="..\..\src\gui\gui-about-ffmpeg.cc" />
     <ClCompile Include="..\..\src\gui\gui-platform-desktop.cc" />
-    <ClCompile Include="..\..\src\gui\gui-servers.cc" />
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc" />
     <ClCompile Include="..\..\src\gui\luaimplot.cc" />
     <ClCompile Include="..\..\src\gui\luatvg.cc" />
@@ -152,6 +151,7 @@
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\hwregs.cc" />
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\network.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
     <ClCompile Include="..\..\src\gui\widgets\log.cc" />
     <ClCompile Include="..\..\src\gui\widgets\luaeditor.cc" />
@@ -195,6 +195,7 @@
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\hwregs.h" />
     <ClInclude Include="..\..\src\gui\widgets\isobrowser.h" />
+    <ClInclude Include="..\..\src\gui\widgets\network.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />
     <ClInclude Include="..\..\src\gui\widgets\log.h" />
     <ClInclude Include="..\..\src\gui\widgets\luaeditor.h" />

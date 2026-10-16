@@ -25,27 +25,24 @@ SOFTWARE.
 */
 
 // No libuv on wasm, so there is no listening socket to put a GDB server on.
-// The object exists and reports SERVER_STOPPED forever; startServer does not
-// pretend to have started anything, which is what getServerStatus tells any
-// caller that asks.
+// Network::Server comes from network-none.cc there and stays Stopped, so none
+// of the hooks below can ever be reached.
 #ifdef __EMSCRIPTEN__
 
 #include "core/gdb-server.h"
-
+#include "core/psxemulator.h"
 #include "core/system.h"
 
-PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {}
+PCSX::GdbServer::GdbServer() : Network::Server("GDB Server"), m_listener(g_system->m_eventBus) {}
 
-PCSX::GdbServer::~GdbServer() {}
+void PCSX::GdbServer::onConnection(IO<File> connection) {}
 
-void PCSX::GdbServer::startServer(uv_loop_t *loop, int port) {}
+void PCSX::GdbServer::onStopped() {}
 
-void PCSX::GdbServer::stopServer() {}
+void PCSX::GdbServer::onFailed() {}
 
-void PCSX::GdbServer::onNewConnectionTrampoline(uv_stream_t *handle, int status) {}
-
-void PCSX::GdbServer::onNewConnection(int status) {}
-
-void PCSX::GdbServer::closeCB(uv_handle_t *handle) {}
+int PCSX::GdbServer::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerPort>();
+}
 
 #endif

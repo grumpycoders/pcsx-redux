@@ -1550,6 +1550,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                     ImGui::EndMenu();
                 }
+                ImGui::MenuItem(_("Show Network"), nullptr, &m_network.m_show);
                 if (ImGui::BeginMenu(_("CD-Rom"))) {
                     ImGui::MenuItem(_("Show Iso Browser"), nullptr, &m_isoBrowser.m_show);
                     ImGui::MenuItem(_("Show CD-ROM viewer"), nullptr, &m_cdromViewer.m_show);
@@ -1873,6 +1874,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+
+    if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
@@ -2329,28 +2332,8 @@ faster by not displaying the logo.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-        changed |= debugServersUI();
-        auto& currentSIO1Mode = debugSettings.get<Emulator::DebugSettings::SIO1ModeSetting>().value;
-        auto currentSIO1Name = magic_enum::enum_name(currentSIO1Mode);
-        if (ImGui::Button(_("Reset SIO"))) {
-            g_emulator->m_sio1->reset();
-        }
-
-        changed |= sio1ReconnectUI();
-        if (ImGui::BeginCombo(_("SIO1Mode"), currentSIO1Name.data())) {
-            for (auto v : magic_enum::enum_values<Emulator::DebugSettings::SIO1Mode>()) {
-                bool selected = (v == currentSIO1Mode);
-                auto name = magic_enum::enum_name(v);
-                if (ImGui::Selectable(name.data(), selected)) {
-                    currentSIO1Mode = v;
-                    changed = true;
-                }
-                if (selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
+        ImGui::TextUnformatted(_("Network servers and clients now live in their own window."));
+        if (ImGui::Button(_("Open Network settings"))) m_network.m_show = true;
     }
     ImGui::End();
 
