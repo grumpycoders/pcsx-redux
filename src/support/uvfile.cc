@@ -859,6 +859,10 @@ void PCSX::UvFifo::startRead(Control *control) {
         [](uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
             auto control = reinterpret_cast<Control *>(client->data);
             if (nread <= 0) free(buf->base);
+            if (nread < 0) {
+                control->m_peerDone = true;
+                if (control->m_shutdownDone) control->closeNow();
+            }
             std::lock_guard lock(control->m_lock);
             auto fifo = control->m_fifo;
             if (!fifo) {
@@ -927,7 +931,24 @@ void PCSX::UvFifo::Control::writeFailed() {
 
 void PCSX::UvFifo::Control::writeCompleted() {
     auto remaining = m_pending.fetch_sub(1, std::memory_order_acq_rel) - 1;
-    if (m_closeRequested && (remaining == 0)) closeNow();
+    if (m_closeRequested && (remaining == 0)) shutdown();
+}
+
+void PCSX::UvFifo::Control::shutdown() {
+    // A write completing only means the kernel has the bytes, and on Windows
+    // that is as soon as it copies them. Closing then, with the peer still
+    // sending, resets the connection, and the peer drops whatever it had not
+    // read yet. So send a FIN behind the data instead, keep reading into
+    // nothing, and close once the peer has hung up as well.
+    if (!m_tcp || m_shutdownStarted) return;
+    m_shutdownStarted = true;
+    m_shutdown.data = this;
+    int result = uv_shutdown(&m_shutdown, reinterpret_cast<uv_stream_t *>(m_tcp), [](uv_shutdown_t *req, int status) {
+        auto control = reinterpret_cast<Control *>(req->data);
+        control->m_shutdownDone = true;
+        if ((status < 0) || control->m_peerDone) control->closeNow();
+    });
+    if (result != 0) closeNow();
 }
 
 void PCSX::UvFifo::closeInternal() {
@@ -940,23 +961,20 @@ void PCSX::UvFifo::closeInternal() {
     request([control = m_control](uv_loop_t *loop) {
         // Reading carries on, into nothing, until closeNow(): closing a socket
         // with unread bytes in its receive buffer sends a reset, and the reset
-        // throws away whatever the pending writes had already handed to the
-        // kernel. The read callbacks cannot outlive the block, because once
-        // this request lets go of it, the only way the socket is still open is
-        // a pending write, and each of those holds a reference.
+        // throws away whatever the writes had already handed to the kernel.
+        // The read callbacks cannot outlive the block, because the linger
+        // timer below holds a reference until the socket is closed.
         //
         // Graceful: uv_close cancels pending uv_writes, so tearing down here
         // while writes are still in flight truncates them - for an HTTP
-        // response that is a silently short reply. Hand the teardown to
-        // whichever write finishes last instead. m_closeRequested and m_tcp are
-        // touched only on the worker thread, so the two cannot race.
+        // response that is a silently short reply. Hand the shutdown to
+        // whichever write finishes last instead. Everything in the block past
+        // m_fifo is touched only on the worker thread, so none of it races.
         control->m_closeRequested = true;
-        if (control->m_pending.load(std::memory_order_acquire) == 0) {
-            control->closeNow();
-            return;
-        }
-        // A peer that stops reading keeps those writes pending indefinitely.
-        // Past the timeout, close anyway and let the truncation be theirs.
+        if (!control->m_tcp) return;
+        // A peer that stops reading keeps the writes pending, and one that
+        // never hangs up keeps the shutdown waiting. Past the timeout, close
+        // anyway and let the truncation be theirs.
         uv_timer_init(loop, &control->m_linger);
         control->m_linger.data = control.get();
         control->m_lingerSelf = control;
@@ -964,6 +982,7 @@ void PCSX::UvFifo::closeInternal() {
             &control->m_linger,
             [](uv_timer_t *timer) { reinterpret_cast<Control *>(timer->data)->closeNow(); },
             Control::c_lingerTimeoutMs, 0);
+        if (control->m_pending.load(std::memory_order_acquire) == 0) control->shutdown();
     });
 }
 

@@ -331,12 +331,17 @@ class UvFifo : public File, public UvThreadOp {
         // fifo is gone has somewhere to land.
         std::atomic_flag m_failed;
         std::atomic_flag m_connecting;
-        // Armed by closeInternal() while writes are still pending, so a peer
-        // that stops reading cannot hold the socket open forever. The block
-        // keeps itself alive through m_lingerSelf until the timer is closed.
+        // Armed by closeInternal(), so a peer that stops reading, or never
+        // hangs up, cannot hold the socket open forever. The block keeps itself
+        // alive through m_lingerSelf until the timer is closed.
         static constexpr uint64_t c_lingerTimeoutMs = 30000;
         uv_timer_t m_linger;                    // worker thread only
         std::shared_ptr<Control> m_lingerSelf;  // worker thread only
+        uv_shutdown_t m_shutdown;               // worker thread only
+        bool m_shutdownStarted = false;         // worker thread only
+        bool m_shutdownDone = false;            // worker thread only
+        bool m_peerDone = false;                // worker thread only
+        void shutdown();
         void closeNow();
         void writeCompleted();
         void writeFailed();
