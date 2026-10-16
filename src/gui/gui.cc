@@ -204,6 +204,22 @@ static SDL_Window* getSDLWindowFromImGuiViewport(ImGuiViewport* viewport) {
 
 PCSX::GUI* PCSX::g_gui = nullptr;
 
+// Sink for ThorVG's TVGERR / TVGLOG, wired in third_party/thorvg-config/config.h.
+void pcsxThorVGLog(bool error, const char* tag, const char* file, int line, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char buffer[1024];
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+    if (!PCSX::g_system) {
+        fprintf(stderr, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, file, line, buffer);
+        return;
+    }
+    auto base = std::filesystem::path(file).filename().string();
+    PCSX::g_system->log(PCSX::LogClass::UI, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, base, line,
+                        buffer);
+}
+
 void PCSX::GUI::setFullscreen(bool fullscreen) {
     m_fullscreen = fullscreen;
     if (fullscreen) {
