@@ -30,7 +30,8 @@ SOFTWARE.
 //
 // These are the per-pixel hardware-truth assertions the suite checks against.
 // Initial values are best-guess from psx-spx + the standard top-left fill
-// rule + the verified facts in ~/.claude-stealth/learnings/pcsx-redux/gpu.md.
+// rule; anything marked HW_VERIFIED below was captured off an SCPH-5501 by
+// the workflow immediately underneath.
 //
 // CAPTURE WORKFLOW:
 //
@@ -185,8 +186,8 @@ SOFTWARE.
 //
 // Hardware decomposes quads into two triangles. The exact decomposition
 // (which diagonal, which winding) determines whether the diagonal seam
-// pixels are drawn once, twice, or zero times. soft.cc:2493-2496 splits
-// quads into triangles (1,3,2) + (0,1,2), per gpu.md.
+// pixels are drawn once, twice, or zero times. The soft renderer splits
+// quads into triangles (1,3,2) + (0,1,2); grep soft.cc for the quad path.
 //
 // Quad Q: vertices (0,0), (4,0), (0,4), (4,4) - axis-aligned square,
 // color BLUE. We expect the full 4x4 interior drawn under top-left rule:
