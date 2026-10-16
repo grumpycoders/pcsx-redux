@@ -16,8 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           set-safe-directory: true
+      - name: Fetch submodules
+        run: ./.github/scripts/update-submodules.sh
       - name: Update packages registry
         run: sudo apt-get update
       - name: Install pre-reqs

@@ -434,7 +434,8 @@ void PCSX::GPU::DrawingAreaEnd::drawLogNode(unsigned, const DrawLogSettings&) { 
 void PCSX::GPU::DrawingOffset::drawLogNode(unsigned, const DrawLogSettings&) { ImGui::Text("  X: %i, Y: %i", x, y); }
 
 void PCSX::GPU::MaskBit::drawLogNode(unsigned, const DrawLogSettings&) {
-    ImGui::Text(_("  Set: %s, Check: %s"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No"));
+    ImGui::Text("  %s",
+                fmt::format(f_("Set: {}, Check: {}"), set ? _("Yes") : _("No"), check ? _("Yes") : _("No")).c_str());
 }
 
 void PCSX::GPU::CtrlReset::drawLogNode(unsigned, const DrawLogSettings&) {}

@@ -25,6 +25,13 @@ SOFTWARE.
 */
 #pragma once
 
+// The wasm build has no libuv and drops uvfile.cc entirely. Dispatch here so the
+// ~30 v1-path call sites keep saying `new UvFile(path)` unchanged.
+#ifdef __EMSCRIPTEN__
+#include "support/uvfile-wasm.h"
+#else
+
+
 #include <curl/curl.h>
 #include <uv.h>
 
@@ -238,8 +245,8 @@ class UvFifo : public File, public UvThreadOp {
     virtual void write(Slice&& slice) final override;
     virtual size_t size() final override { return m_size.load(); }
     virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
-    virtual bool failed() final override { return m_failed.test(); }
-    bool isConnecting() { return m_connecting.test(); }
+    virtual bool failed() final override { return m_control->m_failed.test(); }
+    bool isConnecting() { return m_control->m_connecting.test(); }
     // uv error code of a failed connect, or 0. Meaningful once failed() is set.
     // Without this a failed outgoing connection is a bare bool, which is enough
     // to colour a status bullet red and not enough to say why.
@@ -299,8 +306,6 @@ class UvFifo : public File, public UvThreadOp {
     static constexpr size_t c_chunkSize = 4096;
     ConcurrentQueue<Slice> m_queue;
     std::atomic<size_t> m_size = 0;
-    std::atomic_flag m_failed;
-    std::atomic_flag m_connecting;
     std::atomic<int> m_connectErrorCode = 0;
     Slice m_slice;
     size_t m_currentPtr = 0;
@@ -322,8 +327,13 @@ class UvFifo : public File, public UvThreadOp {
         uv_tcp_t* m_tcp = nullptr;      // worker thread only, after construction
         std::mutex m_lock;
         UvFifo* m_fifo = nullptr;  // guarded by m_lock
+        // In here rather than in the fifo so a write that errors after the
+        // fifo is gone has somewhere to land.
+        std::atomic_flag m_failed;
+        std::atomic_flag m_connecting;
         void closeNow();
         void writeCompleted();
+        void writeFailed();
     };
     std::shared_ptr<Control> m_control = std::make_shared<Control>();
     std::function<void()> m_notifyCb;
@@ -366,3 +376,5 @@ class UvFifoListener : public UvThreadOp {
 };
 
 }  // namespace PCSX
+
+#endif  // __EMSCRIPTEN__

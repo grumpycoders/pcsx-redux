@@ -23,11 +23,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-#include <uv.h>
+
+// v1 wasm replaces UvFile with PosixFile via uvfile-wasm.h.
+#ifndef __EMSCRIPTEN__
 
 #include "support/uvfile.h"
 
 #include <curl/curl.h>
+#include <uv.h>
 
 #include <cstdint>
 #include <exception>
@@ -785,8 +788,8 @@ PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
 }
 
 PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File::FileType::RW_STREAM) {
-    m_failed.clear();
-    m_connecting.test_and_set();
+    m_control->m_failed.clear();
+    m_control->m_connecting.test_and_set();
     // something to parse uri here
     uv_tcp_t *tcp = new uv_tcp_t();
     m_tcp = tcp;
@@ -800,8 +803,8 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
             auto fifo = control->m_fifo;
             if (!fifo) return;
             fifo->m_connectErrorCode.store(code, std::memory_order_release);
-            fifo->m_connecting.clear();
-            fifo->m_failed.test_and_set();
+            control->m_connecting.clear();
+            control->m_failed.test_and_set();
             fifo->notify();
         };
         uv_tcp_init(loop, control->m_tcp);
@@ -829,12 +832,12 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
                                     if (!fifo) return;
                                     if (status < 0) {
                                         fifo->m_connectErrorCode.store(status, std::memory_order_release);
-                                        fifo->m_connecting.clear();
-                                        fifo->m_failed.test_and_set();
+                                        control->m_connecting.clear();
+                                        control->m_failed.test_and_set();
                                         fifo->notify();
                                         return;
                                     }
-                                    fifo->m_connecting.clear();
+                                    control->m_connecting.clear();
                                     if (!control->m_closeRequested) startRead(control.get());
                                 });
         if (result != 0) {
@@ -904,6 +907,16 @@ void PCSX::UvFifo::Control::closeNow() {
         auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
         delete tcp;
     });
+}
+
+void PCSX::UvFifo::Control::writeFailed() {
+    // Writes cancelled by the close are expected.
+    if (m_closeRequested) return;
+    // Some platforms refuse writes until the connection completes; that is not a broken socket.
+    if (m_connecting.test()) return;
+    m_failed.test_and_set();
+    std::lock_guard lock(m_lock);
+    if (m_fifo) m_fifo->notify();
 }
 
 void PCSX::UvFifo::Control::writeCompleted() {
@@ -985,13 +998,20 @@ ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
         }
         info->control = control;
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
-                 [](uv_write_t *req, int status) {
-                     auto info = reinterpret_cast<Info *>(req->data);
-                     auto control = info->control;
-                     delete info;
-                     control->writeCompleted();
-                 });
+        int result = uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                              [](uv_write_t *req, int status) {
+                                  auto info = reinterpret_cast<Info *>(req->data);
+                                  auto control = info->control;
+                                  delete info;
+                                  if (status < 0) control->writeFailed();
+                                  control->writeCompleted();
+                              });
+        if (result != 0) {
+            // A refused write never gets its callback.
+            delete info;
+            control->writeFailed();
+            control->writeCompleted();
+        }
     });
     return size;
 }
@@ -1020,13 +1040,20 @@ void PCSX::UvFifo::write(Slice &&slice) {
         }
         info->control = control;
         info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
-                 [](uv_write_t *req, int status) {
-                     auto info = reinterpret_cast<Info *>(req->data);
-                     auto control = info->control;
-                     delete info;
-                     control->writeCompleted();
-                 });
+        int result = uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                              [](uv_write_t *req, int status) {
+                                  auto info = reinterpret_cast<Info *>(req->data);
+                                  auto control = info->control;
+                                  delete info;
+                                  if (status < 0) control->writeFailed();
+                                  control->writeCompleted();
+                              });
+        if (result != 0) {
+            // A refused write never gets its callback.
+            delete info;
+            control->writeFailed();
+            control->writeCompleted();
+        }
     });
 }
 
@@ -1113,3 +1140,5 @@ void PCSX::UvFifoListener::stop() {
         });
     });
 }
+
+#endif

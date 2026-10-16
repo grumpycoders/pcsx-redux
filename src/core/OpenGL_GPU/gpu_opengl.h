@@ -85,7 +85,11 @@ class OpenGL_GPU final : public GPU {
     int m_useDither = 0;
 
     static constexpr int vramWidth = 1024;
-    static constexpr int vramHeight = 512;
+    // The VRAM texture is always a full 1024x1024, whatever the fitment: the
+    // bank semantics live in the contents (open-bus fill) and in the sampling
+    // mask below, so no texture has to be resized when the fitment or the
+    // GP1(09h) gate changes.
+    static constexpr int vramHeight = 1024;
     static constexpr int vertexBufferSize = 0x100000;
 
     OpenGL::Program m_program;
@@ -128,6 +132,12 @@ class OpenGL_GPU final : public GPU {
     GLint m_texWindowLoc;
     GLint m_blendFactorsLoc;
     GLint m_blendFactorsIfOpaqueLoc;
+    GLint m_vramMaskYLoc;
+    GLint m_texpage2MBLoc;
+    // Set when the fitment or the GP1(09h) bank gate moves; the new sampling
+    // mask is pushed from renderBatch(), which always runs with our context
+    // current, rather than from the GP1 handler itself.
+    bool m_vramConfigDirty = true;
 
     int m_vertexCount = 0;
     bool m_updateDrawOffset = false;
@@ -142,6 +152,8 @@ class OpenGL_GPU final : public GPU {
         if ((m_vertexCount + count) >= vertexBufferSize) renderBatch();
     }
     void renderBatch();
+    void vramConfigChanged() override { m_vramConfigDirty = true; }
+    void pushVRAMConfig();
     void clearVRAM(float r, float g, float b, float a = 1.0);
     void updateDrawArea();
     void setScissorArea();

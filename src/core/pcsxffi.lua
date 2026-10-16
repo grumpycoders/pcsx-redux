@@ -73,6 +73,19 @@ void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
 void invalidateCache();
 
+typedef struct {
+    uint32_t pc, code, regRs, regRt, regRd, hilo, cop, memValue;
+} PCSX_TraceEntry;
+
+uint64_t getCpuTraceSize();
+void clearCpuTrace();
+bool getCpuTraceEnabled();
+void setCpuTraceEnabled(bool enabled);
+uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count);
+bool exportCpuTraceText(const char* path);
+bool saveCpuTrace(const char* path);
+bool loadCpuTrace(const char* path);
+
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
 typedef struct {
@@ -83,10 +96,26 @@ typedef struct {
 
 LuaScreenShot takeScreenShot();
 double getGuestFPS();
+void startGPUDump(LuaFile*);
+void stopGPUDump();
+bool isGPUDumpArmed();
+bool isGPUDumpRecording();
+uint64_t getGPUDumpFrames();
+bool loadGPUDumpPlayer(LuaFile*);
+void unloadGPUDumpPlayer();
+bool stepGPUDumpPlayer();
+void rewindGPUDumpPlayer();
+uint64_t getGPUDumpPlayerFrame();
+LuaSlice* getGPUDumpPlayerVRAM();
+LuaSlice* getVRAM();
 
 LuaSlice* createSaveState();
 void loadSaveStateFromSlice(LuaSlice*);
 void loadSaveStateFromFile(LuaFile*);
+
+void createRewindState();
+bool rewindState();
+uint32_t getRewindStateCount();
 
 LuaFile* getMemoryAsFile();
 
@@ -190,6 +219,36 @@ PCSX = {
     invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
+    CPU = {
+        -- Binary CPU trace. Records are fixed PCSX_TraceEntry structs; the store is
+        -- chunked, so read() flattens a range into a fresh FFI array
+        -- you can inspect, ffi.string(), or write to a File. getLine() renders the
+        -- same annotated disassembly the viewer shows, reconstructed from the record.
+        Trace = {
+            size = function() return tonumber(C.getCpuTraceSize()) end,
+            clear = function() C.clearCpuTrace() end,
+            enabled = function() return C.getCpuTraceEnabled() end,
+            enable = function() C.setCpuTraceEnabled(true) end,
+            disable = function() C.setCpuTraceEnabled(false) end,
+            getLine = function(idx)
+                if type(idx) ~= 'number' then error 'PCSX.CPU.Trace.getLine requires a numeric index' end
+                return PCSX.getCpuTraceLine(idx)
+            end,
+            read = function(start, count)
+                start = start or 0
+                local total = tonumber(C.getCpuTraceSize())
+                if start >= total then return nil, 0 end
+                if count == nil or count > total - start then count = total - start end
+                if count <= 0 then return nil, 0 end
+                local arr = ffi.new('PCSX_TraceEntry[?]', count)
+                local got = tonumber(C.readCpuTrace(arr, start, count))
+                return arr, got
+            end,
+            exportText = function(path) return C.exportCpuTraceText(path) end,
+            save = function(path) return C.saveCpuTrace(path) end,
+            load = function(path) return C.loadCpuTrace(path) end,
+        },
+    },
     nextTick = function(f)
         local oldCleanup = AfterPollingCleanup
         AfterPollingCleanup = function()
@@ -208,6 +267,32 @@ PCSX = {
             }
         end,
         getGuestFPS = function() return C.getGuestFPS() end,
+        getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
+        startDump = function(file)
+            if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
+            if type(file) ~= 'table' or file._type ~= 'File' then
+                error('startDump: requires a File or a filename')
+            end
+            C.startGPUDump(file._wrapper)
+        end,
+        stopDump = function() C.stopGPUDump() end,
+        isDumpArmed = function() return C.isGPUDumpArmed() end,
+        isDumping = function() return C.isGPUDumpRecording() end,
+        getDumpFrames = function() return tonumber(C.getGPUDumpFrames()) end,
+        DumpPlayer = {
+            load = function(file)
+                if type(file) == 'string' then file = Support.File.open(file) end
+                if type(file) ~= 'table' or file._type ~= 'File' then
+                    error('load: requires a File or a filename')
+                end
+                return C.loadGPUDumpPlayer(file._wrapper)
+            end,
+            unload = function() C.unloadGPUDumpPlayer() end,
+            step = function() return C.stepGPUDumpPlayer() end,
+            rewind = function() C.rewindGPUDumpPlayer() end,
+            getFrame = function() return tonumber(C.getGPUDumpPlayerFrame()) end,
+            getVRAM = function() return Support.File._createSliceWrapper(C.getGPUDumpPlayerVRAM()) end,
+        },
     },
     createSaveState = function()
         local slice = C.createSaveState()
@@ -224,6 +309,9 @@ PCSX = {
         end
     end,
     getMemoryAsFile = function() return Support.File._createFileWrapper(C.getMemoryAsFile()) end,
+    createRewindState = function() C.createRewindState() end,
+    rewindState = function() return C.rewindState() end,
+    getRewindStateCount = function() return C.getRewindStateCount() end,
     quit = function(code) C.quit(code or 0) end,
 }
 

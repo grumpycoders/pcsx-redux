@@ -35,6 +35,7 @@ struct SoftRenderer {
 
     void enableCachedDithering();
     void disableCachedDithering();
+    bool m_usesDitherLUT = false;
 
     inline void resetRenderer() {
         m_globalTextAddrX = 0;
@@ -54,6 +55,9 @@ struct SoftRenderer {
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
+    // GP0(E6h) state, for the VRAM transfers that honour it outside the rasterizer.
+    bool getCheckMask() const { return m_checkMask; }
+    uint16_t getSetMask16() const { return m_setMask16; }
 
     bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
                      int16_t &y3);
@@ -165,6 +169,13 @@ struct SoftRenderer {
     int m_useDither = 0;
     uint16_t *m_vram16;
     uint8_t *m_vram;
+    // Effective drawable VRAM height. Equals the full 1024-row buffer only when
+    // a 2MB bank is fitted AND the gate is open; otherwise the retail 512. Kept
+    // in sync by impl::vramConfigChanged() and used as the rasterizer's vertical
+    // bound so drawing/fills reach the upper bank only when it is genuinely
+    // addressable. Public (like m_vram16) so impl can sync it across the
+    // private SoftRenderer inheritance.
+    int m_vramHeight = VRAM_HEIGHT;
     SoftDisplay m_softDisplay;
     int32_t m_statusRet;
     bool m_disableTexturesInPolygons = false;

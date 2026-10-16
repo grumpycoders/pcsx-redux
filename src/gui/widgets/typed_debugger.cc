@@ -357,7 +357,7 @@ void PCSX::Widgets::TypedDebugger::displayNode(WatchTreeNode* node, const uint32
                                                bool addressOfPointer, uint32_t extraImGuiId) {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();  // Name.
-    std::string nameColumnString = fmt::format(f_("{}\t@ {:#x}##{}"), node->name, currentAddress, extraImGuiId);
+    std::string nameColumnString = fmt::format("{}\t@ {:#x}##{}", node->name, currentAddress, extraImGuiId);
     IO<File> memFile = g_emulator->m_mem->getMemoryAsFile();
 
     const char* nodeType = node->type.c_str();
@@ -560,16 +560,16 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t
         case 1:
             if (equals(type, "char")) {
                 m_newValues[address] = *value.data<int8_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S8,
-                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_S8, &m_newValues[address],
+                                       &step, &stepFast, signedFormat, inputFlags)) {
                     memFile->write<int8_t>(m_newValues[address]);
                 }
             } else {
                 // We have a uchar or something of size 1.
 
                 m_newValues[address] = *value.data<uint8_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U8,
-                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_U8, &m_newValues[address],
+                                       &step, &stepFast, unsignedFormat, inputFlags)) {
                     memFile->write<uint8_t>(m_newValues[address]);
                 }
             }
@@ -577,15 +577,15 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t
         case 2:
             if (equals(type, "short")) {
                 m_newValues[address] = *value.data<int16_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S16,
-                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_S16, &m_newValues[address],
+                                       &step, &stepFast, signedFormat, inputFlags)) {
                     memFile->write<int16_t>(m_newValues[address]);
                 }
             } else {
                 // We have a ushort or something of size 2.
                 m_newValues[address] = *value.data<uint16_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U16,
-                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_U16, &m_newValues[address],
+                                       &step, &stepFast, unsignedFormat, inputFlags)) {
                     memFile->write<uint16_t>(m_newValues[address]);
                 }
             }
@@ -593,15 +593,15 @@ void PCSX::Widgets::TypedDebugger::displayNewValueInput(const char* type, size_t
         case 4:
             if (equals(type, "int") || equals(type, "long")) {
                 m_newValues[address] = *value.data<int32_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_S32,
-                                       &m_newValues[address], &step, &stepFast, signedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_S32, &m_newValues[address],
+                                       &step, &stepFast, signedFormat, inputFlags)) {
                     memFile->write<int32_t>(m_newValues[address]);
                 }
             } else {
                 // We have uint or something of size 4.
                 m_newValues[address] = *value.data<uint32_t>();
-                if (ImGui::InputScalar(fmt::format(f_("##{}"), address).c_str(), ImGuiDataType_U32,
-                                       &m_newValues[address], &step, &stepFast, unsignedFormat, inputFlags)) {
+                if (ImGui::InputScalar(fmt::format("##{}", address).c_str(), ImGuiDataType_U32, &m_newValues[address],
+                                       &step, &stepFast, unsignedFormat, inputFlags)) {
                     memFile->write<uint32_t>(m_newValues[address]);
                 }
             }
@@ -781,7 +781,7 @@ Arrays and pointers are specified as for data types)"));
             ImGui::SameLine();
             if (numberToCreate > 0 && ImGui::Button("Add") && m_structs.contains(type)) {
                 WatchTreeNode rootNode;
-                const auto inputType = createArray ? fmt::format(f_("{}[{}]"), type, numberToCreate) : type;
+                const auto inputType = createArray ? fmt::format("{}[{}]", type, numberToCreate) : type;
                 rootNode.type = inputType;
                 rootNode.name = inputType;
                 for (const auto& field : m_structs[type]) {
@@ -823,7 +823,7 @@ Arrays and pointers are specified as for data types)"));
             ImGui::Checkbox("Input in hexadecimal", &m_hex);
 
             gui->useMonoFont();
-            if (ImGui::BeginTable(_("WatchTable"), 6, treeTableFlags)) {
+            if (ImGui::BeginTable("WatchTable", 6, treeTableFlags)) {
                 ImGui::TableSetupColumn(_("Name"));
                 ImGui::TableSetupColumn(_("Type"));
                 ImGui::TableSetupColumn(_("Size"));

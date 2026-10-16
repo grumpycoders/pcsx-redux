@@ -397,7 +397,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
         if (ImGui::BeginTabItem(_("Pattern search"))) {
             if (m_useSIMD) {
-                ImGui::TextUnformatted(_("Sequence size: "));
+                ImGui::TextUnformatted(_("Sequence size:"));
                 ImGui::SameLine();
                 ImGui::RadioButton(_("8 bytes (fast)"), &m_sequenceSize, 8);
                 ImGui::SameLine();
@@ -408,7 +408,7 @@ void PCSX::Widgets::MemoryObserver::draw(const char* title) {
 
             ImGui::InputText(_("Sequence"), m_sequence, m_sequenceSize + 1);
 
-            ImGui::InputInt(_("Step"), &m_step);
+            ImGui::InputInt(C_("Search increment", "Step"), &m_step);
 
             if (m_step >= 1 && ImGui::Button(_("Search"))) {
                 if (m_useSIMD && m_sequenceSize == 8) {

@@ -17,9 +17,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <uv.h>
+// v1 wasm has no libuv, so no SIO1 TCP server.
+#ifndef __EMSCRIPTEN__
 
 #include "core/sio1-server.h"
+
+#include <uv.h>
 
 #include "core/psxemulator.h"
 #include "core/sio1.h"
@@ -112,3 +115,5 @@ void PCSX::SIO1Client::reconnect(std::string_view address, unsigned port) {
     stop();
     start(g_system->getLoop(), address, port);
 }
+
+#endif

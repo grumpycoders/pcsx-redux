@@ -17,29 +17,34 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <uv.h>
+// v1 wasm has no libuv, so no web server.
+#ifndef __EMSCRIPTEN__
 
 #include "core/web-server.h"
 
 #include <llhttp.h>
 #include <multipart_parser.h>
+#include <uv.h>
 
 #include <charconv>
 #include <magic_enum/magic_enum_all.hpp>
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include "GL/gl3w.h"
 #include "cdrom/cdriso.h"
 #include "cdrom/file.h"
 #include "cdrom/iso9660-reader.h"
 #include "core/cdrom.h"
+#include "core/debug.h"
 #include "core/gpu.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
 #include "core/system.h"
+#include "core/screenshot.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "support/file.h"
@@ -49,6 +54,10 @@
 #include "uriparser/Uri.h"
 
 namespace {
+
+static const std::unordered_set<std::string> stepFunctions = {
+    "stepIn", "stepOver", "stepOut"
+};
 
 class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
@@ -242,14 +251,15 @@ class FlowExecutor : public PCSX::WebExecutor {
         return urldata.path == "/api/v1/execution-flow";
     }
     virtual bool execute(PCSX::WebClient* client, PCSX::RequestData& request) final {
-        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
-            auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+        auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+        bool debugEnabled = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
 
+        if (request.method == PCSX::RequestData::Method::HTTP_HTTP_GET) {
             nlohmann::json j;
             j["running"] = PCSX::g_system->running();
             j["isDynarec"] = PCSX::g_emulator->m_cpu->isDynarec();
             j["8mb"] = PCSX::g_emulator->settings.get<PCSX::Emulator::Setting8MB>().value;
-            j["debugger"] = debugSettings.get<PCSX::Emulator::DebugSettings::Debug>().value;
+            j["debugger"] = debugEnabled;
             write200(client, j);
             return true;
         } else if (request.method == PCSX::RequestData::Method::HTTP_POST) {
@@ -272,6 +282,25 @@ class FlowExecutor : public PCSX::WebExecutor {
             }
             if (function.compare("resume") == 0) {
                 PCSX::g_system->resume();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (stepFunctions.contains(function) && !debugEnabled) {
+                client->write("HTTP/1.1 503 Debugger not enabled\r\n\r\n");
+                return false;
+            }
+            if (function.compare("stepIn") == 0) {
+                PCSX::g_emulator->m_debug->stepIn();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("stepOver") == 0) {
+                PCSX::g_emulator->m_debug->stepOver();
+                client->write("HTTP/1.1 200 OK\r\n\r\n");
+                return true;
+            }
+            if (function.compare("stepOut") == 0) {
+                PCSX::g_emulator->m_debug->stepOut();
                 client->write("HTTP/1.1 200 OK\r\n\r\n");
                 return true;
             }
@@ -692,8 +721,8 @@ class ScreenExecutor : public PCSX::WebExecutor {
                     path = persistentDir / path;
                 }
                 auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
-                clip::image img = convertScreenshotToImage(std::move(screenshot));
-                bool success = writeImagePNG(path.string(), std::move(img));
+                clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
+                bool success = PCSX::ScreenShot::writeImagePNG(path.string(), std::move(img));
                 if (success) {
                     message =
                         fmt::format("HTTP/1.1 200 OK\r\n\r\nScreenshot saved successfully to \"{}\".", path.string());
@@ -706,44 +735,13 @@ class ScreenExecutor : public PCSX::WebExecutor {
                 return true;
             } else if (path == "still") {
                 auto screenshot = PCSX::g_emulator->m_gpu->takeScreenShot();
-                clip::image img = convertScreenshotToImage(std::move(screenshot));
+                clip::image img = PCSX::ScreenShot::convertScreenshotToImage(std::move(screenshot));
                 writeImagePNG(client, std::move(img));
                 return true;
             }
         }
         return false;
     }
-    clip::image convertScreenshotToImage(PCSX::GPU::ScreenShot&& screenshot) {
-        clip::image_spec spec;
-        spec.width = screenshot.width;
-        spec.height = screenshot.height;
-        if (screenshot.bpp == PCSX::GPU::ScreenShot::BPP_16) {
-            spec.bits_per_pixel = 16;
-            spec.bytes_per_row = screenshot.width * 2;
-            spec.red_mask = 0x1f;  // 0x7c00;
-            spec.green_mask = 0x3e0;
-            spec.blue_mask = 0x7c00;  // 0x1f;
-            spec.alpha_mask = 0;
-            spec.red_shift = 0;  // 10;
-            spec.green_shift = 5;
-            spec.blue_shift = 10;  // 0;
-            spec.alpha_shift = 0;
-        } else {
-            spec.bits_per_pixel = 24;
-            spec.bytes_per_row = screenshot.width * 3;
-            spec.red_mask = 0xff0000;
-            spec.green_mask = 0xff00;
-            spec.blue_mask = 0xff;
-            spec.alpha_mask = 0;
-            spec.red_shift = 16;
-            spec.green_shift = 8;
-            spec.blue_shift = 0;
-            spec.alpha_shift = 0;
-        }
-        clip::image img(screenshot.data.data(), spec);
-        return img.to_rgba8888();
-    }
-    bool writeImagePNG(std::string filename, clip::image&& img) { return img.export_to_png(filename); }
     bool writeImagePNG(PCSX::WebClient* client, clip::image&& img) {
         std::vector<uint8_t> pngData;
         bool success = img.export_to_png(pngData);
@@ -1183,3 +1181,5 @@ void PCSX::WebClient::write(const std::string& str) { m_impl->write(str); }
 void PCSX::WebServer::onConnection(IO<File> connection) {
     m_clients.push_back(new WebClient(this, connection, g_system->getLoop()));
 }
+
+#endif

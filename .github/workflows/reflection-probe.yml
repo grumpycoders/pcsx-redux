@@ -1,0 +1,94 @@
+name: C++26 reflection probe
+
+# Non-blocking: weekly and on demand, never on PRs. Compiles a small use of
+# std::meta on the newest compiler of each platform. When all three pass, it
+# opens one issue saying the reflection refactor can start. The probe checks
+# __cpp_impl_reflection, and the GCC and Clang legs try without -freflection
+# before trying with it, so a pass means the feature works, whatever the flag.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gcc:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    container:
+      image: gcc:latest
+    outputs:
+      ok: ${{ steps.probe.outputs.ok }}
+    steps:
+    - uses: actions/checkout@v4
+    - run: g++ --version
+    - id: probe
+      run: |
+        for flag in "" -freflection; do
+          if g++ -std=c++26 $flag .github/reflection-probe/probe.cc -o probe; then
+            echo "passed with flags: '$flag'"
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        done
+        exit 1
+
+  msvc:
+    runs-on: windows-latest
+    continue-on-error: true
+    outputs:
+      ok: ${{ steps.probe.outputs.ok }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ilammy/msvc-dev-cmd@v1
+    - id: probe
+      shell: cmd
+      run: |
+        cl /std:c++latest /EHsc .github\reflection-probe\probe.cc || exit /b 1
+        echo ok=true>> "%GITHUB_OUTPUT%"
+
+  appleclang:
+    runs-on: macos-latest
+    continue-on-error: true
+    outputs:
+      ok: ${{ steps.probe.outputs.ok }}
+    steps:
+    - uses: actions/checkout@v4
+    - run: clang++ --version
+    - id: probe
+      run: |
+        for flag in "" -freflection; do
+          if clang++ -std=c++2c $flag .github/reflection-probe/probe.cc -o probe; then
+            echo "passed with flags: '$flag'"
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        done
+        exit 1
+
+  report:
+    needs: [gcc, msvc, appleclang]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    # One report at a time across runs, so two that pass together can't both open the issue.
+    concurrency:
+      group: reflection-probe-report
+      cancel-in-progress: false
+    steps:
+    - run: |
+        echo "gcc=${{ needs.gcc.outputs.ok }} msvc=${{ needs.msvc.outputs.ok }} appleclang=${{ needs.appleclang.outputs.ok }}"
+    - if: needs.gcc.outputs.ok == 'true' && needs.msvc.outputs.ok == 'true' && needs.appleclang.outputs.ok == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        title="C++26 reflection now builds on GCC, MSVC and Apple Clang"
+        existing=$(gh issue list --state all --search "in:title \"$title\"" --json number --jq '.[].number') || exit 1
+        if [ -z "$existing" ]; then
+          gh issue create --title "$title" --body "The reflection probe passed on all three platforms in ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The bespoke reflection systems (savestates, settings, binstruct, bitfield) can move to std::meta."
+        fi

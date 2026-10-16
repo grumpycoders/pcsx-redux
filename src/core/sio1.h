@@ -27,7 +27,6 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sio1-server.h"
 #include "support/file.h"
 #include "support/protobuf.h"
 
@@ -70,7 +69,7 @@ class SIO1 {
     enum class SIO1Mode { Raw, Protobuf };
     SIO1Mode m_sio1Mode = SIO1Mode::Protobuf;
     SIO1Mode getSIO1Mode() { return m_sio1Mode; }
-    void interrupt();
+    void scheduledCallback();
 
     void poll() {
         if (fifoError()) return;
@@ -93,7 +92,7 @@ class SIO1 {
         m_decodeState = READ_SIZE;
         messageSize = 0;
         initialMessage = true;
-        g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO1);
+        g_emulator->m_cpu->unschedule(Schedule::SIO1);
     }
 
     void stopSIO1Connection() {
@@ -117,11 +116,15 @@ class SIO1 {
         }
     }
 
-    bool connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
+    // Out-of-lined: the asA<UvFifo>() downcast was the only thing in this header
+    // needing uvfile.h, and through it <uv.h> and libcurl, for all 8 includers.
+    bool connecting();
 
     bool fifoError() {
         if (m_sio1Mode == SIO1Mode::Raw) {
-            return (!m_sio1fifo || m_sio1fifo->failed() || m_sio1fifo->eof() || m_sio1fifo->isClosed());
+            // A peer that only shut down its sending side still closes the fifo, but the bytes
+            // it sent before that stay readable until eof().
+            return (!m_sio1fifo || m_sio1fifo->failed() || m_sio1fifo->eof());
         } else {
             return (!m_fifo || m_fifo->failed() || m_fifo->eof() || m_fifo->isClosed());
         }
@@ -247,7 +250,7 @@ class SIO1 {
 
     enum { READ_SIZE, READ_MESSAGE } m_decodeState = READ_SIZE;
 
-    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->scheduleInterrupt(PSXINT_SIO1, eCycle); }
+    inline void scheduleInterrupt(uint32_t eCycle) { g_emulator->m_cpu->schedule(Schedule::SIO1, eCycle); }
 
     void updateStat();
     void transmitData();

@@ -161,7 +161,8 @@ the gdb server system itself.)"));
             }
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a web-server, that you can
-query using a REST api. See the wiki for details.)"));
+query using a REST api. See
+https://pcsx-redux.consoledev.net/web_server/ for details.)"));
         changed |=
             ImGui::InputInt(_("Web Server Port"), &debugSettings.get<Emulator::DebugSettings::WebServerPort>().value);
         ImGuiHelpers::ShowHelpMarker(_(R"(A port change only takes effect on the
@@ -182,7 +183,8 @@ next restart of the server.)"));
         }
         ImGuiHelpers::ShowHelpMarker(_(R"(This will activate a tcp server, that will
 relay information between tcp and sio1.
-See the wiki for details.)"));
+See https://pcsx-redux.consoledev.net/sio1_networking/
+for details.)"));
         changed |= ImGui::InputInt(_("SIO1 Server Port"),
                                    &debugSettings.get<Emulator::DebugSettings::SIO1ServerPort>().value);
 
