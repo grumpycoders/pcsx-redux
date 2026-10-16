@@ -90,6 +90,8 @@
     <ClCompile Include="..\..\..\tests\support\network.cc" />
     <ClCompile Include="..\..\..\tests\support\uvfifolistener.cc" />
     <ClCompile Include="..\..\..\tests\support\tree.cc" />
+    <ClCompile Include="..\..\..\tests\dct-pack.cc" />
+    <ClCompile Include="..\..\..\tests\support\protobuf-fieldptr.cc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\gtest\gtest.vcxproj">
