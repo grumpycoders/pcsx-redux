@@ -60,10 +60,10 @@ void PCSX::Widgets::Network::drawStatus(const PCSX::Network::Endpoint* endpoint)
     ImGui::SameLine();
 }
 
-bool PCSX::Widgets::Network::drawEndpointHeader(PCSX::Network::Endpoint* endpoint, bool enabled) {
-    bool restarted = false;
+void PCSX::Widgets::Network::drawEndpointHeader(PCSX::Network::Endpoint* endpoint, bool enabled) {
     drawStatus(endpoint);
-    ImGui::Text("%s", endpoint->name().data());
+    const auto name = endpoint->name();
+    ImGui::TextUnformatted(name.data(), name.data() + name.size());
     ImGui::SameLine();
     ImGui::TextDisabled("(%s)", PCSX::Network::toString(endpoint->status()));
 
@@ -77,7 +77,6 @@ bool PCSX::Widgets::Network::drawEndpointHeader(PCSX::Network::Endpoint* endpoin
     ImGui::PushID(endpoint);
     if (ImGui::SmallButton(_("Restart"))) {
         endpoint->restart();
-        restarted = true;
     }
     ImGui::PopID();
     if (!canRestart) ImGui::EndDisabled();
@@ -90,7 +89,6 @@ bool PCSX::Widgets::Network::drawEndpointHeader(PCSX::Network::Endpoint* endpoin
         ImGui::TextWrapped("%s", error);
         ImGui::PopStyleColor();
     }
-    return restarted;
 }
 
 bool PCSX::Widgets::Network::draw(GUI* gui, const char* title) {

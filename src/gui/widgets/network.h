@@ -44,7 +44,7 @@ class Network {
     void drawStatus(const PCSX::Network::Endpoint* endpoint);
     // Shared row furniture: bullet, name, state, and a restart button that is
     // only live when there is something to restart.
-    bool drawEndpointHeader(PCSX::Network::Endpoint* endpoint, bool enabled);
+    void drawEndpointHeader(PCSX::Network::Endpoint* endpoint, bool enabled);
 };
 
 }  // namespace Widgets
