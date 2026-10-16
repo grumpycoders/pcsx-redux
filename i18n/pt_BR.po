@@ -190,7 +190,7 @@ msgstr "Sair (sem pilha de chamadas)"
 msgid "Breakpoint triggered: PC=0x%08x - Cause: %s %s\n"
 msgstr "Ponto de Interrupção engatilhado: PC=0x%08x - Causa: %s %s\n"
 
-#: src/core/debug.cc:427 src/gui/widgets/assembly.cc:506
+#: src/core/debug.cc:430 src/gui/widgets/assembly.cc:506
 #: src/gui/widgets/assembly.cc:588
 msgid "Step Out"
 msgstr "Sair"
@@ -213,15 +213,20 @@ msgctxt "Breakpoint type"
 msgid "Write"
 msgstr "Gravação"
 
+#: src/core/gdb-server.cc:69
+#, c-format
+msgid "GDB server: unable to listen on port %i: %s\n"
+msgstr ""
+
 #. breakpoints are only checked when the debugger is enabled
-#: src/core/gdb-server.cc:845
+#: src/core/gdb-server.cc:655
 #, c-format
 msgid ""
 "GDB server: refusing breakpoint at %08x, the debugger is disabled (use -"
 "debugger)\n"
 msgstr ""
 
-#: src/core/gdb-server.cc:860
+#: src/core/gdb-server.cc:670
 msgid "GDB client"
 msgstr "Cliente GDB"
 
@@ -571,7 +576,7 @@ msgstr "Tecla do teclado desconhecida {}"
 msgid "Keyboard {}"
 msgstr "Teclado {}"
 
-#: src/core/pad.cc:1342 src/gui/gui.cc:2290
+#: src/core/pad.cc:1342 src/gui/gui.cc:2293
 msgid "Auto"
 msgstr "Auto"
 
@@ -970,7 +975,19 @@ msgstr ""
 msgid "Wrong block number"
 msgstr "Número do bloco errado"
 
-#: src/core/sio1-server.cc:131
+#: src/core/sio1-server.cc:67
+#, c-format
+msgid "SIO1 server: unable to listen on port %i: %s\n"
+msgstr ""
+
+#. This used to throw std::runtime_error straight out of an ImGui
+#. checkbox callback. It is a configuration the client does not support,
+#. not an exceptional condition, so say so and leave the endpoint alone.
+#: src/core/sio1-server.cc:95
+msgid "SIO1 client does not support raw mode\n"
+msgstr ""
+
+#: src/core/sio1-server.cc:107
 msgid "SIO1 client disconnected\n"
 msgstr "Cliente SIO1 desconectado\n"
 
@@ -985,6 +1002,11 @@ msgid ""
 msgstr ""
 "A sessão do TCP SIO1 está fechando devido a conexão não confiável.\n"
 "Reinicie o servidor/cliente SIO1 e tente de novo."
+
+#: src/core/web-server.cc:831
+#, c-format
+msgid "Web server: unable to listen on port %i: %s\n"
+msgstr ""
 
 #: src/gpu/soft/gpu.cc:267
 msgid "Game-dependent dithering (slow)"
@@ -1042,7 +1064,7 @@ msgstr ""
 msgid "FFmpeg information"
 msgstr "Informações do OpenGL"
 
-#: src/gui/gui-about-ffmpeg.cc:45 src/gui/gui.cc:2479
+#: src/gui/gui-about-ffmpeg.cc:45 src/gui/gui.cc:2462
 #, c-format
 msgid "Version: %s"
 msgstr "Versão: %s"
@@ -1070,126 +1092,6 @@ msgstr ""
 #, c-format
 msgid "%s codecs"
 msgstr ""
-
-#: src/gui/gui-servers.cc:46
-msgid "Enable GDB Server"
-msgstr "Ativar o Servidor GDB"
-
-#: src/gui/gui-servers.cc:55
-msgid ""
-"This will activate a gdb-server that you can\n"
-"connect to with any gdb-remote compliant client.\n"
-"You also need to enable the debugger."
-msgstr ""
-"Isto ativará um servidor gdb que você pode conectar\n"
-"com qualquer cliente compatível com gdb-remoto.\n"
-"Você também precisa ativar o debugger."
-
-#: src/gui/gui-servers.cc:59
-msgid "GDB send manifest"
-msgstr "Manifesto do Envio do GDB"
-
-#: src/gui/gui-servers.cc:60
-msgid ""
-"Enables sending the processor's manifest\n"
-"from the gdb server. Keep this enabled, unless\n"
-"you want to connect IDA to this server, as it\n"
-"has a bug in its manifest parser."
-msgstr ""
-"Ativa o envio do manifesto do processador\n"
-"do servidor gdb. Mantenha isto ativado a menos que\n"
-"você queira conectar o IDA a este servidor pois ele\n"
-"tem um bug em seu analisador de manifesto."
-
-#: src/gui/gui-servers.cc:67
-msgid "PCSX Logs to GDB"
-msgstr "Registros do PCSX pro GDB"
-
-#: src/gui/gui-servers.cc:83
-msgid "GDB Server Port"
-msgstr "Porta do Servidor GDB"
-
-#: src/gui/gui-servers.cc:85
-msgid "GDB Server Trace"
-msgstr "Rastro do Servidor GDB"
-
-#: src/gui/gui-servers.cc:86
-msgid ""
-"The GDB server will start tracing its\n"
-"protocol into the logs, which can be helpful to debug\n"
-"the gdb server system itself."
-msgstr ""
-"O servidor GDB começará a rastrear seu protocolo\n"
-"nos registros o que pode ser útil pra fazer debug\n"
-"do próprio sistema do servidor gdb."
-
-#: src/gui/gui-servers.cc:89
-msgid "Enable Web Server"
-msgstr "Ativar o Servidor da Web"
-
-#: src/gui/gui-servers.cc:98
-#, fuzzy
-msgid ""
-"This will activate a web-server, that you can\n"
-"query using a REST api. See\n"
-"https://pcsx-redux.consoledev.net/web_server/ for details.\n"
-"The debugger might be required in some cases."
-msgstr ""
-"Isto ativará um servidor da web que você pode consultar\n"
-"usando uma api REST. Veja o wiki pra mais detalhes.\n"
-"O debugger poderia ser requerido em alguns casos."
-
-#: src/gui/gui-servers.cc:103
-msgid "Web Server Port"
-msgstr "Porta do Servidor da Web"
-
-#: src/gui/gui-servers.cc:104
-msgid "Enable SIO1 Server"
-msgstr "Ativar o Servidor SIO1"
-
-#: src/gui/gui-servers.cc:113
-#, fuzzy
-msgid ""
-"This will activate a tcp server, that will\n"
-"relay information between tcp and sio1.\n"
-"See https://pcsx-redux.consoledev.net/sio1_networking/\n"
-"for details."
-msgstr ""
-"Isto ativará um servidor tcp que retransmitirá\n"
-"informações entre o tcp e sio1.\n"
-"Veja o wiki pra mais detalhes."
-
-#: src/gui/gui-servers.cc:118
-msgid "SIO1 Server Port"
-msgstr "Porta do Servidor SIO1"
-
-#: src/gui/gui-servers.cc:119
-msgid "Enable SIO1 Client"
-msgstr "Ativar o Cliente SIO1"
-
-#: src/gui/gui-servers.cc:132
-#, fuzzy
-msgid ""
-"This will activate a tcp client, that can connect\n"
-"to another PCSX-Redux server to relay information between tcp and sio1.\n"
-"See https://pcsx-redux.consoledev.net/sio1_networking/\n"
-"for details."
-msgstr ""
-"Isso ativará um cliente tcp que pode conectar com outro servidor\n"
-"do PCSX-Redux pra retransmitir informações entre o tcp e sio1.\n"
-"Veja o wiki para mais detalhes."
-
-#: src/gui/gui-servers.cc:137
-msgid "SIO1 Client Host"
-msgstr "Hospedeiro do cliente SIO1"
-
-#: src/gui/gui-servers.cc:140
-msgid "SIO1 Client Port"
-msgstr "Porta do Cliente SIO1"
-
-#: src/gui/gui-servers.cc:156
-msgid "Reconnect"
-msgstr "Reconectar"
 
 #: src/gui/gui.cc:172 src/gui/gui.cc:1287 src/gui/widgets/isobrowser.cc:541
 #: src/gui/widgets/isobrowser.h:50
@@ -1576,265 +1478,274 @@ msgid "Show SPU debug"
 msgstr "Mostrar o Debug do SPU"
 
 #: src/gui/gui.cc:1553
+#, fuzzy
+msgid "Show Network"
+msgstr "Mostrar o Editor do Lua"
+
+#: src/gui/gui.cc:1554
 msgid "CD-Rom"
 msgstr ""
 
-#: src/gui/gui.cc:1554
+#: src/gui/gui.cc:1555
 msgid "Show Iso Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1555
+#: src/gui/gui.cc:1556
 #, fuzzy
 msgid "Show CD-ROM viewer"
 msgstr "Mostrar o Visualizador da VRAM #"
 
-#: src/gui/gui.cc:1558
+#: src/gui/gui.cc:1559
 msgid "Misc hardware"
 msgstr ""
 
-#: src/gui/gui.cc:1559
+#: src/gui/gui.cc:1560
 #, fuzzy
 msgid "Show HW Registers"
 msgstr "Mostrar Registros"
 
-#: src/gui/gui.cc:1560
+#: src/gui/gui.cc:1561
 msgid "Show SIO1 debug"
 msgstr "Mostrar o Debug do SIO1"
 
-#: src/gui/gui.cc:1563
+#: src/gui/gui.cc:1564
 #, fuzzy
 msgid "Show PSYQo heap viewer"
 msgstr "Mostrar o visualizador principal da VRAM"
 
-#: src/gui/gui.cc:1565
+#: src/gui/gui.cc:1566
 #, fuzzy
 msgid "Kernel"
 msgstr "Chamadas do Kernel"
 
-#: src/gui/gui.cc:1566
+#: src/gui/gui.cc:1567
 msgid "Kernel Events"
 msgstr "Eventos do Kernel"
 
-#: src/gui/gui.cc:1567
+#: src/gui/gui.cc:1568
 msgid "Kernel Handlers"
 msgstr "Manipuladores do Kernel"
 
-#: src/gui/gui.cc:1568 src/gui/gui.cc:1732
+#: src/gui/gui.cc:1569 src/gui/gui.cc:1733
 msgid "Kernel Calls"
 msgstr "Chamadas do Kernel"
 
-#: src/gui/gui.cc:1571
+#: src/gui/gui.cc:1572
 #, fuzzy
 msgid "Rendering"
 msgstr "Renderizador"
 
-#: src/gui/gui.cc:1572
+#: src/gui/gui.cc:1573
 msgid "Show Output Shader Editor"
 msgstr "Mostrar o Editor de Saída do Shader"
 
-#: src/gui/gui.cc:1573
+#: src/gui/gui.cc:1574
 msgid "Show Offscreen Shader Editor"
 msgstr "Mostrar o Editor do Shader Fora da Tela"
 
-#: src/gui/gui.cc:1574
+#: src/gui/gui.cc:1575
 #, fuzzy
 msgid "Reset shaders"
 msgstr "Resetar o Escalador"
 
-#: src/gui/gui.cc:1582
+#: src/gui/gui.cc:1583
 msgid "Help"
 msgstr "Ajuda"
 
-#: src/gui/gui.cc:1583
+#: src/gui/gui.cc:1584
 msgid "Show ImGui Demo"
 msgstr "Mostrar a Demo do ImGui"
 
-#: src/gui/gui.cc:1584
+#: src/gui/gui.cc:1585
 #, fuzzy
 msgid "Show ImPlot Demo"
 msgstr "Mostrar a Demo do ImGui"
 
-#: src/gui/gui.cc:1586
+#: src/gui/gui.cc:1587
 msgid "Show UvFile information"
 msgstr "Mostrar Informações do Arquivo Uv"
 
-#: src/gui/gui.cc:1588 src/gui/gui.cc:2450
+#: src/gui/gui.cc:1589 src/gui/gui.cc:2433
 msgid "About"
 msgstr "Sobre"
 
-#: src/gui/gui.cc:1593
+#: src/gui/gui.cc:1594
 #, c-format
 msgid "CPU: %s"
 msgstr "CPU: %s"
 
-#: src/gui/gui.cc:1595 src/gui/widgets/isobrowser.cc:576
+#: src/gui/gui.cc:1596 src/gui/widgets/isobrowser.cc:576
 #, c-format
 msgid "GAME ID: %s"
 msgstr "ID DO JOGO: %s"
 
-#: src/gui/gui.cc:1598
+#: src/gui/gui.cc:1599
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f FPS (%.2f ms)"
 
-#: src/gui/gui.cc:1600
+#: src/gui/gui.cc:1601
 #, c-format
 msgid "%.2f guest FPS"
 msgstr ""
 
-#: src/gui/gui.cc:1603
+#: src/gui/gui.cc:1604
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr "%.2f buffer do áudio em ms (%i frames)"
 
-#: src/gui/gui.cc:1605
+#: src/gui/gui.cc:1606
 #, fuzzy
 msgctxt "Audio status"
 msgid "Idle"
 msgstr "Inativo"
 
-#: src/gui/gui.cc:1708
+#: src/gui/gui.cc:1709
 msgid "Logs"
 msgstr "Registros"
 
-#: src/gui/gui.cc:1714
+#: src/gui/gui.cc:1715
 msgid "Lua Console"
 msgstr "Console do Lua"
 
-#: src/gui/gui.cc:1720
+#: src/gui/gui.cc:1721
 msgid "Lua Inspector"
 msgstr "Inspetor do Lua"
 
-#: src/gui/gui.cc:1723
+#: src/gui/gui.cc:1724
 msgid "Lua Editor"
 msgstr "Editor do Lua"
 
-#: src/gui/gui.cc:1726
+#: src/gui/gui.cc:1727
 msgid "Kernel events"
 msgstr "Eventos do Kernel"
 
-#: src/gui/gui.cc:1729
+#: src/gui/gui.cc:1730
 msgid "Kernel handlers"
 msgstr "Manipuladores do Kernel"
 
-#: src/gui/gui.cc:1735
+#: src/gui/gui.cc:1736
 msgid "Callstacks"
 msgstr "Pilhas de Chamadas"
 
-#: src/gui/gui.cc:1807
+#: src/gui/gui.cc:1808
 msgid "Memory Card Manager"
 msgstr "Gerenciador do Memory Card"
 
-#: src/gui/gui.cc:1811 src/gui/widgets/registers.cc:84
+#: src/gui/gui.cc:1812 src/gui/widgets/registers.cc:84
 msgid "Registers"
 msgstr "Registros"
 
-#: src/gui/gui.cc:1815
+#: src/gui/gui.cc:1816
 msgid "Assembly"
 msgstr "Assembly"
 
-#: src/gui/gui.cc:1819
+#: src/gui/gui.cc:1820
 msgid "DynaRec Disassembler"
 msgstr "Disassembler do DynaRec"
 
-#: src/gui/gui.cc:1822
+#: src/gui/gui.cc:1823
 #, fuzzy
 msgid "CPU Trace"
 msgstr "Rastro da CPU"
 
-#: src/gui/gui.cc:1825 src/gui/widgets/typed_debugger.cc:832
+#: src/gui/gui.cc:1826 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
 msgstr "Pontos de Interrupção"
 
-#: src/gui/gui.cc:1829
+#: src/gui/gui.cc:1830
 #, fuzzy
 msgid "Patches"
 msgstr "Observar"
 
-#: src/gui/gui.cc:1833
+#: src/gui/gui.cc:1834
 #, fuzzy
 msgid "Named Save States"
 msgstr "Slots do save state"
 
-#: src/gui/gui.cc:1837 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1838 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr "Observador de Memória"
 
-#: src/gui/gui.cc:1841
+#: src/gui/gui.cc:1842
 #, fuzzy
 msgid "MSAN Viewer"
 msgstr "Visualizador da VRAM Principal"
 
-#: src/gui/gui.cc:1845 src/gui/widgets/typed_debugger.cc:1028
+#: src/gui/gui.cc:1846 src/gui/widgets/typed_debugger.cc:1028
 msgid "Typed Debugger"
 msgstr "Debugger Digitado"
 
-#: src/gui/gui.cc:1851
+#: src/gui/gui.cc:1852
 msgid "Output Video"
 msgstr "Saída de Vídeo"
 
-#: src/gui/gui.cc:1856
+#: src/gui/gui.cc:1857
 msgid "Offscreen Render"
 msgstr "Renderização Fora da Tela"
 
-#: src/gui/gui.cc:1862
+#: src/gui/gui.cc:1863
 #, fuzzy
 msgid "PIO Cartridge Configuration"
 msgstr "Configuração do pad"
 
-#: src/gui/gui.cc:1866
+#: src/gui/gui.cc:1867
 #, fuzzy
 msgid "HW Registers"
 msgstr "Registros"
 
-#: src/gui/gui.cc:1870
+#: src/gui/gui.cc:1871
 msgid "SIO1 Debug"
 msgstr "Debug do SIO1"
 
-#: src/gui/gui.cc:1874
+#: src/gui/gui.cc:1875
 msgid "ISO Browser"
 msgstr ""
 
-#: src/gui/gui.cc:1884
+#: src/gui/gui.cc:1878
+msgid "Network"
+msgstr ""
+
+#: src/gui/gui.cc:1887
 msgid "GPU Logger"
 msgstr ""
 
-#: src/gui/gui.cc:1885
+#: src/gui/gui.cc:1888
 #, fuzzy
 msgid "GPU Dump"
 msgstr "Parar o dump da GPU"
 
-#: src/gui/gui.cc:1886
+#: src/gui/gui.cc:1889
 msgid "PSYQo Heap Viewer"
 msgstr ""
 
-#: src/gui/gui.cc:1889
+#: src/gui/gui.cc:1892
 msgid "UI Configuration"
 msgstr "Configuração da Interface do Usuário"
 
-#: src/gui/gui.cc:1895
+#: src/gui/gui.cc:1898
 msgid "Locale"
 msgstr "Idioma"
 
-#: src/gui/gui.cc:1910
+#: src/gui/gui.cc:1913
 msgid "Reload locales"
 msgstr "Recarregar os idiomas"
 
-#: src/gui/gui.cc:1915
+#: src/gui/gui.cc:1918
 msgid "Main Font Size"
 msgstr "Tamanho da Fonte Principal"
 
-#: src/gui/gui.cc:1916
+#: src/gui/gui.cc:1919
 msgid "Mono Font Size"
 msgstr "Tamanho da Fonte Mono"
 
-#: src/gui/gui.cc:1918
+#: src/gui/gui.cc:1921
 msgid "Use Widescreen Aspect Ratio"
 msgstr "Usar a Proporção do Aspecto Widescreen"
 
-#: src/gui/gui.cc:1919
+#: src/gui/gui.cc:1922
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1860,23 +1771,23 @@ msgstr ""
 "o usuário mude as configurações do conjunto de TV dele\n"
 "pra combinar com a proporção do aspecto do jogo."
 
-#: src/gui/gui.cc:1938
+#: src/gui/gui.cc:1941
 msgid "System Configuration"
 msgstr "Configuração do Sistema"
 
-#: src/gui/gui.cc:1940
+#: src/gui/gui.cc:1943
 msgid "Preload Disk Image files"
 msgstr "Pré-Carregar os Arquivos de Imagem do Disco"
 
-#: src/gui/gui.cc:1941
+#: src/gui/gui.cc:1944
 msgid "Enable Auto Update"
 msgstr "Ativar a Auto-Atualização"
 
-#: src/gui/gui.cc:1948
+#: src/gui/gui.cc:1951
 msgid "Update configuration"
 msgstr "Atualizar Configurações"
 
-#: src/gui/gui.cc:1949
+#: src/gui/gui.cc:1952
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1908,19 +1819,19 @@ msgstr ""
 "Se você quer mudar esta configuração mais tarde você pode ir em\n"
 "Configuração -> Menu do Sistema."
 
-#: src/gui/gui.cc:1962
+#: src/gui/gui.cc:1965
 msgid "Enable auto update"
 msgstr "Ativar a auto-atualização"
 
-#: src/gui/gui.cc:1968
+#: src/gui/gui.cc:1971
 msgid "No thanks"
 msgstr "Não, obrigado"
 
-#: src/gui/gui.cc:1977
+#: src/gui/gui.cc:1980
 msgid "Update available"
 msgstr "Atualização disponível"
 
-#: src/gui/gui.cc:1979
+#: src/gui/gui.cc:1982
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1936,7 +1847,7 @@ msgstr ""
 "Clique em \"Download\" pra usar seu navegador pra baixar\n"
 "a atualização e aplicá-la manualmente."
 
-#: src/gui/gui.cc:1986
+#: src/gui/gui.cc:1989
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1956,13 +1867,13 @@ msgstr ""
 "Clique em \"Download\" pra usar seu navegador pra baixar\n"
 "a atualização e aplicá-la manualmente."
 
-#: src/gui/gui.cc:1997
+#: src/gui/gui.cc:2000
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Update"
 msgstr "Atualização"
 
-#: src/gui/gui.cc:2009 src/gui/gui.cc:2014
+#: src/gui/gui.cc:2012 src/gui/gui.cc:2017
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
@@ -1970,54 +1881,54 @@ msgstr ""
 "Um erro ocorreu enquanto baixava\n"
 "e/ou aplicava a atualização."
 
-#: src/gui/gui.cc:2020
+#: src/gui/gui.cc:2023
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Download"
 msgstr "Download"
 
-#: src/gui/gui.cc:2030
+#: src/gui/gui.cc:2033
 msgid "An error has occured while downloading the update."
 msgstr "Um erro ocorreu enquanto baixava a atualização."
 
-#: src/gui/gui.cc:2036 src/gui/gui.cc:2140 src/gui/widgets/assembly.cc:1037
+#: src/gui/gui.cc:2039 src/gui/gui.cc:2143 src/gui/widgets/assembly.cc:1037
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: src/gui/gui.cc:2045
+#: src/gui/gui.cc:2048
 msgid "UvFiles"
 msgstr "Arquivos Uv"
 
-#: src/gui/gui.cc:2048
+#: src/gui/gui.cc:2051
 #, c-format
 msgid "Read rate: %s"
 msgstr "Taxa de leitura: %s"
 
-#: src/gui/gui.cc:2050
+#: src/gui/gui.cc:2053
 #, c-format
 msgid "Write rate: %s"
 msgstr "Taxa de gravação: %s"
 
-#: src/gui/gui.cc:2052
+#: src/gui/gui.cc:2055
 #, c-format
 msgid "Download rate: %s"
 msgstr "Taxa de download: %s"
 
-#: src/gui/gui.cc:2054
+#: src/gui/gui.cc:2057
 msgid "Caching"
 msgstr "Cache"
 
-#: src/gui/gui.cc:2055 src/gui/widgets/memcard_manager.cc:206
+#: src/gui/gui.cc:2058 src/gui/widgets/memcard_manager.cc:206
 msgid "Filename"
 msgstr "Nome do arquivo"
 
-#: src/gui/gui.cc:2125 src/gui/gui.cc:2128
+#: src/gui/gui.cc:2128 src/gui/gui.cc:2131
 #, fuzzy
 msgid "Reset settings"
 msgstr "Resetar o Escalador"
 
-#: src/gui/gui.cc:2130
+#: src/gui/gui.cc:2133
 msgid ""
 "This will restore every setting to its default value, including the window "
 "layout, the input bindings, the paths to the BIOS and the memory cards, and "
@@ -2028,37 +1939,37 @@ msgid ""
 "The emulator will reboot to complete the operation."
 msgstr ""
 
-#: src/gui/gui.cc:2135
+#: src/gui/gui.cc:2138
 #, fuzzy
 msgid "Reset and reboot"
 msgstr "Resetar o Escalador"
 
-#: src/gui/gui.cc:2201
+#: src/gui/gui.cc:2204
 msgid "Emulation Configuration"
 msgstr "Configuração da Emulação"
 
-#: src/gui/gui.cc:2202
+#: src/gui/gui.cc:2205
 msgid "Idle Swap Interval"
 msgstr "Intervalo da Troca Inativa"
 
 #. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
-#: src/gui/gui.cc:2208
+#: src/gui/gui.cc:2211
 msgid "Enable XA decoder"
 msgstr "Ativar o decodificador XA"
 
-#: src/gui/gui.cc:2209
+#: src/gui/gui.cc:2212
 msgid "Always enable SPU IRQ"
 msgstr "Sempre ativar o IRQ do SPU"
 
-#: src/gui/gui.cc:2210
+#: src/gui/gui.cc:2213
 msgid "Decode MDEC videos in B&W"
 msgstr "Decodificar vídeos MDEC em P&B"
 
-#: src/gui/gui.cc:2211
+#: src/gui/gui.cc:2214
 msgid "Dynarec CPU"
 msgstr "CPU do Dynarec"
 
-#: src/gui/gui.cc:2219
+#: src/gui/gui.cc:2222
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -2074,11 +1985,11 @@ msgstr ""
 "O núcleo do dynarec não está disponível pra todas as CPUs então\n"
 "esta configuração pode não ter qualquer efeito pra você."
 
-#: src/gui/gui.cc:2225
+#: src/gui/gui.cc:2228
 msgid "8MB"
 msgstr "8 MBs"
 
-#: src/gui/gui.cc:2226
+#: src/gui/gui.cc:2229
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -2088,11 +1999,11 @@ msgstr ""
 "invés dos 2 MBs normais. Útil pra trabalhar\n"
 "com binários e jogos em desenvolvimento."
 
-#: src/gui/gui.cc:2229
+#: src/gui/gui.cc:2232
 msgid "Memory Fill Value"
 msgstr ""
 
-#: src/gui/gui.cc:2232
+#: src/gui/gui.cc:2235
 msgid ""
 "The SDRAM of the console will be\n"
 "filled with this value at startup.\n"
@@ -2103,11 +2014,11 @@ msgid ""
 "cause issues in some cases.\n"
 msgstr ""
 
-#: src/gui/gui.cc:2240
+#: src/gui/gui.cc:2243
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr "GPU do OpenGL *ESTADO ALFA*"
 
-#: src/gui/gui.cc:2246
+#: src/gui/gui.cc:2249
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -2121,12 +2032,12 @@ msgstr ""
 "usar o renderizador de software ao invés disto. Requer uma reinicialização\n"
 "quando mudar esta configuração."
 
-#: src/gui/gui.cc:2251
+#: src/gui/gui.cc:2254
 #, fuzzy
 msgid "2MB VRAM"
 msgstr "VRAM"
 
-#: src/gui/gui.cc:2257
+#: src/gui/gui.cc:2260
 msgid ""
 "Emulates a console fitted with 2MB of VRAM\n"
 "instead of the stock 1MB, exposing the upper bank through\n"
@@ -2136,15 +2047,15 @@ msgid ""
 "changing this setting."
 msgstr ""
 
-#: src/gui/gui.cc:2267
+#: src/gui/gui.cc:2270
 msgid "Rewind capture interval (frames; 0 = disabled)"
 msgstr ""
 
-#: src/gui/gui.cc:2272
+#: src/gui/gui.cc:2275
 msgid "Rewind history depth (snapshots)"
 msgstr ""
 
-#: src/gui/gui.cc:2276
+#: src/gui/gui.cc:2279
 msgid ""
 "Captures an in-memory save state every N frames\n"
 "and keeps the last M of them; press Backspace (or\n"
@@ -2154,23 +2065,23 @@ msgid ""
 "interval to 0 to disable."
 msgstr ""
 
-#: src/gui/gui.cc:2290
+#: src/gui/gui.cc:2293
 msgid "NTSC"
 msgstr "NTSC"
 
-#: src/gui/gui.cc:2290
+#: src/gui/gui.cc:2293
 msgid "PAL"
 msgstr "PAL"
 
-#: src/gui/gui.cc:2293
+#: src/gui/gui.cc:2296
 msgid "System Type"
 msgstr "Tipo de Sistema"
 
-#: src/gui/gui.cc:2312
+#: src/gui/gui.cc:2315
 msgid "Fast boot"
 msgstr "Inicialização rápida"
 
-#: src/gui/gui.cc:2313
+#: src/gui/gui.cc:2316
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -2182,15 +2093,15 @@ msgstr ""
 "o tempo de inicialização substancialmente\n"
 "mais rápido por não exibir o logo."
 
-#: src/gui/gui.cc:2318
+#: src/gui/gui.cc:2321
 msgid "BIOS file"
 msgstr "Arquivo da BIOS"
 
-#: src/gui/gui.cc:2322 src/gui/widgets/assembly.cc:557
+#: src/gui/gui.cc:2325 src/gui/widgets/assembly.cc:557
 msgid "Enable Debugger"
 msgstr "Ativar Debugger"
 
-#: src/gui/gui.cc:2329
+#: src/gui/gui.cc:2332
 #, fuzzy
 msgid ""
 "This will enable the usage of various breakpoints\n"
@@ -2202,60 +2113,61 @@ msgstr ""
 "desacelerar a emulação a uma extensão perceptível."
 
 #: src/gui/gui.cc:2335
-msgid "Reset SIO"
-msgstr "Resetar o SIO"
+msgid "Network servers and clients now live in their own window."
+msgstr ""
 
-#: src/gui/gui.cc:2340
-msgid "SIO1Mode"
-msgstr "Modo SIO1"
+#: src/gui/gui.cc:2336
+#, fuzzy
+msgid "Open Network settings"
+msgstr "Resetar o Escalador"
 
-#: src/gui/gui.cc:2404
+#: src/gui/gui.cc:2387
 #, fuzzy
 msgid "Scheduler Scaler"
 msgstr "Resetar o Escalador"
 
-#: src/gui/gui.cc:2405
+#: src/gui/gui.cc:2388
 msgid "Reset all"
 msgstr "Resetar tudo"
 
-#: src/gui/gui.cc:2421
+#: src/gui/gui.cc:2404
 msgid "Cherry##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2421
+#: src/gui/gui.cc:2404
 msgid "Classic##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2421
+#: src/gui/gui.cc:2404
 #, fuzzy
 msgid "Default theme##Theme name"
 msgstr "Tema padrão"
 
-#: src/gui/gui.cc:2421
+#: src/gui/gui.cc:2404
 msgid "Light##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2422
+#: src/gui/gui.cc:2405
 msgid "Dracula##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2422
+#: src/gui/gui.cc:2405
 msgid "Mono##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2422
+#: src/gui/gui.cc:2405
 msgid "Olive##Theme name"
 msgstr ""
 
-#: src/gui/gui.cc:2427
+#: src/gui/gui.cc:2410
 msgid "Themes"
 msgstr "Temas"
 
-#: src/gui/gui.cc:2458 src/gui/gui.cc:2547
+#: src/gui/gui.cc:2441 src/gui/gui.cc:2530
 msgid "Version"
 msgstr "Versão"
 
-#: src/gui/gui.cc:2465
+#: src/gui/gui.cc:2448
 msgid ""
 "No version information.\n"
 "\n"
@@ -2265,46 +2177,46 @@ msgstr ""
 "\n"
 "Provavelmente construído da fonte."
 
-#: src/gui/gui.cc:2467
+#: src/gui/gui.cc:2450
 msgid "Copy to clipboard"
 msgstr "Copiar pra área de transferência"
 
-#: src/gui/gui.cc:2481
+#: src/gui/gui.cc:2464
 #, c-format
 msgid "Build: %i"
 msgstr ""
 
-#: src/gui/gui.cc:2483
+#: src/gui/gui.cc:2466
 #, fuzzy
 msgid "Changeset:"
 msgstr "Conjunto de mudanças: %s"
 
-#: src/gui/gui.cc:2490
+#: src/gui/gui.cc:2473
 #, c-format
 msgid "Date & time: %s"
 msgstr "Data & hora: %s"
 
-#: src/gui/gui.cc:2499
+#: src/gui/gui.cc:2482
 msgid "Authors"
 msgstr "Autores"
 
-#: src/gui/gui.cc:2507
+#: src/gui/gui.cc:2490
 msgid "Licenses"
 msgstr "Licenças"
 
-#: src/gui/gui.cc:2519
+#: src/gui/gui.cc:2502
 msgid "OpenGL information"
 msgstr "Informações do OpenGL"
 
-#: src/gui/gui.cc:2521
+#: src/gui/gui.cc:2504
 msgid "OpenGL error reporting: enabled"
 msgstr "Relatório de erros do OpenGL: ativado"
 
-#: src/gui/gui.cc:2523
+#: src/gui/gui.cc:2506
 msgid "OpenGL error reporting: disabled"
 msgstr "Relatório de erros do OpenGL: desativado"
 
-#: src/gui/gui.cc:2526
+#: src/gui/gui.cc:2509
 #, fuzzy
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
@@ -2322,11 +2234,11 @@ msgstr ""
 "usuário tal como o editor de shader não será capaz de reportar "
 "apropriadamente os problemas com precisão."
 
-#: src/gui/gui.cc:2534
+#: src/gui/gui.cc:2517
 msgid "Enable OpenGL error reporting"
 msgstr "Ativar o relatório de erros do OpenGL"
 
-#: src/gui/gui.cc:2537
+#: src/gui/gui.cc:2520
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
@@ -2337,79 +2249,79 @@ msgstr ""
 "repercussões na performance em alguns computadores. (Requer reiniciar o "
 "emulador)"
 
-#: src/gui/gui.cc:2541
+#: src/gui/gui.cc:2524
 msgid "OpenGL error reporting severity"
 msgstr "Severidade do relatório de erros do OpenGL"
 
-#: src/gui/gui.cc:2544
+#: src/gui/gui.cc:2527
 #, c-format
 msgid "Core profile: %s"
 msgstr "Perfil do núcleo: %s"
 
-#: src/gui/gui.cc:2544 src/gui/widgets/assembly.cc:590
+#: src/gui/gui.cc:2527 src/gui/widgets/assembly.cc:590
 msgid "no"
 msgstr "não"
 
-#: src/gui/gui.cc:2544 src/gui/widgets/assembly.cc:590
+#: src/gui/gui.cc:2527 src/gui/widgets/assembly.cc:590
 msgid "yes"
 msgstr "sim"
 
-#: src/gui/gui.cc:2545
+#: src/gui/gui.cc:2528
 msgid "Vendor"
 msgstr "Vendedor"
 
-#: src/gui/gui.cc:2546
+#: src/gui/gui.cc:2529
 msgid "Renderer"
 msgstr "Renderizador"
 
-#: src/gui/gui.cc:2548
+#: src/gui/gui.cc:2531
 msgid "Shading language version"
 msgstr "Versão do idioma do shader"
 
-#: src/gui/gui.cc:2551
+#: src/gui/gui.cc:2534
 #, c-format
 msgid "Texture units: %d"
 msgstr ""
 
-#: src/gui/gui.cc:2554
+#: src/gui/gui.cc:2537
 msgid "Extensions:"
 msgstr "Extensões:"
 
-#: src/gui/gui.cc:2700
+#: src/gui/gui.cc:2683
 #, fuzzy
 msgid "State saved to {}"
 msgstr "Trapaças salvas em: %s\n"
 
-#: src/gui/gui.cc:2702
+#: src/gui/gui.cc:2685
 #, fuzzy
 msgid "Failed to save state to {}"
 msgstr "Falhou em achar o codec %s\n"
 
-#: src/gui/gui.cc:2713 src/gui/gui.cc:2735
+#: src/gui/gui.cc:2696 src/gui/gui.cc:2718
 #, fuzzy
 msgid "Failed to load state from {}"
 msgstr "Falhou em achar o codec %s\n"
 
-#: src/gui/gui.cc:2738
+#: src/gui/gui.cc:2721
 #, fuzzy
 msgid "State loaded from {}"
 msgstr "Trapaças carregadas do: %s\n"
 
-#: src/gui/gui.cc:3009
+#: src/gui/gui.cc:2992
 #, fuzzy
 msgid "Screenshot saved to {}\n"
 msgstr "Trapaças salvas em: %s\n"
 
-#: src/gui/gui.cc:3012
+#: src/gui/gui.cc:2995
 #, fuzzy
 msgid "Failed to save screenshot"
 msgstr "Falhou em achar o codec %s\n"
 
-#: src/gui/gui.h:264
+#: src/gui/gui.h:266
 msgid "Ok"
 msgstr "Ok"
 
-#: src/gui/gui.h:518
+#: src/gui/gui.h:519
 msgid "Notification"
 msgstr "Notificação"
 
@@ -4112,6 +4024,148 @@ msgstr "Auto-salvar"
 msgid "Delete save"
 msgstr "Auto-salvar"
 
+#: src/gui/widgets/network.cc:78
+#, fuzzy
+msgid "Restart"
+msgstr "Start"
+
+#. -- GDB server --
+#: src/gui/widgets/network.cc:104
+#, fuzzy
+msgid "GDB Server"
+msgstr "Porta do Servidor GDB"
+
+#: src/gui/widgets/network.cc:106
+msgid "Enable GDB Server"
+msgstr "Ativar o Servidor GDB"
+
+#: src/gui/widgets/network.cc:115
+msgid ""
+"This will activate a gdb-server that you can\n"
+"connect to with any gdb-remote compliant client.\n"
+"You also need to enable the debugger."
+msgstr ""
+"Isto ativará um servidor gdb que você pode conectar\n"
+"com qualquer cliente compatível com gdb-remoto.\n"
+"Você também precisa ativar o debugger."
+
+#: src/gui/widgets/network.cc:119
+msgid "GDB Server Port"
+msgstr "Porta do Servidor GDB"
+
+#: src/gui/widgets/network.cc:120 src/gui/widgets/network.cc:166
+msgid ""
+"A port change only takes effect on the\n"
+"next restart of the server."
+msgstr ""
+
+#: src/gui/widgets/network.cc:123
+msgid "GDB send manifest"
+msgstr "Manifesto do Envio do GDB"
+
+#: src/gui/widgets/network.cc:124
+msgid ""
+"Enables sending the processor's manifest\n"
+"from the gdb server. Keep this enabled, unless\n"
+"you want to connect IDA to this server, as it\n"
+"has a bug in its manifest parser."
+msgstr ""
+"Ativa o envio do manifesto do processador\n"
+"do servidor gdb. Mantenha isto ativado a menos que\n"
+"você queira conectar o IDA a este servidor pois ele\n"
+"tem um bug em seu analisador de manifesto."
+
+#: src/gui/widgets/network.cc:129
+msgid "GDB Server Trace"
+msgstr "Rastro do Servidor GDB"
+
+#: src/gui/widgets/network.cc:130
+msgid ""
+"The GDB server will start tracing its\n"
+"protocol into the logs, which can be helpful to debug\n"
+"the gdb server system itself."
+msgstr ""
+"O servidor GDB começará a rastrear seu protocolo\n"
+"nos registros o que pode ser útil pra fazer debug\n"
+"do próprio sistema do servidor gdb."
+
+#: src/gui/widgets/network.cc:135
+msgid "PCSX Logs to GDB"
+msgstr "Registros do PCSX pro GDB"
+
+#. -- Web server --
+#: src/gui/widgets/network.cc:150
+#, fuzzy
+msgid "Web Server"
+msgstr "Porta do Servidor da Web"
+
+#: src/gui/widgets/network.cc:152
+msgid "Enable Web Server"
+msgstr "Ativar o Servidor da Web"
+
+#: src/gui/widgets/network.cc:161
+#, fuzzy
+msgid ""
+"This will activate a web-server, that you can\n"
+"query using a REST api. See\n"
+"https://pcsx-redux.consoledev.net/web_server/ for details."
+msgstr ""
+"Isto ativará um servidor da web que você pode consultar\n"
+"usando uma api REST. Veja o wiki pra mais detalhes.\n"
+"O debugger poderia ser requerido em alguns casos."
+
+#: src/gui/widgets/network.cc:165
+msgid "Web Server Port"
+msgstr "Porta do Servidor da Web"
+
+#. -- SIO1 --
+#: src/gui/widgets/network.cc:171
+#, fuzzy
+msgid "SIO1"
+msgstr "Modo SIO1"
+
+#: src/gui/widgets/network.cc:173
+msgid "Enable SIO1 Server"
+msgstr "Ativar o Servidor SIO1"
+
+#: src/gui/widgets/network.cc:182
+#, fuzzy
+msgid ""
+"This will activate a tcp server, that will\n"
+"relay information between tcp and sio1.\n"
+"See https://pcsx-redux.consoledev.net/sio1_networking/\n"
+"for details."
+msgstr ""
+"Isto ativará um servidor tcp que retransmitirá\n"
+"informações entre o tcp e sio1.\n"
+"Veja o wiki pra mais detalhes."
+
+#: src/gui/widgets/network.cc:186
+msgid "SIO1 Server Port"
+msgstr "Porta do Servidor SIO1"
+
+#: src/gui/widgets/network.cc:192
+msgid "Enable SIO1 Client"
+msgstr "Ativar o Cliente SIO1"
+
+#. This used to be flagged CharsDecimal, so a hostname could not be
+#. typed into the hostname field.
+#: src/gui/widgets/network.cc:205
+msgid "SIO1 Client Host"
+msgstr "Hospedeiro do cliente SIO1"
+
+#: src/gui/widgets/network.cc:207
+msgid "SIO1 Client Port"
+msgstr "Porta do Cliente SIO1"
+
+#: src/gui/widgets/network.cc:210
+msgid "Reset SIO"
+msgstr "Resetar o SIO"
+
+#: src/gui/widgets/network.cc:216
+msgid "SIO1Mode"
+msgstr "Modo SIO1"
+
 #: src/gui/widgets/patches.cc:35
 msgid "Patching is only available in Interpreted CPU mode"
 msgstr ""
@@ -4668,6 +4722,20 @@ msgstr ""
 #: src/spu/debug.cc:594
 msgid "SPU Debug"
 msgstr "Debug do SPU"
+
+#, fuzzy
+#~ msgid ""
+#~ "This will activate a tcp client, that can connect\n"
+#~ "to another PCSX-Redux server to relay information between tcp and sio1.\n"
+#~ "See https://pcsx-redux.consoledev.net/sio1_networking/\n"
+#~ "for details."
+#~ msgstr ""
+#~ "Isso ativará um cliente tcp que pode conectar com outro servidor\n"
+#~ "do PCSX-Redux pra retransmitir informações entre o tcp e sio1.\n"
+#~ "Veja o wiki para mais detalhes."
+
+#~ msgid "Reconnect"
+#~ msgstr "Reconectar"
 
 #~ msgid "Skip ISR during CPU traces"
 #~ msgstr "Ignorar ISR durante os rastreamentos da CPU"
