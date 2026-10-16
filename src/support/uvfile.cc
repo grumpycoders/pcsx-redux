@@ -900,6 +900,12 @@ void PCSX::UvFifo::setNotifier(uv_loop_t *loop, uv_async_t *async, std::function
 }
 
 void PCSX::UvFifo::Control::closeNow() {
+    if (m_lingerSelf && !uv_is_closing(reinterpret_cast<uv_handle_t *>(&m_linger))) {
+        uv_close(reinterpret_cast<uv_handle_t *>(&m_linger), [](uv_handle_t *handle) {
+            // May be the last reference to the block holding this timer.
+            auto self = std::move(reinterpret_cast<Control *>(handle->data)->m_lingerSelf);
+        });
+    }
     auto tcp = m_tcp;
     m_tcp = nullptr;
     if (!tcp) return;
@@ -945,7 +951,19 @@ void PCSX::UvFifo::closeInternal() {
         // whichever write finishes last instead. m_closeRequested and m_tcp are
         // touched only on the worker thread, so the two cannot race.
         control->m_closeRequested = true;
-        if (control->m_pending.load(std::memory_order_acquire) == 0) control->closeNow();
+        if (control->m_pending.load(std::memory_order_acquire) == 0) {
+            control->closeNow();
+            return;
+        }
+        // A peer that stops reading keeps those writes pending indefinitely.
+        // Past the timeout, close anyway and let the truncation be theirs.
+        uv_timer_init(loop, &control->m_linger);
+        control->m_linger.data = control.get();
+        control->m_lingerSelf = control;
+        uv_timer_start(
+            &control->m_linger,
+            [](uv_timer_t *timer) { reinterpret_cast<Control *>(timer->data)->closeNow(); },
+            Control::c_lingerTimeoutMs, 0);
     });
 }
 
