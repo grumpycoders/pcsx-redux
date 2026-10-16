@@ -357,6 +357,7 @@ TEST(UvFifo, PeerTrafficAfterDropIsSafe) {
         uv_tcp_t m_tcp = {};
         size_t m_received = 0;
         bool m_eof = false;
+        ssize_t m_endCode = 0;
     } peer;
     uv_tcp_init(&loop, &peer.m_tcp);
     peer.m_tcp.data = &peer;
@@ -396,6 +397,7 @@ TEST(UvFifo, PeerTrafficAfterDropIsSafe) {
                 self->m_received += nread;
             } else if (nread < 0) {
                 self->m_eof = true;
+                self->m_endCode = nread;
             }
             free(buf->base);
         });
@@ -406,6 +408,9 @@ TEST(UvFifo, PeerTrafficAfterDropIsSafe) {
     }
 
     EXPECT_TRUE(peer.m_eof);
+    // A reset rather than an orderly EOF means the socket was closed with
+    // unread data on it, which also throws away what the peer had not read yet.
+    EXPECT_STREQ(uv_err_name(static_cast<int>(peer.m_endCode)), "EOF");
     EXPECT_EQ(peer.m_received, c_payloadSize);
 
     uv_close(reinterpret_cast<uv_handle_t*>(&peer.m_tcp), [](uv_handle_t*) {});
