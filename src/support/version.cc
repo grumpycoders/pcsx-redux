@@ -31,12 +31,11 @@ SOFTWARE.
 
 #include <uv.h>
 
-#include "support/uvfile.h"
-
 #include <algorithm>
 
 #include "json.hpp"
 #include "support/container-file.h"
+#include "support/uvfile.h"
 
 void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     clear();

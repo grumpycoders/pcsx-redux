@@ -20,11 +20,10 @@
 // v1 wasm has no libuv, so no gdb server.
 #ifndef __EMSCRIPTEN__
 
-#include <uv.h>
-
 #include "core/gdb-server.h"
 
 #include <assert.h>
+#include <uv.h>
 
 #include <magic_enum/magic_enum_all.hpp>
 
@@ -74,8 +73,7 @@ int PCSX::GdbServer::configuredPort() const {
 }
 
 void PCSX::GdbClient::logOutgoing(const Slice& slice) {
-    if (!g_emulator->settings.get<Emulator::SettingDebugSettings>()
-             .get<Emulator::DebugSettings::GdbServerTrace>()) {
+    if (!g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
         return;
     }
     std::string msg(static_cast<const char*>(slice.data()), slice.size());

@@ -42,13 +42,13 @@ extern "C" {
 }
 
 struct PCSX::FFmpegAudioFile::Private {
-    AVFormatContext* formatContext = nullptr;
-    AVIOContext* ioContext = nullptr;
-    AVFrame* decodedFrame = nullptr;
-    AVFrame* resampledFrame = nullptr;
-    AVPacket* packet = nullptr;
-    AVCodecContext* codecContext = nullptr;
-    SwrContext* resamplerContext = nullptr;
+    AVFormatContext *formatContext = nullptr;
+    AVIOContext *ioContext = nullptr;
+    AVFrame *decodedFrame = nullptr;
+    AVFrame *resampledFrame = nullptr;
+    AVPacket *packet = nullptr;
+    AVCodecContext *codecContext = nullptr;
+    SwrContext *resamplerContext = nullptr;
 };
 
 int PCSX::FFmpegAudioFile::getSampleFormat() const {

@@ -43,8 +43,8 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/system.h"
 #include "core/screenshot.h"
+#include "core/system.h"
 #include "gui/gui.h"
 #include "lua/luawrapper.h"
 #include "support/file.h"
@@ -55,9 +55,7 @@
 
 namespace {
 
-static const std::unordered_set<std::string> stepFunctions = {
-    "stepIn", "stepOver", "stepOut"
-};
+static const std::unordered_set<std::string> stepFunctions = {"stepIn", "stepOver", "stepOut"};
 
 class VramExecutor : public PCSX::WebExecutor {
     virtual bool match(PCSX::WebClient* client, const PCSX::UrlData& urldata) final {
@@ -1168,7 +1166,6 @@ struct PCSX::WebClient::WebClientImpl {
     std::string m_multipartBoundary;
     multipart_parser* m_multipartParser;
     multipart_parser_settings m_multipartParserCallbacks;
-
 };
 
 PCSX::WebClient::WebClient(WebServer* server, IO<File> connection, uv_loop_t* loop)

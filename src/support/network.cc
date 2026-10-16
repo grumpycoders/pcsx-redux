@@ -113,8 +113,7 @@ void Server::onListenerEvent(UvFifo* fifo) {
 
 void Server::stop() {
     auto listenerStatus = m_listener.status();
-    if ((listenerStatus == UvFifoListener::Status::Listening) ||
-        (listenerStatus == UvFifoListener::Status::Starting)) {
+    if ((listenerStatus == UvFifoListener::Status::Listening) || (listenerStatus == UvFifoListener::Status::Starting)) {
         m_listener.stop();
         return;  // onListenerEvent(nullptr) finishes the teardown
     }

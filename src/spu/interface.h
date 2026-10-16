@@ -220,16 +220,16 @@ class impl final : public SPUInterface {
     // Reads the voice's two mode flags once and calls the matching
     // synthesizeVoice instantiation. This is the only place the runtime flags
     // are turned into compile-time axes.
-    void synthesizeChannel(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    void synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n);
     template <FModRole Role, SampleSource Src>
-    void synthesizeVoice(int ch, SPUCHAN* voice, int32_t& capVoice1Index, int32_t& capVoice3Index, int n);
+    void synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n);
     // Decodes the next ADPCM block for a voice, together with the IRQ check and the
     // loop/stop flag handling that hang off the block boundary. Returns false when the
     // voice has run past the end of its sample and must stop being synthesized.
     bool decodeNextBlock(int ch, SPUCHAN *voice);
     void triggerIrq();
-    void walkSilentVoice(int ch, SPUCHAN* voice, int n);
-    void captureVoiceSilence(int ch, int32_t& capVoice1Index, int32_t& capVoice3Index, int fromSample, int n);
+    void walkSilentVoice(int ch, SPUCHAN *voice, int n);
+    void captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample, int n);
     void captureVoiceSample(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int sample);
     void writeCaptureBufferCD(int numbSamples);
     // Hands the mixed frames to the audio device. Blocks while the device ring is full; returns
@@ -298,8 +298,8 @@ class impl final : public SPUInterface {
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
     uint16_t readCtrl();
-    void decodeAdsrLow(AdsrEnvelope& adsr, uint16_t val);
-    void decodeAdsrHigh(AdsrEnvelope& adsr, uint16_t val);
+    void decodeAdsrLow(AdsrEnvelope &adsr, uint16_t val);
+    void decodeAdsrHigh(AdsrEnvelope &adsr, uint16_t val);
 
     RegisterEvent m_events[kEventQueueSize];
     std::atomic<uint64_t> m_eventsPushed = 0;   // written by the CPU thread only

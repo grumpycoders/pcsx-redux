@@ -18,13 +18,13 @@
  ***************************************************************************/
 
 #include "cdrom/cdriso.h"
-#include "support/uvfile.h"
 #include "core/cdrom.h"
 #include "cueparser/cueparser.h"
 #include "cueparser/disc.h"
 #include "cueparser/fileabstract.h"
 #include "cueparser/scheduler.h"
 #include "support/ffmpeg-audio-file.h"
+#include "support/uvfile.h"
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
