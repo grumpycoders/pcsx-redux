@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "cdrom/cdriso.h"
+#include "support/uvfile.h"
 #include "core/cdrom.h"
 #include "cueparser/cueparser.h"
 #include "cueparser/disc.h"
@@ -68,10 +69,11 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
 
     auto createFile = [](CueFile *file, CueScheduler *scheduler, const char *filename) -> CueFile * {
         Context *context = reinterpret_cast<Context *>(scheduler->opaque);
-        UvFile *fi = new UvFile(filename);
+        // A FILE entry is relative to the cue sheet's directory; only fall back to the current directory.
+        UvFile *fi = new UvFile(context->filepath / filename);
         if (fi->failed()) {
             delete fi;
-            fi = new UvFile(context->filepath / filename);
+            fi = new UvFile(filename);
         }
         if (!fi->failed()) {
             if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {

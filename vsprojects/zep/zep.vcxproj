@@ -130,7 +130,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\third_party\zep\extensions\repl\mode_repl.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\buffer.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\commands.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\display.cpp" />
@@ -144,6 +143,7 @@
     <ClCompile Include="..\..\third_party\zep\src\mcommon\file\path.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mcommon\string\stringutils.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode.cpp" />
+    <ClCompile Include="..\..\third_party\zep\src\mode_repl.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode_search.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode_standard.cpp" />
     <ClCompile Include="..\..\third_party\zep\src\mode_tree.cpp" />
@@ -162,7 +162,6 @@
     <ClCompile Include="..\..\third_party\zep\src\window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\third_party\zep\extensions\repl\mode_repl.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\buffer.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\commands.h" />
@@ -199,6 +198,7 @@
     <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\cpp11.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\mcommon\utf8\unchecked.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\mode.h" />
+    <ClInclude Include="..\..\third_party\zep\include\zep\mode_repl.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\mode_search.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\mode_standard.h" />
     <ClInclude Include="..\..\third_party\zep\include\zep\mode_tree.h" />

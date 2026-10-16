@@ -51,7 +51,7 @@ void PCSX::GPU::Display::set(CtrlDisplayStart* ctrl) {
         }
 
         startNormalized.x() = (float)startX / 1024.f;
-        startNormalized.y() = (float)startY / 512.f;
+        startNormalized.y() = (float)startY / 1024.f;
     }
 }
 
@@ -126,7 +126,7 @@ void PCSX::GPU::Display::updateDispArea() {
         height -= 2;
     }
     sizeNormalized.x() = (float)width / 1024.f;
-    sizeNormalized.y() = (float)height / 512.f;
+    sizeNormalized.y() = (float)height / 1024.f;
 }
 
 void PCSX::GPU::Display::setLinearFiltering() {
@@ -138,7 +138,7 @@ void PCSX::GPU::Display::setLinearFiltering() {
     const int startY = start.y() + ((setting) ? 1 : 0);
 
     sizeNormalized.x() = (float)width / 1024.f;
-    sizeNormalized.y() = (float)height / 512.f;
+    sizeNormalized.y() = (float)height / 1024.f;
     startNormalized.x() = (float)startX / 1024.f;
-    startNormalized.y() = (float)startY / 512.f;
+    startNormalized.y() = (float)startY / 1024.f;
 }

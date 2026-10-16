@@ -69,7 +69,6 @@ unsigned adpcmDecoderDecodeXASoundGroup(LuaAdpcmDecoder* decoder, const void* in
 
 local C = ffi.load 'SUPPORTPSX_ADPCM'
 
-
 -- Returns a pointer to the input data, and its size if known. Accepts a LuaBuffer, a Lua string,
 -- or a raw ffi pointer; the caller has to keep the original object alive during the call, and
 -- a pointer has to reach as far as the call reads or writes, since its size cannot be checked.
@@ -136,7 +135,9 @@ PCSX.Adpcm = {
                     out = out.data
                 end
                 C.adpcmEncoderProcessBlock(self._wrapped, inp, out, filterPtr, shiftPtr, channels)
-                if channels == 2 then return outData, filterPtr[0], shiftPtr[0], filterPtr[1], shiftPtr[1] end
+                if channels == 2 then
+                    return outData, filterPtr[0], shiftPtr[0], filterPtr[1], shiftPtr[1]
+                end
                 return outData, filterPtr[0], shiftPtr[0]
             end,
             processSPUBlock = function(self, inData, outData, blockAttribute)
@@ -241,7 +242,9 @@ PCSX.Adpcm = {
                 if bitsPerSample ~= 4 and bitsPerSample ~= 8 then
                     error('decodeXASoundGroup: bitsPerSample must be 4 or 8')
                 end
-                if channels ~= 1 and channels ~= 2 then error('decodeXASoundGroup: channels must be 1 or 2') end
+                if channels ~= 1 and channels ~= 2 then
+                    error('decodeXASoundGroup: channels must be 1 or 2')
+                end
                 local count = bitsPerSample == 4 and 224 or 112
                 local inp = decoderInput(inData, 128, 'decodeXASoundGroup')
                 local out

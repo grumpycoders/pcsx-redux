@@ -85,7 +85,8 @@ void PCSX::Widgets::Patches::draw(const char* title) {
             ImGui::PopID();
 
             ImGui::TableSetColumnIndex(3);
-            ImGui::TextUnformatted(patch.type == PCSX::PatchManager::Patch::Type::Return ? _("Return") : _("NOP"));
+            ImGui::TextUnformatted(patch.type == PCSX::PatchManager::Patch::Type::Return ? C_("Patch type", "Return")
+                                                                                         : "NOP");
         }
         ImGui::EndTable();
 

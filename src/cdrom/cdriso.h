@@ -26,17 +26,16 @@
 
 #include "cdrom/ppf.h"
 #include "core/psxemulator.h"
-#include "support/uvfile.h"
 #include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
 
 class CDRIso {
   public:
-    CDRIso(const std::filesystem::path& path) : CDRIso() {
-        m_isoPath = path;
-        open(new UvFile(m_isoPath));
-    }
+    // Out-of-lined so this header does not need uvfile.h, which pulls in libcurl
+    // and libuv. UvFile was the only thing here that needed it - everything else
+    // is IO<File>.
+    CDRIso(const std::filesystem::path& path);
     CDRIso(IO<File> isoFile) : CDRIso() {
         m_isoPath = isoFile->filename();
         open(isoFile);
@@ -48,18 +47,22 @@ class CDRIso {
     enum class TrackType { CLOSED = 0, DATA = 1, CDDA = 2 };
     TrackType getTrackType(unsigned track) { return m_ti[track].type; }
     const std::filesystem::path& getIsoPath() { return m_isoPath; }
-    uint8_t getTN() { return std::max(m_numtracks, 1); }
+    uint8_t getTN() { return std::max(m_numtracks, 1U); }
     IEC60908b::MSF getTD(uint8_t track);
     IEC60908b::MSF getLength(uint8_t track);
     IEC60908b::MSF getPregap(uint8_t track);
+    bool getLocP(const IEC60908b::MSF msf, uint8_t locP[8]);
+    unsigned getTrack(const IEC60908b::MSF msf);
+
+    bool failed();
+
+    /* Probably have to change those */
     bool readTrack(const IEC60908b::MSF time);
     unsigned readSectors(uint32_t lba, void* buffer, unsigned count);
     uint8_t* getBuffer();
     const IEC60908b::Sub* getBufferSub();
     bool readCDDA(const IEC60908b::MSF msf, unsigned char* buffer);
     PPF* getPPF() { return &m_ppf; }
-
-    bool failed();
 
     unsigned m_cdrIsoMultidiskCount;
     unsigned m_cdrIsoMultidiskSelect;
@@ -132,7 +135,6 @@ class CDRIso {
     ECMFILELUT* m_ecm_savetable = nullptr;
 
     static inline const size_t ECM_SECTOR_SIZE[4] = {1, 2352, 2336, 2336};
-    static inline const uint8_t ZEROADDRESS[4] = {0, 0, 0, 0};
 
     struct trackinfo {
         TrackType type = TrackType::CLOSED;
@@ -146,7 +148,7 @@ class CDRIso {
 
     static constexpr unsigned MAXTRACKS = 100; /* How many tracks can a CD hold? */
 
-    int m_numtracks = 0;
+    unsigned m_numtracks = 0;
     struct trackinfo m_ti[MAXTRACKS];
 
     // redump.org SBI files

@@ -159,7 +159,7 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
     }
 
     // RAM logger: record execution
-    auto *ramLogger = g_emulator->m_ramLogger.get();
+    auto* ramLogger = g_emulator->m_ramLogger.get();
     const bool ramLoggerEnabled = ramLogger->isEnabled();
     const uint32_t cycle = static_cast<uint32_t>(regs.cycle);
     if (ramLoggerEnabled) {
@@ -319,7 +319,7 @@ bool PCSX::Debug::triggerBP(Breakpoint* bp, uint32_t address, unsigned width, co
 }
 
 void PCSX::Debug::logDMAAccess(uint32_t address, uint32_t len, bool isWrite) {
-    auto *ramLogger = g_emulator->m_ramLogger.get();
+    auto* ramLogger = g_emulator->m_ramLogger.get();
     if (!ramLogger->isEnabled()) return;
     PSXAddress addr(normalizeAddress(address));
     if (addr.type != PSXAddress::Type::RAM) return;
@@ -336,7 +336,10 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
         regs.pc = std::get<uint32_t>(m_scheduledCop0.value());
         cpu->exception(R3000Acpu::Exception::Break, std::get<bool>(m_scheduledCop0.value()), true);
         m_scheduledCop0.reset();
-    } else if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
+    } else if (((regs.CP0.n.DCIC & 0x80800000) == 0x80800000) &&
+               (regs.CP0.n.DCIC & ((address & 0x80000000) ? 0x20000000 : 0x40000000))) {
+        // KD gates accesses to kseg addresses and UD to kuseg ones. Measured with the CPU in
+        // kernel mode: a kuseg write breaks on UD alone, a kseg0 write only with KD set.
         if (type == BreakpointType::Exec && ((regs.CP0.n.DCIC & 0x01000000) == 0x01000000)) {
             if (((regs.CP0.n.BPC ^ address) & regs.CP0.n.BPCM) == 0) {
                 m_scheduledCop0.emplace(regs.pc, cpu->m_inDelaySlot);

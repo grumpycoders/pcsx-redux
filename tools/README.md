@@ -11,6 +11,6 @@ This directory contains tools designed to help with the PCSX-Redux project someh
 
 For the tools that need to be built, the top level Makefile can be used to build them all using the `tools` target. On Windows, the tools are present within the PCSX-Redux solution file in the `vsprojects` folder.
 
-The [linux-mips](linux-mips) and [macos-mips](macos-mips) folders contain scripts for generating a cross-compiler for the MIPS architecture.
+The [linux-mips](linux-mips) folder contains scripts for generating a cross-compiler for the MIPS architecture. On macOS, use the [Homebrew tap](https://github.com/pcsx-redux/homebrew-mips) instead.
 
 The rest of the folders are the sources for some other internal tools that are not directly usable here, but published to other platforms.

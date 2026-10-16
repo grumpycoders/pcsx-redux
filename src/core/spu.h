@@ -44,6 +44,8 @@ class SPUInterface {
     virtual void writeRegister(uint32_t, uint16_t) = 0;
     virtual void playCDDAchannel(int16_t *, int) = 0;
     virtual void playADPCMchannel(xa_decode_t *) = 0;
+    // CD audio volume matrix (ATV0..ATV3) for XA, applied after the interpolator.
+    virtual void setXAVolume(const uint8_t atv[4]) = 0;
     virtual void writeDMAMem(uint16_t *, int) = 0;
     virtual void readDMAMem(uint16_t *, int) = 0;
     virtual void lockSPURAM() = 0;
@@ -57,6 +59,10 @@ class SPUInterface {
     virtual void load(const SaveStates::SPU &) = 0;
     virtual uint32_t getCurrentFrames() = 0;
     virtual void waitForGoal(uint32_t goal) = 0;
+    // How many audio frames the CPU may run ahead of the audio device.
+    virtual uint32_t getLeadFrames() = 0;
+    // The CPU has reached `cycle`: the SPU may produce audio up to it.
+    virtual void advanceTo(uint64_t cycle) = 0;
     virtual uint32_t getFrameCount() = 0;
     virtual void setLua(Lua L) = 0;
 

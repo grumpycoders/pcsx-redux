@@ -18,8 +18,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: recursive
         set-safe-directory: true
+    - name: Fetch submodules
+      run: ./.github/scripts/update-submodules.sh
     - name: Build OpenBIOS
       run: make -C src/mips/openbios -j2
     - name: Upload results for MacOS build job
@@ -45,7 +46,7 @@ jobs:
     - name: Install dependencies
       run: ./.github/scripts/install-brew-dependencies.sh
     - name: Fetch submodules
-      run: git submodule update --init --recursive
+      run: ./.github/scripts/update-submodules.sh
     - name: Build PCSX-Redux
       run: make -j 2 all pcsx-redux-tests
     - name: Download OpenBIOS build
@@ -81,16 +82,22 @@ jobs:
         echo '  "buildId": '`jq -r .buildid buildid.json`',' >> version.json
         echo '  "changeset": "'`git rev-parse HEAD`'",' >> version.json
         echo '  "timestamp": '`date '+%s'`',' >> version.json
-        echo '  "channel": "dev",' >> version.json
-        echo '  "updateInfo": [' >> version.json
-        echo '    {' >> version.json
-        echo '      "channel": "dev",' >> version.json
-        echo '      "method": "appdistrib",' >> version.json
-        echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/manifest.json",' >> version.json
-        echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/",' >> version.json
-        echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
-        echo '    }' >> version.json
-        echo '  ]' >> version.json
+        if [ "${{ github.event_name }}" = pull_request ]; then
+          # PR test builds carry no update info, so they never offer to replace themselves with dev.
+          echo '  "channel": "pr",' >> version.json
+          echo '  "updateInfo": []' >> version.json
+        else
+          echo '  "channel": "dev",' >> version.json
+          echo '  "updateInfo": [' >> version.json
+          echo '    {' >> version.json
+          echo '      "channel": "dev",' >> version.json
+          echo '      "method": "appdistrib",' >> version.json
+          echo '      "updateCatalog": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/manifest.json",' >> version.json
+          echo '      "updateInfoBase": "https://distrib.app/storage/manifests/pcsx-redux/dev-macos-arm/",' >> version.json
+          echo '      "updateStorageUrl": "https://distrib.app/"' >> version.json
+          echo '    }' >> version.json
+          echo '  ]' >> version.json
+        fi
         echo '}' >> version.json
         cp version.json PCSX-Redux.app/Contents/Resources/share/pcsx-redux/resources/version.json
     - name: Signing Application

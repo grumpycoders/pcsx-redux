@@ -32,9 +32,20 @@ TEST(SPU, Endx) {
     EXPECT_EQ(ret, 0);
 }
 
-// Two things psx-spx documents about SPU IRQ9: the SPU disables its own interrupt when
-// the address matches, and a voice keeps reading SPU RAM after it has been keyed off and
-// its envelope has fallen to zero. The guest asserts both against a playing voice first,
+// A voice that plays an ADPCM block flagged end-without-repeat goes to Release with its
+// envelope forced to 0, without any KEY OFF, and games poll ENVX for exactly that. The
+// guest checks when ENVX first reads 0 against the SPUSTAT bit 11 clock, at a constant
+// pitch and across a mid-sample pitch change, with a looping voice as the control.
+TEST(SPU, EndMute) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu-endmute/spu-endmute.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+// Two things about SPU IRQ9, checked on silicon: an address match latches SPUSTAT bit 6
+// and leaves the SPUCNT bit 6 enable set until software writes it to 0, and a voice keeps
+// reading SPU RAM after it has been keyed off and its envelope has fallen to zero. The guest asserts both against a playing voice first,
 // so a dead status flag cannot be mistaken for a silent voice that stopped reading.
 TEST(SPU, OffVoiceIrq) {
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
@@ -53,6 +64,15 @@ TEST(SPU, OffVoiceIrq) {
 TEST(SPU, Accuracy) {
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
                         "-interpreter", "-loadexe", "src/mips/tests/spu/spu.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+// Voice volume sweep, read back through VOLXL. The guest checks 14 sweep settings
+// against a trace taken on an SCPH-1001, two envelope steps of tolerance.
+TEST(SPU, VolSweep) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu-volsweep/spu-volsweep.ps-exe");
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }

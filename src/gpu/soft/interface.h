@@ -21,6 +21,7 @@
 
 #include "core/gpu.h"
 #include "gpu/soft/soft.h"
+#include "support/opengl.h"
 
 namespace PCSX {
 
@@ -42,7 +43,21 @@ class impl final : public GPU, private SoftRenderer {
         clearVRAM();
         m_display.reset();
     }
-    GLuint getVRAMTexture() override { return m_vramTexture16; }
+    void vramConfigChanged() override {
+        // The upper bank is only drawable when a 2MB bank is physically fitted
+        // and the gate is open; otherwise the renderer stays bounded to the
+        // retail 512 rows (gate-closed mirrors and 1MB open-bus are handled by
+        // resolveVramY / the open-bus prefill, not by drawing into row 512+).
+        m_vramHeight = (vram2MBFitted() && vram2MBGateOpen()) ? (VRAM_HEIGHT * 2) : VRAM_HEIGHT;
+    }
+    // The RESOLVED texture, not the raw one. The VRAM viewer takes whatever
+    // this returns from either backend, and the OpenGL backend hands it a
+    // GL_RGBA8 - so a caller cannot know which format it is holding, and the
+    // viewer's single sampler has to see the same thing from both. Since the
+    // resolve reproduces the old packed decode exactly, mask bit included,
+    // the viewer needs no change at all and the GL_R16UI stays private to
+    // this backend.
+    GLuint getVRAMTexture() override { return m_vramTextureResolved.handle(); }
     void setLinearFiltering() override;
     void setCachedDithering(bool value) override {
         if (value) {
@@ -65,9 +80,9 @@ class impl final : public GPU, private SoftRenderer {
     Slice getVRAM(Ownership ownership) override {
         Slice ret;
         if (ownership == Ownership::BORROW) {
-            ret.borrow(m_vram16, 1024 * 512 * 2);
+            ret.borrow(m_vram16, 1024 * 1024 * 2);
         } else {
-            ret.copy(m_vram16, 1024 * 512 * 2);
+            ret.copy(m_vram16, 1024 * 1024 * 2);
         }
         return ret;
     }
@@ -86,6 +101,17 @@ class impl final : public GPU, private SoftRenderer {
 
     GLuint m_vramTexture16;
     GLuint m_vramTexture24;
+
+    // m_vramTexture16 is a GL_R16UI integer texture holding untouched PS1 words,
+    // and it never leaves this backend. resolveVRAM() unpacks it once per frame
+    // into m_vramTextureResolved, which is what both the display path and
+    // getVRAMTexture() hand out.
+    void resolveVRAM();
+    OpenGL::Texture m_vramTextureResolved;
+    OpenGL::Framebuffer m_resolveFBO;
+    OpenGL::Program m_resolveProgram;
+    OpenGL::VertexArray m_resolveVAO;
+    GLint m_resolveTexLoc = -1;
 
     UI *m_ui;
 

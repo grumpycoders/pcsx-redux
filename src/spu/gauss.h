@@ -20,7 +20,6 @@
 #pragma once
 
 struct Gauss {
-
     // PlayStation SPU hardware-canonical 512-entry gaussian table (no$psx). This is
     // the curve the real PSX SPU uses: a single rising half indexed 0x000..0x1FF
     // (peak 0x59B3 at 0x1FF). The four taps for fractional index i (0..0xFF) are
