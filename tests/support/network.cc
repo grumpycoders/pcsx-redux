@@ -394,6 +394,8 @@ TEST(NetworkClient, VetoedClient) {
 
     EXPECT_EQ(client.m_vetoes, 1);
     EXPECT_EQ(client.status(), Network::Status::Stopped);
+
+    closeLoop(&loop);
 }
 
 // The UI iterates this instead of hard-coding a row per service, so an endpoint
