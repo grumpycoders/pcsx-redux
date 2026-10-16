@@ -338,6 +338,7 @@ target("pcsx-redux", function()
                 "--preload-file=resources/pcsx-redux.ico@/resources/pcsx-redux.ico",
                 "--preload-file=third_party/noto/NotoSans-Regular.ttf@/fonts/NotoSans-Regular.ttf",
                 "--preload-file=third_party/noto/NotoMono-Regular.ttf@/fonts/NotoMono-Regular.ttf",
+                "--preload-file=$(buildir)/version.json@/version.json",
                 {force = true})
     else
     add_deps("luajit", "thorvg", "ftxui")
@@ -442,7 +443,16 @@ target("pcsx-redux", function()
         -- would otherwise surface as emcc failing to package a path, or worse,
         -- as a working page with no BIOS.
         before_build(function(target)
+            import("core.project.config")
             os.execv("make", {"-C", "src/mips/openbios", "-j" .. tostring(os.default_njob()), "all"})
+            -- setBinDir() reads version.json off the MEMFS root, which is what
+            -- the About box shows. Same fields as the CI-generated one, minus
+            -- buildId and updateInfo: the page updates by being redeployed.
+            local changeset = try { function() return os.iorunv("git", {"rev-parse", "HEAD"}) end }
+            changeset = changeset and changeset:trim() or "unknown"
+            io.writefile(path.join(config.buildir(), "version.json"), format(
+                '{\n  "version": "%s",\n  "changeset": "%s",\n  "timestamp": %d,\n  "channel": "web"\n}\n',
+                changeset:sub(1, 8), changeset, os.time()))
         end)
         after_build(function(target)
             os.cp("third_party/coi-serviceworker/enable-threads.js",
