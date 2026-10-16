@@ -829,7 +829,11 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
                 memset(sectorData, 0, sizeof(sectorData));
                 uint32_t toRead = std::min(remaining, bytesPerSector);
                 file->m_content->read(sectorData, toRead);
-                writeSectorAt(sectorData, IEC60908b::MSF(lba + 150), file->m_sectorMode);
+                // The layout pass sizes M1 content at 2048 bytes per sector, and the parallel writer below
+                // emits it as Mode 2 Form 1; do the same here.
+                auto mode = file->m_sectorMode == IEC60908b::SectorMode::M1 ? IEC60908b::SectorMode::M2_FORM1
+                                                                            : file->m_sectorMode;
+                writeSectorAt(sectorData, IEC60908b::MSF(lba + 150), mode);
                 lba++;
                 remaining -= toRead;
             }
