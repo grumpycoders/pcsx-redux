@@ -947,6 +947,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
 void InterpretedCPU::psxLB(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef<int32_t>(_Rt_) = (int8_t)PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
@@ -956,6 +957,7 @@ void InterpretedCPU::psxLB(uint32_t code) {
 void InterpretedCPU::psxLBU(uint32_t code) {
     // load delay = 1 latency
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read8(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read8(_oB_);
@@ -973,6 +975,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
     }
 
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef<int32_t>(_Rt_) = (short)PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
@@ -990,6 +993,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
     }
 
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         delayedLoadRef(_Rt_) = PCSX::g_emulator->m_mem->read16(_oB_);
     } else {
         PCSX::g_emulator->m_mem->read16(_oB_);
@@ -1008,6 +1012,7 @@ void InterpretedCPU::psxLW(uint32_t code) {
 
     uint32_t val = PCSX::g_emulator->m_mem->read32(_oB_);
     if (_Rt_) {
+        maybeCancelDelayedLoad(_Rt_);
         switch (_Rt_) {
             case 29:
                 PCSX::g_emulator->m_callStacks->setSP(m_regs.GPR.n.sp, val);
