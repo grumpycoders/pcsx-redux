@@ -26,7 +26,7 @@
 #include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
-#include "supportpsx/mdec-decoder.h"
+#include "core/mdec-decoder.h"
 
 enum {
     // mdec0: command register
@@ -44,7 +44,7 @@ enum {
 };
 
 // The decoder itself - dequantizer, both IDCTs, colour stage - is in
-// supportpsx/mdec-decoder.cc, shared with tools/mdec. What stays here is the chip
+// core/mdec-decoder.cc, shared with tools/mdec. What stays here is the chip
 // around it: registers, DMA, the tables' lifetime, and the diagnostics.
 
 void PCSX::MDEC::scaletable_init() {

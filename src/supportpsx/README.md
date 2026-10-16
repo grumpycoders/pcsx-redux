@@ -6,7 +6,7 @@ Very little external dependencies are required. They will be documented in a per
 
 ## License
 
-The code in this folder is licensed under the terms of the MIT license, with one exception: `mdec-decoder.h` & `mdec-decoder.cc` are GPLv2 or later, as they carry the emulator's MDEC decoder, which derives from PCSX-df.
+The code in this folder is licensed under the terms of the MIT license.
 
 ## Contents
 
@@ -18,5 +18,4 @@ The code in this folder is licensed under the terms of the MIT license, with one
   * PSF
   * MiniPSF
 * `iec-60908b.h` & `iec-60908b.cc` - Provides iec-60908b helpers and encoders for MODE2 discs, such as the ones used by the PlayStation 1.
-* `mdec-decoder.h` & `mdec-decoder.cc` - **GPLv2 or later, unlike the rest of this folder.** The MDEC's decode half: run-level stream and uploaded tables in, 24-bit or 15-bit pixels out, bit-exact with the emulator's MDEC, which uses it. Depends on `dct.h` & `dct.cc` for the standard quant table.
 * `ps1-packer.h` & `ps1-packer.cc` - Provides a function to pack a PlayStation 1 executable file into a self-decompressing executable file. The resulting file can be loaded directly into the PlayStation 1 memory and executed. Supports multiple encoding methods.

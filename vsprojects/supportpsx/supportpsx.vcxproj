@@ -149,7 +149,6 @@
     <ClCompile Include="..\..\src\supportpsx\dct.cc" />
     <ClCompile Include="..\..\src\supportpsx\iec-60908b.cc" />
     <ClCompile Include="..\..\src\supportpsx\iso9660-builder.cc" />
-    <ClCompile Include="..\..\src\supportpsx\mdec-decoder.cc" />
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc" />
     <ClCompile Include="..\..\src\supportpsx\ucl-glue.c" />
     <ClCompile Include="..\..\src\supportpsx\ucl-utils.cc" />
@@ -183,7 +182,6 @@
     <ClInclude Include="..\..\src\supportpsx\iso9660-builder.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-dirtree.h" />
     <ClInclude Include="..\..\src\supportpsx\iso9660-lowlevel.h" />
-    <ClInclude Include="..\..\src\supportpsx\mdec-decoder.h" />
     <ClInclude Include="..\..\src\supportpsx\memory.h" />
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h" />
     <ClInclude Include="..\..\src\supportpsx\ucl-utils.h" />

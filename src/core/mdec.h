@@ -23,7 +23,7 @@
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
-#include "supportpsx/mdec-decoder.h"
+#include "core/mdec-decoder.h"
 
 namespace PCSX {
 

@@ -59,7 +59,7 @@
 #include "fmt/format.h"
 #include "json.hpp"
 #include "supportpsx/dct.h"
-#include "supportpsx/mdec-decoder.h"
+#include "core/mdec-decoder.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION

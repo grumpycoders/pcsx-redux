@@ -27,7 +27,7 @@
 // is what the hardware arms were graded against. A mismatch here is a change in
 // emulated output, not a test to regenerate.
 
-#include "supportpsx/mdec-decoder.h"
+#include "core/mdec-decoder.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "tests/supportpsx/mdec-decoder-cases.h"
+#include "tests/core/mdec-decoder-cases.h"
 
 namespace {
 
