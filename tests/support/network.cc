@@ -108,6 +108,19 @@ class TestClient : public Network::Client {
     TestClient() : Network::Client("test-client") {}
 };
 
+class TestVetoClient : public Network::Client {
+  public:
+    TestVetoClient() : Network::Client("test-veto-client") {}
+
+    int m_vetoes = 0;
+
+  protected:
+    bool onStarting() override {
+        m_vetoes++;
+        return false;
+    }
+};
+
 }  // namespace
 
 TEST(NetworkServer, AcceptsAndReportsRunning) {
@@ -367,6 +380,18 @@ TEST(NetworkClient, ConnectFailureIsVisible) {
 
     pump(&loop);
     closeLoop(&loop);
+}
+
+TEST(NetworkClient, VetoedClient) {
+    UvThreadOp::UvThread uvThread;
+    uv_loop_t loop;
+    uv_loop_init(&loop);
+    TestVetoClient client;
+    EXPECT_EQ(client.status(), Network::Status::Stopped);
+    client.start(&loop, "127.0.0.1", c_deadPort);
+
+    EXPECT_EQ(client.m_vetoes, 1);
+    EXPECT_EQ(client.status(), Network::Status::Stopped);
 }
 
 // The UI iterates this instead of hard-coding a row per service, so an endpoint
