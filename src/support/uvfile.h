@@ -238,33 +238,32 @@ class UvFile : public File, public UvThreadOp {
 class UvFifo : public File, public UvThreadOp {
   public:
     UvFifo(const std::string_view address, unsigned port);
-    virtual bool isClosed() final override { return m_closed.load(); }
+    virtual bool isClosed() final override { return m_state->closed.load(); }
     virtual ssize_t read(void* dest, size_t size) final override;
     virtual ssize_t write(const void* src, size_t size) final override;
     virtual void write(Slice&& slice) final override;
-    virtual size_t size() final override { return m_size.load(); }
-    virtual bool eof() final override { return m_closed.load() && (m_size.load() == 0); }
+    virtual size_t size() final override { return m_state->size.load(); }
+    virtual bool eof() final override { return m_state->closed.load() && (m_state->size.load() == 0); }
     virtual bool failed() final override { return m_state->failed.test(); }
     bool isConnecting() { return m_state->connecting.test(); }
 
   private:
     virtual void closeInternal() final override;
     UvFifo(uv_tcp_t*);
-    void startRead(uv_tcp_t*);
-    // Write callbacks can run after the last reference is dropped and before the handle
+    static void startRead(uv_tcp_t*);
+    // libuv callbacks can run after the last reference is dropped and before the handle
     // gets closed, so they hold on to this instead of the fifo.
     struct State {
         std::atomic_flag failed;
         std::atomic_flag connecting;
+        std::atomic<bool> closed = false;
+        ConcurrentQueue<Slice> queue;
+        std::atomic<size_t> size = 0;
     };
     static void writeFailed(State&);
     virtual bool canCache() const override { return false; }
     uv_tcp_t* m_tcp = nullptr;
-    void* m_buffer = nullptr;
-    std::atomic<bool> m_closed = false;
-    const size_t c_chunkSize = 4096;
-    ConcurrentQueue<Slice> m_queue;
-    std::atomic<size_t> m_size = 0;
+    static constexpr size_t c_chunkSize = 4096;
     std::shared_ptr<State> m_state = std::make_shared<State>();
     Slice m_slice;
     size_t m_currentPtr = 0;

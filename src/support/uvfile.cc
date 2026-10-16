@@ -781,7 +781,7 @@ void PCSX::UvFile::cacheCallbackSetup(std::function<void()> &&callbackDone, uv_l
 }
 
 PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
-    tcp->data = this;
+    tcp->data = new std::shared_ptr<State>(m_state);
     m_tcp = tcp;
     startRead(tcp);
 }
@@ -791,74 +791,69 @@ PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File:
     m_state->connecting.test_and_set();
     // something to parse uri here
     uv_tcp_t *tcp = new uv_tcp_t();
-    tcp->data = this;
     m_tcp = tcp;
-    request([this, host = std::string(address), port](auto loop) {
-        uv_tcp_init(loop, m_tcp);
+    request([state = m_state, tcp, host = std::string(address), port](auto loop) {
+        uv_tcp_init(loop, tcp);
+        tcp->data = new std::shared_ptr<State>(state);
         struct sockaddr_in connectAddr;
         int result = uv_ip4_addr(host.c_str(), port, &connectAddr);
         if (result != 0) {
-            m_state->failed.test_and_set();
+            state->failed.test_and_set();
             return;
         }
         uv_connect_t *connect = new uv_connect_t();
-        connect->data = this;
-        result = uv_tcp_connect(connect, m_tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
+        result = uv_tcp_connect(connect, tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
                                 [](uv_connect_t *connect, int status) {
-                                    UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
+                                    auto tcp = reinterpret_cast<uv_tcp_t *>(connect->handle);
+                                    delete connect;
+                                    auto &state = *reinterpret_cast<std::shared_ptr<State> *>(tcp->data);
                                     if (status < 0) {
-                                        fifo->m_state->failed.test_and_set();
-                                        delete connect;
+                                        state->failed.test_and_set();
                                         return;
                                     }
-                                    fifo->m_state->connecting.clear();
-                                    fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
+                                    state->connecting.clear();
+                                    startRead(tcp);
                                 });
         if (result != 0) {
-            m_state->failed.test_and_set();
+            state->failed.test_and_set();
             delete connect;
             return;
         }
     });
 }
 
+// The fifo can be deleted while libuv still holds callbacks for its handle, so the
+// callbacks only reach the shared State, through tcp->data, which the close callback frees.
 void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
-    tcp->data = this;
-    m_tcp = tcp;
     uv_read_start(
-        reinterpret_cast<uv_stream_t *>(m_tcp),
+        reinterpret_cast<uv_stream_t *>(tcp),
         [](uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-            UvFifo *fifo = reinterpret_cast<UvFifo *>(handle->data);
-            assert(!fifo->m_buffer);
-            void *b = fifo->m_buffer = malloc(fifo->c_chunkSize);
-            buf->base = reinterpret_cast<char *>(b);
-            buf->len = fifo->c_chunkSize;
+            buf->base = reinterpret_cast<char *>(malloc(c_chunkSize));
+            buf->len = c_chunkSize;
         },
         [](uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
-            UvFifo *fifo = reinterpret_cast<UvFifo *>(client->data);
+            auto &state = *reinterpret_cast<std::shared_ptr<State> *>(client->data);
             if (nread <= 0) {
-                free(fifo->m_buffer);
-                fifo->m_buffer = nullptr;
+                free(buf->base);
                 if (nread < 0) {
-                    fifo->m_closed = true;
+                    state->closed = true;
                 }
                 return;
             }
-            assert(fifo->m_buffer);
-            void *b = realloc(fifo->m_buffer, nread);
-            fifo->m_buffer = nullptr;
+            void *b = realloc(buf->base, nread);
             Slice slice;
             slice.acquire(b, nread);
-            fifo->m_queue.Enqueue(std::move(slice));
-            fifo->m_size.fetch_add(nread);
+            state->queue.Enqueue(std::move(slice));
+            state->size.fetch_add(nread);
         });
 }
 
 void PCSX::UvFifo::closeInternal() {
-    m_closed.store(true);
+    m_state->closed.store(true);
     request([tcp = m_tcp](uv_loop_t *loop) {
         if (!tcp) return;
         uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
+            delete reinterpret_cast<std::shared_ptr<State> *>(handle->data);
             auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
             delete tcp;
         });
@@ -873,10 +868,10 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
         if (m_slice.size() == m_currentPtr) {
             m_currentPtr = 0;
             m_slice.reset();
-            if (m_size.load() == 0) {
+            if (m_state->size.load() == 0) {
                 return ret == 0 ? -1 : ret;
             }
-            while (!m_queue.Dequeue(m_slice));
+            while (!m_state->queue.Dequeue(m_slice));
         }
         auto toRead = std::min(size, static_cast<size_t>(m_slice.size()) - m_currentPtr);
         memcpy(dest, m_slice.data<uint8_t>() + m_currentPtr, toRead);
@@ -884,7 +879,7 @@ ssize_t PCSX::UvFifo::read(void *dest_, size_t size) {
         m_currentPtr += toRead;
         size -= toRead;
         ret += toRead;
-        m_size.fetch_sub(toRead);
+        m_state->size.fetch_sub(toRead);
     }
 
     return ret;
