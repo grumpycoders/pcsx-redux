@@ -10,9 +10,6 @@
     <ClCompile Include="..\..\src\gui\gui-platform-desktop.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\gui-servers.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
       <Filter>Source Files\themes</Filter>
     </ClCompile>
@@ -104,6 +101,9 @@
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\network.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc">

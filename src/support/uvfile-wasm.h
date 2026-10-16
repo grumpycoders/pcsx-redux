@@ -24,7 +24,6 @@ SOFTWARE.
 
 */
 
-
 #pragma once
 
 // The wasm build has no libuv, no curl and no worker thread, so uvfile.cc is not
@@ -119,6 +118,7 @@ class UvFifoListener : public UvThreadOp {
     UvFifoListener() {}
     void start(unsigned port, uv_loop_t* loop, void* async, std::function<void(UvFifo*)>&& cb) {}
     void stop() {}
+    const char* lastError() const { return ""; }
 };
 
 }  // namespace PCSX

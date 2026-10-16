@@ -22,6 +22,7 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <deque>
 #include <functional>
 #include <magic_enum/magic_enum_all.hpp>
 #include <map>
@@ -58,6 +59,7 @@
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/named_savestates.h"
+#include "gui/widgets/network.h"
 #include "gui/widgets/patches.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/ram-viewer.h"
@@ -125,6 +127,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowNetwork")> ShowNetwork;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
@@ -177,8 +180,8 @@ class GUI final : public UI {
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
-             ShowCallstacks, ShowSIO1, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer,
-             ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer,
+             ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
              EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
@@ -276,6 +279,27 @@ class GUI final : public UI {
     };
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
+    // Short-lived messages drawn at the bottom of the main viewport, which fade out on their own and never
+    // take focus. Use them for anything the user doesn't have to act on, failures included: a state that
+    // couldn't be saved is an Error notice. The kind only picks the colour of the bar on the left. If the
+    // user has to do something about it, use addNotification instead.
+    enum class NoticeKind { Info, Warning, Error };
+    class PassiveNotifier {
+      public:
+        void notify(const std::string &message, NoticeKind kind) { m_pending.push_back({message, kind, 0.0}); }
+        void draw();
+
+      private:
+        struct Notice {
+            std::string message;
+            NoticeKind kind;
+            double shownAt;
+        };
+        std::deque<Notice> m_pending;
+        std::deque<Notice> m_shown;
+    };
+    void addNotice(const std::string &notice, NoticeKind kind) { m_passiveNotifier.notify(notice, kind); }
+
     void magicOpen(const char *path);
 
     static const char *glErrorToString(GLenum error) {
@@ -304,8 +328,6 @@ class GUI final : public UI {
     void endFrame();
 
     bool configure();
-    bool debugServersUI();
-    bool sio1ReconnectUI();
     bool showThemes();  // Theme window : Allows for custom imgui themes
     bool about();
     void aboutFFmpegTab();
@@ -360,6 +382,8 @@ class GUI final : public UI {
     bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
+    bool m_turboEnabled = false;
+    bool m_outputWindowFocused = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper(GUI *gui, bool &show, size_t &offsetAddr, size_t baseAddr = 0x0000)
@@ -435,6 +459,7 @@ class GUI final : public UI {
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser;
+    Widgets::Network m_network = {settings.get<ShowNetwork>().value};
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -482,6 +507,7 @@ class GUI final : public UI {
     std::string buildSaveStateFilename(int i);
     std::string buildSaveStateFilename(std::string name);
     bool saveStateExists(std::filesystem::path filename);
+    void saveScreenShot();
 
   private:
     void applyTheme(int theme);
@@ -491,6 +517,7 @@ class GUI final : public UI {
     void oliveTheme();
 
     Notifier m_notifier = {l_("Notification")};
+    PassiveNotifier m_passiveNotifier;
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 

@@ -477,6 +477,8 @@ struct FieldPtr<FieldType, irqus::typestring<C...>, fieldNumberValue> {
     constexpr void deserialize(InSlice *slice, unsigned wireType) { copy.deserialize(slice, wireType); }
     constexpr void reset() {}
     constexpr void commit() {
+        // A field absent from the stream leaves the destination as it was.
+        if (!copy.value) return;
         FieldType *field = reinterpret_cast<FieldType *>(&ref);
         field->copyFrom(copy.value);
     }

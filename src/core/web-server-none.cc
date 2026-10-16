@@ -26,21 +26,23 @@ SOFTWARE.
 
 // The REST server needs libuv, llhttp and multipart-parser, none of which are
 // in the wasm build. Same shape as gdb-server-none.cc: the object exists, and
-// it stays SERVER_STOPPED.
+// it stays Stopped.
 #ifdef __EMSCRIPTEN__
 
+#include "core/psxemulator.h"
+#include "core/system.h"
 #include "core/web-server.h"
 
-#include "core/system.h"
+PCSX::WebServer::WebServer() : Network::Server("Web Server"), m_listener(g_system->m_eventBus) {}
 
-PCSX::WebServer::WebServer() : m_listener(g_system->m_eventBus) {}
+void PCSX::WebServer::onConnection(IO<File> connection) {}
 
-void PCSX::WebServer::startServer(uv_loop_t *loop, int port) {}
+void PCSX::WebServer::onStopped() {}
 
-void PCSX::WebServer::stopServer() {}
+void PCSX::WebServer::onFailed() {}
 
-void PCSX::WebServer::onNewConnection(int status) {}
-
-void PCSX::WebServer::closeCB(uv_handle_t *handle) {}
+int PCSX::WebServer::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::WebServerPort>();
+}
 
 #endif

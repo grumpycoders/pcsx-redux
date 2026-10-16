@@ -31,8 +31,8 @@ SOFTWARE.
 #include <filesystem>
 
 #include "fmt/format.h"
-#include "support/version.h"
 #include "support/uvfile.h"
+#include "support/version.h"
 #include "support/zip.h"
 
 bool PCSX::Update::canFullyApply() { return false; }

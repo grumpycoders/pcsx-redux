@@ -46,12 +46,11 @@ extern "C" void Complain(const char *message) {
             // real error with a second one - a reporter that fails louder than
             // what it was reporting. console.error above has already run, so
             // bailing out here still surfaces the message.
-            if (typeof document === 'undefined') return;
+            if (typeof document == = 'undefined') return;
             var d = document.createElement('div');
-            d.setAttribute(
-                'style',
-                'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.85);' +
-                'color:#fff;font:13px/1.45 monospace;padding:2em;overflow:auto;white-space:pre-wrap');
+            d.setAttribute('style',
+                           'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.85);' +
+                               'color:#fff;font:13px/1.45 monospace;padding:2em;overflow:auto;white-space:pre-wrap');
             var h = document.createElement('div');
             h.setAttribute('style', 'font-weight:bold;font-size:1.3em;margin-bottom:.75em;color:#ff6b6b');
             h.textContent = 'PCSX-Redux: fatal error';

@@ -24,25 +24,39 @@ SOFTWARE.
 
 */
 
-// SIO1 over TCP needs a socket. Both halves exist and stay stopped; the fifo
+// SIO1 over TCP needs a socket. Both halves exist and stay Stopped; the fifo
 // side is already covered by uvfile-wasm.h, whose UvFifo is a failed file.
 #ifdef __EMSCRIPTEN__
 
+#include "core/psxemulator.h"
 #include "core/sio1-server.h"
-
 #include "core/system.h"
 
-PCSX::SIO1Server::SIO1Server() : m_listener(g_system->m_eventBus) {}
+PCSX::SIO1Server::SIO1Server() : Network::Server("SIO1 Server"), m_listener(g_system->m_eventBus) {}
 
-void PCSX::SIO1Server::startServer(uv_loop_t *loop, int port) {}
+void PCSX::SIO1Server::onStarting() {}
 
-void PCSX::SIO1Server::stopServer() {}
+void PCSX::SIO1Server::onConnection(IO<File> connection) {}
 
-PCSX::SIO1Client::SIO1Client() : m_listener(g_system->m_eventBus) {}
+void PCSX::SIO1Server::onStopped() {}
 
-void PCSX::SIO1Client::startClient(std::string_view address, unsigned port) {}
+void PCSX::SIO1Server::onFailed() {}
 
-void PCSX::SIO1Client::stopClient() {}
+int PCSX::SIO1Server::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1ServerPort>();
+}
+
+PCSX::SIO1Client::SIO1Client() : Network::Client("SIO1 Client"), m_listener(g_system->m_eventBus) {}
+
+bool PCSX::SIO1Client::onStarting() { return false; }
+
+void PCSX::SIO1Client::onStarted(IO<File> connection) {}
+
+void PCSX::SIO1Client::onStopped() {}
+
+int PCSX::SIO1Client::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::SIO1ClientPort>();
+}
 
 void PCSX::SIO1Client::reconnect(std::string_view address, unsigned port) {}
 
