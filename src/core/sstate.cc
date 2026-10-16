@@ -431,7 +431,13 @@ static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& s
     } catch (...) {
         return false;
     }
-    return state.get<SaveStateInfoField>().get<Version>().value == 5;
+    // v4 is v5 with 1MB of VRAM; GPU::deserialize restores it into the first 512 rows.
+    const auto version = state.get<SaveStateInfoField>().get<Version>().value;
+    if ((version != 4) && (version != 5)) {
+        PCSX::g_system->printf("Unsupported save state version %u\n", version);
+        return false;
+    }
+    return true;
 }
 
 bool PCSX::SaveStates::load(std::string_view data) {
@@ -561,8 +567,13 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     m_vram2MBGateOpen = m_statusControl[9] & 1;
     vramConfigChanged();
 
+    // A v4 state only carries 1MB of VRAM. Restore it into the lower bank and leave
+    // the upper one as clearVRAM() sets it on a fresh console of this fitment.
+    const bool vram1MB = w->state.get<SaveStateInfoField>().get<Version>().value == 4;
     if (gpu.get<GPUVRam>().value) {
-        partialUpdateVRAM(0, 0, 1024, 1024, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+        if (vram1MB) clearVRAM();
+        partialUpdateVRAM(0, 0, 1024, vram1MB ? 512 : 1024,
+                          reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
     } else {
         clearVRAM();
     }
