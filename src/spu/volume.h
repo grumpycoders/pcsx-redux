@@ -40,8 +40,8 @@ namespace SPU {
 // read answers at the reader's cycle. Neither thread touches the other's track.
 // Both tracks run the same step function from the same writes.
 //
-// Note: the PS1's global main L/R volume is not emulated (those register writes
-// are logged only, no state is kept), so this type is purely per-voice.
+// The SPU impl also keeps one instance for the global main L/R volume, which
+// shares this register format. Only its mix track is used there.
 class VoiceVolume {
   public:
     // CPU thread: a left/right volume register write, at SPU sample `nowSample`.
