@@ -206,6 +206,8 @@ TEST(NetworkServer, RestartRecoversFromFailure) {
 
     EXPECT_EQ(server.status(), Network::Status::Running);
     EXPECT_STREQ(server.lastError(), "");
+    // The failure already told the subclass; restarting out of it does not again.
+    EXPECT_EQ(server.m_stoppedCount, 1);
 
     server.stop();
     pump(&loop);

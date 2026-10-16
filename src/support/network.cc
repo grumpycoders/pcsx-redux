@@ -123,10 +123,10 @@ void Server::stop() {
     // it here as well would leave that nullptr queued in the listener, where
     // the next start() would pick it up and tear itself down.
     if (m_async) return;
-    // Otherwise nothing further is going to call back. Settle here rather than
-    // waiting for an event that will never arrive, which is what would strand
-    // a pending restart.
-    onListenerEvent(nullptr);
+    // Otherwise the teardown, and its onStopped(), already happened or never
+    // needed to. Settle here rather than waiting for an event that will never
+    // arrive, which is what would strand a pending restart.
+    settled();
 }
 
 Status Server::status() const {
