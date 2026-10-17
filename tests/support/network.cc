@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "loop.h"
 
 using namespace PCSX;
 
@@ -49,26 +50,6 @@ void pump(uv_loop_t* loop, int milliseconds = 300) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 }
-
-// Owns a uv_loop_t for the duration of a scope. uv_loop_close returns EBUSY
-// while any handle is still open or still closing, and ignoring that return
-// leaks the loop's internals, so the destructor keeps pumping until it takes.
-// Declare it before the objects that use it so they are destroyed first.
-struct Loop : uv_loop_t {
-    Loop() { EXPECT_EQ(uv_loop_init(this), 0); }
-    Loop(const Loop&) = delete;
-    Loop& operator=(const Loop&) = delete;
-    ~Loop() {
-        pump(this);
-        int result = uv_loop_close(this);
-        for (int i = 0; (i < 200) && (result == UV_EBUSY); i++) {
-            uv_run(this, UV_RUN_NOWAIT);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            result = uv_loop_close(this);
-        }
-        EXPECT_EQ(result, 0);
-    }
-};
 
 // Holds a port so a Server's bind is guaranteed to fail. Releasable mid-test,
 // so the restart case can watch a Failed endpoint recover.
@@ -181,6 +162,7 @@ TEST(NetworkServer, BindFailureIsVisible) {
     EXPECT_EQ(server.m_stoppedCount, 1);
 
     squatter.release(&loop);
+    pump(&loop);
 }
 
 // The restart button's actual job: recover an endpoint that is sitting in
@@ -235,6 +217,7 @@ TEST(NetworkServer, StartStopOnBusyPortDoesNotAbort) {
     EXPECT_EQ(server.m_stoppedCount, 1);
 
     squatter.release(&loop);
+    pump(&loop);
 }
 
 // A second start() while the first bind is still in flight must not replace

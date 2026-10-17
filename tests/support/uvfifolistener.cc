@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "loop.h"
 #include "support/uvfile.h"
 
 using namespace PCSX;
@@ -44,16 +45,6 @@ constexpr unsigned c_dropPort = 47831;
 void pump(uv_loop_t* loop, int milliseconds = 250) {
     auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
     while (std::chrono::steady_clock::now() < deadline) {
-        uv_run(loop, UV_RUN_NOWAIT);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-}
-
-// uv_loop_close returns EBUSY while any handle is still open or still closing,
-// and ignoring that return leaks the loop's internals. Close everything first,
-// then keep pumping until it actually takes.
-void closeLoop(uv_loop_t* loop) {
-    for (int i = 0; (i < 200) && (uv_loop_close(loop) == UV_EBUSY); i++) {
         uv_run(loop, UV_RUN_NOWAIT);
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
@@ -86,8 +77,7 @@ struct Squatter {
 // If this one ever fails, the busy-port test below proves nothing.
 TEST(UvFifoListener, StartStopOnFreePort) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     int nullptrCallbacks = 0;
     UvFifoListener listener;
@@ -110,7 +100,6 @@ TEST(UvFifoListener, StartStopOnFreePort) {
 
     uv_close(reinterpret_cast<uv_handle_t*>(&async), [](uv_handle_t*) {});
     pump(&loop);
-    closeLoop(&loop);
 }
 
 // The bug: start() on an occupied port hits the uv_tcp_bind failure path, which
@@ -120,8 +109,7 @@ TEST(UvFifoListener, StartStopOnFreePort) {
 // SERVER_STARTED unconditionally - closes the same handle a second time.
 TEST(UvFifoListener, StopAfterFailedBindIsSafe) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     Squatter squatter(&loop, c_squattedPort);
 
@@ -153,7 +141,6 @@ TEST(UvFifoListener, StopAfterFailedBindIsSafe) {
     uv_close(reinterpret_cast<uv_handle_t*>(&async), [](uv_handle_t*) {});
     squatter.release(&loop);
     pump(&loop);
-    closeLoop(&loop);
 }
 
 // UvFifo has no readable callback of its own - data lands in a lock-free queue
@@ -166,8 +153,7 @@ TEST(UvFifoListener, StopAfterFailedBindIsSafe) {
 // Nothing else runs the callback, so a notifier that never fires fails it.
 TEST(UvFifo, ReadableNotifierFires) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     UvFifo* accepted = nullptr;
     UvFifoListener listener;
@@ -216,7 +202,6 @@ TEST(UvFifo, ReadableNotifierFires) {
     uv_close(reinterpret_cast<uv_handle_t*>(&notifyAsync), [](uv_handle_t*) {});
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
-    closeLoop(&loop);
 }
 
 // A failed outgoing connection has to end up in a state the UI can act on.
@@ -259,8 +244,7 @@ TEST(UvFifo, FailedConnectIsActionable) {
 // the writes to stay queued, which is the only state in which this is a test.
 TEST(UvFifo, CloseFlushesPendingWrites) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     UvFifo* accepted = nullptr;
     UvFifoListener listener;
@@ -332,7 +316,6 @@ TEST(UvFifo, CloseFlushesPendingWrites) {
     pump(&loop);
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
-    closeLoop(&loop);
 }
 
 // The fifo is deleted as soon as its last reference goes, but the socket stays
@@ -341,8 +324,7 @@ TEST(UvFifo, CloseFlushesPendingWrites) {
 // this is a heap-use-after-free without the fix; without ASan it may pass.
 TEST(UvFifo, PeerTrafficAfterDropIsSafe) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     UvFifo* accepted = nullptr;
     UvFifoListener listener;
@@ -418,5 +400,4 @@ TEST(UvFifo, PeerTrafficAfterDropIsSafe) {
     pump(&loop);
     uv_close(reinterpret_cast<uv_handle_t*>(&listenerAsync), [](uv_handle_t*) {});
     pump(&loop);
-    closeLoop(&loop);
 }
