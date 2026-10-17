@@ -74,7 +74,7 @@ function Usage() {
 
 function Download-Index($Path) {
     $IndexFile = $Path + "/index.json"
-    $FullURL = $MipsBaseURL + "/index.json"
+    $FullURL = $MipsBaseURL + "index.json"
     Invoke-WebRequest -UseBasicParsing -ContentType "application/octet-stream" -Uri $FullURL -OutFile $IndexFile
 }
 
@@ -110,7 +110,7 @@ function New-TempDir {
 
 # Downloads the list of releases, and attempts to find a version that matches the
 # one specified by $Version. Returns a structure with the information for that specific
-# version. The index is this one: https://static.grumpycoder.net/pixel/mips/index.json
+# version. The index is this one: https://distrib.app/alias/pcsx-redux/mips-toolchain/index.json
 function Locate-Version($Version) {
     $VersionString = "v" + $Version
     $Version = $NULL
@@ -198,8 +198,8 @@ function Install($Version) {
 $dest = Get-AbsolutePath ([Environment]::GetFolderPath('ApplicationData') + "/mips")
 $me = $MyInvocation.MyCommand.Path
 
-$MipsBaseURL = "https://static.grumpycoder.net/pixel/mips/"
-$GdbBaseURL = "https://static.grumpycoder.net/pixel/gdb-multiarch-windows/"
+$MipsBaseURL = "https://distrib.app/alias/pcsx-redux/mips-toolchain/"
+$GdbBaseURL = "https://distrib.app/alias/pcsx-redux/gdb-multiarch-windows/"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $MyURI = "https://raw.githubusercontent.com/grumpycoders/pcsx-redux/main/mips.ps1"
