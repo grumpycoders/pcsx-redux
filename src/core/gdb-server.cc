@@ -541,8 +541,8 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
         close();
     } else if (m_cmd == "qC") {
-        // return current thread id - always p1.t1
-        write("QCp1.t1");
+        // return current thread id - always 1, process-qualified when multiprocess was negotiated
+        write(m_multiprocess ? "QCp1.1" : "QC1");
     } else if (m_cmd == "qAttached") {
         // query if attached to existing process - always true
         write("1");
@@ -725,14 +725,14 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (StringsHelpers::startsWith(m_cmd, qSupported)) {
         auto elements = StringsHelpers::split(m_cmd.substr(qSupported.length()), ";");
-        bool multiprocess = false;
+        m_multiprocess = false;
         for (const auto& element : elements) {
             if (element == "multiprocess+") {
-                multiprocess = true;
+                m_multiprocess = true;
             }
         }
         std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+";
-        if (multiprocess) {
+        if (m_multiprocess) {
             answer += ";multiprocess+";
         }
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
@@ -761,7 +761,8 @@ void PCSX::GdbClient::processCommand() {
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
-        writePaged("<threads><thread id=\"p1.t1\" core=\"0\" name=\"MainThread\"/></threads>",
+        writePaged(m_multiprocess ? "<threads><thread id=\"p1.1\" core=\"0\" name=\"MainThread\"/></threads>"
+                                  : "<threads><thread id=\"1\" core=\"0\" name=\"MainThread\"/></threads>",
                    m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
