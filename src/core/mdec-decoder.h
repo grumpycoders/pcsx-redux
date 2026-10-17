@@ -34,8 +34,9 @@
 // tables. Change it the way the emulator's MDEC was always changed: against a
 // hardware arm, and grading on the ordinary-content control.
 //
-// NOTE the license: unlike the rest of supportpsx this file and its .cc are GPL,
-// because the AAN IDCT and the run-level walk are PCSX-df's.
+// NOTE the license: this file and its .cc are GPLv2+, because the AAN IDCT and
+// the run-level walk are PCSX-df's. That is why they live in src/core and not in
+// the MIT supportpsx, and why tools/mdec links this one object explicitly.
 
 namespace PCSX {
 

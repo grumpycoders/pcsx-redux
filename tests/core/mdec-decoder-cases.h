@@ -25,7 +25,7 @@
 // the decoder in-process, and the two compared byte for byte.
 //
 // The goldens in mdec-decoder.cc were captured from the emulator BEFORE its
-// decoder moved into supportpsx, so this list is frozen: changing a case changes
+// decoder moved into src/core/mdec-decoder.cc, so this list is frozen: changing a case changes
 // its stream and invalidates its golden. Add cases at the end, with new goldens.
 
 #include <stdint.h>

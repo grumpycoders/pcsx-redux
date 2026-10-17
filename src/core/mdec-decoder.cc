@@ -672,6 +672,12 @@ PCSX::MDECDecoder::FrameStatus PCSX::MDECDecoder::decodeFrame(const uint16_t *rl
     const uint16_t *pos = rl;
     const uint16_t *end = rl + words;
     const unsigned mbx = width / 16, mby = height / 16;
+    // decodeMacroblock reads a null end as "no bound", and an empty stream can
+    // hand us a null rl, so an empty input is reported here before any read.
+    if (words == 0 && mbx != 0 && mby != 0) {
+        frame.status = {Anomaly::Exhausted, 0, true};
+        return frame;
+    }
     for (unsigned outer = 0; outer < (columnMajor ? mbx : mby); outer++) {
         for (unsigned inner = 0; inner < (columnMajor ? mby : mbx); inner++) {
             const unsigned mx = columnMajor ? outer : inner;
