@@ -54,6 +54,20 @@ LuaIso* openIsoFromFile(PCSX::LuaFFI::LuaFile* wrapper) {
     return new LuaIso(std::make_shared<PCSX::CDRIso>(wrapper->file));
 }
 
+// Same sequence as the File menu: swap the image, then re-read its TOC.
+void cdromSetIso(LuaIso* wrapper) {
+    PCSX::g_emulator->m_cdrom->setIso(wrapper->iso);
+    PCSX::g_emulator->m_cdrom->parseIso();
+}
+void cdromEjectIso() {
+    PCSX::g_emulator->m_cdrom->setIso(new PCSX::CDRIso(new PCSX::FailedFile));
+    PCSX::g_emulator->m_cdrom->parseIso();
+}
+void cdromOpenLid() { PCSX::g_emulator->m_cdrom->openLid(); }
+void cdromCloseLid() { PCSX::g_emulator->m_cdrom->closeLid(); }
+void cdromScheduleCloseLid() { PCSX::g_emulator->m_cdrom->scheduleCloseLid(); }
+bool cdromIsLidOpen() { return PCSX::g_emulator->m_cdrom->isLidOpen(); }
+
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
 void deleteIsoReader(PCSX::ISO9660Reader* isoReader) { delete isoReader; }
 
@@ -443,6 +457,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getCurrentIso);
     REGISTER(L, openIso);
     REGISTER(L, openIsoFromFile);
+    REGISTER(L, cdromSetIso);
+    REGISTER(L, cdromEjectIso);
+    REGISTER(L, cdromOpenLid);
+    REGISTER(L, cdromCloseLid);
+    REGISTER(L, cdromScheduleCloseLid);
+    REGISTER(L, cdromIsLidOpen);
     REGISTER(L, getIsoTD);
     REGISTER(L, getIsoTN);
     REGISTER(L, createIsoReader);
