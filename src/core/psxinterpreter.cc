@@ -1803,7 +1803,7 @@ inline void InterpretedCPU::execBlock() {
             PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins);
         }
 
-        m_regs.pc.raw() += 4;
+        m_regs.pc.increment();
         m_regs.cycle += PCSX::Emulator::BIAS;
         if ((m_regs.pc & 0xffc00000) == 0xbfc00000) m_regs.cycle += PCSX::Emulator::BIAS * 10;
 

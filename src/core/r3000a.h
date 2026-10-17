@@ -184,6 +184,8 @@ class PCRegister {
   public:
     operator uint32_t() const { return m_value; }
     uint32_t &raw() { return m_value; }
+    // Steps to the next instruction. Same caveat as raw(): no pending branch is touched.
+    void increment() { m_value += 4; }
 
   private:
     uint32_t m_value = 0;

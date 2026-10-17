@@ -60,16 +60,12 @@ void PCSX::R3000Acpu::psxReset() {
     memset(&m_regs, 0, sizeof(m_regs));
     m_shellStarted = false;
     m_inISR = false;
-    m_nextIsDelaySlot = false;
-    m_inDelaySlot = false;
     m_delayedLoadInfo[0].active = false;
-    m_delayedLoadInfo[0].pcActive = false;
     m_delayedLoadInfo[1].active = false;
-    m_delayedLoadInfo[1].pcActive = false;
     m_currentDelayedLoad = false;
     closeAllPCdrvFiles();
 
-    m_regs.pc.raw() = 0xbfc00000;  // Start in bootstrap
+    setPC(0xbfc00000);  // Start in bootstrap
 
     g_emulator->m_debug->updatedPC(0xbfc00000);
 
@@ -101,14 +97,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     closeAllPCdrvFiles();
                     regs.v0 = 0;
                     regs.v1 = 0;
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x102: {  // PCcreat
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -126,14 +122,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = fd;
                     }
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x103: {  // PCopen
                     if (m_availableFDs.empty()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     std::filesystem::path basepath = debugSettings.get<Emulator::DebugSettings::PCdrvBase>();
@@ -157,7 +153,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = 0;
                         regs.v1 = fd;
                     }
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x104: {  // PCclose
@@ -173,7 +169,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         delete &*file;
                         m_availableFDs.push_back(fd);
                     }
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x105: {  // PCread
@@ -181,21 +177,21 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     IO<File> file = *filei;
                     if (file->failed() || file->eof()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     auto slice = file->read(regs.a2);
                     regs.v0 = 0;
                     regs.v1 = slice.size();
                     memFile->writeAt(std::move(slice), regs.a3);
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x106: {  // PCwrite
@@ -203,7 +199,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     IO<File> file = *filei;
@@ -213,7 +209,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     } else {
                         regs.v0 = 0;
                     }
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 case 0x107: {  // PClseek
@@ -221,7 +217,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     if (filei == m_pcdrvFiles.end()) {
                         regs.v0 = -1;
                         regs.v1 = -1;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     IO<File> file = *filei;
@@ -239,14 +235,14 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         default:
                             regs.v0 = -1;
                             regs.v1 = -1;
-                            m_regs.pc.raw() += 4;
+                            m_regs.pc.increment();
                             return false;
                     }
                     ssize_t ret = file->rSeek(regs.a2, wheel);
                     if (ret < 0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
-                        m_regs.pc.raw() += 4;
+                        m_regs.pc.increment();
                         return false;
                     }
                     if (file->writable()) {
@@ -260,7 +256,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                         regs.v0 = -1;
                         regs.v1 = ret;
                     }
-                    m_regs.pc.raw() += 4;
+                    m_regs.pc.increment();
                     return false;
                 }
                 default:
