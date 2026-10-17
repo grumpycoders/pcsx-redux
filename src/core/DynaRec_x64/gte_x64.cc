@@ -20,6 +20,8 @@
 #include "recompiler.h"
 
 #if defined(DYNAREC_X86_64)
+#include <array>
+
 #include "core/gte.h"
 #define COP2_CONTROL_OFFSET(reg) ((uintptr_t) & m_regs.CP2C.r[(reg)] - (uintptr_t)this)
 #define COP2_DATA_OFFSET(reg) ((uintptr_t) & m_regs.CP2D.r[(reg)] - (uintptr_t)this)
@@ -253,6 +255,38 @@ void DynaRecCPU::recCOP2(uint32_t code) {
     call(gteCommandWrapper);
 }
 
+namespace {
+
+using GTECommand = void (PCSX::GTE::*)(uint32_t);
+constexpr auto c_gteCommands = [] {
+    std::array<GTECommand, 64> t{};
+    t[0x01] = &PCSX::GTE::RTPS;
+    t[0x06] = &PCSX::GTE::NCLIP;
+    t[0x0c] = &PCSX::GTE::OP;
+    t[0x10] = &PCSX::GTE::DPCS;
+    t[0x11] = &PCSX::GTE::INTPL;
+    t[0x12] = &PCSX::GTE::MVMVA;
+    t[0x13] = &PCSX::GTE::NCDS;
+    t[0x14] = &PCSX::GTE::CDP;
+    t[0x16] = &PCSX::GTE::NCDT;
+    t[0x1b] = &PCSX::GTE::NCCS;
+    t[0x1c] = &PCSX::GTE::CC;
+    t[0x1e] = &PCSX::GTE::NCS;
+    t[0x20] = &PCSX::GTE::NCT;
+    t[0x28] = &PCSX::GTE::SQR;
+    t[0x29] = &PCSX::GTE::DCPL;
+    t[0x2a] = &PCSX::GTE::DPCT;
+    t[0x2d] = &PCSX::GTE::AVSZ3;
+    t[0x2e] = &PCSX::GTE::AVSZ4;
+    t[0x30] = &PCSX::GTE::RTPT;
+    t[0x3d] = &PCSX::GTE::GPF;
+    t[0x3e] = &PCSX::GTE::GPL;
+    t[0x3f] = &PCSX::GTE::NCCT;
+    return t;
+}();
+
+}  // namespace
+
 void DynaRecCPU::gteCommandWrapper(DynaRecCPU* that, uint32_t code, uint32_t liveBits) {
     unsigned kept = 0;
     for (unsigned i = 0; i < that->m_gtePendingCount; i++) {
@@ -262,75 +296,8 @@ void DynaRecCPU::gteCommandWrapper(DynaRecCPU* that, uint32_t code, uint32_t liv
     }
     that->m_gtePendingCount = kept;
     that->gteRunCommand(code, [](PCSX::R3000Acpu*, uint32_t code) {
-        auto& gte = PCSX::g_emulator->m_gte;
-        switch (code & 0x3f) {
-            case 0x01:
-                gte->RTPS(code);
-                break;
-            case 0x06:
-                gte->NCLIP(code);
-                break;
-            case 0x0c:
-                gte->OP(code);
-                break;
-            case 0x10:
-                gte->DPCS(code);
-                break;
-            case 0x11:
-                gte->INTPL(code);
-                break;
-            case 0x12:
-                gte->MVMVA(code);
-                break;
-            case 0x13:
-                gte->NCDS(code);
-                break;
-            case 0x14:
-                gte->CDP(code);
-                break;
-            case 0x16:
-                gte->NCDT(code);
-                break;
-            case 0x1b:
-                gte->NCCS(code);
-                break;
-            case 0x1c:
-                gte->CC(code);
-                break;
-            case 0x1e:
-                gte->NCS(code);
-                break;
-            case 0x20:
-                gte->NCT(code);
-                break;
-            case 0x28:
-                gte->SQR(code);
-                break;
-            case 0x29:
-                gte->DCPL(code);
-                break;
-            case 0x2a:
-                gte->DPCT(code);
-                break;
-            case 0x2d:
-                gte->AVSZ3(code);
-                break;
-            case 0x2e:
-                gte->AVSZ4(code);
-                break;
-            case 0x30:
-                gte->RTPT(code);
-                break;
-            case 0x3d:
-                gte->GPF(code);
-                break;
-            case 0x3e:
-                gte->GPL(code);
-                break;
-            case 0x3f:
-                gte->NCCT(code);
-                break;
-        }
+        auto command = c_gteCommands[code & 0x3f];
+        if (command) (PCSX::g_emulator->m_gte.get()->*command)(code);
     });
 }
 
