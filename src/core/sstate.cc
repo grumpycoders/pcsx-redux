@@ -53,7 +53,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CP0{g_emulator->m_cpu->m_regs.CP0.r},
             CP2D{g_emulator->m_cpu->m_regs.CP2D.r},
             CP2C{g_emulator->m_cpu->m_regs.CP2C.r},
-            PC{g_emulator->m_cpu->m_regs.pc},
+            PC{g_emulator->m_cpu->m_regs.pc.raw()},
             Code{g_emulator->m_cpu->m_regs.code},
             Cycle{g_emulator->m_cpu->m_regs.cycle},
             ScheduleMask{g_emulator->m_cpu->m_regs.scheduleMask},
@@ -292,7 +292,7 @@ void PCSX::SaveStates::restore(SaveState& state) {
     state.commit();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
-    g_emulator->m_cpu->m_regs.pc &= ~3;
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
        reset, so we owe it explicitly: without this a recompiler happily runs blocks it
        translated from memory we just rewound out from under it. */
@@ -451,7 +451,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
-    g_emulator->m_cpu->m_regs.pc &= ~3;
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());

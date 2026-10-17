@@ -177,12 +177,30 @@ enum class Schedule : unsigned {
     CDRDMA,
 };
 
+// The program counter. Reads convert to uint32_t. Outside the cpu core, writes go through
+// R3000Acpu::setPC(), which also drops a branch still pending in a delay slot. raw() is for
+// the core itself and for the paths that save and restore the whole cpu state.
+class PCRegister {
+  public:
+    operator uint32_t() const { return m_value; }
+    uint32_t &raw() { return m_value; }
+    // Steps to the next instruction. Same caveat as raw(): no pending branch is touched.
+    void increment() { m_value += 4; }
+
+  private:
+    uint32_t m_value = 0;
+};
+// Lets fmt, printf-style formats included, take it as the uint32_t it holds.
+inline uint32_t format_as(PCRegister pc) { return pc; }
+static_assert(sizeof(PCRegister) == sizeof(uint32_t));
+static_assert(std::is_standard_layout_v<PCRegister>);
+
 struct psxRegisters {
     psxGPRRegs GPR;   // General Purpose Registers
     psxCP0Regs CP0;   // COP0 Registers
     psxCP2Data CP2D;  // COP2 data registers
     psxCP2Ctrl CP2C;  // COP2 control registers
-    uint32_t pc;      // Program counter
+    PCRegister pc;    // Program counter
     uint32_t code;    // The current instruction
     uint64_t cycle;
     uint64_t previousCycles;
@@ -436,6 +454,18 @@ class R3000Acpu {
         auto &ref = delayedLoadRef(reg, mask);
         ref = value;
     }
+    // Moves pc from outside the instruction stream. Paused in a delay slot, the branch is
+    // still pending and would take the instruction at the new pc as its delay slot, then
+    // jump to its own target anyway.
+    void setPC(uint32_t value) {
+        m_regs.pc.raw() = value;
+        m_nextIsDelaySlot = false;
+        m_inDelaySlot = false;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            delayedLoad.pcActive = false;
+            delayedLoad.fromLink = false;
+        }
+    }
     void delayedPCLoad(uint32_t value, bool fromLink) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.pcActive = true;
@@ -469,7 +499,7 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!m_shellStarted) {
-            uint32_t &pc = m_regs.pc;
+            uint32_t &pc = m_regs.pc.raw();
             if (pc == 0x80030000) {
                 m_shellStarted = true;
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
