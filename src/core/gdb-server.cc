@@ -541,8 +541,8 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
         close();
     } else if (m_cmd == "qC") {
-        // return current thread id - always p1.t1
-        write("QCp1.t1");
+        // return current thread id - always p1.1
+        write("QCp1.1");
     } else if (m_cmd == "qAttached") {
         // query if attached to existing process - always true
         write("1");
@@ -761,7 +761,7 @@ void PCSX::GdbClient::processCommand() {
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
-        writePaged("<threads><thread id=\"p1.t1\" core=\"0\" name=\"MainThread\"/></threads>",
+        writePaged("<threads><thread id=\"p1.1\" core=\"0\" name=\"MainThread\"/></threads>",
                    m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
