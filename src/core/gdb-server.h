@@ -165,6 +165,7 @@ class GdbClient : public Intrusive::List<GdbClient>::Node {
     } m_state = WAIT_FOR_DOLLAR;
     bool m_passthrough = false;
     bool m_ackEnabled = true;
+    bool m_multiprocess = false;
     bool m_waitingForTrap = false;
     bool m_waitingForShell = false;
     bool m_exception = false;
