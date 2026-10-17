@@ -379,6 +379,12 @@ void PCSX::GPU::serialize(SaveStateWrapper* w) {
     for (unsigned i = 0; i < 256; i++) {
         setU32(control + i * 4, m_statusControl[i]);
     }
+
+    gpu.get<GPUEnvironment>().allocate();
+    const auto env = gpu.get<GPUEnvironment>().value;
+    for (unsigned i = 0; i < 6; i++) {
+        setU32(env + i * 4, m_envRaw[i + 1]);
+    }
 }
 
 void PCSX::MDEC::serialize(SaveStateWrapper* w) {
@@ -587,6 +593,17 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     writeStatus(m_statusControl[7]);
     writeStatus(m_statusControl[5]);
     writeStatus(m_statusControl[4]);
+
+    // The replayed GP1(00h) above resets the drawing environment; replay GP0(E1h)..GP0(E6h).
+    // A state saved without them still carries the E1h and E6h bits in GPUSTAT.
+    const uint32_t status = gpu.get<GPUStatus>().value;
+    const auto env = gpu.get<GPUEnvironment>().value;
+    if (env) {
+        for (unsigned i = 0; i < 6; i++) writeData(getU32(env + i * 4));
+    } else {
+        writeData(0xe1000000 | (status & 0x7ff) | ((status >> 4) & 0x800));
+        writeData(0xe6000000 | ((status >> 11) & 3));
+    }
     // The replayed GP1(00h)/GP1(02h) above clear the IRQ1 flag; put back the saved one.
     m_irq1Flag = gpu.get<GPUStatus>().value & 0x01000000;
 }
