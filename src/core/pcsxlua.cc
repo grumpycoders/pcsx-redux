@@ -48,6 +48,7 @@ void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
+void setPC(uint32_t pc) { PCSX::g_emulator->m_cpu->setPC(pc); }
 void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
 void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
@@ -245,6 +246,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
+    REGISTER(L, setPC);
     REGISTER(L, getReadLUT);
     REGISTER(L, getWriteLUT);
     REGISTER(L, addBreakpoint);
@@ -555,13 +557,13 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             bool hasGP = false;
             uint32_t gp = field("gp", 0, &hasGP);
             if (hasGP) regs.GPR.n.gp = gp;
-            regs.pc = pc;
+            regs.pc.raw() = pc;
 
             auto outcome = g_emulator->m_cpu->RunUntil(ra, cycles);
             if (outcome == R3000Acpu::RunUntilResult::Reentered) {
                 undoInputs();
                 regs.GPR = savedGPR;
-                regs.pc = savedPC;
+                regs.pc.raw() = savedPC;
                 regs.cycle = savedCycle;
                 return L.error(
                     "callGuest can't be nested: this one was called from inside another guest call, most likely from "
@@ -571,7 +573,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             if (outcome == R3000Acpu::RunUntilResult::Unsupported) {
                 undoInputs();
                 regs.GPR = savedGPR;
-                regs.pc = savedPC;
+                regs.pc.raw() = savedPC;
                 regs.cycle = savedCycle;
                 return L.error(
                     "callGuest needs the interpreter: the recompilers emit no per-instruction checks, so they can't "
@@ -623,7 +625,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             regs.CP0 = savedCP0;
             regs.CP2D = savedCP2D;
             regs.CP2C = savedCP2C;
-            regs.pc = savedPC;
+            regs.pc.raw() = savedPC;
             regs.code = savedCode;
             regs.cycle = savedCycle;
 

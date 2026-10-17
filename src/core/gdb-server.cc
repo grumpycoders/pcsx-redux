@@ -510,7 +510,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
     } else if (n == 36) {
         regs.CP0.n.Cause = value;
     } else if (n == 37) {
-        regs.pc = value;
+        g_emulator->m_cpu->setPC(value);
     }
 }
 

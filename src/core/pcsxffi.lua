@@ -44,7 +44,7 @@ typedef struct {
     psxCP0Regs CP0;
     psxCP2Data CP2D;
     psxCP2Ctrl CP2C;
-    uint32_t pc;
+    const uint32_t rawPC;
 } psxRegisters;
 
 enum BreakpointType { Exec, Read, Write };
@@ -56,6 +56,7 @@ uint8_t* getParPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
+void setPC(uint32_t pc);
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
@@ -123,6 +124,18 @@ void quit(int code);
 ]]
 
 local C = ffi.load 'PCSX'
+
+-- Writing pc goes through the cpu, which drops a branch still pending in a delay slot.
+ffi.metatype('psxRegisters', {
+    __index = function(regs, key)
+        if key == 'pc' then return regs.rawPC end
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
+    end,
+    __newindex = function(regs, key, value)
+        if key == 'pc' then return C.setPC(value) end
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
+    end,
+})
 
 local function removeBreakpoint(bp)
     C.removeBreakpoint(ffi.gc(bp._wrapper, nil))

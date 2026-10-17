@@ -24,8 +24,8 @@
 #include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
-#include "core/gte.h"
 #include "core/gte-write-to-use.h"
+#include "core/gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
@@ -445,7 +445,7 @@ void InterpretedCPU::psxADDI(uint32_t code) {
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
+            m_regs.pc.raw() -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"),
                                 m_regs.pc);
             exception(Exception::ArithmeticOverflow, m_inDelaySlot);
@@ -539,7 +539,7 @@ void InterpretedCPU::psxADD(uint32_t code) {
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                   // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
+            m_regs.pc.raw() -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
             exception(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
@@ -581,7 +581,7 @@ void InterpretedCPU::psxSUB(uint32_t code) {
             .get<PCSX::Emulator::DebugSettings::Debug>()) {
         bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
         if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
+            m_regs.pc.raw() -= 4;
             PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
             exception(Exception::ArithmeticOverflow, m_inDelaySlot);
             return;
@@ -859,12 +859,12 @@ void InterpretedCPU::psxMTLO(uint32_t code) {
  * Format:  OP                                            *
  *********************************************************/
 void InterpretedCPU::psxBREAK(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     exception(Exception::Break, m_inDelaySlot);
 }
 
 void InterpretedCPU::psxSYSCALL(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     exception(Exception::Syscall, m_inDelaySlot);
 }
 
@@ -906,7 +906,7 @@ void InterpretedCPU::psxJAL(uint32_t code) {
 void InterpretedCPU::psxJR(uint32_t code) {
     // if the jump is unaligned, throw an exception and return
     if (_rRs_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"),
                             _rRs_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _rRs_;
@@ -931,7 +931,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
     // if the address is unaligned, throw an exception and return
     if (temp & 3) {
         // TODO: is Rd modified in this case?
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU,
                             _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp, m_regs.pc);
         m_regs.CP0.n.BadVAddr = temp;
@@ -970,7 +970,7 @@ void InterpretedCPU::psxLBU(uint32_t code) {
 void InterpretedCPU::psxLH(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -987,7 +987,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
 void InterpretedCPU::psxLHU(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -1004,7 +1004,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
 void InterpretedCPU::psxLW(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -1066,7 +1066,7 @@ void InterpretedCPU::psxLWR(uint32_t code) {
 void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_mem->write8(_oB_, _rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::StoreAddressError, m_inDelaySlot);
@@ -1077,7 +1077,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
 
 void InterpretedCPU::psxSW(uint32_t code) {
     if (_oB_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::StoreAddressError, m_inDelaySlot);
@@ -1194,7 +1194,7 @@ void InterpretedCPU::psxCFC2(uint32_t code) {
  * Unknown instruction (would generate an exception)     *
  *********************************************************/
 void InterpretedCPU::psxNULL(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Encountered reserved opcode from 0x%08x, firing an exception\n"),
                         m_regs.pc);
     exception(Exception::ReservedInstruction, m_inDelaySlot);
@@ -1210,7 +1210,7 @@ void InterpretedCPU::psxREGIMM(uint32_t code) { (*this.*(s_pPsxREG[_Rt_]))(code)
 // coprocessor unusable exception, COP0 included, even in kernel mode.
 void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
     if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
         return;
     }
@@ -1298,7 +1298,7 @@ uint64_t gteCommandOutputs(uint32_t code) {
     constexpr uint64_t flag = uint64_t(1) << c_gteFlag;
     constexpr uint64_t mac0 = uint64_t(1) << 24;
     constexpr uint64_t vector = gteBits(9, 11) | gteBits(25, 27);  // IR1-IR3, MAC1-MAC3
-    constexpr uint64_t color = vector | gteBits(20, 22);            // and the RGB FIFO
+    constexpr uint64_t color = vector | gteBits(20, 22);           // and the RGB FIFO
     switch (code & 0x3f) {
         case 0x01:  // RTPS
         case 0x30:  // RTPT
@@ -1982,7 +1982,7 @@ inline void InterpretedCPU::execBlock() {
             PCSX::g_emulator->m_cpuTrace->capture(pc, code);
         }
 
-        m_regs.pc += 4;
+        m_regs.pc.increment();
         m_regs.cycle += PCSX::Emulator::BIAS;
         if ((m_regs.pc & 0xffc00000) == 0xbfc00000) m_regs.cycle += PCSX::Emulator::BIAS * 10;
 
@@ -1995,7 +1995,7 @@ inline void InterpretedCPU::execBlock() {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         bool fromLink = false;
         if (delayedLoad.pcActive) {
-            m_regs.pc = delayedLoad.pcValue;
+            m_regs.pc.raw() = delayedLoad.pcValue;
             fromLink = delayedLoad.fromLink;
             delayedLoad.pcActive = false;
             delayedLoad.fromLink = false;
