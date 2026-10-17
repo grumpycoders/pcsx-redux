@@ -37,6 +37,12 @@ void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
 LuaIso* openIso(const char* path);
 LuaIso* openIsoFromFile(LuaFile* wrapper);
+void cdromSetIso(LuaIso* wrapper);
+void cdromEjectIso();
+void cdromOpenLid();
+void cdromCloseLid();
+void cdromScheduleCloseLid();
+bool cdromIsLidOpen();
 
 IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
@@ -338,6 +344,19 @@ PCSX.openIso = function(arg)
         return createIsoWrapper(C.openIsoFromFile(arg._wrapper))
     end
 end
+PCSX.CDRom = {
+    -- Takes a path, a File, or an iso returned by PCSX.openIso.
+    setIso = function(arg)
+        if type(arg) ~= 'table' or arg._wrapper == nil or arg.createReader == nil then arg = PCSX.openIso(arg) end
+        C.cdromSetIso(arg._wrapper)
+    end,
+    ejectIso = function() C.cdromEjectIso() end,
+    openLid = function() C.cdromOpenLid() end,
+    closeLid = function() C.cdromCloseLid() end,
+    -- Opens the lid now and closes it one emulated second later.
+    scheduleCloseLid = function() C.cdromScheduleCloseLid() end,
+    isLidOpen = function() return C.cdromIsLidOpen() end,
+}
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
 PCSX.isoTools = {
     fromBCD = function(bcd)
