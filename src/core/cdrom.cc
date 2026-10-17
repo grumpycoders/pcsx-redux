@@ -746,6 +746,24 @@ class CDRomImpl final : public PCSX::CDRom {
         }
     }
 
+    // Opening the shell under a spinning disc stops the drive with an unsolicited error. On
+    // hardware, after a completed SeekP: stat 16h (shell open, spindle, error), code 08h.
+    void lidOpened() override {
+        if (!m_motorOn) return;
+        m_status = Status::Idle;
+        m_readingState = ReadingState::None;
+        m_readingType = ReadingType::None;
+        QueueElement error;
+        error.pushPayloadData(getStatus() | 0x06);
+        error.pushPayloadData(0x08);
+        m_motorOn = false;
+        maybeTriggerIRQ(Cause::Error, error);
+    }
+
+    // Commands that need the disc fail with 80h while the shell is open. Measured on hardware
+    // for GetLocP and GetID; the other disc commands are not characterised yet.
+    static bool needsClosedLid(uint8_t command) { return (command == 0x11) || (command == 0x1a); }
+
     void maybeEnqueueError(uint8_t mask1, uint8_t mask2) {
         QueueElement error;
         error.pushPayloadData(getStatus() | mask1);
@@ -780,6 +798,12 @@ class CDRomImpl final : public PCSX::CDRom {
         auto expectedCount = c_commandsArgumentsCount[command];
         if ((expectedCount >= 0) && (expectedCount != m_commandFifo.payloadSize)) {
             maybeEnqueueError(1, 0x20);
+            maybeScheduleNextCommand();
+            m_commandFifo.clear();
+            return;
+        }
+        if (needsClosedLid(command) && isLidOpen()) {
+            maybeEnqueueError(1, 0x80);
             maybeScheduleNextCommand();
             m_commandFifo.clear();
             return;
