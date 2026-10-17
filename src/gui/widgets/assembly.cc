@@ -802,7 +802,7 @@ settings, otherwise debugging features may not work.)");
                         ImGui::PopTextWrapPos();
                         ImGui::EndTooltip();
                     }
-                    if (ImGui::MenuItem(_("Jump to Cursor"))) {
+                    if (ImGui::MenuItem(_("Jump to Cursor"), nullptr, false, !PCSX::g_system->running())) {
                         g_emulator->m_cpu->setPC(dispAddr);
                     }
                     if (ImGui::IsItemHovered()) {
