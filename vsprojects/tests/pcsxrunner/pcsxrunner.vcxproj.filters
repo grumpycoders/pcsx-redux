@@ -96,6 +96,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\spu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-gpustat.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-v4.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
