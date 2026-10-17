@@ -327,6 +327,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_pc = pc & ~3;
     m_firstInstruction = true;
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
+    m_gteQueue.count = 0;
     auto& memory = PCSX::g_emulator->m_mem;
 
     // If we somehow ended up compiling a block at an invalid PC, throw an error.
@@ -367,6 +368,17 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         gen.jne((void*)m_needFullLoadDelays);
     }
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
+
+    // GTE writes left in flight by the previous block, the interpreter or a save state land here, up to two
+    // instructions early.
+    {
+        Label noPendingWrites;
+        gen.cmp(dword[contextPointer + ((uintptr_t)&m_gtePendingCount - (uintptr_t)this)], 0);
+        gen.je(noPendingWrites);
+        loadThisPointer(arg1.cvt64());
+        call(drainGTEWritesWrapper);
+        gen.L(noPendingWrites);
+    }
 
     const auto shouldContinue = [this, &count]() {
         if (m_nextIsDelaySlot) {
@@ -441,10 +453,12 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     }
     resolveInitialLoadDelay();
     processDelayedLoad();
+    tickGTEWrites();
     m_firstInstruction = false;
 
     // Ends the block: writes back the registers and the PC, adds the cycles, returns to the dispatcher.
     const auto endBlock = [this, &count, &extra]() {
+        emitGTEFlushQueue(false);
         flushRegs();
         if (!m_pcWrittenBack) {
             gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
@@ -471,6 +485,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             const auto savedLoads0 = m_delayedLoadInfo[0];
             const auto savedLoads1 = m_delayedLoadInfo[1];
             const auto savedCurrentLoad = m_currentDelayedLoad;
+            const auto savedGTEQueue = m_gteQueue;
             const auto savedCount = count;
             const auto savedExtra = extra;
             Label notTaken;
@@ -497,6 +512,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
                 m_pcWrittenBack = true;
             }
             processDelayedLoad();
+            tickGTEWrites();
             // Its delay slot is the instruction at the first branch's target.
             m_nextIsDelaySlot = true;
             m_nestedSlotBranchPC = slotPC;
@@ -504,6 +520,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
                 return m_invalidBlock;
             }
             processDelayedLoad();
+            tickGTEWrites();
             m_pcWrittenBack = true;
             endBlock();
 
@@ -512,6 +529,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             m_delayedLoadInfo[0] = savedLoads0;
             m_delayedLoadInfo[1] = savedLoads1;
             m_currentDelayedLoad = savedCurrentLoad;
+            m_gteQueue = savedGTEQueue;
             count = savedCount;
             extra = savedExtra;
             m_pc = slotPC;
@@ -525,8 +543,10 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
             return m_invalidBlock;
         }
         processDelayedLoad();
+        tickGTEWrites();
     }
 
+    emitGTEFlushQueue(false);
     flushRegs();
     if (!m_pcWrittenBack) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);

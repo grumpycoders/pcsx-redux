@@ -168,6 +168,7 @@
     <ClCompile Include="..\..\src\core\psxdma.cc" />
     <ClCompile Include="..\..\src\core\psxhw.cc" />
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
+    <ClCompile Include="..\..\src\core\gte-write-to-use-model.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\ramlogger.cc" />
