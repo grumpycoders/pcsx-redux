@@ -24,8 +24,8 @@
 #include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
-#include "core/gte.h"
 #include "core/gte-write-to-use.h"
+#include "core/gte.h"
 #include "core/pgxp_cpu.h"
 #include "core/pgxp_debug.h"
 #include "core/pgxp_gte.h"
@@ -1298,7 +1298,7 @@ uint64_t gteCommandOutputs(uint32_t code) {
     constexpr uint64_t flag = uint64_t(1) << c_gteFlag;
     constexpr uint64_t mac0 = uint64_t(1) << 24;
     constexpr uint64_t vector = gteBits(9, 11) | gteBits(25, 27);  // IR1-IR3, MAC1-MAC3
-    constexpr uint64_t color = vector | gteBits(20, 22);            // and the RGB FIFO
+    constexpr uint64_t color = vector | gteBits(20, 22);           // and the RGB FIFO
     switch (code & 0x3f) {
         case 0x01:  // RTPS
         case 0x30:  // RTPT

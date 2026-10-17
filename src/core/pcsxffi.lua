@@ -129,11 +129,11 @@ local C = ffi.load 'PCSX'
 ffi.metatype('psxRegisters', {
     __index = function(regs, key)
         if key == 'pc' then return regs.rawPC end
-        error("'psxRegisters' has no member named '" .. tostring(key) .. "'")
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
     end,
     __newindex = function(regs, key, value)
         if key == 'pc' then return C.setPC(value) end
-        error("'psxRegisters' has no member named '" .. tostring(key) .. "'")
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
     end,
 })
 
