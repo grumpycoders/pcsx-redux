@@ -23,6 +23,7 @@
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
+#include "core/mdec-decoder.h"
 
 namespace PCSX {
 
@@ -40,8 +41,8 @@ class MDEC {
     void scheduledCallback0();
     void scheduledCallback1();
 
-    static const unsigned DSIZE = 8;
-    static const unsigned DSIZE2 = DSIZE * DSIZE;
+    static const unsigned DSIZE = MDECDecoder::DSIZE;
+    static const unsigned DSIZE2 = MDECDecoder::DSIZE2;
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
@@ -83,21 +84,9 @@ class MDEC {
         struct _pending_dma1 pending_dma1;
     } mdec;
 
-    int iq_y[DSIZE2], iq_uv[DSIZE2];
-    // Raw quantization tables, without the AAN prescale folded in. The fast IDCT
-    // needs the prescaled form; real_idct_core must not have it (psx-spx annotates
-    // "val=val*scalezag[i]" as being for fast_idct_core only).
-    uint8_t qt_y[DSIZE2], qt_uv[DSIZE2];
-    // Scale matrix from MDEC(3). Defaults to the standard JPEG-derived constants,
-    // which is what every shipping game uploads. When something uploads anything
-    // else we have to stop pretending and run the general matrix multiply.
-    // The AAN prescale on its own, separate from the quant table it is normally
-    // folded into. psx-spx applies the 11-bit saturation to the raw dequantized
-    // value BEFORE "val = val * scalezag[i]", so the fast path has to be able to
-    // reach the two factors independently.
-    int aanPrescale[DSIZE2];
-    int16_t scaletable[DSIZE2];
-    bool customScaleTable = false;
+    // The quant tables (raw and AAN-prescaled) and the MDEC(3) matrix. The
+    // decoder that reads them is shared with tools/mdec.
+    MDECDecoder::Tables m_tables;
     // The hardware does NOT initialise the scale matrix: measured 2026-09-14 on
     // real consoles, a decode with no MDEC(3) upload returns flat mid-grey for
     // every pixel. We reproduce that rather than silently substituting the
@@ -106,30 +95,10 @@ class MDEC {
     bool scaleTableUploaded = false;
     bool warnedNoScaleTable = false;
 
-    static inline const int zscan[DSIZE2] = {
-        0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,   // 00
-        12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6,  7,  14, 21, 28,  // 10
-        35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,  // 20
-        58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,  // 30
-    };
-
-    static inline const int aanscales[DSIZE2] = {
-        1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 00
-        1454417, 2017334, 1900287, 1710213, 1454417, 1142728, 787125, 401273,  // 08
-        1370031, 1900287, 1790031, 1610986, 1370031, 1076426, 741455, 377991,  // 10
-        1232995, 1710213, 1610986, 1449849, 1232995, 968758,  667292, 340183,  // 18
-        1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 20
-        823861,  1142728, 1076426, 968758,  823861,  647303,  445870, 227303,  // 28
-        567485,  787125,  741455,  667292,  567485,  445870,  307121, 156569,  // 30
-        289301,  401273,  377991,  340183,  289301,  227303,  156569, 79818    // 38
-    };
-
-    void putlinebw15(uint16_t *image, int *Yblk);
-    void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb);
     void yuv2rgb15(int *blk, unsigned short *image);
+    void yuv2rgb24(int *blk, uint8_t *image);
     void scaletable_init();
     void standardTables_init();
-    void real_idct(int *block);
     unsigned short *rl2blk(int *blk, unsigned short *mdec_rl);
 };
 

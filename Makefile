@@ -215,6 +215,10 @@ SUPPORT_SRCS += third_party/ucl/src/n2e_99.c third_party/ucl/src/alloc.c third_p
 SUPPORT_SRCS += $(wildcard third_party/iec-60908b/*.c)
 LIBS := third_party/luajit/src/libluajit.a
 
+# tools/mdec decodes with the emulator's MDEC decoder, which is GPLv2+ and so
+# lives in src/core; it is linked in on its own, without the rest of core.
+TOOL_EXTRA_OBJECTS_mdec := objs/$(BUILD)/src/core/mdec-decoder.o
+
 TOOLS = authoring exe2elf exe2exe exe2iso mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser
 
 ##############################################################################
@@ -413,9 +417,9 @@ runtests: pcsx-redux-tests
 	./pcsx-redux-tests
 
 define TOOLDEF
-bins/$(BUILD)/$(1): $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o
+bins/$(BUILD)/$(1): $(SUPPORT_OBJECTS) $(TOOL_EXTRA_OBJECTS_$(1)) objs/$(BUILD)/tools/$(1)/$(1).o
 	@$(MKDIRP) $(dir bins/$(BUILD)/$(1))
-	$(LD) -o bins/$(BUILD)/$(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) objs/$(BUILD)/tools/$(1)/$(1).o -static -lz
+	$(LD) -o bins/$(BUILD)/$(1) $(CPPFLAGS) $(CXXFLAGS) $(SUPPORT_OBJECTS) $(TOOL_EXTRA_OBJECTS_$(1)) objs/$(BUILD)/tools/$(1)/$(1).o -static -lz
 
 $(1): check_submodules bins/$(BUILD)/$(1)
 	$(CP) bins/$(BUILD)/$(1) $(1)

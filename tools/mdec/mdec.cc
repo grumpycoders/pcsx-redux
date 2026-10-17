@@ -59,6 +59,7 @@
 #include "fmt/format.h"
 #include "json.hpp"
 #include "supportpsx/dct.h"
+#include "core/mdec-decoder.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -66,28 +67,6 @@
 #include "stb/stb_image_write.h"
 
 namespace {
-
-// Sony's own zscan[], FileFormat47 p.1-12, verified identical entry for entry.
-// c_zscan[k] is the natural-order index of zigzag position k.
-constexpr int c_zscan[64] = {
-    0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
-    41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
-    30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
-};
-
-// The scale matrix every game uploads via MDEC(3), Q14. This is the INVERSE
-// transform; the forward one used for encoding is DCT::standardBasis().
-constexpr int16_t c_standardScale[64] = {
-    0x5A82, 0x5A82, 0x5A82, 0x5A82, 0x5A82,         0x5A82,         0x5A82,         0x5A82,
-    0x7D8A, 0x6A6D, 0x471C, 0x18F8, (int16_t)0xE707, (int16_t)0xB8E3, (int16_t)0x9592, (int16_t)0x8275,
-    0x7641, 0x30FB, (int16_t)0xCF04, (int16_t)0x89BE, (int16_t)0x89BE, (int16_t)0xCF04, 0x30FB, 0x7641,
-    0x6A6D, (int16_t)0xE707, (int16_t)0x8275, (int16_t)0xB8E3, 0x471C, 0x7D8A, 0x18F8, (int16_t)0x9592,
-    0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, 0x5A82, 0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, 0x5A82,
-    0x471C, (int16_t)0x8275, 0x18F8, 0x6A6D, (int16_t)0x9592, (int16_t)0xE707, 0x7D8A, (int16_t)0xB8E3,
-    0x30FB, (int16_t)0x89BE, 0x7641, (int16_t)0xCF04, (int16_t)0xCF04, 0x7641, (int16_t)0x89BE, 0x30FB,
-    0x18F8, (int16_t)0xB8E3, 0x6A6D, (int16_t)0x8275, 0x7D8A, (int16_t)0x9592, 0x471C, (int16_t)0xE707,
-};
-
 
 struct Tables {
     uint8_t quantY[64];
@@ -100,7 +79,7 @@ struct Tables {
     Tables() {
         memcpy(quantY, PCSX::DCT::standardQuantTable(), sizeof(quantY));
         memcpy(quantUV, PCSX::DCT::standardQuantTable(), sizeof(quantUV));
-        memcpy(scale, c_standardScale, sizeof(scale));
+        memcpy(scale, PCSX::MDECDecoder::standardScaleTable(), sizeof(scale));
         forward = PCSX::DCT::standardBasis();
     }
 };
@@ -270,8 +249,9 @@ Usage: mdec rawdecode -i input.bin -o output.png -width W -height H [options]
               (rawencode -order).
 
   The stream carries no dimensions, which is why they are mandatory rather than
-  guessed. This decodes with psx-spx's real_idct_core against "scale", so a
-  custom matrix is honoured exactly as the hardware honours it.
+  guessed. This is the emulator's MDEC decoder, byte for byte: the standard
+  matrix runs its AAN IDCT, any other "scale" runs psx-spx's real_idct_core, so
+  a custom matrix is honoured the way the hardware honours it.
 )");
 }
 
@@ -279,42 +259,6 @@ Usage: mdec rawdecode -i input.bin -o output.png -width W -height H [options]
 // PCSX::DCT::Frame, so the encoder and decoder cannot disagree about it.
 const char *orderName(PCSX::DCT::MacroblockOrder order) {
     return order == PCSX::DCT::MacroblockOrder::Column ? "column" : "raster";
-}
-
-int clamp10(int v, unsigned &clipped) {
-    if (v > 511) {
-        clipped++;
-        return 511;
-    }
-    if (v < -512) {
-        clipped++;
-        return -512;
-    }
-    return v;
-}
-
-int divRound(int num, int den) {
-    if (den == 0) return 0;
-    return (num < 0) ? -((-num + den / 2) / den) : ((num + den / 2) / den);
-}
-
-// psx-spx real_idct_core, verified against real consoles 2026-09-14 to within
-// 3 LSB on a custom matrix.
-void realIdct(int *block, const int16_t *scale) {
-    int temp[64];
-    int *src = block;
-    int *dst = temp;
-    for (int pass = 0; pass < 2; pass++) {
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                int64_t sum = 0;
-                for (int z = 0; z < 8; z++) sum += static_cast<int64_t>(src[y + z * 8]) * (scale[x + z * 8] / 8);
-                dst[x + y * 8] = static_cast<int>((sum + 0xfff) >> 13);
-            }
-        }
-        std::swap(src, dst);
-    }
-    if (src != block) memcpy(block, src, sizeof(temp));
 }
 
 int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container) {
@@ -612,74 +556,44 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
         fmt::print(stderr, "cannot open {}\n", in.value());
         return -1;
     }
+    // Kept as the bytes on disk: the decoder reads little-endian halfwords, as
+    // they sit in guest memory.
     std::vector<uint16_t> stream;
     uint8_t bytes[2];
-    while (fread(bytes, 1, 2, f) == 2) stream.push_back(static_cast<uint16_t>(bytes[0] | (bytes[1] << 8)));
+    while (fread(bytes, 1, 2, f) == 2) {
+        uint16_t v;
+        memcpy(&v, bytes, 2);
+        stream.push_back(v);
+    }
     fclose(f);
 
+    // What MDEC(2) and MDEC(3) would leave in the chip, then the emulator's own
+    // decode of the stream.
+    PCSX::MDECDecoder::Tables chip;
+    chip.setQuant(tables.quantY, tables.quantUV);
+    chip.setScale(tables.scale);
     const int mbx = w / 16, mby = h / 16;
     std::vector<uint8_t> image(static_cast<size_t>(w) * h * 3);
-    size_t pos = 0;
-    for (int outer = 0; outer < (column ? mbx : mby); outer++) {
-        for (int inner = 0; inner < (column ? mby : mbx); inner++) {
-            const int mx = column ? outer : inner;
-            const int my = column ? inner : outer;
-            int blocks[6][64];
-            for (int b = 0; b < 6; b++) {
-                memset(blocks[b], 0, sizeof(blocks[b]));
-                if (pos >= stream.size()) {
-                    fmt::print(stderr, "stream ran out at macroblock {},{} block {}\n", mx, my, b);
-                    return -1;
-                }
-                const uint8_t *qt = b < 2 ? tables.quantUV : tables.quantY;
-                uint16_t n = stream[pos++];
-                const int qscale = (n >> 10) & 0x3f;
-                auto sext10 = [](uint16_t v) { return static_cast<int>(static_cast<int16_t>(v << 6)) >> 6; };
-                // q_scale 0 is the no-quant mode, as in core/mdec.cc rl2blk: every
-                // value is doubled, no table, no q_scale, and no zigzag.
-                blocks[b][0] = std::clamp(qscale == 0 ? sext10(n & 0x3ff) * 2 : sext10(n & 0x3ff) * qt[0],
-                                          -0x400, 0x3ff);
-                bool terminated = false;
-                for (int k = 0;;) {
-                    if (pos >= stream.size()) break;
-                    n = stream[pos++];
-                    if (n == 0xfe00) {
-                        terminated = true;
-                        break;
-                    }
-                    k += ((n >> 10) & 0x3f) + 1;
-                    if (k > 63) {
-                        fmt::print(stderr, "block at macroblock {},{} block {} runs past coefficient 63\n", mx, my,
-                                   b);
-                        return -1;
-                    }
-                    const int spec = qscale == 0 ? sext10(n & 0x3ff) * 2
-                                                 : (sext10(n & 0x3ff) * qt[k] * qscale + 4) / 8;
-                    blocks[b][qscale == 0 ? k : c_zscan[k]] = std::clamp(spec, -0x400, 0x3ff);
-                }
-                if (!terminated) {
-                    fmt::print(stderr, "block at macroblock {},{} block {} has no 0xfe00 terminator\n", mx, my, b);
-                    return -1;
-                }
-                realIdct(blocks[b], tables.scale);
+    const auto frame = PCSX::MDECDecoder::decodeFrame(stream.data(), static_cast<unsigned>(stream.size()), chip, w, h,
+                                                      column, image.data());
+    const auto &st = frame.status;
+    switch (st.anomaly) {
+        case PCSX::MDECDecoder::Anomaly::None:
+            break;
+        case PCSX::MDECDecoder::Anomaly::Exhausted:
+            if (st.atHeader) {
+                fmt::print(stderr, "stream ran out at macroblock {},{} block {}\n", frame.mbX, frame.mbY, st.block);
+            } else {
+                fmt::print(stderr, "block at macroblock {},{} block {} has no 0xfe00 terminator\n", frame.mbX,
+                           frame.mbY, st.block);
             }
-            for (int py = 0; py < 16; py++) {
-                for (int px = 0; px < 16; px++) {
-                    const int cidx = (py / 2) * 8 + (px / 2);
-                    const int cr = blocks[0][cidx], cb = blocks[1][cidx];
-                    const int yblk = (py / 8) * 2 + (px / 8);
-                    const int yv = blocks[2 + yblk][(py % 8) * 8 + (px % 8)];
-                    const int r = yv + (1402 * cr) / 1000;
-                    const int g = yv - (344 * cb + 714 * cr) / 1000;
-                    const int bl = yv + (1772 * cb) / 1000;
-                    const size_t o = (static_cast<size_t>(my * 16 + py) * w + (mx * 16 + px)) * 3;
-                    image[o + 0] = static_cast<uint8_t>(std::clamp(r + 128, 0, 255));
-                    image[o + 1] = static_cast<uint8_t>(std::clamp(g + 128, 0, 255));
-                    image[o + 2] = static_cast<uint8_t>(std::clamp(bl + 128, 0, 255));
-                }
-            }
-        }
+            return -1;
+        case PCSX::MDECDecoder::Anomaly::RunPast63:
+            fmt::print(stderr, "block at macroblock {},{} block {} runs past coefficient 63\n", frame.mbX, frame.mbY,
+                       st.block);
+            return -1;
     }
+    const size_t pos = frame.consumed;
     if (!stbi_write_png(out.value().c_str(), w, h, 3, image.data(), w * 3)) {
         fmt::print(stderr, "cannot write {}\n", out.value());
         return -1;

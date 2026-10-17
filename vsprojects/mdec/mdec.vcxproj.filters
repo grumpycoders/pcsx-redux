@@ -18,5 +18,8 @@
     <ClCompile Include="..\..\tools\mdec\mdec.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\mdec-decoder.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
