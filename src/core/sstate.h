@@ -165,7 +165,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("buffer_index"), 7> SIOB
 // skip id 9
 // skip id 10
 // skip id 11
-typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPadState;
+// skip id 12
 // skip id 13
 // skip id 14
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("currentdevice"), 15> SIOCurrentDevice;
@@ -185,13 +185,15 @@ typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_commandticks"), 28
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd2_currentcommand"), 29> SIOMCD2CurrentCommand;
 typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_sector"), 30> SIOMCD2Sector;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2_dataoffset"), 31> SIOMCD2DataOffset;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state1"), 32> SIOPad1State;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state2"), 33> SIOPad2State;
 
 typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
-                          SIOBufferMaxIndex, SIOBufferIndex, SIOPadState, SIOCurrentDevice, SIOMCD1TempBuffer,
-                          SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn, SIOMCD1ChecksumOut, SIOMCD1CommandTicks,
-                          SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer,
-                          SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut, SIOMCD2CommandTicks,
-                          SIOMCD2CurrentCommand, SIOMCD2Sector, SIOMCD2DataOffset>
+                          SIOBufferMaxIndex, SIOBufferIndex, SIOCurrentDevice, SIOMCD1TempBuffer, SIOMCD1DirectoryFlag,
+                          SIOMCD1ChecksumIn, SIOMCD1ChecksumOut, SIOMCD1CommandTicks, SIOMCD1CurrentCommand,
+                          SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer, SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn,
+                          SIOMCD2ChecksumOut, SIOMCD2CommandTicks, SIOMCD2CurrentCommand, SIOMCD2Sector,
+                          SIOMCD2DataOffset, SIOPad1State, SIOPad2State>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 // skip id 8
@@ -378,7 +380,7 @@ bool load(std::string_view data);
 // the middle of Counters::update() and R3000Acpu::branchTest(). Returns false
 // if the data does not parse as a save state, or if a load done right away
 // failed. A queued load that parsed fine is applied by the main loop.
-bool loadSafe(std::string &&data);
+bool loadSafe(std::string&& data);
 
 /* The in-memory pair. capture()/restore() are save()/load() with the protobuf encode and
    decode taken out: the message already owns a copy of every field, and commit() has always
@@ -386,8 +388,8 @@ bool loadSafe(std::string &&data);
    restore() deliberately does NOT call m_cpu->Reset() the way load() does, so a caller that
    wants a transparent snapshot keeps its icache and delayed-load state - which also means it
    owes the code cache an invalidation for anything it rewound. */
-void capture(SaveState &state);
-void restore(SaveState &state);
+void capture(SaveState& state);
+void restore(SaveState& state);
 }  // namespace SaveStates
 
 }  // namespace PCSX
