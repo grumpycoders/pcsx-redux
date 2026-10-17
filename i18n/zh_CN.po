@@ -454,7 +454,7 @@ msgstr "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Unaligned address 0x%08x in SW from 0x%08x\n"
 
-#: src/core/mdec.cc:674
+#: src/core/mdec.cc:136
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
