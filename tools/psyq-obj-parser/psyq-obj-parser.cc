@@ -77,8 +77,7 @@ Usage: {} input.obj [input2.obj...] [-h] [-v] [-d] [-n] [-p prefix] [-o output.o
                 if (hasOutput) {
                     fmt::print(":: Converting {} to {}...\n", input, output.value());
                     std::string prefix = args.get<std::string>("p").value_or("");
-                    bool success = psyq->writeElf(prefix, output.value(), !!args.get<bool>("n"),
-                                                  !!args.get<bool>("b"));
+                    bool success = psyq->writeElf(prefix, output.value(), !!args.get<bool>("n"), !!args.get<bool>("b"));
                     if (success) {
                         fmt::print(":: Conversion completed.\n");
                     } else {
