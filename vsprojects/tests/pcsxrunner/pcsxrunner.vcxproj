@@ -279,6 +279,22 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-command.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-fbrect.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-irq.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-polyline.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-vram-move.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\msan.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\spu.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-v4.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\twomb-vram.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-adpcm.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-cdrom.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-mdec.cc" />
+    <ClCompile Include="..\..\..\tests\spu-volume.cc" />
+    <ClCompile Include="..\..\..\tests\spu\speed.cc" />
+    <ClCompile Include="..\..\..\tests\core\pad-config.cc" />
+    <ClCompile Include="..\..\..\tests\core\i18n.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
