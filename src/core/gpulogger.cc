@@ -142,6 +142,14 @@ void PCSX::GPULogger::enable() {
         m_readHeatmapTex.create(1024, 512, GL_R32F);
         m_writtenHighlightTex.create(1024, 512, GL_R32F);
         m_readHighlightTex.create(1024, 512, GL_R32F);
+        m_writtenAccumTex.create(1024, 512, GL_R32F);
+        m_readAccumTex.create(1024, 512, GL_R32F);
+        if (!m_writtenAccumTex.exists()) return;
+        if (!m_readAccumTex.exists()) return;
+        m_writtenAccumFB.createWithTexture(m_writtenAccumTex);
+        m_readAccumFB.createWithTexture(m_readAccumTex);
+        if (!m_writtenAccumFB.exists()) return;
+        if (!m_readAccumFB.exists()) return;
         if (!m_writtenHeatmapTex.exists()) return;
         if (!m_readHeatmapTex.exists()) return;
         if (!m_writtenHighlightTex.exists()) return;
@@ -233,7 +241,8 @@ void PCSX::GPULogger::checkVramBreakpoints(GPU::Logged* node) {
     g_system->pause();
 }
 
-void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
+void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length,
+                                      bool clipped) {
     auto frame = m_frameCounter;
 
     bool gotNewFrame = false;
@@ -261,16 +270,47 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     m_program.use();
     OpenGL::disableScissor();
 
-    OpenGL::setViewport(m_writtenHeatmapTex.width(), m_writtenHeatmapTex.height());
-    m_writtenHeatmapFB.bind(OpenGL::DrawFramebuffer);
+    // The heatmaps count how many times each pixel is touched during the current frame.
+    if (gotNewFrame) {
+        GLint oldReadFBO;
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+        m_writtenAccumFB.bind(OpenGL::ReadFramebuffer);
+        m_writtenHeatmapFB.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        m_readAccumFB.bind(OpenGL::ReadFramebuffer);
+        m_readHeatmapFB.bind(OpenGL::DrawFramebuffer);
+        glBlitFramebuffer(0, 0, 1024, 512, 0, 0, 1024, 512, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, oldReadFBO);
+        OpenGL::setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        m_writtenAccumFB.bind(OpenGL::DrawFramebuffer);
+        OpenGL::clearColor();
+        m_readAccumFB.bind(OpenGL::DrawFramebuffer);
+        OpenGL::clearColor();
+    }
+
+    const bool blendWasEnabled = glIsEnabled(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
+
+    OpenGL::setViewport(m_writtenAccumTex.width(), m_writtenAccumTex.height());
+    m_writtenAccumFB.bind(OpenGL::DrawFramebuffer);
+    if (clipped) {
+        int w = int(m_drawingAreaX1) - int(m_drawingAreaX0) + 1;
+        int h = int(m_drawingAreaY1) - int(m_drawingAreaY0) + 1;
+        OpenGL::enableScissor();
+        OpenGL::setScissor(m_drawingAreaX0, m_drawingAreaY0, std::max(w, 0), std::max(h, 0));
+    }
     node->getVertices([this](auto v1, auto v2, auto v3) { addTri(v1, v2, v3); }, GPU::Logged::PixelOp::WRITE);
     flush();
+    OpenGL::disableScissor();
 
-    OpenGL::setViewport(m_readHeatmapTex.width(), m_readHeatmapTex.height());
-    m_readHeatmapFB.bind(OpenGL::DrawFramebuffer);
+    OpenGL::setViewport(m_readAccumTex.width(), m_readAccumTex.height());
+    m_readAccumFB.bind(OpenGL::DrawFramebuffer);
     node->getVertices([this](auto v1, auto v2, auto v3) { addTri(v1, v2, v3); }, GPU::Logged::PixelOp::READ);
     flush();
 
+    if (!blendWasEnabled) glDisable(GL_BLEND);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
     g_emulator->m_gpu->setOpenGLContext();
 }
