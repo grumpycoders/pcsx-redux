@@ -348,11 +348,11 @@ void PCSX::SoftGPU::impl::polyExec(Poly<shading, shape, textured, blend, modulat
     if constexpr (shape == Shape::Quad) {
         x3 = prim->x[3];
         y3 = prim->y[3];
-        if (checkCoord4(x0, y0, x1, y1, x2, y2, x3, y3)) return;
         applyOffset4(x0, y0, x1, y1, x2, y2, x3, y3);
+        if (checkCoord4(x0, y0, x1, y1, x2, y2, x3, y3)) return;
     } else {
-        if (checkCoord3(x0, y0, x1, y1, x2, y2)) return;
         applyOffset3(x0, y0, x1, y1, x2, y2);
+        if (checkCoord3(x0, y0, x1, y1, x2, y2)) return;
     }
 
     m_drawSemiTrans = blend == Blend::Semi;
@@ -522,9 +522,9 @@ void PCSX::SoftGPU::impl::lineExec(Line<shading, lineType, blend> *prim) {
         auto c0 = prim->colors[i - 1];
         auto c1 = prim->colors[i];
 
+        applyOffset2(x0, y0, x1, y1);
         if (CheckCoordL(x0, y0, x1, y1)) continue;
 
-        applyOffset2(x0, y0, x1, y1);
         drawLine<shading>(x0, y0, x1, y1, c0, c1);
     }
     m_doVSyncUpdate = true;

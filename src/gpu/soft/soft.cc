@@ -30,7 +30,9 @@ static constexpr int CHKMAX_Y = 512;
 // Hardware silently drops any polygon or line that has an edge longer than
 // 1023 pixels horizontally or 511 pixels vertically (verified on SCPH-5501
 // via gpu-raster-phase14). The drop is unconditional - it does NOT depend on
-// any vertex being off-screen.
+// any vertex being off-screen. The deltas are taken on the screen coordinates,
+// after the draw offset is added and wrapped to 11 bits; gpu-raster-phase23 W1
+// covers a vertex the offset pushes past 1023.
 //
 // For a quad the compared set is the five edges of the two rendered triangles:
 // the four perimeter edges plus the shared diagonal v1-v2. The remaining pair
