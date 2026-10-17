@@ -104,7 +104,9 @@ template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
-        while ((value & 0xf000f000) != 0x50005000) {
+        // The terminator is only recognized once two vertices are in; before that, the command word and the
+        // second vertex's first word are always vertex data, even when they match the pattern.
+        while ((x.size() < 2) || ((value & 0xf000f000) != 0x50005000)) {
             switch (m_state) {
                 case READ_COLOR:
                     colors.push_back(value & 0xffffff);
