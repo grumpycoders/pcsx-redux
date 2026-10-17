@@ -123,9 +123,9 @@ void toRGB24(const int *blk, uint8_t *image, bool mono = false);
 void toRGB15(const int *blk, uint16_t *image, bool mono = false, bool stp = false);
 
 struct FrameStatus {
-    Status status;  // the first anomaly, which stops the frame
+    Status status;              // the first anomaly, which stops the frame
     unsigned mbX = 0, mbY = 0;  // the macroblock it happened in
-    unsigned consumed = 0;  // halfwords read
+    unsigned consumed = 0;      // halfwords read
 };
 
 // A whole width x height frame (multiples of 16) to 24-bit pixels, rows packed,
