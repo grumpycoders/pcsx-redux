@@ -230,51 +230,51 @@ msgstr ""
 msgid "GDB client"
 msgstr "Cliente GDB"
 
-#: src/core/gpu.cc:338 src/core/gpu.cc:643 src/core/psxhw.h:83
+#: src/core/gpu.cc:340 src/core/gpu.cc:645 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:343 src/core/gpu.cc:648 src/core/psxhw.h:88
+#: src/core/gpu.cc:345 src/core/gpu.cc:650 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:1220 src/core/gpu.cc:1304
+#: src/core/gpu.cc:1222 src/core/gpu.cc:1306
 msgid "Shading: Flat"
 msgstr ""
 
-#: src/core/gpu.cc:1223 src/core/gpu.cc:1307
+#: src/core/gpu.cc:1225 src/core/gpu.cc:1309
 msgid "Shading: Gouraud"
 msgstr ""
 
-#: src/core/gpu.cc:1227
+#: src/core/gpu.cc:1229
 msgid "Textured"
 msgstr ""
 
-#: src/core/gpu.cc:1230 src/core/gpu.cc:1310 src/core/gpu.cc:1352
+#: src/core/gpu.cc:1232 src/core/gpu.cc:1312 src/core/gpu.cc:1354
 msgid "Semi-transparency blending"
 msgstr ""
 
-#: src/core/gpu.cc:1247
+#: src/core/gpu.cc:1249
 #, fuzzy, c-format
 msgid "Vertex %i"
 msgstr "Shader do Vertex"
 
-#: src/core/gpu.cc:1271 src/core/gpu.cc:1335 src/core/gpu.cc:1365
+#: src/core/gpu.cc:1273 src/core/gpu.cc:1337 src/core/gpu.cc:1367
 msgid "Go to primitive##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1279 src/core/gpu.cc:1375
+#: src/core/gpu.cc:1281 src/core/gpu.cc:1377
 #, fuzzy
 msgid "Go to texture##{}"
 msgstr "Contexto##{}"
 
-#: src/core/gpu.cc:1290 src/core/gpu.cc:1386
+#: src/core/gpu.cc:1292 src/core/gpu.cc:1388
 msgid "Go to CLUT##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1316
+#: src/core/gpu.cc:1318
 #, c-format
 msgid "Line %i"
 msgstr ""
