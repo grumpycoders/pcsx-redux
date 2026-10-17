@@ -50,17 +50,25 @@ void pump(uv_loop_t* loop, int milliseconds = 300) {
     }
 }
 
-// uv_loop_close returns EBUSY while any handle is still open or still closing,
-// and ignoring that return leaks the loop's internals. Close everything first,
-// then keep pumping until it actually takes.
-int closeLoop(uv_loop_t* loop) {
-    int result;
-    for (int i = 0; (i < 200) && ((result = uv_loop_close(loop)) == UV_EBUSY); i++) {
-        uv_run(loop, UV_RUN_NOWAIT);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+// Owns a uv_loop_t for the duration of a scope. uv_loop_close returns EBUSY
+// while any handle is still open or still closing, and ignoring that return
+// leaks the loop's internals, so the destructor keeps pumping until it takes.
+// Declare it before the objects that use it so they are destroyed first.
+struct Loop : uv_loop_t {
+    Loop() { EXPECT_EQ(uv_loop_init(this), 0); }
+    Loop(const Loop&) = delete;
+    Loop& operator=(const Loop&) = delete;
+    ~Loop() {
+        pump(this);
+        int result = uv_loop_close(this);
+        for (int i = 0; (i < 200) && (result == UV_EBUSY); i++) {
+            uv_run(this, UV_RUN_NOWAIT);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            result = uv_loop_close(this);
+        }
+        EXPECT_EQ(result, 0);
     }
-    return result;
-}
+};
 
 // Holds a port so a Server's bind is guaranteed to fail. Releasable mid-test,
 // so the restart case can watch a Failed endpoint recover.
@@ -125,8 +133,7 @@ class TestVetoClient : public Network::Client {
 
 TEST(NetworkServer, AcceptsAndReportsRunning) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     TestServer server;
     EXPECT_EQ(server.status(), Network::Status::Stopped);
@@ -155,15 +162,11 @@ TEST(NetworkServer, AcceptsAndReportsRunning) {
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
     EXPECT_EQ(server.m_stoppedCount, 1);
-
-    pump(&loop);
-    closeLoop(&loop);
 }
 
 TEST(NetworkServer, BindFailureIsVisible) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     Squatter squatter(&loop, c_busyPort);
 
@@ -178,8 +181,6 @@ TEST(NetworkServer, BindFailureIsVisible) {
     EXPECT_EQ(server.m_stoppedCount, 1);
 
     squatter.release(&loop);
-    pump(&loop);
-    closeLoop(&loop);
 }
 
 // The restart button's actual job: recover an endpoint that is sitting in
@@ -188,8 +189,7 @@ TEST(NetworkServer, BindFailureIsVisible) {
 // never coming, the restart would silently never happen.
 TEST(NetworkServer, RestartRecoversFromFailure) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     auto squatter = std::make_unique<Squatter>(&loop, c_restartPort);
 
@@ -212,9 +212,6 @@ TEST(NetworkServer, RestartRecoversFromFailure) {
     server.stop();
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
-
-    pump(&loop);
-    closeLoop(&loop);
 }
 
 // Switching a server on and straight back off on a busy port. Both requests
@@ -223,8 +220,7 @@ TEST(NetworkServer, RestartRecoversFromFailure) {
 // m_server a second time aborts inside libuv.
 TEST(NetworkServer, StartStopOnBusyPortDoesNotAbort) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     Squatter squatter(&loop, c_busyStopPort);
 
@@ -239,8 +235,6 @@ TEST(NetworkServer, StartStopOnBusyPortDoesNotAbort) {
     EXPECT_EQ(server.m_stoppedCount, 1);
 
     squatter.release(&loop);
-    pump(&loop);
-    EXPECT_EQ(closeLoop(&loop), 0);
 }
 
 // A second start() while the first bind is still in flight must not replace
@@ -248,8 +242,7 @@ TEST(NetworkServer, StartStopOnBusyPortDoesNotAbort) {
 // could never be shut down.
 TEST(NetworkServer, StartWhileStartingIsIgnored) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     TestServer server;
     server.start(&loop, c_doubleStartPort);
@@ -268,9 +261,6 @@ TEST(NetworkServer, StartWhileStartingIsIgnored) {
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
     EXPECT_EQ(server.m_stoppedCount, 1);
-
-    pump(&loop);
-    EXPECT_EQ(closeLoop(&loop), 0);
 }
 
 // The failed bind has reported Failed, but its nullptr is still sitting in the
@@ -280,11 +270,9 @@ TEST(NetworkServer, StartWhileStartingIsIgnored) {
 // from under it, which the connection below would trip over.
 TEST(NetworkServer, StartBeforeFailureIsDelivered) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
     // The squatter lives on its own loop so releasing it does not pump ours.
-    uv_loop_t squatLoop;
-    uv_loop_init(&squatLoop);
+    Loop squatLoop;
     Squatter squatter(&squatLoop, c_undeliveredPort);
 
     TestServer server;
@@ -320,18 +308,12 @@ TEST(NetworkServer, StartBeforeFailureIsDelivered) {
     server.stop();
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
-
-    pump(&squatLoop);
-    EXPECT_EQ(closeLoop(&squatLoop), 0);
-    pump(&loop);
-    EXPECT_EQ(closeLoop(&loop), 0);
 }
 
 // The Network window promises that a port change applies on the next restart.
 TEST(NetworkServer, RestartPicksUpNewPort) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     TestServer server;
     server.m_configuredPort = c_oldPort;
@@ -355,15 +337,11 @@ TEST(NetworkServer, RestartPicksUpNewPort) {
     server.stop();
     pump(&loop);
     EXPECT_EQ(server.status(), Network::Status::Stopped);
-
-    pump(&loop);
-    EXPECT_EQ(closeLoop(&loop), 0);
 }
 
 TEST(NetworkClient, ConnectFailureIsVisible) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
 
     TestClient client;
     EXPECT_EQ(client.status(), Network::Status::Stopped);
@@ -379,23 +357,17 @@ TEST(NetworkClient, ConnectFailureIsVisible) {
 
     client.stop();
     EXPECT_EQ(client.status(), Network::Status::Stopped);
-
-    pump(&loop);
-    closeLoop(&loop);
 }
 
 TEST(NetworkClient, VetoedClient) {
     UvThreadOp::UvThread uvThread;
-    uv_loop_t loop;
-    uv_loop_init(&loop);
+    Loop loop;
     TestVetoClient client;
     EXPECT_EQ(client.status(), Network::Status::Stopped);
     client.start(&loop, "127.0.0.1", c_deadPort);
 
     EXPECT_EQ(client.m_vetoes, 1);
     EXPECT_EQ(client.status(), Network::Status::Stopped);
-
-    closeLoop(&loop);
 }
 
 // The UI iterates this instead of hard-coding a row per service, so an endpoint
