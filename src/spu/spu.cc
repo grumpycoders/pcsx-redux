@@ -59,8 +59,8 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
 
     // Rewind the decode cursor to the sample start and clear the IIR history.
     voice->adpcm.keyOn();
-    // EXPERIMENTAL key-on startup latency.
-    voice->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);
+    // Key-on reaches the mixer at the head of this chunk; see AdpcmDecoder::startKeyOn.
+    voice->adpcm.startKeyOn(m_mixPos);
 
     // Force a block decode on the first sample.
     voice->adpcm.emptyBuffer();
@@ -311,9 +311,16 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 
         voice->volume.step();
 
-        // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
-        // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
+        // Key-on timeline: silence with decode, pitch and envelope frozen until the voice is
+        // serviced and has fetched its first header three times.
         if (voice->adpcm.startupDelayActive()) {
+            const int fetch = voice->adpcm.keyOnAge() - voice->adpcm.keyOnService();
+            if (fetch >= 0 && fetch < AdpcmDecoder::kKeyOnHeaderFetches) {
+                // Key-on clears this voice's ENDX bit when it is serviced.
+                if (fetch == 0) spuEndx &= ~(1u << ch);
+                uint8_t *first = voice->adpcm.start();
+                if ((first[1] & 4) && !voice->data.get<Chan::IgnoreLoop>().value) voice->adpcm.setLoop(first);
+            }
             voice->adpcm.tickStartupDelay();
             sval = 0;
             captureVoiceSample(ch, capVoice1Index, capVoice3Index, 0);

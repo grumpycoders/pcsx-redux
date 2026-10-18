@@ -55,6 +55,17 @@ TEST(SPU, EndRedirect) {
     EXPECT_EQ(ret, 0);
 }
 
+// The key-on timeline measured on SCPH-1001, -5501 and -7001: KEY ON is serviced on
+// every other sample, three header fetches apply the first block's loop-start flag, the
+// attack is four samples after ENDX clears, and a repeat address write only holds once
+// the third fetch has passed.
+TEST(SPU, KeyOnLatch) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode",
+                        "-interpreter", "-loadexe", "src/mips/tests/spu-konlatch/spu-konlatch.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
 // Two things about SPU IRQ9, checked on silicon: an address match latches SPUSTAT bit 6
 // and leaves the SPUCNT bit 6 enable set until software writes it to 0, and a voice keeps
 // reading SPU RAM after it has been keyed off and its envelope has fallen to zero. The guest asserts both against a playing voice first,
