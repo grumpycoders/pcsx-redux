@@ -116,6 +116,9 @@ class GPU {
     // Called whenever the bank gate or fitment changes, so a backend can resync
     // any derived state (e.g. the soft renderer's effective drawable height).
     virtual void vramConfigChanged() {}
+    // Called before the bank gate changes. A backend rasterizing off-thread must finish the
+    // primitives already queued, which were issued under the old gate.
+    virtual void drainRenderer() {}
 
     // These set and clear the IRQ1 flag, which readStatus mirrors into GPUSTAT.24.
     void requestIRQ1() {
@@ -187,6 +190,7 @@ class GPU {
     void reset() {
         resetBackend();
         m_irq1Flag = false;
+        drainRenderer();
         m_vram2MBGateOpen = false;
         vramConfigChanged();
         m_dataRet = 0;

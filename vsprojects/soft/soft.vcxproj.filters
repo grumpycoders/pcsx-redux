@@ -35,6 +35,9 @@
     <ClInclude Include="..\..\src\gpu\soft\soft.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gpu\soft\async.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gpu\soft\interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>

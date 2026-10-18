@@ -133,6 +133,7 @@
     <ClCompile Include="..\..\src\gpu\soft\soft.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\gpu\soft\async.h" />
     <ClInclude Include="..\..\src\gpu\soft\interface.h" />
     <ClInclude Include="..\..\src\gpu\soft\pixel-writer.h" />
     <ClInclude Include="..\..\src\gpu\soft\raster-state.h" />
