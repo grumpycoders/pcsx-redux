@@ -211,12 +211,11 @@ class Emulator {
              SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
              SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec, Setting8MB,
              SettingMemoryFillValue, Setting2MBVRAM, SettingGUITheme, SettingDither, SettingCachedDithering,
-             SettingSoftGPUThreaded,
-             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
-             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
-             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
-             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites,
-             SettingRewindInterval, SettingRewindCount>
+             SettingSoftGPUThreaded, SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching,
+             SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
+             SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
+             SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
+             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount>
         settings;
     class PcsxConfig {
       public:
