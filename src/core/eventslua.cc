@@ -107,6 +107,9 @@ void createListener(PCSX::Lua L) {
 
     auto listener = new PCSX::EventBus::Listener(PCSX::g_system->m_eventBus);
     listener->listen<Event>([L = t, ref](auto e) mutable {
+        // Every event runs on this same coroutine, so whatever is left on its stack
+        // accumulates until it overflows.
+        const int top = L.gettop();
         L.getfieldtable("EVENT_LISTENERS", LUA_REGISTRYINDEX);
         L.getfield(ref, true);
         L.getfield("callback");
@@ -118,6 +121,7 @@ void createListener(PCSX::Lua L) {
         } catch (...) {
             PCSX::g_system->log(PCSX::LogClass::LUA, "Unknown error in event listener");
         }
+        while (L.gettop() > top) L.pop();
     });
 
     int a = L.gettop();
