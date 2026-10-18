@@ -173,7 +173,9 @@ local function addBreakpoint(address, bptype, width, cause, invoker, label)
             -- This runs as an FFI callback: a Lua error must not unwind out of it into C++.
             local ok, ret = pcall(invoker, address, width, cause)
             if not ok then
-                C.luaMessage('Lua breakpoint invoker failed, deleting breakpoint: ' .. tostring(ret), true)
+                local printed, msg = pcall(tostring, ret)
+                if not printed then msg = '(error object could not be converted to a string)' end
+                C.luaMessage('Lua breakpoint invoker failed, deleting breakpoint: ' .. msg, true)
                 return false
             end
             if ret == false then

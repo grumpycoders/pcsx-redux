@@ -32,6 +32,15 @@ function TestBasic:test_breakpoint_invoker_error_stays_in_lua()
     lu.assertFalse(keep)
 end
 
+function TestBasic:test_breakpoint_invoker_unprintable_error()
+    local bad = setmetatable({}, { __tostring = function() error 'no string for you' end })
+    local bp = PCSX.addBreakpoint(0x80010000, 'Exec', 4, 'test', function() error(bad) end)
+    local ok, keep = pcall(bp._invokercb, 0x80010000, 4, 'test')
+    bp:remove()
+    lu.assertTrue(ok, 'error escaped the callback')
+    lu.assertFalse(keep)
+end
+
 function TestBasic:test_coroutine()
     local testCoroutine = coroutine.running()
     PCSX.nextTick(function()
