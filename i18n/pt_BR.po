@@ -69,7 +69,7 @@ msgstr "Sem MSAA"
 msgid "{}x MSAA"
 msgstr "{}x MSAA"
 
-#: src/core/OpenGL_GPU/gpu_opengl.cc:519 src/gpu/soft/gpu.cc:285
+#: src/core/OpenGL_GPU/gpu_opengl.cc:519 src/gpu/soft/gpu.cc:301
 msgid "Use linear filtering"
 msgstr "Usar filtragem linear"
 
@@ -230,51 +230,51 @@ msgstr ""
 msgid "GDB client"
 msgstr "Cliente GDB"
 
-#: src/core/gpu.cc:340 src/core/gpu.cc:645 src/core/psxhw.h:83
+#: src/core/gpu.cc:340 src/core/gpu.cc:646 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:345 src/core/gpu.cc:650 src/core/psxhw.h:88
+#: src/core/gpu.cc:345 src/core/gpu.cc:651 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr ""
 
-#: src/core/gpu.cc:1222 src/core/gpu.cc:1306
+#: src/core/gpu.cc:1223 src/core/gpu.cc:1307
 msgid "Shading: Flat"
 msgstr ""
 
-#: src/core/gpu.cc:1225 src/core/gpu.cc:1309
+#: src/core/gpu.cc:1226 src/core/gpu.cc:1310
 msgid "Shading: Gouraud"
 msgstr ""
 
-#: src/core/gpu.cc:1229
+#: src/core/gpu.cc:1230
 msgid "Textured"
 msgstr ""
 
-#: src/core/gpu.cc:1232 src/core/gpu.cc:1312 src/core/gpu.cc:1354
+#: src/core/gpu.cc:1233 src/core/gpu.cc:1313 src/core/gpu.cc:1355
 msgid "Semi-transparency blending"
 msgstr ""
 
-#: src/core/gpu.cc:1249
+#: src/core/gpu.cc:1250
 #, fuzzy, c-format
 msgid "Vertex %i"
 msgstr "Shader do Vertex"
 
-#: src/core/gpu.cc:1273 src/core/gpu.cc:1337 src/core/gpu.cc:1367
+#: src/core/gpu.cc:1274 src/core/gpu.cc:1338 src/core/gpu.cc:1368
 msgid "Go to primitive##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1281 src/core/gpu.cc:1377
+#: src/core/gpu.cc:1282 src/core/gpu.cc:1378
 #, fuzzy
 msgid "Go to texture##{}"
 msgstr "Contexto##{}"
 
-#: src/core/gpu.cc:1292 src/core/gpu.cc:1388
+#: src/core/gpu.cc:1293 src/core/gpu.cc:1389
 msgid "Go to CLUT##{}"
 msgstr ""
 
-#: src/core/gpu.cc:1318
+#: src/core/gpu.cc:1319
 #, c-format
 msgid "Line %i"
 msgstr ""
@@ -452,7 +452,7 @@ msgstr "Endereço desalinhado 0x%08x no LW do 0x%08x\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no SW do 0x%08x\n"
 
-#: src/core/mdec.cc:674
+#: src/core/mdec.cc:136
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
@@ -701,64 +701,64 @@ msgstr ""
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 
-#: src/core/psxinterpreter.cc:449
+#: src/core/psxinterpreter.cc:437
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução ADDI do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:543
+#: src/core/psxinterpreter.cc:531
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução ADD do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:585
+#: src/core/psxinterpreter.cc:573
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Sobrecarga assinada na instrução SUB do 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:910
+#: src/core/psxinterpreter.cc:898
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Tentativa de JR desalinhado pra 0x%08x do 0x%08x, disparando exceção!\n"
 
-#: src/core/psxinterpreter.cc:936
+#: src/core/psxinterpreter.cc:924
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Tentativa de JALR desalinhado pro 0x%08x do 0x%08x, disparando exceção!\n"
 
-#: src/core/psxinterpreter.cc:974
+#: src/core/psxinterpreter.cc:962
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em LH do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:991
+#: src/core/psxinterpreter.cc:979
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em LHU do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1008
+#: src/core/psxinterpreter.cc:996
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no LW do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1070
+#: src/core/psxinterpreter.cc:1058
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x em SH do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1081
+#: src/core/psxinterpreter.cc:1069
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Endereço desalinhado 0x%08x no SW do 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1198
+#: src/core/psxinterpreter.cc:1186
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Encontrou um opcode reservado do 0x%08x, disparando uma exceção\n"
 
-#: src/core/psxinterpreter.cc:1237
+#: src/core/psxinterpreter.cc:1225
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -767,7 +767,7 @@ msgstr ""
 "Tentativa de usar uma instrução de ponto flutuante inválida do 0x%08x. "
 "Ignorado.\n"
 
-#: src/core/psxinterpreter.cc:1405
+#: src/core/psxinterpreter.cc:1253
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Tentativa de acessar a COP3 do 0x%08x. Ignorado\n"
@@ -1008,49 +1008,59 @@ msgstr ""
 msgid "Web server: unable to listen on port %i: %s\n"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:267
+#: src/gpu/soft/gpu.cc:283
 msgid "Game-dependent dithering (slow)"
 msgstr "Pontilhamento dependente do jogo (lento)"
 
-#: src/gpu/soft/gpu.cc:267
+#: src/gpu/soft/gpu.cc:283
 msgid "No dithering (fastest)"
 msgstr "Sem pontilhamento (mais rápido)"
 
-#: src/gpu/soft/gpu.cc:268
+#: src/gpu/soft/gpu.cc:284
 msgid "Always dither g-shaded polygons (slowest)"
 msgstr "Sempre atrasar polígonos g-shaded (mais lento)"
 
-#: src/gpu/soft/gpu.cc:270
+#: src/gpu/soft/gpu.cc:286
 msgid "Soft GPU configuration"
 msgstr "Configuração leve da GPU"
 
-#: src/gpu/soft/gpu.cc:271
+#: src/gpu/soft/gpu.cc:287
 msgid "Dithering"
 msgstr "Pontilhamento"
 
-#: src/gpu/soft/gpu.cc:276
+#: src/gpu/soft/gpu.cc:292
 msgid "Use cached dithering tables"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:282
+#: src/gpu/soft/gpu.cc:298
 msgid ""
 "Dithering tables are cached in memory for faster processing. Dithering will "
 "be done much faster, at the cost of a 512MB cache."
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:291
+#: src/gpu/soft/gpu.cc:307
+msgid "Render on a separate thread"
+msgstr ""
+
+#: src/gpu/soft/gpu.cc:313
+msgid ""
+"Rasterize on a worker thread while the emulation keeps running. VRAM "
+"readbacks and frame presentation wait for the worker to catch up."
+msgstr ""
+
+#: src/gpu/soft/gpu.cc:316
 msgid "Disable textures for polygons"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:292
+#: src/gpu/soft/gpu.cc:317
 msgid "Disable textures for sprites"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:301
+#: src/gpu/soft/gpu.cc:326
 msgid "Soft GPU debugger"
 msgstr "Debugger da GPU Leve"
 
-#: src/gpu/soft/gpu.cc:303
+#: src/gpu/soft/gpu.cc:328
 msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
@@ -4602,7 +4612,7 @@ msgstr ""
 msgid "TPage Grid Color Picker"
 msgstr ""
 
-#: src/main/main.cc:572
+#: src/main/main.cc:579
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Falhou em achar o codec %s\n"

@@ -77,7 +77,7 @@ msgstr "Без MSAA"
 msgid "{}x MSAA"
 msgstr "{}x MSAA"
 
-#: src/core/OpenGL_GPU/gpu_opengl.cc:519 src/gpu/soft/gpu.cc:285
+#: src/core/OpenGL_GPU/gpu_opengl.cc:519 src/gpu/soft/gpu.cc:301
 msgid "Use linear filtering"
 msgstr "Використовувати лінійну фільтрацію"
 
@@ -237,50 +237,50 @@ msgstr ""
 msgid "GDB client"
 msgstr "GDB-клієнт"
 
-#: src/core/gpu.cc:340 src/core/gpu.cc:645 src/core/psxhw.h:83
+#: src/core/gpu.cc:340 src/core/gpu.cc:646 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:345 src/core/gpu.cc:650 src/core/psxhw.h:88
+#: src/core/gpu.cc:345 src/core/gpu.cc:651 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:1222 src/core/gpu.cc:1306
+#: src/core/gpu.cc:1223 src/core/gpu.cc:1307
 msgid "Shading: Flat"
 msgstr "Затемнення: плоске"
 
-#: src/core/gpu.cc:1225 src/core/gpu.cc:1309
+#: src/core/gpu.cc:1226 src/core/gpu.cc:1310
 msgid "Shading: Gouraud"
 msgstr "Затемнення: Гуро"
 
-#: src/core/gpu.cc:1229
+#: src/core/gpu.cc:1230
 msgid "Textured"
 msgstr "Текстурний"
 
-#: src/core/gpu.cc:1232 src/core/gpu.cc:1312 src/core/gpu.cc:1354
+#: src/core/gpu.cc:1233 src/core/gpu.cc:1313 src/core/gpu.cc:1355
 msgid "Semi-transparency blending"
 msgstr "Напівпрозоре накладання"
 
-#: src/core/gpu.cc:1249
+#: src/core/gpu.cc:1250
 #, c-format
 msgid "Vertex %i"
 msgstr "Вершинний %i"
 
-#: src/core/gpu.cc:1273 src/core/gpu.cc:1337 src/core/gpu.cc:1367
+#: src/core/gpu.cc:1274 src/core/gpu.cc:1338 src/core/gpu.cc:1368
 msgid "Go to primitive##{}"
 msgstr "Перейти до первісного##{}"
 
-#: src/core/gpu.cc:1281 src/core/gpu.cc:1377
+#: src/core/gpu.cc:1282 src/core/gpu.cc:1378
 msgid "Go to texture##{}"
 msgstr "Перейти до текстури##{}"
 
-#: src/core/gpu.cc:1292 src/core/gpu.cc:1388
+#: src/core/gpu.cc:1293 src/core/gpu.cc:1389
 msgid "Go to CLUT##{}"
 msgstr "Перейти до таблиці пошуку кольорів (CLUT)##{}"
 
-#: src/core/gpu.cc:1318
+#: src/core/gpu.cc:1319
 #, c-format
 msgid "Line %i"
 msgstr "Лінія %i"
@@ -452,7 +452,7 @@ msgstr "Нерівна адреса 0x%08x в LWC2 з 0x%08x.\n"
 msgid "Unaligned address 0x%08x in SWC2 from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SWC2 з 0x%08x.\n"
 
-#: src/core/mdec.cc:674
+#: src/core/mdec.cc:136
 msgid ""
 "MDEC decode issued with no scale table uploaded. Real hardware has no "
 "default here and will decode this to flat grey; send MDEC(3) before "
@@ -701,62 +701,62 @@ msgstr "Викликано msanGetChainPtr із недійсним указів�
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxinterpreter.cc:449
+#: src/core/psxinterpreter.cc:437
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці негайного додавання (ADDI) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:543
+#: src/core/psxinterpreter.cc:531
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці додавання (ADD) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:585
+#: src/core/psxinterpreter.cc:573
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці віднімання (SUB) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:910
+#: src/core/psxinterpreter.cc:898
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:936
+#: src/core/psxinterpreter.cc:924
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JALR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:974
+#: src/core/psxinterpreter.cc:962
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:991
+#: src/core/psxinterpreter.cc:979
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LHU з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1008
+#: src/core/psxinterpreter.cc:996
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1070
+#: src/core/psxinterpreter.cc:1058
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1081
+#: src/core/psxinterpreter.cc:1069
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1198
+#: src/core/psxinterpreter.cc:1186
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Виявлено зарезервований код операції з 0x%08x, викликано виняток.\n"
 
-#: src/core/psxinterpreter.cc:1237
+#: src/core/psxinterpreter.cc:1225
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -765,7 +765,7 @@ msgstr ""
 "Спроба використання недійсної вказівки з рухомою комою з 0x%08x. "
 "Проігноровано.\n"
 
-#: src/core/psxinterpreter.cc:1405
+#: src/core/psxinterpreter.cc:1253
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
@@ -1004,31 +1004,31 @@ msgstr ""
 msgid "Web server: unable to listen on port %i: %s\n"
 msgstr ""
 
-#: src/gpu/soft/gpu.cc:267
+#: src/gpu/soft/gpu.cc:283
 msgid "Game-dependent dithering (slow)"
 msgstr "Ігрозалежне згладжування (повільно)"
 
-#: src/gpu/soft/gpu.cc:267
+#: src/gpu/soft/gpu.cc:283
 msgid "No dithering (fastest)"
 msgstr "Без згладжування (найшвидше)"
 
-#: src/gpu/soft/gpu.cc:268
+#: src/gpu/soft/gpu.cc:284
 msgid "Always dither g-shaded polygons (slowest)"
 msgstr "Завжди згладжувати Гуро-затемнені полігони (повільно)"
 
-#: src/gpu/soft/gpu.cc:270
+#: src/gpu/soft/gpu.cc:286
 msgid "Soft GPU configuration"
 msgstr "Конфігурація Soft GPU"
 
-#: src/gpu/soft/gpu.cc:271
+#: src/gpu/soft/gpu.cc:287
 msgid "Dithering"
 msgstr "Згладжування"
 
-#: src/gpu/soft/gpu.cc:276
+#: src/gpu/soft/gpu.cc:292
 msgid "Use cached dithering tables"
 msgstr "Використовувати кешовані таблиці згладжування"
 
-#: src/gpu/soft/gpu.cc:282
+#: src/gpu/soft/gpu.cc:298
 msgid ""
 "Dithering tables are cached in memory for faster processing. Dithering will "
 "be done much faster, at the cost of a 512MB cache."
@@ -1036,19 +1036,29 @@ msgstr ""
 "Таблиці згладжування кешовано в пам'яті для швидшого опрацювання. "
 "Згладжування буде виконано набагато швидше за рахунок 512 Мбайт кешу."
 
-#: src/gpu/soft/gpu.cc:291
+#: src/gpu/soft/gpu.cc:307
+msgid "Render on a separate thread"
+msgstr ""
+
+#: src/gpu/soft/gpu.cc:313
+msgid ""
+"Rasterize on a worker thread while the emulation keeps running. VRAM "
+"readbacks and frame presentation wait for the worker to catch up."
+msgstr ""
+
+#: src/gpu/soft/gpu.cc:316
 msgid "Disable textures for polygons"
 msgstr "Вимкнути текстури для полігонів"
 
-#: src/gpu/soft/gpu.cc:292
+#: src/gpu/soft/gpu.cc:317
 msgid "Disable textures for sprites"
 msgstr "Вимкнути текстури для спрайтів"
 
-#: src/gpu/soft/gpu.cc:301
+#: src/gpu/soft/gpu.cc:326
 msgid "Soft GPU debugger"
 msgstr "Soft GPU-налагоджувач"
 
-#: src/gpu/soft/gpu.cc:303
+#: src/gpu/soft/gpu.cc:328
 msgid ""
 "Debugging features are not supported when using the software renderer yet\n"
 "Consider enabling the OpenGL GPU option instead."
@@ -4595,7 +4605,7 @@ msgstr "Вибір кольору піксельної сітки"
 msgid "TPage Grid Color Picker"
 msgstr "Вибір кольору TPage-сітки"
 
-#: src/main/main.cc:572
+#: src/main/main.cc:579
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Показати імена збережених станів"
