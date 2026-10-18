@@ -233,7 +233,8 @@ bool PCSX::GPUDumpPlayer::load(IO<File> file) {
 void PCSX::GPUDumpPlayer::rewind() {
     if (!m_gpu) return;
     m_frame = 0;
-    m_logger.newFrame();
+    m_logger.clearFrameLog();
+    m_logger.setFrame(0);
     m_reader.rewind();
     m_gpu->writeStatus(0x00000000);
     m_gpu->clearVRAM();
@@ -260,8 +261,8 @@ bool PCSX::GPUDumpPlayer::step() {
     while (m_reader.next(packet)) {
         if (packet.type == GPUDumper::VSync) {
             m_gpu->vblank(true);
-            m_logger.newFrame();
             m_frame++;
+            m_logger.setFrame(m_frame);
             return true;
         }
         execute(packet);

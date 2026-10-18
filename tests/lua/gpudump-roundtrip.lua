@@ -49,8 +49,8 @@ local function check(path)
     return steps > 0 and diffs == 0 and control > 0
 end
 
--- The player's logger keeps one dump frame: the same frame logged twice gives the same count,
--- whatever the emulator is doing meanwhile.
+-- The player's logger keeps one dump frame: the second frame's list must not hold the first one's
+-- commands, whatever the emulator is doing meanwhile, and a rewind replays to the same counts.
 local function checkLogger(path)
     if not PCSX.GPU.DumpPlayer.load(path) then return false end
     PCSX.GPU.DumpPlayer.setLogging(true)
@@ -58,12 +58,14 @@ local function checkLogger(path)
     PCSX.GPU.DumpPlayer.step()
     local first = PCSX.GPU.DumpPlayer.getLoggedCount()
     PCSX.GPU.DumpPlayer.step()
+    local second = PCSX.GPU.DumpPlayer.getLoggedCount()
     PCSX.GPU.DumpPlayer.rewind()
+    PCSX.GPU.DumpPlayer.step()
     PCSX.GPU.DumpPlayer.step()
     local again = PCSX.GPU.DumpPlayer.getLoggedCount()
     PCSX.GPU.DumpPlayer.setLogging(false)
-    print(string.format('%s: player logger %d commands, %d after a rewind', path, first, again))
-    return first > 0 and first == again
+    print(string.format('%s: player logger %d then %d commands, %d after a rewind', path, first, second, again))
+    return first > 0 and second > 0 and second <= first and second == again
 end
 
 local tmp = os.tmpname()
