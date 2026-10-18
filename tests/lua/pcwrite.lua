@@ -110,3 +110,44 @@ function TestPCWrite:test_raw_pc_field_is_read_only()
     lu.assertFalse(pcall(function() regs.rawPC = 0x80100000 end))
     lu.assertEquals(regs.pc, before)
 end
+
+-- Paused right after a load, the loaded value is still in flight. A register edited from there
+-- has to keep the edit instead of taking the load on the next step.
+function TestPCWrite:test_gpr_write_drops_pending_load()
+    local DATA = CODE + 0x100
+    ram32(DATA)[0] = 0xaaaaaaaa
+    poke(CODE, {
+        0x3c010000 + bit.rshift(DATA, 16), -- lui at, hi(DATA)
+        0x8c280000 + bit.band(DATA, 0xffff), -- lw t0, lo(DATA)(at)
+        0x00000000,
+        j(CODE + 12),
+        0x00000000,
+    })
+    PCSX.invalidateCache()
+    local regs = PCSX.getRegisters()
+    regs.GPR.n.t0 = 0
+    regs.pc = CODE
+
+    local co = coroutine.running()
+    local bp = PCSX.addBreakpoint(CODE + 8, 'Exec', 4, 'load delay slot', function()
+        PCSX.pauseEmulator()
+        resumeFromMainLoop(co)
+        return false
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+    bp:remove()
+    lu.assertEquals(regs.pc, CODE + 8)
+
+    PCSX.setGPR(8, 0x12345678)
+    local vsync
+    vsync = PCSX.Events.createEventListener('GPU::Vsync', function()
+        vsync:remove()
+        PCSX.pauseEmulator()
+        resumeFromMainLoop(co)
+    end)
+    PCSX.resumeEmulator()
+    coroutine.yield()
+
+    lu.assertEquals(regs.GPR.n.t0, 0x12345678)
+end
