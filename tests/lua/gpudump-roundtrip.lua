@@ -65,7 +65,8 @@ local function checkLogger(path)
     local again = PCSX.GPU.DumpPlayer.getLoggedCount()
     PCSX.GPU.DumpPlayer.setLogging(false)
     print(string.format('%s: player logger %d then %d commands, %d after a rewind', path, first, second, again))
-    return first > 0 and second > 0 and second <= first and second == again
+    -- The first list also holds the restore sequence that rewind() plays before the first frame.
+    return first > 0 and second > 0 and second < first and second == again
 end
 
 local tmp = os.tmpname()
