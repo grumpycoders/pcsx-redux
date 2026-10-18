@@ -787,6 +787,11 @@ class CDRomImpl final : public PCSX::CDRom {
     // hardware, after a completed SeekP: stat 16h (shell open, spindle, error), code 08h.
     void lidOpened() override {
         if (!m_motorOn) return;
+        // A seek or other timed command in flight does not complete.
+        if (!m_commandExecuting.empty()) {
+            PCSX::g_emulator->m_cpu->unschedule(PCSX::Schedule::CDRCOMMANDS);
+            m_commandExecuting.clear();
+        }
         m_status = Status::Idle;
         m_readingState = ReadingState::None;
         m_readingType = ReadingType::None;
