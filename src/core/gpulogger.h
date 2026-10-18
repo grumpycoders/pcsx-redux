@@ -54,13 +54,13 @@ class GPULogger {
     };
 
     // The emulator's logger follows the emulator: its frames are the emulator's vsyncs and it records
-    // the guest pc. A logger owned by a detached GPU (the dump player's) is told about frames with
-    // newFrame() instead, and snapshots and replays that GPU.
+    // the guest pc. A logger owned by a detached GPU (the dump player's) is told which frame it is on
+    // with setFrame() instead, and snapshots and replays that GPU.
     explicit GPULogger(bool followEmulator = true);
     void setOwner(GPU* gpu) { m_owner = gpu; }
     GPU* gpu() const;
     bool followsEmulator() const { return m_followEmulator; }
-    void newFrame() { m_frameCounter++; }
+    void setFrame(uint64_t frame) { m_frameCounter = frame; }
     // Logging without the VRAM heatmaps, which need an OpenGL context; enable() sets those up.
     void setLogging(bool enabled) { m_enabled = enabled; }
     size_t loggedCount() const { return m_list.size(); }
