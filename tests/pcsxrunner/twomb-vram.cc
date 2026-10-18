@@ -129,3 +129,13 @@ TEST(TwoMBVram, PrimitivesCross) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// gate-flip-queued writes GP1(09h) right after queuing a marker behind a long
+// run of large rectangles; the marker must land in the bank of the gate it was
+// drawn under.
+TEST(TwoMBVram, GateFlipQueued) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-2mbvram", "-loadexe", "src/mips/tests/2mb-vram/gate-flip-queued/gate-flip-queued.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
