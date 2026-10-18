@@ -24,9 +24,9 @@
 
 #include "core/debug.h"
 #include "core/logger.h"
+#include "core/mdec-decoder.h"
 #include "core/psxemulator.h"
 #include "core/system.h"
-#include "core/mdec-decoder.h"
 
 enum {
     // mdec0: command register

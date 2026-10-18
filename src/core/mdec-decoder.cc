@@ -81,9 +81,8 @@ static const int aanscales[DSIZE2] = {
 #define FIX_2_613125930 SCALER(43840978, AAN_CONST_SCALE)  // B2
 
 static inline void fillcol(int *blk, int val) {
-    blk[0 * DSIZE] = blk[1 * DSIZE] = blk[2 * DSIZE] = blk[3 * DSIZE] =
-        blk[4 * DSIZE] = blk[5 * DSIZE] = blk[6 * DSIZE] =
-            blk[7 * DSIZE] = val;
+    blk[0 * DSIZE] = blk[1 * DSIZE] = blk[2 * DSIZE] = blk[3 * DSIZE] = blk[4 * DSIZE] = blk[5 * DSIZE] =
+        blk[6 * DSIZE] = blk[7 * DSIZE] = val;
 }
 
 static inline void fillrow(int *blk, int val) {
@@ -171,8 +170,7 @@ static void idct(int *block, int used_col) {
 
     ptr = block;
     if (used_col == 1) {
-        for (int i = 0; i < DSIZE; i++)
-            fillrow(block + DSIZE * i, block[DSIZE * i]);
+        for (int i = 0; i < DSIZE; i++) fillrow(block + DSIZE * i, block[DSIZE * i]);
     } else {
         for (int i = 0; i < DSIZE; i++, ptr += DSIZE) {
             z10 = ptr[0] + ptr[4];
@@ -560,7 +558,6 @@ static inline uint8_t clamp8(int c) {
 #define CLAMP_SCALE5(a) (CLAMP5(SCALE5(a)))
 
 static inline void putlinebw15(uint16_t *image, const int *Yblk, int A) {
-
     for (int i = 0; i < 8; i++, Yblk++) {
         int Y = *Yblk;
         // missing rounding
@@ -664,10 +661,9 @@ void PCSX::MDECDecoder::toRGB24(const int *blk, uint8_t *image, bool mono) {
     }
 }
 
-
-PCSX::MDECDecoder::FrameStatus PCSX::MDECDecoder::decodeFrame(const uint16_t *rl, unsigned words,
-                                                              const Tables &tables, unsigned width, unsigned height,
-                                                              bool columnMajor, uint8_t *rgb24) {
+PCSX::MDECDecoder::FrameStatus PCSX::MDECDecoder::decodeFrame(const uint16_t *rl, unsigned words, const Tables &tables,
+                                                              unsigned width, unsigned height, bool columnMajor,
+                                                              uint8_t *rgb24) {
     FrameStatus frame;
     const uint16_t *pos = rl;
     const uint16_t *end = rl + words;
