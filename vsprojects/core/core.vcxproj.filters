@@ -85,6 +85,9 @@
     <ClCompile Include="..\..\src\core\psxinterpreter.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\gte-write-to-use-model.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\psxhw.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

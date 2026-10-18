@@ -441,6 +441,11 @@ class R3000Acpu {
     };
     GTEPendingWrite m_gtePending[3] = {};
     uint32_t m_gtePendingCount = 0;
+    // Lands a write through GTE::MTC2 / GTE::CTC2.
+    void gteCommit(const GTEPendingWrite &w);
+    // Runs a GTE command with the writes in m_gtePending, which it empties. execute runs the
+    // command itself on the registers as the command reads them.
+    void gteRunCommand(uint32_t code, void (*execute)(R3000Acpu *cpu, uint32_t code));
     template <typename T = uint32_t>
     T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
