@@ -23,6 +23,15 @@ function TestBasic:test_basic()
     lu.assertEquals(1, 1)
 end
 
+function TestBasic:test_breakpoint_invoker_error_stays_in_lua()
+    local bp = PCSX.addBreakpoint(0x80010000, 'Exec', 4, 'test', function() error 'invoker failure' end)
+    -- Call the FFI callback the debugger would call; the error must come back as a false return.
+    local ok, keep = pcall(bp._invokercb, 0x80010000, 4, 'test')
+    bp:remove()
+    lu.assertTrue(ok, tostring(keep))
+    lu.assertFalse(keep)
+end
+
 function TestBasic:test_coroutine()
     local testCoroutine = coroutine.running()
     PCSX.nextTick(function()
