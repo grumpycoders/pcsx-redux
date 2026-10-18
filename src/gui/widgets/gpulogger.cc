@@ -145,7 +145,8 @@ void PCSX::Widgets::GPULogger::draw(PCSX::GPULogger* logger, const char* title, 
     std::string label;
 
     ImGui::Separator();
-    if (ImGui::TreeNode(_("VRAM breakpoints"))) {
+    // Breakpoints pause the emulator, so they only make sense on the emulator's own logger.
+    if (logger->followsEmulator() && ImGui::TreeNode(_("VRAM breakpoints"))) {
         ImGuiHelpers::ShowHelpMarker(
             _("Pauses emulation when a command reads from or writes to one of these VRAM rectangles. Handy to catch "
               "the texture upload that stomped an area, since those are hard to spot in a frame that redraws "

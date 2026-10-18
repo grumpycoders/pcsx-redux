@@ -238,7 +238,8 @@ void PCSX::GPULogger::checkVramBreakpoints(GPU::Logged* node) {
     g_system->log(LogClass::GPU,
                   _("VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC = 0x%08x\n"), hit,
                   int(name.size()), name.data(), what, bp.area.w, bp.area.h, bp.area.x, bp.area.y, node->pc);
-    if (m_followEmulator) g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
+    if (!m_followEmulator) return;
+    g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
     g_system->pause();
 }
 
@@ -251,7 +252,8 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
         delete &*i;
         gotNewFrame = true;
     }
-    if (gotNewFrame) startNewFrame();
+    // An empty list is a cleared log, which has no snapshot of its own frame yet.
+    if (gotNewFrame || m_list.empty()) startNewFrame();
 
     node->origin = origin;
     node->value = value;
