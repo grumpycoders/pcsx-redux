@@ -25,6 +25,8 @@
 // An emergency exit skips joining the uv thread; process exit must still be
 // clean, with no std::terminate from the static std::thread's destructor.
 TEST(UvThread, EmergencyExitDoesNotTerminate) {
+    // Earlier tests leave threads behind, and a forked child of a threaded process can hang or crash.
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
     EXPECT_EXIT(
         {
             {
