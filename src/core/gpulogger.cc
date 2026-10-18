@@ -106,7 +106,8 @@ void main() {
 }
 )";
 
-PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
+PCSX::GPULogger::GPULogger(bool followEmulator) : m_listener(g_system->m_eventBus), m_followEmulator(followEmulator) {
+    if (!followEmulator) return;
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
         m_frameCounter++;
         const unsigned rate = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL ? 50 : 60;
@@ -229,7 +230,7 @@ void PCSX::GPULogger::checkVramBreakpoints(GPU::Logged* node) {
     g_system->log(LogClass::GPU,
                   _("VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC = 0x%08x\n"), hit,
                   int(name.size()), name.data(), what, bp.area.w, bp.area.h, bp.area.x, bp.area.y, node->pc);
-    g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
+    if (m_followEmulator) g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
     g_system->pause();
 }
 
@@ -246,7 +247,7 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     node->origin = origin;
     node->value = value;
     node->length = length;
-    node->pc = g_emulator->m_cpu->m_regs.pc;
+    node->pc = m_followEmulator ? g_emulator->m_cpu->m_regs.pc : 0;
     node->frame = frame;
     node->generateStatsInfo();
     m_list.push_back(node);
@@ -275,7 +276,9 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     g_emulator->m_gpu->setOpenGLContext();
 }
 
-void PCSX::GPULogger::startNewFrame() { m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE); }
+PCSX::GPU* PCSX::GPULogger::gpu() const { return m_owner ? m_owner : g_emulator->m_gpu.get(); }
+
+void PCSX::GPULogger::startNewFrame() { m_vram = gpu()->getVRAM(GPU::Ownership::ACQUIRE); }
 
 void PCSX::GPULogger::replay(GPU* gpu) {
     if (m_vram.data()) gpu->partialUpdateVRAM(0, 0, 1024, 512, m_vram.data<uint16_t>());
