@@ -498,7 +498,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
             ((value & 0x000000ff) << 24);
     auto& regs = g_emulator->m_cpu->m_regs;
     if (n < 32) {
-        regs.GPR.r[n] = value;
+        g_emulator->m_cpu->setGPR(n, value);
     } else if (n == 32) {
         regs.CP0.n.Status = value;
     } else if (n == 33) {
