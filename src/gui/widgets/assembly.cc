@@ -794,6 +794,27 @@ settings, otherwise debugging features may not work.)");
                             });
                         g_system->resume();
                     }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                        ImGui::TextUnformatted(
+                            _("Run the emulation until the program counter reaches this address, then pause."));
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
+                    }
+                    if (ImGui::MenuItem(_("Jump to Cursor"), nullptr, false, !PCSX::g_system->running())) {
+                        g_emulator->m_cpu->setPC(dispAddr);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                        ImGui::TextUnformatted(
+                            _("Set the program counter to this address. This will skip over any instruction between "
+                              "the current one and the one you're selecting. This can cause inconsistencies, so use "
+                              "with caution."));
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
+                    }
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();
                     }
