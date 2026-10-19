@@ -20,6 +20,7 @@
 #include "supportpsx/psyq-obj.h"
 
 #include <magic_enum/magic_enum_all.hpp>
+#include <vector>
 
 #include "support/djbhash.h"
 
@@ -395,8 +396,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 uint16_t type = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("Section Definition: section {}, value {}, _class {}, type {}, size {}\n", section, value,
-                       classId, type, size);
+                vprint("Section Definition: section {}, value {}, _class {}, type {}, size {}, name {}\n", section,
+                       value, classId, type, size, name);
                 break;
             }
             case (uint8_t)PsyqOpcode::SECTION_DEF2: {
@@ -409,7 +410,7 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 uint16_t dims = file->read<uint16_t>();
                 while (dims-- > 0) {
                     // ignore for now
-                    uint16_t dim = file->read<uint16_t>();
+                    file->read<uint16_t>();
                 }
 
                 std::string tag = readPsyqString(file);
@@ -828,12 +829,11 @@ bool PsyqLnkFile::Section::generateElfSection(PsyqLnkFile* psyq, ELFIO::elfio& w
     if (isBss()) {
         section->set_size(getFullSize());
     } else {
-        section->set_data((const char*)data.data(), ELFIO::Elf_Word(data.size()));
+        section->set_data(reinterpret_cast<const char*>(data.data()), ELFIO::Elf_Word(data.size()));
         ELFIO::Elf_Word z = zeroes + uninitializedOffset;
         if (z) {
-            void* ptr = calloc(z, 1);
-            section->append_data((char*)ptr, z);
-            free(ptr);
+            std::vector<char> zeroData(z, 0);
+            section->append_data(zeroData.data(), z);
         }
     }
     return true;
@@ -879,7 +879,7 @@ bool PsyqLnkFile::Section::generateElfRelocations(ElfRelocationPass pass, const 
         // Create a dummy type to represent a reloc, which is 8 bytes
         using reloc_t = std::array<char, 8>;
         // Get the pointer to the reloc table's data
-        const reloc_t* reloc_table = (const reloc_t*)rel_sec->get_data();
+        const reloc_t* reloc_table = reinterpret_cast<const reloc_t*>(rel_sec->get_data());
         // Allocate a buffer to hold a copy of the reloc table when modifying it
         std::vector<reloc_t> reloc_table_copy(num_relocs);
         // Vector to hold the true addend of each reloc table entry
@@ -912,7 +912,7 @@ bool PsyqLnkFile::Section::generateElfRelocations(ElfRelocationPass pass, const 
 
             // We need to correlate Relocation objects to elf reloc table entries in order to get full addends, since
             // they're not in the same order
-            int found_idx = find_reloc((elf_mips_reloc_type)type, (uint32_t)offset, reloc_addends[reloc_idx]);
+            find_reloc((elf_mips_reloc_type)type, (uint32_t)offset, reloc_addends[reloc_idx]);
         }
 
         // Check every entry to see if it's a stray HI16
@@ -920,12 +920,12 @@ bool PsyqLnkFile::Section::generateElfRelocations(ElfRelocationPass pass, const 
             ELFIO::Elf64_Addr offset;
             ELFIO::Elf_Word symbol;
             ELFIO::Elf_Word type;
-            ELFIO::Elf_Sxword fake_addend;              // Addend isn't encoded in the reloc, so this value is useless
-            int32_t addend = reloc_addends[reloc_idx];  // This will instead contain the full 32 bit addend
+            ELFIO::Elf_Sxword fake_addend;  // Addend isn't encoded in the reloc, so this value is useless
             rela.get_entry(reloc_idx, offset, symbol, type, fake_addend);
 
             // Check if this is a HI16
             if ((elf_mips_reloc_type)type == elf_mips_reloc_type::R_MIPS_HI16) {
+                int32_t addend = reloc_addends[reloc_idx];  // The full 32 bit addend
                 bool stray_reloc;
                 if (reloc_idx + 1 >= num_relocs) {
                     // Make sure that we don't overrun the reloc table
@@ -1043,8 +1043,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
         // later to be used for reloc pairing
         rela.add_entry(offset, elfSym, (unsigned char)elfType->second);
         ELFIO::Elf_Xword size = section->section->get_size();
-        uint8_t* sectionData = (uint8_t*)malloc(size);
-        memcpy(sectionData, section->section->get_data(), size);
+        const char* original = section->section->get_data();
+        std::vector<uint8_t> sectionData(original, original + size);
         switch (type) {
             case PsyqRelocType::REL32: {
                 sectionData[offset + 0] = (uint8_t)(symbolOffset >> 0x00);
@@ -1127,8 +1127,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                 psyq->setElfConversionError("Unsupported relocation type {}.", magic_enum::enum_integer(type));
                 return false;
         }
-        section->section->set_data((char*)sectionData, size);
-        free(sectionData);
+        section->section->set_data(reinterpret_cast<const char*>(sectionData.data()), size);
         return true;
     };
     auto localSymbolReloc = [&, this](uint16_t sectionIndex, int32_t symbolOffset) {
@@ -1141,7 +1140,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
             psyq->setElfConversionError("Section {} not found in relocation", sectionIndex);
             return false;
         }
-        bool useLocalSymOffsets = true;
+        constexpr bool useLocalSymOffsets = true;
         std::string symbolName =
             useLocalSymOffsets ? section->name : fmt::format("${}.rel{}@{:08x}", prefix, section->name, symbolOffset);
         auto existing = psyq->localElfSymbols.find(symbolName);
@@ -1206,8 +1205,8 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         bool success = simpleSymbolReloc(nullptr, elfSym);
                         if (!success) return false;
                         ELFIO::Elf_Xword size = section->section->get_size();
-                        uint8_t* sectionData = (uint8_t*)malloc(size);
-                        memcpy(sectionData, section->section->get_data(), size);
+                        const char* original = section->section->get_data();
+                        std::vector<uint8_t> sectionData(original, original + size);
                         fmt::print("      :: Altering bytestream to account for HI symbol+addend relocation\n");
                         if (addend < 0) {
                             fmt::print("        :: Adjusting for negative addend\n");
@@ -1218,23 +1217,21 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                         addend >>= 8;
                         sectionData[offset + 1] = addend & 0xff;
                         addend >>= 8;
-                        section->section->set_data((char*)sectionData, size);
-                        free(sectionData);
+                        section->section->set_data(reinterpret_cast<const char*>(sectionData.data()), size);
                         return true;
                     }
                     case PsyqRelocType::LO16: {
                         bool success = simpleSymbolReloc(nullptr, elfSym);
                         if (!success) return false;
                         ELFIO::Elf_Xword size = section->section->get_size();
-                        uint8_t* sectionData = (uint8_t*)malloc(size);
-                        memcpy(sectionData, section->section->get_data(), size);
+                        const char* original = section->section->get_data();
+                        std::vector<uint8_t> sectionData(original, original + size);
                         fmt::print("      :: Altering bytestream to account for LO symbol+addend relocation\n");
                         sectionData[offset + 0] = addend & 0xff;
                         addend >>= 8;
                         sectionData[offset + 1] = addend & 0xff;
                         addend >>= 8;
-                        section->section->set_data((char*)sectionData, size);
-                        free(sectionData);
+                        section->section->set_data(reinterpret_cast<const char*>(sectionData.data()), size);
                         return true;
                     }
                     // Handled already
@@ -1242,8 +1239,7 @@ bool PsyqLnkFile::Relocation::generateElf(ElfRelocationPass pass, const std::str
                     case PsyqRelocType::REL32_BE:
                     case PsyqRelocType::HI16_BE:
                     case PsyqRelocType::LO16_BE: {
-                        bool success = simpleSymbolReloc(nullptr, elfSym, addend);
-                        return true;
+                        return simpleSymbolReloc(nullptr, elfSym, addend);
                     }
                     default: {
                         psyq->setElfConversionError("Unsupported relocation from a symbol with an addend");
