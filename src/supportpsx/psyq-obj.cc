@@ -359,7 +359,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 std::string name = readPsyqString(file);
                 curFunctionStart = offset;
                 vprint(
-                    "Function: section {}, offset {}, fileId {}, startLine {}, frameReg {}, frameSize {}, retnPcReg {}, "
+                    "Function: section {}, offset {}, fileId {}, startLine {}, frameReg {}, frameSize {}, retnPcReg "
+                    "{}, "
                     "mask {}, maskOffset {}, name {}\n",
                     section, offset, fileId, startLine, frameReg, frameSize, retnPcReg, mask, maskOffset, name);
                 curFunctionName = std::move(name);
@@ -394,8 +395,8 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 uint16_t type = file->read<uint16_t>();
                 uint32_t size = file->read<uint32_t>();
                 std::string name = readPsyqString(file);
-                vprint("Section Definition: section {}, value {}, _class {}, type {}, size {}\n", section, value, classId, type,
-                       size);
+                vprint("Section Definition: section {}, value {}, _class {}, type {}, size {}\n", section, value,
+                       classId, type, size);
                 break;
             }
             case (uint8_t)PsyqOpcode::SECTION_DEF2: {
@@ -432,9 +433,11 @@ std::unique_ptr<PsyqLnkFile> PsyqLnkFile::parse(PCSX::IO<PCSX::File> file, bool 
                 std::string name = readPsyqString(file);
                 curFunctionStart = offset;
                 vprint(
-                    "Function (2): section {}, offset {}, fileId {}, startLine {}, frameReg {}, frameSize {}, retnPcReg {}, "
+                    "Function (2): section {}, offset {}, fileId {}, startLine {}, frameReg {}, frameSize {}, "
+                    "retnPcReg {}, "
                     "mask {}, maskOffset {}, name {}, unk1 {:08x}, unk2 {:08x}\n",
-                    section, offset, fileId, startLine, frameReg, frameSize, retnPcReg, mask, maskOffset, name, unk1, unk2);
+                    section, offset, fileId, startLine, frameReg, frameSize, retnPcReg, mask, maskOffset, name, unk1,
+                    unk2);
                 curFunctionName = std::move(name);
                 break;
             }
@@ -602,11 +605,16 @@ void PsyqLnkFile::Section::displayRelocs(PsyqLnkFile* lnk) {
 
 void PsyqLnkFile::Relocation::display(PsyqLnkFile* lnk, PsyqLnkFile::Section* sec) {
     static const std::map<PsyqRelocType, std::string> typeStr = {
-        {PsyqRelocType::REL32, "REL32"},           {PsyqRelocType::REL26, "REL26"},
-        {PsyqRelocType::HI16, "HI16"},             {PsyqRelocType::LO16, "LO16"},
-        {PsyqRelocType::GPREL16, "GPREL16"},       {PsyqRelocType::GPREL16_LE, "GPREL16 LE"},
-        {PsyqRelocType::GPREL16_BE, "GPREL16 BE"}, {PsyqRelocType::REL32_BE, "REL32 BE"},
-        {PsyqRelocType::REL26_BE, "REL26 BE"},     {PsyqRelocType::HI16_BE, "HI16 BE"},
+        {PsyqRelocType::REL32, "REL32"},
+        {PsyqRelocType::REL26, "REL26"},
+        {PsyqRelocType::HI16, "HI16"},
+        {PsyqRelocType::LO16, "LO16"},
+        {PsyqRelocType::GPREL16, "GPREL16"},
+        {PsyqRelocType::GPREL16_LE, "GPREL16 LE"},
+        {PsyqRelocType::GPREL16_BE, "GPREL16 BE"},
+        {PsyqRelocType::REL32_BE, "REL32 BE"},
+        {PsyqRelocType::REL26_BE, "REL26 BE"},
+        {PsyqRelocType::HI16_BE, "HI16 BE"},
         {PsyqRelocType::LO16_BE, "LO16 BE"},
     };
     fmt::print("    {:10}   {:>10}::{:08x}  ", typeStr.find(type)->second, sec->name, offset);
