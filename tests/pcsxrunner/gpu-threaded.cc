@@ -43,8 +43,9 @@ TEST(GPUThreaded, FBRect) { EXPECT_EQ(runThreaded("src/mips/tests/gpu-fbrect/gpu
 TEST(GPUThreaded, VRAMMove) { EXPECT_EQ(runThreaded("src/mips/tests/gpu-vram-move/gpu-vram-move.ps-exe"), 0); }
 TEST(GPUThreaded, Polyline) { EXPECT_EQ(runThreaded("src/mips/tests/gpu-polyline/gpu-polyline.ps-exe"), 0); }
 
-// The 2MB VRAM suites flip the GP1(09h) bank gate while primitives are queued,
-// so a gate change that overtakes the worker shows up as a wrong-bank draw.
+// The 2MB VRAM suites under the worker. Only GateFlipQueued writes GP1(09h)
+// while primitives are still queued; the others set the gate with nothing in
+// flight and pass with drainRenderer() removed.
 static int runThreaded2MB(const char *exe) {
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
                         "-softgputhreaded", "-2mbvram", "-loadexe", exe);
@@ -68,4 +69,7 @@ TEST(GPUThreaded, DrawingAreaY) {
 }
 TEST(GPUThreaded, PrimitivesCross) {
     EXPECT_EQ(runThreaded2MB("src/mips/tests/2mb-vram/primitives-cross/primitives-cross.ps-exe"), 0);
+}
+TEST(GPUThreaded, GateFlipQueued) {
+    EXPECT_EQ(runThreaded2MB("src/mips/tests/2mb-vram/gate-flip-queued/gate-flip-queued.ps-exe"), 0);
 }
