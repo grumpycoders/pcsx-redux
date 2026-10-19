@@ -413,9 +413,9 @@ class impl final : public SPUInterface {
     // The walk starts from the KEY ON write's cycle, stamped by SoundOn on the CPU
     // side. The mixer applies the same key-on at sampleAfter() of that cycle.
     struct EnvelopeCheckpoint {
-        uint64_t keyOnCycle = 0;   // CPU cycle of the KEY ON write
+        uint64_t keyOnCycle = 0;     // CPU cycle of the KEY ON write
         uint64_t serviceSample = 0;  // sample the mixer services that key-on on
-        uint64_t keyOffCycle = 0;  // CPU cycle of the KEY OFF write, 0 while none
+        uint64_t keyOffCycle = 0;    // CPU cycle of the KEY OFF write, 0 while none
         bool keyedOn = false;
         // Walk cache. Reads arrive in increasing cycle order (the guest polls), so
         // stepping forward from the last answer makes each read O(1) amortised

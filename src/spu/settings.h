@@ -43,8 +43,7 @@ typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
 // cannot keep the device fed, so it plays silence. On a laptop, 10 played clean and 5 crackled once
 // the machine was busy; 15 stays under a 60Hz frame with 3x headroom over that.
 typedef Setting<int, TYPESTRING("LatencyMargin"), 15> LatencyMargin;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed,
-                 LatencyMargin>
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, LatencyMargin>
     SettingsType;
 
 }  // namespace SPU
