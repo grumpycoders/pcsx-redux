@@ -170,7 +170,14 @@ local function addBreakpoint(address, bptype, width, cause, invoker, label)
         if type(invoker) ~= 'function' then error 'PCSX.addBreakpoint needs an invoker that is a function' end
         invokercb = function(address, width, cause)
             cause = ffi.string(cause)
-            local ret = invoker(address, width, cause)
+            -- This runs as an FFI callback: a Lua error must not unwind out of it into C++.
+            local ok, ret = pcall(invoker, address, width, cause)
+            if not ok then
+                local printed, msg = pcall(tostring, ret)
+                if not printed then msg = '(error object could not be converted to a string)' end
+                C.luaMessage('Lua breakpoint invoker failed, deleting breakpoint: ' .. msg, true)
+                return false
+            end
             if ret == false then
                 return false
             else
