@@ -288,6 +288,7 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\msan.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\spu.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-v4.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-gpustat.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\twomb-vram.cc" />
     <ClCompile Include="..\..\..\tests\sstate-adpcm.cc" />
     <ClCompile Include="..\..\..\tests\sstate-cdrom.cc" />
