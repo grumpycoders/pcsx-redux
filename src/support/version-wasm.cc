@@ -24,9 +24,10 @@ SOFTWARE.
 
 */
 
-// The updater, stubbed for wasm. version.cc is the common implementation and is
-// disabled here: it downloads over libcurl through UvFile's DOWNLOAD_URL mode,
-// and the wasm UvFile shim deliberately does not have that mode.
+// The updater, stubbed for wasm. version.cc keeps VersionInfo::loadFromFile on
+// every platform; its updater half is disabled here: it downloads over libcurl
+// through UvFile's DOWNLOAD_URL mode, and the wasm UvFile shim deliberately does
+// not have that mode.
 //
 // EVERY DOWNLOAD ENTRY POINT RETURNS false, NOT true. A no-op that reports
 // success has fetched nothing and said it worked, which on a build with no
@@ -35,8 +36,6 @@ SOFTWARE.
 #ifdef __EMSCRIPTEN__
 
 #include "support/version.h"
-
-void PCSX::VersionInfo::loadFromFile(IO<File> file) {}
 
 float PCSX::Update::progress() { return 0.0f; }
 
