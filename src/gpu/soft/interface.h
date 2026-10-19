@@ -37,6 +37,7 @@ class impl final : public GPU, private SoftRenderer {
     int32_t shutdown() override;
     uint32_t readStatusInternal() override;
     void vblank(bool fromGui) override;
+    void presentFromGui() override;
     bool configure() override;
     void debug() override;
 
