@@ -154,7 +154,7 @@ class GPU {
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
-    void restoreEnvironment(const uint8_t* env, uint32_t status);
+    void restoreEnvironment(const uint8_t *env, uint32_t status);
 
   private:
     uint32_t s_usedAddr[3];
