@@ -32,6 +32,30 @@ function TestBasic:test_coroutine()
     lu.assertEquals(r, 42)
 end
 
+function TestBasic:test_event_listener_keeps_stack()
+    -- Measures the room left on the listener's coroutine stack by recursing until it overflows.
+    local depth = 0
+    local function recurse(d)
+        depth = d
+        return recurse(d + 1) + 1
+    end
+    local function room()
+        depth = 0
+        pcall(recurse, 1)
+        return depth
+    end
+    local calls, first, last = 0
+    local listener = PCSX.Events.createEventListener('GUI::JumpToPC', function()
+        calls = calls + 1
+        if calls == 1 then first = room() end
+        if calls == 3000 then last = room() end
+    end)
+    for i = 1, 3000 do PCSX.GUI.jumpToPC(0) end
+    listener:remove()
+    lu.assertEquals(calls, 3000)
+    lu.assertTrue(first - last < 50, 'listener stack shrank from ' .. first .. ' to ' .. last)
+end
+
 function TestBasic:test_unknown_event_name()
     local ok, err = pcall(PCSX.Events.createEventListener, 'GPU::VSync', function() end)
     lu.assertFalse(ok)
