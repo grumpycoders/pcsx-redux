@@ -53,19 +53,31 @@ local tmp = os.tmpname()
 os.remove(tmp)
 local first, second = tmp .. '-1.gpd', tmp .. '-2.gpd'
 
+-- A dump has to end on a frame that changed VRAM, or the one-frame-short
+-- control matches by construction. The shell does not redraw on every vsync,
+-- so each stop waits for the first vsync at or past its mark that did.
 local vsyncs = 0
 local ok = true
+local previous
+local stage = 0
 Listener = PCSX.Events.createEventListener('GPU::Vsync', function()
     vsyncs = vsyncs + 1
-    if vsyncs == 60 then
+    local vram = PCSX.GPU.getVRAM()
+    local current = ffi.string(vram.data, vram.size)
+    local changed = previous ~= nil and current ~= previous
+    previous = current
+    if stage == 0 and vsyncs >= 60 then
         PCSX.GPU.startDump(first)
-    elseif vsyncs == 120 then
+        stage = 1
+    elseif stage == 1 and vsyncs >= 120 and changed then
         PCSX.GPU.stopDump()
         ok = check(first) and ok
-    elseif vsyncs == 150 then
+        stage = 2
+    elseif stage == 2 and vsyncs >= 150 then
         -- The player keeps its GPU while the emulated one runs on.
         PCSX.GPU.startDump(second)
-    elseif vsyncs == 240 then
+        stage = 3
+    elseif stage == 3 and vsyncs >= 240 and changed then
         PCSX.GPU.stopDump()
         ok = check(second) and ok
         os.remove(first)
