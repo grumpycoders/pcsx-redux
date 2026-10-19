@@ -79,6 +79,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\supportpsx\ps1-packer-overlap.cc" />
+    <ClCompile Include="..\..\..\tests\supportpsx\psyq-obj.cc" />
     <ClCompile Include="..\..\..\tests\support\binstruct.cc" />
     <ClCompile Include="..\..\..\tests\support\circular.cc" />
     <ClCompile Include="..\..\..\tests\support\eventbus.cc" />
@@ -89,11 +90,15 @@
     <ClCompile Include="..\..\..\tests\support\mips.cc" />
     <ClCompile Include="..\..\..\tests\support\network.cc" />
     <ClCompile Include="..\..\..\tests\support\uvfifolistener.cc" />
+    <ClCompile Include="..\..\..\tests\support\uvthread.cc" />
     <ClCompile Include="..\..\..\tests\support\tree.cc" />
     <ClCompile Include="..\..\..\tests\dct-pack.cc" />
     <ClCompile Include="..\..\..\tests\support\protobuf-fieldptr.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\fmt\fmt.vcxproj">
+      <Project>{71772007-5110-418d-be9c-fb102b6eaabf}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\gtest\gtest.vcxproj">
       <Project>{432d6160-7127-4005-bfa6-7c301c0cf3d3}</Project>
     </ProjectReference>

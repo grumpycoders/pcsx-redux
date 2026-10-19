@@ -1910,7 +1910,7 @@ msgstr "Descargar"
 msgid "An error has occured while downloading the update."
 msgstr "Ha habido un error al descargar la actualización."
 
-#: src/gui/gui.cc:2054 src/gui/gui.cc:2158 src/gui/widgets/assembly.cc:1037
+#: src/gui/gui.cc:2054 src/gui/gui.cc:2158 src/gui/widgets/assembly.cc:1058
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "Cancelar"
@@ -2530,98 +2530,115 @@ msgstr "Copiar dirección"
 msgid "Run to Cursor"
 msgstr "Ejecutar hasta el cursor"
 
-#: src/gui/widgets/assembly.cc:797
+#: src/gui/widgets/assembly.cc:801
+msgid ""
+"Run the emulation until the program counter reaches this address, then pause."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:805
+#, fuzzy
+msgid "Jump to Cursor"
+msgstr "Ejecutar hasta el cursor"
+
+#: src/gui/widgets/assembly.cc:812
+msgid ""
+"Set the program counter to this address. This will skip over any instruction "
+"between the current one and the one you're selecting. This can cause "
+"inconsistencies, so use with caution."
+msgstr ""
+
+#: src/gui/widgets/assembly.cc:818
 msgid "Toggle Breakpoint"
 msgstr "Alternar punto de interrupción"
 
-#: src/gui/widgets/assembly.cc:801 src/gui/widgets/assembly.cc:806
+#: src/gui/widgets/assembly.cc:822 src/gui/widgets/assembly.cc:827
 msgid "Remove Breakpoint"
 msgstr "Quitar punto de interrupción"
 
-#: src/gui/widgets/assembly.cc:813
+#: src/gui/widgets/assembly.cc:834
 msgid "Patch in Return"
 msgstr "Parchear en punto de retorno"
 
-#: src/gui/widgets/assembly.cc:816
+#: src/gui/widgets/assembly.cc:837
 msgid "Patch in NOP"
 msgstr "Parchear en NOP"
 
-#: src/gui/widgets/assembly.cc:823
+#: src/gui/widgets/assembly.cc:844
 msgid "Delete Return Patch"
 msgstr "Eliminar parche en retorno"
 
-#: src/gui/widgets/assembly.cc:829
+#: src/gui/widgets/assembly.cc:850
 msgid "Delete NOP Patch"
 msgstr "Eliminar parche en NOP"
 
-#: src/gui/widgets/assembly.cc:836 src/gui/widgets/assembly.cc:1044
-#: src/gui/widgets/assembly.cc:1046 src/gui/widgets/assembly.cc:1052
+#: src/gui/widgets/assembly.cc:857 src/gui/widgets/assembly.cc:1065
+#: src/gui/widgets/assembly.cc:1067 src/gui/widgets/assembly.cc:1073
 msgid "Assemble"
 msgstr "Ensamblar"
 
-#: src/gui/widgets/assembly.cc:973 src/gui/widgets/breakpoints.cc:181
+#: src/gui/widgets/assembly.cc:994 src/gui/widgets/breakpoints.cc:181
 #: src/gui/widgets/memory_observer.cc:170
 #: src/gui/widgets/memory_observer.cc:328
 #: src/gui/widgets/memory_observer.cc:424 src/gui/widgets/typed_debugger.cc:929
 msgid "Address"
 msgstr "Dirección"
 
-#: src/gui/widgets/assembly.cc:987
+#: src/gui/widgets/assembly.cc:1008
 msgid "RAM base"
 msgstr "Base de RAM"
 
-#: src/gui/widgets/assembly.cc:996
+#: src/gui/widgets/assembly.cc:1017
 msgid "Region"
 msgstr "Región"
 
-#: src/gui/widgets/assembly.cc:1005 src/gui/widgets/assembly.cc:1110
+#: src/gui/widgets/assembly.cc:1026 src/gui/widgets/assembly.cc:1131
 msgid "Symbols"
 msgstr "Símbolos"
 
-#: src/gui/widgets/assembly.cc:1026 src/gui/widgets/assembly.cc:1028
+#: src/gui/widgets/assembly.cc:1047 src/gui/widgets/assembly.cc:1049
 msgid "Add symbol"
 msgstr "Añadir símbolo"
 
-#: src/gui/widgets/assembly.cc:1029
+#: src/gui/widgets/assembly.cc:1050
 #, c-format
 msgid "Add symbol for address 0x%08x:"
 msgstr "Añadir símbolo para la dirección 0x%08x:"
 
-#: src/gui/widgets/assembly.cc:1031 src/gui/widgets/breakpoints.cc:242
+#: src/gui/widgets/assembly.cc:1052 src/gui/widgets/breakpoints.cc:242
 msgid "Add"
 msgstr "Añadir"
 
-#: src/gui/widgets/assembly.cc:1047
+#: src/gui/widgets/assembly.cc:1068
 #, c-format
 msgid "Assemble code for address 0x%08x:"
 msgstr "Ensamblar código para la dirección 0x%08x:"
 
 #. Clear items button
-#: src/gui/widgets/assembly.cc:1072 src/gui/widgets/console.cc:39
+#: src/gui/widgets/assembly.cc:1093 src/gui/widgets/console.cc:39
 #: src/gui/widgets/cputrace.cc:56 src/gui/widgets/dynarec_disassembly.cc:93
 #: src/gui/widgets/log.cc:127 src/gui/widgets/pio-cart.cc:41
 #: src/gui/widgets/typed_debugger.cc:795
 msgid "Clear"
 msgstr "Borrar"
 
-#: src/gui/widgets/assembly.cc:1074 src/gui/widgets/dynarec_disassembly.cc:76
+#: src/gui/widgets/assembly.cc:1095 src/gui/widgets/dynarec_disassembly.cc:76
 #: src/gui/widgets/gpudump.cc:100
 msgid "Close"
 msgstr "Cerrar"
 
-#: src/gui/widgets/assembly.cc:1111
+#: src/gui/widgets/assembly.cc:1132
 msgid "Refresh"
 msgstr "Actualizar"
 
-#: src/gui/widgets/assembly.cc:1113
+#: src/gui/widgets/assembly.cc:1134
 msgid "Filter"
 msgstr "Filtro"
 
-#: src/gui/widgets/assembly.cc:1129
+#: src/gui/widgets/assembly.cc:1150
 msgid "Code##{}{:08x}"
 msgstr "Código##{}{:08x}"
 
-#: src/gui/widgets/assembly.cc:1130
+#: src/gui/widgets/assembly.cc:1151
 msgid "Data##{}{:08x}"
 msgstr "Datos##{}{:08x}"
 

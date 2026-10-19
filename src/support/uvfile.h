@@ -58,7 +58,14 @@ class UvThreadOp : public UvThreadOpListType::Node {
         void setEmergencyExit() { m_emergencyExit = true; }
         UvThread() { PCSX::UvThreadOp::startThread(); }
         ~UvThread() {
-            if (!m_emergencyExit) PCSX::UvThreadOp::stopThread();
+            if (!m_emergencyExit) {
+                PCSX::UvThreadOp::stopThread();
+            } else {
+                // Not waiting for the loop is the point of an emergency exit, but a
+                // still-joinable static std::thread calls std::terminate when it is
+                // destroyed at process exit.
+                PCSX::UvThreadOp::s_uvThread.detach();
+            }
         }
 
       private:

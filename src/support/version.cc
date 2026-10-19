@@ -24,18 +24,18 @@ SOFTWARE.
 
 */
 
-// v1 wasm has no updater; version-wasm.cc supplies the stubs.
-#ifndef __EMSCRIPTEN__
-
 #include "support/version.h"
 
+#ifndef __EMSCRIPTEN__
 #include <uv.h>
+
+#include "support/uvfile.h"
+#endif
 
 #include <algorithm>
 
 #include "json.hpp"
 #include "support/container-file.h"
-#include "support/uvfile.h"
 
 void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     clear();
@@ -70,6 +70,9 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     updateInfoBase = getString("updateInfoBase");
     updateStorageUrl = getString("updateStorageUrl");
 }
+
+// v1 wasm has no updater; version-wasm.cc supplies the stubs.
+#ifndef __EMSCRIPTEN__
 
 float PCSX::Update::progress() {
     auto download = m_download.asA<UvFile>();
