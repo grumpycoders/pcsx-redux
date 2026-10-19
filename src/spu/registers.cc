@@ -314,9 +314,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                     reconstructEnvelope(ch, cycle);
                     cp.loop = (uint32_t)((val << 3) & ~0xf);
                     // Same rule as the mixer: the write holds once the third header fetch is past.
-                    if (sampleAfter(cycle) >= cp.serviceSample + AdpcmDecoder::kKeyOnHeaderFetches) {
-                        cp.ignoreLoop = true;
-                    }
+                    cp.ignoreLoop |= sampleAfter(cycle) >= cp.serviceSample + AdpcmDecoder::kKeyOnHeaderFetches;
                 }
             } break;
         }
