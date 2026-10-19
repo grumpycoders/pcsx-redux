@@ -51,18 +51,14 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     auto& cp = m_envelopeCheckpoint[ch];
     // Never keyed on, or a read stamped before the key-on: hardware reads 0 here.
     if (!cp.keyedOn || cycle < cp.keyOnCycle) return 0;
-    const uint64_t target = cycleToSample(cycle - cp.keyOnCycle);
 
-    // The envelope is frozen for the first KeyOnDelay samples after KEY ON - the
-    // mixer models this in synthesizeVoice by skipping adsr.step() while
-    // startupDelayActive(). The reconstruction has to model it too, or the setting
-    // silently applies to the audio path and not to what ENVX reports, and any
-    // measurement of the latency against this suite is a blind null. Measured
-    // 2026-09-07: it was exactly that, and the null looked like a real answer.
-    const uint64_t delay = (uint64_t)std::max(0, settings.get<KeyOnDelay>().value);
-    // Everything below counts STEPS TAKEN, not samples elapsed, so the frozen
-    // prefix stays out of the cache and out of the key-off comparison.
-    const uint64_t steps = target > delay ? target - delay : 0;
+    // The envelope's first step is the mixer's sample serviceSample + kKeyOnSilentSamples
+    // (see AdpcmDecoder::startKeyOn), and a step taken at sample s is visible from cycle
+    // s * cyclesPerSample. Everything below counts STEPS TAKEN, not samples elapsed, so
+    // the frozen prefix stays out of the cache and out of the key-off comparison.
+    const uint64_t firstStep = cp.serviceSample + AdpcmDecoder::kKeyOnSilentSamples;
+    const uint64_t now = cycleToSample(cycle);
+    const uint64_t steps = now >= firstStep ? now - firstStep + 1 : 0;
 
     // Copy the CPU-side shadow of the envelope for its CONFIGURATION only - attack/
     // decay/sustain/release rates, the exponential flags, the sustain level - as of
@@ -97,8 +93,9 @@ uint16_t PCSX::SPU::impl::reconstructEnvelope(int ch, uint64_t cycle) {
     // Expressed in STEPS, not samples, so it stays aligned with the frozen prefix.
     uint64_t releaseAt = UINT64_MAX;
     if (cp.keyOffCycle > cp.keyOnCycle) {
-        const uint64_t off = cycleToSample(cp.keyOffCycle - cp.keyOnCycle);
-        releaseAt = off > delay ? off - delay : 0;
+        // The mixer applies the key-off before its sample sampleAfter(keyOffCycle).
+        const uint64_t off = sampleAfter(cp.keyOffCycle);
+        releaseAt = off > firstStep ? off - firstStep : 0;
     }
 
     // A pitch-modulated voice's rate depends on the voice below it and is not
@@ -316,7 +313,8 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 if (cp.keyedOn) {
                     reconstructEnvelope(ch, cycle);
                     cp.loop = (uint32_t)((val << 3) & ~0xf);
-                    cp.ignoreLoop = true;
+                    // Same rule as the mixer: the write holds once the third header fetch is past.
+                    cp.ignoreLoop |= sampleAfter(cycle) >= cp.serviceSample + AdpcmDecoder::kKeyOnHeaderFetches;
                 }
             } break;
         }
@@ -439,7 +437,10 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
             case 14: {
                 // Align to a 16-byte boundary.
                 s_chan[ch].adpcm.setLoop(spuRamBase + ((uint32_t)((val << 3) & ~0xf)));
-                s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
+                // Until a new voice's third header fetch, the next loop-start flag still wins.
+                if (!s_chan[ch].data.get<Chan::New>().value && s_chan[ch].adpcm.repeatWriteLatches()) {
+                    s_chan[ch].data.get<Chan::IgnoreLoop>().value = true;
+                }
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice[%02i] ADPCM Repeat Address = %04x\n", ch, val);
             } break;
         }
@@ -827,6 +828,7 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val, uint64_t cycle) 
             cp.keyOnBlock = (uint32_t)(startAddr - spuRamBase);
             cp.keyOnLoop = loopAddr ? (uint32_t)(loopAddr - spuRamBase) : EnvelopeCheckpoint::kNoLoop;
             cp.keyOnCycle = cycle;
+            cp.serviceSample = AdpcmDecoder::keyOnServiceSample(sampleAfter(cycle));
             cp.keyOffCycle = 0;
             cp.keyedOn = true;
             cp.cachedSample = 0;
@@ -845,8 +847,6 @@ void PCSX::SPU::impl::SoundOnApply(int start, int end, uint16_t val) {
         if ((val & 1) && s_chan[ch].adpcm.start()) {
             s_chan[ch].data.get<Chan::IgnoreLoop>().value = false;
             s_chan[ch].data.get<Chan::New>().value = true;
-            // Key-on clears this voice's ENDX bit.
-            spuEndx &= ~(1u << ch);
             // Bitfield for faster testing.
             newChannelMask |= (1 << ch);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, Voice %02i ON\n", ch);
