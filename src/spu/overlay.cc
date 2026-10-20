@@ -54,7 +54,7 @@ std::shared_ptr<const PCSX::SPU::Overlay> PCSX::SPU::Overlay::fromSF2(const uint
         }
         Entry& e = overlay->m_entries[signature];
         e.pcm.assign(s.pcm.begin(), s.pcm.end());
-        e.ratio = double(s.sampleRate) / 44100.0 * std::exp2((60.0 - s.rootKey) / 12.0 - s.correction / 1200.0);
+        e.ratio = double(s.sampleRate) / 44100.0 * std::exp2((60.0 - s.rootKey) / 12.0 + s.correction / 1200.0);
         e.loops = s.loops;
         e.loopStart = s.loopStart;
         e.loopEnd = s.loopEnd;
