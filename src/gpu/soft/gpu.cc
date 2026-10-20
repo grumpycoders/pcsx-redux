@@ -434,10 +434,10 @@ void PCSX::SoftGPU::impl::exec(Poly<shading, shape, textured, blend, modulation>
                                                            prim->clutY());
                                 break;
                             case GPU::TexDepth::Tex16Bits:
-                                drawPoly3T<TexMode::Direct15>(x1, y1, x3, y3, x2, y2, prim->u[1], prim->v[1], prim->u[3],
-                                                              prim->v[3], prim->u[2], prim->v[2], 0, 0);
-                                drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
-                                                              prim->v[1], prim->u[2], prim->v[2], 0, 0);
+                                drawPoly3T<TexMode::Direct15>(x1, y1, x3, y3, x2, y2, prim->u[1], prim->v[1],
+                                                              prim->u[3], prim->v[3], prim->u[2], prim->v[2], 0, 0);
+                                drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0],
+                                                              prim->u[1], prim->v[1], prim->u[2], prim->v[2], 0, 0);
                                 break;
                         }
                     } else {
@@ -453,8 +453,8 @@ void PCSX::SoftGPU::impl::exec(Poly<shading, shape, textured, blend, modulation>
                                                            prim->clutY());
                                 break;
                             case GPU::TexDepth::Tex16Bits:
-                                drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
-                                                              prim->v[1], prim->u[2], prim->v[2], 0, 0);
+                                drawPoly3T<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0],
+                                                              prim->u[1], prim->v[1], prim->u[2], prim->v[2], 0, 0);
                                 break;
                         }
                     }
@@ -487,9 +487,9 @@ void PCSX::SoftGPU::impl::exec(Poly<shading, shape, textured, blend, modulation>
                                 break;
                             case GPU::TexDepth::Tex16Bits:
                                 drawPoly4TG<TexMode::Direct15>(x0, y0, x1, y1, x3, y3, x2, y2, prim->u[0], prim->v[0],
-                                                               prim->u[1], prim->v[1], prim->u[3], prim->v[3], prim->u[2],
-                                                               prim->v[2], 0, 0, prim->colors[0], prim->colors[1],
-                                                               prim->colors[2], prim->colors[3]);
+                                                               prim->u[1], prim->v[1], prim->u[3], prim->v[3],
+                                                               prim->u[2], prim->v[2], 0, 0, prim->colors[0],
+                                                               prim->colors[1], prim->colors[2], prim->colors[3]);
                                 break;
                         }
                     } else {
@@ -507,9 +507,9 @@ void PCSX::SoftGPU::impl::exec(Poly<shading, shape, textured, blend, modulation>
                                                             prim->colors[2]);
                                 break;
                             case GPU::TexDepth::Tex16Bits:
-                                drawPoly3TG<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0], prim->u[1],
-                                                               prim->v[1], prim->u[2], prim->v[2], 0, 0, prim->colors[0],
-                                                               prim->colors[1], prim->colors[2]);
+                                drawPoly3TG<TexMode::Direct15>(x0, y0, x1, y1, x2, y2, prim->u[0], prim->v[0],
+                                                               prim->u[1], prim->v[1], prim->u[2], prim->v[2], 0, 0,
+                                                               prim->colors[0], prim->colors[1], prim->colors[2]);
                                 break;
                         }
                     }
