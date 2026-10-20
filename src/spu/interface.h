@@ -351,7 +351,7 @@ class impl final : public SPUInterface {
     uint16_t spuMem[256 * 1024];
     // Byte-addressable view of spuMem; the base for every sound-RAM pointer and
     // for the offset math that stores/restores those pointers (e.g. savestates).
-    uint8_t *spuRamBase;
+    uint8_t *spuRamBase = nullptr;
     uint8_t *irqAddress = 0;
     uint8_t *spuBuffer;
     uint8_t *mixIrqAddress = 0;

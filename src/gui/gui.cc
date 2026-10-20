@@ -1792,7 +1792,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         if (m_spuRamEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
-            m_spuRamEditor.draw(g_emulator->m_spu->getSpuRam(), SPUInterface::c_spuRamSize);
+            // Null until the SPU has been init'd; the editor would otherwise read off a wild pointer.
+            auto *spuRam = g_emulator->m_spu->getSpuRam();
+            if (spuRam) m_spuRamEditor.draw(spuRam, SPUInterface::c_spuRamSize);
         }
         counter++;
         if (m_vramEditor.m_show) {
