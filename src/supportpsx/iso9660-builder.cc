@@ -72,6 +72,9 @@ std::vector<PCSX::ISO9660::DirTree*> sortedChildren(const PCSX::ISO9660::DirTree
     return children;
 }
 
+// A license file made of up to 16 whole sectors of 2336 bytes.
+bool isWholeLicenseSectors(ssize_t size) { return (size > 0) && (size <= 2336 * 16) && ((size % 2336) == 0); }
+
 }  // namespace
 
 void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
@@ -79,8 +82,7 @@ void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
         uint8_t licenseData[IEC60908b::FRAMESIZE_RAW * 16];
         memset(licenseData, 0, sizeof(licenseData));
         auto size = licenseFile->read(licenseData, sizeof(licenseData));
-        bool wholeSectors = (size > 0) && (size <= 2336 * 16) && ((size % 2336) == 0);
-        if ((licenseData[0x2492] == 'L') || wholeSectors) {
+        if ((licenseData[0x2492] == 'L') || isWholeLicenseSectors(size)) {
             // official license file from the sdk, in 2336 bytes per sector.
             // It's unfortunately usually mangled badly, and we need to massage it.
             // A file made of whole 2336-byte sectors is taken as the same format,
