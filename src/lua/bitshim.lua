@@ -7,7 +7,7 @@
 -- without `bit` that is an index of a nil value which kills the whole chunk.
 --
 -- The body uses the 5.3 bitwise operators directly. That is safe on BOTH
--- backends: the vendored grumpycoders/LuaJIT parses them (lj_lex.c emits '&',
+-- backends: the vendored pcsx-redux/LuaJIT parses them (lj_lex.c emits '&',
 -- '|', TK_shl, TK_shr; lj_parse.c has OPR_BAND..OPR_BSAR), so no load() wrapper
 -- or build-time branch is needed. Do not check this against a distro luajit -
 -- stock LuaJIT 2.1 rejects them with "unexpected symbol near '&'", which is a

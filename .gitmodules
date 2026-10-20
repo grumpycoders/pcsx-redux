@@ -21,7 +21,7 @@
 	url = https://github.com/exoticlibraries/libcester.git
 [submodule "third_party/luajit"]
 	path = third_party/luajit
-	url = https://github.com/grumpycoders/LuaJIT.git
+	url = https://github.com/pcsx-redux/LuaJIT.git
 [submodule "third_party/luv"]
 	path = third_party/luv
 	url = https://github.com/luvit/luv.git
@@ -69,7 +69,7 @@
 	url = https://github.com/iafonov/multipart-parser-c
 [submodule "third_party/luafilesystem"]
 	path = third_party/luafilesystem
-	url = https://github.com/nicolasnoble/luafilesystem.git
+	url = https://github.com/pcsx-redux/luafilesystem.git
 [submodule "third_party/luacov"]
 	path = third_party/luacov
 	url = https://github.com/pcsx-redux/luacov.git
