@@ -502,7 +502,7 @@ class GUI final : public UI {
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
     Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value, settings.get<SPULoggerEnabled>().value};
-    Widgets::SPUSamples m_spuSamplesWidget{settings.get<ShowSPUSamples>().value};
+    Widgets::SPUSamples m_spuSamplesWidget;
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
     Widgets::AllocTrackerViewer m_allocTrackerViewer{settings.get<ShowAllocTracker>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
