@@ -348,6 +348,8 @@ typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo0"), 46> 
 typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo1"), 47> CDResponseFifo1;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaLeft"), 48> CDXALeft;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaRight"), 49> CDXARight;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("sectorReadSinceSeek"), 50> CDSectorReadSinceSeek;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("scexCountersReset"), 51> CDScexCountersReset;
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDDataFIFO, CDDataFIFOIndex, CDDataFIFOSize, CDDataFIFOPending, CDRegisterAddress, CDMotorOn,
     CDSpeedChanged, CDInvalidLocL, CDDataRequested, CDSubheaderFilter, CDRealtime, CDReadingState, CDStartPlaying,
@@ -355,7 +357,7 @@ typedef Protobuf::Message<
     CDSpeed, CDReadSpan, CDInterruptCauseMask, CDATV, CDATVPending, CDADPCMMuted, CDMode, CDFilterFile, CDFilterChannel,
     CDXAEnded, CDXAFirstSector, CDSoundMapEnabled, CDCurrentPosition, CDSeekPosition, CDLastLocP, CDLastLocL, CDSeed,
     CDLidOpen, CDWasLidOpened, CDLidCloseScheduled, CDLidCloseAtCycles, CDCommandFifo, CDCommandExecuting,
-    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight>
+    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight, CDSectorReadSinceSeek, CDScexCountersReset>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
