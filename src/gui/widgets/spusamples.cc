@@ -55,8 +55,12 @@ std::vector<uint8_t> PCSX::Widgets::SPUSamples::exportSF2(const uint8_t* spuRam,
                                                           const std::map<uint32_t, Sample>& samples) {
     std::vector<SF2::Sample> out;
     std::vector<float> pcm;
-    for (auto& [start, s] : samples) {
+    for (auto& [start, cached] : samples) {
+        // Sound RAM may have changed since the map was last rebuilt.
+        Sample s = cached;
+        static_cast<SPUSample::Extent&>(s) = SPUSample::walk(spuRam, start);
         if (s.truncated) continue;
+        s.signature = SPUSample::signature(spuRam, s);
         decode(spuRam, s, pcm);
         SF2::Sample& o = out.emplace_back();
         o.name = fmt::format("{:016x}", s.signature);

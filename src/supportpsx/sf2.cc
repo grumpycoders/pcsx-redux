@@ -31,6 +31,8 @@ constexpr uint16_t c_genSampleID = 53;
 constexpr uint16_t c_genSampleModes = 54;
 // Zero points the specification requires after each sample.
 constexpr uint32_t c_samplePad = 46;
+// Points the specification requires between the loop end and the sample end.
+constexpr uint32_t c_loopTail = 8;
 
 class Buffer {
   public:
@@ -98,6 +100,15 @@ std::vector<uint8_t> PCSX::SF2::write(const std::vector<Sample>& samples, const 
     for (uint16_t i = 0; i < samples.size(); i++) {
         const auto& s = samples[i];
         for (auto v : s.pcm) smpl.u16(uint16_t(v));
+        // A loop running to the very end of the data gets the samples that follow its end
+        // when played, which are the first ones of the loop.
+        uint32_t tail = 0;
+        if (s.loops && s.loopEnd > s.loopStart && s.loopEnd + c_loopTail > s.pcm.size()) {
+            tail = s.loopEnd + c_loopTail - uint32_t(s.pcm.size());
+            for (uint32_t k = 0; k < tail; k++) {
+                smpl.u16(uint16_t(s.pcm[s.loopStart + (s.pcm.size() - s.loopEnd + k) % (s.loopEnd - s.loopStart)]));
+            }
+        }
         for (uint32_t p = 0; p < c_samplePad; p++) smpl.u16(0);
 
         phdr.name(s.name);
@@ -127,12 +138,12 @@ std::vector<uint8_t> PCSX::SF2::write(const std::vector<Sample>& samples, const 
         igen.u16(i);
         igenCount++;
 
-        const uint32_t size = uint32_t(s.pcm.size());
+        const uint32_t size = uint32_t(s.pcm.size()) + tail;
         shdr.name(s.name);
         shdr.u32(offset);
         shdr.u32(offset + size);
         shdr.u32(offset + (s.loops ? s.loopStart : 0));
-        shdr.u32(offset + (s.loops ? s.loopEnd : size));
+        shdr.u32(offset + (s.loops ? s.loopEnd : uint32_t(s.pcm.size())));
         shdr.u32(s.sampleRate);
         shdr.u8(s.rootKey);
         shdr.u8(0);

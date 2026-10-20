@@ -125,9 +125,12 @@ TEST(SF2, LoadsBackWithTinySoundFont) {
         EXPECT_EQ(r.pitch_keycenter, 60);
         EXPECT_EQ(r.sample_rate, s.sampleRate);
         // tsf adds one to the end it reads; the file stores one past the last sample.
-        EXPECT_EQ(r.end - r.offset, s.pcm.size() + 1);
-        for (size_t i = 0; i < s.pcm.size(); i++) {
-            ASSERT_EQ(std::lround(font->fontSamples[r.offset + i] * 32767.0), s.pcm[i]) << "preset " << p;
+        // A loop ending at the last sample is followed by 8 points copied from the loop start.
+        const size_t tail = s.loops ? 8 : 0;
+        EXPECT_EQ(r.end - r.offset, s.pcm.size() + tail + 1);
+        for (size_t i = 0; i < s.pcm.size() + tail; i++) {
+            const int16_t expected = i < s.pcm.size() ? s.pcm[i] : s.pcm[s.loopStart + i - s.pcm.size()];
+            ASSERT_EQ(std::lround(font->fontSamples[r.offset + i] * 32767.0), expected) << "preset " << p << " " << i;
         }
         if (s.loops) {
             EXPECT_EQ(r.loop_mode, TSF_LOOPMODE_CONTINUOUS);
