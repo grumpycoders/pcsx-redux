@@ -97,6 +97,12 @@
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\spulogger.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\spusamples.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -229,6 +235,12 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\spulogger.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\spusamples.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\handlers.h">

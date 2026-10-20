@@ -1563,6 +1563,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 if (ImGui::BeginMenu(_("SPU"))) {
                     ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
                     ImGui::MenuItem(_("Show SPU logger"), nullptr, &m_spuLoggerWidget.m_show);
+                    ImGui::MenuItem(_("Show SPU samples"), nullptr, &m_spuSamplesWidget.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Network"), nullptr, &m_network.m_show);
@@ -1916,6 +1917,9 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     // Pushed unconditionally: capture follows the setting, not whether the window is open.
     g_emulator->m_spuLogger->enabled() = m_spuLoggerWidget.m_enabled;
     if (m_spuLoggerWidget.m_show) m_spuLoggerWidget.draw(g_emulator->m_spuLogger.get(), _("SPU Logger"));
+    if (m_spuSamplesWidget.m_show) {
+        m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));
+    }
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
