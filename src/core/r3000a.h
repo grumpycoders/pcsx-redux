@@ -421,6 +421,10 @@ class R3000Acpu {
     bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
+    // The next instruction is the delay slot of the branch at m_nextSlotBranchPC, taken or not.
+    // Only the interpreter sets these.
+    bool m_nextIsBranchSlot = false;
+    uint32_t m_nextSlotBranchPC = 0;
     struct {
         uint32_t index = 0;
         uint32_t value = 0;
@@ -466,6 +470,7 @@ class R3000Acpu {
         m_regs.pc.raw() = value;
         m_nextIsDelaySlot = false;
         m_inDelaySlot = false;
+        m_nextIsBranchSlot = false;
         for (auto &delayedLoad : m_delayedLoadInfo) {
             delayedLoad.pcActive = false;
             delayedLoad.fromLink = false;

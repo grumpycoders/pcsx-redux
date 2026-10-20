@@ -102,6 +102,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 GtePendingCountdown{g_emulator->m_cpu->m_gtePending[2].countdown},
             },
             GtePendingCount{g_emulator->m_cpu->m_gtePendingCount},
+            NextIsBranchSlot{g_emulator->m_cpu->m_nextIsBranchSlot},
+            NextSlotBranchPC{g_emulator->m_cpu->m_nextSlotBranchPC},
         },
         GPU{},
         SPU{},
