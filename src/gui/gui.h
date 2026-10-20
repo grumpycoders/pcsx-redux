@@ -48,6 +48,7 @@
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpudump.h"
 #include "gui/widgets/gpulogger.h"
+#include "gui/widgets/spulogger.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
@@ -131,6 +132,8 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
+    typedef Setting<bool, TYPESTRING("ShowSPULogger")> ShowSPULogger;
+    typedef Setting<bool, TYPESTRING("SPULoggerEnabled")> SPULoggerEnabled;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
@@ -190,7 +193,7 @@ class GUI final : public UI {
              ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
              ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
-             ShowSPURAMEditor, SPURAMEditorAddr, ShowMsanViewer>
+             ShowSPURAMEditor, SPURAMEditorAddr, ShowSPULogger, SPULoggerEnabled, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -492,6 +495,8 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
+    Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value,
+                                         settings.get<SPULoggerEnabled>().value};
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
     Widgets::MsanViewer m_msanViewer{settings.get<ShowMsanViewer>().value};
