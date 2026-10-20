@@ -113,17 +113,17 @@ msgstr "Klar färg"
 msgid "Clear VRAM"
 msgstr "Rensa VRAM"
 
-#: src/core/cdrom.cc:1798
+#: src/core/cdrom.cc:1809
 #, c-format
 msgid "CD-ROM Label: %.32s\n"
 msgstr "CD-ROM-etikett: %.32s\n"
 
-#: src/core/cdrom.cc:1799
+#: src/core/cdrom.cc:1810
 #, c-format
 msgid "CD-ROM ID: %.9s\n"
 msgstr "CD-ROM-ID: %.9s\n"
 
-#: src/core/cdrom.cc:1800
+#: src/core/cdrom.cc:1811
 #, c-format
 msgid "CD-ROM EXE Name: %.255s\n"
 msgstr "CD-ROM EXE-namn: %.255s\n"
@@ -576,7 +576,7 @@ msgstr "Okänd tangent {}"
 msgid "Keyboard {}"
 msgstr "Tangentbord {}"
 
-#: src/core/pad.cc:1342 src/gui/gui.cc:2312
+#: src/core/pad.cc:1342 src/gui/gui.cc:2331
 msgid "Auto"
 msgstr "Auto"
 
@@ -1070,7 +1070,7 @@ msgstr ""
 msgid "FFmpeg information"
 msgstr "FFmpeg-information"
 
-#: src/gui/gui-about-ffmpeg.cc:45 src/gui/gui.cc:2481
+#: src/gui/gui-about-ffmpeg.cc:45 src/gui/gui.cc:2500
 #, c-format
 msgid "Version: %s"
 msgstr "Version: %s"
@@ -1101,7 +1101,7 @@ msgstr ""
 msgid "%s codecs"
 msgstr "%s-kodekar"
 
-#: src/gui/gui.cc:172 src/gui/gui.cc:1302 src/gui/widgets/isobrowser.cc:541
+#: src/gui/gui.cc:172 src/gui/gui.cc:1304 src/gui/widgets/isobrowser.cc:541
 #: src/gui/widgets/isobrowser.h:50
 msgid "Open Disk Image"
 msgstr "Öppna diskavbildning"
@@ -1178,218 +1178,222 @@ msgstr "Hårdvaruregister"
 msgid "VRAM"
 msgstr "VRAM"
 
-#: src/gui/gui.cc:1263
+#: src/gui/gui.cc:808
+msgid "SPU RAM"
+msgstr ""
+
+#: src/gui/gui.cc:1265
 msgid "Output"
 msgstr "Utmatning"
 
-#: src/gui/gui.cc:1301 src/gui/widgets/assembly.cc:493
+#: src/gui/gui.cc:1303 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:504 src/gui/widgets/isobrowser.cc:540
 #: src/gui/widgets/memcard_manager.cc:68 src/gui/widgets/vram-viewer.cc:608
 msgid "File"
 msgstr "Arkiv"
 
-#: src/gui/gui.cc:1304
+#: src/gui/gui.cc:1306
 msgid "Reload Disk Image"
 msgstr "Läs in skivavbilden igen"
 
-#: src/gui/gui.cc:1310 src/gui/widgets/isobrowser.cc:542
+#: src/gui/gui.cc:1312 src/gui/widgets/isobrowser.cc:542
 msgid "Close Disk Image"
 msgstr "Stäng diskavbildning"
 
-#: src/gui/gui.cc:1314
+#: src/gui/gui.cc:1316
 msgid "Load binary"
 msgstr "Läs in binärfil"
 
-#: src/gui/gui.cc:1317
+#: src/gui/gui.cc:1319
 msgid "Add Lua archive"
 msgstr "Lägg till Lua-arkiv"
 
-#: src/gui/gui.cc:1321
+#: src/gui/gui.cc:1323
 msgid "Dump save state proto schema"
 msgstr "Dumpa proto-schema för sparat tillstånd"
 
-#: src/gui/gui.cc:1326
+#: src/gui/gui.cc:1328
 msgid "global{}"
 msgstr "global{}"
 
-#: src/gui/gui.cc:1328
+#: src/gui/gui.cc:1330
 msgid "Save state slots"
 msgstr "Platser för sparade tillstånd"
 
-#: src/gui/gui.cc:1329
+#: src/gui/gui.cc:1331
 msgid "Quick-save slot"
 msgstr "Snabbsparplats"
 
-#: src/gui/gui.cc:1334 src/gui/gui.cc:1355
+#: src/gui/gui.cc:1336 src/gui/gui.cc:1357
 msgid "Slot {}"
 msgstr "Plats {}"
 
-#: src/gui/gui.cc:1341
+#: src/gui/gui.cc:1343
 msgid "Show named save states"
 msgstr "Visa namngivna sparningslägen"
 
-#: src/gui/gui.cc:1346
+#: src/gui/gui.cc:1348
 msgid "Save global state"
 msgstr "Spara globalt tillstånd"
 
-#: src/gui/gui.cc:1348
+#: src/gui/gui.cc:1350
 msgid "Load state slots"
 msgstr "Läs in tillståndsplatser"
 
-#: src/gui/gui.cc:1351
+#: src/gui/gui.cc:1353
 msgid "Quick-load slot"
 msgstr "Snabbmatningsfack"
 
-#: src/gui/gui.cc:1376
+#: src/gui/gui.cc:1378
 msgid "Load global state"
 msgstr "Läs in globalt tillstånd"
 
-#: src/gui/gui.cc:1380
+#: src/gui/gui.cc:1382
 msgid "Open LID"
 msgstr "Öppna locket"
 
-#: src/gui/gui.cc:1383
+#: src/gui/gui.cc:1385
 msgid "Close LID"
 msgstr "Stäng locket"
 
-#: src/gui/gui.cc:1386
+#: src/gui/gui.cc:1388
 msgid "Open and close LID"
 msgstr "Öppna och stäng locket"
 
-#: src/gui/gui.cc:1390
+#: src/gui/gui.cc:1392
 msgid "Reset settings..."
 msgstr "Återställ inställningar..."
 
-#: src/gui/gui.cc:1394
+#: src/gui/gui.cc:1396
 msgid "Reboot"
 msgstr "Starta om"
 
-#: src/gui/gui.cc:1397
+#: src/gui/gui.cc:1399
 msgid "Quit"
 msgstr "Avsluta"
 
-#: src/gui/gui.cc:1403 src/gui/gui.cc:1477
+#: src/gui/gui.cc:1405 src/gui/gui.cc:1479
 msgid "Emulation"
 msgstr "Emulering"
 
-#: src/gui/gui.cc:1404
+#: src/gui/gui.cc:1406
 msgid "Start emulation"
 msgstr "Starta emulering"
 
-#: src/gui/gui.cc:1407
+#: src/gui/gui.cc:1409
 msgid "Pause emulation"
 msgstr "Pausa emulering"
 
-#: src/gui/gui.cc:1410
+#: src/gui/gui.cc:1412
 msgid "Soft Reset"
 msgstr "Mjuk omstart"
 
-#: src/gui/gui.cc:1413
+#: src/gui/gui.cc:1415
 msgid "Hard Reset"
 msgstr "Hård omstart"
 
-#: src/gui/gui.cc:1416 src/gui/widgets/gpudump.cc:116
+#: src/gui/gui.cc:1418 src/gui/widgets/gpudump.cc:116
 msgid "Rewind"
 msgstr "Spola tillbaka"
 
-#: src/gui/gui.cc:1419
+#: src/gui/gui.cc:1421
 msgid "Take Screenshot"
 msgstr ""
 
-#: src/gui/gui.cc:1425 src/gui/widgets/cdrom-viewer.cc:370
+#: src/gui/gui.cc:1427 src/gui/widgets/cdrom-viewer.cc:370
 #: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
 msgid "Configuration"
 msgstr "Konfiguration"
 
-#: src/gui/gui.cc:1426
+#: src/gui/gui.cc:1428
 msgid "Fullscreen"
 msgstr "Helskärm"
 
-#: src/gui/gui.cc:1430
+#: src/gui/gui.cc:1432
 msgid "Full window render"
 msgstr "Fullständig fönsterrendering"
 
-#: src/gui/gui.cc:1436
+#: src/gui/gui.cc:1438
 msgid "Shader presets"
 msgstr "Förinställda shaders"
 
-#: src/gui/gui.cc:1437
+#: src/gui/gui.cc:1439
 msgid "Default shader"
 msgstr "Standardshader"
 
-#: src/gui/gui.cc:1440
+#: src/gui/gui.cc:1442
 msgid "CRT-lottes shader"
 msgstr "CRT-lottes shader"
 
-#: src/gui/gui.cc:1467
+#: src/gui/gui.cc:1469
 msgid "Configure Shaders"
 msgstr "Konfigurera shaders"
 
-#: src/gui/gui.cc:1472
+#: src/gui/gui.cc:1474
 msgid "Controls"
 msgstr "Kontroller"
 
-#: src/gui/gui.cc:1473
+#: src/gui/gui.cc:1475
 msgid "Manage Memory Cards"
 msgstr "Hantera minneskort"
 
-#: src/gui/gui.cc:1478 src/gui/gui.cc:1547
+#: src/gui/gui.cc:1480 src/gui/gui.cc:1550
 msgid "GPU"
 msgstr "GPU"
 
-#: src/gui/gui.cc:1479 src/gui/gui.cc:1564
+#: src/gui/gui.cc:1481 src/gui/gui.cc:1567
 msgid "SPU"
 msgstr "SPU"
 
-#: src/gui/gui.cc:1480
+#: src/gui/gui.cc:1482
 msgid "PIO Cartridge"
 msgstr "PIO-kassett"
 
-#: src/gui/gui.cc:1482
+#: src/gui/gui.cc:1484
 msgid "UI"
 msgstr "Användargränssnitt"
 
-#: src/gui/gui.cc:1483 src/gui/widgets/isobrowser.cc:522
+#: src/gui/gui.cc:1485 src/gui/widgets/isobrowser.cc:522
 msgid "System"
 msgstr "System"
 
-#: src/gui/gui.cc:1487 src/gui/widgets/assembly.cc:500
+#: src/gui/gui.cc:1489 src/gui/widgets/assembly.cc:500
 msgid "Debug"
 msgstr "Felsök"
 
-#: src/gui/gui.cc:1488
+#: src/gui/gui.cc:1490
 msgid "Show Logs"
 msgstr "Visa loggar"
 
-#: src/gui/gui.cc:1490
+#: src/gui/gui.cc:1492
 msgid "Show Lua Console"
 msgstr "Visa Lua-konsolen"
 
-#: src/gui/gui.cc:1491
+#: src/gui/gui.cc:1493
 msgid "Show Lua Inspector"
 msgstr "Visa Lua Inspector"
 
-#: src/gui/gui.cc:1492
+#: src/gui/gui.cc:1494
 msgid "Show Lua editor"
 msgstr "Visa Lua-redigeraren"
 
-#: src/gui/gui.cc:1496
+#: src/gui/gui.cc:1498
 msgid "CPU"
 msgstr "CPU"
 
-#: src/gui/gui.cc:1497
+#: src/gui/gui.cc:1499
 msgid "Show Registers"
 msgstr "Visa register"
 
-#: src/gui/gui.cc:1498
+#: src/gui/gui.cc:1500
 msgid "Show Assembly"
 msgstr "Visa Assembly"
 
-#: src/gui/gui.cc:1500 src/gui/gui.cc:1502
+#: src/gui/gui.cc:1502 src/gui/gui.cc:1504
 msgid "Show DynaRec Disassembly"
 msgstr "Visa DynaRec Disassembly"
 
-#: src/gui/gui.cc:1504
+#: src/gui/gui.cc:1506
 msgid ""
 "DynaRec Disassembler is not available in Interpreted CPU mode. Try enabling "
 "[Dynarec CPU]\n"
@@ -1399,343 +1403,362 @@ msgstr ""
 "aktivera [Dynarec CPU]\n"
 "i Konfiguration->Emulering, starta om PCSX-Redux och försök igen."
 
-#: src/gui/gui.cc:1507
+#: src/gui/gui.cc:1509
 #, fuzzy
 msgid "Show CPU Trace"
 msgstr "CPU-spårning"
 
-#: src/gui/gui.cc:1508
+#: src/gui/gui.cc:1510
 msgid "Show Breakpoints"
 msgstr "Visa brytpunkter"
 
-#: src/gui/gui.cc:1509
+#: src/gui/gui.cc:1511
 msgid "Show Callstacks"
 msgstr "Visa anropsstackar"
 
-#: src/gui/gui.cc:1510
+#: src/gui/gui.cc:1512
 msgid "Memory Editors"
 msgstr "Minnesredigerare"
 
-#: src/gui/gui.cc:1521
+#: src/gui/gui.cc:1524
 msgid "Show Memory Observer"
 msgstr "Visa minnesobservatör"
 
-#: src/gui/gui.cc:1522
+#: src/gui/gui.cc:1525
 msgid "Show RAM viewer"
 msgstr "Visa RAM-visare"
 
-#: src/gui/gui.cc:1523
+#: src/gui/gui.cc:1526
 msgid "Show MSAN Viewer"
 msgstr "Visa MSAN-visare"
 
-#: src/gui/gui.cc:1524
+#: src/gui/gui.cc:1527
 msgid "Show Typed Debugger"
 msgstr "Visa typad felsökare"
 
-#: src/gui/gui.cc:1525
+#: src/gui/gui.cc:1528
 msgid "Show Patches"
 msgstr "Visa ändringar"
 
-#: src/gui/gui.cc:1526
+#: src/gui/gui.cc:1529
 msgid "Show Interrupts Scaler"
 msgstr "Visa avbrottsskalare"
 
-#: src/gui/gui.cc:1527
+#: src/gui/gui.cc:1530
 msgid "First Chance Exceptions"
 msgstr "Första chans-undantag"
 
-#: src/gui/gui.cc:1548
+#: src/gui/gui.cc:1551
 msgid "VRAM viewers"
 msgstr "VRAM-visare"
 
-#: src/gui/gui.cc:1549
+#: src/gui/gui.cc:1552
 msgid "Show main VRAM viewer"
 msgstr "Visa huvudsaklig VRAM-visare"
 
-#: src/gui/gui.cc:1550
+#: src/gui/gui.cc:1553
 msgid "Show CLUT VRAM viewer"
 msgstr "Visa CLUT VRAM-visare"
 
-#: src/gui/gui.cc:1553
+#: src/gui/gui.cc:1556
 msgid "Show VRAM viewer #"
 msgstr "Visa VRAM-visare #"
 
-#: src/gui/gui.cc:1559
+#: src/gui/gui.cc:1562
 msgid "Show GPU logger"
 msgstr "Visa GPU-loggar"
 
-#: src/gui/gui.cc:1560
+#: src/gui/gui.cc:1563
 msgid "Show GPU dump recorder / player"
 msgstr "Visa GPU-dumpinspelare/-spelare"
 
-#: src/gui/gui.cc:1561
+#: src/gui/gui.cc:1564
 msgid "Show GPU debug"
 msgstr "Visa GPU-felsökning"
 
-#: src/gui/gui.cc:1565
+#: src/gui/gui.cc:1568
 msgid "Show SPU debug"
 msgstr "Visa SPU-felsökning"
 
-#: src/gui/gui.cc:1568
+#: src/gui/gui.cc:1569
+#, fuzzy
+msgid "Show SPU logger"
+msgstr "Visa GPU-loggar"
+
+#: src/gui/gui.cc:1570
+#, fuzzy
+msgid "Show SPU samples"
+msgstr "Visa SPU-felsökning"
+
+#: src/gui/gui.cc:1573
 #, fuzzy
 msgid "Show Network"
 msgstr "Visa Lua-redigeraren"
 
-#: src/gui/gui.cc:1569
+#: src/gui/gui.cc:1574
 msgid "CD-Rom"
 msgstr "CD-ROM"
 
-#: src/gui/gui.cc:1570
+#: src/gui/gui.cc:1575
 msgid "Show Iso Browser"
 msgstr "Visa Iso-webbläsare"
 
-#: src/gui/gui.cc:1571
+#: src/gui/gui.cc:1576
 msgid "Show CD-ROM viewer"
 msgstr "Visa CD-ROM-visare"
 
-#: src/gui/gui.cc:1574
+#: src/gui/gui.cc:1579
 msgid "Misc hardware"
 msgstr "Övrigt hårdvara"
 
-#: src/gui/gui.cc:1575
+#: src/gui/gui.cc:1580
 msgid "Show HW Registers"
 msgstr "Visa hårdvaruregister"
 
-#: src/gui/gui.cc:1576
+#: src/gui/gui.cc:1581
 msgid "Show SIO1 debug"
 msgstr "Visa SIO1-felsökning"
 
-#: src/gui/gui.cc:1579
+#: src/gui/gui.cc:1584
 msgid "Show PSYQo heap viewer"
 msgstr "Visa PSYQo-heapvisare"
 
-#: src/gui/gui.cc:1581
+#: src/gui/gui.cc:1586
 msgid "Kernel"
 msgstr "Kärna"
 
-#: src/gui/gui.cc:1582
+#: src/gui/gui.cc:1587
 msgid "Kernel Events"
 msgstr "Kärnhändelser"
 
-#: src/gui/gui.cc:1583
+#: src/gui/gui.cc:1588
 msgid "Kernel Handlers"
 msgstr "Kärnhanterare"
 
-#: src/gui/gui.cc:1584 src/gui/gui.cc:1752
+#: src/gui/gui.cc:1589 src/gui/gui.cc:1757
 msgid "Kernel Calls"
 msgstr "Kärnanrop"
 
-#: src/gui/gui.cc:1587
+#: src/gui/gui.cc:1592
 msgid "Rendering"
 msgstr "Rendering"
 
-#: src/gui/gui.cc:1588
+#: src/gui/gui.cc:1593
 msgid "Show Output Shader Editor"
 msgstr "Visa redigerare för shader-utdata"
 
-#: src/gui/gui.cc:1589
+#: src/gui/gui.cc:1594
 msgid "Show Offscreen Shader Editor"
 msgstr "Visa skärmredigeraren för skuggning"
 
-#: src/gui/gui.cc:1590
+#: src/gui/gui.cc:1595
 msgid "Reset shaders"
 msgstr "Återställ shaders"
 
-#: src/gui/gui.cc:1598
+#: src/gui/gui.cc:1603
 msgid "Help"
 msgstr "Hjälp"
 
-#: src/gui/gui.cc:1599
+#: src/gui/gui.cc:1604
 msgid "Show ImGui Demo"
 msgstr "Visa ImGui-demo"
 
-#: src/gui/gui.cc:1600
+#: src/gui/gui.cc:1605
 msgid "Show ImPlot Demo"
 msgstr "Visa ImPlot-demonstration"
 
-#: src/gui/gui.cc:1602
+#: src/gui/gui.cc:1607
 msgid "Show UvFile information"
 msgstr "Visa UvFile-information"
 
-#: src/gui/gui.cc:1604 src/gui/gui.cc:2452
+#: src/gui/gui.cc:1609 src/gui/gui.cc:2471
 msgid "About"
 msgstr "Om"
 
-#: src/gui/gui.cc:1609
+#: src/gui/gui.cc:1614
 #, c-format
 msgid "CPU: %s"
 msgstr "CPU: %s"
 
-#: src/gui/gui.cc:1611 src/gui/widgets/isobrowser.cc:576
+#: src/gui/gui.cc:1616 src/gui/widgets/isobrowser.cc:576
 #, c-format
 msgid "GAME ID: %s"
 msgstr "SPEL-ID: %s"
 
-#: src/gui/gui.cc:1614
+#: src/gui/gui.cc:1619
 #, c-format
 msgid "%.2f FPS (%.2f ms)"
 msgstr "%.2f bilder/s (%.2f ms)"
 
-#: src/gui/gui.cc:1616
+#: src/gui/gui.cc:1621
 #, c-format
 msgid "%.2f guest FPS"
 msgstr "%.2f FPS för gästsystemet"
 
-#: src/gui/gui.cc:1619
+#: src/gui/gui.cc:1624
 #, c-format
 msgid "%.2f ms audio buffer (%i frames)"
 msgstr "%.2f ms ljudbuffert (%i ramar)"
 
-#: src/gui/gui.cc:1621
+#: src/gui/gui.cc:1626
 #, fuzzy
 msgctxt "Audio status"
 msgid "Idle"
 msgstr "Overksam"
 
-#: src/gui/gui.cc:1625
+#: src/gui/gui.cc:1630
 msgid "Turbo"
 msgstr ""
 
-#: src/gui/gui.cc:1728
+#: src/gui/gui.cc:1733
 msgid "Logs"
 msgstr "Loggar"
 
-#: src/gui/gui.cc:1734
+#: src/gui/gui.cc:1739
 msgid "Lua Console"
 msgstr "Lua-konsol"
 
-#: src/gui/gui.cc:1740
+#: src/gui/gui.cc:1745
 msgid "Lua Inspector"
 msgstr "Lua-inspektör"
 
-#: src/gui/gui.cc:1743
+#: src/gui/gui.cc:1748
 msgid "Lua Editor"
 msgstr "Lua-redigerare"
 
-#: src/gui/gui.cc:1746
+#: src/gui/gui.cc:1751
 msgid "Kernel events"
 msgstr "Kärnhändelser"
 
-#: src/gui/gui.cc:1749
+#: src/gui/gui.cc:1754
 msgid "Kernel handlers"
 msgstr "Kärnhanterare"
 
-#: src/gui/gui.cc:1755
+#: src/gui/gui.cc:1760
 msgid "Callstacks"
 msgstr "Callstacks"
 
-#: src/gui/gui.cc:1827
+#: src/gui/gui.cc:1840
 msgid "Memory Card Manager"
 msgstr "Minneskortshanterare"
 
-#: src/gui/gui.cc:1831 src/gui/widgets/registers.cc:84
+#: src/gui/gui.cc:1844 src/gui/widgets/registers.cc:84
 msgid "Registers"
 msgstr "Register"
 
-#: src/gui/gui.cc:1835
+#: src/gui/gui.cc:1848
 msgid "Assembly"
 msgstr "Assembly"
 
-#: src/gui/gui.cc:1839
+#: src/gui/gui.cc:1852
 msgid "DynaRec Disassembler"
 msgstr "DynaRec Disassembler"
 
-#: src/gui/gui.cc:1842
+#: src/gui/gui.cc:1855
 #, fuzzy
 msgid "CPU Trace"
 msgstr "CPU-spårning"
 
-#: src/gui/gui.cc:1845 src/gui/widgets/typed_debugger.cc:832
+#: src/gui/gui.cc:1858 src/gui/widgets/typed_debugger.cc:832
 #: src/gui/widgets/typed_debugger.cc:878 src/gui/widgets/typed_debugger.cc:931
 msgid "Breakpoints"
 msgstr "Brytpunkter"
 
-#: src/gui/gui.cc:1849
+#: src/gui/gui.cc:1862
 msgid "Patches"
 msgstr "Ändringar"
 
-#: src/gui/gui.cc:1853
+#: src/gui/gui.cc:1866
 msgid "Named Save States"
 msgstr "Namngivna sparlägen"
 
-#: src/gui/gui.cc:1857 src/gui/widgets/memory_observer.cc:382
+#: src/gui/gui.cc:1870 src/gui/widgets/memory_observer.cc:382
 #: src/gui/widgets/memory_observer.cc:388
 msgid "Memory Observer"
 msgstr "Minnesobservatör"
 
-#: src/gui/gui.cc:1861
+#: src/gui/gui.cc:1874
 msgid "MSAN Viewer"
 msgstr "MSAN-visare"
 
-#: src/gui/gui.cc:1865 src/gui/widgets/typed_debugger.cc:1028
+#: src/gui/gui.cc:1878 src/gui/widgets/typed_debugger.cc:1028
 msgid "Typed Debugger"
 msgstr "Typad felsökare"
 
-#: src/gui/gui.cc:1871
+#: src/gui/gui.cc:1884
 msgid "Output Video"
 msgstr "Utgångsvideo"
 
-#: src/gui/gui.cc:1876
+#: src/gui/gui.cc:1889
 msgid "Offscreen Render"
 msgstr "Offscreen-rendering"
 
-#: src/gui/gui.cc:1882
+#: src/gui/gui.cc:1895
 msgid "PIO Cartridge Configuration"
 msgstr "Konfiguration för PIO-kassett"
 
-#: src/gui/gui.cc:1886
+#: src/gui/gui.cc:1899
 msgid "HW Registers"
 msgstr "Hårdvaruregister"
 
-#: src/gui/gui.cc:1890
+#: src/gui/gui.cc:1903
 msgid "SIO1 Debug"
 msgstr "SIO1 Felsökning"
 
-#: src/gui/gui.cc:1894
+#: src/gui/gui.cc:1907
 msgid "ISO Browser"
 msgstr "ISO-bläddrare"
 
-#: src/gui/gui.cc:1897
+#: src/gui/gui.cc:1910
 msgid "Network"
 msgstr ""
 
-#: src/gui/gui.cc:1906
+#: src/gui/gui.cc:1919
 msgid "GPU Logger"
 msgstr "GPU-logger"
 
-#: src/gui/gui.cc:1907
+#: src/gui/gui.cc:1920
 msgid "GPU Dump"
 msgstr "GPU-dump"
 
-#: src/gui/gui.cc:1908
+#: src/gui/gui.cc:1923
+#, fuzzy
+msgid "SPU Logger"
+msgstr "GPU-logger"
+
+#: src/gui/gui.cc:1925
+msgid "SPU Samples"
+msgstr ""
+
+#: src/gui/gui.cc:1927
 msgid "PSYQo Heap Viewer"
 msgstr "PSYQo-heapvisare"
 
-#: src/gui/gui.cc:1911
+#: src/gui/gui.cc:1930
 msgid "UI Configuration"
 msgstr "Grafisk gränssnittskonfiguration"
 
-#: src/gui/gui.cc:1917
+#: src/gui/gui.cc:1936
 msgid "Locale"
 msgstr "Locale"
 
-#: src/gui/gui.cc:1932
+#: src/gui/gui.cc:1951
 msgid "Reload locales"
 msgstr "Läs in om lokaliseringar"
 
-#: src/gui/gui.cc:1937
+#: src/gui/gui.cc:1956
 msgid "Main Font Size"
 msgstr "Huvudteckensnittsstorlek"
 
-#: src/gui/gui.cc:1938
+#: src/gui/gui.cc:1957
 msgid "Mono Font Size"
 msgstr "Mono Teckenstorlek"
 
-#: src/gui/gui.cc:1940
+#: src/gui/gui.cc:1959
 msgid "Use Widescreen Aspect Ratio"
 msgstr "Använd bredbildsformat"
 
-#: src/gui/gui.cc:1941
+#: src/gui/gui.cc:1960
 msgid ""
 "Sets the output screen ratio to 16:9 instead of 4:3.\n"
 "\n"
@@ -1761,23 +1784,23 @@ msgstr ""
 "och kräver att användaren ändrar inställningarna på\n"
 "sin TV-apparat för att matcha spelets bildförhållande."
 
-#: src/gui/gui.cc:1960
+#: src/gui/gui.cc:1979
 msgid "System Configuration"
 msgstr "Systemkonfiguration"
 
-#: src/gui/gui.cc:1962
+#: src/gui/gui.cc:1981
 msgid "Preload Disk Image files"
 msgstr "Förladda diskavbildningsfiler"
 
-#: src/gui/gui.cc:1963
+#: src/gui/gui.cc:1982
 msgid "Enable Auto Update"
 msgstr "Aktivera automatisk uppdatering"
 
-#: src/gui/gui.cc:1970
+#: src/gui/gui.cc:1989
 msgid "Update configuration"
 msgstr "Uppdatera konfigurationen"
 
-#: src/gui/gui.cc:1971
+#: src/gui/gui.cc:1990
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
@@ -1808,19 +1831,19 @@ msgstr ""
 "Om du vill ändra inställningen senare går du till menyn\n"
 "Konfiguration -> System."
 
-#: src/gui/gui.cc:1984
+#: src/gui/gui.cc:2003
 msgid "Enable auto update"
 msgstr "Aktivera automatisk uppdatering"
 
-#: src/gui/gui.cc:1990
+#: src/gui/gui.cc:2009
 msgid "No thanks"
 msgstr "Nej tack"
 
-#: src/gui/gui.cc:1999
+#: src/gui/gui.cc:2018
 msgid "Update available"
 msgstr "Uppdatering tillgänglig"
 
-#: src/gui/gui.cc:2001
+#: src/gui/gui.cc:2020
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download and apply the update.\n"
@@ -1836,7 +1859,7 @@ msgstr ""
 "Klicka på ”Hämta” för att hämta uppdateringen med\n"
 "din webbläsare och installera den manuellt."
 
-#: src/gui/gui.cc:2008
+#: src/gui/gui.cc:2027
 msgid ""
 "An update is available.\n"
 "Click 'Update' to download it. While the update can be\n"
@@ -1856,13 +1879,13 @@ msgstr ""
 "Klicka på \"Läs in ner\" för att använda din webbläsare för att\n"
 "ladda ner uppdateringen och installera den manuellt."
 
-#: src/gui/gui.cc:2019
+#: src/gui/gui.cc:2038
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Update"
 msgstr "Uppdatera"
 
-#: src/gui/gui.cc:2031 src/gui/gui.cc:2036
+#: src/gui/gui.cc:2050 src/gui/gui.cc:2055
 msgid ""
 "An error has occured while downloading\n"
 "and/or applying the update."
@@ -1870,53 +1893,53 @@ msgstr ""
 "Ett fel har uppstått vid hämtning\n"
 "och/eller installation av uppdateringen."
 
-#: src/gui/gui.cc:2042
+#: src/gui/gui.cc:2061
 #, fuzzy
 msgctxt "Update dialog button"
 msgid "Download"
 msgstr "Ladda ner"
 
-#: src/gui/gui.cc:2052
+#: src/gui/gui.cc:2071
 msgid "An error has occured while downloading the update."
 msgstr "Ett fel har uppstått vid nedladdningen av uppdateringen."
 
-#: src/gui/gui.cc:2058 src/gui/gui.cc:2162 src/gui/widgets/assembly.cc:1058
+#: src/gui/gui.cc:2077 src/gui/gui.cc:2181 src/gui/widgets/assembly.cc:1058
 #: src/gui/widgets/gpudump.cc:85 src/gui/widgets/sio1.cc:202
 msgid "Cancel"
 msgstr "Avbryt"
 
-#: src/gui/gui.cc:2067
+#: src/gui/gui.cc:2086
 msgid "UvFiles"
 msgstr "UvFiles"
 
-#: src/gui/gui.cc:2070
+#: src/gui/gui.cc:2089
 #, c-format
 msgid "Read rate: %s"
 msgstr "Läsfrekvens: %s"
 
-#: src/gui/gui.cc:2072
+#: src/gui/gui.cc:2091
 #, c-format
 msgid "Write rate: %s"
 msgstr "Skrivfrekvens: %s"
 
-#: src/gui/gui.cc:2074
+#: src/gui/gui.cc:2093
 #, c-format
 msgid "Download rate: %s"
 msgstr "Nedladdningshastighet: %s"
 
-#: src/gui/gui.cc:2076
+#: src/gui/gui.cc:2095
 msgid "Caching"
 msgstr "Mellanlagring"
 
-#: src/gui/gui.cc:2077 src/gui/widgets/memcard_manager.cc:206
+#: src/gui/gui.cc:2096 src/gui/widgets/memcard_manager.cc:206
 msgid "Filename"
 msgstr "Filnamn"
 
-#: src/gui/gui.cc:2147 src/gui/gui.cc:2150
+#: src/gui/gui.cc:2166 src/gui/gui.cc:2169
 msgid "Reset settings"
 msgstr "Återställ inställningar"
 
-#: src/gui/gui.cc:2152
+#: src/gui/gui.cc:2171
 msgid ""
 "This will restore every setting to its default value, including the window "
 "layout, the input bindings, the paths to the BIOS and the memory cards, and "
@@ -1934,36 +1957,36 @@ msgstr ""
 "\n"
 "Emulatorn startas om för att slutföra åtgärden."
 
-#: src/gui/gui.cc:2157
+#: src/gui/gui.cc:2176
 msgid "Reset and reboot"
 msgstr "Återställ och starta om"
 
-#: src/gui/gui.cc:2223
+#: src/gui/gui.cc:2242
 msgid "Emulation Configuration"
 msgstr "Emuleringskonfiguration"
 
-#: src/gui/gui.cc:2224
+#: src/gui/gui.cc:2243
 msgid "Idle Swap Interval"
 msgstr "Intervall för idle swap"
 
 #. Emulation speed now lives at the audio sink (SPU::Speed), set in the SPU configuration window.
-#: src/gui/gui.cc:2230
+#: src/gui/gui.cc:2249
 msgid "Enable XA decoder"
 msgstr "Aktivera XA-avkodare"
 
-#: src/gui/gui.cc:2231
+#: src/gui/gui.cc:2250
 msgid "Always enable SPU IRQ"
 msgstr "Aktivera alltid SPU IRQ"
 
-#: src/gui/gui.cc:2232
+#: src/gui/gui.cc:2251
 msgid "Decode MDEC videos in B&W"
 msgstr "Avkoda MDEC-videor i &svartvitt"
 
-#: src/gui/gui.cc:2233
+#: src/gui/gui.cc:2252
 msgid "Dynarec CPU"
 msgstr "Dynarec CPU"
 
-#: src/gui/gui.cc:2241
+#: src/gui/gui.cc:2260
 msgid ""
 "Activates the dynamic recompiler CPU core.\n"
 "It is significantly faster than the interpreted CPU,\n"
@@ -1979,11 +2002,11 @@ msgstr ""
 "är inte tillgänglig för alla CPU:er, så den här inställningen\n"
 "kanske inte har någon effekt för dig."
 
-#: src/gui/gui.cc:2247
+#: src/gui/gui.cc:2266
 msgid "8MB"
 msgstr "8 MB"
 
-#: src/gui/gui.cc:2248
+#: src/gui/gui.cc:2267
 msgid ""
 "Emulates an installed 8MB system,\n"
 "instead of the normal 2MB. Useful for working\n"
@@ -1993,11 +2016,11 @@ msgstr ""
 "istället för det normala 2 MB-systemet. Användbart\n"
 "för arbete med utvecklingsbinärer och spel."
 
-#: src/gui/gui.cc:2251
+#: src/gui/gui.cc:2270
 msgid "Memory Fill Value"
 msgstr "Utfyllnadsvärde för minne"
 
-#: src/gui/gui.cc:2254
+#: src/gui/gui.cc:2273
 msgid ""
 "The SDRAM of the console will be\n"
 "filled with this value at startup.\n"
@@ -2015,11 +2038,11 @@ msgstr ""
 "av oinitierade minnesläsningar som i vissa fall\n"
 "kan orsaka problem.\n"
 
-#: src/gui/gui.cc:2262
+#: src/gui/gui.cc:2281
 msgid "OpenGL GPU *ALPHA STATE*"
 msgstr "OpenGL GPU *ALPHA STATE*"
 
-#: src/gui/gui.cc:2268
+#: src/gui/gui.cc:2287
 msgid ""
 "Enables the OpenGL GPU renderer.\n"
 "This is not recommended for normal use at the moment,\n"
@@ -2033,12 +2056,12 @@ msgstr ""
 "att använda mjukvarurenderaren istället.\n"
 "Kräver omstart när denna inställning ändras."
 
-#: src/gui/gui.cc:2273
+#: src/gui/gui.cc:2292
 #, fuzzy
 msgid "2MB VRAM"
 msgstr "VRAM"
 
-#: src/gui/gui.cc:2279
+#: src/gui/gui.cc:2298
 msgid ""
 "Emulates a console fitted with 2MB of VRAM\n"
 "instead of the stock 1MB, exposing the upper bank through\n"
@@ -2048,15 +2071,15 @@ msgid ""
 "changing this setting."
 msgstr ""
 
-#: src/gui/gui.cc:2289
+#: src/gui/gui.cc:2308
 msgid "Rewind capture interval (frames; 0 = disabled)"
 msgstr ""
 
-#: src/gui/gui.cc:2294
+#: src/gui/gui.cc:2313
 msgid "Rewind history depth (snapshots)"
 msgstr ""
 
-#: src/gui/gui.cc:2298
+#: src/gui/gui.cc:2317
 msgid ""
 "Captures an in-memory save state every N frames\n"
 "and keeps the last M of them; press Backspace (or\n"
@@ -2066,23 +2089,23 @@ msgid ""
 "interval to 0 to disable."
 msgstr ""
 
-#: src/gui/gui.cc:2312
+#: src/gui/gui.cc:2331
 msgid "NTSC"
 msgstr "NTSC"
 
-#: src/gui/gui.cc:2312
+#: src/gui/gui.cc:2331
 msgid "PAL"
 msgstr "PAL"
 
-#: src/gui/gui.cc:2315
+#: src/gui/gui.cc:2334
 msgid "System Type"
 msgstr "Systemtyp"
 
-#: src/gui/gui.cc:2334
+#: src/gui/gui.cc:2353
 msgid "Fast boot"
 msgstr "Snabb uppstart"
 
-#: src/gui/gui.cc:2335
+#: src/gui/gui.cc:2354
 msgid ""
 "This will cause the BIOS to skip the shell,\n"
 "which may include additional checks.\n"
@@ -2094,15 +2117,15 @@ msgstr ""
 "Det gör också att starttiden blir betydligt\n"
 "snabbare eftersom logotypen inte visas."
 
-#: src/gui/gui.cc:2340
+#: src/gui/gui.cc:2359
 msgid "BIOS file"
 msgstr "BIOS-fil"
 
-#: src/gui/gui.cc:2344 src/gui/widgets/assembly.cc:557
+#: src/gui/gui.cc:2363 src/gui/widgets/assembly.cc:557
 msgid "Enable Debugger"
 msgstr "Aktivera felsökare"
 
-#: src/gui/gui.cc:2351
+#: src/gui/gui.cc:2370
 msgid ""
 "This will enable the usage of various breakpoints\n"
 "throughout the execution of mips code. Enabling this\n"
@@ -2112,60 +2135,60 @@ msgstr ""
 "körningen av MIPS-kod. Att aktivera detta\n"
 "kan göra emuleringen märkbart långsammare."
 
-#: src/gui/gui.cc:2354
+#: src/gui/gui.cc:2373
 msgid "Network servers and clients now live in their own window."
 msgstr ""
 
-#: src/gui/gui.cc:2355
+#: src/gui/gui.cc:2374
 #, fuzzy
 msgid "Open Network settings"
 msgstr "Återställ inställningar"
 
-#: src/gui/gui.cc:2406
+#: src/gui/gui.cc:2425
 msgid "Scheduler Scaler"
 msgstr ""
 
-#: src/gui/gui.cc:2407
+#: src/gui/gui.cc:2426
 msgid "Reset all"
 msgstr "Nollställ allt"
 
-#: src/gui/gui.cc:2423
+#: src/gui/gui.cc:2442
 msgid "Cherry##Theme name"
 msgstr "Cherry##Temanamn"
 
-#: src/gui/gui.cc:2423
+#: src/gui/gui.cc:2442
 msgid "Classic##Theme name"
 msgstr "Klassisk##Temanamn"
 
-#: src/gui/gui.cc:2423
+#: src/gui/gui.cc:2442
 msgid "Default theme##Theme name"
 msgstr "Standardtema##Temans namn"
 
-#: src/gui/gui.cc:2423
+#: src/gui/gui.cc:2442
 msgid "Light##Theme name"
 msgstr "Ljus##Temanamn"
 
-#: src/gui/gui.cc:2424
+#: src/gui/gui.cc:2443
 msgid "Dracula##Theme name"
 msgstr "Dracula##Temanamn"
 
-#: src/gui/gui.cc:2424
+#: src/gui/gui.cc:2443
 msgid "Mono##Theme name"
 msgstr "Mono##Temanamn"
 
-#: src/gui/gui.cc:2424
+#: src/gui/gui.cc:2443
 msgid "Olive##Theme name"
 msgstr "Olive##Temanamn"
 
-#: src/gui/gui.cc:2429
+#: src/gui/gui.cc:2448
 msgid "Themes"
 msgstr "Teman"
 
-#: src/gui/gui.cc:2460 src/gui/gui.cc:2549
+#: src/gui/gui.cc:2479 src/gui/gui.cc:2568
 msgid "Version"
 msgstr "Version"
 
-#: src/gui/gui.cc:2467
+#: src/gui/gui.cc:2486
 msgid ""
 "No version information.\n"
 "\n"
@@ -2175,46 +2198,46 @@ msgstr ""
 "\n"
 "Troligen byggd från källkod."
 
-#: src/gui/gui.cc:2469
+#: src/gui/gui.cc:2488
 msgid "Copy to clipboard"
 msgstr "Kopiera till urklipp"
 
-#: src/gui/gui.cc:2483
+#: src/gui/gui.cc:2502
 #, c-format
 msgid "Build: %i"
 msgstr "Byggversion: %i"
 
-#: src/gui/gui.cc:2485
+#: src/gui/gui.cc:2504
 #, fuzzy
 msgid "Changeset:"
 msgstr "Ändringsuppsättning: "
 
-#: src/gui/gui.cc:2492
+#: src/gui/gui.cc:2511
 #, c-format
 msgid "Date & time: %s"
 msgstr "Datum och tid: %s"
 
-#: src/gui/gui.cc:2501
+#: src/gui/gui.cc:2520
 msgid "Authors"
 msgstr "Upphovspersoner"
 
-#: src/gui/gui.cc:2509
+#: src/gui/gui.cc:2528
 msgid "Licenses"
 msgstr "Licenser"
 
-#: src/gui/gui.cc:2521
+#: src/gui/gui.cc:2540
 msgid "OpenGL information"
 msgstr "OpenGL-information"
 
-#: src/gui/gui.cc:2523
+#: src/gui/gui.cc:2542
 msgid "OpenGL error reporting: enabled"
 msgstr "OpenGL-felrapportering: aktiverad"
 
-#: src/gui/gui.cc:2525
+#: src/gui/gui.cc:2544
 msgid "OpenGL error reporting: disabled"
 msgstr "OpenGL-felrapportering: inaktiverad"
 
-#: src/gui/gui.cc:2528
+#: src/gui/gui.cc:2547
 msgid ""
 "OpenGL error reporting has been disabled because your OpenGL driver is too "
 "old. Error reporting requires at least OpenGL 4.3. Please update your "
@@ -2230,11 +2253,11 @@ msgstr ""
 "inte prestandan för denna programvara, men användarkod som shader-"
 "redigeraren kommer inte att kunna rapportera problem korrekt."
 
-#: src/gui/gui.cc:2536
+#: src/gui/gui.cc:2555
 msgid "Enable OpenGL error reporting"
 msgstr "Aktivera OpenGL-felrapportering"
 
-#: src/gui/gui.cc:2539
+#: src/gui/gui.cc:2558
 msgid ""
 "OpenGL error reporting is necessary for properly reporting OpenGL problems. "
 "However it requires OpenGL 4.3+ and might have performance repercussions on "
@@ -2244,76 +2267,76 @@ msgstr ""
 "problem. Det kräver dock OpenGL 4.3+ och kan påverka prestandan på vissa "
 "datorer. (Kräver omstart av emulatorn)"
 
-#: src/gui/gui.cc:2543
+#: src/gui/gui.cc:2562
 msgid "OpenGL error reporting severity"
 msgstr "Allvarlighetsgrad för OpenGL-felrapportering"
 
-#: src/gui/gui.cc:2546
+#: src/gui/gui.cc:2565
 #, c-format
 msgid "Core profile: %s"
 msgstr "Kärnprofil: %s"
 
-#: src/gui/gui.cc:2546 src/gui/widgets/assembly.cc:590
+#: src/gui/gui.cc:2565 src/gui/widgets/assembly.cc:590
 msgid "no"
 msgstr "nej"
 
-#: src/gui/gui.cc:2546 src/gui/widgets/assembly.cc:590
+#: src/gui/gui.cc:2565 src/gui/widgets/assembly.cc:590
 msgid "yes"
 msgstr "ja"
 
-#: src/gui/gui.cc:2547
+#: src/gui/gui.cc:2566
 msgid "Vendor"
 msgstr "Tillverkare"
 
-#: src/gui/gui.cc:2548
+#: src/gui/gui.cc:2567
 msgid "Renderer"
 msgstr "Renderare"
 
-#: src/gui/gui.cc:2550
+#: src/gui/gui.cc:2569
 msgid "Shading language version"
 msgstr "Språkversion för skuggning"
 
-#: src/gui/gui.cc:2553
+#: src/gui/gui.cc:2572
 #, c-format
 msgid "Texture units: %d"
 msgstr "Texturenheter: %d"
 
-#: src/gui/gui.cc:2556
+#: src/gui/gui.cc:2575
 msgid "Extensions:"
 msgstr "Utökningar:"
 
-#: src/gui/gui.cc:2707
+#: src/gui/gui.cc:2726
 msgid "State saved to {}"
 msgstr ""
 
-#: src/gui/gui.cc:2709
+#: src/gui/gui.cc:2728
 #, fuzzy
 msgid "Failed to save state to {}"
 msgstr "Visa namngivna sparningslägen"
 
-#: src/gui/gui.cc:2720 src/gui/gui.cc:2742
+#: src/gui/gui.cc:2739 src/gui/gui.cc:2761
 #, fuzzy
 msgid "Failed to load state from {}"
 msgstr "Visa namngivna sparningslägen"
 
-#: src/gui/gui.cc:2745
+#: src/gui/gui.cc:2764
 msgid "State loaded from {}"
 msgstr ""
 
-#: src/gui/gui.cc:3016
+#: src/gui/gui.cc:3035
 msgid "Screenshot saved to {}\n"
 msgstr ""
 
-#: src/gui/gui.cc:3019
+#: src/gui/gui.cc:3038
 #, fuzzy
 msgid "Failed to save screenshot"
 msgstr "Visa namngivna sparningslägen"
 
-#: src/gui/gui.h:266
+#: src/gui/gui.h:275
 msgid "Ok"
 msgstr "Ok"
 
-#: src/gui/gui.h:519
+#: src/gui/gui.h:533
 msgid "Notification"
 msgstr "Avisering"
 
@@ -2576,7 +2599,7 @@ msgstr "Montera kod för adress 0x%08x:"
 #: src/gui/widgets/assembly.cc:1093 src/gui/widgets/console.cc:39
 #: src/gui/widgets/cputrace.cc:56 src/gui/widgets/dynarec_disassembly.cc:93
 #: src/gui/widgets/log.cc:127 src/gui/widgets/pio-cart.cc:41
-#: src/gui/widgets/typed_debugger.cc:795
+#: src/gui/widgets/spulogger.cc:33 src/gui/widgets/typed_debugger.cc:795
 msgid "Clear"
 msgstr "Töm"
 
@@ -2585,11 +2608,11 @@ msgstr "Töm"
 msgid "Close"
 msgstr "Stäng"
 
-#: src/gui/widgets/assembly.cc:1132
+#: src/gui/widgets/assembly.cc:1132 src/gui/widgets/spusamples.cc:129
 msgid "Refresh"
 msgstr "Uppdatera"
 
-#: src/gui/widgets/assembly.cc:1134
+#: src/gui/widgets/assembly.cc:1134 src/gui/widgets/spulogger.cc:48
 msgid "Filter"
 msgstr "Filtrera"
 
@@ -2689,8 +2712,8 @@ msgstr "Brytvillkor"
 
 #. 1
 #: src/gui/widgets/breakpoints.cc:228 src/gui/widgets/memory_observer.cc:289
-#: src/gui/widgets/sio1.cc:149 src/gui/widgets/typed_debugger.cc:830
-#: src/gui/widgets/typed_debugger.cc:876
+#: src/gui/widgets/sio1.cc:149 src/gui/widgets/spulogger.cc:76
+#: src/gui/widgets/typed_debugger.cc:830 src/gui/widgets/typed_debugger.cc:876
 msgid "Value"
 msgstr "Värde"
 
@@ -2971,6 +2994,7 @@ msgid "{} instructions ({:.2f} MiB)"
 msgstr ""
 
 #: src/gui/widgets/cputrace.cc:156 src/gui/widgets/log.cc:123
+#: src/gui/widgets/spulogger.cc:35
 msgid "Follow"
 msgstr "Följ"
 
@@ -3124,7 +3148,8 @@ msgctxt "Playback"
 msgid "Step"
 msgstr "Steg"
 
-#: src/gui/widgets/gpudump.cc:118
+#: src/gui/widgets/gpudump.cc:118 src/gui/widgets/spusamples.cc:150
+#: src/gui/widgets/spusamples.cc:199
 msgid "Loop"
 msgstr "Slinga"
 
@@ -3578,7 +3603,7 @@ msgctxt "Track position"
 msgid "Start"
 msgstr "Start"
 
-#: src/gui/widgets/isobrowser.cc:624
+#: src/gui/widgets/isobrowser.cc:624 src/gui/widgets/spulogger.cc:75
 msgid "Length"
 msgstr "Längd"
 
@@ -4367,6 +4392,97 @@ msgstr "Status"
 #: src/gui/widgets/sio1.cc:240
 msgid "Control"
 msgstr "Kontroll"
+
+#: src/gui/widgets/spulogger.cc:31
+#, fuzzy
+msgid "Enable"
+msgstr "Aktiverad"
+
+#: src/gui/widgets/spulogger.cc:43
+msgid "{} events, {} dropped"
+msgstr ""
+
+#: src/gui/widgets/spulogger.cc:45
+#, fuzzy
+msgid "{} events"
+msgstr "Kärnhändelser"
+
+#: src/gui/widgets/spulogger.cc:49
+#, fuzzy
+msgid "Filter by kind"
+msgstr "Filtrera efter pixel"
+
+#: src/gui/widgets/spulogger.cc:70
+msgid "Cycle"
+msgstr ""
+
+#: src/gui/widgets/spulogger.cc:71
+msgid "PC"
+msgstr ""
+
+#: src/gui/widgets/spulogger.cc:72
+msgid "Event"
+msgstr ""
+
+#: src/gui/widgets/spulogger.cc:73
+msgid "Voice"
+msgstr ""
+
+#: src/gui/widgets/spulogger.cc:74
+msgid "SPU addr"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:124
+msgid "The SPU is not initialized."
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:131
+#, fuzzy
+msgid "Auto refresh"
+msgstr "Uppdatera"
+
+#: src/gui/widgets/spusamples.cc:137
+msgid ""
+"Sample starts come from key on events. Enable the SPU logger to collect them."
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:139
+msgid "{} samples"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:147
+#, fuzzy
+msgid "Start"
+msgstr "Start"
+
+#: src/gui/widgets/spusamples.cc:148
+#, fuzzy
+msgid "End"
+msgstr "Aktiverad"
+
+#: src/gui/widgets/spusamples.cc:149
+msgid "Samples"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:151
+msgid "Key ons"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:152
+msgid "Voices"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:173
+msgid "repeat"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:175
+msgid "one shot"
+msgstr ""
+
+#: src/gui/widgets/spusamples.cc:194
+msgid "Sample"
+msgstr ""
 
 #: src/gui/widgets/typed_debugger.cc:144 src/gui/widgets/typed_debugger.cc:635
 msgid "Import data types"
