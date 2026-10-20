@@ -26,7 +26,9 @@
 #include "imgui.h"
 #include "implot/implot.h"
 #include "spu/adpcm.h"
+#include "spu/overlay.h"
 #include "support/file.h"
+#include "support/imgui-helpers.h"
 #include "supportpsx/sf2.h"
 
 namespace {
@@ -37,7 +39,9 @@ using PCSX::SPUSample::c_samplesPerBlock;
 }  // namespace
 
 PCSX::Widgets::SPUSamples::SPUSamples(bool& show, std::vector<std::string>& favorites)
-    : m_show(show), m_exportDialog(l_("Export SoundFont"), favorites) {}
+    : m_show(show),
+      m_exportDialog(l_("Export SoundFont"), favorites),
+      m_overlayDialog(l_("Load replacement SoundFont"), favorites) {}
 
 void PCSX::Widgets::SPUSamples::decode(const uint8_t* spuRam, const Sample& sample, std::vector<float>& out) {
     out.clear();
@@ -147,9 +151,26 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
                                "(pitch 1000h, 44100 Hz)."));
     if (!m_exportStatus.empty()) ImGui::TextUnformatted(m_exportStatus.c_str());
 
+    auto overlay = g_emulator->m_spu->getOverlay();
+    if (ImGui::Button(_("Load replacements..."))) m_overlayDialog.openDialog();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!overlay);
+    if (ImGui::Button(_("Clear replacements"))) {
+        g_emulator->m_spu->setOverlay(nullptr);
+        overlay.reset();
+        m_overlayStatus.clear();
+    }
+    ImGui::EndDisabled();
+    ImGuiHelpers::ShowHelpMarker(
+        _("Load a SoundFont whose sample names are signatures, such as an edited export. Each key on of a "
+          "sample with a matching signature plays the replacement instead; the original keeps running "
+          "underneath for everything but the sound. A replacement is tuned so that its root key plays at "
+          "pitch 1000h."));
+    if (!m_overlayStatus.empty()) ImGui::TextUnformatted(m_overlayStatus.c_str());
+
     const float tableHeight = ImGui::GetContentRegionAvail().y * 0.4f;
     if (ImGui::BeginTable(
-            "SPUSamples", 7,
+            "SPUSamples", 8,
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit,
             ImVec2(0, tableHeight))) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -160,6 +181,7 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
         ImGui::TableSetupColumn(_("Key ons"));
         ImGui::TableSetupColumn(_("Voices"));
         ImGui::TableSetupColumn(_("Signature"));
+        ImGui::TableSetupColumn(_("Replaced"));
         ImGui::TableHeadersRow();
 
         for (auto& [start, s] : m_samples) {
@@ -200,6 +222,8 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
             } else {
                 ImGui::TextUnformatted(fmt::format("{:016x}", s.signature).c_str());
             }
+            ImGui::TableSetColumnIndex(7);
+            if (overlay && !s.truncated && overlay->find(s.signature)) ImGui::TextUnformatted(_("yes"));
         }
         ImGui::EndTable();
     }
@@ -219,6 +243,28 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
     }
 
     ImGui::End();
+
+    if (m_overlayDialog.draw()) {
+        auto& selected = m_overlayDialog.selected();
+        if (!selected.empty()) {
+            IO<File> file = new PosixFile(selected[0]);
+            std::vector<uint8_t> data;
+            if (!file->failed()) {
+                data.resize(file->size());
+                if (file->read(data.data(), data.size()) != ssize_t(data.size())) data.clear();
+            }
+            unsigned skipped = 0;
+            auto loaded = data.empty() ? nullptr : SPU::Overlay::fromSF2(data.data(), data.size(), &skipped);
+            if (!loaded) {
+                m_overlayStatus = _("Not a SoundFont file.");
+            } else {
+                m_overlayStatus =
+                    fmt::format(f_("{} replacements loaded, {} samples without a signature name skipped."),
+                                loaded->size(), skipped);
+                g_emulator->m_spu->setOverlay(std::move(loaded));
+            }
+        }
+    }
 
     if (m_exportDialog.draw()) {
         auto& selected = m_exportDialog.selected();

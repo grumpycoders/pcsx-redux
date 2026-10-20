@@ -117,6 +117,9 @@
     <ClCompile Include="..\..\..\tests\spu-volume.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu\overlay.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\spu\speed.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
