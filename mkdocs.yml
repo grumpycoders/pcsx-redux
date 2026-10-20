@@ -67,6 +67,7 @@ nav:
       - 'Lua/ppf.md'
       - 'Lua/web-server.md'
       - 'Lua/memory-and-registers.md'
+      - 'Lua/expansion-carts.md'
       - 'Lua/events.md'
       - 'Lua/breakpoints.md'
       - 'Lua/assembler.md'
