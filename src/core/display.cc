@@ -124,8 +124,8 @@ void PCSX::GPU::Display::updateDispArea() {
 
     // Adjust dimensions before normalizing if we have linear filtering on
     if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
-        width -= 2;
-        height -= 2;
+        width = std::max(0, width - 2);
+        height = std::max(0, height - 2);
     }
     sizeNormalized.x() = (float)width / 1024.f;
     sizeNormalized.y() = (float)height / 1024.f;
@@ -134,8 +134,8 @@ void PCSX::GPU::Display::updateDispArea() {
 void PCSX::GPU::Display::setLinearFiltering() {
     auto setting = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value;
     // If linear filtering is on, crop 1 row from the top & bottom, and 1 column from the left & right
-    const int width = size.x() - ((setting) ? 2 : 0);
-    const int height = size.y() - ((setting) ? 2 : 0);
+    const int width = std::max(0, size.x() - ((setting) ? 2 : 0));
+    const int height = std::max(0, size.y() - ((setting) ? 2 : 0));
     const int startX = start.x() + ((setting) ? 1 : 0);
     const int startY = start.y() + ((setting) ? 1 : 0);
 

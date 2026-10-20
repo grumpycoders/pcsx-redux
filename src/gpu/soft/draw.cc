@@ -17,6 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include <algorithm>
 #include <cstdint>
 
 #include "GL/gl3w.h"
@@ -127,8 +128,8 @@ void PCSX::SoftGPU::impl::doBufferSwap(bool fromGui) {
 
     // Trim 1 pixel from the height and width when linear filtering is on to avoid artifacts due to wrong sampling
     if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
-        width -= 1.f / 1024.f;
-        height -= 1.f / 1024.f;
+        width = std::max(0.f, width - 1.f / 1024.f);
+        height = std::max(0.f, height - 1.f / 1024.f);
     }
 
     gui->m_offscreenShaderEditor.render(gui, textureID, {startX, startY}, {width, height}, gui->getRenderSize());
