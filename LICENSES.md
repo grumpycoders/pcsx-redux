@@ -62,9 +62,9 @@ find a link to the vendored version itself.
  - [typestring](https://github.com/irrequietus/typestring) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/typestring.hh))
  - [ucl](https://github.com/Distrotech/ucl)
  - [uriparser](https://github.com/uriparser/uriparser)
- - [vixl](https://github.com/Linaro/vixl) ([vendored](https://github.com/grumpycoders/vixl))
+ - [vixl](https://github.com/Linaro/vixl) ([vendored](https://github.com/pcsx-redux/vixl))
  - [xbyak](https://github.com/herumi/xbyak)
- - [zep](https://github.com/grumpycoders/zep)
+ - [zep](https://github.com/pcsx-redux/zep)
  - [zlib](https://github.com/madler/zlib)
  - [zlibffi](https://github.com/luapower/zlib) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/zlibffi))
 
