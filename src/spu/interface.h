@@ -81,6 +81,8 @@ class impl final : public SPUInterface {
     uint16_t readRegister(uint32_t) final;
     void lockSPURAM() final;
     void unlockSPURAM() final;
+    uint8_t *getSpuRam() final { return spuRamBase; }
+    uint32_t getTransferAddr() final { return spuAddr; }
     void resetCaptureBuffer() final;
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;
@@ -350,7 +352,7 @@ class impl final : public SPUInterface {
     uint16_t spuMem[256 * 1024];
     // Byte-addressable view of spuMem; the base for every sound-RAM pointer and
     // for the offset math that stores/restores those pointers (e.g. savestates).
-    uint8_t *spuRamBase;
+    uint8_t *spuRamBase = nullptr;
     uint8_t *irqAddress = 0;
     uint8_t *spuBuffer;
     uint8_t *mixIrqAddress = 0;

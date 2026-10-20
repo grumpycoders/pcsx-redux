@@ -24,6 +24,7 @@
 #include "core/logger.h"
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/spulogger.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
@@ -307,7 +308,13 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             case 10:
                 decodeAdsrHigh(m_adsrShadow[ch], val);
                 break;
+            case 6:
+                // Logged post-truncation, with the raw register value kept alongside, so a game
+                // setting a start address off the block grid stays visible.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::VoiceStart, (uint32_t)((val << 3) & ~0xf), 0, val, ch);
+                break;
             case 14: {
+                g_emulator->m_spuLogger->log(SPULogger::Kind::VoiceLoop, (uint32_t)((val << 3) & ~0xf), 0, val, ch);
                 // Bring the ENVX walk up to this write before it sees the new address.
                 auto& cp = m_envelopeCheckpoint[ch];
                 if (cp.keyedOn) {
@@ -322,6 +329,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
         switch (r) {
             case H_SPUaddr:
                 spuAddr = (uint32_t)val * 8;
+                g_emulator->m_spuLogger->log(SPULogger::Kind::TransferAddr, spuAddr, 0, val);
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, Data Transfer Address = %04x\n", val);
                 return;
 
@@ -330,6 +338,7 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 // word changes under it.
                 catchUp(cycle);
                 std::lock_guard<std::mutex> lock(cbMtx);
+                g_emulator->m_spuLogger->log(SPULogger::Kind::PIOWrite, spuAddr, 2, val);
                 spuMem[spuAddr >> 1] = val;
                 spuAddr += 2;
                 if (spuAddr > 0x7ffff) {
@@ -352,6 +361,11 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
             case H_SPUstat:
                 PCSX::PSXSPU_LOGGER::Log("SPU.write, STAT = %04x, (read-only)\n", val);
                 return;
+            case H_SPUReverbAddr:
+                // The mixer applies the base later; log the byte offset it will settle on.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::ReverbAddr,
+                                             (val == 0xffff || val <= 0x200) ? 0 : (uint32_t)val << 3, 0, val);
+                break;
 
             // CD audio volume feeds the XA path, which runs on the CPU thread.
             case H_CDLeft:
@@ -841,6 +855,9 @@ void PCSX::SPU::impl::SoundOn(int start, int end, uint16_t val, uint64_t cycle) 
             cp.cachedFraction = 0;
             cp.cachedOn = true;
             resetAdpcmWalk(ch);
+            // One entry per voice actually keyed, carrying the address it is about to decode
+            // from: the only sample entry point that is ground truth rather than inference.
+            g_emulator->m_spuLogger->log(SPULogger::Kind::KeyOn, cp.keyOnBlock, 0, 1, ch);
         }
     }
 }
@@ -878,7 +895,12 @@ void PCSX::SPU::impl::SoundOff(int start, int end, uint16_t val, uint64_t cycle)
             // walk can cross it. First key-off after a key-on wins; a repeat is not
             // a second transition. SoundOn clears this.
             auto& cp = m_envelopeCheckpoint[ch];
-            if (cp.keyedOn && cp.keyOffCycle == 0) cp.keyOffCycle = cycle;
+            if (cp.keyedOn && cp.keyOffCycle == 0) {
+                cp.keyOffCycle = cycle;
+                // The decode cursor belongs to the mixer thread; the released sample is named
+                // by the start address it was keyed on with.
+                g_emulator->m_spuLogger->log(SPULogger::Kind::KeyOff, cp.keyOnBlock, 0, 0, ch);
+            }
         }
     }
 }

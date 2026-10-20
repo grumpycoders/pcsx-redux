@@ -48,6 +48,8 @@
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpudump.h"
 #include "gui/widgets/gpulogger.h"
+#include "gui/widgets/spulogger.h"
+#include "gui/widgets/spusamples.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
@@ -131,6 +133,9 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
+    typedef Setting<bool, TYPESTRING("ShowSPULogger")> ShowSPULogger;
+    typedef Setting<bool, TYPESTRING("SPULoggerEnabled")> SPULoggerEnabled;
+    typedef Setting<bool, TYPESTRING("ShowSPUSamples")> ShowSPUSamples;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
@@ -162,6 +167,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowHWRegsEditor")> ShowHWRegsEditor;
     typedef Setting<bool, TYPESTRING("ShowBiosEditor")> ShowBiosEditor;
     typedef Setting<bool, TYPESTRING("ShowVRAMEditor")> ShowVRAMEditor;
+    typedef Setting<bool, TYPESTRING("ShowSPURAMEditor")> ShowSPURAMEditor;
     typedef Setting<size_t, TYPESTRING("MemoryEditor1Addr"), 0> MemoryEditor1Addr;
     typedef Setting<size_t, TYPESTRING("MemoryEditor2Addr"), 0> MemoryEditor2Addr;
     typedef Setting<size_t, TYPESTRING("MemoryEditor3Addr"), 0> MemoryEditor3Addr;
@@ -175,6 +181,7 @@ class GUI final : public UI {
     typedef Setting<size_t, TYPESTRING("HWRegsEditorAddr"), 0> HWRegsEditorAddr;
     typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
     typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
+    typedef Setting<size_t, TYPESTRING("SPURAMEditorAddr"), 0> SPURAMEditorAddr;
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              WindowMaximized, IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer,
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
@@ -187,7 +194,9 @@ class GUI final : public UI {
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
              ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
+             ShowSPURAMEditor, SPURAMEditorAddr, ShowSPULogger, SPULoggerEnabled, ShowSPUSamples,
+             ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -443,6 +452,8 @@ class GUI final : public UI {
                                         settings.get<BiosEditorAddr>().value, 0xbfc00000};
     MemoryEditorWrapper m_vramEditor = {this, settings.get<ShowVRAMEditor>().value,
                                         settings.get<VRAMEditorAddr>().value};
+    MemoryEditorWrapper m_spuRamEditor = {this, settings.get<ShowSPURAMEditor>().value,
+                                          settings.get<SPURAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::TypedDebugger m_typedDebugger;
     Widgets::Patches m_patches = {settings.get<ShowPatches>().value};
@@ -487,6 +498,9 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
+    Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value,
+                                         settings.get<SPULoggerEnabled>().value};
+    Widgets::SPUSamples m_spuSamplesWidget{settings.get<ShowSPUSamples>().value};
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
     Widgets::MsanViewer m_msanViewer{settings.get<ShowMsanViewer>().value};

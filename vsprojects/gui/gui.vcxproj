@@ -147,6 +147,8 @@
     <ClCompile Include="..\..\src\gui\widgets\cputrace.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpudump.cc" />
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\spulogger.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\spusamples.cc" />
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\hwregs.cc" />
@@ -191,6 +193,8 @@
     <ClInclude Include="..\..\src\gui\widgets\cputrace.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpudump.h" />
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h" />
+    <ClInclude Include="..\..\src\gui\widgets\spulogger.h" />
+    <ClInclude Include="..\..\src\gui\widgets\spusamples.h" />
     <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\hwregs.h" />

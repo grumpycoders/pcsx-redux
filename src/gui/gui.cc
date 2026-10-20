@@ -805,6 +805,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = []() { return "BIOS"; };
     m_vramEditor.title = l_("VRAM");
+    m_spuRamEditor.title = l_("SPU RAM");
     auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
             std::filesystem::path writeFilepath =
@@ -831,6 +832,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.editor.ExportFn = makeExportFn(m_hwrEditor, "hwr");
     m_biosEditor.editor.ExportFn = makeExportFn(m_biosEditor, "bios");
     m_vramEditor.editor.ExportFn = makeExportFn(m_vramEditor, "vram");
+    m_spuRamEditor.editor.ExportFn = makeExportFn(m_spuRamEditor, "spuram");
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -1516,6 +1518,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         m_hwrEditor.MenuItem();
                         m_biosEditor.MenuItem();
                         m_vramEditor.MenuItem();
+                        m_spuRamEditor.MenuItem();
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
@@ -1563,6 +1566,8 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 }
                 if (ImGui::BeginMenu(_("SPU"))) {
                     ImGui::MenuItem(_("Show SPU debug"), nullptr, &PCSX::g_emulator->m_spu->m_showDebug);
+                    ImGui::MenuItem(_("Show SPU logger"), nullptr, &m_spuLoggerWidget.m_show);
+                    ImGui::MenuItem(_("Show SPU samples"), nullptr, &m_spuSamplesWidget.m_show);
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show Network"), nullptr, &m_network.m_show);
@@ -1790,6 +1795,14 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             m_biosEditor.draw(memFile, 512 * 1024);
         }
         counter++;
+        if (m_spuRamEditor.m_show) {
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            // Null until the SPU has been init'd; the editor would otherwise read off a wild pointer.
+            auto *spuRam = g_emulator->m_spu->getSpuRam();
+            if (spuRam) m_spuRamEditor.draw(spuRam, SPUInterface::c_spuRamSize);
+        }
+        counter++;
         if (m_vramEditor.m_show) {
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
@@ -1905,6 +1918,12 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (g_emulator->m_gpu->m_showDebug) g_emulator->m_gpu->debug();
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
     if (m_gpuDump.m_show) m_gpuDump.draw(_("GPU Dump"));
+    // Pushed unconditionally: capture follows the setting, not whether the window is open.
+    g_emulator->m_spuLogger->enabled() = m_spuLoggerWidget.m_enabled;
+    if (m_spuLoggerWidget.m_show) m_spuLoggerWidget.draw(g_emulator->m_spuLogger.get(), _("SPU Logger"));
+    if (m_spuSamplesWidget.m_show) {
+        m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));
+    }
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
 
     if (m_showUiCfg) {
