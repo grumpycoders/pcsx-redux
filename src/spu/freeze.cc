@@ -77,6 +77,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
     spu.get<SaveStates::SPUEndx>().value = spuEndx;
+    spu.get<SaveStates::SPUMainVolWritten>().value = 4 | (m_mainLeftWritten ? 1 : 0) | (m_mainRightWritten ? 2 : 0);
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
@@ -149,6 +150,17 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);
     writeRegister(H_SPUrvolR, regArea[(H_SPUrvolR - 0xc00) >> 1]);
+    // Replay only the sides software wrote, so an unwritten side stays at unity. A state saved
+    // without the written mask (bit 2 clear) treats a nonzero register as written.
+    m_mainVolume.reset();
+    m_mainLeftWritten = m_mainRightWritten = false;
+    uint32_t mainVolWritten = spu.get<SaveStates::SPUMainVolWritten>().value;
+    if (!(mainVolWritten & 4)) {
+        if (regArea[(H_SPUmvolL - 0xc00) >> 1]) mainVolWritten |= 1;
+        if (regArea[(H_SPUmvolR - 0xc00) >> 1]) mainVolWritten |= 2;
+    }
+    if (mainVolWritten & 1) writeRegister(H_SPUmvolL, regArea[(H_SPUmvolL - 0xc00) >> 1]);
+    if (mainVolWritten & 2) writeRegister(H_SPUmvolR, regArea[(H_SPUmvolR - 0xc00) >> 1]);
 
     writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
     writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
