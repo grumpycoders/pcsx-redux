@@ -585,6 +585,7 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     // reads 0, which would decode as GP1(00h). Restore the bank gate directly.
     drainRenderer();
     m_vram2MBGateOpen = m_statusControl[9] & 1;
+    m_dmaDirection = (gpu.get<GPUStatus>().value >> 29) & 3;
     vramConfigChanged();
 
     // A v4 state only carries 1MB of VRAM. Restore it into the lower bank and leave
