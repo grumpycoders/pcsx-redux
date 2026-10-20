@@ -19,6 +19,7 @@
 
 #include "spu/overlay.h"
 
+#include <cmath>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -74,6 +75,16 @@ TEST(SPUOverlay, RateAndRootKeyScaleThePitch) {
             EXPECT_EQ(out, (std::vector<int32_t>{0, 50, 100, 150})) << "signature " << sig;
         }
     }
+    // A positive pitch correction raises the pitch: +100 cents is one semitone up.
+    auto d = ramp("0000000000000004", 100);
+    d.rootKey = 72;
+    d.correction = 100;
+    auto corrected = pack({d});
+    PCSX::SPU::OverlayVoice up;
+    up.start(corrected, corrected->find(4));
+    up.next(unity);
+    EXPECT_NEAR(up.next(unity), 100 * 0.5 * std::exp2(100.0 / 1200.0), 1);
+
     // Twice the pitch, twice the speed.
     PCSX::SPU::OverlayVoice voice;
     voice.start(overlay, overlay->find(1));
