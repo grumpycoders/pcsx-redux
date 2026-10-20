@@ -109,9 +109,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         m_nextIsBranchSlot = true;
         m_nextSlotBranchPC = m_regs.pc - 4;
     }
-    bool m_nextIsBranchSlot = false;
     bool m_inBranchSlot = false;
-    uint32_t m_nextSlotBranchPC = 0;
     uint32_t m_slotBranchPC = 0;
     // A software interrupt raised in a branch slot is taken once the slot completes, at the next
     // instruction in execution order, with BD clear.
