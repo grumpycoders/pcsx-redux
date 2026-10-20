@@ -641,7 +641,9 @@ inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     g_emulator->m_mdec->dma1(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) { g_emulator->m_gpu->dma(madr, bcr, chcr); }
+inline bool PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    return g_emulator->m_gpu->dma(madr, bcr, chcr);
+}
 
 inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);

@@ -383,10 +383,11 @@ uint32_t PCSX::GPU::readStatus() {
     if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
+    if (dmaBlockRequestLow()) ret &= ~0x12000000;
     return ret;
 }
 
-void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
+bool PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
 
@@ -413,7 +414,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Experimental burst dma transfer (0.333x max)
             scheduleGPUDMAIRQ(size / 3);
 #endif
-            return;
+            return false;
 
         case 0x01000201:  // mem2vram
             bs = (bcr & 0xffff);
@@ -429,7 +430,18 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
                 g_emulator->m_debug->checkDMAread(2, madr, size * 4);
             }
             pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
-            directDMAWrite(ptr, size, madr);
+            // Each block waits for GPUSTAT.28. With GP1(04h)=2 it stays low while a polygon or line
+            // command is partially received, and only DMA could deliver the rest, so a block boundary
+            // inside one stops the channel for good: CHCR stays busy and no IRQ is raised.
+            for (uint32_t done = 0; done < size; done += bs) {
+                if (dmaBlockRequestLow()) {
+                    auto &mem = g_emulator->m_mem;
+                    mem->setMADR<2>(madr + done * 4);
+                    mem->setBCR<2>((((size - done) / bs) << 16) | bs);
+                    return true;
+                }
+                directDMAWrite(ptr + done, bs, madr + done * 4);
+            }
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)
@@ -438,7 +450,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // X-Files video interlace. Experimental delay depending of BS.
             scheduleGPUDMAIRQ((7 * size) / bs);
 #endif
-            return;
+            return false;
 
         case 0x00000401:  // Vampire Hunter D: title screen linked list update (see psxhw.c)
         case 0x01000401:  // dma chain
@@ -454,7 +466,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Rebel Assault 2 = parse linked list in pieces (todo)
             // Vampire Hunter D = allow edits to linked list (todo)
             scheduleGPUDMAIRQ(size);
-            return;
+            return false;
 
         default:
             PSXDMA_LOG("*** DMA 2 - GPU unknown *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
@@ -462,6 +474,18 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     }
 
     gpuInterrupt();
+    return false;
+}
+
+bool PCSX::GPU::dmaBlockRequestLow() const {
+    if (m_dmaDirection != 2) return false;
+    for (auto *c : m_polygons) {
+        if (m_processor == c) return true;
+    }
+    for (auto *c : m_lines) {
+        if (m_processor == c) return true;
+    }
+    return false;
 }
 
 void PCSX::GPU::gpuInterrupt() {
@@ -502,6 +526,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_readFifo->reset();
             m_processor->reset();
             m_defaultProcessor.setActive();
+            m_dmaDirection = 0;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -528,6 +553,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             write1(&ctrl);
         } break;
         case 4: {
+            m_dmaDirection = value & 3;
             CtrlDmaSetting ctrl(value);
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);

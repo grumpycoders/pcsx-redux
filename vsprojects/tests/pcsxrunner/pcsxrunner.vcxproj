@@ -281,6 +281,7 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-command.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dma-dreq.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-fbrect.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-irq.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-polyline.cc" />

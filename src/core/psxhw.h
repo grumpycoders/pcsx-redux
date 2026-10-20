@@ -40,7 +40,7 @@ class HW {
   private:
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    bool dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
 
     template <unsigned n>
@@ -62,7 +62,7 @@ class HW {
             } else if constexpr (n == 1) {
                 dma1(madr, bcr, chcr);
             } else if constexpr (n == 2) {
-                dma2(madr, bcr, chcr);
+                if (dma2(madr, bcr, chcr)) return;
             } else if constexpr (n == 3) {
                 dma3(madr, bcr, chcr);
             } else if constexpr (n == 4) {
