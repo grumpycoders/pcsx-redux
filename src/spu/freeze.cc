@@ -102,6 +102,8 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     capBufVoiceIndex = spu.get<SaveStates::CBVoiceIndex>().value;
 
     spu.get<SaveStates::SPURam>().copyTo(reinterpret_cast<uint8_t *>(spuMem));
+    // A replacement playhead is not saved, so loaded voices play their original samples.
+    for (auto &voice : s_chan) voice.overlay.reset();
     spu.get<SaveStates::SPUPorts>().copyTo(reinterpret_cast<uint8_t *>(regArea));
 
 #if 0

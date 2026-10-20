@@ -176,7 +176,8 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
       m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
-      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites),
+      m_spuSamplesWidget(settings.get<ShowSPUSamples>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }

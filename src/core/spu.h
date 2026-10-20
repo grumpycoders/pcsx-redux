@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "core/decode_xa.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -28,6 +30,10 @@
 #include "lua/luawrapper.h"
 
 namespace PCSX {
+
+namespace SPU {
+class Overlay;
+}
 
 class SPUInterface {
   public:
@@ -53,6 +59,9 @@ class SPUInterface {
     // Byte-addressable view of the sound RAM. Mixing happens on the SPU's own
     // thread, so bracket bulk reads with lockSPURAM() / unlockSPURAM().
     virtual uint8_t *getSpuRam() = 0;
+    // Replacement samples played in place of matching ones from the next key-on; null clears.
+    virtual void setOverlay(std::shared_ptr<const SPU::Overlay>) = 0;
+    virtual std::shared_ptr<const SPU::Overlay> getOverlay() = 0;
     static constexpr size_t c_spuRamSize = 512 * 1024;
     // Current sound-RAM transfer cursor, as set by 1F801DA6h and advanced by every transfer.
     // Read it before handing a DMA off, since the transfer is what moves it.
