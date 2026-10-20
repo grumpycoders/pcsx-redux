@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -142,4 +143,39 @@ TEST(SF2, LoadsBackWithTinySoundFont) {
         }
     }
     tsf_close(font);
+}
+
+TEST(SF2, ReadsBackWhatItWrites) {
+    std::vector<PCSX::SF2::Sample> samples(2);
+    samples[0].name = "first";
+    for (int i = 0; i < 50; i++) samples[0].pcm.push_back(int16_t(i * 13 - 300));
+    samples[0].rootKey = 64;
+    samples[0].correction = -12;
+    samples[0].sampleRate = 32000;
+    samples[1].name = "fedcba9876543210";
+    for (int i = 0; i < 90; i++) samples[1].pcm.push_back(int16_t(-i * 200));
+    samples[1].loops = true;
+    samples[1].loopStart = 28;
+    samples[1].loopEnd = 90;
+
+    auto data = PCSX::SF2::write(samples, "bank", "");
+    auto back = PCSX::SF2::read(data.data(), data.size());
+    ASSERT_EQ(back.size(), 2u);
+    EXPECT_EQ(back[0].name, "first");
+    EXPECT_EQ(back[0].pcm, samples[0].pcm);
+    EXPECT_EQ(back[0].rootKey, 64);
+    EXPECT_EQ(back[0].correction, -12);
+    EXPECT_EQ(back[0].sampleRate, 32000u);
+    EXPECT_FALSE(back[0].loops);
+    EXPECT_EQ(back[1].name, "fedcba9876543210");
+    EXPECT_TRUE(back[1].loops);
+    EXPECT_EQ(back[1].loopStart, 28u);
+    EXPECT_EQ(back[1].loopEnd, 90u);
+    // The 8 points after a loop that ends on the last sample come back with it.
+    ASSERT_EQ(back[1].pcm.size(), 98u);
+    EXPECT_TRUE(std::equal(samples[1].pcm.begin(), samples[1].pcm.end(), back[1].pcm.begin()));
+
+    EXPECT_TRUE(PCSX::SF2::read(data.data(), 11).empty());
+    data[8] = 'x';
+    EXPECT_TRUE(PCSX::SF2::read(data.data(), data.size()).empty());
 }

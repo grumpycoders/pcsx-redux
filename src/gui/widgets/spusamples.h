@@ -69,7 +69,9 @@ class SPUSamples {
     uint32_t m_selectedStart = 0;
     std::vector<float> m_waveform;
     FileDialog<FileDialogMode::Save> m_exportDialog;
+    FileDialog<FileDialogMode::Open> m_overlayDialog;
     std::string m_exportStatus;
+    std::string m_overlayStatus;
 };
 
 }  // namespace Widgets

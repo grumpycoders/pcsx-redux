@@ -30,6 +30,7 @@
 #include "spu/adsr.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
+#include "supportpsx/spusample.h"
 
 namespace {
 // The ADSR step returns the full 15-bit (0..0x7fff) envelope volume; the
@@ -73,6 +74,20 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
     voice->data.get<Chan::On>().value = true;
 
     voice->interp.keyOn(settings.get<Interpolation>());
+
+    startOverlay(voice);
+}
+
+// Look the sample being keyed on up in the overlay pack, by the signature of its blocks.
+void PCSX::SPU::impl::startOverlay(SPUCHAN *voice) {
+    voice->overlay.reset();
+    auto overlay = getOverlay();
+    uint8_t *start = voice->adpcm.start();
+    if (!overlay || !start) return;
+    const auto extent = SPUSample::walk(spuRamBase, uint32_t(start - spuRamBase));
+    if (extent.truncated) return;
+    const auto *entry = overlay->find(SPUSample::signature(spuRamBase, extent));
+    if (entry) voice->overlay.start(std::move(overlay), entry);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -371,7 +386,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
         }
 
         // Apply the ADSR envelope (hardware: sample*env>>15).
-        int32_t mixedSample = (voice->adsr.step(stop, on) * rawSample) >> kAdsrEnvelopeShift;
+        const int32_t envelope = voice->adsr.step(stop, on);
+        int32_t mixedSample = (envelope * rawSample) >> kAdsrEnvelopeShift;
         sval = mixedSample;
 
         // The capture mirror holds the voice 1/3 sample after ADSR but before volume.
@@ -382,6 +398,13 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
             // Hand the sample to the voice above us to modulate with.
             fmodInput[ns] = sval;
         } else {
+            // An overlaid voice is heard through its replacement from here on; the capture
+            // mirror above keeps the original sample.
+            if constexpr (Src == SampleSource::Adpcm) {
+                if (voice->overlay.active()) {
+                    sval = (envelope * voice->overlay.next(voice->interp.step())) >> kAdsrEnvelopeShift;
+                }
+            }
             // Left/right sound volume (PSX volume goes from 0 to 0x3fff).
             if (mute && !solo) {
                 // Debug mute.

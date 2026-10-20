@@ -152,7 +152,7 @@ class Hydra {
         shdr.u32(m_offset + (s.loops ? s.loopEnd : uint32_t(s.pcm.size())));
         shdr.u32(s.sampleRate);
         shdr.u8(s.rootKey);
-        shdr.u8(0);
+        shdr.u8(uint8_t(s.correction));
         shdr.u16(0);
         shdr.u16(1);  // mono
         m_offset += size + c_samplePad;
@@ -217,4 +217,98 @@ std::vector<uint8_t> PCSX::SF2::write(const std::vector<Sample>& samples, const 
     riff.u32(uint32_t(body.m_data.size()));
     riff.bytes(body.m_data.data(), body.m_data.size());
     return std::move(riff.m_data);
+}
+
+namespace {
+
+struct Chunk {
+    const uint8_t* data = nullptr;
+    uint32_t size = 0;
+};
+
+uint16_t rd16(const uint8_t* p) { return p[0] | p[1] << 8; }
+uint32_t rd32(const uint8_t* p) { return p[0] | p[1] << 8 | p[2] << 16 | uint32_t(p[3]) << 24; }
+
+// Finds the chunk `id` in a run of chunks; when `listType` is set, the LIST of that type.
+Chunk find(const uint8_t* data, uint32_t size, const char* id, const char* listType = nullptr) {
+    uint32_t pos = 0;
+    while (pos + 8 <= size) {
+        const uint32_t len = rd32(data + pos + 4);
+        if (len > size - pos - 8) break;
+        const uint8_t* body = data + pos + 8;
+        if (listType) {
+            if (memcmp(data + pos, "LIST", 4) == 0 && len >= 4 && memcmp(body, listType, 4) == 0) {
+                return {body + 4, len - 4};
+            }
+        } else if (memcmp(data + pos, id, 4) == 0) {
+            return {body, len};
+        }
+        pos += 8 + len + (len & 1);
+    }
+    return {};
+}
+
+}  // namespace
+
+std::vector<PCSX::SF2::Sample> PCSX::SF2::read(const uint8_t* data, size_t size) {
+    std::vector<Sample> ret;
+    if (size < 12 || memcmp(data, "RIFF", 4) != 0 || memcmp(data + 8, "sfbk", 4) != 0) return ret;
+    const uint32_t riffSize = std::min<uint32_t>(rd32(data + 4), uint32_t(size - 8));
+    if (riffSize < 4) return ret;
+    const uint8_t* body = data + 12;
+    const uint32_t bodySize = riffSize - 4;
+    const Chunk sdta = find(body, bodySize, nullptr, "sdta");
+    const Chunk pdta = find(body, bodySize, nullptr, "pdta");
+    if (!sdta.data || !pdta.data) return ret;
+    const Chunk smpl = find(sdta.data, sdta.size, "smpl");
+    const Chunk shdr = find(pdta.data, pdta.size, "shdr");
+    const Chunk ibag = find(pdta.data, pdta.size, "ibag");
+    const Chunk igen = find(pdta.data, pdta.size, "igen");
+    if (!smpl.data || !shdr.data || shdr.size < 46) return ret;
+    const uint32_t points = smpl.size / 2;
+
+    // The last record is the terminal one.
+    const unsigned count = shdr.size / 46 - 1;
+    std::vector<bool> loops(count, false);
+    if (ibag.data && igen.data) {
+        // The generators of one zone run from its ibag index to the next one's. Every zone
+        // that names a sample decides whether that sample loops.
+        const unsigned bags = ibag.size / 4;
+        const unsigned gens = igen.size / 4;
+        for (unsigned b = 0; b + 1 < bags; b++) {
+            const unsigned first = rd16(ibag.data + b * 4);
+            const unsigned last = std::min(unsigned(rd16(ibag.data + (b + 1) * 4)), gens);
+            int mode = 0;
+            int sampleID = -1;
+            for (unsigned g = first; g < last; g++) {
+                const uint16_t oper = rd16(igen.data + g * 4);
+                const uint16_t amount = rd16(igen.data + g * 4 + 2);
+                if (oper == c_genSampleModes) mode = amount & 3;
+                if (oper == c_genSampleID) sampleID = amount;
+            }
+            if (sampleID >= 0 && unsigned(sampleID) < count && (mode == 1 || mode == 3)) loops[sampleID] = true;
+        }
+    }
+
+    for (unsigned i = 0; i < count; i++) {
+        const uint8_t* h = shdr.data + i * 46;
+        const uint32_t start = rd32(h + 20);
+        const uint32_t end = rd32(h + 24);
+        const uint32_t startLoop = rd32(h + 28);
+        const uint32_t endLoop = rd32(h + 32);
+        if (start > end || end > points) continue;
+        Sample& s = ret.emplace_back();
+        s.name.assign(reinterpret_cast<const char*>(h), strnlen(reinterpret_cast<const char*>(h), 20));
+        s.pcm.reserve(end - start);
+        for (uint32_t p = start; p < end; p++) s.pcm.push_back(int16_t(rd16(smpl.data + p * 2)));
+        s.sampleRate = rd32(h + 36);
+        s.rootKey = h[40];
+        s.correction = int8_t(h[41]);
+        if (loops[i] && startLoop >= start && startLoop < endLoop && endLoop <= end) {
+            s.loops = true;
+            s.loopStart = startLoop - start;
+            s.loopEnd = endLoop - start;
+        }
+    }
+    return ret;
 }
