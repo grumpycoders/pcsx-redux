@@ -221,6 +221,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             }},
             CDXALeft{CDADPCM{CDADPCMY0{cd->m_xa.left.y0}, CDADPCMY1{cd->m_xa.left.y1}}},
             CDXARight{CDADPCM{CDADPCMY0{cd->m_xa.right.y0}, CDADPCMY1{cd->m_xa.right.y1}}},
+            CDSectorReadSinceSeek{cd->m_sectorReadSinceSeek},
+            CDScexCountersReset{cd->m_scexCountersReset},
         },
     };
 }
