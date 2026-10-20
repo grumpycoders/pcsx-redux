@@ -43,6 +43,8 @@ The [tools](tools) directory contains a few tools that can be used to work with 
 
 All builds are 64-bit only, and need a GPU and driver that can create at least an OpenGL 3.0 context. The emulator asks for a 3.2 core profile first and falls back to 3.0 if that fails.
 
+The Linux AppImages are built on Ubuntu 24.04 and need a distribution at least that recent. On older ones, the Windows build runs under Wine 11: replace `pcsx-redux.exe`, the launcher that checks for the Visual C++ runtime, with `pcsx-redux.main` renamed to `pcsx-redux.exe`.
+
 ### Note:
 The macOS version of PCSX-Redux is not currently signed with a developer certificate so you may see a security warning when opening the application.
 
