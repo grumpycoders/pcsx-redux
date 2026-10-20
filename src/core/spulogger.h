@@ -79,6 +79,9 @@ class SPULogger {
     // The difference against size() is how much history was lost.
     uint64_t seen() const { return m_seen; }
 
+    // Bumped by every clear(), so a reader can tell a clear from the count having moved on.
+    uint64_t clears() const { return m_clears; }
+
     static const char *kindName(Kind kind);
     static bool isVoiceScoped(Kind kind);
 
@@ -89,6 +92,7 @@ class SPULogger {
     size_t m_head = 0;
     size_t m_count = 0;
     uint64_t m_seen = 0;
+    uint64_t m_clears = 0;
     bool m_enabled = false;
 };
 

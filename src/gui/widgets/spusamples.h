@@ -62,6 +62,7 @@ class SPUSamples {
 
     std::map<uint32_t, Sample> m_samples;
     uint64_t m_lastSeen = ~uint64_t(0);
+    uint64_t m_lastClears = 0;
     bool m_autoRefresh = true;
     bool m_selected = false;
     uint32_t m_selectedStart = 0;

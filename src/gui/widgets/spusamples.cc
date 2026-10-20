@@ -78,9 +78,10 @@ void PCSX::Widgets::SPUSamples::rebuild(PCSX::SPULogger* logger, const uint8_t* 
     const uint64_t seen = logger->seen();
     const size_t count = logger->size();
     // A clear restarts the count; anything else is new entries at the tail of the ring.
-    if (m_lastSeen == ~uint64_t(0) || seen < m_lastSeen) {
+    if (m_lastSeen == ~uint64_t(0) || logger->clears() != m_lastClears) {
         m_samples.clear();
         m_lastSeen = 0;
+        m_lastClears = logger->clears();
     }
     const size_t fresh = size_t(std::min<uint64_t>(seen - m_lastSeen, count));
     for (size_t i = count - fresh; i < count; i++) {
@@ -128,10 +129,12 @@ void PCSX::Widgets::SPUSamples::draw(PCSX::SPULogger* logger, const uint8_t* spu
     bool refresh = ImGui::Button(_("Refresh"));
     ImGui::SameLine();
     ImGui::Checkbox(_("Auto refresh"), &m_autoRefresh);
-    if (refresh || (m_autoRefresh && logger->seen() != m_lastSeen)) rebuild(logger, spuRam);
+    if (refresh || (m_autoRefresh && (logger->seen() != m_lastSeen || logger->clears() != m_lastClears))) {
+        rebuild(logger, spuRam);
+    }
 
     if (!logger->enabled()) {
-        ImGui::TextWrapped(_("Sample starts come from key on events. Enable the SPU logger to collect them."));
+        ImGui::TextWrapped("%s", _("Sample starts come from key on events. Enable the SPU logger to collect them."));
     }
     ImGui::TextUnformatted(fmt::format(f_("{} samples"), m_samples.size()).c_str());
 

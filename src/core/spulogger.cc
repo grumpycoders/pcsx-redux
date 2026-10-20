@@ -51,6 +51,7 @@ void PCSX::SPULogger::clear() {
     m_head = 0;
     m_count = 0;
     m_seen = 0;
+    m_clears++;
 }
 
 const char *PCSX::SPULogger::kindName(Kind kind) {
