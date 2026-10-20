@@ -82,6 +82,7 @@ class impl final : public SPUInterface {
     void lockSPURAM() final;
     void unlockSPURAM() final;
     uint8_t *getSpuRam() final { return spuRamBase; }
+    uint32_t getTransferAddr() final { return spuAddr; }
     void resetCaptureBuffer() final;
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;

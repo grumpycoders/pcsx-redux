@@ -20,6 +20,7 @@
 #include "core/psxdma.h"
 
 #include "core/debug.h"
+#include "core/spulogger.h"
 #include "spu/interface.h"
 
 void spuInterrupt() {
@@ -40,6 +41,10 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                 break;
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
+            // Sampled before the transfer, which is what advances it. madr rides along in the
+            // value field so an upload can be traced back to where in main RAM it came from.
+            PCSX::g_emulator->m_spuLogger->log(PCSX::SPULogger::Kind::DMAWrite,
+                                               PCSX::g_emulator->m_spu->getTransferAddr(), size * 2, madr);
             PCSX::g_emulator->m_spu->writeDMAMem(ptr, size);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                     .get<PCSX::Emulator::DebugSettings::Debug>()) {
@@ -60,6 +65,8 @@ void dma4(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // SPU
                 break;
             }
             size = (bcr >> 16) * (bcr & 0xffff) * 2;
+            PCSX::g_emulator->m_spuLogger->log(PCSX::SPULogger::Kind::DMARead,
+                                               PCSX::g_emulator->m_spu->getTransferAddr(), size * 2, madr);
             PCSX::g_emulator->m_spu->readDMAMem(ptr, size);
             PCSX::g_emulator->m_mem->msanDmaWrite(madr, size * 2);
             if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()

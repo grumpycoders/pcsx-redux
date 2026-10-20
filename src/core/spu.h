@@ -54,6 +54,9 @@ class SPUInterface {
     // thread, so bracket bulk reads with lockSPURAM() / unlockSPURAM().
     virtual uint8_t *getSpuRam() = 0;
     static constexpr size_t c_spuRamSize = 512 * 1024;
+    // Current sound-RAM transfer cursor, as set by 1F801DA6h and advanced by every transfer.
+    // Read it before handing a DMA off, since the transfer is what moves it.
+    virtual uint32_t getTransferAddr() = 0;
     virtual void resetCaptureBuffer() = 0;
     virtual json getCfg() = 0;
     virtual void setCfg(const json &j) = 0;
