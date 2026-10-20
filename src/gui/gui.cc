@@ -555,6 +555,10 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
         SDL_GL_SetSwapInterval(m_idleSwapInterval);
         SDL_SetWindowRelativeMouseMode(m_window, false);
     });
+    // A hard reset clears VRAM, but while paused nothing presents it, so the last frame would linger.
+    m_listener.listen<Events::ExecutionFlow::Reset>([this](const auto& event) {
+        if (event.hard) m_presentAfterHardReset = true;
+    });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) {
         m_enableSplashScreen = false;
 
@@ -2570,6 +2574,11 @@ void PCSX::GUI::update(bool vsync) {
     glDisable(GL_SCISSOR_TEST);
     endFrame();
     startFrame();
+    if (m_presentAfterHardReset) {
+        m_presentAfterHardReset = false;
+        g_emulator->m_gpu->presentFromGui();
+        flip();
+    }
     // At all times, either the emulated GPU core or the GUI have full control of the host GPU & the GL context
     // We do this by having the emulated GPU have it most of the time, then let the GUI steal it when it needs it.
     // And in the line afterwards, the GUI gives the GL context back to the emulated GPU.

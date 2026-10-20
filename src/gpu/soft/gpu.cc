@@ -270,6 +270,20 @@ void PCSX::SoftGPU::impl::vblank(bool fromGui) {
     m_doVSyncUpdate = false;  // vsync done
 }
 
+void PCSX::SoftGPU::impl::presentFromGui() {
+    GUI *gui = dynamic_cast<GUI *>(m_ui);
+    if (!gui) return;
+    m_queue.sync();
+    if (m_softDisplay.Disabled) {
+        // Same opaque black the OpenGL backend shows for a disabled display.
+        gui->setViewport();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
+    doBufferSwap(true);
+}
+
 uint32_t PCSX::SoftGPU::impl::readStatusInternal() { return m_statusRet; }
 
 void PCSX::SoftGPU::impl::restoreStatus(uint32_t status) { m_statusRet = status; }

@@ -179,6 +179,9 @@ class GPU {
     virtual void restoreStatus(uint32_t status) = 0;
 
     virtual void vblank(bool fromGui = false) = 0;
+    // Draws the current display into the GUI's offscreen target without stepping any
+    // emulated state, unlike vblank(). The GUI flips afterwards.
+    virtual void presentFromGui() = 0;
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
         throw std::runtime_error("Not yet implemented");
     }

@@ -553,6 +553,7 @@ class GUI final : public UI {
     bool hasJapanese() { return m_hasJapanese; }
     bool m_setupScreenSize = true;
     bool m_clearTextures = true;
+    bool m_presentAfterHardReset = false;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
     ImFont *getMainFont() { return findClosestFont(m_mainFonts); }
     ImFont *getMonoFont() { return findClosestFont(m_monoFonts); }
