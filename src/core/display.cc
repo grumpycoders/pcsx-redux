@@ -107,7 +107,7 @@ void PCSX::GPU::Display::updateDispArea() {
 
     const auto vertRangeStart = std::min<int>(y1, totalScanlines);
     const auto vertRangeEnd = std::min<int>(y2, totalScanlines);
-    int height = std::min<int>(totalScanlines, vertRangeEnd - vertRangeStart);
+    int height = std::clamp<int>(vertRangeEnd - vertRangeStart, 0, totalScanlines);
     // GP1(08h) bit 2 selects 480 lines only together with bit 5; interlace alone
     // still shows the same 240-line buffer on both fields.
     if (info.interlace && info.vres == CtrlDisplayMode::VR_480) {
