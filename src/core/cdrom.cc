@@ -122,6 +122,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_report = false;
         m_setLocPending = false;
         m_sectorReadSinceSeek = false;
+        m_scexCountersReset = false;
         m_muted = false;
         m_adpcmMuted = false;
         m_mode = 0;
@@ -1267,7 +1268,6 @@ class CDRomImpl final : public PCSX::CDRom {
             m_sectorReadSinceSeek = false;
             m_speed = Speed::Simple;
             m_status = Status::Idle;
-            m_interruptCauseMask = 0x1f;
             m_readingState = ReadingState::None;
             m_readingType = ReadingType::None;
             m_setLocPending = false;
@@ -1528,14 +1528,25 @@ class CDRomImpl final : public PCSX::CDRom {
         }
 
         switch (command.payload[0]) {
+            case 0x04: {
+                // Restart the SCEx counters; answers INT3(stat) with no second response.
+                m_scexCountersReset = true;
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             case 0x05: {
                 // SCEx counters (total, success). A stock SCPH-7001 answers 01 01 with a disc and
                 // drives with no readable disc 00 00. GetID reports every disc as licensed, so
-                // this does too.
+                // this does too. After Test 04h a stock SCPH-7001 keeps the success count at 0 and
+                // the total grows with dwell time (01 after 100 ms, 03 after 1.5 s); the total is
+                // not modelled, so answer the shortest-dwell value. Copy-protection checks such as
+                // Yu-Gi-Oh! Forbidden Memories' read a nonzero success count here as a modchip.
                 const uint8_t count = isLidOpen() || !m_iso || m_iso->failed() ? 0 : 1;
                 QueueElement response;
                 response.pushPayloadData(count);
-                response.pushPayloadData(count);
+                response.pushPayloadData(m_scexCountersReset ? 0 : count);
                 maybeTriggerIRQ(Cause::Acknowledge, response);
                 break;
             }
