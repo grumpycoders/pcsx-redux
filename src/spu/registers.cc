@@ -348,6 +348,11 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                 spuIrq = val;
                 break;
 
+            // SPUSTAT is read-only: a write changes nothing, the IRQ9 flag included.
+            case H_SPUstat:
+                PCSX::PSXSPU_LOGGER::Log("SPU.write, STAT = %04x, (read-only)\n", val);
+                return;
+
             // CD audio volume feeds the XA path, which runs on the CPU thread.
             case H_CDLeft:
                 iLeftXAVol = val & 0x7fff;
@@ -457,11 +462,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
             m_ctrlWritesPending--;
             m_noise.setClock((spuCtrl & (ControlFlags::NoiseShiftMask | ControlFlags::NoiseStepMask)) >> 8);
             PCSX::PSXSPU_LOGGER::Log("SPU.write, CTRL = %04x\n", val);
-            break;
-
-        case H_SPUstat:
-            spuStat = val & 0xf800;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, STAT = %04x, (read-only)\n", val);
             break;
 
         case H_SPUReverbAddr:

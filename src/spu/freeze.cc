@@ -134,7 +134,9 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
 
     spuAddr = spu.get<SaveStates::SPUAddr>().value;
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
-    spuStat = spu.get<SaveStates::SPUStat>().value;
+    // Only the IRQ9 flag and the capture-half bit are the SPU's own; older states can carry
+    // whatever a guest wrote over the rest.
+    spuStat = spu.get<SaveStates::SPUStat>().value & (StatusFlags::IRQFlag | StatusFlags::CBIndex);
     spuEndx = spu.get<SaveStates::SPUEndx>().value & 0xffffff;
 
     m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
@@ -149,7 +151,6 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_SPUrvolR, regArea[(H_SPUrvolR - 0xc00) >> 1]);
 
     writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
-    writeRegister(H_SPUstat, regArea[(H_SPUstat - 0xc00) >> 1]);
     writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
     writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 
