@@ -793,10 +793,13 @@ void PCSX::SoftGPU::impl::dispatchPoly(Poly<shading, shape, textured, blend, mod
 PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
     m_queue.sync();
     ScreenShot ss;
-    auto startX = m_softDisplay.DisplayPosition.x;
-    auto startY = m_softDisplay.DisplayPosition.y;
-    auto width = m_softDisplay.DisplayEnd.x - m_softDisplay.DisplayPosition.x;
-    auto height = m_softDisplay.DisplayEnd.y - m_softDisplay.DisplayPosition.y;
+    // Same rectangle as doBufferSwap: the display range, not the mode's nominal width.
+    int startX = static_cast<int>(m_display.start.x());
+    int startY = static_cast<int>(m_display.start.y());
+    int width = static_cast<int>(m_display.size.x());
+    int height = std::min(static_cast<int>(m_display.size.y()), 1024 - startY);
+    // Keep each row inside its VRAM line: 1024 halfwords, i.e. 2048 bytes in 24bpp.
+    width = std::min(width, m_softDisplay.RGB24 ? (2048 - startX * 2) / 3 : 1024 - startX);
     ss.width = width;
     ss.height = height;
     unsigned factor = m_softDisplay.RGB24 ? 3 : 2;
