@@ -81,6 +81,7 @@ class impl final : public SPUInterface {
     uint16_t readRegister(uint32_t) final;
     void lockSPURAM() final;
     void unlockSPURAM() final;
+    uint8_t *getSpuRam() final { return spuRamBase; }
     void resetCaptureBuffer() final;
     void writeDMAMem(uint16_t *, int) final;
     void readDMAMem(uint16_t *, int) final;

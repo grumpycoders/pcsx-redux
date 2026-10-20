@@ -50,6 +50,10 @@ class SPUInterface {
     virtual void readDMAMem(uint16_t *, int) = 0;
     virtual void lockSPURAM() = 0;
     virtual void unlockSPURAM() = 0;
+    // Byte-addressable view of the sound RAM. Mixing happens on the SPU's own
+    // thread, so bracket bulk reads with lockSPURAM() / unlockSPURAM().
+    virtual uint8_t *getSpuRam() = 0;
+    static constexpr size_t c_spuRamSize = 512 * 1024;
     virtual void resetCaptureBuffer() = 0;
     virtual json getCfg() = 0;
     virtual void setCfg(const json &j) = 0;

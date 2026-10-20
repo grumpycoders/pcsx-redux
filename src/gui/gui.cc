@@ -801,6 +801,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.title = l_("Hardware Registers");
     m_biosEditor.title = []() { return "BIOS"; };
     m_vramEditor.title = l_("VRAM");
+    m_spuRamEditor.title = l_("SPU RAM");
     auto makeExportFn = [this](MemoryEditorWrapper& wrapper, std::string postfixName) {
         return [this, &wrapper, postfixName](size_t len, size_t base_addr) {
             std::filesystem::path writeFilepath =
@@ -827,6 +828,7 @@ void PCSX::GUI::init(std::function<void()> applyArguments) {
     m_hwrEditor.editor.ExportFn = makeExportFn(m_hwrEditor, "hwr");
     m_biosEditor.editor.ExportFn = makeExportFn(m_biosEditor, "bios");
     m_vramEditor.editor.ExportFn = makeExportFn(m_vramEditor, "vram");
+    m_spuRamEditor.editor.ExportFn = makeExportFn(m_spuRamEditor, "spuram");
 
     m_offscreenShaderEditor.init();
     m_outputShaderEditor.init();
@@ -1512,6 +1514,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                         m_hwrEditor.MenuItem();
                         m_biosEditor.MenuItem();
                         m_vramEditor.MenuItem();
+                        m_spuRamEditor.MenuItem();
                         ImGui::EndMenu();
                     }
                     ImGui::MenuItem(_("Show Memory Observer"), nullptr, &m_memoryObserver.m_show);
@@ -1784,6 +1787,12 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
             m_biosEditor.draw(memFile, 512 * 1024);
+        }
+        counter++;
+        if (m_spuRamEditor.m_show) {
+            ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
+            m_spuRamEditor.draw(g_emulator->m_spu->getSpuRam(), SPUInterface::c_spuRamSize);
         }
         counter++;
         if (m_vramEditor.m_show) {
