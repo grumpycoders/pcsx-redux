@@ -243,7 +243,7 @@ static PCSX::UI *createUI(const CommandLine::args &args, std::vector<std::string
     return new PCSX::GUI(favorites);
 }
 
-static void applyPCdrvNetArgs(const CommandLine::args& args, auto& debugSettings) {
+static void applyPCdrvNetArgs(const CommandLine::args &args, auto &debugSettings) {
     if (args.get<bool>("pcdrvnet")) {
         debugSettings.template get<PCSX::Emulator::DebugSettings::PCdrvNet>() = true;
     }
