@@ -299,6 +299,7 @@ class impl final : public SPUInterface {
     void applyRegister(uint32_t reg, uint16_t val);
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
+    void loadEnvelopeCheckpoints(const SaveStates::EnvelopeCheckpoints &);
     uint16_t readCtrl();
     void decodeAdsrLow(AdsrEnvelope &adsr, uint16_t val);
     void decodeAdsrHigh(AdsrEnvelope &adsr, uint16_t val);
