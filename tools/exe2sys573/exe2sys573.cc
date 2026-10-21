@@ -28,10 +28,11 @@
 #include <system_error>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/file.h"
 #include "support/mem4g.h"
+#include "support/tool-args.h"
 #include "supportpsx/binloader.h"
 
 // The System 573 shell boots from the onboard flash or a PCMCIA flash card when
@@ -205,19 +206,26 @@ static bool writeSplit(std::vector<uint8_t>& image, bool pad, const std::string&
 }
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    auto output = args.get<std::string>("o");
-    auto even = args.get<std::string>("even");
-    auto odd = args.get<std::string>("odd");
-    const bool pad = args.get<bool>("pad").value_or(false);
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> evenFlag(parser, "even", "", {"even"});
+    args::ValueFlag<std::string> oddFlag(parser, "odd", "", {"odd"});
+    args::Flag padFlag(parser, "pad", "", {"pad"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    auto output = PCSX::ToolArgs::get(outputFlag);
+    auto even = PCSX::ToolArgs::get(evenFlag);
+    auto odd = PCSX::ToolArgs::get(oddFlag);
+    const bool pad = args::get(padFlag);
 
     fmt::print(R"(
 exe2sys573
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2sys573/
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasSplit = even.has_value() && odd.has_value();
     const bool halfSplit = even.has_value() != odd.has_value();
     const bool hasOutput = output.has_value() || hasSplit;
