@@ -154,9 +154,37 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("endx"), 19> SPUEndx;
 // main volume sides written by software: bit 0 left, bit 1 right; bit 2 marks the field present
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mainVolWritten"), 20> SPUMainVolWritten;
 
+// The cpu-side ENVX walk (SPU::impl::EnvelopeCheckpoint), one per voice. ENVX reads are answered
+// from it, so a state restored without it answers them from whatever the walk held before.
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOnCycle"), 1> ECPKeyOnCycle;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("serviceSample"), 2> ECPServiceSample;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOffCycle"), 3> ECPKeyOffCycle;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("keyedOn"), 4> ECPKeyedOn;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("cachedSample"), 5> ECPCachedSample;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedState"), 6> ECPCachedState;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedVol"), 7> ECPCachedVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedFraction"), 8> ECPCachedFraction;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("cachedOn"), 9> ECPCachedOn;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("block"), 10> ECPBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("loop"), 11> ECPLoop;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ignoreLoop"), 12> ECPIgnoreLoop;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left"), 13> ECPLeft;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pos"), 14> ECPPos;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pitchStep"), 15> ECPPitchStep;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ended"), 16> ECPEnded;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("untracked"), 17> ECPUntracked;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnBlock"), 18> ECPKeyOnBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnLoop"), 19> ECPKeyOnLoop;
+typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle,
+                          ECPKeyedOn, ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn,
+                          ECPBlock, ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked,
+                          ECPKeyOnBlock, ECPKeyOnLoop>
+    EnvelopeCheckpoint;
+typedef Protobuf::RepeatedField<EnvelopeCheckpoint, 24, TYPESTRING("envelopeCheckpoint"), 21> EnvelopeCheckpoints;
+
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
                           SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight,
-                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx, SPUMainVolWritten>
+                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx, SPUMainVolWritten, EnvelopeCheckpoints>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 
@@ -369,7 +397,7 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
-                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
+                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, EnvelopeCheckpoint, SPU, SIO,
                             CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
                             CallStack, CallStacks, SaveState>
     ProtoFile;

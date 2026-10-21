@@ -1511,22 +1511,41 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
     }
 }
 
+// The GPU does not wrap the vertex plus drawing offset sum. It wraps the pixel address modulo 2048 on both axes
+// before the drawing-area clip (gpu-raster-phase23 W0..W5), so a primitive reaching below -1024 also covers the
+// same pixels shifted by 2048. The logger emits that copy too, or its picture of what a primitive touched is not
+// what was drawn.
+static inline int wrapCoord(int v, int off) { return v + off; }
+
+static void addWrapped(const PCSX::GPU::Logged::AddTri &add, PCSX::OpenGL::ivec2 a, PCSX::OpenGL::ivec2 b, PCSX::OpenGL::ivec2 c) {
+    const bool wrapX = std::min({a.x(), b.x(), c.x()}) < -1024;
+    const bool wrapY = std::min({a.y(), b.y(), c.y()}) < -1024;
+    auto shifted = [&](int dx, int dy) {
+        add(PCSX::OpenGL::ivec2(a.x() + dx, a.y() + dy), PCSX::OpenGL::ivec2(b.x() + dx, b.y() + dy),
+            PCSX::OpenGL::ivec2(c.x() + dx, c.y() + dy));
+    };
+    shifted(0, 0);
+    if (wrapX) shifted(2048, 0);
+    if (wrapY) shifted(0, 2048);
+    if (wrapX && wrapY) shifted(2048, 2048);
+}
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
+        addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
         if constexpr (shape == Shape::Quad) {
-            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                {x[3] + offset.x, y[3] + offset.y});
+            addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
-                {x[2] + offset.x, y[2] + offset.y});
+            addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
             if constexpr (shape == Shape::Quad) {
-                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                    {x[3] + offset.x, y[3] + offset.y});
+                addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                    {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
             }
         }
         if constexpr (textured == Textured::Yes) {
@@ -1560,19 +1579,22 @@ void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelO
         auto y0 = y[i - 1];
         auto y1 = y[i];
 
-        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
+        addLine([&add](auto v1, auto v2, auto v3) { addWrapped(add, v1, v2, v3); }, wrapCoord(x0, offset.x),
+                wrapCoord(y0, offset.y), wrapCoord(x1, offset.x), wrapCoord(y1, offset.y));
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+        const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+        addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+        addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+            const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+            addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+            addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
         }
         if constexpr (textured == Textured::Yes) {
             unsigned tx = tpage.tx * 64;

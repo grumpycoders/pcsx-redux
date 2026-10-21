@@ -66,8 +66,20 @@ class GPULogger {
                 m_displayStartChanges++;
             }
         }
+        // Track the drawing area even while disabled, so the heatmap clips correctly as soon as it is enabled.
+        if constexpr (std::is_same_v<T, GPU::DrawingAreaStart>) {
+            m_drawingAreaX0 = data.x;
+            m_drawingAreaY0 = data.y;
+        } else if constexpr (std::is_same_v<T, GPU::DrawingAreaEnd>) {
+            m_drawingAreaX1 = data.x;
+            m_drawingAreaY1 = data.y;
+        } else if constexpr (std::is_same_v<T, GPU::CtrlReset>) {
+            m_drawingAreaX0 = m_drawingAreaY0 = m_drawingAreaX1 = m_drawingAreaY1 = 0;
+        }
         if (m_enabled) {
-            addNodeInternal(new T(data), origin, value, length);
+            // Only primitives are clipped to the drawing area; fills and blits ignore it.
+            constexpr bool clipped = requires { data.offset; };
+            addNodeInternal(new T(data), origin, value, length, clipped);
         }
     }
     float getGuestFPS() const { return m_guestFPS; }
@@ -82,10 +94,11 @@ class GPULogger {
 
   private:
     void startNewFrame();
-    void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length);
+    void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length, bool clipped);
     void checkVramBreakpoints(GPU::Logged* node);
 
     EventBus::Listener m_listener;
+    unsigned m_drawingAreaX0 = 0, m_drawingAreaY0 = 0, m_drawingAreaX1 = 0, m_drawingAreaY1 = 0;
     bool m_enabled = false;
     bool m_breakOnVSync = false;
     std::vector<VramBreakpoint> m_vramBreakpoints;
@@ -105,6 +118,9 @@ class GPULogger {
 
     OpenGL::Framebuffer m_writtenHeatmapFB, m_readHeatmapFB, m_writtenHighlightFB, m_readHighlightFB;
     OpenGL::Texture m_writtenHeatmapTex, m_readHeatmapTex, m_writtenHighlightTex, m_readHighlightTex;
+    // The heatmaps accumulate into these during a frame, and are copied to the displayed ones when it ends.
+    OpenGL::Framebuffer m_writtenAccumFB, m_readAccumFB;
+    OpenGL::Texture m_writtenAccumTex, m_readAccumTex;
     OpenGL::VertexArray m_vao;
     OpenGL::VertexBuffer m_vbo;
     OpenGL::Program m_program;

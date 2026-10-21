@@ -293,14 +293,16 @@ void PCSX::SaveStates::capture(SaveState& state) {
 void PCSX::SaveStates::restore(SaveState& state) {
     SaveStateWrapper wrapper(state);
 
+    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
+       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
+       translated from memory we just rewound out from under it. It also wipes the emulated
+       instruction cache, which is part of the snapshot, so it has to run before commit()
+       writes the saved one back. */
+    g_emulator->m_cpu->invalidateCache();
     state.commit();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
-    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
-       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
-       translated from memory we just rewound out from under it. */
-    g_emulator->m_cpu->invalidateCache();
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
@@ -412,6 +414,13 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
         mdecSave.get<MDECQTUV>().value[i].value = m_tables.qtUV[i];
         mdecSave.get<MDECScaleTable>().value[i].value = m_tables.scale[i];
     }
+    // Only deserialisation counts elements, and deserialize() reads a zero count as a state from
+    // before these fields existed. Say they are full, or an in-memory capture restores as one.
+    mdecSave.get<MDECIQY>().count = 64;
+    mdecSave.get<MDECIQUV>().count = 64;
+    mdecSave.get<MDECQTY>().count = 64;
+    mdecSave.get<MDECQTUV>().count = 64;
+    mdecSave.get<MDECScaleTable>().count = 64;
     mdecSave.get<MDECCustomScale>().value = m_tables.customScale ? 1 : 0;
 }
 
@@ -612,6 +621,13 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     writeStatus(m_statusControl[4]);
 
     restoreEnvironment(gpu.get<GPUEnvironment>().value, gpu.get<GPUStatus>().value);
+    // The GP1 and environment replays above rebuild the status word from commands, which loses
+    // whatever was set since by other paths (the texpage of the last textured primitive, the
+    // interlace field). The saved word is what the cpu read; that is what it has to read again,
+    // except for the bits readStatus() ORs in live (IRQ1, DMA request, ready-for-VRAM): those
+    // stay as the replay derived them.
+    constexpr uint32_t derived = 0x1b000000;
+    restoreStatus((gpu.get<GPUStatus>().value & ~derived) | (readStatusInternal() & derived));
     // The replayed GP1(00h)/GP1(02h) above clear the IRQ1 flag; put back the saved one.
     m_irq1Flag = gpu.get<GPUStatus>().value & 0x01000000;
 }

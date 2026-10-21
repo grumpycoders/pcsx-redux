@@ -665,11 +665,23 @@ Formula One 2001
             : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
         PCdrvFile(const std::filesystem::path &filename, FileOps::Create)
             : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
-        virtual ~PCdrvFile() = default;
+        // A TCP stream (tcp://host:port) or the networking probe (probe:net). Neither is a
+        // real file: they are not saved in save states, and lseek on them fails.
+        enum class Kind { File, Socket, Probe };
+        PCdrvFile(IO<File> file, Kind kind) : IO<File>(std::move(file)), m_kind(kind) {}
+        virtual ~PCdrvFile();
+        bool refusesWrite() {
+            if (m_kind == Kind::Probe) return true;
+            return (m_kind == Kind::Socket) && (*this)->failed();
+        }
         std::string m_relativeFilename;
+        const Kind m_kind = Kind::File;
     };
     PCdrvFiles m_pcdrvFiles;
     std::list<uint16_t> m_availableFDs;
+    // PCopen and PCread on network names. Both set v0 and v1.
+    void pcdrvOpenNet(const std::string& filename);
+    void pcdrvReadNet(PCdrvFile& file, IO<File>& memFile);
 
   public:
     void closeAllPCdrvFiles() {
@@ -681,6 +693,7 @@ Formula One 2001
     }
     void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
+            if (iter->m_kind != PCdrvFile::Kind::File) continue;
             walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(), (*iter)->wTell());
         }
     }

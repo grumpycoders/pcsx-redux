@@ -595,3 +595,74 @@ function TestIsoBuilder:test_writeSectorPatchesAfterClose()
         lu.assertEquals(back:readU8At((i - 1) * 4 + 1), math.floor(lba / 256) % 256)
     end
 end
+
+function TestIsoBuilder:test_customLicense()
+    -- A license file made of whole 2336-byte sectors (8-byte subheader, 2048 bytes of data, 280 of
+    -- EDC/ECC space) is written to the system area even without Sony's text in it. Sectors the file
+    -- does not cover stay zero.
+    local license = Support.File.buffer()
+    for i = 0, 11 do
+        license:write(string.rep('\0', 8) .. string.rep(string.char(0x40 + i), 2048) .. string.rep('\0', 280))
+    end
+    license:rSeek(0)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense(license)
+    builder:setVolumeIdent('LICENSE')
+    builder:createRoot(1)
+    builder:close()
+
+    for i = 0, 15 do
+        local expected = i < 12 and 0x40 + i or 0
+        for _, offset in ipairs({ 0, 1000, 2047 }) do
+            lu.assertEquals(out:readU8At(i * 2352 + 24 + offset), expected,
+                string.format('license sector %d byte %d', i, offset))
+        end
+    end
+end
+
+function TestIsoBuilder:test_unrecognizedLicenseIsZero()
+    -- A file that is neither format leaves the system area zero.
+    local license = Support.File.buffer()
+    license:write(string.rep('X', 1000))
+    license:rSeek(0)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense(license)
+    builder:setVolumeIdent('LICENSE')
+    builder:createRoot(1)
+    builder:close()
+
+    for i = 0, 15 do
+        lu.assertEquals(out:readU8At(i * 2352 + 24), 0, string.format('license sector %d', i))
+    end
+end
+
+function TestIsoBuilder:test_sortedRecords()
+    -- Directory records come out sorted by name whatever the insertion order, while file contents
+    -- keep the insertion order on disc.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('SORTED')
+    local root = builder:createRoot(1)
+    local zeta = builder:createFile(root, 'ZETA.DAT', generateTestContent(2048))
+    local dir = builder:createDir(root, 'MIDDLE', 1)
+    local alpha = builder:createFile(root, 'ALPHA.DAT', generateTestContent(2048))
+    builder:createFile(dir, 'INNER.DAT', generateTestContent(2048))
+    builder:close()
+
+    lu.assertTrue(zeta:getLBA() < alpha:getLBA())
+
+    out:rSeek(0)
+    local reader = PCSX.openIso(out):createReader()
+    local names = {}
+    for _, e in ipairs(reader:listDir('')) do
+        table.insert(names, e.name)
+    end
+    lu.assertEquals(names, { 'ALPHA.DAT;1', 'MIDDLE', 'ZETA.DAT;1' })
+    local f = reader:open('MIDDLE/INNER.DAT;1')
+    lu.assertNotNil(f)
+    lu.assertFalse(f:failed())
+    lu.assertEquals(f:size(), 2048)
+end

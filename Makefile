@@ -219,7 +219,7 @@ LIBS := third_party/luajit/src/libluajit.a
 # lives in src/core; it is linked in on its own, without the rest of core.
 TOOL_EXTRA_OBJECTS_mdec := objs/$(BUILD)/src/core/mdec-decoder.o
 
-TOOLS = authoring exe2elf exe2exe exe2iso mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser xmconv
+TOOLS = authoring exe2elf exe2exe exe2iso exe2sys573 mdec midi2psm midi2spd modconv ps1-packer psyq-obj-parser xmconv
 
 ##############################################################################
 

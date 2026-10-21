@@ -74,6 +74,7 @@ jobs:
         vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
         vsprojects/x64/ReleaseWithClangCL/exe2exe.exe
         vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
+        vsprojects/x64/ReleaseWithClangCL/exe2sys573.exe
         vsprojects/x64/ReleaseWithClangCL/modconv.exe
         vsprojects/x64/ReleaseWithClangCL/xmconv.exe
         vsprojects/x64/ReleaseWithClangCL/ps1-packer.exe
@@ -97,6 +98,7 @@ jobs:
         !**\exe2elf.exe
         !**\exe2exe.exe
         !**\exe2iso.exe
+        !**\exe2sys573.exe
         !**\mdec.exe
         !**\modconv.exe
         !**\xmconv.exe
@@ -151,26 +153,13 @@ jobs:
         if ($LASTEXITCODE) { exit $LASTEXITCODE }
         Get-ChildItem test.*
 
-  # cdrom.Interpreter and cdrom.Dynarec run without -no-ui, and the UI cannot
-  # get an OpenGL context on this agent, so they run separately with a timeout.
   - task: PowerShell@2
     displayName: 'Run pcsxrunner'
     timeoutInMinutes: 30
     inputs:
       targetType: 'inline'
       script: |
-        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_filter=-cdrom.Interpreter:cdrom.Dynarec --gtest_output=xml:$(Agent.TempDirectory)\pcsxrunner.xml
-        exit $LASTEXITCODE
-
-  - task: PowerShell@2
-    displayName: 'Run pcsxrunner UI cdrom tests'
-    condition: succeededOrFailed()
-    continueOnError: true
-    timeoutInMinutes: 5
-    inputs:
-      targetType: 'inline'
-      script: |
-        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_filter=cdrom.Interpreter:cdrom.Dynarec
+        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_output=xml:$(Agent.TempDirectory)\pcsxrunner.xml
         exit $LASTEXITCODE
 
   - task: PublishTestResults@2

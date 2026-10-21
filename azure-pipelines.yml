@@ -76,6 +76,7 @@ steps:
       vsprojects/x64/ReleaseWithClangCL/authoring.exe
       vsprojects/x64/ReleaseWithClangCL/exe2elf.exe
       vsprojects/x64/ReleaseWithClangCL/exe2iso.exe
+      vsprojects/x64/ReleaseWithClangCL/exe2sys573.exe
       vsprojects/x64/ReleaseWithClangCL/modconv.exe
       vsprojects/x64/ReleaseWithClangCL/xmconv.exe
       vsprojects/x64/ReleaseWithClangCL/ps1-packer.exe
@@ -100,6 +101,7 @@ steps:
       !**\exe2exe.exe
       !**\exe2iso.exe
       !**\mdec.exe
+      !**\exe2sys573.exe
       !**\modconv.exe
       !**\xmconv.exe
       !**\midi2psm.exe
