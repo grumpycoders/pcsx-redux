@@ -82,6 +82,8 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
 
+    saveEnvelopeCheckpoints(spu.get<SaveStates::EnvelopeCheckpoints>());
+
     if (running) SetupThread();
 }
 
@@ -180,7 +182,80 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     // The replays above were queued: apply them now, with the mixer stopped.
     drainEventsNow();
     rebuildShadows();
+    loadEnvelopeCheckpoints(spu.get<SaveStates::EnvelopeCheckpoints>());
 
     // Start sound processing again.
     if (running) SetupThread();
+}
+
+void PCSX::SPU::impl::loadEnvelopeCheckpoints(const SaveStates::EnvelopeCheckpoints &checkpoints) {
+    const uint64_t now = cycleToSample(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        auto &cp = m_envelopeCheckpoint[i];
+        cp = EnvelopeCheckpoint{};
+        if (checkpoints.count == MAXCHAN) {
+            const auto &in = checkpoints.value[i];
+            cp.keyOnCycle = in.get<SaveStates::ECPKeyOnCycle>().value;
+            cp.serviceSample = in.get<SaveStates::ECPServiceSample>().value;
+            cp.keyOffCycle = in.get<SaveStates::ECPKeyOffCycle>().value;
+            cp.keyedOn = in.get<SaveStates::ECPKeyedOn>().value;
+            cp.cachedSample = in.get<SaveStates::ECPCachedSample>().value;
+            cp.cachedState = in.get<SaveStates::ECPCachedState>().value;
+            cp.cachedVol = in.get<SaveStates::ECPCachedVol>().value;
+            cp.cachedFraction = in.get<SaveStates::ECPCachedFraction>().value;
+            cp.cachedOn = in.get<SaveStates::ECPCachedOn>().value;
+            cp.block = in.get<SaveStates::ECPBlock>().value;
+            cp.loop = in.get<SaveStates::ECPLoop>().value;
+            cp.ignoreLoop = in.get<SaveStates::ECPIgnoreLoop>().value;
+            cp.left = in.get<SaveStates::ECPLeft>().value;
+            cp.pos = in.get<SaveStates::ECPPos>().value;
+            cp.pitchStep = in.get<SaveStates::ECPPitchStep>().value;
+            cp.ended = in.get<SaveStates::ECPEnded>().value;
+            cp.untracked = in.get<SaveStates::ECPUntracked>().value;
+            cp.keyOnBlock = in.get<SaveStates::ECPKeyOnBlock>().value;
+            cp.keyOnLoop = in.get<SaveStates::ECPKeyOnLoop>().value;
+            continue;
+        }
+        // A state saved without the walk: re-anchor it on the restored mixer envelope, one step
+        // taken at the load sample. The ADPCM cursor is unknown, so the voice is not walked for
+        // its end block until the next KEY ON.
+        if (!s_chan[i].data.get<Chan::On>().value) continue;
+        const auto &ex = s_chan[i].adsr.ex();
+        cp.keyedOn = true;
+        cp.serviceSample = now >= AdpcmDecoder::kKeyOnSilentSamples ? now - AdpcmDecoder::kKeyOnSilentSamples : 0;
+        cp.cachedSample = 1;
+        cp.cachedState = ex.get<exState>().value;
+        cp.cachedVol = ex.get<exEnvelopeVol>().value;
+        cp.cachedFraction = ex.get<exEnvelopeVolF>().value;
+        cp.cachedOn = true;
+        cp.untracked = true;
+    }
+}
+
+void PCSX::SPU::impl::saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &checkpoints) {
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        const auto &cp = m_envelopeCheckpoint[i];
+        auto &out = checkpoints.value[i];
+        out.get<SaveStates::ECPKeyOnCycle>().value = cp.keyOnCycle;
+        out.get<SaveStates::ECPServiceSample>().value = cp.serviceSample;
+        out.get<SaveStates::ECPKeyOffCycle>().value = cp.keyOffCycle;
+        out.get<SaveStates::ECPKeyedOn>().value = cp.keyedOn;
+        out.get<SaveStates::ECPCachedSample>().value = cp.cachedSample;
+        out.get<SaveStates::ECPCachedState>().value = cp.cachedState;
+        out.get<SaveStates::ECPCachedVol>().value = cp.cachedVol;
+        out.get<SaveStates::ECPCachedFraction>().value = cp.cachedFraction;
+        out.get<SaveStates::ECPCachedOn>().value = cp.cachedOn;
+        out.get<SaveStates::ECPBlock>().value = cp.block;
+        out.get<SaveStates::ECPLoop>().value = cp.loop;
+        out.get<SaveStates::ECPIgnoreLoop>().value = cp.ignoreLoop;
+        out.get<SaveStates::ECPLeft>().value = cp.left;
+        out.get<SaveStates::ECPPos>().value = cp.pos;
+        out.get<SaveStates::ECPPitchStep>().value = cp.pitchStep;
+        out.get<SaveStates::ECPEnded>().value = cp.ended;
+        out.get<SaveStates::ECPUntracked>().value = cp.untracked;
+        out.get<SaveStates::ECPKeyOnBlock>().value = cp.keyOnBlock;
+        out.get<SaveStates::ECPKeyOnLoop>().value = cp.keyOnLoop;
+    }
+    // Only deserialisation counts elements; load() reads a zero count as a state saved without them.
+    checkpoints.count = MAXCHAN;
 }
