@@ -43,7 +43,13 @@ namespace ToolArgs {
 // also be spelled with more dashes (--o output.bin). Unknown flags and malformed
 // values are errors: the message is printed on stderr, and every flag and positional
 // argument is reset, so the tool sees an empty command line and prints its usage.
-inline void parse(args::ArgumentParser& parser, int argc, char** argv) {
+//
+// A tool with commands, whose options depend on the command, can instead pass
+// unknown, to report the unknown flags in its own words once it knows the command.
+// Each unknown flag's name is then appended to it, and the flag is left out of the
+// parse along with the value following it, if any: a next argument that doesn't
+// start with a dash.
+inline void parse(args::ArgumentParser& parser, int argc, char** argv, std::vector<std::string>* unknown = nullptr) {
     parser.LongPrefix("-");
     parser.ShortPrefix("-");
 
@@ -71,6 +77,11 @@ inline void parse(args::ArgumentParser& parser, int argc, char** argv) {
         auto stripped = arg.substr(dashes);
         auto equal = stripped.find('=');
         auto flag = findFlag(stripped.substr(0, equal));
+        if (!flag && unknown) {
+            unknown->emplace_back(stripped.substr(0, equal));
+            if (equal == std::string_view::npos && i + 1 < argc && argv[i + 1][0] != '-') i++;
+            continue;
+        }
         if (!flag) {
             arguments.emplace_back(arg);
             continue;

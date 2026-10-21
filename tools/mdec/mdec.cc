@@ -55,9 +55,10 @@
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "json.hpp"
+#include "support/tool-args.h"
 #include "supportpsx/dct.h"
 #include "core/mdec-decoder.h"
 
@@ -157,6 +158,24 @@ bool loadTables(const std::string &path, Tables &t, std::string &err) {
 
 
 namespace {
+
+// Every option of every command, so that the command can be found wherever it sits
+// among them. main() then checks each command was only given its own (rule 3).
+struct Options {
+    args::ArgumentParser parser{""};
+    args::ValueFlag<std::string> i{parser, "i", "", {"i"}};
+    args::ValueFlag<std::string> o{parser, "o", "", {"o"}};
+    args::ValueFlag<std::string> t{parser, "t", "", {"t"}};
+    args::ValueFlag<int> q{parser, "q", "", {"q"}};
+    args::ValueFlag<int> quality{parser, "quality", "", {"quality"}};
+    args::ValueFlag<int> qscale{parser, "qscale", "", {"qscale"}};
+    args::ValueFlag<std::string> order{parser, "order", "", {"order"}};
+    args::ValueFlag<std::string> transform{parser, "transform", "", {"transform"}};
+    args::ValueFlag<int> width{parser, "width", "", {"width"}};
+    args::ValueFlag<int> height{parser, "height", "", {"height"}};
+    args::Flag h{parser, "h", "", {"h"}};
+    args::PositionalList<std::string> positional{parser, "command", ""};
+};
 
 void printUsage(const char *argv0) {
     fmt::print(R"(
@@ -261,13 +280,13 @@ const char *orderName(PCSX::DCT::MacroblockOrder order) {
     return order == PCSX::DCT::MacroblockOrder::Column ? "column" : "raster";
 }
 
-int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container) {
+int cmdEncode(Options &opts, bool asksForHelp, PCSX::DCT::Container container) {
     if (asksForHelp) {
         usageRawEncode();
         return 0;
     }
-    const auto in = args.get<std::string>("i");
-    const auto out = args.get<std::string>("o");
+    const auto in = PCSX::ToolArgs::get(opts.i);
+    const auto out = PCSX::ToolArgs::get(opts.o);
     if (!in.has_value() || !out.has_value()) {
         usageRawEncode();
         return -1;
@@ -277,15 +296,15 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     // higher was worse, higher is now better - while every old invocation kept
     // working and produced a very different image. An unknown option is already an
     // error here, so the hard break is the one that cannot be misread.
-    if (args.get<int>("q").has_value()) {
+    if (PCSX::ToolArgs::get(opts.q).has_value()) {
         fmt::print(stderr,
                    "-q is retired because it meant the raw q_scale field, which reads backwards as a quality "
                    "dial. Use -quality 1..100 (higher is better, 50 is the old default), or -qscale 1..63 for "
                    "the format field itself.\n");
         return -1;
     }
-    const auto qualityOpt = args.get<int>("quality");
-    const auto qscaleOpt = args.get<int>("qscale");
+    const auto qualityOpt = PCSX::ToolArgs::get(opts.quality);
+    const auto qscaleOpt = PCSX::ToolArgs::get(opts.qscale);
     if (qualityOpt.has_value() && qscaleOpt.has_value()) {
         fmt::print(stderr, "-quality and -qscale set the same thing. Pass one.\n");
         return -1;
@@ -293,7 +312,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     const int quality = std::clamp(qualityOpt.value_or(50), 1, 100);
     const int qscale =
         qscaleOpt.has_value() ? std::clamp(qscaleOpt.value(), 1, 63) : PCSX::DCT::qualityToQScale(quality);
-    const std::string which = args.get<std::string>("transform").value_or("exact");
+    const std::string which = PCSX::ToolArgs::get(opts.transform).value_or("exact");
 
     PCSX::DCT::Transform transform;
     if (which == "exact") {
@@ -308,7 +327,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     }
 
     Tables tables;
-    if (auto t = args.get<std::string>("t"); t.has_value()) {
+    if (auto t = PCSX::ToolArgs::get(opts.t); t.has_value()) {
         std::string err;
         if (!loadTables(t.value(), tables, err)) {
             fmt::print(stderr, "{}\n", err.empty() ? "cannot read tables" : err);
@@ -377,7 +396,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     // Frame's default order is column, the way retail STR walks macroblocks, so
     // each decoded column is one contiguous run and a player can upload it as a
     // single VRAM rect. -order raster is the explicit opt-out.
-    const std::string order = args.get<std::string>("order").value_or(orderName(frame.order));
+    const std::string order = PCSX::ToolArgs::get(opts.order).value_or(orderName(frame.order));
     if (order == "column") {
         frame.order = PCSX::DCT::MacroblockOrder::Column;
     } else if (order == "raster") {
@@ -460,7 +479,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     return 0;
 }
 
-int cmdBsDecode(CommandLine::args &args, bool asksForHelp) {
+int cmdBsDecode(Options &opts, bool asksForHelp) {
     if (asksForHelp) {
         fmt::print(R"(
 Usage: mdec bsdecode -i input.bs -o output.bin
@@ -477,8 +496,8 @@ Usage: mdec bsdecode -i input.bs -o output.bin
 )");
         return 0;
     }
-    auto in = args.get<std::string>("i");
-    auto out = args.get<std::string>("o");
+    auto in = PCSX::ToolArgs::get(opts.i);
+    auto out = PCSX::ToolArgs::get(opts.o);
     if (!in.has_value() || !out.has_value()) {
         fmt::print(stderr, "bsdecode needs -i and -o\n");
         return -1;
@@ -522,20 +541,20 @@ Usage: mdec bsdecode -i input.bs -o output.bin
     return 0;
 }
 
-int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
+int cmdRawDecode(Options &opts, bool asksForHelp) {
     if (asksForHelp) {
         usageRawDecode();
         return 0;
     }
-    const auto in = args.get<std::string>("i");
-    const auto out = args.get<std::string>("o");
-    const int w = args.get<int>("width").value_or(0);
-    const int h = args.get<int>("height").value_or(0);
+    const auto in = PCSX::ToolArgs::get(opts.i);
+    const auto out = PCSX::ToolArgs::get(opts.o);
+    const int w = PCSX::ToolArgs::get(opts.width).value_or(0);
+    const int h = PCSX::ToolArgs::get(opts.height).value_or(0);
     if (!in.has_value() || !out.has_value() || w <= 0 || h <= 0 || (w % 16) || (h % 16)) {
         usageRawDecode();
         return -1;
     }
-    const std::string order = args.get<std::string>("order").value_or(orderName(PCSX::DCT::Frame{}.order));
+    const std::string order = PCSX::ToolArgs::get(opts.order).value_or(orderName(PCSX::DCT::Frame{}.order));
     if (order != "raster" && order != "column") {
         fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
         return -1;
@@ -543,7 +562,7 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
     const bool column = order == "column";
 
     Tables tables;
-    if (auto t = args.get<std::string>("t"); t.has_value()) {
+    if (auto t = PCSX::ToolArgs::get(opts.t); t.has_value()) {
         std::string err;
         if (!loadTables(t.value(), tables, err)) {
             fmt::print(stderr, "{}\n", err.empty() ? "cannot read tables" : err);
@@ -606,9 +625,11 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
 
 
 int main(int argc, char **argv) {
-    CommandLine::args args(argc, argv);
-    const auto positional = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    Options opts;
+    std::vector<std::string> unknown;
+    PCSX::ToolArgs::parse(opts.parser, argc, argv, &unknown);
+    const auto positional = args::get(opts.positional);
+    const bool asksForHelp = args::get(opts.h);
 
     if (positional.empty()) {
         printUsage(argv[0]);
@@ -625,8 +646,14 @@ int main(int argc, char **argv) {
     // exit 0, encodes fine, so the abort was the symmetry check and not the table
     // loader.
     // Rule 3 of the contract at the top of this file.
+    // The options given, in name order, whether some command knows them or not.
+    std::vector<std::string> given = unknown;
+    for (auto flag : opts.parser.GetAllFlags()) {
+        if (flag->Matched()) given.push_back(flag->Name());
+    }
+    std::sort(given.begin(), given.end());
     auto knows = [&](std::initializer_list<std::string_view> known) {
-        for (const auto &[name, value] : args.options()) {
+        for (const auto &name : given) {
             if (name == "h") continue;
             if (std::find(known.begin(), known.end(), name) == known.end()) {
                 fmt::print(stderr, "{}: unknown option -{}\n", command, name);
@@ -640,14 +667,14 @@ int main(int argc, char **argv) {
 
     try {
         if (command == "rawencode") {
-            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw) : -1;
+            return knows(encodeOptions) ? cmdEncode(opts, asksForHelp, PCSX::DCT::Container::Raw) : -1;
         }
         if (command == "bsencode") {
-            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs) : -1;
+            return knows(encodeOptions) ? cmdEncode(opts, asksForHelp, PCSX::DCT::Container::Bs) : -1;
         }
-        if (command == "bsdecode") return knows({"i", "o"}) ? cmdBsDecode(args, asksForHelp) : -1;
+        if (command == "bsdecode") return knows({"i", "o"}) ? cmdBsDecode(opts, asksForHelp) : -1;
         if (command == "rawdecode") {
-            return knows({"i", "o", "t", "width", "height", "order"}) ? cmdRawDecode(args, asksForHelp) : -1;
+            return knows({"i", "o", "t", "width", "height", "order"}) ? cmdRawDecode(opts, asksForHelp) : -1;
         }
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());
