@@ -82,32 +82,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
 
-    auto &checkpoints = spu.get<SaveStates::EnvelopeCheckpoints>();
-    for (unsigned i = 0; i < MAXCHAN; i++) {
-        const auto &cp = m_envelopeCheckpoint[i];
-        auto &out = checkpoints.value[i];
-        out.get<SaveStates::ECPKeyOnCycle>().value = cp.keyOnCycle;
-        out.get<SaveStates::ECPServiceSample>().value = cp.serviceSample;
-        out.get<SaveStates::ECPKeyOffCycle>().value = cp.keyOffCycle;
-        out.get<SaveStates::ECPKeyedOn>().value = cp.keyedOn;
-        out.get<SaveStates::ECPCachedSample>().value = cp.cachedSample;
-        out.get<SaveStates::ECPCachedState>().value = cp.cachedState;
-        out.get<SaveStates::ECPCachedVol>().value = cp.cachedVol;
-        out.get<SaveStates::ECPCachedFraction>().value = cp.cachedFraction;
-        out.get<SaveStates::ECPCachedOn>().value = cp.cachedOn;
-        out.get<SaveStates::ECPBlock>().value = cp.block;
-        out.get<SaveStates::ECPLoop>().value = cp.loop;
-        out.get<SaveStates::ECPIgnoreLoop>().value = cp.ignoreLoop;
-        out.get<SaveStates::ECPLeft>().value = cp.left;
-        out.get<SaveStates::ECPPos>().value = cp.pos;
-        out.get<SaveStates::ECPPitchStep>().value = cp.pitchStep;
-        out.get<SaveStates::ECPEnded>().value = cp.ended;
-        out.get<SaveStates::ECPUntracked>().value = cp.untracked;
-        out.get<SaveStates::ECPKeyOnBlock>().value = cp.keyOnBlock;
-        out.get<SaveStates::ECPKeyOnLoop>().value = cp.keyOnLoop;
-    }
-    // Only deserialisation counts elements; load() reads a zero count as a state saved without them.
-    checkpoints.count = MAXCHAN;
+    saveEnvelopeCheckpoints(spu.get<SaveStates::EnvelopeCheckpoints>());
 
     if (running) SetupThread();
 }
@@ -255,4 +230,32 @@ void PCSX::SPU::impl::loadEnvelopeCheckpoints(const SaveStates::EnvelopeCheckpoi
         cp.cachedOn = true;
         cp.untracked = true;
     }
+}
+
+void PCSX::SPU::impl::saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &checkpoints) {
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        const auto &cp = m_envelopeCheckpoint[i];
+        auto &out = checkpoints.value[i];
+        out.get<SaveStates::ECPKeyOnCycle>().value = cp.keyOnCycle;
+        out.get<SaveStates::ECPServiceSample>().value = cp.serviceSample;
+        out.get<SaveStates::ECPKeyOffCycle>().value = cp.keyOffCycle;
+        out.get<SaveStates::ECPKeyedOn>().value = cp.keyedOn;
+        out.get<SaveStates::ECPCachedSample>().value = cp.cachedSample;
+        out.get<SaveStates::ECPCachedState>().value = cp.cachedState;
+        out.get<SaveStates::ECPCachedVol>().value = cp.cachedVol;
+        out.get<SaveStates::ECPCachedFraction>().value = cp.cachedFraction;
+        out.get<SaveStates::ECPCachedOn>().value = cp.cachedOn;
+        out.get<SaveStates::ECPBlock>().value = cp.block;
+        out.get<SaveStates::ECPLoop>().value = cp.loop;
+        out.get<SaveStates::ECPIgnoreLoop>().value = cp.ignoreLoop;
+        out.get<SaveStates::ECPLeft>().value = cp.left;
+        out.get<SaveStates::ECPPos>().value = cp.pos;
+        out.get<SaveStates::ECPPitchStep>().value = cp.pitchStep;
+        out.get<SaveStates::ECPEnded>().value = cp.ended;
+        out.get<SaveStates::ECPUntracked>().value = cp.untracked;
+        out.get<SaveStates::ECPKeyOnBlock>().value = cp.keyOnBlock;
+        out.get<SaveStates::ECPKeyOnLoop>().value = cp.keyOnLoop;
+    }
+    // Only deserialisation counts elements; load() reads a zero count as a state saved without them.
+    checkpoints.count = MAXCHAN;
 }
