@@ -149,26 +149,13 @@ jobs:
         if ($LASTEXITCODE) { exit $LASTEXITCODE }
         Get-ChildItem test.*
 
-  # cdrom.Interpreter and cdrom.Dynarec run without -no-ui, and the UI cannot
-  # get an OpenGL context on this agent, so they run separately with a timeout.
   - task: PowerShell@2
     displayName: 'Run pcsxrunner'
     timeoutInMinutes: 30
     inputs:
       targetType: 'inline'
       script: |
-        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_filter=-cdrom.Interpreter:cdrom.Dynarec --gtest_output=xml:$(Agent.TempDirectory)\pcsxrunner.xml
-        exit $LASTEXITCODE
-
-  - task: PowerShell@2
-    displayName: 'Run pcsxrunner UI cdrom tests'
-    condition: succeededOrFailed()
-    continueOnError: true
-    timeoutInMinutes: 5
-    inputs:
-      targetType: 'inline'
-      script: |
-        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_filter=cdrom.Interpreter:cdrom.Dynarec
+        vsprojects\x64\ReleaseWithClangCL\pcsxrunner.exe --gtest_output=xml:$(Agent.TempDirectory)\pcsxrunner.xml
         exit $LASTEXITCODE
 
   - task: PublishTestResults@2
