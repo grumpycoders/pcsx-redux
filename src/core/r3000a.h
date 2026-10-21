@@ -680,8 +680,8 @@ Formula One 2001
     PCdrvFiles m_pcdrvFiles;
     std::list<uint16_t> m_availableFDs;
     // PCopen and PCread on network names. Both set v0 and v1.
-    void pcdrvOpenNet(const std::string& filename);
-    void pcdrvReadNet(PCdrvFile& file, IO<File>& memFile);
+    void pcdrvOpenNet(const std::string &filename);
+    void pcdrvReadNet(PCdrvFile &file, IO<File> &memFile);
 
   public:
     void closeAllPCdrvFiles() {

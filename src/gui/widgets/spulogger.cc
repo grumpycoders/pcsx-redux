@@ -39,8 +39,7 @@ void PCSX::Widgets::SPULogger::draw(PCSX::SPULogger *logger, const char *title) 
     // seen counts everything since the last clear, so the difference is exactly what the ring
     // has dropped. Saying so beats letting a truncated log read as a complete one.
     if (seen > count) {
-        ImGui::TextUnformatted(
-            fmt::format(f_("{} events, {} dropped"), count, seen - count).c_str());
+        ImGui::TextUnformatted(fmt::format(f_("{} events, {} dropped"), count, seen - count).c_str());
     } else {
         ImGui::TextUnformatted(fmt::format(f_("{} events"), count).c_str());
     }
@@ -94,33 +93,33 @@ void PCSX::Widgets::SPULogger::draw(PCSX::SPULogger *logger, const char *title) 
                     const size_t i = m_visible[row];
                     const auto &ev = (*logger)[i];
 
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                ImGui::TextUnformatted(fmt::format("{}", ev.cycle).c_str());
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted(fmt::format("{}", ev.cycle).c_str());
 
-                ImGui::TableSetColumnIndex(1);
-                ImGui::PushID(int(i));
-                if (ImGui::SmallButton(fmt::format("{:08x}", ev.pc).c_str())) {
-                    g_system->m_eventBus->signal(Events::GUI::JumpToPC{ev.pc});
-                }
-                ImGui::PopID();
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::PushID(int(i));
+                    if (ImGui::SmallButton(fmt::format("{:08x}", ev.pc).c_str())) {
+                        g_system->m_eventBus->signal(Events::GUI::JumpToPC{ev.pc});
+                    }
+                    ImGui::PopID();
 
-                ImGui::TableSetColumnIndex(2);
-                ImGui::TextUnformatted(PCSX::SPULogger::kindName(ev.kind));
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::TextUnformatted(PCSX::SPULogger::kindName(ev.kind));
 
-                ImGui::TableSetColumnIndex(3);
-                if (ev.voice != PCSX::SPULogger::c_noVoice) {
-                    ImGui::TextUnformatted(fmt::format("{}", ev.voice).c_str());
-                }
+                    ImGui::TableSetColumnIndex(3);
+                    if (ev.voice != PCSX::SPULogger::c_noVoice) {
+                        ImGui::TextUnformatted(fmt::format("{}", ev.voice).c_str());
+                    }
 
-                ImGui::TableSetColumnIndex(4);
-                ImGui::TextUnformatted(fmt::format("{:05x}", ev.address).c_str());
+                    ImGui::TableSetColumnIndex(4);
+                    ImGui::TextUnformatted(fmt::format("{:05x}", ev.address).c_str());
 
-                ImGui::TableSetColumnIndex(5);
-                if (ev.length) ImGui::TextUnformatted(fmt::format("{}", ev.length).c_str());
+                    ImGui::TableSetColumnIndex(5);
+                    if (ev.length) ImGui::TextUnformatted(fmt::format("{}", ev.length).c_str());
 
-                ImGui::TableSetColumnIndex(6);
-                ImGui::TextUnformatted(fmt::format("{:04x}", ev.value).c_str());
+                    ImGui::TableSetColumnIndex(6);
+                    ImGui::TextUnformatted(fmt::format("{:04x}", ev.value).c_str());
                 }
             }
 

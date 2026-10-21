@@ -175,10 +175,10 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ended"), 16> ECPEnded;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("untracked"), 17> ECPUntracked;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnBlock"), 18> ECPKeyOnBlock;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnLoop"), 19> ECPKeyOnLoop;
-typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle,
-                          ECPKeyedOn, ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn,
-                          ECPBlock, ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked,
-                          ECPKeyOnBlock, ECPKeyOnLoop>
+typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle, ECPKeyedOn,
+                          ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn, ECPBlock,
+                          ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked, ECPKeyOnBlock,
+                          ECPKeyOnLoop>
     EnvelopeCheckpoint;
 typedef Protobuf::RepeatedField<EnvelopeCheckpoint, 24, TYPESTRING("envelopeCheckpoint"), 21> EnvelopeCheckpoints;
 
@@ -397,9 +397,9 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
-                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, EnvelopeCheckpoint, SPU, SIO,
-                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
-                            CallStack, CallStacks, SaveState>
+                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel,
+                            EnvelopeCheckpoint, SPU, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt,
+                            Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();
