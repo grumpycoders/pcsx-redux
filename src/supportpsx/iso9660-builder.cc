@@ -73,37 +73,42 @@ std::vector<PCSX::ISO9660::DirTree*> sortedChildren(const PCSX::ISO9660::DirTree
 }
 
 // A license file made of up to 16 whole sectors of 2336 bytes.
-bool isWholeLicenseSectors(ssize_t size) { return (size > 0) && (size <= 2336 * 16) && ((size % 2336) == 0); }
+bool isWholeLicenseSectors(size_t size) { return (size > 0) && (size <= 2336 * 16) && ((size % 2336) == 0); }
+
+// Reads until the buffer is full or the file ends, so a stream that delivers
+// the license in pieces is still seen whole.
+size_t readLicense(PCSX::IO<PCSX::File> file, uint8_t* buffer, size_t size) {
+    size_t total = 0;
+    while (total < size) {
+        auto r = file->read(buffer + total, size - total);
+        if (r <= 0) break;
+        total += r;
+    }
+    return total;
+}
 
 }  // namespace
 
 void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
-    if (licenseFile && !licenseFile->failed()) {
-        uint8_t licenseData[IEC60908b::FRAMESIZE_RAW * 16];
+    uint8_t licenseData[IEC60908b::FRAMESIZE_RAW * 16];
+    memset(licenseData, 0, sizeof(licenseData));
+    size_t size = 0;
+    if (licenseFile && !licenseFile->failed()) size = readLicense(licenseFile, licenseData, sizeof(licenseData));
+    auto writeSectors = [this](const uint8_t* data, size_t stride, IEC60908b::SectorMode mode) {
+        for (unsigned i = 0; i < 16; i++) writeSectorAt(data + stride * i, {0, 2, uint8_t(i)}, mode);
+    };
+    if ((licenseData[0x2492] == 'L') || isWholeLicenseSectors(size)) {
+        // official license file from the sdk, in 2336 bytes per sector.
+        // It's unfortunately usually mangled badly, and we need to massage it.
+        // A file made of whole 2336-byte sectors is taken as the same format,
+        // so a custom license works too. Missing sectors stay zero.
+        writeSectors(licenseData + 8, 2336, IEC60908b::SectorMode::M2_FORM1);
+    } else if (licenseData[0x24e2] == 'L') {
+        // looks like an iso file itself
+        writeSectors(licenseData, IEC60908b::FRAMESIZE_RAW, IEC60908b::SectorMode::RAW);
+    } else {
         memset(licenseData, 0, sizeof(licenseData));
-        auto size = licenseFile->read(licenseData, sizeof(licenseData));
-        if ((licenseData[0x2492] == 'L') || isWholeLicenseSectors(size)) {
-            // official license file from the sdk, in 2336 bytes per sector.
-            // It's unfortunately usually mangled badly, and we need to massage it.
-            // A file made of whole 2336-byte sectors is taken as the same format,
-            // so a custom license works too. Missing sectors stay zero.
-            for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + 2336 * i + 8, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
-            }
-            return;
-        } else if (licenseData[0x24e2] == 'L') {
-            // looks like an iso file itself
-            for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + IEC60908b::FRAMESIZE_RAW * i, {0, 2, uint8_t(i)},
-                              IEC60908b::SectorMode::RAW);
-            }
-            return;
-        }
-    }
-    uint8_t dummy[2048];
-    memset(dummy, 0, 2048);
-    for (unsigned i = 0; i < 16; i++) {
-        writeSectorAt(dummy, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
+        writeSectors(licenseData, 0, IEC60908b::SectorMode::M2_FORM1);
     }
 }
 
