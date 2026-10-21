@@ -379,6 +379,7 @@ void dirTreeSetDeclaredSize(PCSX::ISO9660::DirTree* node, uint32_t size) { node-
 void dirTreeClearDeclaredSize(PCSX::ISO9660::DirTree* node) { node->clearDeclaredSize(); }
 bool dirTreeHasXA(PCSX::ISO9660::DirTree* node) { return node->hasXA(); }
 void dirTreeSetHasXA(PCSX::ISO9660::DirTree* node, bool val) { node->setHasXA(val); }
+PCSX::IEC60908b::SectorMode dirTreeGetSectorMode(PCSX::ISO9660::DirTree* node) { return node->getSectorMode(); }
 void dirTreeSetSectorMode(PCSX::ISO9660::DirTree* node, PCSX::IEC60908b::SectorMode mode) { node->setSectorMode(mode); }
 uint16_t dirTreeGetXAAttribs(PCSX::ISO9660::DirTree* node) {
     return node->getXA().get<PCSX::ISO9660LowLevel::DirEntry_XA_Attribs>().value;
@@ -518,6 +519,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, dirTreeClearDeclaredSize);
     REGISTER(L, dirTreeHasXA);
     REGISTER(L, dirTreeSetHasXA);
+    REGISTER(L, dirTreeGetSectorMode);
     REGISTER(L, dirTreeSetSectorMode);
     REGISTER(L, dirTreeGetXAAttribs);
     REGISTER(L, dirTreeSetXAAttribs);
