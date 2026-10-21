@@ -244,7 +244,7 @@ bool PCSX::R3000Acpu::exception(uint32_t code, bool bd, bool cop0) {
                     }
                     memFile->rSeek(m_regs.GPR.n.a0);
                     auto filename = memFile->gets<false>();
-                    if (startsWith(filename, "tcp://") || startsWith(filename, "probe:")) {
+                    if (startsWith(filename, "probe:") || hasScheme(filename)) {
                         regs.v0 = -1;
                         regs.v1 = -1;
                         m_regs.pc.increment();
