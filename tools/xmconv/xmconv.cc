@@ -162,14 +162,15 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/xmconv/
     const auto inputs = args.positional();
     const bool asksForHelp = args.get<bool>("h").value_or(false);
     const bool fit = args.get<bool>("f").value_or(false);
-    const auto amplification = args.get<unsigned>("a").value_or(256);
+    const auto amplification = args.get<unsigned>("a").value_or(224);
     if (asksForHelp || inputs.size() != 1 || !output.has_value() || !samplesFile.has_value()) {
         fmt::print(R"(
 Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
   input.xm          mandatory: the input FastTracker 2 module
   -o output.xmp     mandatory: the song file (patterns, instruments, sample headers)
   -s output.smp     mandatory: the sample file, to upload to SPU memory
-  -a amp            optional: sample amplification in 1/256ths. Defaults to 256.
+  -a amp            optional: sample amplification in 1/256ths. Defaults to 224, which
+                    leaves headroom for ADPCM overshoot on full-scale samples.
   -f                optional: if the samples don't fit in SPU memory, halve the
                     sample rate of the largest samples until they do.
   -h                displays this help information and exit.
