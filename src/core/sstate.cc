@@ -48,6 +48,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             EXP1{g_emulator->m_mem->m_exp1},
             HardwareMemory{g_emulator->m_mem->m_hard},
             SRAM{g_emulator->m_mem->m_sram},
+            BIU{},
+            HasBIU{},
         },
         Registers{
             GPR{g_emulator->m_cpu->m_regs.GPR.r},
@@ -244,6 +246,8 @@ std::string PCSX::SaveStates::save() {
     state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v5";
     state.get<SaveStateInfoField>().get<Version>().value = 5;
 
+    state.get<MemoryField>().get<BIU>().value = g_emulator->m_mem->getBIU();
+    state.get<MemoryField>().get<HasBIU>().value = true;
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
 
@@ -272,6 +276,8 @@ void PCSX::SaveStates::capture(SaveState& state) {
     /* The manual-hook camp - GPU, SPU, counters, MDEC, call stacks - already pulls live state
        into owned Field storage; that half was always snapshot-shaped and the byte encode was a
        separate layer on top. */
+    state.get<MemoryField>().get<BIU>().value = g_emulator->m_mem->getBIU();
+    state.get<MemoryField>().get<HasBIU>().value = true;
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
 
@@ -305,6 +311,7 @@ void PCSX::SaveStates::restore(SaveState& state) {
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
+    if (state.get<MemoryField>().get<HasBIU>().value) g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
@@ -476,6 +483,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     // So we just force-align it here, since it's never meant to be misaligned
     g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
+    if (state.get<MemoryField>().get<HasBIU>().value) g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
