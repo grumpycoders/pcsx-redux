@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <numbers>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -93,8 +94,9 @@ std::vector<int16_t> decimate(const std::vector<int16_t>& in) {
         double sum = 0;
         for (int i = -taps; i <= taps; i++) {
             double x = i * 0.5;
-            double sinc = i == 0 ? 1.0 : std::sin(M_PI * x) / (M_PI * x);
-            double window = 0.42 + 0.5 * std::cos(M_PI * i / (taps + 1)) + 0.08 * std::cos(2 * M_PI * i / (taps + 1));
+            constexpr double pi = std::numbers::pi;
+            double sinc = i == 0 ? 1.0 : std::sin(pi * x) / (pi * x);
+            double window = 0.42 + 0.5 * std::cos(pi * i / (taps + 1)) + 0.08 * std::cos(2 * pi * i / (taps + 1));
             k[i + taps] = sinc * window;
             sum += k[i + taps];
         }
@@ -269,6 +271,18 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
         file->rSeek(end);
     }
 
+    // FT2 plays an order past the pattern table as an empty 64-row pattern. Give those orders one.
+    if (std::any_of(orders.begin(), orders.end(), [&](uint8_t o) { return o >= numPatterns; })) {
+        if (numPatterns >= 256) {
+            fmt::print("Orders point past a full pattern table.\n");
+            return -1;
+        }
+        for (auto& o : orders) {
+            if (o >= numPatterns) o = numPatterns;
+        }
+        patterns.push_back(Pattern{64, std::vector<Cell>(64 * channels)});
+    }
+
     std::vector<Instrument> instruments(numInstruments);
     std::vector<Sample> samples;
     for (auto& ins : instruments) {
@@ -330,6 +344,12 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
             if (s.loopLength == 0) s.loopType = 0;
             samples.push_back(std::move(s));
             file->rSeek(sampleStart + sampleHeaderSize);
+        }
+        uint64_t dataSize = 0;
+        for (auto l : lengths) dataSize += l;
+        if (dataSize > fileSize - size_t(file->rTell())) {
+            fmt::print("Truncated XM file.\n");
+            return -1;
         }
         for (unsigned i = 0; i < numSamples; i++) {
             Sample& s = samples[ins.firstSample + i];
@@ -479,7 +499,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
     out->write<uint8_t>(std::clamp(bpm, 32u, 255u));
     out->write<uint16_t>(songLength);
     out->write<uint16_t>(restart < songLength ? restart : 0);
-    out->write<uint16_t>(numPatterns);
+    out->write<uint16_t>(patterns.size());
     out->write<uint16_t>(numInstruments);
     out->write<uint16_t>(samples.size());
     out->write<uint16_t>(0);
@@ -492,11 +512,11 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
         out->write(t, 20);
     }
     const unsigned ordersOffset = out->wTell();
-    for (auto o : orders) out->write<uint8_t>(o < numPatterns ? o : 0);
+    for (auto o : orders) out->write<uint8_t>(o);
     align();
     const unsigned patternTableOffset = out->wTell();
-    for (unsigned i = 0; i < numPatterns * 2; i++) out->write<uint32_t>(0);
-    for (unsigned i = 0; i < numPatterns; i++) {
+    for (unsigned i = 0; i < patterns.size() * 2; i++) out->write<uint32_t>(0);
+    for (unsigned i = 0; i < patterns.size(); i++) {
         auto& p = patterns[i];
         align();
         const unsigned start = out->wTell();
