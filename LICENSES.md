@@ -26,7 +26,6 @@ find a link to the vendored version itself.
  - [expected](https://github.com/TartanLlama/expected)
  - [ffi-reflect](https://github.com/corsix/ffi-reflect) ([vendored](https://github.com/grumpycoders/pcsx-redux/tree/main/third_party/ffi-reflect))
  - [FFmpeg](https://ffmpeg.org)
- - [flags](https://github.com/sailormoon/flags) ([vendored](https://github.com/grumpycoders/pcsx-redux/blob/main/third_party/flags.h))
  - [fmt](https://github.com/fmtlib/fmt)
  - [FreeType](https://gitlab.freedesktop.org/freetype/freetype.git)
  - [FTXUI](https://github.com/ArthurSonzogni/FTXUI)
