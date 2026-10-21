@@ -134,12 +134,12 @@ Prepared prepare(const Sample& s) {
     if (!p.hasLoop) return p;
     loopLength = std::min<unsigned>(loopLength, p.pcm.size() - loopStart);
     p.pcm.resize(loopStart + loopLength);
-    if (s.loopType == 2 && loopLength > 2) {
-        // The SPU only loops forward. A ping-pong loop over [a, b) plays a .. b-1, b-2 .. a+1, then again
-        // from a, so the period is 2 * (b - a) - 2, written out as the forward part followed by the
-        // reversed part without its two end points.
-        for (unsigned i = loopLength - 2; i >= 1; i--) p.pcm.push_back(p.pcm[loopStart + i]);
-        loopLength = loopLength * 2 - 2;
+    if (s.loopType == 2) {
+        // The SPU only loops forward. A ping-pong loop over [a, b) plays a .. b-1, then b-1 .. a, then
+        // again from a: both end points repeat, so the period is 2 * (b - a). It is written out as the
+        // forward part followed by the reversed part.
+        for (unsigned i = loopLength; i-- > 0;) p.pcm.push_back(p.pcm[loopStart + i]);
+        loopLength = loopLength * 2;
     }
     p.loopStart = loopStart;
     p.loopLength = loopLength;
