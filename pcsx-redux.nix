@@ -116,6 +116,15 @@ let
       hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
       dest = "third_party/ftxui";
     })
+    # The core includes the guest-side ABI headers, so this is needed even
+    # when openbios itself is not built.
+    ({
+      owner = "pcsx-redux";
+      repo = "nugget";
+      rev = "7f9651226bedd29af6545883db27c9a556d05faa";
+      hash = "sha256-e+IcRW6gMkkHfn1uhAqVzo66H7Mm5sm2nLvAxkIpzgg=";
+      dest = "src/mips";
+    })
     ({
       owner = "Taywee";
       repo = "args";
@@ -127,15 +136,7 @@ let
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
-  } ++ lib.optionals withOpenbios [
-    ({
-      owner = "pcsx-redux";
-      repo = "nugget";
-      rev = "7f9651226bedd29af6545883db27c9a556d05faa";
-      hash = "sha256-e+IcRW6gMkkHfn1uhAqVzo66H7Mm5sm2nLvAxkIpzgg=";
-      dest = "src/mips";
-    })
-  ];
+  };
 
   fetchSubmodule = { owner, repo, rev, hash, dest ? "third_party/${repo}" }@args:
       "cp -ruT --no-preserve=all ${(fetchFromGitHub (removeAttrs args [ "dest" ])).out} ${dest}";

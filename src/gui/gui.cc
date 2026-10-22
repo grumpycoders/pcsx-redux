@@ -1581,6 +1581,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show PSYQo heap viewer"), nullptr, &m_heapViewer.m_show);
+                ImGui::MenuItem(_("Show allocator tracker"), nullptr, &m_allocTrackerViewer.m_show);
                 ImGui::Separator();
                 if (ImGui::BeginMenu(_("Kernel"))) {
                     ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
@@ -1924,6 +1925,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));
     }
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
+    if (m_allocTrackerViewer.m_show) m_allocTrackerViewer.draw(_("Allocator Tracker"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {

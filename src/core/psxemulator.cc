@@ -19,6 +19,7 @@
 
 #include "core/psxemulator.h"
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
@@ -108,7 +109,8 @@ PCSX::Emulator::Emulator()
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
       m_webServer(new PCSX::WebServer()),
-      m_rewindRing(new RewindRing()) {
+      m_rewindRing(new RewindRing()),
+      m_allocTracker(new PCSX::AllocTracker) {
     auto L = *m_lua;
     L.openlibs();
 }

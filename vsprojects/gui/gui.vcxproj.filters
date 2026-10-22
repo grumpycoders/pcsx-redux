@@ -142,6 +142,9 @@
     <ClCompile Include="..\..\src\gui\widgets\zoomable-image.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\alloc_tracker.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
@@ -274,6 +277,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\zoomable-image.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\alloc_tracker.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h">
