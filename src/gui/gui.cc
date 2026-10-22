@@ -177,7 +177,8 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
           settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); },
           [this](const std::string& name, IO<File> file) { m_dalos.addSource(name, file); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
-      m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
+      m_gpuDump(settings.get<ShowGPUDump>().value, favorites),
+      m_spuLoggerWidget(settings.get<ShowSPULogger>().value, settings.get<SPULoggerEnabled>().value, favorites) {
     assert(g_gui == nullptr);
     g_gui = this;
 }
@@ -1929,7 +1930,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_gpuLogger.m_show) m_gpuLogger.draw(g_emulator->m_gpuLogger.get(), _("GPU Logger"));
     if (m_gpuDump.m_show) m_gpuDump.draw(_("GPU Dump"));
     // Pushed unconditionally: capture follows the setting, not whether the window is open.
-    g_emulator->m_spuLogger->enabled() = m_spuLoggerWidget.m_enabled;
+    m_spuLoggerWidget.syncEnabled(g_emulator->m_spuLogger.get());
     if (m_spuLoggerWidget.m_show) m_spuLoggerWidget.draw(g_emulator->m_spuLogger.get(), _("SPU Logger"));
     if (m_spuSamplesWidget.m_show) {
         m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));

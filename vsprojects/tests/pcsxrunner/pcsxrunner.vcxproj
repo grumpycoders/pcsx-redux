@@ -300,6 +300,7 @@
     <ClCompile Include="..\..\..\tests\spu\speed.cc" />
     <ClCompile Include="..\..\..\tests\core\pad-config.cc" />
     <ClCompile Include="..\..\..\tests\core\i18n.cc" />
+    <ClCompile Include="..\..\..\tests\core\spdwriter.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
