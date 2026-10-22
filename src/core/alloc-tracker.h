@@ -106,6 +106,12 @@ class AllocTracker {
         // every allocation and invents double frees. Nonzero means we are
         // inside a tracked call for this arena and further entries are noise.
         uint32_t depth = 0;
+        // The outermost call being waited on. A return can be lost to longjmp
+        // or a tail call, and depth would then never come back down; these let
+        // the next entry recognize the abandoned frame and drop the capture.
+        uint32_t captureSp = 0;
+        uint32_t captureRa = 0;
+        uint64_t captureId = 0;
         std::vector<pcsx_AllocEntry> entries;
         std::vector<const Debug::Breakpoint*> breakpoints;
     };
@@ -139,6 +145,7 @@ class AllocTracker {
     void onReturn(size_t arenaIndex, const pcsx_AllocEntry& entry, uint32_t requestedSize, uint32_t oldPointer,
                   uint32_t result, uint32_t caller);
     void captureReturn(size_t arenaIndex, const pcsx_AllocEntry& entry, uint32_t requestedSize, uint32_t oldPointer);
+    void dropCapture(size_t arenaIndex);
 
     void recordAlloc(size_t arenaIndex, uint32_t pointer, uint32_t size, uint32_t caller);
     void recordFree(size_t arenaIndex, uint32_t pointer, uint32_t caller);

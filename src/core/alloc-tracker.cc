@@ -171,9 +171,17 @@ void PCSX::AllocTracker::installBreakpoints(size_t arenaIndex) {
 void PCSX::AllocTracker::onEntry(size_t arenaIndex, const pcsx_AllocEntry& entry) {
     if (arenaIndex >= m_arenas.size()) return;
     auto& arena = m_arenas[arenaIndex];
-    // Inside a tracked call already: this is the allocator calling itself.
-    if (arena.depth > 0) return;
-    auto caller = g_emulator->m_cpu->m_regs.GPR.n.ra;
+    auto& regs = g_emulator->m_cpu->m_regs.GPR.n;
+    if (arena.depth > 0) {
+        // The allocator's own calls run on a stack below the frame it was
+        // entered with. An entry above that frame, or level with it but from a
+        // different return address (a tail call keeps ra), means the call we
+        // are waiting on was abandoned and its return will never fire.
+        bool abandoned = regs.sp > arena.captureSp || (regs.sp == arena.captureSp && regs.ra != arena.captureRa);
+        if (!abandoned) return;
+        dropCapture(arenaIndex);
+    }
+    auto caller = regs.ra;
 
     switch (entry.kind) {
         case PCSX_ALLOC_KIND_INIT: {
@@ -229,8 +237,12 @@ void PCSX::AllocTracker::captureReturn(size_t arenaIndex, const pcsx_AllocEntry&
     m_pendingCaptures++;
     // Held until the matching return, so everything the allocator does
     // internally in between is ignored.
-    m_arenas[arenaIndex].depth++;
     uint64_t id = ++m_captureId;
+    auto& arena = m_arenas[arenaIndex];
+    arena.depth++;
+    arena.captureSp = sp;
+    arena.captureRa = ra;
+    arena.captureId = id;
     m_pendingBreakpoints[id] = nullptr;
 
     auto* bp = g_emulator->m_debug->addBreakpoint(
@@ -254,6 +266,18 @@ void PCSX::AllocTracker::captureReturn(size_t arenaIndex, const pcsx_AllocEntry&
     // The invoker can fire before this assignment only if the guest ran in
     // between, which it cannot: addBreakpoint does not execute anything.
     if (it != m_pendingBreakpoints.end()) it->second = bp;
+}
+
+void PCSX::AllocTracker::dropCapture(size_t arenaIndex) {
+    auto& arena = m_arenas[arenaIndex];
+    auto it = m_pendingBreakpoints.find(arena.captureId);
+    if (it != m_pendingBreakpoints.end()) {
+        if (it->second) g_emulator->m_debug->removeBreakpoint(it->second);
+        m_pendingBreakpoints.erase(it);
+        if (m_pendingCaptures > 0) m_pendingCaptures--;
+    }
+    arena.depth = 0;
+    arena.captureId = 0;
 }
 
 void PCSX::AllocTracker::onReturn(size_t arenaIndex, const pcsx_AllocEntry& entry, uint32_t requestedSize,
