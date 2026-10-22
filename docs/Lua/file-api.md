@@ -36,7 +36,7 @@ Reads from the File object at the specified position. No pointers are modified. 
 :readAt(size, pos)
 :readAt(ptr, size, pos)
 :readAt(buffer, pos)
-:readAt(pb_buffer, pos)
+:readAt(pb_buffer, size, pos)
 ```
 
 Writes to the File object. The non-At variants will advances the write pointer accordingly. The At variants will not modify the write pointer, and simply write at the requested location. Returns the number of bytes written. The `string` variants will in fact take any object that can be transformed to a string using `tostring()`.
