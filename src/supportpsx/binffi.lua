@@ -63,7 +63,11 @@ PCSX.Binary.load = function(src, dest)
     local info = ffi.new('struct BinaryLoaderInfo')
     if not C.binaryLoaderLoad(src._wrapper, dest._wrapper, info) then return nil end
     local ret = {}
-    if info.region ~= 'UNKNOWN' then ret.region = info.region end
+    if info.region == 'NTSC' then
+        ret.region = 'NTSC'
+    elseif info.region == 'PAL' then
+        ret.region = 'PAL'
+    end
     if info.pc ~= 0 then ret.pc = info.pc end
     if info.sp ~= 0 then ret.sp = info.sp end
     if info.gp ~= 0 then ret.gp = info.gp end
