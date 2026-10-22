@@ -80,7 +80,11 @@ class Dalos {
     void drawAddMenu();
     void drawGrid(ImDrawList* dl, ImVec2 canvasMin, ImVec2 canvasSize);
     bool drawNode(ImDrawList* dl, Node* node, bool released);
-    void drawPins(ImDrawList* dl, Node* node, bool released);
+    void drawOutputPins(ImDrawList* dl, Node* node);
+    void drawInputPins(ImDrawList* dl, Node* node, bool released);
+    void dropLink(Node* node, unsigned pin);
+    static bool anyMouseDragging();
+    static bool rightClickedInPlace();
     void drawLinks(ImDrawList* dl);
     ImVec2 inputPinPos(Node* node, unsigned pin);
     ImVec2 outputPinPos(Node* node, unsigned pin);

@@ -241,27 +241,31 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
 // An InvisibleButton covering the whole canvas catches clicks that miss every
 // node, for panning and the context menu.
 void PCSX::Widgets::Dalos::drawBackground(ImVec2 canvasMin, ImVec2 canvasSize) {
-    auto& io = ImGui::GetIO();
     ImGui::SetNextItemAllowOverlap();
     ImGui::InvisibleButton(
         "background", canvasSize,
         ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
-    bool hovered = ImGui::IsItemHovered();
-    bool dragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
-                    ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||
-                    ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f);
-    if (ImGui::IsItemActive() && dragging) {
-        m_scroll += io.MouseDelta;
+    if (ImGui::IsItemActive() && anyMouseDragging()) {
+        m_scroll += ImGui::GetIO().MouseDelta;
         m_origin = canvasMin + m_scroll;
     }
-    if (!hovered) return;
+    if (!ImGui::IsItemHovered()) return;
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) m_selected = nullptr;
-    auto drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-    bool rightClicked = ImGui::IsMouseReleased(ImGuiMouseButton_Right) && drag.x == 0.0f && drag.y == 0.0f;
-    if (rightClicked) {
-        m_popupPos = io.MousePos - m_origin;
+    if (rightClickedInPlace()) {
+        m_popupPos = ImGui::GetIO().MousePos - m_origin;
         ImGui::OpenPopup("add");
     }
+}
+
+bool PCSX::Widgets::Dalos::anyMouseDragging() {
+    return ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
+           ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) || ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f);
+}
+
+// A right click that did not drag, which is what opens the add menu.
+bool PCSX::Widgets::Dalos::rightClickedInPlace() {
+    auto drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+    return ImGui::IsMouseReleased(ImGuiMouseButton_Right) && drag.x == 0.0f && drag.y == 0.0f;
 }
 
 void PCSX::Widgets::Dalos::drawAddMenu() {
@@ -323,14 +327,14 @@ bool PCSX::Widgets::Dalos::drawNode(ImDrawList* dl, Node* node, bool released) {
                       ImDrawFlags_RoundCornersTop);
     dl->AddRect(pos, pos + node->m_size, selected ? IM_COL32(255, 200, 80, 255) : IM_COL32(100, 100, 100, 255), 4.0f, 0,
                 selected ? 2.0f : 1.0f);
-    drawPins(dl, node, released);
+    drawOutputPins(dl, node);
+    drawInputPins(dl, node, released);
     ImGui::PopID();
     return remove;
 }
 
-// Output pins start a link, input pins end one. Right-clicking an input pin
-// cuts its link.
-void PCSX::Widgets::Dalos::drawPins(ImDrawList* dl, Node* node, bool released) {
+// Output pins start a link.
+void PCSX::Widgets::Dalos::drawOutputPins(ImDrawList* dl, Node* node) {
     const auto pinSize = ImVec2(c_pinRadius * 4, c_pinRadius * 4);
     for (unsigned i = 0; i < node->outputs(); i++) {
         auto p = outputPinPos(node, i);
@@ -342,6 +346,11 @@ void PCSX::Widgets::Dalos::drawPins(ImDrawList* dl, Node* node, bool released) {
         ImGui::PopID();
         dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 220, 180, 255));
     }
+}
+
+// Input pins end a link, and right-clicking one cuts its link.
+void PCSX::Widgets::Dalos::drawInputPins(ImDrawList* dl, Node* node, bool released) {
+    const auto pinSize = ImVec2(c_pinRadius * 4, c_pinRadius * 4);
     for (unsigned i = 0; i < node->inputs(); i++) {
         auto p = inputPinPos(node, i);
         ImGui::SetCursorScreenPos(p - pinSize * 0.5f);
@@ -350,10 +359,15 @@ void PCSX::Widgets::Dalos::drawPins(ImDrawList* dl, Node* node, bool released) {
         bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) node->m_inputs[i] = {};
         ImGui::PopID();
-        bool dropping = hovered && released && m_dragging.node;
-        if (dropping && !reaches(m_dragging.node, node)) node->m_inputs[i] = m_dragging;
+        if (hovered && released) dropLink(node, i);
         dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 180, 220, 255));
     }
+}
+
+// Connects the link being dragged to `node`'s input `pin`, unless it would
+// close a loop.
+void PCSX::Widgets::Dalos::dropLink(Node* node, unsigned pin) {
+    if (m_dragging.node && !reaches(m_dragging.node, node)) node->m_inputs[pin] = m_dragging;
 }
 
 void PCSX::Widgets::Dalos::drawLinks(ImDrawList* dl) {
