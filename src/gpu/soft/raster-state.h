@@ -102,6 +102,11 @@ struct RasterState {
     bool drawSemiTrans;
     int16_t m1, m2, m3;
     int32_t clutP;  // (clutY << 10) + clutX; valid for Clut4/Clut8 only
+    // NTSC 480i with GP0(E1h).10 clear: rows whose (y & 1) equals this value
+    // are not written. -1 never matches, so nothing is skipped.
+    int8_t skipParity;
+
+    inline bool rowSkipped(int y) const { return ((y & 1) ^ skipParity) == 0; }
 
     inline uint16_t *pixel16(int x, int y) const { return &vram16[(y << VRAM_WIDTH_SHIFT) + x]; }
     inline uint32_t *pixelPair32(int x, int y) const { return reinterpret_cast<uint32_t *>(pixel16(x, y)); }
