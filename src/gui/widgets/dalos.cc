@@ -205,133 +205,25 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
 
     ImGui::BeginChild("canvas", ImVec2(0, 0), ImGuiChildFlags_Borders,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove);
-    auto& io = ImGui::GetIO();
     auto* dl = ImGui::GetWindowDrawList();
     auto canvasMin = ImGui::GetCursorScreenPos();
     auto canvasSize = ImGui::GetContentRegionAvail();
-    auto canvasMax = canvasMin + canvasSize;
     m_origin = canvasMin + m_scroll;
 
-    // Background: an InvisibleButton covering the whole canvas catches clicks
-    // that miss every node, for panning and the context menu.
-    ImGui::SetNextItemAllowOverlap();
-    ImGui::InvisibleButton(
-        "background", canvasSize,
-        ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
-    bool backgroundHovered = ImGui::IsItemHovered();
-    if (ImGui::IsItemActive() && (ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
-                                  ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||
-                                  ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f))) {
-        m_scroll += io.MouseDelta;
-        m_origin = canvasMin + m_scroll;
-    }
-    if (backgroundHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) m_selected = nullptr;
-    auto drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-    if (backgroundHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && drag.x == 0.0f && drag.y == 0.0f) {
-        m_popupPos = io.MousePos - m_origin;
-        ImGui::OpenPopup("add");
-    }
-    if (ImGui::BeginPopup("add")) {
-        ImGui::TextDisabled("%s", _("Add node"));
-        ImGui::Separator();
-        if (ImGui::MenuItem(_("File"))) addNode<FileNode>(_("File"), m_popupPos);
-        if (ImGui::MenuItem(_("Slice"))) addNode<SliceNode>(_("Slice"), m_popupPos);
-        if (ImGui::MenuItem(_("Viewer"))) addNode<ViewerNode>(_("Viewer"), m_popupPos);
-        ImGui::EndPopup();
-    }
-
-    dl->PushClipRect(canvasMin, canvasMax, true);
-    constexpr float c_grid = 64.0f;
-    for (float x = std::fmod(m_scroll.x, c_grid); x < canvasSize.x; x += c_grid) {
-        dl->AddLine(ImVec2(canvasMin.x + x, canvasMin.y), ImVec2(canvasMin.x + x, canvasMax.y),
-                    IM_COL32(200, 200, 200, 40));
-    }
-    for (float y = std::fmod(m_scroll.y, c_grid); y < canvasSize.y; y += c_grid) {
-        dl->AddLine(ImVec2(canvasMin.x, canvasMin.y + y), ImVec2(canvasMax.x, canvasMin.y + y),
-                    IM_COL32(200, 200, 200, 40));
-    }
+    drawBackground(canvasMin, canvasSize);
+    drawAddMenu();
+    dl->PushClipRect(canvasMin, canvasMin + canvasSize, true);
+    drawGrid(dl, canvasMin, canvasSize);
 
     // Channel 0 holds the links, 1 the node frames, 2 the node contents.
     dl->ChannelsSplit(3);
     Node* toDelete = nullptr;
     bool released = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-    for (auto& nodePtr : m_nodes) {
-        auto node = nodePtr.get();
-        ImGui::PushID(node->m_id);
-        auto pos = m_origin + node->m_pos;
-
-        dl->ChannelsSetCurrent(2);
-        ImGui::SetCursorScreenPos(pos + ImVec2(c_padding, c_padding));
-        ImGui::BeginGroup();
-        ImGui::TextUnformatted(node->m_name.c_str());
-        float titleHeight = ImGui::GetItemRectSize().y + c_padding * 1.5f;
-        ImGui::Dummy(ImVec2(c_bodyWidth, c_padding * 0.5f));
-        ImGui::PushItemWidth(c_bodyWidth * 0.6f);
-        node->body(*this);
-        ImGui::PopItemWidth();
-        ImGui::EndGroup();
-        node->m_size = ImGui::GetItemRectSize() + ImVec2(c_padding * 2, c_padding * 2);
-
-        // The title bar moves and selects the node.
-        ImGui::SetCursorScreenPos(pos);
-        ImGui::InvisibleButton("title", ImVec2(node->m_size.x, titleHeight));
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) m_selected = node;
-        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f)) {
-            node->m_pos += io.MouseDelta;
-        }
-        if (ImGui::BeginPopupContextItem("node")) {
-            if (ImGui::MenuItem(_("Delete"))) toDelete = node;
-            ImGui::EndPopup();
-        }
-
-        dl->ChannelsSetCurrent(1);
-        bool selected = m_selected == node;
-        dl->AddRectFilled(pos, pos + node->m_size, IM_COL32(50, 50, 55, 240), 4.0f);
-        dl->AddRectFilled(pos, pos + ImVec2(node->m_size.x, titleHeight), IM_COL32(70, 90, 120, 255), 4.0f,
-                          ImDrawFlags_RoundCornersTop);
-        dl->AddRect(pos, pos + node->m_size, selected ? IM_COL32(255, 200, 80, 255) : IM_COL32(100, 100, 100, 255),
-                    4.0f, 0, selected ? 2.0f : 1.0f);
-
-        // Output pins start a link, input pins end one. Right-clicking an
-        // input pin cuts its link.
-        for (unsigned i = 0; i < node->outputs(); i++) {
-            auto p = outputPinPos(node, i);
-            ImGui::SetCursorScreenPos(p - ImVec2(c_pinRadius * 2, c_pinRadius * 2));
-            ImGui::PushID(1000 + i);
-            ImGui::InvisibleButton("out", ImVec2(c_pinRadius * 4, c_pinRadius * 4));
-            if (ImGui::IsItemActive() && !m_dragging.node) m_dragging = {node, i};
-            bool hovered = ImGui::IsItemHovered();
-            ImGui::PopID();
-            dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 220, 180, 255));
-        }
-        for (unsigned i = 0; i < node->inputs(); i++) {
-            auto p = inputPinPos(node, i);
-            ImGui::SetCursorScreenPos(p - ImVec2(c_pinRadius * 2, c_pinRadius * 2));
-            ImGui::PushID(2000 + i);
-            ImGui::InvisibleButton("in", ImVec2(c_pinRadius * 4, c_pinRadius * 4), ImGuiButtonFlags_MouseButtonRight);
-            bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) node->m_inputs[i] = {};
-            ImGui::PopID();
-            if (hovered && released && m_dragging.node && !reaches(m_dragging.node, node)) {
-                node->m_inputs[i] = m_dragging;
-            }
-            dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 180, 220, 255));
-        }
-        ImGui::PopID();
-    }
-
-    dl->ChannelsSetCurrent(0);
-    auto bezier = [dl](ImVec2 a, ImVec2 b) {
-        float ctrl = std::max(40.0f, std::abs(b.x - a.x) * 0.5f);
-        dl->AddBezierCubic(a, a + ImVec2(ctrl, 0), b - ImVec2(ctrl, 0), b, IM_COL32(220, 220, 220, 255), 2.0f);
-    };
     for (auto& node : m_nodes) {
-        for (unsigned i = 0; i < node->m_inputs.size(); i++) {
-            auto& link = node->m_inputs[i];
-            if (link.node) bezier(outputPinPos(link.node, link.pin), inputPinPos(node.get(), i));
-        }
+        if (drawNode(dl, node.get(), released)) toDelete = node.get();
     }
-    if (m_dragging.node) bezier(outputPinPos(m_dragging.node, m_dragging.pin), io.MousePos);
+    dl->ChannelsSetCurrent(0);
+    drawLinks(dl);
     dl->ChannelsMerge();
     dl->PopClipRect();
 
@@ -344,4 +236,136 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
 
     ImGui::EndChild();
     ImGui::End();
+}
+
+// An InvisibleButton covering the whole canvas catches clicks that miss every
+// node, for panning and the context menu.
+void PCSX::Widgets::Dalos::drawBackground(ImVec2 canvasMin, ImVec2 canvasSize) {
+    auto& io = ImGui::GetIO();
+    ImGui::SetNextItemAllowOverlap();
+    ImGui::InvisibleButton(
+        "background", canvasSize,
+        ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
+    bool hovered = ImGui::IsItemHovered();
+    bool dragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
+                    ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||
+                    ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f);
+    if (ImGui::IsItemActive() && dragging) {
+        m_scroll += io.MouseDelta;
+        m_origin = canvasMin + m_scroll;
+    }
+    if (!hovered) return;
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) m_selected = nullptr;
+    auto drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+    bool rightClicked = ImGui::IsMouseReleased(ImGuiMouseButton_Right) && drag.x == 0.0f && drag.y == 0.0f;
+    if (rightClicked) {
+        m_popupPos = io.MousePos - m_origin;
+        ImGui::OpenPopup("add");
+    }
+}
+
+void PCSX::Widgets::Dalos::drawAddMenu() {
+    if (!ImGui::BeginPopup("add")) return;
+    ImGui::TextDisabled("%s", _("Add node"));
+    ImGui::Separator();
+    if (ImGui::MenuItem(_("File"))) addNode<FileNode>(_("File"), m_popupPos);
+    if (ImGui::MenuItem(_("Slice"))) addNode<SliceNode>(_("Slice"), m_popupPos);
+    if (ImGui::MenuItem(_("Viewer"))) addNode<ViewerNode>(_("Viewer"), m_popupPos);
+    ImGui::EndPopup();
+}
+
+void PCSX::Widgets::Dalos::drawGrid(ImDrawList* dl, ImVec2 canvasMin, ImVec2 canvasSize) {
+    constexpr float c_grid = 64.0f;
+    auto canvasMax = canvasMin + canvasSize;
+    for (float x = std::fmod(m_scroll.x, c_grid); x < canvasSize.x; x += c_grid) {
+        dl->AddLine(ImVec2(canvasMin.x + x, canvasMin.y), ImVec2(canvasMin.x + x, canvasMax.y),
+                    IM_COL32(200, 200, 200, 40));
+    }
+    for (float y = std::fmod(m_scroll.y, c_grid); y < canvasSize.y; y += c_grid) {
+        dl->AddLine(ImVec2(canvasMin.x, canvasMin.y + y), ImVec2(canvasMax.x, canvasMin.y + y),
+                    IM_COL32(200, 200, 200, 40));
+    }
+}
+
+// Draws one node and its pins. Returns true if the user asked to delete it.
+bool PCSX::Widgets::Dalos::drawNode(ImDrawList* dl, Node* node, bool released) {
+    auto& io = ImGui::GetIO();
+    ImGui::PushID(node->m_id);
+    auto pos = m_origin + node->m_pos;
+
+    dl->ChannelsSetCurrent(2);
+    ImGui::SetCursorScreenPos(pos + ImVec2(c_padding, c_padding));
+    ImGui::BeginGroup();
+    ImGui::TextUnformatted(node->m_name.c_str());
+    float titleHeight = ImGui::GetItemRectSize().y + c_padding * 1.5f;
+    ImGui::Dummy(ImVec2(c_bodyWidth, c_padding * 0.5f));
+    ImGui::PushItemWidth(c_bodyWidth * 0.6f);
+    node->body(*this);
+    ImGui::PopItemWidth();
+    ImGui::EndGroup();
+    node->m_size = ImGui::GetItemRectSize() + ImVec2(c_padding * 2, c_padding * 2);
+
+    // The title bar moves and selects the node.
+    ImGui::SetCursorScreenPos(pos);
+    ImGui::InvisibleButton("title", ImVec2(node->m_size.x, titleHeight));
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) m_selected = node;
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f)) node->m_pos += io.MouseDelta;
+    bool remove = false;
+    if (ImGui::BeginPopupContextItem("node")) {
+        remove = ImGui::MenuItem(_("Delete"));
+        ImGui::EndPopup();
+    }
+
+    dl->ChannelsSetCurrent(1);
+    bool selected = m_selected == node;
+    dl->AddRectFilled(pos, pos + node->m_size, IM_COL32(50, 50, 55, 240), 4.0f);
+    dl->AddRectFilled(pos, pos + ImVec2(node->m_size.x, titleHeight), IM_COL32(70, 90, 120, 255), 4.0f,
+                      ImDrawFlags_RoundCornersTop);
+    dl->AddRect(pos, pos + node->m_size, selected ? IM_COL32(255, 200, 80, 255) : IM_COL32(100, 100, 100, 255), 4.0f, 0,
+                selected ? 2.0f : 1.0f);
+    drawPins(dl, node, released);
+    ImGui::PopID();
+    return remove;
+}
+
+// Output pins start a link, input pins end one. Right-clicking an input pin
+// cuts its link.
+void PCSX::Widgets::Dalos::drawPins(ImDrawList* dl, Node* node, bool released) {
+    const auto pinSize = ImVec2(c_pinRadius * 4, c_pinRadius * 4);
+    for (unsigned i = 0; i < node->outputs(); i++) {
+        auto p = outputPinPos(node, i);
+        ImGui::SetCursorScreenPos(p - pinSize * 0.5f);
+        ImGui::PushID(1000 + i);
+        ImGui::InvisibleButton("out", pinSize);
+        if (ImGui::IsItemActive() && !m_dragging.node) m_dragging = {node, i};
+        bool hovered = ImGui::IsItemHovered();
+        ImGui::PopID();
+        dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 220, 180, 255));
+    }
+    for (unsigned i = 0; i < node->inputs(); i++) {
+        auto p = inputPinPos(node, i);
+        ImGui::SetCursorScreenPos(p - pinSize * 0.5f);
+        ImGui::PushID(2000 + i);
+        ImGui::InvisibleButton("in", pinSize, ImGuiButtonFlags_MouseButtonRight);
+        bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) node->m_inputs[i] = {};
+        ImGui::PopID();
+        bool dropping = hovered && released && m_dragging.node;
+        if (dropping && !reaches(m_dragging.node, node)) node->m_inputs[i] = m_dragging;
+        dl->AddCircleFilled(p, c_pinRadius, hovered ? IM_COL32(255, 200, 80, 255) : IM_COL32(180, 180, 220, 255));
+    }
+}
+
+void PCSX::Widgets::Dalos::drawLinks(ImDrawList* dl) {
+    auto bezier = [dl](ImVec2 a, ImVec2 b) {
+        float ctrl = std::max(40.0f, std::abs(b.x - a.x) * 0.5f);
+        dl->AddBezierCubic(a, a + ImVec2(ctrl, 0), b - ImVec2(ctrl, 0), b, IM_COL32(220, 220, 220, 255), 2.0f);
+    };
+    for (auto& node : m_nodes) {
+        for (unsigned i = 0; i < node->m_inputs.size(); i++) {
+            auto& link = node->m_inputs[i];
+            if (link.node) bezier(outputPinPos(link.node, link.pin), inputPinPos(node.get(), i));
+        }
+    }
+    if (m_dragging.node) bezier(outputPinPos(m_dragging.node, m_dragging.pin), ImGui::GetIO().MousePos);
 }

@@ -76,6 +76,12 @@ class Dalos {
     T* addNode(const std::string& name, ImVec2 pos);
     void deleteNode(Node* node);
     bool reaches(Node* from, Node* target);
+    void drawBackground(ImVec2 canvasMin, ImVec2 canvasSize);
+    void drawAddMenu();
+    void drawGrid(ImDrawList* dl, ImVec2 canvasMin, ImVec2 canvasSize);
+    bool drawNode(ImDrawList* dl, Node* node, bool released);
+    void drawPins(ImDrawList* dl, Node* node, bool released);
+    void drawLinks(ImDrawList* dl);
     ImVec2 inputPinPos(Node* node, unsigned pin);
     ImVec2 outputPinPos(Node* node, unsigned pin);
 
