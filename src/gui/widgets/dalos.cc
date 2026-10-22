@@ -155,9 +155,10 @@ struct StructNode : public PCSX::Widgets::Dalos::Node {
         if (m_picked < 0 || m_picked >= int(m_fields.size())) return {};
         auto in = input(dalos, 0);
         if (!in) return {};
-        size_t offset = m_offset + fieldOffset(m_picked);
+        size_t total = in->size();
         size_t size = fieldSize(m_fields[m_picked]);
-        if (offset + size > in->size()) return {};
+        if (m_offset > total || fieldOffset(m_picked) + size > total - m_offset) return {};
+        size_t offset = m_offset + fieldOffset(m_picked);
         return PCSX::IO<PCSX::File>(new PCSX::SubFile(in, offset, size));
     }
 
@@ -346,7 +347,7 @@ if type(out) == 'string' then
     buf:write(out)
     out = buf
 end
-if type(out) ~= 'table' or out._type ~= 'File' or out._wrapper == nil then return false, 'the filter returned neither a File nor a string' end
+if type(out) ~= 'table' or out._type ~= 'File' or not ffi.istype('LuaFile*', out._wrapper) then return false, 'the filter returned neither a File nor a string' end
 return true, out
 )",
                    "internal:dalos-luafilter.lua", false);
@@ -459,9 +460,9 @@ void PCSX::Widgets::Dalos::loadSavedTypes() {
     auto j = nlohmann::json::parse(in, nullptr, false);
     if (j.is_discarded() || !j.contains("nodes") || !j["nodes"].is_array()) return;
     for (auto& n : j["nodes"]) {
-        if (!n.is_object()) continue;
-        m_savedTypes.push_back(
-            {n.value("kind", std::string()), n.value("name", std::string()), n.value("data", nlohmann::json())});
+        if (!n.is_object() || !n["kind"].is_string() || !n["name"].is_string()) continue;
+        auto data = n.contains("data") && n["data"].is_object() ? n["data"] : nlohmann::json::object();
+        m_savedTypes.push_back({n["kind"].get<std::string>(), n["name"].get<std::string>(), data});
     }
 }
 
@@ -597,7 +598,12 @@ void PCSX::Widgets::Dalos::drawSavedTypesMenu() {
         auto label = fmt::format("{}: {}", type.kind, type.name);
         if (!ImGui::MenuItem(label.c_str())) continue;
         auto node = addNodeOfKind(type.kind, type.name, m_popupPos);
-        if (node) node->load(type.data);
+        if (!node) continue;
+        // A hand-edited dalos.json can hold values of the wrong type.
+        try {
+            node->load(type.data);
+        } catch (const nlohmann::json::exception&) {
+        }
     }
     if (!ImGui::BeginMenu(_("Forget a saved node"))) return;
     int toForget = -1;
