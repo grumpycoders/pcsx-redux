@@ -80,6 +80,10 @@ class MemoryCard {
     // Advances the device by armCycles, less the cycles transceive() already ran ahead of the
     // R3000A to collect an acknowledge.
     void runPocketstation(uint64_t armCycles);
+    // Savestate fields for this slot's device. Save leaves the slot message empty without a device;
+    // load restores only when the state carries a device and this slot has one to restore into.
+    void savePocketstationState(SaveStates::PocketStationSlot& slot);
+    void loadPocketstationState(SaveStates::PocketStationSlot& slot);
     char *getMcdData() { return m_mcdData; }
     void loadMcd(PCSX::u8string mcd);
     void saveMcd(PCSX::u8string mcd, const char *data, uint32_t adr, size_t size);

@@ -149,6 +149,38 @@ void PCSX::MemoryCard::createPocketstation() {
     m_pocketstation = std::move(dev);
 }
 
+void PCSX::MemoryCard::savePocketstationState(SaveStates::PocketStationSlot& slot) {
+    if (!m_pocketstation) return;
+    const auto blob = m_pocketstation->saveState();
+    slot.get<SaveStates::PocketStationDevice>().value.assign(reinterpret_cast<const char*>(blob.data()), blob.size());
+    slot.get<SaveStates::PocketStationDocked>().value = m_pocketstationDocked;
+    slot.get<SaveStates::PocketStationManualDock>().value = m_pocketstationManualDock;
+    slot.get<SaveStates::PocketStationSelected>().value = m_pocketstationSelected;
+    slot.get<SaveStates::PocketStationLeadPending>().value = m_pocketstationLeadPending;
+    slot.get<SaveStates::PocketStationPrepaid>().value = m_pocketstationPrepaid;
+    slot.get<SaveStates::PocketStationArmAccum>().value = m_sio->m_psxArmAccum[this - m_sio->m_memoryCard];
+}
+
+void PCSX::MemoryCard::loadPocketstationState(SaveStates::PocketStationSlot& slot) {
+    const auto& blob = slot.get<SaveStates::PocketStationDevice>().value;
+    if (blob.empty()) return;  // the state has no device for this slot; leave ours running as it is.
+    if (!m_pocketstation) {
+        PCSX::g_system->printf(_("PocketStation: the savestate has a device in slot %i, but that slot has none.\n"),
+                               int(this - m_sio->m_memoryCard) + 1);
+        return;
+    }
+    if (!m_pocketstation->loadState(reinterpret_cast<const uint8_t*>(blob.data()), blob.size())) {
+        PCSX::g_system->printf(_("PocketStation: the device state in this savestate is not one this build reads.\n"));
+        return;
+    }
+    m_pocketstationDocked = slot.get<SaveStates::PocketStationDocked>().value;
+    m_pocketstationManualDock = slot.get<SaveStates::PocketStationManualDock>().value;
+    m_pocketstationSelected = slot.get<SaveStates::PocketStationSelected>().value;
+    m_pocketstationLeadPending = slot.get<SaveStates::PocketStationLeadPending>().value;
+    m_pocketstationPrepaid = slot.get<SaveStates::PocketStationPrepaid>().value;
+    m_sio->m_psxArmAccum[this - m_sio->m_memoryCard] = slot.get<SaveStates::PocketStationArmAccum>().value;
+}
+
 void PCSX::MemoryCard::acknowledge() { m_sio->acknowledge(); }
 
 uint8_t PCSX::MemoryCard::transceive(uint8_t value) {

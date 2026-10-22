@@ -316,14 +316,31 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("currentSP"), 2> CallStacks
 typedef Protobuf::Message<TYPESTRING("CallStacks"), CallStacksMessageField, CallStacksCurrentSP> CallStacks;
 typedef Protobuf::MessageField<CallStacks, TYPESTRING("callstacks"), 14> CallStacksField;
 
+// A PocketStation in a card slot. Written only while the slot has a device; "device" is the core's
+// own state blob (PocketStation::saveState), the rest is the slot's link and catch-up state.
+typedef Protobuf::Field<Protobuf::String, TYPESTRING("device"), 1> PocketStationDevice;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("docked"), 2> PocketStationDocked;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("manual_dock"), 3> PocketStationManualDock;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("selected"), 4> PocketStationSelected;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("lead_pending"), 5> PocketStationLeadPending;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("prepaid"), 6> PocketStationPrepaid;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("arm_accum"), 7> PocketStationArmAccum;
+typedef Protobuf::Message<TYPESTRING("PocketStationSlot"), PocketStationDevice, PocketStationDocked,
+                          PocketStationManualDock, PocketStationSelected, PocketStationLeadPending,
+                          PocketStationPrepaid, PocketStationArmAccum>
+    PocketStationSlot;
+typedef Protobuf::MessageField<PocketStationSlot, TYPESTRING("pocketstation1"), 15> PocketStation1Field;
+typedef Protobuf::MessageField<PocketStationSlot, TYPESTRING("pocketstation2"), 16> PocketStation2Field;
+
 typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, ThumbnailField, MemoryField, RegistersField,
                           GPUField, SPUField, SIOField, CDRomField, HardwareField, CountersField, MDECField,
-                          PCdrvFilesField, CallStacksField>
+                          PCdrvFilesField, CallStacksField, PocketStation1Field, PocketStation2Field>
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
                             ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
+                            CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks,
+                            PocketStationSlot, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

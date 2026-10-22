@@ -169,6 +169,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
         MDEC {},
         PCdrvFilesField {},
         CallStacks {},
+        PocketStationSlot {},
+        PocketStationSlot {},
     };
     // clang-format on
 }
@@ -198,6 +200,9 @@ std::string PCSX::SaveStates::save() {
     });
 
     g_emulator->m_callStacks->serialize(&wrapper);
+
+    g_emulator->m_sio->getMemoryCard(0)->savePocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->savePocketstationState(state.get<PocketStation2Field>());
 
     Protobuf::OutSlice slice;
     state.serialize(&slice);
@@ -308,6 +313,8 @@ bool PCSX::SaveStates::load(std::string_view data) {
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
+    g_emulator->m_sio->getMemoryCard(0)->loadPocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->loadPocketstationState(state.get<PocketStation2Field>());
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
