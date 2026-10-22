@@ -547,6 +547,8 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_processor->reset();
             m_defaultProcessor.setActive();
             m_dmaDirection = 0;
+            // GP1(00h) also resets the display mode, which readStatusFromBus() keys on.
+            m_statusControl[8] = 0x08000000;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);

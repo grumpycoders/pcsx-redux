@@ -480,6 +480,7 @@ void PCSX::Counters::init() {
     }
 
     m_hSyncCount = 0;
+    m_fieldCount = 0;
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
     set();
 }
