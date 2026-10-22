@@ -17,8 +17,8 @@
 
 -- Records the OpenBIOS shell with the GPU dump recorder, replays the dump into
 -- the dump player, and checks that the replayed VRAM matches the live VRAM.
--- A replay stopped one frame short must not match, or the comparison proves
--- nothing. Exits with 0 on success, 1 on a mismatch, 2 on a timeout.
+-- A replay stopped short of the last frame that drew must not match, or the
+-- comparison proves nothing. Exits with 0 on success, 1 on a mismatch, 2 on a timeout.
 
 local ffi = require('ffi')
 
@@ -42,10 +42,17 @@ local function check(path)
     local steps = 0
     while PCSX.GPU.DumpPlayer.step() do steps = steps + 1 end
     local diffs = countDiffs(live, PCSX.GPU.DumpPlayer.getVRAM())
-    PCSX.GPU.DumpPlayer.rewind()
-    for i = 1, steps - 1 do PCSX.GPU.DumpPlayer.step() end
-    local control = countDiffs(live, PCSX.GPU.DumpPlayer.getVRAM())
-    print(string.format('%s: %d frames, %d pixels differ, %d when one frame short', path, steps, diffs, control))
+    -- The shell does not draw on every vsync, so the last frames of a dump can leave VRAM as it
+    -- was; the control stops short of the last frame that changed anything, up to 8 frames back.
+    local control, short = 0, 0
+    while control == 0 and short < 8 and short < steps do
+        short = short + 1
+        PCSX.GPU.DumpPlayer.rewind()
+        for i = 1, steps - short do PCSX.GPU.DumpPlayer.step() end
+        control = countDiffs(live, PCSX.GPU.DumpPlayer.getVRAM())
+    end
+    print(string.format('%s: %d frames, %d pixels differ, %d when %d frame(s) short', path, steps, diffs, control,
+                        short))
     return steps > 0 and diffs == 0 and control > 0
 end
 
