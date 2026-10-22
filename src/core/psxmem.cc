@@ -24,6 +24,7 @@
 #include <map>
 #include <string_view>
 
+#include "core/alloc-tracker.h"
 #include "core/pio-cart.h"
 #include "core/psxhw.h"
 #include "core/r3000a.h"
@@ -190,6 +191,9 @@ void PCSX::Memory::reset() {
     memset(m_bios, 0, bios_size);
     memset(m_sram, 0, 0x00200000);
     m_psyqoHeapMetadata = 0;
+    // Every tracked block, and every pending return capture, belongs to the
+    // machine we are about to throw away.
+    g_emulator->m_allocTracker->reset();
     static const uint32_t nobios[7] = {
         Mips::Encoder::lui(Mips::Encoder::Reg::V0, 0xbfc0),  // v0 = 0xbfc00000
         Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f80),  // v1 = 0x1f800000

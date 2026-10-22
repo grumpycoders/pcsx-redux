@@ -68,6 +68,7 @@
 
 namespace PCSX {
 
+class AllocTracker;
 class CallStacks;
 class CDRom;
 class CDRomLogger;
@@ -328,6 +329,8 @@ class Emulator {
     std::unique_ptr<ShmDisplay> m_shmDisplay;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
+    // Last, so it is destroyed first: its teardown removes breakpoints from m_debug.
+    std::unique_ptr<AllocTracker> m_allocTracker;
 
   private:
     PcsxConfig m_config;

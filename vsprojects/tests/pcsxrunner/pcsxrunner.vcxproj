@@ -262,6 +262,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\alloc-tracker.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cdrom.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc" />

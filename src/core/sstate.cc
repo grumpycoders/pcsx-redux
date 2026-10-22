@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -303,6 +304,7 @@ void PCSX::SaveStates::capture(SaveState& state) {
 
 void PCSX::SaveStates::restore(SaveState& state) {
     SaveStateWrapper wrapper(state);
+    g_emulator->m_allocTracker->reset();
 
     /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
        reset, so we owe it explicitly: without this a recompiler happily runs blocks it
@@ -478,6 +480,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
 
     SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_cpu->Reset();
+    g_emulator->m_allocTracker->reset();
     state.commit();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
