@@ -69,7 +69,7 @@ void PCSX::Widgets::Registers::updateRegisterValue(PCSX::psxRegisters* registers
     if (reg == 34) {
         g_emulator->m_cpu->setPC(newReg);
     } else {
-        registers->GPR.r[reg] = newReg;
+        g_emulator->m_cpu->setGPR(reg, newReg);
     }
 }
 
