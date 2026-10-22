@@ -98,6 +98,9 @@ class GPU {
     }
 
     uint32_t readStatus();
+    // GPUSTAT as the CPU reads it from 1F801814h: readStatus() plus the bits that follow the
+    // beam position.
+    uint32_t readStatusFromBus();
     // Returns true when the transfer stopped part way, with MADR and BCR already set.
     bool dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();

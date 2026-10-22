@@ -260,6 +260,7 @@ void PCSX::Counters::update() {
 
         // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
+            m_fieldCount++;
             setIrq(0x01);
             PCSX::g_emulator->vsync();
 
@@ -429,6 +430,13 @@ uint32_t PCSX::Counters::readMode(uint32_t index) {
 uint32_t PCSX::Counters::readTarget(uint32_t index) {
     verboseLog(2, "[RCNT %i] rtarget: %x\n", index, m_rcnts[index].target);
     return m_rcnts[index].target;
+}
+
+uint32_t PCSX::Counters::linesSinceVBlank() {
+    update();
+    auto video = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>();
+    uint32_t total = m_HSyncTotal[video];
+    return (m_hSyncCount + total - VBlankStart[video]) % total;
 }
 
 void PCSX::Counters::calculateHsync() {

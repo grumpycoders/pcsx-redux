@@ -442,6 +442,7 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
+    counters.get<FieldCount>().value = m_fieldCount;
 }
 
 static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& state) {
@@ -694,6 +695,7 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
+    m_fieldCount = counters.get<FieldCount>().value;
 
     calculateHsync();
     // Recalculate rates from mode registers (handles overclock changes and dotclock)
