@@ -119,6 +119,12 @@ PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
             readOverdraw(m_readAccumFB, m_readOverdraw, m_readOverdrawPixels);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, oldReadFBO);
             m_hasOverdrawStats = true;
+        } else if (m_overdrawStats && m_hasOverdrawStats) {
+            // Nothing was drawn this frame.
+            m_writtenOverdraw = {};
+            m_readOverdraw = {};
+            m_writtenOverdrawPixels.clear();
+            m_readOverdrawPixels.clear();
         }
         m_overdrawDirty = false;
         m_frameCounter++;
@@ -350,7 +356,7 @@ uint64_t PCSX::GPULogger::getOverdrawSum(bool read, int x, int y, int w, int h) 
     auto& pixels = read ? m_readOverdrawPixels : m_writtenOverdrawPixels;
     if (pixels.size() != 1024 * 512) return 0;
     int x0 = std::max(x, 0), y0 = std::max(y, 0);
-    int x1 = std::min(x + w, 1024), y1 = std::min(y + h, 512);
+    int x1 = int(std::min<int64_t>(int64_t(x) + w, 1024)), y1 = int(std::min<int64_t>(int64_t(y) + h, 512));
     uint64_t sum = 0;
     for (int py = y0; py < y1; py++) {
         for (int px = x0; px < x1; px++) sum += unsigned(pixels[py * 1024 + px] + 0.5f);
