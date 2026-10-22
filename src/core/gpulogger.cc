@@ -79,8 +79,10 @@ static const char* const c_vtx = R"(
 
 layout (location = 0) in ivec2 inPos;
 
-// We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies
-const vec2 vertexOffsets = vec2(+0.5, -0.5);
+// The PS1 tests coverage at the integer pixel coordinate, top and left edges inclusive. OpenGL samples at the
+// pixel center, so shift the geometry by just under half a pixel: each pixel is then sampled a hair to the
+// right of and below its integer corner, which keeps the inclusive edges and drops the right and bottom ones.
+const vec2 vertexOffsets = vec2(0.5 - 1.0 / 64.0, 0.5 - 1.0 / 64.0);
 
 void main() {
     // Normalize coords to [0, 2]
