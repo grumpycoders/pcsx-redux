@@ -62,7 +62,9 @@ std::string readGuestString(uint32_t address, size_t limit = 64) {
 bool PCSX::AllocTracker::canObserve() {
     const auto& settings = g_emulator->settings;
     if (!settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::Debug>()) return false;
-    if (settings.get<Emulator::SettingDynarec>()) return false;
+    // The dynarec setting only applies after a restart, and the interpreter is
+    // the fallback when the recompiler is unavailable, so ask the running core.
+    if (!g_emulator->m_cpu || g_emulator->m_cpu->isDynarec()) return false;
     return true;
 }
 
