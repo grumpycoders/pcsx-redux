@@ -250,6 +250,8 @@ class Emulator {
     // In-memory rewind ring; defined in psxemulator.cc so this header does not pull in sstate.h.
     struct RewindRing;
     std::unique_ptr<RewindRing> m_rewindRing;
+    bool m_rewindCapturePending = false;
+    void captureRewindState();
 
     // Used for overclocking
     // Make the timing events trigger faster as we are currently assuming everything
@@ -273,7 +275,8 @@ class Emulator {
     void reset();
     void shutdown();
     void vsync();
-    // Runs what vsync() deferred: the VSync event, the system update and the rewind snapshot.
+    // Runs what vsync() deferred: the VSync event, the system update and asking for the rewind
+    // snapshot.
     // Called from R3000Acpu::branchTest(), where m_regs.pc is the real next pc.
     void dispatchVSync();
     void setPGXPMode(uint32_t pgxpMode);
@@ -285,7 +288,11 @@ class Emulator {
     // queues the step for the main loop otherwise, like SaveStates::loadSafe(). Either way it
     // returns whether there was a snapshot to step back to. rewindStateNow() is the unsafe half
     // the main loop applies a queue with, and rewindStateCount() leaves out queued steps.
+    // createRewindState() called from inside the emulation, which is where the ring's own
+    // captures come from, only marks the snapshot as wanted: R3000Acpu::branchTest() takes it
+    // with flushRewindCapture() once it is done, so restoring it doesn't skip any of its work.
     void createRewindState();
+    void flushRewindCapture();
     bool rewindState();
     bool rewindStateNow(unsigned steps = 1);
     size_t rewindStateCount() const;
