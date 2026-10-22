@@ -98,6 +98,15 @@ typedef struct {
 
 LuaScreenShot takeScreenShot();
 double getGuestFPS();
+void setGPULogging(bool enabled, bool overdrawStats);
+typedef struct {
+    bool valid;
+    uint64_t total;
+    uint32_t pixels, max;
+    uint32_t buckets[5];
+} LuaOverdrawStats;
+LuaOverdrawStats getOverdrawStats(bool read);
+uint64_t getOverdrawSum(bool read, int x, int y, int w, int h);
 void startGPUDump(LuaFile*);
 void stopGPUDump();
 bool isGPUDumpArmed();
@@ -295,6 +304,20 @@ PCSX = {
             }
         end,
         getGuestFPS = function() return C.getGuestFPS() end,
+        setLogging = function(enabled, overdrawStats) C.setGPULogging(enabled, overdrawStats == true) end,
+        getOverdrawSum = function(read, x, y, w, h) return tonumber(C.getOverdrawSum(read == true, x, y, w, h)) end,
+        getOverdrawStats = function(read)
+            local s = C.getOverdrawStats(read == true)
+            if not s.valid then return nil end
+            local total = tonumber(s.total)
+            return {
+                total = total,
+                pixels = s.pixels,
+                max = s.max,
+                mean = s.pixels > 0 and total / s.pixels or 0,
+                buckets = { s.buckets[0], s.buckets[1], s.buckets[2], s.buckets[3], s.buckets[4] },
+            }
+        end,
         getVRAM = function() return Support.File._createSliceWrapper(C.getVRAM()) end,
         startDump = function(file)
             if type(file) == 'string' then file = Support.File.open(file, 'TRUNCATE') end
