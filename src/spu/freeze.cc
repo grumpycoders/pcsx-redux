@@ -17,12 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 #include "spu/registers.h"
 
 void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
-    RemoveThread();
+    // Mix up to the CPU's cycle so every queued write is applied: the saved voice state is
+    // then the state at that cycle, and the queue itself never needs saving.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    const bool running = m_mixerRunning;
+    if (running) RemoveThread();
 
     // Capture buffer.
     spu.get<SaveStates::CBCDLeft>().copyFrom(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
@@ -71,16 +77,24 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
     spu.get<SaveStates::SPUEndx>().value = spuEndx;
+    spu.get<SaveStates::SPUMainVolWritten>().value = 4 | (m_mainLeftWritten ? 1 : 0) | (m_mainRightWritten ? 2 : 0);
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
 
-    SetupThread();
+    saveEnvelopeCheckpoints(spu.get<SaveStates::EnvelopeCheckpoints>());
+
+    if (running) SetupThread();
 }
 
 void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     // Processing is stopped while the state is restored.
-    RemoveThread();
+    const bool running = m_mixerRunning;
+    if (running) RemoveThread();
+    // Writes still queued from before the load belong to the state being replaced.
+    m_eventsApplied = m_eventsPushed.load();
+    // The CPU registers are already restored: restart the mixer clock at their cycle.
+    resync(PCSX::g_emulator->m_cpu->m_regs.cycle);
 
     spu.get<SaveStates::CBCDLeft>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapLeft));
     spu.get<SaveStates::CBCDRight>().copyTo(reinterpret_cast<uint8_t *>(captureBuffer.CDCapRight));
@@ -123,7 +137,9 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
 
     spuAddr = spu.get<SaveStates::SPUAddr>().value;
     spuCtrl = spu.get<SaveStates::SPUCtrl>().value;
-    spuStat = spu.get<SaveStates::SPUStat>().value;
+    // Only the IRQ9 flag and the capture-half bit are the SPU's own; older states can carry
+    // whatever a guest wrote over the rest.
+    spuStat = spu.get<SaveStates::SPUStat>().value & (StatusFlags::IRQFlag | StatusFlags::CBIndex);
     spuEndx = spu.get<SaveStates::SPUEndx>().value & 0xffffff;
 
     m_noise.loadFrom(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
@@ -136,9 +152,19 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_SPUReverbAddr, regArea[(H_SPUReverbAddr - 0xc00) >> 1]);
     writeRegister(H_SPUrvolL, regArea[(H_SPUrvolL - 0xc00) >> 1]);
     writeRegister(H_SPUrvolR, regArea[(H_SPUrvolR - 0xc00) >> 1]);
+    // Replay only the sides software wrote, so an unwritten side stays at unity. A state saved
+    // without the written mask (bit 2 clear) treats a nonzero register as written.
+    m_mainVolume.reset();
+    m_mainLeftWritten = m_mainRightWritten = false;
+    uint32_t mainVolWritten = spu.get<SaveStates::SPUMainVolWritten>().value;
+    if (!(mainVolWritten & 4)) {
+        if (regArea[(H_SPUmvolL - 0xc00) >> 1]) mainVolWritten |= 1;
+        if (regArea[(H_SPUmvolR - 0xc00) >> 1]) mainVolWritten |= 2;
+    }
+    if (mainVolWritten & 1) writeRegister(H_SPUmvolL, regArea[(H_SPUmvolL - 0xc00) >> 1]);
+    if (mainVolWritten & 2) writeRegister(H_SPUmvolR, regArea[(H_SPUmvolR - 0xc00) >> 1]);
 
     writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
-    writeRegister(H_SPUstat, regArea[(H_SPUstat - 0xc00) >> 1]);
     writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
     writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 
@@ -153,6 +179,83 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
         }
     }
 
+    // The replays above were queued: apply them now, with the mixer stopped.
+    drainEventsNow();
+    rebuildShadows();
+    loadEnvelopeCheckpoints(spu.get<SaveStates::EnvelopeCheckpoints>());
+
     // Start sound processing again.
-    SetupThread();
+    if (running) SetupThread();
+}
+
+void PCSX::SPU::impl::loadEnvelopeCheckpoints(const SaveStates::EnvelopeCheckpoints &checkpoints) {
+    const uint64_t now = cycleToSample(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        auto &cp = m_envelopeCheckpoint[i];
+        cp = EnvelopeCheckpoint{};
+        if (checkpoints.count == MAXCHAN) {
+            const auto &in = checkpoints.value[i];
+            cp.keyOnCycle = in.get<SaveStates::ECPKeyOnCycle>().value;
+            cp.serviceSample = in.get<SaveStates::ECPServiceSample>().value;
+            cp.keyOffCycle = in.get<SaveStates::ECPKeyOffCycle>().value;
+            cp.keyedOn = in.get<SaveStates::ECPKeyedOn>().value;
+            cp.cachedSample = in.get<SaveStates::ECPCachedSample>().value;
+            cp.cachedState = in.get<SaveStates::ECPCachedState>().value;
+            cp.cachedVol = in.get<SaveStates::ECPCachedVol>().value;
+            cp.cachedFraction = in.get<SaveStates::ECPCachedFraction>().value;
+            cp.cachedOn = in.get<SaveStates::ECPCachedOn>().value;
+            cp.block = in.get<SaveStates::ECPBlock>().value;
+            cp.loop = in.get<SaveStates::ECPLoop>().value;
+            cp.ignoreLoop = in.get<SaveStates::ECPIgnoreLoop>().value;
+            cp.left = in.get<SaveStates::ECPLeft>().value;
+            cp.pos = in.get<SaveStates::ECPPos>().value;
+            cp.pitchStep = in.get<SaveStates::ECPPitchStep>().value;
+            cp.ended = in.get<SaveStates::ECPEnded>().value;
+            cp.untracked = in.get<SaveStates::ECPUntracked>().value;
+            cp.keyOnBlock = in.get<SaveStates::ECPKeyOnBlock>().value;
+            cp.keyOnLoop = in.get<SaveStates::ECPKeyOnLoop>().value;
+            continue;
+        }
+        // A state saved without the walk: re-anchor it on the restored mixer envelope, one step
+        // taken at the load sample. The ADPCM cursor is unknown, so the voice is not walked for
+        // its end block until the next KEY ON.
+        if (!s_chan[i].data.get<Chan::On>().value) continue;
+        const auto &ex = s_chan[i].adsr.ex();
+        cp.keyedOn = true;
+        cp.serviceSample = now >= AdpcmDecoder::kKeyOnSilentSamples ? now - AdpcmDecoder::kKeyOnSilentSamples : 0;
+        cp.cachedSample = 1;
+        cp.cachedState = ex.get<exState>().value;
+        cp.cachedVol = ex.get<exEnvelopeVol>().value;
+        cp.cachedFraction = ex.get<exEnvelopeVolF>().value;
+        cp.cachedOn = true;
+        cp.untracked = true;
+    }
+}
+
+void PCSX::SPU::impl::saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &checkpoints) {
+    for (unsigned i = 0; i < MAXCHAN; i++) {
+        const auto &cp = m_envelopeCheckpoint[i];
+        auto &out = checkpoints.value[i];
+        out.get<SaveStates::ECPKeyOnCycle>().value = cp.keyOnCycle;
+        out.get<SaveStates::ECPServiceSample>().value = cp.serviceSample;
+        out.get<SaveStates::ECPKeyOffCycle>().value = cp.keyOffCycle;
+        out.get<SaveStates::ECPKeyedOn>().value = cp.keyedOn;
+        out.get<SaveStates::ECPCachedSample>().value = cp.cachedSample;
+        out.get<SaveStates::ECPCachedState>().value = cp.cachedState;
+        out.get<SaveStates::ECPCachedVol>().value = cp.cachedVol;
+        out.get<SaveStates::ECPCachedFraction>().value = cp.cachedFraction;
+        out.get<SaveStates::ECPCachedOn>().value = cp.cachedOn;
+        out.get<SaveStates::ECPBlock>().value = cp.block;
+        out.get<SaveStates::ECPLoop>().value = cp.loop;
+        out.get<SaveStates::ECPIgnoreLoop>().value = cp.ignoreLoop;
+        out.get<SaveStates::ECPLeft>().value = cp.left;
+        out.get<SaveStates::ECPPos>().value = cp.pos;
+        out.get<SaveStates::ECPPitchStep>().value = cp.pitchStep;
+        out.get<SaveStates::ECPEnded>().value = cp.ended;
+        out.get<SaveStates::ECPUntracked>().value = cp.untracked;
+        out.get<SaveStates::ECPKeyOnBlock>().value = cp.keyOnBlock;
+        out.get<SaveStates::ECPKeyOnLoop>().value = cp.keyOnLoop;
+    }
+    // Only deserialisation counts elements; load() reads a zero count as a state saved without them.
+    checkpoints.count = MAXCHAN;
 }

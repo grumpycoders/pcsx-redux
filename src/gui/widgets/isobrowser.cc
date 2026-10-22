@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no UvThreadOp caching layer for this UI to drive.
+
 #include "gui/widgets/isobrowser.h"
 
 #include <zlib.h>
@@ -401,7 +403,7 @@ headers and subheader file boundary markers.)"));
                           ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
                                         ImGui::GetStyle().ItemSpacing.y))) {
         ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
-        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+        ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
         ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
         ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
@@ -508,13 +510,13 @@ headers and subheader file boundary markers.)"));
                     typeStr = _("Gap");
                     break;
                 case FlatEntry::HiddenM1:
-                    typeStr = _("M1");
+                    typeStr = "M1";
                     break;
                 case FlatEntry::HiddenM2F1:
-                    typeStr = _("M2F1");
+                    typeStr = "M2F1";
                     break;
                 case FlatEntry::HiddenM2F2:
-                    typeStr = _("M2F2");
+                    typeStr = "M2F2";
                     break;
                 case FlatEntry::System:
                     typeStr = _("System");
@@ -539,7 +541,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
             showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
             if (ImGui::MenuItem(_("Close Disk Image"))) {
                 g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
-                g_emulator->m_cdrom->check();
+                g_emulator->m_cdrom->parseIso();
             }
             ImGui::EndMenu();
         }
@@ -559,7 +561,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            g_emulator->m_cdrom->check();
+            g_emulator->m_cdrom->parseIso();
         }
     }
     auto iso = cdrom->m_iso.get();
@@ -618,7 +620,7 @@ significantly by caching the files beforehand.)"));
     ImGui::TextUnformatted(str.c_str());
     if (ImGui::BeginTable("Tracks", 5, ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Track"));
-        ImGui::TableSetupColumn(_("Start"));
+        ImGui::TableSetupColumn(C_("Track position", "Start"));
         ImGui::TableSetupColumn(_("Length"));
         ImGui::TableSetupColumn(_("Pregap"));
         ImGui::TableSetupColumn("CRC32");
@@ -809,7 +811,7 @@ significantly by caching the files beforehand.)"));
                                   ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
                                                 ImGui::GetStyle().ItemSpacing.y))) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
                 ImGui::TableHeadersRow();
                 std::unordered_set<uint32_t> visitedDirs;

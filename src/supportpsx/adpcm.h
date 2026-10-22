@@ -101,7 +101,12 @@ class Encoder {
     void blockTo8Bit(const int16_t* input, uint8_t* output);
 
     // Process a block of 28 samples into 16 bytes of output, suitable for SPU decoding.
-    void processSPUBlock(const int16_t* input, uint8_t* output, BlockAttribute blockAttribute);
+    // When forceFilter0 is set, the block is encoded with filter 0, which does not use the previous two
+    // decoded samples. This is not part of the original encvag API. It is meant for loop start blocks: the
+    // SPU reaches them both from the preceding block and from the loop end, with different decoder history,
+    // and only filter 0 decodes identically in both cases.
+    void processSPUBlock(const int16_t* input, uint8_t* output, BlockAttribute blockAttribute,
+                         bool forceFilter0 = false);
 
     // Finish the SPU encoding process, and write the final 16 bytes of the SPU block. Use this after the last block of
     // samples, only when using one shot blocks.
@@ -129,6 +134,8 @@ class Encoder {
     // samples and anomalies, which are used to calculate the filter and shift values for the next block.
     std::array<std::array<double, 2>, 2> m_lastBlockSamples;
     std::array<std::array<double, 2>, 2> m_anomalies;
+    // Set by processSPUBlock for the duration of a single block, see forceFilter0 there.
+    bool m_forceFilter0 = false;
     // Early versions of the encoder only used 4 filters, and the XA mode is meant to mimic that behavior.
     static constexpr std::array<std::array<double, 2>, 5> c_filters = {{
         {0.0, 0.0},            // 0

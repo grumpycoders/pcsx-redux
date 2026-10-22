@@ -19,6 +19,7 @@
 
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
+#include "support/uvfile.h"
 
 // this function tries to get the .ccd file of the given .img
 // the necessary data is put into the ti (trackinformation)-array

@@ -4,6 +4,9 @@
     <ClCompile Include="..\..\src\core\callstacks.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\shmdisplay.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\cdrom.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -26,6 +29,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\kernellog.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\mdec-decoder.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\mdec.cc">
@@ -55,6 +61,9 @@
     <ClCompile Include="..\..\src\core\web-server.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\screenshot.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\system.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -74,6 +83,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\psxinterpreter.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\gte-write-to-use-model.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\psxhw.cc">
@@ -124,10 +136,16 @@
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc">
       <Filter>Source Files\OpenGL GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\cputrace.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\gpudump.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\gpulogger.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\spulogger.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\memorycard.cc">
@@ -140,6 +158,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\arguments.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\commandline.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\patchmanager.cc">
@@ -169,6 +190,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\web-server.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\screenshot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\system.h">
@@ -222,6 +246,9 @@
     <ClInclude Include="..\..\src\core\pad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\mdec-decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\mdec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -261,6 +288,9 @@
     <ClInclude Include="..\..\src\core\callstacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\shmdisplay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\sio1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -291,10 +321,16 @@
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h">
       <Filter>Header Files\OpenGL GPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\cputrace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\gpudump.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\gpulogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\spulogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\memorycard.h">
@@ -307,6 +343,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\arguments.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\commandline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\DynaRec_aa64\emitter.h">

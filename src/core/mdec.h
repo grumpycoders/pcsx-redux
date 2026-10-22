@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "core/mdec-decoder.h"
 #include "core/psxdma.h"
 #include "core/psxemulator.h"
 #include "core/psxhw.h"
@@ -37,14 +38,20 @@ class MDEC {
     uint32_t read1();
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void mdec0Interrupt();
-    void mdec1Interrupt();
+    void scheduledCallback0();
+    void scheduledCallback1();
 
-    static const unsigned DSIZE = 8;
-    static const unsigned DSIZE2 = DSIZE * DSIZE;
+    static const unsigned DSIZE = MDECDecoder::DSIZE;
+    static const unsigned DSIZE2 = MDECDecoder::DSIZE2;
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
+
+    // An uploaded quant table as the AAN decoder caches it (each entry times
+    // its prescale factor), and back. The factors are all non-zero, so the
+    // reverse is an exact division.
+    static void iqtab_init(int *iqtab, const unsigned char *qt);
+    static void qtab_fromIqtab(unsigned char *qt, const int *iqtab);
 
   private:
     /* memory speed is 1 byte per MDEC_BIAS psx clock
@@ -77,30 +84,21 @@ class MDEC {
         struct _pending_dma1 pending_dma1;
     } mdec;
 
-    int iq_y[DSIZE2], iq_uv[DSIZE2];
+    // The quant tables (raw and AAN-prescaled) and the MDEC(3) matrix. The
+    // decoder that reads them is shared with tools/mdec.
+    MDECDecoder::Tables m_tables;
+    // The hardware does NOT initialise the scale matrix: measured 2026-09-14 on
+    // real consoles, a decode with no MDEC(3) upload returns flat mid-grey for
+    // every pixel. We reproduce that rather than silently substituting the
+    // standard constants, and say so once in the log, because the alternative is
+    // homebrew that works here and shows a grey rectangle on console.
+    bool scaleTableUploaded = false;
+    bool warnedNoScaleTable = false;
 
-    static inline const int zscan[DSIZE2] = {
-        0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,   // 00
-        12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6,  7,  14, 21, 28,  // 10
-        35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,  // 20
-        58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,  // 30
-    };
-
-    static inline const int aanscales[DSIZE2] = {
-        1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 00
-        1454417, 2017334, 1900287, 1710213, 1454417, 1142728, 787125, 401273,  // 08
-        1370031, 1900287, 1790031, 1610986, 1370031, 1076426, 741455, 377991,  // 10
-        1232995, 1710213, 1610986, 1449849, 1232995, 968758,  667292, 340183,  // 18
-        1048576, 1454417, 1370031, 1232995, 1048576, 823861,  567485, 289301,  // 20
-        823861,  1142728, 1076426, 968758,  823861,  647303,  445870, 227303,  // 28
-        567485,  787125,  741455,  667292,  567485,  445870,  307121, 156569,  // 30
-        289301,  401273,  377991,  340183,  289301,  227303,  156569, 79818    // 38
-    };
-
-    void putlinebw15(uint16_t *image, int *Yblk);
-    void putquadrgb15(uint16_t *image, int *Yblk, int Cr, int Cb);
     void yuv2rgb15(int *blk, unsigned short *image);
-    void iqtab_init(int *iqtab, unsigned char *iq_y);
+    void yuv2rgb24(int *blk, uint8_t *image);
+    void scaletable_init();
+    void standardTables_init();
     unsigned short *rl2blk(int *blk, unsigned short *mdec_rl);
 };
 

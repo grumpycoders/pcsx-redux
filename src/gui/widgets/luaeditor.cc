@@ -73,6 +73,7 @@ void PCSX::Widgets::LuaEditor::draw(const char* title, PCSX::GUI* gui) {
             L->errorPrinter = [this](std::string_view msg) { m_lastErrors.push_back(std::string(msg)); };
             GUI::ScopedOnlyLog scopedOnlyLog(gui);
             try {
+                System::setCrashReportTag("user_lua", "editor");
                 L->load(m_text.getText(), "pcsx.lua", false);
                 L->pcall();
                 auto errors = gui->getGLerrors();

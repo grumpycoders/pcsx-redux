@@ -55,18 +55,39 @@ struct SoftRenderer {
     void drawingAreaEnd(GPU::DrawingAreaEnd *prim);
     void drawingOffset(GPU::DrawingOffset *prim);
     void maskBit(GPU::MaskBit *prim);
+    // GP0(E6h) state, for the VRAM transfers that honour it outside the rasterizer.
+    bool getCheckMask() const { return m_checkMask; }
+    uint16_t getSetMask16() const { return m_setMask16; }
 
     bool checkCoord4(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2, int16_t &x3,
                      int16_t &y3);
     bool checkCoord3(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1, int16_t &x2, int16_t &y2);
 
-    // Screen coordinates live in an 11-bit signed field, and the wrap applies
-    // to the vertex-plus-offset SUM rather than only to the vertex as it
-    // arrived. With a draw offset of -1000 a vertex at X=1500 renders at
-    // X=500, not 548 pixels off the left edge. Verified on SCPH-1000,
-    // SCPH-5501 and SCPH-7001 via gpu-raster-phase23 O3.
-    static int16_t offsetCoord(int16_t v, int16_t off) {
-        return static_cast<int16_t>(PCSX::GPU::signExtend<int, 11>(int(v) + int(off)));
+    // The vertex-plus-offset sum is not wrapped: setup and the edge cull see
+    // it at full width, so a vertex at 670 with offset 360 sits at 1030. The
+    // wrap happens on the pixel address instead, modulo 2048 on both axes,
+    // before the drawing-area clip: with offset -1000 a vertex at 1500 (-548
+    // as an 11-bit vertex) lands at -1548 and its pixels show at 500. Verified
+    // on SCPH-1001 and SCPH-5501 via gpu-raster-phase23 O3 and W0..W3.
+    static int16_t offsetCoord(int16_t v, int16_t off) { return static_cast<int16_t>(int(v) + int(off)); }
+
+    // Calls draw(dx, dy) once per copy of the primitive that the mod-2048
+    // pixel wrap can bring into VRAM. Sums range over -2048..2046, so only
+    // pixels at -2048..-1025 wrap into the 0..1023 window; everything else is
+    // left to the drawing-area clip.
+    template <typename Draw>
+    static void forEachPixelWrap(const int16_t *xs, const int16_t *ys, int n, Draw &&draw) {
+        int minX = xs[0], minY = ys[0];
+        for (int i = 1; i < n; i++) {
+            if (xs[i] < minX) minX = xs[i];
+            if (ys[i] < minY) minY = ys[i];
+        }
+        const bool wrapX = minX < -1024;
+        const bool wrapY = minY < -1024;
+        draw(int16_t(0), int16_t(0));
+        if (wrapX) draw(int16_t(2048), int16_t(0));
+        if (wrapY) draw(int16_t(0), int16_t(2048));
+        if (wrapX && wrapY) draw(int16_t(2048), int16_t(2048));
     }
 
     void applyOffset2(int16_t &x0, int16_t &y0, int16_t &x1, int16_t &y1) {
@@ -166,6 +187,13 @@ struct SoftRenderer {
     int m_useDither = 0;
     uint16_t *m_vram16;
     uint8_t *m_vram;
+    // Effective drawable VRAM height. Equals the full 1024-row buffer only when
+    // a 2MB bank is fitted AND the gate is open; otherwise the retail 512. Kept
+    // in sync by impl::vramConfigChanged() and used as the rasterizer's vertical
+    // bound so drawing/fills reach the upper bank only when it is genuinely
+    // addressable. Public (like m_vram16) so impl can sync it across the
+    // private SoftRenderer inheritance.
+    int m_vramHeight = VRAM_HEIGHT;
     SoftDisplay m_softDisplay;
     int32_t m_statusRet;
     bool m_disableTexturesInPolygons = false;

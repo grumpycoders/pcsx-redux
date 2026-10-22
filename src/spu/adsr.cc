@@ -37,8 +37,15 @@ namespace EnvelopeTables {
 // steps: a phase counts samples in the fraction accumulator up to
 // denominator[rate], then steps the level by numerator_increase[rate] (rising)
 // or numerator_decrease[rate] (falling, negative).
+// The hardware adds 0x8000 >> (shift - 11) to its step counter each sample and clamps
+// that increment to at least 1, so every shift from 26 up steps once per 32768 samples
+// (psx-spx: "a rate of 0x76 behaves like 0x6A").
+constexpr int kMaxEffectiveShift = 26;
 struct DenominatorGenerator {
-    static consteval int32_t calculateValue(std::size_t rate) { return (rate < 48) ? 1 : (1 << ((rate >> 2) - 11)); }
+    static consteval int32_t calculateValue(std::size_t rate) {
+        const int shift = static_cast<int>(rate >> 2);
+        return (rate < 48) ? 1 : (1 << (std::min(shift, kMaxEffectiveShift) - 11));
+    }
 };
 
 struct NumeratorIncreaseGenerator {
@@ -56,6 +63,10 @@ struct NumeratorDecreaseGenerator {
 constexpr auto denominator = PCSX::generateTable<128, DenominatorGenerator>();
 constexpr auto numerator_increase = PCSX::generateTable<128, NumeratorIncreaseGenerator>();
 constexpr auto numerator_decrease = PCSX::generateTable<128, NumeratorDecreaseGenerator>();
+
+static_assert(denominator.data[0x6a] == 32768);
+static_assert(denominator.data[0x76] == denominator.data[0x6a]);
+static_assert(denominator.data[0x7c] == 32768);
 }  // namespace EnvelopeTables
 
 namespace {
@@ -71,6 +82,10 @@ constexpr int32_t kSustainLevelMask = 0xf;     // ...compared against the 0..15 
 // (val & 0x7f00) >> 8, sustain is (val & 0x1fc0) >> 6), so the knee's rate-step lands past the
 // end of the 128-entry tables on the slowest rates. Saturate instead of reading off the end.
 constexpr int kMaxRateIndex = 127;
+// A rate field of all ones (step and shift bits together) never steps. That is 0x7f for
+// attack and sustain and 0x1f for release, tested on the register value before the knee.
+constexpr int kFrozenRate = 0x7f;
+constexpr int kFrozenCoarseRate = 0x1f;
 }  // namespace
 
 // Write the freshly computed envelope state back and return the full 15-bit
@@ -92,6 +107,8 @@ int PCSX::SPU::AdsrEnvelope::Attack() {
     int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
     int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
     const bool exponential = m_adsrx.get<exAttackModeExp>().value != 0;
+
+    if (rateIndex == kFrozenRate) return commit(envelopeVol, envelopeVolFraction);
 
     // Past the knee the exponential attack curve flattens to a slower rate.
     if (exponential && envelopeVol >= kExponentialKnee) {
@@ -139,6 +156,8 @@ int PCSX::SPU::AdsrEnvelope::Sustain() {
     const bool exponential = m_adsrx.get<exSustainModeExp>().value != 0;
     const bool increase = m_adsrx.get<exSustainIncrease>().value != 0;
 
+    if (rateIndex == kFrozenRate) return commit(envelopeVol, envelopeVolFraction);
+
     if (increase) {
         // Past the knee the exponential rise flattens to a slower rate.
         if (exponential && envelopeVol >= kExponentialKnee) {
@@ -170,6 +189,8 @@ int PCSX::SPU::AdsrEnvelope::Release(bool &channelOn) {
     int32_t envelopeVol = m_adsrx.get<exEnvelopeVol>().value;
     int32_t envelopeVolFraction = m_adsrx.get<exEnvelopeVolF>().value;
     const bool exponential = m_adsrx.get<exReleaseModeExp>().value != 0;
+
+    if (m_adsrx.get<exReleaseRate>().value == kFrozenCoarseRate) return commit(envelopeVol, envelopeVolFraction);
 
     if (++envelopeVolFraction >= EnvelopeTables::denominator.data[rateIndex]) {
         envelopeVolFraction = 0;

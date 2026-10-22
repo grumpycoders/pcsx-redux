@@ -297,6 +297,9 @@
     <ProjectReference Include="..\uriparser\uriparser.vcxproj">
       <Project>{6acdc81a-f4d8-4c2d-8ccd-db72a88febed}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ftxui\ftxui.vcxproj">
+      <Project>{fc48d7bd-e2d9-4ba9-8b2f-d28345048e83}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\zep\zep.vcxproj">
       <Project>{b7a81195-7adc-4de0-9a1a-9c3e0acc7ff6}</Project>
     </ProjectReference>
@@ -319,16 +322,16 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets" Condition="Exists('..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets')" />
-    <Import Project="..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" />
-    <Import Project="..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\x64sentry-native.0.17.3.1\build\x64sentry-native.targets" Condition="Exists('..\packages\x64sentry-native.0.17.3.1\build\x64sentry-native.targets')" />
+    <Import Project="..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets')" />
+    <Import Project="..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\x64sentry-native.0.6.1\build\x64sentry-native.targets'))" />
-    <Error Condition="!Exists('..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
-    <Error Condition="!Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\x64sentry-native.0.17.3.1\build\x64sentry-native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\x64sentry-native.0.17.3.1\build\x64sentry-native.targets'))" />
+    <Error Condition="!Exists('..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
+    <Error Condition="!Exists('..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

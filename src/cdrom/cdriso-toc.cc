@@ -19,6 +19,7 @@
 
 #include "cdrom/cdriso.h"
 #include "core/cdrom.h"
+#include "support/uvfile.h"
 
 // this function tries to get the .toc file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array

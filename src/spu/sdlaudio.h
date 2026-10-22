@@ -25,6 +25,7 @@
 #include <array>
 #include <atomic>
 #include <condition_variable>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -116,6 +117,24 @@ class SDLAudio {
     SDLAudio(SettingsType& settings);
     ~SDLAudio() { uninit(); }
     uint32_t getFrameCount() { return m_frameCount.load(); }
+    // The most frames the device takes in one go, in 44.1 kHz stream frames: the period it
+    // negotiated at open, converted from the device rate and raised to
+    // the largest single callback request seen since. 0 until the device is open.
+    uint32_t getPeriodFrames() { return m_periodFrames.load(); }
+    // Drops up to n of the oldest queued SPU frames, returning how many were dropped. Called from the
+    // SPU thread while the device callback dequeues too; Circular locks around every access.
+    size_t dropVoiceFrames(size_t n) {
+        Frame scratch[256];
+        size_t dropped = 0;
+        while (n > 0) {
+            const size_t want = std::min(n, std::size(scratch));
+            const size_t got = m_voicesStream.dequeue(scratch, want);
+            dropped += got;
+            n -= want;
+            if (got < want) break;
+        }
+        return dropped;
+    }
     void reinit() {
         uninit();
         init();
@@ -136,7 +155,7 @@ class SDLAudio {
                 return false;
         }
     }
-    size_t getBytesBuffered(unsigned streamId = 0) {
+    size_t getFramesBuffered(unsigned streamId = 0) {
         switch (streamId) {
             case 0:
                 return m_voicesStream.buffered();
@@ -150,6 +169,12 @@ class SDLAudio {
         }
     }
     uint32_t getCurrentFrames() { return m_frames.load(); }
+    // Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
+    // at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
+    // producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
+    static constexpr int kMaxSpeed = 1024;
+    // The sink multiplier actually applied: the configured SPU::Speed times the GUI's turbo factor.
+    static int effectiveSpeed(int configured, int turboFactor);
     void waitForGoal(uint32_t goal) {
 #if HAS_ATOMIC_WAIT
         // for once, Visual Studio is better than clang/gcc/libc++/libstdc++. Its C++20
@@ -225,6 +250,7 @@ class SDLAudio {
     std::vector<std::string> m_devices;
 
     std::atomic<uint32_t> m_frameCount{0};
+    std::atomic<uint32_t> m_periodFrames{0};
 };
 
 }  // namespace SPU

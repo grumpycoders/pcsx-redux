@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\src\supportpsx\ps1-packer.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\psyq-obj.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\supportpsx\binlua.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -61,6 +64,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\supportpsx\ucl-utils.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\supportpsx\dct.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -107,6 +113,9 @@
     <ClInclude Include="..\..\src\supportpsx\ps1-packer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\psyq-obj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\binlua.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -138,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\supportpsx\ucl-utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\supportpsx\dct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

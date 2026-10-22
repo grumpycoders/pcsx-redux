@@ -52,6 +52,13 @@ void main() {
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+precision highp usampler2D;
+#endif
 
 uniform int u_24shift;
 uniform bool u_alpha;
@@ -78,6 +85,9 @@ uniform sampler2D u_vramTexture;
 uniform vec4 u_writtenColor;
 uniform sampler2D u_readHighlight;
 uniform sampler2D u_writtenHighlight;
+uniform sampler2D u_readHeatmap;
+uniform sampler2D u_writtenHeatmap;
+uniform int u_heatmapMode;
 
 in vec2 fragUV;
 out vec4 outColor;
@@ -101,7 +111,7 @@ vec4 readTexture(in vec2 pos) {
     if (pos.y > 1.0f) return ret;
     if (pos.x < 0.0f) return ret;
     if (pos.y < 0.0f) return ret;
-    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 apos = vec2(1024.0f, 1024.0f) * pos;
     vec2 fpos = fract(apos);
     ivec2 ipos = ivec2(apos);
 
@@ -191,7 +201,7 @@ float sampleTexture(in sampler2D sampler, in ivec2 pos) {
 }
 
 float sum9(in sampler2D sampler, in vec2 pos) {
-    vec2 apos = vec2(1024.0f, 512.0f) * pos;
+    vec2 apos = vec2(1024.0f, 1024.0f) * pos;
     ivec2 ipos = ivec2(apos);
     float sum = 0.0;
     for (int y = -1; y <= 1; y++) {
@@ -208,16 +218,35 @@ vec4 outlineColor(in sampler2D sampler, in vec4 color, in vec2 pos) {
     return color;
 }
 
+// Number of times a pixel was written (or read) during the last frame. Touched once is the normal
+// case and shows as a faint blue; every further touch is overdraw, going green, yellow, then red.
+vec4 heatmapColor(in vec2 pos) {
+    if (any(lessThan(pos, vec2(0.0))) || any(greaterThan(pos, vec2(1.0)))) return vec4(0.0);
+    float count = u_heatmapMode == 1 ? texture(u_writtenHeatmap, pos).r : texture(u_readHeatmap, pos).r;
+    if (count < 0.5) return vec4(0.0);
+    if (count < 1.5) return vec4(0.0, 0.2, 1.0, 0.35);
+    const vec3 ramp[4] = vec3[4](vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), vec3(1.0, 0.5, 0.0), vec3(1.0, 0.0, 0.0));
+    int i = min(int(count + 0.5) - 2, 3);
+    return vec4(ramp[i], 0.6);
+}
+
 void main() {
     float magnifyAmount = u_magnifyAmount;
     vec2 fragCoord = gl_FragCoord.xy - u_origin;
     vec4 fragColor = readTexture(fragUV.st);
-    vec2 pixelPosLinear = vec2(1024.0f, 512.0f) * fragUV.st;
+    vec2 pixelPosLinear = vec2(1024.0f, 1024.0f) * fragUV.st;
     vec2 pixelPosFractional = fract(pixelPosLinear);
     ivec2 pixelPos = ivec2(pixelPosLinear);
     vec2 magnifyVector = (fragUV.st - u_mouseUV) / u_magnifyAmount;
     vec2 magnifyPos = magnifyVector + u_mouseUV;
     vec4 magnifyColor = readTexture(magnifyPos);
+
+    if (u_heatmapMode != 0) {
+        vec4 heat = heatmapColor(fragUV.st);
+        fragColor = mix(fragColor, heat, heat.a);
+        vec4 heatMagnify = heatmapColor(magnifyPos);
+        magnifyColor = mix(magnifyColor, heatMagnify, heatMagnify.a);
+    }
 
     vec4 readOutline = outlineColor(u_readHighlight, u_readColor, fragUV.st);
     fragColor = mix(fragColor, readOutline, readOutline.a);
@@ -228,7 +257,7 @@ void main() {
     vec4 writtenOutlineMagnify = outlineColor(u_writtenHighlight, u_writtenColor, magnifyPos);
     magnifyColor = mix(magnifyColor, writtenOutlineMagnify, writtenOutlineMagnify.a);
     vec2 mousePos = vec2(u_mousePos.x - u_origin.x * 2.0, u_resolution.y - u_mousePos.y);
-    ivec2 mousePixelPos = ivec2(vec2(1024.0f, 512.0f) * u_mouseUV);
+    ivec2 mousePixelPos = ivec2(vec2(1024.0f, 1024.0f) * u_mouseUV);
 #if 0
     if (mousePixelPos == pixelPos) {
         fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -236,12 +265,12 @@ void main() {
 #endif
     bool drawGrid = true;
     if (pixelPosLinear.x > 1024.0f) drawGrid = false;
-    if (pixelPosLinear.y > 512.0f) drawGrid = false;
+    if (pixelPosLinear.y > 1024.0f) drawGrid = false;
     if (pixelPosLinear.x < 0.0f) drawGrid = false;
     if (pixelPosLinear.y < 0.0f) drawGrid = false;
     bool drawTPageGrid = true;
     if (pixelPosLinear.x > 1030.0f) drawTPageGrid = false;
-    if (pixelPosLinear.y > 520.0f) drawTPageGrid = false;
+    if (pixelPosLinear.y > 1032.0f) drawTPageGrid = false;
     if (pixelPosLinear.x < 0.0f) drawTPageGrid = false;
     if (pixelPosLinear.y < 0.0f) drawTPageGrid = false;
 
@@ -282,7 +311,7 @@ void main() {
             fragColor = mix(fragColor, pixelGridColor, pixelGridVertLine * pixelGridBlend);
             fragColor = mix(fragColor, pixelGridColor, pixelGridHorzLine * pixelGridBlend);
         }
-        if (pixelPosLinear.y <= 512.0f) {
+        if (pixelPosLinear.y <= 1024.0f) {
             fragColor = mix(fragColor, tpageGridColor, tpageGridVertLine * tpageGridBlend);
         }
         if (pixelPosLinear.x <= 1024.0f) {
@@ -344,6 +373,7 @@ void PCSX::Widgets::VRAMViewer::compileShader(GUI *gui) {
     m_attribLocationVtxUV = glGetAttribLocation(m_shaderProgram, "i_texUV");
     m_attribLocationWrittenColor = glGetUniformLocation(m_shaderProgram, "u_writtenColor");
     m_attribLocationWrittenHeatmap = glGetUniformLocation(m_shaderProgram, "u_writtenHeatmap");
+    m_attribLocationHeatmapMode = glGetUniformLocation(m_shaderProgram, "u_heatmapMode");
     m_attribLocationWrittenHighlight = glGetUniformLocation(m_shaderProgram, "u_writtenHighlight");
 }
 
@@ -352,7 +382,7 @@ PCSX::Widgets::VRAMViewer::VRAMViewer(bool &show) : ZoomableImage(show), m_liste
     m_listener.listen<PCSX::Events::GUI::SelectClut>([this](auto event) {
         if (m_hasClut) {
             m_clut.x = event.x / 1024.0f;
-            m_clut.y = event.y / 512.0f;
+            m_clut.y = event.y / 1024.0f;
         }
     });
     m_listener.listen<PCSX::Events::GUI::VRAMFocus>([this](auto event) {
@@ -405,6 +435,8 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     m_mousePos = ImGui::GetIO().MousePos;
 
     ImDrawList *drawList = ImGui::GetWindowDrawList();
+    // The OpenGL backend binds its own sampler object, which overrides the texture's filter parameters.
+    drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest, nullptr);
     drawList->AddCallback(
         [](const ImDrawList *parentList, const ImDrawCmd *cmd) {
             VRAMViewer *that = reinterpret_cast<VRAMViewer *>(cmd->UserCallbackData);
@@ -437,13 +469,15 @@ void PCSX::Widgets::VRAMViewer::drawVRAM(GUI *gui, GLuint textureID) {
     }
 
     drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+    // Without sampler objects, the backend's filter mode survives the reset.
+    drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerLinear, nullptr);
 
     const auto &io = ImGui::GetIO();
 
     ImVec2 texSpan = texBR - texTL;
     if (hovered) {
         m_mouseUV = texTL + texSpan * (m_mousePos - m_origin) / m_resolution;
-        auto UV = m_mouseUV * ImVec2(1024.0f, 512.0f);
+        auto UV = m_mouseUV * ImVec2(1024.0f, 1024.0f);
         PCSX::Events::GUI::VRAMMode vramMode;
         switch (m_vramMode) {
             case VRAM_4BITS:
@@ -518,7 +552,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glUniform2f(m_attribLocationCornerBR, m_cornerBR.x, m_cornerBR.y);
     glUniform2f(m_attribLocationCornerTL, m_cornerTL.x, m_cornerTL.y);
     ImVec2 dimensions = (m_cornerBR - m_cornerTL) / m_DPI;
-    ImVec2 pixelScale = dimensions / ImVec2(512.0f / RATIOS[m_vramMode], 512.0f);
+    ImVec2 pixelScale = dimensions / ImVec2(512.0f / RATIOS[m_vramMode], 1024.0f);
     glUniform2f(m_attribLocationPixelScale, pixelScale.x, pixelScale.y);
     if (!m_hasClut && m_vramMode < 2) {
         glUniform1i(m_attribLocationGreyscale, 1);
@@ -559,6 +593,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
                           (GLvoid *)offsetof(ImDrawVert, uv));
     glUniform4f(m_attribLocationWrittenColor, m_writtenColor.x, m_writtenColor.y, m_writtenColor.z, m_writtenColor.w);
     glUniform1i(m_attribLocationWrittenHeatmap, 1);
+    glUniform1i(m_attribLocationHeatmapMode, m_heatmapMode);
     glUniform1i(m_attribLocationWrittenHighlight, 3);
 
     auto *logger = g_emulator->m_gpuLogger.get();
@@ -573,7 +608,7 @@ void PCSX::Widgets::VRAMViewer::imguiCB(const ImDrawList *parentList, const ImDr
     glActiveTexture(GL_TEXTURE0);
 }
 
-ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 512.0f}; }
+ImVec2 PCSX::Widgets::VRAMViewer::defaultViewSize() const { return {512.0f / RATIOS[m_vramMode], 1024.0f}; }
 
 void PCSX::Widgets::VRAMViewer::resetView() {
     ZoomableImage::resetView();
@@ -624,6 +659,13 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
                 }
                 ImGui::MenuItem(_("Enable Alpha channel view"), nullptr, &m_alpha);
                 ImGui::MenuItem(_("Enable greyscale"), nullptr, &m_greyscale);
+                if (ImGui::BeginMenu(_("Overdraw heatmap"))) {
+                    ImGui::TextUnformatted(_("Requires the GPU logger to be enabled"));
+                    if (ImGui::MenuItem(_("Off"), nullptr, m_heatmapMode == 0)) m_heatmapMode = 0;
+                    if (ImGui::MenuItem(_("Pixels written"), nullptr, m_heatmapMode == 1)) m_heatmapMode = 1;
+                    if (ImGui::MenuItem(_("Pixels read"), nullptr, m_heatmapMode == 2)) m_heatmapMode = 2;
+                    ImGui::EndMenu();
+                }
                 ImGui::Separator();
                 ImGui::MenuItem(_("Show grid"), nullptr, &m_drawGrid);
                 ImGui::MenuItem(_("Select pixel grid color"), nullptr, &openPixelGridColorPicker);
@@ -646,10 +688,10 @@ void PCSX::Widgets::VRAMViewer::draw(GUI *gui, unsigned int VRAMTexture) {
             ImGui::Separator();
             float divisor = m_vramMode == VRAM_4BITS ? 4.0f : m_vramMode == VRAM_8BITS ? 2.0f : 1.0f;
             ImGui::Text("Cursor: %.2f : %.2f", std::floor(m_mouseUV.x * 1024.0f * divisor) / divisor,
-                        std::floor(m_mouseUV.y * 512.0f));
+                        std::floor(m_mouseUV.y * 1024.0f));
             if (m_hasClut) {
                 ImGui::Separator();
-                ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 512.0f));
+                ImGui::Text("CLUT: %.0f : %.0f", std::floor(m_clut.x * 1024.0f), std::floor(m_clut.y * 1024.0f));
             }
             ImGui::EndMenuBar();
         }
@@ -715,14 +757,15 @@ void PCSX::Widgets::VRAMViewer::modeChanged() {
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
     float focusX = texTL.x + (texBR.x - texTL.x) / 2.0f;
-    float newX = dimensions.y / RATIOS[m_vramMode];
+    // Same aspect as defaultViewSize(): 1024 rows against a 512 / ratio width.
+    float newX = dimensions.y * 0.5f / RATIOS[m_vramMode];
     float deltaX = newX - dimensions.x;
     m_cornerTL.x = m_cornerTL.x - deltaX * focusX;
     m_cornerBR.x = m_cornerTL.x + newX;
 }
 
 void PCSX::Widgets::VRAMViewer::moveTo(ImVec2 pos) {
-    pos /= {-1024.0, -512.0};
+    pos /= {-1024.0, -1024.0};
     ImVec2 dimensions = m_cornerBR - m_cornerTL;
     ImVec2 texTL = ImVec2(0.0f, 0.0f) - m_cornerTL / dimensions;
     ImVec2 texBR = ImVec2(1.0f, 1.0f) - (m_cornerBR - m_resolution) / dimensions;
@@ -743,8 +786,8 @@ void PCSX::Widgets::VRAMViewer::focusOn(ImVec2 topLeft, ImVec2 bottomRight) {
     }
     dimensions = m_resolution / dimensions;
     ImGuiHelpers::normalizeDimensions(dimensions, RATIOS[m_vramMode]);
-    m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 512.0f) * std::max(dimensions.x, dimensions.y);
+    m_cornerBR = ImVec2(512.0f / RATIOS[m_vramMode], 1024.0f) * std::max(dimensions.x, dimensions.y);
     moveTo(topLeft);
-    ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 512.0f);
+    ImVec2 center = (topLeft + (bottomRight - topLeft) / 2) / ImVec2(1024.0f, 1024.0f);
     zoom(0.9f, center);
 }

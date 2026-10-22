@@ -1,10 +1,15 @@
 #!/bin/bash
-# codeberg rate-limits CI clones (HTTP 429), so retry submodule fetches with exponential backoff.
+# Retry submodule fetches with exponential backoff, and fetch xmake-psx from its GitHub mirror
+# since codeberg rate-limits CI clones (HTTP 429) and goes down (HTTP 504).
 
 set -u
 
 attempts=${SUBMODULE_RETRY_ATTEMPTS:-6}
 delay=${SUBMODULE_RETRY_DELAY:-15}
+
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0=url.https://github.com/pcsx-redux/xmake-psx.git.insteadOf
+export GIT_CONFIG_VALUE_0=https://codeberg.org/malucart/xmake-psx.git
 
 if [ -n "${CI:-}" ] && ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$PWD"; then
     git config --global --add safe.directory "$PWD"

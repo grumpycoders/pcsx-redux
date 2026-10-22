@@ -327,6 +327,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     m_pc = pc & ~3;
     m_firstInstruction = true;
     m_fullLoadDelayEmulation = fullLoadDelayEmulation;
+    m_gteQueue.count = 0;
     auto& memory = PCSX::g_emulator->m_mem;
 
     // If we somehow ended up compiling a block at an invalid PC, throw an error.
@@ -334,6 +335,7 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
 
     const auto startingPC = m_pc;
     unsigned count = 0;                                 // How many instructions have we compiled?
+    unsigned extra = 0;                                 // How many instructions in rom?
     DynarecCallback* callback = getBlockPointer(m_pc);  // Pointer to where we'll store the addr of the emitted code
 
     if (align) {
@@ -367,6 +369,17 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     }
     handleKernelCall();  // Check if this is a kernel call vector, emit some extra code in that case.
 
+    // GTE writes left in flight by the previous block, the interpreter or a save state land here, up to two
+    // instructions early.
+    {
+        Label noPendingWrites;
+        gen.cmp(dword[contextPointer + ((uintptr_t)&m_gtePendingCount - (uintptr_t)this)], 0);
+        gen.je(noPendingWrites);
+        loadThisPointer(arg1.cvt64());
+        call(drainGTEWritesWrapper);
+        gen.L(noPendingWrites);
+    }
+
     const auto shouldContinue = [this, &count]() {
         if (m_nextIsDelaySlot) {
             return true;
@@ -395,9 +408,14 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         }
     };
 
-    const auto compileInstruction = [this, &count, &memory]() -> bool {
+    // Target of the branch whose delay slot is compiled next, when it is known at compile time.
+    std::optional<uint32_t> slotBranchTarget;
+
+    const auto compileInstruction = [this, &count, &memory, &extra, &slotBranchTarget]() -> bool {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
+        m_slotBranchPC = m_nestedSlotBranchPC.value_or(m_pc - 4);
+        m_nestedSlotBranchPC = std::nullopt;
 
         // Fetch instruction. We make sure this function is called with a valid PC, otherwise it will crash
         uint32_t* ptr = memory->getPointer<uint32_t>(m_pc);
@@ -405,7 +423,10 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         uint32_t code = m_regs.code = *ptr;
         m_pc += 4;  // Increment recompiler PC
         count++;    // Increment instruction count
+        if ((m_pc & 0xffc00000) == 0xbfc00000) extra++;
         m_instructionCount = count;
+        m_romInstructionCount = extra;
+        slotBranchTarget = staticBranchTarget(code, m_pc);
 
         const auto func = m_recBSC[code >> 26];  // Look up the opcode in our decoding LUT
         (*this.*func)(code);                     // Jump into the handler to recompile it
@@ -432,15 +453,100 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
     }
     resolveInitialLoadDelay();
     processDelayedLoad();
+    tickGTEWrites();
     m_firstInstruction = false;
 
+    // Ends the block: writes back the registers and the PC, adds the cycles, returns to the dispatcher.
+    const auto endBlock = [this, &count, &extra]() {
+        emitGTEFlushQueue(false);
+        flushRegs();
+        if (!m_pcWrittenBack) {
+            gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
+        }
+        if constexpr (ENABLE_PROFILER) {
+            endProfiling();
+        }
+        gen.add(qword[contextPointer + CYCLE_OFFSET],
+                (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);
+        gen.jmp((void*)m_returnFromBlock);
+    };
+
     while (shouldContinue()) {
+        // A branch in the delay slot of a branch that may be taken. When the first branch is taken, the
+        // second one is relative to the first one's target, and its own delay slot is the instruction at
+        // that target. Compile that path separately, then fall through to the not-taken path, which is
+        // an ordinary branch with its delay slot after it.
+        uint32_t* slotPtr =
+            m_nextIsDelaySlot && m_pcWrittenBack && slotBranchTarget ? memory->getPointer<uint32_t>(m_pc) : nullptr;
+        uint32_t* targetPtr = slotPtr ? memory->getPointer<uint32_t>(*slotBranchTarget) : nullptr;
+        if (slotPtr && targetPtr && isBranch(*slotPtr)) {
+            const uint32_t firstTarget = *slotBranchTarget;
+            const uint32_t slotPC = m_pc;
+            const auto savedLoads0 = m_delayedLoadInfo[0];
+            const auto savedLoads1 = m_delayedLoadInfo[1];
+            const auto savedCurrentLoad = m_currentDelayedLoad;
+            const auto savedGTEQueue = m_gteQueue;
+            const auto savedCount = count;
+            const auto savedExtra = extra;
+            Label notTaken;
+
+            flushRegs();
+            gen.cmp(dword[contextPointer + PC_OFFSET], firstTarget);
+            gen.jne(notTaken, Xbyak::CodeGenerator::T_NEAR);
+
+            // Taken: the second branch, based on the first branch's target.
+            m_inDelaySlot = true;
+            m_nextIsDelaySlot = false;
+            m_pcWrittenBack = false;
+            m_slotBranchPC = slotPC - 4;
+            const uint32_t code = m_regs.code = *slotPtr;
+            m_pc = firstTarget;
+            count++;
+            if (((slotPC + 4) & 0xffc00000) == 0xbfc00000) extra++;
+            m_instructionCount = count;
+            m_romInstructionCount = extra;
+            (*this.*m_recBSC[code >> 26])(code);
+            fixDelaySlotBranchLink(code, slotPC + 8);
+            if (!m_pcWrittenBack) {
+                gen.mov(dword[contextPointer + PC_OFFSET], firstTarget + 4);
+                m_pcWrittenBack = true;
+            }
+            processDelayedLoad();
+            tickGTEWrites();
+            // Its delay slot is the instruction at the first branch's target.
+            m_nextIsDelaySlot = true;
+            m_nestedSlotBranchPC = slotPC;
+            if (!compileInstruction()) {
+                return m_invalidBlock;
+            }
+            processDelayedLoad();
+            tickGTEWrites();
+            m_pcWrittenBack = true;
+            endBlock();
+
+            // Not taken: back to the state before the taken path and compile it the ordinary way.
+            gen.L(notTaken);
+            m_delayedLoadInfo[0] = savedLoads0;
+            m_delayedLoadInfo[1] = savedLoads1;
+            m_currentDelayedLoad = savedCurrentLoad;
+            m_gteQueue = savedGTEQueue;
+            count = savedCount;
+            extra = savedExtra;
+            m_pc = slotPC;
+            m_inDelaySlot = false;
+            m_nextIsDelaySlot = true;
+            m_pcWrittenBack = true;
+            m_stopCompiling = true;
+            m_linkedPC = std::nullopt;
+        }
         if (!compileInstruction()) {
             return m_invalidBlock;
         }
         processDelayedLoad();
+        tickGTEWrites();
     }
 
+    emitGTEFlushQueue(false);
     flushRegs();
     if (!m_pcWrittenBack) {
         gen.mov(dword[contextPointer + PC_OFFSET], m_pc);
@@ -454,7 +560,8 @@ DynarecCallback DynaRecCPU::recompile(uint32_t pc, bool fullLoadDelayEmulation, 
         endProfiling();
     }
 
-    gen.add(qword[contextPointer + CYCLE_OFFSET], count * PCSX::Emulator::BIAS);  // Add block cycles;
+    gen.add(qword[contextPointer + CYCLE_OFFSET],
+            (count + extra * PCSX::Emulator::ROM_EXTRA_BIAS) * PCSX::Emulator::BIAS);  // Add block cycles;
     if (m_linkedPC && ENABLE_BLOCK_LINKING && m_linkedPC.value() != startingPC) {
         handleLinking();
     } else {

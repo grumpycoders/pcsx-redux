@@ -44,13 +44,32 @@ class AdpcmDecoder {
         m_s2 = 0;
     }
 
-    // EXPERIMENTAL: hardware emits a few samples of silence after KEY_ON before
-    // the first decoded sample appears. Seed a per-voice countdown at key-on;
-    // while it is active the synthesis loop emits silence and freezes decode.
-    void setStartupDelay(int samples) { m_startupDelay = samples; }
-    bool startupDelayActive() const { return m_startupDelay > 0; }
+    // Key-on timeline. A KEY ON write reaching the mixer at sample `applied` is serviced
+    // on the first odd sample after it. The voice then stays silent for four samples: on
+    // each of the first three it fetches the header of the first block and applies its
+    // loop-start flag, ENDX is cleared on the first, and the envelope's first step and the
+    // first decoded sample come on the fifth. A CPU write to the repeat address only stops
+    // loop-start flags from replacing it once the third fetch has passed.
+    static constexpr int kKeyOnHeaderFetches = 3;
+    static constexpr int kKeyOnSilentSamples = 4;
+    static constexpr uint64_t keyOnServiceSample(uint64_t applied) { return (applied + 1) | 1; }
+
+    // Seed the timeline for a key-on that reached the mixer at sample `applied`.
+    void startKeyOn(uint64_t applied) {
+        m_keyOnAge = 0;
+        m_keyOnService = static_cast<int>(keyOnServiceSample(applied) - applied);
+    }
+    // The timeline is active until the first audible sample.
+    bool startupDelayActive() const { return m_keyOnAge < m_keyOnService + kKeyOnSilentSamples; }
+    // Samples since key-on reached the mixer, and how many of them precede the service.
+    int keyOnAge() const { return m_keyOnAge; }
+    int keyOnService() const { return m_keyOnService; }
     void tickStartupDelay() {
-        if (m_startupDelay > 0) m_startupDelay--;
+        if (startupDelayActive()) m_keyOnAge++;
+    }
+    // Whether a repeat address write landing now holds against loop-start flags.
+    bool repeatWriteLatches() const {
+        return !startupDelayActive() || m_keyOnAge >= m_keyOnService + kKeyOnHeaderFetches;
     }
 
     // Clear all decode state (voice wipe).
@@ -65,11 +84,12 @@ class AdpcmDecoder {
     // Cursor sentinel for a voice that decoded a stop/loop-end block with no loop
     // target: the next synthesis pass sees it in the cursor and turns the voice
     // off. It is a deliberately invalid, non-null pointer, distinct from the
-    // nullptr "wiped" state. Its exact all-ones bit pattern is what the savestate
-    // pointer-offset bridge stores and restores by plain arithmetic, so it must
-    // stay all-ones. (Was an inline (uint8_t *)-1 cast smuggled into the cursor.)
+    // nullptr "wiped" state. The savestate bridge stores it as kStoppedOffset.
     inline static uint8_t *const kStopped = reinterpret_cast<uint8_t *>(~uintptr_t(0));
     bool stopped() const { return m_curr == kStopped; }
+    static constexpr int32_t kNullOffset = -1;
+    static constexpr int32_t kStoppedOffset = -2;
+    static constexpr int32_t kRamSize = 512 * 1024;
 
     // Decode cursor accessors (raw pointers into sound RAM).
     uint8_t *start() const { return m_start; }
@@ -84,8 +104,7 @@ class AdpcmDecoder {
     // the per-channel savestate fields. The fields are passed in rather than the
     // whole channel message because adpcm.h cannot include types.h (it is
     // included by it). `ramBase` is spuRamBase; each cursor is stored as a byte
-    // offset, with -1 standing in for a null pointer. The kStopped sentinel is
-    // an all-ones (non-null) pointer, so it round-trips as raw offset arithmetic.
+    // offset, with kNullOffset for a null pointer and kStoppedOffset for kStopped.
     void saveTo(Protobuf::Int32 &history1, Protobuf::Int32 &history2, Protobuf::Int32 &startOffset,
                 Protobuf::Int32 &currOffset, Protobuf::Int32 &loopOffset, uint8_t *ramBase, Protobuf::Int32 *sb,
                 Protobuf::Int32 &sbPos) const;
@@ -124,7 +143,8 @@ class AdpcmDecoder {
     uint8_t *m_loop = nullptr;                 // loop pointer into sound RAM
     int32_t m_s1 = 0;                          // last decoded sample (IIR history)
     int32_t m_s2 = 0;                          // next-to-last decoded sample (IIR history)
-    int m_startupDelay = 0;                    // EXPERIMENTAL: post-key-on silence countdown (samples)
+    int m_keyOnAge = 1 << 30;                  // samples since key-on reached the mixer
+    int m_keyOnService = 0;                    // samples from that to the key-on service
     int32_t m_samples[kSamplesPerBlock] = {};  // the decoded block
     int m_pos = kSamplesPerBlock;              // read cursor into it
 };

@@ -212,12 +212,11 @@ void PCSX::Memory::reset() {
         m_bios[index++] = w & 0xff;
         w >>= 8;
     }
-    strcpy((char *)m_bios + index, _(R"(
-                   No BIOS loaded, emulation halted.
-
-Set a BIOS file into the configuration, and do a hard reset of the emulator.
-The distributed OpenBIOS.bin file can be an appropriate BIOS replacement.
-)"));
+    std::string nobiosMessage = fmt::format("\n{:19}{}\n\n{}\n", "", _("No BIOS loaded, emulation halted."),
+                                            _("Set a BIOS file into the configuration, and do a hard reset of the "
+                                              "emulator.\nThe distributed OpenBIOS.bin file can be an appropriate "
+                                              "BIOS replacement."));
+    strcpy((char *)m_bios + index, nobiosMessage.c_str());
 
     uint32_t nobioscrc = crc32(0L, Z_NULL, 0);
     nobioscrc = crc32(nobioscrc, m_bios, bios_size);
@@ -295,6 +294,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -310,7 +310,7 @@ uint8_t PCSX::Memory::read8(uint32_t address) {
                 case MsanStatus::OK:
                     return m_msanRAM[address - c_msanStart];
             }
-            g_system->pause();
+            g_system->testQuit(c_msanExitCode);
             return 0;
         }
         [[likely]];
@@ -346,6 +346,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -361,7 +362,7 @@ uint16_t PCSX::Memory::read16(uint32_t address) {
                 case MsanStatus::OK:
                     return SWAP_LEu16(*(uint16_t *)&m_msanRAM[address - c_msanStart]);
             }
-            g_system->pause();
+            g_system->testQuit(c_msanExitCode);
             return 0;
         }
         [[likely]];
@@ -394,6 +395,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
     if (readType == ReadType::Data) g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_readLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -409,7 +411,7 @@ uint32_t PCSX::Memory::read32(uint32_t address, ReadType readType) {
                 case MsanStatus::OK:
                     return SWAP_LEu32(*(uint32_t *)&m_msanRAM[address - c_msanStart]);
             }
-            g_system->pause();
+            g_system->testQuit(c_msanExitCode);
             return 0;
         }
         [[likely]];
@@ -518,6 +520,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -526,7 +529,7 @@ void PCSX::Memory::write8(uint32_t address, uint32_t value) {
                 m_msanRAM[address - c_msanStart] = value;
             } else {
                 g_system->log(LogClass::CPU, _("8-bit write to unusable msan memory: %8.8lx\n"), address);
-                g_system->pause();
+                g_system->testQuit(c_msanExitCode);
             }
         }
         [[likely]];
@@ -555,6 +558,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -563,7 +567,7 @@ void PCSX::Memory::write16(uint32_t address, uint32_t value) {
                 *(uint16_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu16(value);
             } else {
                 g_system->log(LogClass::CPU, _("16-bit write to unusable msan memory: %8.8lx\n"), address);
-                g_system->pause();
+                g_system->testQuit(c_msanExitCode);
             }
         }
         [[likely]];
@@ -593,6 +597,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
     g_emulator->m_cpu->m_regs.cycle += 1;
     const uint32_t page = address >> 16;
     const auto pointer = (uint8_t *)m_writeLUT[page];
+    countNonRamAccess(address, page);
     const bool pioConnected = g_emulator->settings.get<Emulator::SettingPIOConnected>().value;
 
     if (pointer != nullptr) {
@@ -601,7 +606,7 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
                 *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
             } else {
                 g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
-                g_system->pause();
+                g_system->testQuit(c_msanExitCode);
             }
         }
         [[likely]];
@@ -643,6 +648,40 @@ void PCSX::Memory::write32(uint32_t address, uint32_t value) {
             g_system->pause();
         }
     }
+}
+
+uint32_t PCSX::Memory::read32Masked(uint32_t address, uint32_t byteMask) {
+    if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
+        g_emulator->m_cpu->m_regs.cycle += 1;
+        switch (msanGetStatus(address, byteMask)) {
+            case MsanStatus::UNINITIALIZED:
+                g_system->log(LogClass::CPU, _("32-bit read from usable but uninitialized msan memory: %8.8lx\n"),
+                              address);
+                break;
+            case MsanStatus::UNUSABLE:
+                g_system->log(LogClass::CPU, _("32-bit read from unusable msan memory: %8.8lx\n"), address);
+                break;
+            case MsanStatus::OK:
+                return SWAP_LEu32(*(uint32_t *)&m_msanRAM[address - c_msanStart]);
+        }
+        g_system->testQuit(c_msanExitCode);
+        return 0;
+    }
+    return read32(address);
+}
+
+void PCSX::Memory::write32Masked(uint32_t address, uint32_t value, uint32_t byteMask) {
+    if (msanInitialized() && inMsanRange(address)) [[unlikely]] {
+        g_emulator->m_cpu->m_regs.cycle += 1;
+        if (!msanValidateWrite(address, byteMask)) {
+            g_system->log(LogClass::CPU, _("32-bit write to unusable msan memory: %8.8lx\n"), address);
+            g_system->testQuit(c_msanExitCode);
+        }
+        *(uint32_t *)&m_msanRAM[address - c_msanStart] = SWAP_LEu32(value);
+        g_emulator->m_cpu->Clear(address, 1);
+        return;
+    }
+    write32(address, value);
 }
 
 const void *PCSX::Memory::pointerRead(uint32_t address) {
@@ -877,7 +916,7 @@ void PCSX::Memory::initMsan(bool reset) {
     }
     if (msanInitialized()) {
         g_system->printf(_("MSAN system was already initialized.\n"));
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return;
     }
 
@@ -902,7 +941,7 @@ uint32_t PCSX::Memory::msanAlloc(uint32_t size) {
     // Check if we still have enough memory.
     if (m_msanPtr + actualSize > c_msanSize) {
         g_system->printf(_("Out of memory in MsanAlloc\n"));
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return 0;
     }
 
@@ -926,14 +965,14 @@ void PCSX::Memory::msanFree(uint32_t ptr) {
     // Check if the pointer is valid.
     if (!inMsanRange(ptr)) {
         g_system->printf(_("Invalid pointer passed to MsanFree: %08x\n"), ptr);
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return;
     }
     ptr -= c_msanStart;
     auto it = m_msanAllocs.find(ptr);
     if (it == m_msanAllocs.end()) {
         g_system->printf(_("Invalid pointer passed to MsanFree: %08x\n"), ptr);
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return;
     }
     // Mark the allocation as unusable.
@@ -955,14 +994,14 @@ uint32_t PCSX::Memory::msanRealloc(uint32_t ptr, uint32_t size) {
     // Check if the pointer is valid.
     if (!inMsanRange(ptr)) {
         g_system->printf(_("Invalid pointer passed to MsanRealloc: %08x\n"), ptr);
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return 0;
     }
     ptr -= c_msanStart;
     auto it = m_msanAllocs.find(ptr);
     if (it == m_msanAllocs.end()) {
         g_system->printf(_("Invalid pointer passed to MsanRealloc: %08x\n"), ptr);
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return 0;
     }
     auto oldSize = it->second;
@@ -1005,7 +1044,7 @@ uint32_t PCSX::Memory::msanGetChainPtr(uint32_t headerAddr) const {
     auto it = m_msanChainRegistry.find(headerAddr);
     if (it == m_msanChainRegistry.end()) {
         g_system->printf(_("Unregistered msan chain header at %08x\n"), headerAddr);
-        g_system->pause();
+        g_system->testQuit(c_msanExitCode);
         return 0xffffffff;
     }
     return it->second;

@@ -26,17 +26,20 @@
 #include <stdexcept>
 #include <string>
 
+#include "core/psxemulator.h"
 #include "core/system.h"
 #include "spu/interface.h"
 
-// Upper clamp for the sink speed multiplier. Any host is emulation-bound long before this, so a value
-// at or beyond it behaves as "unbounded" (the CPU's audio goalpost is always already satisfied and the
-// producer rings are drained dry every callback). A configured speed <= 0 is treated as unbounded too.
-static constexpr int kMaxSpeed = 1024;
-
-static int effectiveSpeed(int configured) {
+int PCSX::SPU::SDLAudio::effectiveSpeed(int configured, int turboFactor) {
     if (configured <= 0 || configured > kMaxSpeed) return kMaxSpeed;
-    return configured;
+    if (turboFactor < 1) turboFactor = 1;
+    // Both operands are clamped to kMaxSpeed first, so the product can't overflow.
+    return std::min(configured * std::min(turboFactor, kMaxSpeed), kMaxSpeed);
+}
+
+static int currentSpeed(int configured) {
+    const int turbo = PCSX::g_emulator ? PCSX::g_emulator->getTurboFactor() : 1;
+    return PCSX::SPU::SDLAudio::effectiveSpeed(configured, turbo);
 }
 
 PCSX::SPU::SDLAudio::SDLAudio(PCSX::SPU::SettingsType& settings)
@@ -137,6 +140,15 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
         m_settings.get<Device>().reset();
     }
 
+#ifdef __EMSCRIPTEN__
+    // SDL3's emscripten audio backend defaults to a 128-frame buffer, and the
+    // Web Audio ScriptProcessorNode it drives rejects anything that is not a
+    // power of two between 256 and 16384 - it throws IndexSizeError during
+    // device open, which surfaces as an uncaught JS exception rather than an
+    // SDL error. 1024 frames is ~21 ms at 48 kHz, comfortably inside the range
+    // and still low enough not to add audible latency.
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "1024");
+#endif
     SDL_AudioSpec spec;
     spec.format = SDL_AUDIO_F32;
     spec.channels = kChannels;
@@ -191,7 +203,13 @@ void PCSX::SPU::SDLAudio::init(bool safe) {
     // guessing at it from the outside costs hours.
     SDL_AudioSpec got;
     int gotFrames = 0;
+    m_periodFrames.store(0);
     if (SDL_GetAudioDeviceFormat(m_device, &got, &gotFrames)) {
+        // The period is counted in device frames; everything that uses it counts stream frames.
+        if (gotFrames > 0 && got.freq > 0) {
+            m_periodFrames.store(
+                static_cast<uint32_t>((static_cast<uint64_t>(gotFrames) * kSampleRate + got.freq - 1) / got.freq));
+        }
         g_system->log(LogClass::SPU, "Audio: driver %s, %d Hz, %d frames per period\n", SDL_GetCurrentAudioDriver(),
                       got.freq, gotFrames);
     }
@@ -235,6 +253,7 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
     constexpr int kFrameSizeBytes = sizeof(float) * kChannels;
     int requested = additionalBytes / kFrameSizeBytes;
     if (requested <= 0) return;
+    if (static_cast<uint32_t>(requested) > m_periodFrames.load()) m_periodFrames.store(requested);
 
     const bool mono = m_settings.get<Mono>();
     const bool muted = m_settings.get<Mute>();
@@ -282,7 +301,7 @@ void PCSX::SPU::SDLAudio::streamCallback(SDL_AudioStream* stream, int additional
         // rings faster paces the SPU thread faster, which through waitForGoal paces the CPU thread
         // faster. dequeue() naturally caps at what is available, so this is safe (and self-limits) at
         // any speed.
-        const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+        const int speed = currentSpeed(m_settings.get<Speed>().value);
         for (int rep = 1; rep < speed; rep++) {
             m_voicesStream.dequeue(m_mixBuffers[0].data(), chunk);
             m_audioStream.dequeue(m_mixBuffers[1].data(), chunk);
@@ -305,7 +324,7 @@ void PCSX::SPU::SDLAudio::advanceFrames(uint32_t frameCount) {
     // CPU thread waits on in waitForGoal(); the CPU's goalpost grows at the realtime rate per emulated
     // cycle, so advancing m_frames `speed` times faster makes the CPU reach its goalpost (and thus run)
     // `speed` times faster. At speed == 1 this is byte-identical to the previous fetch_add(frameCount).
-    const int speed = effectiveSpeed(m_settings.get<Speed>().value);
+    const int speed = currentSpeed(m_settings.get<Speed>().value);
     auto total = m_frames.fetch_add(frameCount * static_cast<uint32_t>(speed));
 
 #if HAS_ATOMIC_WAIT

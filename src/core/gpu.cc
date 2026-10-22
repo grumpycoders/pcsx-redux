@@ -35,6 +35,7 @@
 #define GPUSTATUS_READYFORVRAM 0x08000000
 #define GPUSTATUS_IDLE 0x04000000  // CMD ready
 #define GPUSTATUS_MODE 0x02000000  // Data request mode
+#define GPUSTATUS_IRQ1 0x01000000  // GP0(1Fh) / GP1(02h)
 
 namespace PCSX {
 
@@ -103,7 +104,9 @@ template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
-        while ((value & 0xf000f000) != 0x50005000) {
+        // The terminator is only recognized once two vertices are in; before that, the command word and the
+        // second vertex's first word are always vertex data, even when they match the pattern.
+        while ((x.size() < 2) || ((value & 0xf000f000) != 0x50005000)) {
             switch (m_state) {
                 case READ_COLOR:
                     colors.push_back(value & 0xffffff);
@@ -336,11 +339,11 @@ uint32_t PCSX::GPU::gpuDmaChainSize(uint32_t addr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return size;
                 case PCSX::MsanStatus::OK:
                     header = *(uint32_t *)(g_emulator->m_mem->m_msanRAM + (addr - PCSX::Memory::c_msanStart));
@@ -377,12 +380,14 @@ uint32_t PCSX::GPU::readStatus() {
     if ((ret & GPUSTATUS_IDLE) == 0) ret &= ~GPUSTATUS_READYFORVRAM;
 #endif
     if (m_readFifo->size() != 0) ret |= GPUSTATUS_READYFORVRAM;
+    if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
+    if (dmaBlockRequestLow()) ret &= ~0x12000000;
     return ret;
 }
 
-void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
+bool PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
 
@@ -409,7 +414,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Experimental burst dma transfer (0.333x max)
             scheduleGPUDMAIRQ(size / 3);
 #endif
-            return;
+            return false;
 
         case 0x01000201:  // mem2vram
             bs = (bcr & 0xffff);
@@ -425,7 +430,18 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
                 g_emulator->m_debug->checkDMAread(2, madr, size * 4);
             }
             pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
-            directDMAWrite(ptr, size, madr);
+            // Each block waits for GPUSTAT.28. With GP1(04h)=2 it stays low while a polygon or line
+            // command is partially received, and only DMA could deliver the rest, so a block boundary
+            // inside one stops the channel for good: CHCR stays busy and no IRQ is raised.
+            for (uint32_t done = 0; done < size; done += bs) {
+                if (dmaBlockRequestLow()) {
+                    auto &mem = g_emulator->m_mem;
+                    mem->setMADR<2>(madr + done * 4);
+                    mem->setBCR<2>((((size - done) / bs) << 16) | bs);
+                    return true;
+                }
+                directDMAWrite(ptr + done, bs, madr + done * 4);
+            }
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)
@@ -434,7 +450,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // X-Files video interlace. Experimental delay depending of BS.
             scheduleGPUDMAIRQ((7 * size) / bs);
 #endif
-            return;
+            return false;
 
         case 0x00000401:  // Vampire Hunter D: title screen linked list update (see psxhw.c)
         case 0x01000401:  // dma chain
@@ -450,7 +466,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Rebel Assault 2 = parse linked list in pieces (todo)
             // Vampire Hunter D = allow edits to linked list (todo)
             scheduleGPUDMAIRQ(size);
-            return;
+            return false;
 
         default:
             PSXDMA_LOG("*** DMA 2 - GPU unknown *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
@@ -458,12 +474,44 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     }
 
     gpuInterrupt();
+    return false;
+}
+
+bool PCSX::GPU::dmaBlockRequestLow() const {
+    if (m_dmaDirection != 2) return false;
+    for (auto *c : m_polygons) {
+        if (m_processor == c) return true;
+    }
+    for (auto *c : m_lines) {
+        if (m_processor == c) return true;
+    }
+    return false;
 }
 
 void PCSX::GPU::gpuInterrupt() {
     auto &mem = g_emulator->m_mem;
     mem->clearDMABusy<2>();
     mem->dmaInterrupt<2>();
+}
+
+bool PCSX::GPU::vram2MBFitted() const { return g_emulator->settings.get<Emulator::Setting2MBVRAM>(); }
+
+unsigned PCSX::GPU::resolveVramY(unsigned y) const {
+    // Gate closed: Y wraps within the 1MB region (9-bit), regardless of fitment.
+    // This is retail-identical, and is the default for every existing game.
+    if (!m_vram2MBGateOpen) return y & 0x1ff;
+    // Gate open: full 10-bit Y honored.
+    return y & 0x3ff;
+}
+
+bool PCSX::GPU::vramOpenBus(unsigned y) const {
+    // Gate open but only 1MB fitted: an upper-half (Y>=512) access reads open
+    // bus where the second chip would be. This is the real mechanism behind the
+    // historical "texture disable" mislabel. Hardware-measured (retail 1MB,
+    // SCPH-1001 + SCPH-5501): the bus floats high, returning a constant 0xFFFF,
+    // independent of prior reads/writes; writes are dropped with no lower-bank
+    // aliasing. See kVramOpenBusValue.
+    return m_vram2MBGateOpen && !vram2MBFitted() && (y & 0x200);
 }
 
 void PCSX::GPU::writeStatus(uint32_t value) {
@@ -478,6 +526,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_readFifo->reset();
             m_processor->reset();
             m_defaultProcessor.setActive();
+            m_dmaDirection = 0;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -504,6 +553,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             write1(&ctrl);
         } break;
         case 4: {
+            m_dmaDirection = value & 3;
             CtrlDmaSetting ctrl(value);
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -527,6 +577,16 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             CtrlDisplayMode ctrl(value);
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
+        } break;
+        case 9: {
+            // GP1(09h) - VRAM size / second-bank gate. Bit 0 = 1 opens the upper
+            // 1MB bank for full 10-bit Y addressing; bit 0 = 0 is the retail
+            // default (all Y wraps within 1MB, regardless of fitment). Always
+            // present in the 208-pin GPU silicon; retail boards just leave the
+            // second 1MB chip unpopulated.
+            drainRenderer();
+            m_vram2MBGateOpen = value & 1;
+            vramConfigChanged();
         } break;
         case 16: {
             CtrlQuery ctrl(value);
@@ -611,11 +671,11 @@ void PCSX::GPU::chainedDMAWrite(const uint32_t *memory, uint32_t hwAddr) {
                 case PCSX::MsanStatus::UNINITIALIZED:
                     g_system->log(LogClass::GPU, _("GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"),
                                   addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::UNUSABLE:
                     g_system->log(LogClass::GPU, _("GPU DMA went into unusable msan memory: %8.8lx\n"), addr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 case PCSX::MsanStatus::OK:
                     break;
@@ -670,6 +730,9 @@ void PCSX::GPU::Command::processWrite(Buffer &buf, Logged::Origin origin, uint32
                         buf.rewind();
                         m_gpu->m_fastFill.setActive();
                         m_gpu->m_fastFill.processWrite(buf, origin, originValue, length);
+                    } break;
+                    case 0x1f: {  // interrupt request (IRQ1)
+                        m_gpu->requestIRQ1();
                     } break;
                     default: {
                         gotUnknown = true;
@@ -779,10 +842,30 @@ void PCSX::GPU::FastFill::processWrite(Buffer &buf, Logged::Origin origin, uint3
             raw.y = y;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(x, y, w, h);
+            // GP0(02h) parameter masking (psx-spx): Xpos ignores its low 4 bits,
+            // Xsiz rounds UP to the next multiple of 16 within 0..400h, Ysiz is
+            // masked to 9 bits. A fill whose effective Xsiz or Ysiz is 0 does
+            // nothing at all - so a Ysiz that is a multiple of 512 (e.g. 512 -> 0)
+            // is silently rejected, and Param=400h is treated as Xsiz=0. This is
+            // pure command decode, independent of the bank gate / VRAM fitment;
+            // the 2MB Y reach is resolved downstream by resolveVramY, never
+            // masked away here.
+            x &= 0x3f0;
+            w = ((w & 0x3ff) + 0xf) & ~0xf;
+            h = h & 0x1ff;
             m_state = READ_COLOR;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
+            if (w == 0 || h == 0) return;  // Xsiz=0 or Ysiz=0: no fill
+            // Gate open: clip against the full 1024x1024 buffer so a fast-fill
+            // can target the upper bank; the soft fillArea still bounds the
+            // actual fill to the effective drawable height (512 unless 2MB).
+            // Gate closed: retail, Y folds into the lower 512 rows.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+            } else {
+                clipped = GPU::clip(x, y, w, h);
+            }
             m_gpu->write0(this);
             return;
     }
@@ -819,8 +902,27 @@ void PCSX::GPU::BlitVramVram::processWrite(Buffer &buf, Logged::Origin origin, u
             raw.dY = dY;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(sX, sY, w, h);
-            clipped |= GPU::clip(dX, dY, w, h);
+            // psx-spx "Masking for COPY Commands": effective transfer size is
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1, Ysiz_eff = ((Ysiz-1) AND 1FFh)+1.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
+            // Clip against the full 1024x1024 physical buffer, not the retail
+            // 512 height: an upper-bank (Y>=512) source or destination must
+            // survive decode so the bank-aware copy in write0 (which routes
+            // every row through resolveVramY) can run. With the default
+            // hMax=512 a copy touching the upper bank had its height clamped
+            // to 0 and was silently dropped. Matches the upload/readback clip.
+            // Gate open: both source and destination Y wrap mod-1024 (silicon
+            // WRAP for copy, transfer-wrap-y 2026-06-15; psx-spx: src/dst may
+            // straddle the Y=512 bank boundary cleanly). Clamp X only and let
+            // write0 route every row through resolveVramY. Gate closed: retail.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clipX<unsigned, 1024>(sX, w);
+                clipped |= GPU::clipX<unsigned, 1024>(dX, w);
+            } else {
+                clipped = GPU::clip<unsigned, 1024, 1024>(sX, sY, w, h);
+                clipped |= GPU::clip<unsigned, 1024, 1024>(dX, dY, w, h);
+            }
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
@@ -849,6 +951,19 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             value = buf.get();
             w = value & 0xffff;
             h = value >> 16;
+            raw.x = x;
+            raw.y = y;
+            raw.w = w;
+            raw.h = h;
+            // psx-spx "Masking for COPY Commands": the GPU transfers
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1 columns (1..1024) and
+            // Ysiz_eff = ((Ysiz-1) AND 1FFh)+1 rows (1..512). Inputs outside
+            // those ranges wrap, so the FIFO handshake (and the destination
+            // row loop) must use the effective counts. Using the raw value
+            // desyncs the transfer: too few words sent stalls the GPU forever
+            // waiting for the rest, too many corrupts the command stream.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
             size = (w * h + 1) / 2;
             m_data.clear();
             m_data.reserve(size * 4);
@@ -873,19 +988,40 @@ void PCSX::GPU::BlitRamVram::processWrite(Buffer &buf, Logged::Origin origin, ui
             break;
     }
     if (done) {
-        raw.x = x;
-        raw.y = y;
-        raw.w = w;
-        raw.h = h;
-        clipped = GPU::clip(x, y, w, h);
+        // raw.{x,y,w,h} captured at READ_HW before the COPY-size masking so
+        // the logger keeps the values the game actually sent.
+        // Gate open: Y wraps mod-1024 per row via resolveVramY (silicon-
+        // measured WRAP, transfer-wrap-y 2026-06-15), so clamp X only and let
+        // the per-row loop run the full height. Gate closed: retail clip.
+        if (m_gpu->vram2MBGateOpen()) {
+            clipped = GPU::clipX<unsigned, 1024>(x, w);
+        } else {
+            clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+        }
         m_state = READ_COMMAND;
         m_gpu->m_defaultProcessor.setActive();
         m_gpu->m_logger->addNode(*this, origin, origvalue, length);
-        m_gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>(), PartialUpdateVram::Synchronous);
+        {
+            const uint16_t *src = data.data<uint16_t>();
+            for (int row = 0; row < h; row++) {
+                // Drop writes to an opened-but-unpopulated upper bank (1MB
+                // fitment): they hit floating bus and are lost.
+                if (m_gpu->vramOpenBus(y + row)) continue;
+                m_gpu->partialUpdateVRAM(x, m_gpu->resolveVramY(y + row), w, 1, src + row * w,
+                                         PartialUpdateVram::Synchronous);
+            }
+        }
     }
 }
 
-void PCSX::GPU::BlitRamVram::execute(GPU *gpu) { gpu->partialUpdateVRAM(x, y, w, h, data.data<uint16_t>()); }
+void PCSX::GPU::BlitRamVram::execute(GPU *gpu) {
+    const uint16_t *src = data.data<uint16_t>();
+    for (int row = 0; row < h; row++) {
+        // Drop writes to an opened-but-unpopulated upper bank (1MB fitment).
+        if (gpu->vramOpenBus(y + row)) continue;
+        gpu->partialUpdateVRAM(x, gpu->resolveVramY(y + row), w, 1, src + row * w);
+    }
+}
 
 void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value;
@@ -910,14 +1046,36 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
             raw.y = y;
             raw.w = w;
             raw.h = h;
-            clipped = GPU::clip(x, y, w, h);
+            // psx-spx "Masking for COPY Commands": effective transfer size is
+            // Xsiz_eff = ((Xsiz-1) AND 3FFh)+1, Ysiz_eff = ((Ysiz-1) AND 1FFh)+1.
+            w = ((w - 1) & 0x3ff) + 1;
+            h = ((h - 1) & 0x1ff) + 1;
+            // Gate open: Y wraps mod-1024 per row via resolveVramY (silicon
+            // WRAP, transfer-wrap-y 2026-06-15); clamp X only. Gate closed: retail.
+            if (m_gpu->vram2MBGateOpen()) {
+                clipped = GPU::clipX<unsigned, 1024>(x, w);
+            } else {
+                clipped = GPU::clip<unsigned, 1024, 1024>(x, y, w, h);
+            }
             m_state = READ_COMMAND;
             m_gpu->m_defaultProcessor.setActive();
             m_gpu->m_logger->addNode(*this, origin, origvalue, length);
             m_gpu->m_vramReadSlice = m_gpu->getVRAM();
             for (auto l = y; l < y + h; l++) {
                 Slice slice;
-                slice.borrow(m_gpu->m_vramReadSlice, (l * 1024 + x) * 2, w * 2);
+                if (m_gpu->vramOpenBus(l)) {
+                    // Not every backend keeps the unpopulated bank prefilled, so
+                    // produce the floating-bus words here.
+                    static const std::array<uint16_t, 1024> openBus = [] {
+                        std::array<uint16_t, 1024> a;
+                        a.fill(kVramOpenBusValue);
+                        return a;
+                    }();
+                    slice.borrow(openBus.data(), w * 2);
+                    m_gpu->m_readFifo->pushSlice(std::move(slice));
+                    continue;
+                }
+                slice.borrow(m_gpu->m_vramReadSlice, (m_gpu->resolveVramY(l) * 1024 + x) * 2, w * 2);
                 m_gpu->m_readFifo->pushSlice(std::move(slice));
             }
             return;
@@ -927,15 +1085,25 @@ void PCSX::GPU::BlitVramRam::processWrite(Buffer &buf, Logged::Origin origin, ui
 PCSX::GPU::TPage::TPage(uint32_t value) {
     raw = value;
     tx = value & 0x0f;
-    ty = (value >> 4) & 1;
     blendFunction = magic_enum::enum_cast<BlendFunction>((value >> 5) & 3).value();
     auto depth = (value >> 7) & 3;
     texDepth = magic_enum::enum_cast<TexDepth>(depth == 3 ? 2 : depth).value();
     dither = (value >> 9) & 1;
     drawToDisplay = (value >> 10) & 1;
-    texDisable = (value >> 11) & 1;
     xflip = (value >> 12) & 1;
     yflip = (value >> 13) & 1;
+    // Texture-page Y base. Retail uses a single bit (bit 4 -> page row 0 or
+    // 256). With a 2MB bank fitted, bit 11 - the historical, inert "texture
+    // disable" bit - becomes the high bit of a 2-bit page selector, so the base
+    // can be 0/256/512/768 and texture pages can live in the upper bank. On 1MB
+    // that bit stays the (unused) texDisable flag and ty stays a single bit.
+    if (g_emulator->settings.get<Emulator::Setting2MBVRAM>().value) {
+        ty = ((value >> 4) & 1) | (((value >> 11) & 1) << 1);
+        texDisable = false;
+    } else {
+        ty = (value >> 4) & 1;
+        texDisable = (value >> 11) & 1;
+    }
 }
 
 PCSX::GPU::TWindow::TWindow(uint32_t value) {
@@ -949,14 +1117,17 @@ PCSX::GPU::TWindow::TWindow(uint32_t value) {
 
 PCSX::GPU::DrawingAreaStart::DrawingAreaStart(uint32_t value) {
     x = value & c_Coord10Mask;
-    y = (value >> c_DrawingAreaYShift) & c_Coord9Mask;
+    // Decode the full 10-bit Y the command carries (bit 19 is the upper-bank
+    // bit). The gate/fitment semantics are applied downstream via resolveVramY,
+    // not baked in here; on retail this bit is 0 so the value is unchanged.
+    y = (value >> c_DrawingAreaYShift) & c_Coord10Mask;
 
     raw = value;
 }
 
 PCSX::GPU::DrawingAreaEnd::DrawingAreaEnd(uint32_t value) {
     x = value & c_Coord10Mask;
-    y = (value >> c_DrawingAreaYShift) & c_Coord9Mask;
+    y = (value >> c_DrawingAreaYShift) & c_Coord10Mask;
 
     raw = value;
 }
@@ -984,6 +1155,32 @@ void PCSX::GPU::write0(BlitVramVram *prim) {
     auto dY = prim->dY;
     auto w = prim->w;
     auto h = prim->h;
+
+    if (m_vram2MBGateOpen) {
+        // Bank-aware copy: source and destination Y each wrap mod-1024 per row
+        // (resolveVramY), matching silicon (transfer-wrap-y verdict=WRAP for
+        // copy, 2026-06-15). X was clamped at decode (clipX on both sX and dX)
+        // and h was capped to <=512 by the COPY Ysiz mask, so no further
+        // clamping is needed here. Snapshot the whole source first so an
+        // overlapping src/dst copy stays correct, then write each destination
+        // row, dropping rows that hit an unpopulated upper bank (open bus on a
+        // 1MB fitment); source reads of an unpopulated upper bank land on the
+        // 0xFFFF prefill, so no explicit source guard is needed.
+        if ((w == 0) || (h == 0)) return;
+        std::vector<uint16_t> rect;
+        rect.resize((size_t)h * w);
+        for (unsigned l = 0; l < h; l++) {
+            Slice slice;
+            slice.borrow(inSlice, ((size_t)resolveVramY(sY + l) * 1024 + sX) * sizeof(uint16_t), w * sizeof(uint16_t));
+            memcpy(rect.data() + (size_t)l * w, slice.data(), slice.size());
+        }
+        for (unsigned l = 0; l < h; l++) {
+            if (vramOpenBus(dY + l)) continue;
+            partialUpdateVRAM(dX, resolveVramY(dY + l), w, 1, rect.data() + (size_t)l * w,
+                              PartialUpdateVram::Synchronous);
+        }
+        return;
+    }
 
     if (sX > 1024) {
         w -= sX - 1024;
@@ -1314,22 +1511,47 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
     }
 }
 
+// The GPU does not wrap the vertex plus drawing offset sum. It wraps the pixel address modulo 2048 on both axes
+// before the drawing-area clip (gpu-raster-phase23 W0..W5), so a primitive reaching below -1024 also covers the
+// same pixels shifted by 2048. The logger emits that copy too, or its picture of what a primitive touched is not
+// what was drawn.
+static inline int wrapCoord(int v, int off) { return v + off; }
+
+static void addWrapped(const PCSX::GPU::Logged::AddTri &add, PCSX::OpenGL::ivec2 a, PCSX::OpenGL::ivec2 b,
+                       PCSX::OpenGL::ivec2 c) {
+    const bool wrapX = std::min({a.x(), b.x(), c.x()}) < -1024;
+    const bool wrapY = std::min({a.y(), b.y(), c.y()}) < -1024;
+    auto shifted = [&](int dx, int dy) {
+        add(PCSX::OpenGL::ivec2(a.x() + dx, a.y() + dy), PCSX::OpenGL::ivec2(b.x() + dx, b.y() + dy),
+            PCSX::OpenGL::ivec2(c.x() + dx, c.y() + dy));
+    };
+    shifted(0, 0);
+    if (wrapX) shifted(2048, 0);
+    if (wrapY) shifted(0, 2048);
+    if (wrapX && wrapY) shifted(2048, 2048);
+}
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
+        addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                   {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                   {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
         if constexpr (shape == Shape::Quad) {
-            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                {x[3] + offset.x, y[3] + offset.y});
+            addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                       {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
-                {x[2] + offset.x, y[2] + offset.y});
+            addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                       {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
             if constexpr (shape == Shape::Quad) {
-                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                    {x[3] + offset.x, y[3] + offset.y});
+                addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                           {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                           {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
             }
         }
         if constexpr (textured == Textured::Yes) {
@@ -1363,19 +1585,22 @@ void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelO
         auto y0 = y[i - 1];
         auto y1 = y[i];
 
-        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
+        addLine([&add](auto v1, auto v2, auto v3) { addWrapped(add, v1, v2, v3); }, wrapCoord(x0, offset.x),
+                wrapCoord(y0, offset.y), wrapCoord(x1, offset.x), wrapCoord(y1, offset.y));
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+        const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+        addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+        addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+            const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+            addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+            addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
         }
         if constexpr (textured == Textured::Yes) {
             unsigned tx = tpage.tx * 64;

@@ -50,6 +50,13 @@ void main() {
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+precision highp usampler2D;
+#endif
 
 uniform sampler2D u_ramTexture;
 uniform usampler2D u_readHeatmap;

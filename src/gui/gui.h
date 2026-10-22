@@ -22,6 +22,7 @@
 #include <GL/gl3w.h>
 #include <stdarg.h>
 
+#include <deque>
 #include <functional>
 #include <magic_enum/magic_enum_all.hpp>
 #include <map>
@@ -34,13 +35,13 @@
 
 #include "core/system.h"
 #include "core/ui.h"
-#include "flags.h"
 #include "fmt/printf.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/console.h"
+#include "gui/widgets/cputrace.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
@@ -57,6 +58,7 @@
 #include "gui/widgets/memcard_manager.h"
 #include "gui/widgets/msan_viewer.h"
 #include "gui/widgets/named_savestates.h"
+#include "gui/widgets/network.h"
 #include "gui/widgets/patches.h"
 #include "gui/widgets/pio-cart.h"
 #include "gui/widgets/pocketstation.h"
@@ -64,6 +66,8 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
+#include "gui/widgets/spulogger.h"
+#include "gui/widgets/spusamples.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
@@ -117,6 +121,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowRegisters")> ShowRegisters;
     typedef Setting<bool, TYPESTRING("ShowAssembly")> ShowAssembly;
     typedef Setting<bool, TYPESTRING("ShowDisassembly")> ShowDisassembly;
+    typedef Setting<bool, TYPESTRING("ShowCpuTrace")> ShowCpuTrace;
     typedef Setting<bool, TYPESTRING("ShowBreakpoints")> ShowBreakpoints;
     typedef Setting<bool, TYPESTRING("ShowNamedSaveStates")> ShowNamedSaveStates;
     typedef Setting<bool, TYPESTRING("ShowEvents")> ShowEvents;
@@ -124,9 +129,13 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowKernelLog")> ShowKernelLog;
     typedef Setting<bool, TYPESTRING("ShowCallstacks")> ShowCallstacks;
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
+    typedef Setting<bool, TYPESTRING("ShowNetwork")> ShowNetwork;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
+    typedef Setting<bool, TYPESTRING("ShowSPULogger")> ShowSPULogger;
+    typedef Setting<bool, TYPESTRING("SPULoggerEnabled")> SPULoggerEnabled;
+    typedef Setting<bool, TYPESTRING("ShowSPUSamples")> ShowSPUSamples;
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
@@ -159,6 +168,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowHWRegsEditor")> ShowHWRegsEditor;
     typedef Setting<bool, TYPESTRING("ShowBiosEditor")> ShowBiosEditor;
     typedef Setting<bool, TYPESTRING("ShowVRAMEditor")> ShowVRAMEditor;
+    typedef Setting<bool, TYPESTRING("ShowSPURAMEditor")> ShowSPURAMEditor;
     typedef Setting<size_t, TYPESTRING("MemoryEditor1Addr"), 0> MemoryEditor1Addr;
     typedef Setting<size_t, TYPESTRING("MemoryEditor2Addr"), 0> MemoryEditor2Addr;
     typedef Setting<size_t, TYPESTRING("MemoryEditor3Addr"), 0> MemoryEditor3Addr;
@@ -172,19 +182,22 @@ class GUI final : public UI {
     typedef Setting<size_t, TYPESTRING("HWRegsEditorAddr"), 0> HWRegsEditorAddr;
     typedef Setting<size_t, TYPESTRING("BiosEditorAddr"), 0> BiosEditorAddr;
     typedef Setting<size_t, TYPESTRING("VRAMEditorAddr"), 0> VRAMEditorAddr;
+    typedef Setting<size_t, TYPESTRING("SPURAMEditorAddr"), 0> SPURAMEditorAddr;
     Settings<Fullscreen, FullWindowRender, ShowMenu, ShowLog, WindowPosX, WindowPosY, WindowSizeX, WindowSizeY,
              WindowMaximized, IdleSwapInterval, ShowLuaConsole, ShowLuaInspector, ShowLuaEditor, ShowMainVRAMViewer,
              ShowCLUTVRAMViewer, ShowVRAMViewer1, ShowVRAMViewer2, ShowVRAMViewer3, ShowVRAMViewer4, ShowMemoryObserver,
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
-             ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog, ShowCallstacks, ShowSIO1,
-             ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer, ShowCDRomViewer, ShowHeapViewer,
-             ShowPocketStationLCD, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
+             ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
+             ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer,
+             ShowCDRomViewer, ShowHeapViewer, ShowPocketStationLCD, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme,
+             AllowMouseCaptureToggle,
              EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
              ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
              ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
              ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowMsanViewer>
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowSPURAMEditor, SPURAMEditorAddr,
+             ShowSPULogger, SPULoggerEnabled, ShowSPUSamples, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -276,6 +289,27 @@ class GUI final : public UI {
     };
     void addNotification(const std::string &notification) { m_notifier.notify(notification); }
 
+    // Short-lived messages drawn at the bottom of the main viewport, which fade out on their own and never
+    // take focus. Use them for anything the user doesn't have to act on, failures included: a state that
+    // couldn't be saved is an Error notice. The kind only picks the colour of the bar on the left. If the
+    // user has to do something about it, use addNotification instead.
+    enum class NoticeKind { Info, Warning, Error };
+    class PassiveNotifier {
+      public:
+        void notify(const std::string &message, NoticeKind kind) { m_pending.push_back({message, kind, 0.0}); }
+        void draw();
+
+      private:
+        struct Notice {
+            std::string message;
+            NoticeKind kind;
+            double shownAt;
+        };
+        std::deque<Notice> m_pending;
+        std::deque<Notice> m_shown;
+    };
+    void addNotice(const std::string &notice, NoticeKind kind) { m_passiveNotifier.notify(notice, kind); }
+
     void magicOpen(const char *path);
 
     static const char *glErrorToString(GLenum error) {
@@ -306,6 +340,7 @@ class GUI final : public UI {
     bool configure();
     bool showThemes();  // Theme window : Allows for custom imgui themes
     bool about();
+    void aboutFFmpegTab();
     void interruptsScaler();
 
   public:
@@ -357,6 +392,8 @@ class GUI final : public UI {
     bool m_showHandles = false;
     bool m_showAbout = false;
     bool m_showInterruptsScaler = false;
+    bool m_turboEnabled = false;
+    bool m_outputWindowFocused = false;
     Widgets::Log m_log = {settings.get<ShowLog>().value};
     struct MemoryEditorWrapper {
         MemoryEditorWrapper(GUI *gui, bool &show, size_t &offsetAddr, size_t baseAddr = 0x0000)
@@ -416,6 +453,8 @@ class GUI final : public UI {
                                         settings.get<BiosEditorAddr>().value, 0xbfc00000};
     MemoryEditorWrapper m_vramEditor = {this, settings.get<ShowVRAMEditor>().value,
                                         settings.get<VRAMEditorAddr>().value};
+    MemoryEditorWrapper m_spuRamEditor = {this, settings.get<ShowSPURAMEditor>().value,
+                                          settings.get<SPURAMEditorAddr>().value};
     Widgets::MemoryObserver m_memoryObserver = {settings.get<ShowMemoryObserver>().value};
     Widgets::TypedDebugger m_typedDebugger;
     Widgets::Patches m_patches = {settings.get<ShowPatches>().value};
@@ -423,6 +462,7 @@ class GUI final : public UI {
     Widgets::Registers m_registers = {settings.get<ShowRegisters>().value};
     Widgets::Assembly m_assembly;
     Widgets::Disassembly m_disassembly = {settings.get<ShowDisassembly>().value};
+    Widgets::CpuTrace m_cpuTrace;
     Widgets::FileDialog<> m_openIsoFileDialog;
     Widgets::FileDialog<> m_openBinaryDialog;
     Widgets::FileDialog<> m_openArchiveDialog;
@@ -431,6 +471,7 @@ class GUI final : public UI {
     Widgets::NamedSaveStates m_namedSaveStates = {settings.get<ShowNamedSaveStates>().value};
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser;
+    Widgets::Network m_network = {settings.get<ShowNetwork>().value};
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -458,6 +499,8 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
+    Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value, settings.get<SPULoggerEnabled>().value};
+    Widgets::SPUSamples m_spuSamplesWidget{settings.get<ShowSPUSamples>().value};
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
     Widgets::PocketStationLCD m_pocketStationLCD{settings.get<ShowPocketStationLCD>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
@@ -479,6 +522,7 @@ class GUI final : public UI {
     std::string buildSaveStateFilename(int i);
     std::string buildSaveStateFilename(std::string name);
     bool saveStateExists(std::filesystem::path filename);
+    void saveScreenShot();
 
   private:
     void applyTheme(int theme);
@@ -488,6 +532,7 @@ class GUI final : public UI {
     void oliveTheme();
 
     Notifier m_notifier = {l_("Notification")};
+    PassiveNotifier m_passiveNotifier;
     Widgets::Console m_luaConsole = {settings.get<ShowLuaConsole>().value};
     Widgets::LuaInspector m_luaInspector = {settings.get<ShowLuaInspector>().value};
 
@@ -523,6 +568,7 @@ class GUI final : public UI {
     bool hasJapanese() { return m_hasJapanese; }
     bool m_setupScreenSize = true;
     bool m_clearTextures = true;
+    bool m_presentAfterHardReset = false;
     Widgets::ShaderEditor m_offscreenShaderEditor = {"offscreen"};
     ImFont *getMainFont() { return findClosestFont(m_mainFonts); }
     ImFont *getMonoFont() { return findClosestFont(m_monoFonts); }

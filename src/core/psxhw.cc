@@ -246,7 +246,8 @@ uint16_t PCSX::HW::read16(uint32_t add) {
             break;
 
         default:
-            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+            // SPU registers, plus the per-voice current volume block at 1f801e00h.
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e60)) {
                 hard = g_emulator->m_spu->readRegister(add);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[add & 0xffff];
@@ -387,7 +388,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
                 }
                 default: {
                     g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return 0xffffffff;
                 }
             }
@@ -640,7 +641,9 @@ inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     g_emulator->m_mdec->dma1(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) { g_emulator->m_gpu->dma(madr, bcr, chcr); }
+inline bool PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    return g_emulator->m_gpu->dma(madr, bcr, chcr);
+}
 
 inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);
@@ -848,7 +851,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
                 }
                 default: {
                     g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 }
             }
