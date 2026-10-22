@@ -390,13 +390,13 @@ uint32_t PCSX::GPU::readStatus() {
 
 uint32_t PCSX::GPU::readStatusFromBus() {
     uint32_t ret = readStatus();
-    // 640x480 interlaced, GP1(08h) bits 2 and 5. Timeline measured on a v2 GPU (SCPH-1001),
-    // counted in hblanks since the vblank that opened the field. Bit 31 is 1 from line 23 of
-    // the 263-line field until the next vblank, and 0 everywhere else, vblank included. Bit 13
-    // is 1 from line 5 of the 262-line field until line 6 of the following 263-line field. A
-    // v0 GPU (SCPH-1000) gives the same bit 31 and never sets bit 13; there is no GPU revision
-    // setting, so this models v2.
-    if ((m_statusControl[8] & 0x24) == 0x24) {
+    // NTSC 480i: GP1(08h) bits 2 and 5 set, bit 3 clear. Timeline measured on a v2 GPU (SCPH-1001)
+    // at 320 and 640 pixels wide, identical at both, counted in hblanks since the vblank that
+    // opened the field. Bit 31 is 1 from line 23 of the 263-line field until the next vblank, and
+    // 0 everywhere else, vblank included. Bit 13 is 1 from line 5 of the 262-line field until
+    // line 6 of the following 263-line field. A v0 GPU (SCPH-1000) gives the same bit 31 and never
+    // sets bit 13; there is no GPU revision setting, so this models v2. PAL is not measured.
+    if ((m_statusControl[8] & 0x2c) == 0x24) {
         auto &counters = g_emulator->m_counters;
         uint32_t line = counters->linesSinceVBlank();
         bool longField = counters->longField();
