@@ -55,7 +55,6 @@
 #include "core/screenshot.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
-#include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui-platform.h"
 #include "gui/gui.h"
