@@ -205,6 +205,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("KioskMode"), false> SettingKioskMode;
     typedef Setting<bool, TYPESTRING("Mcd1Pocketstation"), false> SettingMcd1Pocketstation;
     typedef Setting<bool, TYPESTRING("Mcd2Pocketstation"), false> SettingMcd2Pocketstation;
+    typedef SettingPath<TYPESTRING("PocketstationBios")> SettingPocketstationBios;
     typedef SettingPath<TYPESTRING("BiosPath")> SettingBiosBrowsePath;
     typedef SettingPath<TYPESTRING("EXP1Filepath")> SettingEXP1Filepath;
     typedef SettingPath<TYPESTRING("EXP1BrowsePath")> SettingEXP1BrowsePath;
@@ -219,8 +220,9 @@ class Emulator {
              SettingSoftGPUThreaded, SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching,
              SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
              SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
-             SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
-             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount>
+             SettingPocketstationBios, SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath,
+             SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval,
+             SettingRewindCount>
         settings;
     class PcsxConfig {
       public:

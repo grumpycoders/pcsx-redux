@@ -227,6 +227,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CDSectorReadSinceSeek{cd->m_sectorReadSinceSeek},
             CDScexCountersReset{cd->m_scexCountersReset},
         },
+        PocketStationSlot{},
+        PocketStationSlot{},
     };
 }
 
@@ -258,6 +260,9 @@ std::string PCSX::SaveStates::save() {
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
+    g_emulator->m_sio->getMemoryCard(0)->savePocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->savePocketstationState(state.get<PocketStation2Field>());
+
     Protobuf::OutSlice slice;
     state.serialize(&slice);
     return slice.finalize();
@@ -287,6 +292,12 @@ void PCSX::SaveStates::capture(SaveState& state) {
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
+    /* The snapshot is reused, so a slot whose device went away must not keep the old blob. */
+    state.get<PocketStation1Field>().get<PocketStationDevice>().value.clear();
+    state.get<PocketStation2Field>().get<PocketStationDevice>().value.clear();
+    g_emulator->m_sio->getMemoryCard(0)->savePocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->savePocketstationState(state.get<PocketStation2Field>());
+
     /* And this is the half that never existed: the flat live -> copy for the ref/ptr fields. */
     state.capture();
 }
@@ -313,6 +324,8 @@ void PCSX::SaveStates::restore(SaveState& state) {
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
+    g_emulator->m_sio->getMemoryCard(0)->loadPocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->loadPocketstationState(state.get<PocketStation2Field>());
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
@@ -483,6 +496,8 @@ bool PCSX::SaveStates::load(std::string_view data) {
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
+    g_emulator->m_sio->getMemoryCard(0)->loadPocketstationState(state.get<PocketStation1Field>());
+    g_emulator->m_sio->getMemoryCard(1)->loadPocketstationState(state.get<PocketStation2Field>());
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
