@@ -232,7 +232,7 @@ void PCSX::Widgets::Dalos::draw(const char* title) {
         ImGui::OpenPopup("add");
     }
     if (ImGui::BeginPopup("add")) {
-        ImGui::TextDisabled(_("Add node"));
+        ImGui::TextDisabled("%s", _("Add node"));
         ImGui::Separator();
         if (ImGui::MenuItem(_("File"))) addNode<FileNode>(_("File"), m_popupPos);
         if (ImGui::MenuItem(_("Slice"))) addNode<SliceNode>(_("Slice"), m_popupPos);
