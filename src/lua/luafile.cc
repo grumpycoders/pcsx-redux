@@ -397,7 +397,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
     L.declareFunc("readFileGets", readFileGets, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
-    L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
+    L.declareFunc("writeFileUserDataAt", writeFileUserDataAt, -1);
     L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
     L.pop();
     L.declareFunc(
