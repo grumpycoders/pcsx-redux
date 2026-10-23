@@ -52,8 +52,8 @@ void PCSX::SPU::impl::resetCaptureBuffer() {
     // Everything below is shared with the mixer thread (MainThread), so hold cbMtx.
     std::lock_guard<std::mutex> lock(cbMtx);
     mixIrqAddress = spuRamBase;
-    memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
-    memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
+    memset(captureBuffer.CDCapLeft, 0, sizeof(captureBuffer.CDCapLeft));
+    memset(captureBuffer.CDCapRight, 0, sizeof(captureBuffer.CDCapRight));
     captureBuffer.endIndex = 0;
     captureBuffer.startIndex = 0;
     // The capture write positions follow the mixer's sample clock and are not reset here.
