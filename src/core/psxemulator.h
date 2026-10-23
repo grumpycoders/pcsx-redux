@@ -178,6 +178,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("CDRomEntropySeed"), false> SettingCDRomEntropySeed;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
@@ -220,7 +221,8 @@ class Emulator {
              SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
              SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
              SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
-             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount>
+             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount,
+             SettingCDRomEntropySeed>
         settings;
     class PcsxConfig {
       public:

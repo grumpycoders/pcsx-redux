@@ -24,6 +24,7 @@
 #include "core/cdrom.h"
 
 #include <magic_enum/magic_enum_all.hpp>
+#include <random>
 #include <string_view>
 
 #include "cdrom/iso9660-reader.h"
@@ -105,7 +106,11 @@ class CDRomImpl final : public PCSX::CDRom {
     }
 
     void reset() override {
-        m_seed = 9223521712174600777ull;
+        m_seed = c_defaultSeed;
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDRomEntropySeed>()) {
+            std::random_device rd;
+            m_seed = ((uint64_t(rd()) << 32) | rd()) | 1;
+        }
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
         m_registerAddress = 0;
