@@ -200,8 +200,12 @@ class PadsImpl : public PCSX::Pads {
 
         int m_scancodes[16];
         int m_padMapping[16];
-        PadType m_type;
+        // m_type is the configured device, m_activeType the one in use, which the host can override.
+        PadType m_type = PadType::Digital;
+        PadType m_activeType = PadType::Digital;
         PadData m_data;
+        // The port whose host mouse fields feed this pad.
+        int m_port = -1;
 
         SDL_Gamepad* m_gamepad = nullptr;
         int m_buttonToWait = -1;
@@ -665,6 +669,8 @@ void PadsImpl::shutdown() {
 }
 
 PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
+    m_pads[0].m_port = 0;
+    m_pads[1].m_port = 1;
     m_listener.listen<PCSX::Events::Keyboard>([this](const auto& event) {
         if (m_showCfg) {
             m_pads[m_selectedPadForConfig].keyboardEvent(event);
@@ -769,6 +775,7 @@ void PadsImpl::Pad::map() {
     m_rumbleAppliedSmall = m_rumbleAppliedLarge = 0;
     m_rumbleRefreshedAt = 0;
     m_type = m_settings.get<SettingDeviceType>();
+    m_activeType = m_type;
 
     // L3/R3 are only avalable on analog controllers
     if (m_type == PadType::Analog) {
@@ -926,7 +933,7 @@ void PadsImpl::Pad::getButtons() {
     }
 
     // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick
-    if (m_type == PadType::Digital) {
+    if (m_activeType == PadType::Digital) {
         float x = state.axes[SDL_GAMEPAD_AXIS_LEFTX];
         float y = -state.axes[SDL_GAMEPAD_AXIS_LEFTY];
         float ds = x * x + y * y;
@@ -965,7 +972,7 @@ void PadsImpl::Pad::getButtons() {
                 buttons[6] = true;
             }
         }
-    } else if (m_type == PadType::Analog) {
+    } else if (m_activeType == PadType::Analog) {
         // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3f;
@@ -986,6 +993,9 @@ void PadsImpl::Pad::getButtons() {
 
 uint8_t PadsImpl::startPoll(Port port) {
     int index = magic_enum::enum_integer(port);
+    auto& shmDisplayType = PCSX::g_emulator->m_shmDisplay;
+    const int hostDevice = shmDisplayType ? shmDisplayType->hostDevice(index) : -1;
+    m_pads[index].m_activeType = hostDevice >= 0 ? static_cast<PadType>(hostDevice) : m_pads[index].m_type;
     m_pads[index].getButtons();
     auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
     m_pads[index].m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
@@ -1004,7 +1014,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
 
         if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
             return read();
-        } else if (m_type == PadType::Analog) {
+        } else if (m_activeType == PadType::Analog) {
             return doDualshockCommand(padState);
         } else {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
@@ -1016,7 +1026,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
     } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_cmd == magic_enum::enum_integer(PadCommands::Read) &&
-               m_type == PadType::Analog) {
+               m_activeType == PadType::Analog) {
         // Motor bytes of the read command: the 4th..9th byte of the transfer. read()
         // has already filled the reply buffer, so these are pure input, and what they
         // mean is whatever command 4Dh last said they mean.
@@ -1043,7 +1053,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
         // doDualshockCommand() already copied the old mapping into the reply buffer,
         // so overwriting it here cannot disturb what we send back.
         m_motorMapping[m_currentByte - 2] = value;
-    } else if (m_currentByte == 2 && m_type == PadType::Analog) {
+    } else if (m_currentByte == 2 && m_activeType == PadType::Analog) {
         switch (m_cmd) {
             case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
@@ -1152,8 +1162,23 @@ uint8_t PadsImpl::Pad::read() {
         return 0xff;
     }
 
-    switch (m_type) {
+    switch (m_activeType) {
         case PadType::Mouse: {
+            auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
+            if (m_port >= 0 && shmDisplay && shmDisplay->hostInput()) {
+                // The host's own buttons and motion counts, with no sensitivity scaling.
+                int8_t deltaX, deltaY;
+                uint32_t buttons;
+                shmDisplay->hostMouse(m_port, deltaX, deltaY, buttons);
+                const int leftClick = (buttons & 1) ? 0 : 1;
+                const int rightClick = (buttons & 2) ? 0 : 1;
+                m_mousepar[3] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+                m_mousepar[4] = deltaX;
+                m_mousepar[5] = deltaY;
+                memcpy(m_buf, m_mousepar, 6);
+                m_bufferLen = 6;
+                return 0x12;
+            }
             const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
             const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
             const auto& io = ImGui::GetIO();
