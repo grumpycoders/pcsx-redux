@@ -20,18 +20,11 @@
 -- reverse-continues back over the same instructions, and expects the same registers.
 
 local lu = require 'luaunit'
-local ffi = require 'ffi'
 
 TestGdbReverse = {}
 
 local PORT = 3462
 local CODE = 0x80100000
-
-local function ram32(addr)
-    return ffi.cast('uint32_t*', PCSX.getMemPtr() + (addr - 0x80000000))
-end
-
-local function j(addr) return 0x08000000 + bit.rshift(bit.band(addr, 0x0fffffff), 2) end
 
 local client, co, buffer, packets
 
@@ -92,11 +85,12 @@ function TestGdbReverse:setUp()
     PCSX.settings.emulator.Debug.Debug = true
     while PCSX.getRewindStateCount() > 0 do PCSX.rewindState() end
     -- A loop with no branch out of it, so every step stays on known code.
-    local p = ram32(CODE)
-    p[0] = 0x25080001 -- addiu t0, t0, 1
-    p[1] = 0x25290003 -- addiu t1, t1, 3
-    p[2] = j(CODE)
-    p[3] = 0x00000000
+    PCSX.Assembler.New():parse([[
+        addiu $t0, $t0, 1
+        addiu $t1, $t1, 3
+        b     -3
+        nop
+    ]]):compileToMemory(PCSX.getMemPtr(), CODE, 0x80000000)
     PCSX.invalidateCache()
     local regs = PCSX.getRegisters()
     regs.CP0.r[12] = bit.band(regs.CP0.r[12], bit.bnot(1))
