@@ -168,6 +168,17 @@ class CDRomImpl final : public PCSX::CDRom {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1].clear();
             raiseIRQIfUnmasked();
+            // After a data ready sat unacknowledged, the drive keeps reading, but on an SCPH-7001 and an
+            // SCPH-9002 the next one never came less than 2.1ms after the queued one was handed over
+            // (48 reps). Without this floor a sector can land before a command written right after.
+            if (m_responseFifo[0].value == static_cast<uint8_t>(Cause::DataReady)) {
+                auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+                const unsigned read = static_cast<unsigned>(PCSX::Schedule::CDREAD);
+                const uint64_t floor = regs.cycle + PCSX::psxRegisters::durationToCycles(2100us);
+                if ((regs.scheduleMask & (1 << read)) && (regs.scheduleTargets[read] < floor)) {
+                    scheduleRead(PCSX::psxRegisters::durationToCycles(2100us));
+                }
+            }
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
@@ -319,6 +330,13 @@ class CDRomImpl final : public PCSX::CDRom {
     // until the next response replaces them.
     bool maybeEnqueueResponse(QueueElement &response) {
         if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
+            // A newer data ready replaces a stale one rather than queueing behind it.
+            const uint8_t dataReady = static_cast<uint8_t>(Cause::DataReady);
+            if ((m_responseFifo[1].value == dataReady) && (response.value == dataReady)) {
+                m_responseFifo[0] = response;
+                m_responseFifo[1].clear();
+                return true;
+            }
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1] = response;
             return true;
