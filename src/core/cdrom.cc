@@ -105,6 +105,18 @@ class CDRomImpl final : public PCSX::CDRom {
         return m_seed >> 9;
     }
 
+    // Real drives never take the same time twice for the same operation, and some games
+    // only get out of a retry loop because of that. Draws come from the seeded generator,
+    // so a run, a save state and a rewind all replay the same sequence.
+    std::chrono::nanoseconds jitter(std::chrono::nanoseconds base, std::chrono::microseconds spread) {
+        const int64_t range = spread.count() * 2 + 1;
+        const int64_t offset = int64_t(rand() % uint64_t(range)) - spread.count();
+        return base + std::chrono::microseconds(offset);
+    }
+    std::chrono::nanoseconds jitter(std::chrono::nanoseconds base, unsigned percent) {
+        return jitter(base, std::chrono::duration_cast<std::chrono::microseconds>(base * percent / 100));
+    }
+
     void reset() override {
         m_seed = c_defaultSeed;
         if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDRomEntropySeed>()) {
@@ -530,7 +542,7 @@ class CDRomImpl final : public PCSX::CDRom {
                             .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
                         logCDROM(m_commandFifo);
                     }
-                    scheduleFifo(797us);
+                    scheduleFifo(jitter(797us, 250us));
                 }
                 m_commandFifo.hasValue = true;
                 break;
@@ -814,7 +826,7 @@ class CDRomImpl final : public PCSX::CDRom {
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Scheduling queued next command to run.\n");
             }
-            scheduleFifo(797us);
+            scheduleFifo(jitter(797us, 250us));
         } else if (debug) {
             PCSX::g_system->log(PCSX::LogClass::CDROM,
                                 "CD-Rom: Won't schedule next command to run as response fifo is full.\n");
@@ -824,6 +836,10 @@ class CDRomImpl final : public PCSX::CDRom {
     enum class SeekType { DATA, CDDA };
 
     std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading = false) {
+        return jitter(baseSeekDelay(from, to, seekType, forReading), 10);
+    }
+
+    std::chrono::nanoseconds baseSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading) {
         unsigned destTrack = m_iso->getTrack(to);
         if (destTrack == 0) return 650ms;
         if ((seekType == SeekType::DATA) && (m_iso->getTrackType(destTrack) == PCSX::CDRIso::TrackType::CDDA)) {
@@ -840,7 +856,9 @@ class CDRomImpl final : public PCSX::CDRom {
         return std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms);
     }
 
-    std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
+    std::chrono::nanoseconds computeReadDelay() {
+        return m_speed == Speed::Simple ? jitter(13333us, 400us) : jitter(6666us, 300us);
+    }
 
     // "Command" 0, which doesn't actually exist.
     bool cdlSync(const QueueElement &command, bool start) {
@@ -1236,7 +1254,7 @@ class CDRomImpl final : public PCSX::CDRom {
             if (m_status == Status::Idle) {
                 schedule(200us);
             } else {
-                schedule(m_speed == Speed::Simple ? 70ms : 35ms);
+                schedule(jitter(m_speed == Speed::Simple ? 70ms : 35ms, 5));
             }
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -1262,7 +1280,7 @@ class CDRomImpl final : public PCSX::CDRom {
             m_speedChanged = false;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
-            schedule(120ms);
+            schedule(jitter(120ms, 5));
             // TODO: figure out exactly the various states of the CD-Rom controller
             // that are being reset, and their value.
             m_currentPosition.reset();
@@ -1607,7 +1625,7 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
-            schedule(5ms);
+            schedule(jitter(5ms, 5));
             return true;
         } else {
             // Adjust this response for various types of discs and situations.
