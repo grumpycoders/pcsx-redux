@@ -29,11 +29,24 @@ local function checksum(payload)
     return string.format('%02x', bit.band(sum, 0xff))
 end
 
--- One client socket for the whole suite: raw RSP, acks left on. The stub echoes a '+' for
--- every '+' it receives, so any run of them can precede a reply.
+-- One client socket per test: raw RSP, acks left on. The stub echoes a '+' for every '+' it
+-- receives, so any run of them can precede a reply.
 local client
 local buffer = ''
 local waiter
+
+-- A handle still open at quit keeps the loop from closing, which leaks it.
+local function disconnect()
+    if not client then return end
+    local co = coroutine.running()
+    client:read_stop()
+    client:close(function() coroutine.resume(co) end)
+    coroutine.yield()
+    client = nil
+    buffer = ''
+end
+
+function TestGdbServer:tearDown() disconnect() end
 
 local function onData(err, data)
     if err or not data then
@@ -120,11 +133,6 @@ end
 -- With multiprocess negotiated, gdb detaches with D;<pid>.
 function TestGdbServer:test_multiprocess_detach()
     lu.assertEquals(request('D;1'), 'OK')
-    local co = coroutine.running()
-    client:read_stop()
-    client:close(function() coroutine.resume(co) end)
-    coroutine.yield()
-    client = nil
-    buffer = ''
+    disconnect()
     lu.assertEquals(request('p4'):len(), 8)
 end
