@@ -51,7 +51,8 @@ namespace PCSX {
 //     port's own pad, whose host mask stays hostPads[port] with or without a tap, so hostSlotPads[port][0]
 //     is ignored.
 //   hostDevice[port]: 0 keeps the device type from the port's settings, 1 + n makes it device type n
-//     (0 Digital, 1 Analog, 2 Mouse, 3 Negcon, 4 Gun, 5 Guncon). Other values are ignored.
+//     (0 Digital, 1 Analog, 2 Mouse, 3 Negcon, 4 Gun, 5 Guncon), plugged in even when the port's settings
+//     leave it disconnected. Other values are ignored.
 //   hostMouseDX[port], hostMouseDY[port]: mouse motion accumulators for a Mouse on that port. The host
 //     adds motion with an atomic add; each mouse read takes the whole value with an exchange to 0, sends
 //     what fits in a signed byte, and adds what did not fit back, so no motion is lost.

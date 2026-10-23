@@ -1037,9 +1037,12 @@ bool PadsImpl::startPoll(Port port, uint8_t address, uint8_t& reply) {
     const int hostDevice = shmDisplay ? shmDisplay->hostDevice(index) : -1;
     pad.m_activeType = hostDevice >= 0 ? static_cast<PadType>(hostDevice) : pad.m_type;
 
+    // A device the host picks is plugged in, whatever the port's Connected setting says.
+    const bool connected = pad.isControllerConnected() || hostDevice >= 0;
+
     tap.present = hasMultitap(port);
     if (!tap.present) {
-        if (address != 1 || !pad.isControllerConnected()) return false;
+        if (address != 1 || !connected) return false;
         pad.getButtons();
         pad.m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
         reply = pad.startPoll();
@@ -1047,7 +1050,7 @@ bool PadsImpl::startPoll(Port port, uint8_t address, uint8_t& reply) {
     }
 
     if (address < 1 || address > 4) return false;
-    tap.connected[0] = pad.isControllerConnected();
+    tap.connected[0] = connected;
     if (tap.connected[0]) {
         pad.getButtons();
         pad.m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
