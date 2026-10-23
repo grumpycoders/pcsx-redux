@@ -432,16 +432,12 @@ void InterpretedCPU::psxADDI(uint32_t code) {
         }
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"),
-                                m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
-        }
+    bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
     }
 
     if (_Rt_ != 0) {
@@ -526,15 +522,12 @@ void InterpretedCPU::psxADD(uint32_t code) {
         }
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                   // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
-        }
+    bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                   // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
     }
 
     if (_Rd_ != 0) {
@@ -568,15 +561,12 @@ void InterpretedCPU::psxSUB(uint32_t code) {
         }
     }
 
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc.raw() -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
-        }
+    bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
     }
 
     if (_Rd_ != 0) {
