@@ -470,6 +470,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     PCSX::g_emulator->m_cpu->Reset();
     g_emulator->m_allocTracker->reset();
     state.commit();
+    g_emulator->m_cdrom->defaultSeedIfMissing();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits

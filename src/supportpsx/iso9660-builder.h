@@ -73,6 +73,7 @@ class ISO9660Builder {
     void computeLayout();
     uint32_t computeDirEntrySize(const ISO9660::DirTree* node) const;
     uint32_t computeDirExtentSize(const ISO9660::DirTree* dir) const;
+    void checkDirExtentFits(const ISO9660::DirTree* dir) const;
     uint32_t computePathTableSize() const;
 
     // Serialization helpers
