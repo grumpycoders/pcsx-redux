@@ -70,7 +70,7 @@ void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
 uint32_t isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, enum SectorMode mode);
 uint32_t isoBuilderWriteSectorAt(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, uint32_t lba, enum SectorMode mode);
 uint32_t isoBuilderGetCurrentLBA(ISO9660Builder* builder);
-void isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
+const char* isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
 
 // High-level filesystem-aware ISO builder
 typedef struct { char opaque[?]; } IsoDirTree;
@@ -325,7 +325,10 @@ local function createIsoBuilderWrapper(wrapper)
         createFile = function(self, parent, name, fileHandle)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
-        close = function(self, threadCount) C.isoBuilderClose(self._wrapper, threadCount or 0) end,
+        close = function(self, threadCount)
+            local err = C.isoBuilderClose(self._wrapper, threadCount or 0)
+            if err ~= nil then error(ffi.string(err)) end
+        end,
     }
     return builder
 end
