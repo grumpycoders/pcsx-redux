@@ -21,6 +21,8 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <unordered_set>
 
 #include "cdrom/cdriso.h"
@@ -278,7 +280,16 @@ uint32_t isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sec
     return msfToImageLBA(builder->writeSector(sectorData, mode));
 }
 uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) { return msfToImageLBA(builder->getCurrentLocation()); }
-void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
+const char* isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) {
+    static thread_local std::string error;
+    try {
+        builder->close(threadCount);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return error.c_str();
+    }
+    return nullptr;
+}
 
 // PVD string field helpers
 static void trimCStringTo(const char* src, size_t maxLen, char* dst, uint32_t dstSize) {

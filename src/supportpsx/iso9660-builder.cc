@@ -367,6 +367,7 @@ uint32_t PCSX::ISO9660Builder::computeDirExtentSize(const ISO9660::DirTree* dir)
 
     // Add child entries
     for (ISO9660::DirTree* child : sortedChildren(dir)) {
+        if (child->m_skip) continue;
         uint32_t entrySize = computeDirEntrySize(child);
         if (posInSector + entrySize > 2048) {
             total += 2048 - posInSector;
@@ -473,6 +474,13 @@ void PCSX::ISO9660Builder::computeLayout() {
 
     // Directory extents in BFS order.
     for (auto* dir : m_dirsInBFSOrder) {
+        uint32_t needed = computeDirExtentSize(dir);
+        if (needed > dir->m_dirSectorCount * 2048) {
+            std::string name = dir == m_root ? std::string("<root>") : dir->m_name;
+            throw std::runtime_error(
+                "ISO9660Builder: directory '" + name + "' needs " + std::to_string((needed + 2047) / 2048) +
+                " sectors for its entries but was created with " + std::to_string(dir->m_dirSectorCount));
+        }
         applyAnchor(dir);
         dir->m_assignedLBA = currentSector;
         dir->m_computedSize = dir->m_dirSectorCount * 2048;

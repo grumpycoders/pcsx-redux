@@ -666,3 +666,37 @@ function TestIsoBuilder:test_sortedRecords()
     lu.assertFalse(f:failed())
     lu.assertEquals(f:size(), 2048)
 end
+
+local function buildManyFiles(rootSectors, count)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('DIR_BOUNDS')
+    local root = builder:createRoot(rootSectors)
+    for i = 1, count do
+        builder:createFile(root, string.format('FILE%02d.DAT', i), generateTestContent(16))
+    end
+    return builder, out
+end
+
+function TestIsoBuilder:test_directoryTooSmallIsAnError()
+    -- 60 XA records of 60 bytes each need 2 sectors; a 1-sector root must be refused
+    -- instead of serialized past the end of its extent.
+    local builder = buildManyFiles(1, 60)
+    local ok, err = pcall(builder.close, builder)
+    lu.assertFalse(ok)
+    lu.assertStrContains(tostring(err), 'directory')
+end
+
+function TestIsoBuilder:test_directoryLargeEnoughLists()
+    local builder, out = buildManyFiles(2, 60)
+    builder:close()
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local entries = iso:createReader():listDir('')
+    local files = 0
+    for _, e in ipairs(entries) do
+        if e.name:match('^FILE%d%d%.DAT;1$') then files = files + 1 end
+    end
+    lu.assertEquals(files, 60)
+end
