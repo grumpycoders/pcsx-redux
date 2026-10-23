@@ -49,3 +49,22 @@ TEST(Multitap, NoHostInterpreter) {
     int ret = invoker.invoke();
     EXPECT_EQ(ret, 0);
 }
+
+// setup-req1.lua plugs a neGcon in slot A and leaves B to D empty, as on the real tap the guest's replay
+// was measured with: long reads after a long read that did not send 42h at the start of slot A's block are
+// the four-byte garbage response.
+TEST(Multitap, Req1Interpreter) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
+                        "-luacov", "-shmdisplay", "-dofile", "src/mips/tests/multitap/setup-req1.lua", "-loadexe",
+                        "src/mips/tests/multitap/multitap.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}
+
+TEST(Multitap, Req1Dynarec) {
+    MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-dynarec",
+                        "-luacov", "-shmdisplay", "-dofile", "src/mips/tests/multitap/setup-req1.lua", "-loadexe",
+                        "src/mips/tests/multitap/multitap.ps-exe");
+    int ret = invoker.invoke();
+    EXPECT_EQ(ret, 0);
+}

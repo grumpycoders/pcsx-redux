@@ -256,9 +256,12 @@ class PadsImpl : public PCSX::Pads {
         std::array<Pad, 3> slots;
         // Set by the third byte of a read of slot A: the next access to address 1 is the long read.
         bool request = false;
+        // Set by a long read whose slot A block the host did not start with 42h: a long read next is garbage.
+        bool stale = false;
         // Per access:
         bool present = false;
         bool longRead = false;
+        bool garbage = false;
         unsigned slot = 0;
         unsigned byte = 0;
         uint8_t command = 0;
@@ -736,7 +739,9 @@ void PadsImpl::reset() {
     for (auto& tap : m_taps) {
         for (auto& slot : tap.slots) slot.reset();
         tap.request = false;
+        tap.stale = false;
         tap.longRead = false;
+        tap.garbage = false;
     }
 }
 
@@ -1074,6 +1079,12 @@ bool PadsImpl::startPoll(Port port, uint8_t address, uint8_t& reply) {
     // byte does NOT affect the current response. Instead, it does request that the NEXT command shall
     // return special data". The request is made on slot A, so it is the next slot A access that is long.
     tap.longRead = address == 1 && tap.request;
+    // Measured with one tap and a neGcon in slot A: a long read right after a long read in which the host
+    // did not send 42h at the start of slot A's block is the "Garbage response", "the multitap returns ONLY
+    // four bytes, like so: Hiz,80h,5Ah,LSB". It still takes REQ, and its own slot A byte counts the same
+    // way, so it repeats; any other access ends it.
+    tap.garbage = tap.longRead && tap.stale;
+    tap.stale = false;
     if (tap.longRead) {
         // The tap answers the long read on its own, even when slot A is empty.
         reply = 0xff;
@@ -1115,6 +1126,8 @@ uint8_t PadsImpl::poll(uint8_t value, Port port, uint32_t& padState) {
 //    with FFFFh."
 // Each slot's pad is read as the host's bytes reach its block, with a 42h read command whatever the host
 // sends in that position, and the host's following bytes passed on, so a pad's motor bytes still arrive.
+// What the host sends at the start of slot A's block decides whether the next long read is garbage, see
+// startPoll; a garbage one ends on slot A's id.
 uint8_t PadsImpl::pollLong(Multitap& tap, int port, uint8_t value, uint32_t& padState) {
     const unsigned byte = tap.byte++;
     if (byte == 0) {
@@ -1135,6 +1148,11 @@ uint8_t PadsImpl::pollLong(Multitap& tap, int port, uint8_t value, uint32_t& pad
     if (slot >= 4) return 0xff;
     Pad& pad = tapSlot(port, slot);
     if (position == 0) {
+        if (slot == 0) {
+            tap.stale = value != 0x42;
+            // No ACK after this byte.
+            if (tap.garbage) padState = PAD_STATE_BAD_COMMAND;
+        }
         tap.slotAnswering = false;
         if (!tap.connected[slot]) return 0xff;
         pad.startPoll();
