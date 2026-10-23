@@ -20,6 +20,7 @@
 #include "core/disr3000a.h"
 
 #include <stdarg.h>
+#include <string.h>
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
@@ -101,8 +102,16 @@ struct LiveValueSource : public PCSX::Disasm::ValueSource {
     uint32_t hi() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.hi; }
     uint32_t lo() override { return PCSX::g_emulator->m_cpu->m_regs.GPR.n.lo; }
     uint8_t mem8(uint32_t addr) override { return *ptr(addr); }
-    uint16_t mem16(uint32_t addr) override { return SWAP_LE16(*(int16_t *)ptr(addr)); }
-    uint32_t mem32(uint32_t addr) override { return SWAP_LE32(*(int32_t *)ptr(addr)); }
+    uint16_t mem16(uint32_t addr) override {
+        int16_t v;
+        memcpy(&v, ptr(addr), sizeof(v));
+        return SWAP_LE16(v);
+    }
+    uint32_t mem32(uint32_t addr) override {
+        int32_t v;
+        memcpy(&v, ptr(addr), sizeof(v));
+        return SWAP_LE32(v);
+    }
 };
 
 struct StringDisasm : public PCSX::Disasm {

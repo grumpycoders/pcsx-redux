@@ -340,7 +340,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
         if (rs.rowSkipped(y)) return;
         if (color == 0) return;
-        uint32_t *pdest = rs.pixelPair32(x, y);
+        auto pdest = rs.pixelPair32(x, y);
         // Channels are extracted in packed-pair form: bits 0..4 of each
         // halfword for red, 5..9 for blue, 10..14 for green. Multiplying
         // by m1/m2/m3 (0..255) keeps both halves of the int32 valid as
@@ -442,7 +442,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
         if (rs.rowSkipped(y)) return;
         if (color == 0) return;
-        uint32_t *pdest = rs.pixelPair32(x, y);
+        auto pdest = rs.pixelPair32(x, y);
         const uint32_t l = rs.setMask32 | (color & 0x80008000);
         int32_t r, g, b;
         if (rs.drawSemiTrans && (color & 0x80008000)) {
@@ -554,7 +554,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color, int16_t m1, int16_t m2, int16_t m3) {
         if (rs.rowSkipped(y)) return;
         if (color == 0) return;
-        uint32_t *pdest = rs.pixelPair32(x, y);
+        auto pdest = rs.pixelPair32(x, y);
         int32_t r = PackedPair555::modulateR(color, m1);
         int32_t b = PackedPair555::modulateB(color, m2);
         int32_t g = PackedPair555::modulateG(color, m3);
@@ -724,7 +724,7 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
         if (rs.rowSkipped(y)) return;
-        uint32_t *pdest = rs.pixelPair32(x, y);
+        auto pdest = rs.pixelPair32(x, y);
         if (rs.drawSemiTrans) {
             int32_t r, g, b;
             if (rs.abr == GPU::BlendFunction::HalfBackAndHalfFront) {
