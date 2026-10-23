@@ -206,6 +206,9 @@ class PadsImpl : public PCSX::Pads {
         // m_type is the configured device, m_activeType the one in use, which the host can override.
         PadType m_type = PadType::Digital;
         PadType m_activeType = PadType::Digital;
+        // The host picked this pad's device through -shmdisplay, so it is plugged in for this poll
+        // whatever the Connected setting says.
+        bool m_hostConnected = false;
         PadData m_data;
         // The port whose host mouse fields feed this pad, or -1 for multitap slots B to D.
         int m_port = -1;
@@ -876,7 +879,7 @@ static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
 void PadsImpl::Pad::getButtons() {
     PadData& pad = m_data;
-    if (!m_settings.get<SettingConnected>()) {
+    if (!m_settings.get<SettingConnected>() && !m_hostConnected) {
         pad.buttonStatus = 0xffff;
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
         applyRumble(false);  // an unplugged pad is a silent one
@@ -1039,6 +1042,7 @@ bool PadsImpl::startPoll(Port port, uint8_t address, uint8_t& reply) {
 
     // A device the host picks is plugged in, whatever the port's Connected setting says.
     const bool connected = pad.isControllerConnected() || hostDevice >= 0;
+    pad.m_hostConnected = hostDevice >= 0;
 
     tap.present = hasMultitap(port);
     if (!tap.present) {
@@ -1294,7 +1298,7 @@ uint8_t PadsImpl::Pad::startPoll() {
 uint8_t PadsImpl::Pad::read() {
     const PadData& pad = m_data;
     uint16_t buttonStatus = pad.buttonStatus & pad.overrides & pad.hostButtons;
-    if (!m_settings.get<SettingConnected>()) {
+    if (!m_settings.get<SettingConnected>() && !m_hostConnected) {
         m_bufferLen = 0;
         return 0xff;
     }
