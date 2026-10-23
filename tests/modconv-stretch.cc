@@ -1,0 +1,160 @@
+/*
+ * Tests for modconv's --stretch: resampling a looped sample so its loop is a
+ * whole number of SPU blocks, and compensating the pitch in the patterns.
+ */
+
+#include <cmath>
+#include <vector>
+
+#include "gtest/gtest.h"
+#include "tools/modconv/stretch.h"
+
+using namespace PCSX::ModConv;
+
+namespace {
+
+// One pattern cell: sample number, period, effect, parameter.
+void setCell(std::vector<uint8_t>& p, unsigned channels, unsigned row, unsigned ch, unsigned smp, unsigned period,
+             unsigned fx, unsigned param) {
+    uint8_t* c = p.data() + (row * channels + ch) * 4;
+    c[0] = (smp & 0xf0) | (period >> 8);
+    c[1] = period & 0xff;
+    c[2] = ((smp & 0x0f) << 4) | fx;
+    c[3] = param;
+}
+
+unsigned cellPeriod(const std::vector<uint8_t>& p, unsigned channels, unsigned row, unsigned ch) {
+    const uint8_t* c = p.data() + (row * channels + ch) * 4;
+    return ((c[0] & 0x0f) << 8) | c[1];
+}
+
+uint8_t cellParam(const std::vector<uint8_t>& p, unsigned channels, unsigned row, unsigned ch) {
+    return p[(row * channels + ch) * 4 + 3];
+}
+
+}  // namespace
+
+// The 182-sample loop that rounding detunes by 128 cents.
+TEST(ModConvStretch, ChoosesWholeBlocksCloserThanRounding) {
+    std::vector<int> notes;
+    for (int n = 0; n < 24; n++) notes.push_back(n);
+    auto s = chooseStretch(182, 0, notes);
+    EXPECT_EQ(s.newLoopLength % 28, 0u);
+    EXPECT_GT(s.newLoopLength, 182u);
+    EXPECT_LE(s.newLoopLength, 364u);
+    EXPECT_GE(s.finetune, -8);
+    EXPECT_LE(s.finetune, 7);
+    EXPECT_EQ(s.offTable, 0u);
+    EXPECT_GT(s.roundedCents, 100.0);
+    // Periods are integers, about 4 cents apart at C-2: the transposed notes can't do much better.
+    EXPECT_LT(s.worstCents, 8.0);
+    // Check the reported error against the table directly, on the lowest note.
+    const double err = loopPitchError(periodFor(0, 0), 182, periodFor(s.semitones, s.finetune), s.newLoopLength);
+    EXPECT_LE(std::abs(err), s.worstCents + 1e-9);
+}
+
+// An existing finetune is part of the compensation.
+TEST(ModConvStretch, KeepsExistingFinetune) {
+    auto s = chooseStretch(182, -3, {12});
+    const double err = loopPitchError(periodFor(12, -3), 182, periodFor(12 + s.semitones, s.finetune), s.newLoopLength);
+    EXPECT_LT(std::abs(err), 8.0);
+    EXPECT_EQ(s.oldFinetune, -3);
+}
+
+// Notes near the top of the table limit how far the sample can be transposed.
+TEST(ModConvStretch, KeepsNotesOnTheTable) {
+    auto s = chooseStretch(182, 0, {33});
+    EXPECT_EQ(s.offTable, 0u);
+    EXPECT_LE(33 + s.semitones, c_maxNote);
+}
+
+// A sine with 7 periods in a 182-sample loop must come out as 7 periods in the new loop, including
+// across the wrap from the last sample of the loop to the first one.
+TEST(ModConvStretch, ResampledLoopIsSeamless) {
+    const unsigned loopStart = 100, loopLength = 182, newLoop = 252;
+    // Silence before the loop, so that only a loop read as periodic gets the first samples right.
+    std::vector<int16_t> source(loopStart + loopLength, 0);
+    for (unsigned i = loopStart; i < source.size(); i++) {
+        source[i] = int16_t(std::lround(16000 * std::sin(2 * M_PI * 7 * (double(i) - loopStart) / loopLength)));
+    }
+    unsigned newLoopStart;
+    auto out = resampleLoop(source, loopStart, loopLength, newLoop, newLoopStart);
+    EXPECT_EQ(newLoopStart % 2, 0u);
+    EXPECT_EQ(out.size(), newLoopStart + newLoop);
+    double worst = 0;
+    for (unsigned j = 0; j < newLoop; j++) {
+        const double expected = 16000 * std::sin(2 * M_PI * 7 * double(j) / newLoop);
+        worst = std::max(worst, std::abs(out[newLoopStart + j] - expected));
+    }
+    EXPECT_LT(worst, 40.0);
+    // The step across the wrap is a regular step of the sine.
+    const double wrapStep = out[newLoopStart] - out[newLoopStart + newLoop - 1];
+    const double expectedStep = 16000 * (std::sin(0.0) - std::sin(-2 * M_PI * 7 / newLoop));
+    EXPECT_NEAR(wrapStep, expectedStep, 40.0);
+}
+
+TEST(ModConvStretch, RewritesPatterns) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(channels * 256, 0);
+    const unsigned c2 = c_periodTable[12];
+    setCell(p, channels, 0, 0, 2, c2, 0x3, 0x10);                 // stretched sample, tone portamento
+    setCell(p, channels, 1, 0, 0, c2, 0x9, 0x10);                 // no sample number: still sample 2, 9xx
+    setCell(p, channels, 2, 0, 2, 0, 0xe, 0x53);                  // E5x on the stretched sample
+    setCell(p, channels, 3, 0, 0, c_periodTable[33], 0x1, 8);     // goes past the table, portamento up
+    setCell(p, channels, 4, 0, 0, c_periodTable[28], 0x0, 0x47);  // arpeggio
+    setCell(p, channels, 0, 1, 1, c2, 0x3, 0x10);                 // sample 1, not stretched
+    setCell(p, channels, 1, 1, 1, 0, 0xe, 0x53);                  // E5x on sample 1
+    const uint8_t orders[1] = {0};
+    auto map = mapCells(p, channels, orders, 1);
+    EXPECT_EQ(map.sample[(1 * channels) + 0], 2);
+    EXPECT_EQ(map.sample[(2 * channels) + 1], 1);
+
+    Stretch s;
+    s.loopLength = 182;
+    s.newLoopLength = 252;
+    s.semitones = 5;
+    s.finetune = 5;
+    s.oldFinetune = 0;
+    std::vector<std::optional<Stretch>> stretches(32);
+    stretches[2] = s;
+    auto warnings = rewritePatterns(p, map, stretches);
+
+    EXPECT_EQ(cellPeriod(p, channels, 0, 0), c_periodTable[17]);
+    EXPECT_EQ(cellParam(p, channels, 0, 0), 12);  // 0x10 / (252 / 182)
+    EXPECT_EQ(cellPeriod(p, channels, 1, 0), c_periodTable[17]);
+    EXPECT_EQ(cellParam(p, channels, 1, 0), 22);    // 0x10 * (252 / 182)
+    EXPECT_EQ(cellParam(p, channels, 2, 0), 0x57);  // 3 + 5 = 8 is past 7: clamped
+    EXPECT_EQ(cellPeriod(p, channels, 3, 0), c_periodTable[c_maxNote]);
+    EXPECT_EQ(cellParam(p, channels, 3, 0), 6);  // 8 / (252 / 182)
+    EXPECT_EQ(cellPeriod(p, channels, 0, 1), c2);
+    EXPECT_EQ(cellParam(p, channels, 0, 1), 0x10);
+    EXPECT_EQ(cellParam(p, channels, 1, 1), 0x53);
+
+    ASSERT_EQ(warnings.size(), 3u);
+    EXPECT_EQ(warnings[0], "sample 2: 1 notes transposed past the period table, clamped");
+    EXPECT_EQ(warnings[1], "sample 2: 1 arpeggios reach past the period table");
+    EXPECT_EQ(warnings[2], "sample 2: 1 E5x finetunes out of range after the shift, clamped");
+}
+
+// A pattern reached once with sample 1 and once with sample 2 current, at a cell without a sample.
+TEST(ModConvStretch, MapsConflicts) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(3 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 0, c_periodTable[12], 0, 0);        // pattern 0: note, no sample
+    setCell(p, channels, 64 + 0, 0, 1, c_periodTable[12], 0, 0);   // pattern 1: sample 1
+    setCell(p, channels, 64 + 1, 0, 0, 0, 0xd, 0x00);              // break
+    setCell(p, channels, 128 + 0, 0, 2, c_periodTable[12], 0, 0);  // pattern 2: sample 2
+    setCell(p, channels, 128 + 1, 0, 0, 0, 0xd, 0x00);             // break
+
+    const uint8_t once[2] = {1, 0};
+    auto map = mapCells(p, channels, once, 2);
+    EXPECT_EQ(map.sample[0], 1);
+    EXPECT_FALSE(map.conflict[0]);
+    // The rest of pattern 1 after the break is never reached.
+    EXPECT_EQ(map.sample[(64 + 2) * channels], 0);
+
+    const uint8_t twice[4] = {1, 0, 2, 0};
+    map = mapCells(p, channels, twice, 4);
+    EXPECT_EQ(map.sample[0], 1);
+    EXPECT_TRUE(map.conflict[0]);
+}

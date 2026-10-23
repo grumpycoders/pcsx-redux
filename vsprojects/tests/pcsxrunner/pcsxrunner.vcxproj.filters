@@ -132,6 +132,9 @@
     <ClCompile Include="..\..\..\tests\modconv-layout.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\modconv-stretch.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\spu\speed.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
