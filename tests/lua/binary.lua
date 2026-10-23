@@ -26,7 +26,8 @@ local function psexe(regionByte)
     ffi.copy(data, 'PS-X EXE', 8)
     local header = ffi.cast('uint32_t*', data)
     header[4] = 0x80010000 -- pc
-    header[6] = 0x80010000 -- text address
+    -- The loader writes the text at this offset in the destination file, so keep it small.
+    header[6] = 0 -- text address
     header[7] = 2048 -- text size
     if regionByte then data[0x71] = string.byte(regionByte) end
     local f = Support.File.buffer()
