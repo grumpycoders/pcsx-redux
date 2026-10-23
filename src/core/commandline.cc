@@ -88,6 +88,7 @@ constexpr Option c_options[] = {
     {"interpreter", Kind::Switch, "Use the interpreter."},
     {"openglgpu", Kind::Switch, "Use the OpenGL GPU renderer."},
     {"softgpu", Kind::Switch, "Use the software GPU renderer."},
+    {"wavdump", Kind::Value, "Write the SPU output to this WAV file."},
     {"softgputhreaded", Kind::Switch, "Run the software GPU renderer on a separate thread."},
     {"no-softgputhreaded", Kind::Switch, "Run the software GPU renderer on the emulation thread."},
 
