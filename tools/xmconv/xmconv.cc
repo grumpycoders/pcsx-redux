@@ -117,6 +117,38 @@ std::vector<int16_t> decimate(const std::vector<int16_t>& in) {
 }
 
 // The sample as the SPU will play it: rate shift applied, ping-pong loop unfolded into a forward loop.
+// Stretches a sample by `factor` (more samples, so lower pitch at the same playback rate) with a
+// Blackman-windowed sinc. Inside a loop, source positions wrap so the seam stays continuous.
+std::vector<int16_t> stretch(const std::vector<int16_t>& in, double factor, bool looped, unsigned loopStart,
+                             unsigned loopLength, size_t outLength) {
+    constexpr int taps = 8;
+    constexpr double pi = std::numbers::pi;
+    auto at = [&](ssize_t p) -> double {
+        if (looped && p >= ssize_t(loopStart + loopLength)) p = loopStart + (p - loopStart) % loopLength;
+        if (p < 0 || p >= ssize_t(in.size())) return 0.0;
+        return in[p];
+    };
+    std::vector<int16_t> out(outLength);
+    for (size_t o = 0; o < outLength; o++) {
+        double src = o / factor;
+        if (looped && src >= loopStart + loopLength) src = loopStart + std::fmod(src - loopStart, double(loopLength));
+        const ssize_t base = ssize_t(std::floor(src));
+        const double frac = src - base;
+        double acc = 0, wsum = 0;
+        for (int i = -taps + 1; i <= taps; i++) {
+            const double x = i - frac;
+            const double sinc = std::abs(x) < 1e-9 ? 1.0 : std::sin(pi * x) / (pi * x);
+            const double t = (x + taps) / (2.0 * taps);
+            const double window = (t <= 0 || t >= 1) ? 0.0 : 0.42 - 0.5 * std::cos(2 * pi * t) + 0.08 * std::cos(4 * pi * t);
+            const double w = sinc * window;
+            acc += at(base + i) * w;
+            wsum += w;
+        }
+        out[o] = int16_t(std::clamp(std::lround(wsum != 0 ? acc / wsum : acc), -32768l, 32767l));
+    }
+    return out;
+}
+
 struct Prepared {
     std::vector<int16_t> pcm;
     bool hasLoop = false;
@@ -487,6 +519,32 @@ static bool loadMOD(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned 
         m.instruments.push_back(std::move(ins));
     }
     m.numInstruments = 31;
+    // XM's Amiga periods run on 8363 * 1712 Hz (the NTSC Amiga clock, times 4), ProTracker modules are
+    // reference-rendered on the PAL clock, 0.92% lower. Stretch each sample by that ratio. For a looped
+    // sample the loop must stay a whole number of samples, so the stretch is the rounded loop length
+    // over the old one, and what that misses goes into the finetune, in the 1/16-semitone steps the
+    // Amiga table has.
+    constexpr double c_clockRatio = (3579545.0 * 4) / (7093789.2 * 2);
+    for (auto& s : m.samples) {
+        if (s.pcm.empty()) continue;
+        double factor = c_clockRatio;
+        unsigned loopStart = s.loopStart, loopLength = s.loopLength;
+        if (s.loopType) {
+            loopLength = std::max(1u, unsigned(std::lround(s.loopLength * c_clockRatio)));
+            factor = double(loopLength) / s.loopLength;
+            loopStart = unsigned(std::lround(s.loopStart * factor));
+        }
+        const size_t length = s.loopType ? loopStart + loopLength : size_t(std::lround(s.pcm.size() * factor));
+        s.pcm = stretch(s.pcm, factor, s.loopType != 0, s.loopStart, s.loopLength, length);
+        s.loopStart = loopStart;
+        s.loopLength = loopLength;
+        // positive cents: stretched more than the clock needs, so the sample plays low; raise the finetune
+        const double cents = 1200.0 * std::log2(factor / c_clockRatio);
+        int finetune = s.finetune + int(std::lround(cents / 6.25)) * 8;
+        while (finetune > 127) finetune -= 128, s.relnote++;
+        while (finetune < -128) finetune += 128, s.relnote--;
+        s.finetune = int8_t(finetune);
+    }
     fmt::print("Title:       {}\n", m.title);
     fmt::print("Tracker:     ProTracker-family MOD\n");
     fmt::print("Channels:    {}\n", channels);
