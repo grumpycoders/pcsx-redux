@@ -300,6 +300,8 @@ void PCSX::Debug::process(uint32_t oldPC, uint32_t newPC, uint32_t oldCode, uint
 bool PCSX::Debug::startReplay(uint64_t stopAt) {
     m_replay.emplace();
     m_replay->stopAt = stopAt;
+    // A COP0 break scheduled before the restore belongs to the timeline that was thrown away.
+    m_scheduledCop0.reset();
     auto& cpu = g_emulator->m_cpu;
     const uint32_t pc = cpu->m_regs.pc;
     replayBoundary(pc, cpu->readICache(pc));

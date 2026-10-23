@@ -347,7 +347,11 @@ size_t PCSX::Emulator::rewindSnapshotCount() const { return m_rewindRing->m_stat
 
 uint64_t PCSX::Emulator::rewindSnapshotCycle(size_t index) const { return m_rewindRing->m_states[index].cycle; }
 
-void PCSX::Emulator::restoreRewindSnapshot(size_t index) { SaveStates::restore(*m_rewindRing->m_states[index].state); }
+void PCSX::Emulator::restoreRewindSnapshot(size_t index) {
+    // A capture queued before the restore asked for a state that no longer exists.
+    m_rewindCapturePending = false;
+    SaveStates::restore(*m_rewindRing->m_states[index].state);
+}
 
 void PCSX::Emulator::dropRewindSnapshotsAfter(uint64_t cycle) {
     auto& ring = *m_rewindRing;
