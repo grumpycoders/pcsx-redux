@@ -536,8 +536,8 @@ void PCSX::GdbClient::processCommand() {
         } else {  // we may need one for 02 ? SIGINT
             write("S05");
         }
-    } else if (m_cmd == "D") {
-        // detach
+    } else if ((m_cmd == "D") || StringsHelpers::startsWith(m_cmd, "D;")) {
+        // detach, with a pid after the semicolon when multiprocess was negotiated
         write("OK");
         close();
     } else if (m_cmd == "qC") {
@@ -556,28 +556,24 @@ void PCSX::GdbClient::processCommand() {
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
     } else if (StringsHelpers::startsWith(m_cmd, "p")) {
-        if (m_cmd.size() != 3) {
+        // read one register: p<n>, with n in hex and no padding, so p4 as well as p25
+        auto [n, valid] = parseHexNumber(m_cmd.substr(1));
+        if ((m_cmd.length() < 2) || !valid || (n >= 72)) {
             write("E00");
-            close();
             return;
         }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
         write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
-        if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
+        // write one register: P<n>=<value>, same unpadded n, value in target byte order
+        auto equal = m_cmd.find('=');
+        if ((equal == std::string::npos) || (equal < 2) || (m_cmd.length() != equal + 9)) {
             write("E00");
-            close();
             return;
         }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
-        auto [value, valid] = parseHexNumber(m_cmd.substr(4));
-        if (!valid) {
+        auto [n, validN] = parseHexNumber(m_cmd.substr(1, equal - 1));
+        auto [value, validValue] = parseHexNumber(m_cmd.substr(equal + 1));
+        if (!validN || !validValue || (n >= 72)) {
             write("E00");
-            close();
             return;
         }
         setOneRegister(n, value);
