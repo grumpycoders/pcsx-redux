@@ -621,6 +621,9 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                                 if (i != j.end()) j.erase(i);
                             }
                             std::filesystem::path f = m_baseFilename;
+                            if (f.is_relative()) {
+                                f = g_system->getPersistentDir() / f;
+                            }
                             f.replace_extension("json");
                             std::ofstream out(f, std::ofstream::out);
                             out << std::setw(2) << j << std::endl;
