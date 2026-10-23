@@ -380,6 +380,16 @@ uint32_t PCSX::ISO9660Builder::computeDirExtentSize(const ISO9660::DirTree* dir)
     return total;
 }
 
+void PCSX::ISO9660Builder::checkDirExtentFits(const ISO9660::DirTree* dir) const {
+    uint32_t needed = computeDirExtentSize(dir);
+    if (needed > dir->m_dirSectorCount * 2048) {
+        std::string name = dir == m_root ? std::string("<root>") : dir->m_name;
+        throw std::runtime_error(
+            "ISO9660Builder: directory '" + name + "' needs " + std::to_string((needed + 2047) / 2048) +
+            " sectors for its entries but was created with " + std::to_string(dir->m_dirSectorCount));
+    }
+}
+
 uint32_t PCSX::ISO9660Builder::computePathTableSize() const {
     uint32_t size = 0;
     for (auto* dir : m_dirsInBFSOrder) {
@@ -474,13 +484,7 @@ void PCSX::ISO9660Builder::computeLayout() {
 
     // Directory extents in BFS order.
     for (auto* dir : m_dirsInBFSOrder) {
-        uint32_t needed = computeDirExtentSize(dir);
-        if (needed > dir->m_dirSectorCount * 2048) {
-            std::string name = dir == m_root ? std::string("<root>") : dir->m_name;
-            throw std::runtime_error(
-                "ISO9660Builder: directory '" + name + "' needs " + std::to_string((needed + 2047) / 2048) +
-                " sectors for its entries but was created with " + std::to_string(dir->m_dirSectorCount));
-        }
+        checkDirExtentFits(dir);
         applyAnchor(dir);
         dir->m_assignedLBA = currentSector;
         dir->m_computedSize = dir->m_dirSectorCount * 2048;
