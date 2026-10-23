@@ -324,6 +324,7 @@ struct PixelWriter;
 template <>
 struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
         const uint16_t l = rs.setMask16 | (color & 0x8000);
@@ -337,6 +338,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
     }
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         auto pdest = rs.pixelPair32(x, y);
         // Channels are extracted in packed-pair form: bits 0..4 of each
@@ -387,6 +389,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Solid> {
 template <>
 struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
@@ -437,6 +440,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
     }
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         auto pdest = rs.pixelPair32(x, y);
         const uint32_t l = rs.setMask32 | (color & 0x80008000);
@@ -535,6 +539,7 @@ struct PixelWriter<true, GPU::Shading::Flat, WriteMode::Default> {
 template <>
 struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color, int16_t m1, int16_t m2, int16_t m3) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
         int32_t r = Channel555::R::modulateNative(color, m1);
@@ -547,6 +552,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
     }
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color, int16_t m1, int16_t m2, int16_t m3) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         auto pdest = rs.pixelPair32(x, y);
         int32_t r = PackedPair555::modulateR(color, m1);
@@ -583,6 +589,7 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Solid> {
 template <>
 struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color, int16_t m1, int16_t m2, int16_t m3) {
+        if (rs.rowSkipped(y)) return;
         if (color == 0) return;
         uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
@@ -642,10 +649,12 @@ struct PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default> {
 template <GPU::Shading Shading>
 struct PixelWriter<false, Shading, WriteMode::Solid> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        if (rs.rowSkipped(y)) return;
         *rs.pixel16(x, y) = color | rs.setMask16;
     }
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        if (rs.rowSkipped(y)) return;
         *rs.pixelPair32(x, y) = color | rs.setMask32;
     }
 };
@@ -667,6 +676,7 @@ struct PixelWriter<false, Shading, WriteMode::Solid> {
 template <>
 struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
     static inline void scalar(const RasterState &rs, int x, int y, uint16_t color) {
+        if (rs.rowSkipped(y)) return;
         uint16_t *pdest = rs.pixel16(x, y);
         if (rs.checkMask && *pdest & 0x8000) return;
         if (rs.drawSemiTrans) {
@@ -713,6 +723,7 @@ struct PixelWriter<false, GPU::Shading::Flat, WriteMode::Default> {
     }
 
     static inline void packed(const RasterState &rs, int x, int y, uint32_t color) {
+        if (rs.rowSkipped(y)) return;
         auto pdest = rs.pixelPair32(x, y);
         if (rs.drawSemiTrans) {
             int32_t r, g, b;

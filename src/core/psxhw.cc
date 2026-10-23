@@ -311,7 +311,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             break;
         case 0x1f801814:
-            hard = PCSX::g_emulator->m_gpu->readStatus();
+            hard = PCSX::g_emulator->m_gpu->readStatusFromBus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             break;
 
