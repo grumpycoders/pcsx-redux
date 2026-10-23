@@ -49,7 +49,7 @@ class CDRom {
     static constexpr uint64_t c_defaultSeed = 9223521712174600777ull;
     // A save state written before the seed was saved restores it as 0.
     void defaultSeedIfMissing() {
-        if (m_seed == 0) m_seed = c_defaultSeed;
+        if (m_seed == 0) m_seed = m_powerOnSeed;
     }
     bool isLidOpen();
     void closeLid() {
@@ -115,6 +115,7 @@ class CDRom {
 
     // to save/init
     uint64_t m_seed = c_defaultSeed;
+    uint64_t m_powerOnSeed = c_defaultSeed;
     uint8_t m_dataFIFO[2352] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;

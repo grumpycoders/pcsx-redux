@@ -123,6 +123,7 @@ class CDRomImpl final : public PCSX::CDRom {
             std::random_device rd;
             m_seed = ((uint64_t(rd()) << 32) | rd()) | 1;
         }
+        m_powerOnSeed = m_seed;
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
         m_registerAddress = 0;
