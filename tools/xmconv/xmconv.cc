@@ -31,7 +31,7 @@
 #include "supportpsx/adpcm.h"
 #include "supportpsx/spu-sample-layout.h"
 
-// Converts a FastTracker 2 .xm module into the two files used by nugget's xmplayer: a song file with the
+// Converts a FastTracker 2 .xm module (or a .mod, read as the Amiga-period subset of XM) into the two files used by nugget's xmplayer: a song file with the
 // patterns, instruments and sample headers, and a sample file with the SPU ADPCM data to upload. The song
 // file format is described in xmplayer.h in nugget, and is written here field by field. Version 1.
 
@@ -148,44 +148,18 @@ Prepared prepare(const Sample& s) {
     return p;
 }
 
-}  // namespace
 
-int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
-    const auto samplesFile = args.get<std::string>("s");
+struct Module {
+    std::string title;
+    unsigned channels = 0, songLength = 0, restart = 0, numInstruments = 0, flags = 0, speed = 6, bpm = 125;
+    std::vector<uint8_t> orders;
+    std::vector<Pattern> patterns;
+    std::vector<Instrument> instruments;
+    std::vector<Sample> samples;
+};
 
-    fmt::print(R"(
-xmconv
-https://github.com/grumpycoders/pcsx-redux/tree/main/tools/xmconv/
-
-)");
-
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
-    const bool fit = args.get<bool>("f").value_or(false);
-    const auto amplification = args.get<unsigned>("a").value_or(224);
-    if (asksForHelp || inputs.size() != 1 || !output.has_value() || !samplesFile.has_value()) {
-        fmt::print(R"(
-Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
-  input.xm          mandatory: the input FastTracker 2 module
-  -o output.xmp     mandatory: the song file (patterns, instruments, sample headers)
-  -s output.smp     mandatory: the sample file, to upload to SPU memory
-  -a amp            optional: sample amplification in 1/256ths. Defaults to 224, which
-                    leaves headroom for ADPCM overshoot on full-scale samples.
-  -f                optional: if the samples don't fit in SPU memory, halve the
-                    sample rate of the largest samples until they do.
-  -h                displays this help information and exit.
-)",
-                   argv[0]);
-        return -1;
-    }
-
-    PCSX::IO<PCSX::File> file(new PCSX::PosixFile(inputs[0]));
-    if (file->failed()) {
-        fmt::print("Unable to open file: {}\n", inputs[0]);
-        return -1;
-    }
+// Reads a FastTracker 2 .xm module.
+static bool loadXM(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned amplification, Module& m) {
     const size_t fileSize = file->size();
     auto readString = [&](unsigned size) {
         auto slice = file->read(size);
@@ -197,8 +171,8 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
 
     // The signature ends with a space, which readString would trim.
     if (std::string_view(reinterpret_cast<const char*>(file->read(17).data()), 17) != "Extended Module: ") {
-        fmt::print("{} is not an XM file.\n", inputs[0]);
-        return -1;
+        fmt::print("{} is not an XM file.\n", name);
+        return false;
     }
     const std::string title = readString(20);
     file->skip<uint8_t>();
@@ -206,7 +180,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
     const unsigned version = file->read<uint16_t>();
     if (version != 0x0104) {
         fmt::print("XM version {:04x} is not supported, only 0104 is.\n", version);
-        return -1;
+        return false;
     }
     const unsigned headerSize = file->read<uint32_t>();
     const unsigned songLength = file->read<uint16_t>();
@@ -220,7 +194,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
     if (songLength == 0 || songLength > 256 || channels == 0 || channels > 32 || numPatterns > 256 ||
         numInstruments > 128) {
         fmt::print("Invalid XM header.\n");
-        return -1;
+        return false;
     }
     std::vector<uint8_t> orders(songLength);
     for (auto& o : orders) o = file->read<uint8_t>();
@@ -243,7 +217,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
         const unsigned packedSize = file->read<uint16_t>();
         if (pattern.rows == 0 || pattern.rows > 256) {
             fmt::print("Invalid pattern row count {}.\n", pattern.rows);
-            return -1;
+            return false;
         }
         file->rSeek(start + patternHeaderSize);
         pattern.cells.resize(pattern.rows * channels);
@@ -275,7 +249,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
     if (std::any_of(orders.begin(), orders.end(), [&](uint8_t o) { return o >= numPatterns; })) {
         if (numPatterns >= 256) {
             fmt::print("Orders point past a full pattern table.\n");
-            return -1;
+            return false;
         }
         for (auto& o : orders) {
             if (o >= numPatterns) o = numPatterns;
@@ -349,7 +323,7 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
         for (auto l : lengths) dataSize += l;
         if (dataSize > fileSize - size_t(file->rTell())) {
             fmt::print("Truncated XM file.\n");
-            return -1;
+            return false;
         }
         for (unsigned i = 0; i < numSamples; i++) {
             Sample& s = samples[ins.firstSample + i];
@@ -373,13 +347,205 @@ Usage: {} input.xm [-h] [-a amp] [-f] -o output.xmp -s output.smp
         }
         if (size_t(file->rTell()) > fileSize) {
             fmt::print("Truncated XM file.\n");
-            return -1;
+            return false;
         }
     }
     if (samples.size() > 254) {
         fmt::print("Too many samples ({}), the maximum is 254.\n", samples.size());
+        return false;
+    }
+    m.title = title;
+    m.channels = channels;
+    m.songLength = songLength;
+    m.restart = restart;
+    m.numInstruments = numInstruments;
+    m.flags = flags;
+    m.speed = speed;
+    m.bpm = bpm;
+    m.orders = std::move(orders);
+    m.patterns = std::move(patterns);
+    m.instruments = std::move(instruments);
+    m.samples = std::move(samples);
+    return true;
+}
+
+// ProTracker-family .mod files are read as the 4-channel (or N-channel) Amiga-period subset of XM: one
+// instrument per sample, no envelopes, the same effect numbers. Returns the channel count, or 0 if the
+// tag at offset 1080 is not one this reader knows (15-sample modules included).
+static unsigned modChannels(PCSX::IO<PCSX::File>& file) {
+    if (file->size() < 1084) return 0;
+    file->rSeek(1080);
+    auto slice = file->read(4);
+    file->rSeek(0);
+    const std::string tag(reinterpret_cast<const char*>(slice.data()), 4);
+    if (tag == "M.K." || tag == "M!K!" || tag == "FLT4" || tag == "4CHN") return 4;
+    if (tag == "FLT8" || tag == "OKTA" || tag == "CD81") return 8;
+    auto digit = [](char c) { return c >= '0' && c <= '9'; };
+    if (digit(tag[0]) && tag.substr(1) == "CHN") return tag[0] - '0';
+    if (digit(tag[0]) && digit(tag[1]) && (tag.substr(2) == "CH" || tag.substr(2) == "CN")) {
+        return (tag[0] - '0') * 10 + (tag[1] - '0');
+    }
+    return 0;
+}
+
+static bool loadMOD(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned amplification, Module& m) {
+    const unsigned channels = modChannels(file);
+    if (channels == 0 || channels > 32) {
+        fmt::print("{}: unsupported module.\n", name);
+        return false;
+    }
+    auto readString = [&](unsigned size) {
+        auto slice = file->read(size);
+        std::string s(reinterpret_cast<const char*>(slice.data()), slice.size());
+        s.resize(strnlen(s.c_str(), size));
+        while (!s.empty() && s.back() == ' ') s.pop_back();
+        return s;
+    };
+    auto readBE16 = [&]() {
+        unsigned hi = file->read<uint8_t>();
+        return (hi << 8) | file->read<uint8_t>();
+    };
+    m.title = readString(20);
+    m.channels = channels;
+    m.flags = 0;  // Amiga periods
+    m.speed = 6;
+    m.bpm = 125;
+    std::vector<unsigned> lengths(31);
+    for (unsigned i = 0; i < 31; i++) {
+        Sample s;
+        s.name = readString(22);
+        lengths[i] = readBE16() * 2;
+        const int ft = file->read<uint8_t>() & 15;
+        s.finetune = int8_t((ft >= 8 ? ft - 16 : ft) * 16);  // ProTracker finetune is 1/8 semitone
+        s.volume = std::min<uint8_t>(64, file->read<uint8_t>());
+        s.loopStart = readBE16() * 2;
+        s.loopLength = readBE16() * 2;
+        s.loopType = s.loopLength > 2 ? 1 : 0;
+        m.samples.push_back(std::move(s));
+    }
+    m.songLength = file->read<uint8_t>();
+    const unsigned restart = file->read<uint8_t>();
+    m.restart = restart < m.songLength ? restart : 0;
+    if (m.songLength == 0 || m.songLength > 128) {
+        fmt::print("Invalid MOD song length {}.\n", m.songLength);
+        return false;
+    }
+    std::vector<uint8_t> orders(128);
+    unsigned numPatterns = 0;
+    for (auto& o : orders) {
+        o = file->read<uint8_t>();
+        numPatterns = std::max(numPatterns, o + 1u);
+    }
+    orders.resize(m.songLength);
+    m.orders = std::move(orders);
+    file->skip(4);  // the tag
+
+    // Periods to XM notes, at finetune 0: ProTracker period times 4 against the Amiga table the player uses.
+    static const uint16_t c_octave3[12] = {3424, 3232, 3048, 2880, 2712, 2560, 2416, 2280, 2152, 2032, 1920, 1812};
+    auto periodToNote = [](unsigned period) -> uint8_t {
+        if (period == 0) return 0;
+        const unsigned p = period * 4;
+        unsigned best = 0, bestDiff = ~0u;
+        for (unsigned n = 0; n < 96; n++) {
+            const unsigned octave = n / 12;
+            const unsigned v = octave >= 3 ? c_octave3[n % 12] >> (octave - 3) : c_octave3[n % 12] << (3 - octave);
+            const unsigned d = v > p ? v - p : p - v;
+            if (d < bestDiff) bestDiff = d, best = n;
+        }
+        return best + 1;
+    };
+    m.patterns.resize(numPatterns);
+    for (auto& pattern : m.patterns) {
+        pattern.rows = 64;
+        pattern.cells.resize(64 * channels);
+        for (auto& c : pattern.cells) {
+            const uint8_t b0 = file->read<uint8_t>(), b1 = file->read<uint8_t>();
+            const uint8_t b2 = file->read<uint8_t>(), b3 = file->read<uint8_t>();
+            c.instrument = (b0 & 0xf0) | (b2 >> 4);
+            c.note = periodToNote(((b0 & 0x0f) << 8) | b1);
+            c.effect = b2 & 0x0f;
+            c.param = b3;
+            if (c.instrument > 31) c.instrument = 0;
+            // ProTracker has no effect memory for these; FT2 would reuse the last parameter on 00.
+            if (c.param == 0 && (c.effect == 1 || c.effect == 2 || c.effect == 10)) c.effect = 0;
+            if (c.param == 0 && c.effect == 5) c.effect = 3;
+            if (c.param == 0 && c.effect == 6) c.effect = 4;
+        }
+    }
+    for (unsigned i = 0; i < 31; i++) {
+        Sample& s = m.samples[i];
+        s.pcm.resize(lengths[i]);
+        for (auto& v : s.pcm) v = int16_t(file->read<int8_t>()) * 256;
+        for (auto& v : s.pcm) v = int16_t(std::clamp(int32_t(v) * int32_t(amplification) / 256, -32768, 32767));
+        if (s.loopStart >= s.pcm.size()) s.loopType = 0;
+        if (s.loopType) s.loopLength = std::min<unsigned>(s.loopLength, s.pcm.size() - s.loopStart);
+        Instrument ins;
+        ins.name = s.name;
+        ins.firstSample = i;
+        ins.numSamples = 1;
+        std::fill(std::begin(ins.keymap), std::end(ins.keymap), uint8_t(i));
+        m.instruments.push_back(std::move(ins));
+    }
+    m.numInstruments = 31;
+    fmt::print("Title:       {}\n", m.title);
+    fmt::print("Tracker:     ProTracker-family MOD\n");
+    fmt::print("Channels:    {}\n", channels);
+    fmt::print("Positions:   {}\n", m.songLength);
+    fmt::print("Patterns:    {}\n", numPatterns);
+    fmt::print("Frequencies: amiga\n");
+    return true;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    CommandLine::args args(argc, argv);
+    const auto output = args.get<std::string>("o");
+    const auto samplesFile = args.get<std::string>("s");
+
+    fmt::print(R"(
+xmconv
+https://github.com/grumpycoders/pcsx-redux/tree/main/tools/xmconv/
+
+)");
+
+    const auto inputs = args.positional();
+    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const bool fit = args.get<bool>("f").value_or(false);
+    const auto amplification = args.get<unsigned>("a").value_or(224);
+    if (asksForHelp || inputs.size() != 1 || !output.has_value() || !samplesFile.has_value()) {
+        fmt::print(R"(
+Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
+  input.xm          mandatory: the input FastTracker 2 module, or a ProTracker-family .mod,
+                    which plays with FastTracker 2 effect semantics
+  -o output.xmp     mandatory: the song file (patterns, instruments, sample headers)
+  -s output.smp     mandatory: the sample file, to upload to SPU memory
+  -a amp            optional: sample amplification in 1/256ths. Defaults to 224, which
+                    leaves headroom for ADPCM overshoot on full-scale samples.
+  -f                optional: if the samples don't fit in SPU memory, halve the
+                    sample rate of the largest samples until they do.
+  -h                displays this help information and exit.
+)",
+                   argv[0]);
         return -1;
     }
+
+    PCSX::IO<PCSX::File> file(new PCSX::PosixFile(inputs[0]));
+    if (file->failed()) {
+        fmt::print("Unable to open file: {}\n", inputs[0]);
+        return -1;
+    }
+    Module m;
+    if (!(modChannels(file) ? loadMOD(file, inputs[0], amplification, m) : loadXM(file, inputs[0], amplification, m))) {
+        return -1;
+    }
+    const std::string& title = m.title;
+    const unsigned channels = m.channels, songLength = m.songLength, restart = m.restart;
+    const unsigned numInstruments = m.numInstruments, flags = m.flags, speed = m.speed, bpm = m.bpm;
+    auto& orders = m.orders;
+    auto& patterns = m.patterns;
+    auto& instruments = m.instruments;
+    auto& samples = m.samples;
 
     // Channels that never carry anything are dropped, and the rest are packed down.
     std::vector<bool> used(channels, false);
