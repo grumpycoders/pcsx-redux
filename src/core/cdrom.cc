@@ -836,11 +836,9 @@ class CDRomImpl final : public PCSX::CDRom {
 
     enum class SeekType { DATA, CDDA };
 
+    // The off-disc and data-into-audio cases are error timeouts and stay fixed; only a seek that
+    // reaches its target gets jitter.
     std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading = false) {
-        return jitter(baseSeekDelay(from, to, seekType, forReading), 10);
-    }
-
-    std::chrono::nanoseconds baseSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading) {
         unsigned destTrack = m_iso->getTrack(to);
         if (destTrack == 0) return 650ms;
         if ((seekType == SeekType::DATA) && (m_iso->getTrackType(destTrack) == PCSX::CDRIso::TrackType::CDDA)) {
@@ -854,7 +852,7 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         // TODO: ought to be a decent approximation for now,
         // but may require some tuning later on.
-        return std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms);
+        return jitter(std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms), 10);
     }
 
     std::chrono::nanoseconds computeReadDelay() {
