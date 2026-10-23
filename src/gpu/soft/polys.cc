@@ -657,16 +657,21 @@ void PCSX::SoftGPU::SoftRenderer::drawPoly3Raster(int16_t x1, int16_t y1, int16_
                     if constexpr (HasUV) {
                         const uint16_t sampled = Sampler<Tex>::scalar(rs, yAdj, posX, posY);
                         if (m_ditherMode) {
-                            getTextureTransColShadeDither<useCachedDither>(&vram16[(i << 10) + j], sampled, (cB1 >> 16),
-                                                                           (cG1 >> 16), (cR1 >> 16));
+                            // The dither writers take a pointer, not a row: gate them here.
+                            if (!rs.rowSkipped(i)) {
+                                getTextureTransColShadeDither<useCachedDither>(&vram16[(i << 10) + j], sampled,
+                                                                               (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
+                            }
                         } else {
                             PixelWriter<true, GPU::Shading::Gouraud, WriteMode::Default>::scalar(
                                 rs, j, i, sampled, (cB1 >> 16), (cG1 >> 16), (cR1 >> 16));
                         }
                     } else {
                         if (m_ditherMode) {
-                            getShadeTransColDither<useCachedDither>(&vram16[(i << 10) + j], (cB1 >> 16), (cG1 >> 16),
-                                                                    (cR1 >> 16));
+                            if (!rs.rowSkipped(i)) {
+                                getShadeTransColDither<useCachedDither>(&vram16[(i << 10) + j], (cB1 >> 16),
+                                                                        (cG1 >> 16), (cR1 >> 16));
+                            }
                         } else {
                             PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(
                                 rs, j, i, PCSX::SoftGPU::Channel555::fromHighAlignedRGB(cR1, cG1, cB1));
