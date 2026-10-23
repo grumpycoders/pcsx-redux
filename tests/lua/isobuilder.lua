@@ -685,7 +685,7 @@ function TestIsoBuilder:test_directoryTooSmallIsAnError()
     local builder = buildManyFiles(1, 60)
     local ok, err = pcall(builder.close, builder)
     lu.assertFalse(ok)
-    lu.assertStrContains(tostring(err), 'directory')
+    lu.assertStrContains(tostring(err), 'needs 2 sectors for its entries but was created with 1')
 end
 
 function TestIsoBuilder:test_directoryLargeEnoughLists()
