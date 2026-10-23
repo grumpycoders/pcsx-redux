@@ -83,7 +83,7 @@ class SPULogger {
     // can snapshot the register file it is about to change.
     void logRegWrite(uint32_t reg, uint16_t value, const uint16_t *registers) {
         if (!m_enabled) return;
-        if (m_seen == 0) captureBaseline(registers);
+        if (!m_baselineValid) captureBaseline(registers);
         logInternal(Kind::RegWrite, reg, 0, value, c_noVoice);
     }
 

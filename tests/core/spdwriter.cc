@@ -34,7 +34,7 @@ struct Packet {
     std::vector<uint32_t> payload;
 };
 
-std::vector<Packet> parse(const std::vector<uint8_t> &data) {
+std::vector<Packet> parse(const std::vector<uint8_t>& data) {
     std::vector<Packet> packets;
     EXPECT_GE(data.size(), 16u);
     EXPECT_EQ(memcmp(data.data(), "PSXSPUDUMPv1r1\0\0", 16), 0);
@@ -58,15 +58,15 @@ std::vector<Packet> parse(const std::vector<uint8_t> &data) {
     return packets;
 }
 
-const Packet *find(const std::vector<Packet> &packets, uint8_t type) {
-    for (auto &p : packets) {
+const Packet* find(const std::vector<Packet>& packets, uint8_t type) {
+    for (auto& p : packets) {
         if (p.type == type) return &p;
     }
     return nullptr;
 }
 
 // Index of the first packet after the trace begin marker.
-size_t liveStart(const std::vector<Packet> &packets) {
+size_t liveStart(const std::vector<Packet>& packets) {
     for (size_t i = 0; i < packets.size(); i++) {
         if (packets[i].type == 0x04) return i + 1;
     }
@@ -93,7 +93,7 @@ struct Fixture {
         }
     }
 
-    PCSX::SPD::Result write(const std::vector<RegWrite> &writes) {
+    PCSX::SPD::Result write(const std::vector<RegWrite>& writes) {
         return PCSX::SPD::writeCapture(baseline, writes, ram.data(), options);
     }
 };
@@ -113,17 +113,17 @@ TEST(SPDWriter, HeaderAndStructure) {
     ASSERT_TRUE(result.error.empty());
     auto packets = parse(result.data);
 
-    auto *rate = find(packets, 0x30);
+    auto* rate = find(packets, 0x30);
     ASSERT_NE(rate, nullptr);
     EXPECT_EQ(rate->payload, std::vector<uint32_t>{100 << 16});
 
     // spdplayer only starts a stream reachable from an order table, so a capture carries one
     // non-looping order pointing at a single pattern.
-    auto *order = find(packets, 0x10);
+    auto* order = find(packets, 0x10);
     ASSERT_NE(order, nullptr);
     EXPECT_EQ(order->payload, (std::vector<uint32_t>{0, 0, 0}));
 
-    auto *header = find(packets, 0x11);
+    auto* header = find(packets, 0x11);
     ASSERT_NE(header, nullptr);
     ASSERT_EQ(header->payload.size(), 1u);
     // The offset lands exactly on the first packet after the pattern header.
@@ -146,7 +146,7 @@ TEST(SPDWriter, BaselineSkipsEdgeTriggeredAndReadOnlyRegisters) {
     auto packets = parse(result.data);
     size_t live = liveStart(packets);
     ASSERT_GE(live, 2u);
-    auto &restore = packets[live - 2];
+    auto& restore = packets[live - 2];
     ASSERT_EQ(restore.type, 0x00);
 
     std::array<int, 0x100> seen{};
@@ -209,6 +209,21 @@ TEST(SPDWriter, TicksDoNotAccumulateRoundingError) {
     EXPECT_EQ(waited, 20u);
 }
 
+TEST(SPDWriter, CycleStampsGoingBackwardsKeepOrder) {
+    Fixture f;
+    // A guest call restores the cycle counter, so a later write can carry an earlier stamp.
+    auto result =
+        f.write({{50000, 0x180, 1}, {80000, 0x180, 2}, {60000, 0x180, 3}, {40000, 0x180, 4}, {100000, 0x180, 5}});
+    ASSERT_TRUE(result.error.empty());
+    EXPECT_EQ(result.ticks, 5u);
+    auto packets = parse(result.data);
+    size_t live = liveStart(packets);
+    ASSERT_EQ(packets.size(), live + 4);
+    EXPECT_EQ(packets[live].payload, (std::vector<uint32_t>{0x01800001, 0xefff0003}));
+    EXPECT_EQ(packets[live + 1].payload, (std::vector<uint32_t>{0x01800002, 0x01800003, 0x01800004, 0xefff0002}));
+    EXPECT_EQ(packets[live + 2].payload, (std::vector<uint32_t>{0x01800005}));
+}
+
 TEST(SPDWriter, LongWaitsAreChunked) {
     Fixture f;
     // 70000 ticks.
@@ -235,7 +250,7 @@ TEST(SPDWriter, SampleDataCoversKeyedVoicesOnly) {
     EXPECT_EQ(result.sampleBase, 0x2000u);
     EXPECT_EQ(result.sampleSize, 0x1020u);
     auto packets = parse(result.data);
-    auto *data = find(packets, 0x21);
+    auto* data = find(packets, 0x21);
     ASSERT_NE(data, nullptr);
     EXPECT_EQ(data->payload[0], 0x2000u >> 3);
     ASSERT_EQ(data->payload.size(), 1 + 0x1020u / 4);
