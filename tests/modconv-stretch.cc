@@ -75,7 +75,7 @@ TEST(ModConvStretch, ResampledLoopIsSeamless) {
     // Silence before the loop, so that only a loop read as periodic gets the first samples right.
     std::vector<int16_t> source(loopStart + loopLength, 0);
     for (unsigned i = loopStart; i < source.size(); i++) {
-        source[i] = int16_t(std::lround(16000 * std::sin(2 * M_PI * 7 * (double(i) - loopStart) / loopLength)));
+        source[i] = int16_t(std::lround(16000 * std::sin(2 * c_pi * 7 * (double(i) - loopStart) / loopLength)));
     }
     unsigned newLoopStart;
     auto out = resampleLoop(source, loopStart, loopLength, newLoop, newLoopStart);
@@ -83,13 +83,13 @@ TEST(ModConvStretch, ResampledLoopIsSeamless) {
     EXPECT_EQ(out.size(), newLoopStart + newLoop);
     double worst = 0;
     for (unsigned j = 0; j < newLoop; j++) {
-        const double expected = 16000 * std::sin(2 * M_PI * 7 * double(j) / newLoop);
+        const double expected = 16000 * std::sin(2 * c_pi * 7 * double(j) / newLoop);
         worst = std::max(worst, std::abs(out[newLoopStart + j] - expected));
     }
     EXPECT_LT(worst, 40.0);
     // The step across the wrap is a regular step of the sine.
     const double wrapStep = out[newLoopStart] - out[newLoopStart + newLoop - 1];
-    const double expectedStep = 16000 * (std::sin(0.0) - std::sin(-2 * M_PI * 7 / newLoop));
+    const double expectedStep = 16000 * (std::sin(0.0) - std::sin(-2 * c_pi * 7 / newLoop));
     EXPECT_NEAR(wrapStep, expectedStep, 40.0);
 }
 
@@ -157,4 +157,21 @@ TEST(ModConvStretch, MapsConflicts) {
     map = mapCells(p, channels, twice, 4);
     EXPECT_EQ(map.sample[0], 1);
     EXPECT_TRUE(map.conflict[0]);
+}
+
+// Bxx skips a pattern that would otherwise switch the channel to another sample, and the song loops
+// back to the start with B00, which has to end the walk.
+TEST(ModConvStretch, MapsFollowBxx) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(3 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 1, c_periodTable[12], 0xb, 0x02);   // pattern 0: sample 1, jump to position 2
+    setCell(p, channels, 64 + 0, 0, 2, c_periodTable[12], 0, 0);   // pattern 1: sample 2, skipped
+    setCell(p, channels, 128 + 0, 0, 0, c_periodTable[12], 0, 0);  // pattern 2: note, no sample
+    setCell(p, channels, 128 + 1, 0, 0, 0, 0xb, 0x00);             // back to position 0
+
+    const uint8_t orders[3] = {0, 1, 2};
+    auto map = mapCells(p, channels, orders, 3);
+    EXPECT_EQ(map.sample[128 * channels], 1);
+    EXPECT_FALSE(map.conflict[128 * channels]);
+    EXPECT_EQ(map.sample[64 * channels], 0);
 }

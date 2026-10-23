@@ -23,13 +23,18 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "fmt/format.h"
 
 namespace PCSX {
 namespace ModConv {
+
+// M_PI needs _USE_MATH_DEFINES on MSVC.
+constexpr double c_pi = 3.14159265358979323846;
 
 // Stretching a looped sample: the SPU loops on whole 28-sample blocks, so instead of rounding a loop
 // period of L samples, the whole sample is resampled by L' / L, where L' is a multiple of 28. The
@@ -207,7 +212,7 @@ inline std::vector<int16_t> resampleLoop(const std::vector<int16_t>& source, uns
         if (std::abs(d) >= halfTaps) return 0.0;
         const double w = i0(beta * std::sqrt(1.0 - (d / halfTaps) * (d / halfTaps))) / i0beta;
         if (d == 0) return w;
-        const double x = M_PI * d;
+        const double x = c_pi * d;
         return w * std::sin(x) / x;
     };
     // Inside the loop, the source is read as the loop repeating forever in both directions.
@@ -235,8 +240,9 @@ inline std::vector<int16_t> resampleLoop(const std::vector<int16_t>& source, uns
 
 // Which sample each pattern cell plays with, following the order table the way the player does: a
 // cell with a sample number switches the channel to it, a cell without one keeps the channel's
-// current sample. Dxx and Bxx end the pattern; Dxx starts the next one at its row. Bxx jumps are not
-// followed, every position is walked once in order. Cells never reached stay at 0.
+// current sample. Dxx and Bxx end the pattern: Bxx goes to the position it names, Dxx starts the
+// next pattern at its row. The walk ends when it reaches a position and row it has already been at
+// with the same samples current, or runs off the order table. Cells never reached stay at 0.
 struct CellMap {
     std::vector<uint8_t> sample;  // per cell: 0 = not played, 1-31 = sample number
     std::vector<bool> conflict;   // the cell is reached with two different samples
@@ -249,13 +255,12 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
     map.sample.assign(patternCount * 64 * channels, 0);
     map.conflict.assign(map.sample.size(), false);
     std::vector<uint8_t> current(channels, 0);
-    unsigned startRow = 0;
-    for (unsigned pos = 0; pos < positions; pos++) {
+    std::set<std::tuple<unsigned, unsigned, std::vector<uint8_t>>> visited;
+    unsigned pos = 0, startRow = 0;
+    while ((pos < positions) && visited.emplace(pos, startRow, current).second) {
         const unsigned pattern = orders[pos];
-        if (pattern >= patternCount) continue;
-        unsigned row = startRow;
-        startRow = 0;
-        for (; row < 64; row++) {
+        unsigned nextPos = pos + 1, nextRow = 0;
+        for (unsigned row = startRow; (pattern < patternCount) && (row < 64); row++) {
             bool breakPattern = false;
             for (unsigned ch = 0; ch < channels; ch++) {
                 const unsigned cell = (pattern * 64 + row) * channels + ch;
@@ -272,13 +277,16 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
                 const unsigned fx = c[2] & 0x0f;
                 if (fx == 0xd) {
                     breakPattern = true;
-                    startRow = std::min(63u, unsigned(c[3] >> 4) * 10 + (c[3] & 0x0f));
+                    nextRow = std::min(63u, unsigned(c[3] >> 4) * 10 + (c[3] & 0x0f));
                 } else if (fx == 0xb) {
                     breakPattern = true;
+                    nextPos = c[3];
                 }
             }
             if (breakPattern) break;
         }
+        pos = nextPos;
+        startRow = nextRow;
     }
     return map;
 }
