@@ -206,7 +206,12 @@ play it at the same pitch.
                 notesUsed[i + 1]);
             const auto& st = *stretches[i + 1];
             const unsigned newLoopStart = unsigned(std::lround(layout.loopStart * st.ratio() / 2.0)) * 2;
-            if (st.worstCents >= st.roundedCents) {
+            if (st.offTable != 0) {
+                // Those notes would be clamped to the top of the table and play flat.
+                stretchReport += fmt::format(
+                    "  Sample {:2}: {} notes would transpose past the table, rounded instead\n", i + 1, st.offTable);
+                stretches[i + 1].reset();
+            } else if (st.worstCents >= st.roundedCents) {
                 stretchReport += fmt::format("  Sample {:2}: rounding is as close, not stretched\n", i + 1);
                 stretches[i + 1].reset();
             } else if (PCSX::ModConv::computeLayout((newLoopStart + st.newLoopLength) / 2, newLoopStart / 2,
