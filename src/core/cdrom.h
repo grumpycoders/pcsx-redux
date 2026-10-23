@@ -29,11 +29,14 @@
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 #include "core/system.h"
 #include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
+
+namespace SaveStates {
+struct Access;
+}
 
 namespace Widgets {
 class IsoBrowser;
@@ -104,7 +107,7 @@ class CDRom {
 
   protected:
     std::shared_ptr<CDRIso> m_iso;
-    friend SaveStates::SaveState SaveStates::constructSaveState();
+    friend struct SaveStates::Access;
 
     bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
 

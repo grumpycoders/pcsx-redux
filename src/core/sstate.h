@@ -405,6 +405,13 @@ typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Reg
 
 SaveState constructSaveState();
 
+// The classes whose private state the save state reads befriend this instead of
+// constructSaveState() itself, so their headers only need a forward declaration of it
+// rather than this whole schema.
+struct Access {
+    static SaveState constructSaveState();
+};
+
 std::string save();
 // Replaces the emulator state right now. Only safe with nothing of the
 // emulation left on the stack; use loadSafe() from anywhere else.
