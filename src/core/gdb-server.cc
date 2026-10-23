@@ -162,17 +162,21 @@ void PCSX::GdbClient::startReverse(bool isContinue) {
         write("E02");
         return;
     }
-    if (emuSettings.get<Emulator::SettingRewindInterval>().value == 0) {
-        g_system->printf(_("GDB server: reverse execution replays from the rewind ring, which is off (RewindInterval is 0)\n"));
-        write("E01");
-        return;
-    }
     if (g_system->running()) g_system->pause();
     const uint64_t now = g_emulator->m_cpu->m_regs.cycle;
     size_t snapshot = g_emulator->rewindSnapshotCount();
     while ((snapshot > 0) && (g_emulator->rewindSnapshotCycle(snapshot - 1) >= now)) snapshot--;
     if (snapshot == 0) {
-        write("T05replaylog:begin;");
+        // Snapshots taken by hand (Lua's createRewindState()) are enough; with an empty ring that
+        // isn't capturing, there will never be a past to go back to.
+        if ((g_emulator->rewindSnapshotCount() == 0) &&
+            (emuSettings.get<Emulator::SettingRewindInterval>().value == 0)) {
+            g_system->printf(
+                _("GDB server: reverse execution replays from the rewind ring, which is off (RewindInterval is 0)\n"));
+            write("E01");
+        } else {
+            write("T05replaylog:begin;");
+        }
         return;
     }
     snapshot--;
