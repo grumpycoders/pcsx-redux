@@ -54,9 +54,7 @@ class IsoBrowser {
           m_openReplaceFileDialog(l_("Replace File"), favorites),
           m_monoFont(monoFont),
           m_sendToDalos(sendToDalos) {}
-    ~IsoBrowser() {
-        m_hexEditors.destroyAll();
-    }
+    ~IsoBrowser() { m_hexEditors.destroyAll(); }
     void draw(CDRom* cdrom, const char* title);
 
     bool& m_show;
