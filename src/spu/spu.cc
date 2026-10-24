@@ -589,6 +589,41 @@ void PCSX::SPU::impl::MainThread() {
     threadEnded = 1;
 }
 
+// MainThread's loop, run on the caller's thread for a fixed number of samples, with the output
+// handed to the caller instead of the audio device.
+void PCSX::SPU::impl::mixSynchronous(int16_t *out, size_t frames) {
+    const uint64_t target = m_mixPos + frames;
+    while (m_mixPos < target) {
+        applyDueEvents();
+        uint64_t n = std::min<uint64_t>(NSSIZE, target - m_mixPos);
+        const uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
+        if (applied != m_eventsPushed.load(std::memory_order_acquire)) {
+            // End the chunk where the next queued write comes due.
+            const uint64_t next = m_events[applied & (kEventQueueSize - 1)].sample;
+            n = next > m_mixPos ? std::min(n, next - m_mixPos) : 0;
+        }
+        if (n == 0) continue;
+
+        mixChunk(static_cast<int>(n));
+        m_mixPos += n;
+
+        const size_t values = pS - reinterpret_cast<int16_t *>(spuBuffer);
+        memcpy(out, spuBuffer, values * sizeof(int16_t));
+        out += values;
+        pS = (int16_t *)spuBuffer;
+    }
+    m_mixedSamples.store(m_mixPos);
+    // The CPU side is now at the last sample mixed, so a write the host makes next lands on the
+    // next sample, and a host that mixes more than a second between two writes is not mistaken
+    // for a forward jump (publishHorizon).
+    if (m_mixPos == 0) return;
+    const uint64_t cycle = sampleToCycle(m_mixPos - 1);
+    if (cycle > m_lastHorizon) {
+        m_lastHorizon = cycle;
+        m_horizonCycle.store(cycle);
+    }
+}
+
 bool PCSX::SPU::impl::flushOutput() {
     const size_t frames = (reinterpret_cast<uint8_t *>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
     if (frames == 0) return true;
@@ -806,15 +841,19 @@ void PCSX::SPU::impl::wipeChannels() {
     m_reverb.reset();
 }
 
-// Initialization of certain buffers and of the mixing thread.
-void PCSX::SPU::impl::SetupThread() {
-    // Initialize the mixing buffers.
+// Initialization of the mixing buffers.
+void PCSX::SPU::impl::SetupMixBuffers() {
     memset(SSumR, 0, NSSIZE * sizeof(int));
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(fmodInput, 0, NSSIZE * sizeof(int));
 
     // Set up the sound buffer pointer.
     pS = (int16_t *)spuBuffer;
+}
+
+// Initialization of certain buffers and of the mixing thread.
+void PCSX::SPU::impl::SetupThread() {
+    SetupMixBuffers();
 
     // Initialize the thread variables.
     endThread = 0;
@@ -889,7 +928,12 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 }
 
 // Called by the main emulator after init.
-bool PCSX::SPU::impl::open() {
+bool PCSX::SPU::impl::open() { return openWith(true); }
+
+// Called by a host that mixes on its own thread, instead of open().
+bool PCSX::SPU::impl::openSynchronous() { return openWith(false); }
+
+bool PCSX::SPU::impl::openWith(bool startThread) {
     // Guard against a redundant open.
     if (spuIsOpen) return true;
 
@@ -922,8 +966,12 @@ bool PCSX::SPU::impl::open() {
     // Prepare streaming.
     SetupStreams();
 
-    // Start the thread that feeds data.
-    SetupThread();
+    if (startThread) {
+        // Start the thread that feeds data.
+        SetupThread();
+    } else {
+        SetupMixBuffers();
+    }
 
     spuIsOpen = 1;
 
@@ -941,8 +989,8 @@ long PCSX::SPU::impl::close(void) {
 
     spuIsOpen = 0;
 
-    // No more feeding.
-    RemoveThread();
+    // No more feeding. There is no thread to stop after openSynchronous().
+    if (m_mixerRunning.load()) RemoveThread();
     // No more streaming.
     RemoveStreams();
 

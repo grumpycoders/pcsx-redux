@@ -40,6 +40,8 @@ uint64_t readerCycle() { return PCSX::g_emulator->m_cpu->m_regs.cycle; }
 
 uint64_t PCSX::SPU::impl::cycleToSample(uint64_t cycle) const { return cycle / cyclesPerSample(); }
 
+uint64_t PCSX::SPU::impl::sampleToCycle(uint64_t sample) const { return sample * cyclesPerSample(); }
+
 // Evaluate voice `ch`'s envelope at `cycle` by stepping a COPY forward from the
 // key-on checkpoint. The mixer's own adsr.step() in synthesizeVoice is untouched;
 // this is a second, read-only walk that happens to use the same arithmetic.
