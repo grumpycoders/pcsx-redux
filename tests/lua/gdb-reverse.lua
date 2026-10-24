@@ -145,6 +145,26 @@ function TestGdbReverse:test_reverse_continue()
     lu.assertEquals(command('z0,' .. string.format('%08x', CODE + 4) .. ',4'), 'OK')
 end
 
+function TestGdbReverse:test_reverse_continue_drops_cop0_break()
+    local bp = string.format('%08x', CODE + 4)
+    lu.assertEquals(command('Z0,' .. bp .. ',4'), 'OK')
+    lu.assertEquals(command('c'), 'T05')
+    local hit = command('g')
+    -- A COP0 execution breakpoint armed after the snapshot, which the replay never meets. The
+    -- step that lands on CODE + 8 leaves the break scheduled for the next instruction; taken
+    -- while replaying, it would send the replay to the exception vector before it reaches the
+    -- hit on CODE + 4.
+    local cp0 = PCSX.getRegisters().CP0.r
+    cp0[3] = CODE + 8 -- BPC
+    cp0[11] = 0xffffffff -- BPCM
+    cp0[7] = 0xa1800000 -- DCIC: master enable, execution breakpoint, kseg
+    lu.assertEquals(command('s'), 'T05')
+    lu.assertEquals(command('bc'), 'T05')
+    lu.assertEquals(command('g'), hit)
+    cp0[7] = 0
+    lu.assertEquals(command('z0,' .. bp .. ',4'), 'OK')
+end
+
 function TestGdbReverse:test_no_ring()
     while PCSX.getRewindStateCount() > 0 do PCSX.rewindState() end
     lu.assertEquals(command('bs'), 'E01')
