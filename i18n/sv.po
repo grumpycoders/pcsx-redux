@@ -4976,7 +4976,7 @@ msgid ""
 "Lower it for less delay; if the sound crackles, raise it."
 msgstr ""
 "Anger hur långt emuleringen kör före ljudenheten utöver\n"
-"en enhetsperiod. Det är hur sent ljudet ligger efter bilden.\n"
+"en enhetsperiod: det är hur sent ljudet ligger efter bilden.\n"
 "Sänk värdet för mindre fördröjning. Om ljudet sprakar höjer du det."
 
 #: src/spu/debug.cc:594
