@@ -424,10 +424,7 @@ class impl final : public SPUInterface {
         }
     };
     CdAudioQueue m_cdQueue;
-    // Mixer thread: this chunk's CD input, one frame per sample.
-    int m_cdInLeft[NSSIZE];
-    int m_cdInRight[NSSIZE];
-    void takeCdInput(int n);
+    void mixCdInput(int n);
     // CD audio input volume (1F801DB0h/1DB2h), mixer side: the signed register value, which
     // scales by value/0x8000. Like main volume, each side stays at unity (0x8000) until software
     // first writes it.
@@ -436,6 +433,8 @@ class impl final : public SPUInterface {
     int32_t m_cdVolumeRight = kCdVolumeUnity;
     bool m_cdLeftWritten = false;
     bool m_cdRightWritten = false;
+    // Savestate load: replays the written sides of main and CD volume from regArea.
+    void replayMixVolumes(uint32_t writtenMask);
 
     // User settings.
     SettingsType settings;

@@ -635,7 +635,7 @@ void PCSX::SPU::impl::mixChunk(int n) {
 
     // Write from our temporary capture buffer to the actual SPU RAM.
     writeCaptureBufferCD(n);
-    takeCdInput(n);
+    mixCdInput(n);
 
     // Reflect which half of the 0x200-sample capture buffer the write pointer is now in, in
     // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff). A CPU read of
@@ -657,16 +657,11 @@ void PCSX::SPU::impl::mixChunk(int n) {
     // 0x2000 -> -6.02 dB against 0x3fff). Measured with reverb off, so where the reverb
     // output joins relative to it is not settled; it is applied to the sum here. A chunk
     // ends where the next queued write comes due, so one value holds for the whole chunk.
-    // CD audio joins the voices ahead of main volume, through CD volume and SPUCNT bit 0.
+    // CD audio has joined the voices already (mixCdInput), ahead of main volume.
     const int64_t mainLeft = m_mainLeftWritten ? m_mainVolume.left() : kVoiceVolumeUnity;
     const int64_t mainRight = m_mainRightWritten ? m_mainVolume.right() : kVoiceVolumeUnity;
-    const bool cdEnabled = spuCtrl & ControlFlags::CDAudioEnable;
     for (ns = 0; ns < n; ns++) {
         SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
-        if (cdEnabled) {
-            SSumL[ns] += m_cdInLeft[ns] * m_cdVolumeLeft / kCdVolumeUnity;
-            SSumR[ns] += m_cdInRight[ns] * m_cdVolumeRight / kCdVolumeUnity;
-        }
         SSumL[ns] = static_cast<int>(SSumL[ns] * mainLeft / kVoiceVolumeUnity);
         *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
         SSumL[ns] = 0;
@@ -747,19 +742,27 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
     }
 }
 
-void PCSX::SPU::impl::takeCdInput(int n) {
-    std::lock_guard<std::mutex> lock(cbMtx);
-    for (int ns = 0; ns < n; ns++) {
-        const uint64_t sample = m_mixPos + ns;
+// Takes this chunk's CD audio off the queue, one frame per sample, and adds it to the voice mix
+// through CD volume and SPUCNT bit 0. The frames are taken whether or not the input is enabled.
+void PCSX::SPU::impl::mixCdInput(int n) {
+    int cdLeft[NSSIZE];
+    int cdRight[NSSIZE];
+    {
+        std::lock_guard<std::mutex> lock(cbMtx);
         auto &q = m_cdQueue;
-        // Nothing queued, or the next frame is not due yet: the CD input is silent here.
-        if (q.popped == q.pushed || q.stamp[q.popped & (CdAudioQueue::kSize - 1)] > sample) {
-            m_cdInLeft[ns] = m_cdInRight[ns] = 0;
-            continue;
+        for (int ns = 0; ns < n; ns++) {
+            const size_t i = q.popped & (CdAudioQueue::kSize - 1);
+            // Nothing queued, or the next frame is not due yet: the CD input is silent here.
+            const bool due = q.popped != q.pushed && q.stamp[i] <= m_mixPos + ns;
+            cdLeft[ns] = due ? q.left[i] : 0;
+            cdRight[ns] = due ? q.right[i] : 0;
+            q.popped += due ? 1 : 0;
         }
-        const size_t i = q.popped++ & (CdAudioQueue::kSize - 1);
-        m_cdInLeft[ns] = q.left[i];
-        m_cdInRight[ns] = q.right[i];
+    }
+    if (!(spuCtrl & ControlFlags::CDAudioEnable)) return;
+    for (int ns = 0; ns < n; ns++) {
+        SSumL[ns] += cdLeft[ns] * m_cdVolumeLeft / kCdVolumeUnity;
+        SSumR[ns] += cdRight[ns] * m_cdVolumeRight / kCdVolumeUnity;
     }
 }
 
