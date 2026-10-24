@@ -57,6 +57,8 @@ class PadsImpl : public PCSX::Pads {
 
     void scanGamepads();
     void reset() override;
+    void getTransferState(Port port, TransferState& state) override;
+    void setTransferState(Port port, const TransferState& state) override;
     void map();
 
     void setLua(PCSX::Lua L) override;
@@ -743,6 +745,31 @@ void PadsImpl::reset() {
         tap.longRead = false;
         tap.garbage = false;
     }
+}
+
+void PadsImpl::getTransferState(Port port, TransferState& state) {
+    const Pad& pad = m_pads[magic_enum::enum_integer(port)];
+    state.cmd = pad.m_cmd;
+    state.configMode = pad.m_configMode;
+    state.analogMode = pad.m_analogMode;
+    state.bufferLen = pad.m_bufferLen;
+    state.currentByte = pad.m_currentByte;
+    std::memcpy(state.buf, pad.m_buf, sizeof(state.buf));
+    std::memcpy(state.motorMapping, pad.m_motorMapping, sizeof(state.motorMapping));
+    state.configCommandsUsed = pad.m_configCommandsUsed;
+}
+
+void PadsImpl::setTransferState(Port port, const TransferState& state) {
+    Pad& pad = m_pads[magic_enum::enum_integer(port)];
+    pad.m_cmd = state.cmd;
+    pad.m_configMode = state.configMode;
+    pad.m_analogMode = state.analogMode;
+    // Both index m_buf, so a damaged state must not be able to push them out of it.
+    pad.m_bufferLen = std::min<uint32_t>(state.bufferLen, sizeof(pad.m_buf));
+    pad.m_currentByte = std::min<uint32_t>(state.currentByte, sizeof(pad.m_buf));
+    std::memcpy(pad.m_buf, state.buf, sizeof(pad.m_buf));
+    std::memcpy(pad.m_motorMapping, state.motorMapping, sizeof(pad.m_motorMapping));
+    pad.m_configCommandsUsed = state.configCommandsUsed;
 }
 
 void PadsImpl::Pad::reset() {
