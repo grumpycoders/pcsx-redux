@@ -299,6 +299,7 @@ class impl final : public SPUInterface {
     // The mixer-side half of a register write: everything the voices and the mix see.
     // writeRegister is the CPU-side half, which stamps and queues it.
     void applyRegister(uint32_t reg, uint16_t val);
+    bool applyMixVolume(uint32_t r, uint16_t val);
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
     void saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &);
@@ -389,12 +390,14 @@ class impl final : public SPUInterface {
     struct CdAudioQueue {
         static constexpr size_t kSize = 16384;
         static_assert((kSize & (kSize - 1)) == 0);
-        // The drive's sector timing wanders a little from one sector to the next, so a stream
-        // plays this many samples after the sector that starts it arrives, and each sector
-        // after that continues it seamlessly as long as it is not later than that.
-        static constexpr uint64_t kCushion = 1024;
-        // A stream running further ahead than this restarts, dropping what is queued.
-        static constexpr uint64_t kMaxAhead = kCushion + 3072;
+        // A stream plays this many samples (about 46ms) after the sector that starts it
+        // arrives, so the drive's sector-to-sector timing jitter and the small per-sector
+        // difference between the fed sample count and real time do not gap the audio.
+        static constexpr uint64_t kCushion = 2048;
+        // A sector landing within this of where the stream expects it continues that stream,
+        // jittered; anything further off (a stop, a seek, a new stream) starts fresh with a
+        // cushion. Wide enough for the jitter, narrow enough to keep a real silence a silence.
+        static constexpr uint64_t kResumeWindow = 2048;
         int16_t left[kSize] = {};
         int16_t right[kSize] = {};
         uint64_t stamp[kSize] = {};
@@ -406,11 +409,14 @@ class impl final : public SPUInterface {
             popped = pushed;
             next = 0;
         }
-        // The stamp for the first frame of audio the CD delivers at sample `arrival`.
+        // The stamp for the first frame of audio the CD delivers at sample `arrival`. A sector
+        // close to where the stream left off continues it; anything else starts a fresh stream.
         uint64_t start(uint64_t arrival) {
-            if (next > arrival + kMaxAhead) popped = pushed;
-            if (arrival >= next || next > arrival + kMaxAhead) return arrival + kCushion;
-            return next;
+            const bool sameStream = next != 0 && arrival <= next + kResumeWindow &&
+                                    next <= arrival + kCushion + kResumeWindow;
+            if (sameStream) return next;
+            popped = pushed;
+            return arrival + kCushion;
         }
         void push(int16_t l, int16_t r, uint64_t s) {
             // Full: the oldest frame goes.
