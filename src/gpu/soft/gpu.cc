@@ -356,7 +356,7 @@ void PCSX::SoftGPU::impl::debug() {
 
         ImGui::SeparatorText(_("Display area"));
         const uint32_t start = getStatusControl(5);
-        ImGui::Text(_("Start (GP1(05h)): %u, %u"), start & 0x3ff, (start >> 10) & 0x1ff);
+        ImGui::Text(_("Start (GP1(05h)): %u, %u"), start & 0x3ff, (start >> 10) & 0x3ff);
         ImGui::Text(_("Horizontal range (GP1(06h)): %d - %d"), m_display.x1, m_display.x2);
         ImGui::Text(_("Vertical range (GP1(07h)): %d - %d"), m_display.y1, m_display.y2);
         ImGui::Text(_("Shown rectangle: %d, %d, %d x %d"), m_display.start.x(), m_display.start.y(),
@@ -382,7 +382,7 @@ void PCSX::SoftGPU::impl::debug() {
         if (m_pushedSkipParity == -1) {
             ImGui::TextUnformatted(_("Skip parity at the last draw: none, every row drawn"));
         } else if (m_pushedSkipParity == s_skipParityUnknown) {
-            ImGui::TextUnformatted(_("Skip parity at the last draw: no draw since the last reset"));
+            ImGui::TextUnformatted(_("Skip parity at the last draw: no draw since the last reset or threading change"));
         } else {
             ImGui::Text(_("Skip parity at the last draw: %s rows skipped"), m_pushedSkipParity ? _("odd") : _("even"));
         }
