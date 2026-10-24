@@ -158,11 +158,12 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     // Fix to prevent new interpolations from crashing.
     for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].interp.resetAfterLoad();
 
-    // Repair LDChen's ADSR changes.
+    // Repair LDChen's ADSR changes: replay each voice's two ADSR registers, and nothing else.
+    // Replaying key on or the data port here would retrigger voices and write sound RAM.
     if (spuAddr < 0x7ffff) {
-        for (unsigned i = 0; i < 24; i++) {
-            writeRegister(0x1f801c00 + (i << 4) + 0xc8, regArea[(i << 3) + 0x64]);
-            writeRegister(0x1f801c00 + (i << 4) + 0xca, regArea[(i << 3) + 0x65]);
+        for (unsigned i = 0; i < MAXCHAN; i++) {
+            writeRegister(0x1f801c08 + (i << 4), regArea[(i << 3) + 4]);
+            writeRegister(0x1f801c0a + (i << 4), regArea[(i << 3) + 5]);
         }
     }
 
