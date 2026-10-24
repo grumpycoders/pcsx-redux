@@ -21,6 +21,7 @@
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
+#include "core/spu.h"
 
 void PCSX::SPULogger::logInternal(Kind kind, uint32_t address, uint32_t length, uint32_t value, uint8_t voice) {
     // Allocated on first use rather than at construction, so a session that never turns the
@@ -52,6 +53,40 @@ void PCSX::SPULogger::clear() {
     m_count = 0;
     m_seen = 0;
     m_clears++;
+    m_baselineValid = false;
+    m_gap = false;
+}
+
+void PCSX::SPULogger::setEnabled(bool enabled) {
+    if (enabled && !m_enabled && m_seen != 0) m_gap = true;
+    m_enabled = enabled;
+}
+
+void PCSX::SPULogger::captureBaseline(const uint16_t *registers) {
+    std::copy(registers, registers + m_baseline.size(), m_baseline.begin());
+    m_baselineValid = true;
+}
+
+std::string PCSX::SPULogger::exportSPD(std::vector<uint8_t> &out, SPD::Options options) {
+    if (!m_baselineValid) return "no register writes captured since the last clear";
+    if (m_seen != m_count) return "the log has dropped its oldest events; clear it and capture a shorter span";
+    if (m_gap) return "the logger was paused during the capture; clear it and capture again";
+
+    std::vector<SPD::RegWrite> writes;
+    for (size_t i = 0; i < m_count; i++) {
+        const Event &ev = (*this)[i];
+        if (ev.kind != Kind::RegWrite) continue;
+        writes.push_back({ev.cycle, uint16_t(ev.address), uint16_t(ev.value)});
+    }
+    if (options.tickRate == 0) {
+        bool pal = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL;
+        options.tickRate = ((pal ? SPD::c_palHblanks : SPD::c_ntscHblanks) << 16) / 16;
+    }
+    options.clock = Emulator::m_psxClockSpeed;
+    auto result = SPD::writeCapture(m_baseline, writes, g_emulator->m_spu->getSpuRam(), options);
+    if (!result.error.empty()) return result.error;
+    out = std::move(result.data);
+    return {};
 }
 
 const char *PCSX::SPULogger::kindName(Kind kind) {
@@ -74,6 +109,8 @@ const char *PCSX::SPULogger::kindName(Kind kind) {
             return "Key off";
         case Kind::ReverbAddr:
             return "Reverb addr";
+        case Kind::RegWrite:
+            return "Register write";
     }
     return "?";
 }

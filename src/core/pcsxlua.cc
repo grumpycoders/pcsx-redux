@@ -32,6 +32,7 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
+#include "core/spulogger.h"
 #include "core/sstate.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -181,6 +182,23 @@ PCSX::Slice* getGPUDumpPlayerVRAM() {
     if (!gpu) return new PCSX::Slice();
     return new PCSX::Slice(gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE));
 }
+void setSPULoggerEnabled(bool enabled) { PCSX::g_emulator->m_spuLogger->setEnabled(enabled); }
+bool isSPULoggerEnabled() { return PCSX::g_emulator->m_spuLogger->enabled(); }
+void clearSPULogger() { PCSX::g_emulator->m_spuLogger->clear(); }
+uint64_t getSPULoggerEventCount() { return PCSX::g_emulator->m_spuLogger->size(); }
+static std::string s_spuLoggerExportError;
+bool exportSPULoggerSPD(PCSX::LuaFFI::LuaFile* file, uint32_t tickRate, bool fullRam) {
+    PCSX::SPD::Options options;
+    options.tickRate = tickRate;
+    options.fullRam = fullRam;
+    std::vector<uint8_t> data;
+    s_spuLoggerExportError = PCSX::g_emulator->m_spuLogger->exportSPD(data, options);
+    if (!s_spuLoggerExportError.empty()) return false;
+    file->file->write(data.data(), data.size());
+    return true;
+}
+const char* getSPULoggerExportError() { return s_spuLoggerExportError.c_str(); }
+
 PCSX::Slice* getVRAM() { return new PCSX::Slice(PCSX::g_emulator->m_gpu->getVRAM(PCSX::GPU::Ownership::ACQUIRE)); }
 
 PCSX::Slice* createSaveState() {
@@ -276,6 +294,12 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
     REGISTER(L, startGPUDump);
+    REGISTER(L, setSPULoggerEnabled);
+    REGISTER(L, isSPULoggerEnabled);
+    REGISTER(L, clearSPULogger);
+    REGISTER(L, getSPULoggerEventCount);
+    REGISTER(L, exportSPULoggerSPD);
+    REGISTER(L, getSPULoggerExportError);
     REGISTER(L, stopGPUDump);
     REGISTER(L, isGPUDumpArmed);
     REGISTER(L, isGPUDumpRecording);
