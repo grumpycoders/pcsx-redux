@@ -477,6 +477,11 @@ void PCSX::SPU::impl::resync(uint64_t cycle) {
     if (running) RemoveThread();
     drainEventsNow();
     m_mixPos = sampleAfter(cycle);
+    {
+        // The queued CD audio is stamped on the clock being left behind.
+        std::lock_guard<std::mutex> lock(cbMtx);
+        m_cdQueue.clear();
+    }
     m_mixedSamples.store(m_mixPos);
     m_lastHorizon = cycle;
     m_horizonCycle.store(cycle);
@@ -630,6 +635,7 @@ void PCSX::SPU::impl::mixChunk(int n) {
 
     // Write from our temporary capture buffer to the actual SPU RAM.
     writeCaptureBufferCD(n);
+    takeCdInput(n);
 
     // Reflect which half of the 0x200-sample capture buffer the write pointer is now in, in
     // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff). A CPU read of
@@ -651,10 +657,16 @@ void PCSX::SPU::impl::mixChunk(int n) {
     // 0x2000 -> -6.02 dB against 0x3fff). Measured with reverb off, so where the reverb
     // output joins relative to it is not settled; it is applied to the sum here. A chunk
     // ends where the next queued write comes due, so one value holds for the whole chunk.
+    // CD audio joins the voices ahead of main volume, through CD volume and SPUCNT bit 0.
     const int64_t mainLeft = m_mainLeftWritten ? m_mainVolume.left() : kVoiceVolumeUnity;
     const int64_t mainRight = m_mainRightWritten ? m_mainVolume.right() : kVoiceVolumeUnity;
+    const bool cdEnabled = spuCtrl & ControlFlags::CDAudioEnable;
     for (ns = 0; ns < n; ns++) {
         SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
+        if (cdEnabled) {
+            SSumL[ns] += m_cdInLeft[ns] * m_cdVolumeLeft / kCdVolumeUnity;
+            SSumR[ns] += m_cdInRight[ns] * m_cdVolumeRight / kCdVolumeUnity;
+        }
         SSumL[ns] = static_cast<int>(SSumL[ns] * mainLeft / kVoiceVolumeUnity);
         *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
         SSumL[ns] = 0;
@@ -732,6 +744,22 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
             }
             captureBuffer.currIndex = (captureBuffer.currIndex + 1) % 0x200;
         }
+    }
+}
+
+void PCSX::SPU::impl::takeCdInput(int n) {
+    std::lock_guard<std::mutex> lock(cbMtx);
+    for (int ns = 0; ns < n; ns++) {
+        const uint64_t sample = m_mixPos + ns;
+        auto &q = m_cdQueue;
+        // Nothing queued, or the next frame is not due yet: the CD input is silent here.
+        if (q.popped == q.pushed || q.stamp[q.popped & (CdAudioQueue::kSize - 1)] > sample) {
+            m_cdInLeft[ns] = m_cdInRight[ns] = 0;
+            continue;
+        }
+        const size_t i = q.popped++ & (CdAudioQueue::kSize - 1);
+        m_cdInLeft[ns] = q.left[i];
+        m_cdInRight[ns] = q.right[i];
     }
 }
 
@@ -871,6 +899,9 @@ bool PCSX::SPU::impl::open() {
     wipeChannels();
     m_mainVolume.reset();
     m_mainLeftWritten = m_mainRightWritten = false;
+    m_cdVolumeLeft = m_cdVolumeRight = kCdVolumeUnity;
+    m_cdLeftWritten = m_cdRightWritten = false;
+    m_cdQueue.clear();
     irqAddress = 0;
     spuStat &= ~StatusFlags::IRQFlag;
 

@@ -382,6 +382,61 @@ class impl final : public SPUInterface {
     // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
 
+    // CD audio input (CD-DA, and XA-ADPCM after the decoder's 44.1 kHz resampler), queued on
+    // the emulated sample clock. FeedXA stamps each frame with the sample it plays at; mixChunk
+    // takes one frame per output sample and adds it to the mix through CD volume and SPUCNT
+    // bit 0, ahead of main volume. Shared under cbMtx.
+    struct CdAudioQueue {
+        static constexpr size_t kSize = 16384;
+        static_assert((kSize & (kSize - 1)) == 0);
+        // The drive's sector timing wanders a little from one sector to the next, so a stream
+        // plays this many samples after the sector that starts it arrives, and each sector
+        // after that continues it seamlessly as long as it is not later than that.
+        static constexpr uint64_t kCushion = 1024;
+        // A stream running further ahead than this restarts, dropping what is queued.
+        static constexpr uint64_t kMaxAhead = kCushion + 3072;
+        int16_t left[kSize] = {};
+        int16_t right[kSize] = {};
+        uint64_t stamp[kSize] = {};
+        uint64_t pushed = 0;
+        uint64_t popped = 0;
+        // The sample right after the last queued frame: where the stream continues.
+        uint64_t next = 0;
+        void clear() {
+            popped = pushed;
+            next = 0;
+        }
+        // The stamp for the first frame of audio the CD delivers at sample `arrival`.
+        uint64_t start(uint64_t arrival) {
+            if (next > arrival + kMaxAhead) popped = pushed;
+            if (arrival >= next || next > arrival + kMaxAhead) return arrival + kCushion;
+            return next;
+        }
+        void push(int16_t l, int16_t r, uint64_t s) {
+            // Full: the oldest frame goes.
+            if (pushed - popped == kSize) popped++;
+            const size_t i = pushed & (kSize - 1);
+            left[i] = l;
+            right[i] = r;
+            stamp[i] = s;
+            pushed++;
+            next = s + 1;
+        }
+    };
+    CdAudioQueue m_cdQueue;
+    // Mixer thread: this chunk's CD input, one frame per sample.
+    int m_cdInLeft[NSSIZE];
+    int m_cdInRight[NSSIZE];
+    void takeCdInput(int n);
+    // CD audio input volume (1F801DB0h/1DB2h), mixer side: the signed register value, which
+    // scales by value/0x8000. Like main volume, each side stays at unity (0x8000) until software
+    // first writes it.
+    static constexpr int32_t kCdVolumeUnity = 0x8000;
+    int32_t m_cdVolumeLeft = kCdVolumeUnity;
+    int32_t m_cdVolumeRight = kCdVolumeUnity;
+    bool m_cdLeftWritten = false;
+    bool m_cdRightWritten = false;
+
     // User settings.
     SettingsType settings;
 

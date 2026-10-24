@@ -77,7 +77,10 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
     spu.get<SaveStates::SPUEndx>().value = spuEndx;
-    spu.get<SaveStates::SPUMainVolWritten>().value = 4 | (m_mainLeftWritten ? 1 : 0) | (m_mainRightWritten ? 2 : 0);
+    // Bits 0-1: main volume sides written, bit 2: that mask is present. Bits 3-5: the same
+    // for CD volume, with bit 5 the presence bit.
+    spu.get<SaveStates::SPUMainVolWritten>().value = 4 | (m_mainLeftWritten ? 1 : 0) | (m_mainRightWritten ? 2 : 0) |
+                                                    32 | (m_cdLeftWritten ? 8 : 0) | (m_cdRightWritten ? 16 : 0);
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
@@ -165,8 +168,16 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     if (mainVolWritten & 2) writeRegister(H_SPUmvolR, regArea[(H_SPUmvolR - 0xc00) >> 1]);
 
     writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
-    writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
-    writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
+    // Same for CD volume. A state saved without its mask (bit 5 clear) treats a nonzero
+    // register as written.
+    m_cdVolumeLeft = m_cdVolumeRight = kCdVolumeUnity;
+    m_cdLeftWritten = m_cdRightWritten = false;
+    if (!(mainVolWritten & 32)) {
+        if (regArea[(H_CDLeft - 0xc00) >> 1]) mainVolWritten |= 8;
+        if (regArea[(H_CDRight - 0xc00) >> 1]) mainVolWritten |= 16;
+    }
+    if (mainVolWritten & 8) writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
+    if (mainVolWritten & 16) writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 
     // Fix to prevent new interpolations from crashing.
     for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].interp.resetAfterLoad();

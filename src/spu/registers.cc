@@ -367,22 +367,20 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
                                              (val == 0xffff || val <= 0x200) ? 0 : (uint32_t)val << 3, 0, val);
                 break;
 
-            // CD audio volume feeds the XA path, which runs on the CPU thread.
+            // CD audio volume: the mixer applies it to the CD input (applyRegister).
             case H_CDLeft:
                 iLeftXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(0, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_CDRight:
                 iRightXAVol = val & 0x7fff;
                 if (cddavCallback) {
                     cddavCallback(1, val);
                 }
-                PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x, unimplemented\n", val);
-                return;
+                break;
 
             case H_SPUon1:
                 SoundOn(0, 16, val, cycle);
@@ -512,6 +510,18 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
 
         case H_ExtRight:
             PCSX::PSXSPU_LOGGER::Log("SPU.write, External Audio Input Volume Right = %04x, unimplemented\n", val);
+            break;
+
+        case H_CDLeft:
+            m_cdVolumeLeft = static_cast<int16_t>(val);
+            m_cdLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x\n", val);
+            break;
+
+        case H_CDRight:
+            m_cdVolumeRight = static_cast<int16_t>(val);
+            m_cdRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x\n", val);
             break;
 
         case H_SPUmvolL:
