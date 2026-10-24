@@ -403,6 +403,17 @@ void PCSX::Debug::logDMAAccess(uint32_t address, uint32_t len, bool isWrite) {
     ramLogger->recordAccess(addr.physical, len, type, cycle);
 }
 
+void PCSX::Debug::noteReplayHit(uint32_t normalizedAddress, BreakpointType type, uint32_t width) {
+    // Invokers can pause, print, or run Lua, so a replay only notes that one would have run.
+    auto end = m_breakpoints.end();
+    for (auto it = m_breakpoints.find(normalizedAddress, normalizedAddress + width - 1); it != end; it++) {
+        if ((it->type() == type) && it->m_enabled) {
+            m_replay->hitPending = true;
+            return;
+        }
+    }
+}
+
 void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width, const char* cause) {
     auto& cpu = g_emulator->m_cpu;
     auto& regs = cpu->m_regs;
@@ -434,13 +445,7 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
     uint32_t normalizedAddress = normalizeAddress(address & ~0xe0000000);
 
     if (m_replay) {
-        // Invokers can pause, print, or run Lua, so a replay only notes that one would have run.
-        for (auto it = m_breakpoints.find(normalizedAddress, normalizedAddress + width - 1); it != end; it++) {
-            if ((it->type() == type) && it->m_enabled) {
-                m_replay->hitPending = true;
-                break;
-            }
-        }
+        noteReplayHit(normalizedAddress, type, width);
         return;
     }
 
