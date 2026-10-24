@@ -2148,7 +2148,7 @@ msgstr ""
 "这会使BIOS跳过可能会进行附加检查的shell\n"
 "同时也会取消播放PS logo来减少启动时间"
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2379,11 +2379,11 @@ msgstr "作弊码已保存至：%s\n"
 msgid "Failed to save screenshot"
 msgstr "找不到%s解码器\n"
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "好"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "通知"
 

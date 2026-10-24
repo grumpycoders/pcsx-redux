@@ -2173,7 +2173,7 @@ msgstr ""
 "Le démarrage sera aussi nettement\n"
 "plus rapide, sans affichage du logo."
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2402,11 +2402,11 @@ msgstr ""
 msgid "Failed to save screenshot"
 msgstr "Impossible de charger l'état sauvegardé\n"
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "Ok"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "Notification"
 

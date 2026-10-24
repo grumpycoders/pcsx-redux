@@ -2159,7 +2159,7 @@ msgstr ""
 "завантаження буде суттєво прискорено,\n"
 "оскільки логотип не буде відображено."
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2386,11 +2386,11 @@ msgstr ""
 msgid "Failed to save screenshot"
 msgstr "Показати імена збережених станів"
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "OK"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "Сповіщення"
 

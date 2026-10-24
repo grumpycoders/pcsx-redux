@@ -2145,7 +2145,7 @@ msgstr ""
 "Außerdem wird die Start-Zeit deutlich gekürzt,\n"
 "indem das Logo nicht angezeigt wird."
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2356,11 +2356,11 @@ msgstr "Bildschirmaufnahme gespeichert nach {}\n"
 msgid "Failed to save screenshot"
 msgstr ""
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "Ok"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "Benachrichtigung"
 
