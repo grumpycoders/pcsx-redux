@@ -240,7 +240,7 @@ class PadsImpl : public PCSX::Pads {
 
         PadSettings m_settings;
 
-        uint8_t m_buf[256];
+        uint8_t m_buf[256] = {};
         int m_bufferLen = 0, m_currentByte = 0;
         uint8_t m_cmd = magic_enum::enum_integer(PadCommands::Idle);
 
