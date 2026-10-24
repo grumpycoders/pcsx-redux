@@ -2079,7 +2079,7 @@ msgid ""
 "faster by not displaying the logo."
 msgstr ""
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2292,11 +2292,11 @@ msgstr ""
 msgid "Failed to save screenshot"
 msgstr ""
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "ΟΚ"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "Ειδοποίηση"
 

@@ -2197,7 +2197,7 @@ msgstr ""
 "También reducirá considerablemente\n"
 "el tiempo de arranque al no mostrar el logotipo."
 
-#: src/gui/gui.cc:2369
+#: src/gui/gui.cc:2370
 msgid "Randomize CD-ROM timings"
 msgstr ""
 
@@ -2429,11 +2429,11 @@ msgstr ""
 msgid "Failed to save screenshot"
 msgstr "Mostrar estados de guardado con nombres"
 
-#: src/gui/gui.h:278
+#: src/gui/gui.h:277
 msgid "Ok"
 msgstr "Aceptar"
 
-#: src/gui/gui.h:537
+#: src/gui/gui.h:536
 msgid "Notification"
 msgstr "Notificación"
 
