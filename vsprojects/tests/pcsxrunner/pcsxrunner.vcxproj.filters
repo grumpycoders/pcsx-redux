@@ -93,6 +93,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dfe-480i.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-480i-wait.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpustat-480i.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
