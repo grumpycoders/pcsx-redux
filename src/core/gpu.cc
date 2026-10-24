@@ -27,6 +27,7 @@
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
+#include "core/psxcounters.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
@@ -387,6 +388,25 @@ uint32_t PCSX::GPU::readStatus() {
     return ret;
 }
 
+uint32_t PCSX::GPU::readStatusFromBus() {
+    uint32_t ret = readStatus();
+    // NTSC 480i: GP1(08h) bits 2 and 5 set, bit 3 clear. Timeline measured on a v2 GPU (SCPH-1001)
+    // at 320 and 640 pixels wide, identical at both, counted in hblanks since the vblank that
+    // opened the field. Bit 31 is 1 from line 23 of the 263-line field until the next vblank, and
+    // 0 everywhere else, vblank included. Bit 13 is 1 from line 5 of the 262-line field until
+    // line 6 of the following 263-line field. A v0 GPU (SCPH-1000) gives the same bit 31 and never
+    // sets bit 13; there is no GPU revision setting, so this models v2. PAL is not measured.
+    if ((m_statusControl[8] & 0x2c) == 0x24) {
+        auto &counters = g_emulator->m_counters;
+        uint32_t line = counters->linesSinceVBlank();
+        bool longField = counters->longField();
+        ret &= ~0x80002000;
+        if (longField && (line >= 23)) ret |= 0x80000000;
+        if (longField ? (line < 6) : (line >= 5)) ret |= 0x00002000;
+    }
+    return ret;
+}
+
 bool PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
@@ -527,6 +547,8 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_processor->reset();
             m_defaultProcessor.setActive();
             m_dmaDirection = 0;
+            // GP1(00h) also resets the display mode, which readStatusFromBus() keys on.
+            m_statusControl[8] = 0x08000000;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -1517,7 +1539,8 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
 // what was drawn.
 static inline int wrapCoord(int v, int off) { return v + off; }
 
-static void addWrapped(const PCSX::GPU::Logged::AddTri &add, PCSX::OpenGL::ivec2 a, PCSX::OpenGL::ivec2 b, PCSX::OpenGL::ivec2 c) {
+static void addWrapped(const PCSX::GPU::Logged::AddTri &add, PCSX::OpenGL::ivec2 a, PCSX::OpenGL::ivec2 b,
+                       PCSX::OpenGL::ivec2 c) {
     const bool wrapX = std::min({a.x(), b.x(), c.x()}) < -1024;
     const bool wrapY = std::min({a.y(), b.y(), c.y()}) < -1024;
     auto shifted = [&](int dx, int dy) {
@@ -1534,18 +1557,23 @@ template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Texture
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
+        addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                   {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                   {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
         if constexpr (shape == Shape::Quad) {
-            addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
-                {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
+            addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                       {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)}, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
-                {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
+            addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                       {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
             if constexpr (shape == Shape::Quad) {
-                addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)}, {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
-                    {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
+                addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                           {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                           {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
             }
         }
         if constexpr (textured == Textured::Yes) {

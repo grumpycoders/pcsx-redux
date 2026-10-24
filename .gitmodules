@@ -113,3 +113,6 @@
 [submodule "third_party/ftxui"]
 	path = third_party/ftxui
 	url = https://github.com/ArthurSonzogni/FTXUI
+[submodule "third_party/args"]
+	path = third_party/args
+	url = https://github.com/Taywee/args.git

@@ -19,6 +19,7 @@
 
 #include "core/psxemulator.h"
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
@@ -29,7 +30,6 @@
 #include "core/gpu.h"
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
-#include "core/spulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -43,6 +43,7 @@
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
+#include "core/spulogger.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
@@ -108,7 +109,8 @@ PCSX::Emulator::Emulator()
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
       m_webServer(new PCSX::WebServer()),
-      m_rewindRing(new RewindRing()) {
+      m_rewindRing(new RewindRing()),
+      m_allocTracker(new PCSX::AllocTracker) {
     auto L = *m_lua;
     L.openlibs();
 }

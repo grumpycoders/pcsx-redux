@@ -193,13 +193,20 @@ void main() {
 }
 )";
 
+namespace {
+
+// Relative shader base names live under the persistent directory.
+std::filesystem::path resolveBase(std::filesystem::path f) {
+    if (f.is_relative()) f = PCSX::g_system->getPersistentDir() / f;
+    return f;
+}
+
+}  // namespace
+
 PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::string_view &dVS,
                                           const std::string_view &dPS, const std::string_view &dL)
     : m_baseFilename(base), m_defaultVS(dVS), m_defaultPS(dPS), m_defaultL(dL), m_index(++s_index) {
-    std::filesystem::path f = base;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    std::filesystem::path f = resolveBase(base);
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -248,10 +255,7 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base)
       m_defaultL(c_defaultLuaInvoker),
       m_index(++s_index) {
     setDefaults();
-    std::filesystem::path f = base;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    std::filesystem::path f = resolveBase(base);
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -406,10 +410,7 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     gui->getGLerrors();
 
     auto L = *g_emulator->m_lua;
-    std::filesystem::path f = m_baseFilename;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    std::filesystem::path f = resolveBase(m_baseFilename);
 
     if (m_autocompile) {
         m_lastLuaErrors.clear();
@@ -620,7 +621,7 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                                 auto i = j.find("shaderProgramID");
                                 if (i != j.end()) j.erase(i);
                             }
-                            std::filesystem::path f = m_baseFilename;
+                            std::filesystem::path f = resolveBase(m_baseFilename);
                             f.replace_extension("json");
                             std::ofstream out(f, std::ofstream::out);
                             out << std::setw(2) << j << std::endl;

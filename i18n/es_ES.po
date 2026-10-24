@@ -237,65 +237,65 @@ msgstr ""
 msgid "GDB client"
 msgstr "Cliente GDB"
 
-#: src/core/gpu.cc:340 src/core/gpu.cc:646 src/core/psxhw.h:83
+#: src/core/gpu.cc:340 src/core/gpu.cc:672 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr ""
 "Un DMA de la GPU ha ido a memoria de msan utilizable, pero sin inicializar: "
 "%8.8lx\n"
 
-#: src/core/gpu.cc:345 src/core/gpu.cc:651 src/core/psxhw.h:88
+#: src/core/gpu.cc:345 src/core/gpu.cc:677 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "Un DMA de la GPU ha ido a memoria de msan no utilizable: %8.8lx\n"
 
-#: src/core/gpu.cc:1223 src/core/gpu.cc:1307
+#: src/core/gpu.cc:1249 src/core/gpu.cc:1333
 msgid "Shading: Flat"
 msgstr "Sombreado: plano"
 
-#: src/core/gpu.cc:1226 src/core/gpu.cc:1310
+#: src/core/gpu.cc:1252 src/core/gpu.cc:1336
 msgid "Shading: Gouraud"
 msgstr "Sombreado: Gouraud"
 
-#: src/core/gpu.cc:1230
+#: src/core/gpu.cc:1256
 msgid "Textured"
 msgstr "Texturización"
 
-#: src/core/gpu.cc:1233 src/core/gpu.cc:1313 src/core/gpu.cc:1355
+#: src/core/gpu.cc:1259 src/core/gpu.cc:1339 src/core/gpu.cc:1381
 msgid "Semi-transparency blending"
 msgstr "Mezcla de semitransparencias"
 
-#: src/core/gpu.cc:1250
+#: src/core/gpu.cc:1276
 #, c-format
 msgid "Vertex %i"
 msgstr "Vértice %i"
 
-#: src/core/gpu.cc:1274 src/core/gpu.cc:1338 src/core/gpu.cc:1368
+#: src/core/gpu.cc:1300 src/core/gpu.cc:1364 src/core/gpu.cc:1394
 msgid "Go to primitive##{}"
 msgstr "Ir a primitivo##{}"
 
-#: src/core/gpu.cc:1282 src/core/gpu.cc:1378
+#: src/core/gpu.cc:1308 src/core/gpu.cc:1404
 msgid "Go to texture##{}"
 msgstr "Ir a textura##{}"
 
-#: src/core/gpu.cc:1293 src/core/gpu.cc:1389
+#: src/core/gpu.cc:1319 src/core/gpu.cc:1415
 msgid "Go to CLUT##{}"
 msgstr "Ir a CLUT##{}"
 
-#: src/core/gpu.cc:1319
+#: src/core/gpu.cc:1345
 #, c-format
 msgid "Line %i"
 msgstr "Línea %i"
 
-#: src/core/gpulogger.cc:218
+#: src/core/gpulogger.cc:226
 msgid "write"
 msgstr "escritura"
 
-#: src/core/gpulogger.cc:221
+#: src/core/gpulogger.cc:229
 msgid "read"
 msgstr "lectura"
 
-#: src/core/gpulogger.cc:230
+#: src/core/gpulogger.cc:238
 #, c-format
 msgid ""
 "VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC "
@@ -304,144 +304,144 @@ msgstr ""
 "Activado punto de interrupción de VRAM %i: %.*s hizo una %s que se cruza en "
 "%i×%i en %i,%i - PC = 0x%08x\n"
 
-#: src/core/gpulogger.cc:388
+#: src/core/gpulogger.cc:428
 #, c-format
 msgid "Texture Page X: %i, Texture Page Y: %i"
 msgstr "Página X de texturas: %i, página Y de texturas: %i"
 
-#: src/core/gpulogger.cc:389
+#: src/core/gpulogger.cc:429
 msgid "Blending:"
 msgstr "Mezcla:"
 
-#: src/core/gpulogger.cc:393
+#: src/core/gpulogger.cc:433
 msgid "50% Back + 50% Front"
 msgstr "50 % de fondo + 50 % de frente"
 
-#: src/core/gpulogger.cc:396
+#: src/core/gpulogger.cc:436
 msgid "100% Back + 100% Front"
 msgstr "100 % de fondo + 100 % de frente"
 
-#: src/core/gpulogger.cc:399
+#: src/core/gpulogger.cc:439
 msgid "100% Back - 100% Front"
 msgstr "100 % de fondo - 100 % de frente"
 
-#: src/core/gpulogger.cc:402
+#: src/core/gpulogger.cc:442
 msgid "100% Back + 25% Front"
 msgstr "100 % de fondo + 25 % de frente"
 
-#: src/core/gpulogger.cc:405
+#: src/core/gpulogger.cc:445
 msgid "Texture depth:"
 msgstr "Profundidad de color de textura:"
 
-#: src/core/gpulogger.cc:409
+#: src/core/gpulogger.cc:449
 msgid "4 bits"
 msgstr "4 bits"
 
-#: src/core/gpulogger.cc:412
+#: src/core/gpulogger.cc:452
 msgid "8 bits"
 msgstr "8 bits"
 
-#: src/core/gpulogger.cc:415
+#: src/core/gpulogger.cc:455
 msgid "16 bits"
 msgstr "16 bits"
 
-#: src/core/gpulogger.cc:422
+#: src/core/gpulogger.cc:462
 #, c-format
 msgid "Dithering: %s"
 msgstr "Tramado: %s"
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
-#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:462 src/core/gpulogger.cc:478
+#: src/core/gpulogger.cc:541 src/core/gpulogger.cc:554
 msgid "No"
 msgstr "No"
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
-#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:462 src/core/gpulogger.cc:478
+#: src/core/gpulogger.cc:541 src/core/gpulogger.cc:554
 msgid "Yes"
 msgstr "Sí"
 
-#: src/core/gpulogger.cc:438
+#: src/core/gpulogger.cc:478
 #, fuzzy
 msgid "Set: {}, Check: {}"
 msgstr "  Activo: %s, comprobar: %s"
 
-#: src/core/gpulogger.cc:447
+#: src/core/gpulogger.cc:487
 msgid "Display Enabled"
 msgstr "Mostrar activados"
 
-#: src/core/gpulogger.cc:449
+#: src/core/gpulogger.cc:489
 msgid "Display Disabled"
 msgstr "Mostrar desactivados"
 
-#: src/core/gpulogger.cc:456
+#: src/core/gpulogger.cc:496
 msgid "DMA Off"
 msgstr "DMA desactivado"
 
-#: src/core/gpulogger.cc:459
+#: src/core/gpulogger.cc:499
 msgid "FIFO Query"
 msgstr "Consulta FIFO"
 
-#: src/core/gpulogger.cc:462
+#: src/core/gpulogger.cc:502
 msgid "DMA Read"
 msgstr "Lectura del DMA"
 
-#: src/core/gpulogger.cc:465
+#: src/core/gpulogger.cc:505
 msgid "DMA Write"
 msgstr "Escritura al DMA"
 
-#: src/core/gpulogger.cc:479
+#: src/core/gpulogger.cc:519
 msgid "Horizontal resolution:"
 msgstr "Resolución horizontal:"
 
-#: src/core/gpulogger.cc:501
+#: src/core/gpulogger.cc:541
 #, c-format
 msgid "Extended width mode: %s"
 msgstr "Modo de ancho extendido: %s"
 
-#: src/core/gpulogger.cc:502
+#: src/core/gpulogger.cc:542
 msgid "Vertical resolution:"
 msgstr "Resolución vertical:"
 
-#: src/core/gpulogger.cc:512
+#: src/core/gpulogger.cc:552
 #, c-format
 msgid "Output mode: %s"
 msgstr "Modo de salida: %s"
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 msgid "15 bits"
 msgstr "15 bits"
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 msgid "24 bits"
 msgstr "24 bits"
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 #, c-format
 msgid "Display depth: %s"
 msgstr "Profundidad de colores de imagen: %s"
 
-#: src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:554
 #, c-format
 msgid "Interlaced: %s"
 msgstr "Entrelazado: %s"
 
-#: src/core/gpulogger.cc:520
+#: src/core/gpulogger.cc:560
 msgid "Texture Window"
 msgstr "Ventana de texturas"
 
-#: src/core/gpulogger.cc:523
+#: src/core/gpulogger.cc:563
 msgid "Draw Area Start"
 msgstr "Inicio de área de dibujado"
 
-#: src/core/gpulogger.cc:526
+#: src/core/gpulogger.cc:566
 msgid "Draw Area End"
 msgstr "Fin de área de dibujado"
 
-#: src/core/gpulogger.cc:529
+#: src/core/gpulogger.cc:569
 msgid "Draw Offset"
 msgstr "Desplazamiento de dibujado"
 
-#: src/core/gpulogger.cc:532 src/gui/widgets/breakpoints.cc:50
+#: src/core/gpulogger.cc:572 src/gui/widgets/breakpoints.cc:50
 msgid "Unknown"
 msgstr "Elemento desconocido"
 
@@ -703,71 +703,71 @@ msgstr ""
 "Se ha invocado a msanGetChainPtr con el puntero de cabecera no válido "
 "%8.8lx\n"
 
-#: src/core/psxhw.cc:851
+#: src/core/psxhw.cc:853
 #, c-format
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr ""
 "Se ha invocado a msanSetChainPtr con el puntero de cabecera no válido "
 "%8.8lx\n"
 
-#: src/core/psxinterpreter.cc:437
+#: src/core/psxinterpreter.cc:435
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion ADDI de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:531
+#: src/core/psxinterpreter.cc:529
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion ADD de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:573
+#: src/core/psxinterpreter.cc:571
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "¡Desbordamiento con signo en la instruccion SUB de 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:898
+#: src/core/psxinterpreter.cc:896
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Intento de JR no alineada a 0x%08x desde 0x%08x, ¡provocando excepción!\n"
 
-#: src/core/psxinterpreter.cc:924
+#: src/core/psxinterpreter.cc:922
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr ""
 "Intento de JALR no alineada desde 0x%08x a 0x%08x, ¡provocando excepción!\n"
 
-#: src/core/psxinterpreter.cc:962
+#: src/core/psxinterpreter.cc:960
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LH de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:979
+#: src/core/psxinterpreter.cc:977
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LHU de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:996
+#: src/core/psxinterpreter.cc:994
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en LW de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1058
+#: src/core/psxinterpreter.cc:1056
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en SH de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1069
+#: src/core/psxinterpreter.cc:1067
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Dirección 0x%08x no alineada en SW de 0x%08x\n"
 
-#: src/core/psxinterpreter.cc:1186
+#: src/core/psxinterpreter.cc:1184
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Encontrado un opcode reservado en 0x%08x, provocando excepción.\n"
 
-#: src/core/psxinterpreter.cc:1225
+#: src/core/psxinterpreter.cc:1223
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -776,7 +776,7 @@ msgstr ""
 "Se ha intentado utilizar una instrucción de coma flotante no válida desde "
 "0x%08x. Ignorando.\n"
 
-#: src/core/psxinterpreter.cc:1253
+#: src/core/psxinterpreter.cc:1251
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Se ha intentado acceder a COP3 desde 0x%08x. Ignorando.\n"
@@ -968,17 +968,17 @@ msgstr "Puntero no válido transmitido a MsanRealloc: %08x\n"
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "Cabecera de cadena msan sin registrar en %08x\n"
 
-#: src/core/r3000a.cc:41
+#: src/core/r3000a.cc:47
 #, c-format
 msgid "PCSX-Redux booting\n"
 msgstr "Arrancando PCSX-Redux\n"
 
-#: src/core/r3000a.cc:42
+#: src/core/r3000a.cc:48
 #, c-format
 msgid "Copyright (C) 2019-%i PCSX-Redux authors\n"
 msgstr "Copyright (C) 2019-%i los autores de PCSX-Redux\n"
 
-#: src/core/r3000a.cc:52
+#: src/core/r3000a.cc:58
 #, c-format
 msgid "CPU type: %s\n"
 msgstr "Tipo de CPU: %s\n"
@@ -987,7 +987,7 @@ msgstr "Tipo de CPU: %s\n"
 msgid "Failed to create the shared display memory block\n"
 msgstr ""
 
-#: src/core/sio.cc:368
+#: src/core/sio.cc:371
 msgid "Wrong block number"
 msgstr "Número de bloque erróneo"
 
@@ -1210,7 +1210,7 @@ msgstr "Salida"
 
 #: src/gui/gui.cc:1303 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:504 src/gui/widgets/isobrowser.cc:540
-#: src/gui/widgets/memcard_manager.cc:68 src/gui/widgets/vram-viewer.cc:608
+#: src/gui/widgets/memcard_manager.cc:68 src/gui/widgets/vram-viewer.cc:632
 msgid "File"
 msgstr "Archivo"
 
@@ -1323,7 +1323,7 @@ msgid "Take Screenshot"
 msgstr ""
 
 #: src/gui/gui.cc:1427 src/gui/widgets/cdrom-viewer.cc:370
-#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
+#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:681
 msgid "Configuration"
 msgstr "Configuración"
 
@@ -1827,13 +1827,14 @@ msgid "Update configuration"
 msgstr "Configuración de actualizaciones"
 
 #: src/gui/gui.cc:1990
+#, fuzzy
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
 "If you enable the auto update option, it will check for new updates\n"
 "on startup. No personal data nor identifiable token is sent for this\n"
-"process, but Microsoft might still keep and record information such\n"
-"as your IP address.\n"
+"process. The update server is run by the PCSX-Redux project behind\n"
+"Cloudflare, which can see your IP address like any CDN.\n"
 "\n"
 "If an update is available, you will get prompted to download and\n"
 "install it. You can still download versions of PCSX-Redux as usual\n"
@@ -2883,12 +2884,12 @@ msgstr "Visualizador de CD-ROM"
 
 #: src/gui/widgets/cdrom-viewer.cc:357 src/gui/widgets/isobrowser.cc:133
 #: src/gui/widgets/isobrowser.cc:487 src/gui/widgets/ram-viewer.cc:492
-#: src/gui/widgets/vram-viewer.cc:612
+#: src/gui/widgets/vram-viewer.cc:636
 msgid "View"
 msgstr "Visualizar"
 
 #: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
-#: src/gui/widgets/vram-viewer.cc:613
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Reset view"
 msgstr "Restablecer vista"
 
@@ -2909,7 +2910,7 @@ msgid "Show seeks"
 msgstr "Mostrar búsquedas"
 
 #: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
-#: src/gui/widgets/vram-viewer.cc:644
+#: src/gui/widgets/vram-viewer.cc:675
 msgid "Show Shader Editor"
 msgstr "Mostrar editor de shaders"
 
@@ -2937,8 +2938,8 @@ msgstr "Selector de color de datos"
 #: src/gui/widgets/cdrom-viewer.cc:420 src/gui/widgets/ram-viewer.cc:548
 #: src/gui/widgets/ram-viewer.cc:556 src/gui/widgets/ram-viewer.cc:564
 #: src/gui/widgets/ram-viewer.cc:572 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:676 src/gui/widgets/vram-viewer.cc:688
-#: src/gui/widgets/vram-viewer.cc:700 src/gui/widgets/vram-viewer.cc:712
+#: src/gui/widgets/vram-viewer.cc:707 src/gui/widgets/vram-viewer.cc:719
+#: src/gui/widgets/vram-viewer.cc:731 src/gui/widgets/vram-viewer.cc:743
 msgid "OK"
 msgstr "Aceptar"
 
@@ -3794,7 +3795,7 @@ msgstr "Registrar llamadas al kernel"
 msgid "Auto run"
 msgstr "Ejecutar automáticamente"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:504
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:509
 msgid "Auto save"
 msgstr "Autoguardado"
 
@@ -4278,7 +4279,7 @@ msgstr "Eliminar##parches"
 msgid "On/Off Switch:"
 msgstr "Interruptor de encendido:"
 
-#: src/gui/widgets/pio-cart.cc:53
+#: src/gui/widgets/pio-cart.cc:53 src/gui/widgets/vram-viewer.cc:664
 msgid "Off"
 msgstr "Apagado"
 
@@ -4306,7 +4307,7 @@ msgstr "Mostrar ejecuciones"
 msgid "Show greyscale"
 msgstr "Mostrar escala de grises"
 
-#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:639
+#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:670
 msgid "Show grid"
 msgstr "Mostrar cuadrícula"
 
@@ -4375,43 +4376,43 @@ msgstr "Mostrar valor de punto fijo"
 msgid "Misc"
 msgstr "Otros"
 
-#: src/gui/widgets/shader-editor.cc:334
+#: src/gui/widgets/shader-editor.cc:339
 msgid "Vertex Shader compilation error: {}\n"
 msgstr "Error de compilación de Vertex Shader: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:355
+#: src/gui/widgets/shader-editor.cc:360
 msgid "Pixel Shader compilation error: {}\n"
 msgstr "Error de compilación de Pixel Shader: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:377
+#: src/gui/widgets/shader-editor.cc:382
 msgid "Link error: {}\n"
 msgstr "Error de vínculo: {}\n"
 
-#: src/gui/widgets/shader-editor.cc:389
+#: src/gui/widgets/shader-editor.cc:394
 msgid "Missing attribute {} in shader program"
 msgstr "Falta el atributo {} en la programación del shader"
 
-#: src/gui/widgets/shader-editor.cc:502
+#: src/gui/widgets/shader-editor.cc:507
 msgid "Auto compile"
 msgstr "Compilar automáticamente"
 
-#: src/gui/widgets/shader-editor.cc:506
+#: src/gui/widgets/shader-editor.cc:511
 msgid "Show all"
 msgstr "Mostrar todo"
 
-#: src/gui/widgets/shader-editor.cc:508
+#: src/gui/widgets/shader-editor.cc:513
 msgid "Configure shader"
 msgstr "Configurar shader"
 
-#: src/gui/widgets/shader-editor.cc:533
+#: src/gui/widgets/shader-editor.cc:538
 msgid "Vertex Shader"
 msgstr "Vertex Shader"
 
-#: src/gui/widgets/shader-editor.cc:539
+#: src/gui/widgets/shader-editor.cc:544
 msgid "Pixel Shader"
 msgstr "Pixel Shader"
 
-#: src/gui/widgets/shader-editor.cc:545
+#: src/gui/widgets/shader-editor.cc:550
 msgid "Lua Invoker"
 msgstr "Invocador de Lua"
 
@@ -4705,75 +4706,93 @@ msgstr "Alternar"
 msgid "Add breakpoint##{}"
 msgstr "Añadir punto de interrupción##{}"
 
-#: src/gui/widgets/vram-viewer.cc:506
+#: src/gui/widgets/vram-viewer.cc:529
 msgid "VRAM Shader Editor"
 msgstr "Editor de shaders de la VRAM"
 
-#: src/gui/widgets/vram-viewer.cc:616
+#: src/gui/widgets/vram-viewer.cc:640
 msgid "24 bits shift"
 msgstr "Variación para 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:617
+#: src/gui/widgets/vram-viewer.cc:641
 msgid "View VRAM in 24 bits"
 msgstr "Ver la VRAM en el modo a 24 bits"
 
-#: src/gui/widgets/vram-viewer.cc:621
+#: src/gui/widgets/vram-viewer.cc:645
 msgid "View VRAM in 16 bits"
 msgstr "Ver la VRAM en el modo a 16 bits"
 
-#: src/gui/widgets/vram-viewer.cc:625
+#: src/gui/widgets/vram-viewer.cc:649
 msgid "View VRAM in 8 bits"
 msgstr "Ver la VRAM en el modo a 8 bits"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:653
 msgid "View VRAM in 4 bits"
 msgstr "Ver la VRAM en el modo a 4 bits"
 
-#: src/gui/widgets/vram-viewer.cc:634
+#: src/gui/widgets/vram-viewer.cc:658
 msgid "Select a CLUT"
 msgstr "Seleccionar un CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:636
+#: src/gui/widgets/vram-viewer.cc:660
 msgid "Enable Alpha channel view"
 msgstr "Mostrar canales alfa"
 
-#: src/gui/widgets/vram-viewer.cc:637
+#: src/gui/widgets/vram-viewer.cc:661
 msgid "Enable greyscale"
 msgstr "Activar escala de grises"
 
-#: src/gui/widgets/vram-viewer.cc:640
+#: src/gui/widgets/vram-viewer.cc:662
+msgid "Overdraw heatmap"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:663
+msgid "Requires the GPU logger to be enabled"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:665
+#, fuzzy
+msgid "Pixels written"
+msgstr "%i escrituras a píxeles"
+
+#: src/gui/widgets/vram-viewer.cc:666
+#, fuzzy
+msgid "Pixels read"
+msgstr "%i lecturas a píxeles"
+
+#: src/gui/widgets/vram-viewer.cc:671
 msgid "Select pixel grid color"
 msgstr "Seleccionar color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:641
+#: src/gui/widgets/vram-viewer.cc:672
 msgid "Select TPage grid color"
 msgstr "Seleccionar color de cuadrícula de TPage"
 
-#: src/gui/widgets/vram-viewer.cc:651
+#: src/gui/widgets/vram-viewer.cc:682
 msgid "Select read highlight color"
 msgstr "Seleccionar color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:652
+#: src/gui/widgets/vram-viewer.cc:683
 msgid "Select written highlight color"
 msgstr "Seleccionar color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
+#: src/gui/widgets/vram-viewer.cc:701 src/gui/widgets/vram-viewer.cc:703
 msgid "Read Highlight Color Picker"
 msgstr "Selector de color de lecturas resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
+#: src/gui/widgets/vram-viewer.cc:713 src/gui/widgets/vram-viewer.cc:715
 msgid "Written Highlight Color Picker"
 msgstr "Selector de color de escrituras resaltadas"
 
-#: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
+#: src/gui/widgets/vram-viewer.cc:725 src/gui/widgets/vram-viewer.cc:727
 msgid "Pixel Grid Color Picker"
 msgstr "Selector de color de cuadrícula de píxeles"
 
-#: src/gui/widgets/vram-viewer.cc:706 src/gui/widgets/vram-viewer.cc:708
+#: src/gui/widgets/vram-viewer.cc:737 src/gui/widgets/vram-viewer.cc:739
 msgid "TPage Grid Color Picker"
 msgstr "Selector de color de cuadrícula de TPage"
 
-#: src/main/main.cc:579
+#: src/main/main.cc:590
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Mostrar estados de guardado con nombres"

@@ -88,6 +88,8 @@ class Counters {
     Rcnt m_rcnts[CounterQuantity];
 
     uint32_t m_hSyncCount = 0;
+    // Incremented at every vblank start; its parity names the field that vblank opened.
+    uint32_t m_fieldCount = 0;
     uint32_t m_audioFrames = 0;
     // How far the CPU may trail the audio clock, in 44.1kHz frames (250ms).
     static constexpr int32_t kMaxAudioLagFrames = 44100 / 4;
@@ -106,6 +108,13 @@ class Counters {
     uint32_t readCounter(uint32_t index);
     uint32_t readMode(uint32_t index);
     uint32_t readTarget(uint32_t index);
+
+    // Brings the scanline position up to date, then returns the hblanks elapsed since the
+    // last vblank start. Only call from the CPU side: it can raise the vblank IRQ.
+    uint32_t linesSinceVBlank();
+    // True for the field silicon runs at 263 lines in NTSC 480i, the one GPUSTAT.31 reads 1
+    // in. Redux runs both fields at the same length.
+    bool longField() const { return (m_fieldCount & 1) == 0; }
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
