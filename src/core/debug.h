@@ -199,6 +199,7 @@ class Debug {
   private:
     bool triggerBP(Breakpoint* bp, uint32_t address, unsigned width, const char* reason = "");
     void replayBoundary(uint32_t pc, uint32_t code);
+    void replayCheckAccess(uint32_t code);
     void noteReplayHit(uint32_t normalizedAddress, BreakpointType type, uint32_t width);
     std::optional<Replay> m_replay;
     BreakpointTreeType m_breakpoints;

@@ -308,11 +308,8 @@ bool PCSX::Debug::startReplay(uint64_t stopAt) {
     return !m_replay->reached.has_value();
 }
 
-void PCSX::Debug::replayBoundary(uint32_t pc, uint32_t code) {
+void PCSX::Debug::replayCheckAccess(uint32_t code) {
     const auto& regs = g_emulator->m_cpu->m_regs;
-    // Same breakpoint checks as process(), minus the maps, the loggers, the kernel checker
-    // and the stepping, none of which the guest can see.
-    checkBP(pc, BreakpointType::Exec, 4);
     const uint32_t basic = code >> 26;
     unsigned width = 0;
     BreakpointType type = BreakpointType::Read;
@@ -352,6 +349,14 @@ void PCSX::Debug::replayBoundary(uint32_t pc, uint32_t code) {
         if ((basic == 0x22) || (basic == 0x26) || (basic == 0x2a) || (basic == 0x2e)) offset &= ~3;
         checkBP(offset, type, width);
     }
+}
+
+void PCSX::Debug::replayBoundary(uint32_t pc, uint32_t code) {
+    const auto& regs = g_emulator->m_cpu->m_regs;
+    // Same breakpoint checks as process(), minus the maps, the loggers, the kernel checker
+    // and the stepping, none of which the guest can see.
+    checkBP(pc, BreakpointType::Exec, 4);
+    replayCheckAccess(code);
 
     // A breakpoint on the boundary the replay stops at is not a hit before it. startReplay()
     // runs this with the emulation stopped, and has nothing to pause.
