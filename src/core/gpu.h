@@ -147,6 +147,10 @@ class GPU {
     bool isIdle() const { return m_processor == &m_defaultProcessor; }
     // The last word written for a given GP1 command.
     uint32_t getStatusControl(uint8_t cmd) const { return m_statusControl[cmd]; }
+    // The last GP0(E3h), GP0(E4h) and GP0(E5h) words, low 24 bits.
+    uint32_t getDrawingStartRaw() const { return m_drawingStartRaw; }
+    uint32_t getDrawingEndRaw() const { return m_drawingEndRaw; }
+    uint32_t getDrawingOffsetRaw() const { return m_drawingOffsetRaw; }
     // Words that bring a freshly reset GPU to the current state, VRAM excluded.
     void getRestoreSequence(std::vector<uint32_t> &gp0, std::vector<uint32_t> &gp1) const;
 
