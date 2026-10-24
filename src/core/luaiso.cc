@@ -465,6 +465,30 @@ static void registerCDRomSymbols(PCSX::Lua L) {
     REGISTER(L, cdromIsLidOpen);
 }
 
+static void registerPvdSymbols(PCSX::Lua L) {
+    // PVD getters
+    REGISTER(L, hlPvdGetSystemIdent);
+    REGISTER(L, hlPvdGetVolumeIdent);
+    REGISTER(L, hlPvdGetVolSetIdent);
+    REGISTER(L, hlPvdGetPublisherIdent);
+    REGISTER(L, hlPvdGetDataPreparerIdent);
+    REGISTER(L, hlPvdGetApplicationIdent);
+    REGISTER(L, hlPvdGetCopyrightFileIdent);
+    REGISTER(L, hlPvdGetAbstractFileIdent);
+    REGISTER(L, hlPvdGetBibliographicFileIdent);
+
+    // PVD setters
+    REGISTER(L, hlPvdSetSystemIdent);
+    REGISTER(L, hlPvdSetVolumeIdent);
+    REGISTER(L, hlPvdSetVolSetIdent);
+    REGISTER(L, hlPvdSetPublisherIdent);
+    REGISTER(L, hlPvdSetDataPreparerIdent);
+    REGISTER(L, hlPvdSetApplicationIdent);
+    REGISTER(L, hlPvdSetCopyrightFileIdent);
+    REGISTER(L, hlPvdSetAbstractFileIdent);
+    REGISTER(L, hlPvdSetBibliographicFileIdent);
+}
+
 static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("CORE_ISO");
@@ -509,27 +533,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isoBuilderGetCurrentLBA);
     REGISTER(L, isoBuilderClose);
 
-    // PVD getters
-    REGISTER(L, hlPvdGetSystemIdent);
-    REGISTER(L, hlPvdGetVolumeIdent);
-    REGISTER(L, hlPvdGetVolSetIdent);
-    REGISTER(L, hlPvdGetPublisherIdent);
-    REGISTER(L, hlPvdGetDataPreparerIdent);
-    REGISTER(L, hlPvdGetApplicationIdent);
-    REGISTER(L, hlPvdGetCopyrightFileIdent);
-    REGISTER(L, hlPvdGetAbstractFileIdent);
-    REGISTER(L, hlPvdGetBibliographicFileIdent);
-
-    // PVD setters
-    REGISTER(L, hlPvdSetSystemIdent);
-    REGISTER(L, hlPvdSetVolumeIdent);
-    REGISTER(L, hlPvdSetVolSetIdent);
-    REGISTER(L, hlPvdSetPublisherIdent);
-    REGISTER(L, hlPvdSetDataPreparerIdent);
-    REGISTER(L, hlPvdSetApplicationIdent);
-    REGISTER(L, hlPvdSetCopyrightFileIdent);
-    REGISTER(L, hlPvdSetAbstractFileIdent);
-    REGISTER(L, hlPvdSetBibliographicFileIdent);
+    registerPvdSymbols(L);
 
     // DirTree
     REGISTER(L, hlCreateRoot);
