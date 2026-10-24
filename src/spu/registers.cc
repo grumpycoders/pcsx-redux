@@ -408,6 +408,33 @@ void PCSX::SPU::impl::writeRegister(uint32_t reg, uint16_t val) {
 
 // The mixer-side half of a register write, run on the mixer thread when the write comes due
 // (or on the CPU thread with the mixer stopped).
+// The mixer-side half of a main volume or CD volume write. Returns false for any other register.
+bool PCSX::SPU::impl::applyMixVolume(uint32_t r, uint16_t val) {
+    switch (r) {
+        case H_SPUmvolL:
+            m_mainVolume.applyLeft(val);
+            m_mainLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
+            return true;
+        case H_SPUmvolR:
+            m_mainVolume.applyRight(val);
+            m_mainRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
+            return true;
+        case H_CDLeft:
+            m_cdVolumeLeft = static_cast<int16_t>(val);
+            m_cdLeftWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x\n", val);
+            return true;
+        case H_CDRight:
+            m_cdVolumeRight = static_cast<int16_t>(val);
+            m_cdRightWritten = true;
+            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x\n", val);
+            return true;
+    }
+    return false;
+}
+
 void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
     const uint32_t r = reg & 0xfff;
 
@@ -465,6 +492,8 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
         return;
     }
 
+    if (applyMixVolume(r, val)) return;
+
     switch (r) {
         case H_SPUctrl:
             // Writing IRQ9 Enable = 0 is the acknowledge: it is the only thing that clears
@@ -510,30 +539,6 @@ void PCSX::SPU::impl::applyRegister(uint32_t reg, uint16_t val) {
 
         case H_ExtRight:
             PCSX::PSXSPU_LOGGER::Log("SPU.write, External Audio Input Volume Right = %04x, unimplemented\n", val);
-            break;
-
-        case H_CDLeft:
-            m_cdVolumeLeft = static_cast<int16_t>(val);
-            m_cdLeftWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Left = %04x\n", val);
-            break;
-
-        case H_CDRight:
-            m_cdVolumeRight = static_cast<int16_t>(val);
-            m_cdRightWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, CD Audio Input Volume Right = %04x\n", val);
-            break;
-
-        case H_SPUmvolL:
-            m_mainVolume.applyLeft(val);
-            m_mainLeftWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Left = %04x\n", val);
-            break;
-
-        case H_SPUmvolR:
-            m_mainVolume.applyRight(val);
-            m_mainRightWritten = true;
-            PCSX::PSXSPU_LOGGER::Log("SPU.write, Main Volume Right = %04x\n", val);
             break;
 
         // Voice 0..23 ON/OFF (status) (ENDX), read-only.

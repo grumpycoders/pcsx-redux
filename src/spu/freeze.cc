@@ -252,25 +252,20 @@ void PCSX::SPU::impl::saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &c
 
 void PCSX::SPU::impl::replayMixVolumes(uint32_t writtenMask) {
     // Replay only the sides software wrote, so an unwritten side stays at unity. A state saved
-    // without the written mask (bit 2 clear) treats a nonzero register as written.
+    // without a written mask (presence bit clear) treats a nonzero register as written.
+    struct Side {
+        uint32_t reg;
+        uint32_t written;
+        uint32_t present;
+    };
+    static constexpr Side c_sides[] = {{H_SPUmvolL, 1, 4}, {H_SPUmvolR, 2, 4}, {H_CDLeft, 8, 32}, {H_CDRight, 16, 32}};
     m_mainVolume.reset();
     m_mainLeftWritten = m_mainRightWritten = false;
-    uint32_t mainVolWritten = writtenMask;
-    if (!(mainVolWritten & 4)) {
-        if (regArea[(H_SPUmvolL - 0xc00) >> 1]) mainVolWritten |= 1;
-        if (regArea[(H_SPUmvolR - 0xc00) >> 1]) mainVolWritten |= 2;
-    }
-    if (mainVolWritten & 1) writeRegister(H_SPUmvolL, regArea[(H_SPUmvolL - 0xc00) >> 1]);
-    if (mainVolWritten & 2) writeRegister(H_SPUmvolR, regArea[(H_SPUmvolR - 0xc00) >> 1]);
-
-    // Same for CD volume. A state saved without its mask (bit 5 clear) treats a nonzero
-    // register as written.
     m_cdVolumeLeft = m_cdVolumeRight = kCdVolumeUnity;
     m_cdLeftWritten = m_cdRightWritten = false;
-    if (!(mainVolWritten & 32)) {
-        if (regArea[(H_CDLeft - 0xc00) >> 1]) mainVolWritten |= 8;
-        if (regArea[(H_CDRight - 0xc00) >> 1]) mainVolWritten |= 16;
+    for (const auto &side : c_sides) {
+        const uint16_t value = regArea[(side.reg - 0xc00) >> 1];
+        const bool written = (writtenMask & side.present) ? (writtenMask & side.written) != 0 : value != 0;
+        if (written) writeRegister(side.reg, value);
     }
-    if (mainVolWritten & 8) writeRegister(H_CDLeft, regArea[(H_CDLeft - 0xc00) >> 1]);
-    if (mainVolWritten & 16) writeRegister(H_CDRight, regArea[(H_CDRight - 0xc00) >> 1]);
 }
