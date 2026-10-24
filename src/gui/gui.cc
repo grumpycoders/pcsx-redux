@@ -1912,6 +1912,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+    m_isoBrowser.drawChildren();
 
     if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
     if (m_dalos.m_show) {
