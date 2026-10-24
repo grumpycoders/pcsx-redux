@@ -173,7 +173,9 @@ class impl final : public SPUInterface {
     bool openSynchronous();
     // Applies the queued writes as they come due and mixes the next `frames` samples into
     // `out`, as interleaved stereo (2 * frames values). The CPU side is then considered to be
-    // at the last sample mixed. Only after openSynchronous().
+    // at the last sample mixed. Only after openSynchronous(). In this mode the host is both
+    // the CPU side and the mixer: register writes, advanceTo() and mixSynchronous() must all
+    // come from one thread, since m_lastHorizon and the write queue are not locked against it.
     void mixSynchronous(int16_t *out, size_t frames);
 
   private:
