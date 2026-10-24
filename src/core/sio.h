@@ -253,6 +253,8 @@ class SIO {
     };
 
     uint8_t m_currentDevice = DeviceType::None;
+    // The first byte of the current pad access: 01h, or 01h to 04h for a multitap's slots.
+    uint8_t m_padAddress = DeviceType::PAD;
 
     // Pads
     uint8_t m_buffer[c_padBufferSize];
