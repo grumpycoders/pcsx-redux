@@ -456,6 +456,15 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
+static void registerCDRomSymbols(PCSX::Lua L) {
+    REGISTER(L, cdromSetIso);
+    REGISTER(L, cdromEjectIso);
+    REGISTER(L, cdromOpenLid);
+    REGISTER(L, cdromCloseLid);
+    REGISTER(L, cdromScheduleCloseLid);
+    REGISTER(L, cdromIsLidOpen);
+}
+
 static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("CORE_ISO");
@@ -468,12 +477,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getCurrentIso);
     REGISTER(L, openIso);
     REGISTER(L, openIsoFromFile);
-    REGISTER(L, cdromSetIso);
-    REGISTER(L, cdromEjectIso);
-    REGISTER(L, cdromOpenLid);
-    REGISTER(L, cdromCloseLid);
-    REGISTER(L, cdromScheduleCloseLid);
-    REGISTER(L, cdromIsLidOpen);
+    registerCDRomSymbols(L);
     REGISTER(L, getIsoTD);
     REGISTER(L, getIsoTN);
     REGISTER(L, createIsoReader);
