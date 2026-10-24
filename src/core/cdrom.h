@@ -45,6 +45,12 @@ class CDRom {
     CDRom() : m_iso(new CDRIso(new FailedFile)) {}
     virtual ~CDRom() {}
     static CDRom* factory();
+    // The jitter generator is a multiplicative LCG, so its state is always odd.
+    static constexpr uint64_t c_defaultSeed = 9223521712174600777ull;
+    // A save state written before the seed was saved restores it as 0.
+    void defaultSeedIfMissing() {
+        if (m_seed == 0) m_seed = m_powerOnSeed;
+    }
     bool isLidOpen();
     void closeLid() {
         m_lidOpen = false;
@@ -108,7 +114,8 @@ class CDRom {
     uint32_t m_lidCloseAtCycles = 0;
 
     // to save/init
-    uint64_t m_seed = 9223521712174600777ull;
+    uint64_t m_seed = c_defaultSeed;
+    uint64_t m_powerOnSeed = c_defaultSeed;
     uint8_t m_dataFIFO[2352] = {0};
     uint32_t m_dataFIFOIndex = 0;
     uint32_t m_dataFIFOSize = 0;

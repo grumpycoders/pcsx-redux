@@ -237,208 +237,208 @@ msgstr ""
 msgid "GDB client"
 msgstr "GDB-клієнт"
 
-#: src/core/gpu.cc:340 src/core/gpu.cc:646 src/core/psxhw.h:83
+#: src/core/gpu.cc:340 src/core/gpu.cc:672 src/core/psxhw.h:83
 #, c-format
 msgid "GPU DMA went into usable but uninitialized msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до придатної невизначеної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:345 src/core/gpu.cc:651 src/core/psxhw.h:88
+#: src/core/gpu.cc:345 src/core/gpu.cc:677 src/core/psxhw.h:88
 #, c-format
 msgid "GPU DMA went into unusable msan memory: %8.8lx\n"
 msgstr "DMA ГП перейшов до непридатної MSAN-пам'яті: %8.8lx.\n"
 
-#: src/core/gpu.cc:1223 src/core/gpu.cc:1307
+#: src/core/gpu.cc:1249 src/core/gpu.cc:1333
 msgid "Shading: Flat"
 msgstr "Затемнення: плоске"
 
-#: src/core/gpu.cc:1226 src/core/gpu.cc:1310
+#: src/core/gpu.cc:1252 src/core/gpu.cc:1336
 msgid "Shading: Gouraud"
 msgstr "Затемнення: Гуро"
 
-#: src/core/gpu.cc:1230
+#: src/core/gpu.cc:1256
 msgid "Textured"
 msgstr "Текстурний"
 
-#: src/core/gpu.cc:1233 src/core/gpu.cc:1313 src/core/gpu.cc:1355
+#: src/core/gpu.cc:1259 src/core/gpu.cc:1339 src/core/gpu.cc:1381
 msgid "Semi-transparency blending"
 msgstr "Напівпрозоре накладання"
 
-#: src/core/gpu.cc:1250
+#: src/core/gpu.cc:1276
 #, c-format
 msgid "Vertex %i"
 msgstr "Вершинний %i"
 
-#: src/core/gpu.cc:1274 src/core/gpu.cc:1338 src/core/gpu.cc:1368
+#: src/core/gpu.cc:1300 src/core/gpu.cc:1364 src/core/gpu.cc:1394
 msgid "Go to primitive##{}"
 msgstr "Перейти до первісного##{}"
 
-#: src/core/gpu.cc:1282 src/core/gpu.cc:1378
+#: src/core/gpu.cc:1308 src/core/gpu.cc:1404
 msgid "Go to texture##{}"
 msgstr "Перейти до текстури##{}"
 
-#: src/core/gpu.cc:1293 src/core/gpu.cc:1389
+#: src/core/gpu.cc:1319 src/core/gpu.cc:1415
 msgid "Go to CLUT##{}"
 msgstr "Перейти до таблиці пошуку кольорів (CLUT)##{}"
 
-#: src/core/gpu.cc:1319
+#: src/core/gpu.cc:1345
 #, c-format
 msgid "Line %i"
 msgstr "Лінія %i"
 
-#: src/core/gpulogger.cc:218
+#: src/core/gpulogger.cc:226
 #, fuzzy
 msgid "write"
 msgstr "Запис"
 
-#: src/core/gpulogger.cc:221
+#: src/core/gpulogger.cc:229
 msgid "read"
 msgstr ""
 
-#: src/core/gpulogger.cc:230
+#: src/core/gpulogger.cc:238
 #, c-format
 msgid ""
 "VRAM breakpoint %i triggered: %.*s did a %s intersecting %ix%i at %i,%i - PC "
 "= 0x%08x\n"
 msgstr ""
 
-#: src/core/gpulogger.cc:388
+#: src/core/gpulogger.cc:428
 #, c-format
 msgid "Texture Page X: %i, Texture Page Y: %i"
 msgstr "Сторінка текстури X: %i, Сторінка текстури Y: %i"
 
-#: src/core/gpulogger.cc:389
+#: src/core/gpulogger.cc:429
 msgid "Blending:"
 msgstr "Накладання:"
 
-#: src/core/gpulogger.cc:393
+#: src/core/gpulogger.cc:433
 msgid "50% Back + 50% Front"
 msgstr "50 % Назад + 50 % Уперед"
 
-#: src/core/gpulogger.cc:396
+#: src/core/gpulogger.cc:436
 msgid "100% Back + 100% Front"
 msgstr "100 % Назад + 100 % Уперед"
 
-#: src/core/gpulogger.cc:399
+#: src/core/gpulogger.cc:439
 msgid "100% Back - 100% Front"
 msgstr "100 % Назад - 100 % Уперед"
 
-#: src/core/gpulogger.cc:402
+#: src/core/gpulogger.cc:442
 msgid "100% Back + 25% Front"
 msgstr "100 % Назад + 25 % Уперед"
 
-#: src/core/gpulogger.cc:405
+#: src/core/gpulogger.cc:445
 msgid "Texture depth:"
 msgstr "Глибина текстури:"
 
-#: src/core/gpulogger.cc:409
+#: src/core/gpulogger.cc:449
 msgid "4 bits"
 msgstr "4 біт"
 
-#: src/core/gpulogger.cc:412
+#: src/core/gpulogger.cc:452
 msgid "8 bits"
 msgstr "8 біт"
 
-#: src/core/gpulogger.cc:415
+#: src/core/gpulogger.cc:455
 msgid "16 bits"
 msgstr "16 біт"
 
-#: src/core/gpulogger.cc:422
+#: src/core/gpulogger.cc:462
 #, c-format
 msgid "Dithering: %s"
 msgstr "Згладжування: %s."
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
-#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:462 src/core/gpulogger.cc:478
+#: src/core/gpulogger.cc:541 src/core/gpulogger.cc:554
 msgid "No"
 msgstr "Ні"
 
-#: src/core/gpulogger.cc:422 src/core/gpulogger.cc:438
-#: src/core/gpulogger.cc:501 src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:462 src/core/gpulogger.cc:478
+#: src/core/gpulogger.cc:541 src/core/gpulogger.cc:554
 msgid "Yes"
 msgstr "Так"
 
-#: src/core/gpulogger.cc:438
+#: src/core/gpulogger.cc:478
 #, fuzzy
 msgid "Set: {}, Check: {}"
 msgstr "  Встановлено: %s, Перевірено: %s."
 
-#: src/core/gpulogger.cc:447
+#: src/core/gpulogger.cc:487
 msgid "Display Enabled"
 msgstr "Увімкнути відображення"
 
-#: src/core/gpulogger.cc:449
+#: src/core/gpulogger.cc:489
 msgid "Display Disabled"
 msgstr "Вимкнути відображення"
 
-#: src/core/gpulogger.cc:456
+#: src/core/gpulogger.cc:496
 msgid "DMA Off"
 msgstr "Вимкнути DMA"
 
-#: src/core/gpulogger.cc:459
+#: src/core/gpulogger.cc:499
 msgid "FIFO Query"
 msgstr "FIFO-запит"
 
-#: src/core/gpulogger.cc:462
+#: src/core/gpulogger.cc:502
 msgid "DMA Read"
 msgstr "DMA-читання"
 
-#: src/core/gpulogger.cc:465
+#: src/core/gpulogger.cc:505
 msgid "DMA Write"
 msgstr "DMA-запис"
 
-#: src/core/gpulogger.cc:479
+#: src/core/gpulogger.cc:519
 msgid "Horizontal resolution:"
 msgstr "Горизонтальний розмір:"
 
-#: src/core/gpulogger.cc:501
+#: src/core/gpulogger.cc:541
 #, c-format
 msgid "Extended width mode: %s"
 msgstr "Режим розширеної ширини: %s."
 
-#: src/core/gpulogger.cc:502
+#: src/core/gpulogger.cc:542
 msgid "Vertical resolution:"
 msgstr "Вертикальний розмір:"
 
-#: src/core/gpulogger.cc:512
+#: src/core/gpulogger.cc:552
 #, c-format
 msgid "Output mode: %s"
 msgstr "Режим показу: %s."
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 msgid "15 bits"
 msgstr "15 біт"
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 msgid "24 bits"
 msgstr "24 біт"
 
-#: src/core/gpulogger.cc:513
+#: src/core/gpulogger.cc:553
 #, c-format
 msgid "Display depth: %s"
 msgstr "Глибина відображення: %s."
 
-#: src/core/gpulogger.cc:514
+#: src/core/gpulogger.cc:554
 #, c-format
 msgid "Interlaced: %s"
 msgstr "Черезрядково розгорнуто: %s."
 
-#: src/core/gpulogger.cc:520
+#: src/core/gpulogger.cc:560
 msgid "Texture Window"
 msgstr "Текстурне вікно"
 
-#: src/core/gpulogger.cc:523
+#: src/core/gpulogger.cc:563
 msgid "Draw Area Start"
 msgstr "Показати початок області"
 
-#: src/core/gpulogger.cc:526
+#: src/core/gpulogger.cc:566
 msgid "Draw Area End"
 msgstr "Показати кінець області"
 
-#: src/core/gpulogger.cc:529
+#: src/core/gpulogger.cc:569
 msgid "Draw Offset"
 msgstr "Показати зміщення"
 
-#: src/core/gpulogger.cc:532 src/gui/widgets/breakpoints.cc:50
+#: src/core/gpulogger.cc:572 src/gui/widgets/breakpoints.cc:50
 msgid "Unknown"
 msgstr "Невідомо"
 
@@ -696,67 +696,67 @@ msgstr "Невідомий 8-бітний запис у EXP1 / PIO: %8.8lx.\n"
 msgid "Called msanGetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanGetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxhw.cc:851
+#: src/core/psxhw.cc:853
 #, c-format
 msgid "Called msanSetChainPtr with invalid header pointer %8.8lx\n"
 msgstr "Викликано msanSetChainPtr із недійсним указівником заголовка %8.8lx.\n"
 
-#: src/core/psxinterpreter.cc:437
+#: src/core/psxinterpreter.cc:435
 #, c-format
 msgid "Signed overflow in ADDI instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці негайного додавання (ADDI) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:531
+#: src/core/psxinterpreter.cc:529
 #, c-format
 msgid "Signed overflow in ADD instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці додавання (ADD) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:573
+#: src/core/psxinterpreter.cc:571
 #, c-format
 msgid "Signed overflow in SUB instruction from 0x%08x!\n"
 msgstr "Знакове переповнення в указівці віднімання (SUB) з 0x%08x!\n"
 
-#: src/core/psxinterpreter.cc:898
+#: src/core/psxinterpreter.cc:896
 #, c-format
 msgid "Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:924
+#: src/core/psxinterpreter.cc:922
 #, c-format
 msgid "Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"
 msgstr "Cпроба нерівного JALR до 0x%08x з 0x%08x, викликано виняток!\n"
 
-#: src/core/psxinterpreter.cc:962
+#: src/core/psxinterpreter.cc:960
 #, c-format
 msgid "Unaligned address 0x%08x in LH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:979
+#: src/core/psxinterpreter.cc:977
 #, c-format
 msgid "Unaligned address 0x%08x in LHU from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LHU з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:996
+#: src/core/psxinterpreter.cc:994
 #, c-format
 msgid "Unaligned address 0x%08x in LW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в LW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1058
+#: src/core/psxinterpreter.cc:1056
 #, c-format
 msgid "Unaligned address 0x%08x in SH from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SH із 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1069
+#: src/core/psxinterpreter.cc:1067
 #, c-format
 msgid "Unaligned address 0x%08x in SW from 0x%08x\n"
 msgstr "Нерівна адреса 0x%08x в SW з 0x%08x.\n"
 
-#: src/core/psxinterpreter.cc:1186
+#: src/core/psxinterpreter.cc:1184
 #, c-format
 msgid "Encountered reserved opcode from 0x%08x, firing an exception\n"
 msgstr "Виявлено зарезервований код операції з 0x%08x, викликано виняток.\n"
 
-#: src/core/psxinterpreter.cc:1225
+#: src/core/psxinterpreter.cc:1223
 #, c-format
 msgid ""
 "Attempted to use an invalid floating point instruction from 0x%08x. "
@@ -765,7 +765,7 @@ msgstr ""
 "Спроба використання недійсної вказівки з рухомою комою з 0x%08x. "
 "Проігноровано.\n"
 
-#: src/core/psxinterpreter.cc:1253
+#: src/core/psxinterpreter.cc:1251
 #, c-format
 msgid "Attempted to access COP3 from 0x%08x. Ignored\n"
 msgstr "Спроба доступу до COP3 з 0x%08x. Проігноровано.\n"
@@ -948,17 +948,17 @@ msgstr "Передано недійсний указівник до MsanRealloc:
 msgid "Unregistered msan chain header at %08x\n"
 msgstr "Незареєстрований заголовок MSAN-ланцюжка у %08x.\n"
 
-#: src/core/r3000a.cc:41
+#: src/core/r3000a.cc:47
 #, c-format
 msgid "PCSX-Redux booting\n"
 msgstr "Завантаження PCSX-Redux.\n"
 
-#: src/core/r3000a.cc:42
+#: src/core/r3000a.cc:48
 #, c-format
 msgid "Copyright (C) 2019-%i PCSX-Redux authors\n"
 msgstr "Автори PCSX-Redux, 2019-%i\n"
 
-#: src/core/r3000a.cc:52
+#: src/core/r3000a.cc:58
 #, c-format
 msgid "CPU type: %s\n"
 msgstr "Тип ЦП: %s.\n"
@@ -967,7 +967,7 @@ msgstr "Тип ЦП: %s.\n"
 msgid "Failed to create the shared display memory block\n"
 msgstr ""
 
-#: src/core/sio.cc:368
+#: src/core/sio.cc:371
 msgid "Wrong block number"
 msgstr "Неправильний номер блоку."
 
@@ -1188,7 +1188,7 @@ msgstr "Вихід"
 
 #: src/gui/gui.cc:1303 src/gui/widgets/assembly.cc:493
 #: src/gui/widgets/isobrowser.cc:504 src/gui/widgets/isobrowser.cc:540
-#: src/gui/widgets/memcard_manager.cc:68 src/gui/widgets/vram-viewer.cc:608
+#: src/gui/widgets/memcard_manager.cc:68 src/gui/widgets/vram-viewer.cc:632
 msgid "File"
 msgstr "Файл"
 
@@ -1303,7 +1303,7 @@ msgid "Take Screenshot"
 msgstr ""
 
 #: src/gui/gui.cc:1427 src/gui/widgets/cdrom-viewer.cc:370
-#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:650
+#: src/gui/widgets/ram-viewer.cc:508 src/gui/widgets/vram-viewer.cc:681
 msgid "Configuration"
 msgstr "Конфігурація"
 
@@ -1814,13 +1814,14 @@ msgid "Update configuration"
 msgstr "Конфігурація оновлень"
 
 #: src/gui/gui.cc:1990
+#, fuzzy
 msgid ""
 "PCSX-Redux can automatically update itself.\n"
 "\n"
 "If you enable the auto update option, it will check for new updates\n"
 "on startup. No personal data nor identifiable token is sent for this\n"
-"process, but Microsoft might still keep and record information such\n"
-"as your IP address.\n"
+"process. The update server is run by the PCSX-Redux project behind\n"
+"Cloudflare, which can see your IP address like any CDN.\n"
 "\n"
 "If an update is available, you will get prompted to download and\n"
 "install it. You can still download versions of PCSX-Redux as usual\n"
@@ -2835,12 +2836,12 @@ msgstr "VRAM-переглядачі"
 
 #: src/gui/widgets/cdrom-viewer.cc:357 src/gui/widgets/isobrowser.cc:133
 #: src/gui/widgets/isobrowser.cc:487 src/gui/widgets/ram-viewer.cc:492
-#: src/gui/widgets/vram-viewer.cc:612
+#: src/gui/widgets/vram-viewer.cc:636
 msgid "View"
 msgstr "Переглянути"
 
 #: src/gui/widgets/cdrom-viewer.cc:358 src/gui/widgets/ram-viewer.cc:493
-#: src/gui/widgets/vram-viewer.cc:613
+#: src/gui/widgets/vram-viewer.cc:637
 msgid "Reset view"
 msgstr "Відновити вигляд"
 
@@ -2863,7 +2864,7 @@ msgid "Show seeks"
 msgstr "Показати регістри"
 
 #: src/gui/widgets/cdrom-viewer.cc:366 src/gui/widgets/ram-viewer.cc:504
-#: src/gui/widgets/vram-viewer.cc:644
+#: src/gui/widgets/vram-viewer.cc:675
 msgid "Show Shader Editor"
 msgstr "Показати редактор шейдерів"
 
@@ -2895,8 +2896,8 @@ msgstr "Вибір кольору TPage-сітки"
 #: src/gui/widgets/cdrom-viewer.cc:420 src/gui/widgets/ram-viewer.cc:548
 #: src/gui/widgets/ram-viewer.cc:556 src/gui/widgets/ram-viewer.cc:564
 #: src/gui/widgets/ram-viewer.cc:572 src/gui/widgets/sio1.cc:191
-#: src/gui/widgets/vram-viewer.cc:676 src/gui/widgets/vram-viewer.cc:688
-#: src/gui/widgets/vram-viewer.cc:700 src/gui/widgets/vram-viewer.cc:712
+#: src/gui/widgets/vram-viewer.cc:707 src/gui/widgets/vram-viewer.cc:719
+#: src/gui/widgets/vram-viewer.cc:731 src/gui/widgets/vram-viewer.cc:743
 msgid "OK"
 msgstr "OK"
 
@@ -3748,7 +3749,7 @@ msgstr "Журнал викликів ядра"
 msgid "Auto run"
 msgstr "Автозапуск"
 
-#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:504
+#: src/gui/widgets/luaeditor.cc:60 src/gui/widgets/shader-editor.cc:509
 msgid "Auto save"
 msgstr "Автозбереження"
 
@@ -4227,7 +4228,7 @@ msgstr "Видалити##виправлення"
 msgid "On/Off Switch:"
 msgstr "Перемикач:"
 
-#: src/gui/widgets/pio-cart.cc:53
+#: src/gui/widgets/pio-cart.cc:53 src/gui/widgets/vram-viewer.cc:664
 msgid "Off"
 msgstr "Вимкнути"
 
@@ -4260,7 +4261,7 @@ msgstr "Виконання мапи"
 msgid "Show greyscale"
 msgstr "Відтінки сірого"
 
-#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:639
+#: src/gui/widgets/ram-viewer.cc:500 src/gui/widgets/vram-viewer.cc:670
 msgid "Show grid"
 msgstr "Показати сітку"
 
@@ -4339,43 +4340,43 @@ msgstr "Показати закріплені точки"
 msgid "Misc"
 msgstr "Інше"
 
-#: src/gui/widgets/shader-editor.cc:334
+#: src/gui/widgets/shader-editor.cc:339
 msgid "Vertex Shader compilation error: {}\n"
 msgstr "Помилка компіляції вершинного шейдера: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:355
+#: src/gui/widgets/shader-editor.cc:360
 msgid "Pixel Shader compilation error: {}\n"
 msgstr "Помилка компіляції піксельного шейдера: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:377
+#: src/gui/widgets/shader-editor.cc:382
 msgid "Link error: {}\n"
 msgstr "Помилка зв'язку: {}.\n"
 
-#: src/gui/widgets/shader-editor.cc:389
+#: src/gui/widgets/shader-editor.cc:394
 msgid "Missing attribute {} in shader program"
 msgstr "Відсутній атрибут {} у програмі шейдера."
 
-#: src/gui/widgets/shader-editor.cc:502
+#: src/gui/widgets/shader-editor.cc:507
 msgid "Auto compile"
 msgstr "Автокомпіляція"
 
-#: src/gui/widgets/shader-editor.cc:506
+#: src/gui/widgets/shader-editor.cc:511
 msgid "Show all"
 msgstr "Показати все"
 
-#: src/gui/widgets/shader-editor.cc:508
+#: src/gui/widgets/shader-editor.cc:513
 msgid "Configure shader"
 msgstr "Налаштувати шейдер"
 
-#: src/gui/widgets/shader-editor.cc:533
+#: src/gui/widgets/shader-editor.cc:538
 msgid "Vertex Shader"
 msgstr "Вершинний шейдер"
 
-#: src/gui/widgets/shader-editor.cc:539
+#: src/gui/widgets/shader-editor.cc:544
 msgid "Pixel Shader"
 msgstr "Піксельний шейдер"
 
-#: src/gui/widgets/shader-editor.cc:545
+#: src/gui/widgets/shader-editor.cc:550
 msgid "Lua Invoker"
 msgstr "Lua-викликач"
 
@@ -4670,75 +4671,93 @@ msgstr "Перемкнути"
 msgid "Add breakpoint##{}"
 msgstr "Додати точку зупинки##{}"
 
-#: src/gui/widgets/vram-viewer.cc:506
+#: src/gui/widgets/vram-viewer.cc:529
 msgid "VRAM Shader Editor"
 msgstr "Редактор VRAM-шейдерів"
 
-#: src/gui/widgets/vram-viewer.cc:616
+#: src/gui/widgets/vram-viewer.cc:640
 msgid "24 bits shift"
 msgstr "24-бітний зсув"
 
-#: src/gui/widgets/vram-viewer.cc:617
+#: src/gui/widgets/vram-viewer.cc:641
 msgid "View VRAM in 24 bits"
 msgstr "Переглянути VRAM у 24 біт"
 
-#: src/gui/widgets/vram-viewer.cc:621
+#: src/gui/widgets/vram-viewer.cc:645
 msgid "View VRAM in 16 bits"
 msgstr "Переглянути VRAM у 16 біт"
 
-#: src/gui/widgets/vram-viewer.cc:625
+#: src/gui/widgets/vram-viewer.cc:649
 msgid "View VRAM in 8 bits"
 msgstr "Переглянути VRAM у 8 біт"
 
-#: src/gui/widgets/vram-viewer.cc:629
+#: src/gui/widgets/vram-viewer.cc:653
 msgid "View VRAM in 4 bits"
 msgstr "Переглянути VRAM у 4 біт"
 
-#: src/gui/widgets/vram-viewer.cc:634
+#: src/gui/widgets/vram-viewer.cc:658
 msgid "Select a CLUT"
 msgstr "Вибрати CLUT"
 
-#: src/gui/widgets/vram-viewer.cc:636
+#: src/gui/widgets/vram-viewer.cc:660
 msgid "Enable Alpha channel view"
 msgstr "Увімкнути перегляд альфа-каналу"
 
-#: src/gui/widgets/vram-viewer.cc:637
+#: src/gui/widgets/vram-viewer.cc:661
 msgid "Enable greyscale"
 msgstr "Увімкнути відтінки сірого"
 
-#: src/gui/widgets/vram-viewer.cc:640
+#: src/gui/widgets/vram-viewer.cc:662
+msgid "Overdraw heatmap"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:663
+msgid "Requires the GPU logger to be enabled"
+msgstr ""
+
+#: src/gui/widgets/vram-viewer.cc:665
+#, fuzzy
+msgid "Pixels written"
+msgstr "%i пікселів записано"
+
+#: src/gui/widgets/vram-viewer.cc:666
+#, fuzzy
+msgid "Pixels read"
+msgstr "%i пікселів прочитано"
+
+#: src/gui/widgets/vram-viewer.cc:671
 msgid "Select pixel grid color"
 msgstr "Вибрати колір піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:641
+#: src/gui/widgets/vram-viewer.cc:672
 msgid "Select TPage grid color"
 msgstr "Вибрати колір TPage-сітки"
 
-#: src/gui/widgets/vram-viewer.cc:651
+#: src/gui/widgets/vram-viewer.cc:682
 msgid "Select read highlight color"
 msgstr "Вибрати колір виділення читання"
 
-#: src/gui/widgets/vram-viewer.cc:652
+#: src/gui/widgets/vram-viewer.cc:683
 msgid "Select written highlight color"
 msgstr "Вибрати колір виділення запису"
 
-#: src/gui/widgets/vram-viewer.cc:670 src/gui/widgets/vram-viewer.cc:672
+#: src/gui/widgets/vram-viewer.cc:701 src/gui/widgets/vram-viewer.cc:703
 msgid "Read Highlight Color Picker"
 msgstr "Прочитане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:682 src/gui/widgets/vram-viewer.cc:684
+#: src/gui/widgets/vram-viewer.cc:713 src/gui/widgets/vram-viewer.cc:715
 msgid "Written Highlight Color Picker"
 msgstr "Записане виділення підбірника кольору"
 
-#: src/gui/widgets/vram-viewer.cc:694 src/gui/widgets/vram-viewer.cc:696
+#: src/gui/widgets/vram-viewer.cc:725 src/gui/widgets/vram-viewer.cc:727
 msgid "Pixel Grid Color Picker"
 msgstr "Вибір кольору піксельної сітки"
 
-#: src/gui/widgets/vram-viewer.cc:706 src/gui/widgets/vram-viewer.cc:708
+#: src/gui/widgets/vram-viewer.cc:737 src/gui/widgets/vram-viewer.cc:739
 msgid "TPage Grid Color Picker"
 msgstr "Вибір кольору TPage-сітки"
 
-#: src/main/main.cc:579
+#: src/main/main.cc:590
 #, fuzzy
 msgid "Failed to load save state\n"
 msgstr "Показати імена збережених станів"

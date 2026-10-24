@@ -201,6 +201,9 @@ struct SoftRenderer {
 
     bool m_drawSemiTrans = false;
     bool m_ditherMode = false;
+    // Row parity drawing primitives must not write (see RasterState::skipParity), or -1. Set from the
+    // emulation thread, in primitive order, by impl::updateSkipParity().
+    int8_t m_skipParity = -1;
     int16_t m_m1 = 255, m_m2 = 255, m_m3 = 255;
     GPU::TexDepth m_globalTextTP;
 
@@ -307,6 +310,7 @@ struct SoftRenderer {
         rs.setMask16 = m_setMask16;
         rs.setMask32 = m_setMask32;
         rs.drawSemiTrans = m_drawSemiTrans;
+        rs.skipParity = m_skipParity;
         return rs;
     }
 
@@ -333,6 +337,7 @@ struct SoftRenderer {
         rs.setMask16 = m_setMask16;
         rs.setMask32 = m_setMask32;
         rs.drawSemiTrans = m_drawSemiTrans;
+        rs.skipParity = m_skipParity;
         rs.m1 = m_m1;
         rs.m2 = m_m2;
         rs.m3 = m_m3;

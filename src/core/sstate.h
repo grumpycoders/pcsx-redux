@@ -175,10 +175,10 @@ typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ended"), 16> ECPEnded;
 typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("untracked"), 17> ECPUntracked;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnBlock"), 18> ECPKeyOnBlock;
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnLoop"), 19> ECPKeyOnLoop;
-typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle,
-                          ECPKeyedOn, ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn,
-                          ECPBlock, ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked,
-                          ECPKeyOnBlock, ECPKeyOnLoop>
+typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle, ECPKeyedOn,
+                          ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn, ECPBlock,
+                          ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked, ECPKeyOnBlock,
+                          ECPKeyOnLoop>
     EnvelopeCheckpoint;
 typedef Protobuf::RepeatedField<EnvelopeCheckpoint, 24, TYPESTRING("envelopeCheckpoint"), 21> EnvelopeCheckpoints;
 
@@ -249,7 +249,8 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCou
 // Field 3 was spu_sync_countdown, dropped when the SPU stopped being pumped on the
 // CPU's scanline schedule. DO NOT REUSE FIELD NUMBER 3 in Counters.
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
-typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter> Counters;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("field_count"), 5> FieldCount;
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter, FieldCount> Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("reg0"), 1> MDECReg0;
@@ -397,9 +398,9 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
-                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, EnvelopeCheckpoint, SPU, SIO,
-                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
-                            CallStack, CallStacks, SaveState>
+                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel,
+                            EnvelopeCheckpoint, SPU, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt,
+                            Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();

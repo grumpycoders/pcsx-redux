@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\src\gui\widgets\assembly.cc" />
     <ClCompile Include="..\..\src\gui\widgets\breakpoints.cc" />
     <ClCompile Include="..\..\src\gui\widgets\callstacks.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\alloc_tracker.cc" />
     <ClCompile Include="..\..\src\gui\widgets\cdrom-viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\console.cc" />
     <ClCompile Include="..\..\src\gui\widgets\dynarec_disassembly.cc" />
@@ -152,6 +153,8 @@
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc" />
     <ClCompile Include="..\..\src\gui\widgets\hwregs.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\dalos.cc" />
+    <ClCompile Include="..\..\src\gui\widgets\fileviewers.cc" />
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc" />
     <ClCompile Include="..\..\src\gui\widgets\network.cc" />
     <ClCompile Include="..\..\src\gui\widgets\kernellog.cc" />
@@ -185,6 +188,7 @@
     <ClInclude Include="..\..\src\gui\widgets\assembly.h" />
     <ClInclude Include="..\..\src\gui\widgets\breakpoints.h" />
     <ClInclude Include="..\..\src\gui\widgets\callstacks.h" />
+    <ClInclude Include="..\..\src\gui\widgets\alloc_tracker.h" />
     <ClInclude Include="..\..\src\gui\widgets\cdrom-viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\console.h" />
     <ClInclude Include="..\..\src\gui\widgets\dynarec_disassembly.h" />
@@ -198,6 +202,8 @@
     <ClInclude Include="..\..\src\gui\widgets\handlers.h" />
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h" />
     <ClInclude Include="..\..\src\gui\widgets\hwregs.h" />
+    <ClInclude Include="..\..\src\gui\widgets\dalos.h" />
+    <ClInclude Include="..\..\src\gui\widgets\fileviewers.h" />
     <ClInclude Include="..\..\src\gui\widgets\isobrowser.h" />
     <ClInclude Include="..\..\src\gui\widgets\network.h" />
     <ClInclude Include="..\..\src\gui\widgets\kernellog.h" />

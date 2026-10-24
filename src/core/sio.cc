@@ -309,6 +309,9 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
         g_emulator->m_cpu->unschedule(Schedule::SIO);
+        m_regs.mode = 0;
+        m_regs.baud = 0;
+        m_regs.control = 0;
         m_currentDevice = DeviceType::None;
     }
 

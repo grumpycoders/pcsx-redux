@@ -68,6 +68,7 @@
 
 namespace PCSX {
 
+class AllocTracker;
 class CallStacks;
 class CDRom;
 class CDRomLogger;
@@ -144,6 +145,8 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("DemangledSymbols"), true> DemangledSymbols;
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
+        typedef Setting<bool, TYPESTRING("PCdrvNet"), false> PCdrvNet;
+        typedef SettingString<TYPESTRING("PCdrvNetAllow")> PCdrvNetAllow;
         typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
         typedef Setting<int, TYPESTRING("SIO1ServerPort"), 6699> SIO1ServerPort;
         typedef Setting<bool, TYPESTRING("SIO1Client"), false> SIO1Client;
@@ -158,8 +161,9 @@ class Emulator {
                          GdbServer, GdbManifest, GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort,
                          KernelCallA0_00_1f, KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f,
                          KernelCallA0_80_9f, KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f,
-                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server,
-                         SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
+                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, PCdrvNet,
+                         PCdrvNetAllow, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort,
+                         SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -174,6 +178,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("CDRomEntropySeed"), false> SettingCDRomEntropySeed;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
@@ -216,7 +221,8 @@ class Emulator {
              SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
              SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
              SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
-             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount>
+             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount,
+             SettingCDRomEntropySeed>
         settings;
     class PcsxConfig {
       public:
@@ -323,6 +329,8 @@ class Emulator {
     std::unique_ptr<ShmDisplay> m_shmDisplay;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
+    // Last, so it is destroyed first: its teardown removes breakpoints from m_debug.
+    std::unique_ptr<AllocTracker> m_allocTracker;
 
   private:
     PcsxConfig m_config;

@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -292,6 +293,7 @@ void PCSX::SaveStates::capture(SaveState& state) {
 
 void PCSX::SaveStates::restore(SaveState& state) {
     SaveStateWrapper wrapper(state);
+    g_emulator->m_allocTracker->reset();
 
     /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
        reset, so we owe it explicitly: without this a recompiler happily runs blocks it
@@ -440,6 +442,7 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
+    counters.get<FieldCount>().value = m_fieldCount;
 }
 
 static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& state) {
@@ -465,7 +468,9 @@ bool PCSX::SaveStates::load(std::string_view data) {
 
     SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_cpu->Reset();
+    g_emulator->m_allocTracker->reset();
     state.commit();
+    g_emulator->m_cdrom->defaultSeedIfMissing();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
@@ -577,7 +582,9 @@ void PCSX::GPU::restoreEnvironment(const uint8_t* env, uint32_t status) {
         for (unsigned i = 0; i < 6; i++) writeData(getU32(env + i * 4));
         return;
     }
-    writeData(0xe1000000 | (status & 0x7ff) | ((status >> 4) & 0x800));
+    // GPUSTAT.10 can read 0 after a textured primitive even with GP0(E1h).10 set, so it does not
+    // say whether drawing to the display area was allowed; restore it as allowed.
+    writeData(0xe1000400 | (status & 0x3ff) | ((status >> 4) & 0x800));
     writeData(0xe6000000 | ((status >> 11) & 3));
 }
 
@@ -691,6 +698,7 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
+    m_fieldCount = counters.get<FieldCount>().value;
 
     calculateHsync();
     // Recalculate rates from mode registers (handles overclock changes and dotclock)

@@ -55,7 +55,6 @@
 #include "core/screenshot.h"
 #include "core/sio1.h"
 #include "core/sstate.h"
-#include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui-platform.h"
 #include "gui/gui.h"
@@ -174,7 +173,9 @@ PCSX::GUI::GUI(std::vector<std::string>& favorites)
       m_openArchiveDialog(l_("Open Archive"), favorites),
       m_selectBiosDialog(l_("Select BIOS"), favorites),
       m_selectEXP1Dialog(l_("Select EXP1"), favorites),
-      m_isoBrowser(settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); }),
+      m_isoBrowser(
+          settings.get<ShowIsoBrowser>().value, favorites, [this]() { useMonoFont(); },
+          [this](const std::string& name, IO<File> file) { m_dalos.addSource(name, file); }),
       m_pioCart(settings.get<ShowPIOCartConfig>().value, favorites),
       m_gpuDump(settings.get<ShowGPUDump>().value, favorites) {
     assert(g_gui == nullptr);
@@ -1014,7 +1015,7 @@ void PCSX::GUI::startFrame() {
                 break;
             case SDL_EVENT_KEY_DOWN:
             case SDL_EVENT_KEY_UP: {
-                const int action = event.type == SDL_EVENT_KEY_DOWN ? 1 : 0;
+                const int action = event.type == SDL_EVENT_KEY_UP ? 0 : event.key.repeat ? 2 : 1;
                 g_system->m_eventBus->signal(Events::Keyboard{static_cast<int>(event.key.key),
                                                               static_cast<int>(event.key.scancode), action,
                                                               static_cast<int>(event.key.mod)});
@@ -1582,6 +1583,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                     ImGui::EndMenu();
                 }
                 ImGui::MenuItem(_("Show PSYQo heap viewer"), nullptr, &m_heapViewer.m_show);
+                ImGui::MenuItem(_("Show allocator tracker"), nullptr, &m_allocTrackerViewer.m_show);
                 ImGui::Separator();
                 if (ImGui::BeginMenu(_("Kernel"))) {
                     ImGui::MenuItem(_("Kernel Events"), nullptr, &m_events.m_show);
@@ -1600,6 +1602,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
                 ImGui::EndMenu();
             }
             ImGui::Separator();
+            if (ImGui::BeginMenu(_("Dalos"))) {
+                ImGui::MenuItem(_("Show Canvas"), nullptr, &m_dalos.m_show);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu(_("Help"))) {
                 ImGui::MenuItem(_("Show ImGui Demo"), nullptr, &m_showDemo);
                 ImGui::MenuItem(_("Show ImPlot Demo"), nullptr, &m_showImPlotDemo);
@@ -1799,7 +1805,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
             ImGui::SetNextWindowPos(ImVec2(520, 30 + 10 * counter), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(484, 480), ImGuiCond_FirstUseEver);
             // Null until the SPU has been init'd; the editor would otherwise read off a wild pointer.
-            auto *spuRam = g_emulator->m_spu->getSpuRam();
+            auto* spuRam = g_emulator->m_spu->getSpuRam();
             if (spuRam) m_spuRamEditor.draw(spuRam, SPUInterface::c_spuRamSize);
         }
         counter++;
@@ -1908,6 +1914,10 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     }
 
     if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
+    if (m_dalos.m_show) {
+        m_dalos.draw(_("Dalos Canvas"));
+    }
+    m_dalos.fileViewers().draw();
 
     if (m_showCfg) changed |= configure();
     if (g_emulator->m_spu->m_showCfg) changed |= g_emulator->m_spu->configure();
@@ -1925,6 +1935,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
         m_spuSamplesWidget.draw(g_emulator->m_spuLogger.get(), g_emulator->m_spu->getSpuRam(), _("SPU Samples"));
     }
     if (m_heapViewer.m_show) m_heapViewer.draw(g_emulator->m_mem.get(), _("PSYQo Heap Viewer"));
+    if (m_allocTrackerViewer.m_show) m_allocTrackerViewer.draw(_("Allocator Tracker"));
 
     if (m_showUiCfg) {
         if (ImGui::Begin(_("UI Configuration"), &m_showUiCfg)) {
@@ -2355,7 +2366,14 @@ interval to 0 to disable.)"));
 which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
-        auto bios = settings.get<Emulator::SettingBios>().string();
+        changed |= ImGui::Checkbox(_("Randomize CD-ROM timings"),
+                                   &settings.get<Emulator::SettingCDRomEntropySeed>().value);
+        ImGuiHelpers::ShowHelpMarker(_(R"(The CD-ROM drive timings carry a small
+amount of jitter, like a real drive. By default
+it is the same on every run, so a session can be
+replayed exactly. Enabling this picks a different
+sequence at each power-on.)"));
+        auto bios =settings.get<Emulator::SettingBios>().string();
         ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())),
                          bios.length() + 1, ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();

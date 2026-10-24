@@ -57,6 +57,7 @@ uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
 void setPC(uint32_t pc);
+void setGPR(unsigned index, uint32_t value);
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
@@ -229,6 +230,13 @@ PCSX = {
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    -- Unlike a store into getRegisters().GPR, also drops a load still pending for that register.
+    setGPR = function(index, value)
+        if type(index) ~= 'number' or index < 0 or index > 33 or index % 1 ~= 0 then
+            error 'PCSX.setGPR needs a register index between 0 and 33'
+        end
+        C.setGPR(index, value)
+    end,
     getReadLUT = function() return C.getReadLUT() end,
     getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
