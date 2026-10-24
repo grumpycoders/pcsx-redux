@@ -77,10 +77,7 @@ void PCSX::SPU::impl::save(SaveStates::SPU &spu) {
     spu.get<SaveStates::SPUCtrl>().value = spuCtrl;
     spu.get<SaveStates::SPUStat>().value = spuStat;
     spu.get<SaveStates::SPUEndx>().value = spuEndx;
-    // Bits 0-1: main volume sides written, bit 2: that mask is present. Bits 3-5: the same
-    // for CD volume, with bit 5 the presence bit.
-    spu.get<SaveStates::SPUMainVolWritten>().value = 4 | (m_mainLeftWritten ? 1 : 0) | (m_mainRightWritten ? 2 : 0) |
-                                                    32 | (m_cdLeftWritten ? 8 : 0) | (m_cdRightWritten ? 16 : 0);
+    spu.get<SaveStates::SPUMainVolWritten>().value = mixVolumeWrittenMask();
 
     m_noise.saveTo(spu.get<SaveStates::SPUNoiseClock>(), spu.get<SaveStates::SPUNoiseCount>(),
                    spu.get<SaveStates::SPUNoiseVal>());
@@ -268,4 +265,15 @@ void PCSX::SPU::impl::replayMixVolumes(uint32_t writtenMask) {
         const bool written = (writtenMask & side.present) ? (writtenMask & side.written) != 0 : value != 0;
         if (written) writeRegister(side.reg, value);
     }
+}
+
+// Bits 0-1: main volume sides written, bit 2: that mask is present. Bits 3-4: the same for CD
+// volume, with bit 5 its presence bit. replayMixVolumes reads it back.
+uint32_t PCSX::SPU::impl::mixVolumeWrittenMask() const {
+    uint32_t mask = 4 | 32;
+    if (m_mainLeftWritten) mask |= 1;
+    if (m_mainRightWritten) mask |= 2;
+    if (m_cdLeftWritten) mask |= 8;
+    if (m_cdRightWritten) mask |= 16;
+    return mask;
 }

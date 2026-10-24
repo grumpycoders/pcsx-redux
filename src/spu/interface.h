@@ -441,6 +441,7 @@ class impl final : public SPUInterface {
     bool m_cdRightWritten = false;
     // Savestate load: replays the written sides of main and CD volume from regArea.
     void replayMixVolumes(uint32_t writtenMask);
+    uint32_t mixVolumeWrittenMask() const;
 
     // User settings.
     SettingsType settings;
