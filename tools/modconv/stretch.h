@@ -242,7 +242,7 @@ inline std::vector<int16_t> resampleLoop(const std::vector<int16_t>& source, uns
 // cell with a sample number switches the channel to it, a cell without one keeps the channel's
 // current sample. Dxx and Bxx end the pattern: Bxx goes to the position it names, Dxx starts the
 // next pattern at its row. The walk ends when it reaches a position and row it has already been at
-// with the same samples current, or runs off the order table. Cells never reached stay at 0.
+// with the same samples current. Cells never reached stay at 0.
 struct CellMap {
     std::vector<uint8_t> sample;  // per cell: 0 = not played, 1-31 = sample number
     std::vector<bool> conflict;   // the cell is reached with two different samples
@@ -257,11 +257,11 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
     std::vector<uint8_t> current(channels, 0);
     std::set<std::tuple<unsigned, unsigned, std::vector<uint8_t>>> visited;
     unsigned pos = 0, startRow = 0;
-    while ((pos < positions) && visited.emplace(pos, startRow, current).second) {
+    while ((positions != 0) && visited.emplace(pos, startRow, current).second) {
         const unsigned pattern = orders[pos];
-        unsigned nextPos = pos + 1, nextRow = 0;
+        bool jump = false, brk = false;
+        unsigned jumpTo = 0, breakRow = 0;
         for (unsigned row = startRow; (pattern < patternCount) && (row < 64); row++) {
-            bool breakPattern = false;
             for (unsigned ch = 0; ch < channels; ch++) {
                 const unsigned cell = (pattern * 64 + row) * channels + ch;
                 const uint8_t* c = patterns.data() + cell * 4;
@@ -274,19 +274,28 @@ inline CellMap mapCells(const std::vector<uint8_t>& patterns, unsigned channels,
                         map.conflict[cell] = true;
                     }
                 }
+                // The first channel with each effect wins, as in the player.
                 const unsigned fx = c[2] & 0x0f;
-                if (fx == 0xd) {
-                    breakPattern = true;
-                    nextRow = std::min(63u, unsigned(c[3] >> 4) * 10 + (c[3] & 0x0f));
-                } else if (fx == 0xb) {
-                    breakPattern = true;
-                    nextPos = c[3];
+                if ((fx == 0xd) && !brk) {
+                    brk = true;
+                    breakRow = unsigned(c[3] >> 4) * 10 + (c[3] & 0x0f);
+                } else if ((fx == 0xb) && !jump) {
+                    jump = true;
+                    jumpTo = c[3];
                 }
             }
-            if (breakPattern) break;
+            if (jump || brk) break;
         }
-        pos = nextPos;
-        startRow = nextRow;
+        // The player's order and row transitions: positions wrap to 0, a Dxx past row 63 starts at
+        // row 0, and Bxx with Dxx on the same row lands on the position after the Bxx target.
+        unsigned next = (pos + 1 < positions) ? pos + 1 : 0;
+        if (jump) next = (jumpTo < positions) ? jumpTo : 0;
+        startRow = 0;
+        if (brk) {
+            startRow = (breakRow < 64) ? breakRow : 0;
+            if (jump && (++next >= positions)) next = 0;
+        }
+        pos = next;
     }
     return map;
 }

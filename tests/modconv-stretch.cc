@@ -175,3 +175,35 @@ TEST(ModConvStretch, MapsFollowBxx) {
     EXPECT_FALSE(map.conflict[128 * channels]);
     EXPECT_EQ(map.sample[64 * channels], 0);
 }
+
+// Bxx and Dxx on one row land on the position after the Bxx target, at the Dxx row, and a Dxx past
+// row 63 starts the next pattern at row 0, as the modplayer does.
+TEST(ModConvStretch, MapsCombinedBxxDxx) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(4 * channels * 256, 0);
+    setCell(p, channels, 0, 0, 0, 0, 0xb, 0x02);                    // pattern 0: jump to position 2
+    setCell(p, channels, 0, 1, 0, 0, 0xd, 0x10);                    // and break to row 10
+    setCell(p, channels, 128 + 10, 2, 0, c_periodTable[12], 0, 0);  // pattern 2, skipped
+    setCell(p, channels, 192 + 10, 2, 3, c_periodTable[12], 0, 0);  // pattern 3: sample 3
+    const uint8_t orders[4] = {0, 1, 2, 3};
+    auto map = mapCells(p, channels, orders, 4);
+    EXPECT_EQ(map.sample[(192 + 10) * channels + 2], 3);
+    EXPECT_EQ(map.sample[(128 + 10) * channels + 2], 0);
+
+    std::vector<uint8_t> q(2 * channels * 256, 0);
+    setCell(q, channels, 0, 0, 0, 0, 0xd, 0x64);                  // pattern 0: break to row 64
+    setCell(q, channels, 64 + 0, 0, 1, c_periodTable[12], 0, 0);  // pattern 1, row 0: sample 1
+    map = mapCells(q, channels, orders, 2);
+    EXPECT_EQ(map.sample[64 * channels], 1);
+}
+
+// The song wraps from its last position to the first, carrying the channel's current sample.
+TEST(ModConvStretch, MapsAcrossTheSongWrap) {
+    const unsigned channels = 4;
+    std::vector<uint8_t> p(2 * channels * 256, 0);
+    setCell(p, channels, 5, 0, 0, c_periodTable[12], 0, 0);       // pattern 0: note, no sample
+    setCell(p, channels, 64 + 0, 0, 2, c_periodTable[12], 0, 0);  // pattern 1: sample 2
+    const uint8_t orders[2] = {0, 1};
+    auto map = mapCells(p, channels, orders, 2);
+    EXPECT_EQ(map.sample[5 * channels], 2);
+}
