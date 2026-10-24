@@ -188,7 +188,33 @@ struct Module {
     std::vector<Pattern> patterns;
     std::vector<Instrument> instruments;
     std::vector<Sample> samples;
+    bool protracker = false;  // ProTracker periods and limits instead of FastTracker 2's Amiga table
 };
+
+// ProTracker's octave 1 periods, C-1 to B-1, one row per finetune -8..7.
+static const uint16_t c_ptOctave1[16][12] = {
+    {907, 856, 808, 762, 720, 678, 640, 604, 570, 538, 508, 480}, {900, 850, 802, 757, 715, 675, 636, 601, 567, 535, 505, 477},
+    {894, 844, 796, 752, 709, 670, 632, 597, 563, 532, 502, 474}, {887, 838, 791, 746, 704, 665, 628, 592, 559, 528, 498, 470},
+    {881, 832, 785, 741, 699, 660, 623, 588, 555, 524, 494, 467}, {875, 826, 779, 736, 694, 655, 619, 584, 551, 520, 491, 463},
+    {868, 820, 774, 730, 689, 651, 614, 580, 547, 516, 487, 460}, {862, 814, 768, 725, 684, 646, 610, 575, 543, 513, 484, 457},
+    {856, 808, 762, 720, 678, 640, 604, 570, 538, 508, 480, 453}, {850, 802, 757, 715, 674, 637, 601, 567, 535, 505, 477, 450},
+    {844, 796, 752, 709, 670, 632, 597, 563, 532, 502, 474, 447}, {838, 791, 746, 704, 665, 628, 592, 559, 528, 498, 470, 444},
+    {832, 785, 741, 699, 660, 623, 588, 555, 524, 495, 467, 441}, {826, 779, 736, 694, 655, 619, 584, 551, 520, 491, 463, 437},
+    {820, 774, 730, 689, 651, 614, 580, 547, 516, 487, 460, 434}, {814, 768, 725, 684, 646, 610, 575, 543, 513, 484, 457, 431},
+};
+
+// ProTracker's finetune 0 periods for octaves 2 and 3, which are not exact halves of octave 1.
+static const uint16_t c_ptFinetune0[24] = {428, 404, 381, 360, 339, 320, 302, 285, 269, 254, 240, 226,
+                                           214, 202, 190, 180, 170, 160, 151, 143, 135, 127, 120, 113};
+
+// The player's period table for a MOD, times 4, as the reference (libopenmpt) renders it: finetune 0
+// takes the ProTracker table for octaves 2 and 3 except B-3, which it plays at 113.25 (a quarter of
+// 453); other finetunes halve their octave 1 row.
+static uint16_t ptPeriod(unsigned row, unsigned index) {
+    if (row == 8 && index == 35) return 453;
+    if (row == 8 && index >= 12) return c_ptFinetune0[index - 12] * 4;
+    return (c_ptOctave1[row][index % 12] * 4) >> (index / 12);
+}
 
 // Reads a FastTracker 2 .xm module.
 static bool loadXM(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned amplification, Module& m) {
@@ -440,6 +466,7 @@ static bool loadMOD(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned 
     m.title = readString(20);
     m.channels = channels;
     m.flags = 0;  // Amiga periods
+    m.protracker = true;
     m.speed = 6;
     m.bpm = 125;
     std::vector<unsigned> lengths(31);
@@ -726,6 +753,7 @@ Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
     out->write<uint16_t>(patterns.size());
     out->write<uint16_t>(numInstruments);
     out->write<uint16_t>(samples.size());
+    const size_t periodTableAt = out->wTell();
     out->write<uint16_t>(0);
     out->write<uint32_t>(spuOffset);
     const size_t offsetsAt = out->wTell();
@@ -734,6 +762,12 @@ Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
         char t[20] = {};
         std::copy_n(title.begin(), std::min<size_t>(title.size(), 19), t);
         out->write(t, 20);
+    }
+    if (m.protracker) {
+        out->writeAt<uint16_t>(out->wTell(), periodTableAt);
+        for (unsigned row = 0; row < 16; row++) {
+            for (unsigned i = 0; i < 36; i++) out->write<uint16_t>(ptPeriod(row, i));
+        }
     }
     const unsigned ordersOffset = out->wTell();
     for (auto o : orders) out->write<uint8_t>(o);
