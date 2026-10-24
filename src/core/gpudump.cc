@@ -59,6 +59,12 @@ void PCSX::GPUDumper::read(unsigned count) {
     m_pendingReads += count;
 }
 
+void PCSX::GPUDumper::writeField(uint32_t bit31) {
+    flushPending();
+    packet(InterlaceField, &bit31, 1);
+    m_lastField = bit31;
+}
+
 void PCSX::GPUDumper::vsync(GPU* gpu, uint64_t cycle) {
     switch (m_state) {
         case State::Idle:
@@ -82,6 +88,7 @@ void PCSX::GPUDumper::begin(GPU* gpu) {
     m_pending.clear();
     m_pendingReads = 0;
     m_pendingType = 0;
+    m_lastField = -1;
 
     uint32_t magic[4];
     memcpy(magic, c_magic, sizeof(magic));
@@ -233,6 +240,8 @@ void PCSX::GPUDumpPlayer::rewind() {
     m_reader.rewind();
     m_gpu->writeStatus(0x00000000);
     m_gpu->clearVRAM();
+    // The player's GPU has no beam of its own; GPUSTAT.31 comes from the dump's field packets.
+    m_gpu->m_fieldOverride = 0;
     GPUDumpReader::Packet packet;
     // Everything before the trace begin marker is state restoration. A dump without one starts live.
     size_t start = 4;
@@ -280,6 +289,9 @@ void PCSX::GPUDumpPlayer::execute(const GPUDumpReader::Packet& packet) {
                 uint32_t count = std::min<uint32_t>(packet.words[0], 1024 * 1024 / 2);
                 for (uint32_t i = 0; i < count; i++) m_gpu->readData();
             }
+            break;
+        case GPUDumper::InterlaceField:
+            if (packet.length >= 1) m_gpu->m_fieldOverride = packet.words[0] & 1;
             break;
         case GPUDumper::GameID:
             m_gameID = packetString(packet);
