@@ -412,8 +412,8 @@ class impl final : public SPUInterface {
         // The stamp for the first frame of audio the CD delivers at sample `arrival`. A sector
         // close to where the stream left off continues it; anything else starts a fresh stream.
         uint64_t start(uint64_t arrival) {
-            const bool sameStream = next != 0 && arrival <= next + kResumeWindow &&
-                                    next <= arrival + kCushion + kResumeWindow;
+            const bool sameStream =
+                next != 0 && arrival <= next + kResumeWindow && next <= arrival + kCushion + kResumeWindow;
             if (sameStream) return next;
             popped = pushed;
             return arrival + kCushion;
