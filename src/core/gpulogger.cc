@@ -78,8 +78,10 @@ static const char* const c_vtx = R"(
 
 layout (location = 0) in ivec2 inPos;
 
-// We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies
-const vec2 vertexOffsets = vec2(+0.5, -0.5);
+// The PS1 tests coverage at the integer pixel coordinate, top and left edges inclusive. OpenGL samples at the
+// pixel center, so shift the geometry by just under half a pixel: each pixel is then sampled a hair to the
+// right of and below its integer corner, which keeps the inclusive edges and drops the right and bottom ones.
+const vec2 vertexOffsets = vec2(0.5 - 1.0 / 64.0, 0.5 - 1.0 / 64.0);
 
 void main() {
     // Normalize coords to [0, 2]
@@ -108,6 +110,23 @@ void main() {
 
 PCSX::GPULogger::GPULogger() : m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
+        // Read the counts back at the end of the frame, not when the next frame starts drawing, so the
+        // last frame before the GPU goes idle is still reported.
+        if (m_overdrawStats && m_overdrawDirty && m_hasFramebuffers) {
+            GLint oldReadFBO;
+            glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+            readOverdraw(m_writtenAccumFB, m_writtenOverdraw, m_writtenOverdrawPixels);
+            readOverdraw(m_readAccumFB, m_readOverdraw, m_readOverdrawPixels);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, oldReadFBO);
+            m_hasOverdrawStats = true;
+        } else if (m_overdrawStats && m_hasOverdrawStats) {
+            // Nothing was drawn this frame.
+            m_writtenOverdraw = {};
+            m_readOverdraw = {};
+            m_writtenOverdrawPixels.clear();
+            m_readOverdrawPixels.clear();
+        }
+        m_overdrawDirty = false;
         m_frameCounter++;
         const unsigned rate = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL ? 50 : 60;
         if (++m_fpsVSyncs >= rate) {
@@ -262,6 +281,7 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     checkVramBreakpoints(node);
 
     if (!m_hasFramebuffers) return;
+    m_overdrawDirty = true;
 
     const auto oldFBO = OpenGL::getDrawFramebuffer();
 
@@ -313,6 +333,35 @@ void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin ori
     if (!blendWasEnabled) glDisable(GL_BLEND);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldFBO);
     g_emulator->m_gpu->setOpenGLContext();
+}
+
+void PCSX::GPULogger::readOverdraw(OpenGL::Framebuffer& fb, OverdrawStats& stats, std::vector<float>& pixels) {
+    pixels.resize(1024 * 512);
+    fb.bind(OpenGL::ReadFramebuffer);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadPixels(0, 0, 1024, 512, GL_RED, GL_FLOAT, pixels.data());
+    stats = {};
+    for (float f : pixels) {
+        unsigned count = unsigned(f + 0.5f);
+        if (count == 0) continue;
+        stats.total += count;
+        stats.pixels++;
+        if (count > stats.max) stats.max = count;
+        unsigned bucket = count == 1 ? 0 : count == 2 ? 1 : count <= 4 ? 2 : count <= 8 ? 3 : 4;
+        stats.buckets[bucket]++;
+    }
+}
+
+uint64_t PCSX::GPULogger::getOverdrawSum(bool read, int x, int y, int w, int h) const {
+    auto& pixels = read ? m_readOverdrawPixels : m_writtenOverdrawPixels;
+    if (pixels.size() != 1024 * 512) return 0;
+    int x0 = std::max(x, 0), y0 = std::max(y, 0);
+    int x1 = int(std::min<int64_t>(int64_t(x) + w, 1024)), y1 = int(std::min<int64_t>(int64_t(y) + h, 512));
+    uint64_t sum = 0;
+    for (int py = y0; py < y1; py++) {
+        for (int px = x0; px < x1; px++) sum += unsigned(pixels[py * 1024 + px] + 0.5f);
+    }
+    return sum;
 }
 
 void PCSX::GPULogger::startNewFrame() { m_vram = g_emulator->m_gpu->getVRAM(GPU::Ownership::ACQUIRE); }
