@@ -299,6 +299,7 @@ class impl final : public SPUInterface {
     // The mixer-side half of a register write: everything the voices and the mix see.
     // writeRegister is the CPU-side half, which stamps and queues it.
     void applyRegister(uint32_t reg, uint16_t val);
+    bool applyMixVolume(uint32_t r, uint16_t val);
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
     void saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &);
@@ -381,6 +382,66 @@ class impl final : public SPUInterface {
     std::atomic<uint64_t> cdFeedCycle = 0;
     // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
+
+    // CD audio input (CD-DA, and XA-ADPCM after the decoder's 44.1 kHz resampler), queued on
+    // the emulated sample clock. FeedXA stamps each frame with the sample it plays at; mixChunk
+    // takes one frame per output sample and adds it to the mix through CD volume and SPUCNT
+    // bit 0, ahead of main volume. Shared under cbMtx.
+    struct CdAudioQueue {
+        static constexpr size_t kSize = 16384;
+        static_assert((kSize & (kSize - 1)) == 0);
+        // A stream plays this many samples (about 46ms) after the sector that starts it
+        // arrives, so the drive's sector-to-sector timing jitter and the small per-sector
+        // difference between the fed sample count and real time do not gap the audio.
+        static constexpr uint64_t kCushion = 2048;
+        // A sector landing within this of where the stream expects it continues that stream,
+        // jittered; anything further off (a stop, a seek, a new stream) starts fresh with a
+        // cushion. Wide enough for the jitter, narrow enough to keep a real silence a silence.
+        static constexpr uint64_t kResumeWindow = 2048;
+        int16_t left[kSize] = {};
+        int16_t right[kSize] = {};
+        uint64_t stamp[kSize] = {};
+        uint64_t pushed = 0;
+        uint64_t popped = 0;
+        // The sample right after the last queued frame: where the stream continues.
+        uint64_t next = 0;
+        void clear() {
+            popped = pushed;
+            next = 0;
+        }
+        // The stamp for the first frame of audio the CD delivers at sample `arrival`. A sector
+        // close to where the stream left off continues it; anything else starts a fresh stream.
+        uint64_t start(uint64_t arrival) {
+            const bool sameStream = next != 0 && arrival <= next + kResumeWindow &&
+                                    next <= arrival + kCushion + kResumeWindow;
+            if (sameStream) return next;
+            popped = pushed;
+            return arrival + kCushion;
+        }
+        void push(int16_t l, int16_t r, uint64_t s) {
+            // Full: the oldest frame goes.
+            if (pushed - popped == kSize) popped++;
+            const size_t i = pushed & (kSize - 1);
+            left[i] = l;
+            right[i] = r;
+            stamp[i] = s;
+            pushed++;
+            next = s + 1;
+        }
+    };
+    CdAudioQueue m_cdQueue;
+    void mixCdInput(int n);
+    // CD audio input volume (1F801DB0h/1DB2h), mixer side: the signed register value, which
+    // scales by value/0x8000. Like main volume, each side stays at unity (0x8000) until software
+    // first writes it.
+    static constexpr int32_t kCdVolumeUnity = 0x8000;
+    int32_t m_cdVolumeLeft = kCdVolumeUnity;
+    int32_t m_cdVolumeRight = kCdVolumeUnity;
+    bool m_cdLeftWritten = false;
+    bool m_cdRightWritten = false;
+    // Savestate load: replays the written sides of main and CD volume from regArea.
+    void replayMixVolumes(uint32_t writtenMask);
+    uint32_t mixVolumeWrittenMask() const;
 
     // User settings.
     SettingsType settings;
