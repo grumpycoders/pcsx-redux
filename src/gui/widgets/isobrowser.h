@@ -29,6 +29,7 @@
 
 #include "cdrom/iso9660-reader.h"
 #include "gui/widgets/filedialog.h"
+#include "gui/widgets/fileviewers.h"
 #include "imgui_memory_editor/imgui_memory_editor.h"
 #include "support/coroutine.h"
 #include "support/file.h"
@@ -45,14 +46,19 @@ namespace Widgets {
 
 class IsoBrowser {
   public:
-    IsoBrowser(bool& show, std::vector<std ::string>& favorites, std::function<void()> monoFont = nullptr)
+    IsoBrowser(bool& show, std::vector<std ::string>& favorites, std::function<void()> monoFont = nullptr,
+               std::function<void(const std::string&, IO<File>)> sendToDalos = nullptr)
         : m_show(show),
           m_openIsoFileDialog(l_("Open Disk Image"), favorites),
           m_saveFileDialog(l_("Extract File"), favorites),
           m_openReplaceFileDialog(l_("Replace File"), favorites),
-          m_monoFont(monoFont) {}
+          m_monoFont(monoFont),
+          m_sendToDalos(sendToDalos) {}
     ~IsoBrowser() { m_hexEditors.destroyAll(); }
     void draw(CDRom* cdrom, const char* title);
+    // The hex editors and viewers opened from the browser, drawn by the caller
+    // every frame so they stay up while the browser is collapsed or closed.
+    void drawChildren();
 
     bool& m_show;
 
@@ -126,6 +132,9 @@ class IsoBrowser {
     std::function<void()> m_monoFont;
 
     void openHexEditor(const std::string& title, IO<File> file);
+
+    FileViewers m_fileViewers;
+    std::function<void(const std::string&, IO<File>)> m_sendToDalos;
 };
 
 }  // namespace Widgets

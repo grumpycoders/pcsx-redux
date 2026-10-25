@@ -20,10 +20,13 @@
 #include "core/psxhw.h"
 
 #include <stdint.h>
+#include <string.h>
 
+#include "core/alloc-tracker.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/guest-command.h"
 #include "core/logger.h"
 #include "core/mdec.h"
 #include "core/pio-cart.h"
@@ -246,7 +249,8 @@ uint16_t PCSX::HW::read16(uint32_t add) {
             break;
 
         default:
-            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e00)) {
+            // SPU registers, plus the per-voice current volume block at 1f801e00h.
+            if ((hwadd >= 0x1f801c00) && (hwadd < 0x1f801e60)) {
                 hard = g_emulator->m_spu->readRegister(add);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[add & 0xffff];
@@ -307,7 +311,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             break;
         case 0x1f801814:
-            hard = PCSX::g_emulator->m_gpu->readStatus();
+            hard = PCSX::g_emulator->m_gpu->readStatusFromBus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             break;
 
@@ -387,7 +391,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
                 }
                 default: {
                     g_system->printf(_("Called msanGetChainPtr with invalid header pointer %8.8lx\n"), headerAddr);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return 0xffffffff;
                 }
             }
@@ -486,8 +490,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -496,8 +500,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -609,8 +613,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -620,8 +624,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -640,7 +644,9 @@ inline void PCSX::HW::dma1(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     g_emulator->m_mdec->dma1(madr, bcr, chcr);
 }
 
-inline void PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) { g_emulator->m_gpu->dma(madr, bcr, chcr); }
+inline bool PCSX::HW::dma2(uint32_t madr, uint32_t bcr, uint32_t chcr) {
+    return g_emulator->m_gpu->dma(madr, bcr, chcr);
+}
 
 inline void PCSX::HW::dma3(uint32_t madr, uint32_t bcr, uint32_t chcr) {
     PSXDMA_LOG("*** DMA3 CDROM *** %x addr = %x size = %x\n", chcr, madr, bcr);
@@ -835,6 +841,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
             g_emulator->m_mem->m_psyqoHeapMetadata = value;
             break;
         }
+        case 0x1f8020a4: {
+            GuestCommand::dispatch(value);
+            break;
+        }
         case 0x1f802094: {
             PSXAddress headerAddrInfo(value);
             switch (headerAddrInfo.type) {
@@ -848,7 +858,7 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
                 }
                 default: {
                     g_system->printf(_("Called msanSetChainPtr with invalid header pointer %8.8lx\n"), value);
-                    g_system->pause();
+                    g_system->testQuit(PCSX::Memory::c_msanExitCode);
                     return;
                 }
             }

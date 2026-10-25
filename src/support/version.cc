@@ -26,6 +26,12 @@ SOFTWARE.
 
 #include "support/version.h"
 
+#ifndef __EMSCRIPTEN__
+#include <uv.h>
+
+#include "support/uvfile.h"
+#endif
+
 #include <algorithm>
 
 #include "json.hpp"
@@ -63,6 +69,15 @@ void PCSX::VersionInfo::loadFromFile(IO<File> file) {
     updateCatalog = getString("updateCatalog");
     updateInfoBase = getString("updateInfoBase");
     updateStorageUrl = getString("updateStorageUrl");
+}
+
+// v1 wasm has no updater; version-wasm.cc supplies the stubs.
+#ifndef __EMSCRIPTEN__
+
+float PCSX::Update::progress() {
+    auto download = m_download.asA<UvFile>();
+    if (download && !download->failed()) return download->cacheProgress();
+    return 0.0f;
 }
 
 bool PCSX::Update::downloadUpdateInfo(const VersionInfo& versionInfo, std::function<void(bool)> callback,
@@ -267,7 +282,9 @@ bool PCSX::Update::getDownloadUrl(const VersionInfo& versionInfo, std::function<
 // All these defines need to be matching what we see in version-{platform}.cc
 #if (!defined(__APPLE__) || !defined(__MACH__)) && !defined(__linux__) && !defined(_WIN32) && !defined(_WIN64)
 bool PCSX::Update::applyUpdate(const std::filesystem::path& binDir) {
-    throw std::runtime_exception("No platform support for updates");
+    throw std::runtime_error("No platform support for updates");
     return false;
 }
+#endif
+
 #endif

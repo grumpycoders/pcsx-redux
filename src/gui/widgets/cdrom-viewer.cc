@@ -61,6 +61,12 @@ void main() {
 
 static const GLchar *s_defaultPixelShader = GL_SHADER_VERSION R"(
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp usampler2D;
+#endif
 
 uniform usampler2D u_dataHeatmap;
 uniform usampler2D u_audioHeatmap;
@@ -289,8 +295,7 @@ void PCSX::Widgets::CDRomViewer::imguiCB(const ImDrawList *parentList, const ImD
     glActiveTexture(GL_TEXTURE0);
 
     glEnableVertexAttribArray(m_locVtxPos);
-    glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert),
-                          (GLvoid *)offsetof(ImDrawVert, pos));
+    glVertexAttribPointer(m_locVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)offsetof(ImDrawVert, pos));
     glEnableVertexAttribArray(m_locVtxUV);
     glVertexAttribPointer(m_locVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid *)offsetof(ImDrawVert, uv));
 }

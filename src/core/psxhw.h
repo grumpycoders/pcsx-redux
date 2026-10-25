@@ -40,12 +40,16 @@ class HW {
   private:
     void dma0(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma1(uint32_t madr, uint32_t bcr, uint32_t chcr);
-    void dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    bool dma2(uint32_t madr, uint32_t bcr, uint32_t chcr);
     void dma3(uint32_t madr, uint32_t bcr, uint32_t chcr);
 
     template <unsigned n>
     void dmaExec(uint32_t chcr) {
         auto &mem = g_emulator->m_mem;
+        if constexpr (n == 6) {
+            // Only bits 24, 28 and 30 of DMA6 CHCR are writable; bit 1 (step backwards) always reads 1.
+            chcr = (chcr & 0x51000000) | 0x00000002;
+        }
         mem->setCHCR<n>(chcr);
         if ((chcr & 0x01000000) && mem->template isDMAEnabled<n>()) {
             uint32_t madr = mem->template getMADR<n>();
@@ -62,13 +66,15 @@ class HW {
             } else if constexpr (n == 1) {
                 dma1(madr, bcr, chcr);
             } else if constexpr (n == 2) {
-                dma2(madr, bcr, chcr);
+                if (dma2(madr, bcr, chcr)) return;
             } else if constexpr (n == 3) {
                 dma3(madr, bcr, chcr);
             } else if constexpr (n == 4) {
                 dma4(madr, bcr, chcr);
             } else if constexpr (n == 6) {
+                // The OTC leaves MADR and BCR as they were written.
                 dma6(madr, bcr, chcr);
+                return;
             }
             if (mode == 2) {
                 uint32_t usedAddr[3] = {0xffffff, 0xffffff, 0xffffff};

@@ -15,6 +15,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\alloc-tracker.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -30,7 +33,13 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\cdrom.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\copbranch.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc">
@@ -48,13 +57,94 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\memset.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\psyqo.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\cputrace.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpudump.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-command.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-fbrect.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dma-dreq.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-irq.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dfe-480i.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpustat-480i.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-polyline.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-vram-move.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\msan.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\spu.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-gpustat.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-v4.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\twomb-vram.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\sstate-adpcm.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\sstate-cdrom.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\sstate-mdec.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu-volume.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\modconv-layout.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu\speed.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\spu\syncmix.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\core\pad-config.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\core\i18n.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-threaded.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

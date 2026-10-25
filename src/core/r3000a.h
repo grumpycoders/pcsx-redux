@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -32,7 +33,7 @@
 #include "core/psxcounters.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
-#include "mips/common/util/mips.hh"
+#include "mips-common/util/mips.hh"
 #include "support/file.h"
 #include "support/hashtable.h"
 
@@ -162,56 +163,64 @@ typedef union {
     PAIR p[32];
 } psxCP2Ctrl;
 
-enum {
-    PSXINT_SIO = 0,
-    PSXINT_SIO1,
-    PSXINT_CDR,
-    PSXINT_CDREAD,
-    PSXINT_GPUDMA,
-    PSXINT_MDECOUTDMA,
-    PSXINT_SPUDMA,
-    PSXINT_GPUBUSY,
-    PSXINT_MDECINDMA,
-    PSXINT_GPUOTCDMA,
-    PSXINT_CDRDMA,
-    PSXINT_SPUASYNC,
-    PSXINT_CDRDBUF,
-    PSXINT_CDRLID,
-    PSXINT_CDRPLAY
+enum class Schedule : unsigned {
+    SIO = 0,
+    SIO1,
+    CDRFIFO,
+    CDRCOMMANDS,
+    CDREAD,
+    GPUDMA,
+    MDECOUTDMA,
+    SPUDMA,
+    MDECINDMA,
+    GPUOTCDMA,
+    CDRDMA,
 };
+
+// The program counter. Reads convert to uint32_t. Outside the cpu core, writes go through
+// R3000Acpu::setPC(), which also drops a branch still pending in a delay slot. raw() is for
+// the core itself and for the paths that save and restore the whole cpu state.
+class PCRegister {
+  public:
+    operator uint32_t() const { return m_value; }
+    uint32_t &raw() { return m_value; }
+    // Steps to the next instruction. Same caveat as raw(): no pending branch is touched.
+    void increment() { m_value += 4; }
+
+  private:
+    uint32_t m_value = 0;
+};
+// Lets fmt, printf-style formats included, take it as the uint32_t it holds.
+inline uint32_t format_as(PCRegister pc) { return pc; }
+static_assert(sizeof(PCRegister) == sizeof(uint32_t));
+static_assert(std::is_standard_layout_v<PCRegister>);
 
 struct psxRegisters {
     psxGPRRegs GPR;   // General Purpose Registers
     psxCP0Regs CP0;   // COP0 Registers
     psxCP2Data CP2D;  // COP2 data registers
     psxCP2Ctrl CP2C;  // COP2 control registers
-    uint32_t pc;      // Program counter
+    PCRegister pc;    // Program counter
     uint32_t code;    // The current instruction
     uint64_t cycle;
     uint64_t previousCycles;
-    uint32_t interrupt;
+    uint32_t scheduleMask;
     std::atomic<bool> spuInterrupt;
-    uint64_t intTargets[32];
+    uint64_t scheduleTargets[32];
     uint64_t lowestTarget;
+    uint64_t muldivReady;  // cycle at which hi/lo can be read without stalling
+    uint64_t gteReady;     // cycle at which the GTE can be accessed without stalling
     uint8_t iCacheAddr[0x1000];
     uint8_t iCacheCode[0x1000];
+    uint32_t getFutureCycle(std::chrono::nanoseconds delay) const { return cycle + durationToCycles(delay); }
+    std::chrono::nanoseconds getFutureTime(uint32_t futureCycle) const {
+        return std::chrono::nanoseconds(int64_t(int32_t(futureCycle - cycle)) * 1'000'000'000 /
+                                        Emulator::m_psxClockSpeed);
+    }
+    static constexpr uint32_t durationToCycles(std::chrono::nanoseconds duration) {
+        return duration.count() * Emulator::m_psxClockSpeed / 1'000'000'000;
+    }
 };
-
-// U64 and S64 are used to wrap long integer constants.
-#define U64(val) val##ULL
-#define S64(val) val##LL
-
-#if defined(__BIGENDIAN__)
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#else
-
-#define _i32(x) reinterpret_cast<int32_t *>(&x)[0]
-#define _u32(x) reinterpret_cast<uint32_t *>(&x)[0]
-
-#endif
 
 // R3000A Instruction Macros
 #define _PC_ PCSX::g_emulator->m_cpu->m_regs.pc  // The next PC to be executed
@@ -266,6 +275,22 @@ class R3000Acpu {
     }
     virtual bool Init() { return false; }
     virtual void Execute() = 0; /* executes up to a debug break */
+
+    enum class RunUntilResult {
+        Reached,     /* pc landed on stopPC */
+        OutOfCycles, /* the budget ran out first */
+        Exception,   /* the guest took an exception */
+        Unsupported, /* this cpu can't do it */
+        Reentered,   /* called from inside another RunUntil */
+    };
+    /* Runs until pc reaches stopPC, the cycle budget is spent, or an exception is taken.
+       Unlike Execute(), this doesn't run branchTest(), so counters, scheduled interrupts
+       and the audio-driven frame throttle are all inert for the duration - the caller gets
+       the cpu on its own, with no wall clock attached. Only the interpreter implements it;
+       the recompilers can't stop on an arbitrary pc, since they emit no per-instruction
+       checks and linked blocks jump straight past the dispatcher. */
+    virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) { return RunUntilResult::Unsupported; }
+
     virtual void Clear(uint32_t Addr, uint32_t Size) = 0;
     virtual void Shutdown() = 0;
     virtual void SetPGXPMode(uint32_t pgxpMode) = 0;
@@ -298,61 +323,173 @@ class R3000Acpu {
         CoprocessorUnusable = 11,
         ArithmeticOverflow = 12,
     };
-    void exception(Exception e, bool bd, bool cop0 = false) {
-        exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
+    bool exception(Exception e, bool bd, bool cop0 = false) {
+        return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
-    void exception(uint32_t code, bool bd, bool cop0 = false);
+    bool exception(uint32_t code, bool bd, bool cop0 = false);
     void branchTest();
 
     void psxSetPGXPMode(uint32_t pgxpMode);
 
-    void scheduleInterrupt(unsigned interrupt, uint32_t eCycle) {
-        PSXIRQ_LOG("Scheduling interrupt %08x at %08x\n", interrupt, eCycle);
+    void schedule(Schedule s_, uint32_t eCycle) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Scheduling callback %08x at %08x\n", s, eCycle);
         const uint64_t cycle = m_regs.cycle;
-        uint64_t target = cycle + uint64_t(eCycle * m_interruptScales[interrupt]);
-        m_regs.interrupt |= (1 << interrupt);
-        m_regs.intTargets[interrupt] = target;
-        if (target < m_regs.lowestTarget) m_regs.lowestTarget = target;
+        uint64_t target = cycle + uint64_t(double(eCycle) * m_scheduleScales[s]);
+        m_regs.scheduleMask |= (1 << s);
+        m_regs.scheduleTargets[s] = target;
+        int64_t lowest = m_regs.lowestTarget - cycle;
+        int64_t maybeNewLowest = target - cycle;
+        if (maybeNewLowest < lowest) m_regs.lowestTarget = target;
     }
 
+    void unschedule(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        PSXIRQ_LOG("Unscheduling callback %08x\n", s);
+        m_regs.scheduleMask &= ~(1 << s);
+    }
+
+    bool isScheduled(Schedule s_) {
+        unsigned s = static_cast<unsigned>(s_);
+        return (m_regs.scheduleMask & (1 << s)) != 0;
+    }
+
+    // GTE command execution time, indexed by the command's function field.
+    // Zero for the function codes that aren't documented commands.
+    static uint32_t gteLatency(uint32_t funct) {
+        static constexpr uint8_t latencies[64] = {
+            0,  15, 0, 0,  0,  0, 8,  0, 0, 0, 0,  0,  6,  0, 0,  0,   // 00
+            8,  8,  8, 19, 13, 0, 44, 0, 0, 0, 0,  17, 11, 0, 14, 0,   // 10
+            30, 0,  0, 0,  0,  0, 0,  0, 5, 8, 17, 0,  0,  5, 6,  0,   // 20
+            23, 0,  0, 0,  0,  0, 0,  0, 0, 0, 0,  0,  0,  5, 5,  39,  // 30
+        };
+        return latencies[funct & 0x3f];
+    }
+    // Called when a GTE command issues, after the cycle counter was advanced
+    // for it. A new command waits for the previous one to finish.
+    void gteStart(uint32_t latency) {
+        gteStall();
+        m_regs.gteReady = m_regs.cycle + latency + PCSX::Emulator::BIAS;
+    }
+    // Called by mfc2, cfc2 and swc2, which wait for a running command to
+    // finish whichever register they access. mtc2, ctc2 and lwc2 don't wait.
+    void gteStall() {
+        if (m_regs.cycle < m_regs.gteReady) m_regs.cycle = m_regs.gteReady;
+    }
+
+    // Multiplier and divider result latency. A multiply takes 6, 9 or 13 cycles
+    // depending on the magnitude of rs only; a divide always takes 36.
+    static uint32_t multLatency(uint32_t rs, bool isSigned) {
+        if (isSigned && (int32_t(rs) < 0)) rs = ~rs;
+        if (rs < 0x800) return 6;
+        if (rs < 0x100000) return 9;
+        return 13;
+    }
+    static constexpr uint32_t c_divLatency = 36;
+    // Called when a mul/div issues, after the cycle counter was advanced for it.
+    // The result can be read by an instruction issuing latency cycles later.
+    // A mul/div issued while the unit is busy does not wait: it replaces the
+    // running operation.
+    void muldivStart(uint32_t latency) { m_regs.muldivReady = m_regs.cycle + latency + PCSX::Emulator::BIAS; }
+    // Called when hi/lo is read: waits for the running operation to complete.
+    void muldivStall() {
+        if (m_regs.cycle < m_regs.muldivReady) m_regs.cycle = m_regs.muldivReady;
+    }
+    // Called by mthi/mtlo, which abort a running multiply and leave the other
+    // register partially computed; the partial value is not modelled. A
+    // running divide is cancelled the same way, which hasn't been measured.
+    void muldivCancel() { m_regs.muldivReady = 0; }
+
     psxRegisters m_regs;
-    float m_interruptScales[15] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float m_scheduleScales[static_cast<unsigned>(Schedule::CDRDMA) + 1] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                                                           1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
+    // Set by Emulator::vsync(), consumed by hasToRun(). It makes Execute()
+    // RETURN once per emulated frame rather than only when the emulator is
+    // paused. Frames were always rendered on this boundary - what was missing
+    // is control coming back to the caller on it, which is what an
+    // emscripten_set_main_loop callback has to do so the browser can run its
+    // own event loop between frames.
+    bool m_frameDone = false;
 
     virtual void Reset() {
         invalidateCache();
-        m_regs.interrupt = 0;
+        m_regs.scheduleMask = 0;
+        m_gtePendingCount = 0;
     }
     bool m_inISR = false;
+    bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
+    // The next instruction is the delay slot of the branch at m_nextSlotBranchPC, taken or not.
+    // Only the interpreter sets these.
+    bool m_nextIsBranchSlot = false;
+    uint32_t m_nextSlotBranchPC = 0;
     struct {
         uint32_t index = 0;
         uint32_t value = 0;
         uint32_t mask = 0;
         uint32_t pcValue = 0;
+        uint32_t branchPC = 0;
         bool active = false;
         bool pcActive = false;
         bool fromLink = false;
     } m_delayedLoadInfo[2];
     unsigned m_currentDelayedLoad = 0;
-    uint32_t &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
+    // GTE register writes not yet visible to the GTE, oldest first.
+    struct GTEPendingWrite {
+        uint32_t value;
+        uint32_t reg;
+        bool ctrl;
+        uint32_t countdown;
+    };
+    GTEPendingWrite m_gtePending[3] = {};
+    uint32_t m_gtePendingCount = 0;
+    // Lands a write through GTE::MTC2 / GTE::CTC2.
+    void gteCommit(const GTEPendingWrite &w);
+    // Runs a GTE command with the writes in m_gtePending, which it empties. execute runs the
+    // command itself on the registers as the command reads them.
+    void gteRunCommand(uint32_t code, void (*execute)(R3000Acpu *cpu, uint32_t code));
+    template <typename T = uint32_t>
+    T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.active = true;
         delayedLoad.index = reg;
         delayedLoad.mask = mask;
-        return delayedLoad.value;
+        return reinterpret_cast<T &>(delayedLoad.value);
     }
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
         auto &ref = delayedLoadRef(reg, mask);
         ref = value;
     }
+    // Moves pc from outside the instruction stream. Paused in a delay slot, the branch is
+    // still pending and would take the instruction at the new pc as its delay slot, then
+    // jump to its own target anyway.
+    void setPC(uint32_t value) {
+        m_regs.pc.raw() = value;
+        m_nextIsDelaySlot = false;
+        m_inDelaySlot = false;
+        m_nextIsBranchSlot = false;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            delayedLoad.pcActive = false;
+            delayedLoad.fromLink = false;
+        }
+    }
+    // Writes a register from outside the instruction stream. Paused right after a load, the
+    // loaded value is still pending and would land over the new one on the next step.
+    void setGPR(unsigned index, uint32_t value) {
+        if (index >= 34) return;
+        m_regs.GPR.r[index] = index == 0 ? 0 : value;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            if (delayedLoad.index == index) delayedLoad.active = false;
+        }
+    }
     void delayedPCLoad(uint32_t value, bool fromLink) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         delayedLoad.pcActive = true;
         delayedLoad.pcValue = value;
+        delayedLoad.branchPC = m_regs.pc - 4;
         delayedLoad.fromLink = fromLink;
     }
     void flushCurrentDelayedLoad() {
@@ -381,11 +518,20 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!m_shellStarted) {
-            uint32_t &pc = m_regs.pc;
+            uint32_t &pc = m_regs.pc.raw();
             if (pc == 0x80030000) {
                 m_shellStarted = true;
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
+        }
+        // Consumed HERE, on the way out, rather than anywhere that runs every
+        // call: hasToRun() is evaluated once per block - roughly every fifty
+        // instructions and around jumps, on the interpreter and both dynarecs
+        // alike - so clearing it on entry would wipe it microseconds after
+        // vsync() set it and the loop would never see it.
+        if (m_frameDone) {
+            m_frameDone = false;
+            return false;
         }
         return g_system->running();
     }
@@ -528,11 +674,23 @@ Formula One 2001
             : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
         PCdrvFile(const std::filesystem::path &filename, FileOps::Create)
             : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
-        virtual ~PCdrvFile() = default;
+        // A TCP stream (tcp://host:port) or the networking probe (probe:net). Neither is a
+        // real file: they are not saved in save states, and lseek on them fails.
+        enum class Kind { File, Socket, Probe };
+        PCdrvFile(IO<File> file, Kind kind) : IO<File>(std::move(file)), m_kind(kind) {}
+        virtual ~PCdrvFile();
+        bool refusesWrite() {
+            if (m_kind == Kind::Probe) return true;
+            return (m_kind == Kind::Socket) && (*this)->failed();
+        }
         std::string m_relativeFilename;
+        const Kind m_kind = Kind::File;
     };
     PCdrvFiles m_pcdrvFiles;
     std::list<uint16_t> m_availableFDs;
+    // PCopen and PCread on network names. Both set v0 and v1.
+    void pcdrvOpenNet(const std::string &filename);
+    void pcdrvReadNet(PCdrvFile &file, IO<File> &memFile);
 
   public:
     void closeAllPCdrvFiles() {
@@ -542,13 +700,15 @@ Formula One 2001
             m_availableFDs.push_back(i);
         }
     }
-    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool)> walker) {
+    void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
-            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable());
+            if (iter->m_kind != PCdrvFile::Kind::File) continue;
+            walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(), (*iter)->wTell());
         }
     }
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd);
-    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, FileOps::Create);
+    // A negative position means the end of the file.
+    void restorePCdrvFile(const std::filesystem::path &path, uint16_t fd, bool writable, ssize_t readPosition,
+                          ssize_t writePosition);
 };
 
 class Cpus {

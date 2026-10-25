@@ -124,7 +124,7 @@ uint64_t readFileAtBuffer(LuaFile* wrapper, void* buffer, uint64_t pos) {
     return *pSize = wrapper->file->readAt(data, *pSize, pos);
 }
 PCSX::Slice* readFileAtToSlice(LuaFile* wrapper, uint64_t size, uint64_t pos) {
-    return new PCSX::Slice(std::move(wrapper->file->readAt(pos, size)));
+    return new PCSX::Slice(std::move(wrapper->file->readAt(size, pos)));
 }
 uint64_t readFileAtToExistingSlice(LuaFile* wrapper, PCSX::Slice* slice, uint64_t size, uint64_t pos) {
     return wrapper->file->readAt(slice->mutableData(), size, pos);
@@ -397,7 +397,7 @@ void PCSX::LuaFFI::open_file(Lua L) {
     L.declareFunc("readFileUserDataAt", readFileUserDataAt, -1);
     L.declareFunc("readFileGets", readFileGets, -1);
     L.declareFunc("writeFileUserData", writeFileUserData, -1);
-    L.declareFunc("writeFileUserDataAt", writeFileUserData, -1);
+    L.declareFunc("writeFileUserDataAt", writeFileUserDataAt, -1);
     L.declareFunc("createPBSliceFromBuffer", createPBSliceFromBuffer, -1);
     L.pop();
     L.declareFunc(

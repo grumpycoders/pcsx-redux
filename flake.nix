@@ -36,7 +36,10 @@
       pcsx-redux = pkgs.callPackage ./pcsx-redux.nix {
           src = self;
           platforms = lib.systems.flakeExposed;
-          gccMips = cross.buildPackages.gccWithoutTargetLibc;
+          # openbios has C++ in it (the shell), so the libc-less cross gcc
+          # needs C++ too; libstdc++ is built freestanding in that mode.
+          gccMips = let gcc = cross.buildPackages.gccWithoutTargetLibc; in
+            gcc // { cc = gcc.cc.override { langCC = true; }; };
       };
 
       # Use this one if you want to provide your own bios and don't care for

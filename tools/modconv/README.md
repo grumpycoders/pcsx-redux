@@ -3,7 +3,7 @@ This folder contains a modern recreation of the MODCONV.EXE software, which is u
 
 This version has been written from scratch, without reverse engineering, as the file format is fairly simple to understand. This means that the output files will be slightly different from the original software.
 
-Its purpose is to convert [MOD files](https://en.wikipedia.org/wiki/Module_file) to HIT files, which can then be played by the [modplayer library available](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/modplayer) in the PCSX-Redux project.
+Its purpose is to convert [MOD files](https://en.wikipedia.org/wiki/Module_file) to HIT files, which can then be played by the [modplayer library available](https://github.com/pcsx-redux/nugget/tree/main/modplayer) in the PCSX-Redux project.
 
 ## Usage
 ```sh

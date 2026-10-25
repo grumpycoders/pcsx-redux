@@ -23,9 +23,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+
+// v1 wasm replaces UvFile with PosixFile via uvfile-wasm.h.
+#ifndef __EMSCRIPTEN__
+
 #include "support/uvfile.h"
 
 #include <curl/curl.h>
+#include <uv.h>
 
 #include <cstdint>
 #include <exception>
@@ -776,86 +781,207 @@ void PCSX::UvFile::cacheCallbackSetup(std::function<void()> &&callbackDone, uv_l
 }
 
 PCSX::UvFifo::UvFifo(uv_tcp_t *tcp) : File(File::FileType::RW_STREAM) {
-    tcp->data = this;
     m_tcp = tcp;
-    startRead(tcp);
+    m_control->m_tcp = tcp;
+    m_control->m_fifo = this;
+    startRead(m_control.get());
 }
 
 PCSX::UvFifo::UvFifo(const std::string_view address, unsigned port) : File(File::FileType::RW_STREAM) {
-    m_failed.clear();
-    m_connecting.test_and_set();
+    m_control->m_failed.clear();
+    m_control->m_connecting.test_and_set();
     // something to parse uri here
     uv_tcp_t *tcp = new uv_tcp_t();
-    tcp->data = this;
     m_tcp = tcp;
-    request([this, host = std::string(address), port](auto loop) {
-        uv_tcp_init(loop, m_tcp);
+    m_control->m_tcp = tcp;
+    m_control->m_fifo = this;
+    // Same rule as the write path: the fifo may be gone by the time any of this
+    // runs, so only the control block is captured.
+    request([control = m_control, host = std::string(address), port](auto loop) {
+        auto failConnect = [&control](int code) {
+            std::lock_guard lock(control->m_lock);
+            auto fifo = control->m_fifo;
+            if (!fifo) return;
+            fifo->m_connectErrorCode.store(code, std::memory_order_release);
+            control->m_connecting.clear();
+            control->m_failed.test_and_set();
+            fifo->notify();
+        };
+        uv_tcp_init(loop, control->m_tcp);
         struct sockaddr_in connectAddr;
         int result = uv_ip4_addr(host.c_str(), port, &connectAddr);
         if (result != 0) {
-            m_failed.test_and_set();
+            failConnect(result);
             return;
         }
-        uv_connect_t *connect = new uv_connect_t();
-        connect->data = this;
-        result = uv_tcp_connect(connect, m_tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
-                                [](uv_connect_t *connect, int status) {
-                                    UvFifo *fifo = reinterpret_cast<UvFifo *>(connect->data);
+        // uv_close on a connecting socket still runs the connect callback, with
+        // UV_ECANCELED, so the request keeps its own reference to the block.
+        struct Connect {
+            uv_connect_t req;
+            std::shared_ptr<Control> control;
+        };
+        auto connect = new Connect{{}, control};
+        connect->req.data = connect;
+        result = uv_tcp_connect(&connect->req, control->m_tcp, reinterpret_cast<const sockaddr *>(&connectAddr),
+                                [](uv_connect_t *req, int status) {
+                                    auto connect = reinterpret_cast<Connect *>(req->data);
+                                    auto control = std::move(connect->control);
+                                    delete connect;
+                                    std::lock_guard lock(control->m_lock);
+                                    auto fifo = control->m_fifo;
+                                    if (!fifo) return;
                                     if (status < 0) {
-                                        fifo->m_failed.test_and_set();
-                                        delete connect;
+                                        fifo->m_connectErrorCode.store(status, std::memory_order_release);
+                                        control->m_connecting.clear();
+                                        control->m_failed.test_and_set();
+                                        fifo->notify();
                                         return;
                                     }
-                                    fifo->m_connecting.clear();
-                                    fifo->startRead(reinterpret_cast<uv_tcp_t *>(connect->handle));
+                                    control->m_connecting.clear();
+                                    if (!control->m_closeRequested) startRead(control.get());
                                 });
         if (result != 0) {
-            m_failed.test_and_set();
             delete connect;
+            failConnect(result);
             return;
         }
     });
 }
 
-void PCSX::UvFifo::startRead(uv_tcp_t *tcp) {
-    tcp->data = this;
-    m_tcp = tcp;
+void PCSX::UvFifo::startRead(Control *control) {
+    control->m_tcp->data = control;
     uv_read_start(
-        reinterpret_cast<uv_stream_t *>(m_tcp),
+        reinterpret_cast<uv_stream_t *>(control->m_tcp),
         [](uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-            UvFifo *fifo = reinterpret_cast<UvFifo *>(handle->data);
-            assert(!fifo->m_buffer);
-            void *b = fifo->m_buffer = malloc(fifo->c_chunkSize);
-            buf->base = reinterpret_cast<char *>(b);
-            buf->len = fifo->c_chunkSize;
+            buf->base = reinterpret_cast<char *>(malloc(c_chunkSize));
+            buf->len = c_chunkSize;
         },
         [](uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
-            UvFifo *fifo = reinterpret_cast<UvFifo *>(client->data);
+            auto control = reinterpret_cast<Control *>(client->data);
+            if (nread <= 0) free(buf->base);
+            if (nread < 0) {
+                control->m_peerDone = true;
+                if (control->m_shutdownDone) control->closeNow();
+            }
+            std::lock_guard lock(control->m_lock);
+            auto fifo = control->m_fifo;
+            if (!fifo) {
+                if (nread > 0) free(buf->base);
+                return;
+            }
             if (nread <= 0) {
-                free(fifo->m_buffer);
                 if (nread < 0) {
                     fifo->m_closed = true;
+                    // A peer hanging up is a state change too; a consumer
+                    // waiting to be woken would otherwise wait forever.
+                    fifo->notify();
                 }
                 return;
             }
-            assert(fifo->m_buffer);
-            void *b = realloc(fifo->m_buffer, nread);
-            fifo->m_buffer = nullptr;
+            void *b = realloc(buf->base, nread);
             Slice slice;
             slice.acquire(b, nread);
             fifo->m_queue.Enqueue(std::move(slice));
             fifo->m_size.fetch_add(nread);
+            fifo->notify();
         });
+}
+
+void PCSX::UvFifo::setNotifier(uv_loop_t *loop, uv_async_t *async, std::function<void()> &&cb) {
+    m_notifyCb = std::move(cb);
+    async->data = this;
+    uv_async_init(loop, async, [](uv_async_t *async) {
+        UvFifo *fifo = reinterpret_cast<UvFifo *>(async->data);
+        if (fifo->m_notifyCb) fifo->m_notifyCb();
+    });
+    m_notifyAsync.store(async, std::memory_order_release);
+    // The fifo may have been readable since before we were installed - an
+    // accepted connection starts reading on the worker thread the instant it
+    // exists, well before the consumer gets it back through the listener's
+    // async. Fire once so that traffic isn't stranded waiting for the next
+    // packet to arrive.
+    if ((m_size.load() > 0) || m_closed.load()) notify();
+}
+
+void PCSX::UvFifo::Control::closeNow() {
+    if (m_lingerSelf && !uv_is_closing(reinterpret_cast<uv_handle_t *>(&m_linger))) {
+        uv_close(reinterpret_cast<uv_handle_t *>(&m_linger), [](uv_handle_t *handle) {
+            // May be the last reference to the block holding this timer.
+            auto self = std::move(reinterpret_cast<Control *>(handle->data)->m_lingerSelf);
+        });
+    }
+    auto tcp = m_tcp;
+    m_tcp = nullptr;
+    if (!tcp) return;
+    uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
+        auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
+        delete tcp;
+    });
+}
+
+void PCSX::UvFifo::Control::writeFailed() {
+    // Writes cancelled by the close are expected.
+    if (m_closeRequested) return;
+    // Some platforms refuse writes until the connection completes; that is not a broken socket.
+    if (m_connecting.test()) return;
+    m_failed.test_and_set();
+    std::lock_guard lock(m_lock);
+    if (m_fifo) m_fifo->notify();
+}
+
+void PCSX::UvFifo::Control::writeCompleted() {
+    auto remaining = m_pending.fetch_sub(1, std::memory_order_acq_rel) - 1;
+    if (m_closeRequested && (remaining == 0)) shutdown();
+}
+
+void PCSX::UvFifo::Control::shutdown() {
+    // A write completing only means the kernel has the bytes, and on Windows
+    // that is as soon as it copies them. Closing then, with the peer still
+    // sending, resets the connection, and the peer drops whatever it had not
+    // read yet. So send a FIN behind the data instead, keep reading into
+    // nothing, and close once the peer has hung up as well.
+    if (!m_tcp || m_shutdownStarted) return;
+    m_shutdownStarted = true;
+    m_shutdown.data = this;
+    int result = uv_shutdown(&m_shutdown, reinterpret_cast<uv_stream_t *>(m_tcp), [](uv_shutdown_t *req, int status) {
+        auto control = reinterpret_cast<Control *>(req->data);
+        control->m_shutdownDone = true;
+        if ((status < 0) || control->m_peerDone) control->closeNow();
+    });
+    if (result != 0) closeNow();
 }
 
 void PCSX::UvFifo::closeInternal() {
     m_closed.store(true);
-    request([tcp = m_tcp](uv_loop_t *loop) {
-        if (!tcp) return;
-        uv_close(reinterpret_cast<uv_handle_t *>(tcp), [](uv_handle_t *handle) {
-            auto tcp = reinterpret_cast<uv_tcp_t *>(handle);
-            delete tcp;
-        });
+    {
+        // File::delRef() deletes the fifo as soon as this returns.
+        std::lock_guard lock(m_control->m_lock);
+        m_control->m_fifo = nullptr;
+    }
+    request([control = m_control](uv_loop_t *loop) {
+        // Reading carries on, into nothing, until closeNow(): closing a socket
+        // with unread bytes in its receive buffer sends a reset, and the reset
+        // throws away whatever the writes had already handed to the kernel.
+        // The read callbacks cannot outlive the block, because the linger
+        // timer below holds a reference until the socket is closed.
+        //
+        // Graceful: uv_close cancels pending uv_writes, so tearing down here
+        // while writes are still in flight truncates them - for an HTTP
+        // response that is a silently short reply. Hand the shutdown to
+        // whichever write finishes last instead. Everything in the block past
+        // m_fifo is touched only on the worker thread, so none of it races.
+        control->m_closeRequested = true;
+        if (!control->m_tcp) return;
+        // A peer that stops reading keeps the writes pending, and one that
+        // never hangs up keeps the shutdown waiting. Past the timeout, close
+        // anyway and let the truncation be theirs.
+        uv_timer_init(loop, &control->m_linger);
+        control->m_linger.data = control.get();
+        control->m_lingerSelf = control;
+        uv_timer_start(
+            &control->m_linger, [](uv_timer_t *timer) { reinterpret_cast<Control *>(timer->data)->closeNow(); },
+            Control::c_lingerTimeoutMs, 0);
+        if (control->m_pending.load(std::memory_order_acquire) == 0) control->shutdown();
     });
 }
 
@@ -889,18 +1015,39 @@ ssize_t PCSX::UvFifo::write(const void *src, size_t size) {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<Control> control;
     };
     auto info = new Info();
     info->req.data = info;
     info->slice.copy(src, size);
     info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
     info->buf.len = size;
-    request([info, tcp = m_tcp](auto loop) {
-        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
-            auto info = reinterpret_cast<Info *>(req->data);
+    m_control->m_pending.fetch_add(1, std::memory_order_acq_rel);
+    // Capture the control block, never `this`: the fifo may be destroyed while
+    // this write is still queued, and the worker thread must still be able to
+    // finish and account for it.
+    request([control = m_control, info](auto loop) {
+        if (!control->m_tcp) {
             delete info;
-        });
+            control->writeCompleted();
+            return;
+        }
+        info->control = control;
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        int result = uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                              [](uv_write_t *req, int status) {
+                                  auto info = reinterpret_cast<Info *>(req->data);
+                                  auto control = info->control;
+                                  delete info;
+                                  if (status < 0) control->writeFailed();
+                                  control->writeCompleted();
+                              });
+        if (result != 0) {
+            // A refused write never gets its callback.
+            delete info;
+            control->writeFailed();
+            control->writeCompleted();
+        }
     });
     return size;
 }
@@ -910,18 +1057,51 @@ void PCSX::UvFifo::write(Slice &&slice) {
         uv_buf_t buf;
         uv_write_t req;
         Slice slice;
+        std::shared_ptr<Control> control;
     };
     auto size = slice.size();
     auto info = new Info();
     info->req.data = info;
     info->buf.len = size;
     info->slice = std::move(slice);
-    request([info, tcp = m_tcp](auto loop) {
-        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
-        uv_write(&info->req, reinterpret_cast<uv_stream_t *>(tcp), &info->buf, 1, [](uv_write_t *req, int status) {
-            auto info = reinterpret_cast<Info *>(req->data);
+    m_control->m_pending.fetch_add(1, std::memory_order_acq_rel);
+    // Capture the control block, never `this`: the fifo may be destroyed while
+    // this write is still queued, and the worker thread must still be able to
+    // finish and account for it.
+    request([control = m_control, info](auto loop) {
+        if (!control->m_tcp) {
             delete info;
-        });
+            control->writeCompleted();
+            return;
+        }
+        info->control = control;
+        info->buf.base = reinterpret_cast<decltype(info->buf.base)>(const_cast<void *>(info->slice.data()));
+        int result = uv_write(&info->req, reinterpret_cast<uv_stream_t *>(control->m_tcp), &info->buf, 1,
+                              [](uv_write_t *req, int status) {
+                                  auto info = reinterpret_cast<Info *>(req->data);
+                                  auto control = info->control;
+                                  delete info;
+                                  if (status < 0) control->writeFailed();
+                                  control->writeCompleted();
+                              });
+        if (result != 0) {
+            // A refused write never gets its callback.
+            delete info;
+            control->writeFailed();
+            control->writeCompleted();
+        }
+    });
+}
+
+void PCSX::UvFifoListener::failed(int code) {
+    m_lastErrorCode.store(code, std::memory_order_release);
+    uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
+        UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
+        listener->m_status.store(Status::Failed, std::memory_order_release);
+        // Same wake-up an orderly stop() produces, so the consumer's nullptr
+        // branch runs and closes its async instead of leaking it.
+        listener->m_pending.Enqueue(nullptr);
+        uv_async_send(listener->m_async);
     });
 }
 
@@ -930,6 +1110,8 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
     m_cb = std::move(cb);
     async->data = this;
     m_async = async;
+    m_lastErrorCode.store(0, std::memory_order_release);
+    m_status.store(Status::Starting, std::memory_order_release);
     uv_async_init(loop, async, [](uv_async_t *async) {
         UvFifoListener *self = reinterpret_cast<UvFifoListener *>(async->data);
         UvFifo *fifo = nullptr;
@@ -944,12 +1126,12 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
         struct sockaddr_in bindAddr;
         int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
         result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr *>(&bindAddr), 0);
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
         result = uv_listen((uv_stream_t *)&m_server, 16, [](uv_stream_t *server, int status) {
@@ -968,18 +1150,31 @@ void PCSX::UvFifoListener::start(unsigned port, uv_loop_t *loop, uv_async_t *asy
             }
         });
         if (result != 0) {
-            uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {});
+            failed(result);
             return;
         }
+        m_status.store(Status::Listening, std::memory_order_release);
     });
 }
 
 void PCSX::UvFifoListener::stop() {
     request([this](auto loop) {
+        // Runs on the same worker thread as start()'s body and after it, so a
+        // failed bind or listen has already called uv_close on m_server. Its
+        // close callback, which is what sets Failed, may not have run yet
+        // though, so the status alone cannot tell; ask libuv. Closing twice
+        // aborts inside uv_close (`!uv__is_closing(handle)`), and the pending
+        // close callback delivers the nullptr on its own.
+        auto status = m_status.load(std::memory_order_acquire);
+        if ((status == Status::Failed) || (status == Status::Stopped)) return;
+        if (uv_is_closing(reinterpret_cast<uv_handle_t *>(&m_server))) return;
         uv_close(reinterpret_cast<uv_handle_t *>(&m_server), [](uv_handle_t *handle) {
             UvFifoListener *listener = reinterpret_cast<UvFifoListener *>(handle->data);
+            listener->m_status.store(Status::Stopped, std::memory_order_release);
             listener->m_pending.Enqueue(nullptr);
             uv_async_send(listener->m_async);
         });
     });
 }
+
+#endif

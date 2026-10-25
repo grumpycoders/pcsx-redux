@@ -18,13 +18,8 @@
 PCSX.Helpers = PCSX.Helpers or {}
 PCSX.Helpers.UI = {
     imageCoordinates = function(x, y, w, h, imageW, imageH)
-        local cX, cY = imgui.GetCursorPos()
-        local wX, wY = imgui.GetWindowPos()
-        local viewportId = imgui.extra.getCurrentViewportId()
-        local viewportPos = imgui.extra.getViewportPos(viewportId)
-        cX = cX + wX - viewportPos.x + x / w * imageW
-        cY = cY + wY - viewportPos.y + y / h * imageH
-        return cX, cY
+        local cX, cY = imgui.GetCursorScreenPos()
+        return cX + x / w * imageW, cY + y / h * imageH
     end,
 }
 

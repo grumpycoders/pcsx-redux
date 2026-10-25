@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include "core/decode_xa.h"
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
@@ -44,11 +46,19 @@ class SPUInterface {
     virtual void writeRegister(uint32_t, uint16_t) = 0;
     virtual void playCDDAchannel(int16_t *, int) = 0;
     virtual void playADPCMchannel(xa_decode_t *) = 0;
-    virtual void async(uint32_t) = 0;
+    // CD audio volume matrix (ATV0..ATV3) for XA, applied after the interpolator.
+    virtual void setXAVolume(const uint8_t atv[4]) = 0;
     virtual void writeDMAMem(uint16_t *, int) = 0;
     virtual void readDMAMem(uint16_t *, int) = 0;
     virtual void lockSPURAM() = 0;
     virtual void unlockSPURAM() = 0;
+    // Byte-addressable view of the sound RAM. Mixing happens on the SPU's own
+    // thread, so bracket bulk reads with lockSPURAM() / unlockSPURAM().
+    virtual uint8_t *getSpuRam() = 0;
+    static constexpr size_t c_spuRamSize = 512 * 1024;
+    // Current sound-RAM transfer cursor, as set by 1F801DA6h and advanced by every transfer.
+    // Read it before handing a DMA off, since the transfer is what moves it.
+    virtual uint32_t getTransferAddr() = 0;
     virtual void resetCaptureBuffer() = 0;
     virtual json getCfg() = 0;
     virtual void setCfg(const json &j) = 0;
@@ -58,8 +68,15 @@ class SPUInterface {
     virtual void load(const SaveStates::SPU &) = 0;
     virtual uint32_t getCurrentFrames() = 0;
     virtual void waitForGoal(uint32_t goal) = 0;
+    // How many audio frames the CPU may run ahead of the audio device.
+    virtual uint32_t getLeadFrames() = 0;
+    // The CPU has reached `cycle`: the SPU may produce audio up to it.
+    virtual void advanceTo(uint64_t cycle) = 0;
     virtual uint32_t getFrameCount() = 0;
     virtual void setLua(Lua L) = 0;
+    // Writes the SPU mix to a 16-bit stereo WAV file, as it leaves the mixer and before the
+    // audio sink converts it. Returns false if the file could not be created.
+    virtual bool setWavDump(const std::filesystem::path &path) = 0;
 
     bool m_showDebug = false;
     bool m_showCfg = false;

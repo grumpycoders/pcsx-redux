@@ -33,7 +33,7 @@ bool PCSX::Widgets::PIOCart::draw(const char* title) {
         return false;
     } else {
         auto pio_rom = settings.get<Emulator::SettingEXP1Filepath>().string();
-        ImGui::InputText(_("ROM"), const_cast<char*>(reinterpret_cast<const char*>(pio_rom.c_str())), pio_rom.length(),
+        ImGui::InputText("ROM", const_cast<char*>(reinterpret_cast<const char*>(pio_rom.c_str())), pio_rom.length() + 1,
                          ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();
         selectEXP1Dialog = ImGui::Button("...");

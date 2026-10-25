@@ -19,6 +19,10 @@
 
 #include "core/sstate.h"
 
+#include <algorithm>
+#include <iterator>
+
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -30,70 +34,95 @@
 #include "core/sio.h"
 #include "spu/interface.h"
 
-PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
-    // clang-format off
-    return SaveState {
-        SaveStateInfo {
-            VersionString {},
-            Version {},
+PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() { return Access::constructSaveState(); }
+
+PCSX::SaveStates::SaveState PCSX::SaveStates::Access::constructSaveState() {
+    auto* cd = g_emulator->m_cdrom.get();
+    return SaveState{
+        SaveStateInfo{
+            VersionString{},
+            Version{},
         },
-        Thumbnail {},
-        Memory {
-            RAM { g_emulator->m_mem->m_wram },
-            ROM { g_emulator->m_mem->m_bios },
-            EXP1 { g_emulator->m_mem->m_exp1 },
-            HardwareMemory { g_emulator->m_mem->m_hard },
-            SRAM { g_emulator->m_mem->m_sram },
+        Thumbnail{},
+        Memory{
+            RAM{g_emulator->m_mem->m_wram},
+            ROM{g_emulator->m_mem->m_bios},
+            EXP1{g_emulator->m_mem->m_exp1},
+            HardwareMemory{g_emulator->m_mem->m_hard},
+            SRAM{g_emulator->m_mem->m_sram},
         },
-        Registers {
-            GPR { g_emulator->m_cpu->m_regs.GPR.r },
-            CP0 { g_emulator->m_cpu->m_regs.CP0.r },
-            CP2D { g_emulator->m_cpu->m_regs.CP2D.r },
-            CP2C { g_emulator->m_cpu->m_regs.CP2C.r },
-            PC { g_emulator->m_cpu->m_regs.pc },
-            Code { g_emulator->m_cpu->m_regs.code },
-            Cycle { g_emulator->m_cpu->m_regs.cycle },
-            Interrupt { g_emulator->m_cpu->m_regs.interrupt },
-            ICacheAddr { g_emulator->m_cpu->m_regs.iCacheAddr },
-            ICacheCode { g_emulator->m_cpu->m_regs.iCacheCode },
-            NextIsDelaySlot { g_emulator->m_cpu->m_nextIsDelaySlot },
-            DelaySlotInfo1 {
-                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[0].index },
-                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[0].value },
-                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[0].mask },
-                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[0].pcValue },
-                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[0].active },
-                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[0].pcActive },
-                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[0].fromLink }
+        Registers{
+            GPR{g_emulator->m_cpu->m_regs.GPR.r},
+            CP0{g_emulator->m_cpu->m_regs.CP0.r},
+            CP2D{g_emulator->m_cpu->m_regs.CP2D.r},
+            CP2C{g_emulator->m_cpu->m_regs.CP2C.r},
+            PC{g_emulator->m_cpu->m_regs.pc.raw()},
+            Code{g_emulator->m_cpu->m_regs.code},
+            Cycle{g_emulator->m_cpu->m_regs.cycle},
+            ScheduleMask{g_emulator->m_cpu->m_regs.scheduleMask},
+            ICacheAddr{g_emulator->m_cpu->m_regs.iCacheAddr},
+            ICacheCode{g_emulator->m_cpu->m_regs.iCacheCode},
+            NextIsDelaySlot{g_emulator->m_cpu->m_nextIsDelaySlot},
+            DelaySlotInfo1{
+                DelaySlotIndex{g_emulator->m_cpu->m_delayedLoadInfo[0].index},
+                DelaySlotValue{g_emulator->m_cpu->m_delayedLoadInfo[0].value},
+                DelaySlotMask{g_emulator->m_cpu->m_delayedLoadInfo[0].mask},
+                DelaySlotPcValue{g_emulator->m_cpu->m_delayedLoadInfo[0].pcValue},
+                DelaySlotActive{g_emulator->m_cpu->m_delayedLoadInfo[0].active},
+                DelaySlotPcActive{g_emulator->m_cpu->m_delayedLoadInfo[0].pcActive},
+                DelaySlotFromLink{g_emulator->m_cpu->m_delayedLoadInfo[0].fromLink},
             },
-            DelaySlotInfo2 {
-                DelaySlotIndex { g_emulator->m_cpu->m_delayedLoadInfo[1].index },
-                DelaySlotValue { g_emulator->m_cpu->m_delayedLoadInfo[1].value },
-                DelaySlotMask { g_emulator->m_cpu->m_delayedLoadInfo[1].mask },
-                DelaySlotPcValue { g_emulator->m_cpu->m_delayedLoadInfo[1].pcValue },
-                DelaySlotActive { g_emulator->m_cpu->m_delayedLoadInfo[1].active },
-                DelaySlotPcActive { g_emulator->m_cpu->m_delayedLoadInfo[1].pcActive },
-                DelaySlotFromLink { g_emulator->m_cpu->m_delayedLoadInfo[1].fromLink }
+            DelaySlotInfo2{
+                DelaySlotIndex{g_emulator->m_cpu->m_delayedLoadInfo[1].index},
+                DelaySlotValue{g_emulator->m_cpu->m_delayedLoadInfo[1].value},
+                DelaySlotMask{g_emulator->m_cpu->m_delayedLoadInfo[1].mask},
+                DelaySlotPcValue{g_emulator->m_cpu->m_delayedLoadInfo[1].pcValue},
+                DelaySlotActive{g_emulator->m_cpu->m_delayedLoadInfo[1].active},
+                DelaySlotPcActive{g_emulator->m_cpu->m_delayedLoadInfo[1].pcActive},
+                DelaySlotFromLink{g_emulator->m_cpu->m_delayedLoadInfo[1].fromLink},
             },
-            CurrentDelayedLoad { g_emulator->m_cpu->m_currentDelayedLoad },
-            IntTargetsField { g_emulator->m_cpu->m_regs.intTargets },
-            InISR { g_emulator->m_cpu->m_inISR },
+            CurrentDelayedLoad{g_emulator->m_cpu->m_currentDelayedLoad},
+            ScheduleTargetsField{g_emulator->m_cpu->m_regs.scheduleTargets},
+            InISR{g_emulator->m_cpu->m_inISR},
+            MulDivReady{g_emulator->m_cpu->m_regs.muldivReady},
+            GteReady{g_emulator->m_cpu->m_regs.gteReady},
+            GtePending1{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[0].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[0].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[0].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[0].countdown},
+            },
+            GtePending2{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[1].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[1].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[1].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[1].countdown},
+            },
+            GtePending3{
+                GtePendingReg{g_emulator->m_cpu->m_gtePending[2].reg},
+                GtePendingValue{g_emulator->m_cpu->m_gtePending[2].value},
+                GtePendingCtrl{g_emulator->m_cpu->m_gtePending[2].ctrl},
+                GtePendingCountdown{g_emulator->m_cpu->m_gtePending[2].countdown},
+            },
+            GtePendingCount{g_emulator->m_cpu->m_gtePendingCount},
+            NextIsBranchSlot{g_emulator->m_cpu->m_nextIsBranchSlot},
+            NextSlotBranchPC{g_emulator->m_cpu->m_nextSlotBranchPC},
         },
-        GPU {},
-        SPU {},
-        SIO {
-            SIOBuffer { g_emulator->m_sio->m_buffer },
-            SIOStatusReg { g_emulator->m_sio->m_regs.status },
-            SIOModeReg { g_emulator->m_sio->m_regs.mode },
-            SIOCtrlReg { g_emulator->m_sio->m_regs.control },
-            SIOBaudReg { g_emulator->m_sio->m_regs.baud },
-            SIOBufferMaxIndex { g_emulator->m_sio->m_maxBufferIndex },
-            SIOBufferIndex { g_emulator->m_sio->m_bufferIndex },
-            SIOPadState { g_emulator->m_sio->m_padState },
-            SIOCurrentDevice { g_emulator->m_sio->m_currentDevice },
-            SIOMCD1TempBuffer { g_emulator->m_sio->m_memoryCard[0].m_tempBuffer },
-            SIOMCD1DirectoryFlag { g_emulator->m_sio->m_memoryCard[0].m_directoryFlag },
-            SIOMCD1ChecksumIn{ g_emulator->m_sio->m_memoryCard[0].m_checksumIn},
+        GPU{},
+        SPU{},
+        SIO{
+            SIOBuffer{g_emulator->m_sio->m_buffer},
+            SIOStatusReg{g_emulator->m_sio->m_regs.status},
+            SIOModeReg{g_emulator->m_sio->m_regs.mode},
+            SIOCtrlReg{g_emulator->m_sio->m_regs.control},
+            SIOBaudReg{g_emulator->m_sio->m_regs.baud},
+            SIOBufferMaxIndex{g_emulator->m_sio->m_maxBufferIndex},
+            SIOBufferIndex{g_emulator->m_sio->m_bufferIndex},
+            SIOPadState{g_emulator->m_sio->m_padState},
+            SIOCurrentDevice{g_emulator->m_sio->m_currentDevice},
+            SIOMCD1TempBuffer{g_emulator->m_sio->m_memoryCard[0].m_tempBuffer},
+            SIOMCD1DirectoryFlag{g_emulator->m_sio->m_memoryCard[0].m_directoryFlag},
+            SIOMCD1ChecksumIn{g_emulator->m_sio->m_memoryCard[0].m_checksumIn},
             SIOMCD1ChecksumOut{g_emulator->m_sio->m_memoryCard[0].m_checksumOut},
             SIOMCD1CommandTicks{g_emulator->m_sio->m_memoryCard[0].m_commandTicks},
             SIOMCD1CurrentCommand{g_emulator->m_sio->m_memoryCard[0].m_currentCommand},
@@ -108,68 +137,99 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             SIOMCD2Sector{g_emulator->m_sio->m_memoryCard[1].m_sector},
             SIOMCD2DataOffset{g_emulator->m_sio->m_memoryCard[1].m_dataOffset},
         },
-        CDRom {
-            CDReg1Mode { g_emulator->m_cdrom->m_reg1Mode },
-            CDReg2 { g_emulator->m_cdrom->m_reg2 },
-            CDCmdProcess { g_emulator->m_cdrom->m_cmdProcess },
-            CDCtrl { g_emulator->m_cdrom->m_ctrl },
-            CDStat { g_emulator->m_cdrom->m_stat },
-            CDStatP { g_emulator->m_cdrom->m_statP },
-            CDTransfer { reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_transfer) },
-            CDTransferIndex { g_emulator->m_cdrom->m_transferIndex },
-            CDPrev { g_emulator->m_cdrom->m_prev.data },
-            CDParam { g_emulator->m_cdrom->m_param },
-            CDResult { g_emulator->m_cdrom->m_result },
-            CDParamC { g_emulator->m_cdrom->m_paramC },
-            CDResultC { g_emulator->m_cdrom->m_resultC },
-            CDResultP { g_emulator->m_cdrom->m_resultP },
-            CDResultReady { g_emulator->m_cdrom->m_resultReady },
-            CDCmd { g_emulator->m_cdrom->m_cmd },
-            CDRead { g_emulator->m_cdrom->m_read },
-            CDSetLocPending { g_emulator->m_cdrom->m_setlocPending },
-            CDReading { g_emulator->m_cdrom->m_reading },
-            CDSetSectorPlay { g_emulator->m_cdrom->m_setSectorPlay.data },
-            CDSetSectorEnd { g_emulator->m_cdrom->m_setSectorEnd.data },
-            CDSetSector { g_emulator->m_cdrom->m_setSector.data },
-            CDTrack { g_emulator->m_cdrom->m_track },
-            CDPlay { g_emulator->m_cdrom->m_play },
-            CDMuted { g_emulator->m_cdrom->m_muted },
-            CDCurTrack { g_emulator->m_cdrom->m_curTrack },
-            CDMode { g_emulator->m_cdrom->m_mode },
-            CDFile { g_emulator->m_cdrom->m_file },
-            CDChannel { g_emulator->m_cdrom->m_channel },
-            CDSuceeded { g_emulator->m_cdrom->m_suceeded },
-            CDFirstSector { g_emulator->m_cdrom->m_firstSector },
-            CDIRQ { g_emulator->m_cdrom->m_irq },
-            CDIrqRepeated { g_emulator->m_cdrom->m_irqRepeated },
-            CDECycle { g_emulator->m_cdrom->m_eCycle },
-            CDSeeked { g_emulator->m_cdrom->m_seeked },
-            CDReadRescheduled { g_emulator->m_cdrom->m_readRescheduled },
-            CDDriveState { g_emulator->m_cdrom->m_driveState },
-            CDFastForward { g_emulator->m_cdrom->m_fastForward },
-            CDFastBackward { g_emulator->m_cdrom->m_fastBackward },
-            CDAttenuatorLeftToLeft { g_emulator->m_cdrom->m_attenuatorLeftToLeft },
-            CDAttenuatorLeftToRight { g_emulator->m_cdrom->m_attenuatorLeftToRight },
-            CDAttenuatorRightToRight { g_emulator->m_cdrom->m_attenuatorRightToRight },
-            CDAttenuatorRightToLeft { g_emulator->m_cdrom->m_attenuatorRightToLeft },
-            CDAttenuatorLeftToLeftT { g_emulator->m_cdrom->m_attenuatorLeftToLeftT },
-            CDAttenuatorLeftToRightT { g_emulator->m_cdrom->m_attenuatorLeftToRightT },
-            CDAttenuatorRightToRightT { g_emulator->m_cdrom->m_attenuatorRightToRightT },
-            CDAttenuatorRightToLeftT { g_emulator->m_cdrom->m_attenuatorRightToLeftT },
-            CDSubQTrack { g_emulator->m_cdrom->m_subq.track },
-            CDSubQIndex { g_emulator->m_cdrom->m_subq.index },
-            CDSubQRelative { g_emulator->m_cdrom->m_subq.relative },
-            CDSubQAbsolute { g_emulator->m_cdrom->m_subq.absolute },
-            CDTrackChanged { g_emulator->m_cdrom->m_trackChanged },
-            CDLocationChanged { g_emulator->m_cdrom->m_locationChanged },
+        Hardware{},
+        Counters{},
+        MDEC{},
+        PCdrvFilesField{},
+        CallStacks{},
+        CDRom{
+            CDDataFIFO{cd->m_dataFIFO},
+            CDDataFIFOIndex{cd->m_dataFIFOIndex},
+            CDDataFIFOSize{cd->m_dataFIFOSize},
+            CDDataFIFOPending{cd->m_dataFIFOPending},
+            CDRegisterAddress{cd->m_registerAddress},
+            CDMotorOn{cd->m_motorOn},
+            CDSpeedChanged{cd->m_speedChanged},
+            CDInvalidLocL{cd->m_invalidLocL},
+            CDDataRequested{cd->m_dataRequested},
+            CDSubheaderFilter{cd->m_subheaderFilter},
+            CDRealtime{cd->m_realtime},
+            CDReadingState{reinterpret_cast<uint8_t&>(cd->m_readingState)},
+            CDStartPlaying{cd->m_startPlaying},
+            CDReadingType{reinterpret_cast<uint8_t&>(cd->m_readingType)},
+            CDAutoPause{cd->m_autoPause},
+            CDReport{cd->m_report},
+            CDSetLocPending{cd->m_setLocPending},
+            CDMuted{cd->m_muted},
+            CDPeakFlag{cd->m_peakFlag},
+            CDPlayTrack{cd->m_playTrack},
+            CDPlayStartCycle{cd->m_playStartCycle},
+            CDStatus{reinterpret_cast<uint8_t&>(cd->m_status)},
+            CDSpeed{reinterpret_cast<uint8_t&>(cd->m_speed)},
+            CDReadSpan{reinterpret_cast<uint8_t&>(cd->m_readSpan)},
+            CDInterruptCauseMask{cd->m_interruptCauseMask},
+            CDATV{cd->m_atv},
+            CDATVPending{cd->m_atvPending},
+            CDADPCMMuted{cd->m_adpcmMuted},
+            CDMode{cd->m_mode},
+            CDFilterFile{cd->m_filterFile},
+            CDFilterChannel{cd->m_filterChannel},
+            CDXAEnded{cd->m_xaEnded},
+            CDXAFirstSector{cd->m_xaFirstSector},
+            CDSoundMapEnabled{cd->m_soundMapEnabled},
+            CDCurrentPosition{CDMSF{CDMSFMinute{cd->m_currentPosition.m}, CDMSFSecond{cd->m_currentPosition.s},
+                                    CDMSFFrame{cd->m_currentPosition.f}}},
+            CDSeekPosition{CDMSF{CDMSFMinute{cd->m_seekPosition.m}, CDMSFSecond{cd->m_seekPosition.s},
+                                 CDMSFFrame{cd->m_seekPosition.f}}},
+            CDLastLocP{cd->m_lastLocP},
+            CDLastLocL{cd->m_lastLocL},
+            CDSeed{cd->m_seed},
+            CDLidOpen{cd->m_lidOpen},
+            CDWasLidOpened{cd->m_wasLidOpened},
+            CDLidCloseScheduled{cd->m_lidCloseScheduled},
+            CDLidCloseAtCycles{cd->m_lidCloseAtCycles},
+            CDCommandFifo{CDQueueElement{
+                CDQueuePayload{cd->m_commandFifo.payload},
+                CDQueueValue{cd->m_commandFifo.value},
+                CDQueueValueRead{cd->m_commandFifo.valueRead},
+                CDQueueHasValue{cd->m_commandFifo.hasValue},
+                CDQueueHitMax{cd->m_commandFifo.hitMax},
+                CDQueuePayloadSize{cd->m_commandFifo.payloadSize},
+                CDQueuePayloadIndex{cd->m_commandFifo.payloadIndex},
+            }},
+            CDCommandExecuting{CDQueueElement{
+                CDQueuePayload{cd->m_commandExecuting.payload},
+                CDQueueValue{cd->m_commandExecuting.value},
+                CDQueueValueRead{cd->m_commandExecuting.valueRead},
+                CDQueueHasValue{cd->m_commandExecuting.hasValue},
+                CDQueueHitMax{cd->m_commandExecuting.hitMax},
+                CDQueuePayloadSize{cd->m_commandExecuting.payloadSize},
+                CDQueuePayloadIndex{cd->m_commandExecuting.payloadIndex},
+            }},
+            CDResponseFifo0{CDQueueElement{
+                CDQueuePayload{cd->m_responseFifo[0].payload},
+                CDQueueValue{cd->m_responseFifo[0].value},
+                CDQueueValueRead{cd->m_responseFifo[0].valueRead},
+                CDQueueHasValue{cd->m_responseFifo[0].hasValue},
+                CDQueueHitMax{cd->m_responseFifo[0].hitMax},
+                CDQueuePayloadSize{cd->m_responseFifo[0].payloadSize},
+                CDQueuePayloadIndex{cd->m_responseFifo[0].payloadIndex},
+            }},
+            CDResponseFifo1{CDQueueElement{
+                CDQueuePayload{cd->m_responseFifo[1].payload},
+                CDQueueValue{cd->m_responseFifo[1].value},
+                CDQueueValueRead{cd->m_responseFifo[1].valueRead},
+                CDQueueHasValue{cd->m_responseFifo[1].hasValue},
+                CDQueueHitMax{cd->m_responseFifo[1].hitMax},
+                CDQueuePayloadSize{cd->m_responseFifo[1].payloadSize},
+                CDQueuePayloadIndex{cd->m_responseFifo[1].payloadIndex},
+            }},
+            CDXALeft{CDADPCM{CDADPCMY0{cd->m_xa.left.y0}, CDADPCMY1{cd->m_xa.left.y1}}},
+            CDXARight{CDADPCM{CDADPCMY0{cd->m_xa.right.y0}, CDADPCMY1{cd->m_xa.right.y1}}},
+            CDSectorReadSinceSeek{cd->m_sectorReadSinceSeek},
+            CDScexCountersReset{cd->m_scexCountersReset},
         },
-        Hardware {},
-        Counters {},
-        MDEC {},
-        PCdrvFilesField {},
-        CallStacks {},
     };
-    // clang-format on
 }
 
 namespace PCSX {
@@ -183,8 +243,8 @@ std::string PCSX::SaveStates::save() {
     SaveState state = constructSaveState();
     SaveStateWrapper wrapper(state);
 
-    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
-    state.get<SaveStateInfoField>().get<Version>().value = 4;
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v5";
+    state.get<SaveStateInfoField>().get<Version>().value = 5;
 
     g_emulator->m_gpu->serialize(&wrapper);
     g_emulator->m_spu->save(state.get<SPUField>());
@@ -192,9 +252,11 @@ std::string PCSX::SaveStates::save() {
     g_emulator->m_counters->serialize(&wrapper);
     g_emulator->m_mdec->serialize(&wrapper);
 
-    g_emulator->m_cpu->listAllPCdrvFiles([&state](uint16_t fd, std::filesystem::path filename, bool create) {
-        state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create);
-    });
+    g_emulator->m_cpu->listAllPCdrvFiles(
+        [&state](uint16_t fd, std::filesystem::path filename, bool create, size_t readPosition, size_t writePosition) {
+            state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create, readPosition, writePosition,
+                                                            true);
+        });
 
     g_emulator->m_callStacks->serialize(&wrapper);
 
@@ -203,9 +265,97 @@ std::string PCSX::SaveStates::save() {
     return slice.finalize();
 }
 
+void PCSX::SaveStates::capture(SaveState& state) {
+    SaveStateWrapper wrapper(state);
+
+    state.get<SaveStateInfoField>().get<VersionString>().value = "PCSX-Redux SaveState v4";
+    state.get<SaveStateInfoField>().get<Version>().value = 4;
+
+    /* The manual-hook camp - GPU, SPU, counters, MDEC, call stacks - already pulls live state
+       into owned Field storage; that half was always snapshot-shaped and the byte encode was a
+       separate layer on top. */
+    g_emulator->m_gpu->serialize(&wrapper);
+    g_emulator->m_spu->save(state.get<SPUField>());
+
+    g_emulator->m_counters->serialize(&wrapper);
+    g_emulator->m_mdec->serialize(&wrapper);
+
+    state.get<PCdrvFilesField>().value.clear();
+    g_emulator->m_cpu->listAllPCdrvFiles(
+        [&state](uint16_t fd, std::filesystem::path filename, bool create, size_t readPosition, size_t writePosition) {
+            state.get<PCdrvFilesField>().value.emplace_back(fd, filename.string(), create, readPosition, writePosition,
+                                                            true);
+        });
+
+    g_emulator->m_callStacks->serialize(&wrapper);
+
+    /* And this is the half that never existed: the flat live -> copy for the ref/ptr fields. */
+    state.capture();
+}
+
+void PCSX::SaveStates::restore(SaveState& state) {
+    SaveStateWrapper wrapper(state);
+    g_emulator->m_allocTracker->reset();
+
+    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
+       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
+       translated from memory we just rewound out from under it. It also wipes the emulated
+       instruction cache, which is part of the snapshot, so it has to run before commit()
+       writes the saved one back. */
+    g_emulator->m_cpu->invalidateCache();
+    state.commit();
+    g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
+    g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
+    g_emulator->m_gpu->deserialize(&wrapper);
+    g_emulator->m_spu->load(state.get<SPUField>());
+#if 0
+    g_emulator->m_cdrom->load();
+#endif
+
+    g_emulator->m_counters->deserialize(&wrapper);
+    g_emulator->m_mdec->deserialize(&wrapper);
+
+    auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
+
+#if 0
+    g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
+    g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
+    g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
+    g_emulator->m_cdrom->m_xa.stereo = xa.get<SaveStates::XAStereo>().value;
+    auto& left = xa.get<SaveStates::XAADPCMLeft>();
+    g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
+    auto& right = xa.get<SaveStates::XAADPCMRight>();
+    g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
+    g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
+    xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
+    g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+#endif
+
+    g_emulator->m_cpu->closeAllPCdrvFiles();
+    for (auto& file : state.get<PCdrvFilesField>().value) {
+        uint16_t fd = file.get<PCdrvFD>().value;
+        std::string filename = file.get<PCdrvFilename>().value;
+        bool create = file.get<PCdrvCreate>().value;
+        ssize_t readPosition = 0;
+        ssize_t writePosition = -1;
+        if (file.get<PCdrvHasPositions>().value) {
+            readPosition = file.get<PCdrvReadPosition>().value;
+            writePosition = file.get<PCdrvWritePosition>().value;
+        }
+        g_emulator->m_cpu->restorePCdrvFile(filename, fd, create, readPosition, writePosition);
+    }
+    g_emulator->m_callStacks->deserialize(&wrapper);
+
+    g_system->m_eventBus->signal(Events::ExecutionFlow::SaveStateLoaded{});
+}
+
 void PCSX::CallStacks::serialize(SaveStateWrapper* w) {
     using namespace SaveStates;
     auto& callstacks = w->state.get<SaveStates::CallStacksField>().get<CallStacksMessageField>().value;
+    // capture() reuses messages, so whatever an earlier capture left here must go.
+    callstacks.clear();
     for (auto& callstack : getCallstacks()) {
         SaveStates::CallStack sscallstack{};
         sscallstack.get<LowSP>().value = callstack.getLow();
@@ -239,6 +389,12 @@ void PCSX::GPU::serialize(SaveStateWrapper* w) {
     for (unsigned i = 0; i < 256; i++) {
         setU32(control + i * 4, m_statusControl[i]);
     }
+
+    gpu.get<GPUEnvironment>().allocate();
+    const auto env = gpu.get<GPUEnvironment>().value;
+    for (unsigned i = 0; i < 6; i++) {
+        setU32(env + i * 4, m_envRaw[i + 1]);
+    }
 }
 
 void PCSX::MDEC::serialize(SaveStateWrapper* w) {
@@ -256,9 +412,20 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     mdecSave.get<MDECDMABCR>().value = mdec.pending_dma1.bcr;
     mdecSave.get<MDECDMACHCR>().value = mdec.pending_dma1.chcr;
     for (unsigned i = 0; i < 64; i++) {
-        mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
-        mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
+        mdecSave.get<MDECIQY>().value[i].value = m_tables.iqY[i];
+        mdecSave.get<MDECIQUV>().value[i].value = m_tables.iqUV[i];
+        mdecSave.get<MDECQTY>().value[i].value = m_tables.qtY[i];
+        mdecSave.get<MDECQTUV>().value[i].value = m_tables.qtUV[i];
+        mdecSave.get<MDECScaleTable>().value[i].value = m_tables.scale[i];
     }
+    // Only deserialisation counts elements, and deserialize() reads a zero count as a state from
+    // before these fields existed. Say they are full, or an in-memory capture restores as one.
+    mdecSave.get<MDECIQY>().count = 64;
+    mdecSave.get<MDECIQUV>().count = 64;
+    mdecSave.get<MDECQTY>().count = 64;
+    mdecSave.get<MDECQTUV>().count = 64;
+    mdecSave.get<MDECScaleTable>().count = 64;
+    mdecSave.get<MDECCustomScale>().value = m_tables.customScale ? 1 : 0;
 }
 
 void PCSX::Counters::serialize(SaveStateWrapper* w) {
@@ -276,41 +443,54 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
         counters.get<Rcnts>().value[i].get<RcntGateStarted>().value = m_rcnts[i].gateStarted;
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
-    counters.get<SPUSyncCountdown>().value = m_spuSyncCountdown;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
+    counters.get<FieldCount>().value = m_fieldCount;
 }
 
-bool PCSX::SaveStates::load(std::string_view data) {
-    SaveState state = constructSaveState();
-
-    Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& state) {
+    using namespace PCSX::SaveStates;
+    PCSX::Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     try {
         state.deserialize(&slice, 0);
     } catch (...) {
         return false;
     }
-
-    if (state.get<SaveStateInfoField>().get<Version>().value != 4) {
+    // v4 is v5 with 1MB of VRAM; GPU::deserialize restores it into the first 512 rows.
+    const auto version = state.get<SaveStateInfoField>().get<Version>().value;
+    if ((version != 4) && (version != 5)) {
+        PCSX::g_system->printf("Unsupported save state version %u\n", version);
         return false;
     }
+    return true;
+}
+
+bool PCSX::SaveStates::load(std::string_view data) {
+    SaveState state = constructSaveState();
+    if (!parseSaveState(data, state)) return false;
 
     SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_cpu->Reset();
+    g_emulator->m_allocTracker->reset();
     state.commit();
+    g_emulator->m_cdrom->defaultSeedIfMissing();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
-    g_emulator->m_cpu->m_regs.pc &= ~3;
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
+    if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
+#if 0
     g_emulator->m_cdrom->load();
+#endif
 
     g_emulator->m_counters->deserialize(&wrapper);
     g_emulator->m_mdec->deserialize(&wrapper);
 
     auto& xa = state.get<SPUField>().get<SaveStates::XAField>();
 
+#if 0
     g_emulator->m_cdrom->m_xa.freq = xa.get<SaveStates::XAFrequency>().value;
     g_emulator->m_cdrom->m_xa.nbits = xa.get<SaveStates::XANBits>().value;
     g_emulator->m_cdrom->m_xa.nsamples = xa.get<SaveStates::XANSamples>().value;
@@ -318,28 +498,50 @@ bool PCSX::SaveStates::load(std::string_view data) {
     auto& left = xa.get<SaveStates::XAADPCMLeft>();
     g_emulator->m_cdrom->m_xa.left.y0 = left.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.left.y1 = left.get<SaveStates::ADPCMDecodeY1>().value;
-    auto& right = xa.get<SaveStates::XAADPCMLeft>();
+    auto& right = xa.get<SaveStates::XAADPCMRight>();
     g_emulator->m_cdrom->m_xa.right.y0 = right.get<SaveStates::ADPCMDecodeY0>().value;
     g_emulator->m_cdrom->m_xa.right.y1 = right.get<SaveStates::ADPCMDecodeY1>().value;
     xa.get<SaveStates::XAPCM>().copyTo(reinterpret_cast<uint8_t*>(g_emulator->m_cdrom->m_xa.pcm));
     g_emulator->m_spu->playADPCMchannel(&g_emulator->m_cdrom->m_xa);
+#endif
 
     g_emulator->m_cpu->closeAllPCdrvFiles();
     for (auto& file : state.get<PCdrvFilesField>().value) {
         uint16_t fd = file.get<PCdrvFD>().value;
         std::string filename = file.get<PCdrvFilename>().value;
         bool create = file.get<PCdrvCreate>().value;
-        if (create) {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd, FileOps::CREATE);
-        } else {
-            g_emulator->m_cpu->restorePCdrvFile(filename, fd);
+        ssize_t readPosition = 0;
+        ssize_t writePosition = -1;
+        if (file.get<PCdrvHasPositions>().value) {
+            readPosition = file.get<PCdrvReadPosition>().value;
+            writePosition = file.get<PCdrvWritePosition>().value;
         }
+        g_emulator->m_cpu->restorePCdrvFile(filename, fd, create, readPosition, writePosition);
     }
     g_emulator->m_callStacks->deserialize(&wrapper);
 
     g_system->m_eventBus->signal(Events::ExecutionFlow::SaveStateLoaded{});
 
     return true;
+}
+
+bool PCSX::SaveStates::loadSafe(std::string&& data) {
+    // Inside Execute(), we're being called from something the CPU reached: a
+    // Lua event listener (including a Pause listener fired by a breakpoint), an
+    // ImGui menu drawn during vsync, the web server polled on hsync.
+    // Counters::update() and branchTest() both cached
+    // values before that call and go on using them afterwards, so swapping the
+    // state here corrupts whatever those frames touch next. Let the main loop
+    // do it once they're gone.
+    if (g_system->inExecute()) {
+        // Parse it now so a corrupt or foreign state is refused here, where the
+        // caller can still report it, and not later from the main loop.
+        SaveState state = constructSaveState();
+        if (!parseSaveState(data, state)) return false;
+        g_system->scheduleSaveStateLoad(std::move(data));
+        return true;
+    }
+    return load(data);
 }
 
 void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
@@ -375,20 +577,46 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
 
 static uint32_t getU32(const uint8_t* ptr) { return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24); }
 
+// The replayed GP1(00h) resets the drawing environment; replay GP0(E1h)..GP0(E6h).
+// A state saved without them still carries the E1h and E6h bits in GPUSTAT.
+void PCSX::GPU::restoreEnvironment(const uint8_t* env, uint32_t status) {
+    if (env) {
+        for (unsigned i = 0; i < 6; i++) writeData(getU32(env + i * 4));
+        return;
+    }
+    // GPUSTAT.10 can read 0 after a textured primitive even with GP0(E1h).10 set, so it does not
+    // say whether drawing to the display area was allowed; restore it as allowed.
+    writeData(0xe1000400 | (status & 0x3ff) | ((status >> 4) & 0x800));
+    writeData(0xe6000000 | ((status >> 11) & 3));
+}
+
 void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
     reset();
     auto& gpu = w->state.get<GPUField>();
     restoreStatus(gpu.get<GPUStatus>().value);
-    if (gpu.get<GPUVRam>().value) {
-        partialUpdateVRAM(0, 0, 1024, 512, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
-    } else {
-        clearVRAM();
-    }
     const auto control = gpu.get<GPUControl>().value;
 
     for (unsigned i = 0; i < 256; i++) {
         m_statusControl[i] = getU32(control + i * 4);
+    }
+
+    // GP1(09h) is not replayed through writeStatus below: an unwritten slot
+    // reads 0, which would decode as GP1(00h). Restore the bank gate directly.
+    drainRenderer();
+    m_vram2MBGateOpen = m_statusControl[9] & 1;
+    m_dmaDirection = (gpu.get<GPUStatus>().value >> 29) & 3;
+    vramConfigChanged();
+
+    // A v4 state only carries 1MB of VRAM. Restore it into the lower bank and leave
+    // the upper one as clearVRAM() sets it on a fresh console of this fitment.
+    const bool vram1MB = w->state.get<SaveStateInfoField>().get<Version>().value == 4;
+    if (gpu.get<GPUVRam>().value) {
+        if (vram1MB) clearVRAM();
+        partialUpdateVRAM(0, 0, 1024, vram1MB ? 512 : 1024,
+                          reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+    } else {
+        clearVRAM();
     }
 
     writeStatus(m_statusControl[0]);
@@ -400,6 +628,17 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     writeStatus(m_statusControl[7]);
     writeStatus(m_statusControl[5]);
     writeStatus(m_statusControl[4]);
+
+    restoreEnvironment(gpu.get<GPUEnvironment>().value, gpu.get<GPUStatus>().value);
+    // The GP1 and environment replays above rebuild the status word from commands, which loses
+    // whatever was set since by other paths (the texpage of the last textured primitive, the
+    // interlace field). The saved word is what the cpu read; that is what it has to read again,
+    // except for the bits readStatus() ORs in live (IRQ1, DMA request, ready-for-VRAM): those
+    // stay as the replay derived them.
+    constexpr uint32_t derived = 0x1b000000;
+    restoreStatus((gpu.get<GPUStatus>().value & ~derived) | (readStatusInternal() & derived));
+    // The replayed GP1(00h)/GP1(02h) above clear the IRQ1 flag; put back the saved one.
+    m_irq1Flag = gpu.get<GPUStatus>().value & 0x01000000;
 }
 
 void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
@@ -418,9 +657,31 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     mdec.pending_dma1.bcr = mdecSave.get<MDECDMABCR>().value;
     mdec.pending_dma1.chcr = mdecSave.get<MDECDMACHCR>().value;
     for (unsigned i = 0; i < 64; i++) {
-        iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
-        iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+        m_tables.iqY[i] = mdecSave.get<MDECIQY>().value[i].value;
+        m_tables.iqUV[i] = mdecSave.get<MDECIQUV>().value[i].value;
     }
+    // Fields 12-15 were added without a version bump. A state from before them
+    // deserialises zero elements into the repeated fields, which would otherwise
+    // leave all-zero quant tables and a zero scale matrix. Those emulators always
+    // decoded with the standard matrix; the raw quant tables are recovered from
+    // the cached ones, which do carry whatever the game uploaded.
+    if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
+        mdecSave.get<MDECScaleTable>().count == 0) {
+        standardTables_init();
+        qtab_fromIqtab(m_tables.qtY, m_tables.iqY);
+        qtab_fromIqtab(m_tables.qtUV, m_tables.iqUV);
+        return;
+    }
+    for (unsigned i = 0; i < 64; i++) {
+        m_tables.qtY[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
+        m_tables.qtUV[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
+        m_tables.scale[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
+    }
+    m_tables.customScale = mdecSave.get<MDECCustomScale>().value != 0;
+    // Not serialised: an all-zero matrix is what a console holds before MDEC(3).
+    scaleTableUploaded =
+        std::any_of(std::begin(m_tables.scale), std::end(m_tables.scale), [](int16_t v) { return v != 0; });
+    warnedNoScaleTable = false;
 }
 
 void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
@@ -438,8 +699,8 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
         m_rcnts[i].gateStarted = counters.get<Rcnts>().value[i].get<RcntGateStarted>().value;
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
-    m_spuSyncCountdown = counters.get<SPUSyncCountdown>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
+    m_fieldCount = counters.get<FieldCount>().value;
 
     calculateHsync();
     // Recalculate rates from mode registers (handles overclock changes and dotclock)

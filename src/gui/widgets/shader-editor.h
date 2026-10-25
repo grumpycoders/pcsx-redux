@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <initializer_list>
 #include <optional>
 #include <string>
@@ -82,6 +83,10 @@ class ShaderEditor {
     void imguiCB(const ImDrawList* parentList, const ImDrawCmd* cmd);
 
     const std::string m_baseFilename;
+    // The built-in sources. A shader identical to its built-in source is not
+    // persisted, so a stale copy cannot outlive a change to the built-in one.
+    std::string m_defaultVS, m_defaultPS, m_defaultL;
+    void persist(std::filesystem::path f, const char* extension, const std::string& text, const std::string& builtIn);
 
     ZepEditor m_vertexShaderEditor = {"VertexShader.vert"};
     ZepEditor m_pixelShaderEditor = {"PixelShader.frag"};

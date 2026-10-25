@@ -10,7 +10,10 @@ variables:
 
 steps:
 - checkout: self
-  submodules: true
+  submodules: false
+- task: Bash@3
+  inputs:
+    filePath: '.github/scripts/update-submodules.sh'
 
 - task: Bash@3
   inputs:

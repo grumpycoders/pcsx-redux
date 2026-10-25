@@ -43,6 +43,8 @@
 #define LO_OFFSET ((uintptr_t) & m_regs.GPR.n.lo - (uintptr_t)this)
 #define HI_OFFSET ((uintptr_t) & m_regs.GPR.n.hi - (uintptr_t)this)
 #define CYCLE_OFFSET ((uintptr_t) & m_regs.cycle - (uintptr_t)this)
+#define MULDIV_READY_OFFSET ((uintptr_t) & m_regs.muldivReady - (uintptr_t)this)
+#define GTE_READY_OFFSET ((uintptr_t) & m_regs.gteReady - (uintptr_t)this)
 
 #undef _PC_
 #undef _Op_
@@ -83,9 +85,25 @@
 #define _ImmU_ _fImmU_(code)
 #define _ImmLU_ _fImmLU_(code)
 
-static uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
-static void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
-static void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
+inline uint32_t read32Wrapper(uint32_t address) { return PCSX::g_emulator->m_mem->read32(address); }
+inline void write32Wrapper(uint32_t address, uint32_t value) { PCSX::g_emulator->m_mem->write32(address, value); }
+// LWL/LWR/SWL/SWR: msan only considers the bytes of the aligned word the instruction consumes or overwrites
+inline uint32_t lwlReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::leftByteMask(address));
+}
+inline uint32_t lwrReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address & ~3, PCSX::Memory::rightByteMask(address));
+}
+inline uint32_t unalignedStoreReadWrapper(uint32_t address) {
+    return PCSX::g_emulator->m_mem->read32Masked(address, 0);
+}
+inline void swlWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::leftByteMask(address));
+}
+inline void swrWriteWrapper(uint32_t address, uint32_t value) {
+    PCSX::g_emulator->m_mem->write32Masked(address & ~3, value, PCSX::Memory::rightByteMask(address));
+}
+inline void SPU_writeRegisterWrapper(uint32_t addr, uint16_t value) {
     PCSX::g_emulator->m_spu->writeRegister(addr, value);
 }
 
@@ -115,7 +133,9 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     DynarecCallback m_needFullLoadDelays;
 
     Emitter gen;
-    uint32_t m_pc;  // Recompiler PC
+    uint32_t m_pc;                   // Recompiler PC
+    unsigned m_instructionCount;     // Instructions compiled so far in the current block
+    unsigned m_romInstructionCount;  // How many of those were fetched from ROM
 
     bool m_stopCompiling;  // Should we stop compiling code?
     bool m_pcWrittenBack;  // Has the PC been written back already by a jump?
@@ -130,6 +150,26 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         int index;
         uint32_t value;
     } m_runtimeLoadDelay;
+
+    // GTE register writes (MTC2, CTC2, LWC2) compiled in the current block that have not reached the GTE yet,
+    // oldest first. A write lands once two more instructions have run, as in the interpreter. Between blocks,
+    // writes still in flight live in R3000Acpu::m_gtePending.
+    struct GTEQueuedWrite {
+        uint32_t value;  // The value, when isConst
+        uint8_t reg;
+        uint8_t slot;  // Index into m_gteWriteValues and bit in m_gteWriteLive
+        uint8_t countdown;
+        bool ctrl;
+        bool isConst;
+        // A stall may already have committed it at runtime, which its bit in m_gteWriteLive tells
+        bool uncertain;
+    };
+    struct {
+        GTEQueuedWrite writes[3];
+        unsigned count;
+    } m_gteQueue;
+    uint32_t m_gteWriteValues[3];  // Values of the queued writes, captured at issue
+    uint8_t m_gteWriteLive;        // Bit n set: the write in slot n is still in flight
 
     const int MAX_BLOCK_SIZE = 50;
 
@@ -176,6 +216,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     Register m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
+    // Address of the branch whose delay slot is being compiled. It is the previous word, except for the
+    // instruction at a taken branch's target when that branch had another branch in its slot: that
+    // second branch owns it, and an exception there reports it in EPC.
+    uint32_t m_slotBranchPC = 0;
+    std::optional<uint32_t> m_nestedSlotBranchPC = std::nullopt;
+    // The PC to hand the exception handler: the excepting instruction, or the branch it is the delay slot of plus 4
+    // so that the handler's EPC = PC - 4 for BD lands on that branch.
+    uint32_t exceptionPC() const { return m_inDelaySlot ? m_slotBranchPC + 4 : m_pc - 4; }
 
     template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);
@@ -195,6 +243,12 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     unsigned int m_allocatedRegisters = 0;  // how many registers have been allocated in this block?
 
     void prepareForCall();
+    // The msan hardware registers take their arguments in $a0/$a1 (see psxhw.cc), so a 32-bit access to
+    // them, or to an address only known at runtime, needs syncArgumentRegisters first.
+    static bool usesArgumentRegisters(uint32_t addr, bool write) {
+        return addr == 0x1f802094 || (!write && (addr == 0x1f80208c || addr == 0x1f802090));
+    }
+    void syncArgumentRegisters();
     void handleKernelCall();
     void emitDispatcher();
     void uncompileAll();
@@ -372,6 +426,37 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     // Check if we're executing from valid memory
     inline bool isPcValid(uint32_t addr) { return m_recompilerLUT[addr >> 16] != m_dummyBlocks; }
 
+    // True for every branch and jump: REGIMM, J, JAL, BEQ, BNE, BLEZ, BGTZ, JR and JALR.
+    static bool isBranch(uint32_t code) {
+        const uint32_t op = code >> 26;
+        if (op == 0) return (code & 0x3e) == 0x08;  // JR, JALR
+        return op >= 1 && op <= 7;
+    }
+
+    // Target of the branch or jump in `code` if it is taken, when it is known at compile time.
+    // `pc` is the address after the branch, which is the base of a relative branch.
+    std::optional<uint32_t> staticBranchTarget(uint32_t code, uint32_t pc) {
+        const uint32_t op = code >> 26;
+        if (op == 1 || (op >= 4 && op <= 7)) return (uint32_t)((int16_t)code * 4) + pc;
+        if (op == 2 || op == 3) return (pc & 0xf0000000) | ((code & 0x03ffffff) << 2);
+        if (op == 0 && (code & 0x3e) == 0x08) {
+            const unsigned rs = (code >> 21) & 0x1f;
+            if (m_gprs[rs].isConst()) return m_gprs[rs].val & ~3;
+        }
+        return std::nullopt;
+    }
+
+    // A linking branch compiled with a moved base still links to its own address + 8.
+    void fixDelaySlotBranchLink(uint32_t code, uint32_t link) {
+        const uint32_t op = code >> 26;
+        if (op == 3 || (op == 1 && ((code >> 17) & 0xf) == 8)) {
+            markConst(31, link);
+        } else if (op == 0 && (code & 0x3f) == 0x09) {
+            const unsigned rd = (code >> 11) & 0x1f;
+            if (rd) markConst(rd, link);
+        }
+    }
+
     DynarecCallback* getBlockPointer(uint32_t pc);
     DynarecCallback recompile(uint32_t pc, bool fullLoadDelayEmulation, bool align = true);
     void error();
@@ -425,6 +510,8 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recCFC2(uint32_t code);
     void recCOP0(uint32_t code);
     void recCOP2(uint32_t code);
+    void recCOP1or3(uint32_t code);
+    void recBCz(uint32_t code);
     void recCTC2(uint32_t code);
     void recDIV(uint32_t code);
     void recDIVU(uint32_t code);
@@ -448,6 +535,20 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
+    void emitGTEStall();
+    void emitGTEWrite(bool ctrl, unsigned reg);
+    void emitGTECommit(const GTEQueuedWrite& write, bool checkLive);
+    void emitGTEFlushQueue(bool commitAll);
+    void makeRoomForGTEWrite();
+    void queueGTEWrite(bool ctrl, unsigned reg, bool isConst, uint32_t value, Xbyak::Reg32 src);
+    void tickGTEWrites();
+    static void gteCommandWrapper(DynaRecCPU* that, uint32_t code, uint32_t liveBits);
+    void drainGTEWrites();
+    static void drainGTEWritesWrapper(DynaRecCPU* that) { that->drainGTEWrites(); }
+    void emitMuldivStall();
+    void emitMuldivNow();
+    void emitMuldivStart(uint32_t latency);
+    void emitMultStart(uint32_t code, bool isSigned);
     void recMTLO(uint32_t code);
     void recMULT(uint32_t code);
     void recMULTU(uint32_t code);
@@ -531,7 +632,7 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         &DynaRecCPU::recBEQ,     &DynaRecCPU::recBNE,     &DynaRecCPU::recBLEZ,    &DynaRecCPU::recBGTZ,     // 04
         &DynaRecCPU::recADDIU,   &DynaRecCPU::recADDIU,   &DynaRecCPU::recSLTI,    &DynaRecCPU::recSLTIU,    // 08
         &DynaRecCPU::recANDI,    &DynaRecCPU::recORI,     &DynaRecCPU::recXORI,    &DynaRecCPU::recLUI,      // 0c
-        &DynaRecCPU::recCOP0,    &DynaRecCPU::recUnknown, &DynaRecCPU::recCOP2,    &DynaRecCPU::recUnknown,  // 10
+        &DynaRecCPU::recCOP0,    &DynaRecCPU::recCOP1or3, &DynaRecCPU::recCOP2,    &DynaRecCPU::recCOP1or3,  // 10
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 14
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 18
         &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown, &DynaRecCPU::recUnknown,  // 1c

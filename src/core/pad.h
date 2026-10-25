@@ -43,6 +43,9 @@ class Pads {
 
     virtual json getCfg() = 0;
     virtual void setCfg(const json& j) = 0;
+    // Rewrites keyboard bindings saved by the GLFW builds as SDL scancodes.
+    // Returns true if the pad's config was migrated.
+    static bool migrateKeyboardBindings(json& pad);
     virtual void setDefaults() = 0;
     virtual bool configure(PCSX::GUI* gui) = 0;
 

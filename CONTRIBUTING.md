@@ -50,7 +50,7 @@ Please read and follow the [Code of Conduct](CODE_OF_CONDUCT.md) before contribu
 
 ## Contributing unit tests
 
-The project heavily relies on unit tests. If you find a problem while writing PS1 code, but are unable to fix it yourself in a pull request, the next best thing is to submit a pull request introducing a unit test exhibiting the problem. See the [existing tests](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/tests) for some examples on how to introduce a new test.
+The project heavily relies on unit tests. If you find a problem while writing PS1 code, but are unable to fix it yourself in a pull request, the next best thing is to submit a pull request introducing a unit test exhibiting the problem. See the [existing tests](https://github.com/pcsx-redux/nugget/tree/main/tests) for some examples on how to introduce a new test.
 
 ## Filing a bug report
 

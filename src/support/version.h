@@ -26,7 +26,12 @@ SOFTWARE.
 
 #pragma once
 
-#include <uv.h>
+// Forward-declare instead of including <uv.h>. Only uv_loop_t* appears in this
+// header, and this is libuv's own declaration of it. Including the real header
+// here dragged libuv into 25 translation units that only wanted VersionInfo
+// and Update; the uvfile.h include that sat below it dragged libcurl too.
+struct uv_loop_s;
+typedef struct uv_loop_s uv_loop_t;
 
 #include <ctime>
 #include <filesystem>
@@ -36,42 +41,9 @@ SOFTWARE.
 
 #include "json.hpp"
 #include "support/file.h"
-#include "support/uvfile.h"
+#include "support/version-info.h"
 
 namespace PCSX {
-
-struct VersionInfo {
-    std::string version;
-    std::optional<unsigned> buildId;
-    std::string changeset;
-    std::time_t timestamp;
-    std::string updateMethod;
-    std::string updateChannel;
-    std::string updateCatalog;
-    std::string updateInfoBase;
-    std::string updateStorageUrl;
-    void loadFromFile(IO<File> file);
-    bool failed() const { return version.empty(); }
-    bool hasUpdateInfo() const {
-        if (version.empty()) return false;
-        if (updateCatalog.empty() || updateInfoBase.empty()) return false;
-        if (updateMethod == "appdistrib") {
-            return buildId.has_value() && !updateStorageUrl.empty();
-        }
-        return (updateMethod == "appcenter");
-    }
-    void clear() {
-        version.clear();
-        buildId = std::nullopt;
-        changeset.clear();
-        timestamp = 0;
-        updateMethod.clear();
-        updateChannel.clear();
-        updateCatalog.clear();
-        updateInfoBase.clear();
-        updateStorageUrl.clear();
-    }
-};
 
 class Update {
   public:
@@ -81,10 +53,7 @@ class Update {
     bool applyUpdate(const std::filesystem::path& binDir);
     bool canFullyApply();
 
-    float progress() {
-        if (m_download && !m_download->failed()) return m_download->cacheProgress();
-        return 0.0f;
-    }
+    float progress();
 
     bool hasUpdate() const { return m_hasUpdate; }
 
@@ -92,7 +61,10 @@ class Update {
     using json = nlohmann::json;
     json m_updateCatalog;
     json m_updateInfo;
-    IO<UvFile> m_download;
+    // IO<File>, not IO<UvFile>: the IO<T> constraint needs T complete, so holding
+    // the concrete type here forces uvfile.h on every includer. The .cc still
+    // assigns a UvFile and downcasts where it needs the caching API.
+    IO<File> m_download;
     unsigned m_updateId;
     std::string m_updateVersion;
     bool m_hasUpdate = false;

@@ -1,3 +1,7 @@
+/* v1 wasm drops the web server, llhttp's only consumer. Guarded whole-file
+   rather than removed from the build, so the source list stays a full glob. */
+#ifndef __EMSCRIPTEN__
+
 #include <stdio.h>
 #ifndef LLHTTP__TEST
 # include "llhttp.h"
@@ -168,3 +172,5 @@ int llhttp_should_keep_alive(const llhttp_t* parser) {
 
   return !llhttp_message_needs_eof(parser);
 }
+
+#endif
