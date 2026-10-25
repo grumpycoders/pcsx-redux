@@ -241,7 +241,8 @@ void PCSX::GPUDumpPlayer::rewind() {
     m_gpu->writeStatus(0x00000000);
     m_gpu->clearVRAM();
     // The player's GPU has no beam of its own; GPUSTAT.31 comes from the dump's field packets.
-    m_gpu->m_fieldOverride = 0;
+    // A dump recorded before field packets existed has none, and keeps the live value.
+    m_gpu->m_fieldOverride = -1;
     GPUDumpReader::Packet packet;
     // Everything before the trace begin marker is state restoration. A dump without one starts live.
     size_t start = 4;
