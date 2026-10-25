@@ -53,7 +53,17 @@ class GPULogger {
         bool enabled = true;
     };
 
-    GPULogger();
+    // The emulator's logger follows the emulator: its frames are the emulator's vsyncs and it records
+    // the guest pc. A logger owned by a detached GPU (the dump player's) is told which frame it is on
+    // with setFrame() instead, and snapshots and replays that GPU.
+    explicit GPULogger(bool followEmulator = true);
+    void setOwner(GPU* gpu) { m_owner = gpu; }
+    GPU* gpu() const;
+    bool followsEmulator() const { return m_followEmulator; }
+    void setFrame(uint64_t frame) { m_frameCounter = frame; }
+    // Logging without the VRAM heatmaps, which need an OpenGL context; enable() sets those up.
+    void setLogging(bool enabled) { m_enabled = enabled; }
+    size_t loggedCount() const { return m_list.size(); }
     void clearFrameLog() { m_list.destroyAll(); }
     template <typename T>
     void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
@@ -99,6 +109,8 @@ class GPULogger {
 
     EventBus::Listener m_listener;
     unsigned m_drawingAreaX0 = 0, m_drawingAreaY0 = 0, m_drawingAreaX1 = 0, m_drawingAreaY1 = 0;
+    const bool m_followEmulator;
+    GPU* m_owner = nullptr;
     bool m_enabled = false;
     bool m_breakOnVSync = false;
     std::vector<VramBreakpoint> m_vramBreakpoints;

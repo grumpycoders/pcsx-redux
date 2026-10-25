@@ -49,6 +49,26 @@ local function check(path)
     return steps > 0 and diffs == 0 and control > 0
 end
 
+-- The player's logger keeps one dump frame: the second frame's list must not hold the first one's
+-- commands, whatever the emulator is doing meanwhile, and a rewind replays to the same counts.
+local function checkLogger(path)
+    if not PCSX.GPU.DumpPlayer.load(path) then return false end
+    PCSX.GPU.DumpPlayer.setLogging(true)
+    PCSX.GPU.DumpPlayer.rewind()
+    PCSX.GPU.DumpPlayer.step()
+    local first = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.step()
+    local second = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.rewind()
+    PCSX.GPU.DumpPlayer.step()
+    PCSX.GPU.DumpPlayer.step()
+    local again = PCSX.GPU.DumpPlayer.getLoggedCount()
+    PCSX.GPU.DumpPlayer.setLogging(false)
+    print(string.format('%s: player logger %d then %d commands, %d after a rewind', path, first, second, again))
+    -- The first list also holds the restore sequence that rewind() plays before the first frame.
+    return first > 0 and second > 0 and second < first and second == again
+end
+
 local tmp = os.tmpname()
 os.remove(tmp)
 local first, second = tmp .. '-1.gpd', tmp .. '-2.gpd'
@@ -72,6 +92,7 @@ Listener = PCSX.Events.createEventListener('GPU::Vsync', function()
     elseif stage == 1 and vsyncs >= 120 and changed then
         PCSX.GPU.stopDump()
         ok = check(first) and ok
+        ok = checkLogger(first) and ok
         stage = 2
     elseif stage == 2 and vsyncs >= 150 then
         -- The player keeps its GPU while the emulated one runs on.
