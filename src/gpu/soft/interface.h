@@ -40,6 +40,10 @@ class impl final : public GPU, private SoftRenderer {
     void presentFromGui() override;
     bool configure() override;
     void debug() override;
+    void debugVideoMode(uint32_t stat);
+    void debugDisplayArea();
+    void debugDrawing(uint32_t stat);
+    void debugRowSkip(uint32_t stat);
 
     void setDither(int setting) override {
         m_queue.sync();
