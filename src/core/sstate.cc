@@ -34,7 +34,9 @@
 #include "core/sio.h"
 #include "spu/interface.h"
 
-PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
+PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() { return Access::constructSaveState(); }
+
+PCSX::SaveStates::SaveState PCSX::SaveStates::Access::constructSaveState() {
     auto* cd = g_emulator->m_cdrom.get();
     return SaveState{
         SaveStateInfo{

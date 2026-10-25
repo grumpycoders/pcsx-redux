@@ -54,10 +54,11 @@ class IsoBrowser {
           m_openReplaceFileDialog(l_("Replace File"), favorites),
           m_monoFont(monoFont),
           m_sendToDalos(sendToDalos) {}
-    ~IsoBrowser() {
-        m_hexEditors.destroyAll();
-    }
+    ~IsoBrowser() { m_hexEditors.destroyAll(); }
     void draw(CDRom* cdrom, const char* title);
+    // The hex editors and viewers opened from the browser, drawn by the caller
+    // every frame so they stay up while the browser is collapsed or closed.
+    void drawChildren();
 
     bool& m_show;
 

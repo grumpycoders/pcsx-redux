@@ -29,11 +29,14 @@
 #include "core/psxhw.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 #include "core/system.h"
 #include "supportpsx/iec-60908b.h"
 
 namespace PCSX {
+
+namespace SaveStates {
+struct Access;
+}
 
 namespace Widgets {
 class IsoBrowser;
@@ -79,6 +82,10 @@ class CDRom {
         m_iso.reset(iso);
         g_system->m_eventBus->signal(Events::IsoMounted{});
     }
+    void setIso(std::shared_ptr<CDRIso> iso) {
+        m_iso = std::move(iso);
+        g_system->m_eventBus->signal(Events::IsoMounted{});
+    }
 
     const std::string& getCDRomID() { return m_cdromId; }
     const std::string& getCDRomLabel() { return m_cdromLabel; }
@@ -104,7 +111,7 @@ class CDRom {
 
   protected:
     std::shared_ptr<CDRIso> m_iso;
-    friend SaveStates::SaveState SaveStates::constructSaveState();
+    friend struct SaveStates::Access;
 
     bool dataFIFOHasData() { return m_dataFIFOIndex != m_dataFIFOSize; }
 

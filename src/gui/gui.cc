@@ -1912,6 +1912,7 @@ in Configuration->Emulation, restart PCSX-Redux, then try again.)"));
     if (m_isoBrowser.m_show) {
         m_isoBrowser.draw(g_emulator->m_cdrom.get(), _("ISO Browser"));
     }
+    m_isoBrowser.drawChildren();
 
     if (m_network.m_show) changed |= m_network.draw(this, _("Network"));
     if (m_dalos.m_show) {
@@ -2366,14 +2367,14 @@ interval to 0 to disable.)"));
 which may include additional checks.
 Also will make the boot time substantially
 faster by not displaying the logo.)"));
-        changed |= ImGui::Checkbox(_("Randomize CD-ROM timings"),
-                                   &settings.get<Emulator::SettingCDRomEntropySeed>().value);
+        changed |=
+            ImGui::Checkbox(_("Randomize CD-ROM timings"), &settings.get<Emulator::SettingCDRomEntropySeed>().value);
         ImGuiHelpers::ShowHelpMarker(_(R"(The CD-ROM drive timings carry a small
 amount of jitter, like a real drive. By default
 it is the same on every run, so a session can be
 replayed exactly. Enabling this picks a different
 sequence at each power-on.)"));
-        auto bios =settings.get<Emulator::SettingBios>().string();
+        auto bios = settings.get<Emulator::SettingBios>().string();
         ImGui::InputText(_("BIOS file"), const_cast<char*>(reinterpret_cast<const char*>(bios.c_str())),
                          bios.length() + 1, ImGuiInputTextFlags_ReadOnly);
         ImGui::SameLine();

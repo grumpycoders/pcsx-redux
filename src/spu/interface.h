@@ -163,6 +163,21 @@ class impl final : public SPUInterface {
     }
     void advanceTo(uint64_t cycle) override { publishHorizon(cycle); }
 
+    // Embedding. A host that mixes on its own thread opens the SPU with openSynchronous()
+    // instead of open(): the same state, but no mixer thread, and nothing goes to the audio
+    // device. The host pulls the output with mixSynchronous() and closes with close() as usual.
+    // Register writes are still stamped with the CPU cycle and applied at the matching sample,
+    // so the host keeps PCSX::g_emulator's cycle on the same clock as the samples it mixes: a
+    // write at cycle (n - 1) * 768 takes effect at sample n. CPU reads do not wait for the
+    // mixer in this mode (catchUp is a no-op); the host is the mixer.
+    bool openSynchronous();
+    // Applies the queued writes as they come due and mixes the next `frames` samples into
+    // `out`, as interleaved stereo (2 * frames values). The CPU side is then considered to be
+    // at the last sample mixed. Only after openSynchronous(). In this mode the host is both
+    // the CPU side and the mixer: register writes, advanceTo() and mixSynchronous() must all
+    // come from one thread, since m_lastHorizon and the write queue are not locked against it.
+    void mixSynchronous(int16_t *out, size_t frames);
+
   private:
     struct ADSRFlags {
         enum : uint16_t {
@@ -241,8 +256,10 @@ class impl final : public SPUInterface {
     bool flushOutput();
     void SetupStreams();
     void RemoveStreams();
+    void SetupMixBuffers();
     void SetupThread();
     void RemoveThread();
+    bool openWith(bool startThread);
     void StartSound(SPUCHAN *voice);
     // Read-time reconstruction. A CPU read of ENVX or of SPUSTAT bit 11 asks what
     // the SPU is doing at the reader's own cycle, which the mixer thread, running
@@ -254,6 +271,8 @@ class impl final : public SPUInterface {
     uint16_t reconstructEnvelope(int ch, uint64_t cycle);
     // Samples elapsed at a CPU cycle, on the hardware 768 cycles/sample ratio.
     uint64_t cycleToSample(uint64_t cycle) const;
+    // The CPU cycle a sample is produced at; cycleToSample's inverse.
+    uint64_t sampleToCycle(uint64_t sample) const;
     // Installs a new 16.16 pitch step, clamping zero, and notifies the interpolator.
     void setPitchStep(SPUCHAN *voice, int32_t step);
     void VoiceChangeFrequency(SPUCHAN *voice);
@@ -299,6 +318,7 @@ class impl final : public SPUInterface {
     // The mixer-side half of a register write: everything the voices and the mix see.
     // writeRegister is the CPU-side half, which stamps and queues it.
     void applyRegister(uint32_t reg, uint16_t val);
+    bool applyMixVolume(uint32_t r, uint16_t val);
     // CPU-side shadows of state the mixer owns, rebuilt from the mixer's state after a load.
     void rebuildShadows();
     void saveEnvelopeCheckpoints(SaveStates::EnvelopeCheckpoints &);
@@ -381,6 +401,66 @@ class impl final : public SPUInterface {
     std::atomic<uint64_t> cdFeedCycle = 0;
     // The capture buffer index for voice 1 and voice 3.
     int32_t capBufVoiceIndex = 0;
+
+    // CD audio input (CD-DA, and XA-ADPCM after the decoder's 44.1 kHz resampler), queued on
+    // the emulated sample clock. FeedXA stamps each frame with the sample it plays at; mixChunk
+    // takes one frame per output sample and adds it to the mix through CD volume and SPUCNT
+    // bit 0, ahead of main volume. Shared under cbMtx.
+    struct CdAudioQueue {
+        static constexpr size_t kSize = 16384;
+        static_assert((kSize & (kSize - 1)) == 0);
+        // A stream plays this many samples (about 46ms) after the sector that starts it
+        // arrives, so the drive's sector-to-sector timing jitter and the small per-sector
+        // difference between the fed sample count and real time do not gap the audio.
+        static constexpr uint64_t kCushion = 2048;
+        // A sector landing within this of where the stream expects it continues that stream,
+        // jittered; anything further off (a stop, a seek, a new stream) starts fresh with a
+        // cushion. Wide enough for the jitter, narrow enough to keep a real silence a silence.
+        static constexpr uint64_t kResumeWindow = 2048;
+        int16_t left[kSize] = {};
+        int16_t right[kSize] = {};
+        uint64_t stamp[kSize] = {};
+        uint64_t pushed = 0;
+        uint64_t popped = 0;
+        // The sample right after the last queued frame: where the stream continues.
+        uint64_t next = 0;
+        void clear() {
+            popped = pushed;
+            next = 0;
+        }
+        // The stamp for the first frame of audio the CD delivers at sample `arrival`. A sector
+        // close to where the stream left off continues it; anything else starts a fresh stream.
+        uint64_t start(uint64_t arrival) {
+            const bool sameStream =
+                next != 0 && arrival <= next + kResumeWindow && next <= arrival + kCushion + kResumeWindow;
+            if (sameStream) return next;
+            popped = pushed;
+            return arrival + kCushion;
+        }
+        void push(int16_t l, int16_t r, uint64_t s) {
+            // Full: the oldest frame goes.
+            if (pushed - popped == kSize) popped++;
+            const size_t i = pushed & (kSize - 1);
+            left[i] = l;
+            right[i] = r;
+            stamp[i] = s;
+            pushed++;
+            next = s + 1;
+        }
+    };
+    CdAudioQueue m_cdQueue;
+    void mixCdInput(int n);
+    // CD audio input volume (1F801DB0h/1DB2h), mixer side: the signed register value, which
+    // scales by value/0x8000. Like main volume, each side stays at unity (0x8000) until software
+    // first writes it.
+    static constexpr int32_t kCdVolumeUnity = 0x8000;
+    int32_t m_cdVolumeLeft = kCdVolumeUnity;
+    int32_t m_cdVolumeRight = kCdVolumeUnity;
+    bool m_cdLeftWritten = false;
+    bool m_cdRightWritten = false;
+    // Savestate load: replays the written sides of main and CD volume from regArea.
+    void replayMixVolumes(uint32_t writtenMask);
+    uint32_t mixVolumeWrittenMask() const;
 
     // User settings.
     SettingsType settings;

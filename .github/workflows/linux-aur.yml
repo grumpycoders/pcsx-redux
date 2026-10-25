@@ -34,13 +34,4 @@ jobs:
           chown -R builduser:builduser /build
           cd /build/pcsx-redux-git
           sed -i s,git+https://github.com/grumpycoders/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g PKGBUILD
-          # The AUR PKGBUILD lists submodules by hand and does not have third_party/args yet.
-          if ! grep -q Taywee/args PKGBUILD; then
-            sed -i \
-              -e "s,^\(        'git+https://github.com/ArthurSonzogni/FTXUI.git'\)\$,\1\n        'git+https://github.com/Taywee/args.git'," \
-              -e "s,^sha256sums=('SKIP'\$,sha256sums=('SKIP' 'SKIP'," \
-              -e 's,^\(  git config submodule.third_party/ftxui.url .*\)$,\1\n  git config submodule.third_party/args.url "$srcdir/args",' \
-              -e 's,^\( *\)third_party/cueparser \\$,&\n\1third_party/args \\,' PKGBUILD
-            grep -c Taywee/args PKGBUILD
-          fi
           sudo -u builduser bash -c 'makepkg --noconfirm --syncdeps'

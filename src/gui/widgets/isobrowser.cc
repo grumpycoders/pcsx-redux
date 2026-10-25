@@ -842,7 +842,9 @@ significantly by caching the files beforehand.)"));
     }
 
     ImGui::End();
+}
 
+void PCSX::Widgets::IsoBrowser::drawChildren() {
     // Render hex editor windows and clean up closed ones
     for (auto it = m_hexEditors.begin(); it != m_hexEditors.end();) {
         auto& inst = *it;
