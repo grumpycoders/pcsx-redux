@@ -106,8 +106,8 @@ void PCSX::SoftGPU::SoftRenderer::drawLine(int16_t x0, int16_t y0, int16_t x1, i
             // to the BGR555 layout the writer expects before storing.
             if ((x0 >= m_drawX) && (x0 < m_drawW) && (y0 >= m_drawY) && (y0 < m_drawH)) {
                 RasterState rs = makeBaseRasterState();
-                PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(
-                    rs, x0, y0, Channel555::fromCommandColor(rgb0));
+                PixelWriter<false, GPU::Shading::Flat, WriteMode::Default>::scalar(rs, x0, y0,
+                                                                                   Channel555::fromCommandColor(rgb0));
             }
             return;
         } else if (dy > 0) {

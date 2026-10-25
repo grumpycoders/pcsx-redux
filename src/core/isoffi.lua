@@ -28,6 +28,7 @@ enum SectorMode {
 
 typedef struct { char opaque[?]; } LuaIso;
 typedef struct { char opaque[?]; } IsoReader;
+typedef struct { uint8_t m, s, f; } MSF;
 
 void deleteIso(LuaIso* wrapper);
 bool isIsoFailed(LuaIso* wrapper);
@@ -36,12 +37,20 @@ void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
 LuaIso* openIso(const char* path);
 LuaIso* openIsoFromFile(LuaFile* wrapper);
+void cdromSetIso(LuaIso* wrapper);
+void cdromEjectIso();
+void cdromOpenLid();
+void cdromCloseLid();
+void cdromScheduleCloseLid();
+bool cdromIsLidOpen();
 
 IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
 bool isReaderFailed(IsoReader* reader);
 LuaFile* readerOpen(IsoReader* reader, const char* path);
 LuaFile* fileisoOpen(LuaIso* wrapper, uint32_t lba, uint32_t size, enum SectorMode mode);
+uint32_t getIsoTN(LuaIso* wrapper);
+MSF getIsoTD(LuaIso* wrapper, uint32_t tn);
 
 typedef struct { char opaque[?]; } DirEntries;
 DirEntries* readerListDir(IsoReader* reader, const char* path);
@@ -67,7 +76,7 @@ void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
 uint32_t isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, enum SectorMode mode);
 uint32_t isoBuilderWriteSectorAt(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, uint32_t lba, enum SectorMode mode);
 uint32_t isoBuilderGetCurrentLBA(ISO9660Builder* builder);
-void isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
+const char* isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
 
 // High-level filesystem-aware ISO builder
 typedef struct { char opaque[?]; } IsoDirTree;
@@ -149,10 +158,7 @@ local function createIsoReaderWrapper(isoReader)
             local count = C.gapListCount(gapList)
             local result = {}
             for i = 0, count - 1 do
-                table.insert(result, {
-                    lba = C.gapEntryLBA(gapList, i),
-                    sectors = C.gapEntrySectors(gapList, i),
-                })
+                table.insert(result, { lba = C.gapEntryLBA(gapList, i), sectors = C.gapEntrySectors(gapList, i) })
             end
             return result
         end,
@@ -192,12 +198,14 @@ local function createIsoWrapper(wrapper)
             if mode == nil then mode = 'GUESS' end
             return Support.File._createFileWrapper(C.fileisoOpen(self._wrapper, lba, size, mode))
         end,
+        getTD = function(self, tn) return C.getIsoTD(self._wrapper, tn) end,
+        getTN = function(self) return C.getIsoTN(self._wrapper) end,
     }
     return iso
 end
 
 -- High-level ISO builder (filesystem-aware)
-local pvdBuf = ffi.new('char[?]', 513)  -- max CString size (512 for ApplicationUse) + 1
+local pvdBuf = ffi.new('char[?]', 513) -- max CString size (512 for ApplicationUse) + 1
 
 local function createDirTreeWrapper(node)
     if node == nil then return nil end
@@ -230,20 +238,15 @@ local function createDirTreeWrapper(node)
         firstChild = function(self) return createDirTreeWrapper(C.dirTreeFirstChild(self._node)) end,
         nextSibling = function(self) return createDirTreeWrapper(C.dirTreeNextSibling(self._node)) end,
         setDate = function(self, year, month, day, hour, minute, second, offset)
-            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0,
-                           hour or 0, minute or 0, second or 0, offset or 0)
+            C.dirTreeSetDate(self._node, year or 0, month or 0, day or 0, hour or 0, minute or 0, second or 0,
+                             offset or 0)
         end,
     }
     return wrapper
 end
 
 -- Amount of data a raw sector write consumes, per mode. Modes absent from this table can't be written.
-local sectorDataSize = {
-    RAW = 2352,
-    M2_RAW = 2336,
-    M2_FORM1 = 2048,
-    M2_FORM2 = 2324,
-}
+local sectorDataSize = { RAW = 2352, M2_RAW = 2336, M2_FORM1 = 2048, M2_FORM2 = 2324 }
 
 -- Normalizes the (data[, size]) pair of the raw sector writers. Strings carry their own size; anything
 -- else is a pointer and needs one spelled out.
@@ -254,9 +257,7 @@ local function sectorData(data, size, mode)
     end
     local needed = sectorDataSize[mode]
     if needed == nil then error('sector mode ' .. tostring(mode) .. ' cannot be written') end
-    if size < needed then
-        error('sector mode ' .. mode .. ' needs ' .. needed .. ' bytes of data, got ' .. size)
-    end
+    if size < needed then error('sector mode ' .. mode .. ' needs ' .. needed .. ' bytes of data, got ' .. size) end
     return ffi.cast('const uint8_t*', data), size
 end
 
@@ -273,14 +274,22 @@ local function createIsoBuilderWrapper(wrapper)
         getCurrentLBA = function(self) return C.isoBuilderGetCurrentLBA(self._wrapper) end,
         writeSector = function(self, data, a, b)
             local size, mode
-            if type(a) == 'number' then size, mode = a, b else size, mode = nil, a end
+            if type(a) == 'number' then
+                size, mode = a, b
+            else
+                size, mode = nil, a
+            end
             if mode == nil then mode = 'M2_FORM1' end
             local ptr, len = sectorData(data, size, mode)
             return C.isoBuilderWriteSector(self._wrapper, ptr, len, mode)
         end,
         writeSectorAt = function(self, data, a, b, c)
             local size, lba, mode
-            if type(b) == 'number' then size, lba, mode = a, b, c else size, lba, mode = nil, a, b end
+            if type(b) == 'number' then
+                size, lba, mode = a, b, c
+            else
+                size, lba, mode = nil, a, b
+            end
             if mode == nil then mode = 'M2_FORM1' end
             local ptr, len = sectorData(data, size, mode)
             return C.isoBuilderWriteSectorAt(self._wrapper, ptr, len, lba, mode)
@@ -323,7 +332,8 @@ local function createIsoBuilderWrapper(wrapper)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
         close = function(self, threadCount)
-            C.isoBuilderClose(self._wrapper, threadCount or 0)
+            local err = C.isoBuilderClose(self._wrapper, threadCount or 0)
+            if err ~= nil then error(ffi.string(err)) end
         end,
     }
     return builder
@@ -337,6 +347,19 @@ PCSX.openIso = function(arg)
         return createIsoWrapper(C.openIsoFromFile(arg._wrapper))
     end
 end
+PCSX.CDRom = {
+    -- Takes a path, a File, or an iso returned by PCSX.openIso.
+    setIso = function(arg)
+        if type(arg) ~= 'table' or arg._wrapper == nil or arg.createReader == nil then arg = PCSX.openIso(arg) end
+        C.cdromSetIso(arg._wrapper)
+    end,
+    ejectIso = function() C.cdromEjectIso() end,
+    openLid = function() C.cdromOpenLid() end,
+    closeLid = function() C.cdromCloseLid() end,
+    -- Opens the lid now and closes it one emulated second later.
+    scheduleCloseLid = function() C.cdromScheduleCloseLid() end,
+    isLidOpen = function() return C.cdromIsLidOpen() end,
+}
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
 PCSX.isoTools = {
     fromBCD = function(bcd)

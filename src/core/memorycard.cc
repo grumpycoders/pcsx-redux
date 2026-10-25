@@ -19,6 +19,8 @@
 
 #include "core/memorycard.h"
 
+#include <sys/stat.h>
+
 #include "core/sio.h"
 #include "support/sjis_conv.h"
 

@@ -67,9 +67,28 @@ void PCSX::Widgets::Registers::updateRegisterValue(PCSX::psxRegisters* registers
         newReg = (uint32_t)parsed;
     }
     if (reg == 34) {
-        registers->pc = newReg;
+        g_emulator->m_cpu->setPC(newReg);
     } else {
-        registers->GPR.r[reg] = newReg;
+        g_emulator->m_cpu->setGPR(reg, newReg);
+    }
+}
+
+void PCSX::Widgets::Registers::drawPending(PCSX::psxRegisters* registers) {
+    // What the next step still commits: a load or a branch whose delay slot is next.
+    // The recompilers keep neither between blocks, so there is nothing to show there.
+    auto& cpu = g_emulator->m_cpu;
+    if (cpu->isDynarec()) return;
+    for (auto& pending : cpu->m_delayedLoadInfo) {
+        if (pending.active) {
+            uint32_t value = (registers->GPR.r[pending.index] & pending.mask) | pending.value;
+            ImGui::TextUnformatted(
+                fmt::format(f_("load: {} <- {:08x}"), PCSX::Disasm::s_disRNameGPR[pending.index], value).c_str());
+            ImGui::SetItemTooltip("%s", _("Still in flight: the next step writes it to the register."));
+        }
+        if (pending.pcActive) {
+            ImGui::TextUnformatted(fmt::format(f_("branch: -> {:08x}"), pending.pcValue).c_str());
+            ImGui::SetItemTooltip("%s", _("Taken after the next step, which is its delay slot."));
+        }
     }
 }
 
@@ -125,7 +144,7 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                                      ((counter == 0) ? ImGuiInputTextFlags_ReadOnly : 0) |
                                          ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
                                          ImGuiInputTextFlags_AutoSelectAll) ||
-                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                    ImGui::IsItemDeactivatedAfterEdit()) {
                     updateRegisterValue(registers, val, counter, 16);
                 }
 
@@ -139,8 +158,8 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
                     std::string val2 = fmt::format("{0}", (int32_t)reg);
                     if (ImGui::InputText(label2, &val2,
                                          ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                         ImGuiInputTextFlags_AutoSelectAll) ||
-                                         ImGui::IsItemDeactivatedAfterEdit()) {
+                                             ImGuiInputTextFlags_AutoSelectAll) ||
+                        ImGui::IsItemDeactivatedAfterEdit()) {
                         updateRegisterValue(registers, val2, counter, 10);
                     }
                     std::snprintf(label2, sizeof(label2), "##ic%2d", counter);
@@ -157,12 +176,14 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             std::string valPC = fmt::format("{0:08x}", registers->pc);
             if (ImGui::InputText("##pc", &valPC,
                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                 ImGuiInputTextFlags_AutoSelectAll) ||
-                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                                     ImGuiInputTextFlags_AutoSelectAll) ||
+                ImGui::IsItemDeactivatedAfterEdit()) {
                 updateRegisterValue(registers, valPC, counter, 16);
             }
             contextMenu("##pc", registers->pc, 16);
             ImGui::PopItemWidth();
+
+            drawPending(registers);
 
             ImGui::EndTabItem();
         }
@@ -370,14 +391,14 @@ void PCSX::Widgets::Registers::draw(PCSX::GUI* gui, PCSX::psxRegisters* register
             std::string val = fmt::format("{0:08x}", registers->pc);
             if (ImGui::InputText("##pc", &val,
                                  ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue |
-                                 ImGuiInputTextFlags_AutoSelectAll) ||
-                                 ImGui::IsItemDeactivatedAfterEdit()) {
+                                     ImGuiInputTextFlags_AutoSelectAll) ||
+                ImGui::IsItemDeactivatedAfterEdit()) {
                 updateRegisterValue(registers, val, 34, 16);
             }
             contextMenu("##pc", registers->pc, 16);
             ImGui::PopItemWidth();
             ImGui::Text("cycle: %08x", registers->cycle);
-            ImGui::Text("int  : %08x", registers->interrupt);
+            ImGui::Text("sched: %08x", registers->scheduleMask);
             ImGui::EndTabItem();
         }
         ImGui::PopFont();

@@ -1,0 +1,513 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="bindings">
+      <UniqueIdentifier>{7725B46A-4E32-5B51-BFC3-6D16AC1FC8A5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="bindings\capi">
+      <UniqueIdentifier>{C57CEF82-3CF6-59AE-9698-46797A696088}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{C26F4E90-446C-52E7-87C3-CF5A375A0DC6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{F50000FA-3996-5D2D-9A94-1D8B85E28E95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc">
+      <UniqueIdentifier>{621DA51A-D487-59BB-964C-12999B745722}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders">
+      <UniqueIdentifier>{A62CA74E-1CCF-5D25-AC62-F125DCF84EFD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\jpg">
+      <UniqueIdentifier>{412804EE-4CA2-58DA-B0EA-18B6BF5ACC16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\lottie">
+      <UniqueIdentifier>{8E6AD017-1C84-58CE-B264-CBF04D9D5793}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\png">
+      <UniqueIdentifier>{891BCDD4-47F6-56D5-B038-731EF5888B8E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\raw">
+      <UniqueIdentifier>{DFC1176D-FD77-515E-8242-BA85255D7116}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\sfnt">
+      <UniqueIdentifier>{6A1BA441-2F24-5C0B-AE12-084195BC124E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="loaders\svg">
+      <UniqueIdentifier>{529F7CF6-3F33-555C-BD0F-1A8875311E7E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="renderer">
+      <UniqueIdentifier>{9DA18785-9162-5A03-AE56-653F0548A83A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="renderer\cpu_engine">
+      <UniqueIdentifier>{350C5740-C525-511D-AFCE-6277D151E599}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="renderer\gpu_engine">
+      <UniqueIdentifier>{B3BEAE2B-F632-57EE-B9FD-6DFC5BBC14FB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="renderer\gpu_engine\gl">
+      <UniqueIdentifier>{07571DD4-8FBE-54D2-AC9E-4D235AADB26F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgAllocator.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgArray.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgColor.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgCommon.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgCompressor.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgInlist.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgLock.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgMap.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgMath.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\common\tvgStr.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgAccessor.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgAnimation.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgCanvas.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgFill.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgLoader.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgLoaderMgr.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgPaint.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgPicture.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgRender.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgSaveModule.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgScene.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgShape.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgTaskScheduler.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\tvgText.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwCommon.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterAvx.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterC.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterNeon.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRasterTexmap.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRenderer.h">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\tvgGpuCommon.h">
+      <Filter>renderer\gpu_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGl.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGl.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlCommon.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlEffect.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGpuBuffer.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlProgram.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderPass.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTarget.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTask.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderer.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShader.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShaderSrc.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlSolidBatch.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStateCache.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStencilCoverBatch.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTessellator.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTextureMgr.h">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgBuilder.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCommon.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCssStyle.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgLoader.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgPath.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgUtil.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\svg\tvgXmlParser.h">
+      <Filter>loaders\svg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePng.h">
+      <Filter>loaders\png</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\png\tvgPngLoader.h">
+      <Filter>loaders\png</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgLoader.h">
+      <Filter>loaders\jpg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgd.h">
+      <Filter>loaders\jpg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\thorvg_lottie.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieBuilder.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieCommon.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieExpressions.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieInterpolator.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieLoader.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModel.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModifier.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParser.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParserHandler.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieProperty.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieRenderPooler.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieTween.h">
+      <Filter>loaders\lottie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgOtfReader.h">
+      <Filter>loaders\sfnt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntLoader.h">
+      <Filter>loaders\sfnt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntReader.h">
+      <Filter>loaders\sfnt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgTtfReader.h">
+      <Filter>loaders\sfnt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\loaders\raw\tvgRawLoader.h">
+      <Filter>loaders\raw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\src\bindings\capi\thorvg_capi.h">
+      <Filter>bindings\capi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg\inc\thorvg.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\third_party\thorvg-config\config.h">
+      <Filter>config</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgCompressor.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgMath.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\common\tvgStr.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgAccessor.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgAnimation.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgCanvas.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgFill.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgInitializer.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgLoaderMgr.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgPaint.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgPicture.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgRender.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgSaver.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgScene.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgShape.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgTaskScheduler.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\tvgText.cpp">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwBlendOp.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwFill.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwImage.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwMemPool.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwPostEffect.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRaster.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRenderer.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwRle.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwShape.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwStroke.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\cpu_engine\tvgSwUtil.cpp">
+      <Filter>renderer\cpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\tvgGpuCommon.cpp">
+      <Filter>renderer\gpu_engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlEffect.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGeometry.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlGpuBuffer.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlProgram.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderPass.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTarget.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderTask.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlRenderer.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShader.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlShaderSrc.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlSolidBatch.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStateCache.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlStencilCoverBatch.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTessellator.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\renderer\gpu_engine\gl\tvgGlTextureMgr.cpp">
+      <Filter>renderer\gpu_engine\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgBuilder.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgCssStyle.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgLoader.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgPath.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgSvgUtil.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\svg\tvgXmlParser.cpp">
+      <Filter>loaders\svg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePng.cpp">
+      <Filter>loaders\png</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgLodePngUtil.cpp">
+      <Filter>loaders\png</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\png\tvgPngLoader.cpp">
+      <Filter>loaders\png</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgLoader.cpp">
+      <Filter>loaders\jpg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\jpg\tvgJpgd.cpp">
+      <Filter>loaders\jpg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieAnimation.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieBuilder.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieExpressions.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieInterpolator.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieLoader.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModel.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieModifier.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParser.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieParserHandler.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\lottie\tvgLottieProperty.cpp">
+      <Filter>loaders\lottie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgOtfReader.cpp">
+      <Filter>loaders\sfnt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntLoader.cpp">
+      <Filter>loaders\sfnt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgSfntReader.cpp">
+      <Filter>loaders\sfnt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\sfnt\tvgTtfReader.cpp">
+      <Filter>loaders\sfnt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\loaders\raw\tvgRawLoader.cpp">
+      <Filter>loaders\raw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg\src\bindings\capi\tvgCapi.cpp">
+      <Filter>bindings\capi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\third_party\thorvg-config\tvgGlLoader.cpp">
+      <Filter>config</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

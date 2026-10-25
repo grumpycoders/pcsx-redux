@@ -27,7 +27,7 @@
 
 #include "core/memorycard.h"
 #include "core/pad.h"
-#include "mips/common/util/sjis-fullwidth-ascii.hh"
+#include "mips-common/util/sjis-fullwidth-ascii.hh"
 #include "support/sjis_conv.h"
 #include "support/strings-helpers.h"
 
@@ -308,7 +308,10 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         m_bufferIndex = 0;
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
-        PCSX::g_emulator->m_cpu->m_regs.interrupt &= ~(1 << PCSX::PSXINT_SIO);
+        g_emulator->m_cpu->unschedule(Schedule::SIO);
+        m_regs.mode = 0;
+        m_regs.baud = 0;
+        m_regs.control = 0;
         m_currentDevice = DeviceType::None;
     }
 
@@ -349,7 +352,7 @@ uint16_t PCSX::SIO::readStatus16() {
     return hard;
 }
 
-void PCSX::SIO::interrupt() {
+void PCSX::SIO::scheduledCallback() {
     SIO0_LOG("Sio Interrupt (CP0.Status = %x)\n", PCSX::g_emulator->m_cpu->m_regs.CP0.n.Status);
     m_regs.status |= StatusFlags::IRQ;
     g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);

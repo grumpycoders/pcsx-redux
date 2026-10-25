@@ -49,6 +49,22 @@ void adpcmEncoderProcessXABlock(PCSX::ADPCM::Encoder* encoder, const int16_t* in
     encoder->processXABlock(input, output, mode, channels);
 }
 
+PCSX::ADPCM::Decoder* newAdpcmDecoder() { return new PCSX::ADPCM::Decoder(); }
+void destroyAdpcmDecoder(PCSX::ADPCM::Decoder* decoder) { delete decoder; }
+void adpcmDecoderReset(PCSX::ADPCM::Decoder* decoder) { decoder->reset(); }
+uint8_t adpcmDecoderDecodeSPUBlock(PCSX::ADPCM::Decoder* decoder, const uint8_t* input, int16_t* output) {
+    uint8_t flags;
+    decoder->decodeSPUBlock(input, output, &flags);
+    return flags;
+}
+unsigned adpcmDecoderDecodeXASoundGroup(PCSX::ADPCM::Decoder* decoder, const uint8_t* input, int16_t* output,
+                                        unsigned bitsPerSample, unsigned channels) {
+    // Exceptions can't cross the ffi boundary; the Lua side validates the arguments already.
+    if ((bitsPerSample != 4) && (bitsPerSample != 8)) return 0;
+    if ((channels != 1) && (channels != 2)) return 0;
+    return decoder->decodeXASoundGroup(input, output, bitsPerSample, channels);
+}
+
 template <typename T, size_t S>
 void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
     L.push<S>(name);
@@ -69,6 +85,11 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, adpcmEncoderProcessSPUBlock);
     REGISTER(L, adpcmEncoderFinishSPU);
     REGISTER(L, adpcmEncoderProcessXABlock);
+    REGISTER(L, newAdpcmDecoder);
+    REGISTER(L, destroyAdpcmDecoder);
+    REGISTER(L, adpcmDecoderReset);
+    REGISTER(L, adpcmDecoderDecodeSPUBlock);
+    REGISTER(L, adpcmDecoderDecodeXASoundGroup);
     L.settable();
     L.pop();
 }

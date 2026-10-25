@@ -26,10 +26,12 @@ SOFTWARE.
 
 #ifdef __linux__
 
-#include <filesystem>
 #include <stdlib.h>
 
+#include <filesystem>
+
 #include "fmt/format.h"
+#include "support/uvfile.h"
 #include "support/version.h"
 #include "support/zip.h"
 

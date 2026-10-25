@@ -4,6 +4,12 @@
     <ClCompile Include="..\..\src\gui\gui.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-about-ffmpeg.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\gui-platform-desktop.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\themes\imgui_themes.cc">
       <Filter>Source Files\themes</Filter>
     </ClCompile>
@@ -82,13 +88,34 @@
     <ClCompile Include="..\..\src\gui\widgets\typed_debugger.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\cputrace.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\gpudump.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\gpulogger.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\spulogger.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\spusamples.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\handlers.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\dalos.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\fileviewers.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\isobrowser.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\network.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\pio-cart.cc">
@@ -100,10 +127,13 @@
     <ClCompile Include="..\..\src\gui\widgets\named_savestates.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\gui\luanvg.cc">
+    <ClCompile Include="..\..\src\gui\luatvg.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\luaimguiextra.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\luaimplot.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\splash.cc">
@@ -116,6 +146,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\zoomable-image.cc">
+      <Filter>Source Files\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gui\widgets\alloc_tracker.cc">
       <Filter>Source Files\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\gui\widgets\heap_viewer.cc">
@@ -204,10 +237,28 @@
     <ClInclude Include="..\..\src\gui\widgets\typed_debugger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\cputrace.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\gpudump.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\gpulogger.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\spulogger.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\spusamples.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\handlers.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\dalos.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\fileviewers.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\isobrowser.h">
@@ -222,10 +273,13 @@
     <ClInclude Include="..\..\src\gui\widgets\named_savestates.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\gui\luanvg.h">
+    <ClInclude Include="..\..\src\gui\luatvg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\luaimguiextra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\luaimplot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\patches.h">
@@ -235,6 +289,9 @@
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\zoomable-image.h">
+      <Filter>Header Files\widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gui\widgets\alloc_tracker.h">
       <Filter>Header Files\widgets</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\gui\widgets\heap_viewer.h">
@@ -255,16 +312,22 @@
     <None Include="..\..\src\gui\shaders\crt-lottes-output.lua">
       <Filter>Source Files\shaders</Filter>
     </None>
-    <None Include="..\..\src\gui\nvgffi.lua">
+    <None Include="..\..\src\gui\tvgffi.lua">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="..\..\src\gui\nvgffi-cdefs.lua">
+    <None Include="..\..\src\gui\tvgffi-cdefs.lua">
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguiextraffi.lua">
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\..\src\gui\imguisafe.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotffi.lua">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\..\src\gui\implotsafe.lua">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

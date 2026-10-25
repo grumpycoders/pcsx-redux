@@ -34,7 +34,7 @@ void verboseLog(int32_t level, const char *str, const Args &...args) {
     PSXHW_LOG(str, args...);
 }
 
-inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value) {
+inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value, int64_t startAdjust) {
     if (value > 0xffff) {
         verboseLog(1, "[RCNT %i] writeCounter > 0xffff: %x\n", index, value);
         value &= 0xffff;
@@ -42,6 +42,8 @@ inline void PCSX::Counters::writeCounterInternal(uint32_t index, uint32_t value)
 
     m_rcnts[index].cycleStart = PCSX::g_emulator->m_cpu->m_regs.cycle;
     m_rcnts[index].cycleStart -= value * m_rcnts[index].rate;
+    // A positive adjust puts cycleStart in the future: the counter reads 0 until then.
+    m_rcnts[index].cycleStart += startAdjust;
 
     // Hardware tested (SCPH-5501): counter reaches target value briefly before
     // resetting. Fast reads can observe the target value; slow reads (printf) cannot.
@@ -68,7 +70,21 @@ inline uint32_t PCSX::Counters::readCounterInternal(uint32_t index) {
     uint64_t count;
 
     count = PCSX::g_emulator->m_cpu->m_regs.cycle;
+    if (count < m_rcnts[index].cycleStart) return 0;  // still in the post-reset dwell
     count -= m_rcnts[index].cycleStart;
+
+    // The reset event is only processed between blocks, so a read can land after the
+    // counter reached its target but before reset() ran. Report what the hardware shows
+    // there: the target for that one cycle, then the dwell, then the new count.
+    if (m_rcnts[index].counterState == CountToTarget && (m_rcnts[index].mode & RcCountToTarget)) {
+        const uint64_t span = uint64_t(m_rcnts[index].target) * m_rcnts[index].rate;
+        if (count > span) {
+            const uint64_t over = count - span;
+            const uint64_t dwell = resetDwell(index);
+            if (over < dwell) return 0;
+            return ((over - dwell) / m_rcnts[index].rate) & 0xffff;
+        }
+    }
     count /= m_rcnts[index].rate;
 
     if (count > 0xffff) {
@@ -104,15 +120,22 @@ void PCSX::Counters::reset(uint32_t index) {
 
     if (m_rcnts[index].counterState == CountToTarget) {
         if (m_rcnts[index].mode & RcCountToTarget) {
-            count = PCSX::g_emulator->m_cpu->m_regs.cycle;
-            count -= m_rcnts[index].cycleStart;
-            count /= m_rcnts[index].rate;
-            count -= m_rcnts[index].target;
+            // Restart from the cycle the target was reached, keeping the sub-tick phase so a
+            // late event does not stretch the period. On the system clock the counter then sits
+            // at 0 for 2 more cycles, making the period target + 2 (measured on SCPH-1000, 5501
+            // and 7001 for Timer 2; the /8 source stays exactly 8 * target). Timers 0 and 1 are
+            // unmeasured and get no dwell.
+            const uint64_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_rcnts[index].cycleStart;
+            const uint64_t over = elapsed - uint64_t(m_rcnts[index].target) * m_rcnts[index].rate;
+            const uint64_t dwell = resetDwell(index);
+            // The count the next event is chosen from is the one after the dwell: a reset
+            // that runs late but still inside the dwell leaves the counter at 0, not at `over`.
+            count = over > dwell ? (over - dwell) / m_rcnts[index].rate : 0;
+            writeCounterInternal(index, count, int64_t(dwell) - int64_t(over) + int64_t(count * m_rcnts[index].rate));
         } else {
             count = readCounterInternal(index);
+            writeCounterInternal(index, count);
         }
-
-        writeCounterInternal(index, count);
 
         if (m_rcnts[index].mode & RcIrqOnTarget) {
             if ((m_rcnts[index].mode & RcIrqRegenerate) || (!m_rcnts[index].irqState)) {
@@ -124,12 +147,11 @@ void PCSX::Counters::reset(uint32_t index) {
 
         m_rcnts[index].mode |= RcCountEqTarget;
     } else if (m_rcnts[index].counterState == CountToOverflow) {
-        count = PCSX::g_emulator->m_cpu->m_regs.cycle;
-        count -= m_rcnts[index].cycleStart;
-        count /= m_rcnts[index].rate;
-        count -= 0xffff;
-
-        writeCounterInternal(index, count);
+        // Keep the sub-tick phase across the wrap, as for the target reset above.
+        const uint64_t elapsed = PCSX::g_emulator->m_cpu->m_regs.cycle - m_rcnts[index].cycleStart;
+        const uint64_t over = elapsed - uint64_t(0xffff) * m_rcnts[index].rate;
+        count = over / m_rcnts[index].rate;
+        writeCounterInternal(index, count, -int64_t(over % m_rcnts[index].rate));
 
         if (m_rcnts[index].mode & RcIrqOnOverflow) {
             if ((m_rcnts[index].mode & RcIrqRegenerate) || (!m_rcnts[index].irqState)) {
@@ -158,44 +180,60 @@ void PCSX::Counters::reset(uint32_t index) {
 void PCSX::Counters::update() {
     const uint64_t cycle = PCSX::g_emulator->m_cpu->m_regs.cycle;
 
+    // The SPU mixes up to the CPU's cycle and no further, so let it have this one before
+    // possibly blocking on the audio device below.
+    g_emulator->m_spu->advanceTo(cycle);
+
     {
         uint64_t prev = g_emulator->m_cpu->m_regs.previousCycles;
         uint64_t diff = cycle - prev;
-        diff *= 4410000;
-        diff /= g_emulator->settings.get<Emulator::SettingScaler>();
+        // Map elapsed CPU cycles to the realtime (1:1 emulated:hardware) audio-frame target. Emulation
+        // speed is no longer controlled here: it lives entirely at the audio sink (SPU::Speed), which is
+        // the master clock both this counter and the SPU thread pace against. 44100 == 4410000 / 100, and
+        // the old Emulator::SettingScaler defaulted to 100, so this is byte-identical to the prior default.
+        diff *= 44100;
         diff /= g_emulator->m_psxClockSpeed;
         uint32_t target = m_audioFrames + diff;
-        uint32_t newFrames = g_emulator->m_spu->getCurrentFrames();
+        // The CPU runs this many frames ahead of what the device has played, so the SPU, which
+        // cannot mix past the CPU, has something buffered when the device asks for it.
+        const uint32_t lead = g_emulator->m_spu->getLeadFrames();
+        uint32_t newFrames = g_emulator->m_spu->getCurrentFrames() + lead;
         int32_t framesDiff = target - newFrames;
         if (framesDiff > 0) {
-            g_emulator->m_cpu->m_regs.previousCycles = cycle;
-            g_emulator->m_spu->waitForGoal(target);
+            // Consume only the cycles the whole frames above stand for. Dropping the fraction on
+            // every wait ran the emulation slightly faster than realtime, and with the SPU unable
+            // to mix ahead of the CPU, that surplus piles up in the audio queue as extra delay.
+            g_emulator->m_cpu->m_regs.previousCycles = prev + diff * g_emulator->m_psxClockSpeed / 44100;
+            g_emulator->m_spu->waitForGoal(target - lead);
             m_audioFrames = target;
-        } else if (framesDiff < -2000000000) {
-            m_audioFrames = newFrames;
+        } else if (framesDiff < -kMaxAudioLagFrames) {
+            // The host couldn't sustain the requested speed. Cap the debt, otherwise returning to 1x runs
+            // the CPU unthrottled until it has caught up. Resetting it to zero would stall every update on
+            // the next audio callback instead.
+            g_emulator->m_cpu->m_regs.previousCycles = cycle;
+            m_audioFrames = newFrames - kMaxAudioLagFrames;
         }
     }
 
     // rcnt 0.
-    if (cycle - m_rcnts[0].cycleStart >= m_rcnts[0].cycle) {
+    if (int64_t(cycle - m_rcnts[0].cycleStart) >= int64_t(m_rcnts[0].cycle)) {
         reset(0);
     }
 
     // rcnt 1.
-    if (cycle - m_rcnts[1].cycleStart >= m_rcnts[1].cycle) {
+    if (int64_t(cycle - m_rcnts[1].cycleStart) >= int64_t(m_rcnts[1].cycle)) {
         reset(1);
     }
 
     // rcnt 2.
-    if (cycle - m_rcnts[2].cycleStart >= m_rcnts[2].cycle) {
+    if (int64_t(cycle - m_rcnts[2].cycleStart) >= int64_t(m_rcnts[2].cycle)) {
         reset(2);
     }
     // rcnt base.
-    if (cycle - m_rcnts[3].cycleStart >= m_rcnts[3].cycle) {
+    if (int64_t(cycle - m_rcnts[3].cycleStart) >= int64_t(m_rcnts[3].cycle)) {
         reset(3);
 
         m_hSyncCount++;
-        m_spuSyncCountdown--;
 
         // Counter 0 gate: triggered by Hblank
         if (isGateEnabled(0, m_rcnts[0].mode)) {
@@ -215,15 +253,6 @@ void PCSX::Counters::update() {
             }
         }
 
-        // Update spu.
-        if (m_spuSyncCountdown <= 0) {
-            // Scanlines until next sync
-            const auto scanlines = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
-            m_spuSyncCountdown = scanlines;
-
-            PCSX::g_emulator->m_spu->async(scanlines * m_rcnts[3].target);
-        }
-
         // SIO1 callback on hsync to process data
         if (m_pollSIO1) {
             PCSX::g_emulator->m_sio1->poll();
@@ -231,6 +260,7 @@ void PCSX::Counters::update() {
 
         // Trigger VBlank IRQ when VBlank starts
         if (m_hSyncCount == VBlankStart[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]) {
+            m_fieldCount++;
             setIrq(0x01);
             PCSX::g_emulator->vsync();
 
@@ -279,9 +309,10 @@ void PCSX::Counters::recalculateRate(uint32_t index) {
                 uint32_t divider = dotclockDividers[static_cast<int>(hres)];
                 uint32_t videoCyclesPerScanline = (videoMode == GPU::CtrlDisplayMode::VM_PAL) ? 3406 : 3413;
                 uint32_t dotsPerScanline = videoCyclesPerScanline / divider;
-                uint32_t cpuCyclesPerScanline = (PCSX::g_emulator->m_psxClockSpeed /
-                    (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
-                     m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
+                uint32_t cpuCyclesPerScanline =
+                    (PCSX::g_emulator->m_psxClockSpeed /
+                     (FrameRate[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()] *
+                      m_HSyncTotal[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()]));
                 m_rcnts[index].rate = std::max<uint32_t>(cpuCyclesPerScanline / dotsPerScanline, 1);
             } else {
                 m_rcnts[index].rate = 1;
@@ -401,6 +432,13 @@ uint32_t PCSX::Counters::readTarget(uint32_t index) {
     return m_rcnts[index].target;
 }
 
+uint32_t PCSX::Counters::linesSinceVBlank() {
+    update();
+    auto video = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>();
+    uint32_t total = m_HSyncTotal[video];
+    return (m_hSyncCount + total - VBlankStart[video]) % total;
+}
+
 void PCSX::Counters::calculateHsync() {
     m_HSyncTotal[PCSX::Emulator::PSX_TYPE_NTSC] = 263;
     m_HSyncTotal[PCSX::Emulator::PSX_TYPE_PAL] = 314;  // actually one more on odd lines for PAL
@@ -442,7 +480,7 @@ void PCSX::Counters::init() {
     }
 
     m_hSyncCount = 0;
-    m_spuSyncCountdown = SpuUpdInterval[PCSX::g_emulator->settings.get<PCSX::Emulator::SettingVideo>()];
+    m_fieldCount = 0;
     m_audioFrames = PCSX::g_emulator->m_spu->getCurrentFrames();
     set();
 }

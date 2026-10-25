@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no UvThreadOp caching layer for this UI to drive.
+
 #include "gui/widgets/isobrowser.h"
 
 #include <zlib.h>
@@ -28,6 +30,7 @@
 #include "cdrom/cdriso.h"
 #include "cdrom/ppf.h"
 #include "core/cdrom.h"
+#include "core/psxemulator.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
 #include "support/imgui-helpers.h"
@@ -59,7 +62,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::computeCRC(PCSX::CDRIso* iso) {
 };
 
 void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
-                                                     std::unordered_set<uint32_t>& visitedDirs) {
+                                                   std::unordered_set<uint32_t>& visitedDirs) {
     auto entries = m_reader->listAllEntriesFrom(entry);
 
     for (auto& [dirEntry, xa] : entries) {
@@ -125,6 +128,14 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                         openHexEditor(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
                     }
                 }
+                if (m_fileViewers.available() && ImGui::MenuItem(_("View"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) m_fileViewers.open(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
+                }
+                if (m_sendToDalos && ImGui::MenuItem(_("Send to Dalos"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) m_sendToDalos(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
+                }
                 ImGui::EndPopup();
             }
             ImGui::TableSetColumnIndex(1);
@@ -137,7 +148,7 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
 }
 
 void PCSX::Widgets::IsoBrowser::collectFlatEntries(const ISO9660LowLevel::DirEntry& entry, const std::string& path,
-                                                     std::unordered_set<uint32_t>& visitedDirs) {
+                                                   std::unordered_set<uint32_t>& visitedDirs) {
     auto entries = m_reader->listAllEntriesFrom(entry);
     for (auto& [dirEntry, xa] : entries) {
         const auto& filename = dirEntry.get<ISO9660LowLevel::DirEntry_Filename>().value;
@@ -203,8 +214,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
                     lba++;
                     scannedSectors++;
                     if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
-                        m_gapScanProgress =
-                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        m_gapScanProgress = totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
                         co_yield m_gapScanCoroutine.awaiter();
                         time = std::chrono::steady_clock::now();
                     }
@@ -225,8 +235,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
                     lba++;
                     scannedSectors++;
                     if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
-                        m_gapScanProgress =
-                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        m_gapScanProgress = totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
                         co_yield m_gapScanCoroutine.awaiter();
                         time = std::chrono::steady_clock::now();
                     }
@@ -259,8 +268,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
                     lba++;
                     scannedSectors++;
                     if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
-                        m_gapScanProgress =
-                            totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                        m_gapScanProgress = totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
                         co_yield m_gapScanCoroutine.awaiter();
                         time = std::chrono::steady_clock::now();
                     }
@@ -268,8 +276,8 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
 
                 uint32_t count = lba - fileStart;
                 uint32_t dataSize = isForm2 ? count * 2324 : count * 2048;
-                auto label = fmt::format(f_("<hidden {} f={} ch={} {} sectors>"),
-                                         isForm2 ? "M2F2" : "M2F1", fileNum, channelNum, count);
+                auto label = fmt::format(f_("<hidden {} f={} ch={} {} sectors>"), isForm2 ? "M2F2" : "M2F1", fileNum,
+                                         channelNum, count);
                 scanned.push_back({label, fileStart, dataSize, count, type, {}});
                 continue;
             }
@@ -285,8 +293,7 @@ PCSX::Coroutine<> PCSX::Widgets::IsoBrowser::scanAllGaps(std::shared_ptr<CDRIso>
                 lba++;
                 scannedSectors++;
                 if (std::chrono::steady_clock::now() - time > std::chrono::milliseconds(50)) {
-                    m_gapScanProgress =
-                        totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
+                    m_gapScanProgress = totalGapSectors > 0 ? (float)scannedSectors / (float)totalGapSectors : 1.0f;
                     co_yield m_gapScanCoroutine.awaiter();
                     time = std::chrono::steady_clock::now();
                 }
@@ -313,8 +320,7 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemFlat() {
         // Volume descriptor set spans from LBA 16 up to (but not including) vdEnd,
         // including the PVD, any SVDs, and the terminator.
         uint32_t vdSectors = vdEnd > 16 ? vdEnd - 16 : 1;
-        m_flatEntries.push_back(
-            {_("<Volume Descriptors>"), 16, vdSectors * 2048, vdSectors, FlatEntry::System, {}});
+        m_flatEntries.push_back({_("<Volume Descriptors>"), 16, vdSectors * 2048, vdSectors, FlatEntry::System, {}});
         uint32_t lPathLoc = pvd.get<ISO9660LowLevel::PVD_LPathTableLocation>();
         uint32_t pathTableSize = pvd.get<ISO9660LowLevel::PVD_PathTableSize>();
         uint32_t pathTableSectors = (pathTableSize + 2047) / 2048;
@@ -396,9 +402,10 @@ headers and subheader file boundary markers.)"));
 
     if (ImGui::BeginTable("FilesystemFlat", 4,
                           ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
-                          ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y))) {
+                          ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
+                                        ImGui::GetStyle().ItemSpacing.y))) {
         ImGui::TableSetupColumn(_("Path"), ImGuiTableColumnFlags_NoHide);
-        ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+        ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
         ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
         ImGui::TableSetupColumn(_("Type"), ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
@@ -407,8 +414,8 @@ headers and subheader file boundary markers.)"));
             auto& entry = m_flatEntries[i];
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            bool selected = m_hasSelection && m_selectedLBA == entry.lba &&
-                            m_selectedIsGap == (entry.isGap() || entry.isHidden());
+            bool selected =
+                m_hasSelection && m_selectedLBA == entry.lba && m_selectedIsGap == (entry.isGap() || entry.isHidden());
             auto id = fmt::format("{}##{}", entry.path, i);
             if (ImGui::Selectable(id.c_str(), selected,
                                   ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap)) {
@@ -418,11 +425,21 @@ headers and subheader file boundary markers.)"));
                 m_selectedEntry = entry.dirEntry;
                 switch (entry.type) {
                     case FlatEntry::Gap:
-                    case FlatEntry::System: m_selectedMode = IEC60908b::SectorMode::RAW; break;
-                    case FlatEntry::HiddenM1: m_selectedMode = IEC60908b::SectorMode::M1; break;
-                    case FlatEntry::HiddenM2F1: m_selectedMode = IEC60908b::SectorMode::M2_FORM1; break;
-                    case FlatEntry::HiddenM2F2: m_selectedMode = IEC60908b::SectorMode::M2_FORM2; break;
-                    default: m_selectedMode = IEC60908b::SectorMode::GUESS; break;
+                    case FlatEntry::System:
+                        m_selectedMode = IEC60908b::SectorMode::RAW;
+                        break;
+                    case FlatEntry::HiddenM1:
+                        m_selectedMode = IEC60908b::SectorMode::M1;
+                        break;
+                    case FlatEntry::HiddenM2F1:
+                        m_selectedMode = IEC60908b::SectorMode::M2_FORM1;
+                        break;
+                    case FlatEntry::HiddenM2F2:
+                        m_selectedMode = IEC60908b::SectorMode::M2_FORM2;
+                        break;
+                    default:
+                        m_selectedMode = IEC60908b::SectorMode::GUESS;
+                        break;
                 }
                 m_hasSelection = true;
                 m_selectedIsDir = entry.isDir();
@@ -432,11 +449,20 @@ headers and subheader file boundary markers.)"));
                 IEC60908b::SectorMode entryMode = IEC60908b::SectorMode::GUESS;
                 switch (entry.type) {
                     case FlatEntry::Gap:
-                    case FlatEntry::System: entryMode = IEC60908b::SectorMode::RAW; break;
-                    case FlatEntry::HiddenM1: entryMode = IEC60908b::SectorMode::M1; break;
-                    case FlatEntry::HiddenM2F1: entryMode = IEC60908b::SectorMode::M2_FORM1; break;
-                    case FlatEntry::HiddenM2F2: entryMode = IEC60908b::SectorMode::M2_FORM2; break;
-                    default: break;
+                    case FlatEntry::System:
+                        entryMode = IEC60908b::SectorMode::RAW;
+                        break;
+                    case FlatEntry::HiddenM1:
+                        entryMode = IEC60908b::SectorMode::M1;
+                        break;
+                    case FlatEntry::HiddenM2F1:
+                        entryMode = IEC60908b::SectorMode::M2_FORM1;
+                        break;
+                    case FlatEntry::HiddenM2F2:
+                        entryMode = IEC60908b::SectorMode::M2_FORM2;
+                        break;
+                    default:
+                        break;
                 }
                 if (ImGui::MenuItem(_("Extract"))) {
                     m_selectedPath = entry.path;
@@ -457,8 +483,20 @@ headers and subheader file boundary markers.)"));
                 if (ImGui::MenuItem(_("Hex Edit"))) {
                     auto isoPtr = m_cachedIso.lock();
                     if (isoPtr) {
-                        openHexEditor(entry.path,
-                                      IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
+                        openHexEditor(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
+                    }
+                }
+                if (m_fileViewers.available() && ImGui::MenuItem(_("View"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) {
+                        m_fileViewers.open(entry.path,
+                                           IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
+                    }
+                }
+                if (m_sendToDalos && ImGui::MenuItem(_("Send to Dalos"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) {
+                        m_sendToDalos(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
                     }
                 }
                 ImGui::EndPopup();
@@ -471,13 +509,27 @@ headers and subheader file boundary markers.)"));
             ImGui::TableSetColumnIndex(3);
             const char* typeStr;
             switch (entry.type) {
-                case FlatEntry::File: typeStr = _("File"); break;
-                case FlatEntry::Directory: typeStr = _("<DIR>"); break;
-                case FlatEntry::Gap: typeStr = _("Gap"); break;
-                case FlatEntry::HiddenM1: typeStr = _("M1"); break;
-                case FlatEntry::HiddenM2F1: typeStr = _("M2F1"); break;
-                case FlatEntry::HiddenM2F2: typeStr = _("M2F2"); break;
-                case FlatEntry::System: typeStr = _("System"); break;
+                case FlatEntry::File:
+                    typeStr = _("File");
+                    break;
+                case FlatEntry::Directory:
+                    typeStr = _("<DIR>");
+                    break;
+                case FlatEntry::Gap:
+                    typeStr = _("Gap");
+                    break;
+                case FlatEntry::HiddenM1:
+                    typeStr = "M1";
+                    break;
+                case FlatEntry::HiddenM2F1:
+                    typeStr = "M2F1";
+                    break;
+                case FlatEntry::HiddenM2F2:
+                    typeStr = "M2F2";
+                    break;
+                case FlatEntry::System:
+                    typeStr = _("System");
+                    break;
             }
             ImGui::TextUnformatted(typeStr);
         }
@@ -498,7 +550,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
             showOpenIsoFileDialog = ImGui::MenuItem(_("Open Disk Image"));
             if (ImGui::MenuItem(_("Close Disk Image"))) {
                 g_emulator->m_cdrom->setIso(new CDRIso(new FailedFile));
-                g_emulator->m_cdrom->check();
+                g_emulator->m_cdrom->parseIso();
             }
             ImGui::EndMenu();
         }
@@ -518,7 +570,7 @@ void PCSX::Widgets::IsoBrowser::draw(CDRom* cdrom, const char* title) {
         std::vector<PCSX::u8string> fileToOpen = m_openIsoFileDialog.selected();
         if (!fileToOpen.empty()) {
             g_emulator->m_cdrom->setIso(new CDRIso(reinterpret_cast<const char*>(fileToOpen[0].c_str())));
-            g_emulator->m_cdrom->check();
+            g_emulator->m_cdrom->parseIso();
         }
     }
     auto iso = cdrom->m_iso.get();
@@ -577,7 +629,7 @@ significantly by caching the files beforehand.)"));
     ImGui::TextUnformatted(str.c_str());
     if (ImGui::BeginTable("Tracks", 5, ImGuiTableFlags_Resizable)) {
         ImGui::TableSetupColumn(_("Track"));
-        ImGui::TableSetupColumn(_("Start"));
+        ImGui::TableSetupColumn(C_("Track position", "Start"));
         ImGui::TableSetupColumn(_("Length"));
         ImGui::TableSetupColumn(_("Pregap"));
         ImGui::TableSetupColumn("CRC32");
@@ -701,9 +753,8 @@ significantly by caching the files beforehand.)"));
                         }
                         IO<File> isoFile(new CDRIsoFile(iso, lba, originalSize, mode));
                         size_t replacementSize = replacement->size();
-                        uint32_t replaceSize = replacementSize > originalSize
-                                                   ? originalSize
-                                                   : static_cast<uint32_t>(replacementSize);
+                        uint32_t replaceSize =
+                            replacementSize > originalSize ? originalSize : static_cast<uint32_t>(replacementSize);
                         if (replacementSize > originalSize) {
                             g_system->printf(
                                 _("ISO replace: replacement file is larger than target (%zu > %u). Truncating.\n"),
@@ -766,9 +817,10 @@ significantly by caching the files beforehand.)"));
         } else {
             if (ImGui::BeginTable("Filesystem", 3,
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
-                                  ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y))) {
+                                  ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() -
+                                                ImGui::GetStyle().ItemSpacing.y))) {
                 ImGui::TableSetupColumn(_("Name"), ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn(_("LBA"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn("LBA", ImGuiTableColumnFlags_WidthFixed, 80.0f);
                 ImGui::TableSetupColumn(_("Size"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
                 ImGui::TableHeadersRow();
                 std::unordered_set<uint32_t> visitedDirs;
@@ -790,7 +842,9 @@ significantly by caching the files beforehand.)"));
     }
 
     ImGui::End();
+}
 
+void PCSX::Widgets::IsoBrowser::drawChildren() {
     // Render hex editor windows and clean up closed ones
     for (auto it = m_hexEditors.begin(); it != m_hexEditors.end();) {
         auto& inst = *it;
@@ -819,6 +873,8 @@ significantly by caching the files beforehand.)"));
         inst.m_editor.DrawWindow(inst.m_title.c_str(), size);
         ++it;
     }
+
+    m_fileViewers.draw();
 }
 
 void PCSX::Widgets::IsoBrowser::openHexEditor(const std::string& title, IO<File> file) {

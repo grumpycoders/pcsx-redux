@@ -62,32 +62,31 @@ at the cost of extra power required.)"));
     }
     changed = deviceChanged;
 
-    changed |= ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value);
+    if (ImGui::Checkbox(_("Muted"), &settings.get<Mute>().value)) {
+        changed = true;
+        m_audioOut.updatePlaybackMute();
+    }
     changed |= ImGui::Checkbox(_("Enable streaming"), &settings.get<Streaming>().value);
     ImGuiHelpers::ShowHelpMarker(_(R"(Uncheck this to mute the streaming channel
 from the main CPU to the SPU. This includes
 XA audio and audio tracks.)"));
     const char *volumeValues[] = {_("Low"), _("Medium"), _("Loud"), _("Loudest")};
     changed |= ImGui::Combo(_("Volume"), &settings.get<Volume>().value, volumeValues, IM_ARRAYSIZE(volumeValues));
-    ImGuiHelpers::ShowHelpMarker(_(R"(Attempts to make the CPU-to-SPU audio stream
-in sync, by changing its pitch. Consumes more CPU.)"));
-    changed |= ImGui::Checkbox(_("Pause SPU waiting for CPU IRQ"), &settings.get<SPUIRQWait>().value);
-    ImGuiHelpers::ShowHelpMarker(_(R"(Suspends the SPU processing during an IRQ, waiting
-for the main CPU to acknowledge it. Fixes issues
-with some games, but slows SPU processing.)"));
-    const char *reverbValues[] = {_("None - fastest"), _("Simple - only handles the most common effects"),
-                                  _("Accurate - best quality, but slower")};
-    changed |= ImGui::Combo(_("Reverb"), &settings.get<Reverb>().value, reverbValues, IM_ARRAYSIZE(reverbValues));
     const char *interpolationValues[] = {_("None - fastest"), _("Simple interpolation"),
                                          _("Gaussian interpolation - good quality"),
                                          _("Cubic interpolation - better treble")};
     changed |= ImGui::Combo(_("Interpolation"), &settings.get<Interpolation>().value, interpolationValues,
                             IM_ARRAYSIZE(interpolationValues));
-    changed |= ImGui::Checkbox(_("Mono"), &settings.get<Mono>().value);
+    changed |= ImGui::Checkbox(C_("Audio channels", "Mono"), &settings.get<Mono>().value);
     ImGuiHelpers::ShowHelpMarker(_("Downmixes stereo to mono."));
-    changed |= ImGui::Checkbox(_("Capture/decode buffer IRQ"), &settings.get<DBufIRQ>().value);
-    ImGuiHelpers::ShowHelpMarker(
-        _("Activates SPU IRQs based on writes to the decode/capture buffer. This option is necessary for some games."));
+    changed |= ImGui::InputInt(_("Speed multiplier"), &settings.get<Speed>().value);
+    ImGuiHelpers::ShowHelpMarker(_(R"(Emulation speed, applied at the audio sink (the master clock).
+1 = realtime, N = N times faster. Frames are skipped, not resampled, so pitch is preserved.
+0 or less = unbounded: run as fast as the host allows.)"));
+    changed |= ImGui::SliderInt(_("Latency margin (ms)"), &settings.get<LatencyMargin>().value, 0, 100);
+    ImGuiHelpers::ShowHelpMarker(_(R"(How far the emulation runs ahead of the audio device, on top of
+one device period: this is how late the sound is behind the picture.
+Lower it for less delay; if the sound crackles, raise it.)"));
 
     ImGui::End();
     return changed;

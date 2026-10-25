@@ -28,32 +28,32 @@ local checkGTE1 = PCSX.Assembler.Internals.checks.gte1
 PCSX.Assembler.Internals.gteInstructions = {
     mfc2 = function(args)
         if #args ~= 2 then error('mfc2 takes two arguments') end
-        return { base = 0x44000000, rt = checkGPR(args[1]), rd = checkGTE0(args[2]) }
+        return { base = 0x48000000, rt = checkGPR(args[1]), rd = checkGTE0(args[2]) }
     end,
 
     mtc2 = function(args)
         if #args ~= 2 then error('mtc2 takes two arguments') end
-        return { base = 0x44800000, rt = checkGPR(args[1]), rd = checkGTE0(args[2]) }
+        return { base = 0x48800000, rt = checkGPR(args[1]), rd = checkGTE0(args[2]) }
     end,
 
     cfc2 = function(args)
         if #args ~= 2 then error('cfc2 takes two arguments') end
-        return { base = 0x44c00000, rt = checkGPR(args[1]), rd = checkGTE1(args[2]) }
+        return { base = 0x48400000, rt = checkGPR(args[1]), rd = checkGTE1(args[2]) }
     end,
 
     ctc2 = function(args)
         if #args ~= 2 then error('ctc2 takes two arguments') end
-        return { base = 0x44e00000, rt = checkGPR(args[1]), rd = checkGTE1(args[2]) }
+        return { base = 0x48c00000, rt = checkGPR(args[1]), rd = checkGTE1(args[2]) }
     end,
 
     lwc2 = function(args)
         if #args ~= 3 then error('lwc2 takes three arguments') end
-        return { base = 0xc4000000, rt = checkGTE0(args[1]), imm16 = checkImm16(args[2]), rs = checkGPR(args[3]) }
+        return { base = 0xc8000000, rt = checkGTE0(args[1]), imm16 = checkImm16(args[2]), rs = checkGPR(args[3]) }
     end,
 
     swc2 = function(args)
         if #args ~= 3 then error('swc2 takes three arguments') end
-        return { base = 0xe4000000, rt = checkGTE0(args[1]), imm16 = checkImm16(args[2]), rs = checkGPR(args[3]) }
+        return { base = 0xe8000000, rt = checkGTE0(args[1]), imm16 = checkImm16(args[2]), rs = checkGPR(args[3]) }
     end,
 
     rtps = function(args)
@@ -81,9 +81,23 @@ PCSX.Assembler.Internals.gteInstructions = {
         return { base = 0x4a180011 }
     end,
 
+    -- mvmva sf, mx, v, cv, lm: sf shift (0/1), mx matrix (0 RT, 1 LLM, 2 LCM), v vector (0-2 V0-V2,
+    -- 3 IR), cv translation (0 TR, 1 BK, 2 FC, 3 none), lm clamp (0/1). No arguments keeps the old
+    -- default encoding.
     mvmva = function(args)
-        if #args ~= 0 then error('mvmva takes no arguments') end
-        return { base = 0x4a180012 }
+        if #args == 0 then return { base = 0x4a180012 } end
+        if #args ~= 5 then error('mvmva takes zero or five arguments') end
+        local limits = { 1, 3, 3, 3, 1 }
+        for i, v in ipairs(args) do
+            if type(v) ~= 'number' or v ~= math.floor(v) or v < 0 or v > limits[i] then
+                error('Invalid mvmva argument ' .. i)
+            end
+        end
+        local sf, mx, v, cv, lm = args[1], args[2], args[3], args[4], args[5]
+        return {
+            base = bit.bor(0x4a400012, bit.lshift(sf, 19), bit.lshift(mx, 17), bit.lshift(v, 15), bit.lshift(cv, 13),
+                           bit.lshift(lm, 10)),
+        }
     end,
 
     ncds = function(args)

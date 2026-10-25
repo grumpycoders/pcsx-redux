@@ -82,6 +82,12 @@ void main() {
 static const GLchar *const c_defaultPixelShader = GL_SHADER_VERSION R"(
 // The Pixel Shader is most likely what the user will want to change.
 precision highp float;
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+#endif
 uniform sampler2D Texture;
 in vec2 Frag_UV;
 in vec4 Frag_Color;
@@ -137,6 +143,12 @@ end
 )";
 
 static const GLchar *const c_24bppConversionFragShader = GL_SHADER_VERSION R"(
+#if __VERSION__ == 300
+// On MacOS, with shader version 410, these are illegal, but on
+// Windows, with shader version 300 es and old drivers, these
+// are mandatory.
+precision highp sampler2D;
+#endif
 uniform sampler2D Texture;
 in vec2 Frag_UV;
 in vec4 Frag_Color;
@@ -181,13 +193,20 @@ void main() {
 }
 )";
 
+namespace {
+
+// Relative shader base names live under the persistent directory.
+std::filesystem::path resolveBase(std::filesystem::path f) {
+    if (f.is_relative()) f = PCSX::g_system->getPersistentDir() / f;
+    return f;
+}
+
+}  // namespace
+
 PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::string_view &dVS,
                                           const std::string_view &dPS, const std::string_view &dL)
-    : m_baseFilename(base), m_index(++s_index) {
-    std::filesystem::path f = base;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    : m_baseFilename(base), m_defaultVS(dVS), m_defaultPS(dPS), m_defaultL(dL), m_index(++s_index) {
+    std::filesystem::path f = resolveBase(base);
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -229,12 +248,14 @@ PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base, const std::st
     }
 }
 
-PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base) : m_baseFilename(base), m_index(++s_index) {
+PCSX::Widgets::ShaderEditor::ShaderEditor(const std::string &base)
+    : m_baseFilename(base),
+      m_defaultVS(c_defaultVertexShader),
+      m_defaultPS(c_defaultPixelShader),
+      m_defaultL(c_defaultLuaInvoker),
+      m_index(++s_index) {
     setDefaults();
-    std::filesystem::path f = base;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    std::filesystem::path f = resolveBase(base);
     {
         f.replace_extension("vert");
         std::ifstream in(f, std::ifstream::in);
@@ -389,10 +410,7 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     gui->getGLerrors();
 
     auto L = *g_emulator->m_lua;
-    std::filesystem::path f = m_baseFilename;
-    if (f.is_relative()) {
-        f = g_system->getPersistentDir() / f;
-    }
+    std::filesystem::path f = resolveBase(m_baseFilename);
 
     if (m_autocompile) {
         m_lastLuaErrors.clear();
@@ -460,21 +478,9 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     }
 
     if (m_autosave) {
-        {
-            f.replace_extension("vert");
-            std::ofstream out(f, std::ofstream::out);
-            out << m_vertexShaderEditor.getText();
-        }
-        {
-            f.replace_extension("frag");
-            std::ofstream out(f, std::ofstream::out);
-            out << m_pixelShaderEditor.getText();
-        }
-        {
-            f.replace_extension("lua");
-            std::ofstream out(f, std::ofstream::out);
-            out << m_luaEditor.getText();
-        }
+        persist(f, "vert", m_vertexShaderEditor.getText(), m_defaultVS);
+        persist(f, "frag", m_pixelShaderEditor.getText(), m_defaultPS);
+        persist(f, "lua", m_luaEditor.getText(), m_defaultL);
     }
 
     if (m_shaderProgram != 0) {
@@ -483,6 +489,18 @@ PCSX::OpenGL::Status PCSX::Widgets::ShaderEditor::compile(GUI *gui,
     m_shaderProgram = shaderProgram;
     m_shaderProjMtxLoc = glGetUniformLocation(m_shaderProgram, "u_projMatrix");
     return OpenGL::Status::makeOk();
+}
+
+void PCSX::Widgets::ShaderEditor::persist(std::filesystem::path f, const char *extension, const std::string &text,
+                                          const std::string &builtIn) {
+    f.replace_extension(extension);
+    if (text == builtIn) {
+        std::error_code ec;
+        std::filesystem::remove(f, ec);
+        return;
+    }
+    std::ofstream out(f, std::ofstream::out);
+    out << text;
 }
 
 bool PCSX::Widgets::ShaderEditor::draw(GUI *gui, const char *title) {
@@ -603,7 +621,7 @@ void PCSX::Widgets::ShaderEditor::configure(GUI *gui) {
                                 auto i = j.find("shaderProgramID");
                                 if (i != j.end()) j.erase(i);
                             }
-                            std::filesystem::path f = m_baseFilename;
+                            std::filesystem::path f = resolveBase(m_baseFilename);
                             f.replace_extension("json");
                             std::ofstream out(f, std::ofstream::out);
                             out << std::setw(2) << j << std::endl;

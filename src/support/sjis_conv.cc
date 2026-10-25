@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include "support/sjis_conv.h"
 
-#include "mips/common/util/sjis-table.h"
+#include "mips-common/util/sjis-table.h"
 
 std::string PCSX::Sjis::toUtf8(const std::string_view& str) {
     std::string ret;

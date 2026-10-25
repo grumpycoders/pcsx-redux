@@ -33,6 +33,8 @@ SOFTWARE.
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cstdlib>
+
 #include "support/sharedmem.h"
 
 bool PCSX::SharedMem::init(const char* id, size_t size, bool initToZero) {

@@ -24,6 +24,7 @@
 #include "cueparser/fileabstract.h"
 #include "cueparser/scheduler.h"
 #include "support/ffmpeg-audio-file.h"
+#include "support/uvfile.h"
 
 // this function tries to get the .cue file of the given .bin
 // the necessary data is put into the ti (trackinformation)-array
@@ -68,10 +69,11 @@ bool PCSX::CDRIso::parsecue(const char *isofileString) {
 
     auto createFile = [](CueFile *file, CueScheduler *scheduler, const char *filename) -> CueFile * {
         Context *context = reinterpret_cast<Context *>(scheduler->opaque);
-        UvFile *fi = new UvFile(filename);
+        // A FILE entry is relative to the cue sheet's directory; only fall back to the current directory.
+        UvFile *fi = new UvFile(context->filepath / filename);
         if (fi->failed()) {
             delete fi;
-            fi = new UvFile(context->filepath / filename);
+            fi = new UvFile(filename);
         }
         if (!fi->failed()) {
             if (g_emulator->settings.get<Emulator::SettingFullCaching>()) {

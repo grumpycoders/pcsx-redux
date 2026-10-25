@@ -1,70 +1,75 @@
 /***************************************************************************
-                            dma.c  -  description
-                             -------------------
-    begin                : Wed May 15 2002
-    copyright            : (C) 2002 by Pete Bernert
-    email                : BlackDove@addcom.de
- ***************************************************************************/
-
-/***************************************************************************
+ *   Copyright (C) 2026 PCSX-Redux authors                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version. See also the license.txt file for *
- *   additional informations.                                              *
+ *   (at your option) any later version.                                   *
  *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-//*************************************************************************//
-// History of changes:
-//
-// 2002/05/15 - Pete
-// - generic cleanup for the Peops release
-//
-//*************************************************************************//
-
+#include "core/psxemulator.h"
+#include "core/r3000a.h"
 #include "spu/externals.h"
 #include "spu/interface.h"
 
-// SPU RAM -> Main RAM DMA
+// SPU RAM -> Main RAM DMA.
 void PCSX::SPU::impl::readDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    // The mixer writes the capture and reverb areas as it plays, and it runs behind the CPU:
+    // bring it up to this cycle first.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    // Always lock: the mixer thread writes the capture areas of spuMem under cbMtx,
+    // and deciding from an unlocked read of mixIrqAddress would itself be a race.
+    std::lock_guard<std::mutex> lock(cbMtx);
 
     for (int i = 0; i < size; i++) {
-        *mainMem++ = spuMem[spuAddr >> 1];  // Copy 2 bytes
-        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
+        // Copy 2 bytes.
+        *mainMem++ = spuMem[spuAddr >> 1];
+        // Increment the SPU address and wrap around.
+        spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
 }
 
-// to investigate: do sound data updates by writedma affect spu
-// irqs? Will an irq be triggered, if new data is written to
-// the memory irq address?
+// To investigate: do sound data updates by DMA writes affect SPU IRQs? Will an IRQ be triggered if new
+// data is written to the memory IRQ address?
 
 void PCSX::SPU::impl::lockSPURAM() { cbMtx.lock(); }
 void PCSX::SPU::impl::unlockSPURAM() { cbMtx.unlock(); }
 
 void PCSX::SPU::impl::resetCaptureBuffer() {
-    if (settings.get<DBufIRQ>().value) pMixIrq = spuMemC;  // enable decoded buffer irqs by setting the address
-    memset(captureBuffer.CDCapLeft, 0, CaptureBuffer::CB_SIZE);
-    memset(captureBuffer.CDCapRight, 0, CaptureBuffer::CB_SIZE);
-    captureBuffer.currIndex = 0;
+    // The capture buffers are always live: hardware writes them continuously and
+    // raises the IRQ whenever the write reaches SPU_IRQ_ADDR. Nothing about that is
+    // optional, so the cursor is always armed.
+    // Everything below is shared with the mixer thread (MainThread), so hold cbMtx.
+    std::lock_guard<std::mutex> lock(cbMtx);
+    mixIrqAddress = spuRamBase;
+    memset(captureBuffer.CDCapLeft, 0, sizeof(captureBuffer.CDCapLeft));
+    memset(captureBuffer.CDCapRight, 0, sizeof(captureBuffer.CDCapRight));
     captureBuffer.endIndex = 0;
     captureBuffer.startIndex = 0;
-    capBufVoiceIndex = 0;
+    // The capture write positions follow the mixer's sample clock and are not reset here.
 }
 
-// Main RAM -> SPU RAM DMA
+// Main RAM -> SPU RAM DMA.
 void PCSX::SPU::impl::writeDMAMem(uint16_t* mainMem, int size) {
-    if (pMixIrq) cbMtx.lock();
+    // The mixer reads sound RAM as it plays: it has to have played everything before this
+    // cycle from the old contents.
+    catchUp(PCSX::g_emulator->m_cpu->m_regs.cycle);
+    std::lock_guard<std::mutex> lock(cbMtx);
 
     for (int i = 0; i < size; i++) {
-        spuMem[spuAddr >> 1] = *mainMem++;  // Copy 2 bytes
-        spuAddr = (spuAddr + 2) & 0x7ffff;  // Increment SPU address and wrap around
+        // Copy 2 bytes.
+        spuMem[spuAddr >> 1] = *mainMem++;
+        // Increment the SPU address and wrap around.
+        spuAddr = (spuAddr + 2) & 0x7ffff;
     }
-
-    if (pMixIrq) cbMtx.unlock();
-    iSpuAsyncWait = 0;
 }
