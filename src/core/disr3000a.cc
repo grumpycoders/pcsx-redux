@@ -66,6 +66,8 @@ const char *PCSX::Disasm::getSyscallName(uint32_t index) {
             return "EnterCriticalSection";
         case 2:
             return "ExitCriticalSection";
+        case 3:
+            return "ChangeThreadSubFunction";
         default:
             return "DeliverEvent";
     }
