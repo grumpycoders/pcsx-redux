@@ -214,8 +214,8 @@ class Disasm {
     declare(disNCCT);
 #undef declare
 
-    // li has a slightly different signature, being a pseudoinstruction
-    bool disLI(uint32_t reg, uint32_t imm, uint32_t nextCode, bool *skipNext = nullptr, bool *delaySlotNext = nullptr);
+    // li is the addiu/ori $zero pseudo-instruction; li $a0 followed by a plain syscall reads as the named syscall
+    void disLI(uint8_t reg, uint16_t imm, bool zeroExtend, uint32_t nextCode, bool *skipNext);
 };
 
 }  // namespace PCSX

@@ -42,14 +42,15 @@ TEST(DisasmSyscall, MergesLiA0AndSyscall) {
     for (auto &c : cases) {
         bool skip = false;
         std::string s = dis(c.li, 0x0000000c, &skip);
-        EXPECT_NE(s.find("syscall"), std::string::npos) << s;
-        EXPECT_NE(s.find(c.name), std::string::npos) << s;
+        std::string expected = std::string(": syscall ") + c.name;
+        ASSERT_GE(s.size(), expected.size()) << s;
+        EXPECT_EQ(s.substr(s.size() - expected.size()), expected) << s;
         EXPECT_TRUE(skip) << s;
     }
 }
 
-// No merge when the register is not $a0, when the next opcode is not a syscall, or when the
-// caller cannot skip the next instruction.
+// No merge when the register is not $a0, when the next opcode is not a syscall, when the syscall
+// carries a nonzero code, or when the caller cannot skip the next instruction.
 TEST(DisasmSyscall, KeepsPlainLi) {
     bool skip = false;
     std::string s = dis(0x24050001, 0x0000000c, &skip);  // li $a1, 1
@@ -58,6 +59,10 @@ TEST(DisasmSyscall, KeepsPlainLi) {
     EXPECT_FALSE(skip);
 
     s = dis(0x24040001, 0x00000000, &skip);  // li $a0, 1 then nop
+    EXPECT_EQ(s.find("syscall"), std::string::npos) << s;
+    EXPECT_FALSE(skip);
+
+    s = dis(0x24040001, 0x0000010c, &skip);  // li $a0, 1 then syscall 4
     EXPECT_EQ(s.find("syscall"), std::string::npos) << s;
     EXPECT_FALSE(skip);
 

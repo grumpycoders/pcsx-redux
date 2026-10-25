@@ -322,7 +322,7 @@ void PCSX::Widgets::Assembly::Target(uint32_t value) {
 }
 void PCSX::Widgets::Assembly::SyscallName(const char* name) {
     sameLine();
-    ImGui::TextUnformatted(name);
+    ImGui::Text(" %s", name);
 }
 void PCSX::Widgets::Assembly::Sa(uint8_t value) {
     comma();

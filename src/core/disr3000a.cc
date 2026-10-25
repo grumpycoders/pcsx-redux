@@ -263,7 +263,7 @@ struct StringDisasm : public PCSX::Disasm {
             }
         }
     }
-    virtual void SyscallName(const char *name) final { append(name); }
+    virtual void SyscallName(const char *name) final { append(" %s", name); }
     virtual void reset() final {
         m_buf[0] = 0;
         m_len = 0;
@@ -321,14 +321,12 @@ declare(disADDI) {
 declare(disADDIU) {
     if (_Rs_ == 0) {
         // this is the common pseudo-instruction to load an immediate 16 bits value
-        if (disLI(_Rt_, _Im_, nextCode, skipNext, delaySlotNext)) {
-            return;
-        }
-    } else {
-        dOpCode("addiu");
-        GPR(_Rt_);
-        if (_Rt_ != _Rs_) GPR(_Rs_);
+        disLI(_Rt_, _Im_, false, nextCode, skipNext);
+        return;
     }
+    dOpCode("addiu");
+    GPR(_Rt_);
+    if (_Rt_ != _Rs_) GPR(_Rs_);
     dImm16();
 }
 declare(disANDI) {
@@ -340,14 +338,12 @@ declare(disANDI) {
 declare(disORI) {
     if (_Rs_ == 0) {
         // while rare, this can also be used to load an immediate 16-bits value
-        if (disLI(_Rt_, _Im_, nextCode, skipNext, delaySlotNext)) {
-            return;
-        }
-    } else {
-        dOpCode("ori");
-        GPR(_Rt_);
-        if (_Rt_ != _Rs_) GPR(_Rs_);
+        disLI(_Rt_, _Im_, true, nextCode, skipNext);
+        return;
     }
+    dOpCode("ori");
+    GPR(_Rt_);
+    if (_Rt_ != _Rs_) GPR(_Rs_);
     dImm16u();
 }
 declare(disSLTI) {
@@ -722,24 +718,24 @@ declare(disLUI) {
     }
 }
 
-bool PCSX::Disasm::disLI(uint32_t reg, uint32_t imm, uint32_t nextCode, bool *skipNext, bool *delaySlotNext) {
+void PCSX::Disasm::disLI(uint8_t reg, uint16_t imm, bool zeroExtend, uint32_t nextCode, bool *skipNext) {
     // Merge syscalls, which usually have the pattern
     // li $a0, syscallNumber
     // syscall 0x0000
-    uint8_t nextIns = nextCode >> 26;
-    uint8_t nextSubfunc = nextCode & 0x3f;
-
-    if (skipNext && reg == 4 && nextIns == 0 && nextSubfunc == 0xC) {
+    // A syscall with a nonzero code field is left alone, so its code still shows.
+    static constexpr uint32_t c_plainSyscall = 0x0000000c;
+    if (skipNext && reg == 4 && nextCode == c_plainSyscall) {
         dOpCode("syscall");
         SyscallName(getSyscallName(imm));
-
         *skipNext = true;
-        return true;
+        return;
+    }
+    dOpCode("li");
+    GPR(reg);
+    if (zeroExtend) {
+        Imm16u(imm);
     } else {
-        dOpCode("li");
-        GPR(reg);
-
-        return false;
+        Imm16(imm);
     }
 }
 
