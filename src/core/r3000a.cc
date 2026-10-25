@@ -593,6 +593,14 @@ void PCSX::R3000Acpu::restorePCdrvFile(const std::filesystem::path& filename, ui
 }
 
 void PCSX::R3000Acpu::branchTest() {
+    branchTestEvents();
+    // Last, so that a snapshot taken at a vsync doesn't leave the scheduled callbacks and the
+    // interrupt check of this branchTest() for whoever restores it: Execute() starts by
+    // running an instruction, and they'd wait until the next branch.
+    g_emulator->flushRewindCapture();
+}
+
+void PCSX::R3000Acpu::branchTestEvents() {
     const uint64_t cycle = m_regs.cycle;
 
     if (cycle >= g_emulator->m_counters->m_psxNextCounter) g_emulator->m_counters->update();

@@ -225,6 +225,7 @@ void PCSX::Emulator::reset() {
     m_sio->reset();
     m_sio1->reset();
     m_rewindRing->clear();
+    m_rewindCapturePending = false;
     m_vsyncPending = 0;
 }
 
@@ -265,6 +266,22 @@ void PCSX::Emulator::dispatchVSync() {
 }
 
 void PCSX::Emulator::createRewindState() {
+    // From inside the emulation, the snapshot waits for the end of the current branchTest(),
+    // see flushRewindCapture().
+    if (g_system->inExecute()) {
+        m_rewindCapturePending = true;
+        return;
+    }
+    captureRewindState();
+}
+
+void PCSX::Emulator::flushRewindCapture() {
+    if (!m_rewindCapturePending) return;
+    m_rewindCapturePending = false;
+    captureRewindState();
+}
+
+void PCSX::Emulator::captureRewindState() {
     // A queued rewind is about to throw this state away, and would land on this very snapshot
     // rather than the one it was asked for.
     if (g_system->pendingRewinds()) return;
