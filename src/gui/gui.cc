@@ -1497,6 +1497,7 @@ void PCSX::GUI::endFrame() {
                 ImGui::MenuItem(_("GPU"), nullptr, &PCSX::g_emulator->m_gpu->m_showCfg);
                 ImGui::MenuItem(_("SPU"), nullptr, &PCSX::g_emulator->m_spu->m_showCfg);
                 ImGui::MenuItem(_("PIO Cartridge"), nullptr, &m_pioCart.m_show);
+                ImGui::MenuItem(_("Network"), nullptr, &m_network.m_show);
                 ImGui::Separator();
                 ImGui::MenuItem(_("UI"), nullptr, &m_showUiCfg);
                 ImGui::MenuItem(_("System"), nullptr, &m_showSysCfg);
@@ -2405,8 +2406,6 @@ sequence at each power-on.)"));
         ImGuiHelpers::ShowHelpMarker(_(R"(This will enable the usage of various breakpoints
 throughout the execution of mips code. Enabling this
 can slow down emulation to a noticeable extent.)"));
-        ImGui::TextUnformatted(_("Network servers and clients now live in their own window."));
-        if (ImGui::Button(_("Open Network settings"))) m_network.m_show = true;
     }
     ImGui::End();
 
