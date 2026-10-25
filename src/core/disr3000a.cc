@@ -61,7 +61,7 @@ const char *PCSX::Disasm::s_disRNameCP0[] = {
 const char *PCSX::Disasm::getSyscallName(uint32_t index) {
     switch (index) {
         case 0:
-            return "NOP";
+            return "NoFunction";
         case 1:
             return "EnterCriticalSection";
         case 2:
@@ -724,7 +724,8 @@ void PCSX::Disasm::disLI(uint8_t reg, uint16_t imm, bool zeroExtend, uint32_t ne
     // syscall 0x0000
     // A syscall with a nonzero code field is left alone, so its code still shows.
     static constexpr uint32_t c_plainSyscall = 0x0000000c;
-    if (skipNext && reg == 4 && nextCode == c_plainSyscall) {
+    const bool liA0BeforeSyscall = (reg == 4) && (nextCode == c_plainSyscall);
+    if (skipNext && liA0BeforeSyscall) {
         dOpCode("syscall");
         SyscallName(getSyscallName(imm));
         *skipNext = true;

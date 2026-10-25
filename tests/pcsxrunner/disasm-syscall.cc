@@ -34,6 +34,7 @@ TEST(DisasmSyscall, MergesLiA0AndSyscall) {
         uint32_t li;
         const char *name;
     } cases[] = {
+        {0x24040000, "NoFunction"},               // addiu $a0, $zero, 0
         {0x24040001, "EnterCriticalSection"},     // addiu $a0, $zero, 1
         {0x34040002, "ExitCriticalSection"},      // ori $a0, $zero, 2
         {0x24040003, "ChangeThreadSubFunction"},  // addiu $a0, $zero, 3
