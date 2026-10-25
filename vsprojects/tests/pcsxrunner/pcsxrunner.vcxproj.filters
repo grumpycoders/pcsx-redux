@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\copbranch.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\disasm-syscall.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
