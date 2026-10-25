@@ -207,13 +207,16 @@ PCSX::GUI* PCSX::g_gui = nullptr;
 
 // Sink for ThorVG's TVGERR / TVGLOG, wired in third_party/thorvg-config/config.h.
 void pcsxThorVGLog(bool error, const char* tag, const char* file, int line, const char* fmt, ...) {
-    va_list args;
+    va_list args, copy;
     va_start(args, fmt);
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_copy(copy, args);
+    int len = vsnprintf(nullptr, 0, fmt, copy);
+    va_end(copy);
+    std::string buffer(len > 0 ? len : 0, '\0');
+    if (len > 0) vsnprintf(buffer.data(), len + 1, fmt, args);
     va_end(args);
     if (!PCSX::g_system) {
-        fprintf(stderr, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, file, line, buffer);
+        fprintf(stderr, "[ThorVG %s] %s (%s:%d): %s\n", error ? "error" : "log", tag, file, line, buffer.c_str());
         return;
     }
     auto base = std::filesystem::path(file).filename().string();
