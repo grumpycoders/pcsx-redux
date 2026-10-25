@@ -30,7 +30,9 @@ static constexpr int CHKMAX_Y = 512;
 // Hardware silently drops any polygon or line that has an edge longer than
 // 1023 pixels horizontally or 511 pixels vertically (verified on SCPH-5501
 // via gpu-raster-phase14). The drop is unconditional - it does NOT depend on
-// any vertex being off-screen.
+// any vertex being off-screen. The deltas are taken on the screen coordinates,
+// after the draw offset is added and wrapped to 11 bits; gpu-raster-phase23 W1
+// covers a vertex the offset pushes past 1023.
 //
 // For a quad the compared set is the five edges of the two rendered triangles:
 // the four perimeter edges plus the shared diagonal v1-v2. The remaining pair
@@ -86,9 +88,6 @@ void PCSX::SoftGPU::SoftRenderer::texturePage(GPU::TPage *prim) {
     m_globalTextTP = prim->texDepth;
 
     m_globalTextABR = prim->blendFunction;
-
-    m_statusRet &= ~0x07ff;               // Clear the necessary bits
-    m_statusRet |= (prim->raw & 0x07ff);  // set the necessary bits
 }
 
 void PCSX::SoftGPU::SoftRenderer::twindow(GPU::TWindow *prim) {
@@ -160,19 +159,12 @@ void PCSX::SoftGPU::SoftRenderer::drawingOffset(GPU::DrawingOffset *prim) {
 }
 
 void PCSX::SoftGPU::SoftRenderer::maskBit(GPU::MaskBit *prim) {
-    m_statusRet &= ~0x1800;
-
     if (prim->set) {
         m_setMask16 = 0x8000;
         m_setMask32 = 0x80008000;
-        m_statusRet |= 0x0800;
     } else {
         m_setMask16 = 0;
         m_setMask32 = 0;
-    }
-
-    if (prim->check) {
-        m_statusRet |= 0x1000;
     }
     m_checkMask = prim->check;
 }
@@ -220,17 +212,24 @@ void PCSX::SoftGPU::SoftRenderer::drawRect(int16_t x0, int16_t y0, int16_t x1, i
         }
     } else {
         // fast fill
-        uint32_t *DSTPtr;
+        uint16_t *DSTPtr;
         uint16_t LineOffset;
         uint32_t lcol = m_setMask32 | (((uint32_t)(col)) << 16) | col;
         dx >>= 1;
-        DSTPtr = (uint32_t *)(m_vram16 + (VRAM_WIDTH * y0) + x0);
+        DSTPtr = m_vram16 + (VRAM_WIDTH * y0) + x0;
         LineOffset = 512 - dx;
 
         if (!m_checkMask && !m_drawSemiTrans) {
             for (i = 0; i < dy; i++) {
-                for (j = 0; j < dx; j++) *DSTPtr++ = lcol;
-                DSTPtr += LineOffset;
+                if (rs.rowSkipped(y0 + i)) {
+                    DSTPtr += dx * 2;
+                } else {
+                    for (j = 0; j < dx; j++) {
+                        *PixelPair32Ptr(DSTPtr) = lcol;
+                        DSTPtr += 2;
+                    }
+                }
+                DSTPtr += LineOffset * 2;
             }
         } else {
             for (i = 0; i < dy; i++) {
@@ -254,6 +253,9 @@ void PCSX::SoftGPU::SoftRenderer::fillArea(int16_t x0, int16_t y0, int16_t x1, i
 
     dx = x1 - x0;
     dy = y1 - y0;
+    // GP0(02h) is not exempt from the NTSC 480i row skip (see RasterState::skipParity).
+    const int8_t skipParity = m_skipParity;
+    auto rowSkipped = [skipParity](int y) { return ((y & 1) ^ skipParity) == 0; };
     if (dx & 1) {
         uint16_t *DSTPtr;
         uint16_t LineOffset;
@@ -262,21 +264,32 @@ void PCSX::SoftGPU::SoftRenderer::fillArea(int16_t x0, int16_t y0, int16_t x1, i
         LineOffset = VRAM_WIDTH - dx;
 
         for (i = 0; i < dy; i++) {
-            for (j = 0; j < dx; j++) *DSTPtr++ = col;
+            if (rowSkipped(y0 + i)) {
+                DSTPtr += dx;
+            } else {
+                for (j = 0; j < dx; j++) *DSTPtr++ = col;
+            }
             DSTPtr += LineOffset;
         }
     } else {
-        uint32_t *DSTPtr;
+        uint16_t *DSTPtr;
         uint16_t LineOffset;
         uint32_t lcol = (((int32_t)col) << 16) | col;
 
         dx >>= 1;
-        DSTPtr = (uint32_t *)(m_vram16 + (VRAM_WIDTH * y0) + x0);
+        DSTPtr = m_vram16 + (VRAM_WIDTH * y0) + x0;
         LineOffset = 512 - dx;
 
         for (i = 0; i < dy; i++) {
-            for (j = 0; j < dx; j++) *DSTPtr++ = lcol;
-            DSTPtr += LineOffset;
+            if (rowSkipped(y0 + i)) {
+                DSTPtr += dx * 2;
+            } else {
+                for (j = 0; j < dx; j++) {
+                    *PixelPair32Ptr(DSTPtr) = lcol;
+                    DSTPtr += 2;
+                }
+            }
+            DSTPtr += LineOffset * 2;
         }
     }
 }

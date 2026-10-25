@@ -40,6 +40,7 @@
 #include <time.h>
 #include <zlib.h>
 
+#include <atomic>
 #include <deque>
 #include <filesystem>
 #include <memory>
@@ -67,10 +68,12 @@
 
 namespace PCSX {
 
+class AllocTracker;
 class CallStacks;
 class CDRom;
 class CDRomLogger;
 class Counters;
+class CpuTrace;
 class Debug;
 class GdbServer;
 class GPU;
@@ -79,6 +82,7 @@ class GPUDumpPlayer;
 class GPULogger;
 class GTE;
 class RAMLogger;
+class SPULogger;
 class HW;
 class Lua;
 class MDEC;
@@ -141,6 +145,8 @@ class Emulator {
         typedef Setting<bool, TYPESTRING("DemangledSymbols"), true> DemangledSymbols;
         typedef Setting<bool, TYPESTRING("PCdrv"), false> PCdrv;
         typedef SettingPath<TYPESTRING("PCdrvBase")> PCdrvBase;
+        typedef Setting<bool, TYPESTRING("PCdrvNet"), false> PCdrvNet;
+        typedef SettingString<TYPESTRING("PCdrvNetAllow")> PCdrvNetAllow;
         typedef Setting<bool, TYPESTRING("SIO1Server"), false> SIO1Server;
         typedef Setting<int, TYPESTRING("SIO1ServerPort"), 6699> SIO1ServerPort;
         typedef Setting<bool, TYPESTRING("SIO1Client"), false> SIO1Client;
@@ -155,8 +161,9 @@ class Emulator {
                          GdbServer, GdbManifest, GdbLogSetting, GdbServerPort, GdbServerTrace, WebServer, WebServerPort,
                          KernelCallA0_00_1f, KernelCallA0_20_3f, KernelCallA0_40_5f, KernelCallA0_60_7f,
                          KernelCallA0_80_9f, KernelCallA0_a0_bf, KernelCallB0_00_1f, KernelCallB0_20_3f,
-                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, SIO1Server,
-                         SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort, SIO1ModeSetting>
+                         KernelCallB0_40_5f, KernelCallC0_00_1f, DemangledSymbols, PCdrv, PCdrvBase, PCdrvNet,
+                         PCdrvNetAllow, SIO1Server, SIO1ServerPort, SIO1Client, SIO1ClientHost, SIO1ClientPort,
+                         SIO1ModeSetting>
             type;
     };
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
@@ -171,6 +178,7 @@ class Emulator {
     typedef Setting<bool, TYPESTRING("AutoVideo"), true> SettingAutoVideo;
     typedef Setting<VideoType, TYPESTRING("Video"), PSX_TYPE_NTSC> SettingVideo;
     typedef Setting<bool, TYPESTRING("FastBoot"), false> SettingFastBoot;
+    typedef Setting<bool, TYPESTRING("CDRomEntropySeed"), false> SettingCDRomEntropySeed;
     typedef Setting<bool, TYPESTRING("RCntFix")> SettingRCntFix;
     typedef SettingPath<TYPESTRING("IsoPath")> SettingIsoPath;
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
@@ -186,6 +194,7 @@ class Emulator {
     typedef Setting<int, TYPESTRING("GUITheme"), 0> SettingGUITheme;
     typedef Setting<int, TYPESTRING("Dither"), 1> SettingDither;
     typedef Setting<bool, TYPESTRING("UseCachedDithering"), false> SettingCachedDithering;
+    typedef Setting<bool, TYPESTRING("SoftGPUThreaded"), false> SettingSoftGPUThreaded;
     typedef Setting<bool, TYPESTRING("ReportGLErrors"), false> SettingGLErrorReporting;
     typedef Setting<int, TYPESTRING("ReportGLErrorsSeverity"), 1> SettingGLErrorReportingSeverity;
     typedef Setting<bool, TYPESTRING("FullCaching"), false> SettingFullCaching;
@@ -208,11 +217,12 @@ class Emulator {
              SettingBnWMdec, SettingAutoVideo, SettingVideo, SettingFastBoot, SettingDebugSettings, SettingRCntFix,
              SettingIsoPath, SettingLocale, SettingMcd1Inserted, SettingMcd2Inserted, SettingDynarec, Setting8MB,
              SettingMemoryFillValue, Setting2MBVRAM, SettingGUITheme, SettingDither, SettingCachedDithering,
-             SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching, SettingHardwareRenderer,
-             SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA, SettingLinearFiltering, SettingKioskMode,
-             SettingMcd1Pocketstation, SettingMcd2Pocketstation, SettingBiosBrowsePath, SettingEXP1Filepath,
-             SettingEXP1BrowsePath, SettingPIOConnected, SettingMapBrowsePath, SettingOpenDialogFavorites,
-             SettingRewindInterval, SettingRewindCount>
+             SettingSoftGPUThreaded, SettingGLErrorReporting, SettingGLErrorReportingSeverity, SettingFullCaching,
+             SettingHardwareRenderer, SettingShownAutoUpdateConfig, SettingAutoUpdate, SettingMSAA,
+             SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
+             SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
+             SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount,
+             SettingCDRomEntropySeed>
         settings;
     class PcsxConfig {
       public:
@@ -286,10 +296,15 @@ class Emulator {
 
     PcsxConfig& config() { return m_config; }
 
+    // Turbo multiplies the SPU::Speed sink multiplier; see SPU::SDLAudio::effectiveSpeed.
+    void setTurbo(bool on) { m_turboFactor.store(on ? 2 : 1, std::memory_order_relaxed); }
+    int getTurboFactor() const { return m_turboFactor.load(std::memory_order_relaxed); }
+
     std::unique_ptr<CallStacks> m_callStacks;
     std::unique_ptr<CDRom> m_cdrom;
     std::unique_ptr<CDRomLogger> m_cdromLogger;
     std::unique_ptr<Counters> m_counters;
+    std::unique_ptr<CpuTrace> m_cpuTrace;
     std::unique_ptr<Debug> m_debug;
     std::unique_ptr<GdbServer> m_gdbServer;
     std::unique_ptr<GPU> m_gpu;
@@ -298,6 +313,7 @@ class Emulator {
     std::unique_ptr<GPULogger> m_gpuLogger;
     std::unique_ptr<GTE> m_gte;
     std::unique_ptr<RAMLogger> m_ramLogger;
+    std::unique_ptr<SPULogger> m_spuLogger;
     std::unique_ptr<HW> m_hw;
     std::unique_ptr<Lua> m_lua;
     std::unique_ptr<MDEC> m_mdec;
@@ -313,9 +329,12 @@ class Emulator {
     std::unique_ptr<ShmDisplay> m_shmDisplay;
     std::unique_ptr<SPUInterface> m_spu;
     std::unique_ptr<WebServer> m_webServer;
+    // Last, so it is destroyed first: its teardown removes breakpoints from m_debug.
+    std::unique_ptr<AllocTracker> m_allocTracker;
 
   private:
     PcsxConfig m_config;
+    std::atomic<int> m_turboFactor{1};
 };
 
 }  // namespace PCSX

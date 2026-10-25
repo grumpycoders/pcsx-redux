@@ -27,6 +27,7 @@
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
 #include "core/pgxp_mem.h"
+#include "core/psxcounters.h"
 #include "core/psxdma.h"
 #include "core/psxhw.h"
 #include "imgui/imgui.h"
@@ -104,7 +105,9 @@ template <GPU::Shading shading, GPU::LineType lineType, GPU::Blend blend>
 void GPU::Line<shading, lineType, blend>::processWrite(Buffer & buf, Logged::Origin origin, uint32_t origvalue, uint32_t length) {
     uint32_t value = buf.get();
     if constexpr (lineType == LineType::Poly) {
-        while ((value & 0xf000f000) != 0x50005000) {
+        // The terminator is only recognized once two vertices are in; before that, the command word and the
+        // second vertex's first word are always vertex data, even when they match the pattern.
+        while ((x.size() < 2) || ((value & 0xf000f000) != 0x50005000)) {
             switch (m_state) {
                 case READ_COLOR:
                     colors.push_back(value & 0xffffff);
@@ -381,10 +384,30 @@ uint32_t PCSX::GPU::readStatus() {
     if (m_irq1Flag) ret |= GPUSTATUS_IRQ1;
     // Let's pretend our input fifo is always ready for more data.
     if ((ret & 0x60000000) == 0x20000000) ret |= 0x02000000;
+    if (dmaBlockRequestLow()) ret &= ~0x12000000;
     return ret;
 }
 
-void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
+uint32_t PCSX::GPU::readStatusFromBus() {
+    uint32_t ret = readStatus();
+    // NTSC 480i: GP1(08h) bits 2 and 5 set, bit 3 clear. Timeline measured on a v2 GPU (SCPH-1001)
+    // at 320 and 640 pixels wide, identical at both, counted in hblanks since the vblank that
+    // opened the field. Bit 31 is 1 from line 23 of the 263-line field until the next vblank, and
+    // 0 everywhere else, vblank included. Bit 13 is 1 from line 5 of the 262-line field until
+    // line 6 of the following 263-line field. A v0 GPU (SCPH-1000) gives the same bit 31 and never
+    // sets bit 13; there is no GPU revision setting, so this models v2. PAL is not measured.
+    if ((m_statusControl[8] & 0x2c) == 0x24) {
+        auto &counters = g_emulator->m_counters;
+        uint32_t line = counters->linesSinceVBlank();
+        bool longField = counters->longField();
+        ret &= ~0x80002000;
+        if (longField && (line >= 23)) ret |= 0x80000000;
+        if (longField ? (line < 6) : (line >= 5)) ret |= 0x00002000;
+    }
+    return ret;
+}
+
+bool PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     uint32_t *ptr;
     uint32_t size, bs;
 
@@ -411,7 +434,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Experimental burst dma transfer (0.333x max)
             scheduleGPUDMAIRQ(size / 3);
 #endif
-            return;
+            return false;
 
         case 0x01000201:  // mem2vram
             bs = (bcr & 0xffff);
@@ -427,7 +450,18 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
                 g_emulator->m_debug->checkDMAread(2, madr, size * 4);
             }
             pgxpMemory(PGXP_ConvertAddress(madr), PGXP_GetMem());
-            directDMAWrite(ptr, size, madr);
+            // Each block waits for GPUSTAT.28. With GP1(04h)=2 it stays low while a polygon or line
+            // command is partially received, and only DMA could deliver the rest, so a block boundary
+            // inside one stops the channel for good: CHCR stays busy and no IRQ is raised.
+            for (uint32_t done = 0; done < size; done += bs) {
+                if (dmaBlockRequestLow()) {
+                    auto &mem = g_emulator->m_mem;
+                    mem->setMADR<2>(madr + done * 4);
+                    mem->setBCR<2>((((size - done) / bs) << 16) | bs);
+                    return true;
+                }
+                directDMAWrite(ptr + done, bs, madr + done * 4);
+            }
 
 #if 0
             // already 32-bit word size ((size * 4) / 4)
@@ -436,7 +470,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // X-Files video interlace. Experimental delay depending of BS.
             scheduleGPUDMAIRQ((7 * size) / bs);
 #endif
-            return;
+            return false;
 
         case 0x00000401:  // Vampire Hunter D: title screen linked list update (see psxhw.c)
         case 0x01000401:  // dma chain
@@ -452,7 +486,7 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
             // Rebel Assault 2 = parse linked list in pieces (todo)
             // Vampire Hunter D = allow edits to linked list (todo)
             scheduleGPUDMAIRQ(size);
-            return;
+            return false;
 
         default:
             PSXDMA_LOG("*** DMA 2 - GPU unknown *** %lx addr = %lx size = %lx\n", chcr, madr, bcr);
@@ -460,6 +494,18 @@ void PCSX::GPU::dma(uint32_t madr, uint32_t bcr, uint32_t chcr) {  // GPU
     }
 
     gpuInterrupt();
+    return false;
+}
+
+bool PCSX::GPU::dmaBlockRequestLow() const {
+    if (m_dmaDirection != 2) return false;
+    for (auto *c : m_polygons) {
+        if (m_processor == c) return true;
+    }
+    for (auto *c : m_lines) {
+        if (m_processor == c) return true;
+    }
+    return false;
 }
 
 void PCSX::GPU::gpuInterrupt() {
@@ -500,6 +546,9 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             m_readFifo->reset();
             m_processor->reset();
             m_defaultProcessor.setActive();
+            m_dmaDirection = 0;
+            // GP1(00h) also resets the display mode, which readStatusFromBus() keys on.
+            m_statusControl[8] = 0x08000000;
             CtrlReset ctrl;
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -526,6 +575,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             write1(&ctrl);
         } break;
         case 4: {
+            m_dmaDirection = value & 3;
             CtrlDmaSetting ctrl(value);
             m_logger->addNode(ctrl, Logged::Origin::CTRLWRITE, value, 1);
             write1(&ctrl);
@@ -556,6 +606,7 @@ void PCSX::GPU::writeStatus(uint32_t value) {
             // default (all Y wraps within 1MB, regardless of fitment). Always
             // present in the 208-pin GPU silicon; retail boards just leave the
             // second 1MB chip unpopulated.
+            drainRenderer();
             m_vram2MBGateOpen = value & 1;
             vramConfigChanged();
         } break;
@@ -1482,22 +1533,47 @@ void PCSX::GPU::Rect<size, textured, blend, modulation>::cumulateStats(GPUStats 
     }
 }
 
+// The GPU does not wrap the vertex plus drawing offset sum. It wraps the pixel address modulo 2048 on both axes
+// before the drawing-area clip (gpu-raster-phase23 W0..W5), so a primitive reaching below -1024 also covers the
+// same pixels shifted by 2048. The logger emits that copy too, or its picture of what a primitive touched is not
+// what was drawn.
+static inline int wrapCoord(int v, int off) { return v + off; }
+
+static void addWrapped(const PCSX::GPU::Logged::AddTri &add, PCSX::OpenGL::ivec2 a, PCSX::OpenGL::ivec2 b,
+                       PCSX::OpenGL::ivec2 c) {
+    const bool wrapX = std::min({a.x(), b.x(), c.x()}) < -1024;
+    const bool wrapY = std::min({a.y(), b.y(), c.y()}) < -1024;
+    auto shifted = [&](int dx, int dy) {
+        add(PCSX::OpenGL::ivec2(a.x() + dx, a.y() + dy), PCSX::OpenGL::ivec2(b.x() + dx, b.y() + dy),
+            PCSX::OpenGL::ivec2(c.x() + dx, c.y() + dy));
+    };
+    shifted(0, 0);
+    if (wrapX) shifted(2048, 0);
+    if (wrapY) shifted(0, 2048);
+    if (wrapX && wrapY) shifted(2048, 2048);
+}
+
 template <PCSX::GPU::Shading shading, PCSX::GPU::Shape shape, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend,
           PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Poly<shading, shape, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y});
+        addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                   {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                   {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
         if constexpr (shape == Shape::Quad) {
-            add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                {x[3] + offset.x, y[3] + offset.y});
+            addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                       {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
         }
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x[0] + offset.x, y[0] + offset.y}, {x[1] + offset.x, y[1] + offset.y},
-                {x[2] + offset.x, y[2] + offset.y});
+            addWrapped(add, {wrapCoord(x[0], offset.x), wrapCoord(y[0], offset.y)},
+                       {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                       {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)});
             if constexpr (shape == Shape::Quad) {
-                add({x[1] + offset.x, y[1] + offset.y}, {x[2] + offset.x, y[2] + offset.y},
-                    {x[3] + offset.x, y[3] + offset.y});
+                addWrapped(add, {wrapCoord(x[1], offset.x), wrapCoord(y[1], offset.y)},
+                           {wrapCoord(x[2], offset.x), wrapCoord(y[2], offset.y)},
+                           {wrapCoord(x[3], offset.x), wrapCoord(y[3], offset.y)});
             }
         }
         if constexpr (textured == Textured::Yes) {
@@ -1531,19 +1607,22 @@ void PCSX::GPU::Line<shading, lineType, blend>::getVertices(AddTri &&add, PixelO
         auto y0 = y[i - 1];
         auto y1 = y[i];
 
-        addLine(std::move(add), x0 + offset.x, y0 + offset.y, x1 + offset.x, y1 + offset.y);
+        addLine([&add](auto v1, auto v2, auto v3) { addWrapped(add, v1, v2, v3); }, wrapCoord(x0, offset.x),
+                wrapCoord(y0, offset.y), wrapCoord(x1, offset.x), wrapCoord(y1, offset.y));
     }
 }
 
 template <PCSX::GPU::Size size, PCSX::GPU::Textured textured, PCSX::GPU::Blend blend, PCSX::GPU::Modulation modulation>
 void PCSX::GPU::Rect<size, textured, blend, modulation>::getVertices(AddTri &&add, PixelOp op) {
     if (op == PixelOp::WRITE) {
-        add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-        add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+        const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+        addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+        addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
     } else if (op == PixelOp::READ) {
         if constexpr (blend == Blend::Semi) {
-            add({x + offset.x, y + offset.y}, {x + w + offset.x, y + offset.y}, {x + w + offset.x, y + h + offset.y});
-            add({x + w + offset.x, y + h + offset.y}, {x + offset.x, y + h + offset.y}, {x + offset.x, y + offset.y});
+            const int rx = wrapCoord(x, offset.x), ry = wrapCoord(y, offset.y);
+            addWrapped(add, {rx, ry}, {rx + w, ry}, {rx + w, ry + h});
+            addWrapped(add, {rx + w, ry + h}, {rx, ry + h}, {rx, ry});
         }
         if constexpr (textured == Textured::Yes) {
             unsigned tx = tpage.tx * 64;

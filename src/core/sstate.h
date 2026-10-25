@@ -91,17 +91,20 @@ typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_1"),
 typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_2"), 22> GtePending2;
 typedef Protobuf::MessageField<GtePendingWriteInfo, TYPESTRING("gte_pending_3"), 23> GtePending3;
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("gte_pending_count"), 24> GtePendingCount;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("next_is_branch_slot"), 25> NextIsBranchSlot;
+typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("next_slot_branch_pc"), 26> NextSlotBranchPC;
 typedef Protobuf::Message<TYPESTRING("Registers"), GPR, CP0, CP2D, CP2C, PC, Code, Cycle, ScheduleMask, ICacheAddr,
                           ICacheCode, NextIsDelaySlot, DelaySlotInfo1, DelaySlotInfo2, CurrentDelayedLoad,
                           ScheduleTargetsField, InISR, MulDivReady, GteReady, GtePending1, GtePending2, GtePending3,
-                          GtePendingCount>
+                          GtePendingCount, NextIsBranchSlot, NextSlotBranchPC>
     Registers;
 typedef Protobuf::MessageField<Registers, TYPESTRING("registers"), 4> RegistersField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("status"), 1> GPUStatus;
 typedef Protobuf::Field<Protobuf::FixedBytes<0x400>, TYPESTRING("control"), 2> GPUControl;
 typedef Protobuf::Field<Protobuf::FixedBytes<0x00200000>, TYPESTRING("vram"), 3> GPUVRam;
-typedef Protobuf::Message<TYPESTRING("GPU"), GPUStatus, GPUControl, GPUVRam> GPU;
+typedef Protobuf::Field<Protobuf::FixedBytes<24>, TYPESTRING("environment"), 4> GPUEnvironment;
+typedef Protobuf::Message<TYPESTRING("GPU"), GPUStatus, GPUControl, GPUVRam, GPUEnvironment> GPU;
 typedef Protobuf::MessageField<GPU, TYPESTRING("gpu"), 5> GPUField;
 
 typedef Protobuf::Field<Protobuf::FixedBytes<0x80000>, TYPESTRING("ram"), 1> SPURam;
@@ -148,9 +151,40 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("noiseVal"), 18> SPUNoiseVa
 // ENDX latch, one bit per voice
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("endx"), 19> SPUEndx;
 
+// main volume sides written by software: bit 0 left, bit 1 right; bit 2 marks the field present
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("mainVolWritten"), 20> SPUMainVolWritten;
+
+// The cpu-side ENVX walk (SPU::impl::EnvelopeCheckpoint), one per voice. ENVX reads are answered
+// from it, so a state restored without it answers them from whatever the walk held before.
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOnCycle"), 1> ECPKeyOnCycle;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("serviceSample"), 2> ECPServiceSample;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("keyOffCycle"), 3> ECPKeyOffCycle;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("keyedOn"), 4> ECPKeyedOn;
+typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("cachedSample"), 5> ECPCachedSample;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedState"), 6> ECPCachedState;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedVol"), 7> ECPCachedVol;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("cachedFraction"), 8> ECPCachedFraction;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("cachedOn"), 9> ECPCachedOn;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("block"), 10> ECPBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("loop"), 11> ECPLoop;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ignoreLoop"), 12> ECPIgnoreLoop;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("left"), 13> ECPLeft;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pos"), 14> ECPPos;
+typedef Protobuf::Field<Protobuf::Int32, TYPESTRING("pitchStep"), 15> ECPPitchStep;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("ended"), 16> ECPEnded;
+typedef Protobuf::Field<Protobuf::Bool, TYPESTRING("untracked"), 17> ECPUntracked;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnBlock"), 18> ECPKeyOnBlock;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("keyOnLoop"), 19> ECPKeyOnLoop;
+typedef Protobuf::Message<TYPESTRING("EnvelopeCheckpoint"), ECPKeyOnCycle, ECPServiceSample, ECPKeyOffCycle, ECPKeyedOn,
+                          ECPCachedSample, ECPCachedState, ECPCachedVol, ECPCachedFraction, ECPCachedOn, ECPBlock,
+                          ECPLoop, ECPIgnoreLoop, ECPLeft, ECPPos, ECPPitchStep, ECPEnded, ECPUntracked, ECPKeyOnBlock,
+                          ECPKeyOnLoop>
+    EnvelopeCheckpoint;
+typedef Protobuf::RepeatedField<EnvelopeCheckpoint, 24, TYPESTRING("envelopeCheckpoint"), 21> EnvelopeCheckpoints;
+
 typedef Protobuf::Message<TYPESTRING("SPU"), SPURam, SPUPorts, XAField, SPUIrq, SPUIrqPtr, Channels, SPUAddr, SPUCtrl,
                           SPUStat, CBStartIndex, CBCurrIndex, CBEndIndex, CBVoiceIndex, CBCDLeft, CBCDRight,
-                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx>
+                          SPUNoiseClock, SPUNoiseCount, SPUNoiseVal, SPUEndx, SPUMainVolWritten, EnvelopeCheckpoints>
     SPU;
 typedef Protobuf::MessageField<SPU, TYPESTRING("spu"), 6> SPUField;
 
@@ -215,7 +249,8 @@ typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("hsync_count"), 2> HSyncCou
 // Field 3 was spu_sync_countdown, dropped when the SPU stopped being pumped on the
 // CPU's scanline schedule. DO NOT REUSE FIELD NUMBER 3 in Counters.
 typedef Protobuf::Field<Protobuf::UInt64, TYPESTRING("psx_next_counter"), 4> PSXNextCounter;
-typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter> Counters;
+typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("field_count"), 5> FieldCount;
+typedef Protobuf::Message<TYPESTRING("Counters"), Rcnts, HSyncCount, PSXNextCounter, FieldCount> Counters;
 typedef Protobuf::MessageField<Counters, TYPESTRING("counters"), 10> CountersField;
 
 typedef Protobuf::Field<Protobuf::UInt32, TYPESTRING("reg0"), 1> MDECReg0;
@@ -344,6 +379,8 @@ typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo0"), 46> 
 typedef Protobuf::MessageField<CDQueueElement, TYPESTRING("responseFifo1"), 47> CDResponseFifo1;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaLeft"), 48> CDXALeft;
 typedef Protobuf::MessageField<CDADPCM, TYPESTRING("xaRight"), 49> CDXARight;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("sectorReadSinceSeek"), 50> CDSectorReadSinceSeek;
+typedef Protobuf::FieldRef<Protobuf::Bool, TYPESTRING("scexCountersReset"), 51> CDScexCountersReset;
 typedef Protobuf::Message<
     TYPESTRING("CDRom"), CDDataFIFO, CDDataFIFOIndex, CDDataFIFOSize, CDDataFIFOPending, CDRegisterAddress, CDMotorOn,
     CDSpeedChanged, CDInvalidLocL, CDDataRequested, CDSubheaderFilter, CDRealtime, CDReadingState, CDStartPlaying,
@@ -351,7 +388,7 @@ typedef Protobuf::Message<
     CDSpeed, CDReadSpan, CDInterruptCauseMask, CDATV, CDATVPending, CDADPCMMuted, CDMode, CDFilterFile, CDFilterChannel,
     CDXAEnded, CDXAFirstSector, CDSoundMapEnabled, CDCurrentPosition, CDSeekPosition, CDLastLocP, CDLastLocL, CDSeed,
     CDLidOpen, CDWasLidOpened, CDLidCloseScheduled, CDLidCloseAtCycles, CDCommandFifo, CDCommandExecuting,
-    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight>
+    CDResponseFifo0, CDResponseFifo1, CDXALeft, CDXARight, CDSectorReadSinceSeek, CDScexCountersReset>
     CDRom;
 typedef Protobuf::MessageField<CDRom, TYPESTRING("cdrom"), 15> CDRomField;
 
@@ -361,12 +398,19 @@ typedef Protobuf::Message<TYPESTRING("SaveState"), SaveStateInfoField, Thumbnail
     SaveState;
 
 typedef Protobuf::ProtoFile<SaveStateInfo, Thumbnail, Memory, DelaySlotInfo, Registers, GPU, ADPCMDecode, XA,
-                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel, SPU, SIO,
-                            CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt, Counters, MDEC, PCdrvFile, Call,
-                            CallStack, CallStacks, SaveState>
+                            ::PCSX::SPU::Chan::Data, ::PCSX::SPU::ADSRInfo, ::PCSX::SPU::ADSRInfoEx, Channel,
+                            EnvelopeCheckpoint, SPU, SIO, CDQueueElement, CDMSF, CDADPCM, CDRom, Hardware, Rcnt,
+                            Counters, MDEC, PCdrvFile, Call, CallStack, CallStacks, SaveState>
     ProtoFile;
 
 SaveState constructSaveState();
+
+// The classes whose private state the save state reads befriend this instead of
+// constructSaveState() itself, so their headers only need a forward declaration of it
+// rather than this whole schema.
+struct Access {
+    static SaveState constructSaveState();
+};
 
 std::string save();
 // Replaces the emulator state right now. Only safe with nothing of the
@@ -375,8 +419,10 @@ bool load(std::string_view data);
 // Loads if it's safe to do so, queues it for the main loop otherwise. This is
 // what every user-facing entry point wants: the Lua bindings, the GUI menu and
 // hotkey, and the web server all reach for a load from callbacks that run in
-// the middle of Counters::update() and R3000Acpu::branchTest().
-void loadSafe(std::string &&data);
+// the middle of Counters::update() and R3000Acpu::branchTest(). Returns false
+// if the data does not parse as a save state, or if a load done right away
+// failed. A queued load that parsed fine is applied by the main loop.
+bool loadSafe(std::string &&data);
 
 /* The in-memory pair. capture()/restore() are save()/load() with the protobuf encode and
    decode taken out: the message already owns a copy of every field, and commit() has always

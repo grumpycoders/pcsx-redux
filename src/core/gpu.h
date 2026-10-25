@@ -98,7 +98,11 @@ class GPU {
     }
 
     uint32_t readStatus();
-    void dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
+    // GPUSTAT as the CPU reads it from 1F801814h: readStatus() plus the bits that follow the
+    // beam position.
+    uint32_t readStatusFromBus();
+    // Returns true when the transfer stopped part way, with MADR and BCR already set.
+    bool dma(uint32_t madr, uint32_t bcr, uint32_t chcr);
     static void gpuInterrupt();
 
     // 2MB VRAM addressing. Two independent axes decide how an access resolves:
@@ -116,6 +120,9 @@ class GPU {
     // Called whenever the bank gate or fitment changes, so a backend can resync
     // any derived state (e.g. the soft renderer's effective drawable height).
     virtual void vramConfigChanged() {}
+    // Called before the bank gate changes. A backend rasterizing off-thread must finish the
+    // primitives already queued, which were issued under the old gate.
+    virtual void drainRenderer() {}
 
     // These set and clear the IRQ1 flag, which readStatus mirrors into GPUSTAT.24.
     void requestIRQ1() {
@@ -151,6 +158,7 @@ class GPU {
 
     void serialize(SaveStateWrapper *);
     void deserialize(const SaveStateWrapper *);
+    void restoreEnvironment(const uint8_t *env, uint32_t status);
 
   private:
     uint32_t s_usedAddr[3];
@@ -175,6 +183,9 @@ class GPU {
     virtual void restoreStatus(uint32_t status) = 0;
 
     virtual void vblank(bool fromGui = false) = 0;
+    // Draws the current display into the GUI's offscreen target without stepping any
+    // emulated state, unlike vblank(). The GUI flips afterwards.
+    virtual void presentFromGui() = 0;
     virtual void addVertex(short sx, short sy, int64_t fx, int64_t fy, int64_t fz) {
         throw std::runtime_error("Not yet implemented");
     }
@@ -187,7 +198,9 @@ class GPU {
     void reset() {
         resetBackend();
         m_irq1Flag = false;
+        drainRenderer();
         m_vram2MBGateOpen = false;
+        m_dmaDirection = 0;
         vramConfigChanged();
         m_dataRet = 0;
         m_readFifo->reset();
@@ -980,6 +993,10 @@ class GPU {
     uint32_t m_drawingEndRaw = 0;
     uint32_t m_drawingOffsetRaw = 0;
     bool m_vram2MBGateOpen = false;  // GP1(09h).0: 1 opens the upper 1MB bank
+    uint32_t m_dmaDirection = 0;     // GP1(04h).0-1
+
+    // GPUSTAT.28 with GP1(04h)=2: low while a polygon or line command is partially received.
+    bool dmaBlockRequestLow() const;
 
     virtual void write0(ClearCache *) = 0;
     virtual void write0(FastFill *) = 0;

@@ -151,6 +151,26 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
         uint32_t value;
     } m_runtimeLoadDelay;
 
+    // GTE register writes (MTC2, CTC2, LWC2) compiled in the current block that have not reached the GTE yet,
+    // oldest first. A write lands once two more instructions have run, as in the interpreter. Between blocks,
+    // writes still in flight live in R3000Acpu::m_gtePending.
+    struct GTEQueuedWrite {
+        uint32_t value;  // The value, when isConst
+        uint8_t reg;
+        uint8_t slot;  // Index into m_gteWriteValues and bit in m_gteWriteLive
+        uint8_t countdown;
+        bool ctrl;
+        bool isConst;
+        // A stall may already have committed it at runtime, which its bit in m_gteWriteLive tells
+        bool uncertain;
+    };
+    struct {
+        GTEQueuedWrite writes[3];
+        unsigned count;
+    } m_gteQueue;
+    uint32_t m_gteWriteValues[3];  // Values of the queued writes, captured at issue
+    uint8_t m_gteWriteLive;        // Bit n set: the write in slot n is still in flight
+
     const int MAX_BLOCK_SIZE = 50;
 
     enum class RegState { Unknown, Constant };
@@ -196,6 +216,14 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     Register m_gprs[32];
     std::array<HostRegister, ALLOCATEABLE_REG_COUNT> m_hostRegs;
     std::optional<uint32_t> m_linkedPC = std::nullopt;
+    // Address of the branch whose delay slot is being compiled. It is the previous word, except for the
+    // instruction at a taken branch's target when that branch had another branch in its slot: that
+    // second branch owns it, and an exception there reports it in EPC.
+    uint32_t m_slotBranchPC = 0;
+    std::optional<uint32_t> m_nestedSlotBranchPC = std::nullopt;
+    // The PC to hand the exception handler: the excepting instruction, or the branch it is the delay slot of plus 4
+    // so that the handler's EPC = PC - 4 for BD lands on that branch.
+    uint32_t exceptionPC() const { return m_inDelaySlot ? m_slotBranchPC + 4 : m_pc - 4; }
 
     template <LoadingMode mode = LoadingMode::Load>
     void reserveReg(int index);
@@ -507,7 +535,16 @@ class DynaRecCPU final : public PCSX::R3000Acpu {
     void recMTC0(uint32_t code);
     void recMTC2(uint32_t code);
     void recMTHI(uint32_t code);
-    void emitStallUntil(uintptr_t readyOffset);
+    void emitGTEStall();
+    void emitGTEWrite(bool ctrl, unsigned reg);
+    void emitGTECommit(const GTEQueuedWrite& write, bool checkLive);
+    void emitGTEFlushQueue(bool commitAll);
+    void makeRoomForGTEWrite();
+    void queueGTEWrite(bool ctrl, unsigned reg, bool isConst, uint32_t value, Xbyak::Reg32 src);
+    void tickGTEWrites();
+    static void gteCommandWrapper(DynaRecCPU* that, uint32_t code, uint32_t liveBits);
+    void drainGTEWrites();
+    static void drainGTEWritesWrapper(DynaRecCPU* that) { that->drainGTEWrites(); }
     void emitMuldivStall();
     void emitMuldivNow();
     void emitMuldivStart(uint32_t latency);

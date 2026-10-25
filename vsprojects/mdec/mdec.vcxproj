@@ -114,6 +114,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tools\mdec\mdec.cc" />
+    <ClCompile Include="..\..\src\core\mdec-decoder.cc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\fmt\fmt.vcxproj">

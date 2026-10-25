@@ -17,6 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no libuv, so no gdb server.
+#ifndef __EMSCRIPTEN__
+
 #include "core/gdb-server.h"
 
 #include <assert.h>
@@ -35,75 +38,115 @@
 
 const char PCSX::GdbClient::toHex[] = "0123456789ABCDEF";
 
-PCSX::GdbServer::GdbServer() : m_listener(g_system->m_eventBus) {
+PCSX::GdbServer::GdbServer() : Network::Server("GDB Server"), m_listener(g_system->m_eventBus) {
     m_listener.listen<Events::SettingsLoaded>([this](const auto& event) {
-        auto& args = g_system->getArgs();
         auto& settings = g_emulator->settings.get<Emulator::SettingDebugSettings>();
-        if (settings.get<Emulator::DebugSettings::GdbServer>() && (m_serverStatus != SERVER_STARTED)) {
-            startServer(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
+        if (settings.get<Emulator::DebugSettings::GdbServer>() && !isRunning()) {
+            start(g_system->getLoop(), settings.get<Emulator::DebugSettings::GdbServerPort>());
         }
     });
     m_listener.listen<Events::Quitting>([this](const auto& event) {
-        if (m_serverStatus == SERVER_STARTED) stopServer();
+        if (isRunning()) stop();
     });
 }
 
-void PCSX::GdbServer::stopServer() {
-    assert(m_serverStatus == SERVER_STARTED);
-    m_serverStatus = SERVER_STOPPING;
-    for (auto& client : m_clients) client.close();
-    uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+void PCSX::GdbServer::onConnection(IO<File> connection) {
+    m_clients.push_back(new GdbClient(connection, g_system->getLoop()));
 }
 
-void PCSX::GdbServer::startServer(uv_loop_t* loop, int port) {
-    assert(m_serverStatus == SERVER_STOPPED);
+void PCSX::GdbServer::onStopped() {
+    // Covers an orderly stop and a failed bind alike. Iterate defensively:
+    // closing a client eventually deletes it, which unlinks it from this list.
+    while (!m_clients.empty()) {
+        auto client = m_clients.begin();
+        client->close();
+        if (!m_clients.empty() && (m_clients.begin() == client)) m_clients.erase(client);
+    }
+}
 
-    uv_tcp_init(loop, &m_server);
-    m_server.data = this;
+void PCSX::GdbServer::onFailed() {
+    g_system->printf(_("GDB server: unable to listen on port %i: %s\n"), port(), lastError());
+}
 
-    struct sockaddr_in bindAddr;
-    int result = uv_ip4_addr("0.0.0.0", port, &bindAddr);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+int PCSX::GdbServer::configuredPort() const {
+    return g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerPort>();
+}
+
+void PCSX::GdbClient::logOutgoing(const Slice& slice) {
+    if (!g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbServerTrace>()) {
         return;
     }
-    result = uv_tcp_bind(&m_server, reinterpret_cast<const sockaddr*>(&bindAddr), 0);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
+    std::string msg(static_cast<const char*>(slice.data()), slice.size());
+    g_system->log(LogClass::GDB, "GDB <-- PCSX %s\n", msg.c_str());
+}
+
+void PCSX::GdbClient::sendRaw(Slice&& raw) {
+    if (!m_connection || m_connection->isClosed()) return;
+    logOutgoing(raw);
+    m_connection->write(std::move(raw));
+}
+
+void PCSX::GdbClient::sendPacket(Slice&& payload) {
+    if (!m_connection || m_connection->isClosed()) return;
+    logOutgoing(payload);
+    uint8_t chksum = 0;
+    auto data = static_cast<const uint8_t*>(payload.data());
+    for (size_t i = 0; i < payload.size(); i++) chksum += data[i];
+    std::string framed;
+    framed.reserve(payload.size() + 4);
+    framed += '$';
+    framed.append(static_cast<const char*>(payload.data()), payload.size());
+    framed += '#';
+    framed += toHex[chksum >> 4];
+    framed += toHex[chksum & 0x0f];
+    Slice out;
+    out.acquire(std::move(framed));
+    m_connection->write(std::move(out));
+}
+
+void PCSX::GdbClient::onReadable() {
+    uint8_t buffer[BUFFER_SIZE];
+    while (m_connection && (m_status == OPEN) && (m_connection->size() > 0)) {
+        auto toRead = std::min(sizeof(buffer), m_connection->size());
+        auto got = m_connection->read(buffer, toRead);
+        if (got <= 0) break;
+        Slice slice;
+        slice.borrow(buffer, got);
+        processData(slice);
+    }
+    // eof() is closed-and-drained, so a peer that hung up mid-packet still gets
+    // everything it managed to send processed before we tear the client down.
+    if (m_connection && m_connection->eof()) close();
+}
+
+void PCSX::GdbClient::close() {
+    if (m_status != OPEN) return;
+    m_status = CLOSING;
+    if (m_connection) {
+        m_connection.asA<UvFifo>()->clearNotifier();
+        m_connection.reset();
+    }
+    // Deleting the client here would free the object the async callback is
+    // running inside of. Hand that off to the async's own close callback, which
+    // uv only runs once the handle is genuinely done.
+    auto context = m_asyncContext;
+    m_asyncContext = nullptr;
+    if (!context) {
+        delete this;
         return;
     }
-    result = uv_listen((uv_stream_t*)&m_server, 16, onNewConnectionTrampoline);
-    if (result != 0) {
-        uv_close(reinterpret_cast<uv_handle_t*>(&m_server), closeCB);
-        return;
-    }
-    m_serverStatus = SERVER_STARTED;
+    uv_close(reinterpret_cast<uv_handle_t*>(&context->m_async), [](uv_handle_t* handle) {
+        auto context = reinterpret_cast<AsyncContext*>(handle);
+        delete context->m_client;
+        delete context;
+    });
 }
 
-void PCSX::GdbServer::closeCB(uv_handle_t* handle) {
-    GdbServer* self = static_cast<GdbServer*>(handle->data);
-    self->m_serverStatus = SERVER_STOPPED;
-}
-
-void PCSX::GdbServer::onNewConnectionTrampoline(uv_stream_t* handle, int status) {
-    GdbServer* self = static_cast<GdbServer*>(handle->data);
-    self->onNewConnection(status);
-}
-
-void PCSX::GdbServer::onNewConnection(int status) {
-    if (status < 0) return;
-    GdbClient* client = new GdbClient(&m_server);
-    if (client->accept(&m_server)) {
-        m_clients.push_back(client);
-    } else {
-        delete client;
-    }
-}
-
-PCSX::GdbClient::GdbClient(uv_tcp_t* srv) : m_listener(g_system->m_eventBus) {
-    m_loop = srv->loop;
-    uv_tcp_init(m_loop, &m_tcp);
-    m_tcp.data = this;
+PCSX::GdbClient::GdbClient(IO<File> connection, uv_loop_t* loop) : m_listener(g_system->m_eventBus) {
+    m_loop = loop;
+    m_connection = connection;
+    m_asyncContext = new AsyncContext{{}, this};
+    m_connection.asA<UvFifo>()->setNotifier(loop, &m_asyncContext->m_async, [this]() { onReadable(); });
     m_listener.listen<Events::ExecutionFlow::Run>([this](const auto& event) { m_exception = false; });
     m_listener.listen<Events::ExecutionFlow::Pause>([this](const auto& event) {
         m_exception = event.exception;
@@ -236,6 +279,18 @@ static std::pair<uint32_t, bool> parseHexNumber(const char* str) {
 }
 
 static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return parseHexNumber(str.c_str()); }
+
+// P<n>=<value>: n in hex with no padding, value as 8 hex digits in target byte order
+static bool parseRegisterWrite(const std::string& cmd, uint32_t& n, uint32_t& value) {
+    auto equal = cmd.find('=');
+    if ((equal == std::string::npos) || (equal < 2) || (cmd.length() != equal + 9)) return false;
+    auto [parsedN, validN] = parseHexNumber(cmd.substr(1, equal - 1));
+    auto [parsedValue, validValue] = parseHexNumber(cmd.substr(equal + 1));
+    if (!validN || !validValue || (parsedN >= 72)) return false;
+    n = parsedN;
+    value = parsedValue;
+    return true;
+}
 
 static const std::string memoryMap = R"(<?xml version="1.0"?>
 <memory-map>
@@ -455,7 +510,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
             ((value & 0x000000ff) << 24);
     auto& regs = g_emulator->m_cpu->m_regs;
     if (n < 32) {
-        regs.GPR.r[n] = value;
+        g_emulator->m_cpu->setGPR(n, value);
     } else if (n == 32) {
         regs.CP0.n.Status = value;
     } else if (n == 33) {
@@ -467,7 +522,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
     } else if (n == 36) {
         regs.CP0.n.Cause = value;
     } else if (n == 37) {
-        regs.pc = value;
+        g_emulator->m_cpu->setPC(value);
     }
 }
 
@@ -493,13 +548,13 @@ void PCSX::GdbClient::processCommand() {
         } else {  // we may need one for 02 ? SIGINT
             write("S05");
         }
-    } else if (m_cmd == "D") {
-        // detach
+    } else if ((m_cmd == "D") || StringsHelpers::startsWith(m_cmd, "D;")) {
+        // detach, with a pid after the semicolon when multiprocess was negotiated
         write("OK");
         close();
     } else if (m_cmd == "qC") {
-        // return current thread id - always p1.t1
-        write("QCp1.t1");
+        // return current thread id - always 1, process-qualified when multiprocess was negotiated
+        write(m_multiprocess ? "QCp1.1" : "QC1");
     } else if (m_cmd == "qAttached") {
         // query if attached to existing process - always true
         write("1");
@@ -513,28 +568,18 @@ void PCSX::GdbClient::processCommand() {
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
     } else if (StringsHelpers::startsWith(m_cmd, "p")) {
-        if (m_cmd.size() != 3) {
+        // read one register: p<n>, with n in hex and no padding, so p4 as well as p25
+        auto [n, valid] = parseHexNumber(m_cmd.substr(1));
+        if ((m_cmd.length() < 2) || !valid || (n >= 72)) {
             write("E00");
-            close();
             return;
         }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
         write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
-        if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
+        // write one register
+        uint32_t n, value;
+        if (!parseRegisterWrite(m_cmd, n, value)) {
             write("E00");
-            close();
-            return;
-        }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
-        auto [value, valid] = parseHexNumber(m_cmd.substr(4));
-        if (!valid) {
-            write("E00");
-            close();
             return;
         }
         setOneRegister(n, value);
@@ -682,14 +727,14 @@ void PCSX::GdbClient::processCommand() {
         write("OK");
     } else if (StringsHelpers::startsWith(m_cmd, qSupported)) {
         auto elements = StringsHelpers::split(m_cmd.substr(qSupported.length()), ";");
-        bool multiprocess = false;
+        m_multiprocess = false;
         for (const auto& element : elements) {
             if (element == "multiprocess+") {
-                multiprocess = true;
+                m_multiprocess = true;
             }
         }
         std::string answer = "PacketSize=47ff;qXfer:threads:read+;QStartNoAckMode+";
-        if (multiprocess) {
+        if (m_multiprocess) {
             answer += ";multiprocess+";
         }
         if (g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
@@ -718,7 +763,8 @@ void PCSX::GdbClient::processCommand() {
                g_emulator->settings.get<Emulator::SettingDebugSettings>().get<Emulator::DebugSettings::GdbManifest>()) {
         writePaged(targetXML, m_cmd.substr(qXferFeatures.length()));
     } else if (StringsHelpers::startsWith(m_cmd, qXferThreads)) {
-        writePaged("<threads><thread id=\"p1.t1\" core=\"0\" name=\"MainThread\"/></threads>",
+        writePaged(m_multiprocess ? "<threads><thread id=\"p1.1\" core=\"0\" name=\"MainThread\"/></threads>"
+                                  : "<threads><thread id=\"1\" core=\"0\" name=\"MainThread\"/></threads>",
                    m_cmd.substr(qXferThreads.length()));
     } else {
         g_system->log(LogClass::GDB, "Unknown GDB command: %s\n", m_cmd.c_str());
@@ -801,3 +847,5 @@ void PCSX::GdbClient::processMonitorCommand(const std::string& cmd) {
 }
 
 PCSX::Slice PCSX::GdbClient::passthroughData(Slice slice) { return slice; }
+
+#endif

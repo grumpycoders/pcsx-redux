@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "supportpsx/iso9660-builder.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <queue>
@@ -35,31 +36,79 @@ SOFTWARE.
 
 #include "iec-60908b/edcecc.h"
 
-void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
-    if (licenseFile && !licenseFile->failed()) {
-        uint8_t licenseData[IEC60908b::FRAMESIZE_RAW * 16];
-        memset(licenseData, 0, sizeof(licenseData));
-        licenseFile->read(licenseData, sizeof(licenseData));
-        if (licenseData[0x2492] == 'L') {
-            // official license file from the sdk, in 2336 bytes per sector.
-            // It's unfortunately usually mangled badly, and we need to massage it.
-            for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + 2336 * i + 8, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
-            }
-            return;
-        } else if (licenseData[0x24e2] == 'L') {
-            // looks like an iso file itself
-            for (unsigned i = 0; i < 16; i++) {
-                writeSectorAt(licenseData + IEC60908b::FRAMESIZE_RAW * i, {0, 2, uint8_t(i)},
-                              IEC60908b::SectorMode::RAW);
-            }
-            return;
-        }
+namespace {
+
+// Directory records and path table entries are sorted by name, then
+// extension (ECMA-119 9.3 and 6.9.1), each compared as if padded with
+// spaces. Directory extents follow that order; file contents keep the
+// insertion order on disc.
+int comparePadded(std::string_view a, std::string_view b) {
+    size_t len = std::max(a.size(), b.size());
+    for (size_t i = 0; i < len; i++) {
+        uint8_t ca = i < a.size() ? a[i] : ' ';
+        uint8_t cb = i < b.size() ? b[i] : ' ';
+        if (ca != cb) return ca < cb ? -1 : 1;
     }
-    uint8_t dummy[2048];
-    memset(dummy, 0, 2048);
-    for (unsigned i = 0; i < 16; i++) {
-        writeSectorAt(dummy, {0, 2, uint8_t(i)}, IEC60908b::SectorMode::M2_FORM1);
+    return 0;
+}
+
+bool isoNameLess(const PCSX::ISO9660::DirTree* a, const PCSX::ISO9660::DirTree* b) {
+    auto split = [](std::string_view name) {
+        auto dot = name.find('.');
+        if (dot == std::string_view::npos) return std::make_pair(name, std::string_view());
+        return std::make_pair(name.substr(0, dot), name.substr(dot + 1));
+    };
+    auto [nameA, extA] = split(a->getName());
+    auto [nameB, extB] = split(b->getName());
+    int c = comparePadded(nameA, nameB);
+    if (c != 0) return c < 0;
+    return comparePadded(extA, extB) < 0;
+}
+
+std::vector<PCSX::ISO9660::DirTree*> sortedChildren(const PCSX::ISO9660::DirTree* dir) {
+    std::vector<PCSX::ISO9660::DirTree*> children;
+    for (auto* child = dir->firstChild(); child; child = child->nextSibling()) children.push_back(child);
+    std::stable_sort(children.begin(), children.end(), isoNameLess);
+    return children;
+}
+
+// A license file made of up to 16 whole sectors of 2336 bytes.
+bool isWholeLicenseSectors(size_t size) { return (size > 0) && (size <= 2336 * 16) && ((size % 2336) == 0); }
+
+// Reads until the buffer is full or the file ends, so a stream that delivers
+// the license in pieces is still seen whole.
+size_t readLicense(PCSX::IO<PCSX::File> file, uint8_t* buffer, size_t size) {
+    size_t total = 0;
+    while (total < size) {
+        auto r = file->read(buffer + total, size - total);
+        if (r <= 0) break;
+        total += r;
+    }
+    return total;
+}
+
+}  // namespace
+
+void PCSX::ISO9660Builder::writeLicense(IO<File> licenseFile) {
+    uint8_t licenseData[IEC60908b::FRAMESIZE_RAW * 16];
+    memset(licenseData, 0, sizeof(licenseData));
+    size_t size = 0;
+    if (licenseFile && !licenseFile->failed()) size = readLicense(licenseFile, licenseData, sizeof(licenseData));
+    auto writeSectors = [this](const uint8_t* data, size_t stride, IEC60908b::SectorMode mode) {
+        for (unsigned i = 0; i < 16; i++) writeSectorAt(data + stride * i, {0, 2, uint8_t(i)}, mode);
+    };
+    if ((licenseData[0x2492] == 'L') || isWholeLicenseSectors(size)) {
+        // official license file from the sdk, in 2336 bytes per sector.
+        // It's unfortunately usually mangled badly, and we need to massage it.
+        // A file made of whole 2336-byte sectors is taken as the same format,
+        // so a custom license works too. Missing sectors stay zero.
+        writeSectors(licenseData + 8, 2336, IEC60908b::SectorMode::M2_FORM1);
+    } else if (licenseData[0x24e2] == 'L') {
+        // looks like an iso file itself
+        writeSectors(licenseData, IEC60908b::FRAMESIZE_RAW, IEC60908b::SectorMode::RAW);
+    } else {
+        memset(licenseData, 0, sizeof(licenseData));
+        writeSectors(licenseData, 0, IEC60908b::SectorMode::M2_FORM1);
     }
 }
 
@@ -317,7 +366,8 @@ uint32_t PCSX::ISO9660Builder::computeDirExtentSize(const ISO9660::DirTree* dir)
     posInSector += dotdotSize;
 
     // Add child entries
-    for (ISO9660::DirTree* child = dir->m_firstChild; child; child = child->m_nextSibling) {
+    for (ISO9660::DirTree* child : sortedChildren(dir)) {
+        if (child->m_skip) continue;
         uint32_t entrySize = computeDirEntrySize(child);
         if (posInSector + entrySize > 2048) {
             total += 2048 - posInSector;
@@ -328,6 +378,16 @@ uint32_t PCSX::ISO9660Builder::computeDirExtentSize(const ISO9660::DirTree* dir)
     }
 
     return total;
+}
+
+void PCSX::ISO9660Builder::checkDirExtentFits(const ISO9660::DirTree* dir) const {
+    uint32_t needed = computeDirExtentSize(dir);
+    if (needed > dir->m_dirSectorCount * 2048) {
+        std::string name = dir == m_root ? std::string("<root>") : dir->m_name;
+        throw std::runtime_error(
+            "ISO9660Builder: directory '" + name + "' needs " + std::to_string((needed + 2047) / 2048) +
+            " sectors for its entries but was created with " + std::to_string(dir->m_dirSectorCount));
+    }
 }
 
 uint32_t PCSX::ISO9660Builder::computePathTableSize() const {
@@ -360,7 +420,7 @@ void PCSX::ISO9660Builder::computeLayout() {
         ISO9660::DirTree* dir = bfsQueue.front();
         bfsQueue.pop();
         m_dirsInBFSOrder.push_back(dir);
-        for (ISO9660::DirTree* child = dir->m_firstChild; child; child = child->m_nextSibling) {
+        for (ISO9660::DirTree* child : sortedChildren(dir)) {
             if (child->m_isDir) bfsQueue.push(child);
         }
     }
@@ -424,6 +484,7 @@ void PCSX::ISO9660Builder::computeLayout() {
 
     // Directory extents in BFS order.
     for (auto* dir : m_dirsInBFSOrder) {
+        checkDirExtentFits(dir);
         applyAnchor(dir);
         dir->m_assignedLBA = currentSector;
         dir->m_computedSize = dir->m_dirSectorCount * 2048;
@@ -588,7 +649,7 @@ void PCSX::ISO9660Builder::serializeDirectory(const ISO9660::DirTree* dir, uint8
     }
 
     // Child entries
-    for (ISO9660::DirTree* child = dir->m_firstChild; child; child = child->m_nextSibling) {
+    for (ISO9660::DirTree* child : sortedChildren(dir)) {
         if (child->m_skip) continue;
         // ISO9660 filename: directories use plain name, files add ";1" suffix
         std::string isoName = child->m_name;
@@ -829,7 +890,11 @@ void PCSX::ISO9660Builder::writeFiles(unsigned threadCount) {
                 memset(sectorData, 0, sizeof(sectorData));
                 uint32_t toRead = std::min(remaining, bytesPerSector);
                 file->m_content->read(sectorData, toRead);
-                writeSectorAt(sectorData, IEC60908b::MSF(lba + 150), file->m_sectorMode);
+                // The layout pass sizes M1 content at 2048 bytes per sector, and the parallel writer below
+                // emits it as Mode 2 Form 1; do the same here.
+                auto mode = file->m_sectorMode == IEC60908b::SectorMode::M1 ? IEC60908b::SectorMode::M2_FORM1
+                                                                            : file->m_sectorMode;
+                writeSectorAt(sectorData, IEC60908b::MSF(lba + 150), mode);
                 lba++;
                 remaining -= toRead;
             }

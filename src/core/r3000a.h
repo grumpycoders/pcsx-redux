@@ -177,12 +177,30 @@ enum class Schedule : unsigned {
     CDRDMA,
 };
 
+// The program counter. Reads convert to uint32_t. Outside the cpu core, writes go through
+// R3000Acpu::setPC(), which also drops a branch still pending in a delay slot. raw() is for
+// the core itself and for the paths that save and restore the whole cpu state.
+class PCRegister {
+  public:
+    operator uint32_t() const { return m_value; }
+    uint32_t &raw() { return m_value; }
+    // Steps to the next instruction. Same caveat as raw(): no pending branch is touched.
+    void increment() { m_value += 4; }
+
+  private:
+    uint32_t m_value = 0;
+};
+// Lets fmt, printf-style formats included, take it as the uint32_t it holds.
+inline uint32_t format_as(PCRegister pc) { return pc; }
+static_assert(sizeof(PCRegister) == sizeof(uint32_t));
+static_assert(std::is_standard_layout_v<PCRegister>);
+
 struct psxRegisters {
     psxGPRRegs GPR;   // General Purpose Registers
     psxCP0Regs CP0;   // COP0 Registers
     psxCP2Data CP2D;  // COP2 data registers
     psxCP2Ctrl CP2C;  // COP2 control registers
-    uint32_t pc;      // Program counter
+    PCRegister pc;    // Program counter
     uint32_t code;    // The current instruction
     uint64_t cycle;
     uint64_t previousCycles;
@@ -386,6 +404,13 @@ class R3000Acpu {
     float m_scheduleScales[static_cast<unsigned>(Schedule::CDRDMA) + 1] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                                                            1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     bool m_shellStarted = false;
+    // Set by Emulator::vsync(), consumed by hasToRun(). It makes Execute()
+    // RETURN once per emulated frame rather than only when the emulator is
+    // paused. Frames were always rendered on this boundary - what was missing
+    // is control coming back to the caller on it, which is what an
+    // emscripten_set_main_loop callback has to do so the browser can run its
+    // own event loop between frames.
+    bool m_frameDone = false;
 
     virtual void Reset() {
         invalidateCache();
@@ -396,6 +421,10 @@ class R3000Acpu {
     bool m_inRunUntil = false;
     bool m_nextIsDelaySlot = false;
     bool m_inDelaySlot = false;
+    // The next instruction is the delay slot of the branch at m_nextSlotBranchPC, taken or not.
+    // Only the interpreter sets these.
+    bool m_nextIsBranchSlot = false;
+    uint32_t m_nextSlotBranchPC = 0;
     struct {
         uint32_t index = 0;
         uint32_t value = 0;
@@ -416,6 +445,11 @@ class R3000Acpu {
     };
     GTEPendingWrite m_gtePending[3] = {};
     uint32_t m_gtePendingCount = 0;
+    // Lands a write through GTE::MTC2 / GTE::CTC2.
+    void gteCommit(const GTEPendingWrite &w);
+    // Runs a GTE command with the writes in m_gtePending, which it empties. execute runs the
+    // command itself on the registers as the command reads them.
+    void gteRunCommand(uint32_t code, void (*execute)(R3000Acpu *cpu, uint32_t code));
     template <typename T = uint32_t>
     T &delayedLoadRef(unsigned reg, uint32_t mask = 0) {
         if (reg >= 32) abort();
@@ -428,6 +462,28 @@ class R3000Acpu {
     void delayedLoad(unsigned reg, uint32_t value, uint32_t mask = 0) {
         auto &ref = delayedLoadRef(reg, mask);
         ref = value;
+    }
+    // Moves pc from outside the instruction stream. Paused in a delay slot, the branch is
+    // still pending and would take the instruction at the new pc as its delay slot, then
+    // jump to its own target anyway.
+    void setPC(uint32_t value) {
+        m_regs.pc.raw() = value;
+        m_nextIsDelaySlot = false;
+        m_inDelaySlot = false;
+        m_nextIsBranchSlot = false;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            delayedLoad.pcActive = false;
+            delayedLoad.fromLink = false;
+        }
+    }
+    // Writes a register from outside the instruction stream. Paused right after a load, the
+    // loaded value is still pending and would land over the new one on the next step.
+    void setGPR(unsigned index, uint32_t value) {
+        if (index >= 34) return;
+        m_regs.GPR.r[index] = index == 0 ? 0 : value;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            if (delayedLoad.index == index) delayedLoad.active = false;
+        }
     }
     void delayedPCLoad(uint32_t value, bool fromLink) {
         auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
@@ -462,11 +518,20 @@ class R3000Acpu {
     static inline const uint32_t SWR_SHIFT[4] = {0, 8, 16, 24};
     inline bool hasToRun() {
         if (!m_shellStarted) {
-            uint32_t &pc = m_regs.pc;
+            uint32_t &pc = m_regs.pc.raw();
             if (pc == 0x80030000) {
                 m_shellStarted = true;
                 g_system->m_eventBus->signal(Events::ExecutionFlow::ShellReached{});
             }
+        }
+        // Consumed HERE, on the way out, rather than anywhere that runs every
+        // call: hasToRun() is evaluated once per block - roughly every fifty
+        // instructions and around jumps, on the interpreter and both dynarecs
+        // alike - so clearing it on entry would wipe it microseconds after
+        // vsync() set it and the loop would never see it.
+        if (m_frameDone) {
+            m_frameDone = false;
+            return false;
         }
         return g_system->running();
     }
@@ -609,11 +674,23 @@ Formula One 2001
             : IO<File>(new PosixFile(filename, FileOps::TRUNCATE)) {}
         PCdrvFile(const std::filesystem::path &filename, FileOps::Create)
             : IO<File>(new PosixFile(filename, FileOps::CREATE)) {}
-        virtual ~PCdrvFile() = default;
+        // A TCP stream (tcp://host:port) or the networking probe (probe:net). Neither is a
+        // real file: they are not saved in save states, and lseek on them fails.
+        enum class Kind { File, Socket, Probe };
+        PCdrvFile(IO<File> file, Kind kind) : IO<File>(std::move(file)), m_kind(kind) {}
+        virtual ~PCdrvFile();
+        bool refusesWrite() {
+            if (m_kind == Kind::Probe) return true;
+            return (m_kind == Kind::Socket) && (*this)->failed();
+        }
         std::string m_relativeFilename;
+        const Kind m_kind = Kind::File;
     };
     PCdrvFiles m_pcdrvFiles;
     std::list<uint16_t> m_availableFDs;
+    // PCopen and PCread on network names. Both set v0 and v1.
+    void pcdrvOpenNet(const std::string &filename);
+    void pcdrvReadNet(PCdrvFile &file, IO<File> &memFile);
 
   public:
     void closeAllPCdrvFiles() {
@@ -625,6 +702,7 @@ Formula One 2001
     }
     void listAllPCdrvFiles(std::function<void(uint16_t, std::filesystem::path, bool, size_t, size_t)> walker) {
         for (auto iter = m_pcdrvFiles.begin(); iter != m_pcdrvFiles.end(); iter++) {
+            if (iter->m_kind != PCdrvFile::Kind::File) continue;
             walker(iter->getKey(), iter->m_relativeFilename, (*iter)->writable(), (*iter)->rTell(), (*iter)->wTell());
         }
     }

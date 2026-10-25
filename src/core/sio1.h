@@ -27,7 +27,6 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sio1-server.h"
 #include "support/file.h"
 #include "support/protobuf.h"
 
@@ -117,7 +116,9 @@ class SIO1 {
         }
     }
 
-    bool connecting() { return m_fifo.asA<UvFifo>()->isConnecting(); }
+    // Out-of-lined: the asA<UvFifo>() downcast was the only thing in this header
+    // needing uvfile.h, and through it <uv.h> and libcurl, for all 8 includers.
+    bool connecting();
 
     bool fifoError() {
         if (m_sio1Mode == SIO1Mode::Raw) {

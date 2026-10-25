@@ -20,9 +20,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "supportpsx/iso9660-builder.h"
 #include "supportpsx/iso9660-lowlevel.h"
 
@@ -32,19 +33,25 @@
 static constexpr unsigned c_trailingPaddingSectors = 150;
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> licenseFlag(parser, "license", "", {"license"});
+    args::Flag nopadFlag(parser, "nopad", "", {"nopad"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
 
     fmt::print(R"(
 exe2iso by Nicolas "Pixel" Noble
 https://github.com/grumpycoders/pcsx-redux/tree/main/tools/exe2iso/
 )");
 
-    const auto output = args.get<std::string>("o");
-    const auto inputs = args.positional();
-    const auto license = args.get<std::string>("license");
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
+    const auto inputs = args::get(inputsList);
+    const auto license = PCSX::ToolArgs::get(licenseFlag);
+    const bool asksForHelp = args::get(helpFlag);
     // Padding is on by default; -nopad opts out of the trailing blank sectors.
-    const bool pad = !args.get<bool>("nopad").value_or(false);
+    const bool pad = !args::get(nopadFlag);
     const bool hasOutput = output.has_value();
     const bool hasExactlyOneInput = inputs.size() == 1;
 

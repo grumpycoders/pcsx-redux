@@ -26,14 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/frame.h>
-#include <libavutil/mem.h>
-#include <libswresample/swresample.h>
-}
-
 #include "support/file.h"
 
 namespace PCSX {
@@ -44,7 +36,7 @@ class FFmpegAudioFile : public File {
     enum class Endianness { Little, Big };
     enum class SampleFormat { U8, S16, S32, F32, D64 };
     FFmpegAudioFile(IO<File> file, Channels, Endianness, SampleFormat, unsigned frequency);
-    virtual ~FFmpegAudioFile() {}
+    ~FFmpegAudioFile();
     virtual ssize_t rSeek(ssize_t pos, int wheel) final override;
     virtual ssize_t rTell() final override { return m_filePtr; }
     virtual ssize_t read(void* dest, size_t size) final override;
@@ -59,8 +51,9 @@ class FFmpegAudioFile : public File {
     virtual bool failed() final override { return m_failed || m_file->failed(); }
 
   private:
+    struct Private;
     virtual void closeInternal() final override;
-    AVSampleFormat getSampleFormat() const;
+    int getSampleFormat() const;
     unsigned getSampleSize() const;
     ssize_t decompSome(void* dest, ssize_t size);
     IO<File> m_file;
@@ -72,13 +65,7 @@ class FFmpegAudioFile : public File {
     Endianness m_endianess;
     SampleFormat m_sampleFormat;
     unsigned m_frequency;
-    AVFormatContext* m_formatContext = nullptr;
-    AVIOContext* m_ioContext = nullptr;
-    AVFrame* m_decodedFrame = nullptr;
-    AVFrame* m_resampledFrame = nullptr;
-    AVPacket* m_packet = nullptr;
-    AVCodecContext* m_codecContext = nullptr;
-    SwrContext* m_resamplerContext = nullptr;
+    Private* m_priv = nullptr;
     int m_audioStreamIndex = -1;
     ssize_t m_totalOut = 0;
     size_t m_packetPtr = 0;

@@ -18,10 +18,12 @@
  ***************************************************************************/
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
+#include <vector>
 
 #include "core/psxemulator.h"
 #include "core/r3000a.h"
@@ -59,8 +61,8 @@ inline void PCSX::SPU::impl::StartSound(SPUCHAN *voice) {
 
     // Rewind the decode cursor to the sample start and clear the IIR history.
     voice->adpcm.keyOn();
-    // EXPERIMENTAL key-on startup latency.
-    voice->adpcm.setStartupDelay(settings.get<KeyOnDelay>().value);
+    // Key-on reaches the mixer at the head of this chunk; see AdpcmDecoder::startKeyOn.
+    voice->adpcm.startKeyOn(m_mixPos);
 
     // Force a block decode on the first sample.
     voice->adpcm.emptyBuffer();
@@ -118,17 +120,18 @@ inline void PCSX::SPU::impl::FModChangeFrequency(SPUCHAN *voice, int ns) {
 // across channels, so they are passed by reference.
 ////////////////////////////////////////////////////////////////////////
 
-void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample) {
+void PCSX::SPU::impl::captureVoiceSilence(int ch, int32_t &capVoice1Index, int32_t &capVoice3Index, int fromSample,
+                                          int n) {
     if (ch != 1 && ch != 3) return;
     std::lock_guard<std::mutex> lock(cbMtx);
     if (!mixIrqAddress) return;
     if (ch == 1) {
-        for (int c = fromSample; c < NSSIZE; c++) {
+        for (int c = fromSample; c < n; c++) {
             spuMem[capVoice1Index + kCaptureVoice1Offset] = 0;
             capVoice1Index = (capVoice1Index + 1) % kCaptureRegionSamples;
         }
     } else {
-        for (int c = fromSample; c < NSSIZE; c++) {
+        for (int c = fromSample; c < n; c++) {
             spuMem[capVoice3Index + kCaptureVoice3Offset] = 0;
             capVoice3Index = (capVoice3Index + 1) % kCaptureRegionSamples;
         }
@@ -162,13 +165,12 @@ void PCSX::SPU::impl::captureVoiceSample(int ch, int32_t &capVoice1Index, int32_
 // explicit instantiations are needed.
 ////////////////////////////////////////////////////////////////////////
 
-// Raise SPU IRQ9. The SPU disables its own interrupt when it fires: SPUCNT bit 6 is
-// documented "IRQ9 Enable (0=Disabled/Acknowledge, 1=Enabled)", so the enable drops and
-// the SPUSTAT bit 6 flag latches, and it is software writing the enable back that
-// re-arms it. Without that, one armed address keeps re-firing every time any voice reads
-// it, which a streaming driver re-pointing IRQA per chunk sees as extra interrupts.
+// Raise SPU IRQ9. A match latches the SPUSTAT bit 6 flag and leaves SPUCNT bit 6 set;
+// while the flag is set, further matches raise nothing, however many times a voice
+// passes the address. Writing SPUCNT bit 6 = 0 is the acknowledge that clears the flag,
+// and the next match after the enable is written back to 1 fires again.
 void PCSX::SPU::impl::triggerIrq() {
-    spuCtrl &= ~ControlFlags::IRQEnable;
+    if (spuStat & StatusFlags::IRQFlag) return;
     spuStat |= StatusFlags::IRQFlag;
     // Notify the main emulator.
     scheduleInterrupt();
@@ -178,12 +180,18 @@ void PCSX::SPU::impl::triggerIrq() {
 // the voice's 28-sample buffer, then the two things that hang off that boundary - the IRQ
 // address check, and the loop/stop flag that decides where the cursor goes next. Split out
 // of synthesizeChannel because it is the only part of the pitch loop that is not per-sample.
-// Returns false when the cursor is already parked at kStopped, i.e. the voice ended on a
-// previous pass and the caller must stop synthesizing it.
+// Returns false when the voice ended on a previous pass and the caller must stop synthesizing
+// it. Once it is silent, the readout carries on from the repeat address.
 bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
     // Current decode position.
     uint8_t *cursor = voice->adpcm.curr();
-    if (cursor == AdpcmDecoder::kStopped) return false;
+    if (cursor == AdpcmDecoder::kStopped) {
+        // kStopped after an end block is a mute still owed to an audible voice. Once the voice
+        // is silent the cursor goes to the repeat address, as it does on hardware for every end
+        // block: the readout never stops, and a silent voice still raises IRQ9.
+        if (voice->data.get<Chan::On>().value || voice->adpcm.loop() == nullptr) return false;
+        cursor = voice->adpcm.loop();
+    }
 
     auto &irqDone = voice->data.get<Chan::IrqDone>().value;
     auto &ignoreLoop = voice->data.get<Chan::IgnoreLoop>().value;
@@ -214,9 +222,11 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
         // ENDX latches on the end flag.
         spuEndx |= 1u << ch;
 
-        // Only loop when the flag byte is exactly 3 (loop-end + repeat) and a loop address was
-        // latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
-        // avoids following an address that was never set.
+        // Keep playing only when the flag byte is exactly 3 (loop-end + repeat) and a loop address
+        // was latched. Requiring exactly 3 avoids loop hang-ups (e.g. DQ4), and the null-loop guard
+        // avoids following an address that was never set. Anything else mutes the voice once this
+        // block has played, and kStopped holds that until it does; the jump to the repeat address
+        // happens at the top of the next call.
         cursor = (blockFlags != 3 || voice->adpcm.loop() == nullptr) ? AdpcmDecoder::kStopped : voice->adpcm.loop();
     }
 
@@ -235,14 +245,10 @@ bool PCSX::SPU::impl::decodeNextBlock(int ch, SPUCHAN *voice) {
 // is wanted is the block boundary, where the IRQ address check and the ENDX latch live.
 // A voice with no pitch programmed never advances, which is the one way psx-spx suggests
 // the readout can actually be stopped ("except, probably they CAN be stopped, by setting
-// the sample rate to zero?").
-//
-// Known remaining divergence: a cursor parked at kStopped stays parked and reads nothing.
-// Hardware has no parked state - a voice that consumed an end block without a repeat flag
-// keeps re-reading from its loop address forever - but modelling that means picking an
-// address psx-spx does not pin down, so it is left alone rather than guessed at.
-void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN *voice) {
-    for (int ns = 0; ns < NSSIZE; ns++) {
+// the sample rate to zero?"). A voice silenced by an end block resumes here from its repeat
+// address, see decodeNextBlock.
+void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN *voice, int n) {
+    for (int ns = 0; ns < n; ns++) {
         while (voice->interp.owesSample()) {
             if (voice->adpcm.bufferExhausted() && !decodeNextBlock(ch, voice)) return;
             // Read and discard: only the cursor motion matters here.
@@ -254,7 +260,7 @@ void PCSX::SPU::impl::walkSilentVoice(int ch, SPUCHAN *voice) {
 }
 
 template <PCSX::SPU::FModRole Role, PCSX::SPU::SampleSource Src>
-void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index) {
+void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index, int n) {
     // Being the frequency-modulator SOURCE decides three things at once: the
     // voice bypasses the resampler, it skips the volume and reverb stage, and
     // its output goes to fmodInput rather than the stereo mix.
@@ -265,10 +271,8 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
     if constexpr (kIsFModSource) std::fill(std::begin(fmodInput), std::end(fmodInput), 0);
 
     // The mixing state still lives in the savestate protobuf, so bind it once here
-    // instead of spelling the accessor out at every use. These are all references:
-    // the register path writes several of them from another thread while we mix, so
-    // copying would silently change when a mid-batch write takes effect. FMod and
-    // Noise are no longer among them; they are the template arguments now.
+    // instead of spelling the accessor out at every use. Register writes are applied
+    // by this thread between chunks, never during one.
     auto &isNew = voice->data.get<Chan::New>().value;
     auto &on = voice->data.get<Chan::On>().value;
     auto &stop = voice->data.get<Chan::Stop>().value;
@@ -288,30 +292,37 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 
     if (!on) {
         // The volume sweep runs whether or not the voice is playing.
-        for (int ns = 0; ns < NSSIZE; ns++) voice->volume.step();
+        for (int ns = 0; ns < n; ns++) voice->volume.step();
         // Silent is not stopped. "All voices are permanently reading data from SPU RAM -
         // even in Noise mode, even if the Voice Volume is zero, and even if the ADSR
         // pattern has finished the Release period - so even inaudible voices can trigger
         // IRQs" (psx-spx, SPU Interrupt / Voice Interrupt). The noise path below says the
         // same thing about a voice whose samples are discarded, and this is the same case.
-        walkSilentVoice(ch, voice);
+        walkSilentVoice(ch, voice, n);
         // Nothing reaches the mix, but the capture mirror keeps filling.
-        captureVoiceSilence(ch, capVoice1Index, capVoice3Index, 0);
+        captureVoiceSilence(ch, capVoice1Index, capVoice3Index, 0, n);
         return;
     }
 
     // A new PSX frequency was programmed.
     if (actFreq != usedFreq) VoiceChangeFrequency(voice);
 
-    // Collect 1 ms of this channel's audio.
-    for (int ns = 0; ns < NSSIZE; ns++) {
+    // Collect this chunk of the channel's audio.
+    for (int ns = 0; ns < n; ns++) {
         int rawSample;
 
         voice->volume.step();
 
-        // EXPERIMENTAL key-on startup latency: emit silence and freeze decode/pitch/ADSR
-        // for the first few samples after KEY_ON, matching the hardware capture's leading silence.
+        // Key-on timeline: silence with decode, pitch and envelope frozen until the voice is
+        // serviced and has fetched its first header three times.
         if (voice->adpcm.startupDelayActive()) {
+            const int fetch = voice->adpcm.keyOnAge() - voice->adpcm.keyOnService();
+            if (fetch >= 0 && fetch < AdpcmDecoder::kKeyOnHeaderFetches) {
+                // Key-on clears this voice's ENDX bit when it is serviced.
+                if (fetch == 0) spuEndx &= ~(1u << ch);
+                uint8_t *first = voice->adpcm.start();
+                if ((first[1] & 4) && !voice->data.get<Chan::IgnoreLoop>().value) voice->adpcm.setLoop(first);
+            }
             voice->adpcm.tickStartupDelay();
             sval = 0;
             captureVoiceSample(ch, capVoice1Index, capVoice3Index, 0);
@@ -330,13 +341,14 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
             if (voice->adpcm.bufferExhausted() && !decodeNextBlock(ch, voice)) {
                 // The voice ran off the end of its sample on a previous pass. It is silent
                 // now, but its capture mirror still fills: ns samples are already done this
-                // batch, so write silence for the remaining NSSIZE-ns.
+                // chunk, so write silence for the remaining n-ns.
                 on = false;
                 voice->adsr.ex().get<exVolume>().value = 0;
                 voice->adsr.ex().get<exEnvelopeVol>().value = 0;
-                captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns);
-                // The sweep keeps running for the rest of the batch.
-                for (int rest = ns + 1; rest < NSSIZE; rest++) voice->volume.step();
+                captureVoiceSilence(ch, capVoice1Index, capVoice3Index, ns, n);
+                // The sweep keeps running for the rest of the chunk, and so does the readout.
+                for (int rest = ns + 1; rest < n; rest++) voice->volume.step();
+                walkSilentVoice(ch, voice, n - ns);
                 // Done with this channel.
                 return;
             }
@@ -392,31 +404,149 @@ void PCSX::SPU::impl::synthesizeVoice(int ch, SPUCHAN *voice, int32_t &capVoice1
 // sees them as template arguments. Anything other than 1 or 2 in the FMod field
 // means the voice is not part of a modulation pair, which is exactly what the
 // per-sample equality tests this replaced did with it.
-void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index) {
+void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoice1Index, int32_t &capVoice3Index,
+                                        int n) {
     const bool noise = voice->data.get<Chan::Noise>().value;
 
     switch (voice->data.get<Chan::FMod>().value) {
         case static_cast<int>(FModRole::Target):
             if (noise) {
-                synthesizeVoice<FModRole::Target, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::Target, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index, n);
             } else {
-                synthesizeVoice<FModRole::Target, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::Target, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index, n);
             }
             break;
         case static_cast<int>(FModRole::Source):
             if (noise) {
-                synthesizeVoice<FModRole::Source, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::Source, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index, n);
             } else {
-                synthesizeVoice<FModRole::Source, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::Source, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index, n);
             }
             break;
         default:
             if (noise) {
-                synthesizeVoice<FModRole::None, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::None, SampleSource::Noise>(ch, voice, capVoice1Index, capVoice3Index, n);
             } else {
-                synthesizeVoice<FModRole::None, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index);
+                synthesizeVoice<FModRole::None, SampleSource::Adpcm>(ch, voice, capVoice1Index, capVoice3Index, n);
             }
             break;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+// Emulated time. See interface.h, "Emulated time".
+////////////////////////////////////////////////////////////////////////
+
+void PCSX::SPU::impl::publishHorizon(uint64_t cycle) {
+    // A reset or a savestate load moves the CPU clock backwards, and nothing moves it forwards by
+    // more than a few scanlines between two calls. Either kind of jump is a discontinuity: the
+    // mixer clock is moved to the new time instead of being run up to it.
+    const uint64_t maxForwardJump = PCSX::g_emulator->m_psxClockSpeed;
+    if (cycle < m_lastHorizon || cycle - m_lastHorizon > maxForwardJump) {
+        resync(cycle);
+        return;
+    }
+    m_lastHorizon = cycle;
+    m_horizonCycle.store(cycle);
+    // The mixer only works in whole NSSIZE batches unless the CPU is waiting on it, so there is
+    // nothing to wake it for until a batch is available. Waking it per scanline instead costs
+    // both threads a round trip for 2-3 samples of work.
+    if (m_mixerWaiting.load() && sampleAfter(cycle) >= m_mixedSamples.load() + NSSIZE) {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_mixerWake.notify_one();
+    }
+}
+
+void PCSX::SPU::impl::catchUp(uint64_t cycle) {
+    publishHorizon(cycle);
+    if (!m_mixerRunning.load()) return;
+    const uint64_t target = sampleAfter(cycle);
+    auto done = [this, target]() {
+        return m_mixedSamples.load() >= target && m_eventsApplied.load() == m_eventsPushed.load();
+    };
+    if (done()) return;
+    std::unique_lock<std::mutex> lock(m_syncMutex);
+    m_cpuWaiting.store(true);
+    m_mixerWake.notify_one();
+    while (!done()) m_cpuWake.wait_for(lock, std::chrono::milliseconds(10));
+    m_cpuWaiting.store(false);
+}
+
+void PCSX::SPU::impl::resync(uint64_t cycle) {
+    const bool running = m_mixerRunning.load();
+    if (running) RemoveThread();
+    drainEventsNow();
+    m_mixPos = sampleAfter(cycle);
+    {
+        // The queued CD audio is stamped on the clock being left behind.
+        std::lock_guard<std::mutex> lock(cbMtx);
+        m_cdQueue.clear();
+    }
+    m_mixedSamples.store(m_mixPos);
+    m_lastHorizon = cycle;
+    m_horizonCycle.store(cycle);
+    if (running) SetupThread();
+}
+
+void PCSX::SPU::impl::pushEvent(uint64_t cycle, uint32_t reg, uint16_t value) {
+    const uint64_t pushed = m_eventsPushed.load(std::memory_order_relaxed);
+    if (pushed - m_eventsApplied.load() >= kEventQueueSize) {
+        // Full. Running the mixer up to here applies everything queued.
+        if (m_mixerRunning.load()) {
+            catchUp(cycle);
+        } else {
+            drainEventsNow();
+        }
+    }
+    auto &event = m_events[pushed & (kEventQueueSize - 1)];
+    event.sample = sampleAfter(cycle);
+    event.reg = reg;
+    event.value = value;
+    m_eventsPushed.store(pushed + 1, std::memory_order_release);
+}
+
+void PCSX::SPU::impl::drainEventsNow() {
+    uint64_t applied = m_eventsApplied.load();
+    const uint64_t pushed = m_eventsPushed.load();
+    for (; applied != pushed; applied++) {
+        const auto &event = m_events[applied & (kEventQueueSize - 1)];
+        applyRegister(event.reg, event.value);
+    }
+    m_eventsApplied.store(applied);
+}
+
+void PCSX::SPU::impl::applyDueEvents() {
+    uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
+    const uint64_t pushed = m_eventsPushed.load(std::memory_order_acquire);
+    while (applied != pushed) {
+        const auto &event = m_events[applied & (kEventQueueSize - 1)];
+        if (event.sample > m_mixPos) break;
+        applyRegister(event.reg, event.value);
+        applied++;
+    }
+    m_eventsApplied.store(applied);
+}
+
+void PCSX::SPU::impl::waitForWork() {
+    std::unique_lock<std::mutex> lock(m_syncMutex);
+    m_mixerWaiting.store(true);
+    // The timeout only bounds the cost of a missed wakeup; every producer notifies.
+    m_mixerWake.wait_for(lock, std::chrono::milliseconds(10), [this]() {
+        if (endThread.load()) return true;
+        if (m_cpuWaiting.load()) return true;
+        if (sampleAfter(m_horizonCycle.load()) >= m_mixPos + NSSIZE) return true;
+        const uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
+        if (applied == m_eventsPushed.load()) return false;
+        return m_events[applied & (kEventQueueSize - 1)].sample <= m_mixPos;
+    });
+    m_mixerWaiting.store(false);
+}
+
+void PCSX::SPU::impl::publishProgress() {
+    m_mixedSamples.store(m_mixPos);
+    if (m_cpuWaiting.load()) {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_cpuWake.notify_one();
     }
 }
 
@@ -425,92 +555,183 @@ void PCSX::SPU::impl::synthesizeChannel(int ch, SPUCHAN *voice, int32_t &capVoic
 ////////////////////////////////////////////////////////////////////////
 
 void PCSX::SPU::impl::MainThread() {
-    int ns, ch;
-    int32_t tmpCapVoice1Index = 0;
-    int32_t tmpCapVoice3Index = 0;
-
-    // Run until we are shutting down.
     while (!endThread) {
-        int volumeDivisor = 4 - settings.get<Volume>();
-        // Pacing comes from the blocking enqueue in feedStreamData at the bottom of the loop: the
-        // output ring only drains as the audio output consumes it.
-
-        {
-            // capBufVoiceIndex is reset from the emulation thread (resetCaptureBuffer).
-            std::lock_guard<std::mutex> lock(cbMtx);
-            tmpCapVoice1Index = capBufVoiceIndex;
-            tmpCapVoice3Index = capBufVoiceIndex;
+        applyDueEvents();
+        // Read the horizon before the queue: every write stamped before this horizon is then
+        // visible below, so the chunk cannot run past one.
+        const uint64_t limit = sampleAfter(m_horizonCycle.load());
+        // Mix in whole NSSIZE batches, and short of one only when the CPU is waiting to read.
+        if (m_mixPos >= limit || (limit - m_mixPos < NSSIZE && !m_cpuWaiting.load())) {
+            // Caught up with the CPU. Hand over what is mixed and wait for it to move on.
+            publishProgress();
+            if (!flushOutput()) break;
+            waitForWork();
+            continue;
         }
 
-        // Clock the shared noise generator once per output sample of the batch.
-        for (ns = 0; ns < NSSIZE; ns++) {
-            m_noise.step();
-            noiseLevel[ns] = m_noise.getVal();
+        uint64_t n = std::min<uint64_t>(NSSIZE, limit - m_mixPos);
+        const uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
+        if (applied != m_eventsPushed.load(std::memory_order_acquire)) {
+            // End the chunk where the next queued write comes due.
+            const uint64_t next = m_events[applied & (kEventQueueSize - 1)].sample;
+            n = next > m_mixPos ? std::min(n, next - m_mixPos) : 0;
         }
+        if (n == 0) continue;
 
-        // Collect 1 ms of sound from every channel into the mix accumulators.
-        for (ch = 0; ch < MAXCHAN; ch++) {
-            synthesizeChannel(ch, &s_chan[ch], tmpCapVoice1Index, tmpCapVoice3Index);
+        mixChunk(static_cast<int>(n));
+        m_mixPos += n;
+        publishProgress();
+
+        const size_t buffered = (reinterpret_cast<uint8_t *>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
+        if (buffered >= NSSIZE && !flushOutput()) break;
+    }
+
+    threadEnded = 1;
+}
+
+// MainThread's loop, run on the caller's thread for a fixed number of samples, with the output
+// handed to the caller instead of the audio device.
+void PCSX::SPU::impl::mixSynchronous(int16_t *out, size_t frames) {
+    const uint64_t target = m_mixPos + frames;
+    while (m_mixPos < target) {
+        applyDueEvents();
+        uint64_t n = std::min<uint64_t>(NSSIZE, target - m_mixPos);
+        const uint64_t applied = m_eventsApplied.load(std::memory_order_relaxed);
+        if (applied != m_eventsPushed.load(std::memory_order_acquire)) {
+            // End the chunk where the next queued write comes due.
+            const uint64_t next = m_events[applied & (kEventQueueSize - 1)].sample;
+            n = next > m_mixPos ? std::min(n, next - m_mixPos) : 0;
         }
+        if (n == 0) continue;
 
-        // Write from our temporary capture buffer to the actual SPU RAM.
-        writeCaptureBufferCD(NSSIZE);
+        mixChunk(static_cast<int>(n));
+        m_mixPos += n;
 
-        // Advance the persistent capture write pointer by one batch and reflect
-        // which half of the 0x200-sample capture buffer it now points at in
-        // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff).
-        // Hardware toggles this bit as the 44.1kHz capture pointer crosses the
-        // half boundary; guests sync capture reads on its edge.
-        {
-            std::lock_guard<std::mutex> lock(cbMtx);
-            capBufVoiceIndex = (capBufVoiceIndex + NSSIZE) % kCaptureRegionSamples;
-            if (capBufVoiceIndex & kCaptureHalfMarker)
-                spuStat |= StatusFlags::CBIndex;
-            else
-                spuStat &= ~StatusFlags::CBIndex;
+        const size_t values = pS - reinterpret_cast<int16_t *>(spuBuffer);
+        memcpy(out, spuBuffer, values * sizeof(int16_t));
+        out += values;
+        pS = (int16_t *)spuBuffer;
+    }
+    m_mixedSamples.store(m_mixPos);
+    // The CPU side is now at the last sample mixed, so a write the host makes next lands on the
+    // next sample, and a host that mixes more than a second between two writes is not mistaken
+    // for a forward jump (publishHorizon).
+    if (m_mixPos == 0) return;
+    const uint64_t cycle = sampleToCycle(m_mixPos - 1);
+    if (cycle > m_lastHorizon) {
+        m_lastHorizon = cycle;
+        m_horizonCycle.store(cycle);
+    }
+}
+
+bool PCSX::SPU::impl::flushOutput() {
+    const size_t frames = (reinterpret_cast<uint8_t *>(pS) - spuBuffer) / sizeof(SDLAudio::Frame);
+    if (frames == 0) return true;
+    if (m_wavDump) writeWavDump(reinterpret_cast<SDLAudio::Frame *>(spuBuffer), frames);
+    // When the host emulates a stretch slower than realtime, the device plays silence until the
+    // CPU catches up, and the CPU then runs the same lead ahead of the device as before: what was
+    // mixed during the hitch stays queued, and the sound would stay that much later than the
+    // picture from then on. Normally the queue holds at most the lead, so drop the oldest frames
+    // once it holds more than the lead plus a device period.
+    const size_t lead = getLeadFrames();
+    const size_t buffered = m_audioOut.getFramesBuffered(0);
+    if (buffered + frames > lead + devicePeriodFrames()) {
+        m_audioOut.dropVoiceFrames(buffered + frames - lead);
+    }
+    // Blocks while the device ring is full, which is what paces this thread when the CPU is
+    // further ahead than the ring holds.
+    while (!m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(spuBuffer), frames)) {
+        if (endThread) return false;
+    }
+    pS = (int16_t *)spuBuffer;
+    return true;
+}
+
+void PCSX::SPU::impl::mixChunk(int n) {
+    const int volumeDivisor = 4 - settings.get<Volume>();
+    int ns, ch;
+
+    // The capture mirrors, the CD capture area and the decode-buffer IRQ walk all sit at the
+    // same position of their 0x200-sample ring, and that position is the emulated sample clock.
+    const int32_t ringPos = static_cast<int32_t>(m_mixPos % kCaptureRegionSamples);
+    int32_t capVoice1Index = ringPos;
+    int32_t capVoice3Index = ringPos;
+
+    // Clock the shared noise generator once per output sample of the chunk.
+    for (ns = 0; ns < n; ns++) {
+        m_noise.step();
+        noiseLevel[ns] = m_noise.getVal();
+    }
+
+    // Collect the chunk from every channel into the mix accumulators.
+    for (ch = 0; ch < MAXCHAN; ch++) {
+        synthesizeChannel(ch, &s_chan[ch], capVoice1Index, capVoice3Index, n);
+    }
+
+    // Write from our temporary capture buffer to the actual SPU RAM.
+    writeCaptureBufferCD(n);
+    mixCdInput(n);
+
+    // Reflect which half of the 0x200-sample capture buffer the write pointer is now in, in
+    // SPUSTAT bit 11 (0=first half 0x000-0x0ff, 1=second half 0x100-0x1ff). A CPU read of
+    // SPUSTAT reconstructs this bit from its own cycle; this copy is what a savestate keeps.
+    {
+        std::lock_guard<std::mutex> lock(cbMtx);
+        capBufVoiceIndex = static_cast<int32_t>((m_mixPos + n) % kCaptureRegionSamples);
+        if (capBufVoiceIndex & kCaptureHalfMarker) {
+            spuStat |= StatusFlags::CBIndex;
+        } else {
+            spuStat &= ~StatusFlags::CBIndex;
         }
+    }
 
-        //---------------------------------------------------//
-        // Another 1 ms of sound data is now available.
-        //---------------------------------------------------//
+    ///////////////////////////////////////////////////////
+    // Mix all channels, including reverb, into one buffer.
 
-        ///////////////////////////////////////////////////////
-        // Mix all channels, including reverb, into one buffer.
+    // Main volume scales linearly in value/0x4000 (SCPH-1001: 0x3800 -> -1.16 dB,
+    // 0x2000 -> -6.02 dB against 0x3fff). Measured with reverb off, so where the reverb
+    // output joins relative to it is not settled; it is applied to the sum here. A chunk
+    // ends where the next queued write comes due, so one value holds for the whole chunk.
+    // CD audio has joined the voices already (mixCdInput), ahead of main volume.
+    const int64_t mainLeft = m_mainLeftWritten ? m_mainVolume.left() : kVoiceVolumeUnity;
+    const int64_t mainRight = m_mainRightWritten ? m_mainVolume.right() : kVoiceVolumeUnity;
+    for (ns = 0; ns < n; ns++) {
+        SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
+        SSumL[ns] = static_cast<int>(SSumL[ns] * mainLeft / kVoiceVolumeUnity);
+        *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
+        SSumL[ns] = 0;
 
-        for (ns = 0; ns < NSSIZE; ns++) {
-            SSumL[ns] += m_reverb.mixLeft(ns, spuMem, spuCtrl);
-            *pS++ = std::clamp(SSumL[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
-            SSumL[ns] = 0;
+        SSumR[ns] += m_reverb.mixRight();
+        SSumR[ns] = static_cast<int>(SSumR[ns] * mainRight / kVoiceVolumeUnity);
+        *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
+        SSumR[ns] = 0;
+    }
 
-            SSumR[ns] += m_reverb.mixRight();
-            *pS++ = std::clamp(SSumR[ns] / volumeDivisor, -kMixSampleClamp, kMixSampleClamp);
-            SSumR[ns] = 0;
-        }
+    //////////////////////////////////////////////////////
+    // Special IRQ handling in the decode buffers (0x0000-0x1000).
+    //
+    // The decode buffers are located in SPU memory as follows, with decoded data being 16 bits
+    // per sample:
+    // 0x0000-0x03ff  CD audio left
+    // 0x0400-0x07ff  CD audio right
+    // 0x0800-0x0bff  Voice 1
+    // 0x0c00-0x0fff  Voice 3
+    //
+    // Even if voices 1 and 3 are off, or no CD audio is playing, the internal play positions
+    // keep moving and wrap after 0x400 bytes. Therefore a single pointer from spuMem+0 to
+    // spuMem+0x3ff suffices, increased by 2 bytes on each sample. If that pointer, or one of the
+    // 0x400 offsets of it, hits the SPU IRQ address, an IRQ is generated. Note also that the
+    // channel 0-3 IRQ debug display is reused for these IRQs, as that is the simplest way to
+    // display them in debug mode.
 
-        //////////////////////////////////////////////////////
-        // Special IRQ handling in the decode buffers (0x0000-0x1000).
-        //
-        // The decode buffers are located in SPU memory as follows, with decoded data being 16 bits
-        // per sample:
-        // 0x0000-0x03ff  CD audio left
-        // 0x0400-0x07ff  CD audio right
-        // 0x0800-0x0bff  Voice 1
-        // 0x0c00-0x0fff  Voice 3
-        //
-        // The assumption is that even if voices 1 and 3 are off, or no CD audio is playing, the
-        // internal play positions keep moving and wrap after 0x400 bytes. Therefore a single
-        // pointer from spuMem+0 to spuMem+0x3ff suffices, increased by 2 bytes on each sample. If
-        // that pointer, or one of the 0x400 offsets of it, hits the SPU IRQ address, an IRQ is
-        // generated. The "wait for CPU" option is hard to implement here in some of Peops' timer
-        // modes, so it is ignored in this path. Note also that the channel 0-3 IRQ debug display
-        // is reused for these IRQs, as that is the simplest way to display them in debug mode.
-
-        // mixIrqAddress is armed by resetCaptureBuffer on the emulation thread, so the walk
-        // runs under cbMtx. triggerIrq only sets flags (scheduleInterrupt stores an atomic),
-        // so nothing in here takes another lock. The hold is NSSIZE * 4 compares.
-        std::unique_lock<std::mutex> irqLock(cbMtx);
+    // mixIrqAddress is armed by resetCaptureBuffer on the emulation thread, so the walk
+    // runs under cbMtx. triggerIrq only sets flags (scheduleInterrupt stores an atomic),
+    // so nothing in here takes another lock. The hold is n * 4 compares.
+    {
+        std::lock_guard<std::mutex> irqLock(cbMtx);
         if (mixIrqAddress) {
-            for (ns = 0; ns < NSSIZE; ns++) {
+            mixIrqAddress = spuRamBase + ringPos * 2;
+            for (ns = 0; ns < n; ns++) {
                 if ((spuCtrl & ControlFlags::IRQEnable) && irqAddress && irqAddress < spuRamBase + 0x1000) {
                     for (ch = 0; ch < 4; ch++) {
                         if (irqAddress >= mixIrqAddress + (ch * 0x400) &&
@@ -524,42 +745,22 @@ void PCSX::SPU::impl::MainThread() {
                 if (mixIrqAddress > spuRamBase + 0x3ff) mixIrqAddress = spuRamBase;
             }
         }
-        irqLock.unlock();
-
-        m_reverb.init(NSSIZE);
-
-        //////////////////////////////////////////////////////
-        // Feed the sound. The target update rate is around 1/60 sec (16.666 ms).
-
-        if (iCycle++ > 16) {
-            bool done = false;
-            while (!done) {
-                done = m_audioOut.feedStreamData(reinterpret_cast<SDLAudio::Frame *>(spuBuffer),
-                                                 (((uint8_t *)pS) - ((uint8_t *)spuBuffer)) / sizeof(SDLAudio::Frame));
-                if (endThread) {
-                    threadEnded = 1;
-                    return;
-                }
-            }
-            pS = (int16_t *)spuBuffer;
-            iCycle = 0;
-        }
     }
 
-    threadEnded = 1;
+    m_reverb.init(n);
 }
 
 void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
     std::lock_guard<std::mutex> lock(cbMtx);
     if (mixIrqAddress) {
         // CD audio arrives once per sector, 1/75 s apart in emulated time. Within a few
-        // sectors of the last one the CD is still feeding, and an empty buffer only means
-        // the emulation runs slower than the mixer: wait for it instead of writing silence.
-        // The mixer starts before the CPU exists.
-        const auto *cpu = PCSX::g_emulator->m_cpu.get();
+        // sectors of the last one the CD is still feeding, and an empty buffer means the next
+        // sector has not been decoded yet: leave the slots alone instead of writing silence.
         const uint64_t feeding = PCSX::g_emulator->m_psxClockSpeed * 4 / 75;
         const uint64_t lastFeed = cdFeedCycle;
-        const bool cdFeeding = cpu && (lastFeed != 0) && (cpu->m_regs.cycle - lastFeed < feeding);
+        const uint64_t now = m_horizonCycle.load();
+        const bool cdFeeding = (lastFeed != 0) && (now >= lastFeed) && (now - lastFeed < feeding);
+        captureBuffer.currIndex = static_cast<int32_t>(m_mixPos % 0x200);
         for (int n = 0; n < numbSamples; n++) {
             if (captureBuffer.startIndex == captureBuffer.endIndex) {
                 if (cdFeeding) break;
@@ -573,8 +774,30 @@ void PCSX::SPU::impl::writeCaptureBufferCD(int numbSamples) {
             }
             captureBuffer.currIndex = (captureBuffer.currIndex + 1) % 0x200;
         }
-        // capBufVoiceIndex, tmpCapVoice1Index, tmpCapVoice3Index and captureBuffer.currIndex are
-        // expected to track each other and end up equal.
+    }
+}
+
+// Takes this chunk's CD audio off the queue, one frame per sample, and adds it to the voice mix
+// through CD volume and SPUCNT bit 0. The frames are taken whether or not the input is enabled.
+void PCSX::SPU::impl::mixCdInput(int n) {
+    int cdLeft[NSSIZE];
+    int cdRight[NSSIZE];
+    {
+        std::lock_guard<std::mutex> lock(cbMtx);
+        auto &q = m_cdQueue;
+        for (int ns = 0; ns < n; ns++) {
+            const size_t i = q.popped & (CdAudioQueue::kSize - 1);
+            // Nothing queued, or the next frame is not due yet: the CD input is silent here.
+            const bool due = q.popped != q.pushed && q.stamp[i] <= m_mixPos + ns;
+            cdLeft[ns] = due ? q.left[i] : 0;
+            cdRight[ns] = due ? q.right[i] : 0;
+            q.popped += due ? 1 : 0;
+        }
+    }
+    if (!(spuCtrl & ControlFlags::CDAudioEnable)) return;
+    for (int ns = 0; ns < n; ns++) {
+        SSumL[ns] += cdLeft[ns] * m_cdVolumeLeft / kCdVolumeUnity;
+        SSumR[ns] += cdRight[ns] * m_cdVolumeRight / kCdVolumeUnity;
     }
 }
 
@@ -611,19 +834,26 @@ void PCSX::SPU::impl::wipeChannels() {
         s_chan[i].adpcm.reset();
         s_chan[i].volume.reset();
         s_chan[i].data.reset();
+        m_adsrShadow[i].reset();
+        m_pitchShadow[i] = 0;
+        m_fmodShadow[i] = 0;
     }
     m_reverb.reset();
 }
 
-// Initialization of certain buffers and of the mixing thread.
-void PCSX::SPU::impl::SetupThread() {
-    // Initialize the mixing buffers.
+// Initialization of the mixing buffers.
+void PCSX::SPU::impl::SetupMixBuffers() {
     memset(SSumR, 0, NSSIZE * sizeof(int));
     memset(SSumL, 0, NSSIZE * sizeof(int));
     memset(fmodInput, 0, NSSIZE * sizeof(int));
 
     // Set up the sound buffer pointer.
     pS = (int16_t *)spuBuffer;
+}
+
+// Initialization of certain buffers and of the mixing thread.
+void PCSX::SPU::impl::SetupThread() {
+    SetupMixBuffers();
 
     // Initialize the thread variables.
     endThread = 0;
@@ -631,6 +861,7 @@ void PCSX::SPU::impl::SetupThread() {
     // Flag that initialization is complete.
     bSpuInit = 1;
 
+    m_mixerRunning = true;
     hMainThread = std::thread([this]() { MainThread(); });
 }
 
@@ -638,6 +869,10 @@ void PCSX::SPU::impl::SetupThread() {
 void PCSX::SPU::impl::RemoveThread() {
     // Raise the flag to end the thread.
     endThread = 1;
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_mixerWake.notify_one();
+    }
 
     using namespace std::chrono_literals;
     // Wait until the thread has ended.
@@ -651,6 +886,7 @@ void PCSX::SPU::impl::RemoveThread() {
     // No more SPU is running.
     threadEnded = 0;
     bSpuInit = 0;
+    m_mixerRunning = false;
 }
 
 // Initialize most of the SPU buffers.
@@ -671,6 +907,7 @@ void PCSX::SPU::impl::SetupStreams() {
         // things down.
         // Initialize the sustain level.
         s_chan[i].adsr.ex().get<exSustainLevel>().value = ADSRFlags::SustainLevelMask;
+        m_adsrShadow[i].ex().get<exSustainLevel>().value = ADSRFlags::SustainLevelMask;
         s_chan[i].data.get<PCSX::SPU::Chan::Mute>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::Solo>().value = false;
         s_chan[i].data.get<PCSX::SPU::Chan::IrqDone>().value = 0;
@@ -691,7 +928,12 @@ void PCSX::SPU::impl::RemoveStreams(void) {
 }
 
 // Called by the main emulator after init.
-bool PCSX::SPU::impl::open() {
+bool PCSX::SPU::impl::open() { return openWith(true); }
+
+// Called by a host that mixes on its own thread, instead of open().
+bool PCSX::SPU::impl::openSynchronous() { return openWith(false); }
+
+bool PCSX::SPU::impl::openWith(bool startThread) {
     // Guard against a redundant open.
     if (spuIsOpen) return true;
 
@@ -702,14 +944,34 @@ bool PCSX::SPU::impl::open() {
     spuRamBase = (uint8_t *)spuMem;
     mixIrqAddress = 0;
     wipeChannels();
+    m_mainVolume.reset();
+    m_mainLeftWritten = m_mainRightWritten = false;
+    m_cdVolumeLeft = m_cdVolumeRight = kCdVolumeUnity;
+    m_cdLeftWritten = m_cdRightWritten = false;
+    m_cdQueue.clear();
     irqAddress = 0;
     spuStat &= ~StatusFlags::IRQFlag;
+
+    // The mixer clock starts at sample 0; the first horizon the CPU publishes re-bases it if the
+    // CPU is already far along.
+    m_eventsPushed = 0;
+    m_eventsApplied = 0;
+    m_horizonCycle = 0;
+    m_mixedSamples = 0;
+    m_mixPos = 0;
+    m_lastHorizon = 0;
+    m_ctrlShadow = 0;
+    m_ctrlWritesPending = 0;
 
     // Prepare streaming.
     SetupStreams();
 
-    // Start the thread that feeds data.
-    SetupThread();
+    if (startThread) {
+        // Start the thread that feeds data.
+        SetupThread();
+    } else {
+        SetupMixBuffers();
+    }
 
     spuIsOpen = 1;
 
@@ -727,12 +989,83 @@ long PCSX::SPU::impl::close(void) {
 
     spuIsOpen = 0;
 
-    // No more feeding.
-    RemoveThread();
+    // No more feeding. There is no thread to stop after openSynchronous().
+    if (m_mixerRunning.load()) RemoveThread();
     // No more streaming.
     RemoveStreams();
 
+    m_wavDump.reset();
+
     return 0;
+}
+
+// The mixer runs at 44.1kHz, the rate the pitch computation assumes, and the sink plays it
+// at that same rate. The header sizes are rewritten after every block, so the file is a
+// valid WAV at any point, however the emulator ends up exiting.
+bool PCSX::SPU::impl::setWavDump(const std::filesystem::path &path) {
+    static constexpr uint32_t kRate = 44100;
+    static constexpr uint16_t kChannels = 2;
+    static constexpr uint16_t kBits = 16;
+    static constexpr uint16_t kBlockAlign = kChannels * kBits / 8;
+
+    IO<File> file(new PosixFile(path, FileOps::TRUNCATE));
+    if (file->failed()) return false;
+    file->writeString("RIFF");
+    file->write<uint32_t>(36);
+    file->writeString("WAVE");
+    file->writeString("fmt ");
+    file->write<uint32_t>(16);
+    file->write<uint16_t>(1);
+    file->write<uint16_t>(kChannels);
+    file->write<uint32_t>(kRate);
+    file->write<uint32_t>(kRate * kBlockAlign);
+    file->write<uint16_t>(kBlockAlign);
+    file->write<uint16_t>(kBits);
+    file->writeString("data");
+    file->write<uint32_t>(0);
+    m_wavDump = file;
+    m_wavDumpBytes = 0;
+    return true;
+}
+
+void PCSX::SPU::impl::writeWavDump(const SDLAudio::Frame *frames, size_t count) {
+    static_assert(sizeof(SDLAudio::Frame) == 4);
+    // The RIFF size fields are 32-bit, which caps a capture at about 6h45m.
+    constexpr uint64_t kMaxBytes = UINT32_MAX - 36;
+    uint64_t room = (kMaxBytes - m_wavDumpBytes) / sizeof(SDLAudio::Frame);
+    bool full = count > room;
+    if (full) count = room;
+    size_t size = count * sizeof(SDLAudio::Frame);
+    try {
+        ssize_t written;
+        if constexpr (std::endian::native == std::endian::little) {
+            written = m_wavDump->write(frames, size);
+        } else {
+            auto swap16 = [](int16_t v) { return int16_t(uint16_t(v) >> 8 | uint16_t(v) << 8); };
+            std::vector<int16_t> le(count * 2);
+            for (size_t i = 0; i < count; i++) {
+                le[i * 2] = swap16(frames[i].L);
+                le[i * 2 + 1] = swap16(frames[i].R);
+            }
+            written = m_wavDump->write(le.data(), size);
+        }
+        if (written > 0) m_wavDumpBytes += written;
+        m_wavDump->writeAt<uint32_t>(36 + m_wavDumpBytes, 4);
+        m_wavDump->writeAt<uint32_t>(m_wavDumpBytes, 40);
+        if (written != (ssize_t)size) {
+            g_system->log(LogClass::SPU, "WAV dump: write failed, capture stopped\n");
+            m_wavDump.reset();
+            return;
+        }
+    } catch (const std::exception &e) {
+        g_system->log(LogClass::SPU, "WAV dump: %s, capture stopped\n", e.what());
+        m_wavDump.reset();
+        return;
+    }
+    if (full) {
+        g_system->log(LogClass::SPU, "WAV dump: reached the 4 GB WAV limit, capture stopped\n");
+        m_wavDump.reset();
+    }
 }
 
 // Called by the main emulator on final exit.

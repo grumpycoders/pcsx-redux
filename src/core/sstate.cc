@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/gpu.h"
@@ -33,7 +34,9 @@
 #include "core/sio.h"
 #include "spu/interface.h"
 
-PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
+PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() { return Access::constructSaveState(); }
+
+PCSX::SaveStates::SaveState PCSX::SaveStates::Access::constructSaveState() {
     auto* cd = g_emulator->m_cdrom.get();
     return SaveState{
         SaveStateInfo{
@@ -53,7 +56,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             CP0{g_emulator->m_cpu->m_regs.CP0.r},
             CP2D{g_emulator->m_cpu->m_regs.CP2D.r},
             CP2C{g_emulator->m_cpu->m_regs.CP2C.r},
-            PC{g_emulator->m_cpu->m_regs.pc},
+            PC{g_emulator->m_cpu->m_regs.pc.raw()},
             Code{g_emulator->m_cpu->m_regs.code},
             Cycle{g_emulator->m_cpu->m_regs.cycle},
             ScheduleMask{g_emulator->m_cpu->m_regs.scheduleMask},
@@ -102,6 +105,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
                 GtePendingCountdown{g_emulator->m_cpu->m_gtePending[2].countdown},
             },
             GtePendingCount{g_emulator->m_cpu->m_gtePendingCount},
+            NextIsBranchSlot{g_emulator->m_cpu->m_nextIsBranchSlot},
+            NextSlotBranchPC{g_emulator->m_cpu->m_nextSlotBranchPC},
         },
         GPU{},
         SPU{},
@@ -221,6 +226,8 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::constructSaveState() {
             }},
             CDXALeft{CDADPCM{CDADPCMY0{cd->m_xa.left.y0}, CDADPCMY1{cd->m_xa.left.y1}}},
             CDXARight{CDADPCM{CDADPCMY0{cd->m_xa.right.y0}, CDADPCMY1{cd->m_xa.right.y1}}},
+            CDSectorReadSinceSeek{cd->m_sectorReadSinceSeek},
+            CDScexCountersReset{cd->m_scexCountersReset},
         },
     };
 }
@@ -288,15 +295,18 @@ void PCSX::SaveStates::capture(SaveState& state) {
 
 void PCSX::SaveStates::restore(SaveState& state) {
     SaveStateWrapper wrapper(state);
+    g_emulator->m_allocTracker->reset();
 
+    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
+       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
+       translated from memory we just rewound out from under it. It also wipes the emulated
+       instruction cache, which is part of the snapshot, so it has to run before commit()
+       writes the saved one back. */
+    g_emulator->m_cpu->invalidateCache();
     state.commit();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
-    g_emulator->m_cpu->m_regs.pc &= ~3;
-    /* load() gets code-cache correctness for free by resetting the whole cpu first. We don't
-       reset, so we owe it explicitly: without this a recompiler happily runs blocks it
-       translated from memory we just rewound out from under it. */
-    g_emulator->m_cpu->invalidateCache();
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
@@ -379,6 +389,12 @@ void PCSX::GPU::serialize(SaveStateWrapper* w) {
     for (unsigned i = 0; i < 256; i++) {
         setU32(control + i * 4, m_statusControl[i]);
     }
+
+    gpu.get<GPUEnvironment>().allocate();
+    const auto env = gpu.get<GPUEnvironment>().value;
+    for (unsigned i = 0; i < 6; i++) {
+        setU32(env + i * 4, m_envRaw[i + 1]);
+    }
 }
 
 void PCSX::MDEC::serialize(SaveStateWrapper* w) {
@@ -396,13 +412,20 @@ void PCSX::MDEC::serialize(SaveStateWrapper* w) {
     mdecSave.get<MDECDMABCR>().value = mdec.pending_dma1.bcr;
     mdecSave.get<MDECDMACHCR>().value = mdec.pending_dma1.chcr;
     for (unsigned i = 0; i < 64; i++) {
-        mdecSave.get<MDECIQY>().value[i].value = iq_y[i];
-        mdecSave.get<MDECIQUV>().value[i].value = iq_uv[i];
-        mdecSave.get<MDECQTY>().value[i].value = qt_y[i];
-        mdecSave.get<MDECQTUV>().value[i].value = qt_uv[i];
-        mdecSave.get<MDECScaleTable>().value[i].value = scaletable[i];
+        mdecSave.get<MDECIQY>().value[i].value = m_tables.iqY[i];
+        mdecSave.get<MDECIQUV>().value[i].value = m_tables.iqUV[i];
+        mdecSave.get<MDECQTY>().value[i].value = m_tables.qtY[i];
+        mdecSave.get<MDECQTUV>().value[i].value = m_tables.qtUV[i];
+        mdecSave.get<MDECScaleTable>().value[i].value = m_tables.scale[i];
     }
-    mdecSave.get<MDECCustomScale>().value = customScaleTable ? 1 : 0;
+    // Only deserialisation counts elements, and deserialize() reads a zero count as a state from
+    // before these fields existed. Say they are full, or an in-memory capture restores as one.
+    mdecSave.get<MDECIQY>().count = 64;
+    mdecSave.get<MDECIQUV>().count = 64;
+    mdecSave.get<MDECQTY>().count = 64;
+    mdecSave.get<MDECQTUV>().count = 64;
+    mdecSave.get<MDECScaleTable>().count = 64;
+    mdecSave.get<MDECCustomScale>().value = m_tables.customScale ? 1 : 0;
 }
 
 void PCSX::Counters::serialize(SaveStateWrapper* w) {
@@ -421,30 +444,40 @@ void PCSX::Counters::serialize(SaveStateWrapper* w) {
     }
     counters.get<HSyncCount>().value = m_hSyncCount;
     counters.get<PSXNextCounter>().value = m_psxNextCounter;
+    counters.get<FieldCount>().value = m_fieldCount;
 }
 
-bool PCSX::SaveStates::load(std::string_view data) {
-    SaveState state = constructSaveState();
-
-    Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
+static bool parseSaveState(std::string_view data, PCSX::SaveStates::SaveState& state) {
+    using namespace PCSX::SaveStates;
+    PCSX::Protobuf::InSlice slice(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     try {
         state.deserialize(&slice, 0);
     } catch (...) {
         return false;
     }
-
-    if (state.get<SaveStateInfoField>().get<Version>().value != 5) {
+    // v4 is v5 with 1MB of VRAM; GPU::deserialize restores it into the first 512 rows.
+    const auto version = state.get<SaveStateInfoField>().get<Version>().value;
+    if ((version != 4) && (version != 5)) {
+        PCSX::g_system->printf("Unsupported save state version %u\n", version);
         return false;
     }
+    return true;
+}
+
+bool PCSX::SaveStates::load(std::string_view data) {
+    SaveState state = constructSaveState();
+    if (!parseSaveState(data, state)) return false;
 
     SaveStateWrapper wrapper(state);
     PCSX::g_emulator->m_cpu->Reset();
+    g_emulator->m_allocTracker->reset();
     state.commit();
+    g_emulator->m_cdrom->defaultSeedIfMissing();
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     // x86-64 recompiler might make save states with an unaligned PC, since it ignores the bottom 2 bits
     // So we just force-align it here, since it's never meant to be misaligned
-    g_emulator->m_cpu->m_regs.pc &= ~3;
+    g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
@@ -492,7 +525,7 @@ bool PCSX::SaveStates::load(std::string_view data) {
     return true;
 }
 
-void PCSX::SaveStates::loadSafe(std::string&& data) {
+bool PCSX::SaveStates::loadSafe(std::string&& data) {
     // Inside Execute(), we're being called from something the CPU reached: a
     // Lua event listener (including a Pause listener fired by a breakpoint), an
     // ImGui menu drawn during vsync, the web server polled on hsync.
@@ -501,10 +534,14 @@ void PCSX::SaveStates::loadSafe(std::string&& data) {
     // state here corrupts whatever those frames touch next. Let the main loop
     // do it once they're gone.
     if (g_system->inExecute()) {
+        // Parse it now so a corrupt or foreign state is refused here, where the
+        // caller can still report it, and not later from the main loop.
+        SaveState state = constructSaveState();
+        if (!parseSaveState(data, state)) return false;
         g_system->scheduleSaveStateLoad(std::move(data));
-    } else {
-        load(data);
+        return true;
     }
+    return load(data);
 }
 
 void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
@@ -540,6 +577,19 @@ void PCSX::CallStacks::deserialize(const SaveStateWrapper* w) {
 
 static uint32_t getU32(const uint8_t* ptr) { return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24); }
 
+// The replayed GP1(00h) resets the drawing environment; replay GP0(E1h)..GP0(E6h).
+// A state saved without them still carries the E1h and E6h bits in GPUSTAT.
+void PCSX::GPU::restoreEnvironment(const uint8_t* env, uint32_t status) {
+    if (env) {
+        for (unsigned i = 0; i < 6; i++) writeData(getU32(env + i * 4));
+        return;
+    }
+    // GPUSTAT.10 can read 0 after a textured primitive even with GP0(E1h).10 set, so it does not
+    // say whether drawing to the display area was allowed; restore it as allowed.
+    writeData(0xe1000400 | (status & 0x3ff) | ((status >> 4) & 0x800));
+    writeData(0xe6000000 | ((status >> 11) & 3));
+}
+
 void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     using namespace SaveStates;
     reset();
@@ -553,11 +603,18 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
 
     // GP1(09h) is not replayed through writeStatus below: an unwritten slot
     // reads 0, which would decode as GP1(00h). Restore the bank gate directly.
+    drainRenderer();
     m_vram2MBGateOpen = m_statusControl[9] & 1;
+    m_dmaDirection = (gpu.get<GPUStatus>().value >> 29) & 3;
     vramConfigChanged();
 
+    // A v4 state only carries 1MB of VRAM. Restore it into the lower bank and leave
+    // the upper one as clearVRAM() sets it on a fresh console of this fitment.
+    const bool vram1MB = w->state.get<SaveStateInfoField>().get<Version>().value == 4;
     if (gpu.get<GPUVRam>().value) {
-        partialUpdateVRAM(0, 0, 1024, 1024, reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
+        if (vram1MB) clearVRAM();
+        partialUpdateVRAM(0, 0, 1024, vram1MB ? 512 : 1024,
+                          reinterpret_cast<const uint16_t*>(gpu.get<GPUVRam>().value));
     } else {
         clearVRAM();
     }
@@ -571,6 +628,15 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
     writeStatus(m_statusControl[7]);
     writeStatus(m_statusControl[5]);
     writeStatus(m_statusControl[4]);
+
+    restoreEnvironment(gpu.get<GPUEnvironment>().value, gpu.get<GPUStatus>().value);
+    // The GP1 and environment replays above rebuild the status word from commands, which loses
+    // whatever was set since by other paths (the texpage of the last textured primitive, the
+    // interlace field). The saved word is what the cpu read; that is what it has to read again,
+    // except for the bits readStatus() ORs in live (IRQ1, DMA request, ready-for-VRAM): those
+    // stay as the replay derived them.
+    constexpr uint32_t derived = 0x1b000000;
+    restoreStatus((gpu.get<GPUStatus>().value & ~derived) | (readStatusInternal() & derived));
     // The replayed GP1(00h)/GP1(02h) above clear the IRQ1 flag; put back the saved one.
     m_irq1Flag = gpu.get<GPUStatus>().value & 0x01000000;
 }
@@ -591,8 +657,8 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     mdec.pending_dma1.bcr = mdecSave.get<MDECDMABCR>().value;
     mdec.pending_dma1.chcr = mdecSave.get<MDECDMACHCR>().value;
     for (unsigned i = 0; i < 64; i++) {
-        iq_y[i] = mdecSave.get<MDECIQY>().value[i].value;
-        iq_uv[i] = mdecSave.get<MDECIQUV>().value[i].value;
+        m_tables.iqY[i] = mdecSave.get<MDECIQY>().value[i].value;
+        m_tables.iqUV[i] = mdecSave.get<MDECIQUV>().value[i].value;
     }
     // Fields 12-15 were added without a version bump. A state from before them
     // deserialises zero elements into the repeated fields, which would otherwise
@@ -602,18 +668,19 @@ void PCSX::MDEC::deserialize(const SaveStateWrapper* w) {
     if (mdecSave.get<MDECQTY>().count == 0 || mdecSave.get<MDECQTUV>().count == 0 ||
         mdecSave.get<MDECScaleTable>().count == 0) {
         standardTables_init();
-        qtab_fromIqtab(qt_y, iq_y);
-        qtab_fromIqtab(qt_uv, iq_uv);
+        qtab_fromIqtab(m_tables.qtY, m_tables.iqY);
+        qtab_fromIqtab(m_tables.qtUV, m_tables.iqUV);
         return;
     }
     for (unsigned i = 0; i < 64; i++) {
-        qt_y[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
-        qt_uv[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
-        scaletable[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
+        m_tables.qtY[i] = static_cast<uint8_t>(mdecSave.get<MDECQTY>().value[i].value);
+        m_tables.qtUV[i] = static_cast<uint8_t>(mdecSave.get<MDECQTUV>().value[i].value);
+        m_tables.scale[i] = static_cast<int16_t>(mdecSave.get<MDECScaleTable>().value[i].value);
     }
-    customScaleTable = mdecSave.get<MDECCustomScale>().value != 0;
+    m_tables.customScale = mdecSave.get<MDECCustomScale>().value != 0;
     // Not serialised: an all-zero matrix is what a console holds before MDEC(3).
-    scaleTableUploaded = std::any_of(std::begin(scaletable), std::end(scaletable), [](int16_t v) { return v != 0; });
+    scaleTableUploaded =
+        std::any_of(std::begin(m_tables.scale), std::end(m_tables.scale), [](int16_t v) { return v != 0; });
     warnedNoScaleTable = false;
 }
 
@@ -633,6 +700,7 @@ void PCSX::Counters::deserialize(const SaveStateWrapper* w) {
     }
     m_hSyncCount = counters.get<HSyncCount>().value;
     m_psxNextCounter = counters.get<PSXNextCounter>().value;
+    m_fieldCount = counters.get<FieldCount>().value;
 
     calculateHsync();
     // Recalculate rates from mode registers (handles overclock changes and dotclock)

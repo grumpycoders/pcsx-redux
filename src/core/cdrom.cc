@@ -24,6 +24,7 @@
 #include "core/cdrom.h"
 
 #include <magic_enum/magic_enum_all.hpp>
+#include <random>
 #include <string_view>
 
 #include "cdrom/iso9660-reader.h"
@@ -104,8 +105,25 @@ class CDRomImpl final : public PCSX::CDRom {
         return m_seed >> 9;
     }
 
+    // Real drives never take the same time twice for the same operation, and some games
+    // only get out of a retry loop because of that. Draws come from the seeded generator,
+    // so a run, a save state and a rewind all replay the same sequence.
+    std::chrono::nanoseconds jitter(std::chrono::nanoseconds base, std::chrono::microseconds spread) {
+        const int64_t range = spread.count() * 2 + 1;
+        const int64_t offset = int64_t(rand() % uint64_t(range)) - spread.count();
+        return base + std::chrono::microseconds(offset);
+    }
+    std::chrono::nanoseconds jitter(std::chrono::nanoseconds base, unsigned percent) {
+        return jitter(base, std::chrono::duration_cast<std::chrono::microseconds>(base * percent / 100));
+    }
+
     void reset() override {
-        m_seed = 9223521712174600777ull;
+        m_seed = c_defaultSeed;
+        if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingCDRomEntropySeed>()) {
+            std::random_device rd;
+            m_seed = ((uint64_t(rd()) << 32) | rd()) | 1;
+        }
+        m_powerOnSeed = m_seed;
         m_dataFIFOIndex = 0;
         m_dataFIFOSize = 0;
         m_registerAddress = 0;
@@ -122,6 +140,7 @@ class CDRomImpl final : public PCSX::CDRom {
         m_report = false;
         m_setLocPending = false;
         m_sectorReadSinceSeek = false;
+        m_scexCountersReset = false;
         m_muted = false;
         m_adpcmMuted = false;
         m_mode = 0;
@@ -149,6 +168,17 @@ class CDRomImpl final : public PCSX::CDRom {
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1].clear();
             raiseIRQIfUnmasked();
+            // After a data ready sat unacknowledged, the drive keeps reading, but on an SCPH-7001 and an
+            // SCPH-9002 the next one never came less than 2.1ms after the queued one was handed over
+            // (48 reps). Without this floor a sector can land before a command written right after.
+            if (m_responseFifo[0].value == static_cast<uint8_t>(Cause::DataReady)) {
+                auto &regs = PCSX::g_emulator->m_cpu->m_regs;
+                const unsigned read = static_cast<unsigned>(PCSX::Schedule::CDREAD);
+                const uint64_t floor = regs.cycle + PCSX::psxRegisters::durationToCycles(2100us);
+                if ((regs.scheduleMask & (1 << read)) && (regs.scheduleTargets[read] < floor)) {
+                    scheduleRead(PCSX::psxRegisters::durationToCycles(2100us));
+                }
+            }
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM,
                                     "CD-Rom: response fifo sliding one response, triggering IRQ.\n");
@@ -300,6 +330,13 @@ class CDRomImpl final : public PCSX::CDRom {
     // until the next response replaces them.
     bool maybeEnqueueResponse(QueueElement &response) {
         if (m_responseFifo[0].valueEmpty() && !m_responseFifo[1].empty()) {
+            // A newer data ready replaces a stale one rather than queueing behind it.
+            const uint8_t dataReady = static_cast<uint8_t>(Cause::DataReady);
+            if ((m_responseFifo[1].value == dataReady) && (response.value == dataReady)) {
+                m_responseFifo[0] = response;
+                m_responseFifo[1].clear();
+                return true;
+            }
             m_responseFifo[0] = m_responseFifo[1];
             m_responseFifo[1] = response;
             return true;
@@ -524,7 +561,7 @@ class CDRomImpl final : public PCSX::CDRom {
                             .get<PCSX::Emulator::DebugSettings::LoggingCDROM>()) {
                         logCDROM(m_commandFifo);
                     }
-                    scheduleFifo(797us);
+                    scheduleFifo(jitter(797us, 250us));
                 }
                 m_commandFifo.hasValue = true;
                 break;
@@ -808,7 +845,7 @@ class CDRomImpl final : public PCSX::CDRom {
             if (debug) {
                 PCSX::g_system->log(PCSX::LogClass::CDROM, "CD-Rom: Scheduling queued next command to run.\n");
             }
-            scheduleFifo(797us);
+            scheduleFifo(jitter(797us, 250us));
         } else if (debug) {
             PCSX::g_system->log(PCSX::LogClass::CDROM,
                                 "CD-Rom: Won't schedule next command to run as response fifo is full.\n");
@@ -817,6 +854,8 @@ class CDRomImpl final : public PCSX::CDRom {
 
     enum class SeekType { DATA, CDDA };
 
+    // The off-disc and data-into-audio cases are error timeouts and stay fixed; only a seek that
+    // reaches its target gets jitter.
     std::chrono::nanoseconds computeSeekDelay(MSF from, MSF to, SeekType seekType, bool forReading = false) {
         unsigned destTrack = m_iso->getTrack(to);
         if (destTrack == 0) return 650ms;
@@ -831,10 +870,12 @@ class CDRomImpl final : public PCSX::CDRom {
         }
         // TODO: ought to be a decent approximation for now,
         // but may require some tuning later on.
-        return std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms);
+        return jitter(std::chrono::microseconds(distance * 3) + (forReading ? 1ms : 167ms), 10);
     }
 
-    std::chrono::nanoseconds computeReadDelay() { return m_speed == Speed::Simple ? 13333us : 6666us; }
+    std::chrono::nanoseconds computeReadDelay() {
+        return m_speed == Speed::Simple ? jitter(13333us, 400us) : jitter(6666us, 300us);
+    }
 
     // "Command" 0, which doesn't actually exist.
     bool cdlSync(const QueueElement &command, bool start) {
@@ -1230,7 +1271,7 @@ class CDRomImpl final : public PCSX::CDRom {
             if (m_status == Status::Idle) {
                 schedule(200us);
             } else {
-                schedule(m_speed == Speed::Simple ? 70ms : 35ms);
+                schedule(jitter(m_speed == Speed::Simple ? 70ms : 35ms, 5));
             }
             QueueElement response;
             response.pushPayloadData(getStatus());
@@ -1256,7 +1297,7 @@ class CDRomImpl final : public PCSX::CDRom {
             m_speedChanged = false;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
-            schedule(120ms);
+            schedule(jitter(120ms, 5));
             // TODO: figure out exactly the various states of the CD-Rom controller
             // that are being reset, and their value.
             m_currentPosition.reset();
@@ -1267,7 +1308,6 @@ class CDRomImpl final : public PCSX::CDRom {
             m_sectorReadSinceSeek = false;
             m_speed = Speed::Simple;
             m_status = Status::Idle;
-            m_interruptCauseMask = 0x1f;
             m_readingState = ReadingState::None;
             m_readingType = ReadingType::None;
             m_setLocPending = false;
@@ -1528,14 +1568,25 @@ class CDRomImpl final : public PCSX::CDRom {
         }
 
         switch (command.payload[0]) {
+            case 0x04: {
+                // Restart the SCEx counters; answers INT3(stat) with no second response.
+                m_scexCountersReset = true;
+                QueueElement response;
+                response.pushPayloadData(getStatus());
+                maybeTriggerIRQ(Cause::Acknowledge, response);
+                break;
+            }
             case 0x05: {
                 // SCEx counters (total, success). A stock SCPH-7001 answers 01 01 with a disc and
                 // drives with no readable disc 00 00. GetID reports every disc as licensed, so
-                // this does too.
+                // this does too. After Test 04h a stock SCPH-7001 keeps the success count at 0 and
+                // the total grows with dwell time (01 after 100 ms, 03 after 1.5 s); the total is
+                // not modelled, so answer the shortest-dwell value. Copy-protection checks such as
+                // Yu-Gi-Oh! Forbidden Memories' read a nonzero success count here as a modchip.
                 const uint8_t count = isLidOpen() || !m_iso || m_iso->failed() ? 0 : 1;
                 QueueElement response;
                 response.pushPayloadData(count);
-                response.pushPayloadData(count);
+                response.pushPayloadData(m_scexCountersReset ? 0 : count);
                 maybeTriggerIRQ(Cause::Acknowledge, response);
                 break;
             }
@@ -1591,7 +1642,7 @@ class CDRomImpl final : public PCSX::CDRom {
             QueueElement response;
             response.pushPayloadData(getStatus());
             maybeTriggerIRQ(Cause::Acknowledge, response);
-            schedule(5ms);
+            schedule(jitter(5ms, 5));
             return true;
         } else {
             // Adjust this response for various types of discs and situations.

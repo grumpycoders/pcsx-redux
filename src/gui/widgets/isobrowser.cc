@@ -17,6 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+// v1 wasm has no UvThreadOp caching layer for this UI to drive.
+
 #include "gui/widgets/isobrowser.h"
 
 #include <zlib.h>
@@ -31,8 +33,6 @@
 #include "core/psxemulator.h"
 #include "fmt/format.h"
 #include "imgui/imgui.h"
-#include "lua/luafile.h"
-#include "lua/luawrapper.h"
 #include "support/imgui-helpers.h"
 #include "support/uvfile.h"
 
@@ -128,9 +128,13 @@ void PCSX::Widgets::IsoBrowser::drawFilesystemTree(const ISO9660LowLevel::DirEnt
                         openHexEditor(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
                     }
                 }
-                if (hasFileViewers() && ImGui::MenuItem(_("View"))) {
+                if (m_fileViewers.available() && ImGui::MenuItem(_("View"))) {
                     auto isoPtr = m_cachedIso.lock();
-                    if (isoPtr) openFileViewer(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
+                    if (isoPtr) m_fileViewers.open(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
+                }
+                if (m_sendToDalos && ImGui::MenuItem(_("Send to Dalos"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) m_sendToDalos(fullPath, IO<File>(new CDRIsoFile(isoPtr, lba, size)));
                 }
                 ImGui::EndPopup();
             }
@@ -482,10 +486,17 @@ headers and subheader file boundary markers.)"));
                         openHexEditor(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
                     }
                 }
-                if (hasFileViewers() && ImGui::MenuItem(_("View"))) {
+                if (m_fileViewers.available() && ImGui::MenuItem(_("View"))) {
                     auto isoPtr = m_cachedIso.lock();
                     if (isoPtr) {
-                        openFileViewer(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
+                        m_fileViewers.open(entry.path,
+                                           IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
+                    }
+                }
+                if (m_sendToDalos && ImGui::MenuItem(_("Send to Dalos"))) {
+                    auto isoPtr = m_cachedIso.lock();
+                    if (isoPtr) {
+                        m_sendToDalos(entry.path, IO<File>(new CDRIsoFile(isoPtr, entry.lba, entry.size, entryMode)));
                     }
                 }
                 ImGui::EndPopup();
@@ -831,7 +842,9 @@ significantly by caching the files beforehand.)"));
     }
 
     ImGui::End();
+}
 
+void PCSX::Widgets::IsoBrowser::drawChildren() {
     // Render hex editor windows and clean up closed ones
     for (auto it = m_hexEditors.begin(); it != m_hexEditors.end();) {
         auto& inst = *it;
@@ -861,87 +874,7 @@ significantly by caching the files beforehand.)"));
         ++it;
     }
 
-    drawFileViewers();
-}
-
-// The file viewers live in resources/fileviewers.lua, loaded at startup if it
-// can be found. Without it, the View menu item simply does not show up.
-bool PCSX::Widgets::IsoBrowser::hasFileViewers() {
-    if (!g_emulator->m_lua) return false;
-    auto L = *g_emulator->m_lua;
-    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
-    L.getfield("FileViewers");
-    bool ret = false;
-    if (L.istable()) {
-        L.getfield("open");
-        ret = L.isfunction();
-        L.pop();
-    }
-    L.pop(2);
-    return ret;
-}
-
-void PCSX::Widgets::IsoBrowser::openFileViewer(const std::string& title, IO<File> file) {
-    auto L = *g_emulator->m_lua;
-    L.getfieldtable("PCSX", LUA_GLOBALSINDEX);
-    L.getfield("FileViewers");
-    L.getfield("open");
-    L.remove(-2);
-    L.remove(-2);
-    L.push(new LuaFFI::LuaFile(file));
-    try {
-        L.pcall(1);
-    } catch (...) {
-        return;
-    }
-    if (!L.istable()) {
-        L.pop();
-        return;
-    }
-    // luaL_ref pops the object.
-    auto* inst = new FileViewerInstance(fmt::format(f_("View - {}"), title), L.ref(LUA_REGISTRYINDEX));
-    m_fileViewers.push_back(inst);
-}
-
-void PCSX::Widgets::IsoBrowser::drawFileViewers() {
-    auto L = *g_emulator->m_lua;
-    for (auto it = m_fileViewers.begin(); it != m_fileViewers.end();) {
-        auto& inst = *it;
-        if (!inst.m_open) {
-            callFileViewer(inst, "close");
-            L.unref(inst.m_ref, LUA_REGISTRYINDEX);
-            it = m_fileViewers.erase(it);
-            delete &inst;
-            continue;
-        }
-        ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(inst.m_title.c_str(), &inst.m_open)) {
-            if (inst.m_failed) {
-                ImGui::TextUnformatted(_("The viewer failed, see the Lua console."));
-            } else if (!callFileViewer(inst, "draw")) {
-                inst.m_failed = true;
-            }
-        }
-        ImGui::End();
-        ++it;
-    }
-}
-
-bool PCSX::Widgets::IsoBrowser::callFileViewer(FileViewerInstance& inst, const char* method) {
-    auto L = *g_emulator->m_lua;
-    L.rawgeti(inst.m_ref, LUA_REGISTRYINDEX);
-    L.getfield(method);
-    L.remove(-2);
-    if (!L.isfunction()) {
-        L.pop();
-        return true;
-    }
-    try {
-        L.pcall();
-    } catch (...) {
-        return false;
-    }
-    return true;
+    m_fileViewers.draw();
 }
 
 void PCSX::Widgets::IsoBrowser::openHexEditor(const std::string& title, IO<File> file) {

@@ -107,8 +107,10 @@ void PCSX::GPU::Display::updateDispArea() {
 
     const auto vertRangeStart = std::min<int>(y1, totalScanlines);
     const auto vertRangeEnd = std::min<int>(y2, totalScanlines);
-    int height = std::min<int>(totalScanlines, vertRangeEnd - vertRangeStart);
-    if (info.interlace) {
+    int height = std::clamp<int>(vertRangeEnd - vertRangeStart, 0, totalScanlines);
+    // GP1(08h) bit 2 selects 480 lines only together with bit 5; interlace alone
+    // still shows the same 240-line buffer on both fields.
+    if (info.interlace && info.vres == CtrlDisplayMode::VR_480) {
         height *= 2;
     }
 
@@ -122,8 +124,8 @@ void PCSX::GPU::Display::updateDispArea() {
 
     // Adjust dimensions before normalizing if we have linear filtering on
     if (g_emulator->settings.get<Emulator::SettingLinearFiltering>()) {
-        width -= 2;
-        height -= 2;
+        width = std::max(0, width - 2);
+        height = std::max(0, height - 2);
     }
     sizeNormalized.x() = (float)width / 1024.f;
     sizeNormalized.y() = (float)height / 1024.f;
@@ -132,8 +134,8 @@ void PCSX::GPU::Display::updateDispArea() {
 void PCSX::GPU::Display::setLinearFiltering() {
     auto setting = g_emulator->settings.get<Emulator::SettingLinearFiltering>().value;
     // If linear filtering is on, crop 1 row from the top & bottom, and 1 column from the left & right
-    const int width = size.x() - ((setting) ? 2 : 0);
-    const int height = size.y() - ((setting) ? 2 : 0);
+    const int width = std::max(0, size.x() - ((setting) ? 2 : 0));
+    const int height = std::max(0, size.y() - ((setting) ? 2 : 0));
     const int startX = start.x() + ((setting) ? 1 : 0);
     const int startY = start.y() + ((setting) ? 1 : 0);
 

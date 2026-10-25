@@ -21,7 +21,7 @@
 	url = https://github.com/exoticlibraries/libcester.git
 [submodule "third_party/luajit"]
 	path = third_party/luajit
-	url = https://github.com/grumpycoders/LuaJIT.git
+	url = https://github.com/pcsx-redux/LuaJIT.git
 [submodule "third_party/luv"]
 	path = third_party/luv
 	url = https://github.com/luvit/luv.git
@@ -45,7 +45,7 @@
 	url = https://github.com/herumi/xbyak
 [submodule "third_party/zep"]
 	path = third_party/zep
-	url = https://github.com/grumpycoders/zep.git
+	url = https://github.com/pcsx-redux/zep.git
 [submodule "third_party/capstone"]
 	path = third_party/capstone
 	url = https://github.com/capstone-engine/capstone.git
@@ -57,22 +57,22 @@
 	url = https://github.com/TartanLlama/expected.git
 [submodule "third_party/vixl"]
 	path = third_party/vixl
-	url = https://github.com/grumpycoders/vixl
+	url = https://github.com/pcsx-redux/vixl
 [submodule "third_party/md4c"]
 	path = third_party/md4c
 	url = https://github.com/mity/md4c.git
 [submodule "third_party/imgui_md"]
 	path = third_party/imgui_md
-	url = https://github.com/grumpycoders/imgui_md.git
+	url = https://github.com/pcsx-redux/imgui_md.git
 [submodule "third_party/multipart-parser-c"]
 	path = third_party/multipart-parser-c
 	url = https://github.com/iafonov/multipart-parser-c
 [submodule "third_party/luafilesystem"]
 	path = third_party/luafilesystem
-	url = https://github.com/nicolasnoble/luafilesystem.git
+	url = https://github.com/pcsx-redux/luafilesystem.git
 [submodule "third_party/luacov"]
 	path = third_party/luacov
-	url = https://github.com/grumpycoders/luacov.git
+	url = https://github.com/pcsx-redux/luacov.git
 [submodule "third_party/luaunit"]
 	path = third_party/luaunit
 	url = https://github.com/bluebird75/luaunit.git
@@ -97,9 +97,22 @@
 [submodule "src/mips"]
 	path = src/mips
 	url = https://github.com/pcsx-redux/nugget.git
+[submodule "third_party/lua"]
+	path = third_party/lua
+	url = https://github.com/lua/lua.git
+[submodule "third_party/libffi"]
+	path = third_party/libffi
+	url = https://github.com/libffi/libffi.git
+[submodule "third_party/luaffifb"]
+	path = third_party/luaffifb
+	url = https://github.com/grumpycoders/luaffifb.git
+	branch = wasm-i32-ffi-arg
 [submodule "third_party/thorvg"]
 	path = third_party/thorvg
 	url = https://github.com/pcsx-redux/thorvg.git
 [submodule "third_party/ftxui"]
 	path = third_party/ftxui
 	url = https://github.com/ArthurSonzogni/FTXUI
+[submodule "third_party/args"]
+	path = third_party/args
+	url = https://github.com/Taywee/args.git

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "core/callstacks.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
 #include "core/disr3000a.h"
 #include "core/gte.h"
@@ -91,11 +92,28 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     // An exception taken in a branch delay slot cancels the pending branch. While the delay slot
     // executes, that branch sits in the other delayed load slot.
     // A BREAK that PCdrv handles takes no exception, so the branch stays pending.
+    // Cause.BD and EPC follow the branch whose slot this is, taken or not, and that branch is not
+    // always the previous word: a branch in a taken branch's slot owns the target as its slot.
     bool exception(uint32_t code, bool bd, bool cop0 = false) {
+        bd = bd || m_inBranchSlot;
         bool taken = R3000Acpu::exception(code, bd, cop0);
-        if (taken && bd) m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+        if (taken && bd) {
+            m_delayedLoadInfo[m_currentDelayedLoad ^ 1].pcActive = false;
+            m_regs.CP0.n.EPC = m_slotBranchPC;
+        }
         return taken;
     }
+    // Set by every branch and jump as it executes, taken or not; m_inBranchSlot covers exactly the
+    // next instruction, m_slotBranchPC is the address of that branch.
+    void markBranch() {
+        m_nextIsBranchSlot = true;
+        m_nextSlotBranchPC = m_regs.pc - 4;
+    }
+    bool m_inBranchSlot = false;
+    uint32_t m_slotBranchPC = 0;
+    // A software interrupt raised in a branch slot is taken once the slot completes, at the next
+    // instruction in execution order, with BD clear.
+    bool m_pendingSWInt = false;
     bool exception(Exception e, bool bd, bool cop0 = false) {
         return exception(static_cast<std::underlying_type<Exception>::type>(e) << 2, bd, cop0);
     }
@@ -104,6 +122,11 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     virtual bool Init() override;
     virtual void Reset() override;
     virtual void Execute() override;
+    // Same arming test Debug::checkBP applies: TR and DE set, plus kernel or user mode enabled.
+    bool cop0Armed() const {
+        const uint32_t dcic = m_regs.CP0.n.DCIC;
+        return ((dcic & 0x80800000) == 0x80800000) && (dcic & 0x60000000);
+    }
     virtual RunUntilResult RunUntil(uint32_t stopPC, uint64_t cycleBudget) override;
     virtual void Clear(uint32_t Addr, uint32_t Size) override;
     virtual void Shutdown() override;
@@ -114,7 +137,7 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         if (m_delayedLoadInfo[other].index == index) m_delayedLoadInfo[other].active = false;
     }
     // For the GUI dynarec disassembly widget
-    virtual const uint8_t *getBufferPtr() final { return nullptr; }
+    virtual const uint8_t* getBufferPtr() final { return nullptr; }
     virtual const size_t getBufferSize() final { return 0; }
 
     void psxTestSWInts();
@@ -122,12 +145,12 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
     typedef void (InterpretedCPU::*intFunc_t)(uint32_t code);
     typedef const intFunc_t cIntFunc_t;
 
-    cIntFunc_t *s_pPsxBSC = NULL;
-    cIntFunc_t *s_pPsxSPC = NULL;
-    cIntFunc_t *s_pPsxREG = NULL;
-    cIntFunc_t *s_pPsxCP0 = NULL;
-    cIntFunc_t *s_pPsxCP2 = NULL;
-    cIntFunc_t *s_pPsxCP2BSC = NULL;
+    cIntFunc_t* s_pPsxBSC = NULL;
+    cIntFunc_t* s_pPsxSPC = NULL;
+    cIntFunc_t* s_pPsxREG = NULL;
+    cIntFunc_t* s_pPsxCP0 = NULL;
+    cIntFunc_t* s_pPsxCP2 = NULL;
+    cIntFunc_t* s_pPsxCP2BSC = NULL;
 
     template <bool debug, bool trace, bool detached = false>
     void execBlock();
@@ -284,13 +307,6 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
         if (m_gtePendingCount == 3) gteCommitOldest();
         m_gtePending[m_gtePendingCount++] = {value, reg, ctrl, 3};
     }
-    void gteCommit(const GTEPendingWrite &w) {
-        if (w.ctrl) {
-            PCSX::g_emulator->m_gte->CTC2(w.value, w.reg);
-        } else {
-            PCSX::g_emulator->m_gte->MTC2(w.value, w.reg);
-        }
-    }
     void gteCommitOldest() {
         gteCommit(m_gtePending[0]);
         for (unsigned i = 1; i < m_gtePendingCount; i++) m_gtePending[i - 1] = m_gtePending[i];
@@ -389,12 +405,13 @@ class InterpretedCPU final : public PCSX::R3000Acpu {
 };
 
 inline uint32_t InterpretedCPU::branchBase() {
-    auto &pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
+    auto& pending = m_delayedLoadInfo[m_currentDelayedLoad ^ 1];
     return pending.pcActive ? pending.pcValue : m_regs.pc;
 }
 
 inline void InterpretedCPU::doBranch(uint32_t target, bool fromLink) {
     m_nextIsDelaySlot = true;
+    markBranch();
     delayedPCLoad(target, fromLink);
 }
 
@@ -407,23 +424,19 @@ void InterpretedCPU::psxADDI(uint32_t code) {
     const auto imm = _Imm_;
     uint32_t res = rs + imm;
 
+    bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rt_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(rs, imm);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(rs, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (imm ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADDI instruction from 0x%08x!\n"),
-                                m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -501,22 +514,19 @@ void InterpretedCPU::psxADD(uint32_t code) {
     const auto rs = _rRs_;
     const auto rt = _rRt_;
     uint32_t res = rs + rt;
+    bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                   // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rd_ == 29) {
         if ((_Rs_ == 29) || (_Rt_ == 29)) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                   // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in ADD instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -543,22 +553,19 @@ void InterpretedCPU::psxSUB(uint32_t code) {
     const auto rs = _rRs_;
     const auto rt = _rRt_;
     uint32_t res = rs - rt;
+    bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
+    if (overflow) {                                    // if an overflow occurs, throw an exception
+        m_regs.pc.raw() -= 4;
+        PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
+        exception(Exception::ArithmeticOverflow, m_inDelaySlot);
+        return;
+    }
+
     if (_Rd_ == 29) {
         if (_Rs_ == 29) {
             PCSX::g_emulator->m_callStacks->offsetSP(_rRd_, res - _rRd_);
         } else {
             PCSX::g_emulator->m_callStacks->setSP(_rRd_, res);
-        }
-    }
-
-    if (PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
-            .get<PCSX::Emulator::DebugSettings::Debug>()) {
-        bool overflow = ((rs ^ res) & (~rt ^ res)) >> 31;  // fast signed overflow calculation algorithm
-        if (overflow) {                                    // if an overflow occurs, throw an exception
-            m_regs.pc -= 4;
-            PCSX::g_system->log(PCSX::LogClass::CPU, _("Signed overflow in SUB instruction from 0x%08x!\n"), m_regs.pc);
-            exception(Exception::ArithmeticOverflow, m_inDelaySlot);
-            return;
         }
     }
 
@@ -689,12 +696,14 @@ void InterpretedCPU::psxMULTU(uint32_t code) {
  * Format:  OP rs, offset                                 *
  *********************************************************/
 #define RepZBranchi32(op)                \
+    markBranch();                        \
     if (int32_t(_rRs_) op 0) {           \
         doBranch(_BranchTarget_, false); \
     }
 #define RepZBranchLinki32(op)                                    \
     {                                                            \
         uint32_t ra = m_regs.pc + 4;                             \
+        markBranch();                                            \
         if ((int32_t)_rRs_ op 0) {                               \
             uint32_t sp = m_regs.GPR.n.sp;                       \
             doBranch(_BranchTarget_, true);                      \
@@ -831,12 +840,12 @@ void InterpretedCPU::psxMTLO(uint32_t code) {
  * Format:  OP                                            *
  *********************************************************/
 void InterpretedCPU::psxBREAK(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     exception(Exception::Break, m_inDelaySlot);
 }
 
 void InterpretedCPU::psxSYSCALL(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     exception(Exception::Syscall, m_inDelaySlot);
 }
 
@@ -852,6 +861,7 @@ void InterpretedCPU::psxRFE(uint32_t code) {
  * Format:  OP rs, rt, offset                             *
  *********************************************************/
 #define RepBranchi32(op) \
+    markBranch();        \
     if ((int32_t)_rRs_ op(int32_t) _rRt_) doBranch(_BranchTarget_, false);
 
 void InterpretedCPU::psxBEQ(uint32_t code) { RepBranchi32(==) }  // Branch if Rs == Rt
@@ -877,7 +887,7 @@ void InterpretedCPU::psxJAL(uint32_t code) {
 void InterpretedCPU::psxJR(uint32_t code) {
     // if the jump is unaligned, throw an exception and return
     if (_rRs_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Attempted unaligned JR to 0x%08x from 0x%08x, firing exception!\n"),
                             _rRs_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _rRs_;
@@ -902,7 +912,7 @@ void InterpretedCPU::psxJALR(uint32_t code) {
     // if the address is unaligned, throw an exception and return
     if (temp & 3) {
         // TODO: is Rd modified in this case?
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU,
                             _("Attempted unaligned JALR to 0x%08x from 0x%08x, firing exception!\n"), temp, m_regs.pc);
         m_regs.CP0.n.BadVAddr = temp;
@@ -943,7 +953,7 @@ void InterpretedCPU::psxLBU(uint32_t code) {
 void InterpretedCPU::psxLH(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LH from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -961,7 +971,7 @@ void InterpretedCPU::psxLH(uint32_t code) {
 void InterpretedCPU::psxLHU(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LHU from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -979,7 +989,7 @@ void InterpretedCPU::psxLHU(uint32_t code) {
 void InterpretedCPU::psxLW(uint32_t code) {
     // load delay = 1 latency
     if (_oB_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in LW from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::LoadAddressError, m_inDelaySlot);
@@ -1042,7 +1052,7 @@ void InterpretedCPU::psxLWR(uint32_t code) {
 void InterpretedCPU::psxSB(uint32_t code) { PCSX::g_emulator->m_mem->write8(_oB_, _rRt_); }
 void InterpretedCPU::psxSH(uint32_t code) {
     if (_oB_ & 1) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SH from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::StoreAddressError, m_inDelaySlot);
@@ -1053,7 +1063,7 @@ void InterpretedCPU::psxSH(uint32_t code) {
 
 void InterpretedCPU::psxSW(uint32_t code) {
     if (_oB_ & 3) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         PCSX::g_system->log(PCSX::LogClass::CPU, _("Unaligned address 0x%08x in SW from 0x%08x\n"), _oB_, m_regs.pc);
         m_regs.CP0.n.BadVAddr = _oB_;
         exception(Exception::StoreAddressError, m_inDelaySlot);
@@ -1119,12 +1129,12 @@ void InterpretedCPU::psxCFC0(uint32_t code) {
 }
 
 void InterpretedCPU::psxTestSWInts() {
-    // the next code is untested, if u know please
-    // tell me if it works ok or not (linuzappz)
     if (m_regs.CP0.n.Cause & m_regs.CP0.n.Status & 0x0300 && m_regs.CP0.n.Status & 0x1) {
-        bool inDelaySlot = m_inDelaySlot;
-        m_inDelaySlot = false;
-        exception(m_regs.CP0.n.Cause, inDelaySlot);
+        if (m_inBranchSlot) {
+            m_pendingSWInt = true;
+            return;
+        }
+        exception(m_regs.CP0.n.Cause, false);
     }
 }
 
@@ -1170,7 +1180,7 @@ void InterpretedCPU::psxCFC2(uint32_t code) {
  * Unknown instruction (would generate an exception)     *
  *********************************************************/
 void InterpretedCPU::psxNULL(uint32_t code) {
-    m_regs.pc -= 4;
+    m_regs.pc.raw() -= 4;
     PCSX::g_system->log(PCSX::LogClass::CPU, _("Encountered reserved opcode from 0x%08x, firing an exception\n"),
                         m_regs.pc);
     exception(Exception::ReservedInstruction, m_inDelaySlot);
@@ -1186,10 +1196,11 @@ void InterpretedCPU::psxREGIMM(uint32_t code) { (*this.*(s_pPsxREG[_Rt_]))(code)
 // coprocessor unusable exception, COP0 included, even in kernel mode.
 void InterpretedCPU::psxBCz(uint32_t code, unsigned z) {
     if ((m_regs.CP0.n.Status & (0x10000000 << z)) == 0) {
-        m_regs.pc -= 4;
+        m_regs.pc.raw() -= 4;
         exception((static_cast<uint32_t>(Exception::CoprocessorUnusable) << 2) | (z << 28), m_inDelaySlot);
         return;
     }
+    markBranch();
     if ((_Rt_ & 1) == 0) doBranch(_BranchTarget_, false);
 }
 
@@ -1224,13 +1235,12 @@ void InterpretedCPU::psxCOP2(uint32_t code) {
         (*this.*(s_pPsxCP2[_Funct_]))(code);
         return;
     }
-    // A command sees every queued write. Sony's libgte MulMatrix issues MVMVA one instruction
-    // after mtc2 VZ0 and relies on the new value; nugget tests/gte-store-delay measures SQR reading
-    // IR1 the other way, so the read point depends on the command, and only the transfer side of
-    // the delay is modelled until the commands are measured.
-    while (m_gtePendingCount) gteCommitOldest();
+    gteDrainIfStalling();
     gteStart(gteLatency(_Funct_));
-    (*this.*(s_pPsxCP2[_Funct_]))(code);
+    gteRunCommand(code, [](PCSX::R3000Acpu* cpu, uint32_t code) {
+        auto self = static_cast<InterpretedCPU*>(cpu);
+        (*self.*(self->s_pPsxCP2[_Funct_]))(code);
+    });
 }
 
 void InterpretedCPU::psxCOP3(uint32_t code) {
@@ -1391,7 +1401,9 @@ void InterpretedCPU::pgxpPsxNULL(uint32_t code) {}
         }                                                                         \
         uint32_t tempInstr = code;                                                \
         uint32_t temp2 = reg2;                                                    \
+        const uint32_t pcBefore = m_regs.pc.raw();                                \
         psx##op(code);                                                            \
+        if (m_regs.pc.raw() != pcBefore) return;                                  \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2); \
     }
 
@@ -1428,7 +1440,9 @@ void InterpretedCPU::pgxpPsxNULL(uint32_t code) {}
         uint32_t tempInstr = code;                                                       \
         uint32_t temp2 = reg2;                                                           \
         uint32_t temp3 = reg3;                                                           \
+        const uint32_t pcBefore = m_regs.pc.raw();                                       \
         psx##op(code);                                                                   \
+        if (m_regs.pc.raw() != pcBefore) return;                                         \
         PGXP_PSX_FUNC_OP(pu, op, nReg)(PGXP_DBG_OP_E(op) tempInstr, reg1, temp2, temp3); \
     }
 
@@ -1676,6 +1690,9 @@ void InterpretedCPU::Reset() {
     R3000Acpu::Reset();
     m_nextIsDelaySlot = false;
     m_inDelaySlot = false;
+    m_nextIsBranchSlot = false;
+    m_inBranchSlot = false;
+    m_pendingSWInt = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
@@ -1684,13 +1701,15 @@ void InterpretedCPU::Reset() {
 void InterpretedCPU::Execute() {
     ZoneScoped;
     while (hasToRun()) {
-        const bool &debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& debug = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                 .get<PCSX::Emulator::DebugSettings::Debug>();
-        const bool &trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& trace = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                 .get<PCSX::Emulator::DebugSettings::Trace>();
-        const bool &skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        const bool& skipISR = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
                                   .get<PCSX::Emulator::DebugSettings::SkipISR>();
-        if (debug) {
+        // The cop0 debug unit is always live on silicon: a guest that arms DCIC gets the debug
+        // path whether or not the debugger is enabled.
+        if (debug || cop0Armed()) {
             if (!trace || (skipISR && m_inISR)) {
                 execBlock<true, false>();
             } else {
@@ -1719,11 +1738,14 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
        must not inherit it. Park the bookkeeping and hand it back untouched. */
     const bool savedNextIsDelaySlot = m_nextIsDelaySlot;
     const bool savedInDelaySlot = m_inDelaySlot;
+    const bool savedNextIsBranchSlot = m_nextIsBranchSlot;
+    const uint32_t savedNextSlotBranchPC = m_nextSlotBranchPC;
     const unsigned savedCurrentDelayedLoad = m_currentDelayedLoad;
     const auto savedDelayedLoad0 = m_delayedLoadInfo[0];
     const auto savedDelayedLoad1 = m_delayedLoadInfo[1];
     m_nextIsDelaySlot = false;
     m_inDelaySlot = false;
+    m_nextIsBranchSlot = false;
     m_delayedLoadInfo[0].active = false;
     m_delayedLoadInfo[1].active = false;
     m_delayedLoadInfo[0].pcActive = false;
@@ -1734,7 +1756,7 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
        other part of the harness is relying on. A call that faults is a result here, not an
        incident: we report the code, EPC and BadVAddr in the return value and leave the
        machine alone. Park the mask for the duration. */
-    auto &debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
+    auto& debugSettings = PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>();
     const uint32_t savedFirstChance = debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>();
     debugSettings.get<PCSX::Emulator::DebugSettings::FirstChanceException>() = 0;
 
@@ -1754,6 +1776,8 @@ PCSX::R3000Acpu::RunUntilResult InterpretedCPU::RunUntil(uint32_t stopPC, uint64
         m_inISR = wasInISR;
         m_nextIsDelaySlot = savedNextIsDelaySlot;
         m_inDelaySlot = savedInDelaySlot;
+        m_nextIsBranchSlot = savedNextIsBranchSlot;
+        m_nextSlotBranchPC = savedNextSlotBranchPC;
         m_currentDelayedLoad = savedCurrentDelayedLoad;
         m_delayedLoadInfo[0] = savedDelayedLoad0;
         m_delayedLoadInfo[1] = savedDelayedLoad1;
@@ -1796,6 +1820,9 @@ inline void InterpretedCPU::execBlock() {
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
         }
+        m_inBranchSlot = m_nextIsBranchSlot;
+        m_slotBranchPC = m_nextSlotBranchPC;
+        m_nextIsBranchSlot = false;
         // TODO: throw an exception here if pc is out of range
         const uint32_t pc = m_regs.pc;
         // TODO: throw an exception here if we don't have a pointer
@@ -1804,11 +1831,10 @@ inline void InterpretedCPU::execBlock() {
         m_regs.code = code;
 
         if constexpr (trace) {
-            std::string ins = PCSX::Disasm::asString(code, 0, pc, nullptr, true);
-            PCSX::g_system->log(PCSX::LogClass::CPU, "%s\n", ins);
+            PCSX::g_emulator->m_cpuTrace->capture(pc, code);
         }
 
-        m_regs.pc += 4;
+        m_regs.pc.increment();
         m_regs.cycle += PCSX::Emulator::BIAS;
         if ((m_regs.pc & 0xffc00000) == 0xbfc00000) m_regs.cycle += PCSX::Emulator::BIAS * 10;
 
@@ -1818,13 +1844,18 @@ inline void InterpretedCPU::execBlock() {
         m_currentDelayedLoad ^= 1;
         flushCurrentDelayedLoad();
         if (m_gtePendingCount) gteTickWrites();
-        auto &delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
+        auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         bool fromLink = false;
         if (delayedLoad.pcActive) {
-            m_regs.pc = delayedLoad.pcValue;
+            m_regs.pc.raw() = delayedLoad.pcValue;
             fromLink = delayedLoad.fromLink;
             delayedLoad.pcActive = false;
             delayedLoad.fromLink = false;
+        }
+        m_inBranchSlot = false;
+        if (m_pendingSWInt) {
+            m_pendingSWInt = false;
+            psxTestSWInts();
         }
         if (m_inDelaySlot) {
             m_inDelaySlot = false;
@@ -1846,7 +1877,8 @@ inline void InterpretedCPU::execBlock() {
            blank RAM executes nops until it happens to meet a branch, which measured at
            262113 instructions in one call - long past any cycle budget, and long past the
            exception that sent it there. */
-    } while (!ranDelaySlot && !debug && !detached);
+        if constexpr (debug || detached) break;
+    } while (!ranDelaySlot && !cop0Armed());
 }
 
 void InterpretedCPU::SetPGXPMode(uint32_t pgxpMode) {

@@ -429,6 +429,8 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
     auto compileInstruction = [&]() {
         m_inDelaySlot = m_nextIsDelaySlot;
         m_nextIsDelaySlot = false;
+        m_slotBranchPC = m_nestedSlotBranchPC.value_or(m_pc - 4);
+        m_nestedSlotBranchPC = std::nullopt;
 
         uint32_t* p = PCSX::g_emulator->m_mem->getPointer<uint32_t>(m_pc);
         if (p == nullptr) {  // Error if it can't be fetched
@@ -529,6 +531,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             m_inDelaySlot = true;
             m_nextIsDelaySlot = false;
             m_pcWrittenBack = false;
+            m_slotBranchPC = slotPC - 4;
             const uint32_t code = m_regs.code = *slotPtr;
             m_pc = firstTarget;
             count++;
@@ -545,6 +548,7 @@ DynarecCallback DynaRecCPU::recompile(DynarecCallback* callback, uint32_t pc, bo
             processDelayedLoad();
             // Its delay slot is the instruction at the first branch's target.
             m_nextIsDelaySlot = true;
+            m_nestedSlotBranchPC = slotPC;
             if (!compileInstruction()) {
                 return m_invalidBlock;
             }

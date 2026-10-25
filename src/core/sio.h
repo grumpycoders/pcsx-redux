@@ -26,9 +26,12 @@
 #include "core/psxemulator.h"
 #include "core/psxmem.h"
 #include "core/r3000a.h"
-#include "core/sstate.h"
 
 namespace PCSX {
+
+namespace SaveStates {
+struct Access;
+}
 
 struct SIORegisters {
     uint32_t data;
@@ -227,7 +230,7 @@ class SIO {
     };
 
     friend MemoryCard;
-    friend SaveStates::SaveState SaveStates::constructSaveState();
+    friend struct SaveStates::Access;
 
     static constexpr size_t c_padBufferSize = 0x1010;
 

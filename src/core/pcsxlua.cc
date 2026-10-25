@@ -23,7 +23,9 @@
 #include <vector>
 
 #include "core/callstacks.h"
+#include "core/cputrace.h"
 #include "core/debug.h"
+#include "core/disr3000a.h"
 #include "core/gpu.h"
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
@@ -46,6 +48,8 @@ void* getParPtr() { return PCSX::g_emulator->m_mem->m_exp1; }
 void* getRomPtr() { return PCSX::g_emulator->m_mem->m_bios; }
 void* getScratchPtr() { return PCSX::g_emulator->m_mem->m_hard; }
 void* getRegisters() { return &PCSX::g_emulator->m_cpu->m_regs; }
+void setPC(uint32_t pc) { PCSX::g_emulator->m_cpu->setPC(pc); }
+void setGPR(unsigned index, uint32_t value) { PCSX::g_emulator->m_cpu->setGPR(index, value); }
 void* getReadLUT() { return PCSX::g_emulator->m_mem->m_readLUT; }
 void* getWriteLUT() { return PCSX::g_emulator->m_mem->m_writeLUT; }
 
@@ -59,7 +63,7 @@ LuaBreakpoint* addBreakpoint(uint32_t address, PCSX::Debug::BreakpointType type,
     }
     LuaBreakpoint* ret = new LuaBreakpoint();
     auto* bp = PCSX::g_emulator->m_debug->addBreakpoint(
-        address, type, width, std::string("Lua Breakpoint"), cause,
+        address, type, width, std::string("Lua Breakpoint"), std::string(label && *label ? label : cause),
         [invoker](const PCSX::Debug::Breakpoint* self, uint32_t address, unsigned width, const char* cause) {
             try {
                 return invoker(address, width, cause);
@@ -100,6 +104,48 @@ void jumpToMemory(uint32_t address, unsigned width) {
     PCSX::g_system->m_eventBus->signal(PCSX::Events::GUI::JumpToMemory{address, width});
 }
 void invalidateCache() { PCSX::g_emulator->m_cpu->invalidateCache(); }
+
+uint64_t getCpuTraceSize() { return PCSX::g_emulator->m_cpuTrace->size(); }
+void clearCpuTrace() { PCSX::g_emulator->m_cpuTrace->clear(); }
+bool getCpuTraceEnabled() {
+    return PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        .get<PCSX::Emulator::DebugSettings::Trace>()
+        .value;
+}
+void setCpuTraceEnabled(bool enabled) {
+    PCSX::g_emulator->settings.get<PCSX::Emulator::SettingDebugSettings>()
+        .get<PCSX::Emulator::DebugSettings::Trace>()
+        .value = enabled;
+}
+// Bulk-copy `count` fixed records starting at `start` into a caller-provided flat
+// buffer (an FFI PCSX_TraceEntry[]). The store is chunked, so this is the export
+// path that flattens it for Lua: alloc an array, pull a range, dump/diff/inspect.
+// Returns the number actually copied (clamped to what exists).
+uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count) {
+    auto& trace = *PCSX::g_emulator->m_cpuTrace;
+    uint64_t total = trace.size();
+    if (start >= total) return 0;
+    if (count > total - start) count = total - start;
+    auto* out = reinterpret_cast<PCSX::TraceEntry*>(dest);
+    for (uint64_t i = 0; i < count; i++) out[i] = trace[start + i];
+    return count;
+}
+
+bool exportCpuTraceText(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
+    if (file->failed()) return false;
+    return PCSX::g_emulator->m_cpuTrace->exportText(file);
+}
+bool saveCpuTrace(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path, PCSX::FileOps::TRUNCATE);
+    if (file->failed()) return false;
+    return PCSX::g_emulator->m_cpuTrace->save(file);
+}
+bool loadCpuTrace(const char* path) {
+    PCSX::IO<PCSX::File> file = new PCSX::PosixFile(path);
+    if (file->failed()) return false;
+    return PCSX::g_emulator->m_cpuTrace->load(file);
+}
 
 struct LuaScreenShot {
     PCSX::Slice* data;
@@ -201,6 +247,8 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getRomPtr);
     REGISTER(L, getScratchPtr);
     REGISTER(L, getRegisters);
+    REGISTER(L, setPC);
+    REGISTER(L, setGPR);
     REGISTER(L, getReadLUT);
     REGISTER(L, getWriteLUT);
     REGISTER(L, addBreakpoint);
@@ -217,6 +265,14 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, jumpToPC);
     REGISTER(L, jumpToMemory);
     REGISTER(L, invalidateCache);
+    REGISTER(L, getCpuTraceSize);
+    REGISTER(L, clearCpuTrace);
+    REGISTER(L, getCpuTraceEnabled);
+    REGISTER(L, setCpuTraceEnabled);
+    REGISTER(L, readCpuTrace);
+    REGISTER(L, exportCpuTraceText);
+    REGISTER(L, saveCpuTrace);
+    REGISTER(L, loadCpuTrace);
     REGISTER(L, takeScreenShot);
     REGISTER(L, getGuestFPS);
     REGISTER(L, startGPUDump);
@@ -503,13 +559,13 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             bool hasGP = false;
             uint32_t gp = field("gp", 0, &hasGP);
             if (hasGP) regs.GPR.n.gp = gp;
-            regs.pc = pc;
+            regs.pc.raw() = pc;
 
             auto outcome = g_emulator->m_cpu->RunUntil(ra, cycles);
             if (outcome == R3000Acpu::RunUntilResult::Reentered) {
                 undoInputs();
                 regs.GPR = savedGPR;
-                regs.pc = savedPC;
+                regs.pc.raw() = savedPC;
                 regs.cycle = savedCycle;
                 return L.error(
                     "callGuest can't be nested: this one was called from inside another guest call, most likely from "
@@ -519,7 +575,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             if (outcome == R3000Acpu::RunUntilResult::Unsupported) {
                 undoInputs();
                 regs.GPR = savedGPR;
-                regs.pc = savedPC;
+                regs.pc.raw() = savedPC;
                 regs.cycle = savedCycle;
                 return L.error(
                     "callGuest needs the interpreter: the recompilers emit no per-instruction checks, so they can't "
@@ -571,7 +627,7 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             regs.CP0 = savedCP0;
             regs.CP2D = savedCP2D;
             regs.CP2C = savedCP2C;
-            regs.pc = savedPC;
+            regs.pc.raw() = savedPC;
             regs.code = savedCode;
             regs.cycle = savedCycle;
 
@@ -658,6 +714,24 @@ void PCSX::LuaFFI::open_pcsx(Lua L) {
             std::ostringstream os;
             SaveStates::ProtoFile::dumpSchema(os);
             L.push(os.str());
+            return 1;
+        },
+        -1);
+    L.declareFunc(
+        "getCpuTraceLine",
+        [](lua_State* L_) -> int {
+            Lua L(L_);
+            if (L.gettop() != 1) {
+                return L.error("Wrong number of arguments to getCpuTraceLine");
+            }
+            uint64_t idx = L.checknumber(1);
+            auto& trace = *g_emulator->m_cpuTrace;
+            if (idx >= trace.size()) {
+                return L.error("getCpuTraceLine: index out of range");
+            }
+            const TraceEntry& e = trace[idx];
+            PlaybackValueSource source(e);
+            L.push(Disasm::asString(e.code, 0, e.pc, nullptr, true, &source));
             return 1;
         },
         -1);

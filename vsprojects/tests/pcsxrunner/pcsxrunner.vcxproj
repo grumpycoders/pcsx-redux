@@ -259,6 +259,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\tests\pcsxrunner\alloc-tracker.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\basic.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cdrom.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\cop0.cc" />
@@ -266,8 +267,10 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\cpu.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dma.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\dumpproto.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\cputrace.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpudump.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-raster.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-threaded.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\gte.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\libc.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\lua.cc" />
@@ -278,20 +281,42 @@
     <ClCompile Include="..\..\..\tests\pcsxrunner\rumble.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\srwrite.cc" />
     <ClCompile Include="..\..\..\tests\pcsxrunner\timers.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-command.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dma-dreq.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-fbrect.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-irq.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-dfe-480i.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpustat-480i.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-polyline.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\gpu-vram-move.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\msan.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\spu.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-v4.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\sstate-gpustat.cc" />
+    <ClCompile Include="..\..\..\tests\pcsxrunner\twomb-vram.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-adpcm.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-cdrom.cc" />
+    <ClCompile Include="..\..\..\tests\sstate-mdec.cc" />
+    <ClCompile Include="..\..\..\tests\spu-volume.cc" />
+    <ClCompile Include="..\..\..\tests\modconv-layout.cc" />
+    <ClCompile Include="..\..\..\tests\spu\speed.cc" />
+    <ClCompile Include="..\..\..\tests\spu\syncmix.cc" />
+    <ClCompile Include="..\..\..\tests\core\pad-config.cc" />
+    <ClCompile Include="..\..\..\tests\core\i18n.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" />
-    <Import Project="..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
+    <Import Project="..\..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets" Condition="Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets')" />
+    <Import Project="..\..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets" Condition="Exists('..\..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.5.1.3\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
-    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libFFmpeg-lite.lgpl2.native.9.0.2\build\native\libffmpeg-lite.lgpl2.native.targets'))" />
+    <Error Condition="!Exists('..\..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

@@ -116,20 +116,27 @@ let
       hash = "sha256-hKdmzraAgKwvOGQXpglD9lm0465j92AAn2MhS9ZM4jA=";
       dest = "third_party/ftxui";
     })
+    # The core includes the guest-side ABI headers, so this is needed even
+    # when openbios itself is not built.
+    ({
+      owner = "pcsx-redux";
+      repo = "nugget";
+      rev = "e2264e0dd55f81c09118d24c02fa363532c9d949";
+      hash = "sha256-1C5LTCF6OUQv+Ub+HJywyXpJ5hW/zP6Rpn1oVhFPKVg=";
+      dest = "src/mips";
+    })
+    ({
+      owner = "Taywee";
+      repo = "args";
+      rev = "794f2dc7caa306984cf385cbb8e7176146514959";
+      hash = "sha256-S5FaAtPY/mXsQ8aYsluxwwYZ1CK20/DRew3ltRkm2z8=";
+    })
   ] ++ lib.optional stdenv.hostPlatform.isAarch {
     owner = "grumpycoders";
     repo = "vixl";
     rev = "53ad192b26ddf6edd228a24ae1cffc363b442c01";
     hash = "sha256-p9Z2lFzhqnHnFWfqT6BIJBVw2ZpkVIxykhG3jUHXA84=";
-  } ++ lib.optionals withOpenbios [
-    ({
-      owner = "pcsx-redux";
-      repo = "nugget";
-      rev = "624f7e553f12a549656c5bebd894b7ff3f0cc730";
-      hash = "sha256-pMFi/4ZbPA1l4Vlx6jD5oMUqhbrL+ZELITE74SwtKbw=";
-      dest = "src/mips";
-    })
-  ];
+  };
 
   fetchSubmodule = { owner, repo, rev, hash, dest ? "third_party/${repo}" }@args:
       "cp -ruT --no-preserve=all ${(fetchFromGitHub (removeAttrs args [ "dest" ])).out} ${dest}";

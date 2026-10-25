@@ -122,6 +122,8 @@ struct RAMFocus {
     uint32_t size;
 };
 }  // namespace GUI
+// action: 0 = released, 1 = pressed, 2 = held key auto-repeating. Lua listeners
+// receive these values as-is.
 struct Keyboard {
     int key, scancode, action, mods;
 };

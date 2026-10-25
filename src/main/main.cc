@@ -19,6 +19,12 @@
 
 #include <uv.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+#include <functional>
+#endif
+
 #include <csignal>
 #include <filesystem>
 #include <iostream>
@@ -33,7 +39,6 @@
 #include "core/r3000a.h"
 #include "core/sstate.h"
 #include "core/ui.h"
-#include "flags.h"
 #include "fmt/chrono.h"
 #include "gui/gui.h"
 #include "lua/extra.h"
@@ -160,7 +165,7 @@ class SystemImpl final : public PCSX::System {
         }
     }
 
-    explicit SystemImpl(const CommandLine::args &args) : m_args(args) {}
+    explicit SystemImpl(const PCSX::CommandLine &args) : m_args(args) {}
     ~SystemImpl() {}
 
     void setEmergencyExit() { m_emergencyExit = true; }
@@ -173,7 +178,14 @@ class SystemImpl final : public PCSX::System {
 
 struct Cleaner {
     Cleaner(std::function<void()> &&f) : f(std::move(f)) {}
-    ~Cleaner() { f(); }
+    ~Cleaner() {
+        if (f) f();
+    }
+    // When the browser owns the loop, pcsxMain returns while the emulator, the
+    // UI and the GL context are all still very much in use. The teardown has to
+    // be switched off explicitly rather than avoided by never leaving the scope,
+    // because leaving the scope is exactly what we now do.
+    void disarm() { f = nullptr; }
 
   private:
     std::function<void()> f;
@@ -185,7 +197,7 @@ void handleSignal(int signal) { PCSX::g_system->quit(-1); }
 // is either silently replaced (bios), or merely logged (iso, exe). Check them up front instead.
 // Memory cards are created on demand, and dofile goes through the archive lookup, so neither
 // is checked here.
-static bool checkCommandLinePaths(const CommandLine::args &args) {
+static bool checkCommandLinePaths(const PCSX::CommandLine &args) {
     bool ok = true;
     std::string messages;
     auto checkPath = [&args, &ok, &messages](const char *name, bool directory) {
@@ -221,24 +233,54 @@ static bool checkCommandLinePaths(const CommandLine::args &args) {
 }
 
 // Returns nullptr when -tui is asked for without a terminal to draw on.
-static PCSX::UI *createUI(const CommandLine::args &args, std::vector<std::string> &favorites) {
-    if (args.get<bool>("tui")) {
+static PCSX::UI *createUI(const PCSX::CommandLine &args, std::vector<std::string> &favorites) {
+    if (args.has("tui")) {
         if (!PCSX::TerminalUI::isTerminal()) return nullptr;
         return new PCSX::TerminalUI();
     }
-    if (args.get<bool>("no-ui") || args.get<bool>("cli")) return new PCSX::TUI();
+    if (args.has("no-ui") || args.has("cli")) return new PCSX::TUI();
     return new PCSX::GUI(favorites);
+}
+
+static void applyPCdrvNetArgs(const PCSX::CommandLine &args, auto &debugSettings) {
+    if (args.has("pcdrvnet")) {
+        debugSettings.template get<PCSX::Emulator::DebugSettings::PCdrvNet>() = true;
+    }
+    auto argPCdrvNetAllow = args.value("pcdrvnetallow");
+    if (argPCdrvNetAllow.has_value()) {
+        debugSettings.template get<PCSX::Emulator::DebugSettings::PCdrvNetAllow>() = argPCdrvNetAllow.value();
+    }
 }
 
 int pcsxMain(int argc, char **argv) {
     ZoneScoped;
     // Command line arguments are parsed after this point.
-    const CommandLine::args args(argc, argv);
+    const PCSX::CommandLine args(argc, argv);
+    if (args.status() != PCSX::CommandLine::Status::Ok) {
+        bool error = args.status() == PCSX::CommandLine::Status::Error;
+#if defined(_WIN32) || defined(_WIN64)
+        // We're a Windows subsystem application. If the caller redirected our output, it's
+        // already usable. Otherwise there's no console to print to, unless we were started
+        // from one.
+        HANDLE out = GetStdHandle(error ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE);
+        bool redirected = out && out != INVALID_HANDLE_VALUE && GetFileType(out) != FILE_TYPE_UNKNOWN;
+        if (!redirected) {
+            if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+                MessageBoxA(nullptr, args.message().c_str(), "PCSX-Redux", error ? MB_ICONERROR : MB_ICONINFORMATION);
+                return error ? 1 : 0;
+            }
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
+        }
+#endif
+        fputs(args.message().c_str(), error ? stderr : stdout);
+        return error ? 1 : 0;
+    }
     // The UvFile and UvFifo should work past this point.
     PCSX::UvThreadOp::UvThread uvThread;
 
 #if defined(_WIN32) || defined(_WIN64)
-    if (args.get<bool>("stdout") || args.get<bool>("no-ui") || args.get<bool>("cli") || args.get<bool>("tui")) {
+    if (args.has("stdout") || args.has("no-ui") || args.has("cli") || args.has("tui")) {
         // A parent that captures our output hands us a pipe or a file; keep it
         // instead of opening a console window nobody reads.
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -252,13 +294,13 @@ int pcsxMain(int argc, char **argv) {
 #endif
 
     // This is an easy early-out.
-    if (args.get<bool>("dumpproto")) {
+    if (args.has("dumpproto")) {
         PCSX::SaveStates::ProtoFile::dumpSchema(std::cout);
         return 0;
     }
 
     // The version query never opens any of these files.
-    if (!args.get<bool>("version") && !checkCommandLinePaths(args)) return 1;
+    if (!args.has("version") && !checkCommandLinePaths(args)) return 1;
 
     // Creating the "system" global object first, making sure anything logging-related is
     // enabled as much as possible.
@@ -269,7 +311,7 @@ int pcsxMain(int argc, char **argv) {
 #ifndef _WIN32
     std::signal(SIGPIPE, SIG_IGN);
 #endif
-    const auto &logfileArgOpt = args.get<std::string>("logfile");
+    const auto &logfileArgOpt = args.value("logfile");
     const PCSX::u8string logfileArg = MAKEU8(logfileArgOpt.has_value() ? logfileArgOpt->c_str() : "");
     if (!logfileArg.empty()) system->useLogfile(logfileArg);
     std::filesystem::path self = PCSX::BinPath::getExecutablePath();
@@ -278,7 +320,7 @@ int pcsxMain(int argc, char **argv) {
     system->loadAllLocales();
 
     // This is another early out, which can only be done once we have a system object.
-    if (args.get<bool>("version")) {
+    if (args.has("version")) {
         auto &version = system->getVersion();
         if (version.failed()) {
             fmt::print("Failed to load version.json\n");
@@ -315,124 +357,136 @@ int pcsxMain(int argc, char **argv) {
             emuSettings.get<PCSX::Emulator::SettingMcd2>() = MAKEU8(u8"memcard2.mcd");
         }
 
-        auto argPath1 = args.get<std::string>("memcard1");
-        auto argPath2 = args.get<std::string>("memcard2");
+        auto argPath1 = args.value("memcard1");
+        auto argPath2 = args.value("memcard2");
         if (argPath1.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd1>() = argPath1.value();
         if (argPath2.has_value()) emuSettings.get<PCSX::Emulator::SettingMcd2>() = argPath2.value();
         PCSX::u8string path1 = emuSettings.get<PCSX::Emulator::SettingMcd1>().string();
         PCSX::u8string path2 = emuSettings.get<PCSX::Emulator::SettingMcd2>().string();
 
         emulator->m_sio->loadMcds(path1, path2);
-        auto biosCfg = args.get<std::string>("bios");
+        auto biosCfg = args.value("bios");
         if (biosCfg.has_value()) emuSettings.get<PCSX::Emulator::SettingBios>() = biosCfg.value();
 
         system->activateLocale(emuSettings.get<PCSX::Emulator::SettingLocale>());
 
-        if (args.get<bool>("debugger")) {
+        if (args.has("debugger")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() = true;
         }
-        if (args.get<bool>("no-debugger")) {
+        if (args.has("no-debugger")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::Debug>() = false;
         }
 
-        if (args.get<bool>("trace")) {
+        if (args.has("trace")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::Trace>() = true;
         }
-        if (args.get<bool>("no-trace")) {
+        if (args.has("no-trace")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::Trace>() = false;
         }
 
-        if (args.get<bool>("8mb")) {
+        if (args.has("8mb")) {
             emuSettings.get<PCSX::Emulator::Setting8MB>() = true;
         }
-        if (args.get<bool>("2mb")) {
+        if (args.has("2mb")) {
             emuSettings.get<PCSX::Emulator::Setting8MB>() = false;
         }
         // Note: -2mb/-8mb above select main RAM size; the VRAM fitment is a
         // separate axis (1MB retail vs 2MB second-bank boards).
-        if (args.get<bool>("2mbvram")) {
+        if (args.has("2mbvram")) {
             emuSettings.get<PCSX::Emulator::Setting2MBVRAM>() = true;
         }
-        if (args.get<bool>("1mbvram")) {
+        if (args.has("1mbvram")) {
             emuSettings.get<PCSX::Emulator::Setting2MBVRAM>() = false;
         }
 
-        if (args.get<bool>("fastboot")) {
+        if (args.has("fastboot")) {
             emuSettings.get<PCSX::Emulator::SettingFastBoot>() = true;
         }
-        if (args.get<bool>("no-fastboot")) {
+        if (args.has("no-fastboot")) {
             emuSettings.get<PCSX::Emulator::SettingFastBoot>() = false;
         }
 
-        if (args.get<bool>("gdb")) {
+        if (args.has("gdb")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::GdbServer>() = true;
         }
-        if (args.get<bool>("no-gdb")) {
+        if (args.has("no-gdb")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::GdbServer>() = false;
         }
 
-        if (args.get<int>("gdb-port")) {
-            debugSettings.get<PCSX::Emulator::DebugSettings::GdbServerPort>() = args.get<int>("gdb-port").value();
+        if (args.number("gdb-port")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::GdbServerPort>() = args.number("gdb-port").value();
         }
 
-        if (args.get<bool>("webserver")) {
+        if (args.has("webserver")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = true;
         }
-        if (args.get<bool>("no-webserver")) {
+        if (args.has("no-webserver")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::WebServer>() = false;
         }
 
-        if (args.get<int>("webserver-port")) {
-            debugSettings.get<PCSX::Emulator::DebugSettings::WebServerPort>() = args.get<int>("webserver-port").value();
+        if (args.number("webserver-port")) {
+            debugSettings.get<PCSX::Emulator::DebugSettings::WebServerPort>() = args.number("webserver-port").value();
         }
 
-        auto argPCdrvBase = args.get<std::string>("pcdrvbase");
-        if (args.get<bool>("pcdrv")) {
+        auto argPCdrvBase = args.value("pcdrvbase");
+        if (args.has("pcdrv")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>() = true;
         }
-        if (args.get<bool>("no-pcdrv")) {
+        if (args.has("no-pcdrv")) {
             debugSettings.get<PCSX::Emulator::DebugSettings::PCdrv>() = false;
         }
         if (argPCdrvBase.has_value()) {
             debugSettings.get<PCSX::Emulator::DebugSettings::PCdrvBase>() = argPCdrvBase.value();
         }
+        applyPCdrvNetArgs(args, debugSettings);
 
-        if (args.get<bool>("dynarec")) {
+        if (args.has("dynarec")) {
             emuSettings.get<PCSX::Emulator::SettingDynarec>() = true;
         }
-        if (args.get<bool>("interpreter")) {
+        if (args.has("interpreter")) {
             emuSettings.get<PCSX::Emulator::SettingDynarec>() = false;
         }
 
-        if (args.get<bool>("openglgpu")) {
+        if (args.has("openglgpu")) {
             emuSettings.get<PCSX::Emulator::SettingHardwareRenderer>() = true;
         }
 
-        if (args.get<bool>("softgpu")) {
+        if (args.has("softgpu")) {
             emuSettings.get<PCSX::Emulator::SettingHardwareRenderer>() = false;
         }
 
-        if (args.get<bool>("kiosk")) {
+        if (args.has("softgputhreaded")) {
+            emuSettings.get<PCSX::Emulator::SettingSoftGPUThreaded>() = true;
+        }
+        if (args.has("no-softgputhreaded")) {
+            emuSettings.get<PCSX::Emulator::SettingSoftGPUThreaded>() = false;
+        }
+
+        if (args.has("kiosk")) {
             emuSettings.get<PCSX::Emulator::SettingKioskMode>() = true;
         }
-        if (args.get<bool>("no-kiosk")) {
+        if (args.has("no-kiosk")) {
             emuSettings.get<PCSX::Emulator::SettingKioskMode>() = false;
         }
     });
 
     // Now it's time to mount our iso filesystem
-    std::filesystem::path isoToOpen = args.get<std::string>("iso", "");
-    if (isoToOpen.empty()) isoToOpen = args.get<std::string>("loadiso", "");
-    if (isoToOpen.empty()) isoToOpen = args.get<std::string>("disk", "");
+    std::filesystem::path isoToOpen = args.value("iso", "");
+    if (isoToOpen.empty()) isoToOpen = args.value("loadiso", "");
+    if (isoToOpen.empty()) isoToOpen = args.value("disk", "");
     if (!isoToOpen.empty()) emulator->m_cdrom->setIso(new PCSX::CDRIso(isoToOpen));
     emulator->m_cdrom->parseIso();
 
     // After settings are loaded, we're fine setting the SPU part of the emulation.
     emulator->m_spu->init();
+    auto wavDump = args.value("wavdump", "");
+    if (!wavDump.empty() && !emulator->m_spu->setWavDump(PCSX::u8string(MAKEU8(wavDump.c_str())))) {
+        fmt::print(stderr, "-wavdump: unable to create '{}'\n", wavDump);
+    }
 
     // Make sure the Lua environment is set.
     bool luacovEnabled = false;
-    if (args.get<bool>("luacov")) {
+    if (args.has("luacov")) {
         auto L = *emulator->m_lua;
         L.load(
             "package.path = package.path .. "
@@ -473,9 +527,9 @@ runner.init({
     emulator->reset();
 
     // Looking at setting up what to run exactly within the emulator, if requested.
-    if (args.get<bool>("run")) system->resume();
-    s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("loadexe", "").c_str()));
-    if (s_ui->m_exeToLoad.empty()) s_ui->m_exeToLoad.set(MAKEU8(args.get<std::string>("exe", "").c_str()));
+    if (args.has("run")) system->resume();
+    s_ui->m_exeToLoad.set(MAKEU8(args.value("loadexe", "").c_str()));
+    if (s_ui->m_exeToLoad.empty()) s_ui->m_exeToLoad.set(MAKEU8(args.value("exe", "").c_str()));
 
     // And finally, let's run things.
     int exitCode = 0;
@@ -537,8 +591,14 @@ runner.init({
 
             system->m_inStartup = false;
 
-            // And finally, main loop.
-            while (!system->quitting()) {
+            // And finally, main loop. One pass is one frame either way: Execute()
+            // unwinds at the first block boundary after the emulated vblank, and
+            // update() is already a whole frame.
+            //
+            // Captured BY VALUE. Both are raw pointers and s_ui is file scope, so
+            // this outlives pcsxMain's frame - which it has to, because on wasm
+            // the callbacks keep running long after this function returns.
+            auto oneIteration = [system, emulator]() {
                 if (system->hasPendingSaveStateLoad()) {
                     // Somebody asked for a save state from within a callback the
                     // emulator itself made, so we deferred it to here, where the
@@ -553,7 +613,7 @@ runner.init({
                         PCSX::g_system->message(_("Failed to load save state\n"));
                     }
                 } else if (system->running()) {
-                    // This will run until paused or interrupted somehow.
+                    // Runs until the emulated hardware vsyncs, or until paused.
                     system->setInExecute(true);
                     emulator->m_cpu->Execute();
                     system->setInExecute(false);
@@ -563,7 +623,34 @@ runner.init({
                     // call "update" when the emulator is paused.
                     s_ui->update();
                 }
-            }
+            };
+
+#ifdef __EMSCRIPTEN__
+            // A browser will not let us keep the thread: the page only paints,
+            // delivers input, or runs anything of its own once we return. So the
+            // loop belongs to emscripten and we hand it one frame at a time.
+            //
+            // simulate_infinite_loop is FALSE, and that is the whole trick. The
+            // true form escapes its caller by THROWING, and this scope has both
+            // a catch (...) below and the Cleaner teardown above - so it unwinds
+            // straight through them, closes the SPU, shuts down the GPU and
+            // deletes the UI, and the first callback then runs against a
+            // destroyed emulator. From the outside that looks nothing like a
+            // teardown: "Cannot read properties of undefined (deleteProgram)".
+            //
+            // So: register, switch the teardown off, and return normally.
+            // EXIT_RUNTIME is 0 and a main loop is registered, so the runtime
+            // stays alive with everything intact. Nothing below runs on wasm -
+            // no pause(), no Quitting signal - which is the honest shape for a
+            // tab, since a tab is closed rather than quit.
+            static std::function<void()> s_frame;
+            s_frame = oneIteration;
+            emscripten_set_main_loop([]() { s_frame(); }, 0, false);
+            cleaner.disarm();
+            return 0;
+#else
+            while (!system->quitting()) oneIteration();
+#endif
             system->pause();
             system->m_eventBus->signal(PCSX::Events::Quitting{});
             system->purgeAllEvents();

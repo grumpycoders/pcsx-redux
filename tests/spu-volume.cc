@@ -35,10 +35,12 @@ TEST(SPUVoiceVolume, readerMatchesPerSampleSteppingAcrossLongGaps) {
     constexpr uint64_t c_end = (9u << 20) + 12345;
     for (const auto &c : c_cases) {
         PCSX::SPU::VoiceVolume once, every, mix;
-        for (auto *v : {&once, &every, &mix}) {
+        for (auto *v : {&once, &every}) {
             v->setLeft(c.start, 0);
             v->setLeft(static_cast<int16_t>(c.sweep), 0);
         }
+        mix.applyLeft(c.start);
+        mix.applyLeft(static_cast<int16_t>(c.sweep));
         uint16_t first = every.currentLeft(0);
         bool moved = false;
         for (uint64_t n = 1; n <= c_end; n++) {

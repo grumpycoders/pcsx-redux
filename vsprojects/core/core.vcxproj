@@ -125,11 +125,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\core\alloc-tracker.cc" />
     <ClCompile Include="..\..\src\core\arguments.cc" />
     <ClCompile Include="..\..\src\core\callstacks.cc" />
     <ClCompile Include="..\..\src\core\shmdisplay.cc" />
     <ClCompile Include="..\..\src\core\cdrom.cc" />
     <ClCompile Include="..\..\src\core\cdromlogger.cc" />
+    <ClCompile Include="..\..\src\core\commandline.cc" />
     <ClCompile Include="..\..\src\core\debug.cc" />
     <ClCompile Include="..\..\src\core\decode_xa.cc" />
     <ClCompile Include="..\..\src\core\display.cc" />
@@ -147,11 +149,14 @@
     <ClCompile Include="..\..\src\core\pio-cart.cc" />
     <ClCompile Include="..\..\src\core\gdb-server.cc" />
     <ClCompile Include="..\..\src\core\gpu.cc" />
+    <ClCompile Include="..\..\src\core\cputrace.cc" />
     <ClCompile Include="..\..\src\core\gpudump.cc" />
     <ClCompile Include="..\..\src\core\gpulogger.cc" />
+    <ClCompile Include="..\..\src\core\spulogger.cc" />
     <ClCompile Include="..\..\src\core\kernel.cc" />
     <ClCompile Include="..\..\src\core\kernellog.cc" />
     <ClCompile Include="..\..\src\core\luaiso.cc" />
+    <ClCompile Include="..\..\src\core\mdec-decoder.cc" />
     <ClCompile Include="..\..\src\core\mdec.cc" />
     <ClCompile Include="..\..\src\core\memorycard.cc" />
     <ClCompile Include="..\..\src\core\OpenGL_GPU\gpu_opengl.cc" />
@@ -165,11 +170,14 @@
     <ClCompile Include="..\..\src\core\psxemulator.cc" />
     <ClCompile Include="..\..\src\core\psxcounters.cc" />
     <ClCompile Include="..\..\src\core\psxdma.cc" />
+    <ClCompile Include="..\..\src\core\guest-command.cc" />
     <ClCompile Include="..\..\src\core\psxhw.cc" />
     <ClCompile Include="..\..\src\core\psxinterpreter.cc" />
+    <ClCompile Include="..\..\src\core\gte-write-to-use-model.cc" />
     <ClCompile Include="..\..\src\core\psxmem.cc" />
     <ClCompile Include="..\..\src\core\r3000a.cc" />
     <ClCompile Include="..\..\src\core\ramlogger.cc" />
+    <ClCompile Include="..\..\src\core\screenshot.cc" />
     <ClCompile Include="..\..\src\core\sio.cc" />
     <ClCompile Include="..\..\src\core\sio1-server.cc" />
     <ClCompile Include="..\..\src\core\sio1.cc" />
@@ -183,11 +191,14 @@
     <ClCompile Include="..\..\src\mips-common\util\utf8-decode.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\core\alloc-tracker.h" />
+    <ClInclude Include="..\..\src\core\guest-command.h" />
     <ClInclude Include="..\..\src\core\arguments.h" />
     <ClInclude Include="..\..\src\core\callstacks.h" />
     <ClInclude Include="..\..\src\core\shmdisplay.h" />
     <ClInclude Include="..\..\src\core\cdrom.h" />
     <ClInclude Include="..\..\src\core\cdromlogger.h" />
+    <ClInclude Include="..\..\src\core\commandline.h" />
     <ClInclude Include="..\..\src\core\coff.h" />
     <ClInclude Include="..\..\src\core\debug.h" />
     <ClInclude Include="..\..\src\core\decode_xa.h" />
@@ -206,12 +217,15 @@
     <ClInclude Include="..\..\src\core\pio-cart.h" />
     <ClInclude Include="..\..\src\core\gdb-server.h" />
     <ClInclude Include="..\..\src\core\gpu.h" />
+    <ClInclude Include="..\..\src\core\cputrace.h" />
     <ClInclude Include="..\..\src\core\gpudump.h" />
     <ClInclude Include="..\..\src\core\gpulogger.h" />
+    <ClInclude Include="..\..\src\core\spulogger.h" />
     <ClInclude Include="..\..\src\core\gte.h" />
     <ClInclude Include="..\..\src\core\kernel.h" />
     <ClInclude Include="..\..\src\core\logger.h" />
     <ClInclude Include="..\..\src\core\luaiso.h" />
+    <ClInclude Include="..\..\src\core\mdec-decoder.h" />
     <ClInclude Include="..\..\src\core\mdec.h" />
     <ClInclude Include="..\..\src\core\memorycard.h" />
     <ClInclude Include="..\..\src\core\OpenGL_GPU\gpu_opengl.h" />
@@ -229,6 +243,7 @@
     <ClInclude Include="..\..\src\core\psxmem.h" />
     <ClInclude Include="..\..\src\core\r3000a.h" />
     <ClInclude Include="..\..\src\core\ramlogger.h" />
+    <ClInclude Include="..\..\src\core\screenshot.h" />
     <ClInclude Include="..\..\src\core\sio.h" />
     <ClInclude Include="..\..\src\core\sio1.h" />
     <ClInclude Include="..\..\src\core\sio1-server.h" />
@@ -246,12 +261,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" />
+    <Import Project="..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets" Condition="Exists('..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1785598229\build\native\luajit.native.targets'))" />
+    <Error Condition="!Exists('..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\luajit.native.2.1.1785598229.1\build\native\luajit.native.targets'))" />
   </Target>
 </Project>

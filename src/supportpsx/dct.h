@@ -110,11 +110,13 @@ bool basisIsSymmetric(const Basis &basis);
 // (the shape libswscale hands back for NV-style formats) without repacking:
 // set cb and cr to adjacent bytes of one plane, cStride to the plane pitch, and
 // cPixelStride to 2.
-// Which way the encoder walks the image. Raster is row by row and is what a
-// still-image round trip wants. Column walks 16-pixel columns top to bottom,
-// which is what retail STR does, and it makes each column of the decoded output
-// one contiguous run in memory: a player can hand a whole 16-wide column to the
-// GPU as a single VRAM rect instead of one transfer per macroblock.
+// Which way the encoder walks the image. Column, the default, walks 16-pixel
+// columns top to bottom, which is what retail STR does: stream macroblock n is
+// column n / (height / 16), row n % (height / 16). It also makes each column of
+// the decoded output one contiguous run in memory, so a player can hand a whole
+// 16-wide column to the GPU as a single VRAM rect instead of one transfer per
+// macroblock. Raster is row by row, for a stream nothing but a still-image
+// round trip will ever read.
 enum class MacroblockOrder { Raster, Column };
 
 struct Frame {
@@ -126,7 +128,7 @@ struct Frame {
     uint32_t yStride = 0;
     uint32_t cStride = 0;
     uint32_t cPixelStride = 1;
-    MacroblockOrder order = MacroblockOrder::Raster;
+    MacroblockOrder order = MacroblockOrder::Column;
 };
 
 // How many int16 the caller must provide for a frame of this size.
@@ -141,7 +143,7 @@ constexpr size_t requiredCoefficientCount(uint32_t width, uint32_t height) {
 //
 // Layout in that span is block-major: 64 int16 per block, blocks in MDEC order
 // within each macroblock (Cr, Cb, Y1, Y2, Y3, Y4), macroblocks in the order
-// Frame::order selects: raster by default, or 16-pixel columns top to bottom.
+// Frame::order selects: 16-pixel columns top to bottom by default, or raster.
 // out.data() + 64 * n is block n.
 //
 // The kernel works batch-major internally (one SIMD lane per block) and
@@ -245,7 +247,7 @@ struct QuantTables {
 
 // Reported to the rate-control functor after every packing attempt.
 struct PackAttempt {
-    uint32_t macroblock = 0;    // raster index
+    uint32_t macroblock = 0;    // stream index, in Frame::order
     uint32_t attempt = 0;       // 0 is the first pack of this macroblock
     int qScale = 0;             // what produced the sizes below
     size_t sizeHalfwords = 0;   // this macroblock alone
@@ -260,7 +262,7 @@ struct PackAttempt {
     uint32_t clippedDc = 0;
 };
 
-// Called once per packing attempt, in macroblock raster order, on the caller's
+// Called once per packing attempt, in stream order (Frame::order), on the caller's
 // thread. Return the q_scale to try next, or nullopt to accept the attempt just
 // reported.
 //

@@ -42,19 +42,6 @@
 // layer and no STR framing; `bsencode` is the same stream VLC coded into Sony's
 // legacy BS. STR framing gets its own command when it lands, rather than a flag
 // on either of these, so that each one keeps meaning what it means today.
-//
-// ⛔ THERE IS NO COMPRESSING COMMAND AND THAT IS A MEASURED DECISION, not a gap.
-// A ucl-nrv2e path existed here briefly and was removed 2026-09-18: measured over
-// 245 real 320x240 video frames, per frame, BS is smaller on EVERY ONE of them at
-// every q_scale, by 30-54%. It still wins by 4.6% against ucl given the whole
-// sequence as one stream, which is not even a deployable shape. The decode-cost
-// argument that might have rescued it does not survive either - Sony shipped games
-// that decode BS at full rate on real hardware, so the VLC pass is affordable by
-// existence proof.
-//
-// If compression ever comes back, it belongs on THIS side of the line and not in
-// supportpsx: this tool is GPLv2, the library is MIT, and ucl's compressor is
-// GPLv2. The library emits Container::Raw and stops for that reason.
 // ---------------------------------------------------------------------------
 
 #include <stdint.h>
@@ -68,10 +55,12 @@
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "json.hpp"
+#include "support/tool-args.h"
 #include "supportpsx/dct.h"
+#include "core/mdec-decoder.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -79,28 +68,6 @@
 #include "stb/stb_image_write.h"
 
 namespace {
-
-// Sony's own zscan[], FileFormat47 p.1-12, verified identical entry for entry.
-// c_zscan[k] is the natural-order index of zigzag position k.
-constexpr int c_zscan[64] = {
-    0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
-    41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
-    30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
-};
-
-// The scale matrix every game uploads via MDEC(3), Q14. This is the INVERSE
-// transform; the forward one used for encoding is DCT::standardBasis().
-constexpr int16_t c_standardScale[64] = {
-    0x5A82, 0x5A82, 0x5A82, 0x5A82, 0x5A82,         0x5A82,         0x5A82,         0x5A82,
-    0x7D8A, 0x6A6D, 0x471C, 0x18F8, (int16_t)0xE707, (int16_t)0xB8E3, (int16_t)0x9592, (int16_t)0x8275,
-    0x7641, 0x30FB, (int16_t)0xCF04, (int16_t)0x89BE, (int16_t)0x89BE, (int16_t)0xCF04, 0x30FB, 0x7641,
-    0x6A6D, (int16_t)0xE707, (int16_t)0x8275, (int16_t)0xB8E3, 0x471C, 0x7D8A, 0x18F8, (int16_t)0x9592,
-    0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, 0x5A82, 0x5A82, (int16_t)0xA57D, (int16_t)0xA57D, 0x5A82,
-    0x471C, (int16_t)0x8275, 0x18F8, 0x6A6D, (int16_t)0x9592, (int16_t)0xE707, 0x7D8A, (int16_t)0xB8E3,
-    0x30FB, (int16_t)0x89BE, 0x7641, (int16_t)0xCF04, (int16_t)0xCF04, 0x7641, (int16_t)0x89BE, 0x30FB,
-    0x18F8, (int16_t)0xB8E3, 0x6A6D, (int16_t)0x8275, 0x7D8A, (int16_t)0x9592, 0x471C, (int16_t)0xE707,
-};
-
 
 struct Tables {
     uint8_t quantY[64];
@@ -113,7 +80,7 @@ struct Tables {
     Tables() {
         memcpy(quantY, PCSX::DCT::standardQuantTable(), sizeof(quantY));
         memcpy(quantUV, PCSX::DCT::standardQuantTable(), sizeof(quantUV));
-        memcpy(scale, c_standardScale, sizeof(scale));
+        memcpy(scale, PCSX::MDECDecoder::standardScaleTable(), sizeof(scale));
         forward = PCSX::DCT::standardBasis();
     }
 };
@@ -192,6 +159,24 @@ bool loadTables(const std::string &path, Tables &t, std::string &err) {
 
 namespace {
 
+// Every option of every command, so that the command can be found wherever it sits
+// among them. main() then checks each command was only given its own (rule 3).
+struct Options {
+    args::ArgumentParser parser{""};
+    args::ValueFlag<std::string> i{parser, "i", "", {"i"}};
+    args::ValueFlag<std::string> o{parser, "o", "", {"o"}};
+    args::ValueFlag<std::string> t{parser, "t", "", {"t"}};
+    args::ValueFlag<int> q{parser, "q", "", {"q"}};
+    args::ValueFlag<int> quality{parser, "quality", "", {"quality"}};
+    args::ValueFlag<int> qscale{parser, "qscale", "", {"qscale"}};
+    args::ValueFlag<std::string> order{parser, "order", "", {"order"}};
+    args::ValueFlag<std::string> transform{parser, "transform", "", {"transform"}};
+    args::ValueFlag<int> width{parser, "width", "", {"width"}};
+    args::ValueFlag<int> height{parser, "height", "", {"height"}};
+    args::Flag h{parser, "h", "", {"h"}};
+    args::PositionalList<std::string> positional{parser, "command", ""};
+};
+
 void printUsage(const char *argv0) {
     fmt::print(R"(
 Usage: {} <command> [options]
@@ -234,15 +219,15 @@ Usage: mdec rawencode -i input.png -o output.bin [options]
               format tolerates rather than a default to improve on. Supply a
               genuinely different table with -t if you want one.
 
-  -order      optional: raster | column. Default raster.
-              raster walks the image row by row. column walks 16-pixel columns
-              top to bottom, which is what retail STR does; it makes each column
-              of the decoded output one contiguous run, so a player can upload a
-              whole column as a single VRAM rect instead of one transfer per
-              macroblock. The pixels are identical either way, only the order
-              the macroblocks arrive in changes, and a decoder that disagrees
-              with the stream about it renders bands of vertically-striped
-              blocks.
+  -order      optional: column | raster. Default column.
+              column walks 16-pixel columns top to bottom, which is what retail
+              STR does; it makes each column of the decoded output one
+              contiguous run, so a player can upload a whole column as a single
+              VRAM rect instead of one transfer per macroblock. raster walks the
+              image row by row. The pixels are identical either way, only the
+              order the macroblocks arrive in changes, and a decoder that
+              disagrees with the stream about it renders bands of
+              vertically-striped blocks.
 
   -transform  optional: exact | fast | symmetric. Default exact.
               exact     general basis, int32 accumulation, reference accurate
@@ -278,58 +263,30 @@ Usage: mdec rawdecode -i input.bin -o output.png -width W -height H [options]
   -width n    mandatory: width in pixels, multiple of 16.
   -height n   mandatory: height in pixels, multiple of 16.
   -t file     optional: JSON tables. Only "quant" and "scale" are used here.
-  -order      optional: raster | column. Default raster. Must match the order
-              the stream was encoded in (rawencode -order).
+  -order      optional: column | raster. Default column, which is what retail
+              STR frames use. Must match the order the stream was encoded in
+              (rawencode -order).
 
   The stream carries no dimensions, which is why they are mandatory rather than
-  guessed. This decodes with psx-spx's real_idct_core against "scale", so a
-  custom matrix is honoured exactly as the hardware honours it.
+  guessed. This is the emulator's MDEC decoder, byte for byte: the standard
+  matrix runs its AAN IDCT, any other "scale" runs psx-spx's real_idct_core, so
+  a custom matrix is honoured the way the hardware honours it.
 )");
 }
 
-int clamp10(int v, unsigned &clipped) {
-    if (v > 511) {
-        clipped++;
-        return 511;
-    }
-    if (v < -512) {
-        clipped++;
-        return -512;
-    }
-    return v;
+// The -order spelling of a macroblock order. The default comes from
+// PCSX::DCT::Frame, so the encoder and decoder cannot disagree about it.
+const char *orderName(PCSX::DCT::MacroblockOrder order) {
+    return order == PCSX::DCT::MacroblockOrder::Column ? "column" : "raster";
 }
 
-int divRound(int num, int den) {
-    if (den == 0) return 0;
-    return (num < 0) ? -((-num + den / 2) / den) : ((num + den / 2) / den);
-}
-
-// psx-spx real_idct_core, verified against real consoles 2026-09-14 to within
-// 3 LSB on a custom matrix.
-void realIdct(int *block, const int16_t *scale) {
-    int temp[64];
-    int *src = block;
-    int *dst = temp;
-    for (int pass = 0; pass < 2; pass++) {
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                int64_t sum = 0;
-                for (int z = 0; z < 8; z++) sum += static_cast<int64_t>(src[y + z * 8]) * (scale[x + z * 8] / 8);
-                dst[x + y * 8] = static_cast<int>((sum + 0xfff) >> 13);
-            }
-        }
-        std::swap(src, dst);
-    }
-    if (src != block) memcpy(block, src, sizeof(temp));
-}
-
-int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container container) {
+int cmdEncode(Options &opts, bool asksForHelp, PCSX::DCT::Container container) {
     if (asksForHelp) {
         usageRawEncode();
         return 0;
     }
-    const auto in = args.get<std::string>("i");
-    const auto out = args.get<std::string>("o");
+    const auto in = PCSX::ToolArgs::get(opts.i);
+    const auto out = PCSX::ToolArgs::get(opts.o);
     if (!in.has_value() || !out.has_value()) {
         usageRawEncode();
         return -1;
@@ -339,15 +296,15 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     // higher was worse, higher is now better - while every old invocation kept
     // working and produced a very different image. An unknown option is already an
     // error here, so the hard break is the one that cannot be misread.
-    if (args.get<int>("q").has_value()) {
+    if (PCSX::ToolArgs::get(opts.q).has_value()) {
         fmt::print(stderr,
                    "-q is retired because it meant the raw q_scale field, which reads backwards as a quality "
                    "dial. Use -quality 1..100 (higher is better, 50 is the old default), or -qscale 1..63 for "
                    "the format field itself.\n");
         return -1;
     }
-    const auto qualityOpt = args.get<int>("quality");
-    const auto qscaleOpt = args.get<int>("qscale");
+    const auto qualityOpt = PCSX::ToolArgs::get(opts.quality);
+    const auto qscaleOpt = PCSX::ToolArgs::get(opts.qscale);
     if (qualityOpt.has_value() && qscaleOpt.has_value()) {
         fmt::print(stderr, "-quality and -qscale set the same thing. Pass one.\n");
         return -1;
@@ -355,7 +312,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     const int quality = std::clamp(qualityOpt.value_or(50), 1, 100);
     const int qscale =
         qscaleOpt.has_value() ? std::clamp(qscaleOpt.value(), 1, 63) : PCSX::DCT::qualityToQScale(quality);
-    const std::string which = args.get<std::string>("transform").value_or("exact");
+    const std::string which = PCSX::ToolArgs::get(opts.transform).value_or("exact");
 
     PCSX::DCT::Transform transform;
     if (which == "exact") {
@@ -370,7 +327,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     }
 
     Tables tables;
-    if (auto t = args.get<std::string>("t"); t.has_value()) {
+    if (auto t = PCSX::ToolArgs::get(opts.t); t.has_value()) {
         std::string err;
         if (!loadTables(t.value(), tables, err)) {
             fmt::print(stderr, "{}\n", err.empty() ? "cannot read tables" : err);
@@ -436,13 +393,15 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     frame.yStride = pw;
     frame.cStride = pw / 2;
 
-    // -order column walks 16-pixel columns top to bottom, the way retail STR
-    // does, so each decoded column is one contiguous run and a player can upload
-    // it as a single VRAM rect.
-    const std::string order = args.get<std::string>("order").value_or("raster");
+    // Frame's default order is column, the way retail STR walks macroblocks, so
+    // each decoded column is one contiguous run and a player can upload it as a
+    // single VRAM rect. -order raster is the explicit opt-out.
+    const std::string order = PCSX::ToolArgs::get(opts.order).value_or(orderName(frame.order));
     if (order == "column") {
         frame.order = PCSX::DCT::MacroblockOrder::Column;
-    } else if (order != "raster") {
+    } else if (order == "raster") {
+        frame.order = PCSX::DCT::MacroblockOrder::Raster;
+    } else {
         fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
         return -1;
     }
@@ -520,7 +479,7 @@ int cmdEncode(CommandLine::args &args, bool asksForHelp, PCSX::DCT::Container co
     return 0;
 }
 
-int cmdBsDecode(CommandLine::args &args, bool asksForHelp) {
+int cmdBsDecode(Options &opts, bool asksForHelp) {
     if (asksForHelp) {
         fmt::print(R"(
 Usage: mdec bsdecode -i input.bs -o output.bin
@@ -537,8 +496,8 @@ Usage: mdec bsdecode -i input.bs -o output.bin
 )");
         return 0;
     }
-    auto in = args.get<std::string>("i");
-    auto out = args.get<std::string>("o");
+    auto in = PCSX::ToolArgs::get(opts.i);
+    auto out = PCSX::ToolArgs::get(opts.o);
     if (!in.has_value() || !out.has_value()) {
         fmt::print(stderr, "bsdecode needs -i and -o\n");
         return -1;
@@ -582,20 +541,20 @@ Usage: mdec bsdecode -i input.bs -o output.bin
     return 0;
 }
 
-int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
+int cmdRawDecode(Options &opts, bool asksForHelp) {
     if (asksForHelp) {
         usageRawDecode();
         return 0;
     }
-    const auto in = args.get<std::string>("i");
-    const auto out = args.get<std::string>("o");
-    const int w = args.get<int>("width").value_or(0);
-    const int h = args.get<int>("height").value_or(0);
+    const auto in = PCSX::ToolArgs::get(opts.i);
+    const auto out = PCSX::ToolArgs::get(opts.o);
+    const int w = PCSX::ToolArgs::get(opts.width).value_or(0);
+    const int h = PCSX::ToolArgs::get(opts.height).value_or(0);
     if (!in.has_value() || !out.has_value() || w <= 0 || h <= 0 || (w % 16) || (h % 16)) {
         usageRawDecode();
         return -1;
     }
-    const std::string order = args.get<std::string>("order").value_or("raster");
+    const std::string order = PCSX::ToolArgs::get(opts.order).value_or(orderName(PCSX::DCT::Frame{}.order));
     if (order != "raster" && order != "column") {
         fmt::print(stderr, "-order takes raster or column, got '{}'.\n", order);
         return -1;
@@ -603,7 +562,7 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
     const bool column = order == "column";
 
     Tables tables;
-    if (auto t = args.get<std::string>("t"); t.has_value()) {
+    if (auto t = PCSX::ToolArgs::get(opts.t); t.has_value()) {
         std::string err;
         if (!loadTables(t.value(), tables, err)) {
             fmt::print(stderr, "{}\n", err.empty() ? "cannot read tables" : err);
@@ -616,74 +575,44 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
         fmt::print(stderr, "cannot open {}\n", in.value());
         return -1;
     }
+    // Kept as the bytes on disk: the decoder reads little-endian halfwords, as
+    // they sit in guest memory.
     std::vector<uint16_t> stream;
     uint8_t bytes[2];
-    while (fread(bytes, 1, 2, f) == 2) stream.push_back(static_cast<uint16_t>(bytes[0] | (bytes[1] << 8)));
+    while (fread(bytes, 1, 2, f) == 2) {
+        uint16_t v;
+        memcpy(&v, bytes, 2);
+        stream.push_back(v);
+    }
     fclose(f);
 
+    // What MDEC(2) and MDEC(3) would leave in the chip, then the emulator's own
+    // decode of the stream.
+    PCSX::MDECDecoder::Tables chip;
+    chip.setQuant(tables.quantY, tables.quantUV);
+    chip.setScale(tables.scale);
     const int mbx = w / 16, mby = h / 16;
     std::vector<uint8_t> image(static_cast<size_t>(w) * h * 3);
-    size_t pos = 0;
-    for (int outer = 0; outer < (column ? mbx : mby); outer++) {
-        for (int inner = 0; inner < (column ? mby : mbx); inner++) {
-            const int mx = column ? outer : inner;
-            const int my = column ? inner : outer;
-            int blocks[6][64];
-            for (int b = 0; b < 6; b++) {
-                memset(blocks[b], 0, sizeof(blocks[b]));
-                if (pos >= stream.size()) {
-                    fmt::print(stderr, "stream ran out at macroblock {},{} block {}\n", mx, my, b);
-                    return -1;
-                }
-                const uint8_t *qt = b < 2 ? tables.quantUV : tables.quantY;
-                uint16_t n = stream[pos++];
-                const int qscale = (n >> 10) & 0x3f;
-                auto sext10 = [](uint16_t v) { return static_cast<int>(static_cast<int16_t>(v << 6)) >> 6; };
-                // q_scale 0 is the no-quant mode, as in core/mdec.cc rl2blk: every
-                // value is doubled, no table, no q_scale, and no zigzag.
-                blocks[b][0] = std::clamp(qscale == 0 ? sext10(n & 0x3ff) * 2 : sext10(n & 0x3ff) * qt[0],
-                                          -0x400, 0x3ff);
-                bool terminated = false;
-                for (int k = 0;;) {
-                    if (pos >= stream.size()) break;
-                    n = stream[pos++];
-                    if (n == 0xfe00) {
-                        terminated = true;
-                        break;
-                    }
-                    k += ((n >> 10) & 0x3f) + 1;
-                    if (k > 63) {
-                        fmt::print(stderr, "block at macroblock {},{} block {} runs past coefficient 63\n", mx, my,
-                                   b);
-                        return -1;
-                    }
-                    const int spec = qscale == 0 ? sext10(n & 0x3ff) * 2
-                                                 : (sext10(n & 0x3ff) * qt[k] * qscale + 4) / 8;
-                    blocks[b][qscale == 0 ? k : c_zscan[k]] = std::clamp(spec, -0x400, 0x3ff);
-                }
-                if (!terminated) {
-                    fmt::print(stderr, "block at macroblock {},{} block {} has no 0xfe00 terminator\n", mx, my, b);
-                    return -1;
-                }
-                realIdct(blocks[b], tables.scale);
+    const auto frame = PCSX::MDECDecoder::decodeFrame(stream.data(), static_cast<unsigned>(stream.size()), chip, w, h,
+                                                      column, image.data());
+    const auto &st = frame.status;
+    switch (st.anomaly) {
+        case PCSX::MDECDecoder::Anomaly::None:
+            break;
+        case PCSX::MDECDecoder::Anomaly::Exhausted:
+            if (st.atHeader) {
+                fmt::print(stderr, "stream ran out at macroblock {},{} block {}\n", frame.mbX, frame.mbY, st.block);
+            } else {
+                fmt::print(stderr, "block at macroblock {},{} block {} has no 0xfe00 terminator\n", frame.mbX,
+                           frame.mbY, st.block);
             }
-            for (int py = 0; py < 16; py++) {
-                for (int px = 0; px < 16; px++) {
-                    const int cidx = (py / 2) * 8 + (px / 2);
-                    const int cr = blocks[0][cidx], cb = blocks[1][cidx];
-                    const int yblk = (py / 8) * 2 + (px / 8);
-                    const int yv = blocks[2 + yblk][(py % 8) * 8 + (px % 8)];
-                    const int r = yv + (1402 * cr) / 1000;
-                    const int g = yv - (344 * cb + 714 * cr) / 1000;
-                    const int bl = yv + (1772 * cb) / 1000;
-                    const size_t o = (static_cast<size_t>(my * 16 + py) * w + (mx * 16 + px)) * 3;
-                    image[o + 0] = static_cast<uint8_t>(std::clamp(r + 128, 0, 255));
-                    image[o + 1] = static_cast<uint8_t>(std::clamp(g + 128, 0, 255));
-                    image[o + 2] = static_cast<uint8_t>(std::clamp(bl + 128, 0, 255));
-                }
-            }
-        }
+            return -1;
+        case PCSX::MDECDecoder::Anomaly::RunPast63:
+            fmt::print(stderr, "block at macroblock {},{} block {} runs past coefficient 63\n", frame.mbX, frame.mbY,
+                       st.block);
+            return -1;
     }
+    const size_t pos = frame.consumed;
     if (!stbi_write_png(out.value().c_str(), w, h, 3, image.data(), w * 3)) {
         fmt::print(stderr, "cannot write {}\n", out.value());
         return -1;
@@ -696,9 +625,11 @@ int cmdRawDecode(CommandLine::args &args, bool asksForHelp) {
 
 
 int main(int argc, char **argv) {
-    CommandLine::args args(argc, argv);
-    const auto positional = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    Options opts;
+    std::vector<std::string> unknown;
+    PCSX::ToolArgs::parse(opts.parser, argc, argv, &unknown);
+    const auto positional = args::get(opts.positional);
+    const bool asksForHelp = args::get(opts.h);
 
     if (positional.empty()) {
         printUsage(argv[0]);
@@ -715,8 +646,14 @@ int main(int argc, char **argv) {
     // exit 0, encodes fine, so the abort was the symmetry check and not the table
     // loader.
     // Rule 3 of the contract at the top of this file.
+    // The options given, in name order, whether some command knows them or not.
+    std::vector<std::string> given = unknown;
+    for (auto flag : opts.parser.GetAllFlags()) {
+        if (flag->Matched()) given.push_back(flag->Name());
+    }
+    std::sort(given.begin(), given.end());
     auto knows = [&](std::initializer_list<std::string_view> known) {
-        for (const auto &[name, value] : args.options()) {
+        for (const auto &name : given) {
             if (name == "h") continue;
             if (std::find(known.begin(), known.end(), name) == known.end()) {
                 fmt::print(stderr, "{}: unknown option -{}\n", command, name);
@@ -730,14 +667,14 @@ int main(int argc, char **argv) {
 
     try {
         if (command == "rawencode") {
-            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Raw) : -1;
+            return knows(encodeOptions) ? cmdEncode(opts, asksForHelp, PCSX::DCT::Container::Raw) : -1;
         }
         if (command == "bsencode") {
-            return knows(encodeOptions) ? cmdEncode(args, asksForHelp, PCSX::DCT::Container::Bs) : -1;
+            return knows(encodeOptions) ? cmdEncode(opts, asksForHelp, PCSX::DCT::Container::Bs) : -1;
         }
-        if (command == "bsdecode") return knows({"i", "o"}) ? cmdBsDecode(args, asksForHelp) : -1;
+        if (command == "bsdecode") return knows({"i", "o"}) ? cmdBsDecode(opts, asksForHelp) : -1;
         if (command == "rawdecode") {
-            return knows({"i", "o", "t", "width", "height", "order"}) ? cmdRawDecode(args, asksForHelp) : -1;
+            return knows({"i", "o", "t", "width", "height", "order"}) ? cmdRawDecode(opts, asksForHelp) : -1;
         }
     } catch (const std::exception &e) {
         fmt::print(stderr, "{}: {}\n", command, e.what());

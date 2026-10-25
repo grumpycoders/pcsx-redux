@@ -563,7 +563,10 @@ settings, otherwise debugging features may not work.)");
         }
     }
     ImGui::SameLine();
-    ImGui::Checkbox(_("CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
+    // Same setting as the Capture checkbox in the CPU Trace window.
+    ImGui::Checkbox(_("Capture CPU trace"), &debugSettings.get<Emulator::DebugSettings::Trace>().value);
+    ImGui::SetItemTooltip(
+        "%s", _("Records executed instructions into the CPU Trace window. Interpreter only; nothing is logged."));
     ImGui::SameLine();
     ImGui::Checkbox(_("Skip ISR"), &debugSettings.get<Emulator::DebugSettings::SkipISR>().value);
     ImGui::SameLine();
@@ -790,6 +793,27 @@ settings, otherwise debugging features may not work.)");
                                 return false;
                             });
                         g_system->resume();
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                        ImGui::TextUnformatted(
+                            _("Run the emulation until the program counter reaches this address, then pause."));
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
+                    }
+                    if (ImGui::MenuItem(_("Jump to Cursor"), nullptr, false, !PCSX::g_system->running())) {
+                        g_emulator->m_cpu->setPC(dispAddr);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                        ImGui::TextUnformatted(
+                            _("Set the program counter to this address. This will skip over any instruction between "
+                              "the current one and the one you're selecting. This can cause inconsistencies, so use "
+                              "with caution."));
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
                     }
                     if (ImGui::MenuItem(_("Toggle Breakpoint"))) {
                         toggleBP();

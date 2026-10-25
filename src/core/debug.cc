@@ -333,10 +333,13 @@ void PCSX::Debug::checkBP(uint32_t address, BreakpointType type, uint32_t width,
     auto& regs = cpu->m_regs;
 
     if (m_scheduledCop0.has_value()) {
-        regs.pc = std::get<uint32_t>(m_scheduledCop0.value());
+        regs.pc.raw() = std::get<uint32_t>(m_scheduledCop0.value());
         cpu->exception(R3000Acpu::Exception::Break, std::get<bool>(m_scheduledCop0.value()), true);
         m_scheduledCop0.reset();
-    } else if ((regs.CP0.n.DCIC & 0xc0800000) == 0xc0800000) {
+    } else if (((regs.CP0.n.DCIC & 0x80800000) == 0x80800000) &&
+               (regs.CP0.n.DCIC & ((address & 0x80000000) ? 0x20000000 : 0x40000000))) {
+        // KD gates accesses to kseg addresses and UD to kuseg ones. Measured with the CPU in
+        // kernel mode: a kuseg write breaks on UD alone, a kseg0 write only with KD set.
         if (type == BreakpointType::Exec && ((regs.CP0.n.DCIC & 0x01000000) == 0x01000000)) {
             if (((regs.CP0.n.BPC ^ address) & regs.CP0.n.BPCM) == 0) {
                 m_scheduledCop0.emplace(regs.pc, cpu->m_inDelaySlot);

@@ -1,3 +1,7 @@
+/* v1 wasm drops the web server, llhttp's only consumer. Guarded whole-file
+   rather than removed from the build, so the source list stays a full glob. */
+#ifndef __EMSCRIPTEN__
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -10588,3 +10592,5 @@ int llhttp__internal_execute(llhttp__internal_t* state, const char* p, const cha
   
   return 0;
 }
+
+#endif

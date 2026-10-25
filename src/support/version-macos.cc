@@ -29,6 +29,7 @@ SOFTWARE.
 #include <stdlib.h>
 
 #include "fmt/format.h"
+#include "support/uvfile.h"
 #include "support/version.h"
 #include "support/zip.h"
 

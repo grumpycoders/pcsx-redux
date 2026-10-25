@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string.h>
 
 #include "core/gpu.h"
 
@@ -82,6 +83,36 @@ struct TriInput {
 // / nextRow*() across the scanline walk.
 //
 // clutP is only meaningful when the texture mode is Clut4 or Clut8.
+// A pair of 16-bit VRAM pixels accessed as one 32-bit word. The pair can
+// start on any halfword, so it is not 4-byte aligned in general and must
+// not be dereferenced as a uint32_t pointer. The loads and stores go
+// through memcpy, which compiles to a plain 32-bit move.
+class PixelPair32Ref {
+  public:
+    explicit PixelPair32Ref(uint16_t *p) : m_p(p) {}
+    operator uint32_t() const {
+        uint32_t v;
+        memcpy(&v, m_p, sizeof(v));
+        return v;
+    }
+    const PixelPair32Ref &operator=(uint32_t v) const {
+        memcpy(m_p, &v, sizeof(v));
+        return *this;
+    }
+
+  private:
+    uint16_t *m_p;
+};
+
+class PixelPair32Ptr {
+  public:
+    explicit PixelPair32Ptr(uint16_t *p) : m_p(p) {}
+    PixelPair32Ref operator*() const { return PixelPair32Ref(m_p); }
+
+  private:
+    uint16_t *m_p;
+};
+
 struct RasterState {
     uint8_t *vram;        // byte-addressed view of VRAM
     uint16_t *vram16;     // halfword-addressed view of VRAM
@@ -102,9 +133,14 @@ struct RasterState {
     bool drawSemiTrans;
     int16_t m1, m2, m3;
     int32_t clutP;  // (clutY << 10) + clutX; valid for Clut4/Clut8 only
+    // NTSC 480i with GP0(E1h).10 clear: rows whose (y & 1) equals this value
+    // are not written. -1 never matches, so nothing is skipped.
+    int8_t skipParity;
+
+    inline bool rowSkipped(int y) const { return ((y & 1) ^ skipParity) == 0; }
 
     inline uint16_t *pixel16(int x, int y) const { return &vram16[(y << VRAM_WIDTH_SHIFT) + x]; }
-    inline uint32_t *pixelPair32(int x, int y) const { return reinterpret_cast<uint32_t *>(pixel16(x, y)); }
+    inline PixelPair32Ptr pixelPair32(int x, int y) const { return PixelPair32Ptr(pixel16(x, y)); }
 };
 
 // Texture sampler policies, keyed by TexMode. Each specialization exposes

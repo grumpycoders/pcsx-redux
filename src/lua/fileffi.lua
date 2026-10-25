@@ -35,11 +35,11 @@ local function read(self, ptr, size)
     elseif type(ptr) == 'cdata' and size == nil and ffi.typeof(ptr) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::read(C.readFileBuffer)', C.readFileBuffer, self._wrapper,
                                      validateBuffer(ptr))
-    elseif type(ptr) == 'userdata' and size == nil then
-        return Support._internal.readFileUserData(self._wrapper, ptr)
+    elseif type(ptr) == 'userdata' then
+        return Support._internal.readFileUserData(self._wrapper, ptr, size)
     elseif type(ptr) == 'table' and ptr._type == 'Slice' then
         return Support.extra.safeFFI('File::read(C.readFileToExistingSlice)', C.readFileToExistingSlice, self._wrapper,
-                                     ptr._wrapper, size or ptr:size())
+                                     ptr._wrapper, size or ptr.size)
     end
     return Support.extra.safeFFI('File::read(C.readFileRawPtr)', C.readFileRawPtr, self._wrapper, ptr, size)
 end
@@ -57,14 +57,14 @@ local function readAt(self, ptr, size, pos)
         size = Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper, buf, pos)
         buf.size = size
         return validateBuffer(buf)
-    elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == LuaBuffer then
+    elseif type(ptr) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(ptr) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::readAt(C.readFileAtBuffer)', C.readFileAtBuffer, self._wrapper,
                                      validateBuffer(ptr), size)
-    elseif type(ptr) == 'userdata' and type(size) == 'number' and pos == nil then
-        return Support._internal.readFileAtUserData(self._wrapper, ptr, size)
+    elseif type(ptr) == 'userdata' then
+        return Support._internal.readFileUserDataAt(self._wrapper, ptr, size, pos)
     elseif type(ptr) == 'table' and ptr._type == 'Slice' then
         return Support.extra.safeFFI('File::readAt(C.readFileAtToExistingSlice)', C.readFileAtToExistingSlice,
-                                     self._wrapper, ptr._wrapper, size or ptr:size(), pos)
+                                     self._wrapper, ptr._wrapper, size or ptr.size, pos)
     end
     return Support.extra.safeFFI('File::readAt(C.readFileAtRawPtr)', C.readFileAtRawPtr, self._wrapper, ptr, size, pos)
 end
@@ -75,7 +75,7 @@ local function readAtToSlice(self, size, pos)
 end
 
 local function write(self, data, size)
-    if type(data) == 'cdata' and size == nil and ffi.typeof(data) == LuaBuffer then
+    if type(data) == 'cdata' and size == nil and ffi.typeof(data) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::write(C.writeFileBuffer)', C.writeFileBuffer, self._wrapper,
                                      validateBuffer(data))
     elseif type(data) == 'userdata' and size == nil then
@@ -89,11 +89,11 @@ local function write(self, data, size)
 end
 
 local function writeAt(self, data, size, pos)
-    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == LuaBuffer then
+    if type(data) == 'cdata' and type(size) == 'number' and pos == nil and ffi.typeof(data) == Support.File._LuaBuffer then
         return Support.extra.safeFFI('File::writeAt(C.writeFileAtBuffer)', C.writeFileAtBuffer, self._wrapper,
                                      validateBuffer(data), size)
     elseif type(data) == 'userdata' and type(size) == 'number' and pos == nil then
-        return Support._internal.writeFileAtUserData(self._wrapper, data, size)
+        return Support._internal.writeFileUserDataAt(self._wrapper, data, size)
     elseif type(size) == 'number' and type(pos) == 'number' then
         return Support.extra.safeFFI('File::writeAt(C.writeFileAtRawPtr)', C.writeFileAtRawPtr, self._wrapper, data,
                                      size, pos)
@@ -265,7 +265,7 @@ local function open(filename, t)
             end)
         end
         captures.callback = ffi.cast('void (*)()', captures.callback)
-        local ret = createFileWrapper(C.openFileAndWait(filename, captures.callback))
+        local ret = createFileWrapper(C.openFileWithCallback(filename, captures.callback))
         coroutine.yield()
         return ret
     else

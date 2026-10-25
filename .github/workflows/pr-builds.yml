@@ -77,16 +77,17 @@ jobs:
           # Artifacts lose the executable bit; restore it so the AppImage runs straight out of the zip.
           find build -name '*.AppImage' -exec chmod +x {} +
           (cd build && zip -r "../$name" .)
-          # Build ids are max+1 on the server, so two PRs publishing at once can collide;
-          # the losing upload is rejected and retried with a fresh id.
-          for attempt in 1 2 3; do
+          # Build ids are max+1 on the server and only checked once the upload ends, so PRs
+          # publishing to the same project at once collide; the loser retries with a fresh id
+          # after a jittered wait, so concurrent losers do not collide with each other again.
+          for attempt in 1 2 3 4 5 6; do
             npx @appdistrib/cli buildid > buildid.json
             id=$(jq -r .buildid buildid.json)
             jq -n --arg v "$short" --argjson b "$id" --arg c "$HEAD_SHA" --argjson t "$(date +%s)" --argjson pr "$PR" \
               '{version: $v, buildId: $b, changeset: $c, timestamp: $t, channel: "pr", pullRequest: $pr, updateInfo: []}' > manifest.json
             if npx @appdistrib/cli -l buildId -m manifest.json upload "$name"; then break; fi
-            [ "$attempt" = 3 ] && exit 1
-            sleep $((attempt * 20))
+            [ "$attempt" = 6 ] && exit 1
+            sleep $((RANDOM % 90 + 30))
           done
           path=$(curl -sf "https://distrib.app/storage/manifests/pcsx-redux/${{ matrix.project }}/manifest-$id.json" | jq -r .path)
           echo "url=https://distrib.app$path" >> "$GITHUB_OUTPUT"

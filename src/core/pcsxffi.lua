@@ -44,7 +44,7 @@ typedef struct {
     psxCP0Regs CP0;
     psxCP2Data CP2D;
     psxCP2Ctrl CP2C;
-    uint32_t pc;
+    const uint32_t rawPC;
 } psxRegisters;
 
 enum BreakpointType { Exec, Read, Write };
@@ -56,6 +56,8 @@ uint8_t* getParPtr();
 uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
+void setPC(uint32_t pc);
+void setGPR(unsigned index, uint32_t value);
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
@@ -72,6 +74,19 @@ void luaLog(const char* msg);
 void jumpToPC(uint32_t address);
 void jumpToMemory(uint32_t address, unsigned width);
 void invalidateCache();
+
+typedef struct {
+    uint32_t pc, code, regRs, regRt, regRd, hilo, cop, memValue;
+} PCSX_TraceEntry;
+
+uint64_t getCpuTraceSize();
+void clearCpuTrace();
+bool getCpuTraceEnabled();
+void setCpuTraceEnabled(bool enabled);
+uint64_t readCpuTrace(void* dest, uint64_t start, uint64_t count);
+bool exportCpuTraceText(const char* path);
+bool saveCpuTrace(const char* path);
+bool loadCpuTrace(const char* path);
 
 typedef enum { BPP_16, BPP_24 } ScreenShotBPP;
 
@@ -111,6 +126,18 @@ void quit(int code);
 
 local C = ffi.load 'PCSX'
 
+-- Writing pc goes through the cpu, which drops a branch still pending in a delay slot.
+ffi.metatype('psxRegisters', {
+    __index = function(regs, key)
+        if key == 'pc' then return regs.rawPC end
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
+    end,
+    __newindex = function(regs, key, value)
+        if key == 'pc' then return C.setPC(value) end
+        error('\'psxRegisters\' has no member named \'' .. tostring(key) .. '\'')
+    end,
+})
+
 local function removeBreakpoint(bp)
     C.removeBreakpoint(ffi.gc(bp._wrapper, nil))
     bp._wrapper = ffi.cast('Breakpoint*', 0)
@@ -144,7 +171,14 @@ local function addBreakpoint(address, bptype, width, cause, invoker, label)
         if type(invoker) ~= 'function' then error 'PCSX.addBreakpoint needs an invoker that is a function' end
         invokercb = function(address, width, cause)
             cause = ffi.string(cause)
-            local ret = invoker(address, width, cause)
+            -- This runs as an FFI callback: a Lua error must not unwind out of it into C++.
+            local ok, ret = pcall(invoker, address, width, cause)
+            if not ok then
+                local printed, msg = pcall(tostring, ret)
+                if not printed then msg = '(error object could not be converted to a string)' end
+                C.luaMessage('Lua breakpoint invoker failed, deleting breakpoint: ' .. msg, true)
+                return false
+            end
             if ret == false then
                 return false
             else
@@ -196,6 +230,13 @@ PCSX = {
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    -- Unlike a store into getRegisters().GPR, also drops a load still pending for that register.
+    setGPR = function(index, value)
+        if type(index) ~= 'number' or index < 0 or index > 33 or index % 1 ~= 0 then
+            error 'PCSX.setGPR needs a register index between 0 and 33'
+        end
+        C.setGPR(index, value)
+    end,
     getReadLUT = function() return C.getReadLUT() end,
     getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
@@ -206,6 +247,36 @@ PCSX = {
     invalidateCache = function() C.invalidateCache() end,
     log = function(...) printLike(function(msg) C.luaLog(msg .. '\n') end, ...) end,
     GUI = { jumpToPC = jumpToPC, jumpToMemory = jumpToMemory },
+    CPU = {
+        -- Binary CPU trace. Records are fixed PCSX_TraceEntry structs; the store is
+        -- chunked, so read() flattens a range into a fresh FFI array
+        -- you can inspect, ffi.string(), or write to a File. getLine() renders the
+        -- same annotated disassembly the viewer shows, reconstructed from the record.
+        Trace = {
+            size = function() return tonumber(C.getCpuTraceSize()) end,
+            clear = function() C.clearCpuTrace() end,
+            enabled = function() return C.getCpuTraceEnabled() end,
+            enable = function() C.setCpuTraceEnabled(true) end,
+            disable = function() C.setCpuTraceEnabled(false) end,
+            getLine = function(idx)
+                if type(idx) ~= 'number' then error 'PCSX.CPU.Trace.getLine requires a numeric index' end
+                return PCSX.getCpuTraceLine(idx)
+            end,
+            read = function(start, count)
+                start = start or 0
+                local total = tonumber(C.getCpuTraceSize())
+                if start >= total then return nil, 0 end
+                if count == nil or count > total - start then count = total - start end
+                if count <= 0 then return nil, 0 end
+                local arr = ffi.new('PCSX_TraceEntry[?]', count)
+                local got = tonumber(C.readCpuTrace(arr, start, count))
+                return arr, got
+            end,
+            exportText = function(path) return C.exportCpuTraceText(path) end,
+            save = function(path) return C.saveCpuTrace(path) end,
+            load = function(path) return C.loadCpuTrace(path) end,
+        },
+    },
     nextTick = function(f)
         local oldCleanup = AfterPollingCleanup
         AfterPollingCleanup = function()

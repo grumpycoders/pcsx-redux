@@ -38,13 +38,12 @@ typedef Setting<bool, TYPESTRING("Mute")> Mute;
 // This replaces the old cycle-derived Emulator::SettingScaler: because both audio sources (SPU voices
 // and CD-ROM XA) converge at the sink, speeding up here also speeds up XA, which the cycle scaler missed.
 typedef Setting<int, TYPESTRING("Speed"), 1> Speed;
-// Voice key-on -> first-output startup latency, in 44.1kHz samples. Real hardware emits a few samples of
-// silence after KEY_ON before the voice's first decoded sample appears in the capture mirror; Redux used
-// to emit immediately. 6 is the value that lines the ADSR goldens in src/mips/tests/spu up best - whether
-// it is the latency itself or is absorbing a rounding error in cycleToSample() is still open. It applies
-// to the mixer and to the reconstructed ENVX alike; override via Lua to characterize the offset.
-typedef Setting<int, TYPESTRING("KeyOnDelay"), 6> KeyOnDelay;
-typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, KeyOnDelay>
+// How far ahead of the audio device the emulation runs, in milliseconds, on top of one device
+// period. This is the audio's delay behind the picture. Too small for the host and the emulation
+// cannot keep the device fed, so it plays silence. On a laptop, 10 played clean and 5 crackled once
+// the machine was busy; 15 stays under a 60Hz frame with 3x headroom over that.
+typedef Setting<int, TYPESTRING("LatencyMargin"), 15> LatencyMargin;
+typedef Settings<Backend, Device, NullSync, Streaming, Volume, Interpolation, Mono, Mute, Speed, LatencyMargin>
     SettingsType;
 
 }  // namespace SPU

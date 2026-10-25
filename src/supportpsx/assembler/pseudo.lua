@@ -161,12 +161,12 @@ PCSX.Assembler.Internals.pseudoInstructions = {
     end,
 }
 
-for k, v in pairs(PCSX.Assembler.Internals.pseudoInstructions) do
-    if k:sub(-1) == '_' then
-        local newKey = k:sub(1, -2)
-        PCSX.Assembler.Internals.pseudoInstructions[newKey] = v
-        PCSX.Assembler.Internals.pseudoInstructions[k] = nil
-    end
+local renames = {}
+for k in pairs(PCSX.Assembler.Internals.pseudoInstructions) do if k:sub(-1) == '_' then table.insert(renames, k) end end
+for _, k in ipairs(renames) do
+    local t = PCSX.Assembler.Internals.pseudoInstructions
+    t[k:sub(1, -2)] = t[k]
+    t[k] = nil
 end
 
 -- )EOF"

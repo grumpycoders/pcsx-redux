@@ -418,6 +418,33 @@ function TestIsoBuilder:test_closeRoundTrip()
     end
 end
 
+function TestIsoBuilder:test_closeM1()
+    -- M1 file content is laid out at 2048 bytes per sector, and both writers have to put it on the disc.
+    for _, threads in ipairs({ 1, 4 }) do
+        local what = string.format('close(%d) M1', threads)
+        local size = 2 * 2048
+        local payload = Support.File.buffer()
+        local data = ffi.new('uint8_t[?]', size)
+        for i = 0, size - 1 do data[i] = patternByte(i % 2048) end
+        payload:write(ffi.cast('const char*', data), size)
+        payload:rSeek(0)
+
+        local out = Support.File.buffer()
+        local builder = PCSX.isoBuilder(out)
+        builder:writeLicense()
+        builder:setVolumeIdent('ROUNDTRIP')
+        local root = builder:createRoot(1)
+        local file = builder:createFile(root, 'PATTERN.BIN', payload)
+        file:setSectorMode('M1')
+        builder:close(threads)
+
+        out:rSeek(0)
+        local iso = PCSX.openIso(out)
+        local rb = iso:open(file:getLBA(), size, 'M2_FORM1')
+        for s = 0, 1 do assertPattern(rb, s * 2048, 2048, what .. ' sector ' .. s) end
+    end
+end
+
 function TestIsoBuilder:test_anchorErrorOnBackwardLBA()
     -- Anchoring to an LBA that's already passed must raise an error at close time.
     local out = Support.File.buffer()
@@ -567,4 +594,109 @@ function TestIsoBuilder:test_writeSectorPatchesAfterClose()
         lu.assertEquals(back:readU8At((i - 1) * 4), lba % 256)
         lu.assertEquals(back:readU8At((i - 1) * 4 + 1), math.floor(lba / 256) % 256)
     end
+end
+
+function TestIsoBuilder:test_customLicense()
+    -- A license file made of whole 2336-byte sectors (8-byte subheader, 2048 bytes of data, 280 of
+    -- EDC/ECC space) is written to the system area even without Sony's text in it. Sectors the file
+    -- does not cover stay zero.
+    local license = Support.File.buffer()
+    for i = 0, 11 do
+        license:write(string.rep('\0', 8) .. string.rep(string.char(0x40 + i), 2048) .. string.rep('\0', 280))
+    end
+    license:rSeek(0)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense(license)
+    builder:setVolumeIdent('LICENSE')
+    builder:createRoot(1)
+    builder:close()
+
+    for i = 0, 15 do
+        local expected = i < 12 and 0x40 + i or 0
+        for _, offset in ipairs({ 0, 1000, 2047 }) do
+            lu.assertEquals(out:readU8At(i * 2352 + 24 + offset), expected,
+                string.format('license sector %d byte %d', i, offset))
+        end
+    end
+end
+
+function TestIsoBuilder:test_unrecognizedLicenseIsZero()
+    -- A file that is neither format leaves the system area zero.
+    local license = Support.File.buffer()
+    license:write(string.rep('X', 1000))
+    license:rSeek(0)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense(license)
+    builder:setVolumeIdent('LICENSE')
+    builder:createRoot(1)
+    builder:close()
+
+    for i = 0, 15 do
+        lu.assertEquals(out:readU8At(i * 2352 + 24), 0, string.format('license sector %d', i))
+    end
+end
+
+function TestIsoBuilder:test_sortedRecords()
+    -- Directory records come out sorted by name whatever the insertion order, while file contents
+    -- keep the insertion order on disc.
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('SORTED')
+    local root = builder:createRoot(1)
+    local zeta = builder:createFile(root, 'ZETA.DAT', generateTestContent(2048))
+    local dir = builder:createDir(root, 'MIDDLE', 1)
+    local alpha = builder:createFile(root, 'ALPHA.DAT', generateTestContent(2048))
+    builder:createFile(dir, 'INNER.DAT', generateTestContent(2048))
+    builder:close()
+
+    lu.assertTrue(zeta:getLBA() < alpha:getLBA())
+
+    out:rSeek(0)
+    local reader = PCSX.openIso(out):createReader()
+    local names = {}
+    for _, e in ipairs(reader:listDir('')) do
+        table.insert(names, e.name)
+    end
+    lu.assertEquals(names, { 'ALPHA.DAT;1', 'MIDDLE', 'ZETA.DAT;1' })
+    local f = reader:open('MIDDLE/INNER.DAT;1')
+    lu.assertNotNil(f)
+    lu.assertFalse(f:failed())
+    lu.assertEquals(f:size(), 2048)
+end
+
+local function buildManyFiles(rootSectors, count)
+    local out = Support.File.buffer()
+    local builder = PCSX.isoBuilder(out)
+    builder:writeLicense()
+    builder:setVolumeIdent('DIR_BOUNDS')
+    local root = builder:createRoot(rootSectors)
+    for i = 1, count do
+        builder:createFile(root, string.format('FILE%02d.DAT', i), generateTestContent(16))
+    end
+    return builder, out
+end
+
+function TestIsoBuilder:test_directoryTooSmallIsAnError()
+    -- 60 XA records of 60 bytes each need 2 sectors; a 1-sector root must be refused
+    -- instead of serialized past the end of its extent.
+    local builder = buildManyFiles(1, 60)
+    local ok, err = pcall(builder.close, builder)
+    lu.assertFalse(ok)
+    lu.assertStrContains(tostring(err), 'needs 2 sectors for its entries but was created with 1')
+end
+
+function TestIsoBuilder:test_directoryLargeEnoughLists()
+    local builder, out = buildManyFiles(2, 60)
+    builder:close()
+    out:rSeek(0)
+    local iso = PCSX.openIso(out)
+    local entries = iso:createReader():listDir('')
+    local files = 0
+    for _, e in ipairs(entries) do
+        if e.name:match('^FILE%d%d%.DAT;1$') then files = files + 1 end
+    end
+    lu.assertEquals(files, 60)
 end
