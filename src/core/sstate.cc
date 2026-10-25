@@ -314,7 +314,8 @@ void PCSX::SaveStates::restore(SaveState& state) {
     g_emulator->m_cpu->m_regs.lowestTarget = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.previousCycles = g_emulator->m_cpu->m_regs.cycle;
     g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
-    if (state.get<MemoryField>().get<HasBIU>().value) g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
+    if (state.get<MemoryField>().get<HasBIU>().value)
+        g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
@@ -487,7 +488,8 @@ bool PCSX::SaveStates::load(std::string_view data) {
     // So we just force-align it here, since it's never meant to be misaligned
     g_emulator->m_cpu->m_regs.pc.raw() &= ~3;
     if (g_emulator->m_cpu->m_gtePendingCount > 3) g_emulator->m_cpu->m_gtePendingCount = 0;
-    if (state.get<MemoryField>().get<HasBIU>().value) g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
+    if (state.get<MemoryField>().get<HasBIU>().value)
+        g_emulator->m_mem->setBIU(state.get<MemoryField>().get<BIU>().value);
     g_emulator->m_gpu->deserialize(&wrapper);
     g_emulator->m_spu->load(state.get<SPUField>());
 #if 0
