@@ -786,7 +786,11 @@ class CDRomImpl final : public PCSX::CDRom {
     // Opening the shell under a spinning disc stops the drive with an unsolicited error. On
     // hardware, after a completed SeekP: stat 16h (shell open, spindle, error), code 08h.
     void lidOpened() override {
-        if (!m_motorOn) return;
+        // Play, ReadN, ReadS and the seeks leave m_motorOn alone after a Stop, so an active
+        // read or play counts as a spinning disc here too.
+        const bool active = (m_status != Status::Idle) || (m_readingType != ReadingType::None) ||
+                            (m_readingState != ReadingState::None);
+        if (!m_motorOn && !active) return;
         // A seek or other timed command in flight does not complete.
         if (!m_commandExecuting.empty()) {
             PCSX::g_emulator->m_cpu->unschedule(PCSX::Schedule::CDRCOMMANDS);
