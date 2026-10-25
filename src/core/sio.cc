@@ -113,19 +113,16 @@ void PCSX::SIO::writePad(uint8_t value) {
 
             switch (m_regs.control & ControlFlags::WHICH_PORT) {
                 case SelectedPort::Port1:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(1)) {
+                    if (!PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1, m_padAddress, m_buffer[0])) {
                         m_buffer[0] = 0xff;
                         return;
                     }
-
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port1);
                     break;
                 case SelectedPort::Port2:
-                    if (!PCSX::g_emulator->m_pads->isPadConnected(2)) {
+                    if (!PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2, m_padAddress, m_buffer[0])) {
                         m_buffer[0] = 0xff;
                         return;
                     }
-                    m_buffer[0] = PCSX::g_emulator->m_pads->startPoll(Pads::Port::Port2);
                     break;
             }
 
@@ -187,6 +184,13 @@ void PCSX::SIO::transmitData() {
 
     if (m_currentDevice == DeviceType::None) {
         m_currentDevice = m_regs.data;
+        m_padAddress = m_regs.data;
+        // A multitap also answers 02h to 04h, its slots B to D.
+        if (m_currentDevice >= 0x02 && m_currentDevice <= 0x04) {
+            const auto port = (m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port2 ? Pads::Port::Port2
+                                                                                                   : Pads::Port::Port1;
+            if (PCSX::g_emulator->m_pads->hasMultitap(port)) m_currentDevice = DeviceType::PAD;
+        }
     }
 
     switch (m_currentDevice) {

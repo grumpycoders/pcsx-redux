@@ -207,6 +207,7 @@ typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("pad_state"), 12> SIOPad
 // skip id 13
 // skip id 14
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("currentdevice"), 15> SIOCurrentDevice;
+typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("pad_address"), 32> SIOPadAddress;
 typedef Protobuf::FieldPtr<Protobuf::FixedBytes<128>, TYPESTRING("mcd1_tempbuffer"), 16> SIOMCD1TempBuffer;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_directoryflag"), 17> SIOMCD1DirectoryFlag;
 typedef Protobuf::FieldRef<Protobuf::UInt8, TYPESTRING("mcd1_checksumin"), 18> SIOMCD1ChecksumIn;
@@ -225,11 +226,11 @@ typedef Protobuf::FieldRef<Protobuf::UInt16, TYPESTRING("mcd2_sector"), 30> SIOM
 typedef Protobuf::FieldRef<Protobuf::UInt32, TYPESTRING("mcd2_dataoffset"), 31> SIOMCD2DataOffset;
 
 typedef Protobuf::Message<TYPESTRING("SIO"), SIOBuffer, SIOStatusReg, SIOModeReg, SIOCtrlReg, SIOBaudReg,
-                          SIOBufferMaxIndex, SIOBufferIndex, SIOPadState, SIOCurrentDevice, SIOMCD1TempBuffer,
-                          SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn, SIOMCD1ChecksumOut, SIOMCD1CommandTicks,
-                          SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset, SIOMCD2TempBuffer,
-                          SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut, SIOMCD2CommandTicks,
-                          SIOMCD2CurrentCommand, SIOMCD2Sector, SIOMCD2DataOffset>
+                          SIOBufferMaxIndex, SIOBufferIndex, SIOPadState, SIOCurrentDevice, SIOPadAddress,
+                          SIOMCD1TempBuffer, SIOMCD1DirectoryFlag, SIOMCD1ChecksumIn, SIOMCD1ChecksumOut,
+                          SIOMCD1CommandTicks, SIOMCD1CurrentCommand, SIOMCD1Sector, SIOMCD1DataOffset,
+                          SIOMCD2TempBuffer, SIOMCD2DirectoryFlag, SIOMCD2ChecksumIn, SIOMCD2ChecksumOut,
+                          SIOMCD2CommandTicks, SIOMCD2CurrentCommand, SIOMCD2Sector, SIOMCD2DataOffset>
     SIO;
 typedef Protobuf::MessageField<SIO, TYPESTRING("sio"), 7> SIOField;
 // skip id 8

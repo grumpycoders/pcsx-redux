@@ -122,6 +122,7 @@ PCSX::SaveStates::SaveState PCSX::SaveStates::Access::constructSaveState() {
             SIOBufferIndex{g_emulator->m_sio->m_bufferIndex},
             SIOPadState{g_emulator->m_sio->m_padState},
             SIOCurrentDevice{g_emulator->m_sio->m_currentDevice},
+            SIOPadAddress{g_emulator->m_sio->m_padAddress},
             SIOMCD1TempBuffer{g_emulator->m_sio->m_memoryCard[0].m_tempBuffer},
             SIOMCD1DirectoryFlag{g_emulator->m_sio->m_memoryCard[0].m_directoryFlag},
             SIOMCD1ChecksumIn{g_emulator->m_sio->m_memoryCard[0].m_checksumIn},

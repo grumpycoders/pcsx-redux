@@ -38,7 +38,12 @@ class Pads {
 
     virtual void init() = 0;
     virtual void shutdown() = 0;
-    virtual uint8_t startPoll(Port port) = 0;
+    // Starts an access to the device at address on port: 1 is the pad plugged into the port, or slot A of a
+    // multitap there, and 2 to 4 are multitap slots B to D. Returns false when nothing answers the address,
+    // and otherwise sets reply to the first byte the device sends.
+    virtual bool startPoll(Port port, uint8_t address, uint8_t& reply) = 0;
+    // Whether a multitap is plugged into port, which makes addresses 2 to 4 answer.
+    virtual bool hasMultitap(Port port) = 0;
     virtual uint8_t poll(uint8_t value, Port port, uint32_t& padState) = 0;
 
     virtual json getCfg() = 0;
