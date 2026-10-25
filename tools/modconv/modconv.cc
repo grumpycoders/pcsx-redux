@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
     fmt::print(R"(
 modconv by Nicolas "Pixel" Noble
-https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
+https://github.com/pcsx-redux/pcsx-redux/tree/main/tools/modconv/
 
 )");
 

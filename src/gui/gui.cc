@@ -2541,7 +2541,7 @@ bool PCSX::GUI::about() {
                     ImGui::TextUnformatted(_("Changeset:"));
                     ImGui::SameLine();
                     if (ImGui::SmallButton(version.changeset.c_str())) {
-                        openUrl(fmt::format("https://github.com/grumpycoders/pcsx-redux/commit/{}", version.changeset));
+                        openUrl(fmt::format("https://github.com/pcsx-redux/pcsx-redux/commit/{}", version.changeset));
                     }
                     std::tm tm = *std::localtime(&version.timestamp);
                     std::string timestamp = fmt::format("{:%Y-%m-%d %H:%M:%S}", tm);
