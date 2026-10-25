@@ -3071,7 +3071,8 @@ void PCSX::GUI::saveScreenShot() {
     if (success) {
         auto successMsg = fmt::format(f_("Screenshot saved to {}\n"), path.string());
         g_system->log(LogClass::UI, std::move(successMsg));
+        addNotice(fmt::format(f_("Screenshot saved to {}"), path.filename().string()), NoticeKind::Info);
     } else {
-        addNotification(_("Failed to save screenshot"));
+        addNotice(_("Failed to save screenshot"), NoticeKind::Error);
     }
 }
