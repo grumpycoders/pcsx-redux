@@ -60,7 +60,7 @@ class GPULogger {
     void setOwner(GPU* gpu) { m_owner = gpu; }
     GPU* gpu() const;
     bool followsEmulator() const { return m_followEmulator; }
-    void setFrame(uint64_t frame) { m_frameCounter = frame; }
+    void setFrame(uint64_t frame);
     // Logging without the VRAM heatmaps, which need an OpenGL context; enable() sets those up.
     void setLogging(bool enabled) { m_enabled = enabled; }
     size_t loggedCount() const { return m_list.size(); }
@@ -104,6 +104,7 @@ class GPULogger {
 
   private:
     void startNewFrame();
+    void dropFramesBefore(uint64_t frame);
     void addNodeInternal(GPU::Logged* node, GPU::Logged::Origin, uint32_t value, uint32_t length, bool clipped);
     void checkVramBreakpoints(GPU::Logged* node);
 

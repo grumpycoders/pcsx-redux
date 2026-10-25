@@ -109,7 +109,7 @@ void main() {
 PCSX::GPULogger::GPULogger(bool followEmulator) : m_listener(g_system->m_eventBus), m_followEmulator(followEmulator) {
     if (!followEmulator) return;
     m_listener.listen<Events::GPU::VSync>([this](auto event) {
-        m_frameCounter++;
+        setFrame(m_frameCounter + 1);
         const unsigned rate = g_emulator->settings.get<Emulator::SettingVideo>() == Emulator::PSX_TYPE_PAL ? 50 : 60;
         if (++m_fpsVSyncs >= rate) {
             m_guestFPS = float(m_displayStartChanges) * rate / m_fpsVSyncs;
@@ -241,6 +241,17 @@ void PCSX::GPULogger::checkVramBreakpoints(GPU::Logged* node) {
     if (!m_followEmulator) return;
     g_system->m_eventBus->signal(Events::GUI::JumpToPC{node->pc});
     g_system->pause();
+}
+
+// The list shows the frame that just completed. Anything older goes when the next frame starts,
+// so a frame that sent no commands shows as empty.
+void PCSX::GPULogger::setFrame(uint64_t frame) {
+    m_frameCounter = frame;
+    if (frame > 0) dropFramesBefore(frame - 1);
+}
+
+void PCSX::GPULogger::dropFramesBefore(uint64_t frame) {
+    for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame < frame); i = m_list.begin()) delete &*i;
 }
 
 void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length,
