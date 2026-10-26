@@ -219,13 +219,9 @@ void PCSX::SIO::transmitData() {
         // And 82h to 84h, the memory cards in those slots, when one is inserted. 81h stays card 1 or 2.
         if (m_currentDevice >= DeviceType::TapMemoryCardB && m_currentDevice <= DeviceType::TapMemoryCardD) {
             const unsigned index = portIndex * 3 + m_currentDevice - DeviceType::TapMemoryCardB;
-            const auto [inserted, path] = tapMcdSettings(index);
-            if (!PCSX::g_emulator->m_pads->hasMultitap(port) || !inserted) {
+            if (!PCSX::g_emulator->m_pads->hasMultitap(port) || !tapMcdSettings(index).first) {
                 m_tapMemoryCard[index].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
                 m_currentDevice = DeviceType::None;
-            } else if (!m_tapMemoryCardLoaded[index]) {
-                m_tapMemoryCard[index].loadMcd(path);
-                m_tapMemoryCardLoaded[index] = true;
             }
         }
     }
@@ -272,10 +268,25 @@ void PCSX::SIO::transmitData() {
         case DeviceType::TapMemoryCardB:
         case DeviceType::TapMemoryCardC:
         case DeviceType::TapMemoryCardD: {
+            // Checked on every byte, not only on the select one: the port can switch under a transfer, and a
+            // save state can resume one in a process that has not read this card's file yet.
             const unsigned index = portIndex * 3 + m_currentDevice - DeviceType::TapMemoryCardB;
+            const auto port = portIndex ? Pads::Port::Port2 : Pads::Port::Port1;
+            const auto [inserted, path] = tapMcdSettings(index);
+            auto &card = m_tapMemoryCard[index];
+            if (!PCSX::g_emulator->m_pads->hasMultitap(port) || !inserted) {
+                card.m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
+                m_currentDevice = DeviceType::Ignore;
+                card.deselect();
+                break;
+            }
+            if (!m_tapMemoryCardLoaded[index]) {
+                card.loadMcd(path);
+                m_tapMemoryCardLoaded[index] = true;
+            }
             // The card itself only knows 81h.
-            m_rxBuffer = m_tapMemoryCard[index].transceive(select ? DeviceType::MemoryCard : m_regs.data);
-            if (m_tapMemoryCard[index].dataChanged()) m_tapMemoryCard[index].commit(tapMcdSettings(index).second);
+            m_rxBuffer = card.transceive(select ? DeviceType::MemoryCard : m_regs.data);
+            if (card.dataChanged()) card.commit(path);
             break;
         }
 
