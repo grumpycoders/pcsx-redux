@@ -100,9 +100,33 @@ void PCSX::SIO::reset() {
     m_regs.control = 0;
     m_regs.baud = 0;
     m_bufferIndex = 0;
-    m_memoryCard[0].deselect();
-    m_memoryCard[1].deselect();
+    deselectCards();
     m_currentDevice = DeviceType::None;
+}
+
+void PCSX::SIO::deselectCards() {
+    for (auto& card : m_memoryCard) card.deselect();
+    for (auto& card : m_tapMemoryCard) card.deselect();
+}
+
+// Whether the card in a multitap's slot B to D is inserted, and its file.
+static std::pair<bool, PCSX::u8string> tapMcdSettings(unsigned index) {
+    using namespace PCSX;
+    auto& s = g_emulator->settings;
+    switch (index) {
+        case 0:
+            return {s.get<Emulator::SettingMcd1BInserted>(), s.get<Emulator::SettingMcd1B>().string()};
+        case 1:
+            return {s.get<Emulator::SettingMcd1CInserted>(), s.get<Emulator::SettingMcd1C>().string()};
+        case 2:
+            return {s.get<Emulator::SettingMcd1DInserted>(), s.get<Emulator::SettingMcd1D>().string()};
+        case 3:
+            return {s.get<Emulator::SettingMcd2BInserted>(), s.get<Emulator::SettingMcd2B>().string()};
+        case 4:
+            return {s.get<Emulator::SettingMcd2CInserted>(), s.get<Emulator::SettingMcd2C>().string()};
+        default:
+            return {s.get<Emulator::SettingMcd2DInserted>(), s.get<Emulator::SettingMcd2D>().string()};
+    }
 }
 
 void PCSX::SIO::writePad(uint8_t value) {
@@ -182,14 +206,27 @@ void PCSX::SIO::transmitData() {
 
     uint8_t m_rxBuffer = 0xff;
 
-    if (m_currentDevice == DeviceType::None) {
+    const bool select = m_currentDevice == DeviceType::None;
+    const unsigned portIndex = (m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port2 ? 1 : 0;
+    if (select) {
         m_currentDevice = m_regs.data;
         m_padAddress = m_regs.data;
+        const auto port = portIndex ? Pads::Port::Port2 : Pads::Port::Port1;
         // A multitap also answers 02h to 04h, its slots B to D.
         if (m_currentDevice >= 0x02 && m_currentDevice <= 0x04) {
-            const auto port = (m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port2 ? Pads::Port::Port2
-                                                                                                   : Pads::Port::Port1;
             if (PCSX::g_emulator->m_pads->hasMultitap(port)) m_currentDevice = DeviceType::PAD;
+        }
+        // And 82h to 84h, the memory cards in those slots, when one is inserted. 81h stays card 1 or 2.
+        if (m_currentDevice >= DeviceType::TapMemoryCardB && m_currentDevice <= DeviceType::TapMemoryCardD) {
+            const unsigned index = portIndex * 3 + m_currentDevice - DeviceType::TapMemoryCardB;
+            const auto [inserted, path] = tapMcdSettings(index);
+            if (!PCSX::g_emulator->m_pads->hasMultitap(port) || !inserted) {
+                m_tapMemoryCard[index].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
+                m_currentDevice = DeviceType::None;
+            } else if (!m_tapMemoryCardLoaded[index]) {
+                m_tapMemoryCard[index].loadMcd(path);
+                m_tapMemoryCardLoaded[index] = true;
+            }
         }
     }
 
@@ -232,14 +269,23 @@ void PCSX::SIO::transmitData() {
             }
             break;
 
+        case DeviceType::TapMemoryCardB:
+        case DeviceType::TapMemoryCardC:
+        case DeviceType::TapMemoryCardD: {
+            const unsigned index = portIndex * 3 + m_currentDevice - DeviceType::TapMemoryCardB;
+            // The card itself only knows 81h.
+            m_rxBuffer = m_tapMemoryCard[index].transceive(select ? DeviceType::MemoryCard : m_regs.data);
+            if (m_tapMemoryCard[index].dataChanged()) m_tapMemoryCard[index].commit(tapMcdSettings(index).second);
+            break;
+        }
+
         case DeviceType::Ignore:
             break;
 
         default:
             m_currentDevice = DeviceType::None;
             m_padState = Pads::PAD_STATE_IDLE;
-            m_memoryCard[0].deselect();
-            m_memoryCard[1].deselect();
+            deselectCards();
             break;
     }
 
@@ -289,8 +335,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
         // Select line de-activated, reset state machines
         m_currentDevice = DeviceType::None;
         m_padState = Pads::PAD_STATE_IDLE;
-        m_memoryCard[0].deselect();
-        m_memoryCard[1].deselect();
+        deselectCards();
         m_bufferIndex = 0;
     }
 
@@ -307,8 +352,7 @@ void PCSX::SIO::writeCtrl16(uint16_t value) {
     if (m_regs.control & ControlFlags::RESET) {
         m_rxFIFO.clear();
         m_padState = Pads::PAD_STATE_IDLE;
-        m_memoryCard[0].deselect();
-        m_memoryCard[1].deselect();
+        deselectCards();
         m_bufferIndex = 0;
         m_regs.status = StatusFlags::TX_DATACLEAR | StatusFlags::TX_FINISHED;
         g_emulator->m_mem->writeHardwareRegister<0x1044>(m_regs.status);
