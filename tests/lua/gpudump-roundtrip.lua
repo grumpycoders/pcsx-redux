@@ -69,6 +69,33 @@ local function checkLogger(path)
     return first > 0 and second > 0 and second < first and second == again
 end
 
+-- A frame that sends no commands shows an empty list, not the previous frame's commands. Two VSync
+-- packets appended to the dump end it on a frame with nothing in it.
+local function checkEmptyFrame(path)
+    local src = io.open(path, 'rb')
+    if not src then return false end
+    local data = src:read('*a')
+    src:close()
+    local padded = path .. '-empty.gpd'
+    local dst = io.open(padded, 'wb')
+    local vsync = string.char(0, 0, 0, 2)
+    dst:write(data .. vsync .. vsync)
+    dst:close()
+    local loaded = PCSX.GPU.DumpPlayer.load(padded)
+    os.remove(padded)
+    if not loaded then return false end
+    PCSX.GPU.DumpPlayer.setLogging(true)
+    PCSX.GPU.DumpPlayer.rewind()
+    local busiest, last = 0, -1
+    while PCSX.GPU.DumpPlayer.step() do
+        last = PCSX.GPU.DumpPlayer.getLoggedCount()
+        if last > busiest then busiest = last end
+    end
+    PCSX.GPU.DumpPlayer.setLogging(false)
+    print(string.format('%s: busiest frame %d commands, empty last frame %d', path, busiest, last))
+    return busiest > 0 and last == 0
+end
+
 local tmp = os.tmpname()
 os.remove(tmp)
 local first, second = tmp .. '-1.gpd', tmp .. '-2.gpd'
@@ -93,6 +120,7 @@ Listener = PCSX.Events.createEventListener('GPU::Vsync', function()
         PCSX.GPU.stopDump()
         ok = check(first) and ok
         ok = checkLogger(first) and ok
+        ok = checkEmptyFrame(first) and ok
         stage = 2
     elseif stage == 2 and vsyncs >= 150 then
         -- The player keeps its GPU while the emulated one runs on.
