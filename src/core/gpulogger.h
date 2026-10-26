@@ -117,6 +117,7 @@ class GPULogger {
     std::vector<VramBreakpoint> m_vramBreakpoints;
     bool m_hasFramebuffers = false;
     uint64_t m_frameCounter = 0;
+    bool m_pendingNewFrame = false;
     uint32_t m_lastDisplayStart = 0xffffffff;
     unsigned m_displayStartChanges = 0;
     unsigned m_fpsVSyncs = 0;

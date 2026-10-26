@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 #include "core/gpu.h"
 #include "core/psxemulator.h"
@@ -251,14 +252,23 @@ void PCSX::GPULogger::setFrame(uint64_t frame) {
 }
 
 void PCSX::GPULogger::dropFramesBefore(uint64_t frame) {
-    for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame < frame); i = m_list.begin()) delete &*i;
+    bool dropped = false;
+    for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame < frame); i = m_list.begin()) {
+        delete &*i;
+        dropped = true;
+    }
+    if (!dropped) return;
+    // The next command starts a new frame for the heatmaps even though nothing is left to compare it to.
+    m_pendingNewFrame = true;
+    // An empty frame replays from the VRAM it started with, not from the snapshot of the dropped frame.
+    if (m_list.empty()) startNewFrame();
 }
 
 void PCSX::GPULogger::addNodeInternal(GPU::Logged* node, GPU::Logged::Origin origin, uint32_t value, uint32_t length,
                                       bool clipped) {
     auto frame = m_frameCounter;
 
-    bool gotNewFrame = false;
+    bool gotNewFrame = std::exchange(m_pendingNewFrame, false);
     for (auto i = m_list.begin(); (i != m_list.end()) && (i->frame != frame); i = m_list.begin()) {
         delete &*i;
         gotNewFrame = true;
