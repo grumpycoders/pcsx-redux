@@ -593,8 +593,9 @@ void PCSX::GPU::restoreEnvironment(const uint8_t* env, uint32_t status) {
         for (unsigned i = 0; i < 6; i++) writeData(getU32(env + i * 4));
         return;
     }
-    // GPUSTAT.10 can read 0 after a textured primitive even with GP0(E1h).10 set, so it does not
-    // say whether drawing to the display area was allowed; restore it as allowed.
+    // Savestates from older builds can hold GPUSTAT.10 = 0 after a textured polygon even with
+    // GP0(E1h).10 set, so it does not say whether drawing to the display area was allowed; restore it
+    // as allowed.
     writeData(0xe1000400 | (status & 0x3ff) | ((status >> 4) & 0x800));
     writeData(0xe6000000 | ((status >> 11) & 3));
 }

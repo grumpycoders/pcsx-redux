@@ -797,6 +797,11 @@ void PCSX::SoftGPU::impl::texturePageStatus(GPU::TPage &tpage) {
     m_statusRet |= tpage.raw & 0x07ff;
 }
 
+void PCSX::SoftGPU::impl::polygonTexturePageStatus(const GPU::TPage &tpage) {
+    m_statusRet &= ~0x01ff;
+    m_statusRet |= tpage.raw & 0x01ff;
+}
+
 void PCSX::SoftGPU::impl::maskBitStatus(const GPU::MaskBit &mask) {
     m_statusRet &= ~0x1800;
     if (mask.set) m_statusRet |= 0x0800;
@@ -840,7 +845,7 @@ void PCSX::SoftGPU::impl::dispatchPoly(Poly<shading, shape, textured, blend, mod
                     prim->tpage.dither = true;
                     prim->tpage.raw |= 0x200;
                 }
-                texturePageStatus(prim->tpage);
+                polygonTexturePageStatus(prim->tpage);
             }
         }
     }
