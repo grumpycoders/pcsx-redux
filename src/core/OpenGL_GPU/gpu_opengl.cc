@@ -166,7 +166,7 @@ int PCSX::OpenGL_GPU::initBackend(UI *ui) {
         flat out int texMode;
 
         // We always apply a 0.5 offset in addition to the drawing offsets, to cover up OpenGL inaccuracies
-        uniform vec2 u_vertexOffsets = vec2(+0.5, -0.5);
+        uniform vec2 u_vertexOffsets = vec2(+0.5, +0.5);
 
         // 1 when 2MB of VRAM is fitted, in which case texpage bit 11 is the
         // high bit of the texture page Y instead of the (unused) texture
@@ -940,7 +940,7 @@ void PCSX::OpenGL_GPU::setDrawOffset(uint32_t cmd) {
 
     // The 0.5 offsets help fix some holes in rendering, in places like the PS logo
     // TODO: This might not work when upscaling?
-    float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) - 0.5f};
+    float adjustedOffsets[2] = {static_cast<float>(offsetX) + 0.5f, static_cast<float>(offsetY) + 0.5f};
     glUniform2fv(m_drawingOffsetLoc, 1, adjustedOffsets);
 }
 
