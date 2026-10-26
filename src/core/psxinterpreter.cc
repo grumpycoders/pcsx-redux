@@ -1843,6 +1843,16 @@ inline void InterpretedCPU::execBlock() {
 
         m_currentDelayedLoad ^= 1;
         flushCurrentDelayedLoad();
+        // Checked here rather than in the instructions that write $sp so that
+        // every write is covered, delayed loads included. Exception handlers
+        // run on their own stacks, so nothing is checked until the rfe.
+        if (m_stackBounds.active && !m_inISR) [[unlikely]] {
+            const uint32_t sp = m_regs.GPR.n.sp;
+            if (sp != m_stackBounds.lastSP) {
+                m_stackBounds.lastSP = sp;
+                if ((sp < m_stackBounds.low) || (sp > m_stackBounds.high)) stackBoundsViolation(pc, sp);
+            }
+        }
         if (m_gtePendingCount) gteTickWrites();
         auto& delayedLoad = m_delayedLoadInfo[m_currentDelayedLoad];
         bool fromLink = false;
