@@ -629,15 +629,18 @@ void PCSX::GPU::deserialize(const SaveStateWrapper* w) {
         clearVRAM();
     }
 
-    writeStatus(m_statusControl[0]);
-    writeStatus(m_statusControl[1]);
-    writeStatus(m_statusControl[2]);
-    writeStatus(m_statusControl[3]);
-    writeStatus(m_statusControl[8]);  // try to repair things
-    writeStatus(m_statusControl[6]);
-    writeStatus(m_statusControl[7]);
-    writeStatus(m_statusControl[5]);
-    writeStatus(m_statusControl[4]);
+    // Replay from a copy: GP1(00h) rewrites the GP1(08h) slot with the reset display mode.
+    uint32_t saved[256];
+    std::copy(std::begin(m_statusControl), std::end(m_statusControl), saved);
+    writeStatus(saved[0]);
+    writeStatus(saved[1]);
+    writeStatus(saved[2]);
+    writeStatus(saved[3]);
+    writeStatus(saved[8]);  // try to repair things
+    writeStatus(saved[6]);
+    writeStatus(saved[7]);
+    writeStatus(saved[5]);
+    writeStatus(saved[4]);
 
     restoreEnvironment(gpu.get<GPUEnvironment>().value, gpu.get<GPUStatus>().value);
     // The GP1 and environment replays above rebuild the status word from commands, which loses
