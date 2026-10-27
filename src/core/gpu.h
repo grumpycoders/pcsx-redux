@@ -660,7 +660,7 @@ class GPU {
             } else {
                 return isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[1] + offset.x,
                                         this->y[1] + offset.y, this->x[2] + offset.x, this->y[2] + offset.y) ||
-                       isInsideTriangle(x, y, this->x[0] + offset.x, this->y[0] + offset.y, this->x[2] + offset.x,
+                       isInsideTriangle(x, y, this->x[1] + offset.x, this->y[1] + offset.y, this->x[2] + offset.x,
                                         this->y[2] + offset.y, this->x[3] + offset.x, this->y[3] + offset.y);
             }
         }
