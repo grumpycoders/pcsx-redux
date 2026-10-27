@@ -47,6 +47,7 @@
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/compressionffi.h"
 #include "lua/extra.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -167,6 +168,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaFFI::open_compression(L);
     LuaSupportPSX::open_adpcm(L);
     LuaSupportPSX::open_assembler(L);
     LuaSupportPSX::open_binaries(L);
