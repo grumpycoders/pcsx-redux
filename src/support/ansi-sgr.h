@@ -59,8 +59,27 @@ class AnsiSGR {
             i++;
             if (i >= in.size()) break;
             if (in[i] != '[') {
-                // Two-character escape such as ESC c; drop both.
-                i++;
+                char intro = in[i++];
+                if (intro == ']' || intro == 'P' || intro == 'X' || intro == '^' || intro == '_') {
+                    // OSC, DCS, SOS, PM and APC strings run until BEL or ST (ESC \). Lines are split
+                    // before parsing, so an unterminated one only swallows the rest of its line.
+                    while (i < in.size()) {
+                        if (in[i] == '\x07') {
+                            i++;
+                            break;
+                        }
+                        if (in[i] == '\x1b' && i + 1 < in.size() && in[i + 1] == '\\') {
+                            i += 2;
+                            break;
+                        }
+                        i++;
+                    }
+                } else if (intro >= 0x20 && intro <= 0x2f) {
+                    // nF escape such as ESC ( B: intermediate bytes, then one final byte.
+                    while (i < in.size() && in[i] >= 0x20 && in[i] <= 0x2f) i++;
+                    if (i < in.size()) i++;
+                }
+                // Anything else is a two-character escape such as ESC c, already consumed.
                 continue;
             }
             i++;
@@ -119,52 +138,75 @@ class AnsiSGR {
         return (g << 16) | (g << 8) | g;
     }
 
+    // Applies one SGR parameter string. Groups are separated by ';'. A group may carry ':'
+    // sub-parameters (the ISO 8613-6 form), where an empty field is an omitted value.
     void applySGR(std::string_view params) {
-        std::vector<unsigned> codes;
-        unsigned value = 0;
+        std::vector<std::vector<unsigned>> groups(1);
+        groups.back().push_back(0);
         for (char c : params) {
             if (c >= '0' && c <= '9') {
+                unsigned& value = groups.back().back();
                 value = value * 10 + (c - '0');
                 if (value > 0xffff) value = 0xffff;
-            } else if (c == ';' || c == ':') {
-                codes.push_back(value);
-                value = 0;
-            }
-            // Other parameter bytes (private markers) make the sequence meaningless to us.
-            else {
+            } else if (c == ';') {
+                groups.emplace_back(1, 0);
+            } else if (c == ':') {
+                groups.back().push_back(0);
+            } else {
+                // Private markers make the sequence meaningless to us.
                 return;
             }
         }
-        codes.push_back(value);
-        for (size_t i = 0; i < codes.size(); i++) {
-            unsigned code = codes[i];
-            if (code == 0) {
-                reset();
-            } else if (code == 1) {
-                m_bold = true;
-            } else if (code == 22) {
-                m_bold = false;
-            } else if (code >= 30 && code <= 37) {
-                m_fg = code - 30;
-            } else if (code == 39) {
-                m_fg = c_default;
-            } else if (code >= 90 && code <= 97) {
-                m_fg = code - 90 + 8;
-            } else if (code == 38 || code == 48) {
-                // Extended colour: 5;n or 2;r;g;b. Background colours are parsed and dropped.
-                if (i + 2 < codes.size() && codes[i + 1] == 5) {
-                    if (code == 38) m_fg = 16 + xterm256(codes[i + 2] & 0xff);
+        for (size_t i = 0; i < groups.size(); i++) {
+            auto& group = groups[i];
+            unsigned code = group[0];
+            if (group.size() > 1) {
+                // Colon form: 38:5:n, or 38:2:[colour space]:r:g:b. Other codes ignore sub-parameters.
+                if (code == 38 && group[1] == 5 && group.size() >= 3) {
+                    m_fg = 16 + xterm256(group[2] & 0xff);
+                } else if (code == 38 && group[1] == 2 && group.size() >= 5) {
+                    size_t r = group.size() >= 6 ? 3 : 2;
+                    m_fg = 16 + rgb(group[r], group[r + 1], group[r + 2]);
+                } else if (code != 38 && code != 48) {
+                    applyCode(code);
+                }
+                continue;
+            }
+            if (code == 38 || code == 48) {
+                // Semicolon form: 38;5;n or 38;2;r;g;b. Background colours are parsed and dropped.
+                auto arg = [&](size_t n) { return groups[i + n][0]; };
+                if (i + 2 < groups.size() && arg(1) == 5) {
+                    if (code == 38) m_fg = 16 + xterm256(arg(2) & 0xff);
                     i += 2;
-                } else if (i + 4 < codes.size() && codes[i + 1] == 2) {
-                    if (code == 38) {
-                        m_fg = 16 + (int32_t)(((codes[i + 2] & 0xff) << 16) | ((codes[i + 3] & 0xff) << 8) |
-                                              (codes[i + 4] & 0xff));
-                    }
+                } else if (i + 4 < groups.size() && arg(1) == 2) {
+                    if (code == 38) m_fg = 16 + rgb(arg(2), arg(3), arg(4));
                     i += 4;
                 } else {
                     return;
                 }
+                continue;
             }
+            applyCode(code);
+        }
+    }
+
+    static int32_t rgb(unsigned r, unsigned g, unsigned b) {
+        return (int32_t)(((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff));
+    }
+
+    void applyCode(unsigned code) {
+        if (code == 0) {
+            reset();
+        } else if (code == 1) {
+            m_bold = true;
+        } else if (code == 22) {
+            m_bold = false;
+        } else if (code >= 30 && code <= 37) {
+            m_fg = code - 30;
+        } else if (code == 39) {
+            m_fg = c_default;
+        } else if (code >= 90 && code <= 97) {
+            m_fg = code - 90 + 8;
         }
     }
 };

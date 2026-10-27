@@ -76,3 +76,25 @@ TEST(AnsiSGR, OtherSequencesAreStripped) {
               "abc");
     EXPECT_TRUE(spans.empty());
 }
+
+TEST(AnsiSGR, StringSequencesAndCharsetEscapes) {
+    AnsiSGR sgr;
+    std::vector<AnsiSGR::Span> spans;
+    EXPECT_EQ(sgr.parse("a\x1b]0;title\x07"
+                        "b\x1b]8;;http://x\x1b\\c\x1b(B\x1b[md",
+                        spans),
+              "abcd");
+    EXPECT_TRUE(spans.empty());
+    EXPECT_EQ(sgr.parse("e\x1bPunterminated", spans), "e");
+}
+
+TEST(AnsiSGR, ColonFormColours) {
+    AnsiSGR sgr;
+    std::vector<AnsiSGR::Span> spans;
+    EXPECT_EQ(sgr.parse("\x1b[38:2::255:0:0mr\x1b[38:2:0:255:0mg\x1b[38:5:21mb\x1b[4:3mu", spans), "rgbu");
+    ASSERT_EQ(spans.size(), 3u);
+    EXPECT_EQ(spans[0].color, 0xff0000);
+    EXPECT_EQ(spans[1].color, 0x00ff00);
+    EXPECT_EQ(spans[2].offset, 2u);
+    EXPECT_EQ(spans[2].color, 0x0000ff);
+}
