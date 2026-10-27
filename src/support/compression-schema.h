@@ -72,7 +72,7 @@ struct Schema {
     /* window */
     OffsetBase offset_base;
     int window_start;
-    int max_dist;      /* derived if 0 */
+    int max_dist;      /* window size; required for OB_WINDOW_END */
     int dist_bias;     /* added to every decoded distance */
     uint8_t fill_byte; /* what a reference below the start of output yields */
     int allow_overlap;
@@ -110,7 +110,16 @@ enum {
     SCH_ERR_SRC_EOF = -3,
     SCH_ERR_DST_FULL = -4,
     SCH_ERR_NO_PROD = -6,
+    SCH_ERR_BAD_REF = -8,     /* a match points at or past the output position */
+    SCH_ERR_BAD_SCHEMA = -9,  /* see schema_validate */
+    SCH_ERR_UNSUPPORTED = -10, /* the encoder only packs OB_RELATIVE windows */
 };
+
+/* Checks every value the codec uses as an index or a loop step: token bytes 1..4,
+   term bytes inside their token, control unit 1 or 2, 1..8 flags per group, and a
+   max_dist for OB_WINDOW_END. Returns 0 or SCH_ERR_BAD_SCHEMA. Decode and encode
+   both run it first. */
+int schema_validate(const Schema* s);
 int schema_decode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap, size_t outlen,
                   size_t* consumed, long* items_out, DecodeStats* st = 0);
 

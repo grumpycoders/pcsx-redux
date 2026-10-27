@@ -114,4 +114,53 @@ function TestCompression:test_schema_validation()
     lu.assertErrorMsgContains('needs `productions`', PCSX.Compression.schema, { name = 'x' })
     lu.assertErrorMsgContains('needs exactly one of', PCSX.Compression.schema,
         { name = 'x', productions = { { bytes = 2 } } })
+    local match = { len = { at = { 1, 0xf0, -4 }, bias = 2 }, dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } } } }
+    -- a term reading past its own token
+    lu.assertErrorMsgContains('schema: invalid', PCSX.Compression.schema,
+        { productions = { { bytes = 2, match = { len = { at = { 4, 0xff } }, dist = match.dist } } } })
+    lu.assertErrorMsgContains('schema: invalid', PCSX.Compression.schema,
+        { control = { unit = 3 }, productions = { { bytes = 2, match = match } } })
+    lu.assertErrorMsgContains('schema: invalid', PCSX.Compression.schema,
+        { window = { base = 'windowEnd' }, productions = { { bytes = 2, match = match } } })
+end
+
+function TestCompression:test_reference_at_output_position()
+    -- a match with distance 0 would copy the byte it is about to write
+    lu.assertErrorMsgContains('points at or past', lsb.decode, lsb, '\x01\x00\x00', 4)
+end
+
+function TestCompression:test_encoder_rejects_non_relative_windows()
+    local abs = PCSX.Compression.schema {
+        control = { oneMeans = 'token' },
+        window = { base = 'absolute' },
+        productions = { { bytes = 2, match = { len = { at = { 1, 0xf0, -4 }, bias = 2 },
+                                               dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } } } } } },
+    }
+    lu.assertErrorMsgContains('only supports relative', abs.encode, abs, 'abababab')
+end
+
+function TestCompression:test_encoder_honours_no_overlap()
+    local strict = PCSX.Compression.schema {
+        control = { oneMeans = 'token' },
+        window = { maxDist = 0x0fff, overlap = false },
+        productions = { { bytes = 2, match = { len = { at = { 1, 0xf0, -4 }, bias = 2 },
+                                               dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } } } } } },
+    }
+    local plain = string.rep('ab', 40)
+    local plainOut, stats = strict:decode(strict:encode(plain), #plain)
+    lu.assertEquals(plainOut, plain)
+    lu.assertEquals(stats.overlapping, 0)
+    lu.assertTrue(stats.match > 0)
+end
+
+function TestCompression:test_sixteen_bit_literals_roundtrip()
+    local wide = PCSX.Compression.schema {
+        control = { unit = 2, oneMeans = 'token' },
+        window = { maxDist = 0x0fff },
+        productions = { { bytes = 2, match = { len = { at = { 1, 0xf0, -4 }, bias = 2 },
+                                               dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } } } } } },
+    }
+    for _, plain in ipairs { 'ABCDEF', 'ABCDE', 'xyzzy-plugh-xyzzy-plugh' } do
+        lu.assertEquals(wide:decode(wide:encode(plain), #plain), plain)
+    end
 end

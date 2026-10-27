@@ -36,6 +36,30 @@ const Production* schema_select(const Schema* s, const uint8_t* tok, size_t avai
     return 0;
 }
 
+static int field_ok(const Field* f, int nbytes) {
+    if (f->nterms < 0 || f->nterms > 3) return 0;
+    for (int i = 0; i < f->nterms; i++)
+        if (f->terms[i].byte < 0 || f->terms[i].byte >= nbytes) return 0;
+    return 1;
+}
+
+int schema_validate(const Schema* s) {
+    if (s->flag_unit_bytes != 1 && s->flag_unit_bytes != 2) return SCH_ERR_BAD_SCHEMA;
+    if (s->flags_per_group < 1 || s->flags_per_group > 8) return SCH_ERR_BAD_SCHEMA;
+    if (s->nprods < 0 || s->nprods > 4) return SCH_ERR_BAD_SCHEMA;
+    if (s->offset_base == OB_WINDOW_END && s->max_dist <= 0) return SCH_ERR_BAD_SCHEMA;
+    for (int i = 0; i < s->nprods; i++) {
+        const Production* P = &s->prods[i];
+        if (P->nbytes < 1 || P->nbytes > 4) return SCH_ERR_BAD_SCHEMA;
+        if (P->nguards < 0 || P->nguards > 2) return SCH_ERR_BAD_SCHEMA;
+        for (int g = 0; g < P->nguards; g++)
+            if (!field_ok(&P->guards[g].f, P->nbytes)) return SCH_ERR_BAD_SCHEMA;
+        for (int f = 0; f < F_NFIELDS; f++)
+            if (!field_ok(&P->fields[f], P->nbytes)) return SCH_ERR_BAD_SCHEMA;
+    }
+    return 0;
+}
+
 void stats_init(DecodeStats* st) {
     memset(st, 0, sizeof(*st));
     st->dist_min = st->len_min = st->run_min = 1 << 30;
@@ -49,6 +73,8 @@ void stats_init(DecodeStats* st) {
 
 int schema_decode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap, size_t outlen,
                   size_t* consumed, long* items_out, DecodeStats* st) {
+    int bad = schema_validate(s);
+    if (bad) return bad;
     size_t sp = 0, op = 0;
     long items = 0;
 
@@ -88,6 +114,11 @@ int schema_decode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
                 }
                 for (int n = 0; n < s->flag_unit_bytes; n++) {
                     if (sp >= srclen) return SCH_ERR_SRC_EOF;
+                    /* the encoder pads a short tail out to a whole unit */
+                    if (!has_end && op >= outlen) {
+                        sp++;
+                        continue;
+                    }
                     if (op >= dstcap) return SCH_ERR_DST_FULL;
                     dst[op++] = src[sp++];
                 }
@@ -151,6 +182,7 @@ int schema_decode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
                     if (dist < len) st->overlap_tokens++;
                     if (from < 0) st->negative_refs++;
                 }
+                if (from >= (long)op) return SCH_ERR_BAD_REF;
                 /* without a terminator, a match stops mid-token on reaching the
                    target length; a fill does not. */
                 for (int n = 0; n < len; n++, from++) {
@@ -251,6 +283,9 @@ static inline int denser(int cov_a, int cost_a, int cov_b, int cost_b) {
 static inline uint32_t hash3(const uint8_t* p) { return (uint32_t)(((p[0] << 10) ^ (p[1] << 5) ^ p[2]) & (HSIZE - 1)); }
 
 int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap, int policy) {
+    int bad = schema_validate(s);
+    if (bad) return bad;
+    if (s->offset_base != OB_RELATIVE) return SCH_ERR_UNSUPPORTED;
     MatchCaps mc;
     match_caps(s, &mc);
     if (!mc.p) return SCH_ERR_NO_PROD;
@@ -312,6 +347,7 @@ int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
                 if (d > (size_t)mc.max_dist) break;
                 int l = 0, maxl = (int)(srclen - pos);
                 if (maxl > mc.max_len) maxl = mc.max_len;
+                if (!s->allow_overlap && maxl > (int)d) maxl = (int)d;
                 while (l < maxl && src[cand + l] == src[pos + l]) l++;
                 if (l > best_len) {
                     best_len = l;
@@ -362,6 +398,7 @@ int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
                     if (d2 > (size_t)mc.max_dist) break;
                     int l2 = 0, m2 = (int)(srclen - pos - 1);
                     if (m2 > mc.max_len) m2 = mc.max_len;
+                    if (!s->allow_overlap && m2 > (int)d2) m2 = (int)d2;
                     while (l2 < m2 && src[c2 + l2] == src[pos + 1 + l2]) l2++;
                     if (l2 > nb) nb = l2;
                     c2 = prev[c2];
@@ -401,10 +438,18 @@ int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
             }
         }
         if (!done) {
-            if (op >= dstcap) return SCH_ERR_ENC_FULL;
-            dst[op++] = src[pos];
+            /* the decoder copies one control unit per literal; a short tail is padded */
+            if (op + s->flag_unit_bytes > dstcap) return SCH_ERR_ENC_FULL;
+            consumed = 0;
+            for (int n = 0; n < s->flag_unit_bytes; n++) {
+                if (pos + n < srclen) {
+                    dst[op++] = src[pos + n];
+                    consumed++;
+                } else {
+                    dst[op++] = 0;
+                }
+            }
             if (s->flag_one_means_match == 0) flags |= FLAGBIT;
-            consumed = 1;
         }
 
         /* index every position we just covered */

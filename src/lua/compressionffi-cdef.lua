@@ -53,6 +53,7 @@ typedef struct {
 void compressionStatsInit(CompressionDecodeStats* st);
 int compressionDecode(const CompressionSchema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap,
                       size_t outlen, size_t* consumed, long* items, CompressionDecodeStats* st);
+int compressionValidate(const CompressionSchema* s);
 int compressionEncode(const CompressionSchema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap, int policy);
 
 /* Layout witnesses. The CompressionSchema above is hand-transcribed from

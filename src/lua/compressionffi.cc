@@ -26,6 +26,8 @@ int compressionDecode(const Schema* s, const uint8_t* src, size_t srclen, uint8_
     return schema_decode(s, src, srclen, dst, dstcap, outlen, consumed, items, st);
 }
 
+int compressionValidate(const Schema* s) { return schema_validate(s); }
+
 int compressionEncode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* dst, size_t dstcap, int policy) {
     return schema_encode(s, src, srclen, dst, dstcap, policy);
 }
@@ -70,6 +72,7 @@ void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, compressionStatsInit);
     REGISTER(L, compressionDecode);
     REGISTER(L, compressionEncode);
+    REGISTER(L, compressionValidate);
     REGISTER(L, compressionSizeof);
     L.settable();
     L.pop();

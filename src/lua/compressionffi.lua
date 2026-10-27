@@ -153,6 +153,11 @@ local function build(desc)
     for i, p in ipairs(prods) do setProduction(s.prods[i - 1], p, i) end
     s.nprods = #prods
 
+    if C.compressionValidate(s) ~= 0 then
+        error('schema: invalid: token bytes must be 1..4, every term inside its token, control unit 1 or 2, '
+              .. '1..8 flags per group, and windowEnd needs maxDist')
+    end
+
     return s, pinned
 end
 
@@ -163,17 +168,16 @@ local function tobytes(v)
 end
 
 local function statsToTable(st)
-    local any = st.tokens_match + st.tokens_fill
     return {
         match = tonumber(st.tokens_match),
         fill = tonumber(st.tokens_fill),
         literal = tonumber(st.tokens_literal),
         overlapping = tonumber(st.overlap_tokens),
         negativeRefs = tonumber(st.negative_refs),
-        distMin = any > 0 and tonumber(st.dist_min) or nil,
-        distMax = any > 0 and tonumber(st.dist_max) or nil,
-        lenMin = any > 0 and tonumber(st.len_min) or nil,
-        lenMax = any > 0 and tonumber(st.len_max) or nil,
+        distMin = st.tokens_match > 0 and tonumber(st.dist_min) or nil,
+        distMax = st.tokens_match > 0 and tonumber(st.dist_max) or nil,
+        lenMin = st.tokens_match > 0 and tonumber(st.len_min) or nil,
+        lenMax = st.tokens_match > 0 and tonumber(st.len_max) or nil,
         runMin = st.tokens_fill > 0 and tonumber(st.run_min) or nil,
         runMax = st.tokens_fill > 0 and tonumber(st.run_max) or nil,
     }
@@ -182,6 +186,8 @@ end
 local ERRORS = {
     [-3] = 'ran out of input', [-4] = 'output buffer full',
     [-6] = 'no production matched a token', [-7] = 'encoder output buffer full',
+    [-8] = 'a match points at or past the output position', [-9] = 'invalid schema',
+    [-10] = 'the encoder only supports relative windows',
 }
 
 local methods = {}
