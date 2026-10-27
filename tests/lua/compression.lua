@@ -153,6 +153,27 @@ function TestCompression:test_encoder_honours_no_overlap()
     lu.assertTrue(stats.match > 0)
 end
 
+function TestCompression:test_encoder_bounds_from_biases()
+    -- no length bias: a zero-length match must not be emitted
+    local nobias = PCSX.Compression.schema {
+        control = { oneMeans = 'token' },
+        window = { maxDist = 0x0fff },
+        productions = { { bytes = 2, match = { len = { at = { 1, 0xf0, -4 } },
+                                               dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } } } } } },
+    }
+    local plain = 'abcabcabcxyz'
+    lu.assertEquals(nobias:decode(nobias:encode(plain), #plain), plain)
+    -- distance bias 3: a distance-1 or -2 match cannot be packed
+    local far = PCSX.Compression.schema {
+        control = { oneMeans = 'token' },
+        window = { maxDist = 0x0fff },
+        productions = { { bytes = 2, match = { len = { at = { 1, 0xf0, -4 }, bias = 2 },
+                                               dist = { at = { { 0, 0xff, 0 }, { 1, 0x0f, 8 } }, bias = 3 } } } },
+    }
+    plain = 'aaaaaaaaababababab'
+    lu.assertEquals(far:decode(far:encode(plain), #plain), plain)
+end
+
 function TestCompression:test_sixteen_bit_literals_roundtrip()
     local wide = PCSX.Compression.schema {
         control = { unit = 2, oneMeans = 'token' },

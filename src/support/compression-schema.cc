@@ -209,7 +209,7 @@ static inline void field_pack(const Field* f, int value, uint8_t* tok) {
 
 /* capability probe: what does this schema's MATCH production support? */
 struct MatchCaps {
-    int min_len, max_len, max_dist, nbytes;
+    int min_len, max_len, min_dist, max_dist, nbytes;
     const Production* p;
 };
 static void match_caps(const Schema* s, MatchCaps* c) {
@@ -222,8 +222,11 @@ static void match_caps(const Schema* s, MatchCaps* c) {
         int lmax = 0, dmax = 0;
         for (int t = 0; t < L->nterms; t++) lmax |= (int)sh(L->terms[t].mask, L->terms[t].shift);
         for (int t = 0; t < D->nterms; t++) dmax |= (int)sh(D->terms[t].mask, D->terms[t].shift);
-        c->min_len = L->bias;
+        /* a length below 1 would not advance the encoder, and a distance below the
+           field's bias would pack a negative raw value */
+        c->min_len = L->bias > 1 ? L->bias : 1;
         c->max_len = lmax + L->bias;
+        c->min_dist = D->bias + s->dist_bias > 1 ? D->bias + s->dist_bias : 1;
         c->max_dist = dmax + D->bias + s->dist_bias;
         c->nbytes = P->nbytes;
         c->p = P;
@@ -345,6 +348,10 @@ int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
             while (cand >= 0 && guard--) {
                 size_t d = pos - (size_t)cand;
                 if (d > (size_t)mc.max_dist) break;
+                if (d < (size_t)mc.min_dist) {
+                    cand = prev[cand];
+                    continue;
+                }
                 int l = 0, maxl = (int)(srclen - pos);
                 if (maxl > mc.max_len) maxl = mc.max_len;
                 if (!s->allow_overlap && maxl > (int)d) maxl = (int)d;
@@ -396,6 +403,10 @@ int schema_encode(const Schema* s, const uint8_t* src, size_t srclen, uint8_t* d
                 while (c2 >= 0 && g2--) {
                     size_t d2 = (pos + 1) - (size_t)c2;
                     if (d2 > (size_t)mc.max_dist) break;
+                    if (d2 < (size_t)mc.min_dist) {
+                        c2 = prev[c2];
+                        continue;
+                    }
                     int l2 = 0, m2 = (int)(srclen - pos - 1);
                     if (m2 > mc.max_len) m2 = mc.max_len;
                     if (!s->allow_overlap && m2 > (int)d2) m2 = (int)d2;
