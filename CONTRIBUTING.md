@@ -58,4 +58,4 @@ If you find a bug, please as much as possible try to file a detailed bug report 
 
 ## Agentic AI
 
-Contributions made using generative AI are accepted, granted they are clearly designated as such. This repository has an AI agent working on it with [an account marked as such](https://github.com/rixnobis), and contributors are encourage to do the same, in order to distinguish between actions made by agentic AI, and actions made by humans.
+Contributions made using generative AI are accepted, provided they are clearly designated as such. This repository has an AI agent working on it with [an account marked as such](https://github.com/rixnobis), and contributors are encouraged to do the same, in order to distinguish between actions made by agentic AI, and actions made by humans.
