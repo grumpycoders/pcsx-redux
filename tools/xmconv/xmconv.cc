@@ -684,7 +684,7 @@ Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
             if (s.pcm.empty()) continue;
             auto p = prepare(s);
             s.layout = PCSX::SPUSampleLayout::compute(p.pcm.size(), p.hasLoop, p.loopStart, p.loopLength, 0, true,
-                                                      c_spuMemory);
+                                                      c_spuMemory, true);
             s.encodedLoopStart = p.loopStart;
             s.encodedLoopLength = p.loopLength;
             total += s.layout.encodedLength;
@@ -722,8 +722,8 @@ Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
         fmt::print("{} samples -> {} bytes", s.pcm.size(), written);
         if (s.rateShift) fmt::print(", rate / {}", 1 << s.rateShift);
         if (s.layout.hasLoop) {
-            fmt::print(", {} loop {}+{}, pad {}, unroll {}{}", s.loopType == 2 ? "ping-pong" : "forward",
-                       s.layout.loopStart, s.layout.loopLength, s.layout.pad, s.layout.unroll,
+            fmt::print(", {} loop {}+{}, rotate {}, unroll {}{}", s.loopType == 2 ? "ping-pong" : "forward",
+                       s.layout.loopStart, s.layout.loopLength, s.layout.rotate, s.layout.unroll,
                        s.layout.exact ? "" : ", loop period rounded to a whole block");
         }
         fmt::print("\n");

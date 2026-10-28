@@ -51,12 +51,20 @@ namespace SPUSampleLayout {
 // - anything after the loop end is never heard, so it is dropped.
 // If unrolling is not allowed, or would make the encoded sample reach `maxEncodedLength` bytes, the loop
 // body is a single period rounded to the nearest whole block, and `exact` is false.
+//
+// With `rotateLoop`, there are no front zeros, so the sample starts right away. The SPU loop start moves
+// `rotate` samples into the loop instead, onto the next block boundary, and the loop is written on past
+// its end by the same `rotate` samples:
+//   [sample skip .. loop start][first `rotate` loop samples][loop body, rotated by `rotate`] x unroll
+// The data is the loop played cyclically from the loop start, so the sample start and any position up
+// to one period past the loop start keep their own index, and the encoded length is the same as padded.
 struct Layout {
     bool hasLoop = false;
     unsigned loopStart = 0;
     unsigned loopLength = 0;
     unsigned skip = 0;
     unsigned pad = 0;
+    unsigned rotate = 0;
     unsigned unroll = 1;
     unsigned body = 0;
     bool exact = true;
@@ -67,7 +75,7 @@ struct Layout {
 // `skip` is the number of samples dropped from the front; for a looped sample it has to be at most
 // `loopStart`.
 Layout compute(unsigned length, bool hasLoop, unsigned loopStart, unsigned loopLength, unsigned skip,
-               bool allowUnroll, unsigned maxEncodedLength);
+               bool allowUnroll, unsigned maxEncodedLength, bool rotateLoop = false);
 
 // Encodes `source` (the full sample, `length` samples, before skip) according to `layout`, and writes the
 // SPU blocks to `out`. Returns the number of bytes written, which is layout.encodedLength.

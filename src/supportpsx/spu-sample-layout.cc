@@ -32,7 +32,7 @@ SOFTWARE.
 
 PCSX::SPUSampleLayout::Layout PCSX::SPUSampleLayout::compute(unsigned length, bool hasLoop, unsigned loopStart,
                                                              unsigned loopLength, unsigned skip, bool allowUnroll,
-                                                             unsigned maxEncodedLength) {
+                                                             unsigned maxEncodedLength, bool rotateLoop) {
     Layout l;
     l.hasLoop = hasLoop;
     l.skip = skip;
@@ -43,8 +43,13 @@ PCSX::SPUSampleLayout::Layout PCSX::SPUSampleLayout::compute(unsigned length, bo
     }
     l.loopStart = loopStart;
     l.loopLength = loopLength;
-    l.pad = (28 - (l.loopStart - l.skip) % 28) % 28;
-    const unsigned preLoop = l.pad + l.loopStart - l.skip;
+    const unsigned align = (28 - (l.loopStart - l.skip) % 28) % 28;
+    if (rotateLoop) {
+        l.rotate = align;
+    } else {
+        l.pad = align;
+    }
+    const unsigned preLoop = align + l.loopStart - l.skip;
     l.unroll = 28 / std::gcd(l.loopLength, 28u);
     l.body = l.loopLength * l.unroll;
     if (!allowUnroll || ((preLoop + l.body) / 28 * 16 >= maxEncodedLength)) {
@@ -88,8 +93,8 @@ unsigned PCSX::SPUSampleLayout::encode(ADPCM::Encoder& encoder, const std::vecto
     }
     std::vector<int16_t> pcm(layout.pad, 0);
     pcm.insert(pcm.end(), source.begin() + layout.skip, source.begin() + layout.loopStart);
-    const unsigned loopBlock = pcm.size() / 28;
-    for (unsigned j = 0; j < layout.body; j++) {
+    const unsigned loopBlock = (pcm.size() + layout.rotate) / 28;
+    for (unsigned j = 0; j < layout.rotate + layout.body; j++) {
         pcm.push_back(source[layout.loopStart + j % layout.loopLength]);
     }
     const unsigned blocks = pcm.size() / 28;
