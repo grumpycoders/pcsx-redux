@@ -169,6 +169,13 @@ class Emulator {
     typedef SettingNested<TYPESTRING("Debug"), DebugSettings::type> SettingDebugSettings;
     typedef SettingPath<TYPESTRING("Mcd1")> SettingMcd1;
     typedef SettingPath<TYPESTRING("Mcd2")> SettingMcd2;
+    // The memory cards in a multitap's slots B to D, port 1 then port 2. Slot A is Mcd1 or Mcd2.
+    typedef SettingPath<TYPESTRING("Mcd1B")> SettingMcd1B;
+    typedef SettingPath<TYPESTRING("Mcd1C")> SettingMcd1C;
+    typedef SettingPath<TYPESTRING("Mcd1D")> SettingMcd1D;
+    typedef SettingPath<TYPESTRING("Mcd2B")> SettingMcd2B;
+    typedef SettingPath<TYPESTRING("Mcd2C")> SettingMcd2C;
+    typedef SettingPath<TYPESTRING("Mcd2D")> SettingMcd2D;
     typedef SettingPath<TYPESTRING("Bios")> SettingBios;
     typedef SettingPath<TYPESTRING("PpfDir")> SettingPpfDir;
     typedef SettingPath<TYPESTRING("PsxExe")> SettingPsxExe;
@@ -184,6 +191,12 @@ class Emulator {
     typedef SettingString<TYPESTRING("Locale")> SettingLocale;
     typedef Setting<bool, TYPESTRING("Mcd1Inserted"), true> SettingMcd1Inserted;
     typedef Setting<bool, TYPESTRING("Mcd2Inserted"), true> SettingMcd2Inserted;
+    typedef Setting<bool, TYPESTRING("Mcd1BInserted"), false> SettingMcd1BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1CInserted"), false> SettingMcd1CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd1DInserted"), false> SettingMcd1DInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2BInserted"), false> SettingMcd2BInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2CInserted"), false> SettingMcd2CInserted;
+    typedef Setting<bool, TYPESTRING("Mcd2DInserted"), false> SettingMcd2DInserted;
     typedef Setting<bool, TYPESTRING("Dynarec"), true> SettingDynarec;
     typedef Setting<bool, TYPESTRING("8Megs"), false> Setting8MB;
     typedef Setting<uint8_t, TYPESTRING("MemoryFillValue"), 0x00> SettingMemoryFillValue;
@@ -222,7 +235,9 @@ class Emulator {
              SettingLinearFiltering, SettingKioskMode, SettingMcd1Pocketstation, SettingMcd2Pocketstation,
              SettingBiosBrowsePath, SettingEXP1Filepath, SettingEXP1BrowsePath, SettingPIOConnected,
              SettingMapBrowsePath, SettingOpenDialogFavorites, SettingRewindInterval, SettingRewindCount,
-             SettingCDRomEntropySeed>
+             SettingCDRomEntropySeed, SettingMcd1B, SettingMcd1C, SettingMcd1D, SettingMcd2B, SettingMcd2C,
+             SettingMcd2D, SettingMcd1BInserted, SettingMcd1CInserted, SettingMcd1DInserted, SettingMcd2BInserted,
+             SettingMcd2CInserted, SettingMcd2DInserted>
         settings;
     class PcsxConfig {
       public:
