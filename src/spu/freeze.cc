@@ -154,7 +154,7 @@ void PCSX::SPU::impl::load(const SaveStates::SPU &spu) {
     writeRegister(H_SPUrvolR, regArea[(H_SPUrvolR - 0xc00) >> 1]);
     replayMixVolumes(spu.get<SaveStates::SPUMainVolWritten>().value);
 
-    writeRegister(H_SPUctrl, (uint16_t)(regArea[(H_SPUctrl - 0xc00) >> 1] | 0x4000));
+    writeRegister(H_SPUctrl, regArea[(H_SPUctrl - 0xc00) >> 1]);
     // Fix to prevent new interpolations from crashing.
     for (unsigned i = 0; i < MAXCHAN; i++) s_chan[i].interp.resetAfterLoad();
 

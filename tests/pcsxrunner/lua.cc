@@ -80,6 +80,7 @@ TEST(LuaRewind, Dynarec) { EXPECT_EQ(runLuaDynTest("tests.lua.rewind"), 0); }
 TEST(LuaPCdrv, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.pcdrv"), 0); }
 TEST(LuaPCWrite, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.pcwrite"), 0); }
 TEST(LuaSaveStateBranchSlot, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.sstate-branchslot"), 0); }
+TEST(LuaSaveStateSPUCnt, Interpreter) { EXPECT_EQ(runLuaIntTest("tests.lua.sstate-spucnt"), 0); }
 TEST(LuaGdbServer, Interpreter) {
     EXPECT_EQ(runLuaInt("-gdb", "-gdb-port", "34567", "-exec", "require 'tests.lua.gdbserver'"), 0);
 }
