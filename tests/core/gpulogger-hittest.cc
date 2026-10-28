@@ -260,19 +260,23 @@ TEST_F(GPULoggerHitTest, RandomTriangles) {
 
 TEST_F(GPULoggerHitTest, RandomQuads) {
     Lcg rng(2);
-    unsigned drawn = 0;
+    unsigned drawn = 0, wrapped = 0;
     for (unsigned i = 0; i < 32; i++) {
-        int bx = rng.range(0, 800), by = rng.range(0, 380);
+        bool wrap = (i % 4) == 3;
+        setOffset(wrap ? -1000 : 0, wrap ? -1000 : 0);
+        int bx = rng.range(wrap ? -600 : 0, wrap ? -300 : 800), by = rng.range(wrap ? -1000 : 0, wrap ? -900 : 380);
         uint32_t v[4];
         for (auto& w : v) w = xy(bx + rng.range(0, 200), by + rng.range(0, 120));
         clearVram();
         auto c = measure({0x28000000 | c_white, v[0], v[1], v[2], v[3]});
         if (c.drawnCount == 0) continue;
         drawn++;
+        if (wrap) wrapped++;
         SCOPED_TRACE("quad " + std::to_string(i));
         expectExact(c);
     }
     EXPECT_GE(drawn, 28u);
+    EXPECT_GE(wrapped, 6u);
 }
 
 TEST_F(GPULoggerHitTest, RandomLines) {
