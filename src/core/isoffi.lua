@@ -37,6 +37,12 @@ void isoSavePPF(LuaIso* wrapper);
 LuaIso* getCurrentIso();
 LuaIso* openIso(const char* path);
 LuaIso* openIsoFromFile(LuaFile* wrapper);
+void cdromSetIso(LuaIso* wrapper);
+void cdromEjectIso();
+void cdromOpenLid();
+void cdromCloseLid();
+void cdromScheduleCloseLid();
+bool cdromIsLidOpen();
 
 IsoReader* createIsoReader(LuaIso* wrapper);
 void deleteIsoReader(IsoReader* isoReader);
@@ -70,7 +76,7 @@ void isoBuilderWriteLicense(ISO9660Builder* builder, LuaFile*);
 uint32_t isoBuilderWriteSector(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, enum SectorMode mode);
 uint32_t isoBuilderWriteSectorAt(ISO9660Builder* builder, const uint8_t* sectorData, uint32_t dataSize, uint32_t lba, enum SectorMode mode);
 uint32_t isoBuilderGetCurrentLBA(ISO9660Builder* builder);
-void isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
+const char* isoBuilderClose(ISO9660Builder* builder, uint32_t threadCount);
 
 // High-level filesystem-aware ISO builder
 typedef struct { char opaque[?]; } IsoDirTree;
@@ -325,7 +331,10 @@ local function createIsoBuilderWrapper(wrapper)
         createFile = function(self, parent, name, fileHandle)
             return createDirTreeWrapper(C.hlCreateFile(self._wrapper, parent._node, name, fileHandle._wrapper))
         end,
-        close = function(self, threadCount) C.isoBuilderClose(self._wrapper, threadCount or 0) end,
+        close = function(self, threadCount)
+            local err = C.isoBuilderClose(self._wrapper, threadCount or 0)
+            if err ~= nil then error(ffi.string(err)) end
+        end,
     }
     return builder
 end
@@ -338,6 +347,19 @@ PCSX.openIso = function(arg)
         return createIsoWrapper(C.openIsoFromFile(arg._wrapper))
     end
 end
+PCSX.CDRom = {
+    -- Takes a path, a File, or an iso returned by PCSX.openIso.
+    setIso = function(arg)
+        if type(arg) ~= 'table' or arg._wrapper == nil or arg.createReader == nil then arg = PCSX.openIso(arg) end
+        C.cdromSetIso(arg._wrapper)
+    end,
+    ejectIso = function() C.cdromEjectIso() end,
+    openLid = function() C.cdromOpenLid() end,
+    closeLid = function() C.cdromCloseLid() end,
+    -- Opens the lid now and closes it one emulated second later.
+    scheduleCloseLid = function() C.cdromScheduleCloseLid() end,
+    isLidOpen = function() return C.cdromIsLidOpen() end,
+}
 PCSX.isoBuilder = function(file) return createIsoBuilderWrapper(C.createIsoBuilder(file._wrapper)) end
 PCSX.isoTools = {
     fromBCD = function(bcd)

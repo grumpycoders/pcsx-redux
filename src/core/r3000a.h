@@ -329,6 +329,10 @@ class R3000Acpu {
     bool exception(uint32_t code, bool bd, bool cop0 = false);
     void branchTest();
 
+  private:
+    void branchTestEvents();
+
+  public:
     void psxSetPGXPMode(uint32_t pgxpMode);
 
     void schedule(Schedule s_, uint32_t eCycle) {
@@ -474,6 +478,15 @@ class R3000Acpu {
         for (auto &delayedLoad : m_delayedLoadInfo) {
             delayedLoad.pcActive = false;
             delayedLoad.fromLink = false;
+        }
+    }
+    // Writes a register from outside the instruction stream. Paused right after a load, the
+    // loaded value is still pending and would land over the new one on the next step.
+    void setGPR(unsigned index, uint32_t value) {
+        if (index >= 34) return;
+        m_regs.GPR.r[index] = index == 0 ? 0 : value;
+        for (auto &delayedLoad : m_delayedLoadInfo) {
+            if (delayedLoad.index == index) delayedLoad.active = false;
         }
     }
     void delayedPCLoad(uint32_t value, bool fromLink) {
@@ -680,8 +693,8 @@ Formula One 2001
     PCdrvFiles m_pcdrvFiles;
     std::list<uint16_t> m_availableFDs;
     // PCopen and PCread on network names. Both set v0 and v1.
-    void pcdrvOpenNet(const std::string& filename);
-    void pcdrvReadNet(PCdrvFile& file, IO<File>& memFile);
+    void pcdrvOpenNet(const std::string &filename);
+    void pcdrvReadNet(PCdrvFile &file, IO<File> &memFile);
 
   public:
     void closeAllPCdrvFiles() {

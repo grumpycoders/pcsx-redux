@@ -57,6 +57,7 @@ uint8_t* getRomPtr();
 uint8_t* getScratchPtr();
 psxRegisters* getRegisters();
 void setPC(uint32_t pc);
+void setGPR(unsigned index, uint32_t value);
 uint8_t** getReadLUT();
 uint8_t** getWriteLUT();
 Breakpoint* addBreakpoint(uint32_t address, enum BreakpointType type, unsigned width, const char* cause, bool (*invoker)(uint32_t address, unsigned width, const char* cause), const char* label);
@@ -107,6 +108,8 @@ void unloadGPUDumpPlayer();
 bool stepGPUDumpPlayer();
 void rewindGPUDumpPlayer();
 uint64_t getGPUDumpPlayerFrame();
+void setGPUDumpPlayerLogging(bool enabled);
+uint32_t getGPUDumpPlayerLoggedCount();
 LuaSlice* getGPUDumpPlayerVRAM();
 LuaSlice* getVRAM();
 
@@ -229,6 +232,13 @@ PCSX = {
     getRomPtr = function() return C.getRomPtr() end,
     getScratchPtr = function() return C.getScratchPtr() end,
     getRegisters = function() return C.getRegisters() end,
+    -- Unlike a store into getRegisters().GPR, also drops a load still pending for that register.
+    setGPR = function(index, value)
+        if type(index) ~= 'number' or index < 0 or index > 33 or index % 1 ~= 0 then
+            error 'PCSX.setGPR needs a register index between 0 and 33'
+        end
+        C.setGPR(index, value)
+    end,
     getReadLUT = function() return C.getReadLUT() end,
     getWriteLUT = function() return C.getWriteLUT() end,
     addBreakpoint = addBreakpoint,
@@ -311,6 +321,9 @@ PCSX = {
             step = function() return C.stepGPUDumpPlayer() end,
             rewind = function() C.rewindGPUDumpPlayer() end,
             getFrame = function() return tonumber(C.getGPUDumpPlayerFrame()) end,
+            -- The player's own GPU logger, holding the commands of the last frame played.
+            setLogging = function(enabled) C.setGPUDumpPlayerLogging(enabled) end,
+            getLoggedCount = function() return C.getGPUDumpPlayerLoggedCount() end,
             getVRAM = function() return Support.File._createSliceWrapper(C.getGPUDumpPlayerVRAM()) end,
         },
     },

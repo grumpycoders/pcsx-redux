@@ -35,21 +35,20 @@
 
 #include "core/system.h"
 #include "core/ui.h"
-#include "flags.h"
 #include "fmt/printf.h"
+#include "gui/widgets/alloc_tracker.h"
 #include "gui/widgets/assembly.h"
 #include "gui/widgets/breakpoints.h"
 #include "gui/widgets/callstacks.h"
 #include "gui/widgets/cdrom-viewer.h"
 #include "gui/widgets/console.h"
 #include "gui/widgets/cputrace.h"
+#include "gui/widgets/dalos.h"
 #include "gui/widgets/dynarec_disassembly.h"
 #include "gui/widgets/events.h"
 #include "gui/widgets/filedialog.h"
 #include "gui/widgets/gpudump.h"
 #include "gui/widgets/gpulogger.h"
-#include "gui/widgets/spulogger.h"
-#include "gui/widgets/spusamples.h"
 #include "gui/widgets/handlers.h"
 #include "gui/widgets/heap_viewer.h"
 #include "gui/widgets/hwregs.h"
@@ -68,6 +67,8 @@
 #include "gui/widgets/registers.h"
 #include "gui/widgets/shader-editor.h"
 #include "gui/widgets/sio1.h"
+#include "gui/widgets/spulogger.h"
+#include "gui/widgets/spusamples.h"
 #include "gui/widgets/vram-viewer.h"
 #include "imgui.h"
 #include "imgui_md/imgui_md.h"
@@ -131,6 +132,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowSIO1")> ShowSIO1;
     typedef Setting<bool, TYPESTRING("ShowNetwork")> ShowNetwork;
     typedef Setting<bool, TYPESTRING("ShowIsoBrowser")> ShowIsoBrowser;
+    typedef Setting<bool, TYPESTRING("ShowDalos")> ShowDalos;
     typedef Setting<bool, TYPESTRING("ShowGPULogger")> ShowGPULogger;
     typedef Setting<bool, TYPESTRING("ShowGPUDump")> ShowGPUDump;
     typedef Setting<bool, TYPESTRING("ShowSPULogger")> ShowSPULogger;
@@ -139,6 +141,7 @@ class GUI final : public UI {
     typedef Setting<bool, TYPESTRING("ShowRAMViewer")> ShowRAMViewer;
     typedef Setting<bool, TYPESTRING("ShowCDRomViewer")> ShowCDRomViewer;
     typedef Setting<bool, TYPESTRING("ShowHeapViewer")> ShowHeapViewer;
+    typedef Setting<bool, TYPESTRING("ShowAllocTracker")> ShowAllocTracker;
     typedef Setting<bool, TYPESTRING("ShowHWRegs")> ShowHWRegs;
     typedef Setting<bool, TYPESTRING("ShowMsanViewer")> ShowMsanViewer;
     typedef Setting<int, TYPESTRING("WindowPosX"), 0> WindowPosX;
@@ -188,15 +191,14 @@ class GUI final : public UI {
              ShowTypedDebugger, ShowPatches, ShowMemcardManager, ShowRegisters, ShowAssembly, ShowDisassembly,
              ShowCpuTrace, ShowBreakpoints, ShowNamedSaveStates, ShowEvents, ShowHandlers, ShowKernelLog,
              ShowCallstacks, ShowSIO1, ShowNetwork, ShowIsoBrowser, ShowGPULogger, ShowGPUDump, ShowRAMViewer,
-             ShowCDRomViewer, ShowHeapViewer, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme, AllowMouseCaptureToggle,
-             EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1, ShowMemoryEditor2,
-             ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6, ShowMemoryEditor7,
-             ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor, ShowBiosEditor,
-             ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
+             ShowCDRomViewer, ShowHeapViewer, ShowAllocTracker, ShowHWRegs, MainFontSize, MonoFontSize, GUITheme,
+             AllowMouseCaptureToggle, EnableRawMouseMotion, WidescreenRatio, ShowPIOCartConfig, ShowMemoryEditor1,
+             ShowMemoryEditor2, ShowMemoryEditor3, ShowMemoryEditor4, ShowMemoryEditor5, ShowMemoryEditor6,
+             ShowMemoryEditor7, ShowMemoryEditor8, ShowParallelPortEditor, ShowScratchpadEditor, ShowHWRegsEditor,
+             ShowBiosEditor, ShowVRAMEditor, MemoryEditor1Addr, MemoryEditor2Addr, MemoryEditor3Addr, MemoryEditor4Addr,
              MemoryEditor5Addr, MemoryEditor6Addr, MemoryEditor7Addr, MemoryEditor8Addr, ParallelPortEditorAddr,
-             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr,
-             ShowSPURAMEditor, SPURAMEditorAddr, ShowSPULogger, SPULoggerEnabled, ShowSPUSamples,
-             ShowMsanViewer>
+             ScratchpadEditorAddr, HWRegsEditorAddr, BiosEditorAddr, VRAMEditorAddr, ShowSPURAMEditor, SPURAMEditorAddr,
+             ShowSPULogger, SPULoggerEnabled, ShowSPUSamples, ShowDalos, ShowMsanViewer>
         settings;
 
     // imgui can't handle more than one "instance", so...
@@ -471,6 +473,7 @@ class GUI final : public UI {
     Widgets::Breakpoints m_breakpoints = {settings.get<ShowBreakpoints>().value};
     Widgets::IsoBrowser m_isoBrowser;
     Widgets::Network m_network = {settings.get<ShowNetwork>().value};
+    Widgets::Dalos m_dalos = {settings.get<ShowDalos>().value};
 
     bool m_showCfg = false;
     bool m_showUiCfg = false;
@@ -498,10 +501,10 @@ class GUI final : public UI {
     Widgets::SIO1 m_sio1 = {settings.get<ShowSIO1>().value};
 
     Widgets::GPULogger m_gpuLogger{settings.get<ShowGPULogger>().value};
-    Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value,
-                                         settings.get<SPULoggerEnabled>().value};
-    Widgets::SPUSamples m_spuSamplesWidget{settings.get<ShowSPUSamples>().value};
+    Widgets::SPULogger m_spuLoggerWidget{settings.get<ShowSPULogger>().value, settings.get<SPULoggerEnabled>().value};
+    Widgets::SPUSamples m_spuSamplesWidget;
     Widgets::HeapViewer m_heapViewer{settings.get<ShowHeapViewer>().value};
+    Widgets::AllocTrackerViewer m_allocTrackerViewer{settings.get<ShowAllocTracker>().value};
     Widgets::HWRegs m_hwRegs{settings.get<ShowHWRegs>().value};
     Widgets::MsanViewer m_msanViewer{settings.get<ShowMsanViewer>().value};
 

@@ -20,10 +20,13 @@
 #include "core/psxhw.h"
 
 #include <stdint.h>
+#include <string.h>
 
+#include "core/alloc-tracker.h"
 #include "core/cdrom.h"
 #include "core/debug.h"
 #include "core/gpu.h"
+#include "core/guest-command.h"
 #include "core/logger.h"
 #include "core/mdec.h"
 #include "core/pio-cart.h"
@@ -308,7 +311,7 @@ uint32_t PCSX::HW::read32(uint32_t add) {
             PSXHW_LOG("GPU DATA 32bit read %x\n", hard);
             break;
         case 0x1f801814:
-            hard = PCSX::g_emulator->m_gpu->readStatus();
+            hard = PCSX::g_emulator->m_gpu->readStatusFromBus();
             PSXHW_LOG("GPU STATUS 32bit read %x\n", hard);
             break;
 
@@ -487,8 +490,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -497,8 +500,8 @@ void PCSX::HW::write8(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 8bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         g_emulator->m_mem->m_hard[hwadd & 0xffff] = value;
@@ -610,8 +613,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             }
 
             if (addressInRegisterSpace(hwadd)) {
-                uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-                *ptr = SWAP_LEu32(rawvalue);
+                const uint32_t v = SWAP_LEu32(rawvalue);
+                memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
                 PSXHW_LOG("*Unknown 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
             } else {
                 uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -621,8 +624,8 @@ void PCSX::HW::write16(uint32_t add, uint32_t rawvalue) {
             return;
     }
     if (addressInRegisterSpace(hwadd)) {
-        uint32_t *ptr = (uint32_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
-        *ptr = SWAP_LEu32(rawvalue);
+        const uint32_t v = SWAP_LEu32(rawvalue);
+        memcpy(&g_emulator->m_mem->m_hard[hwadd & 0xffff], &v, sizeof(v));
         PSXHW_LOG("*Known 16bit(actually 32bit) write at address %x value %x\n", add, rawvalue);
     } else {
         uint16_t *ptr = (uint16_t *)&g_emulator->m_mem->m_hard[hwadd & 0xffff];
@@ -836,6 +839,10 @@ void PCSX::HW::write32(uint32_t add, uint32_t value) {
         }
         case 0x1f8020a0: {
             g_emulator->m_mem->m_psyqoHeapMetadata = value;
+            break;
+        }
+        case 0x1f8020a4: {
+            GuestCommand::dispatch(value);
             break;
         }
         case 0x1f802094: {

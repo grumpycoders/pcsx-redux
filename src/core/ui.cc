@@ -122,6 +122,9 @@ void PCSX::UI::shellReached() {
             throw std::runtime_error("Failed to open file.");
         }
         success = BinaryLoader::load(in, g_emulator->m_mem->getMemoryAsFile(), info, g_emulator->m_cpu->m_symbols);
+        // Writes through the memory file don't invalidate anything, and the shell we're hijacking
+        // has already been compiled by the dynarec, so drop it before running the loaded binary.
+        g_emulator->m_cpu->invalidateCache();
         if (!info.pc.has_value()) {
             throw std::runtime_error("Binary loaded without any PC to jump to.");
         }

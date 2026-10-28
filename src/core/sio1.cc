@@ -282,8 +282,7 @@ void PCSX::SIO1::writeCtrl16(uint16_t v) {
     }
 
     if (m_regs.control & CR_RESET) {
-        m_regs.status &= ~SR_IRQ;
-        m_regs.status |= (SR_TXRDY | SR_TXRDY2);
+        m_regs.status = (m_regs.status & (SR_DSR | SR_CTS)) | SR_TXRDY | SR_TXRDY2;
         m_regs.mode = 0;
         m_regs.control = 0;
         m_regs.baud = 0;

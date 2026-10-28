@@ -21,6 +21,8 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <unordered_set>
 
 #include "cdrom/cdriso.h"
@@ -53,6 +55,20 @@ LuaIso* openIso(const char* path) { return new LuaIso(std::make_shared<PCSX::CDR
 LuaIso* openIsoFromFile(PCSX::LuaFFI::LuaFile* wrapper) {
     return new LuaIso(std::make_shared<PCSX::CDRIso>(wrapper->file));
 }
+
+// Same sequence as the File menu: swap the image, then re-read its TOC.
+void cdromSetIso(LuaIso* wrapper) {
+    PCSX::g_emulator->m_cdrom->setIso(wrapper->iso);
+    PCSX::g_emulator->m_cdrom->parseIso();
+}
+void cdromEjectIso() {
+    PCSX::g_emulator->m_cdrom->setIso(new PCSX::CDRIso(new PCSX::FailedFile));
+    PCSX::g_emulator->m_cdrom->parseIso();
+}
+void cdromOpenLid() { PCSX::g_emulator->m_cdrom->openLid(); }
+void cdromCloseLid() { PCSX::g_emulator->m_cdrom->closeLid(); }
+void cdromScheduleCloseLid() { PCSX::g_emulator->m_cdrom->scheduleCloseLid(); }
+bool cdromIsLidOpen() { return PCSX::g_emulator->m_cdrom->isLidOpen(); }
 
 PCSX::ISO9660Reader* createIsoReader(LuaIso* wrapper) { return new PCSX::ISO9660Reader(wrapper->iso); }
 void deleteIsoReader(PCSX::ISO9660Reader* isoReader) { delete isoReader; }
@@ -278,7 +294,16 @@ uint32_t isoBuilderWriteSector(PCSX::ISO9660Builder* builder, const uint8_t* sec
     return msfToImageLBA(builder->writeSector(sectorData, mode));
 }
 uint32_t isoBuilderGetCurrentLBA(PCSX::ISO9660Builder* builder) { return msfToImageLBA(builder->getCurrentLocation()); }
-void isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) { builder->close(threadCount); }
+const char* isoBuilderClose(PCSX::ISO9660Builder* builder, uint32_t threadCount) {
+    static thread_local std::string error;
+    try {
+        builder->close(threadCount);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return error.c_str();
+    }
+    return nullptr;
+}
 
 // PVD string field helpers
 static void trimCStringTo(const char* src, size_t maxLen, char* dst, uint32_t dstSize) {
@@ -431,6 +456,39 @@ static void registerSymbol(PCSX::Lua L, const char (&name)[S], const T ptr) {
 
 #define REGISTER(L, s) registerSymbol(L, #s, s)
 
+static void registerCDRomSymbols(PCSX::Lua L) {
+    REGISTER(L, cdromSetIso);
+    REGISTER(L, cdromEjectIso);
+    REGISTER(L, cdromOpenLid);
+    REGISTER(L, cdromCloseLid);
+    REGISTER(L, cdromScheduleCloseLid);
+    REGISTER(L, cdromIsLidOpen);
+}
+
+static void registerPvdSymbols(PCSX::Lua L) {
+    // PVD getters
+    REGISTER(L, hlPvdGetSystemIdent);
+    REGISTER(L, hlPvdGetVolumeIdent);
+    REGISTER(L, hlPvdGetVolSetIdent);
+    REGISTER(L, hlPvdGetPublisherIdent);
+    REGISTER(L, hlPvdGetDataPreparerIdent);
+    REGISTER(L, hlPvdGetApplicationIdent);
+    REGISTER(L, hlPvdGetCopyrightFileIdent);
+    REGISTER(L, hlPvdGetAbstractFileIdent);
+    REGISTER(L, hlPvdGetBibliographicFileIdent);
+
+    // PVD setters
+    REGISTER(L, hlPvdSetSystemIdent);
+    REGISTER(L, hlPvdSetVolumeIdent);
+    REGISTER(L, hlPvdSetVolSetIdent);
+    REGISTER(L, hlPvdSetPublisherIdent);
+    REGISTER(L, hlPvdSetDataPreparerIdent);
+    REGISTER(L, hlPvdSetApplicationIdent);
+    REGISTER(L, hlPvdSetCopyrightFileIdent);
+    REGISTER(L, hlPvdSetAbstractFileIdent);
+    REGISTER(L, hlPvdSetBibliographicFileIdent);
+}
+
 static void registerAllSymbols(PCSX::Lua L) {
     L.getfieldtable("_CLIBS", LUA_REGISTRYINDEX);
     L.push("CORE_ISO");
@@ -443,6 +501,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, getCurrentIso);
     REGISTER(L, openIso);
     REGISTER(L, openIsoFromFile);
+    registerCDRomSymbols(L);
     REGISTER(L, getIsoTD);
     REGISTER(L, getIsoTN);
     REGISTER(L, createIsoReader);
@@ -474,27 +533,7 @@ static void registerAllSymbols(PCSX::Lua L) {
     REGISTER(L, isoBuilderGetCurrentLBA);
     REGISTER(L, isoBuilderClose);
 
-    // PVD getters
-    REGISTER(L, hlPvdGetSystemIdent);
-    REGISTER(L, hlPvdGetVolumeIdent);
-    REGISTER(L, hlPvdGetVolSetIdent);
-    REGISTER(L, hlPvdGetPublisherIdent);
-    REGISTER(L, hlPvdGetDataPreparerIdent);
-    REGISTER(L, hlPvdGetApplicationIdent);
-    REGISTER(L, hlPvdGetCopyrightFileIdent);
-    REGISTER(L, hlPvdGetAbstractFileIdent);
-    REGISTER(L, hlPvdGetBibliographicFileIdent);
-
-    // PVD setters
-    REGISTER(L, hlPvdSetSystemIdent);
-    REGISTER(L, hlPvdSetVolumeIdent);
-    REGISTER(L, hlPvdSetVolSetIdent);
-    REGISTER(L, hlPvdSetPublisherIdent);
-    REGISTER(L, hlPvdSetDataPreparerIdent);
-    REGISTER(L, hlPvdSetApplicationIdent);
-    REGISTER(L, hlPvdSetCopyrightFileIdent);
-    REGISTER(L, hlPvdSetAbstractFileIdent);
-    REGISTER(L, hlPvdSetBibliographicFileIdent);
+    registerPvdSymbols(L);
 
     // DirTree
     REGISTER(L, hlCreateRoot);

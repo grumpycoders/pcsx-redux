@@ -19,6 +19,7 @@
 
 #include "core/psxemulator.h"
 
+#include "core/alloc-tracker.h"
 #include "core/callstacks.h"
 #include "core/cdrom.h"
 #include "core/cdromlogger.h"
@@ -29,7 +30,6 @@
 #include "core/gpu.h"
 #include "core/gpudump.h"
 #include "core/gpulogger.h"
-#include "core/spulogger.h"
 #include "core/gte.h"
 #include "core/luaiso.h"
 #include "core/mdec.h"
@@ -43,9 +43,11 @@
 #include "core/sio.h"
 #include "core/sio1-server.h"
 #include "core/sio1.h"
+#include "core/spulogger.h"
 #include "core/sstate.h"
 #include "core/web-server.h"
 #include "gpu/soft/interface.h"
+#include "lua/compressionffi.h"
 #include "lua/extra.h"
 #include "lua/luafile.h"
 #include "lua/luawrapper.h"
@@ -108,7 +110,8 @@ PCSX::Emulator::Emulator()
       m_sio1Client(new PCSX::SIO1Client()),
       m_spu(new PCSX::SPU::impl()),
       m_webServer(new PCSX::WebServer()),
-      m_rewindRing(new RewindRing()) {
+      m_rewindRing(new RewindRing()),
+      m_allocTracker(new PCSX::AllocTracker) {
     auto L = *m_lua;
     L.openlibs();
 }
@@ -165,6 +168,7 @@ void PCSX::Emulator::setLua() {
     LuaFFI::open_iso(L);
     LuaFFI::open_extra(L);
     LuaBindings::open_events(L);
+    LuaFFI::open_compression(L);
     LuaSupportPSX::open_adpcm(L);
     LuaSupportPSX::open_assembler(L);
     LuaSupportPSX::open_binaries(L);
@@ -223,6 +227,7 @@ void PCSX::Emulator::reset() {
     m_sio->reset();
     m_sio1->reset();
     m_rewindRing->clear();
+    m_rewindCapturePending = false;
     m_vsyncPending = 0;
 }
 
@@ -263,6 +268,22 @@ void PCSX::Emulator::dispatchVSync() {
 }
 
 void PCSX::Emulator::createRewindState() {
+    // From inside the emulation, the snapshot waits for the end of the current branchTest(),
+    // see flushRewindCapture().
+    if (g_system->inExecute()) {
+        m_rewindCapturePending = true;
+        return;
+    }
+    captureRewindState();
+}
+
+void PCSX::Emulator::flushRewindCapture() {
+    if (!m_rewindCapturePending) return;
+    m_rewindCapturePending = false;
+    captureRewindState();
+}
+
+void PCSX::Emulator::captureRewindState() {
     // A queued rewind is about to throw this state away, and would land on this very snapshot
     // rather than the one it was asked for.
     if (g_system->pendingRewinds()) return;

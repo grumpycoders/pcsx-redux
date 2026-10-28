@@ -46,8 +46,9 @@ class PadsImpl : public PCSX::Pads {
     PadsImpl();
     void init() override;
     void shutdown() override;
-    uint8_t startPoll(Port port) override;
+    bool startPoll(Port port, uint8_t address, uint8_t& reply) override;
     uint8_t poll(uint8_t value, Port port, uint32_t& padState) override;
+    bool hasMultitap(Port port) override;
 
     json getCfg() override;
     void setCfg(const json& j) override;
@@ -132,6 +133,8 @@ class PadsImpl : public PCSX::Pads {
 
     typedef PCSX::Setting<bool, TYPESTRING("Connected")> SettingConnected;
     typedef PCSX::Setting<bool, TYPESTRING("Rumble"), true> SettingRumble;
+    // A multitap (SCPH-1070) between the port and this pad, which becomes the tap's slot A.
+    typedef PCSX::Setting<bool, TYPESTRING("Multitap"), false> SettingMultitap;
     // Default sensitivity = 5/10 = 0.5
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityX"), 5, 10> SettingMouseSensitivityX;
     typedef PCSX::SettingFloat<TYPESTRING("MouseSensitivityY"), 5, 10> SettingMouseSensitivityY;
@@ -146,7 +149,7 @@ class PadsImpl : public PCSX::Pads {
         Controller_PadSquare, Controller_PadCircle, Controller_PadSelect, Controller_PadStart, Controller_PadL1,
         Controller_PadL2, Controller_PadL3, Controller_PadR1, Controller_PadR2, Controller_PadR3, SettingInputType,
         SettingDeviceType, SettingControllerID, SettingConnected, SettingRumble, SettingMouseSensitivityX,
-        SettingMouseSensitivityY, SettingKeyboardBindingsVersion>
+        SettingMouseSensitivityY, SettingKeyboardBindingsVersion, SettingMultitap>
         PadSettings;
 
     struct PadData {
@@ -200,8 +203,15 @@ class PadsImpl : public PCSX::Pads {
 
         int m_scancodes[16];
         int m_padMapping[16];
-        PadType m_type;
+        // m_type is the configured device, m_activeType the one in use, which the host can override.
+        PadType m_type = PadType::Digital;
+        PadType m_activeType = PadType::Digital;
+        // The host picked this pad's device through -shmdisplay, so it is plugged in for this poll
+        // whatever the Connected setting says.
+        bool m_hostConnected = false;
         PadData m_data;
+        // The port whose host mouse fields feed this pad, or -1 for multitap slots B to D.
+        int m_port = -1;
 
         SDL_Gamepad* m_gamepad = nullptr;
         int m_buttonToWait = -1;
@@ -239,6 +249,29 @@ class PadsImpl : public PCSX::Pads {
 
     std::array<Pad, 2> m_pads;
     unsigned m_selectedPadForConfig = 0;
+
+    // A multitap, SCPH-1070. Slot A is the port's own pad, m_pads[port]; slots B to D are plain digital
+    // pads that only the host fills, through hostSlotPads. See the psx-spx multitap page.
+    struct Multitap {
+        std::array<Pad, 3> slots;
+        // Set by the third byte of a read of slot A: the next access to address 1 is the long read.
+        bool request = false;
+        // Set by a long read whose slot A block the host did not start with 42h: a long read next is garbage.
+        bool stale = false;
+        // Per access:
+        bool present = false;
+        bool longRead = false;
+        bool garbage = false;
+        unsigned slot = 0;
+        unsigned byte = 0;
+        uint8_t command = 0;
+        bool connected[4] = {false, false, false, false};
+        bool slotAnswering = false;
+    };
+    std::array<Multitap, 2> m_taps;
+
+    Pad& tapSlot(int port, unsigned slot) { return slot == 0 ? m_pads[port] : m_taps[port].slots[slot - 1]; }
+    uint8_t pollLong(Multitap& tap, int port, uint8_t value, uint32_t& padState);
 };
 
 static PadsImpl* s_pads = nullptr;
@@ -665,6 +698,11 @@ void PadsImpl::shutdown() {
 }
 
 PadsImpl::PadsImpl() : m_listener(PCSX::g_system->m_eventBus) {
+    m_pads[0].m_port = 0;
+    m_pads[1].m_port = 1;
+    for (auto& tap : m_taps) {
+        for (auto& slot : tap.slots) slot.m_settings.get<SettingConnected>() = true;
+    }
     m_listener.listen<PCSX::Events::Keyboard>([this](const auto& event) {
         if (m_showCfg) {
             m_pads[m_selectedPadForConfig].keyboardEvent(event);
@@ -698,6 +736,13 @@ void PadsImpl::scanGamepads() {
 void PadsImpl::reset() {
     m_pads[0].reset();
     m_pads[1].reset();
+    for (auto& tap : m_taps) {
+        for (auto& slot : tap.slots) slot.reset();
+        tap.request = false;
+        tap.stale = false;
+        tap.longRead = false;
+        tap.garbage = false;
+    }
 }
 
 void PadsImpl::Pad::reset() {
@@ -769,6 +814,7 @@ void PadsImpl::Pad::map() {
     m_rumbleAppliedSmall = m_rumbleAppliedLarge = 0;
     m_rumbleRefreshedAt = 0;
     m_type = m_settings.get<SettingDeviceType>();
+    m_activeType = m_type;
 
     // L3/R3 are only avalable on analog controllers
     if (m_type == PadType::Analog) {
@@ -838,7 +884,7 @@ static constexpr float π(float fraction = 1.0f) { return fraction * M_PI; }
 
 void PadsImpl::Pad::getButtons() {
     PadData& pad = m_data;
-    if (!m_settings.get<SettingConnected>()) {
+    if (!m_settings.get<SettingConnected>() && !m_hostConnected) {
         pad.buttonStatus = 0xffff;
         pad.leftJoyX = pad.rightJoyX = pad.leftJoyY = pad.rightJoyY = 0x80;
         applyRumble(false);  // an unplugged pad is a silent one
@@ -926,7 +972,7 @@ void PadsImpl::Pad::getButtons() {
     }
 
     // For digital gamepads, make the PS1 dpad controllable with our gamepad's left analog stick
-    if (m_type == PadType::Digital) {
+    if (m_activeType == PadType::Digital) {
         float x = state.axes[SDL_GAMEPAD_AXIS_LEFTX];
         float y = -state.axes[SDL_GAMEPAD_AXIS_LEFTY];
         float ds = x * x + y * y;
@@ -965,7 +1011,7 @@ void PadsImpl::Pad::getButtons() {
                 buttons[6] = true;
             }
         }
-    } else if (m_type == PadType::Analog) {
+    } else if (m_activeType == PadType::Analog) {
         // Normalize an axis from (-1, 1) to (0, 255) with 128 = center
         const auto axisToUint8 = [](float axis) {
             constexpr float scale = 1.3f;
@@ -984,17 +1030,140 @@ void PadsImpl::Pad::getButtons() {
     pad.buttonStatus = result ^ 0xffff;  // Controls are inverted, so 0 = pressed
 }
 
-uint8_t PadsImpl::startPoll(Port port) {
+bool PadsImpl::hasMultitap(Port port) {
     int index = magic_enum::enum_integer(port);
-    m_pads[index].getButtons();
     auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
-    m_pads[index].m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
-    return m_pads[index].startPoll();
+    return m_pads[index].m_settings.get<SettingMultitap>() || (shmDisplay && shmDisplay->hostMultitap(index));
+}
+
+bool PadsImpl::startPoll(Port port, uint8_t address, uint8_t& reply) {
+    int index = magic_enum::enum_integer(port);
+    auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
+    Pad& pad = m_pads[index];
+    Multitap& tap = m_taps[index];
+
+    const int hostDevice = shmDisplay ? shmDisplay->hostDevice(index) : -1;
+    pad.m_activeType = hostDevice >= 0 ? static_cast<PadType>(hostDevice) : pad.m_type;
+
+    // A device the host picks is plugged in, whatever the port's Connected setting says.
+    const bool connected = pad.isControllerConnected() || hostDevice >= 0;
+    pad.m_hostConnected = hostDevice >= 0;
+
+    tap.present = hasMultitap(port);
+    if (!tap.present) {
+        if (address != 1 || !connected) return false;
+        pad.getButtons();
+        pad.m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
+        reply = pad.startPoll();
+        return true;
+    }
+
+    if (address < 1 || address > 4) return false;
+    tap.connected[0] = connected;
+    if (tap.connected[0]) {
+        pad.getButtons();
+        pad.m_data.hostButtons = shmDisplay ? shmDisplay->hostPad(index) : 0xffff;
+    }
+    for (unsigned slot = 1; slot < 4; slot++) {
+        uint16_t buttons = 0xffff;
+        tap.connected[slot] = shmDisplay && shmDisplay->hostSlotPad(index, slot, buttons);
+        Pad& slotPad = tap.slots[slot - 1];
+        slotPad.m_data.buttonStatus = 0xffff;
+        slotPad.m_data.hostButtons = buttons;
+    }
+    tap.byte = 0;
+    tap.command = 0;
+    tap.slotAnswering = false;
+
+    // "Below LONG response is activated by sending "01h" as third command byte; observe that sending that
+    // byte does NOT affect the current response. Instead, it does request that the NEXT command shall
+    // return special data". The request is made on slot A, so it is the next slot A access that is long.
+    tap.longRead = address == 1 && tap.request;
+    // Measured with one tap and a neGcon in slot A: a long read right after a long read in which the host
+    // did not send 42h at the start of slot A's block is the "Garbage response", "the multitap returns ONLY
+    // four bytes, like so: Hiz,80h,5Ah,LSB". It still takes REQ, and its own slot A byte counts the same
+    // way, so it repeats; any other access ends it.
+    tap.garbage = tap.longRead && tap.stale;
+    tap.stale = false;
+    if (tap.longRead) {
+        // The tap answers the long read on its own, even when slot A is empty.
+        reply = 0xff;
+        return true;
+    }
+
+    // "receive data from pad number "n" (1..4)", and an empty slot does not answer: "if controller Slot A
+    // is empty then the Slot A access aborts after the FIRST byte".
+    tap.slot = address - 1;
+    if (!tap.connected[tap.slot]) return false;
+    reply = tapSlot(index, tap.slot).startPoll();
+    return true;
 }
 
 uint8_t PadsImpl::poll(uint8_t value, Port port, uint32_t& padState) {
     int index = magic_enum::enum_integer(port);
-    return m_pads[index].poll(value, padState);
+    Multitap& tap = m_taps[index];
+    if (!tap.present) return m_pads[index].poll(value, padState);
+    if (tap.longRead) return pollLong(tap, index, value, padState);
+
+    // A single slot: the tap passes the bytes through, and only looks at the third byte of a slot A read
+    // for the long read request.
+    const unsigned byte = tap.byte++;
+    if (byte == 0) tap.command = value;
+    if (byte == 1 && tap.slot == 0 && tap.command == magic_enum::enum_integer(PadCommands::Read)) {
+        tap.request = value & 1;
+    }
+    return tapSlot(index, tap.slot).poll(value, padState);
+}
+
+// The long read, after the address byte:
+//   "Halfword 0      --> Controller ID for MultiTap (5A80h=Multitap)
+//    Halfword 1..4   --> Player A (Controller ID, Buttons, Analog Inputs, if any)
+//    Halfword 5..8   --> Player B (Controller ID, Buttons, Analog Inputs, if any)
+//    Halfword 9..12  --> Player C (Controller ID, Buttons, Analog Inputs, if any)
+//    Halfword 13..16 --> Player D (Controller ID, Buttons, Analog Inputs, if any)"
+//   "the Multitap is always sending 4 halfwords per slot (padded with FFFFh values for devices like Digital
+//    Joypads and Mice; which do use less than 4 halfwords); for empty slots it's padding all 4 halfwords
+//    with FFFFh."
+// Each slot's pad is read as the host's bytes reach its block, with a 42h read command whatever the host
+// sends in that position, and the host's following bytes passed on, so a pad's motor bytes still arrive.
+// What the host sends at the start of slot A's block decides whether the next long read is garbage, see
+// startPoll; a garbage one ends on slot A's id.
+uint8_t PadsImpl::pollLong(Multitap& tap, int port, uint8_t value, uint32_t& padState) {
+    const unsigned byte = tap.byte++;
+    if (byte == 0) {
+        tap.command = value;
+        return 0x80;
+    }
+    if (byte == 1) {
+        const bool read = tap.command == magic_enum::enum_integer(PadCommands::Read);
+        if (read) tap.request = value & 1;
+        // With no pad in any slot the tap only sends its id, and so does it for a command it does not know.
+        if (!read || !(tap.connected[0] || tap.connected[1] || tap.connected[2] || tap.connected[3])) {
+            padState = PAD_STATE_BAD_COMMAND;
+        }
+        return 0x5a;
+    }
+    const unsigned slot = (byte - 2) / 8;
+    const unsigned position = (byte - 2) % 8;
+    if (slot >= 4) return 0xff;
+    Pad& pad = tapSlot(port, slot);
+    if (position == 0) {
+        if (slot == 0) {
+            tap.stale = value != 0x42;
+            // No ACK after this byte.
+            if (tap.garbage) padState = PAD_STATE_BAD_COMMAND;
+        }
+        tap.slotAnswering = false;
+        if (!tap.connected[slot]) return 0xff;
+        pad.startPoll();
+        uint32_t slotState = PAD_STATE_READ_DATA;
+        const uint8_t id = pad.poll(magic_enum::enum_integer(PadCommands::Read), slotState);
+        tap.slotAnswering = slotState != PAD_STATE_BAD_COMMAND;
+        return tap.slotAnswering ? id : 0xff;
+    }
+    if (!tap.slotAnswering) return 0xff;
+    uint32_t slotState = PAD_STATE_READ_DATA;
+    return pad.poll(value, slotState);
 }
 
 uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
@@ -1004,7 +1173,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
 
         if (m_cmd == magic_enum::enum_integer(PadCommands::Read)) {
             return read();
-        } else if (m_type == PadType::Analog) {
+        } else if (m_activeType == PadType::Analog) {
             return doDualshockCommand(padState);
         } else {
             PCSX::g_system->log(PCSX::LogClass::SIO0, _("Unknown command for pad: %02X\n"), value);
@@ -1016,7 +1185,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
     } else if (m_currentByte >= m_bufferLen) {
         return 0xff;
     } else if (m_currentByte >= 2 && m_currentByte <= 7 && m_cmd == magic_enum::enum_integer(PadCommands::Read) &&
-               m_type == PadType::Analog) {
+               m_activeType == PadType::Analog) {
         // Motor bytes of the read command: the 4th..9th byte of the transfer. read()
         // has already filled the reply buffer, so these are pure input, and what they
         // mean is whatever command 4Dh last said they mean.
@@ -1043,7 +1212,7 @@ uint8_t PadsImpl::Pad::poll(uint8_t value, uint32_t& padState) {
         // doDualshockCommand() already copied the old mapping into the reply buffer,
         // so overwriting it here cannot disturb what we send back.
         m_motorMapping[m_currentByte - 2] = value;
-    } else if (m_currentByte == 2 && m_type == PadType::Analog) {
+    } else if (m_currentByte == 2 && m_activeType == PadType::Analog) {
         switch (m_cmd) {
             case magic_enum::enum_integer(PadCommands::SetConfigMode):
                 m_configMode = value == 1;
@@ -1147,13 +1316,28 @@ uint8_t PadsImpl::Pad::startPoll() {
 uint8_t PadsImpl::Pad::read() {
     const PadData& pad = m_data;
     uint16_t buttonStatus = pad.buttonStatus & pad.overrides & pad.hostButtons;
-    if (!m_settings.get<SettingConnected>()) {
+    if (!m_settings.get<SettingConnected>() && !m_hostConnected) {
         m_bufferLen = 0;
         return 0xff;
     }
 
-    switch (m_type) {
+    switch (m_activeType) {
         case PadType::Mouse: {
+            auto& shmDisplay = PCSX::g_emulator->m_shmDisplay;
+            if (m_port >= 0 && shmDisplay && shmDisplay->hostInput()) {
+                // The host's own buttons and motion counts, with no sensitivity scaling.
+                int8_t deltaX, deltaY;
+                uint32_t buttons;
+                shmDisplay->hostMouse(m_port, deltaX, deltaY, buttons);
+                const int leftClick = (buttons & 1) ? 0 : 1;
+                const int rightClick = (buttons & 2) ? 0 : 1;
+                m_mousepar[3] = 0xf0 | (leftClick << 3) | (rightClick << 2);
+                m_mousepar[4] = deltaX;
+                m_mousepar[5] = deltaY;
+                memcpy(m_buf, m_mousepar, 6);
+                m_bufferLen = 6;
+                return 0x12;
+            }
             const int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
             const int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
             const auto& io = ImGui::GetIO();
@@ -1414,6 +1598,10 @@ bool PadsImpl::Pad::configure() {
             }
             ImGui::EndCombo();
         }
+        if (ImGui::Checkbox(_("Multitap"), &m_settings.get<SettingMultitap>().value)) changed = true;
+        PCSX::ImGuiHelpers::ShowHelpMarker(
+            _("Plugs a multitap into this port, with this pad in its slot A. The other three slots only take "
+              "input from a host application, through the shared display memory."));
     }
 
     auto& inputDevice = m_settings.get<SettingInputType>().value;

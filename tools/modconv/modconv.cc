@@ -20,16 +20,18 @@
 #include <algorithm>
 #include <cctype>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/binstruct.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "support/typestring-wrapper.h"
 #include "supportpsx/adpcm.h"
-#include "supportpsx/spu-sample-layout.h"
+#include "tools/modconv/layout.h"
 
 typedef PCSX::BinStruct::Field<PCSX::BinStruct::CString<20>, TYPESTRING("Title")> ModTitle;
 
@@ -55,54 +57,28 @@ typedef PCSX::BinStruct::Struct<TYPESTRING("ModFile"), ModTitle, ModSamples, Pos
                                 Signature>
     ModFile;
 
-namespace {
-
-// The SPU layout itself lives in supportpsx/spu-sample-layout.h. This converts a MOD sample header to it.
-// MOD samples are 8 bits, and their header fields are in words of 2 samples.
-//
-// One-shot samples skip the first word: ProTracker clears it on load, and uses it as the idle loop once a
-// non-looped sample is done playing, so it is silence and not part of the sound. The trailing silent loop
-// block plays that role on the SPU.
-// Looped samples skip the first word too, unless the loop starts at word 0, in which case it is part of the
-// loop body and has to be kept.
-// The loop fields written to the .hit file are the clamped loop, 0 and 1 for one-shot samples. modplayer
-// derives skip and pad from them with the same formulas to compute 9xx sample offsets, so they are part
-// of the .hit contract.
-PCSX::SPUSampleLayout::Layout computeLayout(unsigned length, unsigned loopStart, unsigned loopLength,
-                                            bool allowUnroll) {
-    // A repeat length of 0 or 1 word means "no loop"; a loop starting at word 0 is a regular loop,
-    // usually over the whole sample.
-    bool hasLoop = loopLength > 1;
-    // Some trackers write loops running past the end of the sample; clamp them to the sample end.
-    if (hasLoop && (loopStart >= length)) hasLoop = false;
-    if (hasLoop && ((loopStart + loopLength) > length)) {
-        loopLength = length - loopStart;
-        hasLoop = loopLength > 1;
-    }
-    // The 65536 bytes limit is the 16 bits length field of the .hit sample header.
-    if (!hasLoop) return PCSX::SPUSampleLayout::compute(length * 2, false, 0, 0, 2, allowUnroll, 65536);
-    return PCSX::SPUSampleLayout::compute(length * 2, true, loopStart * 2, loopLength * 2, loopStart == 0 ? 0 : 2,
-                                          allowUnroll, 65536);
-}
-
-}  // namespace
-
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> samplesFlag(parser, "samples", "", {"s"});
+    args::ValueFlag<unsigned> amplificationFlag(parser, "amplification", "", {"a"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
 
     fmt::print(R"(
 modconv by Nicolas "Pixel" Noble
-https://github.com/grumpycoders/pcsx-redux/tree/main/tools/modconv/
+https://github.com/pcsx-redux/pcsx-redux/tree/main/tools/modconv/
 
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
     const bool hasOutput = output.has_value();
     const bool oneInput = inputs.size() == 1;
-    const auto samplesFile = args.get<std::string>("s");
-    const auto amplification = args.get<unsigned>("a").value_or(175);
+    const auto samplesFile = PCSX::ToolArgs::get(samplesFlag);
+    const auto amplification = PCSX::ToolArgs::get(amplificationFlag).value_or(175);
     if (asksForHelp || !oneInput || !hasOutput) {
         fmt::print(R"(
 Usage: {} input.mod [-h] [-s output.smp] [-a amp] -o output.hit
@@ -171,48 +147,83 @@ both the pattern and sample data.
             ? static_cast<PCSX::File*>(new PCSX::PosixFile(samplesFile.value().c_str(), PCSX::FileOps::TRUNCATE))
             : static_cast<PCSX::File*>(new PCSX::BufferFile(PCSX::FileOps::READWRITE));
 
+    constexpr uint8_t silentLoopBlock[16] = {0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     constexpr unsigned spuMemory = 512 * 1024 - 0x1010;
 
-    // Exact loops need unrolling, which can use a lot more SPU memory. If the exact layout doesn't fit,
-    // disable unrolling for the whole module, which rounds loop periods to whole blocks instead.
-    bool allowUnroll = true;
-    {
-        unsigned exactLength = 0;
-        for (unsigned i = 0; i < 31; i++) {
-            auto& sample = modFile.get<ModSamples>()[i];
-            exactLength += computeLayout(sample.get<SampleLength>().value, sample.get<SampleLoopStart>().value,
-                                         sample.get<SampleLoopLength>().value, true)
-                               .encodedLength;
-        }
-        if (exactLength >= spuMemory) {
-            fmt::print("Exact loops would need {} bytes of SPU memory; rounding loops to whole blocks instead.\n",
-                       exactLength);
-            allowUnroll = false;
-        }
-    }
-
+    std::string loopWarnings;
     std::unique_ptr<PCSX::ADPCM::Encoder> encoder(new PCSX::ADPCM::Encoder);
     for (unsigned i = 0; i < 31; i++) {
         encoder->reset();
         auto& sample = modFile.get<ModSamples>()[i];
         fmt::print("Sample {:2} [{:22}] - ", i + 1, sample.get<SampleName>().value);
         auto length = sample.get<SampleLength>().value;
-        const auto layout = computeLayout(length, sample.get<SampleLoopStart>().value,
-                                          sample.get<SampleLoopLength>().value, allowUnroll);
+        const auto layout = PCSX::ModConv::computeLayout(length, sample.get<SampleLoopStart>().value,
+                                                         sample.get<SampleLoopLength>().value);
         if (length == 0) {
             fmt::print("Empty\n");
             continue;
         }
-        std::vector<int16_t> source(length * 2);
-        for (auto& s : source) s = int16_t(file->read<int8_t>()) * amplification;
-        const unsigned encodedLength = PCSX::SPUSampleLayout::encode(*encoder, source, layout, encodedSamples);
+        int16_t input[28];
+        uint8_t spuBlock[16];
+        unsigned encodedLength = 0;
         if (!layout.hasLoop) {
+            file->skip<uint16_t>();
+            length--;
+            length *= 2;
+            while (length >= 28) {
+                for (unsigned j = 0; j < 28; j++) {
+                    input[j] = int16_t(file->read<int8_t>()) * amplification;
+                }
+                length -= 28;
+                encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
+                spuBlock[1] = length == 0 ? 1 : 0;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
+            }
+            if (length != 0) {
+                for (unsigned j = 0; j < length; j++) {
+                    input[j] = int16_t(file->read<int8_t>()) * amplification;
+                }
+                for (unsigned j = length; j < 28; j++) {
+                    input[j] = 0;
+                }
+                encoder->processSPUBlock(input, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot);
+                spuBlock[1] = 0;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
+            }
+            encodedSamples->write(silentLoopBlock, 16);
+            encodedLength += 16;
             fmt::print("Size {} -> {}\n", sample.get<SampleLength>().value * 2 - 2, encodedLength);
         } else {
-            fmt::print("Size {} -> {}, loop {}+{} bytes, pad {}, unroll {}{}\n", sample.get<SampleLength>().value * 2,
-                       encodedLength, layout.loopStart, layout.loopLength, layout.pad, layout.unroll,
+            std::vector<int16_t> source(length * 2);
+            for (auto& s : source) s = int16_t(file->read<int8_t>()) * amplification;
+            std::vector<int16_t> pcm(layout.pad, 0);
+            pcm.insert(pcm.end(), source.begin() + layout.skip, source.begin() + layout.loopStart);
+            const unsigned loopBlock = pcm.size() / 28;
+            for (unsigned j = 0; j < layout.body; j++) {
+                pcm.push_back(source[layout.loopStart + j % layout.loopLength]);
+            }
+            const unsigned blocks = pcm.size() / 28;
+            for (unsigned b = 0; b < blocks; b++) {
+                // The loop start block is forced to filter 0, so it decodes the same whether the SPU
+                // reaches it from the previous block or jumps to it from the loop end.
+                encoder->processSPUBlock(pcm.data() + b * 28, spuBlock, PCSX::ADPCM::Encoder::BlockAttribute::OneShot,
+                                         b == loopBlock);
+                uint8_t blockAttribute = 0;
+                if (b >= loopBlock) blockAttribute |= 2;
+                if (b == loopBlock) blockAttribute |= 4;
+                if (b == (blocks - 1)) blockAttribute |= 1;
+                spuBlock[1] = blockAttribute;
+                encodedSamples->write(spuBlock, 16);
+                encodedLength += 16;
+            }
+            fmt::print("Size {} -> {}, loop {}+{} bytes, pad {}{}\n", sample.get<SampleLength>().value * 2,
+                       encodedLength, layout.loopStart, layout.loopLength, layout.pad,
                        layout.exact ? "" : ", loop period rounded to a whole block");
+            if (!layout.exact)
+                loopWarnings += PCSX::ModConv::loopWarning(i + 1, sample.get<SampleName>().value, layout);
         }
         sample.get<SampleLength>().value = encodedLength;
         // Write back the loop that was actually encoded, after clamping, so that the player's 9xx
@@ -223,6 +234,10 @@ both the pattern and sample data.
             fmt::print("Sample too big.\n");
             return -1;
         }
+    }
+
+    if (!loopWarnings.empty()) {
+        fmt::print("{}{}{}", PCSX::ModConv::c_loopWarningHeader, loopWarnings, PCSX::ModConv::c_loopWarningFooter);
     }
 
     if (channels >= 10) {
@@ -261,7 +276,7 @@ both the pattern and sample data.
     out->close();
     encodedSamples->close();
     if (samplesFile.has_value()) {
-        fmt::print("All done, files {} and {} written out.\n", output.value(), args.get<std::string>("s").value());
+        fmt::print("All done, files {} and {} written out.\n", output.value(), samplesFile.value());
     } else {
         fmt::print("All done, file {} written out.\n", output.value());
     }

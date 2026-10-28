@@ -33,5 +33,6 @@ jobs:
           git clone https://aur.archlinux.org/pcsx-redux-git.git /build/pcsx-redux-git
           chown -R builduser:builduser /build
           cd /build/pcsx-redux-git
-          sed -i s,git+https://github.com/grumpycoders/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g PKGBUILD
+          sed -i "s,git+https://github.com/\(grumpycoders\|pcsx-redux\)/pcsx-redux.git,git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA,g" PKGBUILD
+          grep -q "git+file://$GITHUB_WORKSPACE#commit=$GITHUB_SHA" PKGBUILD
           sudo -u builduser bash -c 'makepkg --noconfirm --syncdeps'

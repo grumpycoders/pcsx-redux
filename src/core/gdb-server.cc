@@ -280,6 +280,18 @@ static std::pair<uint32_t, bool> parseHexNumber(const char* str) {
 
 static std::pair<uint32_t, bool> parseHexNumber(const std::string& str) { return parseHexNumber(str.c_str()); }
 
+// P<n>=<value>: n in hex with no padding, value as 8 hex digits in target byte order
+static bool parseRegisterWrite(const std::string& cmd, uint32_t& n, uint32_t& value) {
+    auto equal = cmd.find('=');
+    if ((equal == std::string::npos) || (equal < 2) || (cmd.length() != equal + 9)) return false;
+    auto [parsedN, validN] = parseHexNumber(cmd.substr(1, equal - 1));
+    auto [parsedValue, validValue] = parseHexNumber(cmd.substr(equal + 1));
+    if (!validN || !validValue || (parsedN >= 72)) return false;
+    n = parsedN;
+    value = parsedValue;
+    return true;
+}
+
 static const std::string memoryMap = R"(<?xml version="1.0"?>
 <memory-map>
   <!-- Everything here is described as RAM, because we don't really
@@ -498,7 +510,7 @@ void PCSX::GdbClient::setOneRegister(int n, uint32_t value) {
             ((value & 0x000000ff) << 24);
     auto& regs = g_emulator->m_cpu->m_regs;
     if (n < 32) {
-        regs.GPR.r[n] = value;
+        g_emulator->m_cpu->setGPR(n, value);
     } else if (n == 32) {
         regs.CP0.n.Status = value;
     } else if (n == 33) {
@@ -536,8 +548,8 @@ void PCSX::GdbClient::processCommand() {
         } else {  // we may need one for 02 ? SIGINT
             write("S05");
         }
-    } else if (m_cmd == "D") {
-        // detach
+    } else if ((m_cmd == "D") || StringsHelpers::startsWith(m_cmd, "D;")) {
+        // detach, with a pid after the semicolon when multiprocess was negotiated
         write("OK");
         close();
     } else if (m_cmd == "qC") {
@@ -556,28 +568,18 @@ void PCSX::GdbClient::processCommand() {
         for (int i = 0; i < 72; i++) stream(dumpOneRegister(i));
         stopStream();
     } else if (StringsHelpers::startsWith(m_cmd, "p")) {
-        if (m_cmd.size() != 3) {
+        // read one register: p<n>, with n in hex and no padding, so p4 as well as p25
+        auto [n, valid] = parseHexNumber(m_cmd.substr(1));
+        if ((m_cmd.length() < 2) || !valid || (n >= 72)) {
             write("E00");
-            close();
             return;
         }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
         write(dumpOneRegister(n));
     } else if (StringsHelpers::startsWith(m_cmd, "P")) {
-        if ((m_cmd.length() != 12) || (m_cmd[3] != '=')) {
+        // write one register
+        uint32_t n, value;
+        if (!parseRegisterWrite(m_cmd, n, value)) {
             write("E00");
-            close();
-            return;
-        }
-        uint8_t n = fromHexChar(m_cmd[1]);
-        n <<= 4;
-        n |= fromHexChar(m_cmd[2]);
-        auto [value, valid] = parseHexNumber(m_cmd.substr(4));
-        if (!valid) {
-            write("E00");
-            close();
             return;
         }
         setOneRegister(n, value);

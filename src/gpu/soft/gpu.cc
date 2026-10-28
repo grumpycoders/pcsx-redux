@@ -100,6 +100,8 @@ int32_t PCSX::SoftGPU::impl::initBackend(UI *ui) {
 }
 
 void PCSX::SoftGPU::impl::setThreaded(bool threaded) {
+    // Either way every op pushed so far runs; still, have the next drawing primitive forward its parity.
+    m_pushedSkipParity = s_skipParityUnknown;
     if (threaded) {
         m_queue.start(*this);
     } else {
@@ -336,12 +338,65 @@ bool PCSX::SoftGPU::impl::configure() {
     return changed;
 }
 
+void PCSX::SoftGPU::impl::debugVideoMode(uint32_t stat) {
+    static constexpr const char *hresNames[] = {"256", "320", "512", "640", "368", "384"};
+    const auto &info = m_display.info;
+    const uint32_t mode = getStatusControl(8);
+    ImGui::SeparatorText(_("Video mode"));
+    ImGui::Text(_("GP1(08h): %06x"), mode & 0xffffff);
+    ImGui::Text(_("Resolution: %s x %s, %s, %s"), hresNames[magic_enum::enum_integer(info.hres)],
+                info.vres == CtrlDisplayMode::VR_480 ? "480" : "240",
+                info.mode == CtrlDisplayMode::VM_PAL ? "PAL" : "NTSC",
+                info.depth == CtrlDisplayMode::CD_24BITS ? _("24 bits") : _("15 bits"));
+    ImGui::Text(_("Interlace: %s"), info.interlace ? _("on") : _("off"));
+    ImGui::Text(_("Display (GPUSTAT.23): %s"), (stat & 0x800000) ? _("disabled") : _("enabled"));
+}
+
+void PCSX::SoftGPU::impl::debugDisplayArea() {
+    ImGui::SeparatorText(_("Display area"));
+    const uint32_t start = getStatusControl(5);
+    ImGui::Text(_("Start (GP1(05h)): %u, %u"), start & 0x3ff, (start >> 10) & 0x3ff);
+    ImGui::Text(_("Horizontal range (GP1(06h)): %d - %d"), m_display.x1, m_display.x2);
+    ImGui::Text(_("Vertical range (GP1(07h)): %d - %d"), m_display.y1, m_display.y2);
+    ImGui::Text(_("Shown rectangle: %d, %d, %d x %d"), m_display.start.x(), m_display.start.y(), m_display.size.x(),
+                m_display.size.y());
+}
+
+void PCSX::SoftGPU::impl::debugDrawing(uint32_t stat) {
+    ImGui::SeparatorText(_("Drawing"));
+    ImGui::Text(_("Draw to display area (E1h.10): %s"), (stat & 0x400) ? _("on") : _("off"));
+    ImGui::Text(_("Dither (E1h.9): %s"), (stat & 0x200) ? _("on") : _("off"));
+    ImGui::Text(_("Mask: set %s, check %s"), (stat & 0x800) ? _("on") : _("off"), (stat & 0x1000) ? _("on") : _("off"));
+    const uint32_t areaStart = getDrawingStartRaw();
+    const uint32_t areaEnd = getDrawingEndRaw();
+    const uint32_t offset = getDrawingOffsetRaw();
+    ImGui::Text(_("Drawing area: %u, %u - %u, %u"), areaStart & 0x3ff, (areaStart >> 10) & 0x3ff, areaEnd & 0x3ff,
+                (areaEnd >> 10) & 0x3ff);
+    // GP0(E5h) offsets are 11-bit signed.
+    const int offsetX = int32_t(offset << 21) >> 21;
+    const int offsetY = int32_t((offset >> 11) << 21) >> 21;
+    ImGui::Text(_("Drawing offset: %d, %d"), offsetX, offsetY);
+}
+
+void PCSX::SoftGPU::impl::debugRowSkip(uint32_t stat) {
+    ImGui::SeparatorText(_("480i row skip"));
+    ImGui::Text(_("GPUSTAT.31: %u, GPUSTAT.13: %u"), stat >> 31, (stat >> 13) & 1);
+    if (m_pushedSkipParity == -1) {
+        ImGui::TextUnformatted(_("Skip parity at the last draw: none, every row drawn"));
+    } else if (m_pushedSkipParity == s_skipParityUnknown) {
+        ImGui::TextUnformatted(_("Skip parity at the last draw: no draw since the last reset or threading change"));
+    } else {
+        ImGui::Text(_("Skip parity at the last draw: %s rows skipped"), m_pushedSkipParity ? _("odd") : _("even"));
+    }
+}
+
 void PCSX::SoftGPU::impl::debug() {
     if (ImGui::Begin(_("Soft GPU debugger"), &m_showDebug)) {
-        ImGui::TextUnformatted(
-            _("Debugging features are not supported when using the software renderer yet\nConsider enabling the "
-              "OpenGL "
-              "GPU option instead."));
+        const uint32_t stat = readStatusFromBus();
+        debugVideoMode(stat);
+        debugDisplayArea();
+        debugDrawing(stat);
+        debugRowSkip(stat);
     }
     ImGui::End();
 }
@@ -352,7 +407,7 @@ static constexpr inline uint16_t BGR24to16(PCSX::GPU::EmptyColor) { return 0; }
 
 void PCSX::SoftGPU::impl::write0(ClearCache *) {}
 
-void PCSX::SoftGPU::impl::write0(FastFill *prim) { dispatch(prim); }
+void PCSX::SoftGPU::impl::write0(FastFill *prim) { dispatchDraw(prim); }
 
 void PCSX::SoftGPU::impl::exec(FastFill *prim) {
     int16_t sX = prim->x;
@@ -741,6 +796,11 @@ void PCSX::SoftGPU::impl::texturePageStatus(GPU::TPage &tpage) {
     m_statusRet |= tpage.raw & 0x07ff;
 }
 
+void PCSX::SoftGPU::impl::polygonTexturePageStatus(const GPU::TPage &tpage) {
+    m_statusRet &= ~0x01ff;
+    m_statusRet |= tpage.raw & 0x01ff;
+}
+
 void PCSX::SoftGPU::impl::maskBitStatus(const GPU::MaskBit &mask) {
     m_statusRet &= ~0x1800;
     if (mask.set) m_statusRet |= 0x0800;
@@ -748,6 +808,7 @@ void PCSX::SoftGPU::impl::maskBitStatus(const GPU::MaskBit &mask) {
 }
 
 void PCSX::SoftGPU::impl::write0(TPage *prim) {
+    m_drawToDisplay = prim->drawToDisplay;
     texturePageStatus(*prim);
     dispatch(prim);
 }
@@ -783,11 +844,23 @@ void PCSX::SoftGPU::impl::dispatchPoly(Poly<shading, shape, textured, blend, mod
                     prim->tpage.dither = true;
                     prim->tpage.raw |= 0x200;
                 }
-                texturePageStatus(prim->tpage);
+                polygonTexturePageStatus(prim->tpage);
             }
         }
     }
-    dispatch(prim);
+    dispatchDraw(prim);
+}
+
+void PCSX::SoftGPU::impl::updateSkipParity() {
+    int8_t parity = -1;
+    if (!m_drawToDisplay && ((getStatusControl(8) & 0x2c) == 0x24)) parity = readStatusFromBus() >> 31;
+    if (parity == m_pushedSkipParity) return;
+    m_pushedSkipParity = parity;
+    if (m_queue.running()) {
+        m_queue.push(std::make_unique<SkipParityOp>(parity));
+    } else {
+        m_skipParity = parity;
+    }
 }
 
 PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
@@ -830,6 +903,9 @@ PCSX::GPU::ScreenShot PCSX::SoftGPU::impl::takeScreenShot() {
 
 void PCSX::SoftGPU::impl::write1(CtrlReset *) {
     m_queue.sync();
+    // GP1(00h) clears GP0(E1h), DFE included, and GP1(08h).
+    m_drawToDisplay = false;
+    m_pushedSkipParity = s_skipParityUnknown;
     m_display.reset();
     m_statusRet = 0x14802000;
     m_softDisplay.Disabled = 1;
@@ -997,6 +1073,8 @@ void PCSX::SoftGPU::PrimOp<Prim>::run(PCSX::SoftGPU::impl &r) {
 
 void PCSX::SoftGPU::VramWriteOp::run(PCSX::SoftGPU::impl &r) { r.vramWrite(x, y, w, h, pixels.data()); }
 
+void PCSX::SoftGPU::SkipParityOp::run(PCSX::SoftGPU::impl &r) { r.m_skipParity = parity; }
+
 // clang-format off
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatchPoly(prim); }
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Flat, Shape::Tri, Textured::No, Blend::Off, Modulation::On> *prim) { dispatchPoly(prim); }
@@ -1031,44 +1109,44 @@ void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Y
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatchPoly(prim); }
 void PCSX::SoftGPU::impl::write0(Poly<Shading::Gouraud, Shape::Quad, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatchPoly(prim); }
 
-void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *prim) { dispatch(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Simple, Blend::Semi> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Flat, LineType::Poly, Blend::Semi> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Simple, Blend::Semi> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Line<Shading::Gouraud, LineType::Poly, Blend::Semi> *prim) { dispatchDraw(prim); }
 
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatch(prim); }
-void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatch(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::Off> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::Variable, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S1, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S8, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::No, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Off, Modulation::On> *prim) { dispatchDraw(prim); }
+void PCSX::SoftGPU::impl::write0(Rect<Size::S16, Textured::Yes, Blend::Semi, Modulation::On> *prim) { dispatchDraw(prim); }
