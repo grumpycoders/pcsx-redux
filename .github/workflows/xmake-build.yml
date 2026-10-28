@@ -78,6 +78,8 @@ jobs:
       # Pinned: a new emscripten release is a toolchain change, and it should
       # land as a one-line PR here rather than as a red build nobody caused.
       EMSDK_VERSION: 6.0.3
+      # The emsdk repository's own 6.0.3 tag, so the installer is pinned too.
+      EMSDK_COMMIT: db04e88298d9916fc51fcd3743045ca3eb695127
       EMSDK: /tmp/emsdk
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +91,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: /tmp/emsdk
-          key: emsdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EMSDK_VERSION }}
+          key: emsdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EMSDK_VERSION }}-${{ env.EMSDK_COMMIT }}
       - uses: actions/cache@v4
         with:
           path: /tmp/xmake-global/.xmake/packages
@@ -100,6 +102,7 @@ jobs:
         run: |
           if [ ! -x "$EMSDK/emsdk" ]; then
             git clone https://github.com/emscripten-core/emsdk.git "$EMSDK"
+            git -C "$EMSDK" checkout -q "$EMSDK_COMMIT"
           fi
           "$EMSDK/emsdk" install "$EMSDK_VERSION"
           "$EMSDK/emsdk" activate "$EMSDK_VERSION"
