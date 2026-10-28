@@ -25,9 +25,10 @@
 #include <string_view>
 #include <vector>
 
-#include "flags.h"
+#include "args/args.hxx"
 #include "fmt/format.h"
 #include "support/file.h"
+#include "support/tool-args.h"
 #include "supportpsx/adpcm.h"
 #include "supportpsx/spu-sample-layout.h"
 
@@ -584,9 +585,16 @@ static bool loadMOD(PCSX::IO<PCSX::File>& file, std::string_view name, unsigned 
 }  // namespace
 
 int main(int argc, char** argv) {
-    CommandLine::args args(argc, argv);
-    const auto output = args.get<std::string>("o");
-    const auto samplesFile = args.get<std::string>("s");
+    args::ArgumentParser parser("");
+    args::ValueFlag<std::string> outputFlag(parser, "output", "", {"o"});
+    args::ValueFlag<std::string> samplesFlag(parser, "samples", "", {"s"});
+    args::ValueFlag<unsigned> amplificationFlag(parser, "amplification", "", {"a"});
+    args::Flag fitFlag(parser, "fit", "", {"f"});
+    args::Flag helpFlag(parser, "help", "", {"h"});
+    args::PositionalList<std::string> inputsList(parser, "inputs", "");
+    PCSX::ToolArgs::parse(parser, argc, argv);
+    const auto output = PCSX::ToolArgs::get(outputFlag);
+    const auto samplesFile = PCSX::ToolArgs::get(samplesFlag);
 
     fmt::print(R"(
 xmconv
@@ -594,10 +602,10 @@ https://github.com/grumpycoders/pcsx-redux/tree/main/tools/xmconv/
 
 )");
 
-    const auto inputs = args.positional();
-    const bool asksForHelp = args.get<bool>("h").value_or(false);
-    const bool fit = args.get<bool>("f").value_or(false);
-    const auto amplification = args.get<unsigned>("a").value_or(224);
+    const auto inputs = args::get(inputsList);
+    const bool asksForHelp = args::get(helpFlag);
+    const bool fit = args::get(fitFlag);
+    const auto amplification = PCSX::ToolArgs::get(amplificationFlag).value_or(224);
     if (asksForHelp || inputs.size() != 1 || !output.has_value() || !samplesFile.has_value()) {
         fmt::print(R"(
 Usage: {} input.xm|input.mod [-h] [-a amp] [-f] -o output.xmp -s output.smp
