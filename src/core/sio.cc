@@ -221,7 +221,8 @@ void PCSX::SIO::transmitData() {
             const unsigned index = portIndex * 3 + m_currentDevice - DeviceType::TapMemoryCardB;
             if (!PCSX::g_emulator->m_pads->hasMultitap(port) || !tapMcdSettings(index).first) {
                 m_tapMemoryCard[index].m_directoryFlag = MemoryCard::Flags::DirectoryUnread;
-                m_currentDevice = DeviceType::None;
+                // Only the first byte after select is an address: ignore the rest of this one.
+                m_currentDevice = DeviceType::Ignore;
             }
         }
     }
