@@ -20,10 +20,10 @@
 #include "gtest/gtest.h"
 #include "main/main.h"
 
-// The guest test drives SIO0 directly. setup-tap.lua puts a multitap on port 1 with a card in slot B and
-// none in slot C; setup-notap.lua leaves the tap off with the slot B card still inserted. The slot B card is
-// memcard1b.mcd, created formatted beside memcard1.mcd when it is missing. Each leaves its arm for the guest
-// in the scratchpad.
+// The guest test drives SIO0 directly. setup-tap.lua puts a multitap on port 1 with cards in slots B and D
+// and none in slot C; setup-notap.lua leaves the tap off with the slot B and D cards still inserted. Those
+// cards are memcard1b.mcd and memcard1d.mcd, created formatted beside memcard1.mcd when missing. Each
+// leaves its arm for the guest in the scratchpad.
 
 TEST(Tapcard, TapInterpreter) {
     MainInvoker invoker("-no-ui", "-run", "-bios", "src/mips/openbios/openbios.bin", "-testmode", "-interpreter",
