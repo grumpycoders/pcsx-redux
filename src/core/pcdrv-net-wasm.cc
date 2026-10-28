@@ -27,6 +27,7 @@
 PCSX::R3000Acpu::PCdrvFile::~PCdrvFile() {}
 
 void PCSX::R3000Acpu::pcdrvOpenNet(const std::string& filename) {
+    this_symbol_does_not_exist_on_wasm();
     auto& regs = m_regs.GPR.n;
     regs.v0 = -1;
     regs.v1 = -1;
