@@ -188,7 +188,7 @@ void PCSX::SIO::transmitData() {
         // A multitap also answers 02h to 04h, its slots B to D.
         if (m_currentDevice >= 0x02 && m_currentDevice <= 0x04) {
             const auto port = (m_regs.control & ControlFlags::WHICH_PORT) == SelectedPort::Port2 ? Pads::Port::Port2
-                                                                                                   : Pads::Port::Port1;
+                                                                                                 : Pads::Port::Port1;
             if (PCSX::g_emulator->m_pads->hasMultitap(port)) m_currentDevice = DeviceType::PAD;
         }
     }
