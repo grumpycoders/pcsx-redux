@@ -64,6 +64,7 @@ class GPULogger {
     // Logging without the VRAM heatmaps, which need an OpenGL context; enable() sets those up.
     void setLogging(bool enabled) { m_enabled = enabled; }
     size_t loggedCount() const { return m_list.size(); }
+    GPU::LoggedList& frameLog() { return m_list; }
     void clearFrameLog() { m_list.destroyAll(); }
     template <typename T>
     void addNode(const T& data, GPU::Logged::Origin origin, uint32_t value, uint32_t length) {
