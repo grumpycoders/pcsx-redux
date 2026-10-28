@@ -92,7 +92,7 @@ msgstr "Visa horisontellt intervall: %d-%d"
 #: src/core/OpenGL_GPU/gpu_opengl.cc:539
 #, c-format
 msgid "Display vertical range: %d-%d"
-msgstr "Vertikalt visningsområde: %d-%d"
+msgstr "Visa vertikalt intervall: %d - %d"
 
 #: src/core/OpenGL_GPU/gpu_opengl.cc:540
 #, c-format
