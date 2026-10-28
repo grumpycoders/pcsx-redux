@@ -282,7 +282,10 @@ void PCSX::SIO::transmitData() {
                 break;
             }
             if (!m_tapMemoryCardLoaded[index]) {
+                // loadMcd resets the directory flag; keep the one a save state may have restored.
+                const uint8_t directoryFlag = card.m_directoryFlag;
                 card.loadMcd(path);
+                card.m_directoryFlag = directoryFlag;
                 m_tapMemoryCardLoaded[index] = true;
             }
             // The card itself only knows 81h.
