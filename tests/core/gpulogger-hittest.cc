@@ -99,6 +99,8 @@ class GPULoggerHitTest : public ::testing::Test {
         return std::vector<uint16_t>(p, p + 1024 * 512);
     }
     void setOffset(int x, int y) { gp0({0xe5000000 | ((uint32_t(y) & 0x7ff) << 11) | (uint32_t(x) & 0x7ff)}); }
+    // Fast fill ignores the drawing offset and area. Two halves, because a height of 512 does not fit.
+    void clearVram() { gp0({0x02000000, xy(0, 0), xy(1023, 256), 0x02000000, xy(0, 256), xy(1023, 256)}); }
 
     // Sends one primitive and returns how its isInside() compares to the pixels it changed.
     Coverage measure(std::initializer_list<uint32_t> words) { return measure(std::vector<uint32_t>(words)); }
@@ -183,40 +185,108 @@ TEST_F(GPULoggerHitTest, FlatTriangle) {
     expectCovers(measure({0x20000000 | c_white, xy(10, 10), xy(90, 20), xy(40, 80)}));
 }
 
-// The cases below disagree with the renderer today and are disabled until the hit-test is fixed.
-
-// The renderer leaves out the right and bottom edges of a polygon, the hit-test includes them.
-TEST_F(GPULoggerHitTest, DISABLED_FlatQuadEdges) {
+// The renderer leaves out the right and bottom edges of a polygon.
+TEST_F(GPULoggerHitTest, FlatQuadEdges) {
     expectExact(measure({0x28000000 | c_white, xy(0, 0), xy(100, 0), xy(0, 100), xy(100, 100)}));
 }
 
-TEST_F(GPULoggerHitTest, DISABLED_FlatTriangleEdges) {
+TEST_F(GPULoggerHitTest, FlatTriangleEdges) {
     expectExact(measure({0x20000000 | c_white, xy(10, 10), xy(90, 20), xy(40, 80)}));
 }
 
-// Offset coordinates are 11-bit signed: -1000 + -500 wraps to 548, which is where the renderer draws.
-// The hit-test adds the offset without wrapping.
-TEST_F(GPULoggerHitTest, DISABLED_FlatQuadOffsetWraps) {
+// The pixel address wraps modulo 2048: -1000 + -500 is -1500, which the renderer draws at 548.
+TEST_F(GPULoggerHitTest, FlatQuadOffsetWraps) {
     setOffset(-500, 0);
     expectExact(measure({0x28000000 | c_white, xy(-1000, 10), xy(-900, 10), xy(-1000, 60), xy(-900, 60)}));
 }
 
-// The hit-test checks collinearity with the infinite line through both ends: it lists pixels past the
-// ends, and misses the stepped pixels of a diagonal.
-TEST_F(GPULoggerHitTest, DISABLED_LineDiagonal) {
-    expectExact(measure({0x40000000 | c_white, xy(10, 10), xy(80, 40)}));
+TEST_F(GPULoggerHitTest, LineOffsetWraps) {
+    setOffset(-600, -1000);
+    expectExact(measure({0x40000000 | c_white, xy(-900, -900), xy(-700, -860)}));
 }
 
-TEST_F(GPULoggerHitTest, DISABLED_LineVertical) {
-    expectExact(measure({0x40000000 | c_white, xy(5, 100), xy(5, 150)}));
+TEST_F(GPULoggerHitTest, RectOffsetWraps) {
+    setOffset(-1000, 0);
+    expectExact(measure({0x60000000 | c_white, xy(-300, 40), xy(50, 20)}));
 }
 
-// A polyline is open, but the hit-test also tests a segment from the last vertex back to the first.
-TEST_F(GPULoggerHitTest, DISABLED_PolyLineOpen) {
+// A line covers its Bresenham steps between its two ends, and nothing past them.
+TEST_F(GPULoggerHitTest, LineDiagonal) { expectExact(measure({0x40000000 | c_white, xy(10, 10), xy(80, 40)})); }
+
+TEST_F(GPULoggerHitTest, LineVertical) { expectExact(measure({0x40000000 | c_white, xy(5, 100), xy(5, 150)})); }
+
+// A polyline is open: nothing joins the last vertex back to the first.
+TEST_F(GPULoggerHitTest, PolyLineOpen) {
     auto c = measure({0x48000000 | c_white, xy(10, 10), xy(60, 10), xy(60, 60), 0x55555555});
     // On the closing segment, and on neither drawn segment nor their extensions.
     EXPECT_FALSE(c.hit[35 * 1024 + 35]);
     expectExact(c);
+}
+
+// Seeded random shapes in every orientation, some placed so the offset sum wraps.
+class Lcg {
+  public:
+    explicit Lcg(uint32_t seed) : m_state(seed) {}
+    int range(int lo, int hi) {
+        m_state = m_state * 1664525u + 1013904223u;
+        return lo + int((m_state >> 8) % uint32_t(hi - lo + 1));
+    }
+
+  private:
+    uint32_t m_state;
+};
+
+TEST_F(GPULoggerHitTest, RandomTriangles) {
+    Lcg rng(1);
+    unsigned drawn = 0, wrapped = 0;
+    for (unsigned i = 0; i < 48; i++) {
+        bool wrap = (i % 4) == 3;
+        setOffset(wrap ? -1000 : 0, wrap ? -1000 : 0);
+        int bx = rng.range(wrap ? -600 : 0, wrap ? -300 : 800), by = rng.range(wrap ? -1000 : 0, wrap ? -900 : 380);
+        uint32_t v[3];
+        for (auto& w : v) w = xy(bx + rng.range(0, 200), by + rng.range(0, 120));
+        clearVram();
+        auto c = measure({0x20000000 | c_white, v[0], v[1], v[2]});
+        if (c.drawnCount == 0) continue;
+        drawn++;
+        if (wrap) wrapped++;
+        SCOPED_TRACE("triangle " + std::to_string(i));
+        expectExact(c);
+    }
+    // A random triangle can be degenerate, but most are not, and the wrapped ones must draw too.
+    EXPECT_GE(drawn, 40u);
+    EXPECT_GE(wrapped, 8u);
+}
+
+TEST_F(GPULoggerHitTest, RandomQuads) {
+    Lcg rng(2);
+    unsigned drawn = 0;
+    for (unsigned i = 0; i < 32; i++) {
+        int bx = rng.range(0, 800), by = rng.range(0, 380);
+        uint32_t v[4];
+        for (auto& w : v) w = xy(bx + rng.range(0, 200), by + rng.range(0, 120));
+        clearVram();
+        auto c = measure({0x28000000 | c_white, v[0], v[1], v[2], v[3]});
+        if (c.drawnCount == 0) continue;
+        drawn++;
+        SCOPED_TRACE("quad " + std::to_string(i));
+        expectExact(c);
+    }
+    EXPECT_GE(drawn, 28u);
+}
+
+TEST_F(GPULoggerHitTest, RandomLines) {
+    Lcg rng(3);
+    for (unsigned i = 0; i < 64; i++) {
+        bool wrap = (i % 4) == 3;
+        setOffset(wrap ? -1000 : 0, wrap ? -1000 : 0);
+        int bx = rng.range(wrap ? -600 : 0, wrap ? -300 : 800), by = rng.range(wrap ? -1000 : 0, wrap ? -900 : 380);
+        clearVram();
+        auto c = measure({0x40000000 | c_white, xy(bx + rng.range(0, 200), by + rng.range(0, 120)),
+                          xy(bx + rng.range(0, 200), by + rng.range(0, 120))});
+        SCOPED_TRACE("line " + std::to_string(i));
+        expectExact(c);
+    }
 }
 
 TEST_F(GPULoggerHitTest, RectVariable) { expectExact(measure({0x60000000 | c_white, xy(30, 40), xy(50, 20)})); }
